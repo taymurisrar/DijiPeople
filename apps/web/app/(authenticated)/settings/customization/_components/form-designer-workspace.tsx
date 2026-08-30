@@ -428,7 +428,7 @@ export function FormDesignerWorkspace({
           </div>
         </aside>
 
-        <main className="rounded-[20px] border border-border bg-slate-50 p-4 shadow-sm">
+        <div className="rounded-[20px] border border-border bg-slate-50 p-4 shadow-sm">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-foreground">
@@ -684,7 +684,7 @@ export function FormDesignerWorkspace({
               </section>
             ))}
           </div>
-        </main>
+        </div>
 
         <PropertiesPanel
           audiences={audiences}

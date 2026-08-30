@@ -131,14 +131,9 @@ export const employeeSettingsSections: SettingsSectionConfig[] = [
       },
       {
         category: "employees",
-        key: "requirePrimaryWorkLocation",
+        // BUG-1976 — was `requirePrimaryWorkLocation`, which nothing reads.
+        key: "requireWorkLocation",
         label: "Require primary work location",
-        type: "checkbox",
-      },
-      {
-        category: "employees",
-        key: "requireWorkCalendar",
-        label: "Require work calendar",
         type: "checkbox",
       },
       {
@@ -156,22 +151,21 @@ export const employeeSettingsSections: SettingsSectionConfig[] = [
     fields: [
       {
         category: "employees",
-        key: "maximumReportingLevels",
+        // BUG-1976 — was `maximumReportingLevels`, which nothing reads.
+        // `employees.service.ts` enforces the depth limit from
+        // `maxReportingLevels`, so the control now writes that.
+        key: "maxReportingLevels",
         label: "Maximum reporting levels",
         type: "number",
       },
-      {
-        category: "employees",
-        key: "maximumDirectReports",
-        label: "Maximum direct reports",
-        type: "number",
-      },
-      {
-        category: "employees",
-        key: "allowSkipLevelReporting",
-        label: "Allow skip-level reporting",
-        type: "checkbox",
-      },
+      /*
+       * BUG-1976 pair 2 — "Allow skip-level reporting" was removed rather than
+       * repointed. It wrote `allowSkipLevelReporting`, which nothing reads; the
+       * name it looks like a typo of, `allowSkipLevelApprovals`, is exposed by
+       * the resolver and read by nothing either. Skip-level approval behaviour
+       * is not implemented at all, so renaming the control would have fixed
+       * nothing and kept the assurance on screen.
+       */
       {
         category: "employees",
         key: "allowMatrixReporting",
@@ -180,20 +174,10 @@ export const employeeSettingsSections: SettingsSectionConfig[] = [
       },
       {
         category: "employees",
-        key: "allowEmployeeWithoutReportingManager",
+        // BUG-1976 — was `allowEmployeeWithoutReportingManager`, which nothing
+        // reads.
+        key: "allowEmployeeWithoutManager",
         label: "Allow employee without reporting manager",
-        type: "checkbox",
-      },
-      {
-        category: "employees",
-        key: "validateReportingHierarchy",
-        label: "Validate reporting hierarchy",
-        type: "checkbox",
-      },
-      {
-        category: "employees",
-        key: "preventCircularReporting",
-        label: "Prevent circular reporting",
         type: "checkbox",
       },
     ],
@@ -205,7 +189,10 @@ export const employeeSettingsSections: SettingsSectionConfig[] = [
     fields: [
       {
         category: "employees",
-        key: "preventDuplicatePersonalEmail",
+        // BUG-1976 — was `preventDuplicatePersonalEmail`, which nothing reads,
+        // while `checkDuplicates` enforced `preventDuplicateByPersonalEmail`
+        // at its catalog default no matter what the administrator chose.
+        key: "preventDuplicateByPersonalEmail",
         label: "Prevent duplicate by personal email",
         type: "checkbox",
       },
@@ -217,26 +204,16 @@ export const employeeSettingsSections: SettingsSectionConfig[] = [
       },
       {
         category: "employees",
-        key: "preventDuplicatePhone",
+        // BUG-1976 — was `preventDuplicatePhone`, which nothing reads.
+        key: "preventDuplicateByPhoneNumber",
         label: "Prevent duplicate by phone",
         type: "checkbox",
       },
       {
         category: "employees",
-        key: "preventDuplicateNationalId",
+        // BUG-1976 — was `preventDuplicateNationalId`, which nothing reads.
+        key: "preventDuplicateByNationalId",
         label: "Prevent duplicate national ID",
-        type: "checkbox",
-      },
-      {
-        category: "employees",
-        key: "preventDuplicatePassport",
-        label: "Prevent duplicate passport",
-        type: "checkbox",
-      },
-      {
-        category: "employees",
-        key: "preventDuplicateEmployeeId",
-        label: "Prevent duplicate employee ID",
         type: "checkbox",
       },
       {
@@ -287,23 +264,47 @@ const legacyAttendanceSettingsSections: SettingsSectionConfig[] = [
         label: "Require office location for office mode",
         type: "checkbox",
       },
+      /*
+       * MANDATED, NOT CONFIGURABLE.
+       *
+       * The seven fields marked `disabled` below are shown for transparency and
+       * cannot be changed. Device location capture is a platform integrity
+       * control for every self-service mode - see the enforcement point,
+       * `validateAttendanceLocationPayload` in the API's attendance service,
+       * which throws unconditionally and reads none of these keys, and the
+       * migration `20260728234000_attendance_mandatory_location_capture` that
+       * introduced it.
+       *
+       * They were live, enabled controls until BUG-1979: an administrator
+       * changed one, saw "Settings saved successfully", reloaded, and found the
+       * old value back, with nothing in the response or the audit trail saying
+       * why. The API now refuses a submitted value that differs from the
+       * mandate instead of silently substituting it, and these controls no
+       * longer invite the submission.
+       */
       {
         category: "attendance",
         key: "requireRemoteLocationCapture",
         label: "Require remote location capture",
+        description: "Enforced by platform policy and cannot be changed.",
         type: "checkbox",
+        disabled: true,
       },
       {
         category: "attendance",
         key: "locationCaptureRequired",
         label: "Require attendance location capture",
+        description: "Enforced by platform policy and cannot be changed.",
         type: "checkbox",
+        disabled: true,
       },
       {
         category: "attendance",
         key: "locationRequiredForModes",
         label: "Location required for modes",
+        description: "Enforced by platform policy and cannot be changed.",
         type: "multiselect",
+        disabled: true,
         options: [
           { label: "Office", value: "OFFICE" },
           { label: "Remote", value: "REMOTE" },
@@ -314,13 +315,17 @@ const legacyAttendanceSettingsSections: SettingsSectionConfig[] = [
         category: "attendance",
         key: "captureLocationOnCheckIn",
         label: "Capture location on check-in",
+        description: "Enforced by platform policy and cannot be changed.",
         type: "checkbox",
+        disabled: true,
       },
       {
         category: "attendance",
         key: "captureLocationOnCheckOut",
         label: "Capture location on check-out",
+        description: "Enforced by platform policy and cannot be changed.",
         type: "checkbox",
+        disabled: true,
       },
       {
         category: "attendance",
@@ -332,7 +337,9 @@ const legacyAttendanceSettingsSections: SettingsSectionConfig[] = [
         category: "attendance",
         key: "allowManualLocationException",
         label: "Allow manual location exception",
+        description: "Enforced by platform policy and cannot be changed.",
         type: "checkbox",
+        disabled: true,
       },
       {
         category: "attendance",
@@ -350,7 +357,9 @@ const legacyAttendanceSettingsSections: SettingsSectionConfig[] = [
         category: "attendance",
         key: "highAccuracyLocation",
         label: "Use high accuracy location",
+        description: "Enforced by platform policy and cannot be changed.",
         type: "checkbox",
+        disabled: true,
       },
       {
         category: "attendance",
@@ -487,18 +496,17 @@ const legacyAttendanceSettingsSections: SettingsSectionConfig[] = [
           },
         ],
       },
-      {
-        category: "attendance",
-        key: "allowOffDayCheckIn",
-        label: "Allow off-day check-in",
-        type: "checkbox",
-      },
-      {
-        category: "attendance",
-        key: "allowHolidayCheckIn",
-        label: "Allow holiday check-in",
-        type: "checkbox",
-      },
+      /*
+       * "Allow off-day check-in" and "Allow holiday check-in" used to be here.
+       *
+       * Neither is a tenant-settings catalog key - they are `AttendancePolicy`
+       * columns, and the settings save path rejects any key the catalog does
+       * not know. So touching either control failed the entire PATCH with
+       * "Unsupported setting key attendance.allowOffDayCheckIn" and discarded
+       * every other unsaved change in the same submission (BUG-1978). They now
+       * live on the attendance policy screen, which writes the columns that
+       * actually back them.
+       */
       {
         category: "attendance",
         key: "requireReasonForOffdayHolidayCheckIn",
@@ -616,33 +624,9 @@ const legacyAttendanceSettingsSections: SettingsSectionConfig[] = [
       },
       {
         category: "timesheets",
-        key: "submissionDeadlineDaysAfterPeriodEnd",
-        label: "Submission deadline days after period end",
-        type: "number",
-      },
-      {
-        category: "timesheets",
-        key: "managerApprovalDeadlineDays",
-        label: "Manager approval deadline days",
-        type: "number",
-      },
-      {
-        category: "timesheets",
         key: "lockTimesheetAfterApproval",
         label: "Lock timesheets after approval",
         type: "checkbox",
-      },
-      {
-        category: "timesheets",
-        key: "allowFutureEntries",
-        label: "Allow future entries",
-        type: "checkbox",
-      },
-      {
-        category: "timesheets",
-        key: "maximumBackdatedDays",
-        label: "Maximum backdated days",
-        type: "number",
       },
       {
         category: "timesheets",
@@ -679,36 +663,6 @@ const legacyAttendanceSettingsSections: SettingsSectionConfig[] = [
         category: "timesheets",
         key: "requireApprovalBeforePayroll",
         label: "Require approval before payroll",
-        type: "checkbox",
-      },
-      {
-        category: "timesheets",
-        key: "generatePayrollInputsAutomatically",
-        label: "Generate payroll inputs automatically",
-        type: "checkbox",
-      },
-      {
-        category: "timesheets",
-        key: "includeOvertimeInPayrollExport",
-        label: "Include overtime in payroll export",
-        type: "checkbox",
-      },
-      {
-        category: "timesheets",
-        key: "includeLeaveInPayrollExport",
-        label: "Include leave in payroll export",
-        type: "checkbox",
-      },
-      {
-        category: "timesheets",
-        key: "includeHolidaysInPayrollExport",
-        label: "Include holidays in payroll export",
-        type: "checkbox",
-      },
-      {
-        category: "timesheets",
-        key: "includeUnpaidTimeInPayrollExport",
-        label: "Include unpaid time in payroll export",
         type: "checkbox",
       },
       {
@@ -1034,18 +988,12 @@ export const timesheetSettingsSections: TabbedSettingsSection[] = [
       "Enable timesheets and define the tenant-wide entry experience.",
     fields: [
       timesheetField("enableTimesheetModule", "Enable timesheet module"),
-      timesheetField("timesheetRequired", "Timesheet required"),
       timesheetField(
         "timesheetPeriodType",
         "Employee-facing period",
         "select",
         [option("Monthly with weekly sections", "monthly")],
       ),
-      timesheetField("entryMode", "Entry mode", "select", [
-        option("Hours", "HOURS"),
-        option("Start and end time", "TIME_RANGE"),
-        option("Both", "BOTH"),
-      ]),
       timesheetField(
         "defaultHoursForOnWork",
         "Default working-day hours",
@@ -1053,13 +1001,6 @@ export const timesheetSettingsSections: TabbedSettingsSection[] = [
       ),
       timesheetField("autoFillWorkingDays", "Auto-fill working days"),
     ],
-  },
-  {
-    tabKey: "scope",
-    title: "Scope & Applicability",
-    description:
-      "Manage effective scoped policies over the tenant-wide baseline.",
-    fields: [],
   },
   {
     tabKey: "monthly-period",
@@ -1070,15 +1011,6 @@ export const timesheetSettingsSections: TabbedSettingsSection[] = [
       timesheetField(
         "generateNextMonthAutomatically",
         "Generate next month automatically",
-      ),
-      timesheetField("generationLeadDays", "Generation lead days", "number"),
-      timesheetField("visiblePastMonths", "Visible past months", "number"),
-      timesheetField("visibleFutureMonths", "Visible future months", "number"),
-      timesheetField("allowFutureEntries", "Allow future entries"),
-      timesheetField(
-        "maximumBackdatedDays",
-        "Maximum backdated days",
-        "number",
       ),
     ],
   },
@@ -1098,18 +1030,6 @@ export const timesheetSettingsSections: TabbedSettingsSection[] = [
         option("Sunday", "SUNDAY"),
       ]),
       timesheetField("enableCurrentWeekOnly", "Enable current week only"),
-      timesheetField(
-        "allowPreviousIncompleteWeek",
-        "Allow previous incomplete week",
-      ),
-      timesheetField("allowPreviousOverdueWeek", "Allow previous overdue week"),
-      timesheetField(
-        "allowPreviousRejectedWeek",
-        "Allow previous rejected week",
-      ),
-      timesheetField("allowFutureWeekEntry", "Allow future week entry"),
-      timesheetField("futureWeeksAllowed", "Future weeks allowed", "number"),
-      timesheetField("weeklySubmissionRequired", "Weekly submission required"),
       timesheetField(
         "weeklySubmissionDeadlineDay",
         "Submission deadline day",
@@ -1143,11 +1063,6 @@ export const timesheetSettingsSections: TabbedSettingsSection[] = [
         "requireLateSubmissionReason",
         "Require late-submission reason",
       ),
-      timesheetField(
-        "autoCompleteLeaveOnlyWeek",
-        "Auto-complete leave-only week",
-      ),
-      timesheetField("autoSubmitLeaveOnlyWeek", "Auto-submit leave-only week"),
       timesheetField("lockWeekOnSubmission", "Lock week on submission"),
       timesheetField("lockWeekOnApproval", "Lock week on approval"),
       timesheetField(
@@ -1174,11 +1089,6 @@ export const timesheetSettingsSections: TabbedSettingsSection[] = [
         ],
       ),
       timesheetField("defaultWorkHours", "Fallback daily hours", "number"),
-      timesheetField(
-        "includeEmploymentDates",
-        "Respect join and leaving dates",
-      ),
-      timesheetField("lockSystemClassifiedDays", "Lock system-classified days"),
     ],
   },
   {
@@ -1205,7 +1115,6 @@ export const timesheetSettingsSections: TabbedSettingsSection[] = [
         "number",
       ),
       timesheetField("allowCopyPreviousWeek", "Allow copy previous week"),
-      timesheetField("allowTimerEntries", "Allow timer entries"),
     ],
   },
   {
@@ -1240,22 +1149,6 @@ export const timesheetSettingsSections: TabbedSettingsSection[] = [
         "Variance tolerance percent",
         "number",
       ),
-      timesheetField("requireVarianceReason", "Require variance reason"),
-      timesheetField(
-        "includeAttendanceCorrections",
-        "Include approved corrections",
-      ),
-      timesheetField(
-        "attendanceConflictBehavior",
-        "Conflict behavior",
-        "select",
-        [
-          option("Warn", "WARN"),
-          option("Block", "BLOCK"),
-          option("Keep timesheet", "KEEP_TIMESHEET"),
-          option("Use attendance", "USE_ATTENDANCE"),
-        ],
-      ),
     ],
   },
   {
@@ -1264,19 +1157,7 @@ export const timesheetSettingsSections: TabbedSettingsSection[] = [
     description:
       "Show approved leave and handle partial, retroactive, and leave-only periods.",
     fields: [
-      timesheetField("includeApprovedLeave", "Include approved leave"),
-      timesheetField("includePartialLeave", "Include partial leave"),
       timesheetField("lockApprovedLeave", "Lock approved leave hours"),
-      timesheetField(
-        "recalculateRetroactiveLeave",
-        "Recalculate retroactive leave",
-      ),
-      timesheetField(
-        "pendingLeaveBehavior",
-        "Pending leave behavior",
-        "select",
-        [option("Ignore", "IGNORE"), option("Warn", "WARN")],
-      ),
     ],
   },
   {
@@ -1285,19 +1166,7 @@ export const timesheetSettingsSections: TabbedSettingsSection[] = [
     description:
       "Resolve scoped holiday names and control approved holiday work.",
     fields: [
-      timesheetField("includeScopedHolidays", "Include scoped holidays"),
       timesheetField("allowHolidayWork", "Allow holiday work"),
-      timesheetField("requireHolidayWorkReason", "Require holiday-work reason"),
-      timesheetField(
-        "requireHolidayWorkApproval",
-        "Require holiday-work approval",
-      ),
-      timesheetField(
-        "holidayHoursCategory",
-        "Holiday hours category",
-        "select",
-        [option("Holiday", "HOLIDAY"), option("Overtime", "OVERTIME")],
-      ),
     ],
   },
   {
@@ -1306,7 +1175,6 @@ export const timesheetSettingsSections: TabbedSettingsSection[] = [
     description: "Limit selections to valid assignments and allocation dates.",
     fields: [
       timesheetField("requireProject", "Require project"),
-      timesheetField("allowNonProjectTime", "Allow non-project time"),
       timesheetField(
         "allowUnassignedProjectEntry",
         "Allow unassigned projects",
@@ -1321,14 +1189,8 @@ export const timesheetSettingsSections: TabbedSettingsSection[] = [
           option("Ignore", "IGNORE"),
         ],
       ),
-      timesheetField(
-        "requireProjectManagerApproval",
-        "Require project manager approval",
-      ),
-      timesheetField("allowNonBillableActivity", "Allow non-billable activity"),
       timesheetField("requireTask", "Require task"),
       timesheetField("requireCostCenter", "Require cost center"),
-      timesheetField("requireWorkItemReference", "Require work item reference"),
     ],
   },
   {
@@ -1337,27 +1199,8 @@ export const timesheetSettingsSections: TabbedSettingsSection[] = [
     description:
       "Use the shared approval matrix with optional project, HR, and payroll stages.",
     fields: [
-      timesheetField("approvalScope", "Approval scope", "select", [
-        option("Whole week", "WEEK"),
-        option("Whole month", "MONTH"),
-        option("Per project", "PROJECT"),
-        option("Per entry", "ENTRY"),
-      ]),
-      timesheetField(
-        "defaultApproverSource",
-        "Default approver source",
-        "select",
-        [
-          option("Reporting manager", "REPORTING_MANAGER"),
-          option("Approval matrix", "APPROVAL_MATRIX"),
-        ],
-      ),
-      timesheetField("requireProjectApproval", "Require project approval"),
       timesheetField("requireHrApproval", "Require HR approval"),
       timesheetField("requirePayrollApproval", "Require payroll approval"),
-      timesheetField("approvalSlaHours", "Approval SLA hours", "number"),
-      timesheetField("allowDelegation", "Allow delegation"),
-      timesheetField("enableApprovalEscalation", "Enable escalation"),
     ],
   },
   {
@@ -1372,25 +1215,12 @@ export const timesheetSettingsSections: TabbedSettingsSection[] = [
         option("Required before finalization", "REQUIRED_FINALIZATION"),
       ]),
       timesheetField("approvedTimesheetsOnly", "Approved timesheets only"),
-      timesheetField("includeRegularHoursInPayroll", "Include regular hours"),
-      timesheetField("includeOvertimeInPayrollExport", "Include overtime"),
-      timesheetField(
-        "includeUnpaidTimeInPayrollExport",
-        "Include unpaid shortfall",
-      ),
       timesheetField("includeWeekendHoursInPayroll", "Include weekend hours"),
-      timesheetField("includeHolidaysInPayrollExport", "Include holiday hours"),
-      timesheetField("includeBillableHoursInPayroll", "Include billable hours"),
-      timesheetField(
-        "includeNonBillableHoursInPayroll",
-        "Include non-billable hours",
-      ),
       timesheetField("payrollCutoffDay", "Payroll cutoff day", "number"),
       timesheetField(
         "preventReopenAfterPayroll",
         "Prevent reopening after payroll",
       ),
-      timesheetField("allowPayrollAdjustment", "Allow payroll adjustment"),
     ],
   },
   {
@@ -1400,8 +1230,6 @@ export const timesheetSettingsSections: TabbedSettingsSection[] = [
       "Protect approved and payroll-processed history through governed reopening.",
     fields: [
       timesheetField("lockTimesheetAfterApproval", "Lock after approval"),
-      timesheetField("lockWeekAfterPayrollExport", "Lock after payroll export"),
-      timesheetField("requireReopeningApproval", "Require reopening approval"),
       timesheetField(
         "allowEmployeeReopeningRequest",
         "Allow employee reopening requests",
@@ -1424,24 +1252,6 @@ export const timesheetSettingsSections: TabbedSettingsSection[] = [
         "allowPayrollReopening",
         "Allow payroll administrator reopening",
       ),
-      timesheetField(
-        "requirePayrollAdjustmentAfterReopening",
-        "Require payroll adjustment after reopening",
-      ),
-      timesheetField(
-        "restrictReopeningToSpecifiedEntries",
-        "Restrict reopening to specified entries",
-      ),
-      timesheetField(
-        "autoExpireReopeningDays",
-        "Auto-expire reopening after days",
-        "number",
-      ),
-      timesheetField("reapprovalBehavior", "Reapproval behavior", "select", [
-        option("Full workflow", "FULL_WORKFLOW"),
-        option("Previous rejector", "PREVIOUS_REJECTOR"),
-        option("Final approver only", "FINAL_APPROVER"),
-      ]),
     ],
   },
   {
@@ -1450,11 +1260,6 @@ export const timesheetSettingsSections: TabbedSettingsSection[] = [
     description:
       "Warn or restrict normal modules without blocking the timesheet itself.",
     fields: [
-      timesheetField(
-        "enableMissingTimesheetWarnings",
-        "Enable missing-timesheet warnings",
-      ),
-      timesheetField("warningAfterDays", "Warn after days", "number"),
       timesheetField("enableAccessRestrictions", "Enable access restrictions"),
       timesheetField("restrictionMode", "Restriction mode", "select", [
         option("Warning only", "WARNING_ONLY"),
@@ -1469,45 +1274,9 @@ export const timesheetSettingsSections: TabbedSettingsSection[] = [
       ),
       timesheetField("excludedRoleKeys", "Excluded role keys", "text"),
       timesheetField("excludedEmployeeIds", "Excluded employee IDs", "text"),
-      timesheetField("restrictionAllowedModules", "Allowed modules", "text"),
-      timesheetField("allowTimesheetsDuringRestriction", "Allow Timesheets"),
-      timesheetField(
-        "allowNotificationsDuringRestriction",
-        "Allow Notifications",
-      ),
-      timesheetField("allowProfileDuringRestriction", "Allow Profile"),
-      timesheetField("allowHelpDuringRestriction", "Allow Help and Support"),
-      timesheetField("emergencyOverrideEnabled", "Emergency override"),
       timesheetField("managerRestrictionExemption", "Manager exemption"),
       timesheetField("hrRestrictionExemption", "HR exemption"),
-      timesheetField(
-        "temporaryOverrideExpiryHours",
-        "Temporary override expiry hours",
-        "number",
-      ),
       timesheetField("restrictionMessage", "Restriction message", "textarea"),
-      timesheetField("excludeApprovedLeave", "Exclude approved full leave"),
-      timesheetField("excludePendingApproval", "Exclude pending approval"),
-    ],
-  },
-  {
-    tabKey: "notifications",
-    title: "Notifications",
-    description:
-      "Configure submission, approval, rejection, reopening, and payroll alerts.",
-    fields: [
-      timesheetField("allowNotifications", "Allow notifications"),
-      timesheetField("submissionReminderEnabled", "Submission reminders"),
-      timesheetField("approvalReminderEnabled", "Approval reminders"),
-      timesheetField("overdueNotificationEnabled", "Overdue notifications"),
-      timesheetField("rejectionNotificationEnabled", "Rejection notifications"),
-      timesheetField("reopeningNotificationEnabled", "Reopening notifications"),
-      timesheetField(
-        "payrollNotificationEnabled",
-        "Payroll readiness and failure notifications",
-      ),
-      timesheetField("reminderSchedule", "Reminder schedule", "text"),
-      timesheetField("escalationSchedule", "Escalation schedule", "text"),
     ],
   },
   {
@@ -1531,10 +1300,6 @@ export const timesheetSettingsSections: TabbedSettingsSection[] = [
         "number",
       ),
       timesheetField("exportRetentionDays", "Export retention days", "number"),
-      timesheetField(
-        "sanitizeSpreadsheetValues",
-        "Sanitize spreadsheet values",
-      ),
     ],
   },
   {
@@ -1547,11 +1312,6 @@ export const timesheetSettingsSections: TabbedSettingsSection[] = [
       timesheetField("auditPolicyResolution", "Audit policy resolution"),
       timesheetField("auditExports", "Audit exports"),
       timesheetField("auditBackgroundJobs", "Audit background jobs"),
-      timesheetField("retentionYears", "Retention years", "number"),
-      timesheetField(
-        "requireChangeReasonAfterApproval",
-        "Require reason after approval",
-      ),
     ],
   },
 ];
@@ -1675,46 +1435,12 @@ export const payrollSettingsSections: SettingsSectionConfig[] = [
     title: "Validation Requirements",
     fields: [
       payrollValidationField(
-        "activeEmployeeContractAction",
-        "Active employee contract",
-      ),
-      payrollValidationField(
-        "activeCompensationAssignmentAction",
-        "Active compensation assignment",
-      ),
-      payrollValidationField("activeTaxProfileAction", "Active tax profile"),
-      payrollValidationField(
         "payrollBankAccountAction",
         "Valid payroll bank account",
-      ),
-      payrollValidationField("approvedAttendanceAction", "Approved attendance"),
-      payrollValidationField("approvedTimesheetsAction", "Approved timesheets"),
-      payrollValidationField("approvedLeaveAction", "Approved leave"),
-      payrollValidationField("approvedOvertimeAction", "Approved overtime"),
-      payrollValidationField("projectAllocationAction", "Project allocation"),
-      payrollValidationField(
-        "resolvedPostingRulesAction",
-        "Resolved posting rules",
-      ),
-      payrollValidationField(
-        "validPayrollCalendarAction",
-        "Valid payroll calendar",
-      ),
-      payrollValidationField(
-        "validPayrollPeriodAction",
-        "Valid payroll period",
-      ),
-      payrollValidationField(
-        "duplicatePeriodAction",
-        "Duplicate period prevention",
       ),
       payrollValidationField(
         "negativeNetPayAction",
         "Negative net pay prevention",
-      ),
-      payrollValidationField(
-        "payrollApprovalAction",
-        "Payroll approval requirement",
       ),
     ],
   },
@@ -1751,13 +1477,6 @@ export const payrollSettingsSections: SettingsSectionConfig[] = [
       },
       {
         category: "payroll",
-        key: "missingExchangeRateAction",
-        label: "Missing rate action",
-        type: "select",
-        options: payrollValidationOptions,
-      },
-      {
-        category: "payroll",
         key: "roundingMethod",
         label: "Rounding method",
         type: "select",
@@ -1768,24 +1487,11 @@ export const payrollSettingsSections: SettingsSectionConfig[] = [
           { label: "Down", value: "DOWN" },
         ],
       },
-      {
-        category: "payroll",
-        key: "currencyPrecision",
-        label: "Currency precision",
-        type: "number",
-      },
     ],
   },
   {
     title: "Payroll Calculation",
     fields: [
-      {
-        category: "payroll",
-        key: "calculationSequenceProfile",
-        label: "Calculation sequence profile",
-        type: "select",
-        options: [{ label: "Standard", value: "STANDARD" }],
-      },
       {
         category: "payroll",
         key: "prorationMethod",
@@ -1799,27 +1505,6 @@ export const payrollSettingsSections: SettingsSectionConfig[] = [
       },
       {
         category: "payroll",
-        key: "partialMonthMethod",
-        label: "Partial month method",
-        type: "select",
-        options: [
-          { label: "Daily rate", value: "DAILY_RATE" },
-          { label: "Working-day rate", value: "WORKING_DAY_RATE" },
-        ],
-      },
-      {
-        category: "payroll",
-        key: "workingDaysSource",
-        label: "Working days source",
-        type: "select",
-        options: [
-          { label: "Payroll calendar", value: "PAYROLL_CALENDAR" },
-          { label: "Employee schedule", value: "EMPLOYEE_SCHEDULE" },
-          { label: "Attendance", value: "ATTENDANCE" },
-        ],
-      },
-      {
-        category: "payroll",
         key: "taxCalculationMode",
         label: "Tax calculation mode",
         type: "select",
@@ -1828,30 +1513,6 @@ export const payrollSettingsSections: SettingsSectionConfig[] = [
           { label: "Cumulative YTD", value: "CUMULATIVE_YTD" },
           { label: "Annualized projection", value: "ANNUALIZED_PROJECTION" },
         ],
-      },
-      {
-        category: "payroll",
-        key: "ytdRecalculationEnabled",
-        label: "YTD recalculation",
-        type: "checkbox",
-      },
-      {
-        category: "payroll",
-        key: "retroactiveCalculationEnabled",
-        label: "Retroactive calculation",
-        type: "checkbox",
-      },
-      {
-        category: "payroll",
-        key: "manualAdjustmentAllowed",
-        label: "Allow manual adjustment",
-        type: "checkbox",
-      },
-      {
-        category: "payroll",
-        key: "calculationPrecision",
-        label: "Calculation precision",
-        type: "number",
       },
       {
         category: "payroll",
@@ -1881,37 +1542,6 @@ export const payrollSettingsSections: SettingsSectionConfig[] = [
           { label: "Warn", value: "WARN" },
           { label: "Block", value: "BLOCK" },
           { label: "Allocate to bench", value: "ALLOCATE_TO_BENCH" },
-        ],
-      },
-      {
-        category: "payroll",
-        key: "allocationSource",
-        label: "Allocation source",
-        type: "select",
-        options: [
-          {
-            label: "Employee project allocations",
-            value: "EMPLOYEE_PROJECT_ALLOCATIONS",
-          },
-          { label: "Timesheets", value: "TIMESHEETS" },
-          {
-            label: "Fixed employee cost center",
-            value: "EMPLOYEE_COST_CENTER",
-          },
-        ],
-      },
-      {
-        category: "payroll",
-        key: "projectCostPostingBehavior",
-        label: "Project-cost posting behavior",
-        type: "select",
-        options: [
-          { label: "Allocate net pay", value: "ALLOCATE_NET_PAY" },
-          {
-            label: "Allocate gross and employer cost",
-            value: "ALLOCATE_GROSS_AND_EMPLOYER_COST",
-          },
-          { label: "Do not allocate", value: "NONE" },
         ],
       },
       {
@@ -1973,23 +1603,6 @@ export const payrollSettingsSections: SettingsSectionConfig[] = [
       },
       {
         category: "payroll",
-        key: "bankPaymentFileFormat",
-        label: "Bank payment file format",
-        type: "select",
-        options: [
-          { label: "Generic bank transfer", value: "GENERIC_BANK_TRANSFER" },
-          { label: "CSV", value: "CSV" },
-          { label: "Excel", value: "EXCEL" },
-        ],
-      },
-      {
-        category: "payroll",
-        key: "paymentReferenceFormat",
-        label: "Payment reference format",
-        type: "text",
-      },
-      {
-        category: "payroll",
         key: "payslipFormat",
         label: "Payslip format",
         type: "select",
@@ -2008,24 +1621,6 @@ export const payrollSettingsSections: SettingsSectionConfig[] = [
         label: "Tax statement template",
         type: "lookup",
         lookupKey: "documentTemplates",
-      },
-      {
-        category: "payroll",
-        key: "publishPayslipAfterApproval",
-        label: "Publish after approval",
-        type: "checkbox",
-      },
-      {
-        category: "payroll",
-        key: "payslipPasswordProtection",
-        label: "Password protection",
-        type: "checkbox",
-      },
-      {
-        category: "payroll",
-        key: "requireEmployeePayslipAcknowledgment",
-        label: "Employee acknowledgment",
-        type: "checkbox",
       },
       {
         category: "payroll",
@@ -2062,23 +1657,6 @@ export const payrollSettingsSections: SettingsSectionConfig[] = [
         label: "Allow payroll reopening",
         type: "checkbox",
       },
-      {
-        category: "payroll",
-        key: "reopeningPermission",
-        label: "Reopening permission",
-        type: "text",
-        readOnly: true,
-      },
-      {
-        category: "payroll",
-        key: "reversalRequirement",
-        label: "Reversal requirement",
-        type: "select",
-        options: [
-          { label: "Reason required", value: "REASON_REQUIRED" },
-          { label: "Approval required", value: "APPROVAL_REQUIRED" },
-        ],
-      },
     ],
   },
   {
@@ -2086,66 +1664,10 @@ export const payrollSettingsSections: SettingsSectionConfig[] = [
     fields: [
       {
         category: "payroll",
-        key: "enableGlPosting",
-        label: "Enable GL posting",
-        type: "checkbox",
-      },
-      {
-        category: "payroll",
         key: "defaultPostingProfileId",
         label: "Default posting profile",
         type: "lookup",
         lookupKey: "postingProfiles",
-      },
-      {
-        category: "payroll",
-        key: "postingDateSource",
-        label: "Posting date source",
-        type: "select",
-        options: [
-          { label: "Payroll period", value: "PAYROLL_PERIOD" },
-          { label: "Payment date", value: "PAYMENT_DATE" },
-          { label: "Approval date", value: "APPROVAL_DATE" },
-        ],
-      },
-      {
-        category: "payroll",
-        key: "journalGrouping",
-        label: "Journal grouping",
-        type: "select",
-        options: [
-          { label: "Consolidated payroll", value: "CONSOLIDATED_PAYROLL" },
-          { label: "Per department", value: "PER_DEPARTMENT" },
-          { label: "Per employee", value: "PER_EMPLOYEE" },
-        ],
-      },
-      {
-        category: "payroll",
-        key: "journalExportFormat",
-        label: "Journal export format",
-        type: "select",
-        options: [
-          { label: "CSV", value: "CSV" },
-          { label: "Excel", value: "XLSX" },
-        ],
-      },
-      {
-        category: "payroll",
-        key: "autoPostAfterApproval",
-        label: "Auto-post after approval",
-        type: "checkbox",
-      },
-      {
-        category: "payroll",
-        key: "requireBalancedJournal",
-        label: "Require balanced journal",
-        type: "checkbox",
-      },
-      {
-        category: "payroll",
-        key: "allowReversalPosting",
-        label: "Allow reversal posting",
-        type: "checkbox",
       },
     ],
   },
@@ -2173,78 +1695,6 @@ export const recruitmentSettingsSections: SettingsSectionConfig[] = [
         label: "Enable resume parsing",
         type: "checkbox",
       },
-      {
-        category: "recruitment",
-        key: "automaticallyParseSkillsAndExperience",
-        label: "Automatically parse skills and experience",
-        type: "checkbox",
-      },
-      {
-        category: "recruitment",
-        key: "duplicateCandidateDetection",
-        label: "Duplicate candidate detection",
-        type: "checkbox",
-      },
-      {
-        category: "recruitment",
-        key: "duplicateMatchingStrategy",
-        label: "Duplicate matching strategy",
-        type: "select",
-        options: [
-          { label: "Email", value: "EMAIL" },
-          { label: "Mobile Number", value: "MOBILE" },
-          { label: "National ID", value: "NATIONAL_ID" },
-          { label: "Passport", value: "PASSPORT" },
-          { label: "Email + Mobile", value: "EMAIL_MOBILE" },
-          {
-            label: "Email + Mobile + National ID",
-            value: "EMAIL_MOBILE_NATIONAL_ID",
-          },
-        ],
-      },
-      {
-        category: "recruitment",
-        key: "defaultCandidateNumberRuleId",
-        label: "Default candidate number generation rule",
-        type: "lookup",
-        lookupKey: "numberGenerationRules",
-        placeholder: "Select number generation rule",
-      },
-    ],
-  },
-  {
-    title: "Recruitment - Candidate Defaults",
-    description:
-      "Set default candidate handling behavior without storing pipeline stages in settings.",
-    fields: [
-      {
-        category: "recruitment",
-        key: "defaultCandidateSourceId",
-        label: "Default candidate source",
-        type: "lookup",
-        lookupKey: "candidateSources",
-        placeholder: "Select candidate source",
-      },
-      {
-        category: "recruitment",
-        key: "automaticallyCreateCandidateAfterCvUpload",
-        label: "Automatically create candidate after CV upload",
-        type: "checkbox",
-      },
-      {
-        category: "recruitment",
-        key: "automaticallyMoveRejectedCandidatesToTalentPool",
-        label: "Automatically move rejected candidates to talent pool",
-        type: "checkbox",
-      },
-      {
-        category: "recruitment",
-        key: "candidateRetentionPolicyId",
-        label: "Candidate retention policy",
-        type: "lookup",
-        lookupKey: "retentionPolicies",
-        placeholder: "Select retention policy",
-      },
     ],
   },
   {
@@ -2266,47 +1716,10 @@ export const recruitmentSettingsSections: SettingsSectionConfig[] = [
       },
       {
         category: "recruitment",
-        key: "automaticallyActivateEmployeeAfterSuccessfulOnboarding",
-        label: "Automatically activate employee after successful onboarding",
-        type: "checkbox",
-      },
-      {
-        category: "recruitment",
         key: "preventEmployeeActivationUntilMandatoryFieldsCompleted",
         label:
           "Prevent employee activation until mandatory fields are completed",
         type: "checkbox",
-      },
-    ],
-  },
-  {
-    title: "Hiring - Assignment Defaults",
-    description:
-      "Configure rules used to assign recruiters, hiring managers, and interview panels.",
-    fields: [
-      {
-        category: "recruitment",
-        key: "defaultRecruiterAssignmentRuleId",
-        label: "Default recruiter assignment rule",
-        type: "lookup",
-        lookupKey: "assignmentRules",
-        placeholder: "Select assignment rule",
-      },
-      {
-        category: "recruitment",
-        key: "defaultHiringManagerAssignmentRuleId",
-        label: "Default hiring manager assignment rule",
-        type: "lookup",
-        lookupKey: "assignmentRules",
-        placeholder: "Select assignment rule",
-      },
-      {
-        category: "recruitment",
-        key: "defaultInterviewPanelRuleId",
-        label: "Default interview panel rule",
-        type: "lookup",
-        lookupKey: "interviewPanelRules",
-        placeholder: "Select interview panel rule",
       },
     ],
   },
@@ -2317,142 +1730,11 @@ export const recruitmentSettingsSections: SettingsSectionConfig[] = [
     fields: [
       {
         category: "recruitment",
-        key: "defaultOnboardingPlanId",
-        label: "Default onboarding plan",
-        type: "lookup",
-        lookupKey: "onboardingPlans",
-        placeholder: "Select onboarding plan",
-      },
-      {
-        category: "recruitment",
         key: "onboardingChecklistTemplate",
         label: "Default onboarding checklist template",
         type: "lookup",
         lookupKey: "onboardingChecklistTemplates",
         placeholder: "Select checklist template",
-      },
-      {
-        category: "recruitment",
-        key: "automaticallyStartOnboardingAfterHiring",
-        label: "Automatically start onboarding after hiring",
-        type: "checkbox",
-      },
-      {
-        category: "recruitment",
-        key: "requireMandatoryOnboardingTasksBeforeActivation",
-        label: "Require completion of all mandatory tasks before activation",
-        type: "checkbox",
-      },
-    ],
-  },
-  {
-    title: "Onboarding - Compliance",
-    description:
-      "Control approval, verification, and document gates before hire and activation.",
-    fields: [
-      {
-        category: "recruitment",
-        key: "requireOfferApprovalBeforeHiring",
-        label: "Require offer approval before hiring",
-        type: "checkbox",
-      },
-      {
-        category: "recruitment",
-        key: "requireBackgroundVerificationBeforeHiring",
-        label: "Require background verification before hiring",
-        type: "checkbox",
-      },
-      {
-        category: "recruitment",
-        key: "requireDocumentVerificationBeforeEmployeeActivation",
-        label: "Require document verification before employee activation",
-        type: "checkbox",
-      },
-      {
-        category: "recruitment",
-        key: "candidateDocumentChecklistId",
-        label: "Candidate document checklist",
-        type: "lookup",
-        lookupKey: "documentChecklists",
-        placeholder: "Select document checklist",
-      },
-      {
-        category: "recruitment",
-        key: "mandatoryEmployeeDocumentChecklistId",
-        label: "Mandatory employee document checklist",
-        type: "lookup",
-        lookupKey: "documentChecklists",
-        placeholder: "Select document checklist",
-      },
-    ],
-  },
-  {
-    title: "Communication & Automation - Communication",
-    description:
-      "Choose default templates for candidate and employee communication.",
-    fields: [
-      {
-        category: "recruitment",
-        key: "defaultCandidateEmailTemplateId",
-        label: "Default candidate email template",
-        type: "lookup",
-        lookupKey: "emailTemplates",
-        placeholder: "Select email template",
-      },
-      {
-        category: "recruitment",
-        key: "defaultOfferLetterTemplateId",
-        label: "Default offer letter template",
-        type: "lookup",
-        lookupKey: "documentTemplates",
-        placeholder: "Select document template",
-      },
-      {
-        category: "recruitment",
-        key: "defaultRejectionEmailTemplateId",
-        label: "Default rejection email template",
-        type: "lookup",
-        lookupKey: "emailTemplates",
-        placeholder: "Select email template",
-      },
-      {
-        category: "recruitment",
-        key: "defaultWelcomeEmailTemplateId",
-        label: "Default welcome email template",
-        type: "lookup",
-        lookupKey: "emailTemplates",
-        placeholder: "Select email template",
-      },
-    ],
-  },
-  {
-    title: "Communication & Automation - Automation",
-    description:
-      "Configure automation that reduces manual handoffs during hiring and onboarding.",
-    fields: [
-      {
-        category: "recruitment",
-        key: "automaticallyCloseJobOpeningWhenPositionsFilled",
-        label: "Automatically close job opening when positions are filled",
-        type: "checkbox",
-      },
-      {
-        category: "recruitment",
-        key: "automaticallyScheduleOnboardingTasks",
-        label: "Automatically schedule onboarding tasks",
-        type: "checkbox",
-      },
-      {
-        category: "recruitment",
-        key: "notifyHiringManagerWhenCandidateHired",
-        label: "Notify hiring manager when candidate is hired",
-        type: "checkbox",
-      },
-      {
-        category: "recruitment",
-        key: "notifyEmployeeWhenOnboardingStarts",
-        label: "Notify employee when onboarding starts",
-        type: "checkbox",
       },
     ],
   },
@@ -2571,12 +1853,6 @@ export const documentSettingsSections: SettingsSectionConfig[] = [
       },
       {
         category: "documents",
-        key: "compressionEnabled",
-        label: "Compression enabled",
-        type: "checkbox",
-      },
-      {
-        category: "documents",
         key: "versioningEnabled",
         label: "Versioning enabled",
         type: "checkbox",
@@ -2596,50 +1872,14 @@ export const documentSettingsSections: SettingsSectionConfig[] = [
     fields: [
       {
         category: "documents",
-        key: "encryptDocuments",
-        label: "Encrypt documents",
-        type: "checkbox",
-      },
-      {
-        category: "documents",
         key: "auditDownloads",
         label: "Audit downloads",
         type: "checkbox",
       },
       {
         category: "documents",
-        key: "watermarkDownloads",
-        label: "Watermark downloads",
-        type: "checkbox",
-      },
-      {
-        category: "documents",
         key: "disableExternalDownloads",
         label: "Disable external downloads",
-        type: "checkbox",
-      },
-      {
-        category: "documents",
-        key: "requireOwner",
-        label: "Require owner",
-        type: "checkbox",
-      },
-      {
-        category: "documents",
-        key: "requireExpiryDate",
-        label: "Require expiry date",
-        type: "checkbox",
-      },
-      {
-        category: "documents",
-        key: "requireEffectiveDate",
-        label: "Require effective date",
-        type: "checkbox",
-      },
-      {
-        category: "documents",
-        key: "requireClassification",
-        label: "Require classification",
         type: "checkbox",
       },
     ],
@@ -2738,30 +1978,6 @@ export const notificationSettingsSections: SettingsSectionConfig[] = [
           "Send grouped summaries for pending approvals and approval activity.",
         type: "checkbox",
       },
-      {
-        category: "notifications",
-        key: "instantApprovalRequestEnabled",
-        label: "Enable instant approval requests",
-        description:
-          "Notify approvers immediately when a new approval request is submitted.",
-        type: "checkbox",
-      },
-      {
-        category: "notifications",
-        key: "approvalDecisionEnabled",
-        label: "Enable approval decision notifications",
-        description:
-          "Notify requestors when an approval is approved, rejected, or returned.",
-        type: "checkbox",
-      },
-      {
-        category: "notifications",
-        key: "escalationReminderEnabled",
-        label: "Enable escalation reminders",
-        description:
-          "Send reminders when workflow items remain pending beyond the expected time.",
-        type: "checkbox",
-      },
     ],
   },
   {
@@ -2775,30 +1991,6 @@ export const notificationSettingsSections: SettingsSectionConfig[] = [
         label: "Enable onboarding reminders",
         description:
           "Send reminders for incomplete onboarding tasks and milestones.",
-        type: "checkbox",
-      },
-      {
-        category: "notifications",
-        key: "newJoinerAnnouncementEnabled",
-        label: "Enable new joiner announcements",
-        description:
-          "Notify relevant users when a new employee joins the organization.",
-        type: "checkbox",
-      },
-      {
-        category: "notifications",
-        key: "profileCompletionReminderEnabled",
-        label: "Enable profile completion reminders",
-        description:
-          "Remind employees to complete missing profile information and documents.",
-        type: "checkbox",
-      },
-      {
-        category: "notifications",
-        key: "documentExpiryReminderEnabled",
-        label: "Enable document expiry reminders",
-        description:
-          "Notify users when employee or compliance documents are nearing expiry.",
         type: "checkbox",
       },
     ],
@@ -2818,34 +2010,10 @@ export const notificationSettingsSections: SettingsSectionConfig[] = [
       },
       {
         category: "notifications",
-        key: "lateCheckInAlertEnabled",
-        label: "Enable late check-in alerts",
-        description:
-          "Notify relevant users when attendance starts late beyond configured rules.",
-        type: "checkbox",
-      },
-      {
-        category: "notifications",
-        key: "leaveRequestNotificationEnabled",
-        label: "Enable leave request notifications",
-        description:
-          "Notify managers or approvers when leave requests are created.",
-        type: "checkbox",
-      },
-      {
-        category: "notifications",
         key: "leaveDecisionEmailEnabled",
         label: "Enable leave decision emails",
         description:
           "Send email updates when leave requests are approved, rejected, or updated.",
-        type: "checkbox",
-      },
-      {
-        category: "notifications",
-        key: "attendanceRegularizationEnabled",
-        label: "Enable attendance regularization notifications",
-        description:
-          "Notify users when attendance corrections are submitted or reviewed.",
         type: "checkbox",
       },
     ],
@@ -2857,29 +2025,10 @@ export const notificationSettingsSections: SettingsSectionConfig[] = [
     fields: [
       {
         category: "notifications",
-        key: "digestFrequency",
-        label: "Digest frequency",
-        type: "select",
-        options: [
-          { label: "Daily", value: "DAILY" },
-          { label: "Weekly", value: "WEEKLY" },
-          { label: "Monthly", value: "MONTHLY" },
-        ],
-      },
-      {
-        category: "notifications",
         key: "defaultReminderLeadDays",
         label: "Default reminder lead days",
         description:
           "Number of days before due events when reminders should start.",
-        type: "number",
-      },
-      {
-        category: "notifications",
-        key: "maxReminderAttempts",
-        label: "Maximum reminder attempts",
-        description:
-          "Maximum number of reminder notifications sent for the same pending item.",
         type: "number",
       },
       {
@@ -2896,45 +2045,6 @@ export const notificationSettingsSections: SettingsSectionConfig[] = [
         label: "Quiet hours window",
         description: "Quiet period range such as 10:00 PM - 7:00 AM.",
         type: "text",
-      },
-    ],
-  },
-  {
-    title: "Audience & Visibility Rules",
-    description:
-      "Decide who receives notifications and whether communication should stay targeted or broadly visible.",
-    fields: [
-      {
-        category: "notifications",
-        key: "notifyReportingManagersOnly",
-        label: "Notify reporting managers only",
-        description:
-          "Restrict manager-facing alerts to the assigned reporting hierarchy.",
-        type: "checkbox",
-      },
-      {
-        category: "notifications",
-        key: "notifyHrTeamForEmployeeChanges",
-        label: "Notify HR team for employee changes",
-        description:
-          "Send notifications to HR when important employee changes occur.",
-        type: "checkbox",
-      },
-      {
-        category: "notifications",
-        key: "notifyEmployeesDirectly",
-        label: "Notify employees directly",
-        description:
-          "Send employee-facing notifications directly instead of relying only on managers or HR.",
-        type: "checkbox",
-      },
-      {
-        category: "notifications",
-        key: "showNotificationPreviewInApp",
-        label: "Show in-app notification previews",
-        description:
-          "Display a short preview of notification content inside the workspace.",
-        type: "checkbox",
       },
     ],
   },
@@ -3013,12 +2123,6 @@ export const passwordLoginSettingsSections: SettingsSectionConfig[] = [
         label: "Allow remember me",
         type: "checkbox",
       },
-      {
-        category: "security",
-        key: "requireEmailVerification",
-        label: "Require email verification",
-        type: "checkbox",
-      },
     ],
   },
   {
@@ -3055,59 +2159,6 @@ export const passwordLoginSettingsSections: SettingsSectionConfig[] = [
         key: "idleTimeoutMinutes",
         label: "Idle timeout minutes",
         type: "number",
-      },
-    ],
-  },
-  {
-    title: "Invitation Rules",
-    description: "Configure invitation expiry and first-login password setup.",
-    fields: [
-      {
-        category: "security",
-        key: "invitationExpiryHours",
-        label: "Invitation expiry hours",
-        type: "number",
-      },
-      {
-        category: "security",
-        key: "allowInvitationResend",
-        label: "Allow invitation resend",
-        type: "checkbox",
-      },
-      {
-        category: "security",
-        key: "passwordSetupRequiredBeforeFirstLogin",
-        label: "Password setup required before first login",
-        type: "checkbox",
-      },
-    ],
-  },
-  {
-    title: "MFA",
-    description: "Configure tenant-wide multi-factor authentication behavior.",
-    fields: [
-      {
-        category: "security",
-        key: "mfaRequired",
-        label: "MFA required",
-        type: "checkbox",
-      },
-      {
-        category: "security",
-        key: "mfaMethod",
-        label: "MFA method",
-        type: "select",
-        options: [
-          { label: "Email", value: "EMAIL" },
-          { label: "SMS", value: "SMS" },
-          { label: "Authenticator App", value: "AUTHENTICATOR_APP" },
-        ],
-      },
-      {
-        category: "security",
-        key: "rememberTrustedDevice",
-        label: "Remember trusted device",
-        type: "checkbox",
       },
     ],
   },
@@ -3149,14 +2200,6 @@ export const brandingSettingsSections: SettingsSectionConfig[] = [
         description:
           "Short supporting line shown on sign-in or workspace welcome areas.",
         type: "text",
-      },
-      {
-        category: "branding",
-        key: "brandDescription",
-        label: "Brand description",
-        description:
-          "Short description that helps personalize employee-facing touchpoints.",
-        type: "textarea",
       },
     ],
   },
@@ -3347,14 +2390,6 @@ export const brandingSettingsSections: SettingsSectionConfig[] = [
       },
       {
         category: "branding",
-        key: "hrContactEmail",
-        label: "HR contact email",
-        description:
-          "HR support contact for employees and onboarding communication.",
-        type: "text",
-      },
-      {
-        category: "branding",
         key: "replyToEmail",
         label: "Reply-to email",
         description: "Reply address used for outbound email communication.",
@@ -3373,49 +2408,6 @@ export const brandingSettingsSections: SettingsSectionConfig[] = [
         label: "Company website URL",
         description: "Official website link shown in branded areas.",
         type: "text",
-      },
-      {
-        category: "branding",
-        key: "helpCenterUrl",
-        label: "Help center URL",
-        description: "Support portal or help center link for tenant users.",
-        type: "text",
-      },
-      {
-        category: "branding",
-        key: "officeAddress",
-        label: "Office address",
-        description:
-          "Address shown in support, footer, or official workspace references.",
-        type: "textarea",
-      },
-    ],
-  },
-  {
-    title: "Email Branding",
-    description:
-      "Define how branded communication should look when the platform sends email notifications and workflow updates.",
-    fields: [
-      {
-        category: "branding",
-        key: "emailSenderName",
-        label: "Email sender name",
-        description:
-          "Sender name used in outbound workflow and notification emails.",
-        type: "text",
-      },
-      {
-        category: "branding",
-        key: "emailFooterText",
-        label: "Email footer text",
-        description: "Footer message shown at the bottom of branded emails.",
-        type: "textarea",
-      },
-      {
-        category: "branding",
-        key: "showLogoInEmails",
-        label: "Show logo in emails",
-        type: "checkbox",
       },
     ],
   },
@@ -3577,24 +2569,6 @@ export const systemSettingsSections: SettingsSectionConfig[] = [
         category: "branding",
         key: "showBrandingInEmployeePortal",
         label: "Show branding in employee portal",
-        type: "checkbox",
-      },
-      {
-        category: "branding",
-        key: "showBrandingInReports",
-        label: "Show branding in reports and exports",
-        type: "checkbox",
-      },
-      {
-        category: "branding",
-        key: "showCompanyNameInBrowserTitle",
-        label: "Show company name in browser title",
-        type: "checkbox",
-      },
-      {
-        category: "branding",
-        key: "enableWhiteLabelSupportDetails",
-        label: "Enable white-label support details",
         type: "checkbox",
       },
     ],

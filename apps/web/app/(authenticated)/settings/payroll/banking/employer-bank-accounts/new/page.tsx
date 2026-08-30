@@ -13,7 +13,7 @@ export default async function NewEmployerBankAccountPage() {
     spec: employerBankAccountRuntimeSpec,
   });
   return (
-    <main className="grid gap-6">
+    <div className="grid gap-6">
       <StandardModuleRecordPage
         activeForm={resolveStandardActiveForm(
           runtime.metadata.forms,
@@ -30,6 +30,6 @@ export default async function NewEmployerBankAccountPage() {
         spec={employerBankAccountRuntimeSpec}
         title="New Employer Bank Account"
       />
-    </main>
+    </div>
   );
 }

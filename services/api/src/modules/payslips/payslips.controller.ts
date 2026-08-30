@@ -18,6 +18,9 @@ import {
 } from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { EntitlementGuard } from '../../common/guards/entitlement.guard';
+import { RequireEntitlement } from '../../common/decorators/require-entitlement.decorator';
+import { TENANT_FEATURE_KEYS } from '../../common/constants/tenant-features';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PayslipQueryDto } from './dto/payslip-query.dto';
 import { VoidPayslipDto } from './dto/void-payslip.dto';
@@ -25,7 +28,8 @@ import { PayslipsService } from './payslips.service';
 import type { Response } from 'express';
 
 @Controller()
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, EntitlementGuard)
+@RequireEntitlement(TENANT_FEATURE_KEYS.PAYROLL)
 export class PayslipsController {
   constructor(private readonly payslipsService: PayslipsService) {}
 

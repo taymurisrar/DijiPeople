@@ -79,7 +79,9 @@ async function main(): Promise<number> {
       logger.warn('');
       logger.warn('Failures (first 50):');
       for (const failure of report.failures) {
-        logger.warn(`  ${failure.date} employee ${failure.employeeId}: ${failure.reason}`);
+        logger.warn(
+          `  ${failure.date} employee ${failure.employeeId}: ${failure.reason}`,
+        );
       }
     }
 
@@ -150,10 +152,12 @@ function parseArguments(argv: readonly string[]): Options {
 
 function validate(options: Options): string[] {
   const problems: string[] = [];
-  const isDate = (value?: string) => Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value));
+  const isDate = (value?: string) =>
+    Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value));
 
   if (!options.tenant) problems.push('--tenant is required.');
-  if (!isDate(options.from)) problems.push('--from must be a date, YYYY-MM-DD.');
+  if (!isDate(options.from))
+    problems.push('--from must be a date, YYYY-MM-DD.');
   if (!isDate(options.to)) problems.push('--to must be a date, YYYY-MM-DD.');
 
   if (options.maxDays !== undefined && !Number.isFinite(options.maxDays)) {

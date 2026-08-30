@@ -45,6 +45,7 @@ import {
   normalizeRuntimeRole,
 } from "@/lib/runtime/role-runtime";
 import { debugRuntime } from "@/lib/runtime/runtime-debug";
+import { resolveCommandFailureMessage } from "@/lib/runtime/command-failure-message";
 import { normalizeRuntimeDateValue } from "@/lib/runtime/runtime-date-value";
 import { ModuleDetailShell } from "./module-detail-shell";
 import { ModuleRefreshOverlay } from "./module-refresh-overlay";
@@ -438,19 +439,35 @@ export function ModuleRecordPage({
              * summary, which is easy to miss on a long form. Every module using
              * this runtime now also gets a toast, matching the success path.
              */
+            /*
+             * BUG-1963 — this used to put `result.message` on screen, which is
+             * the API's developer-facing message with the HTTP method and path
+             * appended by the data adapter. The user read
+             * "leavePolicyId must be a UUID (POST /api/leave-policies/assignments)".
+             * The reasons the user can act on are already against the inputs
+             * below; the toast now carries the contract's `description`.
+             */
             if (Object.keys(backendErrors).length) {
               setFieldErrors(backendErrors);
               setTouchedFields(new Set(Object.keys(backendErrors)));
               setValidationSummary(null);
               setActionNotice({
                 title: "Check the highlighted fields",
-                description: result.message ?? undefined,
+                description: resolveCommandFailureMessage(
+                  result.data,
+                  result.message,
+                  result.errors,
+                ),
                 variant: "error",
               });
               return;
             }
 
-            const failureMessage = result.message ?? "Save failed.";
+            const failureMessage = resolveCommandFailureMessage(
+              result.data,
+              result.message ?? "Save failed.",
+              result.errors,
+            );
             setValidationSummary(failureMessage);
             setActionNotice({
               title: "Not saved",

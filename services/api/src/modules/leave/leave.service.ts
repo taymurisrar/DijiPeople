@@ -27,6 +27,10 @@ import {
   type CsvFile,
 } from '../../common/utils/csv.util';
 import { hasElevatedTenantRole } from '../../common/security/elevated-tenant-roles';
+import {
+  AUDIT_ACTIONS,
+  AUDIT_ENTITY_TYPES,
+} from '../../common/constants/audit-actions';
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { buildScopedAccessWhere } from '../../common/security/rbac-query-scope';
 import { AuditService } from '../audit/audit.service';
@@ -189,7 +193,7 @@ export class LeaveService {
   ) {
     this.validateLeaveType(dto);
     try {
-      return await this.leaveRepository.createLeaveType({
+      const leaveType = await this.leaveRepository.createLeaveType({
         tenantId: currentUser.tenantId,
         name: dto.name.trim(),
         code: normalizeCode(dto.code ?? dto.name),
@@ -207,6 +211,17 @@ export class LeaveService {
         createdById: currentUser.userId,
         updatedById: currentUser.userId,
       });
+
+      await this.auditService.log({
+        tenantId: currentUser.tenantId,
+        actorUserId: currentUser.userId,
+        action: AUDIT_ACTIONS.LEAVE_TYPE_CREATED,
+        entityType: AUDIT_ENTITY_TYPES.LEAVE_TYPE,
+        entityId: leaveType.id,
+        afterSnapshot: leaveType,
+      });
+
+      return leaveType;
     } catch (error) {
       this.handleUniqueError(error, 'Leave type');
     }
@@ -278,7 +293,25 @@ export class LeaveService {
       throw new NotFoundException('Leave type was not found for this tenant.');
     }
 
-    return this.findLeaveTypeById(currentUser.tenantId, id);
+    const updated = await this.findLeaveTypeById(currentUser.tenantId, id);
+
+    /*
+     * BUG-2044 -- a leave type governs whether leave consumes balance and
+     * whether it affects payroll, so a change to one is a change to what the
+     * tenant owes its employees. `deactivateLeaveType()` routes through here,
+     * which is why it needs no call site of its own.
+     */
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action: AUDIT_ACTIONS.LEAVE_TYPE_UPDATED,
+      entityType: AUDIT_ENTITY_TYPES.LEAVE_TYPE,
+      entityId: id,
+      beforeSnapshot: existing,
+      afterSnapshot: updated,
+    });
+
+    return updated;
   }
 
   async deactivateLeaveType(currentUser: AuthenticatedUser, id: string) {
@@ -330,7 +363,7 @@ export class LeaveService {
     dto: CreateLeavePolicyDto,
   ) {
     try {
-      return await this.leaveRepository.createLeavePolicy({
+      const leavePolicy = await this.leaveRepository.createLeavePolicy({
         tenantId: currentUser.tenantId,
         name: dto.name.trim(),
         description: normalizeOptionalText(dto.description),
@@ -338,6 +371,17 @@ export class LeaveService {
         createdById: currentUser.userId,
         updatedById: currentUser.userId,
       });
+
+      await this.auditService.log({
+        tenantId: currentUser.tenantId,
+        actorUserId: currentUser.userId,
+        action: AUDIT_ACTIONS.LEAVE_POLICY_CREATED,
+        entityType: AUDIT_ENTITY_TYPES.LEAVE_POLICY,
+        entityId: leavePolicy.id,
+        afterSnapshot: leavePolicy,
+      });
+
+      return leavePolicy;
     } catch (error) {
       this.handleUniqueError(error, 'Leave policy');
     }
@@ -348,7 +392,7 @@ export class LeaveService {
     id: string,
     dto: UpdateLeavePolicyDto,
   ) {
-    await this.findLeavePolicyById(currentUser.tenantId, id);
+    const existing = await this.findLeavePolicyById(currentUser.tenantId, id);
 
     const result = await this.leaveRepository.updateLeavePolicy(
       currentUser.tenantId,
@@ -369,7 +413,19 @@ export class LeaveService {
       );
     }
 
-    return this.findLeavePolicyById(currentUser.tenantId, id);
+    const updated = await this.findLeavePolicyById(currentUser.tenantId, id);
+
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action: AUDIT_ACTIONS.LEAVE_POLICY_UPDATED,
+      entityType: AUDIT_ENTITY_TYPES.LEAVE_POLICY,
+      entityId: id,
+      beforeSnapshot: existing,
+      afterSnapshot: updated,
+    });
+
+    return updated;
   }
 
   async deactivateLeavePolicy(currentUser: AuthenticatedUser, id: string) {
@@ -502,10 +558,27 @@ export class LeaveService {
       return created;
     });
 
+    const mapped = this.mapLeaveRequest(leaveRequest, currentUser);
+
+    /*
+     * BUG-2044 — only the decision was audited, so the log could show a leave
+     * request being approved with no record of it ever having been asked for.
+     * Written after the transaction commits, matching the decision path: an
+     * audit row for a request that rolled back would be worse than none.
+     */
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action: AUDIT_ACTIONS.LEAVE_REQUEST_SUBMITTED,
+      entityType: AUDIT_ENTITY_TYPES.LEAVE_REQUEST,
+      entityId: leaveRequest.id,
+      afterSnapshot: mapped,
+    });
+
     await this.notifyPendingApprovers(leaveRequest, currentUser);
     await this.syncGenericLeaveApproval(leaveRequest, currentUser, 'SUBMITTED');
 
-    return this.mapLeaveRequest(leaveRequest, currentUser);
+    return mapped;
   }
 
   private async resolveLeavePolicyRuleForRequest(
@@ -934,7 +1007,49 @@ export class LeaveService {
       leaveRequestId,
     );
 
+    await this.resolveOutstandingApprovalNotifications(
+      currentUser.tenantId,
+      leaveRequestId,
+    );
+
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action: AUDIT_ACTIONS.LEAVE_REQUEST_CANCELLED,
+      entityType: AUDIT_ENTITY_TYPES.LEAVE_REQUEST,
+      entityId: leaveRequestId,
+      beforeSnapshot: this.mapLeaveRequest(leaveRequest, currentUser),
+      afterSnapshot: this.mapLeaveRequest(updated, currentUser),
+    });
+
     return this.mapLeaveRequest(updated, currentUser);
+  }
+
+  /**
+   * BUG-2016 — the request is settled, so nothing may still be asking anyone to
+   * approve it.
+   *
+   * Cancelling used to leave the approver's "Leave request needs approval" row
+   * unread and priority 1 in their inbox, pointing at a `CANCELLED` record, and
+   * counted by the dashboard badge. The delivery half of the notification
+   * machinery was working; the resolution half did not exist. It lives in the
+   * notifications module because every approvable record type raises the same
+   * kind of row.
+   *
+   * Called after the transaction rather than inside it, alongside the `emit`
+   * calls it mirrors: the notification tables are not part of the leave
+   * request's consistency boundary, and a decision must not be rolled back
+   * because an inbox row could not be tidied.
+   */
+  private resolveOutstandingApprovalNotifications(
+    tenantId: string,
+    leaveRequestId: string,
+  ) {
+    return this.notificationsService.resolveActionRequired({
+      tenantId,
+      relatedEntityType: 'leaveRequest',
+      relatedEntityId: leaveRequestId,
+    });
   }
 
   async listLeavePolicyRules(currentUser: AuthenticatedUser, policyId: string) {
@@ -980,7 +1095,7 @@ export class LeaveService {
       );
     }
 
-    return this.leaveRepository.createLeavePolicyRule(
+    const rule = await this.leaveRepository.createLeavePolicyRule(
       currentUser.tenantId,
       policyId,
       {
@@ -1050,6 +1165,22 @@ export class LeaveService {
         updatedById: currentUser.userId,
       },
     );
+
+    /*
+     * BUG-2044 -- a policy rule carries the entitlement days, the accrual and
+     * the approval requirement for one leave type. It is configuration an
+     * auditor asks about by name, and it wrote no row.
+     */
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action: AUDIT_ACTIONS.LEAVE_POLICY_RULE_CREATED,
+      entityType: AUDIT_ENTITY_TYPES.LEAVE_POLICY_RULE,
+      entityId: rule.id,
+      afterSnapshot: rule,
+    });
+
+    return rule;
   }
 
   async updateLeavePolicyRule(
@@ -1357,6 +1488,15 @@ export class LeaveService {
       updatedById: currentUser.userId,
     });
 
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action: AUDIT_ACTIONS.LEAVE_POLICY_ASSIGNMENT_CREATED,
+      entityType: AUDIT_ENTITY_TYPES.LEAVE_POLICY_ASSIGNMENT,
+      entityId: assignment.id,
+      afterSnapshot: assignment,
+    });
+
     await this.reconcileEntitlementAfterAssignmentChange(currentUser.tenantId);
     return assignment;
   }
@@ -1545,6 +1685,21 @@ export class LeaveService {
       leaveRequestId,
     );
 
+    /*
+     * BUG-1970 — self-approval is refused here as well as in
+     * `canUserActOnStep`, and it is refused before anything else.
+     *
+     * The reordering inside `canUserActOnStep` is what closes the hole; this
+     * states the rule at the entry point so the decision does not depend on two
+     * helpers continuing to agree, and so the caller is told what was actually
+     * wrong instead of "you are not assigned to action this leave request".
+     */
+    if (leaveRequest.employee.userId === currentUser.userId) {
+      throw new ForbiddenException(
+        'You cannot approve or reject your own leave request.',
+      );
+    }
+
     if (leaveRequest.status !== LeaveRequestStatus.PENDING) {
       throw new ConflictException(
         'Only pending leave requests can be actioned.',
@@ -1682,6 +1837,16 @@ export class LeaveService {
       currentUser,
       action === 'approve' ? 'APPROVED' : 'REJECTED',
       comments,
+    );
+    /*
+     * BUG-2016 — before the outcome notification, not after. The step just
+     * decided can no longer be acted on, so the request for that action is
+     * retired first and the employee's "approved"/"rejected" row is then raised
+     * against a clean slate.
+     */
+    await this.resolveOutstandingApprovalNotifications(
+      currentUser.tenantId,
+      leaveRequestId,
     );
     await this.notificationsService.emit({
       tenantId: currentUser.tenantId,
@@ -2104,12 +2269,29 @@ export class LeaveService {
     pendingStep: LeaveRequestWithRelations['approvalSteps'][number],
     currentUser: AuthenticatedUser,
   ) {
-    if (hasElevatedTenantRole(currentUser)) {
-      return true;
-    }
-
+    /*
+     * BUG-1970 — the self-requester test comes first, before any role path.
+     *
+     * It used to come second, after `hasElevatedTenantRole`, which made
+     * self-approval reachable for a global-admin or system-admin: they are the
+     * requester and the assigned-approver answer at once, and
+     * `processLeaveRequestDecision` treats a true answer here as "assigned
+     * approver" and so never consults `canOverrideLeaveDecision` — which does
+     * order the two checks correctly. The override check was therefore not a
+     * second line of defence on that path; it was unreachable.
+     *
+     * An elevated role widens *which* records a user may act on. It is not an
+     * exemption from the self-approval prohibition, and the elevated-role bypass
+     * may not be widened without an explicit decision. `attendance.service.ts`
+     * bars both parties to a correction before any permission or role path, for
+     * exactly this reason.
+     */
     if (leaveRequest.employee.userId === currentUser.userId) {
       return false;
+    }
+
+    if (hasElevatedTenantRole(currentUser)) {
+      return true;
     }
 
     if (pendingStep.approverUserId) {

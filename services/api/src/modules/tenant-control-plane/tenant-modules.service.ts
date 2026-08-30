@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { SubscriptionStatus, TenantFeatureSource } from '@prisma/client';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { TenantEntitlementService } from '../../common/security/tenant-entitlement.service';
 import { AuditService } from '../audit/audit.service';
 import { PlatformEventsService } from '../platform-events/platform-events.service';
 import { TENANT_FEATURE_DEFINITIONS } from '../tenant-settings/tenant-settings.catalog';
@@ -40,6 +41,7 @@ export class TenantModulesService {
     private readonly featureAccess: FeatureAccessService,
     private readonly auditService: AuditService,
     private readonly events: PlatformEventsService,
+    private readonly entitlements: TenantEntitlementService,
   ) {}
 
   async list(user: AuthenticatedUser, tenantId: string) {
@@ -112,6 +114,15 @@ export class TenantModulesService {
         });
       }
     });
+
+    /*
+     * Before the view is rebuilt, so what the operator is shown next is what the
+     * request path will decide. `EntitlementGuard` reads a snapshot with a
+     * minute-long TTL; an operator who just turned a module off and watched the
+     * screen agree would otherwise still see the API serving it, and read that
+     * as the toggle not working.
+     */
+    this.entitlements.invalidate(tenant.id);
 
     const after = await this.buildModuleView(tenant.id);
     const changed = after.modules.filter((item) => {

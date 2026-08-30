@@ -24,12 +24,12 @@ export default async function ProjectsPage({
 
   if (!hasBusinessUnitScope(businessUnitAccess)) {
     return (
-      <main className="dp-theme-scope dp-projects-scope grid gap-6">
+      <div className="dp-theme-scope dp-projects-scope grid gap-6">
         <AccessDeniedState
           description="Your current business-unit scope does not include project records."
           title="Projects are unavailable for your current business unit access."
         />
-      </main>
+      </div>
     );
   }
 
@@ -57,7 +57,7 @@ export default async function ProjectsPage({
   }));
 
   return (
-    <main className="dp-theme-scope dp-projects-scope grid gap-6">
+    <div className="dp-theme-scope dp-projects-scope grid gap-6">
       <StandardModuleListPage
         activeView={activeView}
         formatting={{
@@ -78,7 +78,7 @@ export default async function ProjectsPage({
         runtime={runtime}
         title="Projects"
       />
-    </main>
+    </div>
   );
 }
 

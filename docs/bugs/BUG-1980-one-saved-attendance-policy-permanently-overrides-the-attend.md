@@ -13,12 +13,12 @@ AffectedModules: [services/api/src/modules/attendance]
 OwnerAgent: backend-api
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-323
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
-UpdatedAt: 2026-08-29
+UpdatedAt: 2026-08-30
 ResolvedAt:
 ---
 
@@ -221,7 +221,141 @@ independently.
 
 ## Resolution
 
-Open. No fix has been written.
+**Partly fixed. Status stays OPEN, deliberately** — two of the four acceptance
+criteria are not met, and the remainder is a schema migration with a backfill
+that this bug-burndown branch is not the right vehicle for. What landed and what
+did not is set out below so the next agent does not have to re-derive it.
+
+## The premise, measured
+
+**The core claim is true.** `resolvePolicy`
+(`services/api/src/modules/attendance/attendance.service.ts`) reads each value as
+`policy?.X ?? attendanceSettings.X`, and every `AttendancePolicy` column
+consulted that way is non-nullable with a Prisma default — so the fallback fires
+only when the whole **row** is absent, never per field. `maxAllowedAccuracyMeters
+Int?` is the single exception and behaves correctly. The row is not seeded.
+
+**One sub-claim is false**, and it is worth recording rather than quietly
+fixing. Actual Behavior says "a partial PATCH of the policy persists hardcoded
+defaults for the fields it omits". That is true of the **create** branch — the
+lines the record cites, `attendance.service.ts:2780-2795` — and **not** of the
+update branch, which already read `dto.X ?? existing?.X ?? default` and left
+omitted fields alone. Acceptance criterion 3, "a partial PATCH of the policy
+leaves untouched fields untouched", was therefore already satisfied for updates
+before this work.
+
+**The reproduction cannot have been performed as written.** Step 2 is "open the
+attendance policy screen and press Save once". That save could not succeed:
+`AttendancePolicyCard` posted the whole resolved policy back, which carries
+`allowedModes`, `locationRetryAttempts` and `standardWorkHoursPerDay` — none of
+them in the DTO — and the global `ValidationPipe` runs with
+`forbidNonWhitelisted`. Every save on that screen returned 400. That is fixed
+under BUG-1981, and it means the trap this record describes is armed by an API
+client, not by the screen. The trap itself is real.
+
+## What was fixed
+
+`updatePolicy` no longer fills omitted fields with hardcoded constants when it
+creates the row. It resolves the currently **effective** policy first and seeds
+from that, so the row starts out saying exactly what the tenant already had.
+Before this, a tenant with `defaultGraceMinutes: 10` configured in Settings had
+`locationTimeoutSeconds`, `storeIpAddress`, `highAccuracyLocation`,
+`allowIpFallback` and `maxAllowedAccuracyMeters` replaced by constants the moment
+the row appeared — the act of creating the row changed behaviour by itself.
+
+Covered by `services/api/src/modules/attendance/attendance-policy-write.spec.ts`,
+which asserts six fields whose effective values all differ from the constants
+that used to be written, so a regression cannot pass by coincidence.
+Mutation-tested: restoring `dto.locationTimeoutSeconds ?? 15` fails that case.
+
+## Follow-up — 2026-08-30, the three fields the first pass missed
+
+The pass above covered nine fields. Three more consulted the same way by
+`resolvePolicy` — `lateCheckInGraceMinutes`, `lateCheckOutGraceMinutes` (both
+fed by `attendanceSettings.defaultGraceMinutes`) and
+`requireOfficeLocationForOfficeMode` (fed by
+`attendanceSettings.enforceOfficeLocationForOfficeMode`) — still had no
+fallback at all in the create branch:
+`attendance.service.ts:2934-2937` (pre-fix) wrote `dto.lateCheckInGraceMinutes`,
+`dto.lateCheckOutGraceMinutes` and `dto.requireOfficeLocationForOfficeMode`
+bare. When the caller's payload left one `undefined`, Prisma's `create` applies
+the column default (`0`, `0`, `true`) rather than leaving the column alone —
+the exact mechanism the September pass fixed for the other nine, just not
+carried through to these three. That is the repro this record opens with,
+literally: `defaultGraceMinutes: 10` in Settings, no policy row, one save that
+does not touch grace minutes, and the tenant's late-marking threshold silently
+drops to `0`.
+
+Fixed at `attendance.service.ts:2940-2946` (create branch of `updatePolicy`):
+these three now read `dto.X ?? effective.X`, matching the pattern already used
+for the other nine. `effective` is the `resolvePolicy(tenantId)` result already
+computed earlier in the method for that purpose.
+
+**One caveat, found while verifying rather than assumed:** `UpdateAttendancePolicyDto`
+declares all three fields as required (no `@IsOptional()` —
+`services/api/src/modules/attendance/dto/update-attendance-policy.dto.ts:4-19`).
+The global `ValidationPipe` therefore refuses any real `PATCH /attendance/policy`
+that omits them, so this exact gap could not be triggered through the live HTTP
+endpoint today — only by calling `AttendanceService.updatePolicy` directly with a
+value that bypasses DTO validation. The fix is made anyway, for the same reason
+the other nine fields were: it is dead-simple, it matches the established
+pattern in the same object literal, and it removes a latent trap that would
+reactivate instantly the day someone makes these fields optional (a change the
+`allowOffDayCheckIn`-style sibling fields already show is a normal thing to do
+on this DTO).
+
+Covered by the same spec file, a new case in the `BUG-1980` describe block:
+asserts all three fields resolve to the effective settings values (not the
+column defaults) when omitted from the DTO, using an unrelated field flip to
+prove the omission itself is what's under test. Verified red/green by hand,
+not just by reading the diff: reverting the three-field fallback to the
+original bare `dto.X` and re-running
+`attendance-policy-write.spec.ts` fails exactly the new case (received
+`lateCheckInGraceMinutes: undefined`, `lateCheckOutGraceMinutes: undefined`,
+`requireOfficeLocationForOfficeMode: undefined` against the object the create
+branch would have sent to Prisma); restoring the fix turns the suite green
+again (9/9).
+
+This does not change the "What is NOT fixed" section below in any way — it
+closes the remainder of the *reset-on-create* symptom, not the precedence
+question, which is still EXECPLAN-0027's to answer.
+
+## What is NOT fixed
+
+**The precedence itself.** Once the row exists, later edits to the attendance
+settings category still have no effect, and the settings UI still gives no sign
+of it. Acceptance criteria 1, 2 and 4 remain open:
+
+- 1 — precedence documented and implemented consistently: **not done**
+- 2 — saving a policy does not freeze the settings value: **not done** (the
+  value is no longer *reset*, but it is still frozen)
+- 3 — a partial PATCH leaves untouched fields untouched: **done**, and was
+  already true for updates
+- 4 — the settings UI indicates which values come from the policy: **not done**
+
+## Why it was not fixed here
+
+The repository owner's decision of 2026-08-29 (recorded above) is that
+`AttendancePolicy` wins and the settings screen writes through to it. Executing
+that is **EXECPLAN-0027**, and its own sequencing forbids doing it piecemeal:
+the columns are stale relative to what the engine enforces, so pointing the
+resolver at them without correcting the data first would change behaviour on
+every tenant that has ever saved the attendance policy screen. It requires a
+defaults migration, a backfill of every existing row, a routing change in the
+settings write path, and the owner's answer to that plan's Risk 3 before its
+final step may merge.
+
+Three things make that unsuitable for this branch: it is a `DATA_MIGRATION`
+rollback class; the settings write path it must change is under concurrent work
+by another stream; and the plan explicitly gates its last step on a question
+only the repository owner can answer.
+
+## For whoever picks this up
+
+The alternative the record recommends — making the consulted columns nullable so
+`??` means what it was written to mean — is **not** the direction the owner
+chose. Read the Decision section above and EXECPLAN-0027 before starting, not
+the Proposed Resolution, which predates the decision.
 
 ## QA Retest
 
@@ -257,11 +391,13 @@ that has ever saved the attendance policy screen.
 - 2026-08-29 — created from the Starter-plan production QA run (SESSION-0070) at `eb457d9d`.
 - 2026-08-29 — triaged by the Architect for SESSION-0070: ArchitectDisposition PRODUCT_DECISION — same question — which store is meant to win; answer it once, then fix both.
 - 2026-08-29 — amended by the SESSION-0072 attendance-override investigation. This record is **not** part of the location-mandate question: none of its fields is mandated by any commit, comment, test or document, so it was never blocked on that decision. Status moves PRODUCT_DECISION -> OPEN and ArchitectDisposition PRODUCT_DECISION -> FIX_NOW. Proposed Resolution now carries the documented steer from `tenant-settings-attendance-runtime.md:34-35` — policy survives independently of *catalog defaults*, not of explicitly saved settings — which points at nullable `AttendancePolicy` columns rather than at policy supremacy.
+- 2026-08-30 — follow-up fix closes the three-field gap the 2026-08-29 partial fix left (`lateCheckInGraceMinutes`, `lateCheckOutGraceMinutes`, `requireOfficeLocationForOfficeMode` — see "Follow-up" section above). **Status stays OPEN and ArchitectDisposition stays FIX_NOW, deliberately**: acceptance criteria 1, 2 and 4 are unaffected by this change and remain blocked on EXECPLAN-0027 exactly as before. `RegressionId` stays `REG-323` — that entry already covers this bug and has been amended, not replaced. A second entry, **REG-325**, was added for this specific follow-up in `docs/qa/regressions/_incoming/attendance.md` — not REG-324, which `_incoming/attendance.md` already assigned to BUG-2091 (an unrelated doc-drift finding) within this same branch's centrally reserved 318-324 range. REG-325 is **not** centrally reserved; it is the next unused integer after this branch's reservation, chosen because no id-allocator exists for regression ids and reserving one properly requires `scripts/rebuild-backlog.mjs`-family tooling this task was told not to run. Confirm/reserve REG-325 formally at splice time.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
 ## Related
 
 - Modules — [[attendance]]
+- Regression — REG-323 (see the regression register)
 
 <!-- GRAPH:END -->

@@ -24,8 +24,11 @@ export type EmployeeSettingsResolved = {
   requirePersonalEmail: boolean;
   requireEmergencyContact: boolean;
   requireJoiningDate: boolean;
+  requireCountry: boolean;
+  requireBusinessUnit: boolean;
   requireDepartment: boolean;
   requireDesignation: boolean;
+  requireEmployeeLevel: boolean;
   requireReportingManager: boolean;
   requireWorkLocation: boolean;
   autoCreateDraftOnHire: boolean;
@@ -36,6 +39,7 @@ export type EmployeeSettingsResolved = {
   allowMatrixReporting: boolean;
   allowEmployeeWithoutManager: boolean;
   preventDuplicateByPersonalEmail: boolean;
+  preventDuplicateWorkEmail: boolean;
   preventDuplicateByPhoneNumber: boolean;
   preventDuplicateByNationalId: boolean;
   warnOnPossibleDuplicate: boolean;
@@ -50,6 +54,7 @@ export type OrganizationSettingsResolved = {
   businessPhone: string;
   timezone: string;
   currency: string;
+  country: string;
   dateFormat: string;
   timeFormat: string;
   weekStartsOn: WorkWeekday;
@@ -504,6 +509,7 @@ export class TenantSettingsResolverService {
       businessPhone: stringValue(category.businessPhone, ''),
       timezone: stringValue(category.timezone, 'UTC'),
       currency: stringValue(category.currency, 'USD'),
+      country: stringValue(category.country, ''),
       dateFormat: stringValue(category.dateFormat, 'MM/dd/yyyy'),
       timeFormat: stringValue(category.timeFormat, '12h'),
       weekStartsOn: Object.values(WorkWeekday).includes(
@@ -548,8 +554,17 @@ export class TenantSettingsResolverService {
         true,
       ),
       requireJoiningDate: booleanValue(category.requireJoiningDate, true),
+      /*
+       * BUG-1974 — these three were declared in the catalog and rendered as
+       * live checkboxes under "Required Fields" with nothing reading them.
+       * `collectCreateSettingsIssues` already enforced the sibling rules on the
+       * same screen, so the fix is the reader, not the control.
+       */
+      requireCountry: booleanValue(category.requireCountry, false),
+      requireBusinessUnit: booleanValue(category.requireBusinessUnit, false),
       requireDepartment: booleanValue(category.requireDepartment, false),
       requireDesignation: booleanValue(category.requireDesignation, false),
+      requireEmployeeLevel: booleanValue(category.requireEmployeeLevel, false),
       requireReportingManager: booleanValue(
         category.requireReportingManager,
         false,
@@ -576,6 +591,15 @@ export class TenantSettingsResolverService {
       ),
       preventDuplicateByPersonalEmail: booleanValue(
         category.preventDuplicateByPersonalEmail,
+        true,
+      ),
+      /*
+       * BUG-1974 — "Prevent duplicate by work email" was rendered and read by
+       * nothing, beside three sibling rules that were enforced. The duplicate
+       * rule engine takes a list; this one was simply never added to it.
+       */
+      preventDuplicateWorkEmail: booleanValue(
+        category.preventDuplicateWorkEmail,
         true,
       ),
       preventDuplicateByPhoneNumber: booleanValue(

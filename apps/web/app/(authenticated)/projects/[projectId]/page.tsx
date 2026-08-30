@@ -35,7 +35,7 @@ export default async function ProjectDetailPage({
   );
 
   return (
-    <main className="dp-theme-scope dp-projects-scope grid gap-6">
+    <div className="dp-theme-scope dp-projects-scope grid gap-6">
       <StandardModuleRecordPage
         activeForm={activeForm}
         mode="read"
@@ -45,7 +45,7 @@ export default async function ProjectDetailPage({
         spec={projectRuntimeSpec}
         title={project.name}
       />
-    </main>
+    </div>
   );
 }
 

@@ -628,23 +628,45 @@ async function requestJson(path: string, init?: RequestInit) {
     const data = (await response.json().catch(() => null)) as {
       message?: unknown;
       error?: unknown;
+      description?: unknown;
       status?: unknown;
       statusCode?: unknown;
     } | null;
-    const message =
+    const method = init?.method ?? "GET";
+    const serverMessage =
       typeof data?.message === "string"
         ? data.message
         : typeof data?.error === "string"
           ? data.error
           : `Request failed with ${response.status}.`;
-    const error = new Error(
-      `${message} (${init?.method ?? "GET"} ${path})`,
-    ) as Error & { data?: unknown };
+
+    /*
+     * BUG-1963 — the thrown message used to be
+     * `${serverMessage} (${method} ${path})`, and the runtime command handler
+     * puts a failed command's message straight into the dialog and the toast.
+     * A customer therefore read
+     * "leavePolicyId must be a UUID (POST /api/leave-policies/assignments)":
+     * a DTO property name and an internal route.
+     *
+     * The method and the path are diagnostic. They stay on `error.data`, which
+     * is what reaches the error log and the downloadable report, and they are
+     * written to the console here so a developer still sees them at the point
+     * of failure. `resolveUserFacingMessage` decides what the user reads from
+     * the contract's own `description`/`message` pair.
+     */
+    if (typeof console !== "undefined") {
+      console.warn(
+        `[dijipeople] ${method} ${path} failed with ${response.status}`,
+        serverMessage,
+      );
+    }
+
+    const error = new Error(serverMessage) as Error & { data?: unknown };
     error.data = {
       ...(data && typeof data === "object" ? data : {}),
-      message,
+      message: serverMessage,
       path,
-      method: init?.method ?? "GET",
+      method,
       status: response.status,
       statusCode:
         typeof data?.statusCode === "number"

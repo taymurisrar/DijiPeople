@@ -2,7 +2,7 @@
 ID: BUG-2045
 aliases: [BUG-2045]
 Title: Timesheet background-job completions make up 71 percent of the tenant audit trail
-Status: FIXED
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: BUG
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [services/api/src/modules/timesheets, services/api/src/modules/audit, services/api/src/modules/tenant-settings]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-308
 RelatedBacklogItem:

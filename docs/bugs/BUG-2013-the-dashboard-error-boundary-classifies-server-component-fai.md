@@ -2,7 +2,7 @@
 ID: BUG-2013
 aliases: [BUG-2013]
 Title: The dashboard error boundary classifies server-component failures by a message it can never receive
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [apps/web]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-315
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-2013 — The dashboard error boundary classifies server-component failures by a message it can never receive
@@ -211,20 +211,82 @@ wrong cause — from the other direction.
 
 ## Resolution
 
-Open. No fix has been written.
+Fixed. The classifier no longer lives in the boundary component, and no longer
+tries to read a message that was deleted before it arrived.
+
+`classifyDashboardError` moved out of `error.tsx` into
+`apps/web/app/(authenticated)/_lib/classify-dashboard-error.ts`, free of JSX so
+the node-environment jest setup can reach it. `error.tsx:41-47` now maps the
+returned variant to an icon and `:59-66` consumes the pure result; nothing else
+about the rendered screen changed.
+
+Three changes to the logic, against the three things the record established:
+
+- **An explicit HTTP status is read first**
+  (`classify-dashboard-error.ts:136-141`). The status tests used to sit inside
+  each branch, below the message heuristics of the branch above, so a 404 whose
+  message happened to contain the word "permission" was answered with ACCESS
+  DENIED. That ordering is the mechanism behind this record's own complaint
+  about the `access-denied` branch.
+- **The server-component placeholder is detected explicitly**
+  (`isServerComponentPlaceholder`, `:121-128`, consumed at `:148-150`), matching
+  both the minified "Minified React error #441" text and the un-minified
+  sentence this record quoted. It resolves to a new `server-error` variant
+  (`:88-97`) whose description tells the user to quote the reference rather than
+  naming a cause it cannot know.
+- **The message branches are scoped to client failures in a comment**
+  (`:161-167`), because they are unreachable for anything thrown on the server.
+
+One narrowing worth calling out because it goes beyond what the record asked
+for: the `api-error` branch used to include `message.includes("api")`, which
+matched "rapid", "capital" and any message quoting an `/api/` URL, so the
+fall-through was nearly unreachable. That substring is gone; `failed to fetch`,
+`network` and `timeout` remain.
+
+Against the acceptance criteria:
+
+- **1, a server-component throw renders a screen including the digest** — met,
+  and it was already half-met before this change: `error.tsx` renders an "Error
+  reference" block from `error.digest`. What was missing was a screen whose text
+  tells the user that reference is the thing to quote, which the `server-error`
+  variant now does. The record was written against a screen reading "UNEXPECTED
+  ERROR", and that is the string this fix removes for the server case.
+- **2, the four branches are reachable or explicitly scoped** — met, by the
+  comment at `:161-167` and by the status-first ordering that leaves them
+  reachable for client failures only.
+- **3, a 404 is not rendered as ACCESS DENIED** — met in the boundary, and met
+  at the other end too: BUG-2014's `users/[userId]` page now renders a not-found
+  state rather than an access-denied one for a 404.
+- **4, a test feeding the literal #441 message** — met.
+  `classify-dashboard-error.spec.ts:23-58` feeds both the minified and
+  un-minified placeholders verbatim and asserts `server-error`, explicitly
+  asserting it is **not** the accidental `unexpected` fall-through.
+
+13 assertions, all passing. The first of them fails against the previous
+classifier, which is the point of it.
 
 ## QA Retest
 
-Awaiting a fix — nothing to retest yet.
+Retested by the new unit suite, not in a browser: 13 assertions in
+`apps/web/app/(authenticated)/_lib/classify-dashboard-error.spec.ts` pass.
+
+**Not retested live.** The classifier is pure logic over an `Error`, so the unit
+coverage is a faithful test of the decision; what it does not establish is that
+the rendered screen reads well, or that Next attaches `digest` in this
+deployment exactly as assumed. Confirm on the next release by opening a route
+that throws server-side: expect the "Server error" eyebrow, the sentence about
+the reference, and the digest in the reference block.
 
 ## History
 
 - 2026-08-29 — created from the Starter-plan production QA run (SESSION-0070) at `eb457d9d`, out of the React #441 root-cause investigation into BUG-2003 and BUG-2004. Disposition FIX_NOW.
+- 2026-08-29 - fixed in SESSION-0076 on `agent/bugfix-runtime`. `classifyDashboardError` extracted to `_lib/classify-dashboard-error.ts`; an explicit HTTP status now outranks every message heuristic; the React #441 placeholder resolves to a deliberate `server-error` variant; the message branches are commented as client-only. All four acceptance criteria met, 13 assertions added. Status OPEN to FIXED, disposition DONE. **Not deployed** - this is on a task branch, not `develop` or `main`.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
 ## Related
 
 - Modules — [[tenant-application]]
+- Regression — REG-315 (see the regression register)
 
 <!-- GRAPH:END -->

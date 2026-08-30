@@ -2,7 +2,7 @@
 ID: BUG-1967
 aliases: [BUG-1967]
 Title: Leave entitlement is never allocated to a balance, so every leave request is refused
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [services/api/src/modules/leave]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-306
 RelatedBacklogItem:

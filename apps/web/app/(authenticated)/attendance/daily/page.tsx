@@ -46,12 +46,12 @@ export default async function AttendanceDailyReviewPage({
 
   if (!hasAnyPermission(user.permissionKeys, [PERMISSION_KEYS.ATTENDANCE_READ])) {
     return (
-      <main className="dp-theme-scope dp-attendance-scope grid gap-6">
+      <div className="dp-theme-scope dp-attendance-scope grid gap-6">
         <AccessDeniedState
           description="Your role does not include attendance access."
           title="Daily attendance review is unavailable for your account."
         />
-      </main>
+      </div>
     );
   }
 
@@ -89,11 +89,11 @@ export default async function AttendanceDailyReviewPage({
   );
 
   return (
-    <main className="dp-theme-scope dp-attendance-scope grid gap-6">
+    <div className="dp-theme-scope dp-attendance-scope grid gap-6">
       <header className="grid gap-2">
-        <h1 className="text-2xl font-semibold text-foreground">
+        <h2 className="text-2xl font-semibold text-foreground">
           Daily attendance review
-        </h1>
+        </h2>
         <p className="text-sm text-muted">
           Reconciled attendance for the people you manage. Use the views to find
           the days that still need a decision.
@@ -124,7 +124,7 @@ export default async function AttendanceDailyReviewPage({
           total={data.total}
         />
       </SectionCard>
-    </main>
+    </div>
   );
 }
 

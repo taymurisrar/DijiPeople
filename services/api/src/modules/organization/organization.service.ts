@@ -6,15 +6,21 @@ import {
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { Prisma, SecurityAccessLevel, SecurityPrivilege } from '@prisma/client';
+import {
+  AUDIT_ACTIONS,
+  AUDIT_ENTITY_TYPES,
+} from '../../common/constants/audit-actions';
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
 import { resolveEffectiveAccessLevel } from '../../common/security/rbac-query-scope';
 import { CreateBusinessUnitDto } from './dto/create-business-unit.dto';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { CreateDesignationDto } from './dto/create-designation.dto';
 import { CreateLocationDto } from './dto/create-location.dto';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
+import { ListDepartmentsDto } from './dto/list-departments.dto';
 import { ListMasterDataDto } from './dto/list-master-data.dto';
 import { UpdateBusinessUnitDto } from './dto/update-business-unit.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
@@ -66,11 +72,25 @@ export type TeamNode = {
   isActive: boolean;
 };
 
+/**
+ * Used only when a caller asks for a page without saying how big. It matches
+ * `EmployeeQueryDto.pageSize` so the two list endpoints agree on what "a page"
+ * means; a caller that sends neither `page` nor `pageSize` never reaches it and
+ * still receives every row.
+ */
+const DEFAULT_DEPARTMENT_PAGE_SIZE = 20;
+
 @Injectable()
 export class OrganizationService {
   constructor(
     private readonly organizationRepository: OrganizationRepository,
     private readonly prisma: PrismaService,
+    /*
+     * BUG-2044 — no file in this module referenced `AuditService`, so
+     * department and designation writes had no audit path to omit. This is the
+     * dependency that gives them one.
+     */
+    private readonly auditService: AuditService,
   ) {}
 
   findOrganizations(tenantId: string) {
@@ -877,11 +897,77 @@ export class OrganizationService {
     const visibleBusinessUnitIds = new Set(
       businessUnits.map((businessUnit) => businessUnit.id),
     );
-    return departments.filter(
-      (department) =>
-        department.businessUnitId !== null &&
-        visibleBusinessUnitIds.has(department.businessUnitId),
+    /*
+     * A department with no business unit is not "outside the caller's scope" —
+     * it has no scope to be outside of. The filter used to answer false for
+     * both cases, which made such a row invisible on every read path: the
+     * list, fetch-by-id, and therefore update and delete as well, since both
+     * resolve their target through this function. The row stayed put holding
+     * the tenant's department name, so it could not be reached and its name
+     * could not be reused either.
+     *
+     * These rows are not hypothetical: `seedTenantWorkforceReferenceData` in
+     * `prisma/seed-config.ts` creates Human Resources, Operations, Finance and
+     * Information Technology with a code and a name and no business unit, on
+     * every tenant, on every release.
+     *
+     * A tenant-scoped caller sees the whole tenant by definition, so it is the
+     * one that can reach such a row to assign it a business unit or delete it.
+     * A narrower caller still must not see it — there is no business unit
+     * through which it could be in that caller's scope — and that half of the
+     * behaviour is the part worth keeping.
+     */
+    const isTenantScopedReader =
+      resolveEffectiveAccessLevel(
+        currentUser,
+        ENTITY_KEYS.HIERARCHY,
+        privilege,
+      ) === SecurityAccessLevel.TENANT;
+    return departments.filter((department) =>
+      department.businessUnitId === null
+        ? isTenantScopedReader
+        : visibleBusinessUnitIds.has(department.businessUnitId),
     );
+  }
+
+  /**
+   * The departments list endpoint.
+   *
+   * Two shapes, and the choice belongs to the caller rather than to us. Ask for
+   * no page and the answer is the bare array every master-data endpoint has
+   * always returned, because three frontends, an Electron agent and a .NET
+   * gateway read these contracts and none of them asked for a change. Ask for a
+   * page and the answer is the `{items, meta}` envelope the employees list
+   * uses, so a client that wants server paging gets the totals its footer needs
+   * instead of a 400 from the global `ValidationPipe` for a field the DTO never
+   * declared.
+   *
+   * The slice happens after the visibility filter, not in the query. Department
+   * visibility is resolved in memory against the caller's business units, so a
+   * `take`/`skip` in Prisma would page the wrong set. This bounds the response,
+   * not the read — worth saying plainly rather than implying a database-level
+   * page that is not there.
+   */
+  async listDepartmentsForUser(
+    currentUser: AuthenticatedUser,
+    query: ListDepartmentsDto,
+  ) {
+    const departments = await this.findDepartmentsForUser(currentUser, query);
+
+    if (query.page === undefined && query.pageSize === undefined) {
+      return departments;
+    }
+
+    const pageSize = query.pageSize ?? DEFAULT_DEPARTMENT_PAGE_SIZE;
+    const total = departments.length;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const page = Math.min(Math.max(query.page ?? 1, 1), totalPages);
+    const start = (page - 1) * pageSize;
+
+    return {
+      items: departments.slice(start, start + pageSize),
+      meta: { page, pageSize, total, totalPages },
+    };
   }
 
   async findDepartmentForUser(
@@ -933,7 +1019,7 @@ export class OrganizationService {
       dto.ownerUserId,
     );
     try {
-      return await this.organizationRepository.createDepartment({
+      const department = await this.organizationRepository.createDepartment({
         tenantId: currentUser.tenantId,
         businessUnitId: dto.businessUnitId,
         name: dto.name.trim(),
@@ -947,6 +1033,17 @@ export class OrganizationService {
         createdById: currentUser.userId,
         updatedById: currentUser.userId,
       });
+
+      await this.auditService.log({
+        tenantId: currentUser.tenantId,
+        actorUserId: currentUser.userId,
+        action: AUDIT_ACTIONS.DEPARTMENT_CREATED,
+        entityType: AUDIT_ENTITY_TYPES.DEPARTMENT,
+        entityId: department.id,
+        afterSnapshot: department,
+      });
+
+      return department;
     } catch (error) {
       this.handleUniqueError(error, 'Department');
     }
@@ -993,53 +1090,86 @@ export class OrganizationService {
         : dto.isActive === true
           ? 'ACTIVE'
           : undefined);
-    const result = await this.organizationRepository.updateDepartment(
-      currentUser.tenantId,
-      id,
-      {
-        ...(dto.businessUnitId !== undefined
-          ? { businessUnitId: dto.businessUnitId }
-          : {}),
-        ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
-        ...(dto.code !== undefined
-          ? { code: dto.code?.trim().toUpperCase() ?? null }
-          : {}),
-        ...(dto.description !== undefined
-          ? { description: dto.description?.trim() ?? null }
-          : {}),
-        ...(dto.headEmployeeId !== undefined
-          ? { headEmployeeId: dto.headEmployeeId ?? null }
-          : {}),
-        ...(dto.ownerUserId !== undefined
-          ? { ownerUserId: dto.ownerUserId ?? null }
-          : {}),
-        ...(nextStatus !== undefined
-          ? { status: nextStatus, isActive: nextStatus === 'ACTIVE' }
-          : {}),
-        ...(dto.subStatus !== undefined || nextStatus !== undefined
-          ? {
-              subStatus: normalizeSubStatus(
-                nextStatus ?? dto.status ?? existing.status,
-                dto.subStatus,
-              ),
-            }
-          : {}),
-        ...(dto.isActive !== undefined && nextStatus === undefined
-          ? { isActive: dto.isActive }
-          : {}),
-        updatedById: currentUser.userId,
-      },
-    );
+    /*
+     * Wrapped where the create path already was. Renaming a department onto a
+     * name another active department holds has always been able to raise
+     * P2002, and unwrapped that surfaced as a 500 rather than the 409 the
+     * create path returns for the same collision. Scoping the name uniqueness
+     * to active rows (BUG-1958) adds a second way to reach it — reactivating
+     * an archived department whose name has since been taken — so the gap is
+     * closed here rather than left to be found again.
+     */
+    const result = await this.updateDepartmentRow(currentUser.tenantId, id, {
+      ...(dto.businessUnitId !== undefined
+        ? { businessUnitId: dto.businessUnitId }
+        : {}),
+      ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
+      ...(dto.code !== undefined
+        ? { code: dto.code?.trim().toUpperCase() ?? null }
+        : {}),
+      ...(dto.description !== undefined
+        ? { description: dto.description?.trim() ?? null }
+        : {}),
+      ...(dto.headEmployeeId !== undefined
+        ? { headEmployeeId: dto.headEmployeeId ?? null }
+        : {}),
+      ...(dto.ownerUserId !== undefined
+        ? { ownerUserId: dto.ownerUserId ?? null }
+        : {}),
+      ...(nextStatus !== undefined
+        ? { status: nextStatus, isActive: nextStatus === 'ACTIVE' }
+        : {}),
+      ...(dto.subStatus !== undefined || nextStatus !== undefined
+        ? {
+            subStatus: normalizeSubStatus(
+              nextStatus ?? dto.status ?? existing.status,
+              dto.subStatus,
+            ),
+          }
+        : {}),
+      ...(dto.isActive !== undefined && nextStatus === undefined
+        ? { isActive: dto.isActive }
+        : {}),
+      updatedById: currentUser.userId,
+    });
 
     if (result.count === 0) {
       throw new NotFoundException('Department was not found for this tenant.');
     }
 
-    return this.findDepartmentForUser(
+    const updated = await this.findDepartmentForUser(
       currentUser,
       id,
       SecurityPrivilege.MANAGE,
     );
+
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action: AUDIT_ACTIONS.DEPARTMENT_UPDATED,
+      entityType: AUDIT_ENTITY_TYPES.DEPARTMENT,
+      entityId: id,
+      beforeSnapshot: existing,
+      afterSnapshot: updated,
+    });
+
+    return updated;
+  }
+
+  private async updateDepartmentRow(
+    tenantId: string,
+    id: string,
+    data: Prisma.DepartmentUncheckedUpdateInput,
+  ) {
+    try {
+      return await this.organizationRepository.updateDepartment(
+        tenantId,
+        id,
+        data,
+      );
+    } catch (error) {
+      this.handleUniqueError(error, 'Department');
+    }
   }
 
   findDesignations(tenantId: string, query: ListMasterDataDto) {
@@ -1072,7 +1202,7 @@ export class OrganizationService {
     try {
       await this.prepareDesignationNameForActiveUse(currentUser.tenantId, name);
 
-      return await this.organizationRepository.createDesignation({
+      const designation = await this.organizationRepository.createDesignation({
         tenantId: currentUser.tenantId,
         name,
         level: employeeLevel
@@ -1084,6 +1214,17 @@ export class OrganizationService {
         createdById: currentUser.userId,
         updatedById: currentUser.userId,
       });
+
+      await this.auditService.log({
+        tenantId: currentUser.tenantId,
+        actorUserId: currentUser.userId,
+        action: AUDIT_ACTIONS.DESIGNATION_CREATED,
+        entityType: AUDIT_ENTITY_TYPES.DESIGNATION,
+        entityId: designation.id,
+        afterSnapshot: designation,
+      });
+
+      return designation;
     } catch (error) {
       this.handleUniqueError(error, 'Designation');
     }
@@ -1110,6 +1251,7 @@ export class OrganizationService {
       );
     }
 
+    const existing = await this.findDesignationById(currentUser.tenantId, id);
     const result = await this.organizationRepository.updateDesignation(
       currentUser.tenantId,
       id,
@@ -1138,7 +1280,19 @@ export class OrganizationService {
       throw new NotFoundException('Designation was not found for this tenant.');
     }
 
-    return this.findDesignationById(currentUser.tenantId, id);
+    const updated = await this.findDesignationById(currentUser.tenantId, id);
+
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action: AUDIT_ACTIONS.DESIGNATION_UPDATED,
+      entityType: AUDIT_ENTITY_TYPES.DESIGNATION,
+      entityId: id,
+      beforeSnapshot: existing,
+      afterSnapshot: updated,
+    });
+
+    return updated;
   }
 
   async deleteDesignation(currentUser: AuthenticatedUser, id: string) {
@@ -1183,7 +1337,26 @@ export class OrganizationService {
       throw new NotFoundException('Designation was not found for this tenant.');
     }
 
-    return this.findDesignationById(currentUser.tenantId, id);
+    const archived = await this.findDesignationById(currentUser.tenantId, id);
+
+    /*
+     * Recorded as a delete rather than an update because that is what the
+     * caller asked for and what the tenant sees, even though the row survives
+     * under an archived name. `deleteDepartment` needs no equivalent: it
+     * delegates to `updateDepartment`, which audits it as the status change it
+     * actually is.
+     */
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action: AUDIT_ACTIONS.DESIGNATION_DELETED,
+      entityType: AUDIT_ENTITY_TYPES.DESIGNATION,
+      entityId: id,
+      beforeSnapshot: currentDesignation,
+      afterSnapshot: archived,
+    });
+
+    return archived;
   }
 
   private async prepareDesignationNameForActiveUse(

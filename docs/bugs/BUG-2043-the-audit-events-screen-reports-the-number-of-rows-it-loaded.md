@@ -2,7 +2,7 @@
 ID: BUG-2043
 aliases: [BUG-2043]
 Title: The Audit Events screen reports the number of rows it loaded as the tenant's total audit count
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [apps/web, services/api/src/modules/audit]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-354
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-2043 — The Audit Events screen reports the number of rows it loaded as the tenant's total audit count
@@ -189,22 +189,76 @@ deciding where pagination is owned.
 
 ## Resolution
 
-Open. No fix has been written.
+Fixed on `agent/bugfix-audit`.
+
+The settings runtime list now honours the server's pagination envelope instead
+of inventing a total from the rows it happened to load.
+
+- `apps/web/app/(authenticated)/settings/_components/settings-runtime-pages.tsx:116-134`
+  — the requested `page`/`pageSize` are read from the URL **before** the fetch
+  and passed into it. They used to be read after, which is why the control could
+  never influence what was fetched.
+- `apps/web/app/(authenticated)/settings/_lib/settings-adapter-registry.ts` —
+  `settingsListApiPath()` moved here from the page component (so it is testable)
+  and now appends `page`/`pageSize` for adapters that opt in. It clamps the page
+  size to 100 because both backing query DTOs cap it there and the global
+  `ValidationPipe` answers an over-cap value with a 400.
+- `readSettingsListPagination()` in the same file reads the envelope. Two shapes
+  are live and both are handled: the audit module nests the counts under `meta`,
+  the notifications module returns them flat beside `items`.
+- The page passes `paginationMode="server"` with `meta.total` as `totalItems`
+  when an envelope came back, and keeps client mode when none did — which is the
+  honest mode there, because a bare array really is the whole collection.
+
+**The opt-in is deliberate and is the non-obvious part.** The API runs
+`forbidNonWhitelisted`, so sending `page`/`pageSize` to an endpoint whose query
+DTO does not declare them is a **400**, not a harmless extra. A blanket sweep of
+every read-only settings adapter — which the Proposed Resolution asked for —
+would therefore have taken screens down rather than fixed them. The flag
+`supportsServerPagination` is set only on the four adapters whose endpoints were
+read and confirmed to accept the parameters and return a total: `audit-logs`,
+`login-history`, `data-access-history` (all `AuditLogQueryDto`) and
+`notification-email-logs` (`EmailDeliveryLogQueryDto`). `timezones` and
+`currencies` were checked and deliberately left alone: `/configuration/timezones`
+takes no query at all, and its `items` really are the whole collection.
+
+**Not fixed, and worth saying plainly.** Adapters backed by an endpoint that
+returns a bare array — departments among them, which is BUG-1959 seen from the
+API side — still cannot paginate, because there is nothing to paginate against.
+Their footers are honest today (they load everything), so this is a scaling
+limit rather than a wrong answer, and closing it means adding envelopes on the
+API side.
+
+Search within a server-paginated list still filters the loaded page rather than
+the collection. That is pre-existing behaviour of `DataTable`'s server mode, it
+is shared with every other server-paginated screen in the product, and it was
+left alone rather than changed under a pagination fix.
 
 ## QA Retest
 
-Awaiting a fix — nothing to retest yet.
+Retested by `apps/web/app/(authenticated)/settings/_lib/settings-list-pagination.spec.ts`
+— eleven assertions covering the requested page reaching the API, the clamp, an
+adapter that must not receive the parameters, and both envelope shapes. The
+central one fails against the old code: a response of 20 items with
+`meta.total: 305` now reports 305.
+
+**Not retested live.** The 305/20 numbers in this record came from a production
+tenant and have not been re-measured. What is established is that the requested
+page reaches the API and that the API's own total is what the footer reports.
+Re-measuring needs the release.
 
 ## History
 
 - 2026-08-29 — created from the Starter-plan production QA run (SESSION-0070) at `eb457d9d`; observed against production API `949f461c`.
 - 2026-08-29 — the `viewId` caveat the QA log flagged was settled in code before filing: the parameter is re-appended by the pager's own link builder and is not a saved-view filter. Root cause established as the unpaginated settings-runtime fetch.
 - 2026-08-29 — triaged by the Architect for SESSION-0070: ArchitectDisposition FIX_NOW — a compliance-grade wrong answer on a screen sold as an audit trail.
+- 2026-08-29 — fixed on `agent/bugfix-audit`. The sweep the record asked for was deliberately narrowed: `forbidNonWhitelisted` turns an unsupported `pageSize` into a 400, so server pagination is opt-in per adapter and was enabled only on the four endpoints that were read and confirmed.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
 ## Related
 
 - Modules — [[tenant-application]], [[audit-and-events]]
+- Regression — REG-354 (see the regression register)
 
 <!-- GRAPH:END -->

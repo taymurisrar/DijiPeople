@@ -2,7 +2,7 @@
 ID: BUG-2014
 aliases: [BUG-2014]
 Title: Users new and Users import fall through to the user detail route and report a permissions refusal
-Status: OPEN
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: BUG
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [apps/web]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-314
 RelatedBacklogItem: ITEM-0107
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-2014 — Users new and Users import fall through to the user detail route and report a permissions refusal
@@ -182,16 +182,98 @@ that name the wrong cause. ITEM-0107 quantifies the four Users screens.
 
 ## Resolution
 
-Open. No fix has been written.
+Fixed, without pre-empting ITEM-0107 and without building a second user-create
+screen.
+
+**The premise was verified before anything was changed.** All three links were
+still there at this branch's base: `users-command-bar.tsx:52` (New),
+`:125` (Data > Import) and `page.tsx:172` (the empty state), none of which
+resolves to a page, and `users/[userId]/page.tsx:117-129` still answered both a
+403 and a 404 with the same `AccessDeniedState`.
+
+**The two links now point somewhere real, or nowhere at all.**
+
+There is exactly one user-create screen in this product and it belongs to the
+settings runtime: `settings/[category]/[settingGroup]/[item]/new/page.tsx`
+resolves `/settings/security-access/identities/users/new`, and `next.config.ts`
+redirects the older `/settings/security-access/users/*` spelling onto it. So
+`New` points there, through a single named constant at
+`users/_lib/user-routes.ts` so the two call sites cannot drift
+(`users-command-bar.tsx:52`, `users/page.tsx:170`). Nothing about permissions
+changed: the API decides who may create a user, as it did before.
+
+`Data > Import` was **removed**, along with the `canImport` prop that gated it
+and the now-unused `users.import` permission read at `page.tsx:53`. There is no
+users import screen anywhere in this app, so there was nowhere honest to point
+it. Pointing it at another route that does not exist would have moved the defect
+rather than fixed it.
+
+Building `new/page.tsx` and `import/page.tsx` under `/users` was the other
+option the record offered and was deliberately not taken: ITEM-0107 may redirect
+this whole tree to the settings screen, and two more bespoke pages is the wrong
+thing to leave behind if it does.
+
+**A 404 is no longer reported as a permissions refusal.**
+`users/[userId]/page.tsx:124-146` splits the two cases that used to share a
+panel: a 404 renders the new `RecordNotFoundState` ("This user record was not
+found"), and a 403 keeps `AccessDeniedState`. The new component
+(`_components/record-not-found-state.tsx`) is built on the shared `EmptyState`
+and `Button` rather than a hand-rolled panel.
+
+**The empty state is no longer hand-rolled.** `users/page.tsx:163-174` was a
+bespoke `<section>` with its own border, heading and link. It is the shared
+`EmptyState` now, with the create action pointing at the real route.
+
+Against the acceptance criteria:
+
+- **1, no control links to a route that has no page** - met. One link
+  retargeted, one removed, both verified by the test below.
+- **2, `/users/new` and `/users/import` work or say the record was not found** -
+  met. Neither is linked any more, and typing either still lands on
+  `users/[userId]`, which now answers "This user record was not found" rather
+  than ACCESS DENIED.
+- **3, no screen presents a 404 under an ACCESS DENIED heading** - met on this
+  screen, and met in the shared boundary by BUG-2013, which now reads an
+  explicit HTTP status before any message heuristic.
+- **4, the route-integrity test covers these paths** - met, in the same suite
+  BUG-2004 asked for: the second block of
+  `apps/web/lib/routing/route-integrity.spec.ts` extracts every literal internal
+  link in `apps/web/app` - `href`-ish properties, `router.push`/`redirect`
+  calls, and named route constants - and asserts each resolves to a page without
+  a `[param]` eating its last segment. 50 links are checked.
+
+Mutation-tested rather than assumed: pointing `USER_CREATE_ROUTE` back at
+`/users/new` fails the suite with
+`"reason": "matched by (authenticated)/users/[userId]"`. Restored afterwards.
+
+One honest limit of that test: it only sees **literal** strings. A link built
+from a template literal is not checked, deliberately - a path built around a
+record id is not the mistake this looks for - so it catches this defect and
+every copy of its shape, not every possible dead link.
 
 ## QA Retest
 
-Awaiting a fix — nothing to retest yet.
+Retested by the new unit suite, not in a browser: 26 assertions in
+`apps/web/lib/routing/route-integrity.spec.ts` pass, and the link assertion
+fails against the defect.
+
+**Not retested live**, and two things are therefore open:
+
+- Production runs `main` at `949f461c` and this work is on a task branch, so
+  `/users/new` and `/users/import` still show ACCESS DENIED on the demo tenant.
+- **The settings user-create screen has not been walked end to end here.** The
+  route resolves and the settings runtime owns a `users` adapter
+  (`settings-adapter-registry.ts:5940-6010`), so New now leads to a real page -
+  but that a user can actually be created through it was not observed in this
+  task, and it should be on the next release walkthrough. If it turns out that
+  screen cannot create a user, this record's link is still better than a dead
+  one, but ITEM-0107 gains a harder question.
 
 ## History
 
 - 2026-08-29 — created from the Starter-plan production QA run (SESSION-0070) at `eb457d9d`; predicted by the route sweep and then confirmed live on production against API `949f461c`, which corrected the prediction: both routes render a handled error state rather than crashing. Disposition FIX_NOW.
 - 2026-08-29 — Regression Coverage updated: browser E2E coverage for `apps/web` landed on `origin/develop` (ITEM-0034, 2026-08-29). The suite does not walk the `/users` tree, so neither path is reached.
+- 2026-08-29 - fixed in SESSION-0076 on `agent/bugfix-runtime`. Premise re-verified at the branch base first. New retargeted to the settings runtime's user-create route through a single named constant; Data > Import removed along with its `canImport` gate, there being no users import screen anywhere; the user detail route now distinguishes 404 from 403 via a new shared `RecordNotFoundState`; and the hand-rolled empty state replaced with the shared `EmptyState`. All four acceptance criteria met, covered by the route-integrity suite written for BUG-2004. Status OPEN to FIXED, disposition DONE. **Not deployed.**
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
@@ -199,5 +281,6 @@ Awaiting a fix — nothing to retest yet.
 
 - Backlog item — [[ITEM-0107]]
 - Modules — [[tenant-application]]
+- Regression — REG-314 (see the regression register)
 
 <!-- GRAPH:END -->

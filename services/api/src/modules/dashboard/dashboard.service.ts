@@ -22,6 +22,7 @@ import {
 import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AttendanceService } from '../attendance/attendance.service';
 
 type DashboardWidgetType =
   | 'metric-card'
@@ -164,7 +165,15 @@ const ROUTES = new Set<string>([
 
 @Injectable()
 export class DashboardService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    /*
+     * The attendance module owns the work calendar, so the dashboard asks it
+     * who was expected to attend rather than re-deriving schedules and holidays
+     * from its own queries.
+     */
+    private readonly attendanceService: AttendanceService,
+  ) {}
 
   async getSummary(currentUser: AuthenticatedUser) {
     const currentEmployee = await this.prisma.employee.findFirst({
@@ -1003,7 +1012,7 @@ export class DashboardService {
             'teamAbsent',
             'Absent today',
             teamAttendance.absent,
-            'Direct reports without attendance.',
+            'Direct reports scheduled to work today with no attendance.',
             '/attendance/team',
             teamAttendance.absent ? 'warning' : 'good',
           ),
@@ -1445,9 +1454,24 @@ export class DashboardService {
       date: { gte: today.start, lt: today.end },
       ...(employeeWhere ? { employee: employeeWhere } : {}),
     };
-    const activeEmployeeCount = await this.prisma.employee.count({
-      where: employeeWhere ?? this.employeeScopedWhere(currentUser),
-    });
+    const scopedEmployeeWhere =
+      employeeWhere ?? this.employeeScopedWhere(currentUser);
+    /*
+     * Absence is measured against the work calendar, not against headcount.
+     *
+     * Counting every employee without an attendance row as absent reported the
+     * whole workforce absent on weekends and holidays, and raised the same
+     * number as an attendance exception needing review - on the first screen a
+     * customer sees, while the check-in button on the same day already said the
+     * date was a scheduled off day (BUG-2008). Whoever the calendar excuses is
+     * neither present nor absent.
+     */
+    const { expectedEmployeeIds, nonWorkingEmployeeIds } =
+      await this.attendanceService.resolveAttendanceExpectation(
+        currentUser.tenantId,
+        this.toAttendanceDate(today.start),
+        scopedEmployeeWhere,
+      );
     const [entries, checkedIn, late, missingCheckout, onLeave] =
       await Promise.all([
         this.prisma.attendanceEntry.findMany({
@@ -1480,13 +1504,20 @@ export class DashboardService {
           where: { ...baseWhere, status: AttendanceEntryStatus.ON_LEAVE },
         }),
       ]);
+    const attendedEmployeeIds = new Set(
+      entries.map((entry) => entry.employeeId),
+    );
+    const absent = expectedEmployeeIds.filter(
+      (employeeId) => !attendedEmployeeIds.has(employeeId),
+    ).length;
+    const nonWorking = nonWorkingEmployeeIds.length;
     const exceptions = [
       this.row(
         'absent',
         'Absent employees',
-        Math.max(activeEmployeeCount - entries.length, 0),
+        absent,
         '/attendance',
-        activeEmployeeCount - entries.length > 0 ? 'warning' : 'good',
+        absent > 0 ? 'warning' : 'good',
       ),
       this.row(
         'late',
@@ -1506,12 +1537,39 @@ export class DashboardService {
 
     return {
       checkedIn,
-      absent: Math.max(activeEmployeeCount - entries.length, 0),
+      absent,
       late,
       missingCheckout,
       onLeave,
+      /*
+       * Reported alongside the rest so the tile can say "nobody was expected
+       * today" rather than showing four zeroes that read as missing data.
+       */
+      nonWorking,
       exceptions,
     };
+  }
+
+  /**
+   * The attendance date for the day this dashboard is reporting on.
+   *
+   * Attendance dates are stored as UTC midnight of the business date, while
+   * `getTodayRange` produces server-local midnight. Rebuilding the date from
+   * the local calendar components keeps the schedule lookup on exactly the day
+   * the rest of the tile is counting; deriving it from the instant would land a
+   * day out for any server west of Greenwich. That the dashboard uses the
+   * server's day rather than the tenant's is pre-existing and deliberately not
+   * changed here - the two halves of the tile must at least agree with each
+   * other.
+   */
+  private toAttendanceDate(localDayStart: Date) {
+    return new Date(
+      Date.UTC(
+        localDayStart.getFullYear(),
+        localDayStart.getMonth(),
+        localDayStart.getDate(),
+      ),
+    );
   }
 
   private async getLeaveOperations(

@@ -50,7 +50,7 @@ export default async function TeamAttendancePage({
     shouldEnforceSelfScope(businessUnitAccess)
   ) {
     return (
-      <main className="grid gap-6">
+      <div className="grid gap-6">
         <section className="rounded-[24px] border border-dashed border-border bg-surface p-10 text-center shadow-sm">
           <p className="text-sm uppercase tracking-[0.18em] text-muted">
             Self scope active
@@ -63,7 +63,7 @@ export default async function TeamAttendancePage({
             Your access is scoped to your own records only.
           </p>
         </section>
-      </main>
+      </div>
     );
   }
 
@@ -114,21 +114,34 @@ export default async function TeamAttendancePage({
     ),
     canManageAttendance
       ? apiRequestJson<AttendancePolicyRecord>("/attendance/policy")
-      : Promise.resolve<AttendancePolicyRecord>({
+      : /*
+         * Placeholder for a viewer who may not read the policy at all. It is
+         * never rendered - the policy card below is gated on the same
+         * permission - so its only job is to describe the server honestly.
+         * It previously carried the PRE-MANDATE values
+         * (`allowRemoteWithoutLocation: true`, `captureLocationOnCheckIn:
+         * false`, `locationRequiredForModes: []`), which contradicted what the
+         * API enforces for every tenant (BUG-1981).
+         */
+        Promise.resolve<AttendancePolicyRecord>({
           lateCheckInGraceMinutes: 0,
           lateCheckOutGraceMinutes: 0,
           requireOfficeLocationForOfficeMode: true,
-          requireRemoteLocationForRemoteMode: false,
-          allowRemoteWithoutLocation: true,
-          locationCaptureRequired: false,
-          locationRequiredForModes: [],
+          allowManualAdjustments: false,
+          preventDuplicateAttendance: true,
+          allowCheckInOnApprovedLeave: false,
+          markMissingCheckout: true,
+          allowOffDayCheckIn: false,
+          allowHolidayCheckIn: false,
+          locationCaptureRequired: true,
+          locationRequiredForModes: ["OFFICE", "REMOTE", "HYBRID"],
           allowIpFallback: false,
           allowManualLocationException: false,
           locationTimeoutSeconds: 15,
           highAccuracyLocation: true,
           maxAllowedAccuracyMeters: null,
-          captureLocationOnCheckIn: false,
-          captureLocationOnCheckOut: false,
+          captureLocationOnCheckIn: true,
+          captureLocationOnCheckOut: true,
           storeIpAddress: false,
           storeUserAgent: false,
         }),
@@ -141,7 +154,7 @@ export default async function TeamAttendancePage({
 
   if (accessDenied) {
     return (
-      <main className="grid gap-6">
+      <div className="grid gap-6">
         <section className="rounded-[24px] border border-dashed border-border bg-surface p-10 text-center shadow-sm">
           <p className="text-sm uppercase tracking-[0.18em] text-muted">
             Team attendance access required
@@ -154,12 +167,12 @@ export default async function TeamAttendancePage({
             the broader operational attendance view becomes available.
           </p>
         </section>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="grid gap-6">
+    <div className="grid gap-6">
       <section className="flex flex-col gap-4 rounded-[28px] border border-border bg-[linear-gradient(135deg,rgba(255,255,255,0.95),rgba(236,248,255,0.9))] p-8 shadow-lg lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-sm uppercase tracking-[0.18em] text-muted">
@@ -236,7 +249,7 @@ export default async function TeamAttendancePage({
       {canManageIntegrations ? (
         <AttendanceIntegrationsCard integrations={integrations} />
       ) : null}
-    </main>
+    </div>
   );
 }
 

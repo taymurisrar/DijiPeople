@@ -27,7 +27,7 @@ export default async function MyPayslipDetailPage({ params }: PageProps) {
   );
 
   return (
-    <main className="grid gap-6">
+    <div className="grid gap-6">
       <section className="rounded-[28px] border border-border bg-surface p-8 shadow-sm">
         <p className="text-sm uppercase tracking-[0.18em] text-muted">
           Published Payslip
@@ -62,6 +62,6 @@ export default async function MyPayslipDetailPage({ params }: PageProps) {
           </div>
         ))}
       </section>
-    </main>
+    </div>
   );
 }

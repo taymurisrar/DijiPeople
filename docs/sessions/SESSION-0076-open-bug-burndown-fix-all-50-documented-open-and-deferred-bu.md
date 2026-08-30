@@ -1,0 +1,44 @@
+---
+SESSION_ID: SESSION-0076
+aliases: [SESSION-0076]
+TASK_ID:
+TITLE: Open bug burndown: fix all 50 documented open and deferred bugs
+ARCHITECT_INTENT: Open bug burndown: fix all 50 documented open and deferred bugs
+STATUS: ACTIVE
+TASK_TYPE: BUG
+TASK_SIZE: LARGE
+BASE_BRANCH: origin/develop
+BASE_SHA: 1c711dff8707ed6dcf9b4a9992ccbeb8e7430013
+TASK_BRANCH: agent/open-bug-burndown
+TARGET_BRANCH: develop
+WORKTREE: D:/My Work/hrm-dijipeople/DijiPeople
+AFFECTED_MODULES: []
+WRITE_LEASES: []
+ACTIVE_WORK_PACKAGES: []
+SCHEMA_WRITE: NO
+CI_STATUS: NOT_RUN
+MERGE_STATUS: NOT_STARTED
+STARTED_AT: 2026-08-29T16:09:50.608Z
+LAST_HEARTBEAT: 2026-08-29T16:09:50.608Z
+BLOCKERS: none
+---
+
+# SESSION-0076 — Open bug burndown: fix all 50 documented open and deferred bugs
+
+## Intent
+
+Open bug burndown: fix all 50 documented open and deferred bugs
+
+## Scope
+
+_To be established during planning._
+
+## Concurrency
+
+Write leases held, overlap classification against other active sessions, and
+anything this session deliberately serialised behind another. Live state:
+`node scripts/session.mjs list`.
+
+## History
+
+- 2026-08-29 — session started from `origin/develop` at `1c711df`.

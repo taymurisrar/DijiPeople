@@ -10,7 +10,15 @@ import type {
 } from "@/lib/runtime/metadata-runtime.types";
 import type { ModuleDataAdapter } from "@/lib/runtime/module-data-adapter.types";
 import type { ModuleRuntimeContext } from "@/lib/runtime/module-runtime.types";
+import {
+  resolveQuickCreateSubmission,
+  type QuickCreateSubmission,
+} from "@/lib/runtime/quick-create-metadata";
 import type { RuntimeRecordData } from "./module-runtime-ui.types";
+import {
+  buildQuickCreateValues,
+  filterToFormFields,
+} from "@/lib/runtime/related-record-create-values";
 
 export function ModuleQuickCreatePanel({
   contextValues = {},
@@ -48,15 +56,59 @@ export function ModuleQuickCreatePanel({
   readonly error?: string | null;
 }) {
   const [draftValues, setDraftValues] = useState<RuntimeRecordData>({});
+  const [fieldErrors, setFieldErrors] = useState<
+    Record<string, readonly string[]>
+  >({});
+  const [touchedFields, setTouchedFields] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  const [validationSummary, setValidationSummary] = useState<string | null>(
+    null,
+  );
 
-  const values = parentBinding
-    ? {
-        ...contextValues,
-        ...record,
-        ...draftValues,
-        [parentBinding.fieldLogicalName]: parentBinding.recordId,
-      }
-    : { ...contextValues, ...record, ...draftValues };
+  /*
+   * `contextValues` used to be the parent record in full. BUG-2012 — it is now
+   * only the fields the subgrid declared its children inherit, narrowed by the
+   * caller. The assembly itself lives in `lib/runtime` so it can be tested.
+   */
+  const values = buildQuickCreateValues({
+    inheritedValues: contextValues,
+    record,
+    draftValues,
+    parentBinding,
+  });
+
+  /*
+   * BUG-1962 — the dialog gates its own save.
+   *
+   * Its buttons are `type="button"` click handlers, so there is no form submit
+   * for the browser's native `required` to gate: a field could carry its
+   * required marker and still reach the API empty, which came back as the DTO
+   * property name — `effectiveFrom must be a valid ISO 8601 date string` — for a
+   * control labelled "Assigned On". `validateRuntimeForm` already produced the
+   * right sentence and was reachable only from `module-record-page.tsx`.
+   */
+  function handleSave(closeAfterSave: boolean) {
+    const submission: QuickCreateSubmission = resolveQuickCreateSubmission({
+      entity: entity ?? runtime.metadata.entity,
+      form,
+      values: toFieldValueMap(values),
+    });
+
+    if (submission.status === "blocked") {
+      setFieldErrors(submission.errors);
+      // Every offending field counts as touched, or the renderer holds the
+      // error back waiting for a blur that will never come.
+      setTouchedFields(new Set(Object.keys(submission.errors)));
+      setValidationSummary(submission.summary);
+      return;
+    }
+
+    setFieldErrors({});
+    setTouchedFields(new Set());
+    setValidationSummary(null);
+    void onSave?.(filterToFormFields(values, form), closeAfterSave);
+  }
 
   // A modal side sheet that declared neither `role="dialog"` nor `aria-modal`,
   // handled no Escape, and let Tab walk out into the list behind it. BUG-0043.
@@ -66,14 +118,14 @@ export function ModuleQuickCreatePanel({
         <>
           <button
             className="rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground transition hover:bg-muted/20"
-            onClick={() => void onSave?.(formValues(values, form), false)}
+            onClick={() => handleSave(false)}
             type="button"
           >
             Save
           </button>
           <button
             className="rounded-md bg-accent px-3 py-2 text-sm font-semibold text-white transition hover:bg-accent-strong"
-            onClick={() => void onSave?.(formValues(values, form), true)}
+            onClick={() => handleSave(true)}
             type="button"
           >
             Save &amp; Close
@@ -87,12 +139,12 @@ export function ModuleQuickCreatePanel({
       variant="panel"
     >
       <div className="grid gap-4">
-        {error ? (
+        {error ?? validationSummary ? (
           <p
             className="rounded-lg border border-danger/20 bg-danger/5 p-3 text-sm text-danger"
             role="alert"
           >
-            {error}
+            {error ?? validationSummary}
           </p>
         ) : null}
         {form ? (
@@ -101,8 +153,10 @@ export function ModuleQuickCreatePanel({
             form={form}
             dataAdapter={dataAdapter}
             lookupOptions={lookupOptions}
+            fieldErrors={fieldErrors}
             mode="new"
             onValuesChange={setDraftValues}
+            touchedFields={touchedFields}
             runtime={runtime}
             values={toFieldValueMap(values)}
           />
@@ -113,21 +167,6 @@ export function ModuleQuickCreatePanel({
         )}
       </div>
     </Dialog>
-  );
-}
-
-function formValues(record: RuntimeRecordData, form: FormMetadata | null) {
-  if (!form) return record;
-
-  const fieldNames = new Set(
-    form.sections.flatMap((section) =>
-      section.fields.map((field) => field.fieldLogicalName),
-    ),
-  );
-  if (!fieldNames.size) return record;
-
-  return Object.fromEntries(
-    Object.entries(record).filter(([key]) => fieldNames.has(key)),
   );
 }
 

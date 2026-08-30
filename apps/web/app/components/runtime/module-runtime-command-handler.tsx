@@ -28,6 +28,7 @@ import {
 import { AttendanceActionFeedback } from "./attendance-action-feedback";
 import { debugRuntime } from "@/lib/runtime/runtime-debug";
 import { fieldValidationErrorsAreVisible } from "@/lib/runtime/command-failure-visibility";
+import { readCommandFailureContract } from "@/lib/runtime/command-failure-message";
 import type { CommandDefinition } from "@/lib/runtime/command-runtime.types";
 import type {
   FormMetadata,
@@ -725,52 +726,18 @@ function hasFieldErrorEntries(value: unknown) {
   return false;
 }
 
+/*
+ * One reader for the failure contract, shared with the record page's toast.
+ * This used to hold a second copy of the status-to-code table, which is how a
+ * 404 with no envelope reached the user as DATABASE_RECORD_NOT_FOUND here as
+ * well as in the fetch interceptor (BUG-1955).
+ */
 function readCommandFailureError(result: RuntimeCommandExecutionResult) {
-  const data = result.data;
-  const dataRecord =
-    data && typeof data === "object" && !Array.isArray(data)
-      ? (data as Record<string, unknown>)
-      : {};
-  const responseRecord =
-    dataRecord.response &&
-    typeof dataRecord.response === "object" &&
-    !Array.isArray(dataRecord.response)
-      ? (dataRecord.response as Record<string, unknown>)
-      : null;
-  const record = responseRecord ?? dataRecord;
-  const statusCode =
-    typeof record.statusCode === "number"
-      ? record.statusCode
-      : typeof record.status === "number"
-        ? record.status
-        : 500;
-  const errorCode =
-    typeof record.errorCode === "string"
-      ? record.errorCode
-      : typeof record.code === "string"
-        ? record.code
-        : statusCode >= 500
-          ? "SYSTEM_UNEXPECTED_ERROR"
-          : statusCode === 403
-            ? "ACCESS_DENIED"
-            : statusCode === 404
-              ? "DATABASE_RECORD_NOT_FOUND"
-              : "VALIDATION_FAILED";
-
-  return {
-    errorCode,
-    message:
-      typeof record.message === "string"
-        ? record.message
-        : result.message || "Command failed",
-    description:
-      typeof record.description === "string"
-        ? record.description
-        : result.errors?.join(" ") ||
-          "The requested action could not be completed.",
-    statusCode,
-    details: record.details ?? dataRecord,
-  };
+  return readCommandFailureContract(
+    result.data,
+    result.message,
+    result.errors,
+  );
 }
 
 function readSystemFieldDebug(

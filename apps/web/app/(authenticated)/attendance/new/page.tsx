@@ -24,12 +24,12 @@ export default async function NewAttendancePage() {
 
   if (!canManageAttendance || !configuration.policy?.allowManualAdjustments) {
     return (
-      <main className="dp-theme-scope dp-attendance-scope grid gap-6">
+      <div className="dp-theme-scope dp-attendance-scope grid gap-6">
         <AccessDeniedState
           description="Manual attendance creation requires attendance management access and the tenant manual-adjustment policy."
           title="Manual attendance is unavailable."
         />
-      </main>
+      </div>
     );
   }
 
@@ -39,7 +39,7 @@ export default async function NewAttendancePage() {
   ]);
 
   return (
-    <main className="dp-theme-scope dp-attendance-scope grid gap-6">
+    <div className="dp-theme-scope dp-attendance-scope grid gap-6">
       {configuration.status !== "AVAILABLE" ? (
         <TopAlert
           description={
@@ -54,16 +54,16 @@ export default async function NewAttendancePage() {
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
           HR attendance adjustment
         </p>
-        <h1 className="mt-2 text-2xl font-semibold text-foreground">
+        <h2 className="mt-2 text-2xl font-semibold text-foreground">
           Create manual attendance
-        </h1>
+        </h2>
         <p className="mt-2 text-sm text-muted">
           The employee shift is resolved from tenant configuration. Every
           manual entry requires an audit reason.
         </p>
       </section>
       <ManualAttendanceForm employees={employees} locations={locations} />
-    </main>
+    </div>
   );
 }
 

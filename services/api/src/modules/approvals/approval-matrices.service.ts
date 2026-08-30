@@ -10,6 +10,7 @@ import {
   ApprovalModuleKey,
   ApprovalScopeType,
   Prisma,
+  UserStatus,
 } from '@prisma/client';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { AuditService } from '../audit/audit.service';
@@ -254,13 +255,38 @@ export class ApprovalMatricesService {
       throw new BadRequestException(
         'Selected approver role does not belong to this tenant.',
       );
-    if (
-      data.approverUserId &&
-      !(await this.repository.findUserById(tenantId, data.approverUserId))
-    )
-      throw new BadRequestException(
-        'Selected approver user does not belong to this tenant.',
+    if (data.approverUserId) {
+      /*
+       * BUG-1969 — two predicates, two messages.
+       *
+       * This used to be a single `findUserById`, which filters on
+       * `status: 'ACTIVE'` as well as tenant, and reported only the tenant half
+       * of its own condition. An administrator naming a colleague their tenant
+       * had just provisioned — status `INVITED`, returned by `GET /api/users` —
+       * was told the user did not belong to this tenant, which is a false
+       * statement about the caller's own data and sends them looking for a
+       * cross-tenant mistake that does not exist.
+       *
+       * Whether an invited user may hold an approval step is a product
+       * question, and it is deliberately not decided here: it is shared with
+       * BUG-1968 and ITEM-0106, and the route resolver does not check the
+       * status of a `USER` approver at all, so admitting one would route
+       * requests to somebody who cannot sign in to act on them. The behaviour
+       * is therefore unchanged; only the diagnosis is.
+       */
+      const approver = await this.repository.findTenantUserById(
+        tenantId,
+        data.approverUserId,
       );
+
+      if (!approver)
+        throw new BadRequestException(
+          'Selected approver user does not belong to this tenant.',
+        );
+
+      if (approver.status !== UserStatus.ACTIVE)
+        throw new BadRequestException(approverStatusMessage(approver.status));
+    }
   }
 
   private async assertUnique(
@@ -335,6 +361,18 @@ const REFERENCE_KEYS: ReferenceKey[] = [
 function trimOrNull(value?: string | null) {
   const trimmed = value?.trim();
   return trimmed || null;
+}
+/**
+ * What to tell an administrator whose chosen approver is in the tenant but
+ * cannot hold the step, in the vocabulary of the account rather than of the
+ * query that refused it. BUG-1969.
+ */
+function approverStatusMessage(status: UserStatus) {
+  if (status === UserStatus.INVITED) {
+    return 'Selected approver user has not activated their account yet. They can be named as an approver once they accept their invitation — resend it from Settings > Users if needed.';
+  }
+
+  return 'Selected approver user account is disabled and cannot be assigned as an approver.';
 }
 function optionalDecimal(value?: number | null) {
   return value === null || value === undefined

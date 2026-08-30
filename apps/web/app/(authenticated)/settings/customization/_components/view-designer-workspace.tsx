@@ -213,7 +213,7 @@ export function ViewDesignerWorkspace({ columns, table, view }: Props) {
           </div>
         </aside>
 
-        <main className="rounded-[20px] border border-border bg-slate-50 p-4 shadow-sm">
+        <div className="rounded-[20px] border border-border bg-slate-50 p-4 shadow-sm">
           <div className="mb-4">
             <p className="text-sm font-semibold text-foreground">View fields</p>
             <p className="mt-1 text-xs text-muted">
@@ -275,7 +275,7 @@ export function ViewDesignerWorkspace({ columns, table, view }: Props) {
               );
             })}
           </div>
-        </main>
+        </div>
 
         <aside className="rounded-[20px] border border-border bg-surface p-4 shadow-sm">
           <p className="text-sm font-semibold text-foreground">Properties</p>

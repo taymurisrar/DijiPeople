@@ -17,6 +17,9 @@ import {
 } from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { EntitlementGuard } from '../../common/guards/entitlement.guard';
+import { RequireEntitlement } from '../../common/decorators/require-entitlement.decorator';
+import { TENANT_FEATURE_KEYS } from '../../common/constants/tenant-features';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { CompensationService } from './compensation.service';
 import {
@@ -29,7 +32,8 @@ import { UpdateCompensationComponentDto } from './dto/update-compensation-compon
 import { UpdateCompensationHistoryDto } from './dto/update-compensation-history.dto';
 
 @Controller('employees/:employeeId')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, EntitlementGuard)
+@RequireEntitlement(TENANT_FEATURE_KEYS.PAYROLL)
 export class CompensationController {
   constructor(private readonly compensationService: CompensationService) {}
 

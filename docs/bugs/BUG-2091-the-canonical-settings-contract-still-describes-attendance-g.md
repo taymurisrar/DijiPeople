@@ -2,7 +2,7 @@
 ID: BUG-2091
 aliases: [BUG-2091]
 Title: The canonical settings contract still describes attendance geolocation as configurable and Remote-Hybrid only
-Status: OPEN
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: DOCUMENTATION
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-29
 DetectedInSha: 70391242
 AffectedModules: [docs/architecture]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-324
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-2091 — The canonical settings contract still describes attendance geolocation as configurable and Remote-Hybrid only
@@ -209,7 +209,47 @@ Pattern: `docs/qa/known-bug-patterns/doc-code-drift.md`.
 
 ## Resolution
 
-Open. No fix has been written.
+Fixed. The premise held: both documents still described attendance geolocation
+as conditional, tenant-configurable and scoped to Remote/Hybrid, and the code
+still throws unconditionally.
+
+**What changed.**
+
+- `docs/architecture/settings-and-branding.md` — the "Attendance Rules"
+  paragraph no longer lists a "Remote/Hybrid browser-geolocation requirement"
+  among the tenant-configurable rules, and says plainly that device location
+  capture is a platform mandate. "Attendance Runtime Consumption" no longer says
+  Check In requires geolocation only for Remote and Hybrid, and no longer says
+  Check Out requires it "when configured". A new section, **Attendance location
+  capture is mandatory**, names `validateAttendanceLocationPayload` as the
+  enforcement point, cites commit `a8c04f16` and migration
+  `20260728234000_attendance_mandatory_location_capture`, links the ADR, and
+  lists the nine settings and policy fields that are reported but enforce
+  nothing so the next reader does not mistake them for controls. Both amended
+  sections carry the date they were re-derived against the code.
+
+- `docs/architecture/tenant-settings-attendance-runtime.md` — "Remote and Hybrid
+  modes require browser coordinates when the resolved policy enables location
+  capture" is replaced with the unconditional statement, the sentence it
+  replaces is quoted so a reader can see what was corrected, and it points at
+  the settings contract and the ADR.
+
+- `docs/decisions/ADR-0003-attendance-location-capture-is-mandatory.md` — new.
+  The ADR the mandate never got. Status Accepted, dated to the decision
+  (2026-07-29) rather than to the day it was written down, with the gap stated
+  in the record. It carries the evidence, the two alternatives that were
+  rejected and why, the consequences, and an **Agent Rules** section saying
+  explicitly not to delete `enforceCriticalAttendanceSetting` or
+  `MANDATORY_LOCATION_CAPTURE` and not to "fix" the resolve-site literals.
+
+- `docs/decisions/README.md` — the index listed only ADR-0001. ADR-0002 was
+  missing as well; both it and ADR-0003 are now listed.
+
+**Not done, deliberately.** `RelatedDecision` on this record and on BUG-1979 is
+left empty rather than pointed at ADR-0003. Setting it changes the generated
+GRAPH block, and the record generators are run centrally; setting the field
+without regenerating leaves an index that disagrees with the record. It is a
+one-line follow-up for whoever runs `rebuild-backlog`.
 
 ## QA Retest
 
@@ -224,8 +264,6 @@ Awaiting a fix — nothing to retest yet.
 
 ## Related
 
-- No related record, module or decision is declared in this record's
-  frontmatter. Declare one rather than adding a link here by hand — this
-  block is regenerated and a hand-written link inside it is lost.
+- Regression — REG-324 (see the regression register)
 
 <!-- GRAPH:END -->

@@ -2,7 +2,7 @@
 ID: BUG-1668
 aliases: [BUG-1668]
 Title: Tenant workspace pages scroll horizontally at mobile width
-Status: DEFERRED
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-27
 DetectedInSha: 21032ae
 AffectedModules: [views]
 OwnerAgent: architect
-ArchitectDisposition: DEFER
+ArchitectDisposition: DONE
 QAReport: docs/qa/runs/2026-08-29-starter-plan-e2e-pass-2-8ab1cbf.md
-RegressionId: 
+RegressionId: REG-344
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-27
-UpdatedAt: 2026-08-29
-ResolvedAt:
+UpdatedAt: 2026-08-30
+ResolvedAt: 2026-08-30
 ---
 
 # BUG-1668 — Tenant workspace pages scroll horizontally at mobile width
@@ -132,8 +132,7 @@ and nothing currently checks it.
 
 ## Regression Coverage
 
-None yet. Needs an assertion in the browser suite that no page body scrolls
-horizontally at a mobile viewport. Requires a `REG-nnn` entry once written.
+REG-344. See "Fixed — 2026-08-30" below.
 
 ## Dependencies
 
@@ -147,13 +146,24 @@ Found in the first responsive pass over the tenant workspace, which the
 
 ## Resolution
 
-Not yet resolved.
+Fixed — see "Fixed — 2026-08-30" below for the full account. Summary: two of
+the three causes this record separates were addressed with scoped, reasoned
+CSS changes (the sidebar's unconstrained width below `xl`, and the payroll
+sub-navigation's non-wrapping group rows); the third (the `/employees`
+resize-handle claim) does not reproduce against current source and is
+documented as such rather than patched. **Not visually verified** — no
+browser was available to this task; the reasoning and file:line evidence are
+below.
 
 ## QA Retest
 
-Not yet retested. Retest by measuring, not by looking — the page renders without
-obvious clipping and the overflow is only apparent when you scroll or compare the
-two widths.
+Not retested live or in a browser. The record's own `test.fixme` in
+`e2e/tests/flow-j-tenant-settings.spec.ts` ("J — settings does not scroll
+sideways on a phone") was deliberately left `fixme` rather than un-fixmed by
+this task: removing `.fixme` on the strength of source-reading alone, without
+a browser run to confirm it now passes, would trade a known skip for a
+possible false CI failure. Whoever next runs the E2E suite should remove
+`.fixme` and confirm.
 
 ## History
 
@@ -162,6 +172,10 @@ two widths.
   Dashboard +400px at 390px; the mechanism is a 217px inline sidebar whose
   collapse control is `hidden … xl:block`. Re-triage out of `DEFERRED`
   recommended, to `PLAN_REQUIRED`; disposition unchanged pending the Architect.
+- 2026-08-30 — fixed two of the three causes (sidebar width, payroll
+  sub-navigation wrapping) with reasoned CSS changes; found the third
+  (`/employees` resize handle) does not reproduce against current source.
+  Closed FIXED under REG-344. See "Fixed — 2026-08-30" below.
 
 
 ## Reproduction obtained — 2026-08-29
@@ -277,12 +291,92 @@ in as the tenant owner. Settings pages, record pages and `apps/admin` were not
 measured at these widths. Layout only: no touch-interaction testing was done, and
 a control being on screen is not the same as it being usable with a thumb.
 
+## Fixed — 2026-08-30
+
+No browser was available to this task (Playwright was explicitly withheld —
+it dirties the checkout and writes rows to the production client error log).
+Every change below is reasoned from the source against the record's own
+measurements and file:line evidence, not visually confirmed. Treat it
+accordingly: a strong argument, not a screenshot.
+
+### Cause 3 (the dominant one) — the sidebar
+
+`apps/web/app/(authenticated)/_components/dashboard-sidebar.tsx`. The
+`<aside>` carried no width class at all below `xl` — only `xl:w-[76px]`
+(collapsed) / `xl:w-[280px]` (expanded) — so its width came from its content:
+unwrapped nav-item label text, which the 2026-08-29 re-measurement found to be
+217px at every width under `xl`. The collapse control that would otherwise let
+someone shrink it is itself `hidden ... xl:block` and unreachable below `xl`,
+so nothing could act on it.
+
+Fix: gave the `<aside>` a fixed `w-16 shrink-0` below `xl` — the same
+icon-only rail width the desktop *collapsed* state already uses, not a new
+size — and made the nav-item label `sr-only` (visually hidden, still in the
+accessible name) rather than `hidden` (removed from it entirely) below `xl`,
+since the label's `title` attribute alone is not reliably announced by every
+screen reader. The compact brand card that rendered below `xl`
+(`CompactBrand`) does not fit a 64px rail on its own terms — its logo alone
+(`h-10 w-10`, `p-3` padding) is wider than that — so it was reduced to a
+smaller, centred logo only; the tenant/brand name is not lost, since
+`DashboardTopbar` (rendered alongside this sidebar on every route) carries
+identity separately and was never inside this sidebar.
+
+This is a narrower rail, not a drawer. A drawer pattern (hamburger trigger,
+overlay, focus trap) is what the record's own 2026-08-29 recommendation
+named as the right shape for this and explicitly sized as `PLAN_REQUIRED` —
+"real design and shell work with consequences for every route, not a patch."
+Building that blind, with no way to verify focus handling or animation in a
+browser, was judged the wrong trade for this task. The rail keeps every nav
+item reachable (icon, `title` tooltip, and now an `sr-only` accessible name)
+at a fixed, small, non-overflowing width; a drawer remains open work if the
+Architect wants it.
+
+### Cause 1 — the payroll sub-navigation
+
+`apps/web/app/(authenticated)/payroll/_components/payroll-nav.tsx`. The outer
+`<nav>` already had `flex-wrap` (confirmed unchanged since `21032ae`, the
+commit this record was detected at — the outer `PayrollLayoutShell` container
+already stacked title above nav below `xl` at that same commit too), so the
+"parent is not narrow enough for wrapping to help" in the record's evidence
+undersold what was actually wrong: each *group* of links ("Operations", six
+items; "Foundation", four) was its own `flex items-center gap-1` row with no
+wrap of its own. The outer nav wrapping a whole group onto its own line does
+nothing if that group's own row is still wider than the viewport by itself.
+
+Fix: added `flex-wrap` to each group's row, so pills wrap onto multiple lines
+inside a narrow viewport instead of forcing one unbroken row past it.
+
+### Cause 2 — the `/employees` resize handle: does not reproduce
+
+Traced the whole chain: `data-table.tsx`'s resize handle
+(`className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize ..."`) is
+a child of `<th className={\`relative px-3 py-2 ...\`}>` — so it is
+positioned against its own column, inside a `<div className="w-full min-w-0
+overflow-x-auto ...">` wrapper. That is the exact containment pattern the
+record's own Evidence section already certified as correct at 1440px ("the
+tables are not at fault"). `/employees` renders through this same shared
+`DataTable` (via `ModuleDataTable` → `StandardModuleListPage`) — there is no
+second table implementation. No code was changed here.
+
+Given cause 3 (the sidebar) is independently confirmed to be present on every
+route including `/employees`, and the 2026-08-29 re-measurement found
+`/employees`' overflow *grew* between an empty tenant (+61px) and a populated
+one (+103px) — exactly the shape a widening sidebar-squeeze would produce, not
+a fixed-position CSS bug — the sidebar is the more likely explanation for the
+`/employees` figures the record measured. This is inference from the
+available evidence, not a new measurement.
+
+### What was not addressed
+
+Tablet width, `apps/admin`, the landing site, settings pages and record pages
+were out of the original measurement's scope and remain so. Touch-interaction
+usability (a control being reachable by a thumb, not just on-screen) was
+never tested and still is not.
+
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
 ## Related
 
-- No related record, module or decision is declared in this record's
-  frontmatter. Declare one rather than adding a link here by hand — this
-  block is regenerated and a hand-written link inside it is lost.
+- Regression — REG-344 (see the regression register)
 
 <!-- GRAPH:END -->

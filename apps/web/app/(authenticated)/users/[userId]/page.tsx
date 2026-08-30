@@ -8,6 +8,7 @@ import {
   formatDateWithTenantSettings,
 } from "@/lib/date-format";
 import { AccessDeniedState } from "@/app/(authenticated)/_components/access-denied-state";
+import { RecordNotFoundState } from "@/app/(authenticated)/_components/record-not-found-state";
 import { Button } from "@/app/components/ui/button";
 import { TenantResolvedSettingsResponse } from "../../settings/types";
 import {
@@ -80,12 +81,12 @@ export default async function UserDetailPage({
 
   if (!canReadUsers) {
     return (
-      <main className="dp-theme-scope grid gap-6">
+      <div className="dp-theme-scope grid gap-6">
         <AccessDeniedState
           title="You cannot view this user record."
           description="You do not have permission to read user records."
         />
-      </main>
+      </div>
     );
   }
 
@@ -114,17 +115,38 @@ export default async function UserDetailPage({
       redirect("/login?reason=session-expired");
     }
 
-    if (
-      error instanceof ApiRequestError &&
-      (error.status === 403 || error.status === 404)
-    ) {
+    /*
+     * BUG-2014 — a 404 and a 403 are different answers and used to share one
+     * ACCESS DENIED panel, so `/users/new` and `/users/import` (which have no
+     * page and fall through to this route with the literal segment as the id)
+     * told an administrator they lacked a permission they hold.
+     */
+    if (error instanceof ApiRequestError && error.status === 404) {
+      /*
+       * A div, not a main: the authenticated layout owns the single `main`
+       * landmark (BUG-1951). The 403 branch just below already used a div, so
+       * this was the odd one out of the two.
+       */
       return (
-        <main className="dp-theme-scope grid gap-6">
+        <div className="dp-theme-scope grid gap-6">
+          <RecordNotFoundState
+            title="This user record was not found."
+            description={`No user exists here for this tenant. ${error.message}`}
+            actionHref="/users"
+            actionLabel="Back to users"
+          />
+        </div>
+      );
+    }
+
+    if (error instanceof ApiRequestError && error.status === 403) {
+      return (
+        <div className="dp-theme-scope grid gap-6">
           <AccessDeniedState
             title="You cannot view this user record."
             description={`${error.status}: ${error.message}`}
           />
-        </main>
+        </div>
       );
     }
 
@@ -163,7 +185,7 @@ export default async function UserDetailPage({
     formatDateTimeWithTenantSettings(value, formattingOptions);
 
   return (
-    <main className="dp-theme-scope grid gap-6">
+    <div className="dp-theme-scope grid gap-6">
       <UserProfileHeader
         canDeleteUser={canDeleteUser}
         canUpdateUser={canUpdateUser}
@@ -224,7 +246,7 @@ export default async function UserDetailPage({
       {activeTab === "security" ? (
         <UserSecurityDiagnosticsCard user={user} />
       ) : null}
-    </main>
+    </div>
   );
 }
 

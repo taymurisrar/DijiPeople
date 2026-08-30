@@ -56,6 +56,14 @@ export class ConfigurationResolverService {
       dateFormat: organization.dateFormat || system.dateFormat,
       timeFormat: organization.timeFormat || system.timeFormat,
       numberFormat: system.locale,
+      /*
+       * `system.defaultWeekStartDay` is the decided source (BUG-1976 pair 8).
+       * It resolves through a validated enum with a `MONDAY` default, so the
+       * organization fallback below never fires; it is kept only so a tenant
+       * that stored `organization.weekStartsOn` before the system key existed
+       * is not silently re-pointed. There is exactly one control, on the
+       * System settings page.
+       */
       firstDayOfWeek: system.defaultWeekStartDay || organization.weekStartsOn,
       holidayCalendarId: await this.resolveHolidayCalendar(context),
       workScheduleId: await this.resolveWorkSchedule(context),

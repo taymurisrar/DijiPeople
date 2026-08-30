@@ -42,12 +42,12 @@ export default async function ApplicationDetailPage({
       (error.status === 403 || error.status === 404)
     ) {
       return (
-        <main className="grid gap-6">
+        <div className="grid gap-6">
           <AccessDeniedState
             description="This application is outside your accessible business-unit scope."
             title="You cannot view this application record."
           />
-        </main>
+        </div>
       );
     }
 
@@ -67,7 +67,7 @@ export default async function ApplicationDetailPage({
   const runtimeRecord = mapApplicationRecord(application);
 
   return (
-    <main className="dp-theme-scope grid gap-6">
+    <div className="dp-theme-scope grid gap-6">
       <StandardModuleRecordPage
         activeForm={activeForm}
         formSlot={<ApplicationDetailWorkspace application={application} />}
@@ -78,7 +78,7 @@ export default async function ApplicationDetailPage({
         spec={recruitmentApplicationRuntimeSpec}
         title={runtimeRecord.applicationName}
       />
-    </main>
+    </div>
   );
 }
 

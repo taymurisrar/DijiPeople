@@ -5,5 +5,5 @@ import { benefitAssignmentRuntimeSpec } from "@/lib/runtime/modules/payroll-foun
 
 export default async function NewBenefitAssignmentPage() {
   const runtime = buildStandardRouteRuntime({ pageKind: "create", sessionUser: await getSessionUser(), spec: benefitAssignmentRuntimeSpec });
-  return <main className="grid gap-6"><StandardModuleRecordPage activeForm={resolveStandardActiveForm(runtime.metadata.forms, "", "quickCreate")} mode="create" record={{ effectiveFrom: "", isManualOverride: true }} runtime={runtime} spec={benefitAssignmentRuntimeSpec} title="New Benefit Assignment" /></main>;
+  return <div className="grid gap-6"><StandardModuleRecordPage activeForm={resolveStandardActiveForm(runtime.metadata.forms, "", "quickCreate")} mode="create" record={{ effectiveFrom: "", isManualOverride: true }} runtime={runtime} spec={benefitAssignmentRuntimeSpec} title="New Benefit Assignment" /></div>;
 }

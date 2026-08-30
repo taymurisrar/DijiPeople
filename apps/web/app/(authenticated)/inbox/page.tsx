@@ -23,7 +23,7 @@ export default async function InboxPage({ searchParams }: InboxPageProps) {
   );
 
   return (
-    <main className="space-y-6">
+    <div className="space-y-6">
       <section>
         <p className="text-sm font-semibold uppercase tracking-[0.2em] text-accent">
           Work queue
@@ -37,7 +37,7 @@ export default async function InboxPage({ searchParams }: InboxPageProps) {
       </section>
       <InboxViewTabs />
       <InboxTable response={response} />
-    </main>
+    </div>
   );
 }
 

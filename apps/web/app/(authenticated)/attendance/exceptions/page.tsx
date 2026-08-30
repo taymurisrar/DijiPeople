@@ -33,12 +33,12 @@ export default async function AttendanceExceptionsPage({
 
   if (!hasAnyPermission(user.permissionKeys, [PERMISSION_KEYS.ATTENDANCE_READ])) {
     return (
-      <main className="dp-theme-scope dp-attendance-scope grid gap-6">
+      <div className="dp-theme-scope dp-attendance-scope grid gap-6">
         <AccessDeniedState
           description="Your role does not include attendance access."
           title="Attendance exceptions are unavailable for your account."
         />
-      </main>
+      </div>
     );
   }
 
@@ -57,11 +57,11 @@ export default async function AttendanceExceptionsPage({
   const canManage = hasAnyPermission(user.permissionKeys, [PERMISSION_KEYS.ATTENDANCE_MANAGE]);
 
   return (
-    <main className="dp-theme-scope dp-attendance-scope grid gap-6">
+    <div className="dp-theme-scope dp-attendance-scope grid gap-6">
       <header className="grid gap-1">
-        <h1 className="text-2xl font-semibold text-foreground">
+        <h2 className="text-2xl font-semibold text-foreground">
           Attendance exceptions
-        </h1>
+        </h2>
         <p className="text-sm text-muted">
           Days DijiPeople could not resolve on its own. Everything here is
           recorded attendance — reviewing it decides how it counts, not whether
@@ -84,7 +84,7 @@ export default async function AttendanceExceptionsPage({
           total={list.total}
         />
       </SectionCard>
-    </main>
+    </div>
   );
 }
 

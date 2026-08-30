@@ -28,12 +28,12 @@ export default async function LeavePage({ searchParams }: LeavesPageProps) {
 
   if (!hasBusinessUnitScope(businessUnitAccess)) {
     return (
-      <main className="dp-theme-scope dp-leaves-scope grid gap-6">
+      <div className="dp-theme-scope dp-leaves-scope grid gap-6">
         <AccessDeniedState
           description="Your current business-unit scope does not include leave module records."
           title="Leave module is unavailable for your current business unit access."
         />
-      </main>
+      </div>
     );
   }
 
@@ -120,7 +120,7 @@ export default async function LeavePage({ searchParams }: LeavesPageProps) {
   }));
 
   return (
-    <main className="dp-theme-scope dp-leaves-scope grid gap-6">
+    <div className="dp-theme-scope dp-leaves-scope grid gap-6">
       <StandardModuleListPage
         activeView={activeView}
         formatting={formatting}
@@ -137,7 +137,7 @@ export default async function LeavePage({ searchParams }: LeavesPageProps) {
         runtime={runtime}
         title="Leaves"
       />
-    </main>
+    </div>
   );
 }
 

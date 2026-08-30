@@ -2,7 +2,7 @@
 ID: BUG-2149
 aliases: [BUG-2149]
 Title: Every dashboard metric card offers a link named only Open
-Status: DEFERRED
+Status: FIXED
 Severity: LOW
 Priority: P3
 Type: UX
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-29
 DetectedInSha: 48273a47
 AffectedModules: [views, dashboard]
 OwnerAgent: architect
-ArchitectDisposition: DEFER
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-336
 RelatedBacklogItem: ITEM-0114
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-2149 — Every dashboard metric card offers a link named only Open
@@ -112,7 +112,27 @@ Raised from the same screenshot review as [[BUG-2148]] and [[ITEM-0102]].
 
 ## Resolution
 
-Not yet fixed.
+Fixed, batched with BUG-2148 as the triage note on both records directed.
+
+Fixed in the renderer, not in `dashboard.service.ts:2598`. The record left that
+choice open and argued for the renderer; the argument holds — the renderer
+already has the card's title in scope, and moving the string there keeps a
+presentation decision out of the API contract three other clients also read.
+
+`WidgetAction` in
+`apps/web/app/components/dashboard/dashboard-widget-renderer.tsx:345` takes a
+`context` prop and builds `aria-label={`${action.label} ${context}`}`, so the
+six links on the overview read "Open Active employees", "Open Draft
+employees", and so on. All four call sites pass `widget.title`; the visible
+text is untouched, because six cards reading "Open" is a deliberate visual
+rhythm and the defect was only ever the accessible name.
+
+Covered by
+`apps/web/app/components/dashboard/dashboard-widget-accessibility.spec.ts`,
+which asserts the name is built from the card's own title, that no call site
+is left without it — one renderer passing the title and three not would restore
+the defect on three quarters of the screen — and that the visible label is
+still `{action.label}`.
 
 ## QA Retest
 
@@ -128,5 +148,6 @@ Not yet retested.
 ## Related
 
 - Backlog item — [[ITEM-0114]]
+- Regression — REG-336 (see the regression register)
 
 <!-- GRAPH:END -->

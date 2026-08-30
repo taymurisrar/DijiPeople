@@ -2,7 +2,7 @@
 ID: BUG-1981
 aliases: [BUG-1981]
 Title: resolvePolicy hardcodes seven location values and two AttendancePolicy columns are dead
-Status: OPEN
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: BUG
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [services/api/src/modules/attendance]
 OwnerAgent: backend-api
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-322
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-1981 — resolvePolicy hardcodes seven location values and two AttendancePolicy columns are dead
@@ -250,7 +250,92 @@ same unfinished cleanup.
 
 ## Resolution
 
-Open. No fix has been written.
+Fixed, along the split this record's own Summary defines: **the seven hardcodes
+are kept and named; the leftover is swept up.** Steps 1 and 3 of the proposed
+resolution are done. Step 2 — dropping the two columns — is deferred, as the
+record itself says it must be.
+
+**What changed.**
+
+**Step 1 — the literals are now one named, commented constant.**
+`MANDATORY_LOCATION_CAPTURE` in `attendance.service.ts`, spread into
+`resolvePolicy`. Its comment states that these are the deliberate mandate rather
+than an oversight, quotes the migration
+`20260728234000_attendance_mandatory_location_capture` that carries the intent,
+names `validateAttendanceLocationPayload` as the thing that actually enforces
+it, and explains why reading them from the policy row would change what the
+client is *told* without changing what the server *does* — and would stop the
+browser asking for a position it still has to supply. It also warns that the
+write-side list in `tenant-settings.service.ts` is related but **not identical**,
+which is the error this record itself records having been made once.
+
+**Step 3 — input that can never take effect is no longer accepted.**
+
+- `dto/update-attendance-policy.dto.ts` — `requireRemoteLocationForRemoteMode`
+  and `allowRemoteWithoutLocation` are removed, along with the five other
+  mandated location fields the DTO accepted and discarded for the same reason
+  (`locationCaptureRequired`, `locationRequiredForModes`,
+  `allowManualLocationException`, `captureLocationOnCheckIn`,
+  `captureLocationOnCheckOut`). Removed rather than deprecated, with comments in
+  their place saying why. `allowIpFallback`, `locationTimeoutSeconds`,
+  `highAccuracyLocation` and `maxAllowedAccuracyMeters` stay — those *are* read
+  from the policy row.
+- `attendance-policy-card.tsx` — the two checkboxes are gone, with a comment
+  recording what they were.
+- `attendance/types.ts` — `AttendancePolicyRecord` no longer declares them.
+
+**The interim measure the record asks for, done in code rather than schema.**
+`updatePolicy` now writes all seven mandated columns at the mandated values on
+both halves of the upsert, so a stored row that says the opposite is corrected
+on the next save and the stored policy agrees with what the engine does.
+
+**A third defect, found while fixing this, and more serious than either half of
+the record: the attendance policy screen could not save at all.**
+`AttendancePolicyCard` posted its whole form back, and that form is the object
+`GET /attendance/policy` returns — the *resolved* policy, which also carries
+`allowedModes`, `locationRetryAttempts` and `standardWorkHoursPerDay`. The
+global `ValidationPipe` runs with `forbidNonWhitelisted`, so **every save on
+that screen was rejected with a 400 naming a field the administrator never
+touched.** The card now builds an explicit payload typed as
+`AttendancePolicyUpdate`, declared separately from the read shape so the two
+cannot drift back together.
+
+This also **falsifies the reproduction on BUG-1980**, whose step 2 is "open the
+attendance policy screen and press Save once" — that step could not have
+succeeded through the UI. BUG-1980's underlying claim is still true; only its
+route into the state was wrong.
+
+**Also fixed in passing, as the record suggested:**
+`apps/web/.../attendance/team/page.tsx` held a hardcoded fallback policy
+carrying the **pre-mandate** values (`allowRemoteWithoutLocation: true`,
+`captureLocationOnCheckIn: false`, `locationRequiredForModes: []`),
+contradicting the server for every tenant. It now describes the server honestly,
+with a comment saying what it used to claim.
+
+**Blast radius checked, not assumed.** `apps/admin` and `apps/agent-desktop`
+reference none of the removed fields; `apps/web` is the only consumer of
+`PATCH /attendance/policy`. The narrowing is still a compatibility change and is
+recorded in ADR-0003's Migration section.
+
+**Step 2 is deferred, deliberately.** Dropping
+`requireRemoteLocationForRemoteMode` and `allowRemoteWithoutLocation` is a
+destructive schema change and needs an ExecPlan under `PLANS.md` with backfill
+and rollback, exactly as this record says. The six column defaults that still
+say the opposite of what the engine enforces are the same job. Until then the
+columns are written at the mandated values on every save, so the **data** agrees
+with the engine even while the **defaults** do not. Acceptance criterion "column
+defaults agree with the values the engine enforces" is therefore **not** met and
+is the one thing left here.
+
+**Tests** — `services/api/src/modules/attendance/attendance-policy-write.spec.ts`
+(new, 8 cases): the mandated columns are written on create and on update,
+correcting a stale row that contradicts them in every column; the resolved
+policy reports the mandate even when the stored row says the opposite in every
+column; both halves of the upsert are tenant-scoped.
+
+**Mutation-tested.** Removing the `MANDATORY_LOCATION_CAPTURE` spread from
+`resolvePolicy` fails exactly the case asserting the resolved policy reports the
+mandate.
 
 ## QA Retest
 
@@ -292,5 +377,6 @@ that has ever saved the attendance policy screen.
 ## Related
 
 - Modules — [[attendance]]
+- Regression — REG-322 (see the regression register)
 
 <!-- GRAPH:END -->

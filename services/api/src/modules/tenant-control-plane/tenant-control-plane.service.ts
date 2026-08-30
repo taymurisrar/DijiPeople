@@ -23,6 +23,7 @@ import { TenantAppsService } from './tenant-apps.service';
 import { TenantModulesService } from './tenant-modules.service';
 import { TenantOperationsService } from './tenant-operations.service';
 import { TenantDomainService } from '../tenant-domains/tenant-domain.service';
+import { TenantSettingsResolverService } from '../tenant-settings/tenant-settings-resolver.service';
 import type {
   CancelTenantSubscriptionDto,
   ChangeTenantStatusDto,
@@ -69,6 +70,7 @@ export class TenantControlPlaneService {
     private readonly domains: TenantDomainService,
     private readonly auditService: AuditService,
     private readonly events: PlatformEventsService,
+    private readonly tenantSettingsResolver: TenantSettingsResolverService,
   ) {}
 
   /**
@@ -200,41 +202,61 @@ export class TenantControlPlaneService {
   async configuration(user: AuthenticatedUser, tenantId: string) {
     assertTenantPlatformAccess(user, 'tenants.read');
     const tenant = await this.loadDetail(tenantId);
-    const [domains, settings] = await Promise.all([
-      this.prisma.tenantDomain.findMany({
-        where: { tenantId: tenant.id },
+    const [domains, organization, system, storedLocalizationRows] =
+      await Promise.all([
+        this.prisma.tenantDomain.findMany({
+          where: { tenantId: tenant.id },
+          /*
+           * Explicitly projected. The row also carries `verificationToken`, which
+           * belongs only to the Domains surface that has to display it — the
+           * configuration payload has no use for it and should not carry it.
+           */
+          select: {
+            id: true,
+            domain: true,
+            type: true,
+            isPrimary: true,
+            verificationStatus: true,
+            tlsStatus: true,
+            verifiedAt: true,
+          },
+          orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+        }),
         /*
-         * Explicitly projected. The row also carries `verificationToken`, which
-         * belongs only to the Domains surface that has to display it — the
-         * configuration payload has no use for it and should not carry it.
+         * Resolved, not raw rows.
+         *
+         * This used to be a single `tenantSetting.findMany` filtering `key` on
+         * `['organization.country', 'organization.timezone', ...]`. `category`
+         * and `key` are separate columns and no writer ever puts a dotted
+         * composite in `key`, so the IN list could never match and the panel
+         * showed "this tenant has not configured localization yet" for every
+         * tenant, always (BUG-1977). Two further traps the obvious fix keeps:
+         * `locale` is a `system` key rather than an `organization` one, and
+         * `dateFormat` exists in both categories.
          */
-        select: {
-          id: true,
-          domain: true,
-          type: true,
-          isPrimary: true,
-          verificationStatus: true,
-          tlsStatus: true,
-          verifiedAt: true,
-        },
-        orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
-      }),
-      this.prisma.tenantSetting.findMany({
-        where: {
-          tenantId: tenant.id,
-          key: {
-            in: [
-              'organization.country',
-              'organization.timezone',
-              'organization.locale',
-              'organization.currency',
-              'organization.dateFormat',
+        this.tenantSettingsResolver.getOrganizationSettings(tenant.id),
+        this.tenantSettingsResolver.getSystemSettings(tenant.id),
+        /*
+         * Only to tell "configured" from "still on the platform default". The
+         * values themselves come from the resolver above; this says whether the
+         * tenant has ever written any of them.
+         */
+        this.prisma.tenantSetting.findMany({
+          where: {
+            tenantId: tenant.id,
+            OR: [
+              {
+                category: 'organization',
+                key: {
+                  in: ['country', 'timezone', 'currency', 'dateFormat'],
+                },
+              },
+              { category: 'system', key: 'locale' },
             ],
           },
-        },
-        select: { key: true, value: true },
-      }),
-    ]);
+          select: { id: true },
+        }),
+      ]);
 
     return {
       workspace: {
@@ -285,12 +307,31 @@ export class TenantControlPlaneService {
       localization: {
         readOnly: true,
         source: 'Tenant organization settings',
-        values: Object.fromEntries(
-          settings.map((item) => [
-            item.key.replace('organization.', ''),
-            item.value,
-          ]),
-        ),
+        /*
+         * `configured` is false when every value below is still the platform
+         * default. The panel needs the distinction: an operator checking a
+         * customer's timezone before debugging a cut-off complaint must be able
+         * to tell "the tenant chose UTC" from "nobody ever set this".
+         */
+        configured: storedLocalizationRows.length > 0,
+        values: {
+          country: organization.country,
+          timezone: organization.timezone,
+          /*
+           * `locale` is a `system` key — there is no `organization.locale`.
+           * `configuration-resolver.service.ts` reads it from `system` too.
+           */
+          locale: system.locale,
+          currency: organization.currency,
+          /*
+           * `dateFormat` exists in both categories. The organization copy is
+           * the one the tenant application actually renders with —
+           * `ConfigurationResolverService.resolveAppContext` computes
+           * `organization.dateFormat || system.dateFormat` — so that is the one
+           * a support engineer needs to see here.
+           */
+          dateFormat: organization.dateFormat,
+        },
       },
       customerRelationship: {
         customer: tenant.customerAccount,

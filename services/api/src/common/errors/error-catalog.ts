@@ -199,6 +199,38 @@ export const ERROR_CATALOG = {
     'warning',
     'tenant',
   ),
+  /*
+   * Distinct from ACCESS_DENIED on purpose (BUG-1952). A commercial boundary and
+   * an authorization boundary produce the same 403 status, and a client that
+   * cannot tell them apart shows "you do not have permission" to a tenant
+   * administrator who holds every permission there is — which reads as a
+   * permissions bug and gets reported as one. The code carries the difference,
+   * and each frontend maps it to its own copy.
+   */
+  TENANT_FEATURE_NOT_ENTITLED: entry(
+    403,
+    'Not included in your plan',
+    'This module is not part of your current subscription plan.',
+    'warning',
+    'tenant',
+    'Ask your administrator to upgrade the subscription plan to use it.',
+  ),
+  /*
+   * 503 and retryable, not 403. When the platform cannot resolve what a tenant
+   * bought, the honest statement is "we could not check", not "you did not buy
+   * this" — and only one of those is something a customer can act on. The
+   * resolver reaches this only on a cold cache; a tenant that resolved a moment
+   * ago keeps its last answer instead of being refused.
+   */
+  TENANT_ENTITLEMENT_UNAVAILABLE: entry(
+    503,
+    'Plan check unavailable',
+    'Your subscription entitlements could not be verified just now.',
+    'error',
+    'tenant',
+    'Try again in a moment.',
+    true,
+  ),
   ORGANIZATION_NOT_FOUND: entry(
     404,
     'Organization not found',
@@ -481,6 +513,32 @@ export const ERROR_CATALOG = {
     'error',
     'integration',
     'Try again later.',
+    true,
+  ),
+  /*
+   * A provider callback that arrived before the record it is about exists.
+   *
+   * Distinct from `VALIDATION_FAILED`, which is what every 400 renders as and
+   * which asserts the caller sent something malformed. Stripe's subscription
+   * and invoice callbacks for a public self-service signup can beat tenant
+   * provisioning to the database by a second or two, and answering those with
+   * a 400 said the payload was invalid and raised the critical "a customer may
+   * have paid without us knowing" alert on a payment that had in fact
+   * succeeded (BUG-1543).
+   *
+   * `info` severity and `retryable`, because the provider redelivering it a
+   * minute later is the resolution, not an escalation. The status is a 409
+   * rather than a 2xx on purpose: the delivery genuinely has not been
+   * processed, and Stripe's redelivery is what eventually writes the invoice
+   * and payment rows.
+   */
+  INTEGRATION_EVENT_NOT_READY: entry(
+    409,
+    'Integration event arrived early',
+    'The record this provider event refers to does not exist yet.',
+    'info',
+    'integration',
+    'No action needed — the provider will deliver it again.',
     true,
   ),
   AGENT_HEARTBEAT_FAILED: entry(

@@ -2,7 +2,7 @@
 ID: BUG-1974
 aliases: [BUG-1974]
 Title: 246 of 591 tenant setting keys have no reader and 230 of them are editable in the UI
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [services/api/src/modules/tenant-settings, apps/web]
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-325
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-1974 — 246 of 591 tenant setting keys have no reader and 230 of them are editable in the UI
@@ -218,21 +218,196 @@ contract is materially stale) is the documentation side.
 
 ## Resolution
 
-Open. No fix has been written.
+Fixed on `agent/bugfix-settings`. Every one of the unread keys now has an
+explicit disposition, and a repository check stops the set growing again.
+
+### The measurement, re-derived
+
+The record's figures were re-derived at the branch point rather than carried
+over, using the same method (an identifier index over every tracked file,
+excluding the catalog, the two settings UI config files, specs, `e2e/` and
+documentation, with a `(category, key)` **pair** test for the UI side).
+
+```
+catalog keys   591   as recorded
+unread         245   record says 246
+unread + editable 229   record says 230
+```
+
+**The record over-counted by exactly one, and the one is instructive.**
+`timesheets.restrictionMessage` is read at `timesheet-jobs.service.ts:438` as
+`policy.values.restrictionMessage`. That looks like a `TimesheetPolicy` field
+and not a tenant setting, which is presumably why it was classified dead — but
+`TimesheetPolicyResolverService.resolveForEmployee`
+(`timesheet-policy-resolver.service.ts:269-274`) seeds `values` from
+`DEFAULT_TENANT_SETTINGS.timesheets` merged with the tenant's persisted rows
+before overlaying policies, so every `policy.values.<key>` read **is** a reader
+of the tenant setting. Nothing else in the record's evidence changed. Everything
+below is against 245.
+
+### What was done, by category
+
+| Category | Unread | Keys removed | Readers implemented | Controls withdrawn | Left inert |
+|---|---|---|---|---|---|
+| `organization` | 6 | 1 | 1 | 6 | 6 |
+| `employees` | 17 | 7 | 4 new + 6 repointed | 7 | 6 |
+| `access` | 5 | 5 | — | — | 0 |
+| `leave` | 6 | 6 | — | — | 0 |
+| `attendance` | 19 | — | — | **none — deferred** | 19 |
+| `timesheets` | 86 | 4 | 3 | 79 | 79 |
+| `payroll` | 39 | 1 | — | 38 | 38 |
+| `recruitment` | 28 | — | — | 28 | 28 |
+| `documents` | 7 | — | — | 7 | 7 |
+| `branding` | 10 | — | — | 10 | 10 |
+| `notifications` | 15 | — | — | 15 | 15 |
+| `security` | 7 | — | — | 7 | 7 |
+| **Total** | **245** | **24** | **8 + 6** | **197** | **215** |
+
+The catalog went from 591 keys to 567. `apps/agent-desktop` and `gateway/`
+consume tenant settings not at all — a grep over both returns nothing — and
+`seed-config.ts`'s only `tenantSetting` write is `notifications.emailEnabled`,
+so no removal required a change to `seed-config` or `verify-seed-config`.
+
+### The 24 keys removed
+
+Each had no reader **and** no UI control, or was a dead alias of a live key
+(BUG-1976). A word-boundary grep over every tracked file returns only the
+catalog itself for each.
+
+- `organization.weekStartDay`
+- `employees.maximumReportingLevels`, `employees.requirePrimaryWorkLocation`,
+  `employees.allowEmployeeWithoutReportingManager`,
+  `employees.preventDuplicatePersonalEmail`, `employees.preventDuplicatePhone`,
+  `employees.preventDuplicateNationalId`, `employees.allowSkipLevelReporting`
+- `access.allowDirectPermissions`, `access.allowCustomRoles`,
+  `access.defaultManagerRoleKey`, `access.defaultEmployeeRoleKey`,
+  `access.lockSystemRoles`
+- `leave.defaultApprovalFlow`, `leave.allowHalfDayRequests`,
+  `leave.documentReminderAfterDays`, `leave.defaultCarryForwardEnabled`,
+  `leave.defaultHolidayCalendarName`, `leave.allowManualLeaveMarking`
+- `timesheets.defaultPolicyId`, `timesheets.requirePolicyAssignment`,
+  `timesheets.allowEmployeeExemption`, `timesheets.policyEffectiveDateMode`
+- `payroll.payslipTemplate`
+
+`access` and `leave` were dead in their entirety, as the record found. Both keep
+their place in `TENANT_SETTING_CATEGORIES` — that union is a type across three
+frontends — but are now empty, so `getAllowedKeysByCategory()` allowlists
+nothing in them and the partner scenario in the record's evidence (PATCH
+`leave.defaultCarryForwardEnabled`, get a 200, ship) now gets a 400.
+
+### The 8 keys that gained a reader
+
+- `employees.requireCountry`, `employees.requireBusinessUnit`,
+  `employees.requireEmployeeLevel` — added to `EmployeeSettingsResolved`
+  (`tenant-settings-resolver.service.ts:26-33`) and enforced in
+  `collectCreateSettingsIssues` (`employees.service.ts:2688-2712`), in the same
+  shape as the sibling rules on the same screen that were already enforced.
+- `employees.preventDuplicateWorkEmail` — a fourth rule in the duplicate rule
+  engine's list, on both the preview path (`employees.service.ts:2707+`) and the
+  enforcing path (`:2977+`). The engine already took a list; this rule was
+  simply never added to it.
+- `organization.country` — `OrganizationSettingsResolved` never carried it, so
+  it could not be resolved at all. Added and consumed by the platform
+  Localization panel (BUG-1977).
+- `timesheets.auditEntryChanges`, `timesheets.auditPolicyResolution`,
+  `timesheets.auditExports` — BUG-2206, wired through
+  `TimesheetAuditSettingsService`.
+
+Six more controls were repointed at readers that already existed under another
+name (BUG-1976), which is a different fix and recorded there.
+
+### The 215 that stay declared and inert
+
+`services/api/src/modules/tenant-settings/tenant-settings-dispositions.ts` lists
+every one with a reason code:
+
+| Reason | Count | Meaning |
+|---|---|---|
+| `NOT_IMPLEMENTED` | 175 | the behaviour does not exist |
+| `DUPLICATE_OF_DOMAIN_MODEL` | 16 | a real model already owns the decision |
+| `DEFERRED_ATTENDANCE_WORK` | 19 | owned by another in-flight change |
+| `UNCONDITIONAL_BY_DESIGN` | 5 | the domain cannot honour the choice offered |
+
+**They are kept rather than deleted, deliberately.** The acceptance criteria
+allow either branch — "no longer advertises keys the platform does not honour,
+**or documents them as inert**" — and the second is the safer one here: these
+keys have stored values on live tenants, and `GET /tenant-settings` is consumed
+by three frontends. Deleting 215 keys would 400 a PATCH that succeeds today. So
+the response now carries an `inertKeys` array
+(`tenant-settings.service.ts:31-46`, `:164-171`) naming each key and why, which
+is strictly more useful to an integrator than silent removal.
+
+Two of the reason codes are worth reading before anyone "finishes the job" by
+wiring them:
+
+- **`DUPLICATE_OF_DOMAIN_MODEL`** — the 15 `notifications.*Enabled` keys
+  duplicate `NotificationRule.enabled`, which is per `(moduleKey, eventKey)` and
+  actually consulted; `security.invitationExpiryHours` duplicates the
+  `USER_INVITATION_TTL_HOURS` environment variable that
+  `user-invitations.service.ts:354-360` actually reads. Wiring these would create
+  the second source of truth `AGENTS.md` forbids. The fix, if wanted, is to
+  remove the catalog copy, not to honour it.
+- **`UNCONDITIONAL_BY_DESIGN`** — `payroll.activeCompensationAssignmentAction`
+  and `payroll.missingExchangeRateAction` do map onto real preflight checks
+  (`payroll-run.service.ts:1013-1021` and `:1082-1090`), and the neighbouring
+  `payrollBankAccountAction` shows the wiring pattern. They were **not** wired on
+  purpose: both checks set `hasBlockingReadinessIssue` and mark the employee
+  `EXCEPTION`, and downgrading either to `WARN` would admit an employee to a
+  payroll run with no compensation or no exchange rate — producing wrong money.
+  A switch that can only be safely left alone should not be offered.
+  `employees.preventCircularReporting` and `validateReportingHierarchy` are the
+  same shape: hierarchy validation is unconditional, and
+  `preventDuplicateEmployeeId` is enforced by `@@unique([tenantId,
+  employeeCode])` in the database, which no setting can switch off.
+
+### The check
+
+`services/api/src/modules/tenant-settings/tenant-settings-reader-coverage.spec.ts`
+is the durable half, and REG-325 describes it. It fails in four directions: a
+declared key nothing reads and nothing exempts; a key listed inert that
+something now reads; an editable control over an inert key; and an inert entry
+naming a key the catalog no longer declares. It also asserts a corpus floor, so
+it cannot pass vacuously. Mutation-tested in two directions, both reverted.
+
+### What is NOT done
+
+**The 19 `attendance` keys still render editable controls.** They are declared
+inert under `DEFERRED_ATTENDANCE_WORK` and are excluded from the
+control-withdrawal assertion, so on the attendance settings page the defect this
+record describes is still live. They belong to the concurrent attendance
+settings work — BUG-1978, BUG-1979, BUG-1980, BUG-1981, BUG-2091 — which was
+editing the same catalog entries, and withdrawing them from under that stream
+would have caused a merge conflict in the file both were changing. A dedicated
+assertion pins the exemption to the `attendance.` prefix so it cannot widen, and
+it is meant to reach zero when that work lands.
+
+Also not done, and deliberately: no reader was implemented for the 175
+`NOT_IMPLEMENTED` keys. Those are unbuilt features, not missing wiring —
+`documents.encryptDocuments` and `watermarkDownloads` have no implementation
+behind them, the 12 unmapped `payroll.*Action` keys name preflight checks that
+do not exist, and the 28 `recruitment` keys describe an automation layer that
+was never written. Building 175 features is not a bug fix. What this record
+fixes is that the product no longer *claims* they are configured.
 
 ## QA Retest
 
-Awaiting a fix — nothing to retest yet.
+Awaiting a QA run. The record's own reproduction is the retest, and should now
+fail to reproduce: Settings > Timesheets > Approval Workflow no longer offers
+"Approval SLA hours" or "Enable approval escalation", because nothing reads
+them. On the attendance settings page the original symptom still reproduces, by
+design — see "What is NOT done".
 
 ## History
 
 - 2026-08-29 — created from the Starter-plan production QA run (SESSION-0070) at `eb457d9d`; figures independently re-derived at that commit rather than carried over from an earlier analysis.
 - 2026-08-29 — triaged by the Architect for SESSION-0070: ArchitectDisposition PLAN_REQUIRED — needs a policy — implement, delete, or mark read-only; too large to fix blind.
+- 2026-08-29 — fixed in SESSION-0076 on `agent/bugfix-settings`. Figures re-derived at the branch point: 245 unread rather than 246, the difference being one key the record misclassified. Policy applied per key: 24 removed, 8 readers implemented, 197 controls withdrawn, 215 declared inert with a reason code, and a mutation-tested check to stop the set growing. The 19 attendance keys are the honest gap — deferred to the concurrent attendance stream, controls still on screen.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
 ## Related
 
 - Modules — [[settings]], [[tenant-application]]
+- Regression — REG-325 (see the regression register)
 
 <!-- GRAPH:END -->

@@ -32,7 +32,17 @@ export function PayrollNav({ currentPath }: { currentPath: string }) {
       {groups.map((group) => (
         <div
           key={group.label}
-          className="flex items-center gap-1 rounded-xl bg-background p-1"
+          /*
+           * BUG-1668 — this group of links did not wrap, so even after the
+           * outer `<nav>`'s own `flex-wrap` moved a whole group onto its own
+           * line at a narrow viewport, the six-item "Operations" group was
+           * still one unbroken row wider than a 390px screen on its own —
+           * the outer nav wrapping "is allowed to help", per the record's
+           * own evidence, but a non-wrapping child made it unable to.
+           * `flex-wrap` here lets the pills inside one group wrap onto
+           * multiple lines instead of forcing the row past the viewport.
+           */
+          className="flex flex-wrap items-center gap-1 rounded-xl bg-background p-1"
         >
           <span className="sr-only">{group.label}</span>
           {group.items.map((item) => {

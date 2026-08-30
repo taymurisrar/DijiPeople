@@ -23,12 +23,12 @@ export default async function RecruitmentApplicationsPage() {
 
   if (!hasBusinessUnitScope(businessUnitAccess)) {
     return (
-      <main className="grid gap-6">
+      <div className="grid gap-6">
         <AccessDeniedState
           description="Your current business-unit scope does not include recruitment applications."
           title="Applications are unavailable for your current business unit access."
         />
-      </main>
+      </div>
     );
   }
 
@@ -46,7 +46,7 @@ export default async function RecruitmentApplicationsPage() {
     ]);
 
   return (
-    <main className="dp-theme-scope grid gap-6">
+    <div className="dp-theme-scope grid gap-6">
       <RecruitmentApplicationsRuntimeList
         applications={applications.items}
         candidates={candidates.items}
@@ -56,6 +56,6 @@ export default async function RecruitmentApplicationsPage() {
         }
         runtime={runtime}
       />
-    </main>
+    </div>
   );
 }

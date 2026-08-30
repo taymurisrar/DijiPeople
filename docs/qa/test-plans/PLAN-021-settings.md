@@ -127,7 +127,7 @@ this today; it is part of [[ITEM-0034]].
 
 ## Related
 
-- Scenarios — [[QA-SETTINGS-003]], [[QA-SETTINGS-004]], [[QA-SETTINGS-005]]
+- Scenarios — [[QA-SETTINGS-003]], [[QA-SETTINGS-004]], [[QA-SETTINGS-005]], [[QA-SETTINGS-006]], [[QA-SETTINGS-007]], [[QA-SETTINGS-008]], [[QA-SETTINGS-009]], [[QA-SETTINGS-010]], [[QA-SETTINGS-011]], [[QA-SETTINGS-012]], [[QA-SETTINGS-013]], [[QA-SETTINGS-014]], [[QA-SETTINGS-015]], [[QA-SETTINGS-016]]
 - Module — [[settings]]
 - Bugs — [[BUG-0668]], [[BUG-0669]]
 - Regressions — REG-223, REG-224 (see the regression register)

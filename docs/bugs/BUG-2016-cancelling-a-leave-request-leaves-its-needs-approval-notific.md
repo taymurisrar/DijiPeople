@@ -2,7 +2,7 @@
 ID: BUG-2016
 aliases: [BUG-2016]
 Title: Cancelling a leave request leaves its needs-approval notification outstanding in the inbox
-Status: OPEN
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: BUG
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [services/api/src/modules/notifications, services/api/src/modules/leave]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-331
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-2016 — Cancelling a leave request leaves its needs-approval notification outstanding in the inbox
@@ -97,10 +97,31 @@ notification model.
 
 ## Root Cause
 
-Not established. Observably, no leave request state transition resolves the
-action-required notification that points at it. Whether the notification model
-even supports "resolve every action-required notification for this record" is the
-first thing to find out; if it does not, the fix is larger than a call site.
+**Established, and it is the larger of the two possibilities this record
+allowed for: the notification model had no way to say it.**
+
+A notification's lifecycle ran only forwards from delivery, and every transition
+belonged to the recipient. `NotificationsRepository` offered
+`markInAppNotificationRead` and `archiveInAppNotification`, both keyed on a
+`recipientId` and both called from the user's own inbox actions
+(`in-app-notifications.service.ts:88-101`). Nothing anywhere took a *record* and
+retired the outstanding requests for action pointing at it, so there was no call
+for `modules/leave` to make. That is why the answer to "is this a leave omission
+or a missing capability" is the second.
+
+The materials for it existed. `NotificationStatus` already carries `ACTIONED`
+and `SUPERSEDED` (`schema.prisma:815-823`), and
+`findActiveNotificationByDedupeKey` already treats both as inactive
+(`notifications.repository.ts:894-914`) — the states were modelled and never
+written.
+
+Two rows have to change for a row to actually leave the queue, which is the part
+a call site would probably have got wrong on its own. `NotificationRecipient` is
+what the inbox listing and the unread badge read
+(`listInAppNotifications`, `countUnreadInAppNotifications`), and
+`Notification.status` is what the dedupe lookup reads — so retiring only the
+recipient row would suppress the *next* legitimate notification for the same
+record.
 
 ## Impact
 
@@ -148,8 +169,10 @@ say in the plan whether this record is being fixed or the class is.
 
 ## Regression Coverage
 
-None yet. A service test that submits, cancels, and asserts the approver has no
-outstanding action-required notification for that request would fail today.
+REG-331. `services/api/src/modules/notifications/notification-action-resolution.spec.ts`
+for the mechanics and
+`services/api/src/modules/leave/leave-notification-lifecycle.spec.ts` for the
+three transitions that call them. Detail in Resolution.
 
 ## Dependencies
 
@@ -165,22 +188,85 @@ the same pass.
 
 ## Resolution
 
-Open. No fix has been written.
+**Fixed, and the class was fixed rather than the instance**, as the Proposed
+Resolution asked: the capability lives in the notification layer, keyed on the
+related record, so timesheets, claims, loans and business trips can use it
+without new bookkeeping of their own.
+
+- `services/api/src/modules/notifications/notifications.repository.ts:916-988` —
+  new `resolveActionRequiredNotificationsForRecord({ tenantId,
+  relatedEntityType, relatedEntityId })`. It selects the tenant's own
+  `requiresAction` notifications for that record whose status is still `UNREAD`
+  or `READ`, fills `readAt` only where it was empty, then sets the recipient rows
+  to `ACTIONED` with `archivedAt`, and the notifications to `ACTIONED`.
+  `archivedAt` is what removes the row from the default inbox view; the status
+  alone would drop it from the unread count and leave it on screen.
+  Informational notifications are deliberately untouched — they are still true
+  after the record settles, and clearing them would be losing history rather
+  than clearing a queue.
+- `services/api/src/modules/notifications/notifications.service.ts:758-780` —
+  `resolveActionRequired`, the other half of `emit` for anything that asks
+  somebody to act.
+- `services/api/src/modules/leave/leave.service.ts:940-976` —
+  `resolveOutstandingApprovalNotifications`, called from
+  `cancelLeaveRequest` after its transaction
+  (`leave.service.ts:937`) and from `processLeaveRequestDecision` for both
+  approve and reject (`leave.service.ts:1740`). It runs after the transaction
+  rather than inside it, alongside the `emit` calls it mirrors: the notification
+  tables are not part of the leave request's consistency boundary, and a
+  decision must not roll back because an inbox row could not be tidied.
+
+On the decision path it runs **before** the employee's approved/rejected
+notification is emitted, so a resolution keyed on the same related record cannot
+swallow the row it was meant to leave behind.
+
+Against the acceptance criteria:
+
+- **1, cancelling removes the needs-approval notification from the outstanding
+  queue** — met.
+- **2, approving and rejecting do the same** — met, on the acted step.
+- **3, the dashboard count reflects the change** — met by construction:
+  `countUnreadInAppNotifications` counts recipient rows with
+  `status: UNREAD` and `archivedAt: null`, and both are written.
+- **4, a notification is never left asking for action on a record in a terminal
+  state** — met for leave. The capability is generic, but no other module calls
+  it yet; the other approvable record types are named in Related Items below and
+  are follow-up work, not a claim made here.
+
+### Regression coverage
+
+- `services/api/src/modules/notifications/notification-action-resolution.spec.ts`
+  — the mechanics: both tables written, tenant-scoped, `readAt` filled only
+  where empty, `archivedAt` set, and nothing written at all when the record has
+  no outstanding request for action.
+- `services/api/src/modules/leave/leave-notification-lifecycle.spec.ts` — that
+  each of the three terminal transitions makes the call with the record the
+  notification was keyed on, and that resolution precedes the outcome emit.
 
 ## QA Retest
 
-Awaiting a fix — nothing to retest yet. The cancelled request
-`86200df6-6993-43eb-b9c7-4b310180ecd1` and its stale notification are still on
-the demo tenant and can be used as the retest fixture.
+Not performed live — this task did not touch `main`, so nothing here is verified
+in production and the stale row on the demo tenant is still stale.
+
+The retest is the Reproduction section: submit, confirm the approver's inbox row
+appears, cancel, and reload. Expect the row gone from the default inbox view and
+the unread count down by one, with the row still findable under archived. Repeat
+for approve and for reject. The cancelled request
+`86200df6-6993-43eb-b9c7-4b310180ecd1` named above is a pre-existing row and will
+**not** be cleaned up retroactively: the fix resolves notifications at the
+transition, so rows stranded before the release stay where they are.
 
 ## History
 
 - 2026-08-29 — created from the Starter-plan production QA run (SESSION-0070) at `eb457d9d`; observed against production API `949f461c`. Disposition FIX_NOW.
+- 2026-08-29 — **fixed** in SESSION-0076 on `agent/bugfix-leave`: the notification model gained resolution by related record, and leave calls it on cancel, approve and reject. Root Cause established as a missing capability rather than a leave omission. Covered by `notification-action-resolution.spec.ts` and `leave-notification-lifecycle.spec.ts`. Status OPEN to FIXED. Rows stranded before the release are not cleaned up retroactively.
+
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
 ## Related
 
 - Modules — [[notifications]]
+- Regression — REG-331 (see the regression register)
 
 <!-- GRAPH:END -->

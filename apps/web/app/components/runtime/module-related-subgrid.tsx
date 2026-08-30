@@ -19,8 +19,11 @@ import type { ModuleDataAdapter } from "../../../lib/runtime/module-data-adapter
 import type { ModuleRuntimeContext } from "../../../lib/runtime/module-runtime.types";
 import { ModuleEmptyState } from "./module-empty-state";
 import { ModuleQuickCreatePanel } from "./module-quick-create-panel";
+import { resolveInheritedParentValues } from "@/lib/runtime/related-record-create-values";
+import { buildSubgridQuickCreate } from "@/lib/runtime/quick-create-metadata";
 import type { RuntimeRecordData } from "./module-runtime-ui.types";
 import { formatRuntimeFieldValue } from "@/lib/runtime/runtime-value-formatter";
+import { humanizeFieldKey, singularize } from "@/lib/text/inflection";
 import { useDialogBehavior } from "@/app/components/ui/dialog";
 
 export function ModuleRelatedSubgrid({
@@ -99,6 +102,16 @@ export function ModuleRelatedSubgrid({
   const effectiveQuickCreateForm =
     quickCreateForm ?? generatedQuickCreate?.form ?? null;
   const effectiveRelatedEntity = generatedQuickCreate?.entity;
+  /*
+   * BUG-2012 — the dialog used to receive the parent record whole and spread
+   * it over the child form, so every shared field name inherited the parent's
+   * value. Only what the subgrid declares is carried down now.
+   */
+  const inheritedParentValues = useMemo(
+    () =>
+      resolveInheritedParentValues(parentRecord, subgrid.inheritParentFields),
+    [parentRecord, subgrid.inheritParentFields],
+  );
   const refreshRelatedRecords = useCallback(async () => {
     if (!runtime || !parentBinding || !dataAdapter?.getRelatedRecords) {
       return false;
@@ -245,7 +258,18 @@ export function ModuleRelatedSubgrid({
         return {
           key: column.fieldLogicalName,
           entityField: column.fieldLogicalName,
-          header: column.label ?? field?.displayName ?? column.fieldLogicalName,
+          /*
+           * BUG-2009 — the final fallback was the raw field key, so the
+           * Attendance tab on an employee record was headed `attendanceDate`,
+           * `attendanceStatus`, `checkInAt`, `checkOutAt` while the standalone
+           * `/attendance` list over the same data was headed properly. A
+           * declared label and the entity's display name still win; this only
+           * replaces printing the column of a database table at the reader.
+           */
+          header:
+            column.label ??
+            field?.displayName ??
+            humanizeFieldKey(column.fieldLogicalName),
           render: (row: RuntimeRecordData) =>
             formatRuntimeFieldValue({
               field,
@@ -784,7 +808,7 @@ export function ModuleRelatedSubgrid({
       </section>
       {runtime ? (
         <ModuleQuickCreatePanel
-          contextValues={parentRecord}
+          contextValues={inheritedParentValues}
           dataAdapter={dataAdapter}
           form={effectiveQuickCreateForm}
           entity={effectiveRelatedEntity}
@@ -1431,10 +1455,17 @@ function buildGenericQuickCreate(
     (field) =>
       field.logicalName !== parentLookupField && field.behavior !== "readonly",
   );
+  /*
+   * BUG-1964 / BUG-2009 — a generic entity carries no display name, only its
+   * logical name, and both the entity's label and the quick-create dialog's
+   * title were rendering that key: "New leave_entitlements". Humanised and
+   * singularised here, once, so the two cannot disagree.
+   */
+  const entityLabel = humanizeFieldKey(metadata.logicalName);
   const entity: EntityMetadata = {
     id: `entity:${metadata.logicalName}`,
     logicalName: metadata.logicalName,
-    displayName: metadata.logicalName,
+    displayName: entityLabel,
     collectionName: metadata.logicalName,
     version: "1.0.0",
     lifecycleState: "published",
@@ -1446,7 +1477,7 @@ function buildGenericQuickCreate(
   const form: FormMetadata = {
     id: `quick:${metadata.logicalName}`,
     logicalName: `${metadata.logicalName}.quickCreate`,
-    displayName: `New ${metadata.logicalName}`,
+    displayName: `New ${singularize(entityLabel)}`,
     version: "1.0.0",
     lifecycleState: "published",
     layer: "unmanaged",
@@ -1472,88 +1503,6 @@ function buildGenericQuickCreate(
   return { entity, form };
 }
 
-function buildSubgridQuickCreate(
-  subgrid: RelatedSubgridMetadata,
-  parentEntity?: EntityMetadata,
-): {
-  entity: EntityMetadata;
-  form: FormMetadata;
-} {
-  const parentFieldsByName = new Map(
-    (parentEntity?.fields ?? []).map((field) => [field.logicalName, field]),
-  );
-  const fields = (subgrid.quickCreateFields ?? []).map((field) => {
-    const sourceField = parentFieldsByName.get(field.fieldLogicalName);
-    return {
-      id: `${subgrid.relatedEntityLogicalName}.${field.fieldLogicalName}`,
-      logicalName: field.fieldLogicalName,
-      displayName:
-        field.label ?? sourceField?.displayName ?? field.fieldLogicalName,
-      version: "1.0.0",
-      lifecycleState: "published" as const,
-      layer: "system" as const,
-      entityLogicalName:
-        subgrid.relatedEntityLogicalName ?? subgrid.relationshipName,
-      dataType: field.dataType ?? sourceField?.dataType,
-      requirementLevel: field.required
-        ? ("required" as const)
-        : (sourceField?.requirementLevel ?? ("none" as const)),
-      behavior: sourceField?.behavior ?? ("normal" as const),
-      maxLength: field.maxLength ?? sourceField?.maxLength,
-      minLength: sourceField?.minLength,
-      min: sourceField?.min,
-      max: sourceField?.max,
-      pattern: sourceField?.pattern,
-      lookupTargets: sourceField?.lookupTargets,
-      options: field.options ?? sourceField?.options,
-      dependsOnFieldId: sourceField?.dependsOnFieldId,
-      dependencyFilterKey: sourceField?.dependencyFilterKey,
-      resetOnParentChange: sourceField?.resetOnParentChange,
-    };
-  });
-  const entityLogicalName =
-    subgrid.relatedEntityLogicalName ?? subgrid.relationshipName;
-  const entity: EntityMetadata = {
-    id: `entity:${entityLogicalName}`,
-    logicalName: entityLogicalName,
-    displayName: subgrid.title,
-    collectionName: entityLogicalName,
-    version: "1.0.0",
-    lifecycleState: "published",
-    layer: "system",
-    primaryIdField: "id",
-    primaryNameField: fields[0]?.logicalName ?? "id",
-    fields,
-  };
-  const form: FormMetadata = {
-    id: `quick:${entityLogicalName}`,
-    logicalName: `${entityLogicalName}.quickCreate`,
-    displayName: `New ${subgrid.title}`,
-    version: "1.0.0",
-    lifecycleState: "published",
-    layer: "system",
-    entityLogicalName,
-    mode: "edit",
-    formType: "quickCreate",
-    columns: 1,
-    sections: [
-      {
-        id: `quick:${entityLogicalName}:section`,
-        label: "Details",
-        order: 10,
-        layout: "single-column",
-        columns: 1,
-        fields: fields.map((field, index) => ({
-          fieldLogicalName: field.logicalName,
-          order: (index + 1) * 10,
-          requirementLevel: field.requirementLevel,
-        })),
-      },
-    ],
-  };
-
-  return { entity, form };
-}
 
 function hasRelatedPermission(
   runtime: ModuleRuntimeContext | undefined,

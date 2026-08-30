@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { hasPermission, isSelfServiceUser } from "@/lib/permissions";
@@ -23,6 +22,9 @@ import { UsersTable } from "./_components/users-table";
 import { UsersCommandBar } from "./_components/users-command-bar";
 import { UsersFilterBar } from "./_components/users-filter-bar";
 import { TenantResolvedSettingsResponse } from "../settings/types";
+import { Button } from "@/app/components/ui/button";
+import { EmptyState } from "@/app/components/ui/empty-state";
+import { USER_CREATE_ROUTE } from "./_lib/user-routes";
 
 type UsersPageProps = {
     searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -33,12 +35,12 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
 
     if (!hasBusinessUnitScope(businessUnitAccess)) {
         return (
-            <main className="grid gap-6">
+            <div className="grid gap-6">
                 <AccessDeniedState
                     title="Users are unavailable for your current business unit access."
                     description="Your scope does not allow access to user records."
                 />
-            </main>
+            </div>
         );
     }
 
@@ -50,7 +52,6 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
         user?.permissionKeys,
         "users.assignRoles",
     );
-    const canImport = hasPermission(user?.permissionKeys, "users.import");
     const canExport = hasPermission(user?.permissionKeys, "users.export");
 
     if (user && isSelfServiceUser(user.permissionKeys)) {
@@ -144,7 +145,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
     };
 
     return (
-        <main className="grid gap-6">
+        <div className="grid gap-6">
             <ModuleViewSelector
                 configureHref="/settings/customization/tables/users"
                 enabled
@@ -156,26 +157,22 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                 canCreate={canCreate}
                 canDelete={canDelete}
                 canAssignRoles={canAssignRoles}
-                canImport={canImport}
                 canExport={canExport}
             />
 
             {users.items.length === 0 ? (
-                <section className="rounded-2xl border border-dashed p-10 text-center">
-                    <h4 className="text-xl font-semibold">No users found</h4>
-                    <p className="mt-2 text-muted">
-                        Create your first user or adjust filters.
-                    </p>
-
-                    {canCreate && (
-                        <Link
-                            href="/users/new"
-                            className="mt-4 inline-block rounded-xl bg-accent px-5 py-3 text-white"
-                        >
-                            Create User
-                        </Link>
-                    )}
-                </section>
+                /* BUG-2014 — this was a hand-rolled panel linking to
+                   "/users/new", a route with no page. It now uses the shared
+                   EmptyState and the one real user-create route. */
+                <EmptyState
+                    action={
+                        canCreate ? (
+                            <Button href={USER_CREATE_ROUTE}>Create user</Button>
+                        ) : undefined
+                    }
+                    description="Create your first user or adjust the filters above."
+                    title="No users found"
+                />
             ) : (
                 <UsersTable
                     users={users.items}
@@ -192,7 +189,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                     visibleColumnKeys={visibleColumnKeys}
                 />
             )}
-        </main>
+        </div>
     );
 }
 

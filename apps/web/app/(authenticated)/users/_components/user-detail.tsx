@@ -49,9 +49,9 @@ export function UserProfileHeader({
           </div>
 
           <div>
-            <h1 className="font-serif text-4xl text-foreground">
+            <h2 className="font-serif text-4xl text-foreground">
               {user.fullName || `${user.firstName} ${user.lastName}`}
-            </h1>
+            </h2>
 
             <p className="mt-2 text-muted">{user.email}</p>
           </div>

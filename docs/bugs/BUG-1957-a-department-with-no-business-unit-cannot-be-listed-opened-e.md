@@ -2,7 +2,7 @@
 ID: BUG-1957
 aliases: [BUG-1957]
 Title: A department with no business unit cannot be listed, opened, edited or deleted, yet still holds its name
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [services/api/src/modules/organization]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-310
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-1957 — A department with no business unit cannot be listed, opened, edited or deleted, yet still holds its name
@@ -166,21 +166,83 @@ keeps its name reserved. Both surface through the same 409.
 
 ## Resolution
 
-Open. No fix has been written.
+Fixed 2026-08-29 on `agent/bugfix-org`. Both halves of this record turned out to
+be answerable: the symptom had a one-line cause, and the writer the record could
+not name was found.
+
+**The filter.** `findDepartmentsForUser` asked one question of two different
+situations. `businessUnitId !== null && visibleBusinessUnitIds.has(...)`
+returns false both for a department whose business unit the caller cannot see
+and for a department that has no business unit at all — and only the first of
+those is a scope decision. The second is a row with no scope to be outside of.
+
+It now distinguishes them at
+`services/api/src/modules/organization/organization.service.ts:877-920`: a
+department with no business unit is visible to a caller whose effective
+hierarchy access level is `TENANT`, and to nobody narrower. A tenant-scoped
+caller sees the whole tenant by definition, so it is the one that can reach such
+a row to assign it a business unit or delete it; a business-unit-scoped caller
+has no business unit through which the row could be in scope, so it still does
+not see it. The half of the behaviour the record asked not to regress — hiding
+departments whose business unit is outside the caller's scope — is untouched and
+is still asserted by the existing test at
+`organization-read-scope.spec.ts:97-110`.
+
+Because `findDepartmentForUser` reads through this function, and `updateDepartment`
+and `deleteDepartment` both resolve their target through *that*, the same change
+makes the row fetchable by id, editable and deletable. Nothing else had to move.
+
+**The writer.** `seedTenantWorkforceReferenceData` in
+`services/api/prisma/seed-config.ts:1222-1239` upserts `DEFAULT_DEPARTMENTS`
+(`seed-config.ts:56-61`) with a `tenantId`, a `code` and a `name` — and no
+`businessUnitId`. That list is exactly Human Resources, Operations, Finance and
+Information Technology: the four names the record found blocked, in the order it
+found them. `seed-config` is the production-safe seed that `npm run release:api`
+runs on every deploy, so these rows exist on every tenant, not just the demo one.
+`seed-demo.ts:163-176` does the same for HR, ENG and FIN.
+
+The seeds are deliberately **not** changed here. Assigning a business unit at
+provisioning time means choosing one, and at the point `seed-config` runs a
+tenant may have none — that is a product decision, and the record itself routes
+it to an ExecPlan alongside the question of whether the column should be
+non-nullable at all. What this fix guarantees is that the rows those seeds
+create are no longer stranded: they are listed, they are addressable, and they
+can be repaired or removed through the product.
+
+**Existing data.** No repair script is needed. The four rows on the demo tenant
+become visible to a tenant-scoped administrator the moment this deploys, and can
+be given a business unit through the departments screen.
+
+Files changed:
+
+- `services/api/src/modules/organization/organization.service.ts` — the filter
+- `services/api/src/modules/organization/organization-read-scope.spec.ts:112-157`
+  — three cases: an unscoped department is visible to a tenant reader and
+  fetchable by id, invisible to a narrower one, and reachable by a tenant-scoped
+  *manager*, which is what makes it repairable
 
 ## QA Retest
 
-Awaiting a fix — nothing to retest yet.
+Not retested against a running system. This environment has no database and
+cannot reach the demo tenant, so what is established is that the filter now
+admits the row and that the guards for it pass — not that the four seeded
+departments appear on the deployed screen. That check is one page load:
+`GET /api/departments` as a tenant administrator should list Finance,
+Operations, Human Resources and Information Technology, each with an empty
+Business Unit, and each should open and accept a business unit.
 
 ## History
 
 - 2026-08-29 — created from the Starter-plan production QA run (SESSION-0070) at `eb457d9d`; observed against production API `949f461c`.
 - 2026-08-29 — triaged by the Architect for SESSION-0070: ArchitectDisposition FIX_NOW — live data is stranded on the demo tenant now and four common names are blocked.
+- 2026-08-29 — fixed on `agent/bugfix-org` during the SESSION-0076 burndown. The visibility filter no longer treats "has no business unit" as "is outside your scope", so a tenant-scoped caller can list, open, edit and delete such a row. The writer the record could not name was found: `seedTenantWorkforceReferenceData` in `seed-config.ts`, which is why the four blocked names were exactly the four defaults.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
 ## Related
 
+- Referenced by — [[ITEM-0115]]
 - Modules — [[organization]]
+- Regression — REG-310 (see the regression register)
 
 <!-- GRAPH:END -->

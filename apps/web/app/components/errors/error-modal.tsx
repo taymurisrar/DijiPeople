@@ -3,7 +3,8 @@
 import { useMemo, useRef } from "react";
 import React from "react";
 
-import { isSessionExpiredError } from "@/lib/api-error";
+import { isSessionExpiredError, resolveUserFacingMessage } from "@/lib/api-error";
+import { humanizeFieldKey } from "@/lib/text/inflection";
 import { Button } from "@/app/components/ui/button";
 import { Dialog } from "@/app/components/ui/dialog";
 
@@ -31,9 +32,20 @@ export function ErrorModal({ error, user, onClose }: ErrorModalProps) {
   const action = useMemo(() => resolveAction(error), [error]);
   const mayDownload = canDownloadErrorLog(user);
 
+  /*
+   * BUG-1963 / BUG-1955 — the headline used to be `error.message` verbatim,
+   * which is the contract's developer-facing half: DTO property names for a
+   * validation failure, and — when the response was not JSON at all — the
+   * response body. `resolveUserFacingMessage` picks the half written for this
+   * audience and refuses anything that reads like a body or a route.
+   *
+   * `message`, the method, the path and the raw body remain on the error and
+   * so remain in the console, the downloadable log and `/api/error-logs/client`.
+   */
+  const headline = useMemo(() => resolveUserFacingMessage(error), [error]);
+
   const shouldShowDescription =
-    error.description.trim().toLowerCase() !==
-    error.message.trim().toLowerCase();
+    error.description.trim().toLowerCase() !== headline.trim().toLowerCase();
 
   // Escape and focus restore used to be hand-rolled here, and Tab still walked
   // out of the modal into the page behind it. Both now come from the shared
@@ -70,14 +82,14 @@ export function ErrorModal({ error, user, onClose }: ErrorModalProps) {
           <span className="block text-xs font-semibold uppercase text-slate-500">
             Error {error.errorCode}
           </span>
-          <span className="mt-2 block">{error.message}</span>
+          <span className="mt-2 block">{headline}</span>
         </>
       }
     >
       <div className="grid gap-4 text-sm">
         <Info label="Reference ID" value={error.traceId} mono />
         <Info label="Timestamp" value={error.timestamp} />
-        {formatValidationDetails(error.details)}
+        {formatFieldMessages(error.fieldErrors ?? error.details)}
       </div>
     </Dialog>
   );
@@ -153,14 +165,19 @@ function Info({
   );
 }
 
-function formatValidationDetails(details: unknown) {
-  if (!details || typeof details !== "object" || !("fields" in details)) {
-    return null;
-  }
+/*
+ * The contract carries field reasons as `fieldErrors` at the root and, for a
+ * class-validator failure, as `details.fields`. This used to read only the
+ * second, so a `fieldErrors` response showed the user no reasons at all.
+ */
+function formatFieldMessages(source: unknown) {
+  const fields = Array.isArray(source)
+    ? source
+    : source && typeof source === "object" && "fields" in source
+      ? (source as { fields?: unknown }).fields
+      : null;
 
-  const fields = (details as { fields?: unknown }).fields;
-
-  if (!Array.isArray(fields)) {
+  if (!Array.isArray(fields) || !fields.length) {
     return null;
   }
 
@@ -176,7 +193,8 @@ function formatValidationDetails(details: unknown) {
 
           return (
             <li key={index}>
-              {item.field ? `${item.field}: ` : ""}
+              {/* `leavePolicyId` is a column name, not something to show. */}
+              {item.field ? `${humanizeFieldKey(item.field)}: ` : ""}
               {item.message ?? String(field)}
             </li>
           );

@@ -327,10 +327,22 @@ export function SettingsForm({
       const data = await safeReadJson<ApiErrorResponse>(response);
 
       if (!response.ok) {
+        /*
+         * The save is atomic on the server: a rejected key fails the whole
+         * PATCH and nothing is written. Leaving the refused values on screen
+         * made the page assert a state the server had just declined - a
+         * checkbox stayed ticked after its save was rejected, so anyone who
+         * did not read the error believed the setting had been saved
+         * (BUG-1978). Reverting to what is actually persisted keeps the screen
+         * honest; the message says the changes were not applied.
+         */
+        setSettings(savedSettings);
         setError(
-          data?.message ??
+          `${
+            data?.message ??
             data?.error ??
-            "Unable to update tenant settings. Please try again.",
+            "Unable to update tenant settings. Please try again."
+          } No changes were saved, and the form has been reset to the saved values.`,
         );
         return;
       }

@@ -20,6 +20,9 @@ import {
 } from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { EntitlementGuard } from '../../common/guards/entitlement.guard';
+import { RequireEntitlement } from '../../common/decorators/require-entitlement.decorator';
+import { TENANT_FEATURE_KEYS } from '../../common/constants/tenant-features';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { CancelLeaveRequestDto } from './dto/cancel-leave-request.dto';
 import { LeaveRequestActionDto } from './dto/leave-request-action.dto';
@@ -29,7 +32,8 @@ import { LeaveService } from './leave.service';
 import { AuditService } from '../audit/audit.service';
 
 @Controller('leave-requests')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, EntitlementGuard)
+@RequireEntitlement(TENANT_FEATURE_KEYS.LEAVE)
 export class LeaveRequestsController {
   constructor(
     private readonly leaveService: LeaveService,

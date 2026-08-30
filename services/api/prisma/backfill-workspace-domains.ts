@@ -69,13 +69,19 @@ async function main() {
   });
 
   /* Every slug in play, so a proposal cannot collide with one assigned above. */
-  const takenSlugs = new Set(tenants.map((tenant) => tenant.slug).filter(Boolean));
+  const takenSlugs = new Set(
+    tenants.map((tenant) => tenant.slug).filter(Boolean),
+  );
 
   for (const tenant of tenants) {
     const label = tenant.displayName || tenant.name;
 
     let slug = tenant.slug;
-    if (!slug || !isValidWorkspaceSlugFormat(slug) || isReservedHostLabel(slug)) {
+    if (
+      !slug ||
+      !isValidWorkspaceSlugFormat(slug) ||
+      isReservedHostLabel(slug)
+    ) {
       /*
        * Derive from the tenant code first — it is already unique and stable —
        * then from the name. Never invent a suffix.
@@ -138,8 +144,10 @@ async function main() {
       continue;
     }
 
-    const hostname = buildWorkspaceHostname(slug!);
-    const existing = tenant.tenantDomains.find((domain) => domain.domain === hostname);
+    const hostname = buildWorkspaceHostname(slug);
+    const existing = tenant.tenantDomains.find(
+      (domain) => domain.domain === hostname,
+    );
     const primary = tenant.tenantDomains.find((domain) => domain.isPrimary);
 
     if (!existing) {

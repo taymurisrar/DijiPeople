@@ -54,6 +54,7 @@ function build(tenantStatus: TenantStatus = TenantStatus.ACTIVE) {
     {} as never, // domains
     { log: jest.fn() } as never, // audit
     { record: jest.fn() } as never, // platform events
+    {} as never, // tenant settings resolver
   );
   jest.spyOn(service, 'overview').mockResolvedValue({} as never);
   return { service, prisma, access };
@@ -105,12 +106,12 @@ describe('TenantControlPlaneService lifecycle', () => {
         data: expect.objectContaining({
           status: TenantStatus.SUSPENDED,
           subStatus: 'Non-payment',
-        }),
+        }) as Record<string, unknown>,
       }),
     );
     expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
       where: { tenantId: 'tenant-1', revokedAt: null },
-      data: { revokedAt: expect.any(Date) },
+      data: { revokedAt: expect.any(Date) as Date },
     });
   });
 

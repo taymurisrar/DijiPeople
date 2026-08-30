@@ -900,7 +900,25 @@ export class PlatformLifecycleService {
     return { deletedCount: result.count };
   }
 
-  async createOnboardingFromCustomer(
+  /**
+   * Every rule that decides whether an onboarding record may be created,
+   * separated from creating one.
+   *
+   * `POST /platform-runtime/customer-onboarding/validate` used to run the DTO
+   * and stop there, so it approved payloads that `POST .../customer-onboarding`
+   * then refused with a 400 or a 409 - an already-active onboarding, unmet
+   * customer prerequisites, a taken tenant slug. A validation step whose
+   * approval does not predict the outcome of the operation it validates is
+   * worse than none, because the form builds on its answer (BUG-1548).
+   *
+   * So there is now one rule set, called by both. It performs no write and
+   * throws exactly the exceptions the create path has always thrown, with the
+   * same messages and the same status codes - which is what lets the two
+   * endpoints answer with the same reason rather than two paraphrases of it.
+   *
+   * It returns what it resolved so the caller does not look it up twice.
+   */
+  async assertOnboardingCreatable(
     actor: AuthenticatedUser,
     customerId: string,
     dto?: Partial<CreateCustomerOnboardingRecordDto>,
@@ -945,6 +963,41 @@ export class PlatformLifecycleService {
     if (existingTenant) {
       throw new ConflictException('Tenant slug is already in use.');
     }
+
+    return { customer, plannedTenantSlug };
+  }
+
+  /**
+   * The create rule set, run without creating anything.
+   *
+   * Deliberately the *whole* of it, including the sub-status check that
+   * `createCustomerOnboarding` performs before it delegates - a rule the
+   * validate endpoint skipped counts as a divergence whether it lives one
+   * method up or not.
+   *
+   * The only refusals create can still produce that this cannot foresee are
+   * races: another operator creating an onboarding for the same customer, or
+   * claiming the same tenant slug, between this call and the save. Both are
+   * refused by the same two checks a moment later, with the same message.
+   */
+  async assertCustomerOnboardingCreatable(
+    actor: AuthenticatedUser,
+    dto: CreateCustomerOnboardingRecordDto,
+  ) {
+    this.assertCustomerOnboardingSubStatus(
+      dto.status ?? CustomerOnboardingStatus.NOT_STARTED,
+      dto.subStatus,
+    );
+    await this.assertOnboardingCreatable(actor, dto.customerId, dto);
+  }
+
+  async createOnboardingFromCustomer(
+    actor: AuthenticatedUser,
+    customerId: string,
+    dto?: Partial<CreateCustomerOnboardingRecordDto>,
+  ) {
+    const { customer, plannedTenantSlug } =
+      await this.assertOnboardingCreatable(actor, customerId, dto);
 
     const onboarding = await this.prisma.customerOnboarding.create({
       data: {

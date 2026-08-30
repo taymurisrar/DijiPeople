@@ -23,7 +23,7 @@ export default async function InboxDetailPage({ params }: InboxDetailProps) {
   );
 
   return (
-    <main className="space-y-6">
+    <div className="space-y-6">
       <Link className="text-sm font-medium text-accent" href="/inbox">
         Back to inbox
       </Link>
@@ -44,7 +44,7 @@ export default async function InboxDetailPage({ params }: InboxDetailProps) {
           <Detail label="Created" value={formatDateTime(item.createdAtUtc)} />
         </dl>
       </section>
-    </main>
+    </div>
   );
 }
 

@@ -49,12 +49,12 @@ export default async function AttendancePage({
 
   if (!hasAttendanceRead) {
     return (
-      <main className="dp-theme-scope dp-attendance-scope grid gap-6">
+      <div className="dp-theme-scope dp-attendance-scope grid gap-6">
         <AccessDeniedState
           description="Your role does not include attendance self-service access."
           title="Attendance is unavailable for your account."
         />
-      </main>
+      </div>
     );
   }
 
@@ -65,12 +65,12 @@ export default async function AttendancePage({
     !hasBusinessUnitScope(businessUnitAccess)
   ) {
     return (
-      <main className="dp-theme-scope dp-attendance-scope grid gap-6">
+      <div className="dp-theme-scope dp-attendance-scope grid gap-6">
         <AccessDeniedState
           description="Your current business-unit scope does not include attendance data."
           title="Attendance is unavailable for your current business unit access."
         />
-      </main>
+      </div>
     );
   }
 
@@ -195,7 +195,7 @@ export default async function AttendancePage({
     : "Check in and check out are only available from My Attendance.";
 
   return (
-    <main className="dp-theme-scope dp-attendance-scope grid gap-6">
+    <div className="dp-theme-scope dp-attendance-scope grid gap-6">
       {unavailableMessage ? (
         <AccessDeniedState
           description={unavailableMessage}
@@ -235,7 +235,7 @@ export default async function AttendancePage({
           title="Attendance"
         />
       )}
-    </main>
+    </div>
   );
 }
 

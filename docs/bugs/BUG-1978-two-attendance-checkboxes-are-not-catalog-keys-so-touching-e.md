@@ -2,7 +2,7 @@
 ID: BUG-1978
 aliases: [BUG-1978]
 Title: Two attendance checkboxes are not catalog keys, so touching either rejects the whole settings save
-Status: OPEN
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: BUG
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [apps/web, services/api/src/modules/tenant-settings]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-321
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-1978 — Two attendance checkboxes are not catalog keys, so touching either rejects the whole settings save
@@ -189,7 +189,82 @@ the catalog-wide scan that surfaced these three orphan UI pairs.
 
 ## Resolution
 
-Open. No fix has been written.
+Fixed. The premise held. Neither `attendance.allowOffDayCheckIn` nor
+`attendance.allowHolidayCheckIn` appears anywhere in the tenant-settings catalog
+(checked across the whole `tenant-settings` module, not only
+`tenant-settings.catalog.ts`), while both are `AttendancePolicy` columns and
+both are read by `resolvePolicy` **only** from the policy row.
+
+**The choice taken**, of the two the record offered: **move them to the
+attendance policy screen**, which writes the columns that actually back them.
+The other option — adding catalog keys and teaching the resolver to read them —
+would have created a second home for a value that already has one, and the
+record itself says it is only honest once the precedence question in BUG-1980
+and BUG-1981 is settled. That question is not settled; it is sequenced in
+EXECPLAN-0027. So this fix deliberately does not depend on it.
+
+**What changed.**
+
+- `apps/web/.../settings/_lib/settings-page-config.ts` — both fields removed
+  from the Schedule Fallback section, with a comment in their place recording
+  what they were, why they could not be saved there, and where they went.
+  `requireReasonForOffdayHolidayCheckIn`, which *is* a catalog key, stays.
+
+- `apps/web/.../attendance/_components/attendance-policy-card.tsx` — both are
+  now checkboxes on the policy screen, alongside four other policy switches the
+  card had never exposed (`allowManualAdjustments`,
+  `preventDuplicateAttendance`, `allowCheckInOnApprovedLeave`,
+  `markMissingCheckout`) and which its endpoint requires. They save through
+  `PATCH /attendance/policy`, which writes the columns.
+
+- `apps/web/.../settings/settings-form.tsx` — a rejected save no longer leaves
+  the refused value on screen. On a **server rejection** the form reverts to the
+  persisted values and says so; on a network failure it does not, because
+  nothing is known about what the server did. This is the second, smaller defect
+  the record identified: the control stayed ticked after the server declined it,
+  so anyone who did not read the error believed the setting had saved.
+
+**A defect found while fixing this one, and reported here because it is the
+reason the "move them" option needed work before it could function:** the
+attendance policy screen **could not save at all**. `AttendancePolicyCard`
+posted its entire form back, and that form is the object
+`GET /attendance/policy` returns — the *resolved* policy, which also carries
+`allowedModes`, `locationRetryAttempts` and `standardWorkHoursPerDay`. The
+global `ValidationPipe` runs with `forbidNonWhitelisted`, so every save was
+rejected with a 400 naming a field nobody had touched. The card now builds an
+explicit payload typed as `AttendancePolicyUpdate`, declared separately from the
+read shape `AttendancePolicyRecord` so the two cannot drift back together. Full
+detail is on BUG-1981, whose fix shares the file.
+
+**The `tenant.tenantSlug` lead**, which this record asked to trace and either
+file or dismiss: **neither, and deliberately.** It has the same shape one level
+up — `organization-settings-config.ts` declares category `tenant`, which is not
+in `TENANT_SETTING_CATEGORIES`, so `normalizeCategory` would reject it — but
+confirming it needs the Tenant Profile adapter's save path traced to the
+endpoint it actually reaches, which was not done. It is an unverified lead, and
+filing it as a defect on the strength of a shape match is how a record acquires
+a premise that turns out to be false. It stays as written in the Evidence
+section above, for whoever traces it.
+
+**Not done:** the repository-wide check that every UI `(category, key)` pair
+exists in the catalog. That is the scan BUG-1974 argues for, it is owned by
+concurrent work on the catalog, and adding a second one here would be the
+duplicate-source-of-truth mistake this record is about. The web spec below
+covers the two attendance pairs specifically.
+
+**Tests.**
+
+- `apps/web/app/(authenticated)/settings/_lib/attendance-settings-fields.spec.ts`
+  (new) asserts the attendance settings page offers neither key, and asserts the
+  field list is non-empty first — an `it.each` over an empty array is green, and
+  so is a `flatMap` over a renamed export.
+- `services/api/src/modules/attendance/attendance-policy-write.spec.ts` (new)
+  asserts both keys persist through `PATCH /attendance/policy` on create and on
+  update, and that omitting either leaves the stored value alone.
+
+**Mutation-tested.** Restoring the `allowOffDayCheckIn` field to
+`settings-page-config.ts` fails exactly the case asserting the page does not
+offer it.
 
 ## QA Retest
 
@@ -205,5 +280,6 @@ Awaiting a fix — nothing to retest yet.
 ## Related
 
 - Modules — [[tenant-application]], [[settings]]
+- Regression — REG-321 (see the regression register)
 
 <!-- GRAPH:END -->

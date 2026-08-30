@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { canonicalAuditAction } from '../../common/constants/audit-actions';
 import { AuditRepository } from './audit.repository';
+import { redactAuditSnapshot } from './audit-snapshot';
 import { AuditLogQueryDto } from './dto/audit-log-query.dto';
 
 @Injectable()
@@ -183,7 +185,15 @@ function mapAuditLogItem(item: AuditLogItem) {
     id: item.id,
     tenantId: item.tenantId,
     actorUserId: item.actorUserId,
+    /*
+     * BUG-2046 - `action` is the value as stored, always, and is never
+     * rewritten. `actionCanonical` is the single name both conventions map
+     * onto, so a consumer can group or alert without a historical row changing
+     * underneath it; `actionLabel` is the same thing made readable.
+     */
     action: item.action,
+    actionCanonical: canonicalAuditAction(item.action),
+    actionLabel: humanizeAuditAction(item.action),
     entityType: item.entityType,
     entityId: item.entityId,
     requestId: item.requestId,
@@ -227,10 +237,18 @@ function readSnapshotString(value: unknown, key: string) {
   return typeof raw === 'string' && raw.length > 0 ? raw : null;
 }
 
+/*
+ * BUG-2046 - the label is derived from the canonical name, so a row stored as
+ * `attendance.manual_created` and one stored as `ATTENDANCE_MANUAL_CREATED`
+ * read identically. Without the lowercasing step the two conventions produced
+ * "Attendance Manual Created" and "ATTENDANCE MANUAL CREATED" side by side in
+ * the same column, which is the inconsistency this record is about, surfaced
+ * rather than hidden.
+ */
 function humanizeAuditAction(value: string) {
-  return value
-    .trim()
+  return canonicalAuditAction(value)
     .replace(/[._-]+/g, ' ')
+    .toLowerCase()
     .replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
@@ -239,7 +257,16 @@ function normalizeSnapshot(value: unknown): Prisma.InputJsonValue | undefined {
     return undefined;
   }
 
-  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+  /*
+   * Redaction happens here rather than at the call site, because the call site
+   * is what gets forgotten. The existing `EMPLOYEE_UPDATED` writer passes
+   * `mapEmployee()` straight through, which carries `cnic` and `taxIdentifier`;
+   * the serialised form is what reaches the database, so this is the last point
+   * at which a snapshot can still be cleaned.
+   */
+  return redactAuditSnapshot(
+    JSON.parse(JSON.stringify(value)),
+  ) as Prisma.InputJsonValue;
 }
 
 function mergeAuditScope(

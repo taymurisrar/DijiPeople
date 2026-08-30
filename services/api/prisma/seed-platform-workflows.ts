@@ -225,9 +225,10 @@ async function main() {
       },
     });
   }
-  const inProgressApplication = await prisma.partnerOnboardingApplication.findFirst({
-    where: { partnerId: onboardingInProgressPartner.id },
-  });
+  const inProgressApplication =
+    await prisma.partnerOnboardingApplication.findFirst({
+      where: { partnerId: onboardingInProgressPartner.id },
+    });
   if (!inProgressApplication)
     await prisma.partnerOnboardingApplication.create({
       data: {
@@ -433,9 +434,13 @@ async function main() {
       reviewedAt: new Date(Date.now() - 6 * 86400000),
       reviewedById: operator.id,
       approvedAt: new Date(Date.now() - 6 * 86400000),
-      reviewerNotes: 'Qualified enterprise referral accepted for presales follow-up.',
+      reviewerNotes:
+        'Qualified enterprise referral accepted for presales follow-up.',
     },
-    update: { status: 'APPROVED', approvedAt: new Date(Date.now() - 6 * 86400000) },
+    update: {
+      status: 'APPROVED',
+      approvedAt: new Date(Date.now() - 6 * 86400000),
+    },
   });
   await prisma.partnerCommission.upsert({
     where: { commissionNumber: 'COM-SEED-0001' },
@@ -615,9 +620,12 @@ async function main() {
     },
     update: { status: 'ACTIVE', processStage: 'ACTIVE' },
   });
-  const activeContent = '<h1>Implementation Addendum</h1><p>Implementation services and delivery milestones.</p>';
+  const activeContent =
+    '<h1>Implementation Addendum</h1><p>Implementation services and delivery milestones.</p>';
   await prisma.contractVersion.upsert({
-    where: { contractId_version: { contractId: activeCustomerContract.id, version: 1 } },
+    where: {
+      contractId_version: { contractId: activeCustomerContract.id, version: 1 },
+    },
     create: {
       contractId: activeCustomerContract.id,
       version: 1,
@@ -656,9 +664,12 @@ async function main() {
     },
     update: { status: 'EXPIRING', processStage: 'RENEWAL_REVIEW' },
   });
-  const expiringContent = '<h1>Legacy Support Agreement</h1><p>Annual premium support services.</p>';
+  const expiringContent =
+    '<h1>Legacy Support Agreement</h1><p>Annual premium support services.</p>';
   await prisma.contractVersion.upsert({
-    where: { contractId_version: { contractId: expiringContract.id, version: 1 } },
+    where: {
+      contractId_version: { contractId: expiringContract.id, version: 1 },
+    },
     create: {
       contractId: expiringContract.id,
       version: 1,
@@ -698,9 +709,12 @@ async function main() {
     },
     update: { status: 'INTERNAL_REVIEW', processStage: 'AGREEMENT_DRAFTING' },
   });
-  const draftContent = '<h1>Partner Referral Agreement</h1><p>Catalyst referral terms are under internal review.</p>';
+  const draftContent =
+    '<h1>Partner Referral Agreement</h1><p>Catalyst referral terms are under internal review.</p>';
   await prisma.contractVersion.upsert({
-    where: { contractId_version: { contractId: draftingAgreement.id, version: 1 } },
+    where: {
+      contractId_version: { contractId: draftingAgreement.id, version: 1 },
+    },
     create: {
       contractId: draftingAgreement.id,
       templateVersionId: partnerTemplate.versions[0]?.id,
@@ -771,11 +785,20 @@ async function main() {
       createdById: operator.id,
       updatedById: operator.id,
     },
-    update: { status: 'SIGNATURE_IN_PROGRESS', processStage: 'AWAITING_SIGNATURE' },
+    update: {
+      status: 'SIGNATURE_IN_PROGRESS',
+      processStage: 'AWAITING_SIGNATURE',
+    },
   });
-  const awaitingPartnerContent = '<h1>Partner Referral Agreement</h1><p>Orbit referral agreement awaiting signature.</p>';
+  const awaitingPartnerContent =
+    '<h1>Partner Referral Agreement</h1><p>Orbit referral agreement awaiting signature.</p>';
   const awaitingPartnerVersion = await prisma.contractVersion.upsert({
-    where: { contractId_version: { contractId: awaitingPartnerAgreement.id, version: 1 } },
+    where: {
+      contractId_version: {
+        contractId: awaitingPartnerAgreement.id,
+        version: 1,
+      },
+    },
     create: {
       contractId: awaitingPartnerAgreement.id,
       templateVersionId: partnerTemplate.versions[0]?.id,
@@ -848,7 +871,8 @@ async function main() {
     create: {
       caseNumber: 'CASE-SEED-NEW-0002',
       title: 'New user cannot access onboarding checklist',
-      description: 'Customer submitted a new access question through the support form.',
+      description:
+        'Customer submitted a new access question through the support form.',
       status: 'NEW',
       priority: 'NORMAL',
       severity: 'S3_MEDIUM',
@@ -870,7 +894,8 @@ async function main() {
     create: {
       caseNumber: 'CASE-SEED-SLA-0003',
       title: 'Critical billing reconciliation blocked',
-      description: 'Month-end reconciliation is blocked and the resolution SLA is at risk.',
+      description:
+        'Month-end reconciliation is blocked and the resolution SLA is at risk.',
       status: 'ASSIGNED',
       priority: 'URGENT',
       severity: 'S1_CRITICAL',
@@ -903,13 +928,15 @@ async function main() {
       sourceApp: 'web',
       environment: 'production',
       message: 'Payroll report export exceeded the processing timeout.',
-      description: 'Sanitized timeout captured while generating a month-end payroll export.',
+      description:
+        'Sanitized timeout captured while generating a month-end payroll export.',
       method: 'POST',
       path: '/api/reports/payroll/export',
       supportStatus: 'INVESTIGATING',
       assignedTo: 'Customer Support',
       assignedToUserId: operator.id,
-      customerUpdate: 'Engineering is reviewing the sanitized trace; no payroll data was lost.',
+      customerUpdate:
+        'Engineering is reviewing the sanitized trace; no payroll data was lost.',
     },
     update: { supportStatus: 'INVESTIGATING', assignedToUserId: operator.id },
   });

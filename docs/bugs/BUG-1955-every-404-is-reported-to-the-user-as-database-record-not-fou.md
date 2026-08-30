@@ -2,7 +2,7 @@
 ID: BUG-1955
 aliases: [BUG-1955]
 Title: Every 404 is reported to the user as DATABASE_RECORD_NOT_FOUND with the raw HTML body as its message
-Status: DEFERRED
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [apps/web]
 OwnerAgent: architect
-ArchitectDisposition: DEFER
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-334
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-1955 — Every 404 is reported to the user as DATABASE_RECORD_NOT_FOUND with the raw HTML body as its message
@@ -140,7 +140,45 @@ the tenant app's fetch layer and a different mechanism.
 
 ## Resolution
 
-Open. No fix has been written.
+Fixed on `agent/bugfix-webux` (commit `fdce2fea`). The interceptor the record
+said still needed finding is
+`apps/web/app/(authenticated)/_components/authenticated-shell-provider.tsx`,
+in `dispatchApiError`.
+
+**Defect (b) — the raw body as the message.** The catch branch built
+`message: responseText || response.statusText || "Request failed."`
+(`authenticated-shell-provider.tsx:502` before the change), so any response the
+client could not parse as the error contract was rendered verbatim. The body is
+diagnostic: it now stays in `details.responseText`, which is what reaches the
+console and `/api/error-logs/client`, and no message field is supplied at all —
+`normalizeApiError` writes the catalog sentence for the status instead.
+
+This is held as an invariant rather than a habit. `sanitizeUserFacingMessage`
+in `apps/web/lib/api-error.ts` rejects markup, an over-long string and a
+trailing method+path wherever a message is normalised, so the next component to
+pass a body through cannot reproduce the defect.
+
+**Defect (a) — the wrong code.** `statusToCode` in `apps/web/lib/api-error.ts`
+mapped every 404 to `DATABASE_RECORD_NOT_FOUND`. It now returns a new
+`REQUEST_ROUTE_NOT_FOUND` catalog entry, which describes a routing failure and
+reads correctly back in the client error log. A 404 the API really sent as
+`DATABASE_RECORD_NOT_FOUND` is unaffected, because an errorCode present in the
+envelope always wins over the status-derived one — asserted in the spec.
+
+`apps/web/app/components/runtime/module-runtime-command-handler.tsx` held a
+second copy of that status-to-code table with the same 404 mapping. It is
+deleted rather than corrected: the duplicate is why the two could disagree.
+
+**On the natural reproduction this record was blocked for.** Still none, and
+none was manufactured. What changed is that the generalisation the record
+called inferred is now confirmed from the source: the branch is reached by any
+non-JSON error response, so a gateway 502 or 504 HTML page takes exactly the
+path the synthetic probe took. Fixed on that reading rather than left open,
+since the fix is in the normaliser and costs nothing to the JSON path.
+
+Covered by `apps/web/lib/api-error.spec.ts` — an HTML body at 404 asserts both
+the code and that no markup survives into the message, and that the body is
+still present in `details`.
 
 ## QA Retest
 
@@ -156,5 +194,6 @@ Awaiting a natural reproduction before any retest is meaningful.
 ## Related
 
 - Modules — [[tenant-application]]
+- Regression — REG-334 (see the regression register)
 
 <!-- GRAPH:END -->

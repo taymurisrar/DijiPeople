@@ -729,7 +729,8 @@ export async function seedLegalDocuments(prisma: PrismaClient): Promise<{
           version: (latest?.version ?? 0) + 1,
           status: LegalDocumentVersionStatus.DRAFT,
           contentMarkdown: seed.content,
-          changeSummary: 'Initial production legal version seeded from source control.',
+          changeSummary:
+            'Initial production legal version seeded from source control.',
           effectiveFrom: now,
         },
       });

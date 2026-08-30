@@ -15,7 +15,7 @@ export default async function LoansPage() {
     return { ...row, employeeName: [employee.firstName, employee.lastName].filter((value) => typeof value === "string").join(" ") };
   });
   const runtime = buildStandardRouteRuntime({ pageKind: "list", sessionUser: user, spec: loanRuntimeSpec });
-  return <main className="grid gap-6"><StandardModuleListPage records={records} runtime={runtime} spec={loanRuntimeSpec} title="Loan Requests" /></main>;
+  return <div className="grid gap-6"><StandardModuleListPage records={records} runtime={runtime} spec={loanRuntimeSpec} title="Loan Requests" /></div>;
 }
 function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === "object" && value !== null && !Array.isArray(value); }
 function readRecordList(data: unknown): Record<string, unknown>[] {

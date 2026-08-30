@@ -2,7 +2,7 @@
 ID: BUG-1954
 aliases: [BUG-1954]
 Title: The Starter annual price tile renders PKR 120,000.00 for a PKR 3,000 annual price
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [apps/admin, services/api/src/modules/super-admin]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-350
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-1954 — The Starter annual price tile renders PKR 120,000.00 for a PKR 3,000 annual price
@@ -120,21 +120,99 @@ three.
 
 ## Resolution
 
-Open. No fix has been written.
+**Fixed 2026-08-29.** PKR 120,000.00 is a real stored price. It is Starter's
+**flat** PKR annual price, and it was being rendered beside Starter's
+**per-seat** PKR monthly price. No minor-unit conversion was involved anywhere,
+in either direction.
+
+### Where 120,000 comes from
+
+`services/api/src/modules/super-admin/pricing.catalog.ts` holds two schedules
+per market. Starter, PK market:
+
+- per-seat: `monthly.PK = 300`, annual = `300 x 10` = **3,000**
+- flat: `monthly.PK = 12_000`, annual = `12_000 x 10` = **120,000**
+
+Annual is ten months of monthly by construction (`ANNUAL_MONTHS_CHARGED = 10`),
+which is why the record's arithmetic did not land: 120,000 is not 3,000, not
+300 x 12 and not 3,000 x 100 — it is 12,000 x 10, a number from the other
+schedule. The public plans API reports 3,000 because it sells the per-seat
+schedule; flat rows are `SALES_ASSISTED` and a visitor cannot reach them.
+
+### Why the tile paired them
+
+`apps/admin/app/_components/plans/plan-commercial-summary.tsx:37-42`, before
+this change, looked each cycle up on its own:
+
+    prices.find((p) => p.billingCycle === "MONTHLY" && p.isActive !== false)
+    prices.find((p) => p.billingCycle === "ANNUAL"  && p.isActive !== false)
+
+Nothing tied the two rows to one currency or one billing model.
+`PlansRepository` orders prices by `currency asc, billingCycle asc`
+(`services/api/src/modules/super-admin/plans.repository.ts:45`), so the first
+ANNUAL row is PKR and, within PKR and ANNUAL, the flat and per-seat rows tie —
+the two lookups landed on different schedules. Starter carries twelve active
+prices (three currencies x two billing models x two cycles), so this was not a
+near miss.
+
+The caption followed from the same crossing: 300 x 12 = 3,600 is less than
+120,000, the saving clamped to zero, and the tile asserted "No annual discount
+against monthly billing" for a schedule that encodes two months free.
+
+`apps/admin/app/(internal)/plans/[planId]/page.tsx` carried the identical pair
+of lookups on the legacy `?workspace=legacy-commerce` route and is fixed the
+same way.
+
+### The fix
+
+The pair is now selected as a pair:
+
+- `apps/admin/lib/runtime/plan-headline-prices.ts` — `selectPlanHeadlinePrices`
+  groups active prices by `(currency, billingModel)` and picks one schedule:
+  one that carries both cycles first, per-seat before flat (per-seat is the
+  public schedule checkout sells), then first appearance, which follows the
+  API's `currency asc` ordering and so agrees with the `startingCurrency`
+  `mapPlan` already publishes. It returns the monthly amount, the annual
+  amount, the currency, the billing model, the saving and the percentage — all
+  from that one schedule — plus `otherScheduleCount`.
+- Both tiles and the pricing-posture panel now name the schedule they are
+  showing ("Per seat, PKR"), and the monthly caption says how many other
+  schedules are configured. A single headline figure for a twelve-price plan is
+  lossy whichever row it picks; saying which row it is was the missing half.
+- `apps/admin/lib/runtime/plan-headline-prices.spec.ts` — fourteen cases built
+  on Starter's real production schedule in the order the API sends it. They
+  assert PKR 300 / PKR 3,000 / 17%, assert explicitly that the annual figure is
+  never 120,000, and cover QAR whole units, USD fractional units (2.2 and 22),
+  a flat-only plan, deactivated rows, duplicate rows and a dearer annual price.
+
+Stored price data was not touched, no seed was run, and nothing was sent to
+Stripe. The defect was in the read path only.
+
+### Acceptance criteria
+
+- Starter's annual tile renders the stored PKR annual unit amount, 3,000, in
+  PKR — covered by the first spec case.
+- The caption is derived from the two figures beside it, and now reads 17%.
+- It holds for every currency: the selection is currency-agnostic and the specs
+  exercise PKR, QAR and USD, the last with fractional units.
 
 ## QA Retest
 
-Awaiting a fix — nothing to retest yet.
+Not retested against production. Covered by unit tests over the selection and
+the arithmetic; the rendered screen still wants an operator to open Starter and
+read the two tiles.
 
 ## History
 
 - 2026-08-29 — created from the Starter-plan production QA run (SESSION-0070) at `eb457d9d`; observed against production API `949f461c`.
 - 2026-08-29 — triaged by the Architect for SESSION-0070: ArchitectDisposition FIX_NOW — wrong money shown to the operator who sets pricing; cheap, high consequence.
+- 2026-08-29 — fixed in SESSION-0076. Not a scaling defect: the monthly and annual tiles were reading two different price schedules. `selectPlanHeadlinePrices` picks one schedule for both, and the tiles now name it.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
 ## Related
 
 - Modules — [[platform-admin]], [[super-admin]]
+- Regression — REG-350 (see the regression register)
 
 <!-- GRAPH:END -->

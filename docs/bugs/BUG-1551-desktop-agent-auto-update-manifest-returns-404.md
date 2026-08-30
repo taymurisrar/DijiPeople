@@ -2,7 +2,7 @@
 ID: BUG-1551
 aliases: [BUG-1551]
 Title: Desktop agent auto-update manifest returns 404
-Status: BLOCKED
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: INTEGRATION
@@ -11,20 +11,20 @@ DetectedDate: 2026-08-26
 DetectedInSha: 21032ae
 AffectedModules: [agent, app-releases]
 OwnerAgent: architect
-ArchitectDisposition: BLOCKED_EXTERNAL
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-358
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-27
-ResolvedAt:
+UpdatedAt: 2026-08-30
+ResolvedAt: 2026-08-30
 ---
 
 # BUG-1551 — Desktop agent auto-update manifest returns 404
 
-> **Architect triage, 2026-08-27 — `BLOCKED_EXTERNAL`.** The code is already corrected. What remains is operational: agents installed before 2026-08-18 carry the dead URL baked into the build and the auto-updater is the thing that would replace it, so they cannot repair themselves. Needs a manual reinstall of the deployed fleet, which no code change can deliver.
+> **Superseded by the 2026-08-30 finding below.** This record was triaged `BLOCKED_EXTERNAL` on 2026-08-27 on the premise that "the code is already corrected" and only a fleet reinstall remained. That premise was false. The URL half was corrected; a second, independent defect in the feed query was not, and it would have kept the endpoint returning 404 even after the owner published a release. It is fixed here.
 
 
 ## Summary
@@ -151,7 +151,98 @@ incident detail pages made the log hard to work.
 
 ## Resolution
 
-Not yet resolved.
+**Fixed 2026-08-30. The remaining cause was ours, not external — and it was not
+the one this record had been closed against.**
+
+### What the 2026-08-27 triage missed
+
+That triage concluded the code was already correct and only stranded installs
+remained. Two premises were checked against the tree and one of them is now
+false:
+
+- **"One file was missed — `apps/agent-desktop/.env.development.example:21`
+  still reads `http://localhost:4000/api/agent/updates`."** No longer true.
+  That line now reads `.../api/app-releases/feed/agent-desktop`, corrected in
+  `914e9ab0` ("remove the last two references to the dead update URL"), which
+  is an ancestor of this branch. A repository-wide search for `agent/updates`
+  now returns only historical documents — handoffs, QA runs and this record.
+  Nothing a build reads still carries the dead path.
+- **"The code is already corrected."** False. A second defect sat underneath,
+  and the dead-URL fix is what exposed it.
+
+### The actual remaining defect
+
+The publisher and the feed disagreed about what an app is called.
+
+- `release-publisher.service.ts` persists `appKey` from the catalogue —
+  `APP_KEYS.AGENT_DESKTOP`, the string `AGENT_DESKTOP`.
+- `update-feed.service.ts` filtered on the **raw URL segment**, and the feed URL
+  every `.env` example carries is `/api/app-releases/feed/agent-desktop` — the
+  `cliAlias`, because that is what a URL segment looks like.
+
+`'agent-desktop'` never matched `'AGENT_DESKTOP'`, so both the manifest query
+and the artefact-by-filename query returned nothing and the controller answered
+404. **This would have persisted after a release was published**, which is the
+part that matters: the fix everyone was waiting on the owner to unblock would
+not have worked.
+
+The empty feed is exactly what hid it. With zero published releases, a correct
+lookup and a broken one return the same 404, so the mismatch was
+indistinguishable from "nothing to serve yet" — and that is the reading this
+record's QA Retest section had already settled on.
+
+### The fix
+
+`services/api/src/modules/app-releases/update-feed.service.ts` — both queries
+now resolve the URL segment through `resolvePublishableApp()`, the same
+catalogue resolver the publisher uses, which normalises case and `_`/`-` in
+both directions. Routing the read side through the write side's resolver makes
+them agree by construction instead of by a second mapping that could drift. An
+unrecognised segment resolves to `null` and the caller answers 404, which is
+the right answer for an app that does not exist.
+
+Nothing else changed. The route, the guards, the manifest shape and the
+authentication posture were all already correct:
+
+- `update-feed.controller.ts:57` serves
+  `GET /api/app-releases/feed/:appKey/latest.yml` with both `@Permissions` and
+  `@RequirePermission`.
+- `appDownloads.read` is granted to the self-service employee permission set
+  (`permissions.ts:2500`), so a signed-in agent user holds it.
+- `renderLatestYml` emits the `version` / `files` / `path` / `sha512` /
+  `releaseDate` document electron-updater parses, with `version` quoted.
+- An empty feed returns `404` carrying "No published release is available.",
+  which satisfies the second acceptance criterion: a defined, documented
+  response rather than a bare 404.
+
+### Regression coverage
+
+`update-feed.service.spec.ts`, four new tests, and the fixture corrected — it
+declared `appKey: 'agent-desktop'`, encoding the very assumption that was
+wrong. They assert the **query**, not the response, because a mocked
+`findFirst` returns its fixture whatever it is asked, which is why the original
+five tests passed over the live defect. Mutation-tested: reverting the
+resolution fails two of the four, and leaves the third — which passes the
+catalogue key directly — green, as the control it is meant to be.
+
+### What is still outstanding, and who must supply it
+
+Neither item is a code defect and neither blocks this record.
+
+1. **No release has been published**, so the feed correctly serves 404. Proving
+   auto-update end to end (the third acceptance criterion) needs a STABLE,
+   active `agent-desktop` release for `WINDOWS` carrying `checksumSha512`,
+   `fileName` and `fileSizeBytes`. **The platform owner must publish it**: the
+   publisher is gated by `RELEASE_PUBLISH_TOKEN`, which fails closed when unset
+   (`release-publish-token.guard.ts:42`) and which no agent holds or should.
+   This session did not publish a release, upload an artefact, or touch a
+   release secret.
+2. **Agents installed before 2026-08-18** still hold the dead URL baked into
+   their build, and the auto-updater is the mechanism that would replace it, so
+   they cannot repair themselves. They need a manual reinstall. No code change
+   can reach them; this is the operational remainder the 2026-08-27 triage
+   correctly identified.
+
 
 ## QA Retest
 
@@ -191,8 +282,6 @@ header. The six-hour tick after sign-in carries one.
 
 ## Related
 
-- No related record, module or decision is declared in this record's
-  frontmatter. Declare one rather than adding a link here by hand — this
-  block is regenerated and a hand-written link inside it is lost.
+- Regression — REG-358 (see the regression register)
 
 <!-- GRAPH:END -->

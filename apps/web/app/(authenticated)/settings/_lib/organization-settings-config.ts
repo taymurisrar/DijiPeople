@@ -4,7 +4,6 @@ import {
   COMPANY_SIZE_OPTIONS,
   DATE_FORMAT_OPTIONS,
   TIME_FORMAT_OPTIONS,
-  WEEK_START_DAY_OPTIONS,
 } from "./settings-options";
 
 export const organizationSettingsSections: SettingsSectionConfig[] = [
@@ -114,68 +113,24 @@ export const organizationSettingsSections: SettingsSectionConfig[] = [
         type: "select",
         options: TIME_FORMAT_OPTIONS,
       },
-      {
-        category: "organization",
-        key: "weekStartDay",
-        label: "Week start day",
-        type: "select",
-        options: WEEK_START_DAY_OPTIONS,
-      },
+      /*
+       * BUG-1976 pair 8 — "Week start day" was removed here rather than
+       * repointed at `organization.weekStartsOn`.
+       *
+       * The precedence is decided: `system.defaultWeekStartDay` wins. Both
+       * `ConfigurationResolverService.resolveAppContext` and the web
+       * `ResolvedSettingsProvider` fall back to `organization.weekStartsOn`
+       * only when the system value is absent, and the system value resolves
+       * through a validated enum with a `MONDAY` default, so it never is.
+       * Offering a second control that could never take effect is the defect;
+       * the working control lives on Settings > System.
+       */
       {
         category: "organization",
         key: "companySize",
         label: "Company size",
         type: "select",
         options: COMPANY_SIZE_OPTIONS,
-      },
-    ],
-  },
-  {
-    title: "Business Date Settings",
-    description:
-      "Define how tenant-wide business dates are resolved for attendance, leave, timesheets, payroll, and approvals.",
-    fields: [
-      {
-        category: "organization",
-        key: "businessDateSource",
-        label: "Business date source",
-        type: "select",
-        options: [
-          { label: "Tenant Timezone", value: "TENANT_TIMEZONE" },
-          { label: "System Date", value: "SYSTEM_DATE" },
-        ],
-      },
-      {
-        category: "organization",
-        key: "businessDateTimezone",
-        label: "Business date timezone",
-        type: "lookup",
-        lookupKey: "timezones",
-        placeholder: "Select a timezone",
-      },
-      {
-        category: "organization",
-        key: "businessDayStartTime",
-        label: "Business day start time",
-        type: "time",
-      },
-      {
-        category: "organization",
-        key: "allowManualBusinessDateOverride",
-        label: "Allow manual business date override",
-        type: "checkbox",
-      },
-      {
-        category: "organization",
-        key: "manualBusinessDate",
-        label: "Manual business date",
-        type: "date",
-      },
-      {
-        category: "organization",
-        key: "lockPastBusinessDates",
-        label: "Lock past business dates",
-        type: "checkbox",
       },
     ],
   },

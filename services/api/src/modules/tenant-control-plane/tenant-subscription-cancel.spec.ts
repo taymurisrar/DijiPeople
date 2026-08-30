@@ -33,12 +33,13 @@ function build(subscription: Record<string, unknown> | null) {
     tenant: { findUnique: jest.fn().mockResolvedValue(tenantRow) },
     subscription: {
       findUnique: jest.fn().mockResolvedValue(subscription),
-      update: jest.fn().mockImplementation(({ data }) =>
-        Promise.resolve({
-          ...subscription,
-          ...data,
-          plan: { id: 'plan-1', key: 'starter', name: 'Starter' },
-        }),
+      update: jest.fn(
+        ({ data }: { where: unknown; data: Record<string, unknown> }) =>
+          Promise.resolve({
+            ...subscription,
+            ...data,
+            plan: { id: 'plan-1', key: 'starter', name: 'Starter' },
+          }),
       ),
     },
     platformUser: { findUnique: jest.fn().mockResolvedValue(null) },
@@ -52,6 +53,7 @@ function build(subscription: Record<string, unknown> | null) {
     {} as never, // domains
     { log: jest.fn() } as never, // audit
     { record: jest.fn() } as never, // platform events
+    {} as never, // tenant settings resolver
   );
   return { service, prisma };
 }
@@ -86,7 +88,7 @@ describe('TenantControlPlaneService.cancelSubscription', () => {
           status: SubscriptionStatus.CANCELLED,
           autoRenew: false,
           renewalDate: null,
-        }),
+        }) as Record<string, unknown>,
       }),
     );
     expect(result.success).toBe(true);
@@ -99,7 +101,7 @@ describe('TenantControlPlaneService.cancelSubscription', () => {
       reason: 'Contract terminated.',
       effectiveAt: '2026-09-01T00:00:00.000Z',
     });
-    const data = prisma.subscription.update.mock.calls[0]![0].data;
+    const data = prisma.subscription.update.mock.calls[0][0].data;
     expect(data.endDate).toEqual(new Date('2026-09-01T00:00:00.000Z'));
     expect(data.canceledAt).toEqual(new Date('2026-09-01T00:00:00.000Z'));
   });

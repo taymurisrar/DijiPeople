@@ -5,5 +5,5 @@ import { employeeBankAccountRuntimeSpec } from "@/lib/runtime/modules/payroll-fo
 
 export default async function NewEmployeeBankAccountPage() {
   const runtime = buildStandardRouteRuntime({ pageKind: "create", sessionUser: await getSessionUser(), spec: employeeBankAccountRuntimeSpec });
-  return <main className="grid gap-6"><StandardModuleRecordPage activeForm={resolveStandardActiveForm(runtime.metadata.forms, "", "quickCreate")} mode="create" record={{ isPrimaryPayroll: false, effectiveFrom: "" }} runtime={runtime} spec={employeeBankAccountRuntimeSpec} title="New Employee Bank Account" /></main>;
+  return <div className="grid gap-6"><StandardModuleRecordPage activeForm={resolveStandardActiveForm(runtime.metadata.forms, "", "quickCreate")} mode="create" record={{ isPrimaryPayroll: false, effectiveFrom: "" }} runtime={runtime} spec={employeeBankAccountRuntimeSpec} title="New Employee Bank Account" /></div>;
 }

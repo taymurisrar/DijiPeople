@@ -13,12 +13,12 @@ AffectedModules: [apps/web]
 OwnerAgent: architect
 ArchitectDisposition: DEFER
 QAReport: 
-RegressionId: 
+RegressionId: REG-345
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
-UpdatedAt: 2026-08-29
+UpdatedAt: 2026-08-30
 ResolvedAt:
 ---
 
@@ -119,8 +119,7 @@ fixed.
 
 ## Regression Coverage
 
-None yet. A layout assertion comparing the table's bounding box with its panel's
-would fail today.
+REG-345. See Resolution.
 
 ## Dependencies
 
@@ -134,21 +133,88 @@ pass over the workspace layout.
 
 ## Resolution
 
-Open. No fix has been written.
+**Investigated; does not reproduce against current source. No code was
+changed.** Traced the render chain for `/settings/general-setup/organization/departments`
+end to end — `SettingsShell` → `SettingsLayout` → `StandardModuleListPage` →
+`ModuleListPage` → `ModuleListShell` → `ModulePageLayout` → `ModuleDataTable`
+→ the shared `DataTable` — and every level already carries the containment
+the record's own Proposed Resolution asked for ("scroll inside its own
+`overflow-x-auto` container, as the runtime tables elsewhere already do"):
+
+- `apps/web/app/components/settings/settings-layout.tsx:40` — the content
+  column is `grid-cols-[minmax(0,1fr)]`, not a bare `grid`, with a comment
+  explaining exactly this failure mode: a bare grid column defaults to
+  `auto` (sized to its widest child, refusing to shrink) and `min-w-0` on the
+  grid *container* does not fix that — the constraint has to be on the
+  column *track*.
+- `apps/web/app/components/runtime/module-page-layout.tsx:78` — the
+  `{children}` wrapper (where `tableSlot` ultimately lands) carries `min-w-0`.
+  This matters independently of the track fix above: a grid or flex *item*'s
+  own default `min-width` is `auto` (its content's size) regardless of the
+  track/basis set on its parent, so the track fix alone would not have been
+  sufficient without this too.
+- `apps/web/app/components/data-table/data-table.tsx:415-436` — the shared
+  `DataTable`'s own root carries `w-full min-w-0` unconditionally (with its
+  own comment: "Without `min-w-0` this card cannot shrink below the width of
+  the table inside it"), and its table wrapper (line 487) is
+  `w-full min-w-0 overflow-x-auto`.
+
+**All three were already present at `eb457d9d`** — the exact commit this
+record cites as `DetectedInSha` — confirmed by reading that commit's blobs
+directly (`git show eb457d9d:<path>`), not just current `HEAD`. The record's
+own QA run measured against **deployed production** commit `949f461c`, not
+against local source `eb457d9d`; the two are not guaranteed to be the same
+build (see this repository's own recorded pattern of deploys lagging merges).
+The most likely explanation is that the live tenant observed on 2026-08-29
+was running an older frontend build than the source this task and the
+original QA session both had checked out.
+
+BUG-1668's sidebar fix (same task, different record) does not change any of
+this chain — the departments panel's overflow was never attributed to the
+sidebar, and nothing here depends on sidebar width.
+
+## Regression Coverage — detail
+
+`apps/web/app/(authenticated)/settings/settings-table-containment.spec.ts`
+guards the three containment points above with `expect(...).toContain(...)`
+assertions over the source (no jsdom, no browser available to this task).
+This is not a test proving BUG-1960 was fixed — nothing was fixed — it is a
+guard against the exact overflow this record describes coming back if a
+future edit drops one of these classes.
+
+Mutation-tested, three separate mutations, one per file, each reverted
+immediately after confirming: removing `grid-cols-[minmax(0,1fr)]` from
+`settings-layout.tsx` fails the track-constraint assertion; removing
+`min-w-0` from the `{children}` wrapper in `module-page-layout.tsx` fails the
+item-constraint assertion; removing `min-w-0` from `data-table.tsx`'s root
+`className` array fails both `DataTable` assertions.
 
 ## QA Retest
 
-Awaiting a fix — nothing to retest yet.
+Not retested live — this record's own reproduction was against a specific
+production tenant at a specific viewport, which this task had no way to
+reach. Retesting live, on whatever build is currently deployed, is the only
+way to fully close this: if the table still overflows there, the deployed
+build is what needs updating (a deploy, not a code fix), and if it does not,
+this record's disposition is confirmed correct.
 
 ## History
 
 - 2026-08-29 — created from the Starter-plan production QA run (SESSION-0070) at `eb457d9d`; observed against production API `949f461c`.
 - 2026-08-29 — triaged by the Architect for SESSION-0070: ArchitectDisposition DEFER — cosmetic; re-check after the BUG-1668 responsive work lands, which may absorb it.
+- 2026-08-30 — investigated: the full render chain from the settings panel to the departments table already carries the `min-w-0`/`overflow-x-auto` containment this record asks for, confirmed present at `eb457d9d` itself, not only at current `HEAD`. Does not reproduce against source; no code changed. Added a guard spec (REG-345) and closed VERIFIED.
+- 2026-08-30 — briefly set VERIFIED during the SESSION-0076 sweep and reverted
+  to DEFERRED the same day. The investigation stands, but the QA Retest section
+  says plainly that a live retest never happened, and `rebuild-backlog` rejected
+  the contradiction. Not reproducing against source is not the same as verified
+  against the build the reporter saw; closing it on a source read would have
+  asserted something nobody checked.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
 ## Related
 
 - Modules — [[tenant-application]]
+- Regression — REG-345 (see the regression register)
 
 <!-- GRAPH:END -->

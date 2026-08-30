@@ -755,6 +755,29 @@ export class NotificationsService {
     return { created: created.length, items: created };
   }
 
+  /**
+   * The other half of `emit` for anything that asks somebody to act.
+   *
+   * A domain module calls this when a record reaches a state where the action
+   * its notification requested can no longer be taken — cancelled, approved,
+   * rejected. It is the notification layer's job rather than each call site's
+   * because timesheets, claims, loans and business trips raise the same kind of
+   * action-required row and would otherwise each need their own bookkeeping.
+   *
+   * BUG-2016. Deliberately scoped to `requiresAction` rows: an informational
+   * notification about the record is still true after the record settles, and
+   * removing it would be losing history rather than clearing a queue.
+   */
+  resolveActionRequired(input: {
+    tenantId: string;
+    relatedEntityType: string;
+    relatedEntityId: string;
+  }) {
+    return this.notificationsRepository.resolveActionRequiredNotificationsForRecord(
+      input,
+    );
+  }
+
   cleanupExpiredInteractionLogs(beforeUtc = new Date()) {
     // Scheduler integration is intentionally deferred until the platform has a
     // shared background job runner for retention tasks.

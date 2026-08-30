@@ -2,7 +2,7 @@
 ID: BUG-1956
 aliases: [BUG-1956]
 Title: Runtime lookup comboboxes expose no listbox or option semantics to assistive technology
-Status: OPEN
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [apps/web]
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-338
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-08-29
-ResolvedAt:
+ResolvedAt: 2026-08-29
 ---
 
 # BUG-1956 — Runtime lookup comboboxes expose no listbox or option semantics to assistive technology
@@ -155,7 +155,71 @@ land in the tenant product's shared component kit.
 
 ## Resolution
 
-Open. No fix has been written.
+Fixed in the shared component, so every module the metadata form runtime serves
+is covered at once.
+
+**The component the record could not name.** It is
+`apps/web/app/components/ui/form-control.tsx`, and there are two controls in it
+with this defect, not one: `LookupField` — the Business Unit picker in the
+reproduction — and `SelectField` beside it. The second was worth finding: it
+already carried `role="listbox"` on its popup and filled it with `button`
+elements, which is a *different* violation of the same pattern and would have
+survived a fix aimed only at the reported control.
+
+**What was wrong, in the order it matters.**
+
+The options were `button` elements. That is the root of it, and it explains why
+`aria-activedescendant` was never set: the popup was navigated with Tab, so
+there was no "active" option to name. A listbox whose children are buttons is
+also `nested-interactive` — every option is a focusable child of a widget role.
+Both controls now render `div` elements with `role="option"` and
+`aria-selected` (`form-control.tsx:341` and `:1209`), reached from the keyboard
+rather than by Tab.
+
+`LookupField`'s popup had `id={listboxId}` and no role at all. The role could
+not simply be added to it: that element also contains the search input and the
+Clear button, so a listbox there would own two focusable controls. The role and
+the id are on the options container instead (`form-control.tsx:1196`), which is
+what `aria-controls` was always supposed to be pointing at.
+
+`aria-controls` dangled. It was set unconditionally to a portalled id that does
+not exist while the field is closed — and, in the lookup, does not exist when
+the search matches nothing either. It is now conditional on the popup actually
+being rendered (`form-control.tsx:1279`), which is the same class of defect as
+the missing roles: an attribute written for something that was not built.
+
+**Keyboard.** Arrow keys, Home and End move the highlight; Enter selects it;
+Escape closes. The movement is a pure function in
+`apps/web/lib/a11y/listbox-navigation.ts`, shared by both controls — two
+implementations of arrow-key movement would diverge in exactly the way that
+produced this record. `aria-activedescendant` is set on both triggers and, in
+the lookup, on the search input as well, because that input is the element that
+actually holds focus while the popup is open. A highlight that outlives a
+narrowing filter is reset rather than left pointing at an option that no longer
+exists.
+
+**One thing beyond the record, for the same reason.** The link to the selected
+record sat *inside* the lookup's combobox. A combobox may not own focusable
+children, so it was a second `nested-interactive` on the same control — and in
+practice a Tab stop inside the thing the user was trying to open. It is a
+sibling now, and names the record it opens ("Open Engineering") rather than
+leaving the reader to infer it.
+
+**Coverage.** `apps/web/lib/a11y/listbox-navigation.spec.ts` tests the movement
+as logic, including that an empty list yields no index and that
+`aria-activedescendant` resolves to `undefined` rather than to a dangling id.
+`apps/web/app/components/ui/lookup-listbox-semantics.spec.ts` asserts the
+correspondence rather than either half alone: as many listboxes as comboboxes,
+an option role and a selected state for each, no `type="button"` inside a
+listbox, no link inside a trigger, and no unconditional `aria-controls`. It
+strips comments before counting, because this fix is explained in prose that
+quotes the attributes being counted and a raw match would count the explanation
+as an implementation.
+
+**Not verified in a browser.** The reproduction is on the production tenant
+workspace and the browser tooling was unavailable for this work. The assertions
+above are over the source; the `document.querySelectorAll('[role=listbox]')`
+check in the Acceptance Criteria still wants running against a live stack.
 
 ## QA Retest
 
@@ -172,5 +236,6 @@ Awaiting a fix — nothing to retest yet.
 ## Related
 
 - Modules — [[tenant-application]]
+- Regression — REG-338 (see the regression register)
 
 <!-- GRAPH:END -->

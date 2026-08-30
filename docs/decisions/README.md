@@ -49,6 +49,8 @@ plainly what an agent must or must not do as a result of this decision.
 | ADR | Title | Status |
 |---|---|---|
 | [ADR-0001](ADR-0001-ai-agent-workflow.md) | AI-assisted engineering workflow | Accepted |
+| [ADR-0002](ADR-0002-tenant-base-domain-single-source.md) | Configuration is the single source of the tenant base domain | Accepted |
+| [ADR-0003](ADR-0003-attendance-location-capture-is-mandatory.md) | Attendance location capture is a platform mandate | Accepted |
 
 ## Relationship to Obsidian
 

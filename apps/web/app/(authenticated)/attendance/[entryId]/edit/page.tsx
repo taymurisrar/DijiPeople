@@ -35,17 +35,17 @@ export default async function EditAttendanceRecordPage({ params }: PageProps) {
 
   if (!canOverride) {
     return (
-      <main className="dp-theme-scope dp-attendance-scope grid gap-6">
+      <div className="dp-theme-scope dp-attendance-scope grid gap-6">
         <AccessDeniedState
           description="Attendance correction requires update access and the tenant manual-adjustment policy."
           title="Attendance correction is unavailable."
         />
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="dp-theme-scope dp-attendance-scope min-h-[60vh]">
+    <div className="dp-theme-scope dp-attendance-scope min-h-[60vh]">
       <AttendanceRecordEditClient
         canOverride
         formatting={{
@@ -61,6 +61,6 @@ export default async function EditAttendanceRecordPage({ params }: PageProps) {
         }}
         recordId={entryId}
       />
-    </main>
+    </div>
   );
 }

@@ -20,7 +20,7 @@ export default function SettingsPage() {
 
   if (!canUseGlobalSettings) {
     return (
-      <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
         <div className="mx-auto w-full max-w-5xl">
           <AccessDeniedState
             title="Settings are reserved for administrators."
@@ -29,7 +29,7 @@ export default function SettingsPage() {
             actionLabel="Open My Preferences"
           />
         </div>
-      </main>
+      </div>
     );
   }
 

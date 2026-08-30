@@ -41,6 +41,7 @@ describe('TimesheetExportService request validation', () => {
       }),
     } as never,
     { log: jest.fn().mockResolvedValue(undefined) } as never,
+    { shouldAudit: jest.fn().mockResolvedValue(true) } as never,
   );
   const user = {
     tenantId: 'tenant-1',

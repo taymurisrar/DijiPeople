@@ -72,7 +72,7 @@ export default async function ApprovalsPage({
   }));
 
   return (
-    <main className="space-y-6">
+    <div className="space-y-6">
       <StandardModuleListPage
         activeView={activeView}
         formatting={{
@@ -93,7 +93,7 @@ export default async function ApprovalsPage({
         runtime={runtime}
         title="Approvals"
       />
-    </main>
+    </div>
   );
 }
 

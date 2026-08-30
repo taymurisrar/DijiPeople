@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, PrismaClient } from '@prisma/client';
+import {
+  canonicalAuditAction,
+  resolveAuditActionAliases,
+} from '../../common/constants/audit-actions';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditLogQueryDto } from './dto/audit-log-query.dto';
 
@@ -54,7 +58,15 @@ export class AuditRepository {
   ) {
     const where: Prisma.AuditLogWhereInput = {
       tenantId,
-      ...(query.action ? { action: query.action.trim() } : {}),
+      /*
+       * BUG-2046 - a filter on one action must find every stored spelling of
+       * it. A tenant whose log spans the naming change holds rows under both
+       * conventions, and an exact match would answer a compliance question with
+       * half the evidence while looking like a complete answer.
+       */
+      ...(query.action
+        ? { action: { in: resolveAuditActionAliases(query.action) } }
+        : {}),
       ...(query.entityType ? { entityType: query.entityType.trim() } : {}),
       ...(query.actorUserId ? { actorUserId: query.actorUserId } : {}),
       ...buildDateRange(query.fromDate, query.toDate),
@@ -131,7 +143,14 @@ export class AuditRepository {
     ]);
 
     return {
-      actions: actions.map((item) => item.action),
+      /*
+       * BUG-2046 - deduplicated by canonical name so the filter offers one
+       * entry per logical action rather than one per spelling. The value the
+       * screen sends is expanded back to every spelling by `findByTenant`.
+       */
+      actions: [
+        ...new Set(actions.map((item) => canonicalAuditAction(item.action))),
+      ].sort(),
       entityTypes: entityTypes.map((item) => item.entityType),
       actors,
     };

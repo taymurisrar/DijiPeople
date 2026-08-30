@@ -11,8 +11,10 @@ import { apiRequestJson, isApiRequestError } from "@/lib/server-api";
 import { notFound, redirect } from "next/navigation";
 import {
   getSettingsAdapter,
+  readSettingsListPagination,
   readSettingsRecord,
   readSettingsRecords,
+  settingsListApiPath,
   type SettingsRuntimeAdapter,
 } from "../_lib/settings-adapter-registry";
 import type { SettingsRuntimeItem } from "../_lib/settings-runtime";
@@ -112,12 +114,24 @@ export async function SettingsRuntimeList({
       </SettingsShell>
     );
   }
-  const [response, sessionUser, params] = await Promise.all([
-    apiRequestJson<unknown>(settingsListApiPath(adapter)),
+  /*
+   * BUG-2043 - the requested page has to be known before the fetch, not after
+   * it. This list used to fetch `settingsListApiPath(adapter)` unpaginated,
+   * take whatever page size the API defaulted to, and then report the length of
+   * that page as the tenant's total. On the Audit Events screen that meant a
+   * confident "of 20" over a log holding 305 rows.
+   */
+  const params = await searchParams;
+  const page = positiveInteger(first(params.page), 1);
+  const pageSize = positiveInteger(first(params.pageSize), 10);
+  const [response, sessionUser] = await Promise.all([
+    apiRequestJson<unknown>(settingsListApiPath(adapter, { page, pageSize })),
     getSessionUser(),
-    searchParams,
   ]);
   const records = readSettingsRecords(response, adapter.collectionKey, adapter);
+  const serverPagination = adapter.supportsServerPagination
+    ? readSettingsListPagination(response)
+    : null;
   const spec = { ...adapter.spec, routeBase: item.route };
   const runtime = buildStandardRouteRuntime({
     pageKind: "list",
@@ -131,8 +145,6 @@ export async function SettingsRuntimeList({
     runtime.metadata.views.find((view) => view.isDefault) ??
     runtime.metadata.views[0] ??
     null;
-  const page = positiveInteger(first(params.page), 1);
-  const pageSize = positiveInteger(first(params.pageSize), 10);
 
   return (
     <SettingsShell title={item.label} description={item.description}>
@@ -144,13 +156,13 @@ export async function SettingsRuntimeList({
           timezone: "UTC",
         }}
         pagination={{
-          page,
-          pageSize,
-          totalItems: records.length,
+          page: serverPagination?.page ?? page,
+          pageSize: serverPagination?.pageSize ?? pageSize,
+          totalItems: serverPagination?.total ?? records.length,
           pathname: item.route,
           searchParams: { viewId: activeView?.viewId ?? activeView?.id },
         }}
-        paginationMode="client"
+        paginationMode={serverPagination ? "server" : "client"}
         records={records}
         runtime={runtime}
         spec={spec}
@@ -503,34 +515,12 @@ function lockTenantSlugForNonCustomizers(
   } satisfies FormMetadata;
 }
 
-function settingsListApiPath(adapter: SettingsRuntimeAdapter) {
-  if (!shouldDefaultToActiveRecords(adapter)) return adapter.serverApiPath;
-
-  const [path, query = ""] = adapter.serverApiPath.split("?", 2);
-  const params = new URLSearchParams(query);
-
-  if (!params.has("isActive") && !params.has("includeInactive")) {
-    params.set("isActive", "true");
-  }
-
-  params.delete("includeInactive");
-  const nextQuery = params.toString();
-  return nextQuery ? `${path}?${nextQuery}` : path;
-}
-
 function settingsRecordApiPath(
   adapter: SettingsRuntimeAdapter,
   recordId: string,
 ) {
   const [path] = adapter.serverApiPath.split("?", 2);
   return `${path}/${encodeURIComponent(recordId)}`;
-}
-
-function shouldDefaultToActiveRecords(adapter: SettingsRuntimeAdapter) {
-  return (
-    adapter.softDelete &&
-    adapter.spec.fields.some((field) => field.logicalName === "isActive")
-  );
 }
 
 function readRecordSettings(

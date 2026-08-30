@@ -20,7 +20,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { CreateDepartmentDto } from './dto/create-department.dto';
-import { ListMasterDataDto } from './dto/list-master-data.dto';
+import { ListDepartmentsDto } from './dto/list-departments.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
 import { OrganizationService } from './organization.service';
 
@@ -34,9 +34,9 @@ export class DepartmentsController {
   @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
   findAll(
     @CurrentUser() user: AuthenticatedUser,
-    @Query() query: ListMasterDataDto,
+    @Query() query: ListDepartmentsDto,
   ) {
-    return this.organizationService.findDepartmentsForUser(user, query);
+    return this.organizationService.listDepartmentsForUser(user, query);
   }
 
   @Get(':id')

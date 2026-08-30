@@ -16,6 +16,9 @@ import { Permissions } from '../../common/decorators/permissions.decorator';
 import { RequirePermission } from '../../common/decorators/require-permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { EntitlementGuard } from '../../common/guards/entitlement.guard';
+import { RequireEntitlement } from '../../common/decorators/require-entitlement.decorator';
+import { TENANT_FEATURE_KEYS } from '../../common/constants/tenant-features';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import {
   CreateEmployeeTaxProfileDto,
@@ -35,7 +38,8 @@ import { TaxRulesService } from './tax-rules.service';
 import { EmployeeTaxProfilesService } from './employee-tax-profiles.service';
 
 @Controller()
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, EntitlementGuard)
+@RequireEntitlement(TENANT_FEATURE_KEYS.PAYROLL)
 export class TaxRulesController {
   constructor(
     private readonly service: TaxRulesService,

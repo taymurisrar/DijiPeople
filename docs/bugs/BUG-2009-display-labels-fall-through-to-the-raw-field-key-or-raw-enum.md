@@ -2,7 +2,7 @@
 ID: BUG-2009
 aliases: [BUG-2009]
 Title: Display labels fall through to the raw field key or raw enum value on three tenant surfaces
-Status: OPEN
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [apps/web]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-341
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
-UpdatedAt: 2026-08-29
-ResolvedAt:
+UpdatedAt: 2026-08-30
+ResolvedAt: 2026-08-30
 ---
 
 # BUG-2009 — Display labels fall through to the raw field key or raw enum value on three tenant surfaces
@@ -180,9 +180,29 @@ fixes.
 
 ## Regression Coverage
 
-None yet. The label-completeness check above is pure logic over the settings and
-metadata declarations, fits the existing node-environment jest setup in
-`apps/web`, and covers all three surfaces if they share a declaration source.
+REG-341. Three specs, one per surface (no jsdom in this app, so each asserts
+pure logic rather than rendering):
+
+- `apps/web/app/(authenticated)/settings/branding/_components/branding-field-labels.spec.ts`
+  — walks **every** key in `BRANDING_COLOR_KEYS` and `BRANDING_TEXT_KEYS`
+  (not just the ten reported) asserting the resolved label never equals the
+  key, plus the ten reported labels by exact value. This is the "add a check
+  that no rendered label equals its own field key" the Proposed Resolution
+  named as worth more than the three fixes: a seventeenth colour token added
+  later without a label fails this test rather than shipping unlabelled.
+- `apps/web/lib/runtime/runtime-value-formatter.spec.ts` — a declared
+  optionset label wins; an undeclared optionset value and a field with no
+  metadata both humanise; ordinary prose (`"Fatima Ahmed"`) passes through
+  unchanged.
+- `apps/web/app/components/dashboard/dashboard-widget-formatting.spec.ts` —
+  shared with BUG-2010; its enum-humanisation cases cover this record.
+
+Mutation-tested, three separate mutations: reverting `resolveColorFieldLabel`
+to `COLOR_FIELD_LABELS[key] ?? key` fails the "hypothetical undeclared key"
+assertion; reverting the optionset fallback to `declaredLabel ?? rawValue`
+fails the "no matching declared option" assertion; reverting the final
+fallback to `String(value)` fails the "no field metadata at all" assertion.
+Each reverted immediately after confirming.
 
 ## Dependencies
 
@@ -208,21 +228,63 @@ per surface. No fix to either of them changes a single string named here.
 
 ## Resolution
 
-Open. No fix has been written.
+The "one cause or three" question the record left open resolved as: **not one
+lookup, but one small helper (`humanizeEnumValue`/`humanizeFieldKey` in
+`apps/web/lib/text/inflection.ts`, already built for BUG-1964) reused as the
+fallback in three otherwise-independent places.**
+
+- **Branding (`/settings/branding`)** —
+  `app/(authenticated)/settings/branding/_components/branding-settings-form.tsx`.
+  `COLOR_FIELD_LABELS` and `TEXT_FIELD_LABELS` were missing entries for the six
+  reported colour tokens (`mutedTextColor`, `borderColor`,
+  `sidebarBackgroundColor`, `sidebarTextColor`,
+  `sidebarActiveBackgroundColor`, `sidebarActiveTextColor`) and four text
+  fields (`supportEmail`, `supportPhone`, `privacyPolicyUrl`,
+  `termsOfUseUrl`) — all eight added by hand, matching the six that already
+  had one. The fallback for any *other* undeclared key changed from `?? key`
+  to `?? humanizeFieldKey(key)` (new `resolveColorFieldLabel` /
+  `resolveTextFieldLabel`), which also covers `successColor`, `warningColor`,
+  `dangerColor` and `infoColor` — four colour tokens the schema
+  (`lib/branding.ts`) has grown since this record was filed, bringing the
+  total to sixteen, not the twelve the record measured.
+- **Employee record related lists** —
+  `apps/web/lib/runtime/runtime-value-formatter.ts`, the function every
+  runtime list (including the standalone `/attendance` list the record
+  contrasts against) shares. The optionset branch now falls back to
+  `humanizeEnumValue(rawValue)` when no declared option matches, instead of
+  the raw stored value; the final fallback (no field metadata at all — the
+  generic-entity shape a related list frequently has) does the same. Column
+  *headers* were already fixed for this record on this branch before this
+  task started (`module-related-subgrid.tsx`, see the BUG-1964 resolution) —
+  this closes the remaining half, the enum *cell values*.
+- **Dashboard Recent changes** —
+  `apps/web/app/components/dashboard/dashboard-widget-renderer.tsx`,
+  `formatValue`'s default string branch now returns
+  `humanizeEnumValue(value)` instead of the raw string. Landed in the same
+  commit as BUG-2010, because both are fixes to the same function in the same
+  file (BUG-2010 is the Date column in the same widget) — see that record's
+  Resolution for the ISO-timestamp half.
+
+Verified from source and by the specs below; not verified live against a
+running tenant.
 
 ## QA Retest
 
-Awaiting a fix — nothing to retest yet.
+Not retested live against a running tenant. Verified from source and by the
+specs above against every item in Acceptance Criteria, including the
+completeness check the record itself asked for.
 
 ## History
 
 - 2026-08-29 — created from the Starter-plan production QA run (SESSION-0070) at `eb457d9d`; observed against production API `949f461c`. Merges three separately observed surfaces into one record because the symptom and probable fix are shared; the record states explicitly that the shared cause is unproven. Disposition FIX_NOW.
 - 2026-08-29 — Checked against BUG-1950 and BUG-1951 (page heading and `main` landmark, filed independently the same day) and recorded as distinct: those are page structure, this is label resolution. All three stand.
+- 2026-08-30 — resolved: not one lookup, but one helper (`humanizeEnumValue`/`humanizeFieldKey`) reused as the fallback in three independent places — branding, related-list cell values (headers were already fixed on this branch), and the dashboard widget. The dashboard fix landed in the same commit as BUG-2010 since both touch the same function. Closed FIXED under REG-341.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
 ## Related
 
 - Modules — [[tenant-application]]
+- Regression — REG-341 (see the regression register)
 
 <!-- GRAPH:END -->

@@ -2,7 +2,7 @@
 ID: BUG-2011
 aliases: [BUG-2011]
 Title: Seven related-list dialogs never send the parent foreign key and one of them creates an orphan
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [apps/web]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-305
 RelatedBacklogItem:

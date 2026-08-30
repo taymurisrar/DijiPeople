@@ -34,12 +34,12 @@ export default async function AttendanceCorrectionDetailPage({
   const user = await requireSessionUser("/");
   if (!canUseCorrectionWorkflow(user)) {
     return (
-      <main className="dp-theme-scope dp-attendance-scope grid gap-6">
+      <div className="dp-theme-scope dp-attendance-scope grid gap-6">
         <AccessDeniedState
           description="Your role does not include attendance correction workflow access."
           title="Attendance correction is unavailable for your account."
         />
-      </main>
+      </div>
     );
   }
 
@@ -50,7 +50,7 @@ export default async function AttendanceCorrectionDetailPage({
   const request = response.item;
 
   return (
-    <main className="dp-theme-scope dp-attendance-scope space-y-6">
+    <div className="dp-theme-scope dp-attendance-scope space-y-6">
       <section className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           <Link
@@ -177,7 +177,7 @@ export default async function AttendanceCorrectionDetailPage({
           <p className="text-sm text-muted">Approval tracking has not been created yet.</p>
         )}
       </DetailCard>
-    </main>
+    </div>
   );
 }
 

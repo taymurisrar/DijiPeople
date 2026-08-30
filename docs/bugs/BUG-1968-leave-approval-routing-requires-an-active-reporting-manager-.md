@@ -2,7 +2,7 @@
 ID: BUG-1968
 aliases: [BUG-1968]
 Title: Leave approval routing rejects the submission unless every rule in the chain resolves to an active approver
-Status: FIXED
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,7 +11,7 @@ DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
 AffectedModules: [services/api/src/modules/leave, services/api/src/modules/approvals]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
 RegressionId: REG-304
 RelatedBacklogItem: ITEM-0113

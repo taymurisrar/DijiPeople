@@ -5,7 +5,6 @@ import {
   ArrowLeft,
   Download,
   FileDown,
-  FileUp,
   KeyRound,
   Plus,
   RefreshCcw,
@@ -15,12 +14,12 @@ import {
 } from "lucide-react";
 import { CommandBar } from "@/app/components/command-bar/command-bar";
 import { CommandBarItem } from "@/app/components/command-bar/types";
+import { USER_CREATE_ROUTE } from "../_lib/user-routes";
 
 type UsersCommandBarProps = {
   canCreate: boolean;
   canDelete?: boolean;
   canAssignRoles?: boolean;
-  canImport?: boolean;
   canExport?: boolean;
   canDisable?: boolean;
   canResetPassword?: boolean;
@@ -30,7 +29,6 @@ export function UsersCommandBar({
   canCreate,
   canDelete = false,
   canAssignRoles = false,
-  canImport = false,
   canExport = false,
   canDisable = false,
   canResetPassword = false,
@@ -49,7 +47,9 @@ export function UsersCommandBar({
       key: "new",
       label: "New",
       icon: Plus,
-      href: "/users/new",
+      /* BUG-2014 — "/users/new" has no page; the settings runtime owns the
+         only user-create screen in the product. See _lib/user-routes.ts. */
+      href: USER_CREATE_ROUTE,
       hidden: !canCreate,
     },
     {
@@ -104,7 +104,11 @@ export function UsersCommandBar({
       key: "data",
       label: "Data",
       icon: Download,
-      hidden: !canExport && !canImport,
+      /* BUG-2014 — the Import action linked to "/users/import", which has no
+         page anywhere in this app. It was removed, along with the `canImport`
+         prop that gated it, rather than pointed at another route that does
+         not exist. Rebuild both together if a users import screen is added. */
+      hidden: !canExport,
       actions: [
         {
           key: "export",
@@ -117,13 +121,6 @@ export function UsersCommandBar({
           label: "Export template",
           icon: Download,
           hidden: !canExport,
-        },
-        {
-          key: "import",
-          label: "Import",
-          icon: FileUp,
-          href: "/users/import",
-          hidden: !canImport,
         },
       ],
     },
