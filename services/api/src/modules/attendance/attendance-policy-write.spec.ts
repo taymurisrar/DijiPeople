@@ -1,4 +1,4 @@
-import { AttendanceMode } from '@prisma/client';
+import { AttendanceMode, Prisma } from '@prisma/client';
 
 import { AttendanceService } from './attendance.service';
 
@@ -60,7 +60,14 @@ describe('AttendanceService.updatePolicy', () => {
 
   let attendanceRepository: {
     findAttendancePolicy: jest.Mock;
-    upsertAttendancePolicy: jest.Mock;
+    upsertAttendancePolicy: jest.Mock<
+      Promise<{ id: string; tenantId: string }>,
+      [
+        tenantId: string,
+        data: Prisma.AttendancePolicyUncheckedCreateInput,
+        update: Prisma.AttendancePolicyUncheckedUpdateInput,
+      ]
+    >;
   };
   let service: AttendanceService;
 
@@ -68,7 +75,14 @@ describe('AttendanceService.updatePolicy', () => {
     attendanceRepository = {
       findAttendancePolicy: jest.fn().mockResolvedValue(existingPolicy),
       upsertAttendancePolicy: jest
-        .fn()
+        .fn<
+          Promise<{ id: string; tenantId: string }>,
+          [
+            tenantId: string,
+            data: Prisma.AttendancePolicyUncheckedCreateInput,
+            update: Prisma.AttendancePolicyUncheckedUpdateInput,
+          ]
+        >()
         .mockResolvedValue({ id: 'policy-1', tenantId: 'tenant-1' }),
     };
 

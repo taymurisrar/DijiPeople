@@ -9,6 +9,15 @@ import {
   SecurityPrivilege,
 } from '@prisma/client';
 import { AttendanceService } from './attendance.service';
+import type { AttendanceRepository } from './attendance.repository';
+
+/** What the repository actually resolves, used to type a few mocked returns below. */
+type ResolvedWorkConfiguration = Awaited<
+  ReturnType<AttendanceRepository['resolveEmployeeWorkConfiguration']>
+>;
+type CreatedAttendanceEntry = Awaited<
+  ReturnType<AttendanceRepository['createAttendanceEntry']>
+>;
 
 describe('AttendanceService', () => {
   let webAttendanceService: {
@@ -630,7 +639,7 @@ describe('AttendanceService', () => {
 
   it('blocks self-service check-in on a scheduled off day', async () => {
     const configured =
-      await attendanceRepository.resolveEmployeeWorkConfiguration();
+      (await attendanceRepository.resolveEmployeeWorkConfiguration()) as ResolvedWorkConfiguration;
     attendanceRepository.resolveEmployeeWorkConfiguration.mockResolvedValue({
       ...configured,
       scheduleDay: { isWorkingDay: false, shiftTemplate: null },
@@ -646,7 +655,7 @@ describe('AttendanceService', () => {
 
   it('updates the same Remote record on check-out and captures location again', async () => {
     const existing = {
-      ...(await attendanceRepository.createAttendanceEntry()),
+      ...((await attendanceRepository.createAttendanceEntry()) as CreatedAttendanceEntry),
       shiftTemplateId: 'shift-1',
       shiftTemplate: null,
       attendanceMode: AttendanceMode.REMOTE,
@@ -689,7 +698,7 @@ describe('AttendanceService', () => {
 
   it('requires a fresh device location again at check-out', async () => {
     const existing = {
-      ...(await attendanceRepository.createAttendanceEntry()),
+      ...((await attendanceRepository.createAttendanceEntry()) as CreatedAttendanceEntry),
       shiftTemplateId: 'shift-1',
       shiftTemplate: null,
       attendanceMode: AttendanceMode.OFFICE,
@@ -1088,7 +1097,7 @@ describe('AttendanceService', () => {
     ).rejects.toMatchObject({
       response: expect.objectContaining({
         code: 'ATTENDANCE_DATE_IN_FUTURE',
-      }),
+      }) as { code: string },
     });
 
     expect(attendanceRepository.createAttendanceEntry).not.toHaveBeenCalled();
@@ -1156,7 +1165,7 @@ describe('AttendanceService', () => {
     ).rejects.toMatchObject({
       response: expect.objectContaining({
         code: 'ATTENDANCE_DATE_IN_FUTURE',
-      }),
+      }) as { code: string },
     });
 
     expect(attendanceRepository.updateAttendanceEntry).not.toHaveBeenCalled();

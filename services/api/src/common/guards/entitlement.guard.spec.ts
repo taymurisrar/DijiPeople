@@ -303,11 +303,13 @@ describe('EntitlementGuard enforcement modes', () => {
   it('does not log a query string with the refusal', async () => {
     const entitlements = buildEntitlements({ mode: 'REPORT_ONLY' });
     const guard = buildGuard(entitlements);
-    const logger = (guard as unknown as { logger: { warn: jest.Mock } }).logger;
+    const logger = (
+      guard as unknown as { logger: { warn: jest.Mock<void, [string]> } }
+    ).logger;
 
     await guard.canActivate(buildContext(tenantUser));
 
-    const line = logger.warn.mock.calls[0][0] as string;
+    const line = logger.warn.mock.calls[0][0];
     expect(line).toContain('/api/payroll/cycles');
     expect(line).not.toContain('?');
   });
