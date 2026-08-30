@@ -190,8 +190,18 @@ for (const category of CATEGORIES) {
     const start = original.indexOf(OPEN);
     const authored = start === -1 ? original : original.slice(0, start);
 
+    /*
+     * Bookkeeping keys are not citations.
+     *
+     * `STANDALONE_ALLOWED_BY: SESSION-0081` records who signed an exemption. Read
+     * as prose it looks like a citation, and one pass duly gave five unrelated
+     * sessions an edge to whichever session happened to sign their exemption —
+     * an edge that says nothing about the work either did.
+     */
+    const prose = authored.replace(/^(?:STANDALONE_ALLOWED_BY|OwnerAgent|UpdatedBy):.*$/gm, '');
+
     const self = selfIds(authored);
-    const cited = [...new Set([...authored.matchAll(RECORD_ID)].map((m) => m[1]))]
+    const cited = [...new Set([...prose.matchAll(RECORD_ID)].map((m) => m[1]))]
       .filter((id) => !self.has(id) && names.has(id))
       .sort();
 
