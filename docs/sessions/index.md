@@ -6,12 +6,13 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 1** · completed: 78
+**Active: 2** · completed: 78
 
 ## Active
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0082](../../docs/sessions/SESSION-0082-production-monitoring-error-log-triage-classify-every-record.md) | — | Production monitoring error-log triage: classify every recorded item, fix non-incidents, file and fix real bugs | ACTIVE | `agent/prod-monitoring-triage` | `develop` | — | 2026-08-30T16:42:05.222Z |
 | [SESSION-0061](../../docs/sessions/SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser.md) | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | 2026-08-26T09:54:37.336Z |
 
 ## Completed

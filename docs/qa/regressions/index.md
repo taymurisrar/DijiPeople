@@ -4010,3 +4010,78 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Neither figure was wrong; they measure designation and capability respectively, and `ownerUserId` is null on plenty of healthy tenants. Only the shared label was wrong. |
 | **Fixed** | 2026-08-30 |
 | **Active** | yes |
+
+### REG-367 — A login budget applied to a machine that refreshes on a timer
+
+| | |
+|---|---|
+| **Bug class** | `one-budget-for-two-kinds-of-traffic` |
+| **Module** | `services/api/src/common/guards`, `auth` |
+| **Bug record** | BUG-2458 |
+| **Root cause** | `PublicRateLimitGuard` applied one budget — 20 non-GET requests per 10 minutes per (client IP, path) — to every route it guarded, and `POST /auth/refresh` was one of them. That number is a credential-submission allowance, generous for a human typing a password and deliberately mean for anything trying passwords in bulk. Refresh is neither: every open tab issues it on a timer, three client applications issue it, and because the key is per IP everyone behind one office NAT or corporate proxy spends the same bucket. Production returned `429` on refresh 52 times in a single day, and a client that cannot refresh treats the session as dead and signs the user out of a session that was still valid. |
+| **Regression test** | `services/api/src/common/guards/public-rate-limit.guard.spec.ts` |
+| **Scenario** | Three assertions, and the third is the one that matters. Refresh sustains 200 requests from one address; refresh still refuses the 601st; and all seven credential routes — `auth/login`, `admin/auth/login`, `agent/auth/login`, `forgot-password`, `activate-account`, `public/subscribe`, `public/leads` — are asserted **by name** to still refuse the 21st. Raising one budget is only safe if the other provably did not move with it, and BUG-0013, BUG-0031, BUG-0033 and BUG-0075 are what those seven routes cost to learn. |
+| **Proven to fail without the fix** | The refresh assertions fail against the previous single-budget guard, which stopped at 20. |
+| **Note** | The limit was never the control on this endpoint — refresh already requires a valid refresh token. Sizing it as though it were the control is what broke it. |
+| **Fixed** | 2026-08-30 |
+| **Active** | yes |
+
+### REG-368 — A poller that could not tell a dead session from a bad minute
+
+| | |
+|---|---|
+| **Bug class** | `error-detail-discarded-at-the-boundary` |
+| **Module** | `apps/web` notifications |
+| **Bug record** | BUG-2459 |
+| **Root cause** | `requestJson` threw a bare `Error` carrying only a message, so the HTTP status never reached the caller. `NotificationBell` and `NotificationPopupProvider` each poll every 60 seconds and each caught every failure into display state, because with the status gone there was nothing to branch on. A tab left open after the session ended therefore kept asking twice a minute for ever, and every refusal was written to the production error log as an incident: two fingerprints carried 1,033 occurrences between them, and the pair were the single largest source of rows in the queue. The volume grew with no user action at all. |
+| **Regression test** | `apps/web/lib/notification-auth-failure.spec.ts` |
+| **Scenario** | A `401` is recognised as the end of the session; `400`, `403`, `404`, `429`, `500`, `502` and `503` are each asserted **not** to be. The negative cases are the point — stopping the poll on a transient `500` would leave a live session silently without notifications until the page was reloaded, trading a noisy bug for a quiet one. Also asserts the new error stays `instanceof Error` with its message intact, since callers still read `.message`. |
+| **Proven to fail without the fix** | Every assertion fails if `requestJson` reverts to throwing a bare `Error`, which is precisely the regression that would silently restore the infinite loop. |
+| **Note** | Partial coverage, deliberately stated rather than faked. The interval teardown is **not** covered: `apps/web` has no jsdom or testing-library, so the components cannot be mounted, and a source-text assertion would pass after the behaviour was deleted. What is covered is the layer both fixes stand on. |
+| **Fixed** | 2026-08-30 |
+| **Active** | yes |
+
+### REG-369 — A rendered web page stored as an incident title
+
+| | |
+|---|---|
+| **Bug class** | `unbounded-client-input-in-an-operator-surface` |
+| **Module** | `error-logs`, `apps/web` error reporting |
+| **Bug record** | BUG-2460 |
+| **Root cause** | The tenant app reports an error by reading the failing response body. When that response is not the JSON error contract — a Next.js 404 page, a CDN error page, a gateway timeout page — the body is HTML, and `persistClientLog` accepted any string as `message` with no length bound and no content check, because the body was treated as already-sanitised telemetry from our own app. Thirteen production incidents carry a complete 14 KB HTML document as their message: doctype, inlined CSS custom properties, script tags. The admin monitoring queue renders that field as the row title, so one such row displaces everything around it, and each costs ~14 KB instead of ~200 bytes in a table written to on every failure. |
+| **Regression test** | `services/api/src/modules/error-logs/client-error-message.spec.ts` |
+| **Scenario** | A markup body is replaced with a description naming the status, not truncated — 500 bytes of doctype and inline CSS is as useless as 14 KB of it. Covers lowercase doctype, leading whitespace, a bare `<html>` with no doctype, and an XML fault document. The guarding assertion is that a message merely *quoting* a tag ("Expected `<input name=\"email\">` to be present") survives untouched, because the check is anchored at the start of the string rather than searching it. |
+| **Proven to fail without the fix** | Fails against the previous `readString(body.message) ?? 'Client error'`, which stored the document verbatim. |
+| **Note** | Bounded on the server rather than only in the client reporter: `POST /error-logs/client` accepts whatever any client sends, and the agent-desktop app is a second reporting client that would otherwise have to rediscover the rule. |
+| **Fixed** | 2026-08-30 |
+| **Active** | yes |
+
+### REG-370 — A route that could be read in the source and never reached
+
+| | |
+|---|---|
+| **Bug class** | `declaration-order-shadows-a-static-route` |
+| **Module** | `employees`, `services/api/src/common/routing` |
+| **Bug record** | BUG-2461 |
+| **Root cause** | Express matches routes in declaration order and Nest registers them in decorator order, so `@Get('me/direct-reports')`, declared below `@Get(':employeeId/direct-reports')`, was matched by the earlier handler with `employeeId = 'me'`. Its `ParseUUIDPipe` then answered `400 Validation failed (uuid is expected)`, and `getMyDirectReports` was unreachable — no request could arrive at it. `me/context` sat correctly above the `:employeeId` routes, which is what made the fault hard to see: one `me/` route worked and the other did not. Nothing called it yet, so nothing failed; the cost would have fallen on whoever next needed it. |
+| **Regression test** | `services/api/src/common/routing/route-shadowing.invariant.spec.ts` |
+| **Scenario** | An invariant, not a case. Walks all 109 controllers and fails when a fully static route is declared after a same-verb, same-depth parameterised route that would match it first. Verbs are compared, since a `POST` cannot shadow a `GET`. A second assertion checks the scan found more than 100 controllers, so the suite cannot pass because the traversal broke. |
+| **Proven to fail without the fix** | Mutation-tested. Moving the route back below its parameterised sibling failed the invariant with the exact route and both line numbers; reverted immediately after confirming. The scan found no other instance in the codebase. |
+| **Note** | The scanner blanks comments before parsing while preserving offsets, so reported line numbers stay true. Without that it read the fix comment — which quotes the parameterised decorator to explain the fault — as a real declaration and reported the very bug it documents. A codebase whose house style is substantial explanatory comments will hit that constantly. |
+| **Fixed** | 2026-08-30 |
+| **Active** | yes |
+
+### REG-371 — A classifier that was never allowed to look backwards
+
+| | |
+|---|---|
+| **Bug class** | `expected-outcome-recorded-as-failure` |
+| **Module** | `error-logs`, `platform-monitoring` |
+| **Bug record** | BUG-2465 |
+| **Root cause** | REG-282 established that a routine `401` and a `404` for a route that does not exist are answers the protocol is for, and `isExpectedProtocolOutcome` has filed them as `NOT_AN_INCIDENT` since 2026-08-28. It worked — every row first seen after that date was classified correctly — but it had three gaps. `SESSION_REVOKED` was absent from the recognised session codes, though it is what a deliberate sign-out produces and therefore more routine than the `SESSION_EXPIRED` that was recognised: 41 rows, ~1,510 occurrences. `404 TENANT_NOT_FOUND` from the public host-resolution endpoint was treated as a failure, though answering "no, that host is not a tenant" is that endpoint's entire purpose: 39 rows, 124 occurrences. And the rule was never applied backwards, so 1,843 pre-existing rows kept `supportStatus: NEW` for ever — a repeat increments `occurrenceCount` on the existing row rather than creating a correctly-classified one, so they could never age out. 1,870 of 1,897 production incidents were queued for triage and roughly 1,850 of them needed nobody. |
+| **Regression test** | `services/api/src/modules/error-logs/expected-protocol-outcome.spec.ts` |
+| **Scenario** | `SESSION_REVOKED` joins the recognised session codes, and host-resolution `404`s are routine at three path spellings. The negative assertions carry the widening: `TENANT_NOT_FOUND` from any *other* path stays `NEW` (on an authenticated route it means a tenant that should exist and does not — as serious as anything in the queue), a `500` on the resolution path stays `NEW`, and a path that merely starts with the resolution prefix stays `NEW`. `400`, `403`, `409`, `422`, `429` and `5xx` all still queue. |
+| **Proven to fail without the fix** | Mutation-tested. Removing `SESSION_REVOKED` and disabling the host-resolution branch failed four assertions; reverted immediately after confirming. |
+| **Note** | The backfill (`scripts/backfill-incident-classification.mjs`) goes through `PATCH /platform/logs/events/:traceId` rather than the database — that path already requires `monitoring:manage` and already records who changed what, and slower-and-audited is the right trade for a bulk change to production data. Dry-run by default, only ever `NEW` to `NOT_AN_INCIDENT`, never touches a row an operator has moved on, and writes a manifest `--revert` consumes. It imports the classifier rather than reimplementing it: a backfill that disagreed with the live rule would be worse than no backfill. Dry run on 2026-08-30 measured 1,680 rows leaving the queue and 190 remaining. |
+| **Fixed** | 2026-08-30 |
+| **Active** | yes |

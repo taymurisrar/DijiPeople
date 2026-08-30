@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**397 records** — 280 bugs under [`docs/bugs/`](../bugs/), 117 non-bug items under [`items/`](items/).
+**405 records** — 288 bugs under [`docs/bugs/`](../bugs/), 117 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,22 +13,22 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 82 |
+| Open (active work) | 88 |
 | Blocked | 2 |
-| Deferred | 23 |
+| Deferred | 24 |
 | Awaiting a product decision | 5 |
-| Completed / closed | 285 |
+| Completed / closed | 286 |
 | **Open CRITICAL** | **0** |
-| **Open HIGH** | **17** |
+| **Open HIGH** | **20** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 17 |
-| MEDIUM | 53 |
-| LOW | 12 |
+| HIGH | 20 |
+| MEDIUM | 55 |
+| LOW | 13 |
 
 ## Open by type
 
@@ -36,12 +36,13 @@ see [`README.md`](README.md) for why.
 |---|---|
 | ARCHITECTURE | 2 |
 | AUTHORIZATION | 1 |
-| BUG | 28 |
+| BUG | 32 |
 | DATA_INTEGRITY | 7 |
 | DOCUMENTATION | 2 |
 | FOLLOW_UP | 2 |
 | INFRA | 4 |
-| INTEGRATION | 2 |
+| INTEGRATION | 3 |
+| PERFORMANCE | 1 |
 | SECURITY | 2 |
 | TECH_DEBT | 5 |
 | TEST_GAP | 6 |
@@ -51,13 +52,13 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 1 |
+| OPEN | 2 |
 | BLOCKED | 2 |
-| DEFERRED | 23 |
+| DEFERRED | 24 |
 | PRODUCT_DECISION | 5 |
-| FIXED | 55 |
+| FIXED | 60 |
 | VERIFIED | 215 |
-| DUPLICATE | 4 |
+| DUPLICATE | 5 |
 | ACCEPTED_RISK | 3 |
 | READY | 26 |
 | DONE | 63 |
@@ -203,6 +204,9 @@ see [`README.md`](README.md) for why.
 | [BUG-2044](../../docs/bugs/BUG-2044-no-employee-lifecycle-event-is-audited-including-employee-cr.md) | No employee lifecycle event is audited, including employee creation and reporting-manager assignment | DATA_INTEGRITY | HIGH | P1 | FIXED | api:employees, api:organization, api:leave | DONE |
 | [BUG-2331](../../docs/bugs/BUG-2331-permissions-policy-geolocation-makes-web-attendance-check-in.md) | Permissions-Policy geolocation=() makes web attendance check-in impossible | BUG | HIGH | P1 | FIXED | pkg:config, apps/web, apps/admin | FIX_NOW |
 | [BUG-2332](../../docs/bugs/BUG-2332-every-attendance-refusal-reaches-the-browser-as-validation-f.md) | Every attendance refusal reaches the browser as VALIDATION_FAILED and raises the technical error dialog | BUG | HIGH | P1 | FIXED | services/api/src/common/errors, api:attendance, apps/web | FIX_NOW |
+| [BUG-2458](../../docs/bugs/BUG-2458-token-refresh-is-throttled-by-the-public-login-rate-limiter-.md) | Token refresh is throttled by the public login rate limiter, signing users out | BUG | HIGH | P1 | FIXED | api:auth, api:common | FIX_NOW |
+| [BUG-2459](../../docs/bugs/BUG-2459-the-notification-bell-polls-forever-after-a-session-ends-flo.md) | The notification bell polls forever after a session ends, flooding the error log | PERFORMANCE | HIGH | P1 | FIXED | web:notifications, api:error-logs, api:notifications | FIX_NOW |
+| [BUG-2462](../../docs/bugs/BUG-2462-stripe-subscription-webhooks-fail-because-the-customer-resol.md) | Stripe subscription webhooks fail because the customer resolves to no tenant | INTEGRATION | HIGH | P1 | OPEN | api:billing, api:super-admin | PLAN_REQUIRED |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -335,6 +339,8 @@ see [`README.md`](README.md) for why.
 | [BUG-2334](../../docs/bugs/BUG-2334-a-location-capture-failure-is-rethrown-as-a-bare-error-disca.md) | A location capture failure is rethrown as a bare Error, discarding the reason code | BUG | MEDIUM | P2 | FIXED | apps/web | FIX_NOW |
 | [BUG-2335](../../docs/bugs/BUG-2335-allow-approximate-ip-fallback-is-a-live-setting-whose-provid.md) | Allow approximate IP fallback is a live setting whose provider is a permanent stub | BUG | MEDIUM | P2 | FIXED | apps/web, api:tenant-settings | FIX_NOW |
 | [BUG-2413](../../docs/bugs/BUG-2413-allocate-id-plan-scans-only-docs-qa-test-plans-so-execplan-i.md) | allocate-id plan scans only docs qa test-plans so ExecPlan ids collide | DATA_INTEGRITY | MEDIUM | P2 | FIXED | scripts | DONE |
+| [BUG-2460](../../docs/bugs/BUG-2460-client-error-reports-store-the-whole-html-error-page-as-the-.md) | Client error reports store the whole HTML error page as the incident message | BUG | MEDIUM | P2 | FIXED | web:error-reporting, api:error-logs, admin:monitoring | FIX_NOW |
+| [BUG-2465](../../docs/bugs/BUG-2465-session-revoked-401s-and-client-reported-failures-escape-the.md) | Session-revoked 401s and client-reported failures escape the not-an-incident filter | BUG | MEDIUM | P2 | FIXED | api:error-logs, api:platform-monitoring | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -427,6 +433,9 @@ see [`README.md`](README.md) for why.
 | [BUG-2046](../../docs/bugs/BUG-2046-audit-actions-use-two-naming-conventions-and-the-result-colu.md) | Audit actions use two naming conventions and the Result column is populated only by login events | BUG | LOW | P3 | FIXED | api:audit | DONE |
 | [BUG-2149](../../docs/bugs/BUG-2149-every-dashboard-metric-card-offers-a-link-named-only-open.md) | Every dashboard metric card offers a link named only Open | UX | LOW | P3 | FIXED | views, dashboard | DONE |
 | [BUG-2384](../../docs/bugs/BUG-2384-tenant-record-shows-primary-tenant-owner-unassigned-while-it.md) | Tenant record shows Primary Tenant Owner Unassigned while its readiness check reports one active Tenant Owner | UX | LOW | P3 | FIXED | api:tenant-control-plane, apps/admin | DONE |
+| [BUG-2461](../../docs/bugs/BUG-2461-get-employees-me-direct-reports-is-shadowed-by-the-employeei.md) | GET employees me direct-reports is shadowed by the employeeId route and returns 400 | BUG | LOW | P3 | FIXED | api:employees | FIX_NOW |
+| [BUG-2463](../../docs/bugs/BUG-2463-raw-prisma-constraint-failures-reach-operators-as-database-c.md) | Raw Prisma constraint failures reach operators as Database constraint failed | UX | LOW | P3 | DEFERRED | api:platform-runtime, api:super-admin, api:common | DEFER |
+| [BUG-2464](../../docs/bugs/BUG-2464-three-tenant-screens-crash-the-react-tree-with-hydration-err.md) | Three tenant screens crash the React tree with hydration errors 418 and 441 | UX | LOW | P3 | DUPLICATE | web:inbox, web:users, web:approvals | DUPLICATE |
 | [ITEM-0007](../../docs/backlog/items/ITEM-0007-should-duplicate-website-leads-be-deduplicated.md) | Product decision — should duplicate website leads be deduplicated? | PRODUCT_DECISION | LOW | P3 | DONE | api:leads, apps/landing | DONE |
 | [ITEM-0008](../../docs/backlog/items/ITEM-0008-customeraccount-has-no-origin-channel.md) | Product decision — CustomerAccount carries no origin channel | PRODUCT_DECISION | LOW | P3 | DONE | services/api/prisma, api:super-admin | DONE |
 | [ITEM-0011](../../docs/backlog/items/ITEM-0011-framework-validation-should-catch-absence-claims.md) | Framework validation should catch false absence claims in context documents | TECH_DEBT | LOW | P3 | DONE | .agent/context, scripts | DONE |

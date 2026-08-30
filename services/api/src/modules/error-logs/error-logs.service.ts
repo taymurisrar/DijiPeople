@@ -149,6 +149,7 @@ export class ErrorLogsService implements OnModuleInit, OnModuleDestroy {
                   statusCode: input.statusCode,
                   errorCode: input.errorCode,
                   unmatchedRoute: input.unmatchedRoute,
+                  path: input.path,
                 }),
               },
             });
