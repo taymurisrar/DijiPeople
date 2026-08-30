@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**394 records** — 279 bugs under [`docs/bugs/`](../bugs/), 115 non-bug items under [`items/`](items/).
+**395 records** — 280 bugs under [`docs/bugs/`](../bugs/), 115 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,7 +13,7 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 78 |
+| Open (active work) | 79 |
 | Blocked | 2 |
 | Deferred | 24 |
 | Awaiting a product decision | 5 |
@@ -27,7 +27,7 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | HIGH | 17 |
-| MEDIUM | 50 |
+| MEDIUM | 51 |
 | LOW | 11 |
 
 ## Open by type
@@ -37,7 +37,7 @@ see [`README.md`](README.md) for why.
 | ARCHITECTURE | 2 |
 | AUTHORIZATION | 1 |
 | BUG | 28 |
-| DATA_INTEGRITY | 6 |
+| DATA_INTEGRITY | 7 |
 | DOCUMENTATION | 1 |
 | FOLLOW_UP | 2 |
 | INFRA | 4 |
@@ -51,7 +51,7 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 1 |
+| OPEN | 2 |
 | BLOCKED | 2 |
 | DEFERRED | 24 |
 | PRODUCT_DECISION | 5 |
@@ -334,6 +334,7 @@ see [`README.md`](README.md) for why.
 | [BUG-2333](../../docs/bugs/BUG-2333-storeuseragent-is-ignored-on-the-attendance-module-check-in-.md) | storeUserAgent is ignored on the attendance module check-in path | BUG | MEDIUM | P2 | FIXED | apps/web | FIX_NOW |
 | [BUG-2334](../../docs/bugs/BUG-2334-a-location-capture-failure-is-rethrown-as-a-bare-error-disca.md) | A location capture failure is rethrown as a bare Error, discarding the reason code | BUG | MEDIUM | P2 | FIXED | apps/web | FIX_NOW |
 | [BUG-2335](../../docs/bugs/BUG-2335-allow-approximate-ip-fallback-is-a-live-setting-whose-provid.md) | Allow approximate IP fallback is a live setting whose provider is a permanent stub | BUG | MEDIUM | P2 | FIXED | apps/web, api:tenant-settings | FIX_NOW |
+| [BUG-2413](../../docs/bugs/BUG-2413-allocate-id-plan-scans-only-docs-qa-test-plans-so-execplan-i.md) | allocate-id plan scans only docs qa test-plans so ExecPlan ids collide | DATA_INTEGRITY | MEDIUM | P2 | OPEN | scripts | PLAN_REQUIRED |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |

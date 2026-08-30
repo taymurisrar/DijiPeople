@@ -9,7 +9,7 @@
 |---|---|
 | Open CRITICAL | **0** |
 | Open HIGH | **17** |
-| Open total | 78 |
+| Open total | 79 |
 | Blocked | 2 |
 | Awaiting a product decision | 5 |
 | Deferred | 24 |
@@ -425,6 +425,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2333-storeuseragent-is-ignored-on-the-attendance-module-check-in-|BUG-2333]] | storeUserAgent is ignored on the attendance module check-in path | BUG | MEDIUM | FIXED | apps/web | FIX_NOW |
 | [[BUG-2334-a-location-capture-failure-is-rethrown-as-a-bare-error-disca|BUG-2334]] | A location capture failure is rethrown as a bare Error, discarding the reason code | BUG | MEDIUM | FIXED | apps/web | FIX_NOW |
 | [[BUG-2335-allow-approximate-ip-fallback-is-a-live-setting-whose-provid|BUG-2335]] | Allow approximate IP fallback is a live setting whose provider is a permanent stub | BUG | MEDIUM | FIXED | apps/web, api:tenant-settings | FIX_NOW |
+| [[BUG-2413-allocate-id-plan-scans-only-docs-qa-test-plans-so-execplan-i|BUG-2413]] | allocate-id plan scans only docs qa test-plans so ExecPlan ids collide | DATA_INTEGRITY | MEDIUM | OPEN | scripts | PLAN_REQUIRED |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -469,7 +470,7 @@ _None. Nothing open at CRITICAL._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 279 |
+| Bug records | 280 |
 | Backlog items | 115 |
 | Known bug patterns | 31 |
 | QA runs | 31 |

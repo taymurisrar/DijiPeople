@@ -231,27 +231,40 @@ writer for each.
 `12 - Data Model/Generated` (16 notes) and
 `11 - Agent Knowledge/Discovery` (5 notes).
 
-`--verify` reports **`OBSIDIAN_SYNC_STATUS = FAILED`**, capping this task at
-`COMPLETE_WITH_DOCUMENTATION_WARNING`. Two graph orphans, and **neither is from
-this task**:
+`--verify` reports **`OBSIDIAN_SYNC_STATUS = PASS`** — 1126 graph nodes, **0
+orphans**, 0 duplicate nodes, 0 semantic link errors, 0 parity diffs, 0 missing
+provenance.
 
-```
-06 - Implementation Plans/Generated/ExecPlans/EXECPLAN-0028-bug-0084-missing-unique-constraints.md
-06 - Implementation Plans/Generated/ExecPlans/EXECPLAN-0028-plan-entitlement-enforcement.md
-```
+It did not start that way, and the route from there to here is the useful part
+of this section.
 
-Evidence that they are pre-existing: both files were committed to `develop` on
-2026-08-29 (`dca93c47`, `84a7e0b5`) by two different sessions, both were already
-in the vault at 14:00 on 2026-08-30 from another session's sync run — before this
-task synced — and neither carries an `ID:` line, which is why they orphan. They
-also **share the id `EXECPLAN-0028`**, which is the id-collision failure the
-allocator exists to prevent.
+The first verify failed on two graph orphans, both under
+`06 - Implementation Plans/Generated/ExecPlans/` and both carrying
+`EXECPLAN-0028` in their filename — committed to `develop` on 2026-08-29
+(`dca93c47`, `84a7e0b5`) by two different sessions, and already in the vault at
+14:00 on 2026-08-30 from another session's sync, before this task synced. So they
+were pre-existing, and the first instinct was to record them as such and leave
+them.
 
-Left untouched deliberately. Editing or deleting another session's plan records
-to make a verification pass is the move that destroys live work, and the id
-collision needs renumbering by whoever owns those plans, not a link patched in
-here. Every note this task produced resolves: `OBSIDIAN_PARITY_DIFFS 0`,
-`OBSIDIAN_SEMANTIC_LINK_ERRORS 0`, `OBSIDIAN_MISSING_PROVENANCE 0`.
+Asking *why* they had no frontmatter found the cause rather than the symptom.
+`ID_KINDS.plan` in `scripts/lib/id-allocator.mjs` points at `docs/qa/test-plans`
+and never sees `docs/plans`, so **two record families share the `PLAN-` number
+space and only one of them is allocated**. Asking the allocator for a plan id
+during this investigation returned `PLAN-027` — a number an ExecPlan already
+held. The ledger shows the same split from the other side: SESSION-0076
+allocated `PLAN-026` for the BUG-0084 ExecPlan, and the file it wrote is named
+`EXECPLAN-0028`. Filed as [[BUG-2413]], triaged `PLAN_REQUIRED`.
+
+The orphans themselves were then resolved the way the verifier explicitly asks —
+by **declaring the relationship each already had**, a link to the bug named in
+its own title ([[BUG-0084]], [[BUG-1952]]) — and not by adding a link to remove a
+dot, and not by renumbering. Renumbering needs an allocator that works, and each
+plan now carries a caveat pointing at the bug that explains why its number is
+what it is.
+
+Two reservations, `PLAN-027` and `PLAN-028`, were taken during the investigation
+and abandoned. `--prune` deliberately does not release a reservation with no
+record, so they stand as gaps — cheaper than a collision, which is the point.
 
 ## Cleanup
 
