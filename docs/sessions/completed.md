@@ -6,6 +6,7 @@ Sessions that reached a terminal state. Kept as history: the branch, the base it
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0076](../../docs/sessions/SESSION-0076-open-bug-burndown-fix-all-50-documented-open-and-deferred-bu.md) | — | Open bug burndown: fix all 50 documented open and deferred bugs | COMPLETE | `agent/open-bug-burndown` | `develop` | — | 2026-08-29T16:09:50.608Z |
 | [SESSION-0075](../../docs/sessions/SESSION-0075-release-promote-the-documentation-reconciliation-to-main.md) | — | Release: promote the documentation reconciliation to main | COMPLETE | `agent/release-docs-reconcile` | `main` | — | 2026-08-29T15:09:21.853Z |
 | [SESSION-0074](../../docs/sessions/SESSION-0074-promote-develop-to-main-release-25dfd43a.md) | — | Promote develop to main — release 25dfd43a | COMPLETE | `agent/release-closeout-6d17989a` | `main` | — | 2026-08-29T13:18:23.003Z |
 | [SESSION-0073](../../docs/sessions/SESSION-0073-move-switch-workspace-into-the-avatar-menu-item-0102.md) | — | Move Switch workspace into the avatar menu (ITEM-0102) | COMPLETE | `agent/workspace-switcher-avatar-menu` | `develop` | — | 2026-08-29T10:55:55.248Z |

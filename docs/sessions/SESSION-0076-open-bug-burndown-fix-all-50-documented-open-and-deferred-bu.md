@@ -4,7 +4,7 @@ aliases: [SESSION-0076]
 TASK_ID:
 TITLE: Open bug burndown: fix all 50 documented open and deferred bugs
 ARCHITECT_INTENT: Open bug burndown: fix all 50 documented open and deferred bugs
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: BUG
 TASK_SIZE: LARGE
 BASE_BRANCH: origin/develop
