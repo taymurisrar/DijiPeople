@@ -54,6 +54,21 @@ describe("attendance location payload respects tenant privacy settings", () => {
     expect(source).toMatch(/storeUserAgent/);
   });
 
+  it("throws a classifiable location failure, not a bare Error", () => {
+    /*
+     * BUG-2334. `location-capture-failure-routing.spec.ts` proves the *contract*
+     * end to end, but it reproduces the helper locally, so on its own it would
+     * still pass if this adapter went back to `throw new Error(...)`. This
+     * assertion is what ties the adapter to that contract.
+     */
+    const source = sourceWithoutComments();
+
+    expect(source).not.toMatch(/throw new Error\(location\.message\)/);
+    expect(source).toMatch(/throw locationCaptureError\(location\)/);
+    // The thrown shape must carry the reason, which is the whole fix.
+    expect(source).toMatch(/errorCode:\s*location\.reason/);
+  });
+
   it("never attaches the user agent unconditionally", () => {
     const source = sourceWithoutComments();
 

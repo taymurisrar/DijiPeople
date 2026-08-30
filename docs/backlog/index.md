@@ -51,11 +51,11 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 2 |
+| OPEN | 1 |
 | BLOCKED | 2 |
 | DEFERRED | 23 |
 | PRODUCT_DECISION | 6 |
-| FIXED | 51 |
+| FIXED | 52 |
 | VERIFIED | 215 |
 | DUPLICATE | 4 |
 | ACCEPTED_RISK | 3 |
@@ -332,7 +332,7 @@ see [`README.md`](README.md) for why.
 | [BUG-2148](../../docs/bugs/BUG-2148-dashboard-widget-severity-is-conveyed-by-colour-alone-and-hi.md) | Dashboard widget severity is conveyed by colour alone, and hidden from assistive technology | UX | MEDIUM | P2 | FIXED | views, dashboard | DONE |
 | [BUG-2206](../../docs/bugs/BUG-2206-three-timesheet-audit-toggles-render-on-screen-and-are-read-.md) | Three timesheet audit toggles render on screen and are read by nothing | BUG | MEDIUM | P2 | FIXED | api:timesheets, api:tenant-settings, apps/web | DONE |
 | [BUG-2333](../../docs/bugs/BUG-2333-storeuseragent-is-ignored-on-the-attendance-module-check-in-.md) | storeUserAgent is ignored on the attendance module check-in path | BUG | MEDIUM | P2 | FIXED | apps/web | FIX_NOW |
-| [BUG-2334](../../docs/bugs/BUG-2334-a-location-capture-failure-is-rethrown-as-a-bare-error-disca.md) | A location capture failure is rethrown as a bare Error, discarding the reason code | BUG | MEDIUM | P2 | OPEN | apps/web | FIX_NOW |
+| [BUG-2334](../../docs/bugs/BUG-2334-a-location-capture-failure-is-rethrown-as-a-bare-error-disca.md) | A location capture failure is rethrown as a bare Error, discarding the reason code | BUG | MEDIUM | P2 | FIXED | apps/web | FIX_NOW |
 | [BUG-2335](../../docs/bugs/BUG-2335-allow-approximate-ip-fallback-is-a-live-setting-whose-provid.md) | Allow approximate IP fallback is a live setting whose provider is a permanent stub | BUG | MEDIUM | P2 | PRODUCT_DECISION | apps/web, api:tenant-settings | PRODUCT_DECISION |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |

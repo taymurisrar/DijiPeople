@@ -3952,3 +3952,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Comment stripping is load-bearing, not hygiene: the fix own explanatory comment names `storeUserAgent` while describing the bug, so without stripping the test would pass against reverted code on the prose alone. The stripper uses `[^\r\n]` rather than `[^\n]` — working trees here are CRLF, and a `\n`-only character class leaves the carriage return behind, which has silently made source-reading assertions vacuous in this repository before. A behavioural test would be better; `buildAttendanceLocationPayload` is module-private and reachable only through a command handler needing a full runtime context, so the harness for one does not exist yet. |
 | **Fixed** | 2026-08-30 |
 | **Active** | yes |
+
+### REG-363 — Location capture failure reason discarded before the attendance classifier
+
+| | |
+|---|---|
+| **Bug class** | `reason-code-erased-below-the-classifier` |
+| **Module** | `apps/web` runtime module adapters, attendance outcome |
+| **Bug record** | BUG-2334 |
+| **Root cause** | `buildAttendanceLocationPayload` handled a failed capture with `throw new Error(location.message)`, reducing the discriminated failure union from `location-capture.ts` to a string. `classifyLocationCaptureFailure` switches on `reason` to pick the message and whether a retry can succeed, so all four browser failures — PERMISSION_DENIED, TIMEOUT, POSITION_UNAVAILABLE, UNSUPPORTED — collapsed into one generic runtime failure that routed to the platform technical error dialog. The sibling path in `module-runtime-command-handler.tsx` had always done it correctly; this adapter predates the classifier and was never migrated. |
+| **Regression test** | `apps/web/lib/attendance/location-capture-failure-routing.spec.ts` plus one assertion in `apps/web/lib/runtime/modules/attendance-location-payload.spec.ts` |
+| **Scenario** | Behavioural, not a source scan: the thrown error is passed through the same three links the runtime uses — `readErrorData` forwarding `data` onto the command result, `readCommandFailureContract` reading `errorCode`/`statusCode`, and `classifyAttendanceFailure` routing on it. Asserts all four reasons produce distinct `reasonCode` values and a non-technical outcome; that `UNSUPPORTED` alone reports `canRetry: false`, since a browser without geolocation will fail identically forever and a Try again button there is a lie; that an unrecognised code still escalates to the technical dialog; and that the pre-fix bare `Error` did not and could not. |
+| **Proven to fail without the fix** | Mutation-tested. Restoring `throw new Error(location.message)` in the adapter fails the tie-in assertion; reverted immediately after confirming. The behavioural spec alone would still pass, because it reproduces the helper locally — which is exactly why the tie-in assertion exists and is recorded here rather than left implicit. |
+| **Note** | The behavioural spec reproduces two pieces it cannot import: `readErrorData` (module-private in `command-execution.service.ts`) and the adapter helper (module-private). That is a real limitation — if `readErrorData` changed, the spec would keep passing against a stale copy. It is mitigated, not solved, by the source-level tie-in; the durable fix would be exporting the seam. Recorded rather than glossed, because a reproduced dependency is the same class of drift this bug was made of. |
+| **Fixed** | 2026-08-30 |
+| **Active** | yes |

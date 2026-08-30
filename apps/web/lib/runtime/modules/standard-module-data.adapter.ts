@@ -595,7 +595,7 @@ async function buildAttendanceLocationPayload(
         ? true
         : booleanValue(policy.highAccuracyLocation),
   });
-  if (!location.ok) throw new Error(location.message);
+  if (!location.ok) throw locationCaptureError(location);
   /*
    * BUG-2333. `storeUserAgent` is a tenant privacy setting, and this path
    * ignored it: the user agent was attached to every check-in regardless.
@@ -624,6 +624,43 @@ async function buildAttendanceLocationPayload(
           checkOutAddressText: location.addressText,
         }),
   };
+}
+
+/**
+ * A failed location capture, in the shape the attendance UI can classify.
+ *
+ * BUG-2334. This used to be `throw new Error(location.message)`, which reduced a
+ * discriminated failure union to a string. `classifyLocationCaptureFailure`
+ * switches on `reason` — PERMISSION_DENIED, TIMEOUT, POSITION_UNAVAILABLE,
+ * UNSUPPORTED — to choose the message and, importantly, whether retrying can
+ * work at all: `UNSUPPORTED` must not offer a retry that cannot succeed. With
+ * the reason discarded, all four collapsed into one generic runtime failure and
+ * the classifier never ran.
+ *
+ * That is the same defect as BUG-2332 on the server side — a correct classifier
+ * reached by a path that had already thrown its input away — and it is why the
+ * pattern is recorded as `reason-code-erased-below-the-classifier`.
+ *
+ * `data` is not an invention: `readErrorData` in command-execution.service.ts
+ * already forwards a thrown error's `data` into the command result, from where
+ * `readCommandFailureContract` reads `errorCode` and `statusCode`. 422 is the
+ * status the API uses for the same class of refusal, so a browser-side failure
+ * and a server-side one arrive at `classifyAttendanceFailure` looking alike —
+ * which is exactly what attendance-outcome.ts was written to assume.
+ */
+function locationCaptureError(location: {
+  readonly reason: string;
+  readonly message: string;
+  readonly permissionState?: string;
+}) {
+  return Object.assign(new Error(location.message), {
+    data: {
+      statusCode: 422,
+      errorCode: location.reason,
+      message: location.message,
+      locationPermissionState: location.permissionState,
+    },
+  });
 }
 
 async function requestJson(path: string, init?: RequestInit) {
