@@ -186,7 +186,13 @@ seen from opposite sides.
 
 ## QA Retest
 
-Not retested — not yet fixed.
+Not retested. The fix landed on 2026-08-29 — see Resolution — and is covered
+by REG-335, but no QA run has re-executed it against a running app.
+
+This section previously read "Not retested — not yet fixed", which was left
+over from before the fix and contradicted this record's own Status,
+ResolvedAt and Resolution. Corrected 2026-08-30; the status is unchanged,
+because the retest genuinely has not happened.
 
 ## History
 

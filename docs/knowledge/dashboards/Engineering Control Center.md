@@ -30,8 +30,8 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 78 |
-| No next action | 78 |
+| No acceptance criteria | 79 |
+| No next action | 79 |
 | Aging — 7d / 30d / 90d | 17 / 0 / 0 |
 | Architecture and technical debt | 7 |
 | Security gaps | 3 |
@@ -244,7 +244,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 79 |
+| Open total | 80 |
 | Blocked | 2 |
 | Deferred | 24 |
 | Awaiting a product decision | 5 |

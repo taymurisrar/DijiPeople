@@ -9,7 +9,7 @@
 |---|---|
 | Open CRITICAL | **0** |
 | Open HIGH | **17** |
-| Open total | 79 |
+| Open total | 80 |
 | Blocked | 2 |
 | Awaiting a product decision | 5 |
 | Deferred | 24 |
@@ -68,6 +68,7 @@ _None. Nothing open at CRITICAL._
 | [[ITEM-0078-no-end-to-end-payment-to-provisioned-tenant-run-against-stri|ITEM-0078]] | No end-to-end payment to provisioned tenant run against Stripe test mode | TEST_GAP | MEDIUM | READY | api:billing, api:tenant-control-plane, api:outbox, apps/landing | PLAN_REQUIRED |
 | [[ITEM-0092-widget-runtime-contract-test-js-fails-and-no-script-or-ci-jo|ITEM-0092]] | widget-runtime-contract.test.js fails and no script or CI job runs it | TEST_GAP | MEDIUM | READY | pkg:config, apps/web | PLAN_REQUIRED |
 | [[ITEM-0112-enforcecriticalattendancesetting-has-no-test-coverage-despit|ITEM-0112]] | enforceCriticalAttendanceSetting has no test coverage despite enforcing a mandatory integrity control | TEST_GAP | MEDIUM | READY | api:tenant-settings | FIX_NOW |
+| [[ITEM-0116-53-bug-fixes-are-regression-covered-but-have-never-been-qa-r|ITEM-0116]] | 53 bug fixes are regression-covered but have never been QA-retested | TEST_GAP | MEDIUM | READY | — | FIX_NOW |
 
 ## Current Infrastructure Gaps
 
@@ -444,6 +445,7 @@ _None. Nothing open at CRITICAL._
 | [[ITEM-0105-the-leave-entitlement-dialog-cannot-set-accrualtype-which-th|ITEM-0105]] | The leave entitlement dialog cannot set accrualType, which the API requires | UX | MEDIUM | READY | apps/web, api:leave | FIX_NOW |
 | [[ITEM-0107-three-separate-users-screens-exist-in-the-tenant-app|ITEM-0107]] | Four Users screens exist in the tenant app and two of them are unreachable | ARCHITECTURE | MEDIUM | READY | apps/web | FIX_NOW |
 | [[ITEM-0112-enforcecriticalattendancesetting-has-no-test-coverage-despit|ITEM-0112]] | enforceCriticalAttendanceSetting has no test coverage despite enforcing a mandatory integrity control | TEST_GAP | MEDIUM | READY | api:tenant-settings | FIX_NOW |
+| [[ITEM-0116-53-bug-fixes-are-regression-covered-but-have-never-been-qa-r|ITEM-0116]] | 53 bug fixes are regression-covered but have never been QA-retested | TEST_GAP | MEDIUM | READY | — | FIX_NOW |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [[BUG-1964-record-headings-and-dialog-titles-are-singularised-by-stripp|BUG-1964]] | Record headings and dialog titles are singularised by stripping a trailing s | UX | LOW | FIXED | apps/web | DONE |
 | [[BUG-2010-the-dashboard-recent-changes-list-renders-unformatted-iso-86|BUG-2010]] | The dashboard Recent changes list renders unformatted ISO-8601 timestamps | UX | LOW | FIXED | apps/web | DONE |
@@ -471,7 +473,7 @@ _None. Nothing open at CRITICAL._
 | Knowledge | Count |
 |---|---|
 | Bug records | 280 |
-| Backlog items | 115 |
+| Backlog items | 116 |
 | Known bug patterns | 31 |
 | QA runs | 31 |
 | Engineering history records | 66 |

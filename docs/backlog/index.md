@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**395 records** — 280 bugs under [`docs/bugs/`](../bugs/), 115 non-bug items under [`items/`](items/).
+**396 records** — 280 bugs under [`docs/bugs/`](../bugs/), 116 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,7 +13,7 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 79 |
+| Open (active work) | 80 |
 | Blocked | 2 |
 | Deferred | 24 |
 | Awaiting a product decision | 5 |
@@ -27,7 +27,7 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | HIGH | 17 |
-| MEDIUM | 51 |
+| MEDIUM | 52 |
 | LOW | 11 |
 
 ## Open by type
@@ -44,7 +44,7 @@ see [`README.md`](README.md) for why.
 | INTEGRATION | 2 |
 | SECURITY | 2 |
 | TECH_DEBT | 5 |
-| TEST_GAP | 5 |
+| TEST_GAP | 6 |
 | UX | 20 |
 
 ## All records by status
@@ -59,7 +59,7 @@ see [`README.md`](README.md) for why.
 | VERIFIED | 215 |
 | DUPLICATE | 4 |
 | ACCEPTED_RISK | 3 |
-| READY | 24 |
+| READY | 25 |
 | DONE | 63 |
 
 ## All records
@@ -391,6 +391,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0112](../../docs/backlog/items/ITEM-0112-enforcecriticalattendancesetting-has-no-test-coverage-despit.md) | enforceCriticalAttendanceSetting has no test coverage despite enforcing a mandatory integrity control | TEST_GAP | MEDIUM | P2 | READY | api:tenant-settings | FIX_NOW |
 | [ITEM-0113](../../docs/backlog/items/ITEM-0113-the-seeded-leave-approval-chain-cannot-route-on-a-newly-prov.md) | The seeded leave approval chain cannot route on a newly provisioned tenant, and the Approval Matrices screen gives no warning | PRODUCT_DECISION | MEDIUM | P2 | DONE | services/api/prisma, api:approvals, apps/web | DONE |
 | [ITEM-0115](../../docs/backlog/items/ITEM-0115-provisioning-seeds-four-departments-with-no-business-unit-on.md) | Provisioning seeds four departments with no business unit on every tenant | PRODUCT_DECISION | MEDIUM | P2 | PRODUCT_DECISION | services/api/prisma, api:organization | PRODUCT_DECISION |
+| [ITEM-0116](../../docs/backlog/items/ITEM-0116-53-bug-fixes-are-regression-covered-but-have-never-been-qa-r.md) | 53 bug fixes are regression-covered but have never been QA-retested | TEST_GAP | MEDIUM | P2 | READY | — | FIX_NOW |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |

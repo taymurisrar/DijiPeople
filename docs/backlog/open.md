@@ -94,6 +94,7 @@ _None._
 | [ITEM-0105](../../docs/backlog/items/ITEM-0105-the-leave-entitlement-dialog-cannot-set-accrualtype-which-th.md) | The leave entitlement dialog cannot set accrualType, which the API requires | UX | MEDIUM | P2 | READY | apps/web, api:leave | FIX_NOW |
 | [ITEM-0107](../../docs/backlog/items/ITEM-0107-three-separate-users-screens-exist-in-the-tenant-app.md) | Four Users screens exist in the tenant app and two of them are unreachable | ARCHITECTURE | MEDIUM | P2 | READY | apps/web | FIX_NOW |
 | [ITEM-0112](../../docs/backlog/items/ITEM-0112-enforcecriticalattendancesetting-has-no-test-coverage-despit.md) | enforceCriticalAttendanceSetting has no test coverage despite enforcing a mandatory integrity control | TEST_GAP | MEDIUM | P2 | READY | api:tenant-settings | FIX_NOW |
+| [ITEM-0116](../../docs/backlog/items/ITEM-0116-53-bug-fixes-are-regression-covered-but-have-never-been-qa-r.md) | 53 bug fixes are regression-covered but have never been QA-retested | TEST_GAP | MEDIUM | P2 | READY | — | FIX_NOW |
 
 ## LOW and unrated
 

@@ -186,7 +186,76 @@ export function renderNote({ source, sourcePath, filename, nodeType, sourceCommi
    * notes nobody has curated.
    */
   const rest = hadFrontmatter ? body : source;
-  return `---\n${head}\n---\n${rest.startsWith('\n') ? rest.slice(1) : rest}`;
+  const trimmed = rest.startsWith('\n') ? rest.slice(1) : rest;
+  return `---\n${head}\n---\n${wikilinkRecordPaths(trimmed)}`;
+}
+
+/*
+ * Repo-relative markdown links are dead in the vault. Rewrite the ones that
+ * point at a record.
+ *
+ * `docs/backlog/index.md` links every record as
+ * `[BUG-0005](../../docs/bugs/BUG-0005-cross-tenant-error-log-read.md)`, which
+ * is correct in the repository and on GitHub. Published unchanged it resolves to
+ * `<vault>/docs/bugs/…`, a path that does not exist — so every link in every
+ * generated index was dead, and those indexes sat in the graph as isolated dots
+ * while their own text appeared to link everywhere. Measured at 1,649 such links
+ * across 179 published notes, 1,384 of them pointing at an id-named record.
+ *
+ * Rewriting at PUBLISH time rather than in the source is what keeps both readers
+ * correct: the repository keeps a link GitHub can follow, and the vault gets one
+ * Obsidian can. The `aliases: [BUG-0005]` line every record carries is what makes
+ * the wikilink resolve.
+ *
+ * Only id-named targets are rewritten. A link to `scripts/rebuild-backlog.mjs`
+ * or `.agent/context/multi-session.md` has no vault note to point at, and
+ * inventing one would be worse than leaving a link that honestly goes nowhere.
+ */
+/*
+ * `BUG-0005`, and also `QA-AGENT-001` — QA scenario ids carry a scope segment
+ * between the prefix and the number, so a pattern demanding a digit straight
+ * after the prefix matched every record kind except the largest one.
+ */
+const RECORD_ID = /^((?:BUG|ITEM|TASK|SESSION|QUESTION|ADR|PLAN|EXECPLAN|REG)-\d+|QA-[A-Z]+-\d+)/;
+
+export function wikilinkRecordPaths(text) {
+  /* Code fences are content, not links. Protect them, transform, restore. */
+  const fences = [];
+  const guarded = text.replace(/```[\s\S]*?```/g, (block) => {
+    fences.push(block);
+    return ` FENCE${fences.length - 1} `;
+  });
+
+  const rewritten = guarded.replace(
+    /\[([^\]]+)\]\(([^)\s]+\.md)(#[^)]*)?\)/g,
+    (whole, label, target) => {
+      const base = target.split('/').pop().replace(/\.md$/, '');
+      const id = RECORD_ID.exec(base)?.[1];
+      /*
+       * `REG-nnn` is matched so it is recognised, but must never become a
+       * wikilink: the regression register is one file with a row per id, so
+       * `[[REG-201]]` can never resolve.
+       */
+      if (!id || id.startsWith('REG-')) return whole;
+
+      /*
+       * Link the FULL basename, not the bare id.
+       *
+       * `[[BUG-0005]]` resolves only because bug records carry
+       * `aliases: [BUG-0005]`. ADRs and the older ExecPlans do not, so a first
+       * version of this emitted `[[ADR-0001]]` and `[[EXECPLAN-0001]]` and
+       * traded 1,649 dead relative paths for 20 dead wikilinks — a worse
+       * failure, because a dead wikilink renders as ordinary text.
+       *
+       * The basename is the note's name in the vault by construction, so it
+       * resolves for every record kind whether or not anyone declared an alias.
+       */
+      const plain = label.replace(/[[\]|`]/g, '').trim();
+      return plain && plain !== base ? `[[${base}|${plain}]]` : `[[${base}]]`;
+    },
+  );
+
+  return rewritten.replace(/ FENCE(\d+) /g, (_, index) => fences[Number(index)]);
 }
 
 /** Read the provenance back out of a published note. */
