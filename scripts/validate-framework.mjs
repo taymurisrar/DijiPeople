@@ -1922,11 +1922,21 @@ if (existsSync(join(ROOT, `${DASHBOARD_DIR}/DijiPeople Engineering Dashboard.md`
    * wikilink renders as ordinary text, so nothing announces it. This reads the
    * table and checks every target is a real note.
    */
-  const backlogGenerator = read('scripts/rebuild-backlog.mjs');
-  const aliasTable = backlogGenerator.match(
+  /*
+   * The table moved to scripts/lib/module-notes.mjs so that `rebuild-backlog.mjs`
+   * and `generate-record-graph.mjs` resolve a declared module the same way.
+   * Reading it from the generator would now match nothing and this whole block
+   * would pass vacuously — which is the exact failure it exists to prevent.
+   */
+  const aliasTable = read('scripts/lib/module-notes.mjs').match(
     /const MODULE_NOTE_ALIASES = new Map\(\[([\s\S]*?)\n\]\);/,
   );
-  check('rebuild-backlog declares a module-note alias table', Boolean(aliasTable));
+  check('the shared module-note alias table exists', Boolean(aliasTable));
+  check(
+    'rebuild-backlog resolves modules through the shared table',
+    /from '\.\/lib\/module-notes\.mjs'/.test(read('scripts/rebuild-backlog.mjs')),
+    'a second copy of the table would drift, and a drifted copy emits dead wikilinks',
+  );
 
   if (aliasTable) {
     const knowledgeNotes = new Set();

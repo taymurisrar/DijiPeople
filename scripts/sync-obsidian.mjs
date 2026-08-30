@@ -251,10 +251,32 @@ const NAVIGATION_AGGREGATES = new Set([
  * bugs, backlog items, requirements, decisions, tasks, QA scenarios,
  * regressions, releases, modules and architecture notes.
  */
+/*
+ * Two of these reasons used to be aspirational, and the exemption hid it.
+ *
+ * "the scenarios it ran carry the relationships" and "is reached from that task"
+ * each asserted an edge that did not exist: a history record named its bugs as
+ * plain text — `BUG-1543, 1548, 1551` — and a QA run named its scenarios the
+ * same way, so nothing pointed either way. `OBSIDIAN_GRAPH_ORPHANS` reported 0
+ * while 182 notes floated free in the real graph, because the checker was
+ * excusing precisely the population that was disconnected.
+ *
+ * `scripts/generate-record-graph.mjs` now emits those edges from the ids each
+ * record already cites — 167 of 175 notes, ~3,000 edges. The exemption remains
+ * as a floor for the few that genuinely cite nothing (a deploy session with no
+ * history record; three QA runs predating the scenario-id convention), not as
+ * cover for the whole category.
+ */
 const STANDALONE_CATEGORIES = new Map([
   ['docs/sessions', 'a session is a runtime coordination lease, not durable knowledge'],
-  ['docs/qa/runs', 'a QA run is dated execution evidence; the scenarios it ran carry the relationships'],
-  ['docs/engineering-history/tasks', 'a history record narrates one task end to end and is reached from that task'],
+  [
+    'docs/qa/runs',
+    'dated execution evidence; generate-record-graph links the scenarios it names',
+  ],
+  [
+    'docs/engineering-history/tasks',
+    'narrates one task; generate-record-graph links the records it names',
+  ],
   ['docs/qa/test-strategy', 'strategy prose describing how testing is organised, not a node about a thing'],
 ]);
 

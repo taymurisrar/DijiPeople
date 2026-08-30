@@ -106,6 +106,8 @@
     "knowledge:dashboards:check": "node scripts/generate-dashboards.mjs --check",
     "knowledge:data-model": "node scripts/generate-data-model.mjs",
     "knowledge:data-model:check": "node scripts/generate-data-model.mjs --check",
+    "knowledge:record-graph": "node scripts/generate-record-graph.mjs",
+    "knowledge:record-graph:check": "node scripts/generate-record-graph.mjs --check",
     "knowledge:screen-map": "node scripts/generate-screen-map.mjs",
     "knowledge:screen-map:check": "node scripts/generate-screen-map.mjs --check",
     "knowledge:retrieve": "node scripts/retrieve-knowledge.mjs",
