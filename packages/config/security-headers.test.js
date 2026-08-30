@@ -61,6 +61,60 @@ test("the policy never allows framing or arbitrary objects", () => {
   assert.match(policy, /form-action 'self'/);
 });
 
+/*
+ * BUG-2331 — `geolocation=()` disabled attendance check-in on the tenant app.
+ *
+ * The empty allowlist is the strictest form of the directive: it blocks the
+ * document's own origin, so Chrome rejected `getCurrentPosition` with
+ * PERMISSION_DENIED before any prompt could be shown. The employee was told to
+ * grant a permission the browser never offered them.
+ *
+ * These assertions pin both directions. The permissive value must be `(self)`
+ * and not `*` — the point is that this origin may ask, not that any embedder
+ * may — and an app that does not opt in must still get the empty allowlist,
+ * because a fix that quietly widened the default for landing too would trade
+ * one silent header mistake for another.
+ */
+test("an app that opts in may ask for geolocation from its own origin", () => {
+  const header = baselineSecurityHeaders({ geolocation: true }).find(
+    (h) => h.key === "Permissions-Policy",
+  );
+
+  assert.match(header.value, /geolocation=\(self\)/);
+  // `*` would let any embedder use this origin's grant. `(self)` is the point.
+  assert.ok(!header.value.includes("geolocation=*"));
+  // Opting into one feature must not silently relax the others.
+  assert.match(header.value, /camera=\(\)/);
+  assert.match(header.value, /microphone=\(\)/);
+  assert.match(header.value, /payment=\(\)/);
+});
+
+test("geolocation stays fully disabled for an app that does not opt in", () => {
+  for (const options of [undefined, {}, { geolocation: false }]) {
+    const header = baselineSecurityHeaders(options).find(
+      (h) => h.key === "Permissions-Policy",
+    );
+    assert.match(
+      header.value,
+      /geolocation=\(\)/,
+      `default changed for ${JSON.stringify(options)}`,
+    );
+    assert.ok(!header.value.includes("(self)"));
+  }
+});
+
+test("the geolocation opt-in survives securityHeadersForApp", () => {
+  // What shipped broken was the wiring, not the value: the option has to reach
+  // the baseline through the exported entry point the apps actually call.
+  const [rule] = securityHeadersForApp({
+    apiOrigin: "https://api.dijipeople.com/api",
+    geolocation: true,
+  });
+  const header = rule.headers.find((h) => h.key === "Permissions-Policy");
+
+  assert.match(header.value, /geolocation=\(self\)/);
+});
+
 test("HSTS is long-lived and covers subdomains", () => {
   const hsts = baselineSecurityHeaders().find(
     (h) => h.key === "Strict-Transport-Security",

@@ -12,5 +12,4 @@ therefore sees sibling worktrees without anybody having pushed.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
-| [SESSION-0076](../../docs/sessions/SESSION-0076-open-bug-burndown-fix-all-50-documented-open-and-deferred-bu.md) | — | Open bug burndown: fix all 50 documented open and deferred bugs | ACTIVE | `agent/open-bug-burndown` | `develop` | — | 2026-08-29T16:09:50.608Z |
 | [SESSION-0061](../../docs/sessions/SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser.md) | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | 2026-08-26T09:54:37.336Z |

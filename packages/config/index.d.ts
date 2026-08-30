@@ -60,14 +60,21 @@ export interface NextSecurityHeaderRule {
 /**
  * Security response headers for a Next app (BUG-0040). The CSP is emitted as
  * Content-Security-Policy-Report-Only; frame protection is enforced.
+ *
+ * `geolocation` opts the app into `geolocation=(self)` instead of the default
+ * `geolocation=()` (BUG-2331). The default denies the feature to the document's
+ * own origin, which is what made attendance check-in impossible on the tenant
+ * app; only apps that genuinely need to ask should opt in.
  */
 export declare function securityHeadersForApp(options?: {
   apiOrigin?: string;
   frameable?: boolean;
+  geolocation?: boolean;
 }): NextSecurityHeaderRule[];
 
 export declare function baselineSecurityHeaders(options?: {
   frameable?: boolean;
+  geolocation?: boolean;
 }): { key: string; value: string }[];
 
 export declare function contentSecurityPolicy(options?: {

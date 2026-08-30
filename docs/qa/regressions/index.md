@@ -3907,3 +3907,48 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | This is a guard against recurrence, not evidence the record's reproduction was wrong — a live tenant genuinely showed the overflow on 2026-08-29, and the deploy-lag explanation is inference, not a re-measurement. Retesting on whatever build is currently deployed is the only way to fully close this; if it still overflows there, the fix is a deploy, not a code change, since no code change is available to make. Distinguishing a stale build from a source defect mattered here specifically because inventing a redundant fix over already-correct code — three levels of it, independently — would have been indistinguishable from a real fix in a diff review, and BUG-1960's own Related Items section already once had to distinguish itself from BUG-1668 on exactly this kind of adjacent-but-different-cause reasoning. |
 | **Fixed** | 2026-08-30 |
 | **Active** | yes |
+
+### REG-360 — Permissions-Policy geolocation=() disabled web attendance check-in
+
+| | |
+|---|---|
+| **Bug class** | `doc-code-drift` (expressed in a response header) |
+| **Module** | `packages/config`, `apps/web`, `apps/admin` |
+| **Bug record** | BUG-2331 |
+| **Root cause** | `baselineSecurityHeaders` hardcoded `geolocation=()` under a comment calling it a feature "nothing in these apps uses". An empty allowlist is the strictest form of the directive and disables the feature for the document own origin, so Chrome rejected `getCurrentPosition` with PERMISSION_DENIED before the permission layer and never prompted. Attendance captures a position on every attempt, so web check-in was impossible for every employee of every tenant. |
+| **Regression test** | `packages/config/security-headers.test.js` |
+| **Scenario** | Three assertions on the assembled header: the opt-in yields `geolocation=(self)` and never `geolocation=*`; an app that does not opt in still yields `geolocation=()`; and the option survives `securityHeadersForApp`, which is the entry point the app configs call and where the original wiring bug would have lived. Camera, microphone and payment are asserted to stay closed so that opting into one feature cannot silently relax the others. |
+| **Proven to fail without the fix** | Mutation-tested. Replacing the conditional with a flat `"()"` fails two of the three new tests ("an app that opts in may ask for geolocation from its own origin" and "the geolocation opt-in survives securityHeadersForApp"); reverted immediately after confirming. |
+| **Note** | Also verified live against production rather than only in unit tests: on the real signed-in attendance page, rewriting nothing but this response header flipped `document.featurePolicy.allowsFeature("geolocation")` from false to true, the first-visit permission state from `denied` to `prompt`, and allowed a full GPS capture and check-in POST. The `denied` reading matters — it is why the app truthfully reported a denied permission and why the defect looked like a browser setting problem rather than a header. |
+| **Fixed** | 2026-08-30 |
+| **Active** | yes |
+
+### REG-361 — Attendance reason codes erased to VALIDATION_FAILED by the exception filter
+
+| | |
+|---|---|
+| **Bug class** | `contract-erasure` |
+| **Module** | `services/api/src/common/errors`, `services/api/src/modules/attendance`, `apps/web` |
+| **Bug record** | BUG-2332 |
+| **Root cause** | `attendance.service.ts` throws its decision reason code as `{ code, errorCode }`, but no attendance reason code existed in the error catalog. `HttpExceptionFilter.mapLegacyCode` keeps a code only when `isErrorCode` recognises it, so every one fell through to the `statusCode === 422 → VALIDATION_FAILED` default. In the browser, `classifyAttendanceFailure` routes an unrecognised code to `unexpected`, raising the platform technical error dialog — so an ordinary policy refusal showed "ERROR VALIDATION_FAILED", a reference id and a Download log button. |
+| **Regression test** | `services/api/src/common/errors/attendance-reason-codes.spec.ts` |
+| **Scenario** | Scans every non-spec TypeScript file under `modules/attendance-engine` and `modules/attendance` for emitted `reasonCode` literals, excludes the three ALLOW outcomes by name, and asserts each remaining code is in the error catalog at statusCode 422 and severity warning. A second test pins the twelve codes the web classifier switches on, so a rename on either side of the contract fails here rather than in front of an employee. |
+| **Proven to fail without the fix** | Mutation-tested. Renaming the `WORK_MODE_DISALLOWS_REMOTE` catalog key fails two of the four tests; reverted immediately after confirming. |
+| **Note** | Source-derived on purpose: a hardcoded list of codes would have passed on the day the bug shipped, since both sides were individually self-consistent. The suite also guards itself — one test asserts the scan finds at least seven codes, so it cannot pass by iterating an empty directory after a file move. That guard earned its place immediately: the first version excluded ALLOW outcomes by an `_ALLOWED` suffix rule, which silently dropped `METHOD_NOT_ALLOWED` — a refusal, and one of the codes this test exists to protect. The exclusion is now by explicit name. |
+| **Fixed** | 2026-08-30 |
+| **Active** | yes |
+
+### REG-362 — storeUserAgent ignored on the attendance check-in path
+
+| | |
+|---|---|
+| **Bug class** | `duplicated-decision-drift` |
+| **Module** | `apps/web` runtime module adapters |
+| **Bug record** | BUG-2333 |
+| **Root cause** | Two attendance capture paths make the same privacy decision and one drifted. `module-runtime-command-handler.tsx` gated the user agent on `policy.storeUserAgent`; `standard-module-data.adapter.ts` — the path the attendance module Check In button actually uses — attached `navigator.userAgent` whenever `navigator` existed, ignoring the setting entirely. |
+| **Regression test** | `apps/web/lib/runtime/modules/attendance-location-payload.spec.ts` |
+| **Scenario** | Source-level, with comments stripped first. Asserts the adapter references `storeUserAgent`, and asserts the shipped defect shape — a `userAgent` guarded only by `typeof navigator === "undefined"` — is absent. Matching the whole ternary rather than the bare identifier keeps it specific, since `navigator.userAgent` is legitimate on the guarded branch. |
+| **Proven to fail without the fix** | Mutation-tested. Restoring the exact shipped line fails two of the three tests; reverted immediately after confirming. |
+| **Note** | Comment stripping is load-bearing, not hygiene: the fix own explanatory comment names `storeUserAgent` while describing the bug, so without stripping the test would pass against reverted code on the prose alone. The stripper uses `[^\r\n]` rather than `[^\n]` — working trees here are CRLF, and a `\n`-only character class leaves the carriage return behind, which has silently made source-reading assertions vacuous in this repository before. A behavioural test would be better; `buildAttendanceLocationPayload` is module-private and reachable only through a command handler needing a full runtime context, so the harness for one does not exist yet. |
+| **Fixed** | 2026-08-30 |
+| **Active** | yes |

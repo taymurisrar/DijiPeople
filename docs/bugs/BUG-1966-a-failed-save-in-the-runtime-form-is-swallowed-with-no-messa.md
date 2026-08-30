@@ -198,18 +198,22 @@ this record is `FIXED` rather than `VERIFIED`.
 
 ## QA Retest
 
-Not yet performed, and it cannot be performed today: the fix is not on `develop`
-and production runs `main` at `949f461c`, which does not contain it. This task
-did not touch `main`, so **nothing here is verified in production** and the
-demo tenant still reproduces the silent failure exactly as recorded above.
+**The blocker this section named is now cleared.** The fix reached `main` in
+PR #58 and production has served commit `855b594` since 2026-08-30 01:46 UTC,
+confirmed at `/api/health` and by a full deployment smoke run.
 
-Live verification on the demo tenant is pending a release. When it happens, the
-retest is the Reproduction section, with one correction to the expectation: the
-leave request will still be rejected, because BUG-1965 is only half fixed and
-`status` is still serialised into the create body. The correct outcome after
-this fix is a **visible** 400, not a successful save. Check that `main` contains
-`[role=alert]`, that the message names the failure, and that leave type, dates
-and reason are still populated.
+The live retest itself has still **not** been performed, and this record stays
+FIXED rather than VERIFIED for that reason. Its regression guard
+(`apps/web/lib/runtime/command-failure-visibility.spec.ts`) passes and is
+mutation-tested, but a passing unit test is not the thing this section asks
+for, and promoting on one would assert a check nobody ran.
+
+The retest is the Reproduction section, with the correction already noted
+below. One update to it: BUG-1965 is now fixed too, so `status` is no longer
+serialised into the create body and the leave request should now **succeed**
+rather than surface a visible 400. Either outcome closes this record - what
+matters is that a failure is visible at all - but the expected result has
+changed and a retester working from the old note would call a pass a failure.
 
 ## History
 

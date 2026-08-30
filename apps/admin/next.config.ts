@@ -18,9 +18,18 @@ const nextConfig: NextConfig = {
    * break a working product, and it has never been observed in a real
    * browser against this build. Clickjacking protection is NOT deferred with
    * it — X-Frame-Options is enforced immediately. See ITEM-0039.
+   *
+   * `geolocation: true` matches the tenant app (BUG-2331). Admin has no
+   * location-aware screen today; it is enabled deliberately so that platform
+   * staff reproducing a tenant's attendance problem hit the same browser
+   * behaviour the tenant does, rather than a header difference that makes the
+   * defect look tenant-specific. `(self)` only permits this origin to *ask*.
    */
   async headers() {
-    return securityHeadersForApp({ apiOrigin: getApiBaseUrl() });
+    return securityHeadersForApp({
+      apiOrigin: getApiBaseUrl(),
+      geolocation: true,
+    });
   },
   poweredByHeader: false,
   output: process.env.NEXT_STANDALONE === "true" ? "standalone" : undefined,
