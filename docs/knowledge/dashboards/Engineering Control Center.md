@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **2** |
+| Active sessions | **1** |
 | Active parent tasks | 3 |
 | Active work packages | 0 |
 | Blocked work packages | 0 |
@@ -49,7 +49,6 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
-| [[SESSION-0081-phase-2-schema-discovery-data-model-knowledge-graph-and-disc|SESSION-0081]] | — | Phase 2 schema discovery: data model knowledge graph and discovery tracking | ACTIVE | `agent/data-model-discovery` | `develop` | — | NO |
 | [[SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser|SESSION-0061]] | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
