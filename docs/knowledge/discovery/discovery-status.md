@@ -53,11 +53,11 @@ nothing is written down.
 
 ## What is deliberately not here
 
-- **The API and entity behind 345 of the 356 screens.** [[screen-map]] names
-  every screen, but only the 11 runtime-declared modules carry a machine-readable
-  link to what they read. The rest are bespoke pages whose data source can only
-  be found by reading them, and guessing from a route name would be wrong often
-  enough to be worse than silence.
+- **The API and entity behind 318 of the 356 screens.** [[screen-map]] names
+  every screen, but only 38 routes — those served by the 11 runtime-declared
+  modules — carry a machine-readable link to what they read. The rest are bespoke
+  pages whose data source can only be found by reading them, and guessing from a
+  route name would be wrong often enough to be worse than silence.
 - **An endpoint catalogue.** Nothing enumerates the API surface.
 - **The 305 models without an entity note.** [[domain-map]] lists them all. The
   spine was documented first because the graph is unusable without its hub.
