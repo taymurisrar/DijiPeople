@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **2** |
+| Active sessions | **1** |
 | Active parent tasks | 3 |
 | Active work packages | 0 |
 | Blocked work packages | 0 |
@@ -33,9 +33,9 @@ survives every review by being unfalsifiable.
 | No acceptance criteria | 99 |
 | No next action | 99 |
 | Aging — 7d / 30d / 90d | 17 / 0 / 0 |
-| Architecture and technical debt | 7 |
+| Architecture and technical debt | 8 |
 | Security gaps | 6 |
-| Database gaps | 9 |
+| Database gaps | 8 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -49,7 +49,6 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
-| [[SESSION-0085-duplicate-customer-on-self-service-checkout-the-wizard-s-dra|SESSION-0085]] | — | Duplicate customer on self-service checkout: the wizard's draft id is dropped | ACTIVE | `agent/checkout-duplicate-customer` | `develop` | — | NO |
 | [[SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser|SESSION-0061]] | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages

@@ -13,7 +13,7 @@
 | Blocked | 2 |
 | Awaiting a product decision | 6 |
 | Deferred | 24 |
-| Completed | 286 |
+| Completed | 288 |
 | Awaiting Architect triage | 2 |
 
 ## Open Critical Bugs
@@ -48,7 +48,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2504-approving-a-correction-never-applies-the-requested-work-mode|BUG-2504]] | Approving a correction never applies the requested work mode, work site or overtime | STATE_MACHINE | HIGH | OPEN | api:attendance | PLAN_REQUIRED |
 | [[BUG-2505-a-mode-or-location-correction-could-never-be-submitted-at-al|BUG-2505]] | A mode-or-location correction could never be submitted at all | BUG | HIGH | FIXED | apps/web, api:attendance | DONE |
 | [[BUG-2506-sign-out-leaves-the-refresh-token-live-whenever-the-tenant-i|BUG-2506]] | Sign-out leaves the refresh token live whenever the tenant is busy | SECURITY | HIGH | FIXED | api:auth | DONE |
-| [[BUG-2530-self-service-checkout-still-creates-two-customer-records-the|BUG-2530]] | Self-service checkout still creates two customer records: the wizard's draft id is dropped between the controller and the order service | DATA_INTEGRITY | HIGH | FIXED | billing, super-admin, landing | FIX_NOW |
+| [[BUG-2618-expired-subscription-orders-are-never-swept-abandonexpired-h|BUG-2618]] | Expired subscription orders are never swept: abandonExpired has no caller and the API has no scheduler | DATA_INTEGRITY | HIGH | OPEN | billing, super-admin | FIX_NOW |
 
 ## Product Decisions Needed
 
@@ -230,7 +230,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2459-the-notification-bell-polls-forever-after-a-session-ends-flo|BUG-2459]] | The notification bell polls forever after a session ends, flooding the error log | PERFORMANCE | HIGH | FIXED | web:notifications, api:error-logs, api:notifications | FIX_NOW |
 | [[BUG-2505-a-mode-or-location-correction-could-never-be-submitted-at-al|BUG-2505]] | A mode-or-location correction could never be submitted at all | BUG | HIGH | FIXED | apps/web, api:attendance | DONE |
 | [[BUG-2506-sign-out-leaves-the-refresh-token-live-whenever-the-tenant-i|BUG-2506]] | Sign-out leaves the refresh token live whenever the tenant is busy | SECURITY | HIGH | FIXED | api:auth | DONE |
-| [[BUG-2530-self-service-checkout-still-creates-two-customer-records-the|BUG-2530]] | Self-service checkout still creates two customer records: the wizard's draft id is dropped between the controller and the order service | DATA_INTEGRITY | HIGH | FIXED | billing, super-admin, landing | FIX_NOW |
+| [[BUG-2530-self-service-checkout-still-creates-two-customer-records-the|BUG-2530]] | Self-service checkout still creates two customer records: the wizard's draft id is dropped between the controller and the order service | DATA_INTEGRITY | HIGH | VERIFIED | billing, super-admin, landing | DONE |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | VERIFIED | app:admin | DONE |
@@ -401,10 +401,10 @@ _None. Nothing open at CRITICAL._
 - [[2026-08-30-prod-monitoring-triage-fba846d1|Engineering History — Prod monitoring triage]]
 - [[2026-08-30-open-bug-burndown-4d75b37c|Engineering History — Open bug burndown]]
 - [[2026-08-30-data-model-and-screen-discovery-122ce41e|Engineering History — Data model and screen discovery]]
+- [[2026-08-30-checkout-duplicate-customer-68f4fd2e|Engineering History — Checkout duplicate customer]]
 - [[2026-08-30-attendance-location-capture-c5c7c13f|Engineering History — Attendance location capture]]
 - [[2026-08-30-attendance-correction-entry-and-auth-validation-c603abea|Engineering History — Attendance correction entry and auth validation]]
 - [[2026-08-29-workspace-switcher-avatar-menu-9f32c407|Engineering History — Workspace switcher avatar menu]]
-- [[2026-08-29-starter-plan-e2e-qa-ee69f49f|Engineering History — Starter plan e2e qa]]
 
 ## Recent Releases
 
@@ -478,7 +478,7 @@ _None. Nothing open at CRITICAL._
 | [[ITEM-0112-enforcecriticalattendancesetting-has-no-test-coverage-despit|ITEM-0112]] | enforceCriticalAttendanceSetting has no test coverage despite enforcing a mandatory integrity control | TEST_GAP | MEDIUM | READY | api:tenant-settings | FIX_NOW |
 | [[ITEM-0116-53-bug-fixes-are-regression-covered-but-have-never-been-qa-r|ITEM-0116]] | 53 bug fixes are regression-covered but have never been QA-retested | TEST_GAP | MEDIUM | READY | — | FIX_NOW |
 | [[ITEM-0117-the-question-protocol-has-never-been-used-and-five-user-deci|ITEM-0117]] | The question protocol has never been used and five user decisions are parked in the backlog instead | DOCUMENTATION | MEDIUM | READY | — | FIX_NOW |
-| [[ITEM-0118-merge-the-duplicate-customeraccount-rows-self-service-checko|ITEM-0118]] | Merge the duplicate CustomerAccount rows self-service checkout created before BUG-2530 | DATA_MIGRATION | MEDIUM | READY | super-admin, billing | PLAN_REQUIRED |
+| [[ITEM-0119-stop-writing-a-placeholder-e-mail-into-an-identity-column-wh|ITEM-0119]] | Stop writing a placeholder e-mail into an identity column when the wizard opens a draft | TECH_DEBT | MEDIUM | READY | billing, landing, super-admin | PLAN_REQUIRED |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [[BUG-1964-record-headings-and-dialog-titles-are-singularised-by-stripp|BUG-1964]] | Record headings and dialog titles are singularised by stripping a trailing s | UX | LOW | FIXED | apps/web | DONE |
 | [[BUG-2010-the-dashboard-recent-changes-list-renders-unformatted-iso-86|BUG-2010]] | The dashboard Recent changes list renders unformatted ISO-8601 timestamps | UX | LOW | FIXED | apps/web | DONE |
@@ -507,11 +507,11 @@ _None. Nothing open at CRITICAL._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 300 |
-| Backlog items | 118 |
+| Bug records | 301 |
+| Backlog items | 119 |
 | Known bug patterns | 32 |
 | QA runs | 31 |
-| Engineering history records | 68 |
+| Engineering history records | 69 |
 | Release records | 4 |
 | Module notes | 29 |
 | Architecture notes | 22 |

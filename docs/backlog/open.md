@@ -48,7 +48,7 @@ _None._
 | [BUG-2504](../../docs/bugs/BUG-2504-approving-a-correction-never-applies-the-requested-work-mode.md) | Approving a correction never applies the requested work mode, work site or overtime | STATE_MACHINE | HIGH | P1 | OPEN | api:attendance | PLAN_REQUIRED |
 | [BUG-2505](../../docs/bugs/BUG-2505-a-mode-or-location-correction-could-never-be-submitted-at-al.md) | A mode-or-location correction could never be submitted at all | BUG | HIGH | P1 | FIXED | apps/web, api:attendance | DONE |
 | [BUG-2506](../../docs/bugs/BUG-2506-sign-out-leaves-the-refresh-token-live-whenever-the-tenant-i.md) | Sign-out leaves the refresh token live whenever the tenant is busy | SECURITY | HIGH | P1 | FIXED | api:auth | DONE |
-| [BUG-2530](../../docs/bugs/BUG-2530-self-service-checkout-still-creates-two-customer-records-the.md) | Self-service checkout still creates two customer records: the wizard's draft id is dropped between the controller and the order service | DATA_INTEGRITY | HIGH | P1 | FIXED | billing, super-admin, landing | FIX_NOW |
+| [BUG-2618](../../docs/bugs/BUG-2618-expired-subscription-orders-are-never-swept-abandonexpired-h.md) | Expired subscription orders are never swept: abandonExpired has no caller and the API has no scheduler | DATA_INTEGRITY | HIGH | P1 | OPEN | billing, super-admin | FIX_NOW |
 
 ## MEDIUM
 
@@ -115,7 +115,7 @@ _None._
 | [ITEM-0112](../../docs/backlog/items/ITEM-0112-enforcecriticalattendancesetting-has-no-test-coverage-despit.md) | enforceCriticalAttendanceSetting has no test coverage despite enforcing a mandatory integrity control | TEST_GAP | MEDIUM | P2 | READY | api:tenant-settings | FIX_NOW |
 | [ITEM-0116](../../docs/backlog/items/ITEM-0116-53-bug-fixes-are-regression-covered-but-have-never-been-qa-r.md) | 53 bug fixes are regression-covered but have never been QA-retested | TEST_GAP | MEDIUM | P2 | READY | — | FIX_NOW |
 | [ITEM-0117](../../docs/backlog/items/ITEM-0117-the-question-protocol-has-never-been-used-and-five-user-deci.md) | The question protocol has never been used and five user decisions are parked in the backlog instead | DOCUMENTATION | MEDIUM | P2 | READY | — | FIX_NOW |
-| [ITEM-0118](../../docs/backlog/items/ITEM-0118-merge-the-duplicate-customeraccount-rows-self-service-checko.md) | Merge the duplicate CustomerAccount rows self-service checkout created before BUG-2530 | DATA_MIGRATION | MEDIUM | P2 | READY | super-admin, billing | PLAN_REQUIRED |
+| [ITEM-0119](../../docs/backlog/items/ITEM-0119-stop-writing-a-placeholder-e-mail-into-an-identity-column-wh.md) | Stop writing a placeholder e-mail into an identity column when the wizard opens a draft | TECH_DEBT | MEDIUM | P2 | READY | billing, landing, super-admin | PLAN_REQUIRED |
 
 ## LOW and unrated
 

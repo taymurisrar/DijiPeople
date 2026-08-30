@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**418 records** — 300 bugs under [`docs/bugs/`](../bugs/), 118 non-bug items under [`items/`](items/).
+**420 records** — 301 bugs under [`docs/bugs/`](../bugs/), 119 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -17,7 +17,7 @@ see [`README.md`](README.md) for why.
 | Blocked | 2 |
 | Deferred | 24 |
 | Awaiting a product decision | 6 |
-| Completed / closed | 286 |
+| Completed / closed | 288 |
 | **Open CRITICAL** | **0** |
 | **Open HIGH** | **25** |
 | **Awaiting Architect triage** | **2** |
@@ -38,7 +38,6 @@ see [`README.md`](README.md) for why.
 | AUTHORIZATION | 2 |
 | BUG | 34 |
 | DATA_INTEGRITY | 8 |
-| DATA_MIGRATION | 1 |
 | DOCUMENTATION | 2 |
 | FOLLOW_UP | 2 |
 | INFRA | 4 |
@@ -46,7 +45,7 @@ see [`README.md`](README.md) for why.
 | PERFORMANCE | 1 |
 | SECURITY | 4 |
 | STATE_MACHINE | 2 |
-| TECH_DEBT | 5 |
+| TECH_DEBT | 6 |
 | TEST_GAP | 6 |
 | UX | 24 |
 
@@ -54,16 +53,16 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 7 |
+| OPEN | 8 |
 | BLOCKED | 2 |
 | DEFERRED | 24 |
 | PRODUCT_DECISION | 6 |
-| FIXED | 66 |
-| VERIFIED | 215 |
+| FIXED | 65 |
+| VERIFIED | 216 |
 | DUPLICATE | 5 |
 | ACCEPTED_RISK | 3 |
 | READY | 27 |
-| DONE | 63 |
+| DONE | 64 |
 
 ## All records
 
@@ -213,7 +212,8 @@ see [`README.md`](README.md) for why.
 | [BUG-2504](../../docs/bugs/BUG-2504-approving-a-correction-never-applies-the-requested-work-mode.md) | Approving a correction never applies the requested work mode, work site or overtime | STATE_MACHINE | HIGH | P1 | OPEN | api:attendance | PLAN_REQUIRED |
 | [BUG-2505](../../docs/bugs/BUG-2505-a-mode-or-location-correction-could-never-be-submitted-at-al.md) | A mode-or-location correction could never be submitted at all | BUG | HIGH | P1 | FIXED | apps/web, api:attendance | DONE |
 | [BUG-2506](../../docs/bugs/BUG-2506-sign-out-leaves-the-refresh-token-live-whenever-the-tenant-i.md) | Sign-out leaves the refresh token live whenever the tenant is busy | SECURITY | HIGH | P1 | FIXED | api:auth | DONE |
-| [BUG-2530](../../docs/bugs/BUG-2530-self-service-checkout-still-creates-two-customer-records-the.md) | Self-service checkout still creates two customer records: the wizard's draft id is dropped between the controller and the order service | DATA_INTEGRITY | HIGH | P1 | FIXED | billing, super-admin, landing | FIX_NOW |
+| [BUG-2530](../../docs/bugs/BUG-2530-self-service-checkout-still-creates-two-customer-records-the.md) | Self-service checkout still creates two customer records: the wizard's draft id is dropped between the controller and the order service | DATA_INTEGRITY | HIGH | P1 | VERIFIED | billing, super-admin, landing | DONE |
+| [BUG-2618](../../docs/bugs/BUG-2618-expired-subscription-orders-are-never-swept-abandonexpired-h.md) | Expired subscription orders are never swept: abandonExpired has no caller and the API has no scheduler | DATA_INTEGRITY | HIGH | P1 | OPEN | billing, super-admin | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -413,7 +413,8 @@ see [`README.md`](README.md) for why.
 | [ITEM-0115](../../docs/backlog/items/ITEM-0115-provisioning-seeds-four-departments-with-no-business-unit-on.md) | Provisioning seeds four departments with no business unit on every tenant | PRODUCT_DECISION | MEDIUM | P2 | PRODUCT_DECISION | services/api/prisma, api:organization | PRODUCT_DECISION |
 | [ITEM-0116](../../docs/backlog/items/ITEM-0116-53-bug-fixes-are-regression-covered-but-have-never-been-qa-r.md) | 53 bug fixes are regression-covered but have never been QA-retested | TEST_GAP | MEDIUM | P2 | READY | — | FIX_NOW |
 | [ITEM-0117](../../docs/backlog/items/ITEM-0117-the-question-protocol-has-never-been-used-and-five-user-deci.md) | The question protocol has never been used and five user decisions are parked in the backlog instead | DOCUMENTATION | MEDIUM | P2 | READY | — | FIX_NOW |
-| [ITEM-0118](../../docs/backlog/items/ITEM-0118-merge-the-duplicate-customeraccount-rows-self-service-checko.md) | Merge the duplicate CustomerAccount rows self-service checkout created before BUG-2530 | DATA_MIGRATION | MEDIUM | P2 | READY | super-admin, billing | PLAN_REQUIRED |
+| [ITEM-0118](../../docs/backlog/items/ITEM-0118-merge-the-duplicate-customeraccount-rows-self-service-checko.md) | Merge the duplicate CustomerAccount rows self-service checkout created before BUG-2530 | DATA_MIGRATION | MEDIUM | P2 | DONE | super-admin, billing | DONE |
+| [ITEM-0119](../../docs/backlog/items/ITEM-0119-stop-writing-a-placeholder-e-mail-into-an-identity-column-wh.md) | Stop writing a placeholder e-mail into an identity column when the wizard opens a draft | TECH_DEBT | MEDIUM | P2 | READY | billing, landing, super-admin | PLAN_REQUIRED |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |
