@@ -6,6 +6,7 @@ Sessions that reached a terminal state. Kept as history: the branch, the base it
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0083](../../docs/sessions/SESSION-0083-allocator-id-collision-and-the-tenant-owner-label.md) | — | Allocator id collision and the tenant owner label | COMPLETE | `agent/allocator-and-owner-label` | `develop` | — | 2026-08-30T17:26:26.434Z |
 | [SESSION-0081](../../docs/sessions/SESSION-0081-phase-2-schema-discovery-data-model-knowledge-graph-and-disc.md) | — | Phase 2 schema discovery: data model knowledge graph and discovery tracking | COMPLETE | `agent/data-model-discovery` | `develop` | — | 2026-08-30T12:54:10.853Z |
 | [SESSION-0080](../../docs/sessions/SESSION-0080-bug-2334-preserve-the-location-failure-reason-through-the-at.md) | — | BUG-2334: preserve the location failure reason through the attendance adapter | COMPLETE | `agent/attendance-location-capture` | `develop` | — | 2026-08-30T12:45:38.131Z |
 | [SESSION-0079](../../docs/sessions/SESSION-0079-release-promote-the-attendance-location-capture-fix-to-main.md) | — | Release: promote the attendance location-capture fix to main | COMPLETE | `agent/attendance-location-capture` | `main` | — | 2026-08-30T11:37:27.533Z |
