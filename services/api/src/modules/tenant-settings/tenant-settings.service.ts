@@ -800,6 +800,30 @@ const MANDATORY_ATTENDANCE_SETTINGS: Record<
   captureLocationOnCheckOut: true,
   allowManualLocationException: false,
   highAccuracyLocation: true,
+  /*
+   * BUG-2335. Added 2026-08-30, and for a different reason from the seven
+   * above: those lock a control that IS enforced elsewhere, while this one
+   * locks a capability that does not exist. `captureIpFallbackLocation` returns
+   * a hardcoded failure on every call — no provider, no configuration read, no
+   * branch that can succeed — and `captureAttendanceLocation`, the function the
+   * check-in path actually calls, never invokes it at all. The setting was
+   * inert twice over while reporting itself as enabled, so an administrator
+   * could believe they had already mitigated the situation that makes
+   * attendance fail.
+   *
+   * `false` rather than an implementation is the deliberate answer. An
+   * IP-derived position is far weaker evidence than GPS, and location capture
+   * here is a mandatory integrity control (see the migration cited above);
+   * accepting an approximate position would quietly weaken it. Turning this on
+   * for real is a product decision needing an ExecPlan and a change to the
+   * enforcement path — not a checkbox somebody re-enables.
+   *
+   * Locking it here rather than only disabling the control matters. The UI is
+   * cosmetic, and a tenant whose stored value is already `true` — the demo
+   * tenant was one — would otherwise keep reporting `allowIpFallback: true` in
+   * its runtime policy for ever.
+   */
+  allowIpFallback: false,
 };
 
 /**

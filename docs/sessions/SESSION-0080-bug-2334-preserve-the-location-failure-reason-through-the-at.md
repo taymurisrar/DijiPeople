@@ -58,6 +58,25 @@ Write leases held, overlap classification against other active sessions, and
 anything this session deliberately serialised behind another. Live state:
 `node scripts/session.mjs list`.
 
+## Follow-up in the same session
+
+The owner then answered the two open questions, and BUG-2335 was resolved here
+rather than left for a later task:
+
+- **BUG-2335 — withdraw the setting.** "Allow approximate IP fallback" is now
+  `disabled: true` in the settings page config *and* mandated `false` in
+  `MANDATORY_ATTENDANCE_SETTINGS`. Both halves were necessary: the UI is
+  cosmetic, and a tenant whose stored value is already `true` — the demo tenant
+  is one, confirmed at `allowIpFallback: true` while checking — would otherwise
+  keep serving it in the runtime policy for ever. REG-364, QA-ATTENDANCE-006.
+
+An existing spec, `attendance-settings-fields.spec.ts`, asserted this key was
+"genuinely configurable" and failed. It was updated deliberately rather than
+flipped: that assertion was right about the capture mandate and wrong about the
+product, and the comment now says so. Moving a key from the editable list to the
+mandated list is a change of position, and a reader six months from now should
+not have to guess whether it was intentional.
+
 ## History
 
 - 2026-08-30 — session started from `origin/develop` at `2007fad`.

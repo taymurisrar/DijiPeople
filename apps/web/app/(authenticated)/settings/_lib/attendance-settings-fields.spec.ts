@@ -34,6 +34,22 @@ const MANDATED_KEYS = [
   "captureLocationOnCheckOut",
   "allowManualLocationException",
   "highAccuracyLocation",
+  /*
+   * BUG-2335. Added 2026-08-30 by owner decision, and it is a change of
+   * position rather than a correction of an error: this key was asserted below
+   * as "genuinely configurable", and that assertion was right about the mandate
+   * and wrong about the product. `allowIpFallback` was a live, saveable
+   * checkbox for a capability that does not exist —
+   * `captureIpFallbackLocation` cannot succeed on any input, and
+   * `captureAttendanceLocation` never calls it — so an administrator enabling
+   * it was promised a fallback that could not happen, in exactly the situation
+   * where they most needed one.
+   *
+   * Locked off rather than implemented: an IP-derived position is far weaker
+   * evidence than GPS, and location capture here is a mandatory integrity
+   * control. Implementing it is a product decision needing an ExecPlan.
+   */
+  "allowIpFallback",
 ];
 
 /** `AttendancePolicy` columns with no tenant-settings catalog key. */
@@ -72,7 +88,9 @@ describe("attendance settings fields", () => {
     // setting. Disabling these too would be a different defect in the same
     // place.
     for (const key of [
-      "allowIpFallback",
+      // `allowIpFallback` was here until BUG-2335 and is now mandated off — not
+      // because the capture mandate grew, but because it configured a
+      // capability that does not exist. It is listed in MANDATED_KEYS above.
       "locationTimeoutSeconds",
       "locationRetryAttempts",
       "maxAllowedAccuracyMeters",

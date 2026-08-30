@@ -13,10 +13,10 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 77 |
+| Open (active work) | 78 |
 | Blocked | 2 |
 | Deferred | 23 |
-| Awaiting a product decision | 6 |
+| Awaiting a product decision | 5 |
 | Completed / closed | 285 |
 | **Open CRITICAL** | **0** |
 | **Open HIGH** | **17** |
@@ -27,7 +27,7 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | HIGH | 17 |
-| MEDIUM | 49 |
+| MEDIUM | 50 |
 | LOW | 11 |
 
 ## Open by type
@@ -36,7 +36,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | ARCHITECTURE | 2 |
 | AUTHORIZATION | 1 |
-| BUG | 27 |
+| BUG | 28 |
 | DATA_INTEGRITY | 6 |
 | DOCUMENTATION | 1 |
 | FOLLOW_UP | 2 |
@@ -54,8 +54,8 @@ see [`README.md`](README.md) for why.
 | OPEN | 1 |
 | BLOCKED | 2 |
 | DEFERRED | 23 |
-| PRODUCT_DECISION | 6 |
-| FIXED | 52 |
+| PRODUCT_DECISION | 5 |
+| FIXED | 53 |
 | VERIFIED | 215 |
 | DUPLICATE | 4 |
 | ACCEPTED_RISK | 3 |
@@ -333,7 +333,7 @@ see [`README.md`](README.md) for why.
 | [BUG-2206](../../docs/bugs/BUG-2206-three-timesheet-audit-toggles-render-on-screen-and-are-read-.md) | Three timesheet audit toggles render on screen and are read by nothing | BUG | MEDIUM | P2 | FIXED | api:timesheets, api:tenant-settings, apps/web | DONE |
 | [BUG-2333](../../docs/bugs/BUG-2333-storeuseragent-is-ignored-on-the-attendance-module-check-in-.md) | storeUserAgent is ignored on the attendance module check-in path | BUG | MEDIUM | P2 | FIXED | apps/web | FIX_NOW |
 | [BUG-2334](../../docs/bugs/BUG-2334-a-location-capture-failure-is-rethrown-as-a-bare-error-disca.md) | A location capture failure is rethrown as a bare Error, discarding the reason code | BUG | MEDIUM | P2 | FIXED | apps/web | FIX_NOW |
-| [BUG-2335](../../docs/bugs/BUG-2335-allow-approximate-ip-fallback-is-a-live-setting-whose-provid.md) | Allow approximate IP fallback is a live setting whose provider is a permanent stub | BUG | MEDIUM | P2 | PRODUCT_DECISION | apps/web, api:tenant-settings | PRODUCT_DECISION |
+| [BUG-2335](../../docs/bugs/BUG-2335-allow-approximate-ip-fallback-is-a-live-setting-whose-provid.md) | Allow approximate IP fallback is a live setting whose provider is a permanent stub | BUG | MEDIUM | P2 | FIXED | apps/web, api:tenant-settings | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |

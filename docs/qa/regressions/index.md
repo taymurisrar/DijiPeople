@@ -3967,3 +3967,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The behavioural spec reproduces two pieces it cannot import: `readErrorData` (module-private in `command-execution.service.ts`) and the adapter helper (module-private). That is a real limitation — if `readErrorData` changed, the spec would keep passing against a stale copy. It is mitigated, not solved, by the source-level tie-in; the durable fix would be exporting the seam. Recorded rather than glossed, because a reproduced dependency is the same class of drift this bug was made of. |
 | **Fixed** | 2026-08-30 |
 | **Active** | yes |
+
+### REG-364 — Allow approximate IP fallback was a live setting for a capability that does not exist
+
+| | |
+|---|---|
+| **Bug class** | `unwired-capability-presented-as-configuration` |
+| **Module** | `apps/web` settings runtime, `services/api/src/modules/tenant-settings` |
+| **Root cause** | `captureIpFallbackLocation` returns a hardcoded failure on every call — no provider, no configuration read, no branch that can succeed — while the settings page rendered "Allow approximate IP fallback" as a live editable checkbox and the runtime policy reported `allowIpFallback: true`. Inert twice over: `captureAttendanceLocation`, the function the check-in path calls, never invokes the fallback at all. An administrator switching it on believed they had mitigated exactly the situation that makes attendance fail. |
+| **Bug record** | BUG-2335 |
+| **Regression test** | `services/api/src/modules/tenant-settings/attendance-settings-mandate.spec.ts` |
+| **Scenario** | `allowIpFallback` joins the `MANDATED` table, asserting both halves the mandate already asserts for the seven location settings: the lock holds (the key cannot be written at any value but `false`) and the refusal is reported (a differing submission fails the request naming the key, rather than being silently swapped so the change-diff drops it as a no-op). |
+| **Proven to fail without the fix** | Mutation-tested. Removing `allowIpFallback: false` from `MANDATORY_ATTENDANCE_SETTINGS` fails one test in the suite; reverted immediately after confirming. |
+| **Note** | Withdrawn rather than implemented, by owner decision on 2026-08-30. An IP-derived position is far weaker evidence than GPS and attendance location capture is a mandatory integrity control, so wiring a provider would quietly weaken that control — a product decision needing an ExecPlan, not a checkbox nobody wired. **Both halves were necessary.** Disabling the UI control alone leaves a tenant whose stored value is already `true` serving `allowIpFallback: true` in its runtime policy for ever, because the UI is cosmetic and the runtime reads the stored value; the demo tenant was exactly such a tenant. The provider stub was left in place deliberately — it is unreachable through the settings now, and deleting it would erase the only record of what the capability was meant to be. |
+| **Fixed** | 2026-08-30 |
+| **Active** | yes |

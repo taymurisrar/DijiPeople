@@ -328,10 +328,29 @@ const legacyAttendanceSettingsSections: SettingsSectionConfig[] = [
         disabled: true,
       },
       {
+        /*
+         * BUG-2335. This was a live, saveable checkbox for a capability that
+         * does not exist: `captureIpFallbackLocation` returns a hardcoded
+         * failure on every call, with no branch that can succeed, and the
+         * check-in path never invokes it at all. An administrator who switched
+         * it on was promised a GPS fallback that could not happen — and would
+         * reasonably believe they had already mitigated the very situation that
+         * makes attendance fail in the first place.
+         *
+         * Disabled rather than implemented, deliberately. An IP-derived
+         * position is far weaker evidence than GPS, and attendance location
+         * capture here is a mandatory integrity control (see
+         * MANDATORY_ATTENDANCE_SETTINGS in tenant-settings.service.ts and the
+         * migration it cites). Accepting an approximate position would quietly
+         * weaken that control — a product decision needing an ExecPlan, not a
+         * checkbox nobody wired.
+         */
         category: "attendance",
         key: "allowIpFallback",
         label: "Allow approximate IP fallback",
+        description: "Enforced by platform policy and cannot be changed.",
         type: "checkbox",
+        disabled: true,
       },
       {
         category: "attendance",
@@ -771,12 +790,18 @@ const legacyAttendanceSettingsSections: SettingsSectionConfig[] = [
         label: "When a new work period starts before the last one ended",
         type: "select",
         options: [
-          { label: "Record it and ask someone to review", value: "CREATE_EXCEPTION" },
+          {
+            label: "Record it and ask someone to review",
+            value: "CREATE_EXCEPTION",
+          },
           {
             label: "Refuse the new period until the previous one is closed",
             value: "REQUIRE_EXPLICIT_CHECKOUT",
           },
-          { label: "Close the previous period automatically", value: "AUTO_CLOSE_PREVIOUS" },
+          {
+            label: "Close the previous period automatically",
+            value: "AUTO_CLOSE_PREVIOUS",
+          },
         ],
         description:
           "Someone forgetting to check out and a reader firing twice look identical to DijiPeople but need different corrections, so the default keeps both facts and asks a person.",
@@ -807,11 +832,23 @@ const legacyAttendanceSettingsSections: SettingsSectionConfig[] = [
         label: "How to read devices that do not report in or out",
         type: "select",
         options: [
-          { label: "Alternate in and out through the day", value: "ALTERNATING" },
-          { label: "First punch in, last punch out", value: "FIRST_IN_LAST_OUT" },
-          { label: "Use the device's configured direction", value: "DEVICE_DIRECTION" },
+          {
+            label: "Alternate in and out through the day",
+            value: "ALTERNATING",
+          },
+          {
+            label: "First punch in, last punch out",
+            value: "FIRST_IN_LAST_OUT",
+          },
+          {
+            label: "Use the device's configured direction",
+            value: "DEVICE_DIRECTION",
+          },
           { label: "Use the device's own in/out codes", value: "DEVICE_STATE" },
-          { label: "Alternate, guided by the shift times", value: "RULE_ENGINE" },
+          {
+            label: "Alternate, guided by the shift times",
+            value: "RULE_ENGINE",
+          },
         ],
         description:
           "Many terminals record only that a card was presented. Using the device's own codes requires a verified code table for that model; without one DijiPeople will not guess.",
@@ -932,7 +969,10 @@ const legacyAttendanceSettingsSections: SettingsSectionConfig[] = [
         label: "Hybrid attendance",
         type: "select",
         options: [
-          { label: "Derive from the day's sessions", value: "DERIVE_FROM_SESSIONS" },
+          {
+            label: "Derive from the day's sessions",
+            value: "DERIVE_FROM_SESSIONS",
+          },
           {
             label: "Require a device punch for office days",
             value: "REQUIRE_DEVICE_FOR_OFFICE",
@@ -945,7 +985,6 @@ const legacyAttendanceSettingsSections: SettingsSectionConfig[] = [
     ],
   },
 ];
-
 
 const payrollValidationOptions = [
   { label: "Ignore", value: "IGNORE" },
@@ -1156,18 +1195,14 @@ export const timesheetSettingsSections: TabbedSettingsSection[] = [
     title: "Leave Integration",
     description:
       "Show approved leave and handle partial, retroactive, and leave-only periods.",
-    fields: [
-      timesheetField("lockApprovedLeave", "Lock approved leave hours"),
-    ],
+    fields: [timesheetField("lockApprovedLeave", "Lock approved leave hours")],
   },
   {
     tabKey: "holiday-integration",
     title: "Holiday Integration",
     description:
       "Resolve scoped holiday names and control approved holiday work.",
-    fields: [
-      timesheetField("allowHolidayWork", "Allow holiday work"),
-    ],
+    fields: [timesheetField("allowHolidayWork", "Allow holiday work")],
   },
   {
     tabKey: "project-activity",

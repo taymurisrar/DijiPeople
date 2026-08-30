@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 304** · automated: 264 · manual: 22 · blocked by infrastructure: 0
+**Scenarios: 305** · automated: 264 · manual: 23 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -41,6 +41,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-ATTENDANCE-003](../../../docs/qa/scenarios/QA-ATTENDANCE-003-an-attendance-refusal-renders-as-a-policy-answer-not-the-tec.md) | An attendance refusal renders as a policy answer, not the technical error dialog | attendance | E2E | HIGH | MANUAL | `services/api/src/common/errors/attendance-reason-codes.spec.ts` | BUG-2332 | REG-361 |
 | [QA-ATTENDANCE-004](../../../docs/qa/scenarios/QA-ATTENDANCE-004-attendance-check-in-omits-the-user-agent-when-storeuseragent.md) | Attendance check-in omits the user agent when storeUserAgent is off | attendance | E2E | MEDIUM | MANUAL | `apps/web/lib/runtime/modules/attendance-location-payload.spec.ts` | BUG-2333 | REG-362 |
 | [QA-ATTENDANCE-005](../../../docs/qa/scenarios/QA-ATTENDANCE-005-a-browser-location-failure-renders-its-own-reason-with-the-r.md) | A browser location failure renders its own reason with the right retry | attendance | E2E | MEDIUM | MANUAL | `apps/web/lib/attendance/location-capture-failure-routing.spec.ts` | BUG-2334 | REG-363 |
+| [QA-ATTENDANCE-006](../../../docs/qa/scenarios/QA-ATTENDANCE-006-the-ip-fallback-setting-is-locked-off-and-cannot-be-re-enabl.md) | The IP fallback setting is locked off and cannot be re-enabled | attendance | E2E | MEDIUM | MANUAL | `services/api/src/modules/tenant-settings/attendance-settings-mandate.spec.ts` | BUG-2335 | REG-364 |
 | [QA-AUTH-001](../../../docs/qa/scenarios/QA-AUTH-001-every-caller-and-its-auth-route-agree-on-http-method.md) | Every caller and its auth route agree on HTTP method | authentication | API | HIGH | AUTOMATED | `scripts/check-route-method-callers.mjs` | BUG-0008, BUG-0038 | REG-008, REG-033 |
 | [QA-AUTH-002](../../../docs/qa/scenarios/QA-AUTH-002-sign-out-always-revokes-the-session-and-never-500s-while-cle.md) | Sign-out always revokes the session and never 500s while clearing cookies | authentication | E2E | HIGH | AUTOMATED | `services/api/test/admin-logout-revocation.e2e-spec.ts` | BUG-0009, BUG-0010, BUG-0627 | REG-032, REG-221 |
 | [QA-AUTH-003](../../../docs/qa/scenarios/QA-AUTH-003-repeated-failed-sign-ins-lock-the-account.md) | Repeated failed sign-ins lock the account | authentication | UNIT | HIGH | AUTOMATED | `services/api/src/modules/auth/login-lockout.service.spec.ts` | — | — |
