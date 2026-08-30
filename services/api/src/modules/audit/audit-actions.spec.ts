@@ -210,7 +210,7 @@ describe('audit repository filtering', () => {
       in: expect.arrayContaining([
         'ATTENDANCE_MANUAL_CREATED',
         'attendance.manual_created',
-      ]),
+      ]) as string[],
     });
   });
 
@@ -229,7 +229,7 @@ describe('audit repository filtering', () => {
       in: expect.arrayContaining([
         'ATTENDANCE_MANUAL_CREATED',
         'attendance.manual_created',
-      ]),
+      ]) as string[],
     });
   });
 });

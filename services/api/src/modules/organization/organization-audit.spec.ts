@@ -1,5 +1,6 @@
 import { AUDIT_ACTIONS } from '../../common/constants/audit-actions';
 import { OrganizationService } from './organization.service';
+import type { AuditService } from '../audit/audit.service';
 
 /**
  * BUG-2044 — no file in this module referenced `AuditService` at all, so
@@ -21,7 +22,9 @@ const currentUser = {
 } as never;
 
 function createService(overrides: Record<string, unknown> = {}) {
-  const auditService = { log: jest.fn() };
+  const auditService = {
+    log: jest.fn<Promise<unknown>, Parameters<AuditService['log']>>(),
+  };
   const organizationRepository = {
     findOrganizations: jest.fn(async () => [
       {
@@ -122,7 +125,9 @@ describe('organization structure auditing', () => {
         action: AUDIT_ACTIONS.DEPARTMENT_CREATED,
         entityType: 'Department',
         entityId: 'department-1',
-        afterSnapshot: expect.objectContaining({ name: 'Engineering' }),
+        afterSnapshot: expect.objectContaining({
+          name: 'Engineering',
+        }) as Record<string, unknown>,
       }),
     );
   });
@@ -203,7 +208,9 @@ describe('organization structure auditing', () => {
         action: AUDIT_ACTIONS.DESIGNATION_UPDATED,
         entityType: 'Designation',
         entityId: 'designation-1',
-        beforeSnapshot: expect.objectContaining({ name: 'Staff Engineer' }),
+        beforeSnapshot: expect.objectContaining({
+          name: 'Staff Engineer',
+        }) as Record<string, unknown>,
       }),
     );
   });

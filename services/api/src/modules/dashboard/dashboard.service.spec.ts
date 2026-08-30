@@ -1,4 +1,5 @@
 import { DashboardService } from './dashboard.service';
+import type { AttendanceService } from '../attendance/attendance.service';
 
 function attendanceServiceDouble(
   expectation: {
@@ -7,10 +8,15 @@ function attendanceServiceDouble(
   } = {},
 ) {
   return {
-    resolveAttendanceExpectation: jest.fn().mockResolvedValue({
-      expectedEmployeeIds: expectation.expectedEmployeeIds ?? [],
-      nonWorkingEmployeeIds: expectation.nonWorkingEmployeeIds ?? [],
-    }),
+    resolveAttendanceExpectation: jest
+      .fn<
+        ReturnType<AttendanceService['resolveAttendanceExpectation']>,
+        Parameters<AttendanceService['resolveAttendanceExpectation']>
+      >()
+      .mockResolvedValue({
+        expectedEmployeeIds: expectation.expectedEmployeeIds ?? [],
+        nonWorkingEmployeeIds: expectation.nonWorkingEmployeeIds ?? [],
+      }),
   };
 }
 
@@ -227,9 +233,7 @@ describe('DashboardService attendance operations', () => {
     const [tenantId, attendanceDate] =
       attendanceService.resolveAttendanceExpectation.mock.calls[0];
     expect(tenantId).toBe('tenant-1');
-    expect((attendanceDate as Date).toISOString()).toBe(
-      '2026-08-29T00:00:00.000Z',
-    );
+    expect(attendanceDate.toISOString()).toBe('2026-08-29T00:00:00.000Z');
   });
 
   it('scopes the expectation to the same employees the tile counts', async () => {

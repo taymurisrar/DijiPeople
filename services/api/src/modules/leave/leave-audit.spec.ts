@@ -121,8 +121,10 @@ describe('leave configuration auditing', () => {
         action: AUDIT_ACTIONS.LEAVE_TYPE_UPDATED,
         entityType: 'LeaveType',
         entityId: 'leave-type-1',
-        beforeSnapshot: expect.objectContaining({ consumesBalance: true }),
-        afterSnapshot: expect.anything(),
+        beforeSnapshot: expect.objectContaining({
+          consumesBalance: true,
+        }) as Record<string, unknown>,
+        afterSnapshot: expect.anything() as unknown,
       }),
     );
   });
@@ -177,7 +179,10 @@ describe('leave configuration auditing', () => {
       expect.objectContaining({
         action: AUDIT_ACTIONS.LEAVE_POLICY_UPDATED,
         entityId: 'leave-policy-1',
-        beforeSnapshot: expect.objectContaining({ name: 'Default' }),
+        beforeSnapshot: expect.objectContaining({ name: 'Default' }) as Record<
+          string,
+          unknown
+        >,
       }),
     );
   });
