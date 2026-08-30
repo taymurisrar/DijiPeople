@@ -1,7 +1,7 @@
 # Component Index
 
-> **Last verified:** 2026-08-29
-> **Verified against commit:** b22a0623
+> **Last verified:** 2026-08-30
+> **Verified against commit:** 383ece94
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -16,8 +16,8 @@ question an agent can answer by retrieval rather than by reading a directory.
 comment beside it is the reasoning; this document is a route to both. Every row
 carries `file`:`line` for that reason — read the source before changing it.
 
-**An export missing from here is undocumented, not absent.** 757 of
-864 exports across these kits carry no
+**An export missing from here is undocumented, not absent.** 764 of
+881 exports across these kits carry no
 doc-comment and are omitted rather than listed as bare names. That ratio is
 itself worth knowing: it is where a UI/UX or Frontend agent is working without
 stated rationale, and where adding one is worth more than a new abstraction.
@@ -45,7 +45,7 @@ re-derived on each run.
 
 `ProDataTable` (`crm/data-table.tsx`) is the required table for every production admin screen. A hand-rolled table here is a review failure.
 
-68 documented export(s); 244 undocumented export(s) omitted.
+71 documented export(s); 246 undocumented export(s) omitted.
 
 | Export | Kind | Used by | Where | What it is |
 |---|---|---|---|---|
@@ -59,7 +59,7 @@ re-derived on each run.
 | `AccountPreferencesClient` | component | 1 | `apps/admin/app/_components/account-preferences-client.tsx`:26 | Personal console preferences, stored against the operator. |
 | `NotificationsFeed` | component | 1 | `apps/admin/app/_components/notifications/notifications-feed.tsx`:30 | What has happened on this platform that somebody should look at. |
 | `PaymentRecheckPanel` | component | 1 | `apps/admin/app/_components/customers/payment-recheck-panel.tsx`:63 | What Stripe says about this customer's payment, and what to tell them. |
-| `PlanCommercialSummary` | component | 1 | `apps/admin/app/_components/plans/plan-commercial-summary.tsx`:28 | What this plan currently costs and who is on it. |
+| `PlanCommercialSummary` | component | 1 | `apps/admin/app/_components/plans/plan-commercial-summary.tsx`:33 | What this plan currently costs and who is on it. |
 | `PlanEntitlementsPanel` | component | 1 | `apps/admin/app/_components/plans/plan-entitlements-panel.tsx`:22 | Plan entitlements. The entitlement set is what a plan actually sells, and until now it could only be changed on the legacy `?workspace=legacy-commerce` page — the runtime record page showed an "Entitlements" tab with nothing on it. |
 | `ReadinessCard` | component | 1 | `apps/admin/app/_components/tenants/tenant-overview-panel.tsx`:446 | Deterministic readiness, shown as the list of rules it checked. |
 | `RecordCommandBar` | component | 1 | `apps/admin/app/_components/runtime/record-command-bar.tsx`:22 | The default record command bar for a **server-rendered** detail page. |
@@ -76,11 +76,12 @@ re-derived on each run.
 | `TenantRecordHeader` | component | 1 | `apps/admin/app/_components/tenants/tenant-record-header.tsx`:21 | The tenant record header. |
 | `TenantSystemPanel` | component | 1 | `apps/admin/app/_components/tenants/tenant-system-panel.tsx`:28 | System — internal platform metadata, and the one place tenant erasure lives. |
 | `TenantTimelinePanel` | component | 1 | `apps/admin/app/_components/tenants/tenant-timeline-panel.tsx`:54 | Timeline — readable operational history, not the compliance audit log. |
-| `TenantControlPlaneError` | component | 0 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:506 | An API failure with the context needed to chase it. |
-| `useTenantResource` | function | 10 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:600 | Load one tab's data. Every tab owns its own request and is only fired when that tab is opened, so arriving on Overview does not pull Commercial, Apps and Operations with it. |
+| `TenantControlPlaneError` | component | 0 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:512 | An API failure with the context needed to chase it. |
+| `useTenantResource` | function | 10 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:606 | Load one tab's data. Every tab owns its own request and is only fired when that tab is opened, so arriving on Overview does not pull Commercial, Apps and Operations with it. |
 | `relativeTime` | function | 5 | `apps/admin/app/_components/tenants/tenant-panel-ui.tsx`:405 | Relative time for heartbeat and last-seen columns. |
 | `runStandardRecordCommand` | function | 4 | `apps/admin/lib/runtime/standard-record-commands.ts`:23 | Back, New and Refresh for the record pages that are **not** the runtime. |
 | `useReasonPrompt` | function | 3 | `apps/admin/app/_components/runtime/use-reason-prompt.tsx`:62 | Collects a governed reason through the design system instead of `window.prompt` (BUG-0020). |
+| `describePlanSchedule` | function | 2 | `apps/admin/lib/runtime/plan-headline-prices.ts`:180 | "Per seat, PKR" — how the tiles name the schedule they are showing. |
 | `formatWhen` | function | 2 | `apps/admin/app/_components/notifications/notification-model.ts`:86 | "4 minutes ago", falling back to an absolute time once relative stops being the more useful phrasing. |
 | `humanizeLabel` | function | 2 | `apps/admin/lib/runtime/humanize-label.ts`:89 | Display text for a stored enum value, lookup key or similar. |
 | `recordDisplayName` | function | 2 | `apps/admin/lib/runtime/destructive-confirm.ts`:95 | The best display name for a record, from whatever the row happens to carry. |
@@ -94,14 +95,15 @@ re-derived on each run.
 | `firstFailingTab` | function | 1 | `apps/admin/lib/runtime/blocked-save-feedback.ts`:22 | The tab holding the first failure, or null when none of them declare one. |
 | `humanizeErrorMessage` | function | 1 | `apps/admin/lib/runtime/humanize-field-error.ts`:62 | Whether this message is implementation detail rather than user-facing text. |
 | `humanizeFieldError` | function | 1 | `apps/admin/lib/runtime/humanize-field-error.ts`:24 | Replace a leading DTO property name with the label the operator sees. |
-| `isTransportFailure` | function | 1 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:677 | Whether a failure means "the request never got an answer" rather than "the server said no". |
+| `isTransportFailure` | function | 1 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:683 | Whether a failure means "the request never got an answer" rather than "the server said no". |
 | `planEntitlementKeys` | function | 1 | `apps/admin/lib/runtime/plan-entitlement-keys.ts`:29 | The entitlement keys a plan record grants, whatever shape the record is in. |
+| `planSubscriptionCount` | function | 1 | `apps/admin/lib/runtime/plan-subscription-count.ts`:22 | How many tenants are billed on a plan, whatever shape the record is in. |
 | `readRuntimeLookupLabel` | function | 1 | `apps/admin/lib/runtime/runtime-lookups.ts`:138 | The display name of a related record, wherever this schema happens to keep it. |
-| `reconcileWithErasureReceipt` | function | 1 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:702 | Ask the receipt what happened when the response did not arrive. |
+| `reconcileWithErasureReceipt` | function | 1 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:708 | Ask the receipt what happened when the response did not arrive. |
 | `recordHeaderWritePermission` | function | 1 | `apps/admin/lib/runtime/runtime-permissions.ts`:54 | The permission a header slot's write route is governed by. |
 | `useTenantRecordActions` | function | 1 | `apps/admin/app/_components/tenants/use-tenant-record-actions.tsx`:99 | Routes tenant action-bar requests to whichever surface owns the change. |
 | `acceptsField` | function | 0 | `apps/admin/lib/runtime/runtime-write-payload.ts`:20 | Whether the runtime will accept this field on this kind of write. |
-| `fetchErasureReceipts` | function | 0 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:657 | Erasure receipts for one tenant, read without addressing the tenant itself. |
+| `fetchErasureReceipts` | function | 0 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:663 | Erasure receipts for one tenant, read without addressing the tenant itself. |
 | `mergeVisibleColumns` | function | 0 | `apps/admin/app/_components/runtime/runtime-module-list.tsx`:1385 | Which columns are visible, given a saved preference written against an older version of the module. |
 | `normalizeColumnOrder` | function | 0 | `apps/admin/app/_components/runtime/runtime-module-list.tsx`:1336 | Merge a saved column order with the module's current one. |
 | `normalizeWriteValue` | function | 0 | `apps/admin/lib/runtime/runtime-write-payload.ts`:49 | What an empty optional field should be sent as — or whether to send it. |
@@ -116,13 +118,14 @@ re-derived on each run.
 | `RUNTIME_ELEVATED_ROLES` | constant | 0 | `apps/admin/lib/runtime/runtime-permissions.ts`:21 | Roles that reach every platform module regardless of the granted key set. |
 | `Notification` | type | 0 | `apps/admin/app/_components/notifications/notification-model.ts`:11 | One row of the feed, as `platform-notifications.ts` projects it. |
 | `OverviewIncident` | type | 0 | `apps/admin/app/_components/monitoring/monitoring-overview.tsx`:39 | Monitoring, as a place to start work rather than a place to read numbers. |
+| `PlanPriceLike` | type | 0 | `apps/admin/lib/runtime/plan-headline-prices.ts`:43 | The one monthly/annual pair a plan's headline tiles may show. |
 | `TenantWorkspaceHealth` | type | 0 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:174 | What is missing from a workspace, as facts about the tenant rather than about a provisioning run that may never have been recorded. |
 
 ### Tenant product kit — `apps/web`
 
 Metadata-driven UI is the default. New modules are declared through `lib/runtime/` and rendered by the standard runtime pages; a bespoke page needs a stated reason in the plan.
 
-39 documented export(s); 510 undocumented export(s) omitted.
+46 documented export(s); 515 undocumented export(s) omitted.
 
 | Export | Kind | Used by | Where | What it is |
 |---|---|---|---|---|
@@ -137,17 +140,22 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `ModuleShareDialog` | component | 1 | `apps/web/app/components/runtime/module-share-dialog.tsx`:12 | Escape did nothing here and `aria-labelledby` named nothing; the read-only link input carried no accessible name at all. |
 | `SessionExpiredDialog` | component | 1 | `apps/web/app/components/feedback/session-expired-dialog.tsx`:16 | This had no dialog semantics, no focus containment and no Escape at all — which for this one is partly deliberate: there is nothing behind it the user can usefully do. |
 | `WorkspaceEnvironmentBanner` | component | 1 | `apps/web/app/components/workspace-environment-banner.tsx`:38 | A persistent marker on non-production workspaces. |
-| `WorkspaceSwitcher` | component | 1 | `apps/web/app/components/workspace-switcher.tsx`:55 | Moving between the workspaces one person belongs to. |
 | `WorkspaceContextLabel` | component | 0 | `apps/web/app/components/workspace-environment-banner.tsx`:66 | The workspace label for the app shell. |
 | `useDialogBehavior` | function | 16 | `apps/web/app/components/ui/dialog.tsx`:130 | The behaviour half of {@link Dialog}, on its own. |
 | `isVisibleByRules` | function | 3 | `apps/web/lib/runtime/visibility.resolver.ts`:57 | True when every rule passes. |
+| `useSideToast` | function | 2 | `apps/web/app/components/notifications/use-side-toast.tsx`:19 | Local toast state plus the element that renders it. |
+| `buildQuickCreateValues` | function | 1 | `apps/web/lib/runtime/related-record-create-values.ts`:56 | The dialog's value map, in precedence order: declared inheritance from the parent, then the record being edited, then whatever the user has typed, then the parent foreign key — which is not the user's to change. |
+| `buildSubgridQuickCreate` | function | 1 | `apps/web/lib/runtime/quick-create-metadata.ts`:23 | Quick-create metadata and the gate in front of it. |
 | `commandContextSubtitle` | function | 1 | `apps/web/lib/runtime/command-context-labels.ts`:25 | A shift is only ever called a shift, and a work site only ever a work site. |
 | `commandsForPlacement` | function | 1 | `apps/web/lib/runtime/command-catalog.ts`:191 | Commands that make sense on a given bar, for filtering the picker. |
 | `emptyStateMessage` | function | 1 | `apps/web/app/components/data-table/utils.ts`:274 | Which empty state is true. |
 | `fieldValidationErrorsAreVisible` | function | 1 | `apps/web/lib/runtime/command-failure-visibility.ts`:20 | Whether a failed command's field errors will actually appear somewhere the user can see them. |
-| `useSideToast` | function | 1 | `apps/web/app/components/notifications/use-side-toast.tsx`:19 | Local toast state plus the element that renders it. |
+| `filterToFormFields` | function | 1 | `apps/web/lib/runtime/related-record-create-values.ts`:76 | Drop anything the child form does not declare, which is what gets posted. |
+| `resolveCommandFailureMessage` | function | 1 | `apps/web/lib/runtime/command-failure-message.ts`:63 | The one line a user reads when a runtime command fails. |
+| `resolveInheritedParentValues` | function | 1 | `apps/web/lib/runtime/related-record-create-values.ts`:35 | The subset of a parent record a subgrid has declared its children inherit. |
 | `validateDraft` | function | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:191 | Checks a draft before it is sent. |
 | `fieldsFor` | function | 0 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:100 | The fields a given correction type actually uses. |
+| `formatValue` | function | 0 | `apps/web/app/components/dashboard/dashboard-widget-renderer.tsx`:540 | Exported only for `dashboard-widget-formatting.spec.ts` — `apps/web` has no jsdom, so this is the widest surface this app's jest can reach directly rather than reading the source for a string. |
 | `readFieldErrorNames` | function | 0 | `apps/web/lib/runtime/command-failure-visibility.ts`:39 | Field names from either supported error shape, at the root or under `details`. |
 | `resolveVisibleByRules` | function | 0 | `apps/web/lib/runtime/visibility.resolver.ts`:84 | Filters any list of rule-carrying items. |
 | `ThemeApplier` | value | 1 | `apps/web/app/components/theme/theme-applier.tsx`:18 | Re-asserts the user's theme after hydration, everywhere in the app. |
@@ -161,9 +169,11 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `ModuleViewType` | type | 1 | `apps/web/app/components/runtime/module-view-selector.tsx`:15 | The one view selector. |
 | `AudienceOption` | type | 0 | `apps/web/app/components/runtime/visibility-rules-editor.tsx`:24 | One editor for audience rules, shared by every designer that gates a surface. |
 | `CommandContextSource` | type | 0 | `apps/web/lib/runtime/command-context-labels.ts`:14 | Labels for the context line a command surface shows above its form. |
+| `CommandFailureContract` | type | 0 | `apps/web/lib/runtime/command-failure-message.ts`:22 | What a failed runtime command means, read out of whatever the adapter threw. |
 | `CommandPlacementKey` | type | 0 | `apps/web/lib/runtime/command-catalog.ts`:9 | The commands an action bar can carry, and where a bar can appear. |
 | `CorrectionType` | type | 0 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:15 | Which fields a correction type needs, and what makes a request valid. |
 | `GovernedInputRequest` | type | 0 | `apps/web/app/components/feedback/use-governed-input.tsx`:37 | Collect a governed value through the design system, instead of `window.prompt`. |
+| `QuickCreateSubmission` | type | 0 | `apps/web/lib/runtime/quick-create-metadata.ts`:130 | Whether a quick-create dialog may submit, and what to say when it may not. |
 | `RuntimeTabContentContext` | type | 0 | `apps/web/app/components/metadata/runtime-metadata-form-renderer.tsx`:65 | What a purpose-built tab body gets to work with. |
 
 ### Shared package — NOT the design system — `packages/ui`

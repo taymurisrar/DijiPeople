@@ -324,6 +324,25 @@ export function SelectField({
                 const isActive = index === activeIndex;
 
                 return (
+                  /*
+                   * The two jsx-a11y rules below are false positives for this
+                   * pattern, and silencing them is the deliberate half of
+                   * BUG-1956 rather than a shortcut past it.
+                   *
+                   * In an `aria-activedescendant` listbox the options are
+                   * explicitly NOT in the tab order and carry no key handlers
+                   * of their own: the combobox keeps focus, owns the arrow and
+                   * Enter handling, and points at the active option by id. That
+                   * is the pattern the trigger's ARIA attributes have claimed
+                   * all along. Satisfying the rules literally — giving each
+                   * option a tabIndex and its own onKeyDown — would rebuild the
+                   * roving-focus variant instead, contradict the
+                   * `aria-activedescendant` the combobox advertises, and leave
+                   * a screen reader with two competing accounts of where focus
+                   * is. The rules cannot see which of the two listbox patterns
+                   * is in play; they assume roving focus.
+                   */
+                  // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/interactive-supports-focus
                   <div
                     aria-selected={isSelected}
                     className={[
@@ -1200,6 +1219,14 @@ export function LookupField({
                     const display = lookupOptionDisplay(option);
 
                     return (
+                      /*
+                       * Same deliberate exception as the select listbox above:
+                       * `aria-activedescendant` keeps focus on the combobox, so
+                       * an option must not be focusable and must not carry its
+                       * own key handler. See the fuller note at the other call
+                       * site.
+                       */
+                      // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/interactive-supports-focus
                       <div
                         aria-selected={isSelected}
                         id={listboxOptionId(listboxId, index)}

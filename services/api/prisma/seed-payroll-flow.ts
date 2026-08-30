@@ -2245,7 +2245,10 @@ async function seedPostingRules(
       await prisma.payrollPostingRule.create({
         data: {
           tenantId,
-          code: name.toUpperCase().replace(/[^A-Z0-9]+/g, '-').slice(0, 80),
+          code: name
+            .toUpperCase()
+            .replace(/[^A-Z0-9]+/g, '-')
+            .slice(0, 80),
           name,
           ...data,
         },
