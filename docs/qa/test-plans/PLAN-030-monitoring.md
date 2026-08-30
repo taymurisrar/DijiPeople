@@ -157,7 +157,7 @@ admin console, so this is a manual check today.
 
 ## Related
 
-- Scenarios — [[QA-PLATFORM-028]], [[QA-PLATFORM-029]], [[QA-PLATFORM-030]]
+- Scenarios — [[QA-PLATFORM-028]], [[QA-PLATFORM-029]], [[QA-PLATFORM-030]], [[QA-PLATFORM-031]]
 - Bugs — [[BUG-2459]], [[BUG-2460]], [[BUG-2465]], [[BUG-1754]], [[BUG-1750]], [[BUG-1420]], [[BUG-1419]]
 - Regressions — REG-368, REG-369, REG-371, REG-282, REG-281 (see the regression register)
 

@@ -6,13 +6,13 @@ One evergreen plan per product area: scope, risks, the cases that must always
 be covered, and the declared coverage per dimension. QA loads the plan for
 every area a change touches **before** designing anything new.
 
-**Plans: 26** · scenarios across them: 312
+**Plans: 26** · scenarios across them: 314
 
 | Plan | Area | Risk | Status | Scenarios | Related bugs | Verified against |
 |---|---|---|---|---|---|---|
 | [PLAN-008](../../../docs/qa/test-plans/PLAN-008-agent-desktop.md) | agent-desktop | HIGH | CURRENT | 7 | BUG-0033, BUG-0034, BUG-0035, BUG-0036 | `287612d` |
 | [PLAN-022](../../../docs/qa/test-plans/PLAN-022-approvals.md) | approvals | HIGH | CURRENT | 4 | BUG-1968, BUG-2015, BUG-1970, BUG-1969 | `a86362cf` |
-| [PLAN-009](../../../docs/qa/test-plans/PLAN-009-attendance.md) | attendance | CRITICAL | CURRENT | 19 | BUG-0002, BUG-0047 | `287612d` |
+| [PLAN-009](../../../docs/qa/test-plans/PLAN-009-attendance.md) | attendance | CRITICAL | CURRENT | 20 | BUG-0002, BUG-0047 | `287612d` |
 | [PLAN-001](../../../docs/qa/test-plans/PLAN-001-authentication.md) | authentication | CRITICAL | CURRENT | 9 | BUG-0008, BUG-0009, BUG-0010, BUG-0627 | `0c61b7e` |
 | [PLAN-002](../../../docs/qa/test-plans/PLAN-002-authorization.md) | authorization | CRITICAL | CURRENT | 19 | BUG-0003, BUG-0004, BUG-0006, BUG-0007, BUG-0047, BUG-0071, BUG-0072 | `287612d` |
 | [PLAN-020](../../../docs/qa/test-plans/PLAN-020-billing.md) | billing | CRITICAL | CURRENT | 18 | BUG-0531, BUG-0533, BUG-0534, BUG-0027, BUG-0030 | `99dc70a` |
@@ -23,7 +23,7 @@ every area a change touches **before** designing anything new.
 | [PLAN-005](../../../docs/qa/test-plans/PLAN-005-lead-management.md) | lead-management | HIGH | CURRENT | 6 | BUG-0013, BUG-0018, BUG-0021, BUG-0031, BUG-0032 | `287612d` |
 | [PLAN-023](../../../docs/qa/test-plans/PLAN-023-leave.md) | leave | HIGH | CURRENT | 3 | BUG-1967, BUG-1966, BUG-1962, BUG-1970 | `9def9971` |
 | [PLAN-015](../../../docs/qa/test-plans/PLAN-015-legal.md) | legal | HIGH | CURRENT | 5 | — | `bd0fb36` |
-| [PLAN-030](../../../docs/qa/test-plans/PLAN-030-monitoring.md) | monitoring | HIGH | CURRENT | 3 | BUG-2459, BUG-2460, BUG-2465, BUG-1754, BUG-1750, BUG-1420, BUG-1419 | `39d8ddc4` |
+| [PLAN-030](../../../docs/qa/test-plans/PLAN-030-monitoring.md) | monitoring | HIGH | CURRENT | 4 | BUG-2459, BUG-2460, BUG-2465, BUG-1754, BUG-1750, BUG-1420, BUG-1419 | `39d8ddc4` |
 | [PLAN-014](../../../docs/qa/test-plans/PLAN-014-outbox.md) | outbox | HIGH | CURRENT | 2 | BUG-0070 | `bd0fb36` |
 | [PLAN-006](../../../docs/qa/test-plans/PLAN-006-partner-lifecycle.md) | partner-lifecycle | HIGH | CURRENT | 6 | BUG-0016, BUG-0019, BUG-0025, BUG-0048 | `287612d` |
 | [PLAN-010](../../../docs/qa/test-plans/PLAN-010-payroll.md) | payroll | CRITICAL | CURRENT | 7 | BUG-0001, BUG-0039 | `287612d` |

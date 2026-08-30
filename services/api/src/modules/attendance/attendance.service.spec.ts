@@ -696,6 +696,69 @@ describe('AttendanceService', () => {
     );
   });
 
+  /**
+   * BUG-2494 — an entry the system accepted at check-in could not be closed.
+   *
+   * `checkOut` re-ran `validateModeAndLocation` against the *stored* mode and
+   * office location. Those are check-in preconditions, and check-out accepts
+   * neither — its DTO has no mode and no office location — so when the
+   * re-validation failed the employee had nothing to correct and the entry
+   * stayed open for ever. Production carried one open from `12:43:50Z`
+   * returning `400 "Office location is required for office attendance."` on
+   * every attempt.
+   *
+   * The combination is not an anomaly to clean up: `officeLocation` is
+   * `onDelete: SetNull`, so retiring a work site nulls the column on every
+   * entry referencing it and traps everyone checked in there at once.
+   */
+  it('closes an OFFICE entry whose work site is no longer on the record', async () => {
+    const existing = {
+      ...((await attendanceRepository.createAttendanceEntry()) as CreatedAttendanceEntry),
+      shiftTemplateId: 'shift-1',
+      shiftTemplate: null,
+      attendanceMode: AttendanceMode.OFFICE,
+      checkIn: new Date(Date.now() - 60 * 60 * 1000),
+      checkOut: null,
+      // The state production was stuck in, and the state a deleted work site
+      // leaves behind on every historical entry that referenced it.
+      officeLocationId: null,
+    };
+    const updated = {
+      ...existing,
+      checkOut: new Date(),
+      status: 'CHECKED_OUT',
+    };
+    attendanceRepository.createAttendanceEntry.mockClear();
+    attendanceRepository.findAttendanceEntryByEmployeeAndDate.mockResolvedValueOnce(
+      existing,
+    );
+    attendanceRepository.updateAttendanceEntry.mockResolvedValueOnce(updated);
+
+    /*
+     * The device location is still supplied and still required — that control
+     * is `validateAttendanceLocationPayload`, it validates what the client is
+     * sending *now*, and removing the check-in gate does not touch it. Omitting
+     * it here fails with "Current location is required", which is the correct
+     * refusal and the reason this test passes a position.
+     */
+    await expect(
+      service.checkOut(currentUser, {
+        note: 'Done',
+        remoteLatitude: 24.7136,
+        remoteLongitude: 46.6753,
+        locationAccuracy: 8,
+        locationCapturedAt: new Date().toISOString(),
+        locationSource: 'GPS',
+      }),
+    ).resolves.toBeDefined();
+
+    expect(attendanceRepository.updateAttendanceEntry).toHaveBeenCalledWith(
+      'tenant-1',
+      'attendance-1',
+      expect.objectContaining({ status: 'CHECKED_OUT' }),
+    );
+  });
+
   it('requires a fresh device location again at check-out', async () => {
     const existing = {
       ...((await attendanceRepository.createAttendanceEntry()) as CreatedAttendanceEntry),

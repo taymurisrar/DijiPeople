@@ -59,6 +59,13 @@ export type OverviewMetrics = {
   webApp: number;
   open: number;
   resolved: number;
+  /*
+   * Counted by the API from the same predicate the `investigating` view
+   * filters on. Optional only so a stale API cannot blank the page; when it is
+   * absent the tile reads 0 rather than falling back to the subtraction that
+   * caused BUG-2495.
+   */
+  investigating?: number;
 };
 
 export type EventHealth = {
@@ -193,11 +200,25 @@ export function MonitoringOverview({
           hint="No owner, no investigation yet"
         />
         <StatLink
+          /*
+           * The API's own count, not `total - open - resolved`.
+           *
+           * That subtraction assumed every incident was open, resolved or
+           * investigating. `NOT_AN_INCIDENT` became a fourth state in
+           * BUG-1754 and the arithmetic never learned about it, so every row
+           * the classifier set aside landed here under "Assigned and in
+           * progress" while this link returned none of them. Production read
+           * 27, and all 27 were `NOT_AN_INCIDENT` — nobody was investigating
+           * anything (BUG-2495).
+           *
+           * Inferring a count by subtracting the states you know about is only
+           * ever correct until someone adds a state.
+           */
           href={`${QUEUE}?status=INVESTIGATING`}
           icon={Clock3}
           label="Under investigation"
           tone="info"
-          value={Math.max(metrics.total - metrics.open - metrics.resolved, 0)}
+          value={metrics.investigating ?? 0}
           hint="Assigned and in progress"
         />
         <StatLink

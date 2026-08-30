@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**405 records** — 288 bugs under [`docs/bugs/`](../bugs/), 117 non-bug items under [`items/`](items/).
+**407 records** — 290 bugs under [`docs/bugs/`](../bugs/), 117 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,21 +13,21 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 88 |
+| Open (active work) | 90 |
 | Blocked | 2 |
 | Deferred | 24 |
 | Awaiting a product decision | 5 |
 | Completed / closed | 286 |
 | **Open CRITICAL** | **0** |
-| **Open HIGH** | **20** |
-| **Awaiting Architect triage** | **0** |
+| **Open HIGH** | **21** |
+| **Awaiting Architect triage** | **2** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 20 |
-| MEDIUM | 55 |
+| HIGH | 21 |
+| MEDIUM | 56 |
 | LOW | 13 |
 
 ## Open by type
@@ -44,15 +44,16 @@ see [`README.md`](README.md) for why.
 | INTEGRATION | 3 |
 | PERFORMANCE | 1 |
 | SECURITY | 2 |
+| STATE_MACHINE | 1 |
 | TECH_DEBT | 5 |
 | TEST_GAP | 6 |
-| UX | 21 |
+| UX | 22 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 2 |
+| OPEN | 4 |
 | BLOCKED | 2 |
 | DEFERRED | 24 |
 | PRODUCT_DECISION | 5 |
@@ -207,6 +208,7 @@ see [`README.md`](README.md) for why.
 | [BUG-2458](../../docs/bugs/BUG-2458-token-refresh-is-throttled-by-the-public-login-rate-limiter-.md) | Token refresh is throttled by the public login rate limiter, signing users out | BUG | HIGH | P1 | FIXED | api:auth, api:common | FIX_NOW |
 | [BUG-2459](../../docs/bugs/BUG-2459-the-notification-bell-polls-forever-after-a-session-ends-flo.md) | The notification bell polls forever after a session ends, flooding the error log | PERFORMANCE | HIGH | P1 | FIXED | web:notifications, api:error-logs, api:notifications | FIX_NOW |
 | [BUG-2462](../../docs/bugs/BUG-2462-stripe-subscription-webhooks-fail-because-the-customer-resol.md) | Stripe subscription webhooks fail because the customer resolves to no tenant | INTEGRATION | HIGH | P1 | OPEN | api:billing, api:super-admin | PLAN_REQUIRED |
+| [BUG-2494](../../docs/bugs/BUG-2494-check-out-re-validates-check-in-preconditions-and-traps-the-.md) | Check-out re-validates check-in preconditions and traps the entry open for ever | STATE_MACHINE | HIGH | P1 | OPEN | api:attendance | TRIAGE_REQUIRED |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -341,6 +343,7 @@ see [`README.md`](README.md) for why.
 | [BUG-2413](../../docs/bugs/BUG-2413-allocate-id-plan-scans-only-docs-qa-test-plans-so-execplan-i.md) | allocate-id plan scans only docs qa test-plans so ExecPlan ids collide | DATA_INTEGRITY | MEDIUM | P2 | FIXED | scripts | DONE |
 | [BUG-2460](../../docs/bugs/BUG-2460-client-error-reports-store-the-whole-html-error-page-as-the-.md) | Client error reports store the whole HTML error page as the incident message | BUG | MEDIUM | P2 | FIXED | web:error-reporting, api:error-logs, admin:monitoring | FIX_NOW |
 | [BUG-2465](../../docs/bugs/BUG-2465-session-revoked-401s-and-client-reported-failures-escape-the.md) | Session-revoked 401s and client-reported failures escape the not-an-incident filter | BUG | MEDIUM | P2 | FIXED | api:error-logs, api:platform-monitoring | FIX_NOW |
+| [BUG-2495](../../docs/bugs/BUG-2495-the-under-investigation-tile-counts-incidents-nobody-is-inve.md) | The Under investigation tile counts incidents nobody is investigating | UX | MEDIUM | P2 | OPEN | admin:monitoring, api:platform-monitoring | TRIAGE_REQUIRED |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |

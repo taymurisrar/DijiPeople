@@ -4085,3 +4085,33 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The backfill (`scripts/backfill-incident-classification.mjs`) goes through `PATCH /platform/logs/events/:traceId` rather than the database — that path already requires `monitoring:manage` and already records who changed what, and slower-and-audited is the right trade for a bulk change to production data. Dry-run by default, only ever `NEW` to `NOT_AN_INCIDENT`, never touches a row an operator has moved on, and writes a manifest `--revert` consumes. It imports the classifier rather than reimplementing it: a backfill that disagreed with the live rule would be worse than no backfill. Dry run on 2026-08-30 measured 1,680 rows leaving the queue and 190 remaining. |
 | **Fixed** | 2026-08-30 |
 | **Active** | yes |
+
+### REG-372 — A working day that could be started and never finished
+
+| | |
+|---|---|
+| **Bug class** | `precondition-revalidated-after-commit` |
+| **Module** | `attendance` |
+| **Bug record** | BUG-2494 |
+| **Root cause** | `checkOut` re-ran `validateModeAndLocation` against the *stored* entry — its `attendanceMode` and `officeLocationId`. Those are check-in preconditions, decided from the position at check-in and committed then, and check-out accepts neither: its DTO carries no mode and no office location. So the re-validation could only ever fail on data this service had already accepted, and when it failed the employee had nothing to correct. Production held entry `85303ef3-4285-45d4-a751-370a00a78828` open from `12:43:50Z`, returning `400 "Office location is required for office attendance."` on every attempt, with `attendanceMode: OFFICE` and `officeLocationId: null`. The read path meanwhile resolved `entry.officeLocation ?? entry.employee.location` and displayed "Head Office" for the same row — the serialiser considered it located while the validator called it invalid. |
+| **Regression test** | `services/api/src/modules/attendance/attendance.service.spec.ts` — "closes an OFFICE entry whose work site is no longer on the record" |
+| **Scenario** | An entry with `attendanceMode: OFFICE` and `officeLocationId: null` checks out successfully, with the device location still supplied and still required. The counterpart assertions already in the suite — "requires a tenant work site for Office check-in" and "requires an Office work site even when the legacy policy toggle is false" — are what make the fix safe: the precondition is not abandoned, it is enforced where the employee can act on it. |
+| **Proven to fail without the fix** | Mutation-tested. Restoring the `validateModeAndLocation` call fails the new case with the exact production message, `BadRequestException: Office location is required for office attendance.`; reverted immediately after confirming. |
+| **Note** | The stuck combination is not an anomaly to clean up. `officeLocation` is `onDelete: SetNull`, so retiring a work site nulls the column on **every** entry that referenced it and traps everyone currently checked in there at once; disabling a mode in policy after check-in traps every open entry in that mode the same way, with a different message. Deliberately not fixed by defaulting the work site from `employee.location` at check-out: that would hide the trap while attributing attendance to an office no geofence confirmed, which is the integrity control check-in exists to enforce. The general rule this encodes: **a record the system accepted must always be closable.** |
+| **Fixed** | 2026-08-30 |
+| **Active** | yes |
+
+### REG-373 — A tile that counted the incidents nobody was investigating
+
+| | |
+|---|---|
+| **Bug class** | `derived-count-outlives-its-assumption` |
+| **Module** | `platform-monitoring`, `apps/admin` |
+| **Bug record** | BUG-2495 |
+| **Root cause** | The monitoring overview derived "Under investigation" as `total - open - resolved`. That subtraction is only correct while an incident can be in exactly three states. BUG-1754 added `NOT_AN_INCIDENT` as a fourth, and because the `open` metric was correctly taught to exclude it, every set-aside row had to reappear somewhere — this tile is where the arithmetic put it, labelled "Assigned and in progress", linking to `?status=INVESTIGATING` which returned none of them. Production read 27 there and all 27 were `NOT_AN_INCIDENT`; there were zero rows in any investigating state. The BUG-2465 backfill would have made it read 1,707. |
+| **Regression test** | `services/api/src/modules/platform-monitoring/investigating-count.spec.ts` |
+| **Scenario** | `INVESTIGATING_SUPPORT_STATUSES` holds exactly `INVESTIGATING` and `FIX_IN_PROGRESS`, and is asserted **not** to contain `NOT_AN_INCIDENT`, `NEW`, `RESOLVED` or `WAITING_ON_CUSTOMER` — four statuses that each mean "nobody is working on this", for four different reasons. `incidentViewWhere("investigating")` is asserted to equal `investigatingIncidentWhere()`, so the count and the list it opens cannot drift. The neighbouring views are asserted unchanged. |
+| **Proven to fail without the fix** | The negative assertions fail against any predicate that readmits a non-working status, which is the shape of the original defect. The shared-definition assertion fails if the metric and the view are ever spelled separately again. |
+| **Note** | Second time this screen has had this fault: REG-281 was a tile counting 11 and linking to 0, where "critical" had been spelled three different ways. The lesson is the same and now applies to two metrics — **inferring a count by subtracting the states you know about is only ever correct until someone adds a state.** The frontend now reads the API's count and falls back to 0 rather than to the subtraction, so a stale API cannot resurrect the bug. |
+| **Fixed** | 2026-08-30 |
+| **Active** | yes |

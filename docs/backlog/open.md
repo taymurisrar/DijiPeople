@@ -11,7 +11,10 @@ The Architect reads this before planning any substantial change —
 
 ## Awaiting Architect triage
 
-_None._
+| ID | Title | Type | Severity | Priority | Status | Affected | Architect |
+|---|---|---|---|---|---|---|---|
+| [BUG-2494](../../docs/bugs/BUG-2494-check-out-re-validates-check-in-preconditions-and-traps-the-.md) | Check-out re-validates check-in preconditions and traps the entry open for ever | STATE_MACHINE | HIGH | P1 | OPEN | api:attendance | TRIAGE_REQUIRED |
+| [BUG-2495](../../docs/bugs/BUG-2495-the-under-investigation-tile-counts-incidents-nobody-is-inve.md) | The Under investigation tile counts incidents nobody is investigating | UX | MEDIUM | P2 | OPEN | admin:monitoring, api:platform-monitoring | TRIAGE_REQUIRED |
 
 ## CRITICAL
 
@@ -41,6 +44,7 @@ _None._
 | [BUG-2458](../../docs/bugs/BUG-2458-token-refresh-is-throttled-by-the-public-login-rate-limiter-.md) | Token refresh is throttled by the public login rate limiter, signing users out | BUG | HIGH | P1 | FIXED | api:auth, api:common | FIX_NOW |
 | [BUG-2459](../../docs/bugs/BUG-2459-the-notification-bell-polls-forever-after-a-session-ends-flo.md) | The notification bell polls forever after a session ends, flooding the error log | PERFORMANCE | HIGH | P1 | FIXED | web:notifications, api:error-logs, api:notifications | FIX_NOW |
 | [BUG-2462](../../docs/bugs/BUG-2462-stripe-subscription-webhooks-fail-because-the-customer-resol.md) | Stripe subscription webhooks fail because the customer resolves to no tenant | INTEGRATION | HIGH | P1 | OPEN | api:billing, api:super-admin | PLAN_REQUIRED |
+| [BUG-2494](../../docs/bugs/BUG-2494-check-out-re-validates-check-in-preconditions-and-traps-the-.md) | Check-out re-validates check-in preconditions and traps the entry open for ever | STATE_MACHINE | HIGH | P1 | OPEN | api:attendance | TRIAGE_REQUIRED |
 
 ## MEDIUM
 
@@ -81,6 +85,7 @@ _None._
 | [BUG-2413](../../docs/bugs/BUG-2413-allocate-id-plan-scans-only-docs-qa-test-plans-so-execplan-i.md) | allocate-id plan scans only docs qa test-plans so ExecPlan ids collide | DATA_INTEGRITY | MEDIUM | P2 | FIXED | scripts | DONE |
 | [BUG-2460](../../docs/bugs/BUG-2460-client-error-reports-store-the-whole-html-error-page-as-the-.md) | Client error reports store the whole HTML error page as the incident message | BUG | MEDIUM | P2 | FIXED | web:error-reporting, api:error-logs, admin:monitoring | FIX_NOW |
 | [BUG-2465](../../docs/bugs/BUG-2465-session-revoked-401s-and-client-reported-failures-escape-the.md) | Session-revoked 401s and client-reported failures escape the not-an-incident filter | BUG | MEDIUM | P2 | FIXED | api:error-logs, api:platform-monitoring | FIX_NOW |
+| [BUG-2495](../../docs/bugs/BUG-2495-the-under-investigation-tile-counts-incidents-nobody-is-inve.md) | The Under investigation tile counts incidents nobody is investigating | UX | MEDIUM | P2 | OPEN | admin:monitoring, api:platform-monitoring | TRIAGE_REQUIRED |
 | [ITEM-0009](../../docs/backlog/items/ITEM-0009-no-observability-platform-exists.md) | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | P2 | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [ITEM-0020](../../docs/backlog/items/ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns.md) | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | P2 | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [ITEM-0022](../../docs/backlog/items/ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur.md) | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | P2 | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
