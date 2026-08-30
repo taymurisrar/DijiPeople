@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 420,
+    "total_records": 424,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -14183,6 +14183,158 @@
           "super-admin"
         ],
         "verification_scope": "See docs/bugs/BUG-2618-expired-subscription-orders-are-never-swept-abandonexpired-h.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2623",
+      "type": "AUTHORIZATION",
+      "title": "buildScopedAccessWhere filters Employee on ownerTeamId, a column Employee does not have",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-2623-buildscopedaccesswhere-filters-employee-on-ownerteamid-a-col.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "1965b5cc",
+        "created_at": "2026-08-30",
+        "updated_at": "2026-08-30",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/common/security/rbac-query-scope.ts"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/common/security/rbac-query-scope.ts"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2623-buildscopedaccesswhere-filters-employee-on-ownerteamid-a-col.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2624",
+      "type": "AUTHORIZATION",
+      "title": "The reports endpoints return tenant-wide aggregates regardless of the caller's row scope",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-2624-the-reports-endpoints-return-tenant-wide-aggregates-regardle.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "1965b5cc",
+        "created_at": "2026-08-30",
+        "updated_at": "2026-08-30",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/reports/reports.service.ts"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/reports/reports.service.ts"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2624-the-reports-endpoints-return-tenant-wide-aggregates-regardle.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2625",
+      "type": "DATA_INTEGRITY",
+      "title": "Reports headcount counts soft-deleted employees and disagrees with the Employees screen",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-2625-reports-headcount-counts-soft-deleted-employees-and-disagree.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "1965b5cc",
+        "created_at": "2026-08-30",
+        "updated_at": "2026-08-30",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/reports/reports.service.ts"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/reports/reports.service.ts"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2625-reports-headcount-counts-soft-deleted-employees-and-disagree.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2626",
+      "type": "UX",
+      "title": "Dashboard numbers render in the visitor's browser locale instead of the tenant's",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/bugs/BUG-2626-dashboard-numbers-render-in-the-visitor-s-browser-locale-ins.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "1965b5cc",
+        "created_at": "2026-08-30",
+        "updated_at": "2026-08-30",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web/app/components/dashboard/dashboard-widget-renderer.tsx"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web/app/components/dashboard/dashboard-widget-renderer.tsx"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2626-dashboard-numbers-render-in-the-visitor-s-browser-locale-ins.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

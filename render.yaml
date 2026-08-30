@@ -159,6 +159,25 @@ services:
         value: "5000"
       - key: OUTBOX_WORKER_BATCH_SIZE
         value: "25"
+      # Reports & Analytics (TASK-0028). Both workers are OFF unless set here,
+      # so a deploy that omits them changes nothing rather than quietly starting
+      # background work. The scheduler is what sends scheduled reports by email;
+      # with it false, schedules can be created and edited but nothing is
+      # delivered, which is the safe half of the feature.
+      - key: REPORTS_SCHEDULER_ENABLED
+        value: "true"
+      - key: REPORTS_SCHEDULER_POLL_INTERVAL_MS
+        value: "60000"
+      # The daily workforce snapshot. Employee carries no slowly-changing
+      # history, so headcount trends are only true for days this job has run;
+      # turning it off stops history accumulating rather than losing what exists.
+      - key: REPORTS_WORKFORCE_SNAPSHOT_ENABLED
+        value: "true"
+      # How long a generated export stays downloadable before it is swept off
+      # the persistent disk. DataJob artifacts have no expiry and accumulate
+      # forever; these do not.
+      - key: REPORTS_ARTIFACT_RETENTION_DAYS
+        value: "7"
       # When exceeding purchased capacity is ordinary, warned, or stopped for a
       # human. The review thresholds exist for the import accident: 20 -> 22 is
       # hiring, 20 -> 900 overnight is a bad CSV, and billing the second one

@@ -9,3 +9,4 @@ Parent tasks currently in flight. `Current` is the work package executing now.
 | [TASK-0007](TASK-0007-commercial-platform-completion-transactional-legal-and-lifec.md) | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | P0 | IN_PROGRESS | 16/16 | — |
 | [TASK-0008](TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-.md) | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | P0 | IN_PROGRESS | 11/11 | — |
 | [TASK-0004](TASK-0004-autonomous-framework-v2-architect-only-orchestration-multi-s.md) | Autonomous framework v2 — Architect-only orchestration, multi-session safety, develop integration, persistent QA | FRAMEWORK | PROGRAM | P1 | IN_PROGRESS | 11/11 | — |
+| [TASK-0028](TASK-0028-enterprise-reports-and-analytics-platform.md) | Enterprise Reports and Analytics platform | FEATURE | LARGE | P1 | IN_PROGRESS | 5/15 | WP-08 |

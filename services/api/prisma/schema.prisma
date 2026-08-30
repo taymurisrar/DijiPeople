@@ -2340,6 +2340,13 @@ model Tenant {
   appAssignments                  TenantAppAssignment[]
   environmentGroup                TenantEnvironmentGroup?          @relation(fields: [environmentGroupId], references: [id], onDelete: SetNull)
   ownerUser                       User?                            @relation("TenantOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  reportDefinitions               ReportDefinition[]
+  reportSavedViews                ReportSavedView[]
+  reportFavorites                 ReportFavorite[]
+  reportRecentViews               ReportRecentView[]
+  reportSchedules                 ReportSchedule[]
+  reportRuns                      ReportRun[]
+  workforceSnapshots              WorkforceSnapshotDaily[]
 
   @@index([status])
   @@index([slug])
@@ -4410,6 +4417,11 @@ model User {
   customerNotes                  CustomerNote[]                @relation("CustomerNotes")
   ownedCustomerOnboardings       CustomerOnboarding[]          @relation("OwnedCustomerOnboardings")
   ownedTenants                   Tenant[]                      @relation("TenantOwner")
+  ownedReportDefinitions         ReportDefinition[]            @relation("ReportDefinitionOwner")
+  ownedReportSavedViews          ReportSavedView[]             @relation("ReportSavedViewOwner")
+  reportFavorites                ReportFavorite[]              @relation("ReportFavoriteUser")
+  reportRecentViews              ReportRecentView[]            @relation("ReportRecentViewUser")
+  ownedReportSchedules           ReportSchedule[]              @relation("ReportScheduleOwner")
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -5077,6 +5089,7 @@ model Employee {
   deletedById                    String?
   isDeleted                      Boolean                       @default(false)
   dailyProductivitySummaries     DailyProductivitySummary[]
+  workforceSnapshots             WorkforceSnapshotDaily[]
   previousEmployments            EmployeePreviousEmployment[]
   benefitAssignments             EmployeeBenefitAssignment[]
   taxProfiles                    EmployeeTaxProfile[]
@@ -14070,3 +14083,311 @@ model ConsentRecord {
   @@index([tenantId, type])
   @@index([type, state])
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Reports & Analytics platform — TASK-0028
+//
+// Standard reports are code-defined (see reporting/registry/*). Only custom
+// reports are persisted, which is why there is no `origin` column here: a row
+// in ReportDefinition IS a custom report. Favourites, schedules and runs point
+// at either kind through `targetKey`, a canonical string:
+//   "std:<standardReportKey>"  a code-defined standard report
+//   "def:<reportDefinitionId>" a persisted custom report
+//   "srf:<analyticsSurfaceKey>" an analytics surface (favourites/recents only)
+// A nullable-column composite unique cannot express that choice in PostgreSQL —
+// NULLs compare distinct, so (userId, null, null) would not collide with itself.
+// One canonical string keeps the uniqueness real.
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum ReportVisibilityScope {
+  PRIVATE
+  ROLE
+  USER
+  TENANT
+}
+
+enum ReportScheduleFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum ReportExportFormat {
+  CSV
+  XLSX
+  PDF
+}
+
+enum ReportRunTrigger {
+  MANUAL
+  SCHEDULED
+  PREVIEW
+}
+
+enum ReportRunStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  EXPIRED
+  CANCELLED
+}
+
+/// Whether a workforce snapshot row was observed on the day it describes, or
+/// reconstructed afterwards from hireDate/terminationDate.
+///
+/// The Employee model carries no slowly-changing history: departmentId,
+/// businessUnitId, managerEmployeeId and employmentStatus are mutable current
+/// state, so a reorg silently rewrites every historical breakdown. This table
+/// is what makes headcount trends true going forward. Rows written by the daily
+/// job are OBSERVED. Rows written by the backfill are BACKFILLED: they can only
+/// place an employee in their CURRENT department, and they cannot see a status
+/// that flipped and flipped back. A chart must be able to say which part of the
+/// line is reconstructed, which is why this is a column and not a comment.
+enum WorkforceSnapshotDerivation {
+  OBSERVED
+  BACKFILLED
+}
+
+model ReportDefinition {
+  id              String                @id @default(uuid())
+  tenantId        String
+  key             String
+  name            String
+  description     String?
+  category        String
+  dataSourceKey   String
+  visibilityScope ReportVisibilityScope @default(PRIVATE)
+  allowedRoleKeys Json?
+  allowedUserIds  Json?
+  /// Columns, filters, grouping, sort, aggregations and visualisation. JSON
+  /// rather than six child tables because nothing queries *into* a report's
+  /// shape — the engine loads a whole definition or none of it — and because a
+  /// child-table design makes every builder save a multi-statement diff.
+  /// Validated against the semantic registry on every write, never trusted.
+  configJson      Json
+  configVersion   Int                   @default(1)
+  ownerUserId     String?
+  isActive        Boolean               @default(true)
+  lastRunAt       DateTime?
+  runCount        Int                   @default(0)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  createdById     String?
+  updatedById     String?
+
+  tenant    Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ownerUser User?            @relation("ReportDefinitionOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  schedules ReportSchedule[]
+  runs      ReportRun[]
+
+  @@unique([tenantId, key])
+  @@index([tenantId, category])
+  @@index([tenantId, dataSourceKey])
+  @@index([tenantId, ownerUserId])
+  @@index([tenantId, isActive])
+}
+
+model ReportSavedView {
+  id              String                @id @default(uuid())
+  tenantId        String
+  surfaceKey      String
+  name            String
+  slug            String
+  ownerUserId     String?
+  visibilityScope ReportVisibilityScope @default(PRIVATE)
+  allowedRoleKeys Json?
+  allowedUserIds  Json?
+  /// Date range, comparison mode, filters and breakdown for one analytics
+  /// surface. Deliberately separate from ModuleView: that model is governed by
+  /// customization.views.* permissions, and a report reader must not need
+  /// customization rights to save a filter set.
+  configJson      Json
+  isDefault       Boolean               @default(false)
+  sortOrder       Int                   @default(0)
+  isActive        Boolean               @default(true)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  createdById     String?
+  updatedById     String?
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ownerUser User?  @relation("ReportSavedViewOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, surfaceKey, slug])
+  @@index([tenantId, surfaceKey])
+  @@index([tenantId, ownerUserId])
+  @@index([tenantId, surfaceKey, isActive])
+}
+
+model ReportFavorite {
+  id        String   @id @default(uuid())
+  tenantId  String
+  userId    String
+  targetKey String
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation("ReportFavoriteUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId, targetKey])
+  @@index([tenantId, userId])
+}
+
+model ReportRecentView {
+  id        String   @id @default(uuid())
+  tenantId  String
+  userId    String
+  targetKey String
+  viewedAt  DateTime @default(now())
+  viewCount Int      @default(1)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation("ReportRecentViewUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId, targetKey])
+  @@index([tenantId, userId, viewedAt])
+}
+
+model ReportSchedule {
+  id                 String                  @id @default(uuid())
+  tenantId           String
+  name               String
+  targetKey          String
+  reportDefinitionId String?
+  /// Whose permissions the run executes under. Authorization is evaluated at
+  /// EXECUTION time, not at creation time, so revoking someone's access stops
+  /// their schedules from leaking rather than leaving a standing export of data
+  /// they can no longer see. If this user loses access the run fails and is
+  /// recorded as failed — it never falls back to a service identity.
+  ownerUserId        String
+  frequency          ReportScheduleFrequency
+  hour               Int
+  minute             Int                     @default(0)
+  dayOfWeek          Int?
+  dayOfMonth         Int?
+  timezone           String
+  format             ReportExportFormat      @default(XLSX)
+  periodPreset       String
+  filtersJson        Json?
+  recipientUserIds   Json
+  isEnabled          Boolean                 @default(true)
+  nextRunAt          DateTime?
+  lastRunAt          DateTime?
+  lastRunStatus      ReportRunStatus?
+  lastFailureReason  String?
+  /// A schedule that fails repeatedly is disabled rather than left to mail an
+  /// error every morning; the count is what the worker trips on.
+  consecutiveFailureCount Int                @default(0)
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  createdById        String?
+  updatedById        String?
+
+  tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  reportDefinition ReportDefinition? @relation(fields: [reportDefinitionId], references: [id], onDelete: Cascade)
+  ownerUser        User              @relation("ReportScheduleOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  runs             ReportRun[]
+
+  @@index([tenantId, isEnabled, nextRunAt])
+  @@index([tenantId, ownerUserId])
+  @@index([tenantId, targetKey])
+  @@index([isEnabled, nextRunAt])
+}
+
+model ReportRun {
+  id                 String             @id @default(uuid())
+  tenantId           String
+  targetKey          String
+  reportDefinitionId String?
+  scheduleId         String?
+  trigger            ReportRunTrigger   @default(MANUAL)
+  format             ReportExportFormat?
+  status             ReportRunStatus    @default(QUEUED)
+  requestedByUserId  String?
+  executedAsUserId   String?
+  paramsJson         Json?
+  rowCount           Int?
+  durationMs         Int?
+  resultFileKey      String?
+  fileName           String?
+  contentType        String?
+  fileSizeBytes      Int?
+  /// Artifacts are swept after this instant. DataJob.resultFileKey has no
+  /// expiry and its files accumulate on the disk forever; this table does not
+  /// repeat that.
+  expiresAt          DateTime?
+  failureReason      String?
+  /// Claim fields for the worker. The API runs as a single instance today
+  /// (render.yaml pins it, because the persistent disk cannot be shared), but a
+  /// conditional claim costs nothing now and is the difference between safe and
+  /// silently duplicated if that ever changes.
+  claimedAt          DateTime?
+  claimedBy          String?
+  attemptCount       Int                @default(0)
+  startedAt          DateTime?
+  completedAt        DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  reportDefinition ReportDefinition? @relation(fields: [reportDefinitionId], references: [id], onDelete: Cascade)
+  schedule         ReportSchedule?   @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, status, createdAt])
+  @@index([tenantId, targetKey, createdAt])
+  @@index([tenantId, requestedByUserId, createdAt])
+  @@index([status, claimedAt])
+  @@index([expiresAt])
+}
+
+model WorkforceSnapshotDaily {
+  id                String                      @id @default(uuid())
+  tenantId          String
+  snapshotDate      DateTime                    @db.Date
+  employeeId        String
+  organizationId    String?
+  businessUnitId    String?
+  departmentId      String?
+  teamId            String?
+  designationId     String?
+  employeeLevelId   String?
+  employmentTypeId  String?
+  locationId        String?
+  managerEmployeeId String?
+  employmentStatus  EmployeeEmploymentStatus
+  employeeType      EmployeeType?
+  workMode          EmployeeWorkMode?
+  gender            EmployeeGender?
+  hireDate          DateTime
+  terminationDate   DateTime?
+  isJoiner          Boolean                     @default(false)
+  isLeaver          Boolean                     @default(false)
+  tenureDays        Int                         @default(0)
+  derivation        WorkforceSnapshotDerivation @default(OBSERVED)
+  createdAt         DateTime                    @default(now())
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, snapshotDate, employeeId])
+  @@index([tenantId, snapshotDate])
+  @@index([tenantId, snapshotDate, employmentStatus])
+  @@index([tenantId, snapshotDate, departmentId])
+  @@index([tenantId, snapshotDate, businessUnitId])
+  @@index([tenantId, snapshotDate, locationId])
+  @@index([tenantId, employeeId, snapshotDate])
+  @@index([tenantId, snapshotDate, isJoiner])
+  @@index([tenantId, snapshotDate, isLeaver])
+}
+
+// Back-relations to add on existing models:
+//   Tenant:   reportDefinitions, reportSavedViews, reportFavorites,
+//             reportRecentViews, reportSchedules, reportRuns,
+//             workforceSnapshots
+//   User:     ownedReportDefinitions ("ReportDefinitionOwner"),
+//             ownedReportSavedViews ("ReportSavedViewOwner"),
+//             reportFavorites ("ReportFavoriteUser"),
+//             reportRecentViews ("ReportRecentViewUser"),
+//             ownedReportSchedules ("ReportScheduleOwner")
+//   Employee: workforceSnapshots

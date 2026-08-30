@@ -242,6 +242,23 @@ export const PERMISSION_KEYS = {
   TEAMS_DELETE: 'teams.delete',
   TEAMS_MEMBERS_MANAGE: 'teams.members.manage',
   BUSINESS_UNITS_READ: 'business-units.read',
+
+  // Reports & Analytics (TASK-0028). `reports.export` is NOT here — it lives in
+  // MISC_PERMISSION_KEYS in rbac-matrix.ts and predates this work.
+  REPORTS_READ: 'reports.read',
+  REPORTS_BUILDER_USE: 'reports.builder.use',
+  REPORTS_DEFINITIONS_MANAGE: 'reports.definitions.manage',
+  REPORTS_SAVED_VIEWS_MANAGE: 'reports.saved-views.manage',
+  REPORTS_SCHEDULE_MANAGE: 'reports.schedule.manage',
+  REPORTS_DATA_QUALITY_READ: 'reports.data-quality.read',
+
+  // Desktop Activity analytics. Deliberately separate from `agent.*`: those
+  // govern configuring the agent, these govern reading what it reported. A
+  // manager holds neither by default — see the owner decision recorded in
+  // EXECPLAN-0030.
+  DESKTOP_ANALYTICS_READ_OWN: 'desktop-analytics.read.own',
+  DESKTOP_ANALYTICS_READ_ORGANIZATION: 'desktop-analytics.read.organization',
+  DESKTOP_ANALYTICS_DEVICE_HEALTH_READ: 'desktop-analytics.device-health.read',
 } as const;
 
 export type BaseRoleKey =
@@ -253,6 +270,60 @@ export type BaseRoleKey =
   | 'employee';
 
 export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
+  {
+    key: 'reports.read',
+    name: 'View reports and analytics',
+    description:
+      'Open the Reports & Analytics workspace and run reports within the scope the role allows.',
+  },
+  {
+    key: 'reports.builder.use',
+    name: 'Use the report builder',
+    description:
+      'Build ad-hoc reports from the reporting semantic layer. Field access is still resolved per user.',
+  },
+  {
+    key: 'reports.definitions.manage',
+    name: 'Manage saved reports',
+    description:
+      'Create, edit, duplicate, share and delete custom report definitions.',
+  },
+  {
+    key: 'reports.saved-views.manage',
+    name: 'Manage saved analytics views',
+    description:
+      'Save, rename, share and remove filter and period presets on analytics surfaces.',
+  },
+  {
+    key: 'reports.schedule.manage',
+    name: 'Manage scheduled reports',
+    description:
+      'Create and change scheduled report delivery. Delivery is authorised again at execution time.',
+  },
+  {
+    key: 'reports.data-quality.read',
+    name: 'View reporting data quality',
+    description:
+      'See records excluded from analytics because a required dimension is missing.',
+  },
+  {
+    key: 'desktop-analytics.read.own',
+    name: 'View own desktop activity',
+    description:
+      'See your own desktop agent activity summary. Grants no visibility of anyone else.',
+  },
+  {
+    key: 'desktop-analytics.read.organization',
+    name: 'View organization desktop activity',
+    description:
+      'See desktop activity analytics across the organization. Intended for HR and administrators, not line managers.',
+  },
+  {
+    key: 'desktop-analytics.device-health.read',
+    name: 'View device and agent health',
+    description:
+      'See device coverage, agent versions and reporting freshness. Carries no activity detail.',
+  },
   {
     key: 'dashboard.view',
     name: 'View dashboard',
@@ -2140,6 +2211,18 @@ export const BASE_ROLE_PERMISSION_KEYS: Record<BaseRoleKey, string[]> = {
   ],
   hr: [
     'dashboard.view',
+    // Reports & Analytics (TASK-0028). HR owns reporting for the organization,
+    // including scheduled delivery and the desktop-activity surfaces. Row scope is
+    // still applied per query — holding these does not widen who HR can see.
+    'reports.read',
+    'reports.builder.use',
+    'reports.definitions.manage',
+    'reports.saved-views.manage',
+    'reports.schedule.manage',
+    'reports.data-quality.read',
+    'desktop-analytics.read.own',
+    'desktop-analytics.read.organization',
+    'desktop-analytics.device-health.read',
     'tenant-settings.resolved.read',
     // HR runs employee data migration, so it owns the Data Management area.
     // These grant use of the tool only: each row still goes through the
@@ -2361,6 +2444,10 @@ export const BASE_ROLE_PERMISSION_KEYS: Record<BaseRoleKey, string[]> = {
   ],
   recruiter: [
     'dashboard.view',
+    // Reports & Analytics (TASK-0028): recruitment analytics, own desktop activity.
+    'reports.read',
+    'reports.saved-views.manage',
+    'desktop-analytics.read.own',
     'tenant-settings.resolved.read',
     'settings.read',
     'documents.read',
@@ -2384,6 +2471,16 @@ export const BASE_ROLE_PERMISSION_KEYS: Record<BaseRoleKey, string[]> = {
   ],
   manager: [
     'dashboard.view',
+    // Reports & Analytics (TASK-0028). A manager reads and builds reports within
+    // their business-unit scope, but deliberately receives NO desktop analytics
+    // beyond their own, and cannot schedule delivery to other people. Recorded as
+    // an owner decision in EXECPLAN-0030 — widening it is a product decision, not
+    // a permissions tidy-up.
+    'reports.read',
+    'reports.builder.use',
+    'reports.definitions.manage',
+    'reports.saved-views.manage',
+    'desktop-analytics.read.own',
     'tenant-settings.resolved.read',
     'settings.read',
     'inbox.read',
@@ -2453,6 +2550,9 @@ export const BASE_ROLE_PERMISSION_KEYS: Record<BaseRoleKey, string[]> = {
   ],
   employee: [
     'dashboard.view',
+    // An employee sees their own desktop activity and nothing else here. The
+    // Reports workspace itself is hidden for self-service users.
+    'desktop-analytics.read.own',
     'tenant-settings.resolved.read',
     'inbox.read',
     'inbox.markRead',

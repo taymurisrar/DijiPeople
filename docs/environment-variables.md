@@ -237,6 +237,10 @@ process* also drains the resulting queue.
 | `OUTBOX_WORKER_ENABLED` | API | no — defaults off | `true` starts the poll loop in this process. Off by default so tests, seeds and CLI invocations that boot the Nest container do not silently start a background worker. At least one deployed instance must set it, or events are written and never delivered. |
 | `OUTBOX_WORKER_POLL_INTERVAL_MS` | API | optional | Poll interval. Defaults to 5000, floored at 1000. |
 | `OUTBOX_WORKER_BATCH_SIZE` | API | optional | Events claimed per poll. Defaults to 25, capped at 200. |
+| `REPORTS_SCHEDULER_ENABLED` | optional | Runs the scheduled-report worker in this process. Default off. With it off, schedules are editable but nothing is delivered. |
+| `REPORTS_SCHEDULER_POLL_INTERVAL_MS` | optional | How often the scheduler looks for due schedules. Default 60000, minimum 15000. |
+| `REPORTS_WORKFORCE_SNAPSHOT_ENABLED` | optional | Runs the daily workforce snapshot, which is what makes headcount history true going forward. Default off. |
+| `REPORTS_ARTIFACT_RETENTION_DAYS` | optional | How long a generated report export stays downloadable before it is swept. Default 7. |
 
 Running the worker on more than one instance is safe — claims use
 `FOR UPDATE SKIP LOCKED`, so each event goes to exactly one dispatcher — but

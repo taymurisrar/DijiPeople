@@ -49,6 +49,8 @@ _None._
 | [BUG-2505](../../docs/bugs/BUG-2505-a-mode-or-location-correction-could-never-be-submitted-at-al.md) | A mode-or-location correction could never be submitted at all | BUG | HIGH | P1 | FIXED | apps/web, api:attendance | DONE |
 | [BUG-2506](../../docs/bugs/BUG-2506-sign-out-leaves-the-refresh-token-live-whenever-the-tenant-i.md) | Sign-out leaves the refresh token live whenever the tenant is busy | SECURITY | HIGH | P1 | FIXED | api:auth | DONE |
 | [BUG-2618](../../docs/bugs/BUG-2618-expired-subscription-orders-are-never-swept-abandonexpired-h.md) | Expired subscription orders are never swept: abandonExpired has no caller and the API has no scheduler | DATA_INTEGRITY | HIGH | P1 | OPEN | billing, super-admin | FIX_NOW |
+| [BUG-2623](../../docs/bugs/BUG-2623-buildscopedaccesswhere-filters-employee-on-ownerteamid-a-col.md) | buildScopedAccessWhere filters Employee on ownerTeamId, a column Employee does not have | AUTHORIZATION | HIGH | P1 | OPEN | services/api/src/common/security/rbac-query-scope.ts | PLAN_REQUIRED |
+| [BUG-2624](../../docs/bugs/BUG-2624-the-reports-endpoints-return-tenant-wide-aggregates-regardle.md) | The reports endpoints return tenant-wide aggregates regardless of the caller's row scope | AUTHORIZATION | HIGH | P1 | OPEN | api:reports/reports.service.ts | FIX_NOW |
 
 ## MEDIUM
 
@@ -95,6 +97,7 @@ _None._
 | [BUG-2547](../../docs/bugs/BUG-2547-a-revoked-session-still-answers-on-auth-me.md) | A revoked session still answers on /auth/me | SECURITY | MEDIUM | P2 | FIXED | api:auth | DONE |
 | [BUG-2560](../../docs/bugs/BUG-2560-the-requester-is-shown-approve-and-reject-buttons-that-alway.md) | The requester is shown Approve and Reject buttons that always refuse | AUTHORIZATION | MEDIUM | P2 | FIXED | api:attendance, apps/web | DONE |
 | [BUG-2573](../../docs/bugs/BUG-2573-a-correction-request-cannot-be-withdrawn-by-the-person-who-f.md) | A correction request cannot be withdrawn by the person who filed it | UX | MEDIUM | P2 | OPEN | api:attendance, apps/web | PLAN_REQUIRED |
+| [BUG-2625](../../docs/bugs/BUG-2625-reports-headcount-counts-soft-deleted-employees-and-disagree.md) | Reports headcount counts soft-deleted employees and disagrees with the Employees screen | DATA_INTEGRITY | MEDIUM | P2 | OPEN | api:reports/reports.service.ts | FIX_NOW |
 | [ITEM-0009](../../docs/backlog/items/ITEM-0009-no-observability-platform-exists.md) | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | P2 | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [ITEM-0020](../../docs/backlog/items/ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns.md) | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | P2 | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [ITEM-0022](../../docs/backlog/items/ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur.md) | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | P2 | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
