@@ -97,7 +97,7 @@ which is why the dimension is `PARTIAL` rather than `GOOD`.
 
 ## Related
 
-- Scenarios — [[QA-ONBOARD-001]], [[QA-ONBOARD-002]], [[QA-ONBOARD-003]], [[QA-ONBOARD-004]], [[QA-ONBOARD-005]], [[QA-ONBOARD-006]], [[QA-ONBOARD-007]], [[QA-ONBOARD-008]], [[QA-ONBOARDING-001]]
+- Scenarios — [[QA-COMMERCIAL-001]], [[QA-ONBOARD-001]], [[QA-ONBOARD-002]], [[QA-ONBOARD-003]], [[QA-ONBOARD-004]], [[QA-ONBOARD-005]], [[QA-ONBOARD-006]], [[QA-ONBOARD-007]], [[QA-ONBOARD-008]], [[QA-ONBOARDING-001]]
 - Bugs — [[BUG-0011]], [[BUG-0012]], [[BUG-0024]], [[BUG-0027]], [[BUG-0028]], [[BUG-0029]], [[BUG-0030]]
 - Regressions — REG-009, REG-010, REG-017, REG-018, REG-019, REG-020, REG-028 (see the regression register)
 

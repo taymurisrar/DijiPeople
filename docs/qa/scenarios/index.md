@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 314** · automated: 273 · manual: 23 · blocked by infrastructure: 0
+**Scenarios: 315** · automated: 273 · manual: 23 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -97,6 +97,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-CI-002](../../../docs/qa/scenarios/QA-CI-002-the-database-agent-verdict-cannot-report-pass-over-a-failing.md) | The Database Agent verdict cannot report PASS over a failing field | deployment-release | API | HIGH | AUTOMATED | `scripts/db-preflight.test.mjs` | BUG-0083, BUG-0060, BUG-0068 | REG-078 |
 | [QA-CI-003](../../../docs/qa/scenarios/QA-CI-003-declared-npm-overrides-are-reflected-in-the-lockfile.md) | Declared npm overrides are reflected in the lockfile | deployment-release | UNIT | HIGH | AUTOMATED | `scripts/check-overrides-applied.mjs` | BUG-0163 | REG-173 |
 | [QA-CI-004](../../../docs/qa/scenarios/QA-CI-004-the-lockfile-can-be-regenerated-from-the-manifests-alone.md) | The lockfile can be regenerated from the manifests alone | deployment-release | UNIT | MEDIUM | AUTOMATED | `.github/workflows/ci.yml` | BUG-0163 | REG-226 |
+| [QA-COMMERCIAL-001](../../../docs/qa/scenarios/QA-COMMERCIAL-001-one-completed-self-service-checkout-produces-exactly-one-cus.md) | One completed self-service checkout produces exactly one customer record | commercial-onboarding | E2E | HIGH | PARTIAL | `services/api/src/modules/billing/services/checkout-draft-id-reaches-the-order.spec.ts` | BUG-2530, BUG-1516 | REG-374 |
 | [QA-CONTRACT-001](../../../docs/qa/scenarios/QA-CONTRACT-001-a-generated-agreement-prints-values-a-person-can-read.md) | A generated agreement prints values a person can read | legal | UNIT | HIGH | AUTOMATED | `services/api/src/modules/contracts/placeholder-formatting.spec.ts` | BUG-0418 | REG-185 |
 | [QA-DEPLOY-001](../../../docs/qa/scenarios/QA-DEPLOY-001-deployment-smoke-checks-answer-against-the-deployed-environm.md) | Deployment smoke checks answer against the deployed environment | deployment-release | DEPLOYMENT_SMOKE | HIGH | AUTOMATED | `scripts/smoke-deployment.mjs` | — | — |
 | [QA-DEPLOY-002](../../../docs/qa/scenarios/QA-DEPLOY-002-no-url-is-hardcoded-where-configuration-is-required.md) | No URL is hardcoded where configuration is required | deployment-release | UNIT | HIGH | AUTOMATED | `scripts/check-no-hardcoded-urls.mjs` | BUG-0026 | REG-016 |

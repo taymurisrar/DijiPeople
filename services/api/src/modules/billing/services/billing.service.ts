@@ -365,6 +365,20 @@ export class BillingService {
     website?: string;
     /** Unresolved; the order service resolves it against the links. BUG-0281. */
     referralCode?: string | null;
+    /**
+     * The draft order the wizard opened on the workspace step, when it opened
+     * one. BUG-2530.
+     *
+     * Declared here because this type is what the controller's `...dto` spread
+     * is checked against — and a spread is exactly the case TypeScript does
+     * *not* apply excess-property checking to. `PublicSubscribeDto` has carried
+     * `onboardingId` since the BUG-1516 fix and the wizard has been sending it,
+     * but this signature omitted it, so the value was dropped silently at the
+     * one boundary with no compiler and no test watching. Every self-service
+     * signup therefore kept producing the two customer records BUG-1516 was
+     * closed for.
+     */
+    onboardingId?: string;
     requestedSlug?: string;
     legalCompanyName?: string;
     registrationNumber?: string;
@@ -440,6 +454,21 @@ export class BillingService {
       country,
       message,
       referralCode: input.referralCode ?? null,
+      /*
+       * BUG-2530 — the half of the BUG-1516 fix that never reached the service.
+       *
+       * The draft opened on the workspace step holds `pending@onboarding.invalid`,
+       * because the buyer is not asked for their e-mail until the step after it.
+       * `resolveCustomer` cannot find that record by e-mail and `submissionHash`
+       * cannot match it either, so without being told which draft this is it
+       * creates a second customer — which is precisely what the wizard has been
+       * doing on every signup since the fix was declared complete.
+       *
+       * A hint, not an authorisation: `resolveCustomer` only ever accepts an id
+       * that names an order this same flow created, and an unknown or consumed
+       * one falls through to the identity rules unchanged.
+       */
+      onboardingId: input.onboardingId ?? null,
       requestedSlug: input.requestedSlug ?? null,
       organization: {
         legalCompanyName: input.legalCompanyName,
