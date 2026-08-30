@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **2** |
+| Active sessions | **3** |
 | Active parent tasks | 3 |
 | Active work packages | 0 |
 | Blocked work packages | 0 |
@@ -15,9 +15,9 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
-| Open HIGH | 22 |
+| Open HIGH | 25 |
 | Awaiting Architect triage | 2 |
-| Owner decisions pending | 5 |
+| Owner decisions pending | 6 |
 | QA coverage gaps | 134 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -30,11 +30,11 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 91 |
-| No next action | 91 |
+| No acceptance criteria | 99 |
+| No next action | 99 |
 | Aging — 7d / 30d / 90d | 17 / 0 / 0 |
 | Architecture and technical debt | 7 |
-| Security gaps | 3 |
+| Security gaps | 6 |
 | Database gaps | 9 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
@@ -50,6 +50,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
 | [[SESSION-0085-duplicate-customer-on-self-service-checkout-the-wizard-s-dra|SESSION-0085]] | — | Duplicate customer on self-service checkout: the wizard's draft id is dropped | ACTIVE | `agent/checkout-duplicate-customer` | `develop` | — | NO |
+| [[SESSION-0084-attendance-correction-request-entry-point-and-web-auth-valid|SESSION-0084]] | — | Attendance correction request entry point, and web auth validation | ACTIVE | `agent/attendance-correction-entry` | `develop` | — | NO |
 | [[SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser|SESSION-0061]] | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
@@ -107,6 +108,7 @@ _None. Nothing open at CRITICAL._
 Questions where the engineering is understood and the **product answer is**
 **not**. No agent may resolve one by implementing a side of it.
 
+- [[BUG-2509-platform-admin-remember-me-has-no-policy-able-to-refuse-it|BUG-2509]] — **Platform admin remember-me has no policy able to refuse it**
 - [[ITEM-0106-an-employee-cannot-use-self-service-until-their-manager-acti|ITEM-0106]] — **An employee cannot use self-service until their manager activates their own account**
 - [[ITEM-0115-provisioning-seeds-four-departments-with-no-business-unit-on|ITEM-0115]] — **Provisioning seeds four departments with no business unit on every tenant**
 - [[ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle|ITEM-0108]] — **Decide whether the roughly one-hour session lifetime is idle or absolute**
@@ -259,10 +261,10 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 92 |
+| Open total | 100 |
 | Blocked | 2 |
 | Deferred | 24 |
-| Awaiting a product decision | 5 |
+| Awaiting a product decision | 6 |
 | Awaiting Architect triage | 2 |
 
 **A record nobody has triaged is work nobody has decided about.** No ordinary record may stay `TRIAGE_REQUIRED` at the end of a task.

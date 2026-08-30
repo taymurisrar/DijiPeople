@@ -9,7 +9,7 @@ RISK: HIGH
 AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: apps/web/app/components/attendance-corrections/correction-form-fields.spec.ts
 RELATED_BUGS: [BUG-2505]
-RELATED_REGRESSIONS: [REG-374]
+RELATED_REGRESSIONS: [REG-379]
 LAST_RUN: 2026-08-30
 LAST_RESULT: PASS
 CREATED_AT: 2026-08-30
@@ -80,6 +80,6 @@ expensive halves and are noted under re-run guidance above.
 - Test plan — [[PLAN-009]]
 - Module — [[attendance]]
 - Bugs — [[BUG-2505]]
-- Regressions — REG-374 (see the regression register)
+- Regressions — REG-379 (see the regression register)
 
 <!-- GRAPH:END -->
