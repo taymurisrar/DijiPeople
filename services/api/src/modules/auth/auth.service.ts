@@ -2400,14 +2400,19 @@ function toCookieLog(options: {
 }
 
 function getAuthRequestInfo(req?: Request) {
-  const forwardedFor = req?.headers['x-forwarded-for'];
+  const forwardedFor: string | string[] | undefined =
+    req?.headers['x-forwarded-for'];
   const ipAddress = Array.isArray(forwardedFor)
     ? forwardedFor[0]
     : forwardedFor?.split(',')[0]?.trim() || req?.ip || null;
-  const userAgentHeader = req?.headers['user-agent'];
-  const userAgent = Array.isArray(userAgentHeader)
-    ? userAgentHeader[0]
-    : userAgentHeader || null;
+  const userAgentHeader: string | string[] | undefined =
+    req?.headers['user-agent'];
+  let userAgent: string | null;
+  if (Array.isArray(userAgentHeader)) {
+    userAgent = (userAgentHeader[0] as string | undefined) ?? null;
+  } else {
+    userAgent = userAgentHeader || null;
+  }
 
   return {
     ipAddress,

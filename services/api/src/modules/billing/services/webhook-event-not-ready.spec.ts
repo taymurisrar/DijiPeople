@@ -7,6 +7,7 @@ import {
 } from '@prisma/client';
 import { AppError } from '../../../common/errors/app-error';
 import { WebhookService } from './webhook.service';
+import type { RecordPlatformEventInput } from '../../platform-events/platform-events.service';
 
 /**
  * BUG-1543 — the billing webhook answered two of Stripe's callbacks with
@@ -37,7 +38,11 @@ function buildService(options: {
   eventObject?: Record<string, unknown>;
 }) {
   const updates: Array<Record<string, unknown>> = [];
-  const platformEvents = { record: jest.fn().mockResolvedValue(undefined) };
+  const platformEvents = {
+    record: jest
+      .fn<Promise<void>, [RecordPlatformEventInput]>()
+      .mockResolvedValue(undefined),
+  };
 
   const db = {
     subscription: { findFirst: jest.fn().mockResolvedValue(null) },
@@ -56,14 +61,25 @@ function buildService(options: {
         stripeEventId: 'evt_race',
         processingStatus: WebhookProcessingStatus.RECEIVED,
       }),
-      update: jest.fn().mockImplementation(({ data }) => {
-        updates.push(data as Record<string, unknown>);
-        return Promise.resolve({
-          id: 'stored-event',
-          stripeEventId: 'evt_race',
-          processingStatus: data.processingStatus,
-        });
-      }),
+      update: jest.fn(
+        ({
+          data,
+        }: {
+          where: unknown;
+          data: {
+            processingStatus?: WebhookProcessingStatus;
+            errorMessage?: string | null;
+            processedAt?: Date | null;
+          };
+        }) => {
+          updates.push(data as Record<string, unknown>);
+          return Promise.resolve({
+            id: 'stored-event',
+            stripeEventId: 'evt_race',
+            processingStatus: data.processingStatus,
+          });
+        },
+      ),
     },
     $transaction: (fn: (tx: unknown) => unknown) => fn(db),
   };

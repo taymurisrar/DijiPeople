@@ -106,12 +106,12 @@ describe('TenantControlPlaneService lifecycle', () => {
         data: expect.objectContaining({
           status: TenantStatus.SUSPENDED,
           subStatus: 'Non-payment',
-        }),
+        }) as Record<string, unknown>,
       }),
     );
     expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
       where: { tenantId: 'tenant-1', revokedAt: null },
-      data: { revokedAt: expect.any(Date) },
+      data: { revokedAt: expect.any(Date) as Date },
     });
   });
 
