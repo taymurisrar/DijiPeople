@@ -140,7 +140,22 @@ export function fieldsFor(type: CorrectionType): CorrectionField[] {
       ];
 
     case "TIME_ADJUSTMENT":
-      return [...base, "requestedWorkMode", "requestedWorkSiteId", "reason"];
+      // The times are collected even though this type is about mode and site,
+      // because the server requires at least one timestamp on every type except
+      // OVERTIME_APPROVAL. Without them this option could not be submitted at
+      // all: the form hid both time fields, so `validateDraft` had nothing to
+      // object to and every attempt reached the API only to come back "A
+      // requested check-in or check-out timestamp is required." Asking which
+      // period is being re-described is the honest question anyway — a day can
+      // hold more than one. See BUG-2505.
+      return [
+        ...base,
+        "requestedCheckInAtUtc",
+        "requestedCheckOutAtUtc",
+        "requestedWorkMode",
+        "requestedWorkSiteId",
+        "reason",
+      ];
 
     case "OVERTIME_APPROVAL":
       // Minutes, not times. Approving overtime changes whether time already
@@ -319,5 +334,312 @@ export function correctionStatusTone(
       return "muted";
     default:
       return "warning";
+  }
+}
+
+/**
+ * The attendance record a correction can be seeded from.
+ *
+ * Structural and deliberately loose: `AttendanceEntryRecord` carries both
+ * `checkInAt` and `checkIn` for the same instant depending on which endpoint
+ * produced it, and this module should not care which one arrived.
+ */
+export interface AttendanceEntrySeed {
+  id: string;
+  date?: string | null;
+  attendanceDate?: string | null;
+  checkInAt?: string | null;
+  checkIn?: string | null;
+  checkOutAt?: string | null;
+  checkOut?: string | null;
+  attendanceMode?: string | null;
+  officeLocationId?: string | null;
+  status?: string | null;
+}
+
+/** The values the record already holds, as the correction form's own vocabulary. */
+export interface CorrectionOriginals {
+  attendanceDate: string;
+  checkInAtUtc: string | null;
+  checkOutAtUtc: string | null;
+  workMode: string;
+  workSiteId: string;
+}
+
+export function entryCheckIn(entry: AttendanceEntrySeed): string | null {
+  return entry.checkInAt ?? entry.checkIn ?? null;
+}
+
+export function entryCheckOut(entry: AttendanceEntrySeed): string | null {
+  return entry.checkOutAt ?? entry.checkOut ?? null;
+}
+
+/**
+ * The day the record belongs to, as YYYY-MM-DD.
+ *
+ * Read from the record's own date before its check-in time, because on an
+ * overnight shift those are different days and the correction is about the
+ * former.
+ */
+export function entryAttendanceDate(entry: AttendanceEntrySeed): string {
+  const value =
+    entry.attendanceDate ?? entry.date ?? entryCheckIn(entry) ?? entryCheckOut(entry);
+  return value ? String(value).slice(0, 10) : "";
+}
+
+/**
+ * An ISO instant as a `datetime-local` input value, in the viewer's own zone.
+ *
+ * The form converts back with `new Date(value).toISOString()`, so both
+ * directions run through the same local zone and the instant round-trips.
+ * Formatting through `toISOString()` here instead would shift every seeded time
+ * by the viewer's offset — the record would open showing a check-in an hour or
+ * five from the one on the page above it.
+ */
+export function toLocalDateTimeInput(value: string | null | undefined): string {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+    `T${pad(date.getHours())}:${pad(date.getMinutes())}`
+  );
+}
+
+export function originalsOf(entry: AttendanceEntrySeed): CorrectionOriginals {
+  const mode = entry.attendanceMode ?? "";
+  return {
+    attendanceDate: entryAttendanceDate(entry),
+    checkInAtUtc: entryCheckIn(entry),
+    checkOutAtUtc: entryCheckOut(entry),
+    // Only a mode a correction may actually request survives. An entry recorded
+    // MACHINE or MANUAL describes how the punch arrived, not where the person
+    // was, and seeding it would put a value in the selector that the selector
+    // does not offer and the server would refuse.
+    workMode: (REQUESTABLE_WORK_MODES as readonly string[]).includes(mode)
+      ? mode
+      : "",
+    workSiteId: entry.officeLocationId ?? "",
+  };
+}
+
+/**
+ * The correction this record most likely needs.
+ *
+ * A starting point, never a decision: the employee can change it, and the type
+ * they choose is what governs the form. Inferring it matters because the
+ * alternative is opening every correction on "I forgot to check out" regardless
+ * of what the record actually shows.
+ */
+export function inferCorrectionType(entry: AttendanceEntrySeed): CorrectionType {
+  const checkIn = entryCheckIn(entry);
+  const checkOut = entryCheckOut(entry);
+
+  if (entry.status === "MISSED_CHECK_OUT") return "MISSED_CHECK_OUT";
+  if (entry.status === "ABSENT" || entry.status === "ON_LEAVE") {
+    return "ABSENCE_CORRECTION";
+  }
+  if (!checkIn && !checkOut) return "ABSENCE_CORRECTION";
+  if (checkIn && !checkOut) return "MISSED_CHECK_OUT";
+  if (!checkIn && checkOut) return "MISSED_CHECK_IN";
+
+  // Both times are present, so nothing is missing and the likely complaint is
+  // that one of them is wrong. "My check-in time is wrong" shows both fields
+  // seeded, which is the same surface a check-out correction needs.
+  return "LATE_CHECK_IN";
+}
+
+/** A draft that opens showing what the record already says. */
+export function seedDraftFromEntry(entry: AttendanceEntrySeed): CorrectionDraft {
+  const originals = originalsOf(entry);
+  return {
+    correctionType: inferCorrectionType(entry),
+    attendanceDate: originals.attendanceDate,
+    requestedCheckInAtUtc: toLocalDateTimeInput(originals.checkInAtUtc),
+    requestedCheckOutAtUtc: toLocalDateTimeInput(originals.checkOutAtUtc),
+    requestedWorkMode: originals.workMode,
+    requestedWorkSiteId: originals.workSiteId,
+    requestedOvertimeMinutes: "",
+    fallbackReason: "",
+    reason: "",
+  };
+}
+
+/**
+ * Whether a seeded draft actually asks for anything.
+ *
+ * Seeding creates a failure the blank form could not have: every field is
+ * already filled in, so a request can be submitted that proposes exactly what
+ * the record already says. That reaches the manager as a decision with no
+ * subject. Only the fields the chosen type shows are compared — a value left
+ * behind in a hidden field is never sent, so it is not a change.
+ */
+export function hasRequestedChange(
+  draft: CorrectionDraft,
+  entry: AttendanceEntrySeed,
+): boolean {
+  const seed = seedDraftFromEntry(entry);
+  const shows = (field: CorrectionField) => showsField(draft.correctionType, field);
+
+  if (draft.correctionType === "OVERTIME_APPROVAL") {
+    // Overtime is a request for something the record does not hold at all, so
+    // there is nothing for it to differ from.
+    return Number(draft.requestedOvertimeMinutes) > 0;
+  }
+
+  const compared: CorrectionField[] = [
+    "attendanceDate",
+    "requestedCheckInAtUtc",
+    "requestedCheckOutAtUtc",
+    "requestedWorkMode",
+    "requestedWorkSiteId",
+  ];
+
+  return compared.some(
+    (field) =>
+      shows(field) && (draft[field] ?? "").trim() !== (seed[field] ?? "").trim(),
+  );
+}
+
+export type CorrectionChangeKind = "datetime" | "text" | "minutes";
+
+export interface CorrectionChange {
+  field: string;
+  label: string;
+  kind: CorrectionChangeKind;
+  /** What the record says today. `null` where it holds nothing. */
+  from: string | null;
+  /** What the request asks for. */
+  to: string | null;
+}
+
+/**
+ * What a correction request is asking to change, and only that.
+ *
+ * The manager's whole decision is this list. It used to be two cards — "Original
+ * Values" and "Requested Values" — listing check-in and check-out whether or not
+ * either had moved, so an unchanged field looked exactly like a changed one and
+ * a mode-only correction looked like no correction at all.
+ *
+ * The original side of a mode or site change is read from the linked attendance
+ * entry, because the request stores no original for either. That is the entry as
+ * it stands now rather than as it stood when the request was raised; the manager
+ * is deciding against current truth, which is the comparison that matters.
+ */
+export function correctionChanges(request: {
+  originalCheckInAtUtc?: string | null;
+  originalCheckOutAtUtc?: string | null;
+  requestedCheckInAtUtc?: string | null;
+  requestedCheckOutAtUtc?: string | null;
+  requestedWorkMode?: string | null;
+  requestedWorkSiteId?: string | null;
+  requestedOvertimeMinutes?: number | null;
+  fallbackReason?: string | null;
+  attendanceEntry?: {
+    attendanceMode?: string | null;
+    officeLocationId?: string | null;
+  } | null;
+}): CorrectionChange[] {
+  const changes: CorrectionChange[] = [];
+
+  const sameInstant = (a: string | null | undefined, b: string | null | undefined) => {
+    if (!a || !b) return !a && !b;
+    const left = new Date(a).getTime();
+    const right = new Date(b).getTime();
+    return (
+      !Number.isNaN(left) && !Number.isNaN(right) && left === right
+    );
+  };
+
+  if (
+    request.requestedCheckInAtUtc &&
+    !sameInstant(request.requestedCheckInAtUtc, request.originalCheckInAtUtc)
+  ) {
+    changes.push({
+      field: "checkIn",
+      label: "Check-in",
+      kind: "datetime",
+      from: request.originalCheckInAtUtc ?? null,
+      to: request.requestedCheckInAtUtc,
+    });
+  }
+
+  if (
+    request.requestedCheckOutAtUtc &&
+    !sameInstant(request.requestedCheckOutAtUtc, request.originalCheckOutAtUtc)
+  ) {
+    changes.push({
+      field: "checkOut",
+      label: "Check-out",
+      kind: "datetime",
+      from: request.originalCheckOutAtUtc ?? null,
+      to: request.requestedCheckOutAtUtc,
+    });
+  }
+
+  const originalMode = request.attendanceEntry?.attendanceMode ?? null;
+  if (request.requestedWorkMode && request.requestedWorkMode !== originalMode) {
+    changes.push({
+      field: "workMode",
+      label: "Work mode",
+      kind: "text",
+      from: originalMode,
+      to: request.requestedWorkMode,
+    });
+  }
+
+  const originalSite = request.attendanceEntry?.officeLocationId ?? null;
+  if (request.requestedWorkSiteId && request.requestedWorkSiteId !== originalSite) {
+    changes.push({
+      field: "workSite",
+      label: "Work site",
+      kind: "text",
+      from: originalSite,
+      to: request.requestedWorkSiteId,
+    });
+  }
+
+  if (request.requestedOvertimeMinutes) {
+    changes.push({
+      field: "overtimeMinutes",
+      label: "Overtime requested",
+      kind: "minutes",
+      // The record holds no overtime, so there is no previous value to strike
+      // through. Rendering "0" would claim one.
+      from: null,
+      to: String(request.requestedOvertimeMinutes),
+    });
+  }
+
+  if (request.fallbackReason?.trim()) {
+    changes.push({
+      field: "fallbackReason",
+      label: "Device could not be used",
+      kind: "text",
+      from: null,
+      to: request.fallbackReason.trim(),
+    });
+  }
+
+  return changes;
+}
+
+export function workModeLabel(mode: string): string {
+  switch (mode) {
+    case "REMOTE":
+      return "Remote";
+    case "FIELD":
+      return "Field";
+    case "HYBRID":
+      return "Hybrid";
+    case "MACHINE":
+      return "Machine";
+    case "MANUAL":
+      return "Manual";
+    case "OFFICE":
+      return "Office";
+    default:
+      return mode;
   }
 }

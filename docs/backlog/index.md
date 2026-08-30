@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**409 records** — 291 bugs under [`docs/bugs/`](../bugs/), 118 non-bug items under [`items/`](items/).
+**418 records** — 300 bugs under [`docs/bugs/`](../bugs/), 118 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,21 +13,21 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 92 |
+| Open (active work) | 100 |
 | Blocked | 2 |
 | Deferred | 24 |
-| Awaiting a product decision | 5 |
+| Awaiting a product decision | 6 |
 | Completed / closed | 286 |
 | **Open CRITICAL** | **0** |
-| **Open HIGH** | **22** |
+| **Open HIGH** | **25** |
 | **Awaiting Architect triage** | **2** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 22 |
-| MEDIUM | 57 |
+| HIGH | 25 |
+| MEDIUM | 62 |
 | LOW | 13 |
 
 ## Open by type
@@ -35,8 +35,8 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | ARCHITECTURE | 2 |
-| AUTHORIZATION | 1 |
-| BUG | 32 |
+| AUTHORIZATION | 2 |
+| BUG | 34 |
 | DATA_INTEGRITY | 8 |
 | DATA_MIGRATION | 1 |
 | DOCUMENTATION | 2 |
@@ -44,21 +44,21 @@ see [`README.md`](README.md) for why.
 | INFRA | 4 |
 | INTEGRATION | 3 |
 | PERFORMANCE | 1 |
-| SECURITY | 2 |
-| STATE_MACHINE | 1 |
+| SECURITY | 4 |
+| STATE_MACHINE | 2 |
 | TECH_DEBT | 5 |
 | TEST_GAP | 6 |
-| UX | 22 |
+| UX | 24 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 4 |
+| OPEN | 7 |
 | BLOCKED | 2 |
 | DEFERRED | 24 |
-| PRODUCT_DECISION | 5 |
-| FIXED | 61 |
+| PRODUCT_DECISION | 6 |
+| FIXED | 66 |
 | VERIFIED | 215 |
 | DUPLICATE | 5 |
 | ACCEPTED_RISK | 3 |
@@ -210,6 +210,9 @@ see [`README.md`](README.md) for why.
 | [BUG-2459](../../docs/bugs/BUG-2459-the-notification-bell-polls-forever-after-a-session-ends-flo.md) | The notification bell polls forever after a session ends, flooding the error log | PERFORMANCE | HIGH | P1 | FIXED | web:notifications, api:error-logs, api:notifications | FIX_NOW |
 | [BUG-2462](../../docs/bugs/BUG-2462-stripe-subscription-webhooks-fail-because-the-customer-resol.md) | Stripe subscription webhooks fail because the customer resolves to no tenant | INTEGRATION | HIGH | P1 | OPEN | api:billing, api:super-admin | PLAN_REQUIRED |
 | [BUG-2494](../../docs/bugs/BUG-2494-check-out-re-validates-check-in-preconditions-and-traps-the-.md) | Check-out re-validates check-in preconditions and traps the entry open for ever | STATE_MACHINE | HIGH | P1 | OPEN | api:attendance | TRIAGE_REQUIRED |
+| [BUG-2504](../../docs/bugs/BUG-2504-approving-a-correction-never-applies-the-requested-work-mode.md) | Approving a correction never applies the requested work mode, work site or overtime | STATE_MACHINE | HIGH | P1 | OPEN | api:attendance | PLAN_REQUIRED |
+| [BUG-2505](../../docs/bugs/BUG-2505-a-mode-or-location-correction-could-never-be-submitted-at-al.md) | A mode-or-location correction could never be submitted at all | BUG | HIGH | P1 | FIXED | apps/web, api:attendance | DONE |
+| [BUG-2506](../../docs/bugs/BUG-2506-sign-out-leaves-the-refresh-token-live-whenever-the-tenant-i.md) | Sign-out leaves the refresh token live whenever the tenant is busy | SECURITY | HIGH | P1 | FIXED | api:auth | DONE |
 | [BUG-2530](../../docs/bugs/BUG-2530-self-service-checkout-still-creates-two-customer-records-the.md) | Self-service checkout still creates two customer records: the wizard's draft id is dropped between the controller and the order service | DATA_INTEGRITY | HIGH | P1 | FIXED | billing, super-admin, landing | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
@@ -346,6 +349,12 @@ see [`README.md`](README.md) for why.
 | [BUG-2460](../../docs/bugs/BUG-2460-client-error-reports-store-the-whole-html-error-page-as-the-.md) | Client error reports store the whole HTML error page as the incident message | BUG | MEDIUM | P2 | FIXED | web:error-reporting, api:error-logs, admin:monitoring | FIX_NOW |
 | [BUG-2465](../../docs/bugs/BUG-2465-session-revoked-401s-and-client-reported-failures-escape-the.md) | Session-revoked 401s and client-reported failures escape the not-an-incident filter | BUG | MEDIUM | P2 | FIXED | api:error-logs, api:platform-monitoring | FIX_NOW |
 | [BUG-2495](../../docs/bugs/BUG-2495-the-under-investigation-tile-counts-incidents-nobody-is-inve.md) | The Under investigation tile counts incidents nobody is investigating | UX | MEDIUM | P2 | OPEN | admin:monitoring, api:platform-monitoring | TRIAGE_REQUIRED |
+| [BUG-2507](../../docs/bugs/BUG-2507-the-manager-s-correction-screen-hides-four-of-the-eight-kind.md) | The manager's correction screen hides four of the eight kinds of change | UX | MEDIUM | P2 | FIXED | apps/web | DONE |
+| [BUG-2508](../../docs/bugs/BUG-2508-the-correction-work-site-selector-is-never-populated-for-an-.md) | The correction work-site selector is never populated for an employee | BUG | MEDIUM | P2 | OPEN | apps/web, api:attendance-integrations | PLAN_REQUIRED |
+| [BUG-2509](../../docs/bugs/BUG-2509-platform-admin-remember-me-has-no-policy-able-to-refuse-it.md) | Platform admin remember-me has no policy able to refuse it | SECURITY | MEDIUM | P2 | PRODUCT_DECISION | api:auth | PRODUCT_DECISION |
+| [BUG-2547](../../docs/bugs/BUG-2547-a-revoked-session-still-answers-on-auth-me.md) | A revoked session still answers on /auth/me | SECURITY | MEDIUM | P2 | FIXED | api:auth | DONE |
+| [BUG-2560](../../docs/bugs/BUG-2560-the-requester-is-shown-approve-and-reject-buttons-that-alway.md) | The requester is shown Approve and Reject buttons that always refuse | AUTHORIZATION | MEDIUM | P2 | FIXED | api:attendance, apps/web | DONE |
+| [BUG-2573](../../docs/bugs/BUG-2573-a-correction-request-cannot-be-withdrawn-by-the-person-who-f.md) | A correction request cannot be withdrawn by the person who filed it | UX | MEDIUM | P2 | OPEN | api:attendance, apps/web | PLAN_REQUIRED |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |

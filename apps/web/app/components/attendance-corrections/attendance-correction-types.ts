@@ -19,6 +19,18 @@ export type AttendanceCorrectionRequest = {
   originalCheckOutAtUtc: string | null;
   requestedCheckInAtUtc: string | null;
   requestedCheckOutAtUtc: string | null;
+  /*
+   * The four fields below are returned by the API — `mapCorrectionRequest`
+   * spreads the whole row — and were simply never declared here. Four of the
+   * eight correction types are entirely about them, so a manager reviewing a
+   * work-mode, work-site or overtime request saw a decision surface on which
+   * nothing appeared to have changed. See BUG-2507.
+   */
+  attendanceDate: string | null;
+  requestedWorkMode: string | null;
+  requestedWorkSiteId: string | null;
+  requestedOvertimeMinutes: number | null;
+  fallbackReason: string | null;
   reason: string;
   status: AttendanceCorrectionStatus;
   submittedAtUtc: string | null;
@@ -57,6 +69,14 @@ export type AttendanceCorrectionRequest = {
     checkIn: string | null;
     checkOut: string | null;
     status: string;
+    /*
+     * The request stores no original work mode or site, so the only thing a
+     * mode or site change can be compared against is the entry as it stands.
+     * Both are already included by `attendanceCorrectionInclude`.
+     */
+    attendanceMode?: string | null;
+    officeLocationId?: string | null;
+    officeLocation?: { id: string; name: string } | null;
   } | null;
   approval?: {
     id: string;

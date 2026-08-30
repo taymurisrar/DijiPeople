@@ -5,6 +5,11 @@ import {
   label,
   statusTone,
 } from "@/app/components/attendance-corrections/attendance-corrections-table";
+import {
+  correctionChanges,
+  workModeLabel,
+  type CorrectionChange,
+} from "@/app/components/attendance-corrections/correction-form-fields";
 import type { AttendanceCorrectionRequest } from "@/app/components/attendance-corrections/attendance-correction-types";
 import { StatusPill } from "@/app/components/ui/status-pill";
 import { requireSessionUser } from "@/lib/auth";
@@ -93,17 +98,32 @@ export default async function AttendanceCorrectionDetailPage({
           <DetailRow labelText="Actioned by" value={request.actionedByUser ? formatPerson(request.actionedByUser) : "Not actioned"} />
         </DetailCard>
 
-        <DetailCard title="Original Values">
-          <DetailRow labelText="Original check-in" value={formatOptionalDate(request.originalCheckInAtUtc)} />
-          <DetailRow labelText="Original check-out" value={formatOptionalDate(request.originalCheckOutAtUtc)} />
-          <DetailRow labelText="Source entry" value={request.attendanceEntryId ?? "New attendance entry"} />
-        </DetailCard>
+        {/*
+          Two columns, because this is the decision.
 
-        <DetailCard title="Requested Values">
-          <DetailRow labelText="Requested check-in" value={formatOptionalDate(request.requestedCheckInAtUtc)} />
-          <DetailRow labelText="Requested check-out" value={formatOptionalDate(request.requestedCheckOutAtUtc)} />
-          <DetailRow labelText="Decision comment" value={request.actionComment ?? "No decision comment"} />
-        </DetailCard>
+          This used to be a pair of cards — "Original Values" beside "Requested
+          Values" — each listing check-in and check-out whether or not either had
+          moved. An unchanged field looked exactly like a changed one, so the
+          manager had to compare the two lists themselves to find out what they
+          were being asked to approve.
+        */}
+        <div className="lg:col-span-2">
+          <DetailCard title="What changed">
+            <ChangeList
+              changes={correctionChanges(request)}
+              siteName={request.attendanceEntry?.officeLocation?.name ?? null}
+              siteId={request.attendanceEntry?.officeLocationId ?? null}
+            />
+            <DetailRow
+              labelText="Source entry"
+              value={request.attendanceEntryId ?? "No record for this day yet"}
+            />
+            <DetailRow
+              labelText="Decision comment"
+              value={request.actionComment ?? "No decision comment"}
+            />
+          </DetailCard>
+        </div>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-[2fr_1fr]">
@@ -194,6 +214,78 @@ function canUseCorrectionWorkflow(user: {
   );
 }
 
+/**
+ * Only what moved, with what it moved from struck through.
+ *
+ * An empty list is rendered as a statement rather than as nothing: a request
+ * that asks for no change is a real thing to see, and blank space would read as
+ * a page that failed to load.
+ */
+function ChangeList({
+  changes,
+  siteName,
+  siteId,
+}: {
+  changes: CorrectionChange[];
+  siteName: string | null;
+  siteId: string | null;
+}) {
+  if (changes.length === 0) {
+    return (
+      <p className="text-sm text-muted">
+        This request does not ask to change any value on the record. Read the
+        reason below before approving it.
+      </p>
+    );
+  }
+
+  const render = (change: CorrectionChange, value: string | null) => {
+    if (value === null) return null;
+    if (change.kind === "datetime") return formatDateTime(value);
+    if (change.kind === "minutes") return `${value} minutes`;
+    if (change.field === "workMode") return workModeLabel(value);
+    // The request stores a work site id and no name. The entry's own site is the
+    // one name available, so it is used where the id matches and the id is shown
+    // plainly where it does not, rather than inventing a label. See BUG-2508.
+    if (change.field === "workSite") {
+      return value === siteId && siteName ? siteName : value;
+    }
+    return value;
+  };
+
+  return (
+    <dl className="space-y-3">
+      {changes.map((change) => {
+        const from = render(change, change.from);
+        const to = render(change, change.to);
+        return (
+          <div key={change.field}>
+            <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+              {change.label}
+            </dt>
+            <dd className="mt-1 flex flex-wrap items-baseline gap-2 text-sm">
+              {from ? (
+                <>
+                  <span className="text-muted line-through">{from}</span>
+                  <span aria-hidden="true" className="text-muted">
+                    &rarr;
+                  </span>
+                  {/* The screen reader gets the relationship the arrow only
+                      draws. Meaning must never be carried by the glyph alone. */}
+                  <span className="sr-only">changed to</span>
+                </>
+              ) : (
+                <span className="text-muted">Not set &rarr;</span>
+              )}
+              <span className="font-semibold text-foreground">{to}</span>
+            </dd>
+          </div>
+        );
+      })}
+    </dl>
+  );
+}
+
 function DetailCard({
   children,
   title,
@@ -224,10 +316,6 @@ function DetailRow({
       <p className="mt-1 text-sm text-foreground">{value}</p>
     </div>
   );
-}
-
-function formatOptionalDate(value: string | null) {
-  return value ? formatDateTime(value) : "Not set";
 }
 
 function formatPerson(person: {

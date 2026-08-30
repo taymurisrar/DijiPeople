@@ -8,10 +8,10 @@
 | | |
 |---|---|
 | Open CRITICAL | **0** |
-| Open HIGH | **22** |
-| Open total | 92 |
+| Open HIGH | **25** |
+| Open total | 100 |
 | Blocked | 2 |
-| Awaiting a product decision | 5 |
+| Awaiting a product decision | 6 |
 | Deferred | 24 |
 | Completed | 286 |
 | Awaiting Architect triage | 2 |
@@ -45,12 +45,16 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2459-the-notification-bell-polls-forever-after-a-session-ends-flo|BUG-2459]] | The notification bell polls forever after a session ends, flooding the error log | PERFORMANCE | HIGH | FIXED | web:notifications, api:error-logs, api:notifications | FIX_NOW |
 | [[BUG-2462-stripe-subscription-webhooks-fail-because-the-customer-resol|BUG-2462]] | Stripe subscription webhooks fail because the customer resolves to no tenant | INTEGRATION | HIGH | OPEN | api:billing, api:super-admin | PLAN_REQUIRED |
 | [[BUG-2494-check-out-re-validates-check-in-preconditions-and-traps-the-|BUG-2494]] | Check-out re-validates check-in preconditions and traps the entry open for ever | STATE_MACHINE | HIGH | OPEN | api:attendance | TRIAGE_REQUIRED |
+| [[BUG-2504-approving-a-correction-never-applies-the-requested-work-mode|BUG-2504]] | Approving a correction never applies the requested work mode, work site or overtime | STATE_MACHINE | HIGH | OPEN | api:attendance | PLAN_REQUIRED |
+| [[BUG-2505-a-mode-or-location-correction-could-never-be-submitted-at-al|BUG-2505]] | A mode-or-location correction could never be submitted at all | BUG | HIGH | FIXED | apps/web, api:attendance | DONE |
+| [[BUG-2506-sign-out-leaves-the-refresh-token-live-whenever-the-tenant-i|BUG-2506]] | Sign-out leaves the refresh token live whenever the tenant is busy | SECURITY | HIGH | FIXED | api:auth | DONE |
 | [[BUG-2530-self-service-checkout-still-creates-two-customer-records-the|BUG-2530]] | Self-service checkout still creates two customer records: the wizard's draft id is dropped between the controller and the order service | DATA_INTEGRITY | HIGH | FIXED | billing, super-admin, landing | FIX_NOW |
 
 ## Product Decisions Needed
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
+| [[BUG-2509-platform-admin-remember-me-has-no-policy-able-to-refuse-it|BUG-2509]] | Platform admin remember-me has no policy able to refuse it | SECURITY | MEDIUM | PRODUCT_DECISION | api:auth | PRODUCT_DECISION |
 | [[ITEM-0106-an-employee-cannot-use-self-service-until-their-manager-acti|ITEM-0106]] | An employee cannot use self-service until their manager activates their own account | PRODUCT_DECISION | MEDIUM | PRODUCT_DECISION | api:leave, api:employees | PRODUCT_DECISION |
 | [[ITEM-0115-provisioning-seeds-four-departments-with-no-business-unit-on|ITEM-0115]] | Provisioning seeds four departments with no business unit on every tenant | PRODUCT_DECISION | MEDIUM | PRODUCT_DECISION | services/api/prisma, api:organization | PRODUCT_DECISION |
 | [[ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle|ITEM-0108]] | Decide whether the roughly one-hour session lifetime is idle or absolute | PRODUCT_DECISION | LOW | PRODUCT_DECISION | api:auth | PRODUCT_DECISION |
@@ -224,6 +228,8 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2332-every-attendance-refusal-reaches-the-browser-as-validation-f|BUG-2332]] | Every attendance refusal reaches the browser as VALIDATION_FAILED and raises the technical error dialog | BUG | HIGH | FIXED | services/api/src/common/errors, api:attendance, apps/web | FIX_NOW |
 | [[BUG-2458-token-refresh-is-throttled-by-the-public-login-rate-limiter-|BUG-2458]] | Token refresh is throttled by the public login rate limiter, signing users out | BUG | HIGH | FIXED | api:auth, api:common | FIX_NOW |
 | [[BUG-2459-the-notification-bell-polls-forever-after-a-session-ends-flo|BUG-2459]] | The notification bell polls forever after a session ends, flooding the error log | PERFORMANCE | HIGH | FIXED | web:notifications, api:error-logs, api:notifications | FIX_NOW |
+| [[BUG-2505-a-mode-or-location-correction-could-never-be-submitted-at-al|BUG-2505]] | A mode-or-location correction could never be submitted at all | BUG | HIGH | FIXED | apps/web, api:attendance | DONE |
+| [[BUG-2506-sign-out-leaves-the-refresh-token-live-whenever-the-tenant-i|BUG-2506]] | Sign-out leaves the refresh token live whenever the tenant is busy | SECURITY | HIGH | FIXED | api:auth | DONE |
 | [[BUG-2530-self-service-checkout-still-creates-two-customer-records-the|BUG-2530]] | Self-service checkout still creates two customer records: the wizard's draft id is dropped between the controller and the order service | DATA_INTEGRITY | HIGH | FIXED | billing, super-admin, landing | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
@@ -340,6 +346,9 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2413-allocate-id-plan-scans-only-docs-qa-test-plans-so-execplan-i|BUG-2413]] | allocate-id plan scans only docs qa test-plans so ExecPlan ids collide | DATA_INTEGRITY | MEDIUM | FIXED | scripts | DONE |
 | [[BUG-2460-client-error-reports-store-the-whole-html-error-page-as-the-|BUG-2460]] | Client error reports store the whole HTML error page as the incident message | BUG | MEDIUM | FIXED | web:error-reporting, api:error-logs, admin:monitoring | FIX_NOW |
 | [[BUG-2465-session-revoked-401s-and-client-reported-failures-escape-the|BUG-2465]] | Session-revoked 401s and client-reported failures escape the not-an-incident filter | BUG | MEDIUM | FIXED | api:error-logs, api:platform-monitoring | FIX_NOW |
+| [[BUG-2507-the-manager-s-correction-screen-hides-four-of-the-eight-kind|BUG-2507]] | The manager's correction screen hides four of the eight kinds of change | UX | MEDIUM | FIXED | apps/web | DONE |
+| [[BUG-2547-a-revoked-session-still-answers-on-auth-me|BUG-2547]] | A revoked session still answers on /auth/me | SECURITY | MEDIUM | FIXED | api:auth | DONE |
+| [[BUG-2560-the-requester-is-shown-approve-and-reject-buttons-that-alway|BUG-2560]] | The requester is shown Approve and Reject buttons that always refuse | AUTHORIZATION | MEDIUM | FIXED | api:attendance, apps/web | DONE |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -444,6 +453,11 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2460-client-error-reports-store-the-whole-html-error-page-as-the-|BUG-2460]] | Client error reports store the whole HTML error page as the incident message | BUG | MEDIUM | FIXED | web:error-reporting, api:error-logs, admin:monitoring | FIX_NOW |
 | [[BUG-2465-session-revoked-401s-and-client-reported-failures-escape-the|BUG-2465]] | Session-revoked 401s and client-reported failures escape the not-an-incident filter | BUG | MEDIUM | FIXED | api:error-logs, api:platform-monitoring | FIX_NOW |
 | [[BUG-2495-the-under-investigation-tile-counts-incidents-nobody-is-inve|BUG-2495]] | The Under investigation tile counts incidents nobody is investigating | UX | MEDIUM | OPEN | admin:monitoring, api:platform-monitoring | TRIAGE_REQUIRED |
+| [[BUG-2507-the-manager-s-correction-screen-hides-four-of-the-eight-kind|BUG-2507]] | The manager's correction screen hides four of the eight kinds of change | UX | MEDIUM | FIXED | apps/web | DONE |
+| [[BUG-2508-the-correction-work-site-selector-is-never-populated-for-an-|BUG-2508]] | The correction work-site selector is never populated for an employee | BUG | MEDIUM | OPEN | apps/web, api:attendance-integrations | PLAN_REQUIRED |
+| [[BUG-2547-a-revoked-session-still-answers-on-auth-me|BUG-2547]] | A revoked session still answers on /auth/me | SECURITY | MEDIUM | FIXED | api:auth | DONE |
+| [[BUG-2560-the-requester-is-shown-approve-and-reject-buttons-that-alway|BUG-2560]] | The requester is shown Approve and Reject buttons that always refuse | AUTHORIZATION | MEDIUM | FIXED | api:attendance, apps/web | DONE |
+| [[BUG-2573-a-correction-request-cannot-be-withdrawn-by-the-person-who-f|BUG-2573]] | A correction request cannot be withdrawn by the person who filed it | UX | MEDIUM | OPEN | api:attendance, apps/web | PLAN_REQUIRED |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -493,7 +507,7 @@ _None. Nothing open at CRITICAL._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 291 |
+| Bug records | 300 |
 | Backlog items | 118 |
 | Known bug patterns | 31 |
 | QA runs | 31 |

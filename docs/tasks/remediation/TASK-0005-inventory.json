@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 409,
+    "total_records": 418,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -13737,6 +13737,252 @@
       "verification_result": "NOT_VERIFIED"
     },
     {
+      "record_id": "BUG-2504",
+      "type": "STATE_MACHINE",
+      "title": "Approving a correction never applies the requested work mode, work site or overtime",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-2504-approving-a-correction-never-applies-the-requested-work-mode.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "ade1fea7",
+        "created_at": "2026-08-30",
+        "updated_at": "2026-08-30",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/attendance"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/attendance"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2504-approving-a-correction-never-applies-the-requested-work-mode.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2505",
+      "type": "BUG",
+      "title": "A mode-or-location correction could never be submitted at all",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-2505-a-mode-or-location-correction-could-never-be-submitted-at-al.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "ade1fea7",
+        "created_at": "2026-08-30",
+        "updated_at": "2026-08-30",
+        "resolved_at": "2026-08-30"
+      },
+      "affected_modules": [
+        "apps/web",
+        "services/api/src/modules/attendance"
+      ],
+      "regressions": [
+        "REG-379"
+      ],
+      "qa_scenarios": [
+        "QA-ATTENDANCE-008"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "services/api/src/modules/attendance"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2505-a-mode-or-location-correction-could-never-be-submitted-at-al.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2506",
+      "type": "SECURITY",
+      "title": "Sign-out leaves the refresh token live whenever the tenant is busy",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-2506-sign-out-leaves-the-refresh-token-live-whenever-the-tenant-i.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "ade1fea7",
+        "created_at": "2026-08-30",
+        "updated_at": "2026-08-30",
+        "resolved_at": "2026-08-30"
+      },
+      "affected_modules": [
+        "services/api/src/modules/auth"
+      ],
+      "regressions": [
+        "REG-375"
+      ],
+      "qa_scenarios": [
+        "QA-AUTH-010"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/auth"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2506-sign-out-leaves-the-refresh-token-live-whenever-the-tenant-i.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2507",
+      "type": "UX",
+      "title": "The manager's correction screen hides four of the eight kinds of change",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-2507-the-manager-s-correction-screen-hides-four-of-the-eight-kind.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "ade1fea7",
+        "created_at": "2026-08-30",
+        "updated_at": "2026-08-30",
+        "resolved_at": "2026-08-30"
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [
+        "REG-376"
+      ],
+      "qa_scenarios": [
+        "QA-ATTENDANCE-009"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2507-the-manager-s-correction-screen-hides-four-of-the-eight-kind.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2508",
+      "type": "BUG",
+      "title": "The correction work-site selector is never populated for an employee",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-2508-the-correction-work-site-selector-is-never-populated-for-an-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "ade1fea7",
+        "created_at": "2026-08-30",
+        "updated_at": "2026-08-30",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "services/api/src/modules/attendance-integrations"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "services/api/src/modules/attendance-integrations"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2508-the-correction-work-site-selector-is-never-populated-for-an-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2509",
+      "type": "SECURITY",
+      "title": "Platform admin remember-me has no policy able to refuse it",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
+      "source": {
+        "record_path": "docs/bugs/BUG-2509-platform-admin-remember-me-has-no-policy-able-to-refuse-it.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "ade1fea7",
+        "created_at": "2026-08-30",
+        "updated_at": "2026-08-30",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/auth"
+      ],
+      "regressions": [],
+      "qa_scenarios": [
+        "QA-AUTH-010"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/auth"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2509-platform-admin-remember-me-has-no-policy-able-to-refuse-it.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
       "record_id": "BUG-2530",
       "type": "DATA_INTEGRITY",
       "title": "Self-service checkout still creates two customer records: the wizard's draft id is dropped between the controller and the order service",
@@ -13771,6 +14017,132 @@
           "landing"
         ],
         "verification_scope": "See docs/bugs/BUG-2530-self-service-checkout-still-creates-two-customer-records-the.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2547",
+      "type": "SECURITY",
+      "title": "A revoked session still answers on /auth/me",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-2547-a-revoked-session-still-answers-on-auth-me.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "fba846d1",
+        "created_at": "2026-08-30",
+        "updated_at": "2026-08-30",
+        "resolved_at": "2026-08-30"
+      },
+      "affected_modules": [
+        "services/api/src/modules/auth"
+      ],
+      "regressions": [
+        "REG-377"
+      ],
+      "qa_scenarios": [
+        "QA-AUTH-010"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/auth"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2547-a-revoked-session-still-answers-on-auth-me.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2560",
+      "type": "AUTHORIZATION",
+      "title": "The requester is shown Approve and Reject buttons that always refuse",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-2560-the-requester-is-shown-approve-and-reject-buttons-that-alway.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "fba846d1",
+        "created_at": "2026-08-30",
+        "updated_at": "2026-08-30",
+        "resolved_at": "2026-08-30"
+      },
+      "affected_modules": [
+        "services/api/src/modules/attendance",
+        "apps/web"
+      ],
+      "regressions": [
+        "REG-378"
+      ],
+      "qa_scenarios": [
+        "QA-ATTENDANCE-009"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/attendance",
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2560-the-requester-is-shown-approve-and-reject-buttons-that-alway.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2573",
+      "type": "UX",
+      "title": "A correction request cannot be withdrawn by the person who filed it",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-2573-a-correction-request-cannot-be-withdrawn-by-the-person-who-f.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "fba846d1",
+        "created_at": "2026-08-30",
+        "updated_at": "2026-08-30",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/attendance",
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/attendance",
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2573-a-correction-request-cannot-be-withdrawn-by-the-person-who-f.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

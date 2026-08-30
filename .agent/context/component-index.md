@@ -1,7 +1,7 @@
 # Component Index
 
 > **Last verified:** 2026-08-30
-> **Verified against commit:** 383ece94
+> **Verified against commit:** acadd860
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -16,8 +16,8 @@ question an agent can answer by retrieval rather than by reading a directory.
 comment beside it is the reasoning; this document is a route to both. Every row
 carries `file`:`line` for that reason — read the source before changing it.
 
-**An export missing from here is undocumented, not absent.** 764 of
-881 exports across these kits carry no
+**An export missing from here is undocumented, not absent.** 770 of
+896 exports across these kits carry no
 doc-comment and are omitted rather than listed as bare names. That ratio is
 itself worth knowing: it is where a UI/UX or Frontend agent is working without
 stated rationale, and where adding one is worth more than a new abstraction.
@@ -125,13 +125,14 @@ re-derived on each run.
 
 Metadata-driven UI is the default. New modules are declared through `lib/runtime/` and rendered by the standard runtime pages; a bespoke page needs a stated reason in the plan.
 
-46 documented export(s); 515 undocumented export(s) omitted.
+55 documented export(s); 521 undocumented export(s) omitted.
 
 | Export | Kind | Used by | Where | What it is |
 |---|---|---|---|---|
 | `ConfirmDialog` | component | 7 | `apps/web/app/components/feedback/confirm-dialog.tsx`:41 | This handled Escape but declared neither `role="dialog"` nor `aria-modal`, so it was not announced as a dialog, and Tab walked out of it into the page behind. |
+| `AttendanceCorrectionForm` | component | 2 | `apps/web/app/components/attendance-corrections/attendance-correction-form.tsx`:38 | The employee's correction request form. |
 | `AttendanceActionFeedback` | component | 1 | `apps/web/app/components/runtime/attendance-action-feedback.tsx`:15 | The contextual answer to an attendance attempt. |
-| `AttendanceCorrectionForm` | component | 1 | `apps/web/app/components/attendance-corrections/attendance-correction-form.tsx`:32 | The employee's correction request form. |
+| `AttendanceCorrectionPanel` | component | 1 | `apps/web/app/components/attendance-corrections/attendance-correction-panel.tsx`:29 | Raising a correction against the record the employee is already reading. |
 | `DialogCloseButton` | component | 1 | `apps/web/app/components/ui/dialog.tsx`:374 | The close affordance most dialogs want in their footer or header. |
 | `GeofenceMap` | component | 1 | `apps/web/app/components/location/geofence-map.tsx`:37 | A minimal slippy map: raster tiles, one pin, one radius circle. |
 | `InheritedOptionChoices` | component | 1 | `apps/web/app/components/runtime/inherited-setting-control.tsx`:132 | The radio group an overridden value itself is chosen with. |
@@ -148,29 +149,37 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `buildSubgridQuickCreate` | function | 1 | `apps/web/lib/runtime/quick-create-metadata.ts`:23 | Quick-create metadata and the gate in front of it. |
 | `commandContextSubtitle` | function | 1 | `apps/web/lib/runtime/command-context-labels.ts`:25 | A shift is only ever called a shift, and a work site only ever a work site. |
 | `commandsForPlacement` | function | 1 | `apps/web/lib/runtime/command-catalog.ts`:191 | Commands that make sense on a given bar, for filtering the picker. |
+| `correctionChanges` | function | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:530 | What a correction request is asking to change, and only that. |
 | `emptyStateMessage` | function | 1 | `apps/web/app/components/data-table/utils.ts`:274 | Which empty state is true. |
 | `fieldValidationErrorsAreVisible` | function | 1 | `apps/web/lib/runtime/command-failure-visibility.ts`:20 | Whether a failed command's field errors will actually appear somewhere the user can see them. |
 | `filterToFormFields` | function | 1 | `apps/web/lib/runtime/related-record-create-values.ts`:76 | Drop anything the child form does not declare, which is what gets posted. |
+| `hasRequestedChange` | function | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:478 | Whether a seeded draft actually asks for anything. |
 | `resolveCommandFailureMessage` | function | 1 | `apps/web/lib/runtime/command-failure-message.ts`:63 | The one line a user reads when a runtime command fails. |
 | `resolveInheritedParentValues` | function | 1 | `apps/web/lib/runtime/related-record-create-values.ts`:35 | The subset of a parent record a subgrid has declared its children inherit. |
-| `validateDraft` | function | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:191 | Checks a draft before it is sent. |
+| `seedDraftFromEntry` | function | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:454 | A draft that opens showing what the record already says. |
+| `toLocalDateTimeInput` | function | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:399 | An ISO instant as a `datetime-local` input value, in the viewer's own zone. |
+| `validateDraft` | function | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:206 | Checks a draft before it is sent. |
+| `entryAttendanceDate` | function | 0 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:384 | The day the record belongs to, as YYYY-MM-DD. |
 | `fieldsFor` | function | 0 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:100 | The fields a given correction type actually uses. |
 | `formatValue` | function | 0 | `apps/web/app/components/dashboard/dashboard-widget-renderer.tsx`:540 | Exported only for `dashboard-widget-formatting.spec.ts` — `apps/web` has no jsdom, so this is the widest surface this app's jest can reach directly rather than reading the source for a string. |
+| `inferCorrectionType` | function | 0 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:435 | The correction this record most likely needs. |
 | `readFieldErrorNames` | function | 0 | `apps/web/lib/runtime/command-failure-visibility.ts`:39 | Field names from either supported error shape, at the root or under `details`. |
 | `resolveVisibleByRules` | function | 0 | `apps/web/lib/runtime/visibility.resolver.ts`:84 | Filters any list of rule-carrying items. |
 | `ThemeApplier` | value | 1 | `apps/web/app/components/theme/theme-applier.tsx`:18 | Re-asserts the user's theme after hydration, everywhere in the app. |
 | `COMMAND_ICON_CHOICES` | constant | 1 | `apps/web/lib/runtime/command-catalog.ts`:205 | Icons offered in the picker. |
 | `COMMAND_PLACEMENTS` | constant | 1 | `apps/web/lib/runtime/command-catalog.ts`:22 | Where an action bar shows up, in the words someone configuring it would use. "Scope" on its own told an administrator nothing about whether they were editing the toolbar above a list, the one on an open record, or the menu that appears once rows are ticked. |
-| `MAX_OVERTIME_MINUTES` | constant | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:282 | A day's worth. Beyond this the request is a data-entry error, not overtime. |
+| `MAX_OVERTIME_MINUTES` | constant | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:297 | A day's worth. Beyond this the request is a data-entry error, not overtime. |
 | `REQUESTABLE_WORK_MODES` | constant | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:42 | Modes a single correction may request. |
 | `VALUELESS_FILTER_OPERATORS` | constant | 1 | `apps/web/app/components/data-table/types.ts`:31 | Operators that compare nothing, so the value input is hidden for them. |
 | `VisibilityRule` | type | 5 | `apps/web/lib/runtime/visibility.resolver.ts`:27 | One place to ask "should this person see this". |
 | `ModuleViewSelectorConfig` | type | 2 | `apps/web/app/components/runtime/module-view-selector.tsx`:48 | The server-side shape pages pass through; kept for callers that build it. |
+| `AttendanceEntrySeed` | type | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:347 | The attendance record a correction can be seeded from. |
 | `ModuleViewType` | type | 1 | `apps/web/app/components/runtime/module-view-selector.tsx`:15 | The one view selector. |
 | `AudienceOption` | type | 0 | `apps/web/app/components/runtime/visibility-rules-editor.tsx`:24 | One editor for audience rules, shared by every designer that gates a surface. |
 | `CommandContextSource` | type | 0 | `apps/web/lib/runtime/command-context-labels.ts`:14 | Labels for the context line a command surface shows above its form. |
 | `CommandFailureContract` | type | 0 | `apps/web/lib/runtime/command-failure-message.ts`:22 | What a failed runtime command means, read out of whatever the adapter threw. |
 | `CommandPlacementKey` | type | 0 | `apps/web/lib/runtime/command-catalog.ts`:9 | The commands an action bar can carry, and where a bar can appear. |
+| `CorrectionOriginals` | type | 0 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:361 | The values the record already holds, as the correction form's own vocabulary. |
 | `CorrectionType` | type | 0 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:15 | Which fields a correction type needs, and what makes a request valid. |
 | `GovernedInputRequest` | type | 0 | `apps/web/app/components/feedback/use-governed-input.tsx`:37 | Collect a governed value through the design system, instead of `window.prompt`. |
 | `QuickCreateSubmission` | type | 0 | `apps/web/lib/runtime/quick-create-metadata.ts`:130 | Whether a quick-create dialog may submit, and what to say when it may not. |

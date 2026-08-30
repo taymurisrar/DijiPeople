@@ -300,3 +300,100 @@ describe('AttendanceService correction read scope', () => {
     expect(where.tenantId).toBe(TENANT);
   });
 });
+
+/*
+ * BUG-2560. The flags the detail page draws its buttons from.
+ *
+ * `canCurrentUserActionCorrection` decides `canApprove`, `canReject` and
+ * `canEdit`. It was a copy of the write path's authorization minus its first and
+ * most important rule — the separation-of-duties check BUG-0002 was raised to
+ * add — so the requester was told they could approve their own request, was
+ * shown both buttons, and was refused 403 on pressing either. Verified against
+ * production at `fba846d1`: `canApprove true · canReject true`, then
+ * `403 ACCESS_DENIED — "You cannot approve or reject your own attendance
+ * correction request."`
+ *
+ * These cases pair the two answers deliberately. A read model and a write path
+ * that decide the same thing separately will drift; asserting them together is
+ * what stops it.
+ */
+describe('AttendanceService correction read model agrees with the write path', () => {
+  const readModel = (
+    service: AttendanceService,
+    user: AuthenticatedUser,
+    correction: unknown,
+  ) =>
+    (
+      service as unknown as {
+        canCurrentUserActionCorrection: (
+          u: AuthenticatedUser,
+          r: unknown,
+        ) => Promise<boolean>;
+      }
+    ).canCurrentUserActionCorrection(user, correction);
+
+  it('does not offer the submitter an action the write path refuses', async () => {
+    const correction = buildCorrection({
+      requestedByUserId: 'manager-1',
+      employeeUserId: 'manager-1',
+    });
+    const { service } = createService(correction);
+    const user = buildUser('manager-1', APPROVER_PERMISSIONS, ['manager']);
+
+    await expect(readModel(service, user, correction)).resolves.toBe(false);
+    await expect(
+      service.approveCorrectionRequest(user, 'correction-1', {} as never),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('does not offer the subject an action, even on a proxy submission', async () => {
+    const correction = buildCorrection({
+      requestedByUserId: 'hr-1',
+      employeeUserId: 'employee-user-1',
+    });
+    const { service } = createService(correction);
+    const user = buildUser('employee-user-1', APPROVER_PERMISSIONS);
+
+    await expect(readModel(service, user, correction)).resolves.toBe(false);
+    await expect(
+      service.approveCorrectionRequest(user, 'correction-1', {} as never),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('still offers the action to a manager who is not a party to it', async () => {
+    // The rule bars the parties, not the approver. Without this case the fix
+    // could read as "nobody may approve anything", which would be a worse bug
+    // than the one it replaced.
+    const correction = buildCorrection({
+      requestedByUserId: 'employee-user-1',
+      employeeUserId: 'employee-user-1',
+    });
+    const { service } = createService(correction);
+
+    await expect(
+      readModel(
+        service,
+        buildUser('manager-1', APPROVER_PERMISSIONS, ['manager']),
+        correction,
+      ),
+    ).resolves.toBe(true);
+  });
+
+  it('still offers the action to the assigned approver holding no role bundle', async () => {
+    const correction = buildCorrection({
+      requestedByUserId: 'employee-user-1',
+      employeeUserId: 'employee-user-1',
+    });
+    const { service } = createService(correction, {
+      pendingAssignmentFor: 'approver-1',
+    });
+
+    await expect(
+      readModel(
+        service,
+        buildUser('approver-1', ['attendance.correction.read']),
+        correction,
+      ),
+    ).resolves.toBe(true);
+  });
+});

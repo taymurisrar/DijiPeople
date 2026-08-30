@@ -4130,3 +4130,78 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The lesson is about where to put a guard, not about checkout. **A test at either end of a three-part path passes while the middle is missing.** The seam that can break is the one where a value changes hands, and here it changed hands through a spread — the single construct TypeScript declines to check. A companion assertion now compares every `PublicSubscribeDto` field against the service signature, so a future field cannot be dropped the same way. |
 | **Fixed** | 2026-08-30 |
 | **Active** | yes |
+
+### REG-375 — A sign-out that cleared the browser and left the session open
+
+| | |
+|---|---|
+| **Bug class** | `fallback-left-carrying-the-primary-case` |
+| **Module** | `services/api/src/modules/auth` |
+| **Bug record** | BUG-2506 |
+| **Root cause** | `AuthService.logout` revoked exactly by session id only under `if (!refreshToken && sessionId)` — the BUG-0627 case, where the refresh cookie has already expired. The ordinary sign-out, with every cookie present, fell through instead to a bcrypt scan of the twenty most recently created live refresh tokens for the client, filtered on `{ revokedAt: null, appClientId }` with no tenant, user or session scoping. On any deployment that has issued more than twenty refresh tokens since the session began, the signer-out's own token is not in the list, nothing is revoked, and the token stays valid for its full lifetime — up to thirty days with remember-me. |
+| **Regression test** | `services/api/src/modules/auth/auth-session-lifecycle.spec.ts` |
+| **Scenario** | Sign out with **both** the refresh and session cookies present, and assert `refreshToken.updateMany` was called with `{ sessionId, appClientId: 'web', revokedAt: null }`. Four supporting cases: the session-cookie-only path still revokes (BUG-0627 preserved); an admin sign-out hits `PlatformRefreshToken` and never `RefreshToken`; a sign-out with no session cookie clears the browser and claims nothing; and `revokedAt: null` stays in the filter so a second sign-out cannot move the first one's timestamp. |
+| **Proven to fail without the fix** | The first case fails against the old guard, which never reached `revokeSessionTokens` when a refresh cookie was present. |
+| **Note** | Third recurrence of this class after REG-035 (agent desktop) and BUG-0627 (admin sign-out), and the first where the mechanism was a **bound that reads as an optimisation**: `take: 20` looks like a sensible cap on a hash scan and is in fact a correctness limit, so the control fails more reliably the busier the system gets — weakest exactly when it matters most. Prefer revoking by an exact indexed key over searching for the row you already know how to name. |
+| **Fixed** | 2026-08-30 |
+| **Active** | yes |
+
+### REG-376 — An approval screen that showed everything except what changed
+
+| | |
+|---|---|
+| **Bug class** | `hand-written-type-narrower-than-its-payload` |
+| **Module** | `apps/web` |
+| **Bug record** | BUG-2507 |
+| **Root cause** | The web app's `AttendanceCorrectionRequest` declared neither `requestedWorkMode`, `requestedWorkSiteId`, `requestedOvertimeMinutes` nor `fallbackReason`, although `mapCorrectionRequest` returns a spread of the whole row and had been sending all four the entire time. The detail page then rendered two cards, "Original Values" and "Requested Values", listing check-in and check-out unconditionally — so a mode-only or overtime-only correction reached the manager as two identical cards, and an unchanged field was indistinguishable from a changed one. |
+| **Regression test** | `apps/web/app/components/attendance-corrections/correction-form-fields.spec.ts` |
+| **Scenario** | `correctionChanges` returns only fields that moved: a request whose check-in is unchanged and whose check-out moved yields exactly `["checkOut"]`; a mode change against the linked entry yields `["workMode"]` with the entry's mode as `from`; a request whose requested mode equals the entry's yields `[]`; two spellings of one instant yield `[]`; overtime yields a change with a null `from`, because the record holds no previous value to strike through; and a request with no linked attendance entry still renders both times with a null `from`. |
+| **Proven to fail without the fix** | `correctionChanges` did not exist, and the four fields were not on the type, so every mode, site, overtime and fallback assertion fails to compile against the previous state. |
+| **Note** | Nothing compares a hand-written frontend type against the payload the API actually returns, so a field can be added to the model, written by the create path and returned by the read path while staying invisible in the product — with no error anywhere to notice. The unconditional two-card layout is what hid the consequence: **a card that renders every field whether or not it has anything to say looks identical when it has nothing to say.** |
+| **Fixed** | 2026-08-30 |
+| **Active** | yes |
+
+### REG-377 — The endpoint that says whether you are signed in did not know you had signed out
+
+| | |
+|---|---|
+| **Bug class** | `public-route-reimplements-the-guard-incompletely` |
+| **Module** | `services/api/src/modules/auth` |
+| **Bug record** | BUG-2547 |
+| **Root cause** | `GET /auth/me` is `@Public()` so that a signed-out visitor gets an answer rather than a 401. Being outside `JwtAuthGuard` meant `getProfileFromRequest` had to reimplement the guard's checks, and it reimplemented only some: signature, audience and expiry, but never session liveness. Measured on production at `fba846d1` — after sign-out, `/employees` returned `401 SESSION_REVOKED` while `/auth/me` returned `200` with the caller's identity, roles and permission keys, with 7.98 hours left on an eight-hour access token. Controls confirm the route does verify tokens: no cookie and a tampered signature both return 401. |
+| **Regression test** | `services/api/src/modules/auth/auth-session-lifecycle.spec.ts` |
+| **Scenario** | `getProfileFromRequest` is called with a valid access cookie whose session row is gone, and must reject with 401 and clear the cookies rather than return a profile. Five supporting cases on `isSessionStillLive`: the filter matches the guard's on session, subject, tenant, client and `revokedAt: null`; a missing row reports closed; a platform subject reads `PlatformRefreshToken` and never the tenant table; `agent-desktop` is left to its own device-session assertion; and a token with no `sessionId` is still accepted so older tokens are not signed out. |
+| **Proven to fail without the fix** | Mutation-tested. With the liveness check disabled, the `/auth/me` case fails and the other fourteen pass — which is exactly why the end-to-end case exists alongside the helper's own. |
+| **Note** | Second finding in one session where one security decision lived in two places and the two disagreed; BUG-2506 was the first. `@Public()` is an exemption from the guard, not from the guard's reasoning, and every route that takes it inherits the job of asking the same questions. The instructive detail is that this was **only findable by signing out and asking** — the code reads correctly right up until you compare it with the guard. |
+| **Fixed** | 2026-08-30 |
+| **Active** | yes |
+
+### REG-378 — Buttons offered for an action the server had always refused
+
+| | |
+|---|---|
+| **Bug class** | `read-model-omits-a-rule-the-write-path-enforces` |
+| **Module** | `services/api/src/modules/attendance`, `apps/web` |
+| **Bug record** | BUG-2560 |
+| **Root cause** | `assertCanActionCorrection` opens with the separation-of-duties check BUG-0002 was raised to add: neither the submitter nor the subject may action a correction. `canCurrentUserActionCorrection` — which decides `canApprove`, `canReject` and `canEdit`, and which the detail page draws its buttons from — was a copy of the same authorization logic *minus* that first rule. Measured on production at `fba846d1` as both requester and subject of `ACR-000001`: `canEdit true · canApprove true · canReject true`, then `403 ACCESS_DENIED — "You cannot approve or reject your own attendance correction request."` |
+| **Regression test** | `services/api/src/modules/attendance/attendance.correction-authorization.spec.ts` |
+| **Scenario** | For the submitter, and for the subject of a proxy submission, assert in one test both that the read model reports `false` and that `approveCorrectionRequest` throws `ForbiddenException` — the two answers pinned together. Then two negative controls: a manager who is not a party is still offered the action, and so is the assigned approver holding no role bundle, so the fix cannot degenerate into "nobody may approve anything". |
+| **Proven to fail without the fix** | Mutation-tested. Removing the party check from the read model fails the two paired cases and passes the other twelve. |
+| **Note** | Third finding in one session of a single shape — one decision implemented twice, the copies disagreeing — after REG-375 (sign-out revoking two ways) and REG-377 (`/auth/me` re-deciding what the guard decides). The general lesson is narrower than "don't duplicate": it is that **when a rule is added to a write path, every read model that describes that write path is now stale**, and nothing in the type system or the tests will say so. Pinning both answers in the same test is the cheapest thing that would have caught all three. |
+| **Fixed** | 2026-08-30 |
+| **Active** | yes |
+
+### REG-379 — A correction type the form offered and the server always refused
+
+| | |
+|---|---|
+| **Bug class** | `contract-asserted-from-one-side` |
+| **Module** | `apps/web`, `services/api/src/modules/attendance` |
+| **Bug record** | BUG-2505 |
+| **Root cause** | `fieldsFor("TIME_ADJUSTMENT")` returned mode, site, date and reason but neither timestamp, while `createCorrectionRequest` throws unless the type is `OVERTIME_APPROVAL` or one of the two timestamps is present. Every submission of "My work location or mode is wrong" therefore 400'd with `"A requested check-in or check-out timestamp is required."` — naming a field the employee had never been shown. `validateDraft` could not catch it either, because it derives `needsTime` from `showsField`, and the type showed no time fields, so the draft passed locally and failed remotely every single time. |
+| **Regression test** | `apps/web/app/components/attendance-corrections/correction-form-fields.spec.ts` |
+| **Scenario** | Iterate `CORRECTION_TYPE_OPTIONS`; for every type except `OVERTIME_APPROVAL`, assert that `showsField(type, "requestedCheckInAtUtc") \|\| showsField(type, "requestedCheckOutAtUtc")` is true. Plus: `validateDraft` on a `TIME_ADJUSTMENT` draft with no time reports `requestedCheckInAtUtc`, and the same draft with a time reports nothing. |
+| **Proven to fail without the fix** | The loop fails on `TIME_ADJUSTMENT` against the previous field map, and the validation case fails because the old `validateDraft` returned `[]` for a timeless mode correction. Two pre-existing tests asserted the broken shape and had to be inverted; both are now commented with why they were wrong. |
+| **Note** | The instructive part is that this was **tested and green while completely broken**. The test asked whether the form behaved as its author intended, never whether the request the form produces is one the server accepts. A form's field map and its endpoint's validation are two statements of one contract; when only one side is asserted, the assertion is worth nothing. The loop over every type is what makes a ninth type unable to reintroduce this. |
+| **Fixed** | 2026-08-30 |
+| **Active** | yes |

@@ -70,6 +70,7 @@ See [[dijipeople-platform-overview|DijiPeople Platform Overview]] for the full p
 Questions where the engineering is understood and the **product answer**
 **is not**. No agent may resolve one by implementing a side of it.
 
+- [[BUG-2509-platform-admin-remember-me-has-no-policy-able-to-refuse-it|BUG-2509]] — **Platform admin remember-me has no policy able to refuse it** (MEDIUM)
 - [[ITEM-0106-an-employee-cannot-use-self-service-until-their-manager-acti|ITEM-0106]] — **An employee cannot use self-service until their manager activates their own account** (MEDIUM)
 - [[ITEM-0115-provisioning-seeds-four-departments-with-no-business-unit-on|ITEM-0115]] — **Provisioning seeds four departments with no business unit on every tenant** (MEDIUM)
 - [[ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle|ITEM-0108]] — **Decide whether the roughly one-hour session lifetime is idle or absolute** (LOW)
@@ -95,6 +96,7 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-2008-every-employee-is-counted-absent-on-a-non-working-day-and-ra|BUG-2008]] | Every employee is counted absent on a non-working day and raised as an exception | DATA_INTEGRITY | HIGH | FIXED | api:attendance, api:dashboard | DONE |
 | [[BUG-2044-no-employee-lifecycle-event-is-audited-including-employee-cr|BUG-2044]] | No employee lifecycle event is audited, including employee creation and reporting-manager assignment | DATA_INTEGRITY | HIGH | FIXED | api:employees, api:organization, api:leave | DONE |
 | [[BUG-2494-check-out-re-validates-check-in-preconditions-and-traps-the-|BUG-2494]] | Check-out re-validates check-in preconditions and traps the entry open for ever | STATE_MACHINE | HIGH | OPEN | api:attendance | TRIAGE_REQUIRED |
+| [[BUG-2504-approving-a-correction-never-applies-the-requested-work-mode|BUG-2504]] | Approving a correction never applies the requested work mode, work site or overtime | STATE_MACHINE | HIGH | OPEN | api:attendance | PLAN_REQUIRED |
 | [[BUG-2530-self-service-checkout-still-creates-two-customer-records-the|BUG-2530]] | Self-service checkout still creates two customer records: the wizard's draft id is dropped between the controller and the order service | DATA_INTEGRITY | HIGH | FIXED | billing, super-admin, landing | FIX_NOW |
 | [[BUG-1668-tenant-workspace-pages-scroll-horizontally-at-mobile-width|BUG-1668]] | Tenant workspace pages scroll horizontally at mobile width | UX | MEDIUM | FIXED | views | DONE |
 | [[BUG-1950-every-tenant-workspace-screen-renders-the-same-h1-so-no-page|BUG-1950]] | Every tenant workspace screen renders the same h1, so no page announces what it is | UX | MEDIUM | FIXED | apps/web | DONE |
@@ -111,6 +113,8 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-2148-dashboard-widget-severity-is-conveyed-by-colour-alone-and-hi|BUG-2148]] | Dashboard widget severity is conveyed by colour alone, and hidden from assistive technology | UX | MEDIUM | FIXED | views, dashboard | DONE |
 | [[BUG-2413-allocate-id-plan-scans-only-docs-qa-test-plans-so-execplan-i|BUG-2413]] | allocate-id plan scans only docs qa test-plans so ExecPlan ids collide | DATA_INTEGRITY | MEDIUM | FIXED | scripts | DONE |
 | [[BUG-2495-the-under-investigation-tile-counts-incidents-nobody-is-inve|BUG-2495]] | The Under investigation tile counts incidents nobody is investigating | UX | MEDIUM | OPEN | admin:monitoring, api:platform-monitoring | TRIAGE_REQUIRED |
+| [[BUG-2507-the-manager-s-correction-screen-hides-four-of-the-eight-kind|BUG-2507]] | The manager's correction screen hides four of the eight kinds of change | UX | MEDIUM | FIXED | apps/web | DONE |
+| [[BUG-2573-a-correction-request-cannot-be-withdrawn-by-the-person-who-f|BUG-2573]] | A correction request cannot be withdrawn by the person who filed it | UX | MEDIUM | OPEN | api:attendance, apps/web | PLAN_REQUIRED |
 | [[ITEM-0068-legal-documents-have-no-operator-ui-so-publishing-is-a-scrip|ITEM-0068]] | Legal publication has an operator UI, but no diff before publishing | UX | MEDIUM | READY | legal, admin | FIX_NOW |
 | [[ITEM-0105-the-leave-entitlement-dialog-cannot-set-accrualtype-which-th|ITEM-0105]] | The leave entitlement dialog cannot set accrualType, which the API requires | UX | MEDIUM | READY | apps/web, api:leave | FIX_NOW |
 | [[BUG-1964-record-headings-and-dialog-titles-are-singularised-by-stripp|BUG-1964]] | Record headings and dialog titles are singularised by stripping a trailing s | UX | LOW | FIXED | apps/web | DONE |
