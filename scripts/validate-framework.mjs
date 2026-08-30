@@ -1639,6 +1639,8 @@ if (existsSync(join(ROOT, MAPPINGS))) {
     'docs/knowledge/modules',
     'docs/knowledge/requirements',
     'docs/knowledge/decisions',
+    'docs/knowledge/data-model',
+    'docs/knowledge/discovery',
     'docs/qa/runs',
     'docs/qa/regressions',
     'docs/qa/known-bug-patterns',
@@ -1666,6 +1668,41 @@ if (existsSync(join(ROOT, 'scripts/sync-obsidian.mjs'))) {
   check(
     'sync writes only into mapped agent-owned folders',
     /writes only into the mapped/i.test(sync),
+  );
+
+  /*
+   * The orphan check must not excuse a whole record category again.
+   *
+   * `STANDALONE_CATEGORIES` once held `docs/sessions`, `docs/qa/runs` and
+   * `docs/engineering-history/tasks`, and two of its stated reasons asserted an
+   * edge that did not exist. The result: `OBSIDIAN_GRAPH_ORPHANS` reported 0
+   * while 182 notes floated free, because the exemption covered exactly the
+   * population that was disconnected. Re-adding any of the three would restore
+   * that blind spot silently, so it is checked rather than remembered.
+   */
+  const categories = /const STANDALONE_CATEGORIES = new Map\(\[([\s\S]*?)\n\]\);/.exec(sync);
+  check('sync declares its standalone categories', Boolean(categories));
+  if (categories) {
+    for (const excused of ['docs/sessions', 'docs/qa/runs', 'docs/engineering-history/tasks']) {
+      check(
+        `${excused} is not blanket-exempt from the orphan check`,
+        !categories[1].includes(`'${excused}'`),
+        'a record that cites nothing must declare STANDALONE_ALLOWED with a reason, ' +
+          'not inherit an exemption from its folder',
+      );
+    }
+  }
+
+  /*
+   * An index links every record there is. Counting that as an edge makes the
+   * orphan check incapable of failing — verified by removing the exemption from
+   * all eight isolated records and watching it still report PASS.
+   */
+  check(
+    'navigation aggregates do not confer graph edges',
+    /NAVIGATION_AGGREGATES\.has\(node\.name\)\) continue/.test(sync) &&
+      /NAVIGATION_AGGREGATES\.has\(target\.name\)\) continue/.test(sync),
+    'an inbound link from index.md is not evidence a note is reachable',
   );
 }
 
@@ -1920,11 +1957,21 @@ if (existsSync(join(ROOT, `${DASHBOARD_DIR}/DijiPeople Engineering Dashboard.md`
    * wikilink renders as ordinary text, so nothing announces it. This reads the
    * table and checks every target is a real note.
    */
-  const backlogGenerator = read('scripts/rebuild-backlog.mjs');
-  const aliasTable = backlogGenerator.match(
+  /*
+   * The table moved to scripts/lib/module-notes.mjs so that `rebuild-backlog.mjs`
+   * and `generate-record-graph.mjs` resolve a declared module the same way.
+   * Reading it from the generator would now match nothing and this whole block
+   * would pass vacuously — which is the exact failure it exists to prevent.
+   */
+  const aliasTable = read('scripts/lib/module-notes.mjs').match(
     /const MODULE_NOTE_ALIASES = new Map\(\[([\s\S]*?)\n\]\);/,
   );
-  check('rebuild-backlog declares a module-note alias table', Boolean(aliasTable));
+  check('the shared module-note alias table exists', Boolean(aliasTable));
+  check(
+    'rebuild-backlog resolves modules through the shared table',
+    /from '\.\/lib\/module-notes\.mjs'/.test(read('scripts/rebuild-backlog.mjs')),
+    'a second copy of the table would drift, and a drifted copy emits dead wikilinks',
+  );
 
   if (aliasTable) {
     const knowledgeNotes = new Set();

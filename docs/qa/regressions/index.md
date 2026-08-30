@@ -3952,3 +3952,61 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Comment stripping is load-bearing, not hygiene: the fix own explanatory comment names `storeUserAgent` while describing the bug, so without stripping the test would pass against reverted code on the prose alone. The stripper uses `[^\r\n]` rather than `[^\n]` — working trees here are CRLF, and a `\n`-only character class leaves the carriage return behind, which has silently made source-reading assertions vacuous in this repository before. A behavioural test would be better; `buildAttendanceLocationPayload` is module-private and reachable only through a command handler needing a full runtime context, so the harness for one does not exist yet. |
 | **Fixed** | 2026-08-30 |
 | **Active** | yes |
+
+### REG-363 — Location capture failure reason discarded before the attendance classifier
+
+| | |
+|---|---|
+| **Bug class** | `reason-code-erased-below-the-classifier` |
+| **Module** | `apps/web` runtime module adapters, attendance outcome |
+| **Bug record** | BUG-2334 |
+| **Root cause** | `buildAttendanceLocationPayload` handled a failed capture with `throw new Error(location.message)`, reducing the discriminated failure union from `location-capture.ts` to a string. `classifyLocationCaptureFailure` switches on `reason` to pick the message and whether a retry can succeed, so all four browser failures — PERMISSION_DENIED, TIMEOUT, POSITION_UNAVAILABLE, UNSUPPORTED — collapsed into one generic runtime failure that routed to the platform technical error dialog. The sibling path in `module-runtime-command-handler.tsx` had always done it correctly; this adapter predates the classifier and was never migrated. |
+| **Regression test** | `apps/web/lib/attendance/location-capture-failure-routing.spec.ts` plus one assertion in `apps/web/lib/runtime/modules/attendance-location-payload.spec.ts` |
+| **Scenario** | Behavioural, not a source scan: the thrown error is passed through the same three links the runtime uses — `readErrorData` forwarding `data` onto the command result, `readCommandFailureContract` reading `errorCode`/`statusCode`, and `classifyAttendanceFailure` routing on it. Asserts all four reasons produce distinct `reasonCode` values and a non-technical outcome; that `UNSUPPORTED` alone reports `canRetry: false`, since a browser without geolocation will fail identically forever and a Try again button there is a lie; that an unrecognised code still escalates to the technical dialog; and that the pre-fix bare `Error` did not and could not. |
+| **Proven to fail without the fix** | Mutation-tested. Restoring `throw new Error(location.message)` in the adapter fails the tie-in assertion; reverted immediately after confirming. The behavioural spec alone would still pass, because it reproduces the helper locally — which is exactly why the tie-in assertion exists and is recorded here rather than left implicit. |
+| **Note** | The behavioural spec reproduces two pieces it cannot import: `readErrorData` (module-private in `command-execution.service.ts`) and the adapter helper (module-private). That is a real limitation — if `readErrorData` changed, the spec would keep passing against a stale copy. It is mitigated, not solved, by the source-level tie-in; the durable fix would be exporting the seam. Recorded rather than glossed, because a reproduced dependency is the same class of drift this bug was made of. |
+| **Fixed** | 2026-08-30 |
+| **Active** | yes |
+
+### REG-364 — Allow approximate IP fallback was a live setting for a capability that does not exist
+
+| | |
+|---|---|
+| **Bug class** | `unwired-capability-presented-as-configuration` |
+| **Module** | `apps/web` settings runtime, `services/api/src/modules/tenant-settings` |
+| **Root cause** | `captureIpFallbackLocation` returns a hardcoded failure on every call — no provider, no configuration read, no branch that can succeed — while the settings page rendered "Allow approximate IP fallback" as a live editable checkbox and the runtime policy reported `allowIpFallback: true`. Inert twice over: `captureAttendanceLocation`, the function the check-in path calls, never invokes the fallback at all. An administrator switching it on believed they had mitigated exactly the situation that makes attendance fail. |
+| **Bug record** | BUG-2335 |
+| **Regression test** | `services/api/src/modules/tenant-settings/attendance-settings-mandate.spec.ts` |
+| **Scenario** | `allowIpFallback` joins the `MANDATED` table, asserting both halves the mandate already asserts for the seven location settings: the lock holds (the key cannot be written at any value but `false`) and the refusal is reported (a differing submission fails the request naming the key, rather than being silently swapped so the change-diff drops it as a no-op). |
+| **Proven to fail without the fix** | Mutation-tested. Removing `allowIpFallback: false` from `MANDATORY_ATTENDANCE_SETTINGS` fails one test in the suite; reverted immediately after confirming. |
+| **Note** | Withdrawn rather than implemented, by owner decision on 2026-08-30. An IP-derived position is far weaker evidence than GPS and attendance location capture is a mandatory integrity control, so wiring a provider would quietly weaken that control — a product decision needing an ExecPlan, not a checkbox nobody wired. **Both halves were necessary.** Disabling the UI control alone leaves a tenant whose stored value is already `true` serving `allowIpFallback: true` in its runtime policy for ever, because the UI is cosmetic and the runtime reads the stored value; the demo tenant was exactly such a tenant. The provider stub was left in place deliberately — it is unreachable through the settings now, and deleting it would erase the only record of what the capability was meant to be. |
+| **Fixed** | 2026-08-30 |
+| **Active** | yes |
+
+### REG-365 — The id allocator issued PLAN- numbers that ExecPlans already held
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` (one rule, two directories, one scanner) |
+| **Module** | `scripts` |
+| **Bug record** | BUG-2413 |
+| **Regression test** | `scripts/id-allocator.test.mjs` |
+| **Scenario** | `ID_KINDS.plan` scans both `docs/qa/test-plans` and `docs/plans`, and an ExecPlan's `ID: PLAN-nnn` in frontmatter raises the ceiling even though its filename says `EXECPLAN-nnnn`. A fourth case pins that a kind with a single string `dir` still works. |
+| **Proven to fail without the fix** | Mutation-tested. Reverting `dir` to `['docs/qa/test-plans']` and dropping `idsInContentOf` fails two of the four cases; restored immediately after confirming. |
+| **Note** | The allocator exists to stop id collisions and was issuing one: asking for a plan id returned `PLAN-027`, which `EXECPLAN-0027-attendance-single-source-of-truth.md` already held. Two record families share the `PLAN-` space and only one was scanned. `PLAN-027` and `PLAN-028` remain as reservation gaps from the investigation — cheaper than a collision. |
+| **Fixed** | 2026-08-30 |
+| **Active** | yes |
+
+### REG-366 — Tenant readiness and the record header both labelled two different facts "Tenant Owner"
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` (two measures, one name) |
+| **Module** | `services/api/src/modules/tenant-control-plane`, `apps/admin` |
+| **Bug record** | BUG-2384 |
+| **Regression test** | `services/api/src/modules/tenant-control-plane/tenant-control-plane.service.spec.ts` — "labels the owner readiness check by capability, not designation" |
+| **Scenario** | The readiness check reads `Owner access` — "N accounts can administer this workspace" — counting active non-service-account users holding `GLOBAL_ADMIN`. The record header keeps `Primary Tenant Owner`, reading `Tenant.ownerUserId`. |
+| **Proven to fail without the fix** | Mutation-tested. Reverting the label to `Tenant Owner` fails the case; restored immediately after confirming. Originally observed in production on the `dijipeople-demo` tenant, where the header read `Unassigned` beside `1 active Tenant Owner` on the same screen. |
+| **Note** | Neither figure was wrong; they measure designation and capability respectively, and `ownerUserId` is null on plenty of healthy tenants. Only the shared label was wrong. |
+| **Fixed** | 2026-08-30 |
+| **Active** | yes |

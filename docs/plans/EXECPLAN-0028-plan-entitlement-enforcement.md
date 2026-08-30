@@ -594,3 +594,16 @@ answer `TENANT_FEATURE_NOT_ENTITLED` rather than 200, 201 or a field-name 400.
 - [ ] `docs/bugs/BUG-1952-*.md` updated with a Resolution section carrying the
       rollout caveat.
 - [ ] No unrelated change in the diff.
+
+## Related
+
+[[BUG-1952]] — the defect this plan addresses.
+
+> **Numbering caveat.** This file and
+> `EXECPLAN-0028-bug-0084-missing-unique-constraints.md` both carry
+> `EXECPLAN-0028` in their filename, and neither carries the `ID:` / `aliases:`
+> frontmatter its sibling plans use. See [[BUG-2413]] — `allocate-id.mjs` scans
+> `docs/qa/test-plans` for the `plan` kind and never sees `docs/plans`, so the
+> two families share one number space and only one of them is allocated.
+> Renumbering is left to the owning session; this section exists so the plan is
+> reachable in the graph.

@@ -6,7 +6,7 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 1** · completed: 74
+**Active: 1** · completed: 77
 
 ## Active
 
@@ -18,6 +18,9 @@ see [`README.md`](README.md) for how they stay out of each other's way.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0081](../../docs/sessions/SESSION-0081-phase-2-schema-discovery-data-model-knowledge-graph-and-disc.md) | — | Phase 2 schema discovery: data model knowledge graph and discovery tracking | COMPLETE | `agent/data-model-discovery` | `develop` | — | 2026-08-30T12:54:10.853Z |
+| [SESSION-0080](../../docs/sessions/SESSION-0080-bug-2334-preserve-the-location-failure-reason-through-the-at.md) | — | BUG-2334: preserve the location failure reason through the attendance adapter | COMPLETE | `agent/attendance-location-capture` | `develop` | — | 2026-08-30T12:45:38.131Z |
+| [SESSION-0079](../../docs/sessions/SESSION-0079-release-promote-the-attendance-location-capture-fix-to-main.md) | — | Release: promote the attendance location-capture fix to main | COMPLETE | `agent/attendance-location-capture` | `main` | — | 2026-08-30T11:37:27.533Z |
 | [SESSION-0078](../../docs/sessions/SESSION-0078-attendance-location-capture-is-blocked-by-permissions-policy.md) | — | Attendance location capture is blocked by Permissions-Policy; validate every attendance scenario | COMPLETE | `agent/attendance-location-capture` | `develop` | — | 2026-08-30T09:43:20.501Z |
 | [SESSION-0076](../../docs/sessions/SESSION-0076-open-bug-burndown-fix-all-50-documented-open-and-deferred-bu.md) | — | Open bug burndown: fix all 50 documented open and deferred bugs | COMPLETE | `agent/open-bug-burndown` | `develop` | — | 2026-08-29T16:09:50.608Z |
 | [SESSION-0075](../../docs/sessions/SESSION-0075-release-promote-the-documentation-reconciliation-to-main.md) | — | Release: promote the documentation reconciliation to main | COMPLETE | `agent/release-docs-reconcile` | `main` | — | 2026-08-29T15:09:21.853Z |

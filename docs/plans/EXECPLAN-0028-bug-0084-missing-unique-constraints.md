@@ -425,3 +425,17 @@ the constraints existing.
 - [ ] Phase 2 migration committed and deployed under a `RELEASE` task.
 - [ ] `P2002` handling added at `partner-experience.service.ts:569`.
 - [ ] `KNOWN_MISSING_UNIQUE_CONSTRAINTS` emptied in the same commit as phase 2.
+
+## Related
+
+[[BUG-0084]] — the defect this plan addresses.
+
+> **Numbering caveat.** This file and
+> `EXECPLAN-0028-plan-entitlement-enforcement.md` both carry `EXECPLAN-0028` in
+> their filename, and neither carries the `ID:` / `aliases:` frontmatter its
+> sibling plans use. The allocator ledger shows this plan was allocated
+> **PLAN-026** by SESSION-0076; the `0028` in the filename was derived
+> separately. See [[BUG-2413]] — `allocate-id.mjs` scans `docs/qa/test-plans`
+> for the `plan` kind and never sees `docs/plans`, so the two families share one
+> number space and only one of them is allocated. Renumbering is left to the
+> owning session; this section exists so the plan is reachable in the graph.

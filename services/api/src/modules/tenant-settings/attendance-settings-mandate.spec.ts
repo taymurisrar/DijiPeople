@@ -32,6 +32,18 @@ const MANDATED = [
   ['captureLocationOnCheckOut', true, false],
   ['allowManualLocationException', false, true],
   ['highAccuracyLocation', true, false],
+  /*
+   * BUG-2335, and mandated for a different reason from the rest. The others
+   * lock a control that is enforced elsewhere; this one locks a capability that
+   * does not exist — `captureIpFallbackLocation` cannot succeed on any input,
+   * and the check-in path never calls it. It shipped as a live, saveable
+   * checkbox reporting itself as enabled.
+   *
+   * It belongs in this table specifically because disabling the UI control is
+   * not enough: the UI is cosmetic, and a tenant whose stored value is already
+   * `true` would keep serving `allowIpFallback: true` in its runtime policy.
+   */
+  ['allowIpFallback', false, true],
 ] as const;
 
 describe('mandated attendance settings', () => {

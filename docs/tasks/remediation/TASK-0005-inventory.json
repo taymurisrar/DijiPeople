@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 393,
+    "total_records": 397,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -13120,7 +13120,7 @@
       "title": "A location capture failure is rethrown as a bare Error, discarding the reason code",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-2334-a-location-capture-failure-is-rethrown-as-a-bare-error-disca.md",
@@ -13128,13 +13128,17 @@
         "detected_in_sha": "f77c0abb",
         "created_at": "2026-08-30",
         "updated_at": "2026-08-30",
-        "resolved_at": ""
+        "resolved_at": "2026-08-30"
       },
       "affected_modules": [
         "apps/web"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-363"
+      ],
+      "qa_scenarios": [
+        "QA-ATTENDANCE-005"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -13158,22 +13162,26 @@
       "title": "Allow approximate IP fallback is a live setting whose provider is a permanent stub",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "PRODUCT_DECISION",
-      "architect_disposition": "PRODUCT_DECISION",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-2335-allow-approximate-ip-fallback-is-a-live-setting-whose-provid.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "f77c0abb",
         "created_at": "2026-08-30",
         "updated_at": "2026-08-30",
-        "resolved_at": ""
+        "resolved_at": "2026-08-30"
       },
       "affected_modules": [
         "apps/web",
         "services/api/src/modules/tenant-settings"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-364"
+      ],
+      "qa_scenarios": [
+        "QA-ATTENDANCE-006"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -13181,6 +13189,94 @@
           "services/api/src/modules/tenant-settings"
         ],
         "verification_scope": "See docs/bugs/BUG-2335-allow-approximate-ip-fallback-is-a-live-setting-whose-provid.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2384",
+      "type": "UX",
+      "title": "Tenant record shows Primary Tenant Owner Unassigned while its readiness check reports one active Tenant Owner",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-2384-tenant-record-shows-primary-tenant-owner-unassigned-while-it.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "d3c43e08",
+        "created_at": "2026-08-30",
+        "updated_at": "2026-08-30",
+        "resolved_at": "2026-08-30"
+      },
+      "affected_modules": [
+        "services/api/src/modules/tenant-control-plane",
+        "apps/admin"
+      ],
+      "regressions": [
+        "REG-366"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-062"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/tenant-control-plane",
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2384-tenant-record-shows-primary-tenant-owner-unassigned-while-it.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2413",
+      "type": "DATA_INTEGRITY",
+      "title": "allocate-id plan scans only docs qa test-plans so ExecPlan ids collide",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-2413-allocate-id-plan-scans-only-docs-qa-test-plans-so-execplan-i.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "b1c0c481",
+        "created_at": "2026-08-30",
+        "updated_at": "2026-08-30",
+        "resolved_at": "2026-08-30"
+      },
+      "affected_modules": [
+        "scripts"
+      ],
+      "regressions": [
+        "REG-365"
+      ],
+      "qa_scenarios": [
+        "QA-FRAMEWORK-001"
+      ],
+      "test_plan": [
+        "PLAN-029"
+      ],
+      "current_evidence": {
+        "paths": [
+          "scripts"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2413-allocate-id-plan-scans-only-docs-qa-test-plans-so-execplan-i.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],
@@ -18354,6 +18450,74 @@
           "services/api/src/modules/organization"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0115-provisioning-seeds-four-departments-with-no-business-unit-on.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0116",
+      "type": "TEST_GAP",
+      "title": "53 bug fixes are regression-covered but have never been QA-retested",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "READY",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0116-53-bug-fixes-are-regression-covered-but-have-never-been-qa-r.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-30",
+        "updated_at": "2026-08-30",
+        "resolved_at": ""
+      },
+      "affected_modules": [],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [],
+        "verification_scope": "See docs/backlog/items/ITEM-0116-53-bug-fixes-are-regression-covered-but-have-never-been-qa-r.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0117",
+      "type": "DOCUMENTATION",
+      "title": "The question protocol has never been used and five user decisions are parked in the backlog instead",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "READY",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0117-the-question-protocol-has-never-been-used-and-five-user-deci.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-30",
+        "updated_at": "2026-08-30",
+        "resolved_at": ""
+      },
+      "affected_modules": [],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [],
+        "verification_scope": "See docs/backlog/items/ITEM-0117-the-question-protocol-has-never-been-used-and-five-user-deci.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

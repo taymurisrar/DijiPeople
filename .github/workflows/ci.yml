@@ -206,6 +206,20 @@ jobs:
         run: node scripts/rebuild-qa.mjs --check
       - name: Dashboards and the Engineering Control Center
         run: node scripts/generate-dashboards.mjs --check
+      # The data-model notes carry a generated half, so a migration invalidates
+      # them without anyone deciding to — which is how database-architecture.md
+      # came to describe "~285 models" against a schema holding 318. Unchecked,
+      # the generated half rots exactly like the prose it exists to anchor.
+      - name: Data model notes match the schema
+        run: node scripts/generate-data-model.mjs --check
+      - name: Screen map matches the App Router
+        run: node scripts/generate-screen-map.mjs --check
+      # Sessions, QA runs and history records cite record ids in prose. Without
+      # this the citations stay plain text, the notes float free in the vault
+      # graph, and the orphan check excuses them by whole category — which is how
+      # OBSIDIAN_GRAPH_ORPHANS reported 0 against 182 disconnected notes.
+      - name: Record graph links the ids each record cites
+        run: node scripts/generate-record-graph.mjs --check
 
   typecheck:
     name: Typecheck

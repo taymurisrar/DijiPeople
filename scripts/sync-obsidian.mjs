@@ -251,12 +251,38 @@ const NAVIGATION_AGGREGATES = new Set([
  * bugs, backlog items, requirements, decisions, tasks, QA scenarios,
  * regressions, releases, modules and architecture notes.
  */
+/*
+ * Two of these reasons used to be aspirational, and the exemption hid it.
+ *
+ * "the scenarios it ran carry the relationships" and "is reached from that task"
+ * each asserted an edge that did not exist: a history record named its bugs as
+ * plain text — `BUG-1543, 1548, 1551` — and a QA run named its scenarios the
+ * same way, so nothing pointed either way. `OBSIDIAN_GRAPH_ORPHANS` reported 0
+ * while 182 notes floated free in the real graph, because the checker was
+ * excusing precisely the population that was disconnected.
+ *
+ * `scripts/generate-record-graph.mjs` now emits those edges from the ids each
+ * record already cites — 167 of 175 notes, ~3,000 edges. The exemption remains
+ * as a floor for the few that genuinely cite nothing (a deploy session with no
+ * history record; three QA runs predating the scenario-id convention), not as
+ * cover for the whole category.
+ */
 const STANDALONE_CATEGORIES = new Map([
-  ['docs/sessions', 'a session is a runtime coordination lease, not durable knowledge'],
-  ['docs/qa/runs', 'a QA run is dated execution evidence; the scenarios it ran carry the relationships'],
-  ['docs/engineering-history/tasks', 'a history record narrates one task end to end and is reached from that task'],
   ['docs/qa/test-strategy', 'strategy prose describing how testing is organised, not a node about a thing'],
 ]);
+
+/*
+ * A session in flight has nothing to cite yet, and that is not a defect.
+ *
+ * `session.mjs start` writes a record naming no bug, no task and no module,
+ * because the work has not happened. Requiring an edge on it would fail CI on
+ * every newly-started session until its task completed — so the requirement
+ * lands when the session does: a COMPLETE session must be traceable to something.
+ */
+function sessionStillOpen(mappingFrom, body) {
+  if (mappingFrom !== 'docs/sessions') return false;
+  return !/^STATUS:\s*(COMPLETE|ABANDONED)\s*$/m.test(body.slice(0, 2048));
+}
 
 function scanGraph(mappings) {
   const nodes = new Map();
@@ -277,6 +303,7 @@ function scanGraph(mappings) {
         standalone:
           NAVIGATION_AGGREGATES.has(name) ||
           STANDALONE_CATEGORIES.has(mapping.from) ||
+          sessionStillOpen(mapping.from, body) ||
           /^STANDALONE_ALLOWED:\s*true\s*$/m.test(body.slice(0, 2048)),
       };
       nodes.set(file, node);
@@ -291,13 +318,30 @@ function scanGraph(mappings) {
     }
   }
 
-  // Edges are counted in BOTH directions: an inbound link makes a note reachable
-  // just as well as an outbound one does.
+  /*
+   * Edges count in BOTH directions — an inbound link makes a note reachable just
+   * as well as an outbound one does — EXCEPT an edge involving a navigation
+   * aggregate, which counts for neither end.
+   *
+   * `index.md`, `open.md` and `completed.md` list every record there is. Once
+   * those lists publish as wikilinks (see `wikilinkRecordPaths`), every record
+   * gains an inbound edge from its own index automatically, and the orphan check
+   * becomes incapable of failing: verified by removing the exemption from all
+   * eight genuinely-isolated records and watching it still report PASS.
+   *
+   * "Appears in the index that lists everything" is not evidence a note is
+   * reachable in any useful sense. It is the same objection the file already
+   * makes to linking INTO a listing surface to clear a dot, arriving from the
+   * other direction — so an aggregate's edges are navigation, not knowledge, and
+   * are excluded from degree on both sides.
+   */
   for (const node of nodes.values()) {
+    if (NAVIGATION_AGGREGATES.has(node.name)) continue;
     const linkable = node.body.replace(/```[\s\S]*?```/g, '').replace(/`[^`\n]*`/g, '');
     for (const match of linkable.matchAll(/\[\[([^\]|#]+)(?:\|[^\]]*)?\]\]/g)) {
       const target = byName.get(match[1].trim());
       if (!target || target === node) continue;
+      if (NAVIGATION_AGGREGATES.has(target.name)) continue;
       node.degree += 1;
       target.degree += 1;
     }
