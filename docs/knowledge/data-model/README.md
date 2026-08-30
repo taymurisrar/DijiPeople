@@ -33,6 +33,10 @@ documents a model that no longer exists, when a note's filename disagrees with
 its `model:` frontmatter, or when a module directory has no domain in
 `scripts/lib/data-model.mjs`.
 
+It runs in CI, in the **Framework validation** job, beside the other generated
+artefacts. That is what makes this arrangement work rather than merely intend to:
+an unchecked generated region rots exactly like the prose it exists to anchor.
+
 ## Adding an entity note
 
 1. Create `entity-<kebab-model-name>.md`.

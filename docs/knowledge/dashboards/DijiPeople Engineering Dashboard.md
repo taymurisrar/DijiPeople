@@ -12,7 +12,7 @@
 | Open total | 78 |
 | Blocked | 2 |
 | Awaiting a product decision | 5 |
-| Deferred | 23 |
+| Deferred | 24 |
 | Completed | 285 |
 | Awaiting Architect triage | 0 |
 
@@ -469,14 +469,14 @@ _None. Nothing open at CRITICAL._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 278 |
+| Bug records | 279 |
 | Backlog items | 115 |
 | Known bug patterns | 31 |
 | QA runs | 31 |
 | Engineering history records | 65 |
 | Release records | 3 |
 | Module notes | 29 |
-| Architecture notes | 21 |
+| Architecture notes | 22 |
 | Decision notes (ADR + generated) | 7 |
 | Implementation records | 7 |
 

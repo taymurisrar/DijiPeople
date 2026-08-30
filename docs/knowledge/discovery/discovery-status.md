@@ -44,7 +44,7 @@ nothing is written down.
 | 2 — Schema discovery | **Started.** [[data-model-overview]], [[domain-map]] (all 318 classified), entity notes for the identity/tenant spine |
 | 3 — Domain classification | **Good.** Generated, and checked against the module directory |
 | 4 — Backend discovery | **Partial.** 30 of 67 modules have a knowledge note |
-| 5 — UI discovery | **None.** No route → screen → API → entity mapping for any application |
+| 5 — UI discovery | **Started.** [[screen-map]] inventories all 356 screens and links the 11 runtime-declared modules to an API path and entity; the rest are bespoke and unmapped. Spot-verified against production 2026-08-30 |
 | 6 — Process discovery | **Partial.** Commercial journeys covered; HR processes not written end to end |
 | 7 — Security | **Good.** [[rbac]], [[tenant-isolation]], [[authentication]], [[multi-tenancy]] |
 | 8 — Infrastructure | **Good.** [[deployment-architecture]], `docs/environment-variables.md` |
@@ -53,10 +53,13 @@ nothing is written down.
 
 ## What is deliberately not here
 
-- **Screens and APIs.** Phase 5 has not run. The gap is real and is the largest
-  single one, because it is the layer that connects everything already written
-  to what a user actually sees.
-- **The 288 models without an entity note.** [[domain-map]] lists them all. The
+- **The API and entity behind 345 of the 356 screens.** [[screen-map]] names
+  every screen, but only the 11 runtime-declared modules carry a machine-readable
+  link to what they read. The rest are bespoke pages whose data source can only
+  be found by reading them, and guessing from a route name would be wrong often
+  enough to be worse than silence.
+- **An endpoint catalogue.** Nothing enumerates the API surface.
+- **The 305 models without an entity note.** [[domain-map]] lists them all. The
   spine was documented first because the graph is unusable without its hub.
 
 ## How to keep this honest

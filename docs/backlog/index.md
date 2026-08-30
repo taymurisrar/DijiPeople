@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**393 records** — 278 bugs under [`docs/bugs/`](../bugs/), 115 non-bug items under [`items/`](items/).
+**394 records** — 279 bugs under [`docs/bugs/`](../bugs/), 115 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -15,7 +15,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | Open (active work) | 78 |
 | Blocked | 2 |
-| Deferred | 23 |
+| Deferred | 24 |
 | Awaiting a product decision | 5 |
 | Completed / closed | 285 |
 | **Open CRITICAL** | **0** |
@@ -53,7 +53,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | OPEN | 1 |
 | BLOCKED | 2 |
-| DEFERRED | 23 |
+| DEFERRED | 24 |
 | PRODUCT_DECISION | 5 |
 | FIXED | 53 |
 | VERIFIED | 215 |
@@ -423,6 +423,7 @@ see [`README.md`](README.md) for why.
 | [BUG-2017](../../docs/bugs/BUG-2017-the-inbox-related-record-column-renders-a-bare-uuid-with-no-.md) | The inbox Related record column renders a bare UUID with no label and no link | UX | LOW | P3 | FIXED | apps/web | DONE |
 | [BUG-2046](../../docs/bugs/BUG-2046-audit-actions-use-two-naming-conventions-and-the-result-colu.md) | Audit actions use two naming conventions and the Result column is populated only by login events | BUG | LOW | P3 | FIXED | api:audit | DONE |
 | [BUG-2149](../../docs/bugs/BUG-2149-every-dashboard-metric-card-offers-a-link-named-only-open.md) | Every dashboard metric card offers a link named only Open | UX | LOW | P3 | FIXED | views, dashboard | DONE |
+| [BUG-2384](../../docs/bugs/BUG-2384-tenant-record-shows-primary-tenant-owner-unassigned-while-it.md) | Tenant record shows Primary Tenant Owner Unassigned while its readiness check reports one active Tenant Owner | UX | LOW | P3 | DEFERRED | api:tenant-control-plane, apps/admin | DEFER |
 | [ITEM-0007](../../docs/backlog/items/ITEM-0007-should-duplicate-website-leads-be-deduplicated.md) | Product decision — should duplicate website leads be deduplicated? | PRODUCT_DECISION | LOW | P3 | DONE | api:leads, apps/landing | DONE |
 | [ITEM-0008](../../docs/backlog/items/ITEM-0008-customeraccount-has-no-origin-channel.md) | Product decision — CustomerAccount carries no origin channel | PRODUCT_DECISION | LOW | P3 | DONE | services/api/prisma, api:super-admin | DONE |
 | [ITEM-0011](../../docs/backlog/items/ITEM-0011-framework-validation-should-catch-absence-claims.md) | Framework validation should catch false absence claims in context documents | TECH_DEBT | LOW | P3 | DONE | .agent/context, scripts | DONE |
