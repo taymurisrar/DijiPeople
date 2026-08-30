@@ -4,7 +4,7 @@ aliases: [SESSION-0078]
 TASK_ID:
 TITLE: Attendance location capture is blocked by Permissions-Policy; validate every attendance scenario
 ARCHITECT_INTENT: Attendance location capture is blocked by Permissions-Policy; validate every attendance scenario
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: BUG
 TASK_SIZE: MEDIUM
 BASE_BRANCH: origin/develop
@@ -16,8 +16,8 @@ AFFECTED_MODULES: [packages/config, apps/web, apps/admin, services/api/src/commo
 WRITE_LEASES: []
 ACTIVE_WORK_PACKAGES: []
 SCHEMA_WRITE: NO
-CI_STATUS: NOT_RUN
-MERGE_STATUS: NOT_STARTED
+CI_STATUS: PASS
+MERGE_STATUS: INTEGRATED
 STARTED_AT: 2026-08-30T09:43:20.501Z
 LAST_HEARTBEAT: 2026-08-30T09:43:20.501Z
 BLOCKERS: none
