@@ -15,10 +15,10 @@
 | **Base Branch** | `2a1a1e06` |
 | **Task Branch** | `agent/data-model-discovery` |
 | **Base SHA** | `2a1a1e0649739bf47d89cb9507dbf7d23b718f4e` |
-| **Final Task SHA** | `122ce41e6364498f1464cddf3f145f8f0727fa81` |
+| **Final Task SHA** | `aa648ecb`. The record's filename carries `122ce41e`, the SHA of the first integration, and is left as filed — a history record is named once. |
 | **Target Branch** | `develop` |
 | **Merge Commit** | None — fast-forward. `git push origin HEAD:develop` moved `develop` 2a1a1e06..122ce41e, so the integrated tip is byte-identical to the CI-verified SHA. |
-| **Final Target SHA** | `122ce41e6364498f1464cddf3f145f8f0727fa81` (`origin/develop`) |
+| **Final Target SHA** | `aa648ecb` (`origin/develop`). `develop` was moved to `122ce41e` when that gate passed, and to `aa648ecb` when the graph and backlog work that followed passed its own. Both were fast-forwards. |
 
 ### Commits
 
@@ -30,13 +30,22 @@ fac61b86 docs(knowledge): correct the bespoke-screen count in discovery status
 b1c0c481 docs(history): data model and screen discovery, start to finish
 1af0909f docs(records): close the graph, and find why EXECPLAN-0028 exists twice
 dc7af467 docs(graph): link the sessions, QA runs and history records that floated free
+a3c452e3 docs(history): record the graph reconciliation in the task's own history
+660c0fca fix(obsidian): publish record links as wikilinks, and name the FIXED-not-verified debt
+97435994 fix(obsidian): make the orphan check capable of failing, and prove it
+aa648ecb docs(backlog): the question protocol has never been used
 ```
 
-The last three landed after the first integration. `develop` was moved to
-`122ce41e` once its gate passed, and the closure, reconciliation and graph work
-followed as separate verified SHAs rather than being held back to make one
-tidier commit — a verdict is about the code it ran on, and batching would have
-meant the first four sat unintegrated while the graph work was written.
+The last seven landed after the first integration. `develop` was moved to
+`122ce41e` once its gate passed, and the closure, reconciliation, graph and
+backlog work followed as separate verified SHAs rather than being held back to
+make one tidier commit — a verdict is about the code it ran on, and batching
+would have meant the first four sat unintegrated while the rest was written.
+
+The Files Changed list below is the diff as at `122ce41e` and is left as filed.
+The seven later commits add `scripts/generate-record-graph.mjs`,
+`scripts/lib/module-notes.mjs`, the link rewrite in `scripts/lib/obsidian-node.mjs`,
+[[BUG-2413]], [[ITEM-0116]], [[ITEM-0117]] and the GRAPH blocks on 167 records.
 
 ### Worktrees
 
@@ -156,7 +165,8 @@ totals include both sides' records (394 records, 279 bug / 115 item).
 |---|---|
 | **QA Report** | None — no `docs/qa/runs/` record. This was discovery, not a QA campaign: the browser work was read-only navigation to verify documentation claims, not scenario execution against acceptance criteria. Filing a run record for it would misrepresent what was tested. |
 | **Bug IDs** | [[BUG-2384]] — created, triaged **DEFER**. The platform admin tenant record labels two different facts "Tenant Owner" and they contradict each other on screen. [[BUG-2413]] — created, triaged **PLAN_REQUIRED**. `allocate-id.mjs` issues `PLAN-` ids that ExecPlans already hold, because the `plan` kind scans only `docs/qa/test-plans`. |
-| **Backlog Items** | None created or advanced. |
+| **Backlog Items** | [[ITEM-0116]] — 53 bug fixes are regression-covered but have never been QA-retested, which is why the backlog reports ~80 open while only 3 are `OPEN`. [[ITEM-0117]] — the question protocol has never been used in 81 sessions while five user decisions sit parked in the backlog. Both `FIX_NOW`. |
+| **Records corrected** | [[BUG-1950]], [[BUG-1951]], [[BUG-1986]] — each said "Not retested — not yet fixed" in QA Retest while its own `Status`, `ResolvedAt` and `Resolution` said the fix had landed. Statuses unchanged; only the contradiction was removed. |
 
 ## CI
 
@@ -237,6 +247,23 @@ records as plain text. The exemption is what stopped anyone noticing, and
 `scripts/generate-record-graph.mjs` now emits those edges, and
 `OBSIDIAN_STANDALONE_ALLOWED` is the number to read beside the orphan count.
 
+**A third lesson, and the sharpest: fixing the links broke the check.** Publishing
+index links as wikilinks gave every record an inbound edge from its own index, so
+nothing could ever be an orphan again — the guard became incapable of failing
+while still reporting `PASS`. Proven by removing the exemption from all eight
+isolated records and watching it pass anyway. Navigation aggregates now confer no
+edges on either side, the three blanket category exemptions are gone
+(`STANDALONE_ALLOWED` 205 → 31), and `validate-framework` fails if either is
+undone.
+
+Both guards were mutation-tested rather than assumed, which mattered: **two of
+the mutation attempts were themselves invalid** — one node had inbound links from
+elsewhere, and one probe fell under `isPublishable`'s 40-word floor so it was
+never scanned at all. A mutation that passes may mean the test is wrong rather
+than the guard. The valid mutations do fail: a new unlinked QA run produces
+`GRAPH_ORPHAN` and `SYNC_STATUS = FAILED`, and re-adding `docs/sessions` to the
+exemption table fails framework validation.
+
 Two findings worth carrying forward independently of the notes: **13 models have
 no Prisma call site anywhere** (`ProcessingCycle` is the one that matters — two
 live models hold a foreign key to it, so that column is always null), and
@@ -310,6 +337,6 @@ alone.
 
 Records this task created, closed or depended on, cited in its own body:
 
-[[BUG-0084]] · [[BUG-1952]] · [[BUG-2334]] · [[BUG-2335]] · [[BUG-2384]] · [[BUG-2413]] · [[PLAN-026]] · [[PLAN-027]] · [[SESSION-0076]] · [[SESSION-0081]] · [[TASK-0005]]
+[[BUG-0084]] · [[BUG-1950]] · [[BUG-1951]] · [[BUG-1952]] · [[BUG-1986]] · [[BUG-2334]] · [[BUG-2335]] · [[BUG-2384]] · [[BUG-2413]] · [[ITEM-0116]] · [[ITEM-0117]] · [[PLAN-026]] · [[PLAN-027]] · [[SESSION-0076]] · [[SESSION-0081]] · [[TASK-0005]]
 
 <!-- GRAPH:END -->
