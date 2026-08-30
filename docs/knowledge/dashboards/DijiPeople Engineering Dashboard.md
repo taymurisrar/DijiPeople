@@ -367,6 +367,7 @@ _None. Nothing open at CRITICAL._
 
 ## Recent Engineering History
 
+- [[2026-08-30-open-bug-burndown-4d75b37c|Engineering History — Open bug burndown]]
 - [[2026-08-29-workspace-switcher-avatar-menu-9f32c407|Engineering History — Workspace switcher avatar menu]]
 - [[2026-08-29-starter-plan-e2e-qa-ee69f49f|Engineering History — Starter plan e2e qa]]
 - [[2026-08-29-starter-blocker-fixes-3fff9cc9|Engineering History — Starter blocker fixes]]
@@ -374,7 +375,6 @@ _None. Nothing open at CRITICAL._
 - [[2026-08-29-leave-module-and-decided-fixes-fcb0af67|Engineering History — Leave module and decided fixes]]
 - [[2026-08-29-backlog-burndown-9353872e|Engineering History — Backlog burndown]]
 - [[2026-08-28-promote-open-bug-sweep-to-production-3d2931c4|Engineering History — Promote open bug sweep to production]]
-- [[2026-08-28-open-bug-sweep-cd4edb86|Engineering History — Open bug sweep]]
 
 ## Recent Releases
 
@@ -463,7 +463,7 @@ _None. Nothing open at CRITICAL._
 | Backlog items | 115 |
 | Known bug patterns | 30 |
 | QA runs | 31 |
-| Engineering history records | 62 |
+| Engineering history records | 63 |
 | Release records | 3 |
 | Module notes | 29 |
 | Architecture notes | 21 |
