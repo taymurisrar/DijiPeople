@@ -27,6 +27,8 @@ Published by `node scripts/sync-obsidian.mjs`.
 | `regressions/` | Regression narratives too long for the register | `11 - Agent Knowledge/Regressions/Generated` | **Evergreen** |
 | `releases/` | Release summaries | `08 - Releases/Generated` | **History** — append only |
 | `dashboards/` | **Generated** by `scripts/generate-dashboards.mjs` — never hand-edit | `00 - Home/Generated` | Regenerated |
+| `data-model/` | Per-entity knowledge. **Half generated** by `scripts/generate-data-model.mjs` — see the folder README | `12 - Data Model/Generated` | **Evergreen** |
+| `discovery/` | State of the documentation effort: coverage, gaps, contradictions, unverified claims | `11 - Agent Knowledge/Discovery` | **Evergreen** |
 
 The vault destinations come from `DEFAULT_MAPPINGS` in
 [`scripts/lib/obsidian-mappings.mjs`](../../scripts/lib/obsidian-mappings.mjs).

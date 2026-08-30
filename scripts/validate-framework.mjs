@@ -1639,6 +1639,8 @@ if (existsSync(join(ROOT, MAPPINGS))) {
     'docs/knowledge/modules',
     'docs/knowledge/requirements',
     'docs/knowledge/decisions',
+    'docs/knowledge/data-model',
+    'docs/knowledge/discovery',
     'docs/qa/runs',
     'docs/qa/regressions',
     'docs/qa/known-bug-patterns',

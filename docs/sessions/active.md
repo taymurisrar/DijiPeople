@@ -12,4 +12,5 @@ therefore sees sibling worktrees without anybody having pushed.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0081](../../docs/sessions/SESSION-0081-phase-2-schema-discovery-data-model-knowledge-graph-and-disc.md) | — | Phase 2 schema discovery: data model knowledge graph and discovery tracking | ACTIVE | `agent/data-model-discovery` | `develop` | — | 2026-08-30T12:54:10.853Z |
 | [SESSION-0061](../../docs/sessions/SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser.md) | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | 2026-08-26T09:54:37.336Z |

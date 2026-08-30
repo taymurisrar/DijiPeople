@@ -19,6 +19,7 @@ See [[dijipeople-platform-overview|DijiPeople Platform Overview]] for the full p
 - [[desktop-agent|Desktop Agent (`apps/agent-desktop`)]]
 - [[dijipeople-platform-overview|DijiPeople Platform Overview]]
 - [[employee-hr-platform|Employee HR Platform]]
+- [[glossary|Glossary]]
 - [[landing-website|Landing Website (`apps/landing`)]]
 - [[partner-program|Partner Program]]
 - [[product-areas|Product Areas]]
