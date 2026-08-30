@@ -6,12 +6,13 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 1** · completed: 79
+**Active: 2** · completed: 79
 
 ## Active
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0085](../../docs/sessions/SESSION-0085-duplicate-customer-on-self-service-checkout-the-wizard-s-dra.md) | — | Duplicate customer on self-service checkout: the wizard's draft id is dropped | ACTIVE | `agent/checkout-duplicate-customer` | `develop` | — | 2026-08-30T19:25:21.859Z |
 | [SESSION-0061](../../docs/sessions/SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser.md) | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | 2026-08-26T09:54:37.336Z |
 
 ## Completed

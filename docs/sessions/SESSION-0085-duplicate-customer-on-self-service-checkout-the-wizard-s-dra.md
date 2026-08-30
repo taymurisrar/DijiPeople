@@ -1,0 +1,44 @@
+---
+SESSION_ID: SESSION-0085
+aliases: [SESSION-0085]
+TASK_ID:
+TITLE: Duplicate customer on self-service checkout: the wizard's draft id is dropped
+ARCHITECT_INTENT: Duplicate customer on self-service checkout: the wizard's draft id is dropped
+STATUS: ACTIVE
+TASK_TYPE: BUG
+TASK_SIZE: SMALL
+BASE_BRANCH: origin/develop
+BASE_SHA: c18b50249e891796672e3659c8c7d48e01af47ea
+TASK_BRANCH: agent/checkout-duplicate-customer
+TARGET_BRANCH: develop
+WORKTREE: D:/My Work/hrm-dijipeople/DijiPeople
+AFFECTED_MODULES: []
+WRITE_LEASES: []
+ACTIVE_WORK_PACKAGES: []
+SCHEMA_WRITE: NO
+CI_STATUS: NOT_RUN
+MERGE_STATUS: NOT_STARTED
+STARTED_AT: 2026-08-30T19:25:21.859Z
+LAST_HEARTBEAT: 2026-08-30T19:25:21.859Z
+BLOCKERS: none
+---
+
+# SESSION-0085 — Duplicate customer on self-service checkout: the wizard's draft id is dropped
+
+## Intent
+
+Duplicate customer on self-service checkout: the wizard's draft id is dropped
+
+## Scope
+
+_To be established during planning._
+
+## Concurrency
+
+Write leases held, overlap classification against other active sessions, and
+anything this session deliberately serialised behind another. Live state:
+`node scripts/session.mjs list`.
+
+## History
+
+- 2026-08-30 — session started from `origin/develop` at `c18b502`.

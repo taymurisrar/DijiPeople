@@ -4115,3 +4115,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Second time this screen has had this fault: REG-281 was a tile counting 11 and linking to 0, where "critical" had been spelled three different ways. The lesson is the same and now applies to two metrics — **inferring a count by subtracting the states you know about is only ever correct until someone adds a state.** The frontend now reads the API's count and falls back to 0 rather than to the subtraction, so a stale API cannot resurrect the bug. |
 | **Fixed** | 2026-08-30 |
 | **Active** | yes |
+
+### REG-374 — The middle of a three-part fix
+
+| | |
+|---|---|
+| **Bug class** | `fix-wired-at-both-ends-only` |
+| **Module** | `billing`, `super-admin`, `apps/landing` |
+| **Bug record** | BUG-2530 |
+| **Root cause** | BUG-1516 stopped one signup creating two customers by having the subscribe wizard send the draft order it opened, and having resolveCustomer continue that draft customer. Both ends were built and tested. The service between them — createPublicSubscriptionCheckout — re-declares the request shape as an inline object type, omitted `onboardingId` from it, and passed nothing to openOrder. TypeScript does not apply excess-property checking through a spread, so the controller's `{ ...dto, ipAddress }` compiled clean while dropping the field; and the existing guard calls resolveCustomer directly with an `onboardingId` it supplies itself, so it proved the consumer worked while observing nothing about whether a caller supplies it. The fix shipped to production, passed a regression sweep, was marked VERIFIED, and never once ran. |
+| **Regression test** | `services/api/src/modules/billing/services/checkout-draft-id-reaches-the-order.spec.ts` |
+| **Scenario** | The service is driven with a doubled subscription-order service through the real method. A submission carrying a draft id is asserted to reach openOrder with that id intact; a submission with no draft is asserted to pass an explicit null, so the no-draft and sales-assisted paths keep their old behaviour. A third assertion pins the field name to `PublicSubscribeDto`, which is what stops the test from guarding a name no caller sends. A fourth asserts the order is opened *before* the e-mail-verification gate — without it, moving the gate earlier would make openOrder stop being called at all and the first assertion would pass vacuously. |
+| **Proven to fail without the fix** | Mutation-tested. Deleting the forwarding line turns two of the four assertions red; restoring it turns them green. Recorded explicitly because the guard this defect walked past was green for its entire life. |
+| **Note** | The lesson is about where to put a guard, not about checkout. **A test at either end of a three-part path passes while the middle is missing.** The seam that can break is the one where a value changes hands, and here it changed hands through a spread — the single construct TypeScript declines to check. A companion assertion now compares every `PublicSubscribeDto` field against the service signature, so a future field cannot be dropped the same way. |
+| **Fixed** | 2026-08-30 |
+| **Active** | yes |
