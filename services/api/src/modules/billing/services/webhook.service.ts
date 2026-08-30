@@ -984,9 +984,37 @@ export class WebhookService {
         stripeCustomerId,
         subject: 'subscription',
       });
-      throw new BadRequestException(
-        'Stripe subscription customer could not be resolved to one tenant.',
-      );
+      /*
+       * Name what could not be resolved.
+       *
+       * This threw a bare message for six days in production — 19 redeliveries
+       * of one event between 2026-08-24 and 2026-08-30 — and the recorded
+       * incident carried `details: {}`. The log therefore said only that *some*
+       * customer could not be resolved, and the root cause could not be
+       * established from it at all (BUG-2462).
+       *
+       * Identifiers only: the Stripe customer and subscription ids, and how
+       * many tenants the account actually matched — which is the difference
+       * between "unmapped" and "ambiguously mapped", and the two have quite
+       * different causes. No payload, no keys, nothing `sanitizeForErrorLog`
+       * would have to strip.
+       *
+       * The response code is deliberately unchanged here. Answering Stripe with
+       * `400` is what drives the redelivery loop, but changing it means
+       * choosing where an unmappable event goes instead, and that needs the
+       * ExecPlan the record calls for.
+       */
+      throw new BadRequestException({
+        code: 'VALIDATION_FAILED',
+        message:
+          'Stripe subscription customer could not be resolved to one tenant.',
+        details: {
+          stripeCustomerId,
+          stripeSubscriptionId: subscription.id,
+          customerAccountId: customerAccount?.id ?? null,
+          matchedTenants: customerAccount?.tenants.length ?? 0,
+        },
+      });
     }
 
     return {
@@ -1149,6 +1177,11 @@ export class WebhookService {
       });
     }
 
+    // Held outside the block so the failure below can say what was searched
+    // and what it found — see BUG-2462.
+    let resolvedCustomerAccountId: string | null = null;
+    let matchedSubscriptionCount = 0;
+
     if (!subscription && stripeCustomerId) {
       const customerAccount = await tx.customerAccount.findFirst({
         where: { stripeCustomerId },
@@ -1159,6 +1192,8 @@ export class WebhookService {
           .map((tenant) => tenant.subscription)
           .filter((item): item is NonNullable<typeof item> => Boolean(item)) ??
         [];
+      resolvedCustomerAccountId = customerAccount?.id ?? null;
+      matchedSubscriptionCount = tenantSubscriptions.length;
       if (tenantSubscriptions.length === 1) {
         subscription = tenantSubscriptions[0];
       }
@@ -1169,9 +1204,19 @@ export class WebhookService {
         stripeCustomerId,
         subject: 'invoice',
       });
-      throw new BadRequestException(
-        'Stripe invoice could not be mapped to a DijiPeople subscription.',
-      );
+      // The invoice sibling of the subscription case above (BUG-2462): five
+      // occurrences on 2026-08-24, likewise recorded with empty details.
+      throw new BadRequestException({
+        code: 'VALIDATION_FAILED',
+        message:
+          'Stripe invoice could not be mapped to a DijiPeople subscription.',
+        details: {
+          stripeCustomerId,
+          stripeSubscriptionId,
+          customerAccountId: resolvedCustomerAccountId,
+          matchedSubscriptions: matchedSubscriptionCount,
+        },
+      });
     }
 
     if (metadata.tenantId && subscription.tenantId !== metadata.tenantId) {

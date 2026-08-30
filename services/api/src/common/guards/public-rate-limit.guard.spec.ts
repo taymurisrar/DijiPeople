@@ -55,4 +55,59 @@ describe('public workflow rate limiting', () => {
     // Same egress address, different visitor — must be unaffected.
     expect(guard.canActivate(quiet)).toBe(true);
   });
+
+  /**
+   * BUG-2458. `POST /auth/refresh` sat behind the credential-submission budget
+   * — 20 writes per ten minutes per IP. Refresh is not a credential
+   * submission: every open tab issues it on a timer, three client apps issue
+   * it, and everyone behind one office NAT shares the bucket. Production
+   * returned `429` on it 52 times in a single day, and a client that cannot
+   * refresh signs the user out of a session that was still valid.
+   *
+   * The pair of assertions is the point. Raising the refresh budget is only
+   * safe if the credential budget provably did not move with it.
+   */
+  describe('BUG-2458 — refresh is budgeted as machine traffic', () => {
+    it('allows sustained refresh from one address', () => {
+      const guard = new PublicRateLimitGuard();
+      const request = context(`/t${Date.now()}/auth/refresh`);
+
+      // Comfortably past the old limit of 20, and past what a real fleet of
+      // tabs on one NAT would produce in the window.
+      for (let index = 0; index < 200; index += 1)
+        expect(guard.canActivate(request)).toBe(true);
+    });
+
+    it('still refuses an implausible flood on refresh', () => {
+      const guard = new PublicRateLimitGuard();
+      const request = context(`/f${Date.now()}/auth/refresh`);
+
+      for (let index = 0; index < 600; index += 1)
+        expect(guard.canActivate(request)).toBe(true);
+      expect(() => guard.canActivate(request)).toThrow(HttpException);
+    });
+
+    it.each([
+      '/auth/login',
+      '/admin/auth/login',
+      '/agent/auth/login',
+      '/auth/forgot-password',
+      '/auth/activate-account',
+      '/public/subscribe',
+      '/public/leads',
+    ])('leaves the credential budget on %s at 20', (path) => {
+      /*
+       * The guard exists on these routes because of BUG-0013, BUG-0031,
+       * BUG-0033 and BUG-0075. If a future route override ever widens to match
+       * one of them, this fails rather than quietly reopening an enumeration
+       * and credential-stuffing surface.
+       */
+      const guard = new PublicRateLimitGuard();
+      const request = context(`/s${Date.now()}${path}`);
+
+      for (let index = 0; index < 20; index += 1)
+        expect(guard.canActivate(request)).toBe(true);
+      expect(() => guard.canActivate(request)).toThrow(HttpException);
+    });
+  });
 });

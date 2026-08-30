@@ -168,6 +168,38 @@ export type RenderedTemplate = {
 
 const API_ERROR_HANDLING_HEADER = "x-dijipeople-error-handling";
 
+/**
+ * A failed notification request, carrying the status the caller needs.
+ *
+ * This used to throw a bare `Error` with only a message, which made every
+ * failure look alike to a caller. The components that poll on a timer could
+ * not tell "the server hiccuped, try again in a minute" from "this session is
+ * over, there is nothing to try again for" — so they retried forever. Four
+ * fingerprints in the production error log carried 1,033 occurrences of the
+ * same tab asking the same question after the answer stopped being yes
+ * (BUG-2459).
+ */
+export class NotificationRequestError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "NotificationRequestError";
+    this.status = status;
+  }
+
+  /** A session that has expired or been revoked. Retrying cannot help. */
+  get isAuthFailure() {
+    return this.status === 401;
+  }
+}
+
+export function isAuthFailure(error: unknown): boolean {
+  return (
+    error instanceof NotificationRequestError && error.isAuthFailure
+  );
+}
+
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`/api/notifications${path}`, {
     ...init,
@@ -193,7 +225,10 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
             data.error?.message
           ? data.error.message
           : "Notification request failed.";
-    throw new Error(message ?? "Notification request failed.");
+    throw new NotificationRequestError(
+      message ?? "Notification request failed.",
+      response.status,
+    );
   }
 
   return data as T;

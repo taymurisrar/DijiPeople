@@ -7,6 +7,7 @@ import {
   archiveInAppNotification,
   getInAppNotifications,
   getUnreadNotificationCount,
+  isAuthFailure,
   markInAppNotificationRead,
   openInboxNotification,
   type InAppNotificationItem,
@@ -26,9 +27,16 @@ export function NotificationBell({
   const [error, setError] = useState<string | null>(null);
   const [staleState, setStaleState] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  /*
+   * Set once the session is gone, and never unset. Guards both the interval
+   * callback and `refresh` itself, because a click on the bell can race a tick
+   * that has already been scheduled.
+   */
+  const sessionEndedRef = useRef(false);
   const router = useRouter();
 
   async function refresh(openPanel = false) {
+    if (sessionEndedRef.current) return;
     try {
       setError(null);
       if (openPanel) setIsLoading(true);
@@ -40,6 +48,21 @@ export function NotificationBell({
       const countResult = await getUnreadNotificationCount();
       setUnreadCount(countResult.unreadCount);
     } catch (requestError) {
+      /*
+       * A 401 is not a transient display problem, and treating it as one is
+       * what made this component the largest single source of rows in the
+       * production error log: it polled every 60 seconds forever after the
+       * session ended, and each refusal was recorded as an incident. Two
+       * fingerprints alone carried 1,033 occurrences (BUG-2459).
+       *
+       * Stop asking, and say the true thing rather than surfacing the raw
+       * "Session is no longer active." on a badge nobody can act on.
+       */
+      if (isAuthFailure(requestError)) {
+        sessionEndedRef.current = true;
+        setError("Your session has ended. Sign in again to see notifications.");
+        return;
+      }
       setError(
         requestError instanceof Error
           ? requestError.message
@@ -52,7 +75,15 @@ export function NotificationBell({
 
   useEffect(() => {
     const initialRefreshId = window.setTimeout(() => void refresh(false), 0);
-    const intervalId = window.setInterval(() => void refresh(false), 60_000);
+    const intervalId = window.setInterval(() => {
+      // Clearing here as well as in the teardown: the effect runs once, so
+      // there is no re-render that would otherwise stop the timer.
+      if (sessionEndedRef.current) {
+        window.clearInterval(intervalId);
+        return;
+      }
+      void refresh(false);
+    }, 60_000);
     return () => {
       window.clearTimeout(initialRefreshId);
       window.clearInterval(intervalId);

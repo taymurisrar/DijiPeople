@@ -25,6 +25,7 @@ describe('BUG-1754 — expected protocol outcomes are not incidents', () => {
       'AUTH_REFRESH_TOKEN_INVALID',
       'AUTH_UNAUTHORIZED',
       'SESSION_EXPIRED',
+      'SESSION_REVOKED',
     ])('a 401 from %s', (errorCode) => {
       expect(isExpectedProtocolOutcome({ statusCode: 401, errorCode })).toBe(
         true,
@@ -34,6 +35,26 @@ describe('BUG-1754 — expected protocol outcomes are not incidents', () => {
     it('a 404 for a route that does not exist', () => {
       expect(
         isExpectedProtocolOutcome({ statusCode: 404, unmatchedRoute: true }),
+      ).toBe(true);
+    });
+
+    it.each([
+      '/public/tenants/resolve?host=www.dijipeople.com',
+      '/api/public/tenants/resolve?host=app.dijipeople.com',
+      '/api/public/tenants/resolve',
+    ])('a 404 from host resolution at %s', (path) => {
+      /*
+       * BUG-2465. `GET /public/tenants/resolve` exists to answer "is this
+       * hostname a tenant workspace?", and "no" is one of the two answers it is
+       * allowed to give. 39 rows and 124 occurrences of it sat in the queue,
+       * for the marketing host and for expired preview deployments.
+       */
+      expect(
+        isExpectedProtocolOutcome({
+          statusCode: 404,
+          errorCode: 'TENANT_NOT_FOUND',
+          path,
+        }),
       ).toBe(true);
     });
   });
@@ -72,6 +93,53 @@ describe('BUG-1754 — expected protocol outcomes are not incidents', () => {
         isExpectedProtocolOutcome({
           statusCode: 401,
           errorCode: 'AUTH_INVALID_CREDENTIALS',
+        }),
+      ).toBe(false);
+    });
+
+    it('a tenant that is missing somewhere other than host resolution', () => {
+      /*
+       * BUG-2465 widened this rule to accept TENANT_NOT_FOUND, and this is the
+       * assertion that keeps the widening honest. On the public host-resolution
+       * endpoint "no such tenant" is the answer. On an authenticated route it
+       * means a tenant that should exist and does not, which is as serious as
+       * anything in the queue. Matching on the code alone would have collapsed
+       * the two.
+       */
+      expect(
+        isExpectedProtocolOutcome({
+          statusCode: 404,
+          errorCode: 'TENANT_NOT_FOUND',
+          path: '/api/tenants/91ab031f-8fa2-48b9-b346-7cdf326571ef',
+        }),
+      ).toBe(false);
+
+      expect(
+        isExpectedProtocolOutcome({
+          statusCode: 404,
+          errorCode: 'TENANT_NOT_FOUND',
+        }),
+      ).toBe(false);
+    });
+
+    it('a host-resolution path that failed for some other reason', () => {
+      // The path is not a blanket exemption for the endpoint.
+      expect(
+        isExpectedProtocolOutcome({
+          statusCode: 500,
+          errorCode: 'SYSTEM_UNEXPECTED_ERROR',
+          path: '/api/public/tenants/resolve?host=www.dijipeople.com',
+        }),
+      ).toBe(false);
+    });
+
+    it('a path that merely mentions host resolution', () => {
+      // `endsWith` on the prefixed form, not `includes` anywhere in the string.
+      expect(
+        isExpectedProtocolOutcome({
+          statusCode: 404,
+          errorCode: 'TENANT_NOT_FOUND',
+          path: '/api/public/tenants/resolve/extra',
         }),
       ).toBe(false);
     });

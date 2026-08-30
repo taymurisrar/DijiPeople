@@ -15,6 +15,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { ErrorLogsService } from './error-logs.service';
+import { toStoredClientMessage } from './client-error-message';
 
 @Controller('error-logs')
 @UseGuards(JwtAuthGuard)
@@ -34,12 +35,15 @@ export class ErrorLogsController {
       });
     }
 
+    const statusCode = readNumber(body.statusCode) ?? 500;
+    const path = readString(body.path) ?? undefined;
+
     await this.errorLogsService.persist({
       traceId,
       errorCode: readString(body.errorCode) ?? 'SYSTEM_UNEXPECTED_ERROR',
-      statusCode: readNumber(body.statusCode) ?? 500,
+      statusCode,
       severity: readString(body.severity) ?? 'ERROR',
-      message: readString(body.message) ?? 'Client error',
+      message: toStoredClientMessage(body.message, statusCode),
       description:
         readString(body.description) ?? 'A client-side error occurred.',
       stack: readString(body.stack) ?? undefined,
@@ -50,7 +54,26 @@ export class ErrorLogsController {
         reportedAt: readString(body.timestamp),
       },
       method: readString(body.method) ?? 'CLIENT',
-      path: readString(body.path) ?? undefined,
+      path,
+      /*
+       * Deliberately never `true` on this path, and stated rather than left to
+       * the default so the next reader does not "fix" the omission.
+       *
+       * `persist` already runs every caller through `initialSupportStatus`, so
+       * a client-reported session `401` is classified exactly like the same
+       * event seen server-side. Nothing is missing there.
+       *
+       * A client-reported `404` is a different event from a server-side one.
+       * Server-side, `unmatchedRoute` means a scanner or a stale bookmark
+       * reached a path we do not serve. Reported by our own tenant app, the
+       * same status means *our own frontend* asked for a route we do not
+       * serve — a broken screen. That is the "could the client have sent
+       * something valid" test in this module's header, and it lands on the same
+       * side as `400`: it stays in the queue. The thirteen HTML-bodied 404s in
+       * production (BUG-2460) are exactly this shape, and filing them as
+       * non-incidents would have hidden genuinely broken calls.
+       */
+      unmatchedRoute: false,
       userAgent: readString(body.browserInfo) ?? undefined,
       userId: user.userId,
       tenantId: user.tenantId,

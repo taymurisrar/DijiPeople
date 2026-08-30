@@ -507,15 +507,37 @@ export class AttendanceService {
     }
 
     const policy = await this.resolvePolicy(currentUser.tenantId);
-    await this.validateModeAndLocation(
-      currentUser.tenantId,
-      existing.attendanceMode,
-      policy,
-      existing.officeLocationId ?? undefined,
-      dto.remoteLatitude,
-      dto.remoteLongitude,
-      false,
-    );
+    /*
+     * Check-out does not re-validate the mode and work site. It used to, and
+     * that trapped entries open for ever (BUG-2494).
+     *
+     * Mode and office location are *check-in* preconditions, decided from the
+     * position at check-in and committed then. Check-out accepts neither — the
+     * DTO has no mode and no office location — so re-running that gate can only
+     * ever fail on data this service already accepted, and when it fails the
+     * employee has nothing to correct. Production carried an entry open from
+     * `12:43:50Z` that returned `400 "Office location is required for office
+     * attendance."` on every attempt, because it held `attendanceMode: OFFICE`
+     * with `officeLocationId: null`.
+     *
+     * That combination is not an anomaly to clean up; several ordinary routes
+     * produce it. `officeLocation` is `onDelete: SetNull`, so retiring a work
+     * site nulls the column on every entry referencing it and traps everyone
+     * currently checked in there. Disabling a mode in policy after check-in
+     * traps every open entry in that mode the same way, with a different
+     * message. The read path already resolves
+     * `entry.officeLocation ?? entry.employee.location`, so the platform's own
+     * serialiser considered these entries perfectly located while the validator
+     * called them invalid.
+     *
+     * What check-out *can* validate is what the client is submitting now, and
+     * `validateAttendanceLocationPayload` below does exactly that. Deliberately
+     * not defaulting the missing work site from `employee.location` here: that
+     * would hide the trap while attributing attendance to an office no geofence
+     * confirmed, which is the integrity control check-in exists to enforce.
+     *
+     * A record this system accepted must always be closable.
+     */
     const locationAudit = this.validateAttendanceLocationPayload(
       'checkOut',
       existing.attendanceMode,

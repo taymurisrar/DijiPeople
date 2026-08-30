@@ -182,6 +182,27 @@ export class EmployeesController {
     return this.employeesService.getCurrentEmployeeContext(user);
   }
 
+  /*
+   * Both `me/` routes live here, above every `:employeeId` route, and must stay
+   * here.
+   *
+   * This one used to sit two hundred lines below, after
+   * `@Get(':employeeId/direct-reports')`. Express matches in declaration order,
+   * so `GET /employees/me/direct-reports` was matched by that handler with
+   * `employeeId = 'me'`, and its `ParseUUIDPipe` answered
+   * `400 Validation failed (uuid is expected)`. The handler below was
+   * unreachable — no request could arrive at it (BUG-2461).
+   *
+   * `me/context` was always correctly placed, which is what made the fault
+   * hard to see: one `me/` route worked and the other did not.
+   */
+  @Get('me/direct-reports')
+  @Permissions('hierarchy.read')
+  @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
+  getMyDirectReports(@CurrentUser() user: AuthenticatedUser) {
+    return this.employeesService.getDirectReportsByUser(user);
+  }
+
   @Get(':employeeId')
   @Permissions('dashboard.view')
   @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
@@ -268,13 +289,6 @@ export class EmployeesController {
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
   ) {
     return this.employeesService.getDirectReports(user.tenantId, employeeId);
-  }
-
-  @Get('me/direct-reports')
-  @Permissions('hierarchy.read')
-  @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
-  getMyDirectReports(@CurrentUser() user: AuthenticatedUser) {
-    return this.employeesService.getDirectReportsByUser(user);
   }
 
   @Post()

@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SideToast } from "@/app/components/notifications";
 import {
   getInAppNotifications,
+  isAuthFailure,
   markInAppNotificationPopupShown,
   openInboxNotification,
   type InAppNotificationItem,
@@ -13,9 +14,24 @@ import {
 export function NotificationPopupProvider() {
   const router = useRouter();
   const [item, setItem] = useState<InAppNotificationItem | null>(null);
+  /*
+   * The second of the two 60-second pollers on every authenticated page. It
+   * swallowed failures even more completely than the bell did — `.catch(() =>
+   * null)` discards the reason — so it kept asking forever after the session
+   * ended, and each refusal was written to the production error log as an
+   * incident (BUG-2459).
+   */
+  const sessionEndedRef = useRef(false);
 
   const loadPopup = useCallback(async () => {
-    const result = await getInAppNotifications("pageSize=10").catch(() => null);
+    if (sessionEndedRef.current) return;
+
+    const result = await getInAppNotifications("pageSize=10").catch(
+      (requestError: unknown) => {
+        if (isAuthFailure(requestError)) sessionEndedRef.current = true;
+        return null;
+      },
+    );
     const next = result?.items.find(shouldShowPopup) ?? null;
     if (!next) return;
 
@@ -27,7 +43,13 @@ export function NotificationPopupProvider() {
     // Polling intentionally hydrates popup state from the external notifications API.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadPopup();
-    const intervalId = window.setInterval(() => void loadPopup(), 60_000);
+    const intervalId = window.setInterval(() => {
+      if (sessionEndedRef.current) {
+        window.clearInterval(intervalId);
+        return;
+      }
+      void loadPopup();
+    }, 60_000);
     return () => window.clearInterval(intervalId);
   }, [loadPopup]);
 

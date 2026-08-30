@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **1** |
+| Active sessions | **2** |
 | Active parent tasks | 3 |
 | Active work packages | 0 |
 | Blocked work packages | 0 |
@@ -15,10 +15,10 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
-| Open HIGH | 17 |
-| Awaiting Architect triage | 0 |
+| Open HIGH | 21 |
+| Awaiting Architect triage | 2 |
 | Owner decisions pending | 5 |
-| QA coverage gaps | 120 |
+| QA coverage gaps | 134 |
 | Scenarios blocked by infrastructure | 0 |
 
 ## Backlog health
@@ -30,8 +30,8 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 81 |
-| No next action | 81 |
+| No acceptance criteria | 89 |
+| No next action | 89 |
 | Aging — 7d / 30d / 90d | 17 / 0 / 0 |
 | Architecture and technical debt | 7 |
 | Security gaps | 3 |
@@ -49,6 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
+| [[SESSION-0082-production-monitoring-error-log-triage-classify-every-record|SESSION-0082]] | — | Production monitoring error-log triage: classify every recorded item, fix non-incidents, file and fix real bugs | ACTIVE | `agent/prod-monitoring-triage` | `develop` | — | NO |
 | [[SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser|SESSION-0061]] | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
@@ -239,18 +240,32 @@ gap into scope — or files a `TEST_GAP` item and says so.
 | [[PLAN-023-leave|leave]] | BROWSER |
 | [[PLAN-023-leave|leave]] | SECURITY |
 | [[PLAN-023-leave|leave]] | PERFORMANCE |
+| [[PLAN-030-monitoring|monitoring]] | API |
+| [[PLAN-030-monitoring|monitoring]] | DATABASE |
+| [[PLAN-030-monitoring|monitoring]] | INTEGRATION |
+| [[PLAN-030-monitoring|monitoring]] | E2E |
+| [[PLAN-030-monitoring|monitoring]] | BROWSER |
+| [[PLAN-030-monitoring|monitoring]] | SECURITY |
+| [[PLAN-030-monitoring|monitoring]] | PERFORMANCE |
+| [[PLAN-031-routing|routing]] | API |
+| [[PLAN-031-routing|routing]] | DATABASE |
+| [[PLAN-031-routing|routing]] | INTEGRATION |
+| [[PLAN-031-routing|routing]] | E2E |
+| [[PLAN-031-routing|routing]] | BROWSER |
+| [[PLAN-031-routing|routing]] | SECURITY |
+| [[PLAN-031-routing|routing]] | PERFORMANCE |
 
 ## Backlog Health
 
 | | |
 |---|---|
-| Open total | 82 |
+| Open total | 90 |
 | Blocked | 2 |
-| Deferred | 23 |
+| Deferred | 24 |
 | Awaiting a product decision | 5 |
-| Awaiting Architect triage | 0 |
+| Awaiting Architect triage | 2 |
 
-Every ordinary record carries a disposition.
+**A record nobody has triaged is work nobody has decided about.** No ordinary record may stay `TRIAGE_REQUIRED` at the end of a task.
 
 ## Deployment
 
@@ -258,6 +273,7 @@ Deployment state is **not** derivable from Git. A merge is Git state; what is
 running is a separate fact with separate evidence, recorded per release under
 `docs/deployment/release-history/`.
 
+- [[2026-08-30-production-6ffed9f|Release — production — `6ffed9f`]]
 - [[2026-08-25-production-08d7901|Release — production — `08d7901`]]
 - [[2026-08-24-production-6ed7a44|Release — production — `6ed7a44`]]
 - [[2026-08-24-production-2609275|Release — production — `2609275`]]

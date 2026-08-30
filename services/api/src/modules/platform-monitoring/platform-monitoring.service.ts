@@ -93,46 +93,57 @@ export class PlatformMonitoringService {
       ],
     };
     const orderBy = getErrorLogOrderBy(query.sortBy, query.sortDirection);
-    const [logs, total, critical, webApp, open, resolved] = await Promise.all([
-      this.prisma.errorLog.findMany({
-        where,
-        orderBy,
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-      }),
-      this.prisma.errorLog.count({ where }),
-      /*
-       * The same definition of "critical" the view uses.
-       *
-       * This counted `severity: 'ERROR'` exactly, while the view had already
-       * been taught to fold case by BUG-1420 — so the tile said 11 and the
-       * view it linked to returned 0 of 0. BUG-1420 fixed the view and left
-       * the metric carrying the original defect (BUG-1750). One definition,
-       * three call sites, is the actual fix.
-       */
-      this.prisma.errorLog.count({
-        where: { AND: [where, criticalIncidentWhere()] },
-      }),
-      this.prisma.errorLog.count({
-        where: { AND: [where, { sourceApp: 'web' }] },
-      }),
-      /*
-       * "Waiting for triage" means waiting for a person. `not: 'RESOLVED'`
-       * counted expected protocol outcomes as open work, which is the same
-       * miscount that filled the queue — just expressed as a number.
-       */
-      this.prisma.errorLog.count({
-        where: {
-          AND: [
-            where,
-            { supportStatus: { notIn: ['RESOLVED', NOT_AN_INCIDENT] } },
-          ],
-        },
-      }),
-      this.prisma.errorLog.count({
-        where: { AND: [where, { supportStatus: 'RESOLVED' }] },
-      }),
-    ]);
+    const [logs, total, critical, webApp, open, resolved, investigating] =
+      await Promise.all([
+        this.prisma.errorLog.findMany({
+          where,
+          orderBy,
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+        }),
+        this.prisma.errorLog.count({ where }),
+        /*
+         * The same definition of "critical" the view uses.
+         *
+         * This counted `severity: 'ERROR'` exactly, while the view had already
+         * been taught to fold case by BUG-1420 — so the tile said 11 and the
+         * view it linked to returned 0 of 0. BUG-1420 fixed the view and left
+         * the metric carrying the original defect (BUG-1750). One definition,
+         * three call sites, is the actual fix.
+         */
+        this.prisma.errorLog.count({
+          where: { AND: [where, criticalIncidentWhere()] },
+        }),
+        this.prisma.errorLog.count({
+          where: { AND: [where, { sourceApp: 'web' }] },
+        }),
+        /*
+         * "Waiting for triage" means waiting for a person. `not: 'RESOLVED'`
+         * counted expected protocol outcomes as open work, which is the same
+         * miscount that filled the queue — just expressed as a number.
+         */
+        this.prisma.errorLog.count({
+          where: {
+            AND: [
+              where,
+              { supportStatus: { notIn: ['RESOLVED', NOT_AN_INCIDENT] } },
+            ],
+          },
+        }),
+        this.prisma.errorLog.count({
+          where: { AND: [where, { supportStatus: 'RESOLVED' }] },
+        }),
+        /*
+         * Measured, not inferred. The overview used to derive this as
+         * `total - open - resolved`, which silently swept every
+         * `NOT_AN_INCIDENT` row into a tile reading "Assigned and in progress"
+         * (BUG-2495). Counted from the same predicate the `investigating` view
+         * filters on, so the tile and the list it opens cannot disagree.
+         */
+        this.prisma.errorLog.count({
+          where: { AND: [where, investigatingIncidentWhere()] },
+        }),
+      ]);
     const items = await this.enrichEvents(logs);
     return {
       items,
@@ -144,7 +155,7 @@ export class PlatformMonitoringService {
         sortBy: normalizeSortBy(query.sortBy),
         sortDirection: normalizeSortDirection(query.sortDirection),
       },
-      metrics: { total, critical, webApp, open, resolved },
+      metrics: { total, critical, webApp, open, resolved, investigating },
     };
   }
 
@@ -665,12 +676,35 @@ export function criticalIncidentWhere(): Prisma.ErrorLogWhereInput {
   return { severity: { in: [...CRITICAL_INCIDENT_SEVERITIES] } };
 }
 
+/**
+ * What "under investigation" means, in one place.
+ *
+ * The overview tile used to infer this by subtraction —
+ * `total - open - resolved` — which was true while there were three states and
+ * silently became false when `NOT_AN_INCIDENT` was added as a fourth
+ * (BUG-1754). Every set-aside row then landed in a tile labelled "Assigned and
+ * in progress", whose link filtered on `INVESTIGATING` and returned none of
+ * them. Production read 27 there, and all 27 were `NOT_AN_INCIDENT`
+ * (BUG-2495).
+ *
+ * Exported so the metric and the view filter cannot drift, which is the rule
+ * BUG-1750 established for "critical" after it had been spelled three
+ * different ways on this same screen.
+ */
+export const INVESTIGATING_SUPPORT_STATUSES = [
+  'INVESTIGATING',
+  'FIX_IN_PROGRESS',
+] as const;
+
+export function investigatingIncidentWhere(): Prisma.ErrorLogWhereInput {
+  return { supportStatus: { in: [...INVESTIGATING_SUPPORT_STATUSES] } };
+}
+
 export function incidentViewWhere(viewKey?: string): Prisma.ErrorLogWhereInput {
   if (viewKey === 'critical') return criticalIncidentWhere();
   /* supportStatus is non-nullable and defaults to NEW, so untriaged rows match. */
   if (viewKey === 'new') return { supportStatus: 'NEW' };
-  if (viewKey === 'investigating')
-    return { supportStatus: { in: ['INVESTIGATING', 'FIX_IN_PROGRESS'] } };
+  if (viewKey === 'investigating') return investigatingIncidentWhere();
   if (viewKey === 'resolved') return { supportStatus: 'RESOLVED' };
   return {};
 }

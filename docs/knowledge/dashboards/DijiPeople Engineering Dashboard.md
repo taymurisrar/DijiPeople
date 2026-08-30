@@ -8,13 +8,13 @@
 | | |
 |---|---|
 | Open CRITICAL | **0** |
-| Open HIGH | **17** |
-| Open total | 82 |
+| Open HIGH | **21** |
+| Open total | 90 |
 | Blocked | 2 |
 | Awaiting a product decision | 5 |
-| Deferred | 23 |
-| Completed | 285 |
-| Awaiting Architect triage | 0 |
+| Deferred | 24 |
+| Completed | 286 |
+| Awaiting Architect triage | 2 |
 
 ## Open Critical Bugs
 
@@ -41,6 +41,10 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2044-no-employee-lifecycle-event-is-audited-including-employee-cr|BUG-2044]] | No employee lifecycle event is audited, including employee creation and reporting-manager assignment | DATA_INTEGRITY | HIGH | FIXED | api:employees, api:organization, api:leave | DONE |
 | [[BUG-2331-permissions-policy-geolocation-makes-web-attendance-check-in|BUG-2331]] | Permissions-Policy geolocation=() makes web attendance check-in impossible | BUG | HIGH | FIXED | pkg:config, apps/web, apps/admin | FIX_NOW |
 | [[BUG-2332-every-attendance-refusal-reaches-the-browser-as-validation-f|BUG-2332]] | Every attendance refusal reaches the browser as VALIDATION_FAILED and raises the technical error dialog | BUG | HIGH | FIXED | services/api/src/common/errors, api:attendance, apps/web | FIX_NOW |
+| [[BUG-2458-token-refresh-is-throttled-by-the-public-login-rate-limiter-|BUG-2458]] | Token refresh is throttled by the public login rate limiter, signing users out | BUG | HIGH | FIXED | api:auth, api:common | FIX_NOW |
+| [[BUG-2459-the-notification-bell-polls-forever-after-a-session-ends-flo|BUG-2459]] | The notification bell polls forever after a session ends, flooding the error log | PERFORMANCE | HIGH | FIXED | web:notifications, api:error-logs, api:notifications | FIX_NOW |
+| [[BUG-2462-stripe-subscription-webhooks-fail-because-the-customer-resol|BUG-2462]] | Stripe subscription webhooks fail because the customer resolves to no tenant | INTEGRATION | HIGH | OPEN | api:billing, api:super-admin | PLAN_REQUIRED |
+| [[BUG-2494-check-out-re-validates-check-in-preconditions-and-traps-the-|BUG-2494]] | Check-out re-validates check-in preconditions and traps the entry open for ever | STATE_MACHINE | HIGH | OPEN | api:attendance | TRIAGE_REQUIRED |
 
 ## Product Decisions Needed
 
@@ -217,6 +221,8 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2044-no-employee-lifecycle-event-is-audited-including-employee-cr|BUG-2044]] | No employee lifecycle event is audited, including employee creation and reporting-manager assignment | DATA_INTEGRITY | HIGH | FIXED | api:employees, api:organization, api:leave | DONE |
 | [[BUG-2331-permissions-policy-geolocation-makes-web-attendance-check-in|BUG-2331]] | Permissions-Policy geolocation=() makes web attendance check-in impossible | BUG | HIGH | FIXED | pkg:config, apps/web, apps/admin | FIX_NOW |
 | [[BUG-2332-every-attendance-refusal-reaches-the-browser-as-validation-f|BUG-2332]] | Every attendance refusal reaches the browser as VALIDATION_FAILED and raises the technical error dialog | BUG | HIGH | FIXED | services/api/src/common/errors, api:attendance, apps/web | FIX_NOW |
+| [[BUG-2458-token-refresh-is-throttled-by-the-public-login-rate-limiter-|BUG-2458]] | Token refresh is throttled by the public login rate limiter, signing users out | BUG | HIGH | FIXED | api:auth, api:common | FIX_NOW |
+| [[BUG-2459-the-notification-bell-polls-forever-after-a-session-ends-flo|BUG-2459]] | The notification bell polls forever after a session ends, flooding the error log | PERFORMANCE | HIGH | FIXED | web:notifications, api:error-logs, api:notifications | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | VERIFIED | app:admin | DONE |
@@ -330,6 +336,8 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2334-a-location-capture-failure-is-rethrown-as-a-bare-error-disca|BUG-2334]] | A location capture failure is rethrown as a bare Error, discarding the reason code | BUG | MEDIUM | FIXED | apps/web | FIX_NOW |
 | [[BUG-2335-allow-approximate-ip-fallback-is-a-live-setting-whose-provid|BUG-2335]] | Allow approximate IP fallback is a live setting whose provider is a permanent stub | BUG | MEDIUM | FIXED | apps/web, api:tenant-settings | FIX_NOW |
 | [[BUG-2413-allocate-id-plan-scans-only-docs-qa-test-plans-so-execplan-i|BUG-2413]] | allocate-id plan scans only docs qa test-plans so ExecPlan ids collide | DATA_INTEGRITY | MEDIUM | FIXED | scripts | DONE |
+| [[BUG-2460-client-error-reports-store-the-whole-html-error-page-as-the-|BUG-2460]] | Client error reports store the whole HTML error page as the incident message | BUG | MEDIUM | FIXED | web:error-reporting, api:error-logs, admin:monitoring | FIX_NOW |
+| [[BUG-2465-session-revoked-401s-and-client-reported-failures-escape-the|BUG-2465]] | Session-revoked 401s and client-reported failures escape the not-an-incident filter | BUG | MEDIUM | FIXED | api:error-logs, api:platform-monitoring | FIX_NOW |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -353,6 +361,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2046-audit-actions-use-two-naming-conventions-and-the-result-colu|BUG-2046]] | Audit actions use two naming conventions and the Result column is populated only by login events | BUG | LOW | FIXED | api:audit | DONE |
 | [[BUG-2149-every-dashboard-metric-card-offers-a-link-named-only-open|BUG-2149]] | Every dashboard metric card offers a link named only Open | UX | LOW | FIXED | views, dashboard | DONE |
 | [[BUG-2384-tenant-record-shows-primary-tenant-owner-unassigned-while-it|BUG-2384]] | Tenant record shows Primary Tenant Owner Unassigned while its readiness check reports one active Tenant Owner | UX | LOW | FIXED | api:tenant-control-plane, apps/admin | DONE |
+| [[BUG-2461-get-employees-me-direct-reports-is-shadowed-by-the-employeei|BUG-2461]] | GET employees me direct-reports is shadowed by the employeeId route and returns 400 | BUG | LOW | FIXED | api:employees | FIX_NOW |
 
 ## Recent QA Runs
 
@@ -388,6 +397,7 @@ _None. Nothing open at CRITICAL._
 
 ## Recent Releases
 
+- [[2026-08-30-production-6ffed9f|Release — production — `6ffed9f`]]
 - [[2026-08-25-production-08d7901|Release — production — `08d7901`]]
 - [[2026-08-24-production-6ed7a44|Release — production — `6ed7a44`]]
 - [[2026-08-24-production-2609275|Release — production — `2609275`]]
@@ -429,6 +439,9 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2334-a-location-capture-failure-is-rethrown-as-a-bare-error-disca|BUG-2334]] | A location capture failure is rethrown as a bare Error, discarding the reason code | BUG | MEDIUM | FIXED | apps/web | FIX_NOW |
 | [[BUG-2335-allow-approximate-ip-fallback-is-a-live-setting-whose-provid|BUG-2335]] | Allow approximate IP fallback is a live setting whose provider is a permanent stub | BUG | MEDIUM | FIXED | apps/web, api:tenant-settings | FIX_NOW |
 | [[BUG-2413-allocate-id-plan-scans-only-docs-qa-test-plans-so-execplan-i|BUG-2413]] | allocate-id plan scans only docs qa test-plans so ExecPlan ids collide | DATA_INTEGRITY | MEDIUM | FIXED | scripts | DONE |
+| [[BUG-2460-client-error-reports-store-the-whole-html-error-page-as-the-|BUG-2460]] | Client error reports store the whole HTML error page as the incident message | BUG | MEDIUM | FIXED | web:error-reporting, api:error-logs, admin:monitoring | FIX_NOW |
+| [[BUG-2465-session-revoked-401s-and-client-reported-failures-escape-the|BUG-2465]] | Session-revoked 401s and client-reported failures escape the not-an-incident filter | BUG | MEDIUM | FIXED | api:error-logs, api:platform-monitoring | FIX_NOW |
+| [[BUG-2495-the-under-investigation-tile-counts-incidents-nobody-is-inve|BUG-2495]] | The Under investigation tile counts incidents nobody is investigating | UX | MEDIUM | OPEN | admin:monitoring, api:platform-monitoring | TRIAGE_REQUIRED |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -456,6 +469,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2046-audit-actions-use-two-naming-conventions-and-the-result-colu|BUG-2046]] | Audit actions use two naming conventions and the Result column is populated only by login events | BUG | LOW | FIXED | api:audit | DONE |
 | [[BUG-2149-every-dashboard-metric-card-offers-a-link-named-only-open|BUG-2149]] | Every dashboard metric card offers a link named only Open | UX | LOW | FIXED | views, dashboard | DONE |
 | [[BUG-2384-tenant-record-shows-primary-tenant-owner-unassigned-while-it|BUG-2384]] | Tenant record shows Primary Tenant Owner Unassigned while its readiness check reports one active Tenant Owner | UX | LOW | FIXED | api:tenant-control-plane, apps/admin | DONE |
+| [[BUG-2461-get-employees-me-direct-reports-is-shadowed-by-the-employeei|BUG-2461]] | GET employees me direct-reports is shadowed by the employeeId route and returns 400 | BUG | LOW | FIXED | api:employees | FIX_NOW |
 | [[ITEM-0049-register-services-api-environment-reads-or-scope-the-rule|ITEM-0049]] | Register services/api environment reads or scope the rule to build inputs | INFRA | LOW | READY | services/api, turbo.json, docs/deployment | PLAN_REQUIRED |
 | [[ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by|ITEM-0080]] | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
 | [[ITEM-0093-link-validation-skips-untracked-files-so-a-new-record-s-brok|ITEM-0093]] | Link validation skips untracked files, so a new record's broken links only surface in CI | TECH_DEBT | LOW | READY | scripts | FIX_NOW |
@@ -476,18 +490,18 @@ _None. Nothing open at CRITICAL._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 280 |
+| Bug records | 290 |
 | Backlog items | 117 |
 | Known bug patterns | 31 |
 | QA runs | 31 |
 | Engineering history records | 66 |
-| Release records | 3 |
+| Release records | 4 |
 | Module notes | 29 |
 | Architecture notes | 22 |
 | Decision notes (ADR + generated) | 7 |
 | Implementation records | 7 |
 
-**Awaiting Architect triage: 0.** A record nobody has
+**Awaiting Architect triage: 2.** A record nobody has
 triaged is work nobody has decided about — the number that should stay near
 zero between tasks.
 

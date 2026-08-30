@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 397,
+    "total_records": 407,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -8182,7 +8182,8 @@
         "QA-TENANT-023"
       ],
       "test_plan": [
-        "PLAN-019"
+        "PLAN-019",
+        "PLAN-030"
       ],
       "current_evidence": {
         "paths": [
@@ -8229,7 +8230,8 @@
         "QA-TENANT-033"
       ],
       "test_plan": [
-        "PLAN-019"
+        "PLAN-019",
+        "PLAN-030"
       ],
       "current_evidence": {
         "paths": [
@@ -10235,7 +10237,9 @@
       "qa_scenarios": [
         "QA-TENANT-033"
       ],
-      "test_plan": [],
+      "test_plan": [
+        "PLAN-030"
+      ],
       "current_evidence": {
         "paths": [
           "apps/admin",
@@ -10407,9 +10411,12 @@
         "REG-282"
       ],
       "qa_scenarios": [
+        "QA-PLATFORM-030",
         "QA-TENANT-034"
       ],
-      "test_plan": [],
+      "test_plan": [
+        "PLAN-030"
+      ],
       "current_evidence": {
         "paths": [
           "api:platform-monitoring",
@@ -13277,6 +13284,446 @@
           "scripts"
         ],
         "verification_scope": "See docs/bugs/BUG-2413-allocate-id-plan-scans-only-docs-qa-test-plans-so-execplan-i.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2458",
+      "type": "BUG",
+      "title": "Token refresh is throttled by the public login rate limiter, signing users out",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-2458-token-refresh-is-throttled-by-the-public-login-rate-limiter-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "39d8ddc4",
+        "created_at": "2026-08-30",
+        "updated_at": "2026-08-30",
+        "resolved_at": "2026-08-30"
+      },
+      "affected_modules": [
+        "api:auth",
+        "api:common"
+      ],
+      "regressions": [
+        "REG-367"
+      ],
+      "qa_scenarios": [
+        "QA-AUTH-009"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "api:auth",
+          "api:common"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2458-token-refresh-is-throttled-by-the-public-login-rate-limiter-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2459",
+      "type": "PERFORMANCE",
+      "title": "The notification bell polls forever after a session ends, flooding the error log",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-2459-the-notification-bell-polls-forever-after-a-session-ends-flo.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "39d8ddc4",
+        "created_at": "2026-08-30",
+        "updated_at": "2026-08-30",
+        "resolved_at": "2026-08-30"
+      },
+      "affected_modules": [
+        "web:notifications",
+        "api:error-logs",
+        "api:notifications"
+      ],
+      "regressions": [
+        "REG-368"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-028"
+      ],
+      "test_plan": [
+        "PLAN-030"
+      ],
+      "current_evidence": {
+        "paths": [
+          "web:notifications",
+          "api:error-logs",
+          "api:notifications"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2459-the-notification-bell-polls-forever-after-a-session-ends-flo.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2460",
+      "type": "BUG",
+      "title": "Client error reports store the whole HTML error page as the incident message",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-2460-client-error-reports-store-the-whole-html-error-page-as-the-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "39d8ddc4",
+        "created_at": "2026-08-30",
+        "updated_at": "2026-08-30",
+        "resolved_at": "2026-08-30"
+      },
+      "affected_modules": [
+        "web:error-reporting",
+        "api:error-logs",
+        "admin:monitoring"
+      ],
+      "regressions": [
+        "REG-369"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-029"
+      ],
+      "test_plan": [
+        "PLAN-030"
+      ],
+      "current_evidence": {
+        "paths": [
+          "web:error-reporting",
+          "api:error-logs",
+          "admin:monitoring"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2460-client-error-reports-store-the-whole-html-error-page-as-the-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2461",
+      "type": "BUG",
+      "title": "GET employees me direct-reports is shadowed by the employeeId route and returns 400",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-2461-get-employees-me-direct-reports-is-shadowed-by-the-employeei.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "39d8ddc4",
+        "created_at": "2026-08-30",
+        "updated_at": "2026-08-30",
+        "resolved_at": "2026-08-30"
+      },
+      "affected_modules": [
+        "api:employees"
+      ],
+      "regressions": [
+        "REG-370"
+      ],
+      "qa_scenarios": [
+        "QA-API-002"
+      ],
+      "test_plan": [
+        "PLAN-031"
+      ],
+      "current_evidence": {
+        "paths": [
+          "api:employees"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2461-get-employees-me-direct-reports-is-shadowed-by-the-employeei.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2462",
+      "type": "INTEGRATION",
+      "title": "Stripe subscription webhooks fail because the customer resolves to no tenant",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-2462-stripe-subscription-webhooks-fail-because-the-customer-resol.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "39d8ddc4",
+        "created_at": "2026-08-30",
+        "updated_at": "2026-08-30",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "api:billing",
+        "api:super-admin"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "api:billing",
+          "api:super-admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2462-stripe-subscription-webhooks-fail-because-the-customer-resol.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2463",
+      "type": "UX",
+      "title": "Raw Prisma constraint failures reach operators as Database constraint failed",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/bugs/BUG-2463-raw-prisma-constraint-failures-reach-operators-as-database-c.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "39d8ddc4",
+        "created_at": "2026-08-30",
+        "updated_at": "2026-08-30",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "api:platform-runtime",
+        "api:super-admin",
+        "api:common"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "api:platform-runtime",
+          "api:super-admin",
+          "api:common"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2463-raw-prisma-constraint-failures-reach-operators-as-database-c.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2464",
+      "type": "UX",
+      "title": "Three tenant screens crash the React tree with hydration errors 418 and 441",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DUPLICATE",
+      "architect_disposition": "DUPLICATE",
+      "source": {
+        "record_path": "docs/bugs/BUG-2464-three-tenant-screens-crash-the-react-tree-with-hydration-err.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "39d8ddc4",
+        "created_at": "2026-08-30",
+        "updated_at": "2026-08-30",
+        "resolved_at": "2026-08-30"
+      },
+      "affected_modules": [
+        "web:inbox",
+        "web:users",
+        "web:approvals"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "web:inbox",
+          "web:users",
+          "web:approvals"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2464-three-tenant-screens-crash-the-react-tree-with-hydration-err.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2465",
+      "type": "BUG",
+      "title": "Session-revoked 401s and client-reported failures escape the not-an-incident filter",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-2465-session-revoked-401s-and-client-reported-failures-escape-the.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "39d8ddc4",
+        "created_at": "2026-08-30",
+        "updated_at": "2026-08-30",
+        "resolved_at": "2026-08-30"
+      },
+      "affected_modules": [
+        "api:error-logs",
+        "api:platform-monitoring"
+      ],
+      "regressions": [
+        "REG-371"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-030"
+      ],
+      "test_plan": [
+        "PLAN-030"
+      ],
+      "current_evidence": {
+        "paths": [
+          "api:error-logs",
+          "api:platform-monitoring"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2465-session-revoked-401s-and-client-reported-failures-escape-the.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2494",
+      "type": "STATE_MACHINE",
+      "title": "Check-out re-validates check-in preconditions and traps the entry open for ever",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-2494-check-out-re-validates-check-in-preconditions-and-traps-the-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "c4ffd13b",
+        "created_at": "2026-08-30",
+        "updated_at": "2026-08-30",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "api:attendance"
+      ],
+      "regressions": [
+        "REG-372"
+      ],
+      "qa_scenarios": [
+        "QA-ATTENDANCE-007"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "api:attendance"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2494-check-out-re-validates-check-in-preconditions-and-traps-the-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2495",
+      "type": "UX",
+      "title": "The Under investigation tile counts incidents nobody is investigating",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-2495-the-under-investigation-tile-counts-incidents-nobody-is-inve.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "c4ffd13b",
+        "created_at": "2026-08-30",
+        "updated_at": "2026-08-30",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "admin:monitoring",
+        "api:platform-monitoring"
+      ],
+      "regressions": [
+        "REG-373"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-031"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "admin:monitoring",
+          "api:platform-monitoring"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2495-the-under-investigation-tile-counts-incidents-nobody-is-inve.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],
