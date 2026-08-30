@@ -27,7 +27,16 @@
 06d7c849 docs(knowledge): the screen map, verified against production
 fac61b86 docs(knowledge): correct the bespoke-screen count in discovery status
 122ce41e fix(knowledge): compare generated regions by content, not bytes
+b1c0c481 docs(history): data model and screen discovery, start to finish
+1af0909f docs(records): close the graph, and find why EXECPLAN-0028 exists twice
+dc7af467 docs(graph): link the sessions, QA runs and history records that floated free
 ```
+
+The last three landed after the first integration. `develop` was moved to
+`122ce41e` once its gate passed, and the closure, reconciliation and graph work
+followed as separate verified SHAs rather than being held back to make one
+tidier commit — a verdict is about the code it ran on, and batching would have
+meant the first four sat unintegrated while the graph work was written.
 
 ### Worktrees
 
@@ -146,7 +155,7 @@ totals include both sides' records (394 records, 279 bug / 115 item).
 | | |
 |---|---|
 | **QA Report** | None — no `docs/qa/runs/` record. This was discovery, not a QA campaign: the browser work was read-only navigation to verify documentation claims, not scenario execution against acceptance criteria. Filing a run record for it would misrepresent what was tested. |
-| **Bug IDs** | [[BUG-2384]] — created, triaged **DEFER**. Platform admin tenant record labels two different facts "Tenant Owner" and they contradict each other on screen. |
+| **Bug IDs** | [[BUG-2384]] — created, triaged **DEFER**. The platform admin tenant record labels two different facts "Tenant Owner" and they contradict each other on screen. [[BUG-2413]] — created, triaged **PLAN_REQUIRED**. `allocate-id.mjs` issues `PLAN-` ids that ExecPlans already hold, because the `plan` kind scans only `docs/qa/test-plans`. |
 | **Backlog Items** | None created or advanced. |
 
 ## CI
@@ -217,6 +226,16 @@ against a schema holding 318 and 299. So each entity note carries a
 `GENERATED:schema-facts` region the generator owns and rewrites, with
 hand-written prose around it, and `--check` runs in CI. The generated half is
 what makes the hand-written half worth trusting.
+
+**A second durable lesson came from the graph work.** An exemption whose stated
+reason asserts a fact should be checked against that fact. `STANDALONE_CATEGORIES`
+in `sync-obsidian.mjs` excused four folders, and two of its reasons — "the
+scenarios it ran carry the relationships", "is reached from that task" — named a
+relationship as if it existed. It did not: history records and QA runs cite their
+records as plain text. The exemption is what stopped anyone noticing, and
+`OBSIDIAN_GRAPH_ORPHANS 0` was true and useless at the same time.
+`scripts/generate-record-graph.mjs` now emits those edges, and
+`OBSIDIAN_STANDALONE_ALLOWED` is the number to read beside the orphan count.
 
 Two findings worth carrying forward independently of the notes: **13 models have
 no Prisma call site anywhere** (`ProcessingCycle` is the one that matters — two
