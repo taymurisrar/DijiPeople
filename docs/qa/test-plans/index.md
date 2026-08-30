@@ -6,13 +6,13 @@ One evergreen plan per product area: scope, risks, the cases that must always
 be covered, and the declared coverage per dimension. QA loads the plan for
 every area a change touches **before** designing anything new.
 
-**Plans: 23** · scenarios across them: 300
+**Plans: 23** · scenarios across them: 303
 
 | Plan | Area | Risk | Status | Scenarios | Related bugs | Verified against |
 |---|---|---|---|---|---|---|
 | [PLAN-008](../../../docs/qa/test-plans/PLAN-008-agent-desktop.md) | agent-desktop | HIGH | CURRENT | 7 | BUG-0033, BUG-0034, BUG-0035, BUG-0036 | `287612d` |
 | [PLAN-022](../../../docs/qa/test-plans/PLAN-022-approvals.md) | approvals | HIGH | CURRENT | 4 | BUG-1968, BUG-2015, BUG-1970, BUG-1969 | `a86362cf` |
-| [PLAN-009](../../../docs/qa/test-plans/PLAN-009-attendance.md) | attendance | CRITICAL | CURRENT | 14 | BUG-0002, BUG-0047 | `287612d` |
+| [PLAN-009](../../../docs/qa/test-plans/PLAN-009-attendance.md) | attendance | CRITICAL | CURRENT | 17 | BUG-0002, BUG-0047 | `287612d` |
 | [PLAN-001](../../../docs/qa/test-plans/PLAN-001-authentication.md) | authentication | CRITICAL | CURRENT | 8 | BUG-0008, BUG-0009, BUG-0010, BUG-0627 | `0c61b7e` |
 | [PLAN-002](../../../docs/qa/test-plans/PLAN-002-authorization.md) | authorization | CRITICAL | CURRENT | 19 | BUG-0003, BUG-0004, BUG-0006, BUG-0007, BUG-0047, BUG-0071, BUG-0072 | `287612d` |
 | [PLAN-020](../../../docs/qa/test-plans/PLAN-020-billing.md) | billing | CRITICAL | CURRENT | 18 | BUG-0531, BUG-0533, BUG-0534, BUG-0027, BUG-0030 | `99dc70a` |

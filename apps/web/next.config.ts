@@ -18,9 +18,19 @@ const nextConfig: NextConfig = {
    * break a working product, and it has never been observed in a real
    * browser against this build. Clickjacking protection is NOT deferred with
    * it — X-Frame-Options is enforced immediately. See ITEM-0039.
+   *
+   * `geolocation: true` is required here, not optional (BUG-2331). Attendance
+   * check-in captures a device position on every attempt and the API refuses a
+   * check-in that arrives without one, so the shared default of `geolocation=()`
+   * made web attendance impossible on this app: the browser blocked the request
+   * before it could prompt, and the employee was told to grant a permission the
+   * site was never allowed to ask for. See packages/config/security-headers.js.
    */
   async headers() {
-    return securityHeadersForApp({ apiOrigin: getApiBaseUrl() });
+    return securityHeadersForApp({
+      apiOrigin: getApiBaseUrl(),
+      geolocation: true,
+    });
   },
   poweredByHeader: false,
   output: process.env.NEXT_STANDALONE === "true" ? "standalone" : undefined,

@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 300** · automated: 264 · manual: 18 · blocked by infrastructure: 0
+**Scenarios: 303** · automated: 264 · manual: 21 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -37,6 +37,9 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-ATT-012](../../../docs/qa/scenarios/QA-ATT-012-the-create-branch-fallback-skipped-the-two-grace-fields-and-th.md) | The create-branch fallback skipped the two grace fields and the office-location switch | attendance | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/attendance/attendance-policy-write.spec.ts` | BUG-1980 | REG-359 |
 | [QA-ATT-013](../../../docs/qa/scenarios/QA-ATT-013-one-surface-that-stayed-silent-and-one-that-was-never-silent-a.md) | One surface that stayed silent, and one that was never silent at all | attendance | MANUAL_VISUAL | MEDIUM | MANUAL | — | BUG-2006 | REG-340 |
 | [QA-ATTENDANCE-001](../../../docs/qa/scenarios/QA-ATTENDANCE-001-attendance-coordinates-never-leak-through-the-day-payload.md) | Attendance coordinates never leak through the day payload | attendance | E2E | MEDIUM | AUTOMATED | `services/api/test/attendance-operational.e2e-spec.ts` | BUG-1364 | REG-258 |
+| [QA-ATTENDANCE-002](../../../docs/qa/scenarios/QA-ATTENDANCE-002-web-attendance-check-in-prompts-for-location-and-records-a-p.md) | Web attendance check-in prompts for location and records a position | attendance | E2E | HIGH | MANUAL | `packages/config/security-headers.test.js` | BUG-2331 | REG-360 |
+| [QA-ATTENDANCE-003](../../../docs/qa/scenarios/QA-ATTENDANCE-003-an-attendance-refusal-renders-as-a-policy-answer-not-the-tec.md) | An attendance refusal renders as a policy answer, not the technical error dialog | attendance | E2E | HIGH | MANUAL | `services/api/src/common/errors/attendance-reason-codes.spec.ts` | BUG-2332 | REG-361 |
+| [QA-ATTENDANCE-004](../../../docs/qa/scenarios/QA-ATTENDANCE-004-attendance-check-in-omits-the-user-agent-when-storeuseragent.md) | Attendance check-in omits the user agent when storeUserAgent is off | attendance | E2E | MEDIUM | MANUAL | `apps/web/lib/runtime/modules/attendance-location-payload.spec.ts` | BUG-2333 | REG-362 |
 | [QA-AUTH-001](../../../docs/qa/scenarios/QA-AUTH-001-every-caller-and-its-auth-route-agree-on-http-method.md) | Every caller and its auth route agree on HTTP method | authentication | API | HIGH | AUTOMATED | `scripts/check-route-method-callers.mjs` | BUG-0008, BUG-0038 | REG-008, REG-033 |
 | [QA-AUTH-002](../../../docs/qa/scenarios/QA-AUTH-002-sign-out-always-revokes-the-session-and-never-500s-while-cle.md) | Sign-out always revokes the session and never 500s while clearing cookies | authentication | E2E | HIGH | AUTOMATED | `services/api/test/admin-logout-revocation.e2e-spec.ts` | BUG-0009, BUG-0010, BUG-0627 | REG-032, REG-221 |
 | [QA-AUTH-003](../../../docs/qa/scenarios/QA-AUTH-003-repeated-failed-sign-ins-lock-the-account.md) | Repeated failed sign-ins lock the account | authentication | UNIT | HIGH | AUTOMATED | `services/api/src/modules/auth/login-lockout.service.spec.ts` | — | — |

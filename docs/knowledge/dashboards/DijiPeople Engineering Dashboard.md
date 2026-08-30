@@ -8,10 +8,10 @@
 | | |
 |---|---|
 | Open CRITICAL | **0** |
-| Open HIGH | **15** |
-| Open total | 73 |
+| Open HIGH | **17** |
+| Open total | 77 |
 | Blocked | 2 |
-| Awaiting a product decision | 5 |
+| Awaiting a product decision | 6 |
 | Deferred | 23 |
 | Completed | 285 |
 | Awaiting Architect triage | 0 |
@@ -39,11 +39,14 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2013-the-dashboard-error-boundary-classifies-server-component-fai|BUG-2013]] | The dashboard error boundary classifies server-component failures by a message it can never receive | BUG | HIGH | FIXED | apps/web | DONE |
 | [[BUG-2043-the-audit-events-screen-reports-the-number-of-rows-it-loaded|BUG-2043]] | The Audit Events screen reports the number of rows it loaded as the tenant's total audit count | BUG | HIGH | FIXED | apps/web, api:audit | DONE |
 | [[BUG-2044-no-employee-lifecycle-event-is-audited-including-employee-cr|BUG-2044]] | No employee lifecycle event is audited, including employee creation and reporting-manager assignment | DATA_INTEGRITY | HIGH | FIXED | api:employees, api:organization, api:leave | DONE |
+| [[BUG-2331-permissions-policy-geolocation-makes-web-attendance-check-in|BUG-2331]] | Permissions-Policy geolocation=() makes web attendance check-in impossible | BUG | HIGH | FIXED | pkg:config, apps/web, apps/admin | FIX_NOW |
+| [[BUG-2332-every-attendance-refusal-reaches-the-browser-as-validation-f|BUG-2332]] | Every attendance refusal reaches the browser as VALIDATION_FAILED and raises the technical error dialog | BUG | HIGH | FIXED | services/api/src/common/errors, api:attendance, apps/web | FIX_NOW |
 
 ## Product Decisions Needed
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
+| [[BUG-2335-allow-approximate-ip-fallback-is-a-live-setting-whose-provid|BUG-2335]] | Allow approximate IP fallback is a live setting whose provider is a permanent stub | BUG | MEDIUM | PRODUCT_DECISION | apps/web, api:tenant-settings | PRODUCT_DECISION |
 | [[ITEM-0106-an-employee-cannot-use-self-service-until-their-manager-acti|ITEM-0106]] | An employee cannot use self-service until their manager activates their own account | PRODUCT_DECISION | MEDIUM | PRODUCT_DECISION | api:leave, api:employees | PRODUCT_DECISION |
 | [[ITEM-0115-provisioning-seeds-four-departments-with-no-business-unit-on|ITEM-0115]] | Provisioning seeds four departments with no business unit on every tenant | PRODUCT_DECISION | MEDIUM | PRODUCT_DECISION | services/api/prisma, api:organization | PRODUCT_DECISION |
 | [[ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle|ITEM-0108]] | Decide whether the roughly one-hour session lifetime is idle or absolute | PRODUCT_DECISION | LOW | PRODUCT_DECISION | api:auth | PRODUCT_DECISION |
@@ -212,6 +215,8 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2015-approving-and-rejecting-leave-is-gated-on-read-permission-an|BUG-2015]] | Approving and rejecting leave is gated on read permission and the dedicated approve keys are never required | AUTHORIZATION | HIGH | VERIFIED | api:leave | DONE |
 | [[BUG-2043-the-audit-events-screen-reports-the-number-of-rows-it-loaded|BUG-2043]] | The Audit Events screen reports the number of rows it loaded as the tenant's total audit count | BUG | HIGH | FIXED | apps/web, api:audit | DONE |
 | [[BUG-2044-no-employee-lifecycle-event-is-audited-including-employee-cr|BUG-2044]] | No employee lifecycle event is audited, including employee creation and reporting-manager assignment | DATA_INTEGRITY | HIGH | FIXED | api:employees, api:organization, api:leave | DONE |
+| [[BUG-2331-permissions-policy-geolocation-makes-web-attendance-check-in|BUG-2331]] | Permissions-Policy geolocation=() makes web attendance check-in impossible | BUG | HIGH | FIXED | pkg:config, apps/web, apps/admin | FIX_NOW |
+| [[BUG-2332-every-attendance-refusal-reaches-the-browser-as-validation-f|BUG-2332]] | Every attendance refusal reaches the browser as VALIDATION_FAILED and raises the technical error dialog | BUG | HIGH | FIXED | services/api/src/common/errors, api:attendance, apps/web | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | VERIFIED | app:admin | DONE |
@@ -321,6 +326,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2091-the-canonical-settings-contract-still-describes-attendance-g|BUG-2091]] | The canonical settings contract still describes attendance geolocation as configurable and Remote-Hybrid only | DOCUMENTATION | MEDIUM | FIXED | docs/architecture | DONE |
 | [[BUG-2148-dashboard-widget-severity-is-conveyed-by-colour-alone-and-hi|BUG-2148]] | Dashboard widget severity is conveyed by colour alone, and hidden from assistive technology | UX | MEDIUM | FIXED | views, dashboard | DONE |
 | [[BUG-2206-three-timesheet-audit-toggles-render-on-screen-and-are-read-|BUG-2206]] | Three timesheet audit toggles render on screen and are read by nothing | BUG | MEDIUM | FIXED | api:timesheets, api:tenant-settings, apps/web | DONE |
+| [[BUG-2333-storeuseragent-is-ignored-on-the-attendance-module-check-in-|BUG-2333]] | storeUserAgent is ignored on the attendance module check-in path | BUG | MEDIUM | FIXED | apps/web | FIX_NOW |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -415,6 +421,8 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2091-the-canonical-settings-contract-still-describes-attendance-g|BUG-2091]] | The canonical settings contract still describes attendance geolocation as configurable and Remote-Hybrid only | DOCUMENTATION | MEDIUM | FIXED | docs/architecture | DONE |
 | [[BUG-2148-dashboard-widget-severity-is-conveyed-by-colour-alone-and-hi|BUG-2148]] | Dashboard widget severity is conveyed by colour alone, and hidden from assistive technology | UX | MEDIUM | FIXED | views, dashboard | DONE |
 | [[BUG-2206-three-timesheet-audit-toggles-render-on-screen-and-are-read-|BUG-2206]] | Three timesheet audit toggles render on screen and are read by nothing | BUG | MEDIUM | FIXED | api:timesheets, api:tenant-settings, apps/web | DONE |
+| [[BUG-2333-storeuseragent-is-ignored-on-the-attendance-module-check-in-|BUG-2333]] | storeUserAgent is ignored on the attendance module check-in path | BUG | MEDIUM | FIXED | apps/web | FIX_NOW |
+| [[BUG-2334-a-location-capture-failure-is-rethrown-as-a-bare-error-disca|BUG-2334]] | A location capture failure is rethrown as a bare Error, discarding the reason code | BUG | MEDIUM | OPEN | apps/web | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -459,7 +467,7 @@ _None. Nothing open at CRITICAL._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 273 |
+| Bug records | 278 |
 | Backlog items | 115 |
 | Known bug patterns | 30 |
 | QA runs | 31 |

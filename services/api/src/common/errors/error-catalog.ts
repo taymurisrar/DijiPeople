@@ -10,6 +10,7 @@ export type ErrorCategory =
   | 'business-unit'
   | 'user'
   | 'employee'
+  | 'attendance'
   | 'validation'
   | 'database'
   | 'file'
@@ -754,6 +755,129 @@ export const ERROR_CATALOG = {
     'Fill every {{PLACEHOLDER}} before publishing. The contracting party — legal entity name, registration number, registered office, tax number and jurisdiction — is left blank deliberately until it is known, and a published document must never show one.',
     'warning',
     'validation',
+  ),
+  // --- self-service attendance refusals ------------------------------------
+  /*
+   * BUG-2332. These are reason codes `AttendanceWebAttendanceService` and
+   * `AttendanceGeofenceService` already emit, and which `attendance.service.ts`
+   * already puts on the wire as `{ code, errorCode }` — but none of them
+   * existed here, so `HttpExceptionFilter.mapLegacyCode` failed `isErrorCode`
+   * and fell through to its `statusCode === 422 → VALIDATION_FAILED` default.
+   * Every attendance refusal reached the browser as VALIDATION_FAILED.
+   *
+   * The consequence was not cosmetic. `classifyAttendanceFailure` in
+   * apps/web/lib/attendance/attendance-outcome.ts routes on exactly these
+   * codes, and an unrecognised code deliberately falls through to `unexpected`,
+   * which raises the platform's technical error dialog. So an employee refused
+   * for an ordinary policy reason — "your work arrangement is on-site only" —
+   * was shown "ERROR VALIDATION_FAILED", a reference id and a "Download log"
+   * button. That is precisely the defect the header comment on
+   * attendance-outcome.ts says it exists to prevent: the classifier was right,
+   * and was never reached, because the code it switches on had been erased one
+   * layer below it.
+   *
+   * The messages here are fallbacks only. The filter prefers the thrown
+   * payload's own message, which names the employee's work site and distance
+   * and is far more specific than anything a static catalog can say.
+   */
+  WORK_SITE_REQUIRES_DEVICE: entry(
+    422,
+    'Use an attendance device at this work site',
+    'Attendance at this work site must be recorded on an attendance device.',
+    'warning',
+    'attendance',
+    'Use the attendance machine at your work site.',
+  ),
+  WORK_SITE_REQUIRES_DEVICE_FALLBACK_AVAILABLE: entry(
+    422,
+    'Use an attendance device at this work site',
+    'Attendance here is normally recorded on a device, but you may request web attendance instead.',
+    'warning',
+    'attendance',
+    'Use the attendance machine, or submit a web attendance request.',
+  ),
+  WORK_SITE_ATTENDANCE_DISABLED: entry(
+    422,
+    'This work site is not accepting attendance',
+    'Attendance recording is switched off for this work site.',
+    'warning',
+    'attendance',
+    'Contact your HR administrator.',
+  ),
+  WORK_MODE_DISALLOWS_REMOTE: entry(
+    422,
+    'Remote check-in is not available for you',
+    'Your work arrangement is on-site only, so attendance cannot be recorded away from a work site.',
+    'warning',
+    'attendance',
+    'Check in at your work site, or ask your manager to record this attendance.',
+  ),
+  WORK_MODE_DISALLOWS_OFFICE: entry(
+    422,
+    'Office check-in is not available for you',
+    'Your work arrangement does not include attendance from this work site.',
+    'warning',
+    'attendance',
+    'Check in from your usual place of work.',
+  ),
+  WEB_ATTENDANCE_DISABLED: entry(
+    422,
+    'Web attendance is switched off',
+    'This organisation does not accept attendance from the web app.',
+    'warning',
+    'attendance',
+    'Use an attendance device, or ask your manager to record this attendance.',
+  ),
+  REMOTE_REQUIRES_APPROVAL: entry(
+    422,
+    'Remote attendance needs approval',
+    'Remote attendance must be approved before it can be recorded.',
+    'warning',
+    'attendance',
+    'Submit a request for your manager to review.',
+  ),
+  METHOD_NOT_ALLOWED: entry(
+    422,
+    'This attendance method is not available here',
+    'This work site does not accept attendance recorded this way.',
+    'warning',
+    'attendance',
+    'Use a method this work site accepts.',
+  ),
+  UNAUTHORIZED_WORK_SITE: entry(
+    422,
+    'You are not assigned to this work site',
+    'Attendance can only be recorded at a work site you are assigned to.',
+    'warning',
+    'attendance',
+    'Contact your HR administrator if this is wrong.',
+  ),
+  ACCURACY_TOO_LOW: entry(
+    422,
+    'Your location could not be verified accurately enough',
+    'The position your device reported is less precise than this work site requires.',
+    'warning',
+    'attendance',
+    'Turn on Precise Location or move somewhere with a better signal, then try again.',
+    true,
+  ),
+  COORDINATES_INVALID: entry(
+    422,
+    'The reported location could not be read',
+    'The coordinates the device sent are not a usable position.',
+    'warning',
+    'attendance',
+    'Check that location services are enabled and try again.',
+    true,
+  ),
+  LOCATION_UNUSABLE: entry(
+    422,
+    'Your location could not be used',
+    'The position captured for this attempt cannot be matched to a work site.',
+    'warning',
+    'attendance',
+    'Check that location services are enabled and try again.',
+    true,
   ),
 } as const satisfies Record<string, ErrorCatalogEntry>;
 

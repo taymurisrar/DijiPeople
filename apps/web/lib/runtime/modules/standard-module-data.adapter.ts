@@ -596,9 +596,21 @@ async function buildAttendanceLocationPayload(
         : booleanValue(policy.highAccuracyLocation),
   });
   if (!location.ok) throw new Error(location.message);
+  /*
+   * BUG-2333. `storeUserAgent` is a tenant privacy setting, and this path
+   * ignored it: the user agent was attached to every check-in regardless.
+   * Confirmed against a tenant whose policy reports `storeUserAgent: false`
+   * and whose check-in still transmitted the full browser UA string.
+   *
+   * The sibling path in module-runtime-command-handler.tsx has always gated on
+   * the policy. This is the path the attendance module's own Check In button
+   * uses, so the setting had no effect on the surface that matters most.
+   */
   const locationPayload = buildLocationPayload(location, {
     userAgent:
-      typeof navigator === "undefined" ? undefined : navigator.userAgent,
+      booleanValue(policy.storeUserAgent) && typeof navigator !== "undefined"
+        ? navigator.userAgent
+        : undefined,
   });
 
   return {

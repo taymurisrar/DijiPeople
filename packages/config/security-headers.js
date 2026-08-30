@@ -18,7 +18,10 @@
  * control, not a restriction on what the page may load — so there is no way for
  * one to reject a legitimate resource.
  */
-function baselineSecurityHeaders({ frameable = false } = {}) {
+function baselineSecurityHeaders({
+  frameable = false,
+  geolocation = false,
+} = {}) {
   return [
     // MIME sniffing turns an uploaded document into an executable script.
     { key: "X-Content-Type-Options", value: "nosniff" },
@@ -27,11 +30,42 @@ function baselineSecurityHeaders({ frameable = false } = {}) {
     { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
     // Legacy counterpart of frame-ancestors, still honoured by some agents.
     { key: "X-Frame-Options", value: frameable ? "SAMEORIGIN" : "DENY" },
-    // Features nothing in these apps uses. The attendance agent is a separate
-    // Electron app; geolocation there is not affected by this header.
+    /*
+     * Features these apps do not use — with one exception the header got wrong.
+     *
+     * BUG-2331. This shipped as a flat `geolocation=()`, described by the
+     * comment that used to sit here as a feature "nothing in these apps uses".
+     * The tenant product uses it on one of its most-used screens: web
+     * attendance check-in captures a device position on every attempt, and the
+     * API refuses a check-in that arrives without one.
+     *
+     * `geolocation=()` is the *strictest* form of the directive — an empty
+     * allowlist disables the feature for the document's own origin as well as
+     * for embeds, so Chrome rejects `getCurrentPosition` with PERMISSION_DENIED
+     * **before the permission layer is reached**. No prompt is ever shown, and
+     * granting the permission in browser settings changes nothing, because the
+     * site never gets to ask. Confirmed against production, where the browser's
+     * own message was "Geolocation has been disabled in this document by
+     * permissions policy."
+     *
+     * The result: every employee on the tenant app saw "Location access is
+     * required — allow location access for DijiPeople in your browser and try
+     * again", an instruction this header made impossible to follow, and web
+     * check-in was unusable for as long as the header has shipped.
+     *
+     * `(self)` restores the intended posture: this origin may ask, and the
+     * browser prompts as normal; cross-origin embeds still cannot. It is opt-in
+     * per app rather than global because landing has no such feature, and the
+     * narrower default is the right one for anything that does not need it.
+     */
     {
       key: "Permissions-Policy",
-      value: "camera=(), microphone=(), geolocation=(), payment=()",
+      value: [
+        "camera=()",
+        "microphone=()",
+        `geolocation=${geolocation ? "(self)" : "()"}`,
+        "payment=()",
+      ].join(", "),
     },
     // Two years, subdomains included. Only meaningful over HTTPS; browsers
     // ignore it on plain HTTP, so it is safe to send everywhere.
@@ -84,7 +118,7 @@ function contentSecurityPolicy({ apiOrigin } = {}) {
 /**
  * The `headers()` value for a Next config.
  *
- * @param {{ apiOrigin?: string, frameable?: boolean }} options
+ * @param {{ apiOrigin?: string, frameable?: boolean, geolocation?: boolean }} options
  */
 /**
  * Whether an API origin is one a browser on an HTTPS page could ever reach.
