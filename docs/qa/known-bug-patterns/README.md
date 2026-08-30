@@ -40,6 +40,7 @@ pattern. New patterns come out of the bug learning loop in
 | [silent-config-fallback](silent-config-fallback.md) | Availability | The marketing site's Login button |
 | [silent-degradation](silent-degradation.md) | UX / Data integrity | The subscribe wizard's country field |
 | [divergent-duplicate-guard](divergent-duplicate-guard.md) | Security / Domain integrity | `ContractsService.update()`; workspace hostname resolution |
+| [stale-read-model-of-a-write-rule](stale-read-model-of-a-write-rule.md) | Security / UX | Correction approve buttons; `/auth/me`; sign-out revocation |
 | [unbounded-render](unbounded-render.md) | UX / Availability | The tenant timeline panel |
 | [stale-generated-artifact](stale-generated-artifact.md) | Correctness | The platform runtime manifest |
 | [premature-completion](premature-completion.md) | Process | This framework's own reporting |

@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **3** |
+| Active sessions | **2** |
 | Active parent tasks | 3 |
 | Active work packages | 0 |
 | Blocked work packages | 0 |
@@ -50,7 +50,6 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
 | [[SESSION-0085-duplicate-customer-on-self-service-checkout-the-wizard-s-dra|SESSION-0085]] | — | Duplicate customer on self-service checkout: the wizard's draft id is dropped | ACTIVE | `agent/checkout-duplicate-customer` | `develop` | — | NO |
-| [[SESSION-0084-attendance-correction-request-entry-point-and-web-auth-valid|SESSION-0084]] | — | Attendance correction request entry point, and web auth validation | ACTIVE | `agent/attendance-correction-entry` | `develop` | — | NO |
 | [[SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser|SESSION-0061]] | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages

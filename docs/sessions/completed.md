@@ -6,6 +6,7 @@ Sessions that reached a terminal state. Kept as history: the branch, the base it
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0084](../../docs/sessions/SESSION-0084-attendance-correction-request-entry-point-and-web-auth-valid.md) | — | Attendance correction request entry point, and web auth validation | COMPLETE | `agent/attendance-correction-entry` | `develop` | — | 2026-08-30T18:30:09.569Z |
 | [SESSION-0083](../../docs/sessions/SESSION-0083-allocator-id-collision-and-the-tenant-owner-label.md) | — | Allocator id collision and the tenant owner label | COMPLETE | `agent/allocator-and-owner-label` | `develop` | — | 2026-08-30T17:26:26.434Z |
 | [SESSION-0082](../../docs/sessions/SESSION-0082-production-monitoring-error-log-triage-classify-every-record.md) | — | Production monitoring error-log triage: classify every recorded item, fix non-incidents, file and fix real bugs | COMPLETE | `agent/prod-monitoring-triage` | `develop` | — | 2026-08-30T16:42:05.222Z |
 | [SESSION-0081](../../docs/sessions/SESSION-0081-phase-2-schema-discovery-data-model-knowledge-graph-and-disc.md) | — | Phase 2 schema discovery: data model knowledge graph and discovery tracking | COMPLETE | `agent/data-model-discovery` | `develop` | — | 2026-08-30T12:54:10.853Z |

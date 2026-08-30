@@ -402,9 +402,9 @@ _None. Nothing open at CRITICAL._
 - [[2026-08-30-open-bug-burndown-4d75b37c|Engineering History — Open bug burndown]]
 - [[2026-08-30-data-model-and-screen-discovery-122ce41e|Engineering History — Data model and screen discovery]]
 - [[2026-08-30-attendance-location-capture-c5c7c13f|Engineering History — Attendance location capture]]
+- [[2026-08-30-attendance-correction-entry-and-auth-validation-c603abea|Engineering History — Attendance correction entry and auth validation]]
 - [[2026-08-29-workspace-switcher-avatar-menu-9f32c407|Engineering History — Workspace switcher avatar menu]]
 - [[2026-08-29-starter-plan-e2e-qa-ee69f49f|Engineering History — Starter plan e2e qa]]
-- [[2026-08-29-starter-blocker-fixes-3fff9cc9|Engineering History — Starter blocker fixes]]
 
 ## Recent Releases
 
@@ -509,9 +509,9 @@ _None. Nothing open at CRITICAL._
 |---|---|
 | Bug records | 300 |
 | Backlog items | 118 |
-| Known bug patterns | 31 |
+| Known bug patterns | 32 |
 | QA runs | 31 |
-| Engineering history records | 67 |
+| Engineering history records | 68 |
 | Release records | 4 |
 | Module notes | 29 |
 | Architecture notes | 22 |

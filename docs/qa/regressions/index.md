@@ -4165,7 +4165,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 
 | | |
 |---|---|
-| **Bug class** | `public-route-reimplements-the-guard-incompletely` |
+| **Bug class** | [`stale-read-model-of-a-write-rule`](../known-bug-patterns/stale-read-model-of-a-write-rule.md) — the `@Public()` variant |
 | **Module** | `services/api/src/modules/auth` |
 | **Bug record** | BUG-2547 |
 | **Root cause** | `GET /auth/me` is `@Public()` so that a signed-out visitor gets an answer rather than a 401. Being outside `JwtAuthGuard` meant `getProfileFromRequest` had to reimplement the guard's checks, and it reimplemented only some: signature, audience and expiry, but never session liveness. Measured on production at `fba846d1` — after sign-out, `/employees` returned `401 SESSION_REVOKED` while `/auth/me` returned `200` with the caller's identity, roles and permission keys, with 7.98 hours left on an eight-hour access token. Controls confirm the route does verify tokens: no cookie and a tampered signature both return 401. |
@@ -4180,7 +4180,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 
 | | |
 |---|---|
-| **Bug class** | `read-model-omits-a-rule-the-write-path-enforces` |
+| **Bug class** | [`stale-read-model-of-a-write-rule`](../known-bug-patterns/stale-read-model-of-a-write-rule.md) |
 | **Module** | `services/api/src/modules/attendance`, `apps/web` |
 | **Bug record** | BUG-2560 |
 | **Root cause** | `assertCanActionCorrection` opens with the separation-of-duties check BUG-0002 was raised to add: neither the submitter nor the subject may action a correction. `canCurrentUserActionCorrection` — which decides `canApprove`, `canReject` and `canEdit`, and which the detail page draws its buttons from — was a copy of the same authorization logic *minus* that first rule. Measured on production at `fba846d1` as both requester and subject of `ACR-000001`: `canEdit true · canApprove true · canReject true`, then `403 ACCESS_DENIED — "You cannot approve or reject your own attendance correction request."` |

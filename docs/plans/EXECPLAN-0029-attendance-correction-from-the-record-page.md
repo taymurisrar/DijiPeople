@@ -2,7 +2,7 @@
 ID: PLAN-032
 aliases: [PLAN-032, EXECPLAN-0029]
 Title: Attendance correction raised from the record the employee is looking at
-Status: APPROVED
+Status: DONE
 Session: SESSION-0084
 Type: FEATURE
 Size: LARGE
@@ -246,6 +246,22 @@ backward compatible in both directions.
 `CODE_ONLY`. Reverting the commit restores the previous entry point exactly;
 nothing persisted changes shape, and correction requests raised through the panel
 are indistinguishable from ones raised through the blank form.
+
+## Outcome
+
+**Delivered, with one planning assumption disproved.** This plan declared
+Backend/API `DELIBERATELY_NOT_USED` on the grounds that the endpoints, routing
+and notifications already existed. They did — but three of the six defects the
+work uncovered were server-side (BUG-2504, BUG-2506, BUG-2547, and BUG-2560 in
+the read model), and two of them were fixed in `services/api`. The Risks section
+anticipated a second write path and a no-op request; it did not anticipate that
+verifying the existing workflow would be the thing that found the bugs.
+
+The recommendation the plan opened with held: the record is never edited in
+place, and the panel writes only a correction request.
+
+Merged as `c603abea` via PR #63. See the
+[engineering history](../engineering-history/tasks/2026-08-30-attendance-correction-entry-and-auth-validation-c603abea.md).
 
 ## Definition of Done
 
