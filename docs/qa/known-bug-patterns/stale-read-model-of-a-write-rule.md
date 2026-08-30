@@ -115,10 +115,18 @@ which is a worse bug wearing a passing test.
 
 ## Records
 
-- BUG-2560 / REG-378 — the buttons
-- BUG-2547 / REG-377 — `/auth/me`
-- BUG-2506 / REG-375 — sign-out
-- BUG-0002 / REG-002 — the rule all of this was supposed to enforce
+REG ids are entries in one register file rather than notes of their own, so they
+are named in plain text here; the bug records are notes and are linked.
+
+- [[BUG-2560-the-requester-is-shown-approve-and-reject-buttons-that-alway]] /
+  REG-378 — the buttons
+- [[BUG-2547-a-revoked-session-still-answers-on-auth-me]] / REG-377 — `/auth/me`
+- [[BUG-2506-sign-out-leaves-the-refresh-token-live-whenever-the-tenant-i]] /
+  REG-375 — sign-out
+- [[BUG-0002-self-approval-of-attendance-corrections]] / REG-002 — the rule all of
+  this was supposed to enforce
+- [[EXECPLAN-0029-attendance-correction-from-the-record-page]] — the task that
+  found all three
 
 ## Related patterns
 
