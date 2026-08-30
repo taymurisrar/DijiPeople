@@ -39,6 +39,15 @@ import {
   accessorFor,
   DOMAIN_ORDER,
 } from './lib/data-model.mjs';
+/*
+ * Line endings are a property of the checkout, not of the content. The
+ * generator writes `\n`; Git checks the file out as `\r\n` on Windows, so a
+ * byte comparison reports drift on every line of an untouched file in every
+ * Windows worktree while passing in CI, which runs on Linux. That is BUG-1208,
+ * and this repository already paid for it once — a rebase re-checked-out these
+ * notes with CRLF and `--check` called all thirteen stale.
+ */
+import { indexIsCurrent } from './lib/index-drift.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SCHEMA = join(ROOT, 'services/api/prisma/schema.prisma');
@@ -344,7 +353,7 @@ function domainMap() {
 
 const mapPath = join(NOTES_DIR, 'domain-map.md');
 const mapBody = domainMap();
-if (!existsSync(mapPath) || readFileSync(mapPath, 'utf8') !== mapBody) {
+if (!existsSync(mapPath) || !indexIsCurrent(readFileSync(mapPath, 'utf8'), mapBody)) {
   if (CHECK) problems.push('docs/knowledge/data-model/domain-map.md is stale');
   else {
     writeFileSync(mapPath, mapBody);
@@ -383,7 +392,7 @@ for (const file of noteFiles) {
 
   const facts = schemaFacts(models.get(model), attribution, enums, documented);
   const next = `${body.slice(0, start + OPEN.length)}\n\n${facts}\n${body.slice(end)}`;
-  if (next === body) continue;
+  if (indexIsCurrent(body, next)) continue;
 
   if (CHECK) problems.push(`${file}: generated schema facts are stale`);
   else {

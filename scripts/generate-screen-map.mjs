@@ -28,6 +28,14 @@ import { readFileSync, writeFileSync, readdirSync, existsSync, statSync } from '
 import { join, resolve, dirname, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+/*
+ * Line endings are a property of the checkout, not the content: the generator
+ * writes `\n`, Git checks the file out as `\r\n` on Windows, and a byte
+ * comparison then reports drift on every line of an untouched file in every
+ * Windows worktree while passing in CI on Linux. BUG-1208.
+ */
+import { indexIsCurrent } from './lib/index-drift.mjs';
+
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = join(ROOT, 'docs/knowledge/architecture/screen-map.md');
 const SPECS = join(ROOT, 'apps/web/lib/runtime/modules/standard-module-specs.ts');
@@ -209,7 +217,7 @@ lines.push('');
 const body = lines.join('\n');
 
 if (CHECK) {
-  if (!existsSync(OUT) || readFileSync(OUT, 'utf8') !== body) {
+  if (!existsSync(OUT) || !indexIsCurrent(readFileSync(OUT, 'utf8'), body)) {
     console.error('docs/knowledge/architecture/screen-map.md is stale');
     console.error('Run `node scripts/generate-screen-map.mjs` and commit the result.');
     process.exit(1);
