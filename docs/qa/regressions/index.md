@@ -4130,3 +4130,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The lesson is about where to put a guard, not about checkout. **A test at either end of a three-part path passes while the middle is missing.** The seam that can break is the one where a value changes hands, and here it changed hands through a spread — the single construct TypeScript declines to check. A companion assertion now compares every `PublicSubscribeDto` field against the service signature, so a future field cannot be dropped the same way. |
 | **Fixed** | 2026-08-30 |
 | **Active** | yes |
+
+### REG-377 — The endpoint that says whether you are signed in did not know you had signed out
+
+| | |
+|---|---|
+| **Bug class** | `public-route-reimplements-the-guard-incompletely` |
+| **Module** | `services/api/src/modules/auth` |
+| **Bug record** | BUG-2547 |
+| **Root cause** | `GET /auth/me` is `@Public()` so that a signed-out visitor gets an answer rather than a 401. Being outside `JwtAuthGuard` meant `getProfileFromRequest` had to reimplement the guard's checks, and it reimplemented only some: signature, audience and expiry, but never session liveness. Measured on production at `fba846d1` — after sign-out, `/employees` returned `401 SESSION_REVOKED` while `/auth/me` returned `200` with the caller's identity, roles and permission keys, with 7.98 hours left on an eight-hour access token. Controls confirm the route does verify tokens: no cookie and a tampered signature both return 401. |
+| **Regression test** | `services/api/src/modules/auth/auth-session-lifecycle.spec.ts` |
+| **Scenario** | `getProfileFromRequest` is called with a valid access cookie whose session row is gone, and must reject with 401 and clear the cookies rather than return a profile. Five supporting cases on `isSessionStillLive`: the filter matches the guard's on session, subject, tenant, client and `revokedAt: null`; a missing row reports closed; a platform subject reads `PlatformRefreshToken` and never the tenant table; `agent-desktop` is left to its own device-session assertion; and a token with no `sessionId` is still accepted so older tokens are not signed out. |
+| **Proven to fail without the fix** | Mutation-tested. With the liveness check disabled, the `/auth/me` case fails and the other fourteen pass — which is exactly why the end-to-end case exists alongside the helper's own. |
+| **Note** | Second finding in one session where one security decision lived in two places and the two disagreed; BUG-2506 was the first. `@Public()` is an exemption from the guard, not from the guard's reasoning, and every route that takes it inherits the job of asking the same questions. The instructive detail is that this was **only findable by signing out and asking** — the code reads correctly right up until you compare it with the guard. |
+| **Fixed** | 2026-08-30 |
+| **Active** | yes |

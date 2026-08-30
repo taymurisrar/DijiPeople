@@ -713,6 +713,31 @@ export class AuthService {
     if (accessToken) {
       try {
         const payload = await this.verifyAccessToken(accessToken, clientId);
+        /*
+         * BUG-2547. `/auth/me` is `@Public()` so that a signed-out visitor gets an
+         * answer rather than a guard rejection, which means it never passes
+         * through `JwtAuthGuard` — and so it was never asking the question the
+         * guard asks straight after verifying a signature: is this session still
+         * live?
+         *
+         * Verified on production at `fba846d1`: after signing out,
+         * `GET /employees` correctly returned `401 SESSION_REVOKED` while
+         * `GET /auth/me` returned `200` with the caller's identity, roles and
+         * permission keys — and would have gone on doing so for the remaining
+         * 7.98 hours of an eight-hour access token. Revocation worked everywhere
+         * the guard ran. This endpoint was simply not asking.
+         *
+         * Throwing here falls into the catch below and on into the refresh path,
+         * which is the existing answer for an access token that cannot be used:
+         * it clears the cookies and reports an expired session, which is exactly
+         * what a revoked session should look like to a client.
+         */
+        if (!(await this.isSessionStillLive(payload, clientId))) {
+          throw new UnauthorizedException({
+            code: 'SESSION_REVOKED',
+            message: 'Session is no longer active.',
+          });
+        }
         const { response } =
           clientId === 'admin' && payload.authSubjectType === 'platform-user'
             ? await this.authAccessService.loadPlatformAccessContext(
@@ -1182,6 +1207,57 @@ export class AuthService {
     }
 
     this.clearAuthCookies(res, clientId);
+  }
+
+  /**
+   * Whether the session behind an access token is still open.
+   *
+   * Deliberately the same question `JwtAuthGuard` asks, and deliberately the
+   * same shape of query: a live, unrevoked, unexpired token row for this
+   * session, this subject and this client. Two places asking it differently is
+   * how they came to disagree in the first place.
+   *
+   * `agent-desktop` is excluded because the guard does not use this check for it
+   * either — it has its own device-session assertion, and answering for it here
+   * would be a second opinion rather than the same one.
+   */
+  private async isSessionStillLive(
+    payload: AuthTokenPayload,
+    clientId: AuthClientId,
+  ): Promise<boolean> {
+    if (!payload.sessionId) {
+      // Issued before sessions were recorded. Nothing to check, and refusing
+      // would sign out every holder of an older token.
+      return true;
+    }
+
+    if (clientId === 'agent-desktop') {
+      return true;
+    }
+
+    const where = {
+      sessionId: payload.sessionId,
+      appClientId: clientId,
+      revokedAt: null,
+      expiresAt: { gt: new Date() },
+    };
+
+    const record =
+      clientId === 'admin' && payload.authSubjectType === 'platform-user'
+        ? await this.prisma.platformRefreshToken.findFirst({
+            where: { ...where, platformUserId: payload.sub },
+            select: { id: true },
+          })
+        : await this.prisma.refreshToken.findFirst({
+            where: {
+              ...where,
+              userId: payload.sub,
+              tenantId: payload.tenantId,
+            },
+            select: { id: true },
+          });
+
+    return Boolean(record);
   }
 
   /**

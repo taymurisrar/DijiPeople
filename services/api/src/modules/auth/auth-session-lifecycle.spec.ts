@@ -38,6 +38,7 @@ describe('auth session lifecycle', () => {
 
   const tokenStore = () => ({
     findMany: jest.fn().mockResolvedValue([]),
+    findFirst: jest.fn().mockResolvedValue(null),
     update: jest.fn().mockResolvedValue({}),
     updateMany: jest.fn().mockResolvedValue({ count: 1 }),
   });
@@ -213,6 +214,131 @@ describe('auth session lifecycle', () => {
           where: expect.objectContaining({ revokedAt: null }) as unknown,
         }),
       );
+    });
+  });
+
+  describe('a revoked session is refused everywhere, not only behind the guard', () => {
+    const payload = {
+      sub: 'user-1',
+      tenantId: 'tenant-1',
+      sessionId: 'session-abc',
+      appClientId: 'web',
+    };
+
+    const isLive = (session: AuthService, p: unknown, clientId: string) =>
+      (
+        session as unknown as {
+          isSessionStillLive: (p: unknown, c: string) => Promise<boolean>;
+        }
+      ).isSessionStillLive(p, clientId);
+
+    it('asks the same question the guard asks, against the same row', async () => {
+      /*
+       * BUG-2547. `/auth/me` is `@Public()`, so it never reaches `JwtAuthGuard`
+       * and so it never asked whether the session was still open. Verified on
+       * production at `fba846d1`: after signing out, a request to `/employees`
+       * with that access token was correctly refused `401 SESSION_REVOKED`,
+       * while `/auth/me` returned `200` with the caller's identity, roles and
+       * permission keys — and would have kept doing so for the remaining 7.98
+       * hours of an eight-hour token.
+       */
+      prisma.refreshToken.findFirst.mockResolvedValue({ id: 'row-1' });
+
+      await expect(isLive(service, payload, 'web')).resolves.toBe(true);
+
+      expect(prisma.refreshToken.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            sessionId: 'session-abc',
+            appClientId: 'web',
+            revokedAt: null,
+            userId: 'user-1',
+            tenantId: 'tenant-1',
+          }) as unknown,
+        }),
+      );
+    });
+
+    it('reports a revoked session as closed', async () => {
+      prisma.refreshToken.findFirst.mockResolvedValue(null);
+      await expect(isLive(service, payload, 'web')).resolves.toBe(false);
+    });
+
+    it('reads the platform store for a platform subject', async () => {
+      prisma.platformRefreshToken.findFirst.mockResolvedValue({ id: 'row-2' });
+
+      await expect(
+        isLive(
+          service,
+          { ...payload, authSubjectType: 'platform-user' },
+          'admin',
+        ),
+      ).resolves.toBe(true);
+      expect(prisma.refreshToken.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('leaves the desktop agent to its own device-session assertion', async () => {
+      // The guard does not use this check for `agent-desktop` either. Answering
+      // for it here would be a second opinion rather than the same one.
+      await expect(isLive(service, payload, 'agent-desktop')).resolves.toBe(
+        true,
+      );
+      expect(prisma.refreshToken.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('does not sign out a token issued before sessions were recorded', async () => {
+      await expect(
+        isLive(service, { ...payload, sessionId: undefined }, 'web'),
+      ).resolves.toBe(true);
+      expect(prisma.refreshToken.findFirst).not.toHaveBeenCalled();
+    });
+    it('/auth/me itself refuses a revoked session, not merely the helper', async () => {
+      /*
+       * The assertion that matters. The five above prove `isSessionStillLive`
+       * answers correctly; only this one proves `getProfileFromRequest` asks it.
+       *
+       * Testing the helper alone would repeat the mistake that produced
+       * BUG-2505 — a rule asserted from one side, green, while the path that
+       * had to honour it did not.
+       */
+      const names = cookieNames('web');
+      const payloadForToken = {
+        sub: 'user-1',
+        tenantId: 'tenant-1',
+        sessionId: 'session-abc',
+        appClientId: 'web',
+        aud: 'web',
+        tokenUse: 'access',
+        type: 'access',
+      };
+      (
+        service as unknown as {
+          jwtService: { verifyAsync: jest.Mock };
+        }
+      ).jwtService.verifyAsync.mockResolvedValue(payloadForToken);
+
+      // The session is gone, and no refresh cookie is offered, so the fall
+      // through to the refresh path ends in an expired session rather than a
+      // profile.
+      prisma.refreshToken.findFirst.mockResolvedValue(null);
+
+      const { res, clearCookie } = response();
+      await expect(
+        (
+          service as unknown as {
+            getProfileFromRequest: (
+              req: Request,
+              res: Response,
+            ) => Promise<unknown>;
+          }
+        ).getProfileFromRequest(
+          request('web', { [names.access]: 'an-access-token' }),
+          res,
+        ),
+      ).rejects.toMatchObject({ status: 401 });
+
+      expect(prisma.refreshToken.findFirst).toHaveBeenCalled();
+      expect(clearCookie).toHaveBeenCalled();
     });
   });
 

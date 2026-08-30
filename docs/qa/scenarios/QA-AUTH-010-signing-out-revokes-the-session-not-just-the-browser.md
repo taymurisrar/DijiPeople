@@ -8,8 +8,8 @@ TYPE: SECURITY
 RISK: HIGH
 AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: services/api/src/modules/auth/auth-session-lifecycle.spec.ts
-RELATED_BUGS: [BUG-2506, BUG-2509]
-RELATED_REGRESSIONS: [REG-375]
+RELATED_BUGS: [BUG-2506, BUG-2509, BUG-2547]
+RELATED_REGRESSIONS: [REG-375, REG-377]
 LAST_RUN: 2026-08-30
 LAST_RESULT: PASS
 CREATED_AT: 2026-08-30
@@ -37,6 +37,11 @@ refresh tokens issued for the same client since the session under test began.
    `RefreshToken` is not.
 6. Sign out with no session cookie at all.
 7. Sign out twice and compare `revokedAt`.
+
+6. With the same signed-out access token, call `GET /auth/me` as well as a
+   guarded route such as `GET /employees`. Both must refuse it. `/auth/me` is
+   `@Public()` and used to answer 200 while `/employees` answered 401 — see
+   BUG-2547.
 
 ## Expected Result
 
@@ -89,7 +94,7 @@ expensive halves and are noted under re-run guidance above.
 ## Related
 
 - Test plan — [[PLAN-001]]
-- Bugs — [[BUG-2506]], [[BUG-2509]]
-- Regressions — REG-375 (see the regression register)
+- Bugs — [[BUG-2506]], [[BUG-2509]], [[BUG-2547]]
+- Regressions — REG-375, REG-377 (see the regression register)
 
 <!-- GRAPH:END -->
