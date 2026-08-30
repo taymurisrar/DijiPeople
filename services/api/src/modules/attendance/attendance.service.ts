@@ -2293,6 +2293,26 @@ export class AttendanceService {
     currentUser: AuthenticatedUser,
     request: AttendanceCorrectionWithRelations,
   ) {
+    /*
+     * BUG-2560. The same party check `assertCanActionCorrection` opens with, and
+     * for the same reason — separation of duties is not a capability question,
+     * so it has to be asked before any permission or assignment path.
+     *
+     * It was missing here, which made this read model a copy of the write path
+     * minus its most important rule: the one BUG-0002 was raised to add.
+     * `canApprove`, `canReject` and `canEdit` therefore came back `true` for the
+     * requester, the detail page drew Approve and Reject for them, and pressing
+     * either returned 403. Verified on production at `fba846d1`.
+     *
+     * The write path was never wrong. Only the answer the screen was given was.
+     */
+    if (
+      request.requestedByUserId === currentUser.userId ||
+      request.employee.userId === currentUser.userId
+    ) {
+      return false;
+    }
+
     if (
       this.canActionAttendanceCorrection(currentUser, request, 'approve') ||
       this.canActionAttendanceCorrection(currentUser, request, 'reject')

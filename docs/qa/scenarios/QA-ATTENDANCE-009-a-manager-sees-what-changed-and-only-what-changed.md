@@ -8,8 +8,8 @@ TYPE: UNIT
 RISK: MEDIUM
 AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: apps/web/app/components/attendance-corrections/correction-form-fields.spec.ts
-RELATED_BUGS: [BUG-2507]
-RELATED_REGRESSIONS: [REG-376]
+RELATED_BUGS: [BUG-2507, BUG-2560]
+RELATED_REGRESSIONS: [REG-376, REG-378]
 LAST_RUN: 2026-08-30
 LAST_RESULT: PASS
 CREATED_AT: 2026-08-30
@@ -35,6 +35,10 @@ changes nothing, and one for a day with no attendance entry at all.
 5. Confirm two spellings of the same instant produce no row.
 6. Confirm a request that proposes nothing renders a sentence saying so, not an
    empty card.
+
+7. Open a correction you filed yourself. Neither Approve nor Reject is
+   offered — the read model must agree with the write path, which refuses
+   either party. See BUG-2560.
 
 ## Expected Result
 
@@ -82,7 +86,7 @@ expensive halves and are noted under re-run guidance above.
 
 - Test plan — [[PLAN-009]]
 - Module — [[attendance]]
-- Bugs — [[BUG-2507]]
-- Regressions — REG-376 (see the regression register)
+- Bugs — [[BUG-2507]], [[BUG-2560]]
+- Regressions — REG-376, REG-378 (see the regression register)
 
 <!-- GRAPH:END -->

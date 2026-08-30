@@ -4145,3 +4145,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Second finding in one session where one security decision lived in two places and the two disagreed; BUG-2506 was the first. `@Public()` is an exemption from the guard, not from the guard's reasoning, and every route that takes it inherits the job of asking the same questions. The instructive detail is that this was **only findable by signing out and asking** — the code reads correctly right up until you compare it with the guard. |
 | **Fixed** | 2026-08-30 |
 | **Active** | yes |
+
+### REG-378 — Buttons offered for an action the server had always refused
+
+| | |
+|---|---|
+| **Bug class** | `read-model-omits-a-rule-the-write-path-enforces` |
+| **Module** | `services/api/src/modules/attendance`, `apps/web` |
+| **Bug record** | BUG-2560 |
+| **Root cause** | `assertCanActionCorrection` opens with the separation-of-duties check BUG-0002 was raised to add: neither the submitter nor the subject may action a correction. `canCurrentUserActionCorrection` — which decides `canApprove`, `canReject` and `canEdit`, and which the detail page draws its buttons from — was a copy of the same authorization logic *minus* that first rule. Measured on production at `fba846d1` as both requester and subject of `ACR-000001`: `canEdit true · canApprove true · canReject true`, then `403 ACCESS_DENIED — "You cannot approve or reject your own attendance correction request."` |
+| **Regression test** | `services/api/src/modules/attendance/attendance.correction-authorization.spec.ts` |
+| **Scenario** | For the submitter, and for the subject of a proxy submission, assert in one test both that the read model reports `false` and that `approveCorrectionRequest` throws `ForbiddenException` — the two answers pinned together. Then two negative controls: a manager who is not a party is still offered the action, and so is the assigned approver holding no role bundle, so the fix cannot degenerate into "nobody may approve anything". |
+| **Proven to fail without the fix** | Mutation-tested. Removing the party check from the read model fails the two paired cases and passes the other twelve. |
+| **Note** | Third finding in one session of a single shape — one decision implemented twice, the copies disagreeing — after REG-375 (sign-out revoking two ways) and REG-377 (`/auth/me` re-deciding what the guard decides). The general lesson is narrower than "don't duplicate": it is that **when a rule is added to a write path, every read model that describes that write path is now stale**, and nothing in the type system or the tests will say so. Pinning both answers in the same test is the cheapest thing that would have caught all three. |
+| **Fixed** | 2026-08-30 |
+| **Active** | yes |
