@@ -1102,7 +1102,7 @@ export class AuthService {
     const refreshToken = this.extractTokenFromRequest(req, cookieNames.refresh);
     const sessionId = this.extractTokenFromRequest(req, cookieNames.session);
 
-    if (!refreshToken && sessionId) {
+    if (sessionId) {
       /*
        * BUG-0627. The refresh cookie is the shortest-lived of the three, so the
        * sign-out that follows a session-expired modal — the flow BUG-0009 was
@@ -1117,10 +1117,24 @@ export class AuthService {
        * exact rather than broad: the filter is the single session, scoped to the
        * client it was issued for, so this cannot reach another operator's
        * session or another client's token for the same person.
+       *
+       * BUG-2506. This ran only when the refresh cookie was ABSENT, so the
+       * ordinary sign-out — every cookie present — fell through to the hash scan
+       * below instead. That scan takes the twenty most recently created live
+       * tokens for the client across the whole deployment and bcrypt-compares
+       * each one. On any tenant issuing more than twenty refresh tokens in the
+       * life of a session, the signer-out's own token is simply not in the list:
+       * the cookies were cleared, the screen said they were signed out, and the
+       * refresh token stayed valid for its full lifetime — up to thirty days
+       * with remember-me. Revoking by session id is exact and cheap, so it now
+       * runs whenever the session is known, and the scan below is left as the
+       * fallback for a client that sent no session cookie.
        */
       await this.revokeSessionTokens(clientId, sessionId);
     }
 
+    // Fallback only: reached when no session cookie arrived, or alongside the
+    // exact revocation above for a token issued before sessions were recorded.
     if (refreshToken) {
       if (clientId === 'admin') {
         const activeTokens = await this.prisma.platformRefreshToken.findMany({

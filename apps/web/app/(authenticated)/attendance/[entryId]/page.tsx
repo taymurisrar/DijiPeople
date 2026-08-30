@@ -1,6 +1,9 @@
 import { StandardModuleRecordPage } from "@/app/components/runtime";
 import { AccessDeniedState } from "@/app/(authenticated)/_components/access-denied-state";
+import { AttendanceCorrectionPanel } from "@/app/components/attendance-corrections/attendance-correction-panel";
 import { getSessionUser } from "@/lib/auth";
+import { hasAnyPermission } from "@/lib/permissions";
+import { PERMISSION_KEYS } from "@/lib/security-keys";
 import {
   buildPublishedStandardRouteRuntime,
   resolveStandardActiveForm,
@@ -61,6 +64,30 @@ export default async function AttendanceRecordPage({
 
   return (
     <div className="dp-theme-scope dp-attendance-scope grid gap-6">
+      {/*
+        Above the record, because the owner's description of this is a button on
+        the record page whose submit control is "on the top" — and because when
+        the panel opens it takes the place the record's own header occupied.
+
+        It writes a correction request, never the attendance row. See
+        `AttendanceCorrectionPanel` for why that distinction is the design rather
+        than a shortcut.
+      */}
+      <AttendanceCorrectionPanel
+        canRequest={canRequestCorrection(sessionUser, record)}
+        entry={{
+          id: record.id,
+          date: record.date,
+          attendanceDate: record.attendanceDate,
+          checkInAt: record.checkInAt,
+          checkIn: record.checkIn,
+          checkOutAt: record.checkOutAt,
+          checkOut: record.checkOut,
+          attendanceMode: record.attendanceMode,
+          officeLocationId: record.officeLocationId,
+          status: record.status,
+        }}
+      />
       <StandardModuleRecordPage
         activeForm={activeForm}
         lookupDisplayValues={{ ownerId: record.employee.fullName }}
@@ -83,6 +110,29 @@ export default async function AttendanceRecordPage({
       />
     </div>
   );
+}
+
+/**
+ * Whether this viewer may raise a correction against this record.
+ *
+ * Mirrors `AttendanceService.canCreateAttendanceCorrection` plus the ownership
+ * rule the same method enforces one step later: a correction can only ever be
+ * filed against your own attendance, whoever else can read it. Duplicated here
+ * only so the control is not offered to someone the API would refuse — the
+ * server re-decides both halves, and its answer is the one that counts.
+ */
+function canRequestCorrection(
+  sessionUser: { permissionKeys: string[] } | null,
+  record: AttendanceEntryRecord,
+): boolean {
+  if (!sessionUser || !record.isCurrentUsersEntry) return false;
+  return hasAnyPermission(sessionUser.permissionKeys, [
+    PERMISSION_KEYS.ATTENDANCE_CORRECTION_CREATE,
+    PERMISSION_KEYS.ATTENDANCE_READ,
+    PERMISSION_KEYS.ATTENDANCE_READ_OWN,
+    PERMISSION_KEYS.ATTENDANCE_READ_TEAM,
+    PERMISSION_KEYS.ATTENDANCE_READ_ALL,
+  ]);
 }
 
 /**

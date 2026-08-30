@@ -1,0 +1,144 @@
+---
+ID: BUG-2508
+aliases: [BUG-2508]
+Title: The correction work-site selector is never populated for an employee
+Status: OPEN
+Severity: MEDIUM
+Priority: P2
+Type: BUG
+Source: QA_RUN
+DetectedDate: 2026-08-30
+DetectedInSha: ade1fea7
+AffectedModules: [apps/web, services/api/src/modules/attendance-integrations]
+OwnerAgent: architect
+ArchitectDisposition: PLAN_REQUIRED
+QAReport:
+RegressionId:
+RelatedBacklogItem:
+RelatedDecision:
+RelatedImplementation:
+CreatedAt: 2026-08-30
+UpdatedAt: 2026-08-30
+ResolvedAt:
+---
+
+# BUG-2508 — The correction work-site selector is never populated for an employee
+
+## Summary
+
+`AttendanceCorrectionForm` takes a `workSites` prop and renders "Which work
+site?" from it. Nothing in the application ever passes it. The prop defaults to
+`[]`, so the selector offers exactly one option — "Not applicable" — to every
+employee, on every correction, forever.
+
+## Expected Behavior
+
+An employee correcting where they worked can name the site they worked at.
+
+## Actual Behavior
+
+The selector renders with only its placeholder. `requestedWorkSiteId` is
+therefore always empty in practice, which in turn means the work-site half of
+`MANUAL_CORRECTION` and `TIME_ADJUSTMENT` cannot be used at all.
+
+## Reproduction
+
+1. Go to `/attendance/corrections/new` as any employee.
+2. Choose "I could not use the attendance device".
+3. Open **Which work site?** — the only entry is "Not applicable".
+
+## Evidence
+
+- `apps/web/app/components/attendance-corrections/attendance-correction-form.tsx`
+  — `workSites = []` default.
+- No call site passes it: `corrections/new/page.tsx` renders
+  `<AttendanceCorrectionForm />` with no props, and it is the only place the form
+  was mounted before this task.
+- The endpoint that would supply it,
+  `/integrations/attendance/employees/{employeeId}/work-sites`, is gated on
+  `ATTENDANCE_DEVICES_READ` — see
+  `apps/web/app/(authenticated)/employees/[employeeId]/page.tsx:161`.
+
+## Root Cause
+
+The form was written to accept sites before there was a way for an employee to
+read them. The one existing endpoint is an administrative one: it is guarded by
+`ATTENDANCE_DEVICES_READ`, a device-management permission that an ordinary
+employee does not hold and should not be given merely to fill in a dropdown.
+
+So this is not an omission that can be closed by passing a prop. It needs a route
+by which an employee may read the sites they are themselves assigned to.
+
+## Impact
+
+No data loss and no incorrect data — the field is simply unusable, and has been
+since it was added. Its absence is part of why BUG-2504's work-site gap went
+unnoticed: a field nobody can populate produces no approvals to notice.
+
+It also leaves BUG-2507's diff showing a raw work-site id rather than a name in
+the one case where a site could differ, because the request stores an id and the
+web app has no way to resolve it.
+
+## Affected Areas
+
+- `apps/web/app/components/attendance-corrections/attendance-correction-form.tsx`
+- `apps/web/app/(authenticated)/attendance/corrections/new/page.tsx`
+- `apps/web/app/components/attendance-corrections/attendance-correction-panel.tsx`
+- `GET /integrations/attendance/employees/{employeeId}/work-sites`
+
+## Proposed Resolution
+
+**Needs an ExecPlan**, because the honest fix is a permission decision rather
+than a prop. Either expose the caller's own assigned work sites on a
+self-service route that an employee may read — the pattern the rest of the
+self-service surface already uses — or state that employees do not name sites
+and remove the field. Do not widen `ATTENDANCE_DEVICES_READ`; it grants device
+management, and nothing about filling in this dropdown warrants that.
+
+Whichever is chosen, deliver the site-name lookup for the manager's diff at the
+same time, since the two are the same missing capability seen from either end.
+
+## Acceptance Criteria
+
+- An employee filing a correction can choose from the sites they are assigned to,
+  without holding a device-management permission.
+- The manager's "What changed" row for a work site shows a name, not a UUID.
+- If instead the field is removed, it is removed from the form, the field map and
+  the diff together, and the DTO field is documented as API-only.
+
+## Regression Coverage
+
+None yet. Owed with the fix.
+
+## Dependencies
+
+None blocking; interacts with BUG-2504 and BUG-2507.
+
+## Related Items
+
+- [[BUG-2504-approving-a-correction-never-applies-the-requested-work-mode]]
+- [[BUG-2507-the-manager-s-correction-screen-hides-four-of-the-eight-kind]]
+- [[EXECPLAN-0029-attendance-correction-from-the-record-page]]
+- [[attendance]]
+
+## Resolution
+
+Not fixed. Deliberately left out of SESSION-0084, whose scope was the record-page
+entry point: closing this properly means either a new self-service endpoint or a
+product decision to drop the field, and neither belongs inside a frontend task.
+
+## QA Retest
+
+Pending the fix.
+
+## History
+
+- 2026-08-30 - created from qa run at `ade1fea7`.
+
+<!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
+
+## Related
+
+- Modules — [[tenant-application]]
+
+<!-- GRAPH:END -->

@@ -130,7 +130,7 @@ unproven in a real browser.
 
 ## Related
 
-- Scenarios — [[QA-AUTH-001]], [[QA-AUTH-002]], [[QA-AUTH-003]], [[QA-AUTH-004]], [[QA-AUTH-005]], [[QA-AUTH-006]], [[QA-AUTH-007]], [[QA-AUTH-008]], [[QA-AUTH-009]]
+- Scenarios — [[QA-AUTH-001]], [[QA-AUTH-002]], [[QA-AUTH-003]], [[QA-AUTH-004]], [[QA-AUTH-005]], [[QA-AUTH-006]], [[QA-AUTH-007]], [[QA-AUTH-008]], [[QA-AUTH-009]], [[QA-AUTH-010]]
 - Bugs — [[BUG-0008]], [[BUG-0009]], [[BUG-0010]], [[BUG-0627]]
 - Regressions — REG-008, REG-032, REG-033, REG-221 (see the regression register)
 

@@ -9,8 +9,14 @@ import {
   CORRECTION_TYPE_OPTIONS,
   MAX_OVERTIME_MINUTES,
   REQUESTABLE_WORK_MODES,
+  hasRequestedChange,
+  originalsOf,
+  seedDraftFromEntry,
   showsField,
+  toLocalDateTimeInput,
   validateDraft,
+  workModeLabel,
+  type AttendanceEntrySeed,
   type CorrectionDraft,
   type CorrectionField,
   type CorrectionType,
@@ -31,26 +37,54 @@ import {
  */
 export function AttendanceCorrectionForm({
   workSites = [],
+  entry,
+  onCancel,
+  onSubmitted,
 }: {
   /** Sites the employee may name. Empty renders a free-text-free selector. */
   workSites?: ReadonlyArray<{ id: string; name: string }>;
+  /**
+   * The record being corrected.
+   *
+   * When present the form opens showing what that record already says, the
+   * record id stops being something the employee types, and the submit control
+   * moves to the top — this is the panel the record page opens in place, and
+   * the person using it is editing, not filling in a form about a day they have
+   * to remember. Absent, the form behaves exactly as it always has, which is
+   * the path a wholly missing day still needs.
+   */
+  entry?: AttendanceEntrySeed;
+  onCancel?: () => void;
+  onSubmitted?: (requestId: string | null) => void;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const seed = entry ? seedDraftFromEntry(entry) : null;
+  const originals = entry ? originalsOf(entry) : null;
 
   const [attendanceEntryId, setAttendanceEntryId] = useState(
-    searchParams.get("attendanceEntryId") ?? "",
+    entry?.id ?? searchParams.get("attendanceEntryId") ?? "",
   );
   const [correctionType, setCorrectionType] = useState<CorrectionType>(
-    (searchParams.get("correctionType") as CorrectionType) ?? "MISSED_CHECK_OUT",
+    seed?.correctionType ??
+      (searchParams.get("correctionType") as CorrectionType) ??
+      "MISSED_CHECK_OUT",
   );
   const [attendanceDate, setAttendanceDate] = useState(
-    searchParams.get("attendanceDate") ?? "",
+    seed?.attendanceDate ?? searchParams.get("attendanceDate") ?? "",
   );
-  const [requestedCheckInAtUtc, setRequestedCheckInAtUtc] = useState("");
-  const [requestedCheckOutAtUtc, setRequestedCheckOutAtUtc] = useState("");
-  const [requestedWorkMode, setRequestedWorkMode] = useState("");
-  const [requestedWorkSiteId, setRequestedWorkSiteId] = useState("");
+  const [requestedCheckInAtUtc, setRequestedCheckInAtUtc] = useState(
+    seed?.requestedCheckInAtUtc ?? "",
+  );
+  const [requestedCheckOutAtUtc, setRequestedCheckOutAtUtc] = useState(
+    seed?.requestedCheckOutAtUtc ?? "",
+  );
+  const [requestedWorkMode, setRequestedWorkMode] = useState(
+    seed?.requestedWorkMode ?? "",
+  );
+  const [requestedWorkSiteId, setRequestedWorkSiteId] = useState(
+    seed?.requestedWorkSiteId ?? "",
+  );
   const [requestedOvertimeMinutes, setRequestedOvertimeMinutes] = useState("");
   const [fallbackReason, setFallbackReason] = useState("");
   const [reason, setReason] = useState("");
@@ -77,6 +111,13 @@ export function AttendanceCorrectionForm({
   // of the two options.
   const issues = validateDraft(draft);
 
+  // Seeding introduces a failure the blank form could not have: every field
+  // arrives already filled in, so "submit" is reachable while the draft still
+  // proposes exactly what the record says. That would reach a manager as a
+  // decision with no subject.
+  const proposesNothing = Boolean(entry) && !hasRequestedChange(draft, entry!);
+  const canSubmit = issues.length === 0 && !proposesNothing;
+
   const shows = (field: CorrectionField) => showsField(correctionType, field);
   const issueFor = (field: CorrectionField) =>
     touched ? issues.find((issue) => issue.field === field)?.message : undefined;
@@ -87,7 +128,7 @@ export function AttendanceCorrectionForm({
 
   async function submit() {
     setTouched(true);
-    if (issues.length > 0) return;
+    if (!canSubmit) return;
 
     setIsSubmitting(true);
     setMessage(null);
@@ -135,7 +176,11 @@ export function AttendanceCorrectionForm({
         throw new Error(data?.message ?? "Unable to submit correction request.");
       }
 
-      const id = data?.item?.id;
+      const id = data?.item?.id ?? null;
+      if (onSubmitted) {
+        onSubmitted(id);
+        return;
+      }
       router.push(id ? `/attendance/corrections/${id}` : "/attendance/corrections");
     } catch (error) {
       setMessage(
@@ -151,6 +196,46 @@ export function AttendanceCorrectionForm({
   return (
     <section className="max-w-3xl rounded-2xl border border-border bg-white p-5 shadow-sm">
       <div className="grid gap-4">
+        {entry ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+            <div>
+              <p className="text-sm font-semibold text-foreground">
+                Editing this attendance record
+              </p>
+              <p className="text-xs text-muted">
+                The record is unchanged until your manager approves the request.
+              </p>
+            </div>
+            {/*
+              The submit control sits at the top of the panel rather than below
+              the fields, because the panel opens over a record the person was
+              already reading and the action belongs where the record's own
+              header is.
+            */}
+            <div className="flex items-center gap-2">
+              {onCancel ? (
+                <button
+                  className="rounded-xl border border-border px-3 py-2 text-sm font-medium text-foreground transition hover:border-accent/30 hover:text-accent"
+                  disabled={isSubmitting}
+                  onClick={onCancel}
+                  type="button"
+                >
+                  Cancel
+                </button>
+              ) : null}
+              <button
+                className="inline-flex items-center gap-2 rounded-xl border border-accent/30 bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:opacity-60"
+                disabled={isSubmitting}
+                onClick={() => void submit()}
+                type="button"
+              >
+                <Send className="h-4 w-4" />
+                {isSubmitting ? "Submitting..." : "Submit request"}
+              </button>
+            </div>
+          </div>
+        ) : null}
+
         <Field label="What would you like corrected?">
           <select
             className="input"
@@ -196,6 +281,10 @@ export function AttendanceCorrectionForm({
                   type="datetime-local"
                   value={requestedCheckInAtUtc}
                 />
+                <WasHint
+                  current={requestedCheckInAtUtc}
+                  original={originals?.checkInAtUtc}
+                />
               </Field>
             ) : null}
 
@@ -211,6 +300,10 @@ export function AttendanceCorrectionForm({
                   }
                   type="datetime-local"
                   value={requestedCheckOutAtUtc}
+                />
+                <WasHint
+                  current={requestedCheckOutAtUtc}
+                  original={originals?.checkOutAtUtc}
                 />
               </Field>
             ) : null}
@@ -300,28 +393,44 @@ export function AttendanceCorrectionForm({
           />
         </Field>
 
-        <Field label="Attendance record ID (optional)">
-          <input
-            className="input"
-            onChange={(event) => setAttendanceEntryId(event.target.value)}
-            placeholder="Leave blank if the day has no record yet"
-            value={attendanceEntryId}
-          />
-        </Field>
+        {/*
+          Only asked when the form was opened cold. Opened from a record the id
+          is already known, and asking someone to copy a UUID off the page they
+          just left was the whole reason this panel exists.
+        */}
+        {entry ? null : (
+          <Field label="Attendance record ID (optional)">
+            <input
+              className="input"
+              onChange={(event) => setAttendanceEntryId(event.target.value)}
+              placeholder="Leave blank if the day has no record yet"
+              value={attendanceEntryId}
+            />
+          </Field>
+        )}
 
-        <button
-          className="inline-flex w-fit items-center gap-2 rounded-xl border border-accent/30 bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:opacity-60"
-          disabled={isSubmitting}
-          onClick={() => void submit()}
-          type="button"
-        >
-          <Send className="h-4 w-4" />
-          {isSubmitting ? "Submitting..." : "Submit request"}
-        </button>
+        {entry ? null : (
+          <button
+            className="inline-flex w-fit items-center gap-2 rounded-xl border border-accent/30 bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:opacity-60"
+            disabled={isSubmitting}
+            onClick={() => void submit()}
+            type="button"
+          >
+            <Send className="h-4 w-4" />
+            {isSubmitting ? "Submitting..." : "Submit request"}
+          </button>
+        )}
 
         {touched && issues.length > 0 ? (
           <p className="text-sm text-amber-700" role="alert">
             {issues[0].message}
+          </p>
+        ) : null}
+
+        {touched && issues.length === 0 && proposesNothing ? (
+          <p className="text-sm text-amber-700" role="alert">
+            Change at least one value first. As it stands this request asks for
+            exactly what the record already says.
           </p>
         ) : null}
 
@@ -353,16 +462,26 @@ function Field({
   );
 }
 
-function workModeLabel(mode: string): string {
-  switch (mode) {
-    case "REMOTE":
-      return "Remote";
-    case "FIELD":
-      return "Field";
-    case "OFFICE":
-    default:
-      return "Office";
-  }
+/**
+ * What the record said before this field was touched.
+ *
+ * Rendered only once the value actually differs, so the panel stays quiet while
+ * it is still showing the record unchanged and speaks up the moment something
+ * moves.
+ */
+function WasHint({
+  current,
+  original,
+}: {
+  current: string;
+  original?: string | null;
+}) {
+  if (!original) return null;
+  const seeded = toLocalDateTimeInput(original);
+  if (!seeded || seeded === current) return null;
+  return (
+    <span className="text-xs text-muted">Was {seeded.replace("T", " ")}</span>
+  );
 }
 
 function toIso(value: string) {
