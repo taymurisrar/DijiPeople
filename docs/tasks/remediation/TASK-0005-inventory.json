@@ -13206,22 +13206,26 @@
       "title": "Tenant record shows Primary Tenant Owner Unassigned while its readiness check reports one active Tenant Owner",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-2384-tenant-record-shows-primary-tenant-owner-unassigned-while-it.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "d3c43e08",
         "created_at": "2026-08-30",
         "updated_at": "2026-08-30",
-        "resolved_at": ""
+        "resolved_at": "2026-08-30"
       },
       "affected_modules": [
         "services/api/src/modules/tenant-control-plane",
         "apps/admin"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-366"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-062"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -13246,22 +13250,28 @@
       "title": "allocate-id plan scans only docs qa test-plans so ExecPlan ids collide",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-2413-allocate-id-plan-scans-only-docs-qa-test-plans-so-execplan-i.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "b1c0c481",
         "created_at": "2026-08-30",
         "updated_at": "2026-08-30",
-        "resolved_at": ""
+        "resolved_at": "2026-08-30"
       },
       "affected_modules": [
         "scripts"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "regressions": [
+        "REG-365"
+      ],
+      "qa_scenarios": [
+        "QA-FRAMEWORK-001"
+      ],
+      "test_plan": [
+        "PLAN-029"
+      ],
       "current_evidence": {
         "paths": [
           "scripts"

@@ -184,4 +184,38 @@ describe('timeline presentation', () => {
     );
     expect(categorize('TIMELINE_ACTIVITY_ADDED', 'Tenant')).toBe('NOTES');
   });
+
+  /*
+   * BUG-2384 / REG-366 — the readiness row must not be called "Tenant Owner".
+   *
+   * The record header a few hundred pixels above reads Tenant.ownerUserId, the
+   * DESIGNATED primary owner, which is null on plenty of healthy tenants. This
+   * check counts accounts that CAN administer the workspace. Labelling both
+   * "Tenant Owner" put "Unassigned" and "1 active Tenant Owner" on one screen.
+   */
+  it('labels the owner readiness check by capability, not designation', () => {
+    const service = build().service as unknown as {
+      buildReadiness: (input: Record<string, unknown>) => {
+        checks: { key: string; label: string; message: string }[];
+      };
+    };
+
+    const readiness = service.buildReadiness({
+      tenant: { customerAccountId: 'c1', ownerUserId: null },
+      activeOwnerCount: 1,
+      subscriptionStatus: null,
+      primaryDomain: null,
+      wildcardDnsConfigured: true,
+      enabledModuleCount: 1,
+      updatesAvailable: 0,
+      provisioningStatus: null,
+      openSupportCaseCount: 0,
+      executedAgreementCount: 1,
+    });
+
+    const owner = readiness.checks.find((check) => check.key === 'owner');
+    expect(owner?.label).toBe('Owner access');
+    expect(owner?.label).not.toBe('Tenant Owner');
+    expect(owner?.message).toBe('1 account can administer this workspace.');
+  });
 });

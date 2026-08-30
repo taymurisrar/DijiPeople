@@ -3982,3 +3982,31 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Withdrawn rather than implemented, by owner decision on 2026-08-30. An IP-derived position is far weaker evidence than GPS and attendance location capture is a mandatory integrity control, so wiring a provider would quietly weaken that control — a product decision needing an ExecPlan, not a checkbox nobody wired. **Both halves were necessary.** Disabling the UI control alone leaves a tenant whose stored value is already `true` serving `allowIpFallback: true` in its runtime policy for ever, because the UI is cosmetic and the runtime reads the stored value; the demo tenant was exactly such a tenant. The provider stub was left in place deliberately — it is unreachable through the settings now, and deleting it would erase the only record of what the capability was meant to be. |
 | **Fixed** | 2026-08-30 |
 | **Active** | yes |
+
+### REG-365 — The id allocator issued PLAN- numbers that ExecPlans already held
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` (one rule, two directories, one scanner) |
+| **Module** | `scripts` |
+| **Bug record** | BUG-2413 |
+| **Regression test** | `scripts/id-allocator.test.mjs` |
+| **Scenario** | `ID_KINDS.plan` scans both `docs/qa/test-plans` and `docs/plans`, and an ExecPlan's `ID: PLAN-nnn` in frontmatter raises the ceiling even though its filename says `EXECPLAN-nnnn`. A fourth case pins that a kind with a single string `dir` still works. |
+| **Proven to fail without the fix** | Mutation-tested. Reverting `dir` to `['docs/qa/test-plans']` and dropping `idsInContentOf` fails two of the four cases; restored immediately after confirming. |
+| **Note** | The allocator exists to stop id collisions and was issuing one: asking for a plan id returned `PLAN-027`, which `EXECPLAN-0027-attendance-single-source-of-truth.md` already held. Two record families share the `PLAN-` space and only one was scanned. `PLAN-027` and `PLAN-028` remain as reservation gaps from the investigation — cheaper than a collision. |
+| **Fixed** | 2026-08-30 |
+| **Active** | yes |
+
+### REG-366 — Tenant readiness and the record header both labelled two different facts "Tenant Owner"
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` (two measures, one name) |
+| **Module** | `services/api/src/modules/tenant-control-plane`, `apps/admin` |
+| **Bug record** | BUG-2384 |
+| **Regression test** | `services/api/src/modules/tenant-control-plane/tenant-control-plane.service.spec.ts` — "labels the owner readiness check by capability, not designation" |
+| **Scenario** | The readiness check reads `Owner access` — "N accounts can administer this workspace" — counting active non-service-account users holding `GLOBAL_ADMIN`. The record header keeps `Primary Tenant Owner`, reading `Tenant.ownerUserId`. |
+| **Proven to fail without the fix** | Mutation-tested. Reverting the label to `Tenant Owner` fails the case; restored immediately after confirming. Originally observed in production on the `dijipeople-demo` tenant, where the header read `Unassigned` beside `1 active Tenant Owner` on the same screen. |
+| **Note** | Neither figure was wrong; they measure designation and capability respectively, and `ownerUserId` is null on plenty of healthy tenants. Only the shared label was wrong. |
+| **Fixed** | 2026-08-30 |
+| **Active** | yes |

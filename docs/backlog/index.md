@@ -13,9 +13,9 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 81 |
+| Open (active work) | 82 |
 | Blocked | 2 |
-| Deferred | 24 |
+| Deferred | 23 |
 | Awaiting a product decision | 5 |
 | Completed / closed | 285 |
 | **Open CRITICAL** | **0** |
@@ -28,7 +28,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | HIGH | 17 |
 | MEDIUM | 53 |
-| LOW | 11 |
+| LOW | 12 |
 
 ## Open by type
 
@@ -45,17 +45,17 @@ see [`README.md`](README.md) for why.
 | SECURITY | 2 |
 | TECH_DEBT | 5 |
 | TEST_GAP | 6 |
-| UX | 20 |
+| UX | 21 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 2 |
+| OPEN | 1 |
 | BLOCKED | 2 |
-| DEFERRED | 24 |
+| DEFERRED | 23 |
 | PRODUCT_DECISION | 5 |
-| FIXED | 53 |
+| FIXED | 55 |
 | VERIFIED | 215 |
 | DUPLICATE | 4 |
 | ACCEPTED_RISK | 3 |
@@ -334,7 +334,7 @@ see [`README.md`](README.md) for why.
 | [BUG-2333](../../docs/bugs/BUG-2333-storeuseragent-is-ignored-on-the-attendance-module-check-in-.md) | storeUserAgent is ignored on the attendance module check-in path | BUG | MEDIUM | P2 | FIXED | apps/web | FIX_NOW |
 | [BUG-2334](../../docs/bugs/BUG-2334-a-location-capture-failure-is-rethrown-as-a-bare-error-disca.md) | A location capture failure is rethrown as a bare Error, discarding the reason code | BUG | MEDIUM | P2 | FIXED | apps/web | FIX_NOW |
 | [BUG-2335](../../docs/bugs/BUG-2335-allow-approximate-ip-fallback-is-a-live-setting-whose-provid.md) | Allow approximate IP fallback is a live setting whose provider is a permanent stub | BUG | MEDIUM | P2 | FIXED | apps/web, api:tenant-settings | FIX_NOW |
-| [BUG-2413](../../docs/bugs/BUG-2413-allocate-id-plan-scans-only-docs-qa-test-plans-so-execplan-i.md) | allocate-id plan scans only docs qa test-plans so ExecPlan ids collide | DATA_INTEGRITY | MEDIUM | P2 | OPEN | scripts | PLAN_REQUIRED |
+| [BUG-2413](../../docs/bugs/BUG-2413-allocate-id-plan-scans-only-docs-qa-test-plans-so-execplan-i.md) | allocate-id plan scans only docs qa test-plans so ExecPlan ids collide | DATA_INTEGRITY | MEDIUM | P2 | FIXED | scripts | DONE |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -426,7 +426,7 @@ see [`README.md`](README.md) for why.
 | [BUG-2017](../../docs/bugs/BUG-2017-the-inbox-related-record-column-renders-a-bare-uuid-with-no-.md) | The inbox Related record column renders a bare UUID with no label and no link | UX | LOW | P3 | FIXED | apps/web | DONE |
 | [BUG-2046](../../docs/bugs/BUG-2046-audit-actions-use-two-naming-conventions-and-the-result-colu.md) | Audit actions use two naming conventions and the Result column is populated only by login events | BUG | LOW | P3 | FIXED | api:audit | DONE |
 | [BUG-2149](../../docs/bugs/BUG-2149-every-dashboard-metric-card-offers-a-link-named-only-open.md) | Every dashboard metric card offers a link named only Open | UX | LOW | P3 | FIXED | views, dashboard | DONE |
-| [BUG-2384](../../docs/bugs/BUG-2384-tenant-record-shows-primary-tenant-owner-unassigned-while-it.md) | Tenant record shows Primary Tenant Owner Unassigned while its readiness check reports one active Tenant Owner | UX | LOW | P3 | DEFERRED | api:tenant-control-plane, apps/admin | DEFER |
+| [BUG-2384](../../docs/bugs/BUG-2384-tenant-record-shows-primary-tenant-owner-unassigned-while-it.md) | Tenant record shows Primary Tenant Owner Unassigned while its readiness check reports one active Tenant Owner | UX | LOW | P3 | FIXED | api:tenant-control-plane, apps/admin | DONE |
 | [ITEM-0007](../../docs/backlog/items/ITEM-0007-should-duplicate-website-leads-be-deduplicated.md) | Product decision — should duplicate website leads be deduplicated? | PRODUCT_DECISION | LOW | P3 | DONE | api:leads, apps/landing | DONE |
 | [ITEM-0008](../../docs/backlog/items/ITEM-0008-customeraccount-has-no-origin-channel.md) | Product decision — CustomerAccount carries no origin channel | PRODUCT_DECISION | LOW | P3 | DONE | services/api/prisma, api:super-admin | DONE |
 | [ITEM-0011](../../docs/backlog/items/ITEM-0011-framework-validation-should-catch-absence-claims.md) | Framework validation should catch false absence claims in context documents | TECH_DEBT | LOW | P3 | DONE | .agent/context, scripts | DONE |

@@ -2,7 +2,7 @@
 ID: BUG-2384
 aliases: [BUG-2384]
 Title: Tenant record shows Primary Tenant Owner Unassigned while its readiness check reports one active Tenant Owner
-Status: DEFERRED
+Status: FIXED
 Severity: LOW
 Priority: P3
 Type: UX
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-30
 DetectedInSha: d3c43e08
 AffectedModules: [services/api/src/modules/tenant-control-plane, apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: DEFER
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-366
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-30
 UpdatedAt: 2026-08-30
-ResolvedAt:
+ResolvedAt: 2026-08-30
 ---
 
 # BUG-2384 — Tenant record shows Primary Tenant Owner Unassigned while its readiness check reports one active Tenant Owner
@@ -146,7 +146,26 @@ different owners on one screen.
 
 ## Resolution
 
-Not fixed.
+Fixed by relabelling the readiness check — option 1 in Proposed Resolution.
+
+`tenant-control-plane.service.ts:1182` now emits `label: 'Owner access'` with the
+message *"N account(s) can administer this workspace."*, replacing
+`label: 'Tenant Owner'` and *"N active Tenant Owner(s)."*.
+
+The record header keeps **Primary Tenant Owner**, which reads
+`Tenant.ownerUserId`. The two are now distinguishable on the screen: one names a
+designation, the other counts a capability, and a tenant can legitimately have
+the second without the first.
+
+Option 2 — making the readiness check reflect the designation and warn when
+`ownerUserId` is null — was **not** taken. It changes what the panel asserts and
+needs a decision on whether an undesignated owner should block readiness. That
+question is unchanged by this fix.
+
+No behaviour changed: `countActiveOwners()` is untouched, and the three error
+messages elsewhere that say "active Tenant Owner" are about the owner *role*
+(refusing to disable the last one, refusing to activate a tenant without one) and
+were deliberately left alone.
 
 ## QA Retest
 
@@ -168,5 +187,6 @@ Not retested.
 ## Related
 
 - Modules — [[tenant-control-plane]], [[platform-admin]]
+- Regression — REG-366 (see the regression register)
 
 <!-- GRAPH:END -->

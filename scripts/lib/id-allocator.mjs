@@ -67,7 +67,13 @@ export const ID_KINDS = {
    */
   question: { prefix: 'QUESTION', dir: 'docs/questions', width: 4 },
   scenario: { prefix: 'QA', dir: 'docs/qa/scenarios', width: 3, scoped: true },
-  plan: { prefix: 'PLAN', dir: 'docs/qa/test-plans', width: 3 },
+  plan: {
+    prefix: 'PLAN',
+    /* Both families hold PLAN- numbers — BUG-2413. */
+    dir: ['docs/qa/test-plans', 'docs/plans'],
+    idsInContentOf: ['docs/plans'],
+    width: 3,
+  },
   regression: {
     prefix: 'REG',
     dir: 'docs/qa/regressions',
@@ -111,6 +117,31 @@ function namesInWorkingTree(root, dir) {
   if (!existsSync(full)) return [];
   try {
     return readdirSync(full);
+  } catch {
+    return [];
+  }
+}
+
+/** Every directory a kind's ids can appear in. `dir` stays valid as a string. */
+function scanDirs(spec) {
+  if (Array.isArray(spec.dir)) return spec.dir;
+  return [spec.dir];
+}
+
+/** The contents of every markdown file directly under `dir`. */
+function fileBodiesIn(root, dir) {
+  const full = join(root, dir);
+  if (!existsSync(full)) return [];
+  try {
+    return readdirSync(full)
+      .filter((name) => name.endsWith('.md'))
+      .map((name) => {
+        try {
+          return readFileSync(join(full, name), 'utf8');
+        } catch {
+          return '';
+        }
+      });
   } catch {
     return [];
   }
@@ -203,8 +234,32 @@ export function highestAllocated(root, kind, { scope = '' } = {}) {
     pattern.lastIndex = 0;
   };
 
-  for (const name of namesInWorkingTree(root, spec.dir)) consider(name);
-  for (const name of namesInRefs(root, [spec.dir])) consider(name);
+  /*
+   * A kind may live in more than one directory — BUG-2413.
+   *
+   * `PLAN-` numbers are held by two record families: QA test plans in
+   * `docs/qa/test-plans`, named `PLAN-nnn-*.md`, and ExecPlans in `docs/plans`,
+   * which carry `ID: PLAN-nnn` in frontmatter under an `EXECPLAN-nnnn-*.md`
+   * filename. Scanning only the first handed out `PLAN-027` while
+   * `EXECPLAN-0027-attendance-single-source-of-truth.md` already held it — the
+   * allocator issuing the very collision it exists to prevent.
+   *
+   * `namesInRefs` already accepted an array; only the working-tree scan and this
+   * loop assumed one directory.
+   */
+  for (const dir of scanDirs(spec)) {
+    for (const name of namesInWorkingTree(root, dir)) consider(name);
+  }
+  for (const name of namesInRefs(root, scanDirs(spec))) consider(name);
+
+  /*
+   * Filenames are not enough where the id lives in frontmatter. An ExecPlan is
+   * named `EXECPLAN-0027-…` and declares `ID: PLAN-027`, so a name scan sees
+   * the wrong number entirely.
+   */
+  for (const dir of spec.idsInContentOf ?? []) {
+    for (const body of fileBodiesIn(root, dir)) consider(body);
+  }
 
   if (spec.contentOf) {
     for (const body of contentRevisions(root, spec.contentOf)) consider(body);

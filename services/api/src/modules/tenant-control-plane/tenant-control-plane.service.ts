@@ -1179,19 +1179,31 @@ export class TenantControlPlaneService {
       );
     }
 
+    /*
+     * "Owner access", not "Tenant Owner" — BUG-2384.
+     *
+     * This counts accounts that CAN administer the workspace: active,
+     * non-service-account users holding GLOBAL_ADMIN. The record header a few
+     * hundred pixels above reads `Tenant.ownerUserId` — the DESIGNATED primary
+     * owner — which is null on plenty of healthy tenants.
+     *
+     * Labelling both "Tenant Owner" put "Unassigned" and "1 active Tenant Owner"
+     * on one screen, which reads as the page contradicting itself. They are two
+     * different facts, and the labels now say which is which.
+     */
     checks.push(
       input.activeOwnerCount > 0
         ? {
             key: 'owner',
-            label: 'Tenant Owner',
+            label: 'Owner access',
             severity: 'OK',
-            message: `${input.activeOwnerCount} active Tenant Owner${input.activeOwnerCount === 1 ? '' : 's'}.`,
+            message: `${input.activeOwnerCount} account${input.activeOwnerCount === 1 ? '' : 's'} can administer this workspace.`,
           }
         : {
             key: 'owner',
-            label: 'Tenant Owner',
+            label: 'Owner access',
             severity: 'BLOCKER',
-            message: 'No active Tenant Owner exists.',
+            message: 'No account can administer this workspace.',
           },
     );
 

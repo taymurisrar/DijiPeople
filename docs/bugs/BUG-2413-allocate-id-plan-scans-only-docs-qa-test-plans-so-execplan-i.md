@@ -2,7 +2,7 @@
 ID: BUG-2413
 aliases: [BUG-2413]
 Title: allocate-id plan scans only docs qa test-plans so ExecPlan ids collide
-Status: OPEN
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: DATA_INTEGRITY
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-30
 DetectedInSha: b1c0c481
 AffectedModules: [scripts]
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-365
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-30
 UpdatedAt: 2026-08-30
-ResolvedAt:
+ResolvedAt: 2026-08-30
 ---
 
 # BUG-2413 — allocate-id plan scans only docs qa test-plans so ExecPlan ids collide
@@ -175,7 +175,29 @@ two places that drifted.
 
 ## Resolution
 
-Not fixed.
+Fixed by giving the kind more than one directory to scan.
+
+`ID_KINDS.plan` now declares `dir: ['docs/qa/test-plans', 'docs/plans']` and
+`idsInContentOf: ['docs/plans']`.
+
+**Two changes were needed, not one.** `dir` became a list — `namesInRefs` already
+accepted an array, so only the working-tree scan and the ceiling loop assumed a
+single string. And `idsInContentOf` reads the file bodies, because an ExecPlan
+declares `ID: PLAN-027` in frontmatter under a filename that says
+`EXECPLAN-0027`; a filename scan finds the wrong number. Scanning names alone
+would have left the collision in place while appearing to fix it.
+
+`scanDirs()` keeps a plain string `dir` working, so no other kind changed.
+
+Verified: the PLAN ceiling now reads **28** where it previously read 26, so the
+next allocation is `PLAN-029` rather than the `PLAN-027` an ExecPlan already
+holds.
+
+Option 1 in Proposed Resolution — a separate `EXECPLAN` prefix — was **not**
+taken. It needs a decision on whether existing `ID: PLAN-nnn` values are
+rewritten, which touches every bug record citing them. This fix removes the
+collision without that decision; the prefix question stays open and is worth an
+ADR.
 
 ## QA Retest
 
@@ -195,8 +217,6 @@ Not retested.
 
 ## Related
 
-- No related record, module or decision is declared in this record's
-  frontmatter. Declare one rather than adding a link here by hand — this
-  block is regenerated and a hand-written link inside it is lost.
+- Regression — REG-365 (see the regression register)
 
 <!-- GRAPH:END -->

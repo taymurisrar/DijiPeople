@@ -9,10 +9,10 @@
 |---|---|
 | Open CRITICAL | **0** |
 | Open HIGH | **17** |
-| Open total | 81 |
+| Open total | 82 |
 | Blocked | 2 |
 | Awaiting a product decision | 5 |
-| Deferred | 24 |
+| Deferred | 23 |
 | Completed | 285 |
 | Awaiting Architect triage | 0 |
 
@@ -329,6 +329,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2333-storeuseragent-is-ignored-on-the-attendance-module-check-in-|BUG-2333]] | storeUserAgent is ignored on the attendance module check-in path | BUG | MEDIUM | FIXED | apps/web | FIX_NOW |
 | [[BUG-2334-a-location-capture-failure-is-rethrown-as-a-bare-error-disca|BUG-2334]] | A location capture failure is rethrown as a bare Error, discarding the reason code | BUG | MEDIUM | FIXED | apps/web | FIX_NOW |
 | [[BUG-2335-allow-approximate-ip-fallback-is-a-live-setting-whose-provid|BUG-2335]] | Allow approximate IP fallback is a live setting whose provider is a permanent stub | BUG | MEDIUM | FIXED | apps/web, api:tenant-settings | FIX_NOW |
+| [[BUG-2413-allocate-id-plan-scans-only-docs-qa-test-plans-so-execplan-i|BUG-2413]] | allocate-id plan scans only docs qa test-plans so ExecPlan ids collide | DATA_INTEGRITY | MEDIUM | FIXED | scripts | DONE |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -351,6 +352,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2017-the-inbox-related-record-column-renders-a-bare-uuid-with-no-|BUG-2017]] | The inbox Related record column renders a bare UUID with no label and no link | UX | LOW | FIXED | apps/web | DONE |
 | [[BUG-2046-audit-actions-use-two-naming-conventions-and-the-result-colu|BUG-2046]] | Audit actions use two naming conventions and the Result column is populated only by login events | BUG | LOW | FIXED | api:audit | DONE |
 | [[BUG-2149-every-dashboard-metric-card-offers-a-link-named-only-open|BUG-2149]] | Every dashboard metric card offers a link named only Open | UX | LOW | FIXED | views, dashboard | DONE |
+| [[BUG-2384-tenant-record-shows-primary-tenant-owner-unassigned-while-it|BUG-2384]] | Tenant record shows Primary Tenant Owner Unassigned while its readiness check reports one active Tenant Owner | UX | LOW | FIXED | api:tenant-control-plane, apps/admin | DONE |
 
 ## Recent QA Runs
 
@@ -426,7 +428,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2333-storeuseragent-is-ignored-on-the-attendance-module-check-in-|BUG-2333]] | storeUserAgent is ignored on the attendance module check-in path | BUG | MEDIUM | FIXED | apps/web | FIX_NOW |
 | [[BUG-2334-a-location-capture-failure-is-rethrown-as-a-bare-error-disca|BUG-2334]] | A location capture failure is rethrown as a bare Error, discarding the reason code | BUG | MEDIUM | FIXED | apps/web | FIX_NOW |
 | [[BUG-2335-allow-approximate-ip-fallback-is-a-live-setting-whose-provid|BUG-2335]] | Allow approximate IP fallback is a live setting whose provider is a permanent stub | BUG | MEDIUM | FIXED | apps/web, api:tenant-settings | FIX_NOW |
-| [[BUG-2413-allocate-id-plan-scans-only-docs-qa-test-plans-so-execplan-i|BUG-2413]] | allocate-id plan scans only docs qa test-plans so ExecPlan ids collide | DATA_INTEGRITY | MEDIUM | OPEN | scripts | PLAN_REQUIRED |
+| [[BUG-2413-allocate-id-plan-scans-only-docs-qa-test-plans-so-execplan-i|BUG-2413]] | allocate-id plan scans only docs qa test-plans so ExecPlan ids collide | DATA_INTEGRITY | MEDIUM | FIXED | scripts | DONE |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -453,6 +455,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2017-the-inbox-related-record-column-renders-a-bare-uuid-with-no-|BUG-2017]] | The inbox Related record column renders a bare UUID with no label and no link | UX | LOW | FIXED | apps/web | DONE |
 | [[BUG-2046-audit-actions-use-two-naming-conventions-and-the-result-colu|BUG-2046]] | Audit actions use two naming conventions and the Result column is populated only by login events | BUG | LOW | FIXED | api:audit | DONE |
 | [[BUG-2149-every-dashboard-metric-card-offers-a-link-named-only-open|BUG-2149]] | Every dashboard metric card offers a link named only Open | UX | LOW | FIXED | views, dashboard | DONE |
+| [[BUG-2384-tenant-record-shows-primary-tenant-owner-unassigned-while-it|BUG-2384]] | Tenant record shows Primary Tenant Owner Unassigned while its readiness check reports one active Tenant Owner | UX | LOW | FIXED | api:tenant-control-plane, apps/admin | DONE |
 | [[ITEM-0049-register-services-api-environment-reads-or-scope-the-rule|ITEM-0049]] | Register services/api environment reads or scope the rule to build inputs | INFRA | LOW | READY | services/api, turbo.json, docs/deployment | PLAN_REQUIRED |
 | [[ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by|ITEM-0080]] | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
 | [[ITEM-0093-link-validation-skips-untracked-files-so-a-new-record-s-brok|ITEM-0093]] | Link validation skips untracked files, so a new record's broken links only surface in CI | TECH_DEBT | LOW | READY | scripts | FIX_NOW |
