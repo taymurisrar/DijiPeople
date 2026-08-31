@@ -2,7 +2,7 @@
 ID: BUG-2662
 aliases: [BUG-2662]
 Title: An expired refresh token puts the tenant app into a redirect loop instead of the login page
-Status: DEFERRED
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -11,9 +11,9 @@ DetectedDate: 2026-08-31
 DetectedInSha: d833e694
 AffectedModules: [apps/web]
 OwnerAgent: architect
-ArchitectDisposition: DEFER
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-388
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
@@ -64,8 +64,25 @@ So the unauthenticated path is right. The loop needs *stale* cookies, not absent
 
 ## Root Cause
 
-Not established. The shape suggests the middleware treats a present-but-unusable session as authenticated and redirects to the app, while the page's own auth check redirects back to login — each step seeing a different answer to "is this session valid". Deliberately left empty rather than guessed at.
+Established. `apps/web/proxy.ts` computed
 
+```ts
+const hasSessionCookie = Boolean(accessToken) || Boolean(refreshToken);
+```
+
+and then, on the login route, sent any visitor holding cookies to `/`. That is a **presence** check standing in for a validity check.
+
+The middleware cannot see that the API has revoked the session, and it does
+not always try: `shouldRefreshAccessToken` only refreshes when the access token
+is near expiry, and an access token stays structurally valid for hours after
+the server-side session row is gone. In the case observed, the access token had
+eight hours left while the refresh token had already expired and the session was
+dead.
+
+So the request is waved through, the page's own fetch gets a 401 and redirects
+to `/login?next=...`, the middleware sees the same stale cookies and sends it
+back to `/`, and that 401s too. Every hop carries a `next` parameter, which is
+what makes the cycle detectable without guessing.
 ## Impact
 
 Any tenant user returning to an open tab after roughly an hour of inactivity, which is an ordinary thing to do. They see a browser error page rather than a login form, and the product has no opportunity to explain or recover. The workaround — clear cookies — is not one an ordinary user will find.
@@ -88,8 +105,9 @@ Establish which two redirects form the loop before changing anything. Then make 
 
 ## Regression Coverage
 
-None yet — the reproduction has to be made deterministic first. That is the first task of whoever picks this up.
-
+REG-388. The rule was extracted into `shouldSendSignedInVisitorToWorkspace` so
+it could be asserted without booting the middleware, and the spec walks the
+exact hop sequence that produced the loop.
 ## Dependencies
 
 None.
@@ -100,14 +118,22 @@ Found during post-deploy validation of [[TASK-0028]]. Unrelated to that task's o
 
 ## Resolution
 
-Not fixed. Deferred with the reasoning in the History section below.
+Fixed on `agent/session-redirect-loop`. The login bounce now treats a `next` or
+`reason` parameter as positive evidence that an earlier hop already decided the
+session does not work, and renders the form instead of redirecting.
 
+The cookies are deliberately **not** cleared there. That is a plain GET, and
+signing someone out because one request returned 401 would be a worse failure
+than the one being fixed; clearing them is `redirectToLogout`'s job, on the path
+that knows the refresh itself failed.
 ## QA Retest
 
-Not yet retested.
-
+To be confirmed in production after deploy: let a session go stale, then open a
+protected page and land on the login form rather than a browser error page.
 ## History
 
+- 2026-08-31 — root cause established and fixed in the same session the owner asked for it; the deferral recorded below is superseded.
+- 2026-08-31 — root cause established and fixed in the same session the owner asked for it; the deferral below is superseded.
 - 2026-08-31 — found incidentally during post-deploy validation of TASK-0028, on the production commit that preceded that release.
 - 2026-08-31 — DEFER. It is pre-existing, it is not in the reporting surface this task owns, and its root cause is not established. Folding an unreproduced auth-middleware change into a reporting release would put an unrelated risk into a deployment whose validation was scoped to reporting. It is recorded here so it is not lost, and it wants its own task.
 
@@ -116,5 +142,6 @@ Not yet retested.
 ## Related
 
 - Modules — [[tenant-application]]
+- Regression — REG-388 (see the regression register)
 
 <!-- GRAPH:END -->

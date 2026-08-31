@@ -314,8 +314,16 @@ export class ReportSchedulerWorker implements OnModuleInit, OnModuleDestroy {
       });
 
       const owner = await this.loadOwner(schedule);
-      const file = await this.buildFile(schedule, owner);
-      const delivered = await this.deliver(schedule, run.id, file);
+      // Settings once per run, not once per consumer: the file and the email
+      // must describe the same tenant, and it is one query either way.
+      const settings = await this.organizationSettings(schedule.tenantId);
+      const file = await this.buildFile(schedule, owner, settings);
+      const delivered = await this.deliver(
+        schedule,
+        run.id,
+        file,
+        await this.tenantDisplayName(schedule.tenantId, settings.tenantName),
+      );
 
       await this.prisma.reportRun.update({
         where: { id: run.id },
@@ -429,9 +437,10 @@ export class ReportSchedulerWorker implements OnModuleInit, OnModuleDestroy {
   private async buildFile(
     schedule: ReportSchedule,
     owner: AuthenticatedUser,
+    settings: Awaited<
+      ReturnType<ReportSchedulerWorker['organizationSettings']>
+    >,
   ): Promise<ReportExportFile> {
-    const settings = await this.organizationSettings(schedule.tenantId);
-
     const result = await this.execution.runAll(owner, schedule.targetKey, {
       preset: schedule.periodPreset as PeriodPreset,
       filters: readFilters(schedule.filtersJson),
@@ -463,6 +472,7 @@ export class ReportSchedulerWorker implements OnModuleInit, OnModuleDestroy {
     schedule: ReportSchedule,
     runId: string,
     file: ReportExportFile,
+    tenantName: string,
   ): Promise<{ attempted: number; sent: number }> {
     const recipientIds = toStringArray(schedule.recipientUserIds);
 
@@ -498,6 +508,15 @@ export class ReportSchedulerWorker implements OnModuleInit, OnModuleDestroy {
           email: {
             recipient: recipient.email,
             variables: {
+              /*
+               * Every key the template declares in `availableVariables` has to
+               * be here. The renderer treats a declared-but-absent variable as
+               * a hard failure, so omitting one does not degrade the email — it
+               * stops it. `tenantName` was missing, and because it is in the
+               * subject line of every scheduled report, not one was ever
+               * delivered. BUG-2683 / REG-386.
+               */
+              tenantName,
               recipientName:
                 [recipient.firstName, recipient.lastName]
                   .filter(Boolean)
@@ -548,6 +567,36 @@ export class ReportSchedulerWorker implements OnModuleInit, OnModuleDestroy {
    * `ReportExportContext` exists to prevent — so the fallback is an explicit
    * UTC, logged.
    */
+  /**
+   * A tenant name that is always a string.
+   *
+   * `organizationSettings` returns `companyDisplayName || undefined`, and an
+   * undefined variable is what the renderer calls missing — so a tenant that
+   * simply never filled in a display name would lose every scheduled report to
+   * a blank cosmetic field. Falls back to the tenant's own name, then to the
+   * product name, matching `user-invitations.service.ts`.
+   *
+   * A report that was produced must not fail to arrive over the text in its
+   * subject line.
+   */
+  private async tenantDisplayName(
+    tenantId: string,
+    configured: string | undefined,
+  ): Promise<string> {
+    const trimmed = configured?.trim();
+    if (trimmed) return trimmed;
+
+    try {
+      const tenant = await this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { name: true },
+      });
+      return tenant?.name?.trim() || 'DijiPeople';
+    } catch {
+      return 'DijiPeople';
+    }
+  }
+
   private async organizationSettings(tenantId: string) {
     try {
       const settings =

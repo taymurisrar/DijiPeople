@@ -118,7 +118,7 @@ line used to carry is closed — see the review note at the top.
 
 ## Related
 
-- Scenarios — [[QA-AUTHZ-001]], [[QA-AUTHZ-002]], [[QA-AUTHZ-003]], [[QA-AUTHZ-004]], [[QA-AUTHZ-005]], [[QA-AUTHZ-006]], [[QA-AUTHZ-007]], [[QA-AUTHZ-008]], [[QA-AUTHZ-009]], [[QA-AUTHZ-010]], [[QA-AUTHZ-011]], [[QA-AUTHZ-012]], [[QA-AUTHZ-013]], [[QA-BILLING-001]], [[QA-BILLING-007]], [[QA-PARTNER-006]], [[QA-SECURITY-001]], [[QA-SETTINGS-001]], [[QA-TENANT-014]]
+- Scenarios — [[QA-AUTHZ-001]], [[QA-AUTHZ-002]], [[QA-AUTHZ-003]], [[QA-AUTHZ-004]], [[QA-AUTHZ-005]], [[QA-AUTHZ-006]], [[QA-AUTHZ-007]], [[QA-AUTHZ-008]], [[QA-AUTHZ-009]], [[QA-AUTHZ-010]], [[QA-AUTHZ-011]], [[QA-AUTHZ-012]], [[QA-AUTHZ-013]], [[QA-BILLING-001]], [[QA-BILLING-007]], [[QA-PARTNER-006]], [[QA-REPORTING-008]], [[QA-SECURITY-001]], [[QA-SETTINGS-001]], [[QA-TENANT-014]]
 - Bugs — [[BUG-0003]], [[BUG-0004]], [[BUG-0006]], [[BUG-0007]], [[BUG-0047]], [[BUG-0071]], [[BUG-0072]]
 - Regressions — REG-003, REG-004, REG-006, REG-007, REG-034, REG-066, REG-067 (see the regression register)
 

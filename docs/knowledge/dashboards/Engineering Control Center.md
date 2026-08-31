@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **1** |
+| Active sessions | **2** |
 | Active parent tasks | 4 |
 | Active work packages | 4 |
 | Blocked work packages | 0 |
@@ -15,7 +15,7 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
-| Open HIGH | 26 |
+| Open HIGH | 27 |
 | Awaiting Architect triage | 2 |
 | Owner decisions pending | 6 |
 | QA coverage gaps | 142 |
@@ -30,8 +30,8 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 103 |
-| No next action | 103 |
+| No acceptance criteria | 105 |
+| No next action | 105 |
 | Aging — 7d / 30d / 90d | 19 / 0 / 0 |
 | Architecture and technical debt | 8 |
 | Security gaps | 7 |
@@ -49,6 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
+| [[SESSION-0088-expired-session-redirect-loop-and-an-audit-of-buildscopedacc|SESSION-0088]] | — | Expired-session redirect loop, and an audit of buildScopedAccessWhere callers | ACTIVE | `agent/session-redirect-loop` | `develop` | — | NO |
 | [[SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser|SESSION-0061]] | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
@@ -268,9 +269,9 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 104 |
+| Open total | 106 |
 | Blocked | 2 |
-| Deferred | 26 |
+| Deferred | 25 |
 | Awaiting a product decision | 6 |
 | Awaiting Architect triage | 2 |
 
