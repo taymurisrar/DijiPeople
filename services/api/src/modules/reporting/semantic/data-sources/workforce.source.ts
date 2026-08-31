@@ -317,6 +317,9 @@ export const WORKFORCE_SOURCE: ReportDataSource = {
   },
   baseWhere: { isDeleted: false, deletedAt: null },
   defaultDateField: 'hireDate',
+  // Describes a current population, not events in a window. Narrowing it by
+  // the selected period would turn a headcount into a count of recent hires.
+  periodScoped: false,
   recordIdField: 'id',
   recordHrefTemplate: '/employees/{id}',
   caveats: [
@@ -431,7 +434,8 @@ export const WORKFORCE_SOURCE: ReportDataSource = {
     {
       key: 'workforce.hire_date',
       label: 'Hire date',
-      description: 'Start of employment. The default period field for this source.',
+      description:
+        'Start of employment. The default period field for this source.',
       type: 'date',
       path: 'hireDate',
       format: 'date',

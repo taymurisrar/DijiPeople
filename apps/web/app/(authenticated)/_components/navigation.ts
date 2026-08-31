@@ -97,12 +97,26 @@ export const dashboardNavItems: DashboardNavItem[] = [
   },
   {
     href: "/reports",
-    label: "Reports",
+    label: "Reports & Analytics",
     description:
-      "Practical tenant summaries across workforce, leave, attendance, and hiring.",
+      "Period-scoped, comparative analysis across workforce, attendance, leave, hiring and desktop activity, with a report library and builder.",
     hiddenForSelfService: true,
     requiresBusinessUnitScope: true,
+    /*
+     * `reports.read` is the key that actually gates the workspace — the API
+     * requires it on every `/reporting` handler, so without it every page in
+     * here renders an access-denied state.
+     *
+     * The four keys beneath it are kept because this entry predates the
+     * reporting module and some roles were provisioned against them; removing
+     * them would take the sidebar entry away from those roles in the same
+     * release that gave them somewhere better to go. They are additive: this is
+     * `requiredAnyPermissions`, and the API still refuses a caller who reaches
+     * the page without `reports.read`. Navigation visibility is a usability
+     * affordance, never a security control.
+     */
     requiredAnyPermissions: [
+      PERMISSION_KEYS.REPORTS_READ,
       PERMISSION_KEYS.EMPLOYEES_READ_ALL,
       "reports.leave-requests.read",
       "reports.attendance.read",

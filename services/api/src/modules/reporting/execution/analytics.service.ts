@@ -166,10 +166,14 @@ export class AnalyticsService {
       filters: input.filters ?? [],
     };
 
-    const where = planWhere({ ...baseArgs, period });
-    const comparisonWhere = comparison.period
-      ? planWhere({ ...baseArgs, period: comparison.period })
-      : null;
+    // A source that describes a current population is not narrowed by the
+    // period — see periodScoped on ReportDataSource.
+    const effectivePeriod = source.periodScoped === false ? null : period;
+    const where = planWhere({ ...baseArgs, period: effectivePeriod });
+    const comparisonWhere =
+      comparison.period && source.periodScoped !== false
+        ? planWhere({ ...baseArgs, period: comparison.period })
+        : null;
 
     const metrics = this.resolveMetrics(user, source, input.metricKeys);
 
@@ -249,6 +253,13 @@ export class AnalyticsService {
       pageSize?: number;
       sortField?: string;
       sortDirection?: 'asc' | 'desc';
+      /**
+       * Whether the period narrows this query. A directory is a statement about
+       * who is employed now; filtering it by `hireDate` because a period
+       * selector happens to be on screen would quietly turn "all employees"
+       * into "employees hired recently".
+       */
+      applyPeriod?: boolean;
     },
   ) {
     const source = this.resolveSource(user, input.sourceKey);
@@ -265,7 +276,10 @@ export class AnalyticsService {
       source,
       user,
       scopeWhere,
-      period,
+      period:
+        input.applyPeriod === false || source.periodScoped === false
+          ? null
+          : period,
       filters: input.filters ?? [],
     });
 
@@ -287,7 +301,9 @@ export class AnalyticsService {
         (candidate) => candidate.key === input.sortField,
       );
       if (field && field.sortable && (field.relationPath ?? []).length === 0) {
-        orderBy = { [field.path]: input.sortDirection === 'asc' ? 'asc' : 'desc' };
+        orderBy = {
+          [field.path]: input.sortDirection === 'asc' ? 'asc' : 'desc',
+        };
       }
     }
 
@@ -314,7 +330,8 @@ export class AnalyticsService {
         };
       }),
       rows: rows.map((row) => {
-        const id = String(row[idField] ?? '');
+        const rawId = row[idField];
+        const id = typeof rawId === 'string' ? rawId : '';
         const values: Record<string, unknown> = {};
         for (const key of requested) {
           const field = fieldsByKey.get(key);
@@ -431,7 +448,11 @@ export class AnalyticsService {
       }
     }
 
-    const suppression = applySuppression(values, populations, minimumPopulation);
+    const suppression = applySuppression(
+      values,
+      populations,
+      minimumPopulation,
+    );
 
     return {
       field: group.field.key,
@@ -464,7 +485,8 @@ export class AnalyticsService {
     // Sequential rather than parallel on purpose: a year at daily granularity
     // is 365 buckets, and firing that many aggregates at once is how a
     // reporting screen takes a connection pool down.
-    const points: Array<{ key: string; label: string; value: number | null }> = [];
+    const points: Array<{ key: string; label: string; value: number | null }> =
+      [];
     for (const bucket of buckets) {
       const bucketPeriod: ResolvedPeriod = {
         from: bucket.from,
@@ -474,7 +496,11 @@ export class AnalyticsService {
         days: 1,
       };
       const bucketWhere = planWhere({ ...baseArgs, period: bucketPeriod });
-      const value = await this.executor.metricValue(source, metric, bucketWhere);
+      const value = await this.executor.metricValue(
+        source,
+        metric,
+        bucketWhere,
+      );
       points.push({ key: bucket.key, label: bucket.label, value });
     }
 
@@ -487,7 +513,9 @@ export class AnalyticsService {
     comparisonValue: number | null,
   ): AnalyticsMetricResult {
     const delta =
-      value !== null && comparisonValue !== null ? value - comparisonValue : null;
+      value !== null && comparisonValue !== null
+        ? value - comparisonValue
+        : null;
     // A percentage change against zero is not infinite, it is undefined —
     // rendering "+∞%" or "+100%" against a zero baseline is a lie either way.
     const deltaPercent =

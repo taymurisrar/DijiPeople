@@ -80,21 +80,22 @@ function buildWorker(
   const scheduleFindMany = jest
     .fn()
     .mockResolvedValue(options.schedules ?? [scheduleRow()]);
-  const userFindMany = jest
-    .fn()
-    .mockResolvedValue(
-      options.recipients ?? [
-        {
-          id: 'recipient-1',
-          email: 'recipient-1@demo.dijipeople.com',
-          firstName: 'Rita',
-          lastName: 'Recipient',
-        },
-      ],
-    );
+  const userFindMany = jest.fn().mockResolvedValue(
+    options.recipients ?? [
+      {
+        id: 'recipient-1',
+        email: 'recipient-1@demo.dijipeople.com',
+        firstName: 'Rita',
+        lastName: 'Recipient',
+      },
+    ],
+  );
 
   const prisma = {
-    reportSchedule: { findMany: scheduleFindMany, updateMany: scheduleUpdateMany },
+    reportSchedule: {
+      findMany: scheduleFindMany,
+      updateMany: scheduleUpdateMany,
+    },
     reportRun: { create: runCreate, update: runUpdate },
     user: { findMany: userFindMany },
   };
@@ -190,17 +191,58 @@ function buildWorker(
   };
 }
 
+/**
+ * The first argument of a mock call, typed.
+ *
+ * `jest.fn()` is `jest.Mock<any, any>`, so reading `.mock.calls[n][0]` inline
+ * turns every assertion into an unsafe member access. One funnel keeps the
+ * assertions readable and the rest of the file honest about its types.
+ */
+type PrismaCall = {
+  where?: Record<string, unknown>;
+  data?: Record<string, unknown>;
+  create?: Record<string, unknown>;
+  update?: Record<string, unknown>;
+  cursor?: Record<string, unknown>;
+  skip?: number;
+};
+
+function callArg(mock: jest.Mock, index = 0): PrismaCall {
+  return (mock.mock.calls[index] as PrismaCall[])[0];
+}
+
+/** One notification dispatch, typed. */
+function dispatchArg(
+  harness: Harness,
+  index: number,
+): {
+  eventCode: string;
+  channels: string[];
+  email: { recipient: string; attachments: unknown[] };
+} {
+  return (harness.dispatch.mock.calls[index] as unknown[])[0] as {
+    eventCode: string;
+    channels: string[];
+    email: { recipient: string; attachments: unknown[] };
+  };
+}
+
 /** Every `reportSchedule.updateMany` call, as `[where, data]` pairs. */
 function scheduleWrites(harness: Harness) {
   return harness.scheduleUpdateMany.mock.calls.map(
-    (call) => call[0] as { where: Record<string, unknown>; data: Record<string, unknown> },
+    (call: unknown[]) =>
+      call[0] as {
+        where: Record<string, unknown>;
+        data: Record<string, unknown>;
+      },
   );
 }
 
 /** Every `reportRun.update` call. */
 function runWrites(harness: Harness) {
   return harness.runUpdate.mock.calls.map(
-    (call) => call[0] as { where: { id: string }; data: Record<string, unknown> },
+    (call: unknown[]) =>
+      call[0] as { where: { id: string }; data: Record<string, unknown> },
   );
 }
 
@@ -302,12 +344,13 @@ describe('ReportSchedulerWorker tick safety', () => {
     const harness = buildWorker();
 
     let release: (() => void) | null = null;
-    harness.scheduleFindMany.mockImplementation(
+    harness.scheduleFindMany.mockImplementationOnce(
       () =>
         new Promise((resolve) => {
           release = () => resolve([]);
         }),
     );
+    harness.scheduleFindMany.mockResolvedValue([]);
 
     const first = harness.worker.tick();
     // The guard is synchronous, so the second tick returns without ever
@@ -431,7 +474,7 @@ describe('ReportSchedulerWorker execution', () => {
       { preset: 'previous_month', filters: [] },
     );
 
-    const created = harness.runCreate.mock.calls[0][0].data;
+    const created = callArg(harness.runCreate).data;
     expect(created).toMatchObject({
       tenantId: 'tenant-1',
       scheduleId: 'schedule-1',
@@ -440,7 +483,9 @@ describe('ReportSchedulerWorker execution', () => {
       executedAsUserId: 'owner-1',
       attemptCount: 1,
     });
-    expect(created.claimedBy).toEqual(expect.stringContaining('report-scheduler-'));
+    expect(created.claimedBy).toEqual(
+      expect.stringContaining('report-scheduler-'),
+    );
 
     const writes = runWrites(harness);
     expect(writes[0].data.status).toBe(ReportRunStatus.RUNNING);
@@ -493,7 +538,7 @@ describe('ReportSchedulerWorker execution', () => {
     await harness.worker.drain(NOW);
 
     expect(harness.dispatch).toHaveBeenCalledTimes(2);
-    const first = harness.dispatch.mock.calls[0][0];
+    const first = dispatchArg(harness, 0);
     expect(first.eventCode).toBe(REPORT_SCHEDULE_DELIVERY_EVENT);
     expect(first.channels).toEqual(['EMAIL']);
     expect(first.email.recipient).toBe('recipient-1@demo.dijipeople.com');
@@ -709,6 +754,11 @@ describe('ReportSchedulerWorker failure streak', () => {
 
     const result = await harness.worker.drain(NOW);
 
-    expect(result).toMatchObject({ due: 2, claimed: 2, completed: 1, failed: 1 });
+    expect(result).toMatchObject({
+      due: 2,
+      claimed: 2,
+      completed: 1,
+      failed: 1,
+    });
   });
 });

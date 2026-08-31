@@ -1,3 +1,4 @@
+import type { Readable } from 'node:stream';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -47,7 +48,7 @@ export interface ReportArtifactDownload {
   fileName: string;
   contentType: string;
   size: number;
-  stream: NodeJS.ReadableStream;
+  stream: Readable;
 }
 
 export interface SweepResult {

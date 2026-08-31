@@ -167,6 +167,18 @@ export const TENANT_ERASURE_SELF_REFERENCES: Array<{
 
 /** Dependents first, parents last. See the derivation note above. */
 export const TENANT_ERASURE_DELETE_ORDER: string[] = [
+  // Reporting (TASK-0028). These go first: nothing tenant-owned points at
+  // them, and they point only at ReportDefinition and ReportSchedule, which
+  // follow. Leaving them behind would keep a deleted tenant's report
+  // definitions, its saved views, and the run history recording what was
+  // exported and to whom.
+  'reportRun',
+  'reportSchedule',
+  'reportFavorite',
+  'reportRecentView',
+  'reportSavedView',
+  'reportDefinition',
+  'workforceSnapshotDaily',
   // Nothing tenant-owned points at either of these, so they can go first.
   //
   // `outboxEvent` — an erased tenant must not leave undelivered transitions

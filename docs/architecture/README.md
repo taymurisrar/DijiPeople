@@ -26,6 +26,7 @@ These predate the snapshot set and remain authoritative in their areas:
 | Document | Scope |
 |---|---|
 | [`settings-and-branding.md`](settings-and-branding.md) | **Canonical** for tenant settings, branding, User/Employee boundary, work configuration, attendance schedule resolution |
+| [`reports-and-analytics.md`](reports-and-analytics.md) | **Canonical** for the reporting semantic layer, metric registry, query engine, and how tenant, row and field security compose |
 | [`module-runtime-overhaul.md`](module-runtime-overhaul.md) | The metadata-driven module runtime |
 | [`tenant-settings-attendance-runtime.md`](tenant-settings-attendance-runtime.md) | Settings/attendance runtime implementation companion |
 

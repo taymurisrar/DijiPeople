@@ -9,6 +9,7 @@
     "backfill:attendance": "ts-node prisma/backfill-attendance.ts",
     "backfill:default-views": "ts-node prisma/backfill-default-views.ts",
     "backfill:leave-entitlement": "ts-node prisma/backfill-leave-entitlement.ts",
+    "backfill:workforce-snapshots": "ts-node prisma/backfill-workforce-snapshots.ts",
     "backfill:workspace-domains": "ts-node prisma/backfill-workspace-domains.ts",
     "build": "npm run clean:dist && npm run prisma:generate && nest build",
     "check-types": "tsc --noEmit -p tsconfig.build.json",

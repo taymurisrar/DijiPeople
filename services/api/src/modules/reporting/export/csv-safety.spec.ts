@@ -13,15 +13,12 @@ function unquote(cell: string): string {
 }
 
 describe('escapeCsvCell — formula injection', () => {
-  it.each(CSV_FORMULA_PREFIXES)(
-    'neutralises a cell beginning %j',
-    (prefix) => {
-      const escaped = escapeCsvCell(`${prefix}HYPERLINK("http://evil","x")`);
+  it.each(CSV_FORMULA_PREFIXES)('neutralises a cell beginning %j', (prefix) => {
+    const escaped = escapeCsvCell(`${prefix}HYPERLINK("http://evil","x")`);
 
-      expect(escaped.startsWith(`"'${prefix}`)).toBe(true);
-      expect(isFormulaInjection(unquote(escaped))).toBe(false);
-    },
-  );
+    expect(escaped.startsWith(`"'${prefix}`)).toBe(true);
+    expect(isFormulaInjection(unquote(escaped))).toBe(false);
+  });
 
   it('neutralises the DDE command-execution payload', () => {
     // The canonical Excel/Sheets CSV-injection string.
@@ -48,7 +45,7 @@ describe('escapeCsvCell — formula injection', () => {
   });
 
   it('still guards a string that merely looks numeric but is not', () => {
-    expect(escapeCsvCell('-1+1+cmd|\' /c calc\'!A0')).toBe(
+    expect(escapeCsvCell("-1+1+cmd|' /c calc'!A0")).toBe(
       `"'-1+1+cmd|' /c calc'!A0"`,
     );
   });

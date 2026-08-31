@@ -58,7 +58,20 @@ export const DESKTOP_DEVICES_SOURCE: ReportDataSource = {
     organizationIdField: null,
     userIdField: 'userId',
   },
+  // This model carries tenantId and employeeId and nothing else the access
+  // helpers can narrow on. Scoping it on its own columns has only two
+  // possible outcomes and both are wrong: the whole tenant, or nothing at
+  // all. Scoping through the employee relation gives a business-unit reader
+  // exactly the rows of the employees they can already see.
+  scopeRelationPath: ['employee'],
+  scopeRelationOptions: {
+    organizationIdField: null,
+    userIdField: 'userId',
+  },
   defaultDateField: 'createdAt',
+  // Describes a current population, not events in a window. Narrowing it by
+  // the selected period would turn a headcount into a count of recent hires.
+  periodScoped: false,
   recordIdField: 'id',
   caveats: [
     'A period narrows this source on when the device was REGISTERED, not on when it was last seen. That is deliberate: a device that has never connected has no last-seen timestamp and would disappear from any period filtered on it.',

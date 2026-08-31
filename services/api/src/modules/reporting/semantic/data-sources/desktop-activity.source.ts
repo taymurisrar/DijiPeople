@@ -89,6 +89,16 @@ export const DESKTOP_ACTIVITY_SOURCE: ReportDataSource = {
     organizationIdField: null,
     userIdField: 'userId',
   },
+  // This model carries tenantId and employeeId and nothing else the access
+  // helpers can narrow on. Scoping it on its own columns has only two
+  // possible outcomes and both are wrong: the whole tenant, or nothing at
+  // all. Scoping through the employee relation gives a business-unit reader
+  // exactly the rows of the employees they can already see.
+  scopeRelationPath: ['employee'],
+  scopeRelationOptions: {
+    organizationIdField: null,
+    userIdField: 'userId',
+  },
   defaultDateField: 'date',
   recordIdField: 'id',
   caveats: [

@@ -6,10 +6,7 @@ import {
   supportedOperators,
   type ReportFilterInput,
 } from './filter.model';
-import {
-  toInstantRange,
-  type ResolvedPeriod,
-} from './period.engine';
+import { toInstantRange, type ResolvedPeriod } from './period.engine';
 import {
   isFilterable,
   isGroupable,
@@ -209,13 +206,19 @@ export const MAX_EXPORT_ROWS = 50_000;
 export const MAX_BREAKDOWN_BUCKETS = 50;
 
 export function planPagination(page?: number, pageSize?: number) {
-  const safePage = Number.isInteger(page) && (page as number) > 0 ? (page as number) : 1;
+  const safePage =
+    Number.isInteger(page) && (page as number) > 0 ? (page as number) : 1;
   const requested =
     Number.isInteger(pageSize) && (pageSize as number) > 0
       ? (pageSize as number)
       : 25;
   const safeSize = Math.min(requested, MAX_PAGE_SIZE);
-  return { page: safePage, pageSize: safeSize, skip: (safePage - 1) * safeSize, take: safeSize };
+  return {
+    page: safePage,
+    pageSize: safeSize,
+    skip: (safePage - 1) * safeSize,
+    take: safeSize,
+  };
 }
 
 /**
@@ -245,7 +248,7 @@ export function planSelect(
       } else {
         const existing = cursor[segment];
         const nested =
-          existing && typeof existing === 'object' && 'select' in (existing as object)
+          existing && typeof existing === 'object' && 'select' in existing
             ? (existing as { select: Record<string, unknown> })
             : { select: {} as Record<string, unknown> };
         cursor[segment] = nested;

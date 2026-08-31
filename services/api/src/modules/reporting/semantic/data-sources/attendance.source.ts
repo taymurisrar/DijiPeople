@@ -90,6 +90,16 @@ export const ATTENDANCE_SOURCE: ReportDataSource = {
     organizationIdField: null,
   },
   baseWhere: { status: { not: AttendanceDayStatus.PENDING } },
+  // This model carries tenantId and employeeId and nothing else the access
+  // helpers can narrow on. Scoping it on its own columns has only two
+  // possible outcomes and both are wrong: the whole tenant, or nothing at
+  // all. Scoping through the employee relation gives a business-unit reader
+  // exactly the rows of the employees they can already see.
+  scopeRelationPath: ['employee'],
+  scopeRelationOptions: {
+    organizationIdField: null,
+    userIdField: 'userId',
+  },
   defaultDateField: 'attendanceDate',
   recordIdField: 'id',
   requiredFeatureKey: TENANT_FEATURE_KEYS.ATTENDANCE,
@@ -155,7 +165,8 @@ export const ATTENDANCE_SOURCE: ReportDataSource = {
     {
       key: 'attendance.timezone',
       label: 'Timezone',
-      description: 'IANA zone the shift was evaluated in, when one was resolved.',
+      description:
+        'IANA zone the shift was evaluated in, when one was resolved.',
       type: 'string',
       path: 'timezone',
       reportable: true,

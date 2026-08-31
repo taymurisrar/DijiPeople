@@ -225,3 +225,79 @@ describe("resolveVisibleDashboardNavItems plan entitlements", () => {
     expect(hrefs).toContain("/payroll/cycles");
   });
 });
+
+/*
+ * The Reports & Analytics entry.
+ *
+ * `lib/security-keys.ts` is a hand-maintained mirror of the API's permission
+ * constants with no generator behind it, so the failure mode this guards is a
+ * quiet one: a key that is misspelled here does not error anywhere. It makes
+ * `requiredAnyPermissions` list a permission nobody holds, the sidebar entry
+ * disappears for every role that had it, and the only symptom is a customer
+ * saying reports "went away".
+ *
+ * The label is asserted for a duller reason: it is the only visible statement
+ * that this is no longer the four-summary page it replaced, and it is the kind
+ * of string a later edit reverts without noticing.
+ */
+describe("the Reports & Analytics navigation entry", () => {
+  const entry = dashboardNavItems.find((item) => item.href === "/reports");
+
+  it("exists", () => {
+    expect(entry).toBeDefined();
+  });
+
+  it("is named for what the workspace now is", () => {
+    expect(entry?.label).toBe("Reports & Analytics");
+  });
+
+  it("offers itself to anyone holding the reporting permission", () => {
+    /*
+     * Exactly the key the API's `/reporting` controller requires. Hard-coded as
+     * a literal rather than referencing PERMISSION_KEYS, so a typo introduced
+     * in the mirror fails here instead of being compared against itself.
+     */
+    expect(entry?.requiredAnyPermissions).toContain("reports.read");
+  });
+
+  it("keeps the pre-existing keys, so no role loses the entry", () => {
+    /*
+     * This entry predates the reporting module and some roles were provisioned
+     * against these. Dropping them would take the sidebar link away from those
+     * roles in the same release that gave them somewhere better to go.
+     */
+    expect(entry?.requiredAnyPermissions).toEqual(
+      expect.arrayContaining([
+        "employees.read.all",
+        "reports.leave-requests.read",
+        "reports.attendance.read",
+      ]),
+    );
+  });
+
+  it("stays hidden from self-service users and scoped to a business unit", () => {
+    expect(entry?.hiddenForSelfService).toBe(true);
+    expect(entry?.requiresBusinessUnitScope).toBe(true);
+  });
+});
+
+/*
+ * The reporting sub-navigation is a row of pills inside the workspace, exactly
+ * as Payroll's is — it is not expressed in `dashboardNavItems`.
+ *
+ * `DashboardNavItem` is flat and has no children concept, and adding one to
+ * express a single module's sections would change a type every module depends
+ * on. This asserts the decision rather than the absence: if someone later adds
+ * `/reports/library` and friends to the sidebar, the sidebar grows five entries
+ * for one module and this fails.
+ */
+describe("reporting sections are not sidebar entries", () => {
+  it("contributes exactly one entry under /reports", () => {
+    const reportRoutes = dashboardNavItems.filter((item) =>
+      item.href.startsWith("/reports"),
+    );
+
+    expect(reportRoutes).toHaveLength(1);
+    expect(reportRoutes[0].href).toBe("/reports");
+  });
+});

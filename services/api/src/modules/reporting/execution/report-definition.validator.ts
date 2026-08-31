@@ -6,7 +6,10 @@ import {
   planGroupBy,
   visibleFields,
 } from '../engine/query-planner';
-import { supportedOperators, type ReportFilterInput } from '../engine/filter.model';
+import {
+  supportedOperators,
+  type ReportFilterInput,
+} from '../engine/filter.model';
 import {
   isFilterable,
   isSelectable,
@@ -115,7 +118,10 @@ export function validateReportConfig(
       throw invalid('A report filter is malformed.');
     }
     const filter = entry as Record<string, unknown>;
-    if (typeof filter.field !== 'string' || typeof filter.operator !== 'string') {
+    if (
+      typeof filter.field !== 'string' ||
+      typeof filter.operator !== 'string'
+    ) {
       throw invalid('A report filter needs a field and an operator.');
     }
     const field = assertFieldVisible(source, user, filter.field);
@@ -213,7 +219,7 @@ export function validateReportConfig(
       typeof config.preset !== 'string' ||
       !PERIOD_PRESETS.includes(config.preset as PeriodPreset)
     ) {
-      throw invalid(`Unsupported period: ${String(config.preset)}`);
+      throw invalid('Unsupported period for this report.');
     }
     preset = config.preset as PeriodPreset;
   }

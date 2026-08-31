@@ -82,6 +82,16 @@ export const LEAVE_REQUESTS_SOURCE: ReportDataSource = {
     // raised the request, which is the correct SELF-level scope for leave.
     createdByIdField: 'createdById',
   },
+  // This model carries tenantId and employeeId and nothing else the access
+  // helpers can narrow on. Scoping it on its own columns has only two
+  // possible outcomes and both are wrong: the whole tenant, or nothing at
+  // all. Scoping through the employee relation gives a business-unit reader
+  // exactly the rows of the employees they can already see.
+  scopeRelationPath: ['employee'],
+  scopeRelationOptions: {
+    organizationIdField: null,
+    userIdField: 'userId',
+  },
   defaultDateField: 'startDate',
   recordIdField: 'id',
   requiredFeatureKey: TENANT_FEATURE_KEYS.LEAVE,
@@ -117,7 +127,8 @@ export const LEAVE_REQUESTS_SOURCE: ReportDataSource = {
     {
       key: 'leave_requests.start_date',
       label: 'Leave start date',
-      description: 'First day of leave. The default period field for this source.',
+      description:
+        'First day of leave. The default period field for this source.',
       type: 'date',
       path: 'startDate',
       format: 'date',
@@ -207,6 +218,16 @@ export const LEAVE_CONSUMPTION_SOURCE: ReportDataSource = {
     // to travel through the employee relation; see the engine finding.
     organizationIdField: null,
   },
+  // This model carries tenantId and employeeId and nothing else the access
+  // helpers can narrow on. Scoping it on its own columns has only two
+  // possible outcomes and both are wrong: the whole tenant, or nothing at
+  // all. Scoping through the employee relation gives a business-unit reader
+  // exactly the rows of the employees they can already see.
+  scopeRelationPath: ['employee'],
+  scopeRelationOptions: {
+    organizationIdField: null,
+    userIdField: 'userId',
+  },
   defaultDateField: 'createdAt',
   recordIdField: 'id',
   requiredFeatureKey: TENANT_FEATURE_KEYS.LEAVE,
@@ -240,7 +261,8 @@ export const LEAVE_CONSUMPTION_SOURCE: ReportDataSource = {
     {
       key: 'leave_consumption.is_paid',
       label: 'Paid',
-      description: 'Whether the consumed leave was paid, as decided at the time.',
+      description:
+        'Whether the consumed leave was paid, as decided at the time.',
       type: 'boolean',
       path: 'isPaid',
       reportable: true,
@@ -305,7 +327,20 @@ export const LEAVE_BALANCES_SOURCE: ReportDataSource = {
   scope: {
     organizationIdField: null,
   },
+  // This model carries tenantId and employeeId and nothing else the access
+  // helpers can narrow on. Scoping it on its own columns has only two
+  // possible outcomes and both are wrong: the whole tenant, or nothing at
+  // all. Scoping through the employee relation gives a business-unit reader
+  // exactly the rows of the employees they can already see.
+  scopeRelationPath: ['employee'],
+  scopeRelationOptions: {
+    organizationIdField: null,
+    userIdField: 'userId',
+  },
   defaultDateField: 'lastUpdatedAt',
+  // Describes a current population, not events in a window. Narrowing it by
+  // the selected period would turn a headcount into a count of recent hires.
+  periodScoped: false,
   recordIdField: 'id',
   requiredFeatureKey: TENANT_FEATURE_KEYS.LEAVE,
   caveats: [

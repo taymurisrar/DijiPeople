@@ -10,10 +10,7 @@ import { AuditService } from '../../audit/audit.service';
 import { ENTITY_KEYS } from '../../../common/constants/rbac-matrix';
 import { resolveEffectiveAccessLevel } from '../../../common/security/rbac-query-scope';
 import type { AuthenticatedUser } from '../../../common/interfaces/authenticated-request.interface';
-import {
-  validateReportConfig,
-  type ReportDefinitionConfig,
-} from './report-definition.validator';
+import { validateReportConfig } from './report-definition.validator';
 
 export interface SaveReportDefinitionInput {
   name: string;
@@ -94,7 +91,11 @@ export class ReportDefinitionService {
       });
     }
 
-    const config = validateReportConfig(user, row.dataSourceKey, row.configJson);
+    const config = validateReportConfig(
+      user,
+      row.dataSourceKey,
+      row.configJson,
+    );
 
     // Best-effort usage counters; a failure here must not fail the run.
     void this.prisma.reportDefinition
@@ -146,7 +147,11 @@ export class ReportDefinitionService {
   }
 
   async create(user: AuthenticatedUser, input: SaveReportDefinitionInput) {
-    const config = validateReportConfig(user, input.dataSourceKey, input.config);
+    const config = validateReportConfig(
+      user,
+      input.dataSourceKey,
+      input.config,
+    );
     const name = this.assertName(input.name);
     const key = await this.uniqueKey(user.tenantId, name);
 
@@ -210,7 +215,8 @@ export class ReportDefinitionService {
     const updated = await this.prisma.reportDefinition.update({
       where: { id: row.id },
       data: {
-        name: input.name !== undefined ? this.assertName(input.name) : undefined,
+        name:
+          input.name !== undefined ? this.assertName(input.name) : undefined,
         description: input.description ?? undefined,
         category: input.category ?? undefined,
         dataSourceKey,
@@ -381,7 +387,8 @@ export class ReportDefinitionService {
     privilege: SecurityPrivilege,
   ): boolean {
     return (
-      resolveEffectiveAccessLevel(user, ENTITY_KEYS.REPORTS, privilege) !== 'NONE'
+      resolveEffectiveAccessLevel(user, ENTITY_KEYS.REPORTS, privilege) !==
+      'NONE'
     );
   }
 

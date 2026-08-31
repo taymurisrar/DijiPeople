@@ -217,7 +217,8 @@ function instantForWallClock(
     }
 
     const dayDriftMinutes =
-      (parseCivilDate(actual.civil).getTime() - parseCivilDate(civil).getTime()) /
+      (parseCivilDate(actual.civil).getTime() -
+        parseCivilDate(civil).getTime()) /
       60_000;
     const driftMinutes = dayDriftMinutes + (actual.minutes - targetMinutes);
     candidate = new Date(candidate.getTime() - driftMinutes * 60_000);

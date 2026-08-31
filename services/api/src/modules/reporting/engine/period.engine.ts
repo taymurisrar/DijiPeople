@@ -118,7 +118,9 @@ export function formatCivilDate(date: Date): string {
 }
 
 export function addDays(value: string, days: number): string {
-  return formatCivilDate(new Date(parseCivilDate(value).getTime() + days * DAY_MS));
+  return formatCivilDate(
+    new Date(parseCivilDate(value).getTime() + days * DAY_MS),
+  );
 }
 
 export function addMonths(value: string, months: number): string {
@@ -377,11 +379,17 @@ export function buildBuckets(
   period: ResolvedPeriod,
   granularity: Granularity,
 ): Array<{ key: string; label: string; from: string; to: string }> {
-  const buckets: Array<{ key: string; label: string; from: string; to: string }> =
-    [];
+  const buckets: Array<{
+    key: string;
+    label: string;
+    from: string;
+    to: string;
+  }> = [];
   let cursor = period.from;
 
-  while (parseCivilDate(cursor).getTime() <= parseCivilDate(period.to).getTime()) {
+  while (
+    parseCivilDate(cursor).getTime() <= parseCivilDate(period.to).getTime()
+  ) {
     let bucketEnd: string;
     switch (granularity) {
       case 'day':
@@ -401,7 +409,9 @@ export function buildBuckets(
         throw new Error(`Unsupported granularity: ${String(exhaustive)}`);
       }
     }
-    if (parseCivilDate(bucketEnd).getTime() > parseCivilDate(period.to).getTime()) {
+    if (
+      parseCivilDate(bucketEnd).getTime() > parseCivilDate(period.to).getTime()
+    ) {
       bucketEnd = period.to;
     }
     buckets.push({

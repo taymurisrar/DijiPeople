@@ -187,10 +187,7 @@ export class ReportExportService {
    * the export a person opens and compares against the screen. XLSX keeps
    * numbers numeric instead — see `buildXlsx`.
    */
-  private buildCsv(
-    result: ReportResult,
-    context: ReportExportContext,
-  ): Buffer {
+  private buildCsv(result: ReportResult, context: ReportExportContext): Buffer {
     const header = result.columns.map((column) => escapeCsvCell(column.label));
     const rows = result.rows.map((row) =>
       result.columns.map((column) =>
@@ -486,15 +483,15 @@ export class ReportExportService {
          * hire date, a leave date or a payroll period one day backwards. A
          * calendar date is the same date everywhere.
          */
-        return date ? this.formatDate(date, context, 'UTC') : String(value);
+        return date ? this.formatDate(date, context, 'UTC') : asText(value);
       }
       case 'datetime': {
         const date = parseDate(value);
-        return date ? this.formatDateTime(date, context) : String(value);
+        return date ? this.formatDateTime(date, context) : asText(value);
       }
       case 'money': {
         const numeric = toNumber(value);
-        if (numeric === null) return String(value);
+        if (numeric === null) return asText(value);
         const currency = normalizeCurrency(context.currency);
         return currency
           ? new Intl.NumberFormat(resolveLocale(context), {
@@ -509,19 +506,19 @@ export class ReportExportService {
       case 'percent': {
         const numeric = toNumber(value);
         return numeric === null
-          ? String(value)
+          ? asText(value)
           : `${new Intl.NumberFormat(resolveLocale(context), {
               maximumFractionDigits: 2,
             }).format(numeric)}%`;
       }
       case 'duration_minutes': {
         const numeric = toNumber(value);
-        return numeric === null ? String(value) : formatDuration(numeric);
+        return numeric === null ? asText(value) : formatDuration(numeric);
       }
       case 'integer': {
         const numeric = toNumber(value);
         return numeric === null
-          ? String(value)
+          ? asText(value)
           : new Intl.NumberFormat(resolveLocale(context), {
               maximumFractionDigits: 0,
             }).format(numeric);
@@ -529,15 +526,14 @@ export class ReportExportService {
       case 'number': {
         const numeric = toNumber(value);
         return numeric === null
-          ? String(value)
+          ? asText(value)
           : new Intl.NumberFormat(resolveLocale(context)).format(numeric);
       }
       case 'boolean':
         return toBoolean(value) ? 'Yes' : 'No';
       default:
         if (value instanceof Date) return this.formatDateTime(value, context);
-        if (typeof value === 'object') return stringifyUnknown(value);
-        return String(value);
+        return asText(value);
     }
   }
 
@@ -736,6 +732,27 @@ function formatDuration(minutes: number): string {
   const remainder = absolute % 60;
   if (hours === 0) return `${sign}${remainder}m`;
   return `${sign}${hours}h ${remainder}m`;
+}
+
+/**
+ * Any value as text, without letting an object become '[object Object]'.
+ *
+ * Only reached when a column's declared type and its actual value disagree —
+ * a numeric column carrying a string, say. Showing the raw content beats
+ * showing a placeholder that hides which column is misdeclared.
+ */
+function asText(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'string') return value;
+  if (
+    typeof value === 'number' ||
+    typeof value === 'boolean' ||
+    typeof value === 'bigint'
+  ) {
+    return String(value);
+  }
+  if (value instanceof Date) return value.toISOString();
+  return stringifyUnknown(value);
 }
 
 function stringifyUnknown(value: unknown): string {

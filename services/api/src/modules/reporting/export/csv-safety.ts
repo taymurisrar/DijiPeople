@@ -105,9 +105,7 @@ export function escapeCsvCell(value: unknown): string {
   }
 
   if (value instanceof Date) {
-    return quote(
-      Number.isNaN(value.getTime()) ? '' : value.toISOString(),
-    );
+    return quote(Number.isNaN(value.getTime()) ? '' : value.toISOString());
   }
 
   const text = typeof value === 'string' ? value : safeStringify(value);

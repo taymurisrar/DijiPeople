@@ -110,7 +110,9 @@ describe('resolvePeriod', () => {
       from: '2026-07-01',
       to: '2026-08-31',
     });
-    expect(resolvePeriod({ ...base, preset: 'previous_quarter' })).toMatchObject({
+    expect(
+      resolvePeriod({ ...base, preset: 'previous_quarter' }),
+    ).toMatchObject({
       from: '2026-04-01',
       to: '2026-06-30',
     });
@@ -306,9 +308,9 @@ describe('toInstantRange', () => {
 
 describe('civilStartInstant', () => {
   it('resolves a 45-minute offset zone', () => {
-    expect(civilStartInstant('2026-08-01', 'Asia/Kathmandu').toISOString()).toBe(
-      '2026-07-31T18:15:00.000Z',
-    );
+    expect(
+      civilStartInstant('2026-08-01', 'Asia/Kathmandu').toISOString(),
+    ).toBe('2026-07-31T18:15:00.000Z');
   });
 });
 
@@ -362,9 +364,9 @@ describe('buildBuckets', () => {
   });
 
   it('returns a single bucket for a single-day period', () => {
-    expect(buildBuckets(period('2026-08-31', '2026-08-31'), 'month')).toHaveLength(
-      1,
-    );
+    expect(
+      buildBuckets(period('2026-08-31', '2026-08-31'), 'month'),
+    ).toHaveLength(1);
   });
 });
 

@@ -63,6 +63,7 @@ import { PoliciesModule } from './modules/policies/policies.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { RecruitmentModule } from './modules/recruitment/recruitment.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { ReportingModule } from './modules/reporting/reporting.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { SlaModule } from './modules/sla/sla.module';
 import { TenantsModule } from './modules/tenants/tenants.module';
@@ -132,6 +133,7 @@ import { SupportCasesModule } from './modules/support-cases/support-cases.module
     ProjectsModule,
     RecruitmentModule,
     ReportsModule,
+    ReportingModule,
     SuperAdminModule,
     ErrorLogsModule,
     TenantSettingsModule,

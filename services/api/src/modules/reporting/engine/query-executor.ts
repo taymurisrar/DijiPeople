@@ -2,13 +2,16 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { AppError } from '../../../common/errors/app-error';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import type { AuthenticatedUser } from '../../../common/interfaces/authenticated-request.interface';
 import type {
   ReportDataSource,
   ReportDimensionValue,
   ReportMetricDefinition,
 } from '../semantic/semantic.types';
-import { fieldMap, MAX_BREAKDOWN_BUCKETS, type PlannedGroupBy } from './query-planner';
+import {
+  fieldMap,
+  MAX_BREAKDOWN_BUCKETS,
+  type PlannedGroupBy,
+} from './query-planner';
 
 /**
  * Executes a planned reporting query against Prisma.
@@ -73,7 +76,7 @@ export class ReportQueryExecutor {
 
       case 'filtered_count':
         return delegate.count({
-          where: { AND: [where, calculation.where] },
+          where: { AND: [where, resolveRelativeTokens(calculation.where)] },
         });
 
       case 'count_distinct': {
@@ -142,14 +145,36 @@ export class ReportQueryExecutor {
     metric: ReportMetricDefinition,
     where: Record<string, unknown>,
     group: PlannedGroupBy,
-  ): Promise<{ values: ReportDimensionValue[]; populations: Map<string, number> }> {
+  ): Promise<{
+    values: ReportDimensionValue[];
+    populations: Map<string, number>;
+  }> {
     const delegate = this.delegate(source);
     const column = group.column;
     const calculation = metric.calculation;
 
+    // A filtered_count metric carries its own predicate, and a breakdown must
+    // apply it too. Grouping on the base `where` alone would silently turn
+    // "active headcount by department" into "headcount by department" — a
+    // plausible chart with the wrong numbers, which is worse than an error.
+    const groupWhere =
+      calculation.kind === 'filtered_count'
+        ? { AND: [where, resolveRelativeTokens(calculation.where)] }
+        : where;
+
+    // count_distinct groups by the dimension AND the counted column, so each
+    // bucket's size is its number of distinct values rather than its row count.
+    const distinctColumn =
+      calculation.kind === 'count_distinct'
+        ? this.column(source, calculation.field)
+        : null;
+
     const aggregateArgs: Record<string, unknown> = {
-      by: [column],
-      where,
+      by:
+        distinctColumn && distinctColumn !== column
+          ? [column, distinctColumn]
+          : [column],
+      where: groupWhere,
       _count: { _all: true },
     };
 
@@ -168,25 +193,55 @@ export class ReportQueryExecutor {
     const groups: GroupRow[] = await delegate.groupBy(aggregateArgs);
 
     const populations = new Map<string, number>();
-    const raw = groups.map((row) => {
+
+    // With a distinct column in the `by` list, one bucket spans several rows —
+    // one per distinct value — so they are folded back together here and the
+    // bucket's value is how many rows it had.
+    const collapsed: GroupRow[] =
+      distinctColumn && distinctColumn !== column
+        ? Object.values(
+            groups.reduce<Record<string, GroupRow>>((acc, row) => {
+              const bucket = scalarKey(row[column]) ?? NULL_KEY;
+              const existing = acc[bucket];
+              if (existing) {
+                existing._count = {
+                  _all: (existing._count?._all ?? 0) + 1,
+                };
+              } else {
+                acc[bucket] = { ...row, _count: { _all: 1 } };
+              }
+              return acc;
+            }, {}),
+          )
+        : groups;
+
+    const raw = collapsed.map((row) => {
       const rawKey = row[column];
-      const key = rawKey === null || rawKey === undefined ? NULL_KEY : String(rawKey);
+      const key = scalarKey(rawKey) ?? NULL_KEY;
       populations.set(key, row._count?._all ?? 0);
 
       let value: number;
       switch (calculation.kind) {
         case 'sum':
-          value = toNumber(row._sum?.[this.column(source, calculation.field)]) ?? 0;
+          value =
+            toNumber(row._sum?.[this.column(source, calculation.field)]) ?? 0;
           break;
         case 'avg':
-          value = toNumber(row._avg?.[this.column(source, calculation.field)]) ?? 0;
+          value =
+            toNumber(row._avg?.[this.column(source, calculation.field)]) ?? 0;
           break;
         case 'ratio': {
           const top =
-            toNumber(row._sum?.[this.column(source, calculation.numerator)]) ?? 0;
+            toNumber(row._sum?.[this.column(source, calculation.numerator)]) ??
+            0;
           const bottom =
-            toNumber(row._sum?.[this.column(source, calculation.denominator)]) ?? 0;
-          value = bottom === 0 ? 0 : (top / bottom) * (calculation.asPercent ? 100 : 1);
+            toNumber(
+              row._sum?.[this.column(source, calculation.denominator)],
+            ) ?? 0;
+          value =
+            bottom === 0
+              ? 0
+              : (top / bottom) * (calculation.asPercent ? 100 : 1);
           break;
         }
         default:
@@ -226,9 +281,7 @@ export class ReportQueryExecutor {
       }));
     }
 
-    const ids = rows
-      .map((row) => row.key)
-      .filter((key) => key !== NULL_KEY);
+    const ids = rows.map((row) => row.key).filter((key) => key !== NULL_KEY);
 
     const client = this.prisma as unknown as Record<string, unknown>;
     const lookupDelegate = client[lookup.model] as PrismaDelegate | undefined;
@@ -241,24 +294,23 @@ export class ReportQueryExecutor {
       }));
     }
 
-    const records: Array<Record<string, unknown>> = await lookupDelegate.findMany({
-      where: { [lookup.valueField]: { in: ids } },
-      select: { [lookup.valueField]: true, [lookup.labelField]: true },
-    });
+    const records: Array<Record<string, unknown>> =
+      await lookupDelegate.findMany({
+        where: { [lookup.valueField]: { in: ids } },
+        select: { [lookup.valueField]: true, [lookup.labelField]: true },
+      });
 
     const labels = new Map(
       records.map((record) => [
         String(record[lookup.valueField]),
-        String(record[lookup.labelField] ?? ''),
+        scalarKey(record[lookup.labelField]) ?? '',
       ]),
     );
 
     return rows.map((row) => ({
       key: row.key,
       label:
-        row.key === NULL_KEY
-          ? nullLabel
-          : (labels.get(row.key) ?? 'Unknown'),
+        row.key === NULL_KEY ? nullLabel : (labels.get(row.key) ?? 'Unknown'),
       value: row.value,
     }));
   }
@@ -305,13 +357,70 @@ export class ReportQueryExecutor {
   }
 }
 
+/**
+ * Render a grouped scalar as a bucket key.
+ *
+ * Prisma returns a `groupBy` key as `unknown` to the caller, but the column is
+ * always a scalar — a uuid, an enum member, a boolean or a date. Narrowing here
+ * keeps `String()` off values that would stringify as "[object Object]", which
+ * would silently collapse every such row into one bucket.
+ */
+function scalarKey(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  if (value instanceof Date) return value.toISOString();
+  if (value instanceof Prisma.Decimal) return value.toString();
+  return null;
+}
+
 export const NULL_KEY = '__null__';
+
+/** The one relative-date token a metric may embed in a filter clause. */
+export const RELATIVE_NOW_TOKEN = '$NOW';
+
+/**
+ * Replace `$NOW` with the instant the query runs.
+ *
+ * A metric like "employees currently on leave" is an as-of-this-instant
+ * question, not a period question: narrowing a period to "now" would ask
+ * something different and get a different answer. The token is resolved here,
+ * once per query, so every clause in the same metric sees the same instant —
+ * resolving it per clause would let a query straddle midnight and contradict
+ * itself.
+ *
+ * It is a registry-authored token, never user input. A client cannot introduce
+ * one: filter values arrive through `filter.model.ts`, which coerces a date
+ * operand with `new Date(...)` and rejects anything unparseable.
+ */
+export function resolveRelativeTokens(
+  clause: Record<string, unknown>,
+  now: Date = new Date(),
+): Record<string, unknown> {
+  const walk = (node: unknown): unknown => {
+    if (node === RELATIVE_NOW_TOKEN) return now;
+    if (Array.isArray(node)) return node.map(walk);
+    if (node === null || typeof node !== 'object') return node;
+    if (node instanceof Date) return node;
+    return Object.fromEntries(
+      Object.entries(node as Record<string, unknown>).map(([key, value]) => [
+        key,
+        walk(value),
+      ]),
+    );
+  };
+  return walk(clause) as Record<string, unknown>;
+}
 
 interface PrismaDelegate {
   count(args: Record<string, unknown>): Promise<number>;
   aggregate(args: Record<string, unknown>): Promise<AggregateRow>;
   groupBy(args: Record<string, unknown>): Promise<GroupRow[]>;
-  findMany(args: Record<string, unknown>): Promise<Array<Record<string, unknown>>>;
+  findMany(
+    args: Record<string, unknown>,
+  ): Promise<Array<Record<string, unknown>>>;
 }
 
 interface AggregateRow {

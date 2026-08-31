@@ -35,7 +35,10 @@ export function parseTargetKey(targetKey: string): ParsedTarget {
     return { kind: 'standard', id: targetKey.slice(STANDARD_PREFIX.length) };
   }
   if (targetKey.startsWith(DEFINITION_PREFIX)) {
-    return { kind: 'definition', id: targetKey.slice(DEFINITION_PREFIX.length) };
+    return {
+      kind: 'definition',
+      id: targetKey.slice(DEFINITION_PREFIX.length),
+    };
   }
   if (targetKey.startsWith(SURFACE_PREFIX)) {
     return { kind: 'surface', id: targetKey.slice(SURFACE_PREFIX.length) };
@@ -71,7 +74,11 @@ export interface ReportResult {
   description: string;
   sourceKey: string;
   columns: ReportResultColumn[];
-  rows: Array<{ id: string; href: string | null; values: Record<string, unknown> }>;
+  rows: Array<{
+    id: string;
+    href: string | null;
+    values: Record<string, unknown>;
+  }>;
   total: number;
   page: number;
   pageSize: number;
@@ -169,6 +176,7 @@ export class ReportExecutionService {
       pageSize: params.pageSize,
       sortField: params.sortField ?? spec.sortField,
       sortDirection: params.sortDirection ?? spec.sortDirection,
+      applyPeriod: spec.appliesPeriod,
     });
 
     return {
@@ -231,7 +239,13 @@ export class ReportExecutionService {
       });
     }
 
-    return { ...first, rows, page: 1, pageSize: rows.length, total: rows.length };
+    return {
+      ...first,
+      rows,
+      page: 1,
+      pageSize: rows.length,
+      total: rows.length,
+    };
   }
 
   private standardSpec(key: string) {
@@ -251,6 +265,7 @@ export class ReportExecutionService {
       preset: report.preset,
       sortField: report.sortField,
       sortDirection: report.sortDirection,
+      appliesPeriod: report.appliesPeriod,
       caveats: report.caveats ?? [],
     };
   }
@@ -266,6 +281,9 @@ export class ReportExecutionService {
       preset: definition.config.preset,
       sortField: definition.config.sortField,
       sortDirection: definition.config.sortDirection,
+      // A custom report always honours its period; only the code-defined
+      // standard reports declare otherwise.
+      appliesPeriod: true,
       caveats: [],
     };
   }

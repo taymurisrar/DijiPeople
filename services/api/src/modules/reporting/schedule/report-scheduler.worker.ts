@@ -550,16 +550,16 @@ export class ReportSchedulerWorker implements OnModuleInit, OnModuleDestroy {
    */
   private async organizationSettings(tenantId: string) {
     try {
-      const settings = await this.tenantSettings.getOrganizationSettings(
-        tenantId,
-      );
+      const settings =
+        await this.tenantSettings.getOrganizationSettings(tenantId);
       const system = await this.tenantSettings.getSystemSettings(tenantId);
       return {
         timezone: settings.timezone || 'UTC',
         locale: system?.locale ?? undefined,
         currency: settings.currency || undefined,
         dateFormat: settings.dateFormat || undefined,
-        timeFormat: settings.timeFormat === '24h' ? ('24h' as const) : ('12h' as const),
+        timeFormat:
+          settings.timeFormat === '24h' ? ('24h' as const) : ('12h' as const),
         tenantName: settings.companyDisplayName || undefined,
       };
     } catch (error) {

@@ -23,21 +23,21 @@ export class ReportsController {
     { entityKey: ENTITY_KEYS.REPORTS, action: 'read' },
   )
   getHeadcountSummary(@CurrentUser() user: AuthenticatedUser) {
-    return this.reportsService.getHeadcountSummary(user.tenantId);
+    return this.reportsService.getHeadcountSummary(user);
   }
 
   @Get('leave-summary')
   @Permissions('leave-requests.read')
   @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'read')
   getLeaveSummary(@CurrentUser() user: AuthenticatedUser) {
-    return this.reportsService.getLeaveSummary(user.tenantId);
+    return this.reportsService.getLeaveSummary(user);
   }
 
   @Get('attendance-summary')
   @Permissions('attendance.read')
   @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   getAttendanceSummary(@CurrentUser() user: AuthenticatedUser) {
-    return this.reportsService.getAttendanceSummary(user.tenantId);
+    return this.reportsService.getAttendanceSummary(user);
   }
 
   @Get('recruitment-summary')
@@ -47,6 +47,6 @@ export class ReportsController {
     { entityKey: ENTITY_KEYS.CANDIDATES, action: 'read' },
   )
   getRecruitmentSummary(@CurrentUser() user: AuthenticatedUser) {
-    return this.reportsService.getRecruitmentSummary(user.tenantId);
+    return this.reportsService.getRecruitmentSummary(user);
   }
 }

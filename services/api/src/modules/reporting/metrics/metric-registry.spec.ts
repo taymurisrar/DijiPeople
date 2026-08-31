@@ -174,9 +174,7 @@ describe('metric calculations name real fields', () => {
         const field = fieldOf(source, fieldKey);
         expect(field?.aggregatable).toBe(true);
         expect(
-          (field?.supportedAggregations ?? []).includes(
-            aggregation as never,
-          )
+          (field?.supportedAggregations ?? []).includes(aggregation as never)
             ? aggregation
             : `${metric.key} applies "${aggregation}" to ${fieldKey}, which declares [${(field?.supportedAggregations ?? []).join(', ')}]`,
         ).toBe(aggregation);
@@ -384,11 +382,7 @@ describe('metric disclosure', () => {
 
   it('keeps desktop metric wording neutral', () => {
     for (const metric of METRICS.filter(isDesktopMetric)) {
-      const text = [
-        metric.label,
-        metric.description,
-        ...(metric.caveats ?? []),
-      ]
+      const text = [metric.label, metric.description, ...(metric.caveats ?? [])]
         .join(' ')
         .toLowerCase();
       for (const word of JUDGEMENT_WORDS) {

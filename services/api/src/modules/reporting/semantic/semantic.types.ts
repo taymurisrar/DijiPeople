@@ -178,6 +178,45 @@ export interface ReportDataSource {
   scope: ReportScopeOptions;
 
   /**
+   * Scope this source through a relation instead of through its own columns.
+   *
+   * `AttendanceDay`, `LeaveConsumptionRecord` and `LeaveBalance` carry a
+   * `tenantId` and an `employeeId` and nothing else a scope can narrow on — no
+   * `businessUnitId`, no `ownerUserId`. Scoping them by their own columns
+   * therefore has only two possible outcomes, and both are wrong: match
+   * everything in the tenant, or match nothing at all.
+   *
+   * With this set, the row filter is built for the model at the end of the path
+   * and nested under it, so `{ businessUnitId: X }` becomes
+   * `{ employee: { businessUnitId: X } }` — a business-unit-scoped reader sees
+   * exactly the attendance of the employees they can already see.
+   */
+  scopeRelationPath?: string[];
+  /** Scope options for the model at the end of `scopeRelationPath`. */
+  scopeRelationOptions?: ReportScopeOptions;
+
+  /**
+   * What a sub-tenant access level means for an entity that has no
+   * organizational placement at all.
+   *
+   * `DENY` (the default) fails closed: if the scope cannot be expressed, no rows
+   * come back.
+   *
+   * `TENANT_WIDE` says the entity genuinely has no placement to narrow by, so
+   * every placement sees all of it. `Candidate`, `Application` and `JobOpening`
+   * carry no `businessUnitId`, `organizationId` or `teamId` — a candidate does
+   * not belong to a business unit until they are hired — so a
+   * `BUSINESS_UNIT`-scoped recruiter has nothing to be narrowed to, and denying
+   * them everything would be an accident rather than a policy.
+   *
+   * This exists as an explicit, reviewable field precisely because it is a
+   * widening. A source that sets it is asserting that its model has no
+   * placement columns, and `semantic-registry.spec.ts` should hold that claim to
+   * the schema.
+   */
+  scopeFallback?: 'DENY' | 'TENANT_WIDE';
+
+  /**
    * Predicate applied to every query on this source, before filters.
    *
    * There is no uniform "active" flag in this schema: `isDeleted` exists on
@@ -188,6 +227,21 @@ export interface ReportDataSource {
 
   /** The field used when a period narrows this source. */
   defaultDateField: string;
+
+  /**
+   * Whether a period narrows this source at all. Defaults to true.
+   *
+   * Some sources describe a *current population* rather than events in a
+   * window. `Employee`'s only date field is `hireDate`, so narrowing it by the
+   * selected period turns "headcount" into "people hired in the last 30 days" —
+   * a plausible number, a different question, and no error anywhere to say so.
+   * The same applies to leave balances, registered devices and open
+   * requisitions.
+   *
+   * A source that sets this false is asserting it has no event date. Time-series
+   * questions about workforce go to `workforce_history`, which does.
+   */
+  periodScoped?: boolean;
 
   fields: ReportFieldDefinition[];
 
@@ -247,7 +301,12 @@ export type ReportMetricCalculation =
    * wrong; `SUM(active) / SUM(loggedIn)` is right. Making this its own kind
    * means the correct form is the easy one to reach for.
    */
-  | { kind: 'ratio'; numerator: string; denominator: string; asPercent?: boolean }
+  | {
+      kind: 'ratio';
+      numerator: string;
+      denominator: string;
+      asPercent?: boolean;
+    }
   | { kind: 'filtered_count'; where: Record<string, unknown> }
   | { kind: 'derived'; dependsOn: string[] };
 

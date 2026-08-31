@@ -295,12 +295,12 @@ describe('ReportArtifactService — tenant isolation', () => {
   it('gives a cross-tenant caller the same answer as a missing run', async () => {
     const { service } = makeService({ rows: [COMPLETED_RUN] });
 
-    const foreign = await service
-      .openArtifact('tenant-b', 'run-1')
-      .catch((error: Error & { errorCode: string }) => error);
-    const missing = await service
-      .openArtifact('tenant-a', 'run-absent')
-      .catch((error: Error & { errorCode: string }) => error);
+    const foreign = await captureError(() =>
+      service.openArtifact('tenant-b', 'run-1'),
+    );
+    const missing = await captureError(() =>
+      service.openArtifact('tenant-a', 'run-absent'),
+    );
 
     // Distinguishing them would confirm another tenant's run exists.
     expect(foreign.errorCode).toBe(missing.errorCode);
@@ -562,9 +562,9 @@ describe('ReportArtifactService — sweepExpired', () => {
         fileSizeBytes: null,
       },
     });
-    expect(
-      prisma.table.find((run) => run.id === 'live-1')?.status,
-    ).toBe(ReportRunStatus.COMPLETED);
+    expect(prisma.table.find((run) => run.id === 'live-1')?.status).toBe(
+      ReportRunStatus.COMPLETED,
+    );
   });
 
   it('is a no-op on a second pass', async () => {
@@ -607,6 +607,20 @@ describe('ReportArtifactService — sweepExpired', () => {
     expect(where.tenantId).toBeUndefined();
   });
 });
+
+/** The rejection an async call produced, typed as the AppError it is. */
+async function captureError(run: () => Promise<unknown>) {
+  let caught: unknown;
+  try {
+    await run();
+  } catch (error) {
+    caught = error;
+  }
+  if (caught === undefined) {
+    throw new Error('Expected the call to reject, but it resolved.');
+  }
+  return caught as Error & { errorCode: string };
+}
 
 function exportFile(): ReportExportFile {
   return {

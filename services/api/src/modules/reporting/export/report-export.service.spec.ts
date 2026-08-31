@@ -52,7 +52,12 @@ function makeResult(overrides: Partial<ReportResult> = {}): ReportResult {
         format: 'datetime',
       },
       { key: 'salary', label: 'Salary', type: 'money', format: 'currency' },
-      { key: 'worked', label: 'Worked', type: 'duration_minutes', format: 'duration' },
+      {
+        key: 'worked',
+        label: 'Worked',
+        type: 'duration_minutes',
+        format: 'duration',
+      },
       { key: 'active', label: 'Active', type: 'boolean', format: 'plain' },
     ],
     rows: [],
@@ -66,7 +71,11 @@ function makeResult(overrides: Partial<ReportResult> = {}): ReportResult {
 }
 
 function row(values: Record<string, unknown>) {
-  return { id: values.id ? String(values.id) : 'row-1', href: null, values };
+  return {
+    id: typeof values.id === 'string' ? values.id : 'row-1',
+    href: null,
+    values,
+  };
 }
 
 function csvLines(buffer: Buffer): string[] {
@@ -89,9 +98,7 @@ describe('ReportExportService — CSV', () => {
 
     const file = await service.buildFile(makeResult(), 'CSV', CONTEXT);
 
-    expect(file.buffer.subarray(0, 3)).toEqual(
-      Buffer.from([0xef, 0xbb, 0xbf]),
-    );
+    expect(file.buffer.subarray(0, 3)).toEqual(Buffer.from([0xef, 0xbb, 0xbf]));
     expect(file.contentType).toBe('text/csv; charset=utf-8');
     expect(file.extension).toBe('csv');
     expect(file.truncated).toBe(false);
@@ -236,9 +243,16 @@ describe('ReportExportService — XLSX', () => {
 
     const [definition] = excel.buildWorkbookBuffer.mock.calls[0];
     expect(definition.sheets).toHaveLength(1);
-    expect(definition.sheets[0].columns?.map((column) => column.header)).toEqual(
-      ['Employee', 'Hired', 'Clocked in', 'Salary', 'Worked', 'Active'],
-    );
+    expect(
+      definition.sheets[0].columns?.map((column) => column.header),
+    ).toEqual([
+      'Employee',
+      'Hired',
+      'Clocked in',
+      'Salary',
+      'Worked',
+      'Active',
+    ]);
     expect(definition.sheets[0].columns?.map((column) => column.key)).toEqual([
       'name',
       'hiredOn',
@@ -331,7 +345,10 @@ describe('ReportExportService — PDF', () => {
 
     const model = service.buildPdfModel(makeResult(), {
       ...CONTEXT,
-      period: { from: '2026-08-01T00:00:00.000Z', to: '2026-08-31T00:00:00.000Z' },
+      period: {
+        from: '2026-08-01T00:00:00.000Z',
+        to: '2026-08-31T00:00:00.000Z',
+      },
     });
 
     expect(model.contextLine).toBe('Acme Trading — Active employees');

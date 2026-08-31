@@ -5,7 +5,10 @@ import {
   resolveEffectiveAccessLevel,
 } from '../../../common/security/rbac-query-scope';
 import type { AuthenticatedUser } from '../../../common/interfaces/authenticated-request.interface';
-import type { ReportDataSource } from '../semantic/semantic.types';
+import type {
+  ReportDataSource,
+  ReportScopeOptions,
+} from '../semantic/semantic.types';
 
 /**
  * Row scope for a reporting query.
@@ -66,6 +69,26 @@ export class ReportScopeResolver {
     user: AuthenticatedUser,
     source: ReportDataSource,
   ): Record<string, unknown> {
+    const relationPath = source.scopeRelationPath ?? [];
+
+    if (relationPath.length > 0) {
+      // Scope the related model, then nest. See `scopeRelationPath` on
+      // ReportDataSource for why these sources cannot be scoped on their own
+      // columns at all.
+      const options = source.scopeRelationOptions ?? {};
+      const fragment = buildScopedAccessWhere<Record<string, unknown>>(
+        user,
+        source.rbacEntityKey,
+        SecurityPrivilege.READ,
+        options,
+      );
+      const sanitized = this.sanitize(fragment, source, options);
+      return relationPath.reduceRight<Record<string, unknown>>(
+        (acc, segment) => ({ [segment]: acc }),
+        sanitized,
+      );
+    }
+
     const fragment = buildScopedAccessWhere<Record<string, unknown>>(
       user,
       source.rbacEntityKey,
@@ -73,11 +96,36 @@ export class ReportScopeResolver {
       source.scope,
     );
 
-    return this.sanitize(fragment, source);
+    const sanitized = this.sanitize(fragment, source);
+
+    // A source whose model carries no organizational placement can declare that
+    // a sub-tenant level has nothing to narrow to. Applied only when the scope
+    // actually failed closed, so it can never widen a scope that resolved.
+    if (
+      source.scopeFallback === 'TENANT_WIDE' &&
+      this.isPoisoned(sanitized) &&
+      this.effectiveLevel(user, source) !== 'NONE'
+    ) {
+      const tenantField = source.scope.tenantIdField ?? 'tenantId';
+      this.logger.debug(
+        `reporting.scope.tenant_wide_fallback source=${source.key} level=${this.effectiveLevel(user, source)}`,
+      );
+      return { [tenantField]: user.tenantId };
+    }
+
+    return sanitized;
   }
 
-  private knownColumns(source: ReportDataSource): Set<string> {
-    const scope = source.scope;
+  /** True when the fragment resolved to the match-nothing poison pill. */
+  private isPoisoned(fragment: Record<string, unknown>): boolean {
+    return JSON.stringify(fragment).includes('__rbac_no_access__');
+  }
+
+  private knownColumns(
+    source: ReportDataSource,
+    override?: ReportScopeOptions,
+  ): Set<string> {
+    const scope = override ?? source.scope;
     const columns = new Set<string>();
     // Only the ownership/scope columns the source explicitly declares. A field
     // left undefined means "this model does not have one".
@@ -100,15 +148,31 @@ export class ReportScopeResolver {
   private sanitize(
     fragment: Record<string, unknown>,
     source: ReportDataSource,
+    scopeOverride?: ReportScopeOptions,
   ): Record<string, unknown> {
-    const known = this.knownColumns(source);
+    const known = this.knownColumns(source, scopeOverride);
     const dropped: string[] = [];
+
+    /**
+     * An unknown predicate is REPLACED with a match-nothing term, never removed.
+     *
+     * Removing it is the tempting version and it is wrong, because the two
+     * container types have opposite polarity. Prisma ANDs the keys of an
+     * object, so dropping `{ businessUnitId: … }` out of
+     * `{ AND: [ {tenantId}, {businessUnitId} ] }` leaves `{ AND: [ {tenantId} ] }`
+     * — the whole tenant, which is a widening and precisely the leak this
+     * function exists to prevent. Inside an `OR`, by contrast, dropping a branch
+     * narrows and is safe.
+     *
+     * Substituting the poison pill gets both right with one rule: as an `OR`
+     * branch it contributes nothing and the other branches still match; as an
+     * `AND` term it matches nothing and the query fails closed.
+     */
+    const POISON = { id: '__rbac_no_access__' } as const;
 
     const walk = (node: unknown): unknown => {
       if (Array.isArray(node)) {
-        return node
-          .map((entry) => walk(entry))
-          .filter((entry) => entry !== undefined);
+        return node.map((entry) => walk(entry));
       }
       if (node === null || typeof node !== 'object') return node;
 
@@ -117,18 +181,16 @@ export class ReportScopeResolver {
         node as Record<string, unknown>,
       )) {
         if (key === 'AND' || key === 'OR' || key === 'NOT') {
-          const walked = walk(value);
-          if (Array.isArray(walked) && walked.length === 0) continue;
-          result[key] = walked;
+          result[key] = walk(value);
           continue;
         }
         if (!known.has(key)) {
           dropped.push(key);
-          continue;
+          return POISON;
         }
         result[key] = value;
       }
-      return Object.keys(result).length > 0 ? result : undefined;
+      return Object.keys(result).length > 0 ? result : POISON;
     };
 
     const walked = walk(fragment);
@@ -141,14 +203,6 @@ export class ReportScopeResolver {
       );
     }
 
-    // An entirely emptied fragment must never become "match everything". Fail
-    // closed with the same poison-pill id `buildScopedAccessWhere` uses for
-    // NONE. Reading the tenant predicate back off the original fragment would
-    // not do: above TENANT level it is nested inside `AND`, so a naive lookup
-    // yields `{ tenantId: undefined }`, which matches every row in every tenant.
-    if (walked === undefined) {
-      return { id: '__rbac_no_access__' };
-    }
-    return walked as Record<string, unknown>;
+    return (walked ?? POISON) as Record<string, unknown>;
   }
 }

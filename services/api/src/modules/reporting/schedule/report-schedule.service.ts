@@ -209,7 +209,9 @@ export class ReportScheduleService {
               after: new Date(),
             })
           : null,
-        consecutiveFailureCount: isEnabled ? 0 : existing.consecutiveFailureCount,
+        consecutiveFailureCount: isEnabled
+          ? 0
+          : existing.consecutiveFailureCount,
         lastFailureReason: isEnabled ? null : existing.lastFailureReason,
         updatedById: user.userId,
       },
@@ -291,7 +293,10 @@ export class ReportScheduleService {
     if (requested.length > MAX_SCHEDULE_RECIPIENTS) {
       throw new AppError('REPORT_SCHEDULE_INVALID', {
         message: `A schedule may have at most ${MAX_SCHEDULE_RECIPIENTS} recipients.`,
-        details: { requested: requested.length, maximum: MAX_SCHEDULE_RECIPIENTS },
+        details: {
+          requested: requested.length,
+          maximum: MAX_SCHEDULE_RECIPIENTS,
+        },
       });
     }
 

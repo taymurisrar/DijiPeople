@@ -145,10 +145,12 @@ const isListField = (model: DmmfModel, name: string): boolean =>
   LIST_FIELDS.has(`${model.name}.${name}`);
 
 const SOURCES = listDataSources();
-const ALL_FIELDS: Array<{ source: ReportDataSource; field: ReportFieldDefinition }> =
-  SOURCES.flatMap((source) =>
-    source.fields.map((field) => ({ source, field })),
-  );
+const ALL_FIELDS: Array<{
+  source: ReportDataSource;
+  field: ReportFieldDefinition;
+}> = SOURCES.flatMap((source) =>
+  source.fields.map((field) => ({ source, field })),
+);
 
 /**
  * Walks `relationPath` from the source's root model and returns the model the
@@ -248,7 +250,9 @@ describe('report data source registry', () => {
         if (typeof column !== 'string') continue;
         const resolved = findField(model, column);
         expect(
-          resolved && resolved.kind === 'scalar' ? column : `${option}=${column} MISSING on ${model.name}`,
+          resolved && resolved.kind === 'scalar'
+            ? column
+            : `${option}=${column} MISSING on ${model.name}`,
         ).toBe(column);
       }
     },
@@ -315,9 +319,7 @@ describe('report field keys', () => {
 
 describe('report field paths resolve against the Prisma schema', () => {
   it.each(
-    ALL_FIELDS.map(
-      ({ source, field }) => [field.key, source, field] as const,
-    ),
+    ALL_FIELDS.map(({ source, field }) => [field.key, source, field] as const),
   )('%s: relationPath and path agree', (_key, source, field) => {
     const relationPath = field.relationPath ?? [];
     if (relationPath.length === 0) {
@@ -336,35 +338,30 @@ describe('report field paths resolve against the Prisma schema', () => {
   });
 
   it.each(
-    ALL_FIELDS.map(
-      ({ source, field }) => [field.key, source, field] as const,
-    ),
-  )('%s: the model, every relation hop and the column exist', (
-    _key,
-    source,
-    field,
-  ) => {
-    const relationPath = field.relationPath ?? [];
-    const model = resolveLeafModel(source, relationPath);
-    const leafName =
-      relationPath.length === 0
-        ? field.path
-        : field.path.slice(`${relationPath.join('.')}.`.length);
+    ALL_FIELDS.map(({ source, field }) => [field.key, source, field] as const),
+  )(
+    '%s: the model, every relation hop and the column exist',
+    (_key, source, field) => {
+      const relationPath = field.relationPath ?? [];
+      const model = resolveLeafModel(source, relationPath);
+      const leafName =
+        relationPath.length === 0
+          ? field.path
+          : field.path.slice(`${relationPath.join('.')}.`.length);
 
-    const resolved = findField(model, leafName);
-    expect(
-      resolved
-        ? leafName
-        : `column "${leafName}" does not exist on model ${model.name} (field ${field.key})`,
-    ).toBe(leafName);
-    expect(resolved?.kind).not.toBe('object');
-    expect(isListField(model, leafName)).toBe(false);
-  });
+      const resolved = findField(model, leafName);
+      expect(
+        resolved
+          ? leafName
+          : `column "${leafName}" does not exist on model ${model.name} (field ${field.key})`,
+      ).toBe(leafName);
+      expect(resolved?.kind).not.toBe('object');
+      expect(isListField(model, leafName)).toBe(false);
+    },
+  );
 
   it.each(
-    ALL_FIELDS.map(
-      ({ source, field }) => [field.key, source, field] as const,
-    ),
+    ALL_FIELDS.map(({ source, field }) => [field.key, source, field] as const),
   )('%s: the declared type matches the column type', (_key, source, field) => {
     const relationPath = field.relationPath ?? [];
     const model = resolveLeafModel(source, relationPath);
@@ -393,9 +390,7 @@ describe('report field paths resolve against the Prisma schema', () => {
   });
 
   it.each(
-    ALL_FIELDS.map(
-      ({ source, field }) => [field.key, source, field] as const,
-    ),
+    ALL_FIELDS.map(({ source, field }) => [field.key, source, field] as const),
   )('%s: enumValues match the Prisma enum exactly', (_key, source, field) => {
     const relationPath = field.relationPath ?? [];
     const model = resolveLeafModel(source, relationPath);
@@ -483,9 +478,7 @@ describe('report field capability declarations', () => {
 
 describe('grouping declarations', () => {
   it.each(
-    ALL_FIELDS.map(
-      ({ source, field }) => [field.key, source, field] as const,
-    ),
+    ALL_FIELDS.map(({ source, field }) => [field.key, source, field] as const),
   )(
     '%s: a groupable relation field declares a groupByField on the root model',
     (_key, source, field) => {
@@ -512,24 +505,21 @@ describe('grouping declarations', () => {
   );
 
   it.each(
-    ALL_FIELDS.map(
-      ({ source, field }) => [field.key, source, field] as const,
-    ),
-  )('%s: any declared groupByField resolves on the root model', (
-    _key,
-    source,
-    field,
-  ) => {
-    if (field.groupByField === undefined) return;
-    const model = resolveLeafModel(source, []);
-    const column = findField(model, field.groupByField);
-    expect(
-      column && column.kind !== 'object'
-        ? field.groupByField
-        : `groupByField "${field.groupByField}" is not a scalar column on ${model.name} (field ${field.key})`,
-    ).toBe(field.groupByField);
-    expect(isListField(model, field.groupByField)).toBe(false);
-  });
+    ALL_FIELDS.map(({ source, field }) => [field.key, source, field] as const),
+  )(
+    '%s: any declared groupByField resolves on the root model',
+    (_key, source, field) => {
+      if (field.groupByField === undefined) return;
+      const model = resolveLeafModel(source, []);
+      const column = findField(model, field.groupByField);
+      expect(
+        column && column.kind !== 'object'
+          ? field.groupByField
+          : `groupByField "${field.groupByField}" is not a scalar column on ${model.name} (field ${field.key})`,
+      ).toBe(field.groupByField);
+      expect(isListField(model, field.groupByField)).toBe(false);
+    },
+  );
 
   it.each(ALL_FIELDS.map(({ field }) => [field.key, field] as const))(
     '%s: any labelLookup names a real model with both columns',
@@ -607,7 +597,9 @@ describe('employee dimensions', () => {
       );
       for (const dimension of REQUIRED_DIMENSIONS) {
         expect(
-          names.has(dimension) ? dimension : `${sourceKey} is missing ${dimension}`,
+          names.has(dimension)
+            ? dimension
+            : `${sourceKey} is missing ${dimension}`,
         ).toBe(dimension);
       }
     },

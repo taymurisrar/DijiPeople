@@ -7,10 +7,16 @@ import {
   Patch,
   Post,
   Query,
+  Res,
+  StreamableFile,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import {
+  ENTITY_KEYS,
+  MISC_PERMISSION_KEYS,
+} from '../../common/constants/rbac-matrix';
 import { PERMISSION_KEYS } from '../../common/constants/permissions';
 import {
   Permissions,
@@ -31,12 +37,20 @@ import {
   UpdateReportDefinitionDto,
   UpdateSavedViewDto,
 } from './dto/report-definition.dto';
+import {
+  CreateReportExportDto,
+  CreateReportScheduleDto,
+  UpdateReportScheduleDto,
+} from './dto/schedule.dto';
 import { AnalyticsService } from './execution/analytics.service';
 import { ReportExecutionService } from './execution/report-execution.service';
 import { ReportDefinitionService } from './execution/report-definition.service';
 import { ReportFavoriteService } from './execution/favorite.service';
 import { SavedViewService } from './execution/saved-view.service';
 import { builderFields } from './execution/report-definition.validator';
+import { ReportArtifactService } from './export/report-artifact.service';
+import { ReportExportOrchestrator } from './export/report-export.orchestrator';
+import { ReportScheduleService } from './schedule/report-schedule.service';
 
 /**
  * The Reports & Analytics API.
@@ -63,6 +77,9 @@ export class ReportingController {
     private readonly definitions: ReportDefinitionService,
     private readonly savedViews: SavedViewService,
     private readonly favorites: ReportFavoriteService,
+    private readonly exportOrchestrator: ReportExportOrchestrator,
+    private readonly artifacts: ReportArtifactService,
+    private readonly schedules: ReportScheduleService,
   ) {}
 
   // ── catalog ──────────────────────────────────────────────────────────────
@@ -218,6 +235,107 @@ export class ReportingController {
   @RequirePermission(ENTITY_KEYS.REPORTS, 'read')
   listRecents(@CurrentUser() user: AuthenticatedUser) {
     return this.favorites.listRecent(user);
+  }
+
+  // ── exports ──────────────────────────────────────────────────────────────
+
+  @Post('exports')
+  @Permissions(MISC_PERMISSION_KEYS.REPORTS_EXPORT)
+  @RequirePermission(ENTITY_KEYS.REPORTS, 'export')
+  createExport(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateReportExportDto,
+  ) {
+    return this.exportOrchestrator.export(user, dto.targetKey, dto.format, {
+      preset: dto.preset,
+      from: dto.from,
+      to: dto.to,
+      filters: dto.filters,
+    });
+  }
+
+  @Get('exports')
+  @Permissions(MISC_PERMISSION_KEYS.REPORTS_EXPORT)
+  @RequirePermission(ENTITY_KEYS.REPORTS, 'export')
+  listExports(@CurrentUser() user: AuthenticatedUser) {
+    return this.artifacts.listRuns(user.tenantId, {
+      requestedByUserId: user.userId,
+    });
+  }
+
+  // ── schedules ────────────────────────────────────────────────────────────
+
+  @Get('schedules')
+  @Permissions(PERMISSION_KEYS.REPORTS_SCHEDULE_MANAGE)
+  @RequirePermission(ENTITY_KEYS.REPORTS, 'read')
+  listSchedules(@CurrentUser() user: AuthenticatedUser) {
+    return this.schedules.list(user);
+  }
+
+  @Post('schedules')
+  @Permissions(PERMISSION_KEYS.REPORTS_SCHEDULE_MANAGE)
+  @RequirePermission(ENTITY_KEYS.REPORTS, 'create')
+  createSchedule(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateReportScheduleDto,
+  ) {
+    return this.schedules.create(user, dto);
+  }
+
+  // ── parameterised export and schedule routes ─────────────────────────────
+
+  @Get('exports/:runId')
+  @Permissions(MISC_PERMISSION_KEYS.REPORTS_EXPORT)
+  @RequirePermission(ENTITY_KEYS.REPORTS, 'export')
+  getExport(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('runId') runId: string,
+  ) {
+    return this.artifacts.getRun(user.tenantId, runId);
+  }
+
+  @Get('exports/:runId/download')
+  @Permissions(MISC_PERMISSION_KEYS.REPORTS_EXPORT)
+  @RequirePermission(ENTITY_KEYS.REPORTS, 'export')
+  async downloadExport(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('runId') runId: string,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<StreamableFile> {
+    const artifact = await this.artifacts.openArtifact(user.tenantId, runId);
+    response.setHeader(
+      'Content-Type',
+      artifact.contentType ?? 'application/octet-stream',
+    );
+    response.setHeader(
+      'Content-Disposition',
+      // The filename is built by ReportExportService, which already strips
+      // quotes, backslashes, separators and control characters. Stripping again
+      // here is cheap and keeps the header safe if that ever changes.
+      `attachment; filename="${(artifact.fileName ?? 'report').replace(/["\\\r\n]/g, '')}"`,
+    );
+    return new StreamableFile(artifact.stream);
+  }
+
+  @Patch('schedules/:scheduleId')
+  @Permissions(PERMISSION_KEYS.REPORTS_SCHEDULE_MANAGE)
+  @RequirePermission(ENTITY_KEYS.REPORTS, 'write')
+  updateSchedule(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('scheduleId') scheduleId: string,
+    @Body() dto: UpdateReportScheduleDto,
+  ) {
+    return this.schedules.update(user, scheduleId, dto);
+  }
+
+  @Delete('schedules/:scheduleId')
+  @Permissions(PERMISSION_KEYS.REPORTS_SCHEDULE_MANAGE)
+  @RequirePermission(ENTITY_KEYS.REPORTS, 'write')
+  removeSchedule(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('scheduleId') scheduleId: string,
+  ) {
+    return this.schedules.remove(user, scheduleId);
   }
 
   // ── parameterised report routes (declared last, deliberately) ────────────

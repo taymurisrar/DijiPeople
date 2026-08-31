@@ -37,13 +37,20 @@ import type { ReportDataSource } from '../semantic.types';
 export const RECRUITMENT_OPENINGS_SOURCE: ReportDataSource = {
   key: 'recruitment_openings',
   label: 'Job openings',
-  description: 'Requisitions, one row per opening, with their lifecycle status.',
+  description:
+    'Requisitions, one row per opening, with their lifecycle status.',
   prismaModel: 'jobOpening',
   rbacEntityKey: ENTITY_KEYS.JOBS,
   scope: {
     organizationIdField: null,
     createdByIdField: 'createdById',
   },
+  // A candidate does not belong to a business unit until they are hired.
+  // Candidate, Application and JobOpening carry no businessUnitId,
+  // organizationId or teamId, so a BUSINESS_UNIT-scoped recruiter has nothing
+  // to be narrowed to — denying them everything would be an accident, not a
+  // policy. Declared explicitly because it is a widening.
+  scopeFallback: 'TENANT_WIDE',
   defaultDateField: 'createdAt',
   recordIdField: 'id',
   requiredFeatureKey: TENANT_FEATURE_KEYS.RECRUITMENT,
@@ -148,6 +155,12 @@ export const RECRUITMENT_CANDIDATES_SOURCE: ReportDataSource = {
     organizationIdField: null,
     createdByIdField: 'createdById',
   },
+  // A candidate does not belong to a business unit until they are hired.
+  // Candidate, Application and JobOpening carry no businessUnitId,
+  // organizationId or teamId, so a BUSINESS_UNIT-scoped recruiter has nothing
+  // to be narrowed to — denying them everything would be an accident, not a
+  // policy. Declared explicitly because it is a widening.
+  scopeFallback: 'TENANT_WIDE',
   defaultDateField: 'createdAt',
   recordIdField: 'id',
   requiredFeatureKey: TENANT_FEATURE_KEYS.RECRUITMENT,
@@ -376,6 +389,12 @@ export const RECRUITMENT_APPLICATIONS_SOURCE: ReportDataSource = {
     ownerUserIdField: 'recruiterOwnerUserId',
     createdByIdField: 'createdById',
   },
+  // A candidate does not belong to a business unit until they are hired.
+  // Candidate, Application and JobOpening carry no businessUnitId,
+  // organizationId or teamId, so a BUSINESS_UNIT-scoped recruiter has nothing
+  // to be narrowed to — denying them everything would be an accident, not a
+  // policy. Declared explicitly because it is a widening.
+  scopeFallback: 'TENANT_WIDE',
   defaultDateField: 'appliedAt',
   recordIdField: 'id',
   requiredFeatureKey: TENANT_FEATURE_KEYS.RECRUITMENT,
@@ -490,7 +509,11 @@ export const RECRUITMENT_APPLICATIONS_SOURCE: ReportDataSource = {
       sortable: true,
       groupable: true,
       groupByField: 'jobOpeningId',
-      labelLookup: { model: 'jobOpening', valueField: 'id', labelField: 'title' },
+      labelLookup: {
+        model: 'jobOpening',
+        valueField: 'id',
+        labelField: 'title',
+      },
       nullLabel: 'Unknown opening',
     },
     {
@@ -516,7 +539,11 @@ export const RECRUITMENT_APPLICATIONS_SOURCE: ReportDataSource = {
       filterable: true,
       groupable: true,
       groupByField: 'candidateId',
-      labelLookup: { model: 'candidate', valueField: 'id', labelField: 'email' },
+      labelLookup: {
+        model: 'candidate',
+        valueField: 'id',
+        labelField: 'email',
+      },
       nullLabel: 'Unknown candidate',
       sensitivity: 'INTERNAL',
     },
@@ -556,6 +583,12 @@ export const RECRUITMENT_STAGE_TRANSITIONS_SOURCE: ReportDataSource = {
     organizationIdField: null,
     createdByIdField: 'createdById',
   },
+  // A candidate does not belong to a business unit until they are hired.
+  // Candidate, Application and JobOpening carry no businessUnitId,
+  // organizationId or teamId, so a BUSINESS_UNIT-scoped recruiter has nothing
+  // to be narrowed to — denying them everything would be an accident, not a
+  // policy. Declared explicitly because it is a widening.
+  scopeFallback: 'TENANT_WIDE',
   defaultDateField: 'changedAt',
   recordIdField: 'id',
   requiredFeatureKey: TENANT_FEATURE_KEYS.RECRUITMENT,
@@ -577,7 +610,8 @@ export const RECRUITMENT_STAGE_TRANSITIONS_SOURCE: ReportDataSource = {
     {
       key: 'recruitment_stage_transitions.from_stage',
       label: 'From stage',
-      description: 'Null on the first transition, when the application was created.',
+      description:
+        'Null on the first transition, when the application was created.',
       type: 'enum',
       path: 'fromStage',
       enumValues: Object.values(RecruitmentStage),
