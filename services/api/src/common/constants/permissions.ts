@@ -289,8 +289,7 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
   {
     key: 'reports.write',
     name: 'Edit reports',
-    description:
-      'Edit, share and schedule saved reports and analytics views.',
+    description: 'Edit, share and schedule saved reports and analytics views.',
   },
   {
     key: 'reports.delete',
