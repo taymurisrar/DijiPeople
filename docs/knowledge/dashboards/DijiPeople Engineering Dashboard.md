@@ -409,6 +409,7 @@ _None. Nothing open at CRITICAL._
 
 ## Recent Engineering History
 
+- [[2026-08-31-session-redirect-loop-77abf947|Engineering History — Session redirect loop]]
 - [[2026-08-31-reports-analytics-platform-d833e694|Engineering History — Reports analytics platform]]
 - [[2026-08-30-release-attendance-location-capture-ec1d58da|Engineering History — Release attendance location capture]]
 - [[2026-08-30-prod-monitoring-triage-fba846d1|Engineering History — Prod monitoring triage]]
@@ -416,15 +417,14 @@ _None. Nothing open at CRITICAL._
 - [[2026-08-30-data-model-and-screen-discovery-122ce41e|Engineering History — Data model and screen discovery]]
 - [[2026-08-30-checkout-duplicate-customer-68f4fd2e|Engineering History — Checkout duplicate customer]]
 - [[2026-08-30-attendance-location-capture-c5c7c13f|Engineering History — Attendance location capture]]
-- [[2026-08-30-attendance-correction-entry-and-auth-validation-c603abea|Engineering History — Attendance correction entry and auth validation]]
 
 ## Recent Releases
 
 - [[2026-08-31-production-dae0e37|Deployment Report — PRODUCTION — dae0e37]]
 - [[2026-08-31-production-cace6cd|Deployment Report — PRODUCTION — cace6cd]]
+- [[2026-08-31-production-6d17e93|Deployment Report — PRODUCTION — 6d17e93]]
 - [[2026-08-30-production-6ffed9f|Release — production — `6ffed9f`]]
 - [[2026-08-25-production-08d7901|Release — production — `08d7901`]]
-- [[2026-08-24-production-6ed7a44|Release — production — `6ed7a44`]]
 
 ## Active / Recent Backlog
 
@@ -529,8 +529,8 @@ _None. Nothing open at CRITICAL._
 | Backlog items | 119 |
 | Known bug patterns | 32 |
 | QA runs | 32 |
-| Engineering history records | 70 |
-| Release records | 6 |
+| Engineering history records | 71 |
+| Release records | 7 |
 | Module notes | 30 |
 | Architecture notes | 22 |
 | Decision notes (ADR + generated) | 8 |
