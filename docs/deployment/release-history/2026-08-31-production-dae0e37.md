@@ -95,7 +95,14 @@ that container never received them — the workers were inert and said so only a
 after, and the snapshot worker wrote its first rows.
 
 Verified inside a bounded window by temporarily setting the poll interval to its
-5-minute minimum, confirming rows appeared, then restoring it to hourly.
+5-minute minimum, confirming rows appeared, then restoring the stored value to
+hourly.
+
+That restore did **not** trigger a redeploy, so the running process keeps the
+5-minute interval until the next deploy picks the hourly value up. Harmless —
+the worker skips a day whose row already exists — but stated here because
+"restored to hourly" describes the configuration, not the process currently
+serving traffic, and those are two different things on this platform.
 
 ## Performance
 
