@@ -8,13 +8,13 @@
 | | |
 |---|---|
 | Open CRITICAL | **0** |
-| Open HIGH | **28** |
-| Open total | 107 |
+| Open HIGH | **29** |
+| Open total | 108 |
 | Blocked | 2 |
 | Awaiting a product decision | 6 |
 | Deferred | 25 |
 | Completed | 290 |
-| Awaiting Architect triage | 2 |
+| Awaiting Architect triage | 3 |
 
 ## Open Critical Bugs
 
@@ -52,6 +52,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2623-buildscopedaccesswhere-filters-employee-on-ownerteamid-a-col|BUG-2623]] | buildScopedAccessWhere filters Employee on ownerTeamId, a column Employee does not have | AUTHORIZATION | HIGH | FIXED | services/api/src/common/security/rbac-query-scope.ts | DONE |
 | [[BUG-2683-every-scheduled-report-fails-to-deliver-because-the-email-te|BUG-2683]] | Every scheduled report fails to deliver because the email template variable tenantName is never passed | BUG | HIGH | FIXED | api:reporting/schedule | DONE |
 | [[BUG-2693-historical-headcount-reports-employee-days-instead-of-headco|BUG-2693]] | Historical headcount reports employee-days instead of headcount and grows with the length of the period | DATA_INTEGRITY | HIGH | FIXED | api:reporting | DONE |
+| [[BUG-2732-attendance-integration-cannot-be-activated-activation-requir|BUG-2732]] | Attendance integration cannot be activated: activation requires a verified device, but only an active integration is ever verified | STATE_MACHINE | HIGH | OPEN | api:attendance-integrations, gateway/src/DijiPeople.Gateway.Host | TRIAGE_REQUIRED |
 
 ## Product Decisions Needed
 
@@ -525,7 +526,7 @@ _None. Nothing open at CRITICAL._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 311 |
+| Bug records | 312 |
 | Backlog items | 119 |
 | Known bug patterns | 32 |
 | QA runs | 32 |
@@ -536,7 +537,7 @@ _None. Nothing open at CRITICAL._
 | Decision notes (ADR + generated) | 8 |
 | Implementation records | 7 |
 
-**Awaiting Architect triage: 2.** A record nobody has
+**Awaiting Architect triage: 3.** A record nobody has
 triaged is work nobody has decided about — the number that should stay near
 zero between tasks.
 
