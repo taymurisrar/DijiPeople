@@ -15,6 +15,7 @@ import {
   updateReportSchedule,
   type ReportSchedule,
 } from "../_lib/reporting-browser";
+import { useFormattingContext } from "@/app/components/filters/use-formatting-context";
 
 /*
  * The schedules this workspace has, and the two things you can do to one from
@@ -61,6 +62,7 @@ export function ScheduledReportsList({
   reportNames,
   currentUserId,
 }: ScheduledReportsListProps) {
+  const formattingContext = useFormattingContext();
   const router = useRouter();
   const [busyId, setBusyId] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -189,7 +191,7 @@ export function ScheduledReportsList({
                     </dt>
                     <dd className="inline">
                       {schedule.nextRunAt
-                        ? formatDateTime(schedule.nextRunAt)
+                        ? formatDateTime(schedule.nextRunAt, formattingContext)
                         : "Not scheduled"}
                     </dd>
                   </div>
@@ -199,7 +201,7 @@ export function ScheduledReportsList({
                     </dt>
                     <dd className="inline">
                       {schedule.lastRunAt
-                        ? `${formatDateTime(schedule.lastRunAt)} (${(
+                        ? `${formatDateTime(schedule.lastRunAt, formattingContext)} (${(
                             schedule.lastRunStatus ?? "unknown"
                           ).toLowerCase()})`
                         : "Never run"}

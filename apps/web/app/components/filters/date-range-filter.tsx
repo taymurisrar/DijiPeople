@@ -11,6 +11,7 @@ import {
   type DateRange,
   type PeriodPreset,
 } from "./period";
+import { useFormattingContext } from "@/app/components/filters/use-formatting-context";
 
 /*
  * Preset first, custom dates second.
@@ -59,6 +60,7 @@ export function DateRangeFilter({
   timezone,
   value,
 }: DateRangeFilterProps) {
+  const formattingContext = useFormattingContext();
   const isCustom = value.preset === "custom";
 
   const resolved: DateRange = resolvePeriod(value.preset, {
@@ -72,7 +74,7 @@ export function DateRangeFilter({
    * quarter" is not a date range until it is one, and a reader comparing this
    * screen against a spreadsheet needs to know which days were counted.
    */
-  const resolvedLabel = formatPeriodLabel(resolved);
+  const resolvedLabel = formatPeriodLabel(resolved, formattingContext);
   const days = periodLengthInDays(resolved);
 
   const today = resolvePeriod("today", { timezone, referenceDate }).to;

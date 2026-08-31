@@ -11,6 +11,7 @@ import {
   type ComparisonMode,
   type DateRange,
 } from "./period";
+import { useFormattingContext } from "@/app/components/filters/use-formatting-context";
 
 /*
  * What the current period is measured against.
@@ -45,6 +46,7 @@ export function ComparisonSelector({
   period,
   value,
 }: ComparisonSelectorProps) {
+  const formattingContext = useFormattingContext();
   const comparison = resolveComparison(period, value);
 
   const hint = React.useMemo(() => {
@@ -52,7 +54,7 @@ export function ComparisonSelector({
       return undefined;
     }
 
-    const rendered = formatPeriodLabel(comparison);
+    const rendered = formatPeriodLabel(comparison, formattingContext);
     if (!rendered) {
       return undefined;
     }
@@ -68,7 +70,7 @@ export function ComparisonSelector({
     return comparisonDays === periodDays
       ? rendered
       : `${rendered} - ${comparisonDays} days vs ${periodDays}, so totals are not directly comparable`;
-  }, [comparison, period]);
+  }, [comparison, period, formattingContext]);
 
   return (
     <SelectField

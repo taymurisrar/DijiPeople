@@ -15,6 +15,7 @@ import {
   type ReportExportRun,
 } from "../_lib/reporting-browser";
 import type { ReportFilterInput } from "../_lib/reporting-types";
+import { useFormattingContext } from "@/app/components/filters/use-formatting-context";
 
 /*
  * Export, offered only where it can actually run.
@@ -69,6 +70,7 @@ export function ExportMenu({
   filters,
   subject,
 }: ExportMenuProps) {
+  const formattingContext = useFormattingContext();
   const [open, setOpen] = React.useState(false);
   const [format, setFormat] = React.useState<string>("XLSX");
   const [busy, setBusy] = React.useState(false);
@@ -163,13 +165,13 @@ export function ExportMenu({
               {run.fileName ? <strong>{run.fileName}</strong> : "The file"} is
               ready
               {typeof run.rowCount === "number"
-                ? `, with ${formatNumber(run.rowCount)} rows`
+                ? `, with ${formatNumber(run.rowCount, formattingContext)} rows`
                 : ""}
               .
             </p>
             {run.expiresAt ? (
               <p className="text-xs text-muted">
-                It is kept until {formatDateTime(run.expiresAt)}, after which it
+                It is kept until {formatDateTime(run.expiresAt, formattingContext)}, after which it
                 is deleted and has to be built again.
               </p>
             ) : null}

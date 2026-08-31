@@ -273,6 +273,16 @@ function coerceScalar(field: ReportFieldDefinition, value: unknown): unknown {
     }
     case 'date':
     case 'datetime': {
+      // A Date arrives from the metric registry, where `$NOW` has already been
+      // resolved to an instant by the executor. Rejecting it here made every
+      // as-of-now metric — "employees currently on leave", "upcoming leave" —
+      // fail with "expects a date" while holding a perfectly good one.
+      if (value instanceof Date) {
+        if (Number.isNaN(value.getTime())) {
+          throw invalid(`Filter on ${field.key} expects a valid date.`);
+        }
+        return value;
+      }
       if (typeof value !== 'string') {
         throw invalid(`Filter on ${field.key} expects a date.`);
       }

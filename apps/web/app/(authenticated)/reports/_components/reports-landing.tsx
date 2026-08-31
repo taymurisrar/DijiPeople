@@ -12,6 +12,7 @@ import type {
   ReportLibraryEntry,
 } from "../_lib/reporting-types";
 import { ReportGroup, ReportList } from "./report-list";
+import { useFormattingContext } from "@/app/components/filters/use-formatting-context";
 
 /*
  * The way in.
@@ -53,6 +54,7 @@ export function ReportsLanding({
   canCreate,
   libraryAvailable,
 }: ReportsLandingProps) {
+  const formattingContext = useFormattingContext();
   const all = React.useMemo(() => [...standard, ...custom], [standard, custom]);
 
   const byTargetKey = React.useMemo(
@@ -175,7 +177,7 @@ export function ReportsLanding({
                           candidate.entry.targetKey === entry.targetKey,
                       );
                       if (!row) return undefined;
-                      const when = formatDate(row.recent.viewedAt);
+                      const when = formatDate(row.recent.viewedAt, formattingContext);
                       return row.recent.viewCount > 1
                         ? `Opened ${row.recent.viewCount} times, most recently ${when}`
                         : `Opened ${when}`;

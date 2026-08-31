@@ -15,6 +15,7 @@ import {
   duplicateReportDefinition,
   reportingErrorMessage,
 } from "../_lib/reporting-browser";
+import { useFormattingContext } from "@/app/components/filters/use-formatting-context";
 
 /*
  * Custom reports: the ones people in this workspace built.
@@ -46,6 +47,7 @@ export function MyReportsWorkspace({
   currentUserId,
   canCreate,
 }: MyReportsWorkspaceProps) {
+  const formattingContext = useFormattingContext();
   const router = useRouter();
   const [busyKey, setBusyKey] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -209,6 +211,7 @@ function ReportGroup({
   onDelete: (entry: ReportLibraryEntry) => void;
   onDuplicate: (entry: ReportLibraryEntry) => void;
 }) {
+  const formattingContext = useFormattingContext();
   const headingId = `my-reports-${heading.replace(/\W+/g, "-").toLowerCase()}`;
 
   return (
@@ -246,7 +249,7 @@ function ReportGroup({
                   <StatusPill tone="info">{entry.category}</StatusPill>
                   {entry.updatedAt ? (
                     <span className="text-xs text-muted">
-                      Updated {formatDate(entry.updatedAt)}
+                      Updated {formatDate(entry.updatedAt, formattingContext)}
                     </span>
                   ) : null}
                 </div>

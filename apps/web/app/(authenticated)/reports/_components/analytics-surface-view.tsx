@@ -22,6 +22,7 @@ import { CaveatPanel } from "./caveat-panel";
 import { ReportRecordsTable } from "./report-records-table";
 import { SavedViewsBar } from "./saved-views-bar";
 import { SurfaceControls } from "./surface-controls";
+import { useFormattingContext } from "@/app/components/filters/use-formatting-context";
 
 /*
  * One analytics surface, assembled.
@@ -121,16 +122,17 @@ export function AnalyticsSurfaceView({
   currencyCode,
   recordNoun,
 }: AnalyticsSurfaceViewProps) {
+  const formattingContext = useFormattingContext();
   const periodLabel = formatPeriodLabel({
     from: result.period.from,
     to: result.period.to,
-  });
+  }, formattingContext);
 
   const comparisonLabel = result.comparisonPeriod
     ? formatPeriodLabel({
         from: result.comparisonPeriod.from,
         to: result.comparisonPeriod.to,
-      })
+      }, formattingContext)
     : null;
 
   const trendMetric = result.metrics.find(
@@ -283,8 +285,8 @@ export function AnalyticsSurfaceView({
           currencyCode={currencyCode}
           description={
             activeBucketLabel
-              ? `${formatNumber(records.total)} records in ${activeBucketLabel}, for ${periodLabel} and the filters above.`
-              : `${formatNumber(records.total)} records behind these numbers, for ${periodLabel} and the filters above.`
+              ? `${formatNumber(records.total, formattingContext)} records in ${activeBucketLabel}, for ${periodLabel} and the filters above.`
+              : `${formatNumber(records.total, formattingContext)} records behind these numbers, for ${periodLabel} and the filters above.`
           }
           emptyDescription={emptyDescription}
           emptyTitle={emptyTitle}

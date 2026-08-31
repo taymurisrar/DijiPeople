@@ -9,6 +9,7 @@ import { CaveatPanel } from "./caveat-panel";
 import { ExportMenu } from "./export-menu";
 import { ScheduleReportDialog } from "./schedule-report-dialog";
 import { ReportRecordsTable } from "./report-records-table";
+import { useFormattingContext } from "@/app/components/filters/use-formatting-context";
 
 /*
  * A report, run.
@@ -56,6 +57,7 @@ export function ReportRunnerView({
   backHref,
   backLabel,
 }: ReportRunnerViewProps) {
+  const formattingContext = useFormattingContext();
   return (
     <div className="grid gap-5">
       <section className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
@@ -78,8 +80,8 @@ export function ReportRunnerView({
               </p>
             ) : null}
             <p className="mt-2 text-xs text-muted">
-              {formatNumber(result.total)} rows, generated{" "}
-              {formatDateTime(result.generatedAt)}.
+              {formatNumber(result.total, formattingContext)} rows, generated{" "}
+              {formatDateTime(result.generatedAt, formattingContext)}.
             </p>
           </div>
 
@@ -123,7 +125,7 @@ export function ReportRunnerView({
          * naming a different fortnight from the rows beneath it. The filter bar
          * prints the resolved range in its own hint, from one resolution.
          */
-        description={`${formatNumber(result.total)} rows for the period selected above, against your own access.`}
+        description={`${formatNumber(result.total, formattingContext)} rows for the period selected above, against your own access.`}
         emptyDescription="No records fall inside the selected period for this report. Widen the period, or check that the data this report reads has been recorded."
         emptyTitle="No records in this period"
         page={result.page}
