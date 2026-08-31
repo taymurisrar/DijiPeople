@@ -12,6 +12,8 @@
  * handler posts where the API actually listens. The equivalent server-side
  * assertions are in `approvals.decision.spec.ts`.
  */
+import { buildApprovalRecord } from "@/app/components/approvals/approval-record";
+import type { ApprovalRequestItem } from "@/app/components/approvals/approval-types";
 import { getCommandPayloadSchema } from "../command-payload-schema";
 import { createStandardModuleDataAdapter } from "./standard-module-data.adapter";
 import { approvalRuntimeSpec } from "./standard-module-specs";
@@ -137,5 +139,79 @@ describe("approvals decision handlers", () => {
 
     expect(result.ok).toBe(false);
     expect(captured).toBeNull();
+  });
+});
+
+/*
+ * The seam between the two halves.
+ *
+ * `dynamicDisabled` names a single field by logical name and reads it straight
+ * off the record. Nothing type-checks that name against what the pages actually
+ * put there — a spread into a `record={{...}}` prop satisfies no contract — so
+ * renaming `canApprove` on either side would leave every button permanently
+ * disabled with no compiler error and no failing test. That is BUG-2718's own
+ * symptom, reached from the other direction, and it is exactly the kind of gap
+ * that a fix wired correctly at both ends still leaves open in the middle.
+ */
+describe("the capability fields the spec reads are the ones the pages write", () => {
+  const approval = {
+    id: "2381aba5-60ed-4cbb-9fb6-3d5040fb81e5",
+    moduleKey: "attendance",
+    title: "ACR-000001 - Taimur Israr",
+    requestNumber: "ACR-000001",
+    submittedAtUtc: "2026-08-30T08:00:00.000Z",
+    submittedByUser: { firstName: "Taimur", lastName: "Israr", email: "t@x.io" },
+    submittedForEmployee: null,
+    currentStep: {
+      assignments: [
+        {
+          assignedToUser: { firstName: "Ayesha", lastName: "Khan" },
+          assignedToRole: null,
+        },
+      ],
+    },
+    decision: {
+      canApprove: true,
+      canReject: false,
+      canCancel: false,
+      reason: "This step is assigned to someone else.",
+    },
+  } as unknown as ApprovalRequestItem;
+
+  it("puts every field the commands key off onto the record", () => {
+    const record = buildApprovalRecord(approval) as Record<string, unknown>;
+
+    for (const command of approvalRuntimeSpec.commands ?? []) {
+      const config = command.dynamicDisabled;
+      if (!config) continue;
+      expect(Object.keys(record)).toContain(config.fieldLogicalName);
+      expect(Object.keys(record)).toContain(config.reasonFieldLogicalName);
+    }
+  });
+
+  it("enables exactly the commands the server said were available", () => {
+    const record = buildApprovalRecord(approval) as Record<string, unknown>;
+
+    // The command bar treats a field equal to `enabledValue` as enabled.
+    expect(record.canApprove).toBe(true);
+    expect(record.canReject).toBe(false);
+    expect(record.canCancel).toBe(false);
+    expect(record.decisionReason).toBe(
+      "This step is assigned to someone else.",
+    );
+  });
+
+  it("renders the module as a name rather than a machine key", () => {
+    const record = buildApprovalRecord(approval) as Record<string, unknown>;
+
+    // The Module column read "attendance" beside title-cased everything else.
+    expect(record.moduleLabel).toBe("Attendance");
+  });
+
+  it("names the assignees rather than leaving Assigned To empty", () => {
+    const record = buildApprovalRecord(approval) as Record<string, unknown>;
+
+    expect(record.assignedToName).toBe("Ayesha Khan");
+    expect(record.requesterName).toBe("Taimur Israr");
   });
 });

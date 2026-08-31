@@ -1,5 +1,5 @@
 import { StandardModuleListPage } from "@/app/components/runtime";
-import { moduleDisplayName } from "@/app/components/approvals/approval-display";
+import { buildApprovalRecord } from "@/app/components/approvals/approval-record";
 import type { ApprovalsResponse } from "@/app/components/approvals/approval-types";
 import { requireSessionUser } from "@/lib/auth";
 import { hasAnyPermission } from "@/lib/permissions";
@@ -52,25 +52,7 @@ export default async function ApprovalsPage({
     runtime,
     getSearchParam(resolvedSearchParams.viewId),
   );
-  const records = response.items.map((approval) => ({
-    ...approval,
-    approvalName: approval.title || approval.requestNumber || approval.id,
-    moduleLabel: moduleDisplayName(approval.moduleKey),
-    requesterName:
-      fullName(approval.submittedByUser) ||
-      fullName(approval.submittedForEmployee) ||
-      "Unknown requester",
-    assignedToName:
-      approval.currentStep?.assignments
-        .map((assignment) =>
-          assignment.assignedToUser
-            ? fullName(assignment.assignedToUser)
-            : assignment.assignedToRole?.name,
-        )
-        .filter(Boolean)
-        .join(", ") ?? "",
-    submittedAt: approval.submittedAtUtc,
-  }));
+  const records = response.items.map(buildApprovalRecord);
 
   return (
     <div className="space-y-6">
@@ -133,17 +115,4 @@ function getSearchParam(value?: string | string[]) {
   }
 
   return value ?? "";
-}
-
-function fullName(
-  user:
-    | {
-        readonly firstName: string;
-        readonly lastName: string;
-      }
-    | null
-    | undefined,
-) {
-  if (!user) return "";
-  return [user.firstName, user.lastName].filter(Boolean).join(" ");
 }

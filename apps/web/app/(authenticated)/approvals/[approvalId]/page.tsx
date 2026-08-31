@@ -1,6 +1,7 @@
 import { StandardModuleRecordPage } from "@/app/components/runtime";
 import { ApprovalChain } from "@/app/components/approvals/approval-chain";
 import { moduleDisplayName } from "@/app/components/approvals/approval-display";
+import { buildApprovalRecord } from "@/app/components/approvals/approval-record";
 import type { ApprovalDetailResponse } from "@/app/components/approvals/approval-types";
 import { getSessionUser } from "@/lib/auth";
 import {
@@ -90,35 +91,7 @@ export default async function ApprovalDetailPage({
       <StandardModuleRecordPage
         activeForm={activeForm}
         mode="read"
-        record={{
-          ...approval,
-          approvalName: approval.title || approval.requestNumber || approval.id,
-          moduleLabel,
-          requesterName:
-            fullName(approval.submittedByUser) ||
-            fullName(approval.submittedForEmployee) ||
-            "Unknown requester",
-          assignedToName:
-            approval.currentStep?.assignments
-              .map((assignment) =>
-                assignment.assignedToUser
-                  ? fullName(assignment.assignedToUser)
-                  : assignment.assignedToRole?.name,
-              )
-              .filter(Boolean)
-              .join(", ") ?? "",
-          submittedAt: approval.submittedAtUtc,
-          /*
-           * Flattened onto the record because `dynamicDisabled` reads a single
-           * field by logical name. Approve, Reject and Withdraw each enable
-           * themselves from their own flag, and every disabled one explains
-           * itself with `decisionReason`.
-           */
-          canApprove: approval.decision.canApprove,
-          canReject: approval.decision.canReject,
-          canCancel: approval.decision.canCancel,
-          decisionReason: approval.decision.reason ?? "",
-        }}
+        record={buildApprovalRecord(approval)}
         recordId={approval.id}
         runtime={runtime}
         spec={approvalRuntimeSpec}
@@ -127,17 +100,4 @@ export default async function ApprovalDetailPage({
       <ApprovalChain approval={approval} moduleLabel={moduleLabel} />
     </div>
   );
-}
-
-function fullName(
-  user:
-    | {
-        readonly firstName: string;
-        readonly lastName: string;
-      }
-    | null
-    | undefined,
-) {
-  if (!user) return "";
-  return [user.firstName, user.lastName].filter(Boolean).join(" ");
 }
