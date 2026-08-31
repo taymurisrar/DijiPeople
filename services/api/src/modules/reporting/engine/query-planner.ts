@@ -42,6 +42,20 @@ const forbiddenField = (key: string) =>
     details: { field: key },
   });
 
+/**
+ * The Prisma path segments for a field.
+ *
+ * `path` is the full dotted path from the source's root model —
+ * `department.name`, not `name` — and `relationPath` merely records which
+ * prefix of it is a relation.
+ * Concatenating the two produces 'department.department.name', which Prisma
+ * rejects with an error naming a field that does not exist. Splitting the path
+ * is the single source of truth; every consumer goes through here.
+ */
+export function fieldSegments(field: ReportFieldDefinition): string[] {
+  return field.path.split('.').filter(Boolean);
+}
+
 export function fieldMap(
   source: ReportDataSource,
 ): ReadonlyMap<string, ReportFieldDefinition> {
@@ -238,7 +252,7 @@ export function planSelect(
 
   for (const key of keys) {
     const field = assertFieldVisible(source, user, key);
-    const segments = [...(field.relationPath ?? []), field.path];
+    const segments = fieldSegments(field);
     let cursor = select;
     for (let index = 0; index < segments.length; index += 1) {
       const segment = segments[index];
@@ -265,7 +279,7 @@ export function readFieldValue(
   row: Record<string, unknown>,
   field: ReportFieldDefinition,
 ): unknown {
-  const segments = [...(field.relationPath ?? []), field.path];
+  const segments = fieldSegments(field);
   let cursor: unknown = row;
   for (const segment of segments) {
     if (cursor === null || cursor === undefined || typeof cursor !== 'object') {

@@ -68,7 +68,7 @@ export const DESKTOP_METRICS: ReportMetricDefinition[] = [
     supportedDimensions: ACTIVITY_DIMENSIONS,
     comparable: true,
     direction: 'neutral',
-    permission: PERMISSION_KEYS.DESKTOP_ANALYTICS_READ_ORGANIZATION,
+    permission: PERMISSION_KEYS.DESKTOP_ANALYTICS_READ,
     sensitivity: 'RESTRICTED',
     caveats: [
       ...TELEMETRY_CAVEATS,
@@ -88,7 +88,7 @@ export const DESKTOP_METRICS: ReportMetricDefinition[] = [
     supportedDimensions: ACTIVITY_DIMENSIONS,
     comparable: true,
     direction: 'neutral',
-    permission: PERMISSION_KEYS.DESKTOP_ANALYTICS_READ_ORGANIZATION,
+    permission: PERMISSION_KEYS.DESKTOP_ANALYTICS_READ,
     sensitivity: 'RESTRICTED',
     caveats: [
       ...TELEMETRY_CAVEATS,
@@ -107,7 +107,7 @@ export const DESKTOP_METRICS: ReportMetricDefinition[] = [
     supportedDimensions: ACTIVITY_DIMENSIONS,
     comparable: true,
     direction: 'neutral',
-    permission: PERMISSION_KEYS.DESKTOP_ANALYTICS_READ_ORGANIZATION,
+    permission: PERMISSION_KEYS.DESKTOP_ANALYTICS_READ,
     sensitivity: 'RESTRICTED',
     caveats: [
       ...TELEMETRY_CAVEATS,
@@ -131,7 +131,7 @@ export const DESKTOP_METRICS: ReportMetricDefinition[] = [
     supportedDimensions: ACTIVITY_DIMENSIONS,
     comparable: true,
     direction: 'neutral',
-    permission: PERMISSION_KEYS.DESKTOP_ANALYTICS_READ_ORGANIZATION,
+    permission: PERMISSION_KEYS.DESKTOP_ANALYTICS_READ,
     sensitivity: 'RESTRICTED',
     caveats: [
       ...TELEMETRY_CAVEATS,
@@ -154,7 +154,7 @@ export const DESKTOP_METRICS: ReportMetricDefinition[] = [
     supportedDimensions: ACTIVITY_DIMENSIONS,
     comparable: true,
     direction: 'neutral',
-    permission: PERMISSION_KEYS.DESKTOP_ANALYTICS_READ_ORGANIZATION,
+    permission: PERMISSION_KEYS.DESKTOP_ANALYTICS_READ,
     sensitivity: 'RESTRICTED',
     caveats: [
       ...TELEMETRY_CAVEATS,
@@ -175,7 +175,7 @@ export const DESKTOP_METRICS: ReportMetricDefinition[] = [
     supportedDimensions: DEVICE_DIMENSIONS,
     comparable: true,
     direction: 'neutral',
-    permission: PERMISSION_KEYS.DESKTOP_ANALYTICS_DEVICE_HEALTH_READ,
+    permission: PERMISSION_KEYS.DESKTOP_ANALYTICS_READ,
     sensitivity: 'RESTRICTED',
     caveats: [
       'Ever connected, not recently connected. Filter on the last-seen date for a freshness view.',
@@ -198,7 +198,7 @@ export const DESKTOP_METRICS: ReportMetricDefinition[] = [
     supportedDimensions: DEVICE_DIMENSIONS,
     comparable: true,
     direction: 'down_is_good',
-    permission: PERMISSION_KEYS.DESKTOP_ANALYTICS_DEVICE_HEALTH_READ,
+    permission: PERMISSION_KEYS.DESKTOP_ANALYTICS_READ,
     sensitivity: 'RESTRICTED',
     caveats: [
       'A failed rollout and an abandoned enrolment look identical here.',
@@ -219,7 +219,7 @@ export const DESKTOP_METRICS: ReportMetricDefinition[] = [
     supportedDimensions: DEVICE_DIMENSIONS,
     comparable: true,
     direction: 'down_is_good',
-    permission: PERMISSION_KEYS.DESKTOP_ANALYTICS_DEVICE_HEALTH_READ,
+    permission: PERMISSION_KEYS.DESKTOP_ANALYTICS_READ,
     sensitivity: 'RESTRICTED',
     caveats: [
       'Requires the tenant AgentTrackingSettings latest version, which is not a column on the device and must be loaded by the query planner. Comparison is a semantic version comparison, not a string comparison — "1.10.0" sorts before "1.9.0" as text.',
@@ -242,7 +242,7 @@ export const DESKTOP_METRICS: ReportMetricDefinition[] = [
     supportedDimensions: ACTIVITY_DIMENSIONS,
     comparable: true,
     direction: 'neutral',
-    permission: PERMISSION_KEYS.DESKTOP_ANALYTICS_READ_ORGANIZATION,
+    permission: PERMISSION_KEYS.DESKTOP_ANALYTICS_READ,
     sensitivity: 'RESTRICTED',
     caveats: [
       ...TELEMETRY_CAVEATS,

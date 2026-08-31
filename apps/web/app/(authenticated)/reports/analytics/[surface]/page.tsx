@@ -211,7 +211,7 @@ export default async function AnalyticsSurfacePage({
       breakdownOptions={plan.breakdownOptions}
       canDrillDown={canDrillDown}
       canManageSavedViews={hasAnyPermission(user.permissionKeys, [
-        PERMISSION_KEYS.REPORTS_SAVED_VIEWS_MANAGE,
+        PERMISSION_KEYS.REPORTS_WRITE,
       ])}
       currencyCode={formatting.currency}
       description={definition.description}

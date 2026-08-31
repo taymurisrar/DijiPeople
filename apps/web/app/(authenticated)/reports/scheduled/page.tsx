@@ -65,7 +65,7 @@ export default async function ScheduledReportsPage() {
 
   if (
     !hasAnyPermission(user.permissionKeys, [
-      PERMISSION_KEYS.REPORTS_SCHEDULE_MANAGE,
+      PERMISSION_KEYS.REPORTS_WRITE,
     ])
   ) {
     return (

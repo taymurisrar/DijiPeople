@@ -50,8 +50,8 @@ export default async function MyReportsPage() {
     >
       <MyReportsWorkspace
         canCreate={hasAnyPermission(user.permissionKeys, [
-          PERMISSION_KEYS.REPORTS_BUILDER_USE,
-          PERMISSION_KEYS.REPORTS_DEFINITIONS_MANAGE,
+          PERMISSION_KEYS.REPORTS_CREATE,
+          PERMISSION_KEYS.REPORTS_WRITE,
         ])}
         currentUserId={user.userId}
         entries={library.custom}

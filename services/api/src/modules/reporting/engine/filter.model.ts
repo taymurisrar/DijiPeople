@@ -147,7 +147,9 @@ export function buildFilterPredicate(
   filter: ReportFilterInput,
 ): Record<string, unknown> {
   const leaf = buildLeafPredicate(field, filter);
-  const segments = [...(field.relationPath ?? []), field.path];
+  //  is already the full dotted path from the root model; see
+  // fieldSegments in query-planner.ts.
+  const segments = field.path.split('.').filter(Boolean);
   // Fold from the leaf outwards so the deepest key holds the predicate.
   return segments.reduceRight<Record<string, unknown>>(
     (acc, segment, index) =>

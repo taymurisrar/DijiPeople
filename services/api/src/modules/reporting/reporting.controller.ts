@@ -92,7 +92,7 @@ export class ReportingController {
   }
 
   @Get('builder-fields')
-  @Permissions(PERMISSION_KEYS.REPORTS_BUILDER_USE)
+  @Permissions(PERMISSION_KEYS.REPORTS_READ)
   @RequirePermission(ENTITY_KEYS.REPORTS, 'read')
   getBuilderFields(
     @CurrentUser() user: AuthenticatedUser,
@@ -149,7 +149,7 @@ export class ReportingController {
   }
 
   @Post('reports')
-  @Permissions(PERMISSION_KEYS.REPORTS_DEFINITIONS_MANAGE)
+  @Permissions(PERMISSION_KEYS.REPORTS_WRITE)
   @RequirePermission(ENTITY_KEYS.REPORTS, 'create')
   createReport(
     @CurrentUser() user: AuthenticatedUser,
@@ -171,7 +171,7 @@ export class ReportingController {
   }
 
   @Post('saved-views')
-  @Permissions(PERMISSION_KEYS.REPORTS_SAVED_VIEWS_MANAGE)
+  @Permissions(PERMISSION_KEYS.REPORTS_WRITE)
   @RequirePermission(ENTITY_KEYS.REPORTS, 'create')
   createSavedView(
     @CurrentUser() user: AuthenticatedUser,
@@ -181,7 +181,7 @@ export class ReportingController {
   }
 
   @Patch('saved-views/:savedViewId')
-  @Permissions(PERMISSION_KEYS.REPORTS_SAVED_VIEWS_MANAGE)
+  @Permissions(PERMISSION_KEYS.REPORTS_WRITE)
   @RequirePermission(ENTITY_KEYS.REPORTS, 'write')
   updateSavedView(
     @CurrentUser() user: AuthenticatedUser,
@@ -192,7 +192,7 @@ export class ReportingController {
   }
 
   @Delete('saved-views/:savedViewId')
-  @Permissions(PERMISSION_KEYS.REPORTS_SAVED_VIEWS_MANAGE)
+  @Permissions(PERMISSION_KEYS.REPORTS_WRITE)
   @RequirePermission(ENTITY_KEYS.REPORTS, 'write')
   removeSavedView(
     @CurrentUser() user: AuthenticatedUser,
@@ -266,14 +266,14 @@ export class ReportingController {
   // ── schedules ────────────────────────────────────────────────────────────
 
   @Get('schedules')
-  @Permissions(PERMISSION_KEYS.REPORTS_SCHEDULE_MANAGE)
+  @Permissions(PERMISSION_KEYS.REPORTS_WRITE)
   @RequirePermission(ENTITY_KEYS.REPORTS, 'read')
   listSchedules(@CurrentUser() user: AuthenticatedUser) {
     return this.schedules.list(user);
   }
 
   @Post('schedules')
-  @Permissions(PERMISSION_KEYS.REPORTS_SCHEDULE_MANAGE)
+  @Permissions(PERMISSION_KEYS.REPORTS_WRITE)
   @RequirePermission(ENTITY_KEYS.REPORTS, 'create')
   createSchedule(
     @CurrentUser() user: AuthenticatedUser,
@@ -318,7 +318,7 @@ export class ReportingController {
   }
 
   @Patch('schedules/:scheduleId')
-  @Permissions(PERMISSION_KEYS.REPORTS_SCHEDULE_MANAGE)
+  @Permissions(PERMISSION_KEYS.REPORTS_WRITE)
   @RequirePermission(ENTITY_KEYS.REPORTS, 'write')
   updateSchedule(
     @CurrentUser() user: AuthenticatedUser,
@@ -329,7 +329,7 @@ export class ReportingController {
   }
 
   @Delete('schedules/:scheduleId')
-  @Permissions(PERMISSION_KEYS.REPORTS_SCHEDULE_MANAGE)
+  @Permissions(PERMISSION_KEYS.REPORTS_WRITE)
   @RequirePermission(ENTITY_KEYS.REPORTS, 'write')
   removeSchedule(
     @CurrentUser() user: AuthenticatedUser,
@@ -351,7 +351,7 @@ export class ReportingController {
   }
 
   @Patch('reports/:reportId')
-  @Permissions(PERMISSION_KEYS.REPORTS_DEFINITIONS_MANAGE)
+  @Permissions(PERMISSION_KEYS.REPORTS_WRITE)
   @RequirePermission(ENTITY_KEYS.REPORTS, 'write')
   updateReport(
     @CurrentUser() user: AuthenticatedUser,
@@ -362,7 +362,7 @@ export class ReportingController {
   }
 
   @Post('reports/:reportId/duplicate')
-  @Permissions(PERMISSION_KEYS.REPORTS_DEFINITIONS_MANAGE)
+  @Permissions(PERMISSION_KEYS.REPORTS_WRITE)
   @RequirePermission(ENTITY_KEYS.REPORTS, 'create')
   duplicateReport(
     @CurrentUser() user: AuthenticatedUser,
@@ -372,7 +372,7 @@ export class ReportingController {
   }
 
   @Delete('reports/:reportId')
-  @Permissions(PERMISSION_KEYS.REPORTS_DEFINITIONS_MANAGE)
+  @Permissions(PERMISSION_KEYS.REPORTS_WRITE)
   @RequirePermission(ENTITY_KEYS.REPORTS, 'write')
   removeReport(
     @CurrentUser() user: AuthenticatedUser,

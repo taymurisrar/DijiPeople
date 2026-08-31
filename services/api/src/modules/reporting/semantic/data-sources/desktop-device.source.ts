@@ -44,7 +44,7 @@ const permissionStateField = (args: {
   groupable: true,
   groupByField: args.column,
   sensitivity: 'INTERNAL',
-  permission: PERMISSION_KEYS.DESKTOP_ANALYTICS_DEVICE_HEALTH_READ,
+  permission: PERMISSION_KEYS.DESKTOP_ANALYTICS_READ,
 });
 
 export const DESKTOP_DEVICES_SOURCE: ReportDataSource = {
@@ -100,7 +100,7 @@ export const DESKTOP_DEVICES_SOURCE: ReportDataSource = {
       filterable: true,
       sortable: true,
       sensitivity: 'INTERNAL',
-      permission: PERMISSION_KEYS.DESKTOP_ANALYTICS_DEVICE_HEALTH_READ,
+      permission: PERMISSION_KEYS.DESKTOP_ANALYTICS_READ,
     },
     {
       key: 'desktop_devices.device_fingerprint',
@@ -112,7 +112,7 @@ export const DESKTOP_DEVICES_SOURCE: ReportDataSource = {
       reportable: true,
       filterable: true,
       sensitivity: 'RESTRICTED',
-      permission: PERMISSION_KEYS.DESKTOP_ANALYTICS_DEVICE_HEALTH_READ,
+      permission: PERMISSION_KEYS.DESKTOP_ANALYTICS_READ,
     },
     {
       key: 'desktop_devices.os',
@@ -215,7 +215,7 @@ export const DESKTOP_DEVICES_SOURCE: ReportDataSource = {
       reportable: true,
       filterable: true,
       sortable: true,
-      permission: PERMISSION_KEYS.DESKTOP_ANALYTICS_DEVICE_HEALTH_READ,
+      permission: PERMISSION_KEYS.DESKTOP_ANALYTICS_READ,
     },
     ...employeeDimensionFields({
       sourceKey: 'desktop_devices',

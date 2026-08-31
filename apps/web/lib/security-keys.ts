@@ -53,11 +53,9 @@ export const PERMISSION_KEYS = {
    * can see, only where they can see it.
    */
   REPORTS_READ: "reports.read",
-  REPORTS_BUILDER_USE: "reports.builder.use",
-  REPORTS_DEFINITIONS_MANAGE: "reports.definitions.manage",
-  REPORTS_SAVED_VIEWS_MANAGE: "reports.saved-views.manage",
-  REPORTS_SCHEDULE_MANAGE: "reports.schedule.manage",
-  REPORTS_DATA_QUALITY_READ: "reports.data-quality.read",
+  REPORTS_CREATE: "reports.create",
+  REPORTS_WRITE: "reports.write",
+  REPORTS_DELETE: "reports.delete",
 
   /*
    * Desktop agent telemetry. `READ_OWN` is a person's own activity; the other
@@ -66,9 +64,7 @@ export const PERMISSION_KEYS = {
    * one a caller holds — the permission decides whether you may ask, not
    * whether the answer would identify somebody.
    */
-  DESKTOP_ANALYTICS_READ_OWN: "desktop-analytics.read.own",
-  DESKTOP_ANALYTICS_READ_ORGANIZATION: "desktop-analytics.read.organization",
-  DESKTOP_ANALYTICS_DEVICE_HEALTH_READ: "desktop-analytics.device-health.read",
+  DESKTOP_ANALYTICS_READ: "desktop-analytics.read",
 
   INBOX_READ: "inbox.read",
   INBOX_MARK_READ: "inbox.markRead",

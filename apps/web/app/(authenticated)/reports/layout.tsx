@@ -70,7 +70,7 @@ export default async function ReportsLayout({
      */
     ...(capabilities.schedule &&
     hasAnyPermission(user?.permissionKeys ?? [], [
-      PERMISSION_KEYS.REPORTS_SCHEDULE_MANAGE,
+      PERMISSION_KEYS.REPORTS_WRITE,
     ])
       ? [{ href: "/reports/scheduled", label: "Scheduled" }]
       : []),

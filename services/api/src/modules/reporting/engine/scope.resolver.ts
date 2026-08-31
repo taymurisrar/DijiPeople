@@ -127,16 +127,32 @@ export class ReportScopeResolver {
   ): Set<string> {
     const scope = override ?? source.scope;
     const columns = new Set<string>();
-    // Only the ownership/scope columns the source explicitly declares. A field
-    // left undefined means "this model does not have one".
+
+    // These MUST mirror the defaults `buildScopedAccessWhere` itself applies.
+    // Reading the raw option instead means a source that simply does not
+    // mention `businessUnitIdField` — which is most of them — has the emitted
+    // `{ businessUnitId: … }` treated as unknown, poisoned, and turned into
+    // zero rows for every BUSINESS_UNIT- and ORGANIZATION-scoped reader. That
+    // fails closed rather than leaking, but it is still silently wrong, and it
+    // is invisible to any test written with a TENANT-level user.
     for (const name of [
       scope.tenantIdField ?? 'tenantId',
-      scope.businessUnitIdField,
-      scope.organizationIdField ?? undefined,
-      scope.ownerUserIdField,
+      scope.businessUnitIdField ?? 'businessUnitId',
+      // `null` is meaningful here and means "this model has no organization
+      // column"; `undefined` just means the caller did not override the name.
+      scope.organizationIdField === null
+        ? undefined
+        : (scope.organizationIdField ?? 'organizationId'),
+      scope.ownerUserIdField ?? 'ownerUserId',
+      scope.userIdField ?? 'userId',
+      scope.createdByIdField ?? 'createdById',
+      // Deliberately NO default. `buildOwnedRecordWhere` emits an `ownerTeamId`
+      // predicate for any caller in a team, and most models — `Employee`
+      // included — have no such column (BUG-2623). Defaulting it here would
+      // wave that predicate through to Prisma and reproduce the crash; leaving
+      // it undeclared is what lets the sanitiser drop it, which narrows an OR
+      // and is safe. A model that really has the column declares it.
       scope.ownerTeamIdField,
-      scope.userIdField,
-      scope.createdByIdField,
     ]) {
       if (typeof name === 'string' && name.length > 0) columns.add(name);
     }

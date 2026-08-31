@@ -31,10 +31,10 @@ export default async function ReportBuilderPage({ searchParams }: PageProps) {
   ]);
 
   const canBuild = hasAnyPermission(user.permissionKeys, [
-    PERMISSION_KEYS.REPORTS_BUILDER_USE,
+    PERMISSION_KEYS.REPORTS_CREATE,
   ]);
   const canSave = hasAnyPermission(user.permissionKeys, [
-    PERMISSION_KEYS.REPORTS_DEFINITIONS_MANAGE,
+    PERMISSION_KEYS.REPORTS_WRITE,
   ]);
 
   if (!canBuild || !canSave) {

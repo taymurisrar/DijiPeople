@@ -12,6 +12,8 @@ import {
   MAX_BREAKDOWN_BUCKETS,
   type PlannedGroupBy,
 } from './query-planner';
+import { buildFilterPredicate, combinePredicates } from './filter.model';
+import type { ReportFilterOperator } from '../semantic/semantic.types';
 
 /**
  * Executes a planned reporting query against Prisma.
@@ -76,7 +78,9 @@ export class ReportQueryExecutor {
 
       case 'filtered_count':
         return delegate.count({
-          where: { AND: [where, resolveRelativeTokens(calculation.where)] },
+          where: {
+            AND: [where, this.resolveMetricWhere(source, calculation.where)],
+          },
         });
 
       case 'count_distinct': {
@@ -159,7 +163,7 @@ export class ReportQueryExecutor {
     // plausible chart with the wrong numbers, which is worse than an error.
     const groupWhere =
       calculation.kind === 'filtered_count'
-        ? { AND: [where, resolveRelativeTokens(calculation.where)] }
+        ? { AND: [where, this.resolveMetricWhere(source, calculation.where)] }
         : where;
 
     // count_distinct groups by the dimension AND the counted column, so each
@@ -333,6 +337,68 @@ export class ReportQueryExecutor {
   }
 
   /**
+   * Translate a metric's own filter from semantic terms into Prisma.
+   *
+   * The metric registry writes its predicates the way a report author would —
+   * `{ 'workforce.employment_status': { eq: 'ACTIVE' } }` — rather than in
+   * Prisma column names. That is the right way round: a metric is a business
+   * definition, and pinning it to a column name would put schema knowledge in
+   * two places and break silently when a path changed.
+   *
+   * The translation goes through `buildFilterPredicate`, the same function that
+   * resolves a user's filters, so a metric cannot express a predicate a user
+   * could not — including reaching a column the field registry does not declare.
+   */
+  private resolveMetricWhere(
+    source: ReportDataSource,
+    clause: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const resolved = resolveRelativeTokens(clause);
+    const fields = fieldMap(source);
+    const predicates: Record<string, unknown>[] = [];
+
+    for (const [key, condition] of Object.entries(resolved)) {
+      // A raw Prisma fragment passes through untouched, so a metric can still
+      // express something the filter vocabulary cannot.
+      if (key === 'AND' || key === 'OR' || key === 'NOT') {
+        predicates.push({ [key]: condition });
+        continue;
+      }
+
+      const field = fields.get(key);
+      if (!field) {
+        predicates.push({ [key]: condition });
+        continue;
+      }
+
+      if (condition === null || typeof condition !== 'object') {
+        predicates.push(
+          buildFilterPredicate(source, field, {
+            field: key,
+            operator: 'eq',
+            value: condition,
+          }),
+        );
+        continue;
+      }
+
+      for (const [operator, value] of Object.entries(
+        condition as Record<string, unknown>,
+      )) {
+        predicates.push(
+          buildFilterPredicate(source, field, {
+            field: key,
+            operator: operator as ReportFilterOperator,
+            value,
+          }),
+        );
+      }
+    }
+
+    return combinePredicates(predicates);
+  }
+
+  /**
    * The scalar column a calculation names.
    *
    * Aggregation cannot reach through a relation in Prisma, so a metric may only
@@ -347,7 +413,7 @@ export class ReportQueryExecutor {
         details: { field: fieldKey },
       });
     }
-    if ((field.relationPath ?? []).length > 0) {
+    if ((field.relationPath ?? []).length > 0 || field.path.includes('.')) {
       throw new AppError('REPORT_DEFINITION_INVALID', {
         message: `${field.label} cannot be aggregated because it is not a column on ${source.label}.`,
         details: { field: fieldKey },

@@ -79,8 +79,8 @@ export default async function ReportLibraryPage({ searchParams }: PageProps) {
       >
         <ReportLibraryBrowser
           canCreate={hasAnyPermission(user.permissionKeys, [
-            PERMISSION_KEYS.REPORTS_BUILDER_USE,
-            PERMISSION_KEYS.REPORTS_DEFINITIONS_MANAGE,
+            PERMISSION_KEYS.REPORTS_CREATE,
+            PERMISSION_KEYS.REPORTS_WRITE,
           ])}
           entries={[...(library?.standard ?? []), ...(library?.custom ?? [])]}
           favorites={favorites}
@@ -133,7 +133,7 @@ export default async function ReportLibraryPage({ searchParams }: PageProps) {
       backLabel="Back to the report library"
       currencyCode={formatting.currency}
       canManageSchedules={hasAnyPermission(user.permissionKeys, [
-        PERMISSION_KEYS.REPORTS_SCHEDULE_MANAGE,
+        PERMISSION_KEYS.REPORTS_WRITE,
       ])}
       exportAvailable={capabilities.export}
       /*

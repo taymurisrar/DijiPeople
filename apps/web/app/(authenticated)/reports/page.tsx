@@ -88,8 +88,8 @@ export default async function ReportsPage() {
   return (
     <ReportsLanding
       canCreate={hasAnyPermission(user.permissionKeys, [
-        PERMISSION_KEYS.REPORTS_BUILDER_USE,
-        PERMISSION_KEYS.REPORTS_DEFINITIONS_MANAGE,
+        PERMISSION_KEYS.REPORTS_CREATE,
+        PERMISSION_KEYS.REPORTS_WRITE,
       ])}
       custom={library?.custom ?? []}
       favorites={favorites}
