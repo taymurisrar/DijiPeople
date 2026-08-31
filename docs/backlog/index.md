@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**426 records** — 307 bugs under [`docs/bugs/`](../bugs/), 119 non-bug items under [`items/`](items/).
+**427 records** — 308 bugs under [`docs/bugs/`](../bugs/), 119 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,7 +13,7 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 103 |
+| Open (active work) | 104 |
 | Blocked | 2 |
 | Deferred | 25 |
 | Awaiting a product decision | 6 |
@@ -28,7 +28,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | HIGH | 26 |
 | MEDIUM | 64 |
-| LOW | 13 |
+| LOW | 14 |
 
 ## Open by type
 
@@ -47,7 +47,7 @@ see [`README.md`](README.md) for why.
 | STATE_MACHINE | 2 |
 | TECH_DEBT | 6 |
 | TEST_GAP | 6 |
-| UX | 26 |
+| UX | 27 |
 
 ## All records by status
 
@@ -57,7 +57,7 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 2 |
 | DEFERRED | 25 |
 | PRODUCT_DECISION | 6 |
-| FIXED | 67 |
+| FIXED | 68 |
 | VERIFIED | 218 |
 | DUPLICATE | 5 |
 | ACCEPTED_RISK | 3 |
@@ -458,6 +458,7 @@ see [`README.md`](README.md) for why.
 | [BUG-2461](../../docs/bugs/BUG-2461-get-employees-me-direct-reports-is-shadowed-by-the-employeei.md) | GET employees me direct-reports is shadowed by the employeeId route and returns 400 | BUG | LOW | P3 | FIXED | api:employees | FIX_NOW |
 | [BUG-2463](../../docs/bugs/BUG-2463-raw-prisma-constraint-failures-reach-operators-as-database-c.md) | Raw Prisma constraint failures reach operators as Database constraint failed | UX | LOW | P3 | DEFERRED | api:platform-runtime, api:super-admin, api:common | DEFER |
 | [BUG-2464](../../docs/bugs/BUG-2464-three-tenant-screens-crash-the-react-tree-with-hydration-err.md) | Three tenant screens crash the React tree with hydration errors 418 and 441 | UX | LOW | P3 | DUPLICATE | web:inbox, web:users, web:approvals | DUPLICATE |
+| [BUG-2657](../../docs/bugs/BUG-2657-analytics-caveat-panels-list-the-same-note-twice-in-differen.md) | Analytics caveat panels list the same note twice in different wording | UX | LOW | P3 | FIXED | api:reporting | DONE |
 | [ITEM-0007](../../docs/backlog/items/ITEM-0007-should-duplicate-website-leads-be-deduplicated.md) | Product decision — should duplicate website leads be deduplicated? | PRODUCT_DECISION | LOW | P3 | DONE | api:leads, apps/landing | DONE |
 | [ITEM-0008](../../docs/backlog/items/ITEM-0008-customeraccount-has-no-origin-channel.md) | Product decision — CustomerAccount carries no origin channel | PRODUCT_DECISION | LOW | P3 | DONE | services/api/prisma, api:super-admin | DONE |
 | [ITEM-0011](../../docs/backlog/items/ITEM-0011-framework-validation-should-catch-absence-claims.md) | Framework validation should catch false absence claims in context documents | TECH_DEBT | LOW | P3 | DONE | .agent/context, scripts | DONE |

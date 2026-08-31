@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 323** · automated: 281 · manual: 23 · blocked by infrastructure: 0
+**Scenarios: 324** · automated: 282 · manual: 23 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -224,6 +224,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-REPORTING-003](../../../docs/qa/scenarios/QA-REPORTING-003-reporting-headcount-excludes-soft-deleted-employees.md) | Reporting headcount excludes soft-deleted employees | reports | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/reporting/semantic/workforce-soft-delete.spec.ts` | BUG-2625 | REG-382 |
 | [QA-REPORTING-004](../../../docs/qa/scenarios/QA-REPORTING-004-reporting-pages-never-scroll-the-document-sideways.md) | Reporting pages never scroll the document sideways | reports | BROWSER_E2E | MEDIUM | AUTOMATED | `apps/web/app/(authenticated)/reports/_lib/formatting-and-layout-invariants.spec.ts` | BUG-2648 | REG-383 |
 | [QA-REPORTING-005](../../../docs/qa/scenarios/QA-REPORTING-005-reporting-formatters-always-receive-the-tenant-context.md) | Reporting formatters always receive the tenant context | reports | UNIT | MEDIUM | AUTOMATED | `apps/web/app/(authenticated)/reports/_lib/formatting-and-layout-invariants.spec.ts` | BUG-2647 | REG-384 |
+| [QA-REPORTING-006](../../../docs/qa/scenarios/QA-REPORTING-006-analytics-caveat-panel-lists-each-note-once.md) | Analytics caveat panel lists each note once | reports | UNIT | LOW | AUTOMATED | `services/api/src/modules/reporting/semantic/caveat-uniqueness.spec.ts` | BUG-2657 | REG-385 |
 | [QA-RUNTIME-001](../../../docs/qa/scenarios/QA-RUNTIME-001-every-declared-runtime-module-has-a-route-that-renders-it.md) | Every declared runtime module has a route that renders it | runtime-modules | UNIT | HIGH | AUTOMATED | `apps/admin/lib/runtime/module-routes.invariant.spec.ts` | BUG-0019, BUG-0024 | REG-028 |
 | [QA-RUNTIME-002](../../../docs/qa/scenarios/QA-RUNTIME-002-entity-scope-resolution-never-falls-back-to-unscoped.md) | Entity scope resolution never falls back to unscoped | runtime-modules | SECURITY | CRITICAL | AUTOMATED | `services/api/src/modules/data/entity-scope.resolver.spec.ts` | — | — |
 | [QA-RUNTIME-003](../../../docs/qa/scenarios/QA-RUNTIME-003-the-entity-query-validator-rejects-filters-it-cannot-safely-.md) | The entity query validator rejects filters it cannot safely translate | runtime-modules | UNIT | HIGH | AUTOMATED | `services/api/src/modules/data/entity-query-validator.spec.ts` | — | — |

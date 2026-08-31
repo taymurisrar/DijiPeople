@@ -6,6 +6,10 @@ import type {
   ReportFieldDefinition,
 } from '../semantic.types';
 import { employeeDimensionFields } from './workforce.source';
+import {
+  CURRENT_PLACEMENT_CAVEAT,
+  LEAVE_CONSUMPTION_PERIOD_CAVEAT,
+} from '../caveats';
 
 /**
  * Leave, in three sources, because the three questions have three answers.
@@ -99,7 +103,7 @@ export const LEAVE_REQUESTS_SOURCE: ReportDataSource = {
     'A period narrows this source on the leave START date, not on when the request was raised. Use the "Requested at" field explicitly to report on request volume by raise date.',
     'A request spanning a period boundary is counted once, in the period its start date falls in. Its days are not apportioned across periods.',
     'Total days is what was requested. It is not what was consumed: a cancelled or rejected request still carries a day count. Use the Leave consumption source for days actually taken.',
-    'Organisational dimensions are read through the employee and reflect their current department, team and location rather than where they sat when the leave was taken.',
+    CURRENT_PLACEMENT_CAVEAT,
   ],
   fields: [
     {
@@ -232,7 +236,7 @@ export const LEAVE_CONSUMPTION_SOURCE: ReportDataSource = {
   recordIdField: 'id',
   requiredFeatureKey: TENANT_FEATURE_KEYS.LEAVE,
   caveats: [
-    'A period narrows this source on when the consumption row was WRITTEN, not on the leave dates. Filter on "Leave start date" to report by when the leave was taken.',
+    LEAVE_CONSUMPTION_PERIOD_CAVEAT,
     'Only leave types that consume balance produce a row here. Leave on a type with consumesBalance disabled is absent by design, not missing.',
     'One row per leave request, so a request spanning two months contributes its whole day count once.',
   ],

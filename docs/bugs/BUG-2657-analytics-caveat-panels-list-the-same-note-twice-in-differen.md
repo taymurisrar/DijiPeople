@@ -1,0 +1,118 @@
+---
+ID: BUG-2657
+aliases: [BUG-2657]
+Title: Analytics caveat panels list the same note twice in different wording
+Status: FIXED
+Severity: LOW
+Priority: P3
+Type: UX
+Source: QA_RUN
+DetectedDate: 2026-08-31
+DetectedInSha: 5d1d5e7a
+AffectedModules: [services/api/src/modules/reporting]
+OwnerAgent: architect
+ArchitectDisposition: DONE
+QAReport: 
+RegressionId: REG-385
+RelatedBacklogItem:
+RelatedDecision:
+RelatedImplementation:
+CreatedAt: 2026-08-31
+UpdatedAt: 2026-08-31
+ResolvedAt:
+---
+
+# BUG-2657 — Analytics caveat panels list the same note twice in different wording
+
+## Summary
+
+The "How to read these numbers" panel on every analytics surface listed the same caveat twice, in two slightly different wordings. On Desktop Activity it did so five times over, turning a panel whose whole purpose is to be read into a wall of text that repeats itself.
+
+## Expected Behavior
+
+Each note appears once per surface.
+
+## Actual Behavior
+
+Desktop Activity listed ten caveats where five distinct notes exist. Attendance repeated its shift-day note, Leave repeated two, Recruitment one.
+
+## Reproduction
+
+1. Open `/reports/analytics/desktop_activity` as a user who can see the surface.
+2. Read the "How to read these numbers" panel.
+3. Observe "Rows written before the BUG-0036 deduplication fix are inflated..." twice — once ending "the contaminated rows are the ones whose underlying ActivityEvent rows have a null dedupeKey" and once ending "are those whose underlying ActivityEvent rows carry a null dedupeKey".
+4. Repeat on `/reports/analytics/attendance` and `/reports/analytics/leave`.
+
+## Evidence
+
+Found by reading the rendered production panel, then reproduced as a failing assertion over the registry. Fourteen colliding pairs across four areas:
+
+```
+source:attendance           "The date is the SHIFT day, not the calendar day..."
+metric:attendance.*  (x10)  "The date is the shift day. An overnight shift is one row..."   63%
+source:attendance / source:leave_requests   organisational-dimensions note      72%
+source:leave_consumption / metric:leave.days_taken                              64%
+metric:leave.requests_raised / metric:leave.cancelled_requests                  69%
+source:recruitment_openings / metric:recruitment.open_requisitions              67%
+source:desktop_activity / metric:desktop.* (x5)                                 varies
+```
+
+## Root Cause
+
+`AnalyticsService.collectCaveats` unions the source's caveats with those of every metric on the surface and deduplicates with a `Set`. A `Set` deduplicates by exact string.
+
+Both placements are deliberate and correct: the metric's copy is what puts the note beside the tile carrying the number, and the source's copy is what puts it in the page panel. But each was written by hand in its own file, so the two drifted into near-synonyms — "not measured" against "rather than measured", "are the ones whose" against "are those whose". Two correct sentences, not one string, so both survived the fold.
+
+The deduplication was never broken. The inputs were.
+
+## Impact
+
+Cosmetic, on every analytics surface, for every tenant. It matters more than a cosmetic defect usually would because the caveat panel is the feature that makes these numbers honest — it is where the product says a rate's denominator is agent uptime rather than scheduled hours, and that application names are not collected. A panel that visibly repeats itself is one a reader learns to skip, which costs exactly the disclosure it exists to make.
+
+## Affected Areas
+
+`services/api/src/modules/reporting/semantic/data-sources/{attendance,leave,recruitment,desktop-activity}.source.ts` and `services/api/src/modules/reporting/metrics/{attendance,leave,recruitment,desktop}.metrics.ts`.
+
+## Proposed Resolution
+
+One authoritative wording per shared note, imported by both the source and the metric. No ExecPlan.
+
+## Acceptance Criteria
+
+- No analytics surface lists two caveats that say the same thing.
+- A metric still shows its own caveats on its own tile.
+- Adding a new caveat that restates an existing one fails a test rather than reaching a reader.
+
+## Regression Coverage
+
+REG-385.
+
+## Dependencies
+
+None.
+
+## Related Items
+
+Found during post-deploy validation of [[TASK-0028]], alongside [[BUG-2647]] and [[BUG-2648]].
+
+## Resolution
+
+Fixed on `agent/reports-analytics-platform-fixes`. Shared notes moved to `services/api/src/modules/reporting/semantic/caveats.ts` — `SHIFT_DAY_CAVEAT`, `CURRENT_PLACEMENT_CAVEAT`, `LEAVE_CONSUMPTION_PERIOD_CAVEAT`, `LEAVE_REQUEST_PERIOD_CAVEAT`, `REQUISITION_COUNT_CAVEAT` — plus `TELEMETRY_CAVEATS` exported from the desktop activity source. Sources and metrics now import the constant instead of restating it, so the `Set` folds the two copies into one.
+
+## QA Retest
+
+Post-deploy validation of the fix, in production, reading the panel on each analytics surface.
+
+## History
+
+- 2026-08-31 — created from post-deploy validation at `cace6cdb`.
+- 2026-08-31 — fixed and verified.
+
+<!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
+
+## Related
+
+- Modules — [[reporting]]
+- Regression — REG-385 (see the regression register)
+
+<!-- GRAPH:END -->

@@ -6,6 +6,7 @@ import type {
   ReportFieldDefinition,
 } from '../semantic.types';
 import { employeeDimensionFields } from './workforce.source';
+import { CURRENT_PLACEMENT_CAVEAT, SHIFT_DAY_CAVEAT } from '../caveats';
 
 /**
  * Attendance — one row per employee per shift-day.
@@ -106,9 +107,9 @@ export const ATTENDANCE_SOURCE: ReportDataSource = {
   caveats: [
     'An AttendanceDay row exists only once the reconciliation engine has produced it. Days that have not been reconciled are absent entirely — they are not counted as absences, and a period that includes today will usually be short a day.',
     'Days still PENDING reconciliation are excluded from this source, so they appear in neither the numerator nor the denominator of any rate.',
-    'The date is the SHIFT day, not the calendar day. An overnight shift produces one row dated to the shift start, with punches on either side of midnight.',
+    SHIFT_DAY_CAVEAT,
     'Extra minutes are not payable overtime. Approved overtime is a separate column, and the two are never added together here.',
-    'Organisational dimensions are read through the employee, so they reflect the employee CURRENT department, team and location rather than where they sat on the attendance date.',
+    CURRENT_PLACEMENT_CAVEAT,
   ],
   fields: [
     {

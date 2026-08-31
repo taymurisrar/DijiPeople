@@ -2,6 +2,7 @@ import { AttendanceDayStatus } from '@prisma/client';
 import { ATTENDANCE_SOURCE } from '../semantic/data-sources';
 import { isGroupable } from '../semantic/semantic.types';
 import type { ReportMetricDefinition } from '../semantic/semantic.types';
+import { SHIFT_DAY_CAVEAT } from '../semantic/caveats';
 
 /**
  * Attendance metrics.
@@ -29,7 +30,7 @@ const ATTENDANCE_DIMENSIONS = ATTENDANCE_SOURCE.fields
  */
 const SHARED_CAVEATS = [
   'AttendanceDay rows exist only for days the reconciliation engine has finished. Unreconciled days are absent, not zero, so a period including today is usually short a day.',
-  'The date is the shift day. An overnight shift is one row dated to the shift start, with punches on both sides of midnight.',
+  SHIFT_DAY_CAVEAT,
 ];
 
 export const ATTENDANCE_METRICS: ReportMetricDefinition[] = [

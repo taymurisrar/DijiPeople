@@ -2,6 +2,7 @@ import { PERMISSION_KEYS } from '../../../common/constants/permissions';
 import {
   DESKTOP_ACTIVITY_SOURCE,
   DESKTOP_DEVICES_SOURCE,
+  TELEMETRY_CAVEATS,
 } from '../semantic/data-sources';
 import { isGroupable } from '../semantic/semantic.types';
 import type {
@@ -41,19 +42,6 @@ const dimensionsOf = (source: ReportDataSource): string[] =>
 
 const ACTIVITY_DIMENSIONS = dimensionsOf(DESKTOP_ACTIVITY_SOURCE);
 const DEVICE_DIMENSIONS = dimensionsOf(DESKTOP_DEVICES_SOURCE);
-
-/**
- * The four caveats that apply to every telemetry number, restated on each
- * metric because a caveat that lives only on the source is not shown beside the
- * tile that carries the number.
- */
-const TELEMETRY_CAVEATS = [
-  'Rows written before the BUG-0036 deduplication fix are inflated: a re-sent heartbeat batch permanently added time that was never worked, and those totals were never corrected. The contaminated rows are those whose underlying ActivityEvent rows carry a null dedupeKey.',
-  'The day boundary is UTC, not the tenant timezone, so part of each evening or early morning is attributed to the neighbouring day.',
-  'Seconds are nominal rather than measured: each heartbeat credits a whole heartbeat interval to the state it reported.',
-  'History is limited to the tenant AgentTrackingSettings retention window, 90 days by default. An empty older period means the rows were swept, not that nobody was working.',
-  'Only employees with the agent installed and signed in appear at all. An employee with no telemetry is not an employee who did nothing.',
-];
 
 export const DESKTOP_METRICS: ReportMetricDefinition[] = [
   {

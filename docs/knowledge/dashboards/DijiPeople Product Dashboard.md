@@ -125,6 +125,7 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-2017-the-inbox-related-record-column-renders-a-bare-uuid-with-no-|BUG-2017]] | The inbox Related record column renders a bare UUID with no label and no link | UX | LOW | FIXED | apps/web | DONE |
 | [[BUG-2149-every-dashboard-metric-card-offers-a-link-named-only-open|BUG-2149]] | Every dashboard metric card offers a link named only Open | UX | LOW | FIXED | views, dashboard | DONE |
 | [[BUG-2384-tenant-record-shows-primary-tenant-owner-unassigned-while-it|BUG-2384]] | Tenant record shows Primary Tenant Owner Unassigned while its readiness check reports one active Tenant Owner | UX | LOW | FIXED | api:tenant-control-plane, apps/admin | DONE |
+| [[BUG-2657-analytics-caveat-panels-list-the-same-note-twice-in-differen|BUG-2657]] | Analytics caveat panels list the same note twice in different wording | UX | LOW | FIXED | api:reporting | DONE |
 | [[ITEM-0109-the-disabled-check-in-button-explains-itself-only-in-a-title|ITEM-0109]] | The disabled Check In button explains itself only in a title tooltip | UX | LOW | READY | apps/web | FIX_NOW |
 | [[ITEM-0111-protected-route-prefixes-omits-twelve-authenticated-route-tr|ITEM-0111]] | PROTECTED_ROUTE_PREFIXES omits twelve authenticated route trees, so deep links to them are lost at sign-in | UX | LOW | READY | apps/web | FIX_NOW |
 

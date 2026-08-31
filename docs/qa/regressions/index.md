@@ -4278,3 +4278,17 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The tempting fix is to make the module default available on the server. **Do not.** A module-level mutable default is shared between concurrent requests in one Node process, so on a multi-tenant server it can render one tenant's response with another tenant's formatting. Explicit threading is the architecture; the module default is a client-only convenience. Also instructive: this is the same defect class already fixed for eight components earlier in the same task, and it survived because that sweep fixed the components that formatted a date *directly* and never followed the value into the shared cell and chart formatters. Writing the test is what found the remaining five call sites — it failed on first run and named every one. |
 | **Fixed** | 2026-08-31, branch `agent/reports-analytics-platform-fixes` |
 | **Active** | yes |
+### REG-385 — The caveat panel listed the same note twice in two wordings
+
+| | |
+|---|---|
+| **Bug class** | `duplicate-source-of-truth` |
+| **Module** | `services/api/src/modules/reporting` |
+| **Bug record** | BUG-2657 |
+| **Root cause** | `AnalyticsService.collectCaveats` unions a source's caveats with those of every metric on the surface and deduplicates with a `Set`, which deduplicates by exact string. Both placements are deliberate — the metric's copy puts the note beside the tile, the source's copy puts it in the page panel — but each was written by hand in its own file and the two drifted into near-synonyms: "not measured" against "rather than measured", "are the ones whose" against "are those whose". Two correct sentences are not one string, so both survived the fold and the reader saw the note twice. Fourteen colliding pairs across attendance, leave, recruitment and desktop; Desktop Activity showed five notes doubled. The deduplication was never broken — the inputs were. |
+| **Regression test** | `services/api/src/modules/reporting/semantic/caveat-uniqueness.spec.ts` |
+| **Scenario** | Collect every caveat on every data source and every metric. No two that differ as strings may share 60% or more of their vocabulary. Identical strings are skipped, because a source and its metric carrying the same string is the intended arrangement and the `Set` folds those into one. |
+| **Proven to fail without the fix** | On the tree as deployed, the test reports fourteen colliding pairs and names both sides of each. |
+| **Note** | The first version of this test compared a normalised 60-character prefix and **passed on the broken tree** — the pair that shipped diverges at the fourth word, so any prefix long enough to avoid false positives is already past the divergence. It was only caught because the fix was deliberately reverted to check the test failed, which it did not. Word-set overlap is what matches the real shape: one sentence said twice with small edits. A near-duplicate test that compares prefixes is worth nothing; measure the whole string. |
+| **Fixed** | 2026-08-31, branch `agent/reports-analytics-platform-fixes` |
+| **Active** | yes |
