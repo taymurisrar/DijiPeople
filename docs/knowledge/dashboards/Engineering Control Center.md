@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **2** |
+| Active sessions | **1** |
 | Active parent tasks | 4 |
 | Active work packages | 4 |
 | Blocked work packages | 0 |
@@ -15,8 +15,8 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
-| Open HIGH | 28 |
-| Awaiting Architect triage | 2 |
+| Open HIGH | 31 |
+| Awaiting Architect triage | 3 |
 | Owner decisions pending | 6 |
 | QA coverage gaps | 142 |
 | Scenarios blocked by infrastructure | 0 |
@@ -30,8 +30,8 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 106 |
-| No next action | 106 |
+| No acceptance criteria | 109 |
+| No next action | 109 |
 | Aging — 7d / 30d / 90d | 19 / 0 / 0 |
 | Architecture and technical debt | 8 |
 | Security gaps | 7 |
@@ -49,7 +49,6 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
-| [[SESSION-0088-expired-session-redirect-loop-and-an-audit-of-buildscopedacc|SESSION-0088]] | — | Expired-session redirect loop, and an audit of buildScopedAccessWhere callers | ACTIVE | `agent/session-redirect-loop` | `develop` | — | NO |
 | [[SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser|SESSION-0061]] | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
@@ -269,11 +268,11 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 107 |
+| Open total | 110 |
 | Blocked | 2 |
-| Deferred | 25 |
+| Deferred | 26 |
 | Awaiting a product decision | 6 |
-| Awaiting Architect triage | 2 |
+| Awaiting Architect triage | 3 |
 
 **A record nobody has triaged is work nobody has decided about.** No ordinary record may stay `TRIAGE_REQUIRED` at the end of a task.
 
@@ -285,9 +284,9 @@ running is a separate fact with separate evidence, recorded per release under
 
 - [[2026-08-31-production-dae0e37|Deployment Report — PRODUCTION — dae0e37]]
 - [[2026-08-31-production-cace6cd|Deployment Report — PRODUCTION — cace6cd]]
+- [[2026-08-31-production-6d17e93|Deployment Report — PRODUCTION — 6d17e93]]
 - [[2026-08-30-production-6ffed9f|Release — production — `6ffed9f`]]
 - [[2026-08-25-production-08d7901|Release — production — `08d7901`]]
-- [[2026-08-24-production-6ed7a44|Release — production — `6ed7a44`]]
 
 ## How this is maintained
 

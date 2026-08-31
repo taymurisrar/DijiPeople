@@ -197,3 +197,22 @@ export async function fetchReportSchedules(): Promise<ReportSchedule[] | null> {
     () => null,
   );
 }
+
+export type ReportDeliveryCapability = {
+  canDeliver: boolean;
+  providerType: string | null;
+};
+
+/**
+ * Whether this workspace can actually email a scheduled report.
+ *
+ * Failure resolves to `canDeliver: true` on purpose. This drives a warning
+ * banner, and a banner that appears whenever an unrelated request fails would
+ * tell people their email is broken every time the network hiccups — which
+ * teaches them to ignore it, and the one time it is right they will.
+ */
+export async function fetchReportDeliveryCapability(): Promise<ReportDeliveryCapability> {
+  return apiRequestJson<ReportDeliveryCapability>(
+    "/reporting/schedules/delivery-capability",
+  ).catch(() => ({ canDeliver: true, providerType: null }));
+}

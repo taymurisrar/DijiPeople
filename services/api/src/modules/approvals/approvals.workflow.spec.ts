@@ -7,6 +7,7 @@ import {
 } from '@prisma/client';
 import type { PrismaService } from '../../common/prisma/prisma.service';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
+import { ApprovalDecisionRegistry } from './approval-decision.registry';
 import { ApprovalsService } from './approvals.service';
 
 const user: AuthenticatedUser = {
@@ -220,6 +221,7 @@ function createService(tx: ReturnType<typeof workflowTx>) {
       $transaction: jest.fn((callback) => callback(tx)),
     } as unknown as PrismaService,
     auditService as never,
+    new ApprovalDecisionRegistry(),
   );
   return { service, auditService };
 }

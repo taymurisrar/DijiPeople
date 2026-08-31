@@ -13,6 +13,26 @@ import {
   SECRET_KEY_PATTERN,
 } from './email-safety';
 
+/**
+ * Whether a provider type discards the message instead of delivering it.
+ *
+ * `CONSOLE` and `DEV` both resolve to `ConsoleEmailProvider`, which writes the
+ * message to the log and returns success. Every layer above then reported
+ * success too: a scheduled report ran, its delivery log said `SENT` with a
+ * `console_…` message id, and the only trace that nobody received anything was
+ * a `providerType` field nobody reads.
+ *
+ * The pair of comparisons already existed twice in `resolveProvider` and once
+ * in `getProvider`. Naming it once means a new sink type is added in one place,
+ * and "can this workspace actually send?" has a single answer.
+ */
+export function isSinkProvider(providerType: EmailProviderType): boolean {
+  return (
+    providerType === EmailProviderType.CONSOLE ||
+    providerType === EmailProviderType.DEV
+  );
+}
+
 @Injectable()
 export class ConsoleEmailProvider implements EmailProvider {
   readonly providerType = EmailProviderType.CONSOLE;

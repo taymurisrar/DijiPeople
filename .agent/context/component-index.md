@@ -1,7 +1,7 @@
 # Component Index
 
 > **Last verified:** 2026-08-31
-> **Verified against commit:** 5933b60e
+> **Verified against commit:** c87359eb
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -16,8 +16,8 @@ question an agent can answer by retrieval rather than by reading a directory.
 comment beside it is the reasoning; this document is a route to both. Every row
 carries `file`:`line` for that reason — read the source before changing it.
 
-**An export missing from here is undocumented, not absent.** 813 of
-1027 exports across these kits carry no
+**An export missing from here is undocumented, not absent.** 815 of
+1033 exports across these kits carry no
 doc-comment and are omitted rather than listed as bare names. That ratio is
 itself worth knowing: it is where a UI/UX or Frontend agent is working without
 stated rationale, and where adding one is worth more than a new abstraction.
@@ -125,7 +125,7 @@ re-derived on each run.
 
 Metadata-driven UI is the default. New modules are declared through `lib/runtime/` and rendered by the standard runtime pages; a bespoke page needs a stated reason in the plan.
 
-143 documented export(s); 564 undocumented export(s) omitted.
+147 documented export(s); 566 undocumented export(s) omitted.
 
 | Export | Kind | Used by | Where | What it is |
 |---|---|---|---|---|
@@ -136,6 +136,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `ChartValueGrid` | component | 3 | `apps/web/app/components/charts/chart-chrome.tsx`:182 | Horizontal gridlines and their value labels. |
 | `AttendanceCorrectionForm` | component | 2 | `apps/web/app/components/attendance-corrections/attendance-correction-form.tsx`:38 | The employee's correction request form. |
 | `ChartPatternDefs` | component | 2 | `apps/web/app/components/charts/chart-chrome.tsx`:69 | One `<pattern>` per series: the series colour, overlaid with a hatch whose geometry differs per index. |
+| `ApprovalChain` | component | 1 | `apps/web/app/components/approvals/approval-chain.tsx`:20 | The approval chain and its history. |
 | `AttendanceActionFeedback` | component | 1 | `apps/web/app/components/runtime/attendance-action-feedback.tsx`:15 | The contextual answer to an attendance attempt. |
 | `AttendanceCorrectionPanel` | component | 1 | `apps/web/app/components/attendance-corrections/attendance-correction-panel.tsx`:29 | Raising a correction against the record the employee is already reading. |
 | `ChartLegend` | component | 1 | `apps/web/app/components/charts/chart-chrome.tsx`:301 | The legend. A list, not a row of divs, because it is a list — and because that is what lets a screen reader announce how many series there are before reading them. |
@@ -171,6 +172,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `resolvePeriod` | function | 3 | `apps/web/app/components/filters/period.ts`:329 | Turn a preset into a concrete inclusive date range. |
 | `resolvePlotArea` | function | 3 | `apps/web/app/components/charts/chart-geometry.ts`:229 | The drawable rectangle inside a viewBox once axis gutters are removed. |
 | `useChartIdPrefix` | function | 3 | `apps/web/app/components/charts/chart-chrome.tsx`:51 | A stable, per-instance id prefix for SVG defs. |
+| `buildApprovalRecord` | function | 2 | `apps/web/app/components/approvals/approval-record.ts`:15 | One approval, flattened into the shape the runtime record page reads. |
 | `buildAreaPath` | function | 2 | `apps/web/app/components/charts/chart-geometry.ts`:592 | The same shape, closed down to a baseline so it can be filled. |
 | `collapseToTopN` | function | 2 | `apps/web/app/components/charts/chart-geometry.ts`:791 | Sort descending and roll everything past the first `limit` into one bucket. |
 | `periodLengthInDays` | function | 2 | `apps/web/app/components/filters/period.ts`:404 | Inclusive day count. A single-day period is 1, never 0. |
@@ -240,6 +242,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `LINE_CHART_MARGINS` | constant | 0 | `apps/web/app/components/charts/line-chart.tsx`:36 | A trend over time. A thin renderer: every number on screen was computed by `chart-geometry.ts` and every string was formatted by `chart-format.ts`, both of which are covered by specs. |
 | `VisibilityRule` | type | 5 | `apps/web/lib/runtime/visibility.resolver.ts`:27 | One place to ask "should this person see this". |
 | `ChartValueFormat` | type | 3 | `apps/web/app/components/charts/chart-types.ts`:50 | How a raw number should read once it reaches a person. |
+| `ApprovalDetailResponse` | type | 2 | `apps/web/app/components/approvals/approval-types.ts`:78 | `GET /approvals/:id` wraps its payload in `item`; `GET /approvals` does not wrap its list. |
 | `ChartGranularity` | type | 2 | `apps/web/app/components/charts/chart-types.ts`:85 | Time bucketing granularity for `bucketByPeriod`. |
 | `ChartSeries` | type | 2 | `apps/web/app/components/charts/chart-types.ts`:35 | A named run of points. |
 | `ModuleViewSelectorConfig` | type | 2 | `apps/web/app/components/runtime/module-view-selector.tsx`:48 | The server-side shape pages pass through; kept for callers that build it. |
@@ -248,6 +251,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `ModuleViewType` | type | 1 | `apps/web/app/components/runtime/module-view-selector.tsx`:15 | The one view selector. |
 | `AnalyticsScopeFilter` | type | 0 | `apps/web/app/components/filters/analytics-filter-bar.tsx`:39 | The filter bar for every analytics screen. |
 | `AnalyticsSearchParamsInput` | type | 0 | `apps/web/app/components/filters/analytics-search-params.ts`:79 | Next's `searchParams` prop, or a real `URLSearchParams`, or a query string. |
+| `ApprovalDecisionCapability` | type | 0 | `apps/web/app/components/approvals/approval-types.ts`:7 | What the caller may do with one approval, decided by the API from the module that raised it, the caller's permissions in that module, and whether the pending step is theirs. |
 | `AudienceOption` | type | 0 | `apps/web/app/components/runtime/visibility-rules-editor.tsx`:24 | One editor for audience rules, shared by every designer that gates a surface. |
 | `BaseChartProps` | type | 0 | `apps/web/app/components/charts/chart-types.ts`:63 | Props shared by every chart component in this directory. |
 | `ChartFrameProps` | type | 0 | `apps/web/app/components/charts/chart-frame.tsx`:35 | The wrapper that makes a chart a complete thing rather than a picture. |

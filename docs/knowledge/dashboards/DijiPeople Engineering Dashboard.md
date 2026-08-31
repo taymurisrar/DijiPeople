@@ -8,13 +8,13 @@
 | | |
 |---|---|
 | Open CRITICAL | **0** |
-| Open HIGH | **28** |
-| Open total | 107 |
+| Open HIGH | **31** |
+| Open total | 110 |
 | Blocked | 2 |
 | Awaiting a product decision | 6 |
-| Deferred | 25 |
+| Deferred | 26 |
 | Completed | 290 |
-| Awaiting Architect triage | 2 |
+| Awaiting Architect triage | 3 |
 
 ## Open Critical Bugs
 
@@ -52,6 +52,9 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2623-buildscopedaccesswhere-filters-employee-on-ownerteamid-a-col|BUG-2623]] | buildScopedAccessWhere filters Employee on ownerTeamId, a column Employee does not have | AUTHORIZATION | HIGH | FIXED | services/api/src/common/security/rbac-query-scope.ts | DONE |
 | [[BUG-2683-every-scheduled-report-fails-to-deliver-because-the-email-te|BUG-2683]] | Every scheduled report fails to deliver because the email template variable tenantName is never passed | BUG | HIGH | FIXED | api:reporting/schedule | DONE |
 | [[BUG-2693-historical-headcount-reports-employee-days-instead-of-headco|BUG-2693]] | Historical headcount reports employee-days instead of headcount and grows with the length of the period | DATA_INTEGRITY | HIGH | FIXED | api:reporting | DONE |
+| [[BUG-2718-the-approvals-record-page-reads-the-detail-response-envelope|BUG-2718]] | The approvals record page reads the detail response envelope, so every field is blank | UX | HIGH | FIXED | approvals, leave, attendance | FIX_NOW |
+| [[BUG-2732-attendance-integration-cannot-be-activated-activation-requir|BUG-2732]] | Attendance integration cannot be activated: activation requires a verified device, but only an active integration is ever verified | STATE_MACHINE | HIGH | OPEN | api:attendance-integrations, gateway/src/DijiPeople.Gateway.Host | TRIAGE_REQUIRED |
+| [[BUG-2741-a-workspace-whose-email-provider-is-a-sink-reports-every-mes|BUG-2741]] | A workspace whose email provider is a sink reports every message as SENT | BUG | HIGH | FIXED | notifications, reporting | FIX_NOW |
 
 ## Product Decisions Needed
 
@@ -238,6 +241,8 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2624-the-reports-endpoints-return-tenant-wide-aggregates-regardle|BUG-2624]] | The reports endpoints return tenant-wide aggregates regardless of the caller's row scope | AUTHORIZATION | HIGH | VERIFIED | api:reports/reports.service.ts | DONE |
 | [[BUG-2683-every-scheduled-report-fails-to-deliver-because-the-email-te|BUG-2683]] | Every scheduled report fails to deliver because the email template variable tenantName is never passed | BUG | HIGH | FIXED | api:reporting/schedule | DONE |
 | [[BUG-2693-historical-headcount-reports-employee-days-instead-of-headco|BUG-2693]] | Historical headcount reports employee-days instead of headcount and grows with the length of the period | DATA_INTEGRITY | HIGH | FIXED | api:reporting | DONE |
+| [[BUG-2718-the-approvals-record-page-reads-the-detail-response-envelope|BUG-2718]] | The approvals record page reads the detail response envelope, so every field is blank | UX | HIGH | FIXED | approvals, leave, attendance | FIX_NOW |
+| [[BUG-2741-a-workspace-whose-email-provider-is-a-sink-reports-every-mes|BUG-2741]] | A workspace whose email provider is a sink reports every message as SENT | BUG | HIGH | FIXED | notifications, reporting | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | VERIFIED | app:admin | DONE |
@@ -409,22 +414,22 @@ _None. Nothing open at CRITICAL._
 
 ## Recent Engineering History
 
+- [[2026-08-31-session-redirect-loop-77abf947|Engineering History — Session redirect loop]]
 - [[2026-08-31-reports-analytics-platform-d833e694|Engineering History — Reports analytics platform]]
+- [[2026-08-31-email-sink-visibility-1b60690f|Engineering History — Email sink visibility]]
+- [[2026-08-31-approvals-inbox-decisions-d084dd7b|Engineering History — Approvals inbox decisions]]
 - [[2026-08-30-release-attendance-location-capture-ec1d58da|Engineering History — Release attendance location capture]]
 - [[2026-08-30-prod-monitoring-triage-fba846d1|Engineering History — Prod monitoring triage]]
 - [[2026-08-30-open-bug-burndown-4d75b37c|Engineering History — Open bug burndown]]
 - [[2026-08-30-data-model-and-screen-discovery-122ce41e|Engineering History — Data model and screen discovery]]
-- [[2026-08-30-checkout-duplicate-customer-68f4fd2e|Engineering History — Checkout duplicate customer]]
-- [[2026-08-30-attendance-location-capture-c5c7c13f|Engineering History — Attendance location capture]]
-- [[2026-08-30-attendance-correction-entry-and-auth-validation-c603abea|Engineering History — Attendance correction entry and auth validation]]
 
 ## Recent Releases
 
 - [[2026-08-31-production-dae0e37|Deployment Report — PRODUCTION — dae0e37]]
 - [[2026-08-31-production-cace6cd|Deployment Report — PRODUCTION — cace6cd]]
+- [[2026-08-31-production-6d17e93|Deployment Report — PRODUCTION — 6d17e93]]
 - [[2026-08-30-production-6ffed9f|Release — production — `6ffed9f`]]
 - [[2026-08-25-production-08d7901|Release — production — `08d7901`]]
-- [[2026-08-24-production-6ed7a44|Release — production — `6ed7a44`]]
 
 ## Active / Recent Backlog
 
@@ -525,18 +530,18 @@ _None. Nothing open at CRITICAL._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 311 |
-| Backlog items | 119 |
+| Bug records | 314 |
+| Backlog items | 120 |
 | Known bug patterns | 32 |
 | QA runs | 32 |
-| Engineering history records | 70 |
-| Release records | 6 |
+| Engineering history records | 73 |
+| Release records | 7 |
 | Module notes | 30 |
 | Architecture notes | 22 |
 | Decision notes (ADR + generated) | 8 |
 | Implementation records | 7 |
 
-**Awaiting Architect triage: 2.** A record nobody has
+**Awaiting Architect triage: 3.** A record nobody has
 triaged is work nobody has decided about — the number that should stay near
 zero between tasks.
 

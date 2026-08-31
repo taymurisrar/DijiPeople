@@ -5,15 +5,13 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { SecurityAccessLevel } from '@prisma/client';
 import {
   REQUIRED_PERMISSIONS_KEY,
   REQUIRED_RBAC_PERMISSIONS_KEY,
   RequiredRbacPermission,
 } from '../decorators/require-permissions.decorator';
 import { AuthenticatedRequest } from '../interfaces/authenticated-request.interface';
-import { SECURITY_ACCESS_LEVEL_WEIGHT } from '../constants/rbac-matrix';
-import { hasElevatedTenantRole } from '../security/elevated-tenant-roles';
+import { satisfiesPermissionRequirement } from '../security/permission-evaluation';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
@@ -48,41 +46,18 @@ export class PermissionsGuard implements CanActivate {
       });
     }
 
-    if (hasElevatedTenantRole(user)) {
-      return true;
-    }
-
-    const userPermissions = new Set(request.user?.permissionKeys ?? []);
-
-    const hasAllPermissions = requiredPermissions.every((permission) =>
-      userPermissions.has(permission),
-    );
-
-    const hasRbacPermission =
-      requiredRbacPermissions.length === 0 ||
-      requiredRbacPermissions.some((requiredPermission) => {
-        const accessLevel =
-          user.rolePrivileges
-            ?.filter(
-              (privilege) =>
-                privilege.entityKey === requiredPermission.entityKey &&
-                privilege.privilege === requiredPermission.privilege,
-            )
-            .reduce((best, privilege) => {
-              if (
-                SECURITY_ACCESS_LEVEL_WEIGHT[privilege.accessLevel] >
-                SECURITY_ACCESS_LEVEL_WEIGHT[best]
-              ) {
-                return privilege.accessLevel;
-              }
-
-              return best;
-            }, SecurityAccessLevel.NONE) ?? SecurityAccessLevel.NONE;
-
-        return accessLevel !== SecurityAccessLevel.NONE;
-      });
-
-    if (!hasAllPermissions || !hasRbacPermission) {
+    /*
+     * The decision itself lives in `satisfiesPermissionRequirement` so that a
+     * caller which dispatches into another module's handler without passing
+     * through its controller — `POST /approvals/:id/approve` — applies the
+     * identical test rather than a second copy of it that can drift.
+     */
+    if (
+      !satisfiesPermissionRequirement(user, {
+        legacyKeys: requiredPermissions,
+        rbac: requiredRbacPermissions,
+      })
+    ) {
       throw new ForbiddenException({
         code: 'ACCESS_DENIED',
         message: 'You do not have permission to perform this action.',

@@ -67,6 +67,42 @@ const schemas: Readonly<Record<string, CommandPayloadSchema>> = {
     fields: [],
     geolocation: { always: true },
   },
+  /*
+   * Approving asks for a comment and does not insist on one: the decision is
+   * the record, and demanding prose to agree with something produces "ok" and
+   * "fine" rather than reasons.
+   */
+  "approval.approve": {
+    key: "approval.approve",
+    title: "Approve request",
+    submitLabel: "Approve",
+    fields: [
+      { key: "comment", label: "Comment (optional)", type: "multiline" },
+    ],
+  },
+  /*
+   * Rejecting does insist. The requester is told no and has to decide what to
+   * do next, and "Rejected" on its own does not tell them. Two of the modules
+   * behind this screen already refuse a reasonless rejection server-side —
+   * `RejectClaimDto.reason` and `RejectLoanDto.reason` are both required — so
+   * asking here matches what those APIs would say anyway.
+   */
+  "approval.reject": {
+    key: "approval.reject",
+    title: "Reject request",
+    submitLabel: "Reject",
+    fields: [
+      { key: "comment", label: "Reason", type: "multiline", required: true },
+    ],
+  },
+  "approval.cancel": {
+    key: "approval.cancel",
+    title: "Withdraw request",
+    submitLabel: "Withdraw",
+    fields: [
+      { key: "comment", label: "Reason (optional)", type: "multiline" },
+    ],
+  },
 };
 
 export function getCommandPayloadSchema(key?: string) {
