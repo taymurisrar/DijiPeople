@@ -57,12 +57,31 @@ export function buildTenantWhere<T extends Record<string, unknown>>(
   return { [tenantIdField]: tenantId } as T;
 }
 
+/**
+ * The "this record is mine" half of a scoped `where`.
+ *
+ * `ownerTeamIdField` is **opt-in and has no default**, which is the opposite of
+ * every other field here. BUG-2623: it used to default to `'ownerTeamId'`, and
+ * exactly one model in this schema — `CustomDataRecord`, 1 of 312 — actually has
+ * that column. Every other caller therefore emitted a predicate on a column that
+ * does not exist, and Prisma rejects the whole query with "Unknown argument
+ * `ownerTeamId`" rather than ignoring it.
+ *
+ * It fired for any SELF-, USER- or TEAM-scoped caller who belongs to at least
+ * one team — `buildOwnedRecordWhere` is used at all three levels, not just TEAM
+ * — and it broke data-management exports of `Employee`, `LeaveRequest` and
+ * `AttendanceEntry`.
+ *
+ * Making it opt-in means the failure mode of forgetting it is a *narrower*
+ * result set, not a thrown query. A caller whose model has the column names it;
+ * `modules/data/entity-scope.resolver.ts` is the one that does.
+ */
 export function buildOwnedRecordWhere(
   user: AuthenticatedUser,
   options: ScopedWhereOptions = {},
 ) {
   const ownerUserIdField = options.ownerUserIdField ?? 'ownerUserId';
-  const ownerTeamIdField = options.ownerTeamIdField ?? 'ownerTeamId';
+  const ownerTeamIdField = options.ownerTeamIdField;
   const userIdField = options.userIdField ?? 'userId';
   const createdByIdField = options.createdByIdField ?? 'createdById';
   const teamIds = user.accessContext?.teamIds ?? [];
@@ -72,7 +91,9 @@ export function buildOwnedRecordWhere(
       { [ownerUserIdField]: user.userId },
       { [userIdField]: user.userId },
       { [createdByIdField]: user.userId },
-      ...(teamIds.length > 0 ? [{ [ownerTeamIdField]: { in: teamIds } }] : []),
+      ...(ownerTeamIdField && teamIds.length > 0
+        ? [{ [ownerTeamIdField]: { in: teamIds } }]
+        : []),
     ],
   };
 }

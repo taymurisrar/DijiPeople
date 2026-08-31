@@ -15,7 +15,7 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
-| Open HIGH | 26 |
+| Open HIGH | 28 |
 | Awaiting Architect triage | 2 |
 | Owner decisions pending | 6 |
 | QA coverage gaps | 142 |
@@ -30,12 +30,12 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 103 |
-| No next action | 103 |
+| No acceptance criteria | 106 |
+| No next action | 106 |
 | Aging — 7d / 30d / 90d | 19 / 0 / 0 |
 | Architecture and technical debt | 8 |
 | Security gaps | 7 |
-| Database gaps | 8 |
+| Database gaps | 9 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -49,7 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
-| [[SESSION-0087-enterprise-reports-and-analytics-platform|SESSION-0087]] | — | Enterprise Reports and Analytics platform | ACTIVE | `agent/reports-analytics-platform` | `develop` | — | NO |
+| [[SESSION-0088-expired-session-redirect-loop-and-an-audit-of-buildscopedacc|SESSION-0088]] | — | Expired-session redirect loop, and an audit of buildScopedAccessWhere callers | ACTIVE | `agent/session-redirect-loop` | `develop` | — | NO |
 | [[SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser|SESSION-0061]] | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
@@ -269,7 +269,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 104 |
+| Open total | 107 |
 | Blocked | 2 |
 | Deferred | 25 |
 | Awaiting a product decision | 6 |
@@ -283,11 +283,11 @@ Deployment state is **not** derivable from Git. A merge is Git state; what is
 running is a separate fact with separate evidence, recorded per release under
 `docs/deployment/release-history/`.
 
+- [[2026-08-31-production-dae0e37|Deployment Report — PRODUCTION — dae0e37]]
 - [[2026-08-31-production-cace6cd|Deployment Report — PRODUCTION — cace6cd]]
 - [[2026-08-30-production-6ffed9f|Release — production — `6ffed9f`]]
 - [[2026-08-25-production-08d7901|Release — production — `08d7901`]]
 - [[2026-08-24-production-6ed7a44|Release — production — `6ed7a44`]]
-- [[2026-08-24-production-2609275|Release — production — `2609275`]]
 
 ## How this is maintained
 

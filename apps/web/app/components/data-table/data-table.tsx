@@ -126,7 +126,7 @@ export function DataTable<T>({
   }
 
   /* DataTable synchronizes controlled inputs and persisted external state into its local interaction model. */
-  /* eslint-disable react-hooks/set-state-in-effect */
+   
   useEffect(() => {
     setSort(effectiveInitialSort);
   }, [effectiveInitialSort]);
@@ -200,7 +200,7 @@ export function DataTable<T>({
   useEffect(() => {
     setClientPage(1);
   }, [search, filters, sort, clientPageSize]);
-  /* eslint-enable react-hooks/set-state-in-effect */
+   
 
   const effectivePageSize =
     pagination && mode === "client"

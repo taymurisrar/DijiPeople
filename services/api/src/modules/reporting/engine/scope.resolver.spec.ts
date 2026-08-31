@@ -122,7 +122,7 @@ describe('ReportScopeResolver', () => {
     expect(flatten(where)).toContain('bu-3');
   });
 
-  it('keeps the owned-record terms at SELF and drops only the column the model lacks', () => {
+  it('keeps every owned-record term at SELF now that no phantom column is emitted', () => {
     const caller = user(SecurityAccessLevel.SELF, 'employees', {
       accessContext: {
         isSystemAdministrator: false,
@@ -149,16 +149,29 @@ describe('ReportScopeResolver', () => {
     // Prisma as an unknown argument (BUG-2623).
     expect(rendered).not.toContain('ownerTeamId');
 
-    // The dropped branch becomes a match-nothing term *inside the OR*, which is
-    // the whole point of substituting rather than removing: as an OR branch it
-    // contributes nothing and the three real ownership terms still match, so
-    // the caller still sees their own records. The same substitution inside an
-    // AND would fail the query closed.
+    /*
+     * Three terms, not four. This assertion used to expect a fourth —
+     * the poison pill this resolver substituted for the ownerTeamId branch —
+     * because buildScopedAccessWhere emitted a column Employee does not have
+     * and something had to neutralise it downstream.
+     *
+     * BUG-2623 was then fixed at the source: ownerTeamIdField is opt-in, so the
+     * term is never emitted for a source that does not name it and there is
+     * nothing left here to substitute. The workaround did not become wrong, it
+     * became unnecessary, and a test that still demanded the pill would be
+     * asserting the presence of a workaround rather than the absence of a bug.
+     *
+     * The substitution behaviour itself is defence in depth now: with the
+     * source fix in place nothing reachable through buildWhere emits an
+     * unrecognised column any more. It is exercised directly at the bottom of
+     * this file instead, because a guard with no live trigger is exactly the
+     * kind that rots unnoticed.
+     */
     const or = (where as { AND: Array<{ OR?: unknown[] }> }).AND.find(
       (clause) => Array.isArray(clause.OR),
     );
-    expect(or?.OR).toHaveLength(4);
-    expect(or?.OR).toContainEqual({ id: '__rbac_no_access__' });
+    expect(or?.OR).toHaveLength(3);
+    expect(or?.OR).not.toContainEqual({ id: '__rbac_no_access__' });
     expect(or?.OR).toContainEqual({ ownerUserId: 'user-1' });
   });
 
@@ -225,5 +238,57 @@ describe('ReportScopeResolver', () => {
     // is that it must never come back as a bare tenant predicate, which would
     // hand a business-unit reader the whole tenant.
     expect(where).not.toEqual({ tenantId: 'tenant-1' });
+  });
+});
+
+/**
+ * The sanitiser, exercised directly.
+ *
+ * REG-381 is the rule that an unrecognised predicate is REPLACED with a
+ * match-nothing term rather than removed: removing one from an AND leaves the
+ * tenant-wide remainder and widens the result, while replacing it narrows an OR
+ * and fails closed in an AND.
+ *
+ * Once BUG-2623 was fixed at the source, nothing reachable through buildWhere
+ * emits an unrecognised column any more, so this guard lost its only natural
+ * trigger. It is called through the private name on purpose: a security
+ * behaviour with no live caller is the kind that quietly stops working, and a
+ * suite that can no longer reach it would report green either way.
+ */
+describe('ReportScopeResolver sanitiser, called directly', () => {
+  const resolver = new ReportScopeResolver();
+
+  const call = (fragment: Record<string, unknown>) =>
+    (
+      resolver as unknown as {
+        sanitize: (
+          f: Record<string, unknown>,
+          s: ReportDataSource,
+        ) => Record<string, unknown>;
+      }
+    ).sanitize(fragment, employeeSource);
+
+  it('replaces an unrecognised column inside an OR rather than removing it', () => {
+    const sanitized = call({
+      OR: [{ ownerUserId: 'user-1' }, { phantomColumn: { in: ['x'] } }],
+    });
+
+    const or = (sanitized as { OR: unknown[] }).OR;
+    // Still two branches: the real one, and a pill where the phantom was.
+    expect(or).toHaveLength(2);
+    expect(or).toContainEqual({ ownerUserId: 'user-1' });
+    expect(or).toContainEqual({ id: '__rbac_no_access__' });
+    expect(JSON.stringify(sanitized)).not.toContain('phantomColumn');
+  });
+
+  it('fails an AND closed when a column it cannot verify appears there', () => {
+    const sanitized = call({
+      AND: [{ tenantId: 'tenant-1' }, { phantomColumn: 'x' }],
+    });
+
+    // In an AND the pill is the whole point: the query returns nothing rather
+    // than falling back to the tenant-wide remainder.
+    expect(JSON.stringify(sanitized)).toContain('__rbac_no_access__');
+    expect(JSON.stringify(sanitized)).not.toContain('phantomColumn');
   });
 });

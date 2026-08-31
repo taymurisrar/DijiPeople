@@ -4,6 +4,7 @@ import {
   REPORT_SCHEDULE_DELIVERY_EVENT,
   ReportSchedulerWorker,
 } from './report-scheduler.worker';
+import { SYSTEM_EMAIL_TEMPLATE_PLACEHOLDERS } from '../../notifications/notification-events.catalog';
 
 /**
  * The scheduler is the platform's first recurring job (BUG-2618), so these
@@ -64,6 +65,8 @@ function buildWorker(
     runAll?: jest.Mock;
     buildFile?: jest.Mock;
     dispatch?: jest.Mock;
+    tenantSettingsOverride?: Record<string, unknown>;
+    tenantFindUnique?: jest.Mock;
     recipients?: Array<{
       id: string;
       email: string;
@@ -91,6 +94,10 @@ function buildWorker(
     ],
   );
 
+  const tenantFindUnique =
+    options.tenantFindUnique ??
+    jest.fn().mockResolvedValue({ name: 'Demo Tenant Ltd' });
+
   const prisma = {
     reportSchedule: {
       findMany: scheduleFindMany,
@@ -98,6 +105,9 @@ function buildWorker(
     },
     reportRun: { create: runCreate, update: runUpdate },
     user: { findMany: userFindMany },
+    // Only read when the tenant has no configured display name; see the
+    // tenantName fallback test.
+    tenant: { findUnique: tenantFindUnique },
   };
 
   const configValues: Record<string, string> = {
@@ -160,6 +170,7 @@ function buildWorker(
       dateFormat: 'dd/MM/yyyy',
       timeFormat: '24h',
       companyDisplayName: 'Demo Workspace',
+      ...(options.tenantSettingsOverride ?? {}),
     }),
     getSystemSettings: jest.fn().mockResolvedValue({ locale: 'en-GB' }),
   };
@@ -225,6 +236,17 @@ function dispatchArg(
     channels: string[];
     email: { recipient: string; attachments: unknown[] };
   };
+}
+
+/** The email variables of one dispatch, typed. */
+function deliveryVariables(
+  harness: Harness,
+  index = 0,
+): Record<string, unknown> {
+  const call = (harness.dispatch.mock.calls[index] as unknown[])[0] as {
+    email?: { variables?: Record<string, unknown> };
+  };
+  return call.email?.variables ?? {};
 }
 
 /** Every `reportSchedule.updateMany` call, as `[where, data]` pairs. */
@@ -760,5 +782,79 @@ describe('ReportSchedulerWorker failure streak', () => {
       completed: 1,
       failed: 1,
     });
+  });
+});
+
+/**
+ * The seam between the dispatcher and the template it renders.
+ *
+ * BUG-2683 / REG-386. Every scheduled report in production failed to deliver
+ * with "Missing email template variables: tenantName." The template declared
+ * `tenantName` in `availableVariables` and used it in the subject line; the
+ * worker's dispatch never passed it. Both halves were individually correct and
+ * individually tested, and the contract between them was asserted nowhere — so
+ * the feature shipped able to produce a file and unable to send one.
+ *
+ * `EmailTemplateRendererService` treats a declared-but-absent variable as a
+ * hard failure rather than rendering a blank, so omitting one does not degrade
+ * an email, it stops it. That makes this a total outage of the feature, not a
+ * cosmetic defect, and it is why the assertion below reads the template's own
+ * declaration instead of a hand-written list that would drift with it.
+ */
+describe('ReportSchedulerWorker delivery contract', () => {
+  const template = SYSTEM_EMAIL_TEMPLATE_PLACEHOLDERS.find(
+    (seed) => seed.eventCode === 'REPORT_SCHEDULE_DELIVERY',
+  );
+
+  it('has a system template to satisfy', () => {
+    // If the seed disappears this suite must fail loudly rather than vacuously
+    // pass over an empty variable list.
+    expect(template).toBeDefined();
+    expect(
+      Object.keys(template!.availableVariables ?? {}).length,
+    ).toBeGreaterThan(3);
+  });
+
+  it('passes every variable the template declares', async () => {
+    const harness = buildWorker();
+
+    await harness.worker.drain(NOW);
+
+    expect(harness.dispatch).toHaveBeenCalledTimes(1);
+    const sent = deliveryVariables(harness);
+    const provided = sent;
+
+    const declared = Object.keys(template!.availableVariables ?? {});
+    const missing = declared.filter(
+      (name) => provided[name] === undefined || provided[name] === null,
+    );
+
+    expect(missing).toEqual([]);
+  });
+
+  it('falls back to the tenant name when no display name is configured', async () => {
+    // A tenant that never filled in a display name must still receive its
+    // reports. The variable is cosmetic; losing the delivery over it is not.
+    const harness = buildWorker({
+      tenantSettingsOverride: { companyDisplayName: '' },
+    });
+
+    await harness.worker.drain(NOW);
+
+    const sent = deliveryVariables(harness);
+    expect(sent.tenantName).toBe('Demo Tenant Ltd');
+  });
+
+  it('still delivers when the tenant row cannot be read', async () => {
+    const harness = buildWorker({
+      tenantSettingsOverride: { companyDisplayName: '' },
+      tenantFindUnique: jest.fn().mockRejectedValue(new Error('db down')),
+    });
+
+    const result = await harness.worker.drain(NOW);
+
+    expect(result.completed).toBe(1);
+    const sent = deliveryVariables(harness);
+    expect(sent.tenantName).toBe('DijiPeople');
   });
 });

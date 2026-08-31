@@ -8,8 +8,8 @@
 | | |
 |---|---|
 | Open CRITICAL | **0** |
-| Open HIGH | **26** |
-| Open total | 104 |
+| Open HIGH | **28** |
+| Open total | 107 |
 | Blocked | 2 |
 | Awaiting a product decision | 6 |
 | Deferred | 25 |
@@ -49,7 +49,9 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2505-a-mode-or-location-correction-could-never-be-submitted-at-al|BUG-2505]] | A mode-or-location correction could never be submitted at all | BUG | HIGH | FIXED | apps/web, api:attendance | DONE |
 | [[BUG-2506-sign-out-leaves-the-refresh-token-live-whenever-the-tenant-i|BUG-2506]] | Sign-out leaves the refresh token live whenever the tenant is busy | SECURITY | HIGH | FIXED | api:auth | DONE |
 | [[BUG-2618-expired-subscription-orders-are-never-swept-abandonexpired-h|BUG-2618]] | Expired subscription orders are never swept: abandonExpired has no caller and the API has no scheduler | DATA_INTEGRITY | HIGH | OPEN | billing, super-admin | FIX_NOW |
-| [[BUG-2623-buildscopedaccesswhere-filters-employee-on-ownerteamid-a-col|BUG-2623]] | buildScopedAccessWhere filters Employee on ownerTeamId, a column Employee does not have | AUTHORIZATION | HIGH | OPEN | services/api/src/common/security/rbac-query-scope.ts | PLAN_REQUIRED |
+| [[BUG-2623-buildscopedaccesswhere-filters-employee-on-ownerteamid-a-col|BUG-2623]] | buildScopedAccessWhere filters Employee on ownerTeamId, a column Employee does not have | AUTHORIZATION | HIGH | FIXED | services/api/src/common/security/rbac-query-scope.ts | DONE |
+| [[BUG-2683-every-scheduled-report-fails-to-deliver-because-the-email-te|BUG-2683]] | Every scheduled report fails to deliver because the email template variable tenantName is never passed | BUG | HIGH | FIXED | api:reporting/schedule | DONE |
+| [[BUG-2693-historical-headcount-reports-employee-days-instead-of-headco|BUG-2693]] | Historical headcount reports employee-days instead of headcount and grows with the length of the period | DATA_INTEGRITY | HIGH | FIXED | api:reporting | DONE |
 
 ## Product Decisions Needed
 
@@ -232,7 +234,10 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2505-a-mode-or-location-correction-could-never-be-submitted-at-al|BUG-2505]] | A mode-or-location correction could never be submitted at all | BUG | HIGH | FIXED | apps/web, api:attendance | DONE |
 | [[BUG-2506-sign-out-leaves-the-refresh-token-live-whenever-the-tenant-i|BUG-2506]] | Sign-out leaves the refresh token live whenever the tenant is busy | SECURITY | HIGH | FIXED | api:auth | DONE |
 | [[BUG-2530-self-service-checkout-still-creates-two-customer-records-the|BUG-2530]] | Self-service checkout still creates two customer records: the wizard's draft id is dropped between the controller and the order service | DATA_INTEGRITY | HIGH | VERIFIED | billing, super-admin, landing | DONE |
+| [[BUG-2623-buildscopedaccesswhere-filters-employee-on-ownerteamid-a-col|BUG-2623]] | buildScopedAccessWhere filters Employee on ownerTeamId, a column Employee does not have | AUTHORIZATION | HIGH | FIXED | services/api/src/common/security/rbac-query-scope.ts | DONE |
 | [[BUG-2624-the-reports-endpoints-return-tenant-wide-aggregates-regardle|BUG-2624]] | The reports endpoints return tenant-wide aggregates regardless of the caller's row scope | AUTHORIZATION | HIGH | VERIFIED | api:reports/reports.service.ts | DONE |
+| [[BUG-2683-every-scheduled-report-fails-to-deliver-because-the-email-te|BUG-2683]] | Every scheduled report fails to deliver because the email template variable tenantName is never passed | BUG | HIGH | FIXED | api:reporting/schedule | DONE |
+| [[BUG-2693-historical-headcount-reports-employee-days-instead-of-headco|BUG-2693]] | Historical headcount reports employee-days instead of headcount and grows with the length of the period | DATA_INTEGRITY | HIGH | FIXED | api:reporting | DONE |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | VERIFIED | app:admin | DONE |
@@ -354,6 +359,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2625-reports-headcount-counts-soft-deleted-employees-and-disagree|BUG-2625]] | Reports headcount counts soft-deleted employees and disagrees with the Employees screen | DATA_INTEGRITY | MEDIUM | VERIFIED | api:reports/reports.service.ts | DONE |
 | [[BUG-2647-reporting-record-tables-and-metric-tiles-format-without-the-|BUG-2647]] | Reporting record tables and metric tiles format without the tenant context, causing a hydration mismatch | UX | MEDIUM | FIXED | app:web, app:web | DONE |
 | [[BUG-2648-reports-pages-scroll-sideways-at-1440-because-grid-items-can|BUG-2648]] | Reports pages scroll sideways at 1440 because grid items cannot shrink below their content | UX | MEDIUM | FIXED | app:web | DONE |
+| [[BUG-2662-an-expired-refresh-token-puts-the-tenant-app-into-a-redirect|BUG-2662]] | An expired refresh token puts the tenant app into a redirect loop instead of the login page | UX | MEDIUM | FIXED | apps/web | DONE |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -403,6 +409,7 @@ _None. Nothing open at CRITICAL._
 
 ## Recent Engineering History
 
+- [[2026-08-31-reports-analytics-platform-d833e694|Engineering History — Reports analytics platform]]
 - [[2026-08-30-release-attendance-location-capture-ec1d58da|Engineering History — Release attendance location capture]]
 - [[2026-08-30-prod-monitoring-triage-fba846d1|Engineering History — Prod monitoring triage]]
 - [[2026-08-30-open-bug-burndown-4d75b37c|Engineering History — Open bug burndown]]
@@ -410,15 +417,14 @@ _None. Nothing open at CRITICAL._
 - [[2026-08-30-checkout-duplicate-customer-68f4fd2e|Engineering History — Checkout duplicate customer]]
 - [[2026-08-30-attendance-location-capture-c5c7c13f|Engineering History — Attendance location capture]]
 - [[2026-08-30-attendance-correction-entry-and-auth-validation-c603abea|Engineering History — Attendance correction entry and auth validation]]
-- [[2026-08-29-workspace-switcher-avatar-menu-9f32c407|Engineering History — Workspace switcher avatar menu]]
 
 ## Recent Releases
 
+- [[2026-08-31-production-dae0e37|Deployment Report — PRODUCTION — dae0e37]]
 - [[2026-08-31-production-cace6cd|Deployment Report — PRODUCTION — cace6cd]]
 - [[2026-08-30-production-6ffed9f|Release — production — `6ffed9f`]]
 - [[2026-08-25-production-08d7901|Release — production — `08d7901`]]
 - [[2026-08-24-production-6ed7a44|Release — production — `6ed7a44`]]
-- [[2026-08-24-production-2609275|Release — production — `2609275`]]
 
 ## Active / Recent Backlog
 
@@ -467,6 +473,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2573-a-correction-request-cannot-be-withdrawn-by-the-person-who-f|BUG-2573]] | A correction request cannot be withdrawn by the person who filed it | UX | MEDIUM | OPEN | api:attendance, apps/web | PLAN_REQUIRED |
 | [[BUG-2647-reporting-record-tables-and-metric-tiles-format-without-the-|BUG-2647]] | Reporting record tables and metric tiles format without the tenant context, causing a hydration mismatch | UX | MEDIUM | FIXED | app:web, app:web | DONE |
 | [[BUG-2648-reports-pages-scroll-sideways-at-1440-because-grid-items-can|BUG-2648]] | Reports pages scroll sideways at 1440 because grid items cannot shrink below their content | UX | MEDIUM | FIXED | app:web | DONE |
+| [[BUG-2662-an-expired-refresh-token-puts-the-tenant-app-into-a-redirect|BUG-2662]] | An expired refresh token puts the tenant app into a redirect loop instead of the login page | UX | MEDIUM | FIXED | apps/web | DONE |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -518,12 +525,12 @@ _None. Nothing open at CRITICAL._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 308 |
+| Bug records | 311 |
 | Backlog items | 119 |
 | Known bug patterns | 32 |
 | QA runs | 32 |
-| Engineering history records | 69 |
-| Release records | 5 |
+| Engineering history records | 70 |
+| Release records | 6 |
 | Module notes | 30 |
 | Architecture notes | 22 |
 | Decision notes (ADR + generated) | 8 |

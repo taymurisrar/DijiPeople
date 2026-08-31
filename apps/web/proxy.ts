@@ -137,7 +137,37 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  if (pathname === LOGIN_ROUTE && hasSessionCookie) {
+  /*
+   * A signed-in visitor who types /login is sent on to their workspace. But
+   * `hasSessionCookie` is only *cookie presence* — this middleware cannot see
+   * that the API has already revoked or expired the session behind those
+   * cookies, and it does not always try: the access token can still be
+   * structurally valid for hours after the server-side session row is gone, so
+   * `shouldRefreshAccessToken` sees nothing to refresh and waves the request
+   * through.
+   *
+   * What follows is a loop rather than a login page. The protected page's own
+   * fetch gets a 401 and redirects to /login; this branch sees the same stale
+   * cookies and sends it back to /; that 401s too. The browser gives up with
+   * ERR_TOO_MANY_REDIRECTS and the user is left on a Chrome error page with no
+   * way out but clearing cookies — which is not something they will find.
+   *
+   * A `next` or `reason` parameter is positive evidence that something already
+   * decided this session does not work. Trust that over the cookie and let the
+   * form render. The cookies are deliberately NOT cleared here: this is a plain
+   * GET, and signing someone out because a single request 401'd would be a
+   * worse failure than the one being fixed. Logging out is `redirectToLogout`'s
+   * job, on the path that knows the refresh itself failed.
+   *
+   * BUG-2662 / REG-388.
+   */
+  if (
+    pathname === LOGIN_ROUTE &&
+    shouldSendSignedInVisitorToWorkspace(
+      hasSessionCookie,
+      request.nextUrl.searchParams,
+    )
+  ) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
@@ -434,6 +464,23 @@ function continueWithRefreshedTokens(
   }
 
   return response;
+}
+
+/**
+ * Should a visitor who already carries session cookies be sent from /login on
+ * to their workspace?
+ *
+ * Only when nothing has told us the session failed. A `next` or `reason`
+ * parameter means some earlier hop -- a protected page whose fetch 401'd, or
+ * the logout route -- deliberately sent the browser here, and bouncing it back
+ * is what turns one dead session into ERR_TOO_MANY_REDIRECTS. BUG-2662.
+ */
+export function shouldSendSignedInVisitorToWorkspace(
+  hasSessionCookie: boolean,
+  searchParams: URLSearchParams,
+): boolean {
+  if (!hasSessionCookie) return false;
+  return !searchParams.has("next") && !searchParams.has("reason");
 }
 
 function redirectToLogout(request: NextRequest) {

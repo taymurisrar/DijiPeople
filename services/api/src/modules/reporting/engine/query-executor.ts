@@ -76,6 +76,16 @@ export class ReportQueryExecutor {
       case 'count':
         return delegate.count({ where });
 
+      case 'point_in_time_count': {
+        const onLatest = await this.restrictToLatestDate(
+          source,
+          calculation.dateField,
+          where,
+        );
+        if (!onLatest) return null;
+        return delegate.count({ where: onLatest });
+      }
+
       case 'filtered_count':
         return delegate.count({
           where: {
@@ -138,6 +148,33 @@ export class ReportQueryExecutor {
   }
 
   /**
+   * Narrow a where to the latest date it actually contains.
+   *
+   * Two queries rather than reusing the period end, because the last day of a
+   * period routinely holds no rows: the snapshot worker captures YESTERDAY, so
+   * asking for today would report a headcount of zero every morning.
+   *
+   * Returns null when the period contains no rows at all, which the callers
+   * render as "no data" rather than as zero.
+   */
+  private async restrictToLatestDate(
+    source: ReportDataSource,
+    dateField: string,
+    where: Record<string, unknown>,
+  ): Promise<Record<string, unknown> | null> {
+    const column = this.column(source, dateField);
+    const latest = await this.delegate(source).aggregate({
+      where,
+      _max: { [column]: true },
+    });
+
+    const on = latest._max?.[column];
+    if (on === null || on === undefined) return null;
+
+    return { AND: [where, { [column]: on }] };
+  }
+
+  /**
    * One metric, grouped by one dimension.
    *
    * Buckets come back sorted by value descending and capped, because a
@@ -157,6 +194,15 @@ export class ReportQueryExecutor {
     const column = group.column;
     const calculation = metric.calculation;
 
+    // A point-in-time metric must narrow to one date here too, or "headcount by
+    // department" silently becomes "employee-days by department" — the same
+    // defect as the scalar tile, drawn as a chart instead of printed as a
+    // number.
+    const latestDateWhere =
+      calculation.kind === 'point_in_time_count'
+        ? await this.restrictToLatestDate(source, calculation.dateField, where)
+        : null;
+
     // A filtered_count metric carries its own predicate, and a breakdown must
     // apply it too. Grouping on the base `where` alone would silently turn
     // "active headcount by department" into "headcount by department" — a
@@ -164,7 +210,7 @@ export class ReportQueryExecutor {
     const groupWhere =
       calculation.kind === 'filtered_count'
         ? { AND: [where, this.resolveMetricWhere(source, calculation.where)] }
-        : where;
+        : (latestDateWhere ?? where);
 
     // count_distinct groups by the dimension AND the counted column, so each
     // bucket's size is its number of distinct values rather than its row count.
@@ -492,6 +538,8 @@ interface PrismaDelegate {
 interface AggregateRow {
   _sum?: Record<string, unknown>;
   _avg?: Record<string, unknown>;
+  /** Used by `point_in_time_count` to find the latest date in a period. */
+  _max?: Record<string, unknown>;
   _count?: { _all?: number };
 }
 

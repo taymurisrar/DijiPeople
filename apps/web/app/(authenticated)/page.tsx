@@ -1,5 +1,5 @@
 /* The server data boundary intentionally converts loader failures into DashboardError. */
-/* eslint-disable react-hooks/error-boundaries */
+ 
 import Link from "next/link";
 import { DashboardShell } from "@/app/components/dashboard/dashboard-shell";
 import type { DashboardSummary } from "@/app/components/dashboard/types";

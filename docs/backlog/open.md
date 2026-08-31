@@ -49,7 +49,9 @@ _None._
 | [BUG-2505](../../docs/bugs/BUG-2505-a-mode-or-location-correction-could-never-be-submitted-at-al.md) | A mode-or-location correction could never be submitted at all | BUG | HIGH | P1 | FIXED | apps/web, api:attendance | DONE |
 | [BUG-2506](../../docs/bugs/BUG-2506-sign-out-leaves-the-refresh-token-live-whenever-the-tenant-i.md) | Sign-out leaves the refresh token live whenever the tenant is busy | SECURITY | HIGH | P1 | FIXED | api:auth | DONE |
 | [BUG-2618](../../docs/bugs/BUG-2618-expired-subscription-orders-are-never-swept-abandonexpired-h.md) | Expired subscription orders are never swept: abandonExpired has no caller and the API has no scheduler | DATA_INTEGRITY | HIGH | P1 | OPEN | billing, super-admin | FIX_NOW |
-| [BUG-2623](../../docs/bugs/BUG-2623-buildscopedaccesswhere-filters-employee-on-ownerteamid-a-col.md) | buildScopedAccessWhere filters Employee on ownerTeamId, a column Employee does not have | AUTHORIZATION | HIGH | P1 | OPEN | services/api/src/common/security/rbac-query-scope.ts | PLAN_REQUIRED |
+| [BUG-2623](../../docs/bugs/BUG-2623-buildscopedaccesswhere-filters-employee-on-ownerteamid-a-col.md) | buildScopedAccessWhere filters Employee on ownerTeamId, a column Employee does not have | AUTHORIZATION | HIGH | P1 | FIXED | services/api/src/common/security/rbac-query-scope.ts | DONE |
+| [BUG-2683](../../docs/bugs/BUG-2683-every-scheduled-report-fails-to-deliver-because-the-email-te.md) | Every scheduled report fails to deliver because the email template variable tenantName is never passed | BUG | HIGH | P1 | FIXED | api:reporting/schedule | DONE |
+| [BUG-2693](../../docs/bugs/BUG-2693-historical-headcount-reports-employee-days-instead-of-headco.md) | Historical headcount reports employee-days instead of headcount and grows with the length of the period | DATA_INTEGRITY | HIGH | P1 | FIXED | api:reporting | DONE |
 
 ## MEDIUM
 
@@ -98,6 +100,7 @@ _None._
 | [BUG-2573](../../docs/bugs/BUG-2573-a-correction-request-cannot-be-withdrawn-by-the-person-who-f.md) | A correction request cannot be withdrawn by the person who filed it | UX | MEDIUM | P2 | OPEN | api:attendance, apps/web | PLAN_REQUIRED |
 | [BUG-2647](../../docs/bugs/BUG-2647-reporting-record-tables-and-metric-tiles-format-without-the-.md) | Reporting record tables and metric tiles format without the tenant context, causing a hydration mismatch | UX | MEDIUM | P2 | FIXED | app:web, app:web | DONE |
 | [BUG-2648](../../docs/bugs/BUG-2648-reports-pages-scroll-sideways-at-1440-because-grid-items-can.md) | Reports pages scroll sideways at 1440 because grid items cannot shrink below their content | UX | MEDIUM | P2 | FIXED | app:web | DONE |
+| [BUG-2662](../../docs/bugs/BUG-2662-an-expired-refresh-token-puts-the-tenant-app-into-a-redirect.md) | An expired refresh token puts the tenant app into a redirect loop instead of the login page | UX | MEDIUM | P2 | FIXED | apps/web | DONE |
 | [ITEM-0009](../../docs/backlog/items/ITEM-0009-no-observability-platform-exists.md) | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | P2 | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [ITEM-0020](../../docs/backlog/items/ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns.md) | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | P2 | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [ITEM-0022](../../docs/backlog/items/ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur.md) | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | P2 | READY | api:super-admin, apps/admin | PLAN_REQUIRED |

@@ -4292,3 +4292,61 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The first version of this test compared a normalised 60-character prefix and **passed on the broken tree** — the pair that shipped diverges at the fourth word, so any prefix long enough to avoid false positives is already past the divergence. It was only caught because the fix was deliberately reverted to check the test failed, which it did not. Word-set overlap is what matches the real shape: one sentence said twice with small edits. A near-duplicate test that compares prefixes is worth nothing; measure the whole string. |
 | **Fixed** | 2026-08-31, branch `agent/reports-analytics-platform-fixes` |
 | **Active** | yes |
+### REG-386 — No scheduled report was ever delivered
+
+| | |
+|---|---|
+| **Bug class** | `contract-asserted-from-one-side` |
+| **Module** | `services/api/src/modules/reporting/schedule` |
+| **Bug record** | BUG-2683 |
+| **Root cause** | The `REPORT_SCHEDULE_DELIVERY` system template declares `tenantName` in `availableVariables` and uses it in its subject line; `ReportSchedulerWorker.deliver()` passed every other declared variable and not that one. `EmailTemplateRendererService` treats a declared-but-absent variable as a **hard failure** rather than rendering a blank, so the omission did not degrade the email, it stopped it — for every recipient, every schedule, every tenant, from the moment the feature shipped. A second latent half: `organizationSettings()` returns `companyDisplayName \|\| undefined`, so a tenant that never set a display name would still have failed once the variable was passed. |
+| **Regression test** | `services/api/src/modules/reporting/schedule/report-scheduler.worker.spec.ts` |
+| **Scenario** | Drain one due schedule and capture the dispatch. Read `availableVariables` off the catalog seed for `REPORT_SCHEDULE_DELIVERY` and assert every key is present and non-null in what the worker actually sent. A guard case asserts the seed exists and declares more than three variables, so the check cannot pass over an empty list. Two further cases: a tenant with a blank display name still delivers using the tenant's own name, and a tenant row that cannot be read still delivers under the product name. |
+| **Proven to fail without the fix** | Removing `tenantName` from the dispatch fails three of the four cases. |
+| **Note** | Both halves were individually correct and individually tested — the template renders given its variables, and the worker was tested against a mocked orchestrator that accepted whatever it was handed. The contract between them was asserted nowhere, which is why a feature that produced files correctly could not send one. **Assert the contract, not a hand-written list**: this test reads the template's own declaration, so a variable added later fails it until it is passed. Found by scheduling a real report in production and watching it fail — the QA run had listed "no scheduled email has reached a real inbox" as a known risk, and the risk was real. |
+| **Fixed** | 2026-08-31, branch `agent/session-redirect-loop` |
+| **Active** | yes |
+
+### REG-387 — A predicate on a column that only one model in 312 has
+
+| | |
+|---|---|
+| **Bug class** | `authorization-missing` |
+| **Module** | `services/api/src/common/security/rbac-query-scope.ts` |
+| **Bug record** | BUG-2623 |
+| **Root cause** | `buildOwnedRecordWhere` defaulted `ownerTeamIdField` to `'ownerTeamId'`. Exactly one model in this schema has that column — `CustomDataRecord`, 1 of 312 — and it was already the one caller naming the field explicitly. Every other caller therefore emitted a predicate on a column that does not exist, and Prisma rejects the entire query rather than ignoring an unknown key. Because `buildOwnedRecordWhere` runs at SELF and USER as well as TEAM, it fired for anyone at those levels belonging to at least one team. An audit of every caller found it live in data-management exports of `Employee`, `LeaveRequest` and `AttendanceEntry`, and in generic reads of the `employees` entity. |
+| **Regression test** | `services/api/src/common/security/rbac-query-scope.spec.ts` |
+| **Scenario** | With a user holding team memberships, assert `buildOwnedRecordWhere` emits no `ownerTeamId` term unless a caller names the column, and that the three real ownership terms survive. Then, across SELF, USER and TEAM, assert `buildScopedAccessWhere` for the `employees` entity — with exactly the options the data registry and the export service pass — contains no `ownerTeamId` anywhere in the nested `where`, while still carrying a tenant predicate. |
+| **Proven to fail without the fix** | Restoring the `?? 'ownerTeamId'` default fails four of the seven cases. |
+| **Note** | The fix is the direction of the default, not the logic: making the field opt-in means forgetting it yields a **narrower** result set rather than a thrown query, and a model that genuinely has an owning team says so. Reporting had already been forced to carry a sanitiser exception for this one field; fixing the source let that exception go, and the substitution behaviour it was incidentally covering is now tested directly rather than left to rot with no live trigger. Worth remembering when reading a shared helper's defaults: a default is a claim about every model, and this one was true of 0.3% of them. |
+| **Fixed** | 2026-08-31, branch `agent/session-redirect-loop` |
+| **Active** | yes |
+
+### REG-388 — An expired session became a browser error page
+
+| | |
+|---|---|
+| **Bug class** | `presence-mistaken-for-validity` |
+| **Module** | `apps/web/proxy.ts` |
+| **Bug record** | BUG-2662 |
+| **Root cause** | The middleware computed `hasSessionCookie` as the mere presence of an access or refresh cookie, then used it to send any visitor arriving at `/login` on to `/`. It cannot see that the API has revoked the session, and it does not always try — `shouldRefreshAccessToken` only refreshes near expiry, and an access token stays structurally valid for hours after the server-side session row is gone. So the request is waved through, the page's own fetch 401s and redirects to `/login?next=…`, this rule sees the same stale cookies and sends it back to `/`, and that 401s too. The browser gives up with `ERR_TOO_MANY_REDIRECTS`. |
+| **Regression test** | `apps/web/login-bounce.spec.ts` |
+| **Scenario** | `shouldSendSignedInVisitorToWorkspace` returns true only for a visitor with cookies and no `next` or `reason` parameter. Walk the exact hop sequence that produced the loop — `next=/reports`, `next=/`, `next=/reports?tab=1` — and assert every arrival renders the form. A visitor with no cookies is never bounced; a genuinely signed-in visitor who typed `/login` still is. |
+| **Proven to fail without the fix** | Reducing the predicate to `return hasSessionCookie` fails four of the six cases. |
+| **Note** | Two things generalise. First, a `next` or `reason` parameter is *evidence*: it means an earlier hop already decided the session failed, and trusting it over a cookie is what breaks the cycle. Second, the fix deliberately does **not** clear the cookies at that point — it is a plain GET, and signing someone out because one request returned 401 would be a worse failure than the one being fixed; clearing them belongs to the logout path that knows the refresh itself failed. The rule was extracted into a named function purely so it could be tested, because `apps/web` runs jest with no jsdom and the middleware cannot be booted there. |
+| **Fixed** | 2026-08-31, branch `agent/session-redirect-loop` |
+| **Active** | yes |
+### REG-389 — Headcount counted employee-days and grew with the period
+
+| | |
+|---|---|
+| **Bug class** | `stock-counted-as-flow` |
+| **Module** | `services/api/src/modules/reporting` |
+| **Bug record** | BUG-2693 |
+| **Root cause** | `workforce_history` holds one row per employee per day, and `workforce.historical_headcount` was declared `{ kind: 'count' }`. So the tile reported employee-days: 70 over seven days and 323 over thirty, for a company of twelve. The metric's own `description` said "Headcount on a given day" and its calculation did not implement that description; nothing compared the two. The engine had no kind able to express a point-in-time count, so `count` was the only one available and it was reached for. |
+| **Regression test** | `services/api/src/modules/reporting/engine/point-in-time-count.spec.ts` |
+| **Scenario** | Assert the metric is declared `point_in_time_count` on `workforce_history.snapshot_date`. Execute it against a stubbed delegate: it must resolve the latest date first, then count with that date pinned rather than counting the bare period. A period whose newest snapshot is yesterday must pin yesterday, not today. A period holding no snapshot at all must return `null`, and must not issue a count. |
+| **Proven to fail without the fix** | Reverting the metric to `{ kind: 'count' }` fails all four cases. |
+| **Note** | Three things generalise. **A stock is not a flow**: counting rows is right for an event table and wrong for a daily snapshot, and the same trap waits on any future "as at" metric. **Pin the latest date that exists, not the end of the period** — the snapshot job captures yesterday, so a period ending today has an empty final day and pinning it would report zero every morning. **The breakdown needed the same narrowing**, or "headcount by department" becomes "employee-days by department": the identical defect drawn as a chart instead of printed as a number, which is harder to notice. Also worth remembering how it surfaced: the tile had always been wrong, but `workforce_history` was empty until the backfill ran, so it had never been on screen. Making a screen reachable is what exposes its bugs. |
+| **Fixed** | 2026-08-31, branch `agent/session-redirect-loop` |
+| **Active** | yes |
