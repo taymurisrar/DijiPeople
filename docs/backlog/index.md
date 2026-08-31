@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**431 records** — 312 bugs under [`docs/bugs/`](../bugs/), 119 non-bug items under [`items/`](items/).
+**432 records** — 313 bugs under [`docs/bugs/`](../bugs/), 119 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,20 +13,20 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 108 |
+| Open (active work) | 109 |
 | Blocked | 2 |
 | Deferred | 25 |
 | Awaiting a product decision | 6 |
 | Completed / closed | 290 |
 | **Open CRITICAL** | **0** |
-| **Open HIGH** | **29** |
+| **Open HIGH** | **30** |
 | **Awaiting Architect triage** | **3** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 29 |
+| HIGH | 30 |
 | MEDIUM | 65 |
 | LOW | 14 |
 
@@ -47,7 +47,7 @@ see [`README.md`](README.md) for why.
 | STATE_MACHINE | 3 |
 | TECH_DEBT | 6 |
 | TEST_GAP | 6 |
-| UX | 28 |
+| UX | 29 |
 
 ## All records by status
 
@@ -57,7 +57,7 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 2 |
 | DEFERRED | 25 |
 | PRODUCT_DECISION | 6 |
-| FIXED | 72 |
+| FIXED | 73 |
 | VERIFIED | 218 |
 | DUPLICATE | 5 |
 | ACCEPTED_RISK | 3 |
@@ -218,6 +218,7 @@ see [`README.md`](README.md) for why.
 | [BUG-2624](../../docs/bugs/BUG-2624-the-reports-endpoints-return-tenant-wide-aggregates-regardle.md) | The reports endpoints return tenant-wide aggregates regardless of the caller's row scope | AUTHORIZATION | HIGH | P1 | VERIFIED | api:reports/reports.service.ts | DONE |
 | [BUG-2683](../../docs/bugs/BUG-2683-every-scheduled-report-fails-to-deliver-because-the-email-te.md) | Every scheduled report fails to deliver because the email template variable tenantName is never passed | BUG | HIGH | P1 | FIXED | api:reporting/schedule | DONE |
 | [BUG-2693](../../docs/bugs/BUG-2693-historical-headcount-reports-employee-days-instead-of-headco.md) | Historical headcount reports employee-days instead of headcount and grows with the length of the period | DATA_INTEGRITY | HIGH | P1 | FIXED | api:reporting | DONE |
+| [BUG-2718](../../docs/bugs/BUG-2718-the-approvals-record-page-reads-the-detail-response-envelope.md) | The approvals record page reads the detail response envelope, so every field is blank | UX | HIGH | P1 | FIXED | approvals, leave, attendance | FIX_NOW |
 | [BUG-2732](../../docs/bugs/BUG-2732-attendance-integration-cannot-be-activated-activation-requir.md) | Attendance integration cannot be activated: activation requires a verified device, but only an active integration is ever verified | STATE_MACHINE | HIGH | P1 | OPEN | api:attendance-integrations, gateway/src/DijiPeople.Gateway.Host | TRIAGE_REQUIRED |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |

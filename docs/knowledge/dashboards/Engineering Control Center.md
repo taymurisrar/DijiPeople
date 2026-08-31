@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **2** |
+| Active sessions | **3** |
 | Active parent tasks | 4 |
 | Active work packages | 4 |
 | Blocked work packages | 0 |
@@ -15,7 +15,7 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
-| Open HIGH | 29 |
+| Open HIGH | 30 |
 | Awaiting Architect triage | 3 |
 | Owner decisions pending | 6 |
 | QA coverage gaps | 142 |
@@ -30,8 +30,8 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 107 |
-| No next action | 107 |
+| No acceptance criteria | 108 |
+| No next action | 108 |
 | Aging — 7d / 30d / 90d | 19 / 0 / 0 |
 | Architecture and technical debt | 8 |
 | Security gaps | 7 |
@@ -49,6 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
+| [[SESSION-0090-approvals-inbox-make-the-decision-surface-real|SESSION-0090]] | — | Approvals inbox: make the decision surface real | ACTIVE | `agent/approvals-inbox-decisions` | `develop` | — | NO |
 | [[SESSION-0089-a-workspace-that-cannot-send-email-should-say-so|SESSION-0089]] | — | A workspace that cannot send email should say so | ACTIVE | `agent/email-sink-visibility` | `develop` | — | NO |
 | [[SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser|SESSION-0061]] | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | NO |
 
@@ -269,7 +270,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 108 |
+| Open total | 109 |
 | Blocked | 2 |
 | Deferred | 25 |
 | Awaiting a product decision | 6 |
