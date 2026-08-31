@@ -4,7 +4,10 @@ import {
   MAX_IN_VALUES,
   supportedOperators,
 } from './filter.model';
-import type { ReportDataSource, ReportFieldDefinition } from '../semantic/semantic.types';
+import type {
+  ReportDataSource,
+  ReportFieldDefinition,
+} from '../semantic/semantic.types';
 
 /**
  * Filter coercion.
@@ -176,6 +179,8 @@ describe('supportedOperators', () => {
     const operators = supportedOperators(
       field({ type: 'number', path: 'totalDays' }),
     );
-    expect(operators).toEqual(expect.arrayContaining(['gte', 'lte', 'between']));
+    expect(operators).toEqual(
+      expect.arrayContaining(['gte', 'lte', 'between']),
+    );
   });
 });

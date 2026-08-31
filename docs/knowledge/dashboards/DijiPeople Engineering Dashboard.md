@@ -378,6 +378,7 @@ _None. Nothing open at CRITICAL._
 
 ## Recent QA Runs
 
+- [[2026-08-31-reports-analytics-platform-96ff155|QA Run — reports-analytics-platform]]
 - [[2026-08-29-starter-plan-e2e-pass-2-8ab1cbf|QA Run — starter-plan-e2e-pass-2]]
 - [[2026-08-29-starter-plan-e2e-eb457d9|QA Run — starter-plan-e2e]]
 - [[2026-08-28-regression-guard-sweep-9e55663|QA Run — regression-guard-sweep]]
@@ -385,7 +386,6 @@ _None. Nothing open at CRITICAL._
 - [[2026-08-26-admin-prod-e2e-8d6be21|QA Run — admin-prod-e2e]]
 - [[2026-08-25-landing-fixes-verification|QA Run — landing-fixes-verification]]
 - [[2026-08-25-landing-e2e-local-and-prod-42435d5|QA Run — landing-e2e-local-and-prod]]
-- [[2026-08-24-record-state-reconciliation-0a5586f|QA Run — record-state-reconciliation]]
 
 ## Recent Implementations
 
@@ -514,7 +514,7 @@ _None. Nothing open at CRITICAL._
 | Bug records | 305 |
 | Backlog items | 119 |
 | Known bug patterns | 32 |
-| QA runs | 31 |
+| QA runs | 32 |
 | Engineering history records | 69 |
 | Release records | 4 |
 | Module notes | 30 |
