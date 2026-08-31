@@ -5,6 +5,7 @@ import { NotificationsRepository } from '../notifications.repository';
 import {
   ApiPlaceholderEmailProvider,
   ConsoleEmailProvider,
+  isSinkProvider,
   SmtpEmailProvider,
 } from './providers';
 import type { EmailProvider } from '../interfaces/email-provider.interface';
@@ -46,14 +47,10 @@ export class EmailProviderFactory {
     const tenantProvider =
       enabledTenantProviders.find((provider) => provider.isDefault) ??
       enabledTenantProviders.find(
-        (provider) =>
-          provider.providerType !== EmailProviderType.CONSOLE &&
-          provider.providerType !== EmailProviderType.DEV,
+        (provider) => !isSinkProvider(provider.providerType),
       ) ??
-      enabledTenantProviders.find(
-        (provider) =>
-          provider.providerType === EmailProviderType.CONSOLE ||
-          provider.providerType === EmailProviderType.DEV,
+      enabledTenantProviders.find((provider) =>
+        isSinkProvider(provider.providerType),
       );
 
     if (tenantProvider) {
@@ -98,10 +95,7 @@ export class EmailProviderFactory {
    * receive no mail.
    */
   getProvider(providerType: EmailProviderType): EmailProvider {
-    if (
-      providerType === EmailProviderType.CONSOLE ||
-      providerType === EmailProviderType.DEV
-    ) {
+    if (isSinkProvider(providerType)) {
       return this.consoleProvider;
     }
 

@@ -7,6 +7,7 @@ import {
 import { AppError } from '../../../common/errors/app-error';
 import type { AuthenticatedUser } from '../../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { EmailExecutionService } from '../../notifications/email/email-execution.service';
 import { PERIOD_PRESETS, type PeriodPreset } from '../engine/period.engine';
 import { parseTargetKey } from '../execution/report-execution.service';
 import { computeNextRun, isSupportedTimeZone } from './next-run';
@@ -78,7 +79,33 @@ const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export class ReportScheduleService {
   private readonly logger = new Logger(ReportScheduleService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly emailExecution: EmailExecutionService,
+  ) {}
+
+  /**
+   * Whether this workspace can deliver the emails these schedules promise.
+   *
+   * A schedule is a promise to send somebody a file on a timer, and the demo
+   * tenant kept that promise to a `CONSOLE` sink for weeks: the run completed,
+   * the delivery log said SENT, and no email existed. The screen has no way to
+   * know that unless it asks, so it asks.
+   *
+   * Resolved through the same provider chain a real send walks — tenant
+   * providers, then the platform relay, then the environment — so a tenant
+   * relying on the platform provider is not told it cannot send.
+   */
+  async deliveryCapability(user: AuthenticatedUser) {
+    const capability = await this.emailExecution.resolveDeliveryCapability(
+      user.tenantId,
+    );
+
+    return {
+      canDeliver: capability.canDeliver,
+      providerType: capability.providerType,
+    };
+  }
 
   async list(user: AuthenticatedUser) {
     const rows = await this.prisma.reportSchedule.findMany({
