@@ -416,12 +416,12 @@ _None. Nothing open at CRITICAL._
 
 - [[2026-08-31-session-redirect-loop-77abf947|Engineering History — Session redirect loop]]
 - [[2026-08-31-reports-analytics-platform-d833e694|Engineering History — Reports analytics platform]]
+- [[2026-08-31-email-sink-visibility-1b60690f|Engineering History — Email sink visibility]]
 - [[2026-08-30-release-attendance-location-capture-ec1d58da|Engineering History — Release attendance location capture]]
 - [[2026-08-30-prod-monitoring-triage-fba846d1|Engineering History — Prod monitoring triage]]
 - [[2026-08-30-open-bug-burndown-4d75b37c|Engineering History — Open bug burndown]]
 - [[2026-08-30-data-model-and-screen-discovery-122ce41e|Engineering History — Data model and screen discovery]]
 - [[2026-08-30-checkout-duplicate-customer-68f4fd2e|Engineering History — Checkout duplicate customer]]
-- [[2026-08-30-attendance-location-capture-c5c7c13f|Engineering History — Attendance location capture]]
 
 ## Recent Releases
 
@@ -534,7 +534,7 @@ _None. Nothing open at CRITICAL._
 | Backlog items | 120 |
 | Known bug patterns | 32 |
 | QA runs | 32 |
-| Engineering history records | 71 |
+| Engineering history records | 72 |
 | Release records | 7 |
 | Module notes | 30 |
 | Architecture notes | 22 |
