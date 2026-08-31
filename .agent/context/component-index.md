@@ -1,7 +1,7 @@
 # Component Index
 
 > **Last verified:** 2026-08-31
-> **Verified against commit:** 11b31412
+> **Verified against commit:** fcc0880b
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -17,7 +17,7 @@ comment beside it is the reasoning; this document is a route to both. Every row
 carries `file`:`line` for that reason — read the source before changing it.
 
 **An export missing from here is undocumented, not absent.** 813 of
-1026 exports across these kits carry no
+1027 exports across these kits carry no
 doc-comment and are omitted rather than listed as bare names. That ratio is
 itself worth knowing: it is where a UI/UX or Frontend agent is working without
 stated rationale, and where adding one is worth more than a new abstraction.
@@ -125,7 +125,7 @@ re-derived on each run.
 
 Metadata-driven UI is the default. New modules are declared through `lib/runtime/` and rendered by the standard runtime pages; a bespoke page needs a stated reason in the plan.
 
-142 documented export(s); 564 undocumented export(s) omitted.
+143 documented export(s); 564 undocumented export(s) omitted.
 
 | Export | Kind | Used by | Where | What it is |
 |---|---|---|---|---|
@@ -151,6 +151,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `useDialogBehavior` | function | 16 | `apps/web/app/components/ui/dialog.tsx`:130 | The behaviour half of {@link Dialog}, on its own. |
 | `formatChartValue` | function | 10 | `apps/web/app/components/charts/chart-format.ts`:47 | Render one measured number the way the tenant has asked for numbers to be rendered. |
 | `hasChartData` | function | 8 | `apps/web/app/components/charts/chart-types.ts`:97 | `true` when there is nothing to draw: no series, or every series empty. |
+| `useFormattingContext` | function | 8 | `apps/web/app/components/filters/use-formatting-context.ts`:28 | The tenant's formatting context, safe to use during render. |
 | `pointAccessibleLabel` | function | 6 | `apps/web/app/components/charts/chart-format.ts`:128 | The accessible name for a single plotted point — the BUG-2148 countermeasure. |
 | `seriesColor` | function | 6 | `apps/web/app/components/charts/chart-tokens.ts`:62 | Colour for the series (or slice) at `index`, wrapping when there are more series than colours. |
 | `activateOnKey` | function | 4 | `apps/web/app/components/charts/chart-chrome.tsx`:392 | Keyboard activation for a plotted point. |
@@ -254,11 +255,11 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `CommandContextSource` | type | 0 | `apps/web/lib/runtime/command-context-labels.ts`:14 | Labels for the context line a command surface shows above its form. |
 | `CommandFailureContract` | type | 0 | `apps/web/lib/runtime/command-failure-message.ts`:22 | What a failed runtime command means, read out of whatever the adapter threw. |
 | `CommandPlacementKey` | type | 0 | `apps/web/lib/runtime/command-catalog.ts`:9 | The commands an action bar can carry, and where a bar can appear. |
-| `ComparisonSelectorProps` | type | 0 | `apps/web/app/components/filters/comparison-selector.tsx`:30 | What the current period is measured against. |
+| `ComparisonSelectorProps` | type | 0 | `apps/web/app/components/filters/comparison-selector.tsx`:31 | What the current period is measured against. |
 | `CorrectionOriginals` | type | 0 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:361 | The values the record already holds, as the correction form's own vocabulary. |
 | `CorrectionType` | type | 0 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:15 | Which fields a correction type needs, and what makes a request valid. |
 | `DateRange` | type | 0 | `apps/web/app/components/filters/period.ts`:38 | Inclusive, `yyyy-MM-dd` at both ends. |
-| `DateRangeFilterValue` | type | 0 | `apps/web/app/components/filters/date-range-filter.tsx`:31 | Preset first, custom dates second. |
+| `DateRangeFilterValue` | type | 0 | `apps/web/app/components/filters/date-range-filter.tsx`:32 | Preset first, custom dates second. |
 | `DonutArc` | type | 0 | `apps/web/app/components/charts/chart-geometry.ts`:1029 | ------------------------------------------------------------------- donut |
 | `DonutChartProps` | type | 0 | `apps/web/app/components/charts/donut-chart.tsx`:35 | A composition, as a ring. |
 | `FunnelChartProps` | type | 0 | `apps/web/app/components/charts/funnel-chart.tsx`:25 | A pipeline, stage by stage. |
