@@ -26,6 +26,30 @@
  * that still passes a literal is not broken, it is simply not yet declared.
  */
 export const AUDIT_ACTIONS = {
+  /*
+   * Reports & Analytics — TASK-0028.
+   *
+   * Deliberately NOT audited: running a report, changing a filter, or
+   * repainting a chart. Those are reads a user performs dozens of times an
+   * hour, and recording them would bury the events below — a share, an
+   * export, a schedule change — in noise. What is audited is the creation
+   * and movement of data OUT of the product, and any change to who can see
+   * it. Viewing is tracked as product state on ReportRecentView instead,
+   * which is not an audit trail and does not pretend to be one.
+   */
+  REPORT_DEFINITION_CREATED: 'REPORT_DEFINITION_CREATED',
+  REPORT_DEFINITION_UPDATED: 'REPORT_DEFINITION_UPDATED',
+  REPORT_DEFINITION_DELETED: 'REPORT_DEFINITION_DELETED',
+  REPORT_DEFINITION_DUPLICATED: 'REPORT_DEFINITION_DUPLICATED',
+  REPORT_SHARED: 'REPORT_SHARED',
+  REPORT_EXPORTED: 'REPORT_EXPORTED',
+  SENSITIVE_REPORT_EXPORTED: 'SENSITIVE_REPORT_EXPORTED',
+  REPORT_SCHEDULE_CREATED: 'REPORT_SCHEDULE_CREATED',
+  REPORT_SCHEDULE_UPDATED: 'REPORT_SCHEDULE_UPDATED',
+  REPORT_SCHEDULE_DELETED: 'REPORT_SCHEDULE_DELETED',
+  REPORT_SCHEDULE_EXECUTED: 'REPORT_SCHEDULE_EXECUTED',
+  DESKTOP_ANALYTICS_VIEWED: 'DESKTOP_ANALYTICS_VIEWED',
+
   /* Employee lifecycle — BUG-2044. */
   EMPLOYEE_CREATED: 'EMPLOYEE_CREATED',
   EMPLOYEE_UPDATED: 'EMPLOYEE_UPDATED',
@@ -155,4 +179,7 @@ export const AUDIT_ENTITY_TYPES = {
   LEAVE_POLICY: 'LeavePolicy',
   LEAVE_POLICY_RULE: 'LeavePolicyRule',
   LEAVE_POLICY_ASSIGNMENT: 'LeavePolicyAssignment',
+  REPORT_DEFINITION: 'ReportDefinition',
+  REPORT_SCHEDULE: 'ReportSchedule',
+  REPORT_RUN: 'ReportRun',
 } as const;

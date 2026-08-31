@@ -879,6 +879,100 @@ export const ERROR_CATALOG = {
     'Check that location services are enabled and try again.',
     true,
   ),
+
+  // ── Reports & Analytics (TASK-0028) ────────────────────────────────────
+  //
+  // The reporting engine resolves client input against an allow-listed
+  // semantic registry. These codes are how a rejection says which rule it hit,
+  // which matters more here than elsewhere: a report builder is a surface where
+  // users legitimately construct queries that turn out to be invalid, and
+  // "something went wrong" gives them nothing to correct.
+  REPORT_SOURCE_UNKNOWN: entry(
+    400,
+    'Unknown report data source',
+    'That reporting area does not exist or is not available to this tenant.',
+    'warning',
+    'validation',
+  ),
+  REPORT_SOURCE_FORBIDDEN: entry(
+    403,
+    'Reporting area not permitted',
+    'You do not have access to the underlying records for this reporting area.',
+    'warning',
+    'access',
+  ),
+  REPORT_FIELD_UNKNOWN: entry(
+    400,
+    'Unknown report field',
+    'One of the selected fields is not available for this reporting area.',
+    'warning',
+    'validation',
+  ),
+  REPORT_FIELD_FORBIDDEN: entry(
+    403,
+    'Field not permitted',
+    'One of the selected fields is restricted and cannot be included.',
+    'warning',
+    'access',
+  ),
+  REPORT_FILTER_INVALID: entry(
+    400,
+    'Invalid report filter',
+    'Adjust the filter and try again.',
+    'warning',
+    'validation',
+  ),
+  REPORT_DEFINITION_INVALID: entry(
+    400,
+    'Invalid report definition',
+    'The report could not be saved because part of its definition is not valid.',
+    'warning',
+    'validation',
+  ),
+  REPORT_NOT_FOUND: entry(
+    404,
+    'Report not found',
+    'The requested report could not be found.',
+    'warning',
+    'validation',
+  ),
+  REPORT_EXPORT_TOO_LARGE: entry(
+    400,
+    'Export too large',
+    'Narrow the period or the filters and export again.',
+    'warning',
+    'validation',
+  ),
+  REPORT_EXPORT_NOT_READY: entry(
+    409,
+    'Export not ready',
+    'The export is still being generated. Try again shortly.',
+    'info',
+    'system',
+    undefined,
+    true,
+  ),
+  REPORT_EXPORT_FAILED: entry(
+    500,
+    'Export failed',
+    'The export could not be generated. The failure has been recorded.',
+    'error',
+    'system',
+  ),
+  REPORT_SCHEDULE_INVALID: entry(
+    400,
+    'Invalid report schedule',
+    'Check the frequency, time and recipients, then save again.',
+    'warning',
+    'validation',
+  ),
+  REPORT_SCHEDULE_RECIPIENT_FORBIDDEN: entry(
+    403,
+    'Recipient not permitted',
+    'A recipient cannot receive this report because they lack access to its data.',
+    'warning',
+    'access',
+  ),
 } as const satisfies Record<string, ErrorCatalogEntry>;
 
 export type ErrorCode = keyof typeof ERROR_CATALOG;

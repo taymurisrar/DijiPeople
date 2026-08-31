@@ -69,9 +69,39 @@ export function setRouteTitle(pageTitle: string, brandingTitle: string) {
   }
 }
 
+/**
+ * Routes whose last path segment does not name the page.
+ *
+ * The derivation below takes the last meaningful segment and title-cases it,
+ * which is right for `/employees` and `/leaves` and wrong for the reporting
+ * workspace: `/reports/analytics/workforce` would become "Workforce", which is
+ * both the browser tab title and the topbar heading — so a reader with three
+ * tabs open sees "Workforce", "Attendance" and "Leave" with nothing saying any
+ * of them is a report rather than the module of the same name. `/reports/library`
+ * would become "Library", `/reports/my-reports` "My Reports" and
+ * `/reports/analytics/desktop_activity` "Desktop_activity", underscore included.
+ *
+ * Exact paths only, checked before the derivation, so nothing else changes.
+ */
+const EXPLICIT_ROUTE_TITLES: Record<string, string> = {
+  "/reports": "Reports & Analytics",
+  "/reports/library": "Report Library",
+  "/reports/my-reports": "My Reports",
+  "/reports/builder": "Report Builder",
+  "/reports/scheduled": "Scheduled Reports",
+  "/reports/analytics/workforce": "Workforce Analytics",
+  "/reports/analytics/attendance": "Attendance Analytics",
+  "/reports/analytics/leave": "Leave Analytics",
+  "/reports/analytics/recruitment": "Recruitment Analytics",
+  "/reports/analytics/desktop_activity": "Desktop Activity Analytics",
+};
+
 export function resolveRouteTitle(pathname: string) {
   if (pathname === "/") return "Overview";
   if (pathname === "/login" || pathname.endsWith("/login")) return "Login";
+
+  const explicit = EXPLICIT_ROUTE_TITLES[pathname];
+  if (explicit) return explicit;
 
   const segments = pathname.split("/").filter(Boolean);
   if (!segments.length) return "";

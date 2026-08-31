@@ -3,13 +3,13 @@ ID: ITEM-0118
 aliases: [ITEM-0118]
 Title: Merge the duplicate CustomerAccount rows self-service checkout created before BUG-2530
 Type: DATA_MIGRATION
-Status: READY
+Status: DONE
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [super-admin, billing]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-30
 UpdatedAt: 2026-08-30
 RelatedBug: BUG-2530
@@ -59,6 +59,49 @@ The population is identifiable without guesswork: an orphan is a
 value is written by exactly one code path and by nothing else, which is what
 makes this a bounded cleanup rather than a fuzzy dedup.
 
+### Measured against production, 2026-08-30
+
+Read-only query, run after the fix deployed. **Eight orphans out of eighteen
+customer rows in total** — the placeholder accounts for very nearly half the
+Customers list.
+
+| Orphan | Created | Company | Surviving twin |
+|---|---|---|---|
+| `230b3c5f` | 2026-08-29 21:52Z | Nisa Co | `8c56bfb3` ACTIVE |
+| `fa69f039` | 2026-08-28 07:16Z | DIJINATION | none |
+| `e816098c` | 2026-08-27 14:50Z | DijiPeople Demo | `b409c57c` ACTIVE |
+| `521fe4ad` | 2026-08-26 10:27Z | QA E2E Signup B 20260826 | `7374a80c` ACTIVE |
+| `9beffd91` | 2026-08-26 10:17Z | QA E2E Signup 20260826 | `512dda5e` PROSPECT |
+| `6e37974e` | 2026-08-25 20:18Z | DijiPeople QA Verification | `08b4a1a8` PROSPECT |
+| `ce5a7ddd` | 2026-08-22 18:08Z | NISACO | none |
+| `4645cb15` | 2026-08-21 10:36Z | Demo | none |
+
+`e816098c` is the very record BUG-1516 quoted as its root-cause evidence on
+2026-08-27. It has been in production ever since, which is the clearest possible
+statement that that record's `VERIFIED` was about a test and not about the
+system.
+
+**Every one of the eight is attached to exactly one thing, and it is a `DRAFT`
+order.** Per row: `orders=1`, `non-draft orders=0`, and `tenants`,
+`subscriptions`, `onboardings`, `contacts`, `contracts` and `provisioningRuns`
+all `0`. Nothing of commercial value hangs off any of them, which answers step 2
+of the sketch below before it is attempted.
+
+**Zero same-name groups are unexplained by the placeholder.** Every duplicate
+company name in the Customers list is one of these eight, so there is no second,
+unrelated duplication mechanism still to find.
+
+Three of the eight — DIJINATION, NISACO, Demo — have **no twin**. They are
+checkouts abandoned before the e-mail step. They are also not the followable
+leads the pre-payment customer record exists to preserve: the placeholder *is*
+their only contact address, so there is nobody to follow up. Worth stating,
+because that reasoning is the stated justification for writing a customer before
+payment, and for these three it does not hold.
+
+**Ordering constraint for whoever executes this.** `SubscriptionOrder` is
+`onDelete: Restrict` against `CustomerAccount`, so the order must be resolved
+before its customer can be — the reverse fails at the database.
+
 ## Proposed Approach
 
 **Needs an ExecPlan** under [`PLANS.md`](../../../PLANS.md). It is a destructive
@@ -85,6 +128,50 @@ stated reason — a missed merge is a recoverable duplicate, a wrong merge puts 
 company's workspace under another company's billing account — and loosening a
 live identity rule to clean up historical data trades a permanent risk for a
 one-off tidy-up.
+
+## Outcome — 2026-08-30, done
+
+Approved by the repository owner on the specific list of eight, not on a general
+go-ahead. All eight removed; **`removed=8 skipped=0`**.
+
+```text
+CustomerAccount total       19 → 11
+placeholder rows             8 → 0
+company names appearing >1   5 → 0
+```
+
+Removed: `Demo`, `NISACO`, `DijiPeople QA Verification`,
+`QA E2E Signup 20260826`, `QA E2E Signup B 20260826`, `DijiPeople Demo`,
+`DIJINATION`, `Nisa Co` — each with its single `DRAFT` order.
+
+**How the write was made safe**, because a measurement is not an authorisation:
+
+- Dry run first, and the dry run's output matched the measurement row for row.
+- **Every precondition re-checked inside each row's transaction**, at the moment
+  of deletion — tenants, subscriptions, onboardings, contacts, contracts,
+  provisioning runs and non-`DRAFT` orders. The earlier count is what made the
+  decision reasonable; it is not what authorised the write. A row that had gained
+  an attachment in the interval would have been skipped, not deleted.
+- Equality on the placeholder address, never a `LIKE` or a company-name match.
+- Bounded: the script aborts above twelve candidates, on the grounds that a
+  larger population is not the one that was measured.
+- **Audited before deleting**, so the evidence survives even if the delete fails:
+  one `PlatformAuditLog` row per customer, `action:
+  CUSTOMER_ACCOUNT_ORPHAN_REMOVED`, `sourceModule: item-0118`, with the complete
+  customer row and its orders as `beforeSnapshot`. Anything removed here is
+  reconstructible from that snapshot.
+- One transaction per row, so a failure could neither roll back completed rows
+  nor half-delete its own.
+
+Order matters and is enforced by the schema: `SubscriptionOrder` is
+`onDelete: Restrict` against `CustomerAccount`, so the order goes first.
+
+**What this does not fix.** The wizard still writes `pending@onboarding.invalid`
+when a draft is opened before the e-mail step, so a checkout abandoned at the
+workspace step will create another such row. BUG-2530 stopped that placeholder
+causing a *duplicate*; it did not stop it existing. Three of the eight removed
+here — DIJINATION, NISACO, Demo — were exactly that case rather than duplicates.
+Carried forward as its own record.
 
 ## Acceptance Criteria
 

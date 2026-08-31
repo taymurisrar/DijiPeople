@@ -16,6 +16,7 @@ import {
   EmailTemplateRendererService,
   EmailTemplateRenderResult,
 } from './email-template-renderer.service';
+import type { EmailAttachment } from '../interfaces/email-provider.interface';
 
 export type SendTemplateEmailInput = {
   tenantId: string;
@@ -42,6 +43,20 @@ export type SendTemplateEmailInput = {
   cc?: string | null;
   bcc?: string | null;
   variables: Record<string, unknown>;
+  /*
+   * Files to attach.
+   *
+   * `EmailSendPayload.attachments` and the SMTP provider have carried
+   * attachments since they were written, but nothing on the template path could
+   * supply them, so anything a caller set was silently dropped one layer above
+   * the transport. Optional and additive: a caller that omits it sends exactly
+   * the message it sent before.
+   *
+   * Held in memory as a Buffer, so what is attached is what the process holds.
+   * The report scheduler's export row cap is what bounds it today; a caller
+   * attaching something unbounded needs a limit of its own.
+   */
+  attachments?: EmailAttachment[];
   metadata?: Record<string, unknown> | null;
   requestedByUserId?: string | null;
   dryRun?: boolean;
@@ -394,6 +409,7 @@ export class EmailExecutionService {
         subject: rendered.renderedSubject,
         html: rendered.renderedHtml,
         text: rendered.renderedText,
+        attachments: input.attachments,
         fromEmail: resolvedProvider.fromEmail,
         fromName: resolvedProvider.fromName,
         replyToEmail: resolvedProvider.replyToEmail,

@@ -1,0 +1,146 @@
+---
+ID: BUG-2626
+aliases: [BUG-2626]
+Title: Dashboard numbers render in the visitor's browser locale instead of the tenant's
+Status: DEFERRED
+Severity: MEDIUM
+Priority: P2
+Type: UX
+Source: QA_RUN
+DetectedDate: 2026-08-30
+DetectedInSha: 1965b5cc
+AffectedModules: [apps/web/app/components/dashboard/dashboard-widget-renderer.tsx]
+OwnerAgent: architect
+ArchitectDisposition: DEFER
+QAReport: 
+RegressionId: 
+RelatedBacklogItem:
+RelatedDecision:
+RelatedImplementation:
+CreatedAt: 2026-08-30
+UpdatedAt: 2026-08-30
+ResolvedAt:
+---
+
+# BUG-2626 — Dashboard numbers render in the visitor's browser locale instead of the tenant's
+
+## Summary
+
+`dashboard-widget-renderer.tsx` formats numbers with a bare
+`Number.prototype.toLocaleString()`, which uses the *visiting browser's* locale
+rather than the tenant's configured one. BUG-2010 fixed this class of defect for
+dates and left the number path untouched. A second, unrelated instance of the same
+"the presentation layer misstates a number" family lives in
+`reports/_components/report-bar-list.tsx`, described below.
+
+## Expected Behavior
+
+Every tenant-facing number uses the tenant's resolved locale, via
+`formatNumber` / `formatMoney` from `apps/web/lib/formatting-context.ts`. That module
+is documented as the only normal formatting entry point, and
+`SystemPreferencesProvider` installs the tenant context into it precisely so bare
+calls inherit it.
+
+## Actual Behavior
+
+A viewer in a `de-DE` browser sees `1.248` where a viewer in `en-US` sees `1,248`,
+for the same tenant and the same figure. On a tenant configured as `en-US`, both are
+wrong for one of them.
+
+## Reproduction
+
+1. Set the tenant locale to `en-US` in settings.
+2. Open the dashboard with the browser language set to German.
+3. Headcount and other metric values render with European grouping separators.
+4. Dates on the same screen render correctly, because BUG-2010 fixed those.
+
+## Evidence
+
+`apps/web/app/components/dashboard/dashboard-widget-renderer.tsx`:
+
+- `formatValue` returns `value.toLocaleString()` for the number branch.
+- `ChartCard` calls `total.toLocaleString()` and `slice.value.toLocaleString()`.
+
+`apps/web/lib/formatting-context.ts` exports `formatNumber`, which resolves against
+the tenant context installed by `setDefaultFormattingContext`.
+
+`apps/web/AGENTS.md`: *"New pages must not call `toLocaleDateString`,
+`toLocaleString`, or construct hardcoded `Intl` formatters for tenant-facing
+values."*
+
+**Second instance — `apps/web/app/(authenticated)/reports/_components/report-bar-list.tsx`.**
+It scales each bar to the largest value rather than to the total, so a 51/49 split
+and a 99/1 split both draw the leading bar full width; and it floors bar width at
+`Math.max(10, …)`, so a 1% row is drawn at 10% — a tenfold overstatement, applied
+to exactly the small values a reader is least likely to check. It also hardcodes
+`linear-gradient(90deg,#0f766e,#38bdf8)` over `bg-slate-100`, which does not respond
+to dark mode.
+
+## Root Cause
+
+The formatting rule is a convention enforced by review rather than by a lint rule,
+so a call site that predates the rule keeps working and is never flagged.
+
+## Impact
+
+Cosmetic-to-misleading. The number itself is right; its rendering is not. The
+`report-bar-list` case is worse than cosmetic, because the bar length is the only
+quantity most readers actually compare.
+
+## Affected Areas
+
+`apps/web/app/components/dashboard/dashboard-widget-renderer.tsx` (all dashboards),
+and `apps/web/app/(authenticated)/reports/_components/report-bar-list.tsx`.
+
+## Proposed Resolution
+
+Replace the bare `toLocaleString()` calls with `formatNumber`. Consider an ESLint
+rule banning `toLocaleString`/`toLocaleDateString` under `apps/web/app`, since this
+is the second time the convention has been breached in the same file.
+
+Deferred rather than fixed here: the dashboard renderer is outside the scope of
+TASK-0028, and changing it would put an unrelated diff in a reporting release. The
+`report-bar-list` half is removed by TASK-0028, which deletes that component and
+replaces it with `app/components/charts/horizontal-bar-list.tsx` — which scales to
+the total, bucket the tail, and uses design tokens.
+
+## Acceptance Criteria
+
+- No `toLocaleString` call remains under `apps/web/app/components/dashboard/`.
+- A number renders identically for two viewers whose browser locales differ.
+
+## Regression Coverage
+
+Extend `apps/web/app/components/dashboard/dashboard-widget-formatting.spec.ts`,
+which already imports `formatValue` for exactly this kind of assertion.
+
+## Dependencies
+
+None.
+
+## Related Items
+
+[[BUG-2010]] · [[BUG-2148]] · [[BUG-2149]]
+
+## Resolution
+
+Not fixed. The `report-bar-list` instance is removed by TASK-0028; the dashboard
+instance is deferred.
+
+## QA Retest
+
+Not yet retested.
+
+## History
+
+- 2026-08-30 — created from qa run at `1965b5cc`.
+
+<!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
+
+## Related
+
+- No related record, module or decision is declared in this record's
+  frontmatter. Declare one rather than adding a link here by hand — this
+  block is regenerated and a hand-written link inside it is lost.
+
+<!-- GRAPH:END -->

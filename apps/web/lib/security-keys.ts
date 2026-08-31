@@ -39,6 +39,33 @@ export const PERMISSION_KEYS = {
   AUDIT_READ: "audit.read",
   SUPPORT_IMPERSONATE: "support.impersonate",
   REPORTS_EXPORT: "reports.export",
+
+  /*
+   * Reports & Analytics. Copied verbatim from the API's
+   * `common/constants/permissions.ts` — this file is a hand-maintained mirror
+   * and there is no generator, so a typo here is a control silently hidden from
+   * everyone rather than an error anybody sees.
+   *
+   * `REPORTS_READ` gates the workspace itself and is deliberately separate from
+   * the permissions on the data it reports on: which *rows* come back is
+   * decided by the owning module's entity — `employees` for workforce,
+   * `attendance` for attendance — so holding this key never widens what someone
+   * can see, only where they can see it.
+   */
+  REPORTS_READ: "reports.read",
+  REPORTS_CREATE: "reports.create",
+  REPORTS_WRITE: "reports.write",
+  REPORTS_DELETE: "reports.delete",
+
+  /*
+   * Desktop agent telemetry. `READ_OWN` is a person's own activity; the other
+   * two are the aggregate and device-health views. The metrics behind all three
+   * are suppressed server-side below a population threshold regardless of which
+   * one a caller holds — the permission decides whether you may ask, not
+   * whether the answer would identify somebody.
+   */
+  DESKTOP_ANALYTICS_READ: "desktop-analytics.read",
+
   INBOX_READ: "inbox.read",
   INBOX_MARK_READ: "inbox.markRead",
   INBOX_DISMISS: "inbox.dismiss",

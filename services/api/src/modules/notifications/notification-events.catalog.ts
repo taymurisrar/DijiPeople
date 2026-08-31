@@ -322,6 +322,16 @@ export const NOTIFICATION_EVENT_CATALOG: NotificationEventDefinition[] = [
     defaultChannels: [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
     enabledByDefault: true,
   },
+  {
+    code: 'REPORT_SCHEDULE_DELIVERY',
+    name: 'Scheduled report delivery',
+    description:
+      'Sent by the report scheduler with the rendered report attached. Email only: an in-app notification cannot carry the file, and a link would have to grant access outside the run that produced it.',
+    category: NotificationEventCategory.SYSTEM,
+    defaultChannels: [NotificationChannel.EMAIL],
+    enabledByDefault: true,
+    systemTemplateKey: 'REPORT_SCHEDULE_DELIVERY',
+  },
 ];
 
 export const SYSTEM_EMAIL_TEMPLATE_PLACEHOLDERS: SystemEmailTemplateSeed[] =
@@ -415,6 +425,54 @@ function createSystemTemplateSeed(
         billingPeriod: 'Subscription billing period',
         paymentInstructions: 'Payment instructions',
         supportEmail: 'Support email address',
+      },
+      status: EmailTemplateStatus.ACTIVE,
+      version: 1,
+      isSystem: true,
+    };
+  }
+
+  if (event.code === 'REPORT_SCHEDULE_DELIVERY') {
+    /*
+     * Written out rather than left as the generic placeholder below, because
+     * this one arrives with a file attached and the reader has to be able to
+     * tell, without opening it, which report it is and what period it covers.
+     * A "configure tenant-specific content before production sending" body next
+     * to a spreadsheet of headcount is worse than no email.
+     */
+    return {
+      scopeKey: NOTIFICATION_SYSTEM_SCOPE_KEY,
+      eventCode: event.code,
+      templateKey: 'REPORT_SCHEDULE_DELIVERY',
+      name: 'Scheduled report delivery email',
+      description:
+        'System template for a scheduled report delivered as an attachment.',
+      subjectTemplate: '{{reportName}} - {{tenantName}}',
+      htmlTemplate: [
+        '<div style="font-family:Inter,Arial,sans-serif;line-height:1.6;color:#0f172a">',
+        '<h1 style="margin:0 0 12px;font-size:20px">{{reportName}}</h1>',
+        '<p>Hello {{recipientName}},</p>',
+        '<p>Your scheduled report is attached.</p>',
+        '<table style="border-collapse:collapse;margin:16px 0">',
+        '<tr><td style="padding:6px 16px 6px 0;color:#64748b">Schedule</td><td style="padding:6px 0">{{scheduleName}}</td></tr>',
+        '<tr><td style="padding:6px 16px 6px 0;color:#64748b">Period</td><td style="padding:6px 0">{{periodLabel}}</td></tr>',
+        '<tr><td style="padding:6px 16px 6px 0;color:#64748b">Rows</td><td style="padding:6px 0">{{rowCount}}</td></tr>',
+        '<tr><td style="padding:6px 16px 6px 0;color:#64748b">File</td><td style="padding:6px 0">{{fileName}}</td></tr>',
+        '</table>',
+        '<p style="font-size:13px;color:#64748b">This report was produced with the access rights of the person who created the schedule. If you should no longer receive it, ask them to remove you.</p>',
+        '</div>',
+      ].join(''),
+      textTemplate:
+        'Hello {{recipientName}},\n\nYour scheduled report "{{reportName}}" is attached.\n\nSchedule: {{scheduleName}}\nPeriod: {{periodLabel}}\nRows: {{rowCount}}\nFile: {{fileName}}\n\nThis report was produced with the access rights of the person who created the schedule. If you should no longer receive it, ask them to remove you.',
+      availableVariables: {
+        tenantName: 'Tenant display name',
+        recipientName: 'Recipient display name',
+        reportName: 'Name of the report that was run',
+        scheduleName: 'Name of the schedule that produced it',
+        periodLabel: 'The reporting period the file covers',
+        format: 'Export format (CSV, XLSX or PDF)',
+        rowCount: 'Rows in the attached file',
+        fileName: 'Attached file name',
       },
       status: EmailTemplateStatus.ACTIVE,
       version: 1,

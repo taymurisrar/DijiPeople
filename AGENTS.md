@@ -202,7 +202,7 @@ Three authenticated surfaces plus one public one:
 
 ### Domains actually implemented
 
-**67 modules** under `services/api/src/modules/`, verified at commit 7c97ff2.
+**68 modules** under `services/api/src/modules/`, verified at commit 11b31412.
 
 | Area | Modules |
 |---|---|
@@ -215,7 +215,7 @@ Three authenticated surfaces plus one public one:
 | Commercial | `legal` (versioned legal documents, publication, acknowledgements), `leads`, `partners`, `partner-experience`, `contracts`, `support-cases`, `billing`, `super-admin` (customers, plans, subscriptions, invoices, payments, tenant provisioning) |
 | Configuration | `tenant-settings`, `settings-runtime`, `customization`, `lookups`, `views`, `navigation`, `data`, `platform-runtime` |
 | Messaging | `notifications` — the only route for tenant notification and email; catalog → orchestrator → queue → processor |
-| Platform ops | `platform-auth`, `platform-users`, `platform-events`, `outbox` (transactional outbox — the delivery half `platform-events` deliberately is not), `platform-monitoring`, `platform-communications`, `app-releases`, `tenants`, `tenant-control-plane`, `tenant-domains`, `demo-data`, `data-management`, `agent`, `dashboard`, `inbox`, `reports` |
+| Platform ops | `platform-auth`, `platform-users`, `platform-events`, `outbox` (transactional outbox — the delivery half `platform-events` deliberately is not), `platform-monitoring`, `platform-communications`, `app-releases`, `tenants`, `tenant-control-plane`, `tenant-domains`, `demo-data`, `data-management`, `agent`, `dashboard`, `inbox`, `reports` (the four legacy summary endpoints), `reporting` (the Reports & Analytics platform: semantic layer, metric registry, query engine, exports, schedules) |
 
 > **Verify counts on your branch.** The figures above were measured at commit
 > 3f9063f. This repository moves quickly, and instruction files here have

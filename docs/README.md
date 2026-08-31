@@ -43,6 +43,7 @@ Implementation-facing architecture. How the system is actually built.
 | [`module-runtime-overhaul.md`](architecture/module-runtime-overhaul.md) | Metadata-driven module runtime (pre-existing, authoritative) |
 | [`tenant-control-plane.md`](architecture/tenant-control-plane.md) | Platform Admin's control plane over a tenant: lifecycle, access, modules, apps, provisioning runs and erasure |
 | [`settings-and-branding.md`](architecture/settings-and-branding.md) | Settings and branding contract (pre-existing, **canonical**) |
+| [`reports-and-analytics.md`](architecture/reports-and-analytics.md) | Reporting platform contract (**canonical**) |
 | [`tenant-settings-attendance-runtime.md`](architecture/tenant-settings-attendance-runtime.md) | Settings/attendance runtime companion (pre-existing) |
 
 ### `decisions/`

@@ -4126,7 +4126,8 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Root cause** | BUG-1516 stopped one signup creating two customers by having the subscribe wizard send the draft order it opened, and having resolveCustomer continue that draft customer. Both ends were built and tested. The service between them — createPublicSubscriptionCheckout — re-declares the request shape as an inline object type, omitted `onboardingId` from it, and passed nothing to openOrder. TypeScript does not apply excess-property checking through a spread, so the controller's `{ ...dto, ipAddress }` compiled clean while dropping the field; and the existing guard calls resolveCustomer directly with an `onboardingId` it supplies itself, so it proved the consumer worked while observing nothing about whether a caller supplies it. The fix shipped to production, passed a regression sweep, was marked VERIFIED, and never once ran. |
 | **Regression test** | `services/api/src/modules/billing/services/checkout-draft-id-reaches-the-order.spec.ts` |
 | **Scenario** | The service is driven with a doubled subscription-order service through the real method. A submission carrying a draft id is asserted to reach openOrder with that id intact; a submission with no draft is asserted to pass an explicit null, so the no-draft and sales-assisted paths keep their old behaviour. A third assertion pins the field name to `PublicSubscribeDto`, which is what stops the test from guarding a name no caller sends. A fourth asserts the order is opened *before* the e-mail-verification gate — without it, moving the gate earlier would make openOrder stop being called at all and the first assertion would pass vacuously. |
-| **Proven to fail without the fix** | Mutation-tested. Deleting the forwarding line turns two of the four assertions red; restoring it turns them green. Recorded explicitly because the guard this defect walked past was green for its entire life. |
+| **Proven to fail without the fix** | Mutation-tested twice. Deleting the forwarding line turns two of the five assertions red; deleting the field from the service signature turns the structural one red; restoring each turns them green. Recorded explicitly because the guard this defect walked past was green for its entire life — and because the first attempt at this mutation silently no-opped on CRLF line endings and reported a false pass, which is the same failure in miniature. |
+| **Proven in production** | QA-COMMERCIAL-001, 2026-08-30 on `54f79ac`. One wizard run through the draft and submit steps produced **one** customer row where it had always produced two, both orders resolved to it, and the row carried the buyer real address rather than the placeholder. Placeholder rows 8 before and 8 after; total 18 to 19. |
 | **Note** | The lesson is about where to put a guard, not about checkout. **A test at either end of a three-part path passes while the middle is missing.** The seam that can break is the one where a value changes hands, and here it changed hands through a spread — the single construct TypeScript declines to check. A companion assertion now compares every `PublicSubscribeDto` field against the service signature, so a future field cannot be dropped the same way. |
 | **Fixed** | 2026-08-30 |
 | **Active** | yes |
@@ -4165,7 +4166,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 
 | | |
 |---|---|
-| **Bug class** | `public-route-reimplements-the-guard-incompletely` |
+| **Bug class** | [`stale-read-model-of-a-write-rule`](../known-bug-patterns/stale-read-model-of-a-write-rule.md) — the `@Public()` variant |
 | **Module** | `services/api/src/modules/auth` |
 | **Bug record** | BUG-2547 |
 | **Root cause** | `GET /auth/me` is `@Public()` so that a signed-out visitor gets an answer rather than a 401. Being outside `JwtAuthGuard` meant `getProfileFromRequest` had to reimplement the guard's checks, and it reimplemented only some: signature, audience and expiry, but never session liveness. Measured on production at `fba846d1` — after sign-out, `/employees` returned `401 SESSION_REVOKED` while `/auth/me` returned `200` with the caller's identity, roles and permission keys, with 7.98 hours left on an eight-hour access token. Controls confirm the route does verify tokens: no cookie and a tampered signature both return 401. |
@@ -4180,7 +4181,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 
 | | |
 |---|---|
-| **Bug class** | `read-model-omits-a-rule-the-write-path-enforces` |
+| **Bug class** | [`stale-read-model-of-a-write-rule`](../known-bug-patterns/stale-read-model-of-a-write-rule.md) |
 | **Module** | `services/api/src/modules/attendance`, `apps/web` |
 | **Bug record** | BUG-2560 |
 | **Root cause** | `assertCanActionCorrection` opens with the separation-of-duties check BUG-0002 was raised to add: neither the submitter nor the subject may action a correction. `canCurrentUserActionCorrection` — which decides `canApprove`, `canReject` and `canEdit`, and which the detail page draws its buttons from — was a copy of the same authorization logic *minus* that first rule. Measured on production at `fba846d1` as both requester and subject of `ACR-000001`: `canEdit true · canApprove true · canReject true`, then `403 ACCESS_DENIED — "You cannot approve or reject your own attendance correction request."` |

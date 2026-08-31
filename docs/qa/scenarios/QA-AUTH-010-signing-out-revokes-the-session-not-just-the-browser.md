@@ -80,7 +80,7 @@ pinned by the same spec and awaiting a product decision.
 
 - [[BUG-2506-sign-out-leaves-the-refresh-token-live-whenever-the-tenant-i]]
 - [[BUG-2509-platform-admin-remember-me-has-no-policy-able-to-refuse-it]]
-- [[QA-AUTH-009-refresh-is-budgeted-as-machine-traffic-not-as-a-credential]]
+- [[QA-AUTH-009-refresh-is-budgeted-as-machine-traffic-not-as-a-credential-a]]
 - [[PLAN-001-authentication]]
 
 ## Notes

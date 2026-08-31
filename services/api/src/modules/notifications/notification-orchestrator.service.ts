@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { NotificationChannel, NotificationType } from '@prisma/client';
 import { EmailService, SendTemplateEmailResult } from './email/email.service';
 import { InAppNotificationsService } from './in-app-notifications.service';
+import type { EmailAttachment } from './interfaces/email-provider.interface';
 
 export type NotificationDispatchInput = {
   tenantId: string;
@@ -31,6 +32,8 @@ export type NotificationDispatchInput = {
     cc?: string | null;
     bcc?: string | null;
     variables: Record<string, unknown>;
+    /* Passed straight through to the provider. See SendTemplateEmailInput. */
+    attachments?: EmailAttachment[];
     metadata?: Record<string, unknown> | null;
     dryRun?: boolean;
   };
@@ -76,6 +79,7 @@ export class NotificationOrchestratorService {
         cc: input.email.cc,
         bcc: input.email.bcc,
         variables: input.email.variables,
+        attachments: input.email.attachments,
         requestedByUserId: input.requestedByUserId,
         dryRun: input.email.dryRun,
         metadata: {

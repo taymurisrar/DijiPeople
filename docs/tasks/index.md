@@ -8,7 +8,7 @@ graph and the block reasons. See
 
 | Bucket | Count |
 |---|---|
-| [Active](active.md) | 3 |
+| [Active](active.md) | 4 |
 | [Blocked](blocked.md) | 0 |
 | [Completed](completed.md) | 24 |
 
@@ -23,6 +23,7 @@ Nothing ready.
 - [TASK-0020](TASK-0020-dlp-capture-for-desktop-agent-clipboard-and-triggered-screen.md) — 4 owner decision(s) outstanding
 - [TASK-0022](TASK-0022-agent-ui-perception-browser-control-component-knowledge-ui-r.md) — 1 owner decision(s) outstanding
 - [TASK-0025](TASK-0025-agent-app-distribution-and-auto-release-pipeline.md) — 4 owner decision(s) outstanding
+- [TASK-0028](TASK-0028-enterprise-reports-and-analytics-platform.md) — 4 owner decision(s) outstanding
 
 ## All tasks
 
@@ -55,3 +56,4 @@ Nothing ready.
 | [TASK-0025](TASK-0025-agent-app-distribution-and-auto-release-pipeline.md) | Agent app distribution and auto-release pipeline | FEATURE | LARGE | P1 | COMPLETE | 6/6 | WP-06 |
 | [TASK-0026](TASK-0026-admin-releases-management-and-channel-promotion-ui.md) | Admin releases management and channel promotion UI | FEATURE | MEDIUM | P1 | COMPLETE | 1/1 | — |
 | [TASK-0027](TASK-0027-tenant-app-assignment-which-tenants-receive-a-release.md) | Tenant app assignment: which tenants receive a release | FEATURE | MEDIUM | P1 | COMPLETE | 1/1 | — |
+| [TASK-0028](TASK-0028-enterprise-reports-and-analytics-platform.md) | Enterprise Reports and Analytics platform | FEATURE | LARGE | P1 | IN_PROGRESS | 5/15 | WP-08 |

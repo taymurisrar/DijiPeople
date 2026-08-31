@@ -114,7 +114,7 @@ fail without the fix.
 | Prisma accessor | `prisma.employee` |
 | Owning module | `services/api/src/modules/employees` |
 | Domain | People |
-| Also touched by | `onboarding`, `attendance-integrations`, `dashboard` (reads), `users`, `recruitment`, `attendance-engine` (reads), `organization` (reads), `payroll` (reads), and 26 more |
+| Also touched by | `onboarding`, `attendance-integrations`, `dashboard` (reads), `users`, `recruitment`, `attendance-engine` (reads), `organization` (reads), `payroll` (reads), and 27 more |
 
 ### Fields
 
@@ -226,7 +226,7 @@ fail without the fix.
 
 **Owns** — the foreign key lives on the other side
 
-- **62 child relations** — too many to list usefully. See [[domain-map]] for the full model inventory, grouped by domain.
+- **63 child relations** — too many to list usefully. See [[domain-map]] for the full model inventory, grouped by domain.
 
 ### Constraints and indexes
 

@@ -88,6 +88,10 @@ export const ENTITY_KEYS = {
   TENANT_ADMINISTRATION: 'tenant-administration',
   CLIENT_ACCOUNTS: 'client-accounts',
   CUSTOM_RECORDS: 'custom-records',
+
+  // Desktop Activity analytics (TASK-0028). Separate from AGENT, which governs
+  // configuring the desktop agent: this governs reading what it reported.
+  DESKTOP_ANALYTICS: 'desktop-analytics',
 } as const;
 
 export const MISC_PERMISSION_KEYS = {
@@ -310,6 +314,11 @@ export const RBAC_ENTITIES: RbacEntityDefinition[] = [
     category: 'Security',
   },
   { key: ENTITY_KEYS.REPORTS, label: 'Reports', category: 'Administration' },
+  {
+    key: ENTITY_KEYS.DESKTOP_ANALYTICS,
+    label: 'Desktop Activity Analytics',
+    category: 'Administration',
+  },
   {
     key: ENTITY_KEYS.CUSTOMIZATION,
     label: 'Customization',
@@ -663,6 +672,12 @@ export const SYSTEM_ROLE_PRIVILEGES: Record<
     'projects:READ': SecurityAccessLevel.TENANT,
     'reports:READ': SecurityAccessLevel.TENANT,
     'reports:EXPORT': SecurityAccessLevel.TENANT,
+    'reports:CREATE': SecurityAccessLevel.TENANT,
+    'reports:WRITE': SecurityAccessLevel.TENANT,
+    'reports:DELETE': SecurityAccessLevel.TENANT,
+    'reports:SHARE': SecurityAccessLevel.TENANT,
+    'desktop-analytics:READ': SecurityAccessLevel.ORGANIZATION,
+    'desktop-analytics:EXPORT': SecurityAccessLevel.ORGANIZATION,
     'tenant-administration:READ': SecurityAccessLevel.TENANT,
     'hierarchy:READ': SecurityAccessLevel.TENANT,
   }),
@@ -727,6 +742,18 @@ export const SYSTEM_ROLE_PRIVILEGES: Record<
       SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
     'hierarchy:READ': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
     'reports:READ': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    'reports:CREATE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    'reports:WRITE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    // No reports:DELETE. The manager role withholds DELETE on every entity by
+    // design (rbac-matrix.manager-customizer.spec.ts asserts it). Deleting a
+    // report you own does not need it: ReportDefinitionService authorises an
+    // owner delete on WRITE + ownership, and requires DELETE only to remove
+    // someone else's report.
+    'reports:EXPORT': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    // A manager reads their own desktop activity and nobody else’s. This is an
+    // owner decision (EXECPLAN-0030), not an oversight: widening it hands line
+    // managers individual workstation telemetry about their reports.
+    'desktop-analytics:READ': SecurityAccessLevel.SELF,
   }),
   [ROLE_KEYS.HR]: matrix(SecurityAccessLevel.NONE, {
     'user-preferences:READ': SecurityAccessLevel.SELF,
@@ -819,8 +846,20 @@ export const SYSTEM_ROLE_PRIVILEGES: Record<
     'payroll-journal:EXPORT': SecurityAccessLevel.ORGANIZATION,
     'payroll-journal:MANAGE': SecurityAccessLevel.ORGANIZATION,
     'reports:READ': SecurityAccessLevel.ORGANIZATION,
+    'reports:CREATE': SecurityAccessLevel.ORGANIZATION,
+    'reports:WRITE': SecurityAccessLevel.ORGANIZATION,
+    'reports:DELETE': SecurityAccessLevel.ORGANIZATION,
+    'reports:SHARE': SecurityAccessLevel.ORGANIZATION,
+    'reports:EXPORT': SecurityAccessLevel.ORGANIZATION,
+    'desktop-analytics:READ': SecurityAccessLevel.ORGANIZATION,
+    'desktop-analytics:EXPORT': SecurityAccessLevel.ORGANIZATION,
   }),
   [ROLE_KEYS.RECRUITER]: matrix(SecurityAccessLevel.NONE, {
+    // A recruiter reaches the Reports workspace, but every row it returns is
+    // still scoped by the data source’s own entity (candidates, employees,
+    // attendance...), so this widens the surface, never the data.
+    'reports:READ': SecurityAccessLevel.BUSINESS_UNIT,
+    'desktop-analytics:READ': SecurityAccessLevel.SELF,
     'user-preferences:READ': SecurityAccessLevel.SELF,
     'user-preferences:WRITE': SecurityAccessLevel.SELF,
     'tenant-settings-resolved:READ': SecurityAccessLevel.BUSINESS_UNIT,
@@ -931,6 +970,10 @@ export const SYSTEM_ROLE_PRIVILEGES: Record<
     'hierarchy:READ': SecurityAccessLevel.ORGANIZATION,
   }),
   [ROLE_KEYS.EMPLOYEE]: matrix(SecurityAccessLevel.NONE, {
+    // Own desktop activity only. An employee gets no Reports workspace: the
+    // navigation entry is hidden for self-service users and reports:READ stays
+    // NONE.
+    'desktop-analytics:READ': SecurityAccessLevel.SELF,
     'user-preferences:READ': SecurityAccessLevel.SELF,
     'user-preferences:WRITE': SecurityAccessLevel.SELF,
     'tenant-settings-resolved:READ': SecurityAccessLevel.SELF,

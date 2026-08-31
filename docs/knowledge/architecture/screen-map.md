@@ -14,13 +14,13 @@ A screen marked **bespoke** is a hand-written page whose API calls and underlyin
 
 **`apiPath` is called by the server, not the browser.** Loading `/leaves` on that tenant issued no client-side request to `/api/leave-requests`; the list arrives already rendered, and the only client calls were notifications and settings. Runtime list and record screens fetch through `apps/web/lib/server-api.ts` in a server component. Watching the browser network log to discover which endpoint a screen uses will therefore find nothing, and concluding the screen calls no API would be wrong.
 
-**356 screens** across 3 applications · 11 runtime modules declare an API path and entity
+**361 screens** across 3 applications · 11 runtime modules declare an API path and entity
 
 Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[known-gaps]]
 
 ## Tenant product — `apps/web` (port 3001)
 
-254 screens, 32 runtime-driven.
+259 screens, 32 runtime-driven.
 
 | Route | Source | API | Entity |
 |---|---|---|---|
@@ -148,6 +148,11 @@ Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[
 | `/recruitment/pipelines` | `apps/web/app/(authenticated)/recruitment/pipelines/page.tsx` | _bespoke_ | — |
 | `/recruitment/talent-pool` | `apps/web/app/(authenticated)/recruitment/talent-pool/page.tsx` | _bespoke_ | — |
 | `/reports` | `apps/web/app/(authenticated)/reports/page.tsx` | _bespoke_ | — |
+| `/reports/analytics/[surface]` | `apps/web/app/(authenticated)/reports/analytics/[surface]/page.tsx` | _bespoke_ | — |
+| `/reports/builder` | `apps/web/app/(authenticated)/reports/builder/page.tsx` | _bespoke_ | — |
+| `/reports/library` | `apps/web/app/(authenticated)/reports/library/page.tsx` | _bespoke_ | — |
+| `/reports/my-reports` | `apps/web/app/(authenticated)/reports/my-reports/page.tsx` | _bespoke_ | — |
+| `/reports/scheduled` | `apps/web/app/(authenticated)/reports/scheduled/page.tsx` | _bespoke_ | — |
 | `/reset-password` | `apps/web/app/(public)/reset-password/page.tsx` | _bespoke_ | — |
 | `/settings` | `apps/web/app/(authenticated)/settings/page.tsx` | _bespoke_ | — |
 | `/settings/[category]` | `apps/web/app/(authenticated)/settings/[category]/page.tsx` | _bespoke_ | — |

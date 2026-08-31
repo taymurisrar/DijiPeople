@@ -119,7 +119,7 @@ exists to prevent.
 | Prisma accessor | `prisma.tenant` |
 | Owning module | `services/api/src/modules/super-admin` |
 | Domain | Commercial |
-| Also touched by | `tenant-control-plane`, `tenants`, `billing`, `tenant-settings`, `demo-data`, `auth` (reads), `tenant-domains` (reads), `notifications` (reads), and 10 more |
+| Also touched by | `tenant-control-plane`, `tenants`, `billing`, `tenant-settings`, `demo-data`, `auth` (reads), `tenant-domains` (reads), `notifications` (reads), and 11 more |
 
 ### Fields
 
@@ -165,7 +165,7 @@ exists to prevent.
 
 **Owns** — the foreign key lives on the other side
 
-- **241 child relations** — too many to list usefully. See [[domain-map]] for the full model inventory, grouped by domain.
+- **248 child relations** — too many to list usefully. See [[domain-map]] for the full model inventory, grouped by domain.
 
 ### Constraints and indexes
 
