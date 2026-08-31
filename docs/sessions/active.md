@@ -12,5 +12,4 @@ therefore sees sibling worktrees without anybody having pushed.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
-| [SESSION-0090](../../docs/sessions/SESSION-0090-approvals-inbox-make-the-decision-surface-real.md) | — | Approvals inbox: make the decision surface real | ACTIVE | `agent/approvals-inbox-decisions` | `develop` | — | 2026-08-31T10:46:00.709Z |
 | [SESSION-0061](../../docs/sessions/SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser.md) | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | 2026-08-26T09:54:37.336Z |

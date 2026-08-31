@@ -6,19 +6,19 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 2** · completed: 85
+**Active: 1** · completed: 86
 
 ## Active
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
-| [SESSION-0090](../../docs/sessions/SESSION-0090-approvals-inbox-make-the-decision-surface-real.md) | — | Approvals inbox: make the decision surface real | ACTIVE | `agent/approvals-inbox-decisions` | `develop` | — | 2026-08-31T10:46:00.709Z |
 | [SESSION-0061](../../docs/sessions/SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser.md) | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | 2026-08-26T09:54:37.336Z |
 
 ## Completed
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0090](../../docs/sessions/SESSION-0090-approvals-inbox-make-the-decision-surface-real.md) | — | Approvals inbox: make the decision surface real | COMPLETE | `agent/approvals-inbox-decisions` | `develop` | — | 2026-08-31T10:46:00.709Z |
 | [SESSION-0089](../../docs/sessions/SESSION-0089-a-workspace-that-cannot-send-email-should-say-so.md) | — | A workspace that cannot send email should say so | COMPLETE | `agent/email-sink-visibility` | `develop` | — | 2026-08-31T10:03:42.809Z |
 | [SESSION-0088](../../docs/sessions/SESSION-0088-expired-session-redirect-loop-and-an-audit-of-buildscopedacc.md) | — | Expired-session redirect loop, and an audit of buildScopedAccessWhere callers | COMPLETE | `agent/session-redirect-loop` | `develop` | — | 2026-08-31T08:15:00.000Z |
 | [SESSION-0087](../../docs/sessions/SESSION-0087-enterprise-reports-and-analytics-platform.md) | TASK-0028 | Enterprise Reports and Analytics platform | COMPLETE | `agent/reports-analytics-platform-fixes` | `develop` | — | 2026-08-31T05:00:00.000Z |
