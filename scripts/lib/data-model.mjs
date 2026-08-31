@@ -117,6 +117,8 @@ export const MODULE_DOMAINS = new Map(
     dashboard: 'Platform ops',
     inbox: 'Platform ops',
     reports: 'Platform ops',
+
+    reporting: 'Platform ops',
   }),
 );
 

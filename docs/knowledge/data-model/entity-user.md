@@ -88,7 +88,7 @@ and lockout state that no client needs.
 | Prisma accessor | `prisma.user` |
 | Owning module | `services/api/src/modules/users` |
 | Domain | Identity |
-| Also touched by | `tenant-control-plane`, `super-admin`, `auth`, `tenant-settings`, `employees` (reads), `organization` (reads), `approvals` (reads), `payroll` (reads), and 16 more |
+| Also touched by | `tenant-control-plane`, `super-admin`, `auth`, `tenant-settings`, `employees` (reads), `organization` (reads), `approvals` (reads), `payroll` (reads), and 17 more |
 
 ### Fields
 
@@ -123,7 +123,7 @@ and lockout state that no client needs.
 
 **Owns** — the foreign key lives on the other side
 
-- **48 child relations** — too many to list usefully. See [[domain-map]] for the full model inventory, grouped by domain.
+- **53 child relations** — too many to list usefully. See [[domain-map]] for the full model inventory, grouped by domain.
 
 ### Constraints and indexes
 

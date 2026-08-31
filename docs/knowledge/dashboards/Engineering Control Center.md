@@ -7,18 +7,18 @@
 
 | | |
 |---|---|
-| Active sessions | **1** |
-| Active parent tasks | 3 |
-| Active work packages | 0 |
+| Active sessions | **2** |
+| Active parent tasks | 4 |
+| Active work packages | 4 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
-| Open HIGH | 25 |
+| Open HIGH | 27 |
 | Awaiting Architect triage | 2 |
 | Owner decisions pending | 6 |
-| QA coverage gaps | 134 |
+| QA coverage gaps | 142 |
 | Scenarios blocked by infrastructure | 0 |
 
 ## Backlog health
@@ -30,12 +30,12 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 99 |
-| No next action | 99 |
-| Aging — 7d / 30d / 90d | 17 / 0 / 0 |
+| No acceptance criteria | 102 |
+| No next action | 102 |
+| Aging — 7d / 30d / 90d | 19 / 0 / 0 |
 | Architecture and technical debt | 8 |
-| Security gaps | 6 |
-| Database gaps | 8 |
+| Security gaps | 8 |
+| Database gaps | 9 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -49,6 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
+| [[SESSION-0087-enterprise-reports-and-analytics-platform|SESSION-0087]] | — | Enterprise Reports and Analytics platform | ACTIVE | `agent/reports-analytics-platform` | `develop` | — | NO |
 | [[SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser|SESSION-0061]] | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
@@ -58,6 +59,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 | [[TASK-0004-autonomous-framework-v2-architect-only-orchestration-multi-s|TASK-0004]] | Autonomous framework v2 — Architect-only orchestration, multi-session safety, develop integration, persistent QA | FRAMEWORK | PROGRAM | 11/11 | — | — | — |
 | [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 16/16 | — | — | — |
 | [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 11/11 | — | — | — |
+| [[TASK-0028-enterprise-reports-and-analytics-platform|TASK-0028]] | Enterprise Reports and Analytics platform | FEATURE | LARGE | 5/15 | WP-08 | — | — |
 
 ## Branch model
 
@@ -254,14 +256,22 @@ gap into scope — or files a `TEST_GAP` item and says so.
 | [[PLAN-031-routing|routing]] | BROWSER |
 | [[PLAN-031-routing|routing]] | SECURITY |
 | [[PLAN-031-routing|routing]] | PERFORMANCE |
+| [[PLAN-034-reports|reports]] | UNIT |
+| [[PLAN-034-reports|reports]] | API |
+| [[PLAN-034-reports|reports]] | DATABASE |
+| [[PLAN-034-reports|reports]] | INTEGRATION |
+| [[PLAN-034-reports|reports]] | E2E |
+| [[PLAN-034-reports|reports]] | BROWSER |
+| [[PLAN-034-reports|reports]] | SECURITY |
+| [[PLAN-034-reports|reports]] | PERFORMANCE |
 
 ## Backlog Health
 
 | | |
 |---|---|
-| Open total | 100 |
+| Open total | 103 |
 | Blocked | 2 |
-| Deferred | 24 |
+| Deferred | 25 |
 | Awaiting a product decision | 6 |
 | Awaiting Architect triage | 2 |
 

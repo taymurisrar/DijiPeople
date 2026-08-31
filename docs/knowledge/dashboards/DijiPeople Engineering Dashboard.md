@@ -8,11 +8,11 @@
 | | |
 |---|---|
 | Open CRITICAL | **0** |
-| Open HIGH | **25** |
-| Open total | 100 |
+| Open HIGH | **27** |
+| Open total | 103 |
 | Blocked | 2 |
 | Awaiting a product decision | 6 |
-| Deferred | 24 |
+| Deferred | 25 |
 | Completed | 288 |
 | Awaiting Architect triage | 2 |
 
@@ -49,6 +49,8 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2505-a-mode-or-location-correction-could-never-be-submitted-at-al|BUG-2505]] | A mode-or-location correction could never be submitted at all | BUG | HIGH | FIXED | apps/web, api:attendance | DONE |
 | [[BUG-2506-sign-out-leaves-the-refresh-token-live-whenever-the-tenant-i|BUG-2506]] | Sign-out leaves the refresh token live whenever the tenant is busy | SECURITY | HIGH | FIXED | api:auth | DONE |
 | [[BUG-2618-expired-subscription-orders-are-never-swept-abandonexpired-h|BUG-2618]] | Expired subscription orders are never swept: abandonExpired has no caller and the API has no scheduler | DATA_INTEGRITY | HIGH | OPEN | billing, super-admin | FIX_NOW |
+| [[BUG-2623-buildscopedaccesswhere-filters-employee-on-ownerteamid-a-col|BUG-2623]] | buildScopedAccessWhere filters Employee on ownerTeamId, a column Employee does not have | AUTHORIZATION | HIGH | OPEN | services/api/src/common/security/rbac-query-scope.ts | PLAN_REQUIRED |
+| [[BUG-2624-the-reports-endpoints-return-tenant-wide-aggregates-regardle|BUG-2624]] | The reports endpoints return tenant-wide aggregates regardless of the caller's row scope | AUTHORIZATION | HIGH | OPEN | api:reports/reports.service.ts | FIX_NOW |
 
 ## Product Decisions Needed
 
@@ -458,6 +460,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2547-a-revoked-session-still-answers-on-auth-me|BUG-2547]] | A revoked session still answers on /auth/me | SECURITY | MEDIUM | FIXED | api:auth | DONE |
 | [[BUG-2560-the-requester-is-shown-approve-and-reject-buttons-that-alway|BUG-2560]] | The requester is shown Approve and Reject buttons that always refuse | AUTHORIZATION | MEDIUM | FIXED | api:attendance, apps/web | DONE |
 | [[BUG-2573-a-correction-request-cannot-be-withdrawn-by-the-person-who-f|BUG-2573]] | A correction request cannot be withdrawn by the person who filed it | UX | MEDIUM | OPEN | api:attendance, apps/web | PLAN_REQUIRED |
+| [[BUG-2625-reports-headcount-counts-soft-deleted-employees-and-disagree|BUG-2625]] | Reports headcount counts soft-deleted employees and disagrees with the Employees screen | DATA_INTEGRITY | MEDIUM | OPEN | api:reports/reports.service.ts | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -498,6 +501,7 @@ _None. Nothing open at CRITICAL._
 - [[ADR-0001-ai-agent-workflow|ADR-0001 — AI-assisted engineering workflow for DijiPeople]]
 - [[ADR-0002-tenant-base-domain-single-source|ADR-0002 — Configuration is the single source of the tenant base domain]]
 - [[ADR-0003-attendance-location-capture-is-mandatory|ADR-0003 — Attendance location capture is a platform mandate, not tenant configuration]]
+- [[ADR-0004-recurring-background-jobs-in-the-api-process|ADR-0004 — Recurring background jobs run in the API process, on a claim-and-guard pattern]]
 - [[decision-a-bug-record-is-its-own-backlog-item|Decision — A bug record **is** its own backlog item]]
 - [[decision-ci-verdict-gates-shared-merges|Decision — A shared-target merge requires a read CI verdict on the exact SHA]]
 - [[decision-platform-admin-is-a-separate-identity|Decision — Platform admin is a separate identity, not an elevated tenant user]]
@@ -507,15 +511,15 @@ _None. Nothing open at CRITICAL._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 301 |
+| Bug records | 305 |
 | Backlog items | 119 |
 | Known bug patterns | 32 |
 | QA runs | 31 |
 | Engineering history records | 69 |
 | Release records | 4 |
-| Module notes | 29 |
+| Module notes | 30 |
 | Architecture notes | 22 |
-| Decision notes (ADR + generated) | 7 |
+| Decision notes (ADR + generated) | 8 |
 | Implementation records | 7 |
 
 **Awaiting Architect triage: 2.** A record nobody has

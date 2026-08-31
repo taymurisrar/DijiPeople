@@ -14215,7 +14215,9 @@
       ],
       "regressions": [],
       "qa_scenarios": [],
-      "test_plan": [],
+      "test_plan": [
+        "PLAN-034"
+      ],
       "current_evidence": {
         "paths": [
           "services/api/src/common/security/rbac-query-scope.ts"
@@ -14253,7 +14255,9 @@
       ],
       "regressions": [],
       "qa_scenarios": [],
-      "test_plan": [],
+      "test_plan": [
+        "PLAN-034"
+      ],
       "current_evidence": {
         "paths": [
           "services/api/src/modules/reports/reports.service.ts"
@@ -14291,7 +14295,9 @@
       ],
       "regressions": [],
       "qa_scenarios": [],
-      "test_plan": [],
+      "test_plan": [
+        "PLAN-034"
+      ],
       "current_evidence": {
         "paths": [
           "services/api/src/modules/reports/reports.service.ts"
@@ -14329,7 +14335,9 @@
       ],
       "regressions": [],
       "qa_scenarios": [],
-      "test_plan": [],
+      "test_plan": [
+        "PLAN-034"
+      ],
       "current_evidence": {
         "paths": [
           "apps/web/app/components/dashboard/dashboard-widget-renderer.tsx"

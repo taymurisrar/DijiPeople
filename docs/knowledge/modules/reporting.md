@@ -24,8 +24,11 @@ export — and because two of those endpoints were quietly wrong.
 Routes live under `/reporting`. The four legacy `GET /reports/*-summary` endpoints
 keep their paths and response shapes and are re-pointed at the engine.
 
-The canonical contract is [[reports-and-analytics]]; metric-by-metric definitions
-are [[reports-metric-definitions]].
+The canonical contract is `docs/architecture/reports-and-analytics.md`, and the
+metric-by-metric definitions are `docs/architecture/reports-metric-definitions.md`.
+Both live in the repository rather than the vault: `docs/architecture/` is not a
+published mapping, so linking them as wikilinks would leave a permanently
+unresolvable link here.
 
 ## Authorization
 
@@ -109,5 +112,5 @@ security cases in [[PLAN-034]] first pass.
 
 ## Related
 
-[[reports-and-analytics]] · [[rbac]] · [[multi-tenancy]] · [[employees]] ·
+[[rbac]] · [[multi-tenancy]] · [[employees]] ·
 [[attendance]] · [[ADR-0004]] · [[TASK-0028]] · [[PLAN-034]]

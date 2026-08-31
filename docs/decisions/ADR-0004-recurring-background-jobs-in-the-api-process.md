@@ -1,3 +1,12 @@
+---
+ID: ADR-0004
+aliases: [ADR-0004]
+Title: Recurring background jobs run in the API process
+Status: ACCEPTED
+CreatedAt: 2026-08-31
+UpdatedAt: 2026-08-31
+---
+
 # ADR-0004 — Recurring background jobs run in the API process, on a claim-and-guard pattern
 
 ## Status

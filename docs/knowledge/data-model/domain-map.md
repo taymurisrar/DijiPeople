@@ -8,7 +8,7 @@ aliases: [Domain Map]
 
 Attribution is by counted Prisma call sites, not by name. A model with no call site anywhere is listed under **Unattributed** — that is a finding, not a gap in the tooling. See [[known-gaps]].
 
-**318 models · 299 enums · 254 tenant-scoped · 13 with an entity note**
+**325 models · 305 enums · 261 tenant-scoped · 13 with an entity note**
 
 Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 
@@ -330,7 +330,7 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `NotificationRule` | yes | **none** | — |
 | `NotificationTemplate` | yes | **none** | — |
 
-## Platform ops — 29 models
+## Platform ops — 36 models
 
 | Model | Tenant | Owning module | Note |
 |---|---|---|---|
@@ -356,12 +356,19 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `PlatformOutboundEmail` | no | `platform-communications` | — |
 | `PlatformSetting` | no | `platform-communications` | — |
 | `PlatformUser` | no | `platform-users` | — |
+| `ReportDefinition` | yes | `reporting` | — |
+| `ReportFavorite` | yes | `reporting` | — |
+| `ReportRecentView` | yes | `reporting` | — |
+| `ReportRun` | yes | `reporting` | — |
+| `ReportSavedView` | yes | `reporting` | — |
+| `ReportSchedule` | yes | `reporting` | — |
 | `ScreenCaptureEvent` | yes | `agent` | — |
 | `TenantAppAssignment` | yes | `tenant-control-plane` | — |
 | `TenantDomain` | yes | `tenant-domains` | — |
 | `TenantErasureReceipt` | yes | `tenant-control-plane` | — |
 | `TenantProvisioningRun` | yes | `tenant-control-plane` | — |
 | `TenantProvisioningStep` | yes | `tenant-control-plane` | — |
+| `WorkforceSnapshotDaily` | yes | `reporting` | — |
 | `WorkSession` | yes | `agent` | — |
 
 ## Unattributed — 16 models
