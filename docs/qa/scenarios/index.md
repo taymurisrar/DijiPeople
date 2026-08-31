@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 318** · automated: 276 · manual: 23 · blocked by infrastructure: 0
+**Scenarios: 323** · automated: 281 · manual: 23 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -219,6 +219,11 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-PROV-004](../../../docs/qa/scenarios/QA-PROV-004-a-tenant-failing-before-identities-and-billing-is-still-reco.md) | A tenant failing before identities and billing is still recoverable | tenant-provisioning | E2E | CRITICAL | AUTOMATED | `services/api/test/tenant-provisioning-recovery.e2e-spec.ts` | BUG-0015 | REG-013 |
 | [QA-PROV-005](../../../docs/qa/scenarios/QA-PROV-005-a-tenant-reaches-active-and-its-owner-can-sign-in.md) | A tenant reaches ACTIVE and its owner can sign in | tenant-provisioning | E2E | CRITICAL | AUTOMATED | `services/api/test/tenant-activation.e2e-spec.ts` | ITEM-0004 | REG-222 |
 | [QA-PROV-006](../../../docs/qa/scenarios/QA-PROV-006-customer-facing-urls-resolve-on-the-customer-domain-in-produ.md) | Customer-facing URLs resolve on the customer domain in production | tenant-provisioning | UNIT | HIGH | AUTOMATED | `services/api/src/common/config/production-tenant-url.spec.ts` | BUG-0714 | REG-228 |
+| [QA-REPORTING-001](../../../docs/qa/scenarios/QA-REPORTING-001-reporting-row-scope-narrows-by-the-caller-access-level.md) | Reporting row scope narrows by the caller access level | reports | SECURITY | HIGH | AUTOMATED | `services/api/src/modules/reporting/engine/scope.resolver.spec.ts` | BUG-2624 | REG-380 |
+| [QA-REPORTING-002](../../../docs/qa/scenarios/QA-REPORTING-002-reporting-scope-sanitiser-fails-closed-on-an-unverifiable-pr.md) | Reporting scope sanitiser fails closed on an unverifiable predicate | reports | SECURITY | HIGH | AUTOMATED | `services/api/src/modules/reporting/engine/scope.resolver.spec.ts` | BUG-2624 | REG-381 |
+| [QA-REPORTING-003](../../../docs/qa/scenarios/QA-REPORTING-003-reporting-headcount-excludes-soft-deleted-employees.md) | Reporting headcount excludes soft-deleted employees | reports | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/reporting/semantic/workforce-soft-delete.spec.ts` | BUG-2625 | REG-382 |
+| [QA-REPORTING-004](../../../docs/qa/scenarios/QA-REPORTING-004-reporting-pages-never-scroll-the-document-sideways.md) | Reporting pages never scroll the document sideways | reports | BROWSER_E2E | MEDIUM | AUTOMATED | `apps/web/app/(authenticated)/reports/_lib/formatting-and-layout-invariants.spec.ts` | BUG-2648 | REG-383 |
+| [QA-REPORTING-005](../../../docs/qa/scenarios/QA-REPORTING-005-reporting-formatters-always-receive-the-tenant-context.md) | Reporting formatters always receive the tenant context | reports | UNIT | MEDIUM | AUTOMATED | `apps/web/app/(authenticated)/reports/_lib/formatting-and-layout-invariants.spec.ts` | BUG-2647 | REG-384 |
 | [QA-RUNTIME-001](../../../docs/qa/scenarios/QA-RUNTIME-001-every-declared-runtime-module-has-a-route-that-renders-it.md) | Every declared runtime module has a route that renders it | runtime-modules | UNIT | HIGH | AUTOMATED | `apps/admin/lib/runtime/module-routes.invariant.spec.ts` | BUG-0019, BUG-0024 | REG-028 |
 | [QA-RUNTIME-002](../../../docs/qa/scenarios/QA-RUNTIME-002-entity-scope-resolution-never-falls-back-to-unscoped.md) | Entity scope resolution never falls back to unscoped | runtime-modules | SECURITY | CRITICAL | AUTOMATED | `services/api/src/modules/data/entity-scope.resolver.spec.ts` | — | — |
 | [QA-RUNTIME-003](../../../docs/qa/scenarios/QA-RUNTIME-003-the-entity-query-validator-rejects-filters-it-cannot-safely-.md) | The entity query validator rejects filters it cannot safely translate | runtime-modules | UNIT | HIGH | AUTOMATED | `services/api/src/modules/data/entity-query-validator.spec.ts` | — | — |

@@ -79,7 +79,7 @@ export function ReportsLanding({
     `/reports/library?target=${encodeURIComponent(entry.targetKey)}`;
 
   return (
-    <div className="grid gap-5">
+    <div className="grid gap-5 [&>*]:min-w-0">
       <SectionCard
         description="Each surface is period-scoped and comparative: pick a window, compare it with another, filter it, break it down, and open the records behind any number."
         title="Analytics surfaces"

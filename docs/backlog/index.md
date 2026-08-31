@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**424 records** — 305 bugs under [`docs/bugs/`](../bugs/), 119 non-bug items under [`items/`](items/).
+**426 records** — 307 bugs under [`docs/bugs/`](../bugs/), 119 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -17,17 +17,17 @@ see [`README.md`](README.md) for why.
 | Blocked | 2 |
 | Deferred | 25 |
 | Awaiting a product decision | 6 |
-| Completed / closed | 288 |
+| Completed / closed | 290 |
 | **Open CRITICAL** | **0** |
-| **Open HIGH** | **27** |
+| **Open HIGH** | **26** |
 | **Awaiting Architect triage** | **2** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 27 |
-| MEDIUM | 63 |
+| HIGH | 26 |
+| MEDIUM | 64 |
 | LOW | 13 |
 
 ## Open by type
@@ -35,9 +35,9 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | ARCHITECTURE | 2 |
-| AUTHORIZATION | 4 |
+| AUTHORIZATION | 3 |
 | BUG | 34 |
-| DATA_INTEGRITY | 9 |
+| DATA_INTEGRITY | 8 |
 | DOCUMENTATION | 2 |
 | FOLLOW_UP | 2 |
 | INFRA | 4 |
@@ -47,18 +47,18 @@ see [`README.md`](README.md) for why.
 | STATE_MACHINE | 2 |
 | TECH_DEBT | 6 |
 | TEST_GAP | 6 |
-| UX | 24 |
+| UX | 26 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 11 |
+| OPEN | 9 |
 | BLOCKED | 2 |
 | DEFERRED | 25 |
 | PRODUCT_DECISION | 6 |
-| FIXED | 65 |
-| VERIFIED | 216 |
+| FIXED | 67 |
+| VERIFIED | 218 |
 | DUPLICATE | 5 |
 | ACCEPTED_RISK | 3 |
 | READY | 27 |
@@ -215,7 +215,7 @@ see [`README.md`](README.md) for why.
 | [BUG-2530](../../docs/bugs/BUG-2530-self-service-checkout-still-creates-two-customer-records-the.md) | Self-service checkout still creates two customer records: the wizard's draft id is dropped between the controller and the order service | DATA_INTEGRITY | HIGH | P1 | VERIFIED | billing, super-admin, landing | DONE |
 | [BUG-2618](../../docs/bugs/BUG-2618-expired-subscription-orders-are-never-swept-abandonexpired-h.md) | Expired subscription orders are never swept: abandonExpired has no caller and the API has no scheduler | DATA_INTEGRITY | HIGH | P1 | OPEN | billing, super-admin | FIX_NOW |
 | [BUG-2623](../../docs/bugs/BUG-2623-buildscopedaccesswhere-filters-employee-on-ownerteamid-a-col.md) | buildScopedAccessWhere filters Employee on ownerTeamId, a column Employee does not have | AUTHORIZATION | HIGH | P1 | OPEN | services/api/src/common/security/rbac-query-scope.ts | PLAN_REQUIRED |
-| [BUG-2624](../../docs/bugs/BUG-2624-the-reports-endpoints-return-tenant-wide-aggregates-regardle.md) | The reports endpoints return tenant-wide aggregates regardless of the caller's row scope | AUTHORIZATION | HIGH | P1 | OPEN | api:reports/reports.service.ts | FIX_NOW |
+| [BUG-2624](../../docs/bugs/BUG-2624-the-reports-endpoints-return-tenant-wide-aggregates-regardle.md) | The reports endpoints return tenant-wide aggregates regardless of the caller's row scope | AUTHORIZATION | HIGH | P1 | VERIFIED | api:reports/reports.service.ts | DONE |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -357,8 +357,10 @@ see [`README.md`](README.md) for why.
 | [BUG-2547](../../docs/bugs/BUG-2547-a-revoked-session-still-answers-on-auth-me.md) | A revoked session still answers on /auth/me | SECURITY | MEDIUM | P2 | FIXED | api:auth | DONE |
 | [BUG-2560](../../docs/bugs/BUG-2560-the-requester-is-shown-approve-and-reject-buttons-that-alway.md) | The requester is shown Approve and Reject buttons that always refuse | AUTHORIZATION | MEDIUM | P2 | FIXED | api:attendance, apps/web | DONE |
 | [BUG-2573](../../docs/bugs/BUG-2573-a-correction-request-cannot-be-withdrawn-by-the-person-who-f.md) | A correction request cannot be withdrawn by the person who filed it | UX | MEDIUM | P2 | OPEN | api:attendance, apps/web | PLAN_REQUIRED |
-| [BUG-2625](../../docs/bugs/BUG-2625-reports-headcount-counts-soft-deleted-employees-and-disagree.md) | Reports headcount counts soft-deleted employees and disagrees with the Employees screen | DATA_INTEGRITY | MEDIUM | P2 | OPEN | api:reports/reports.service.ts | FIX_NOW |
+| [BUG-2625](../../docs/bugs/BUG-2625-reports-headcount-counts-soft-deleted-employees-and-disagree.md) | Reports headcount counts soft-deleted employees and disagrees with the Employees screen | DATA_INTEGRITY | MEDIUM | P2 | VERIFIED | api:reports/reports.service.ts | DONE |
 | [BUG-2626](../../docs/bugs/BUG-2626-dashboard-numbers-render-in-the-visitor-s-browser-locale-ins.md) | Dashboard numbers render in the visitor's browser locale instead of the tenant's | UX | MEDIUM | P2 | DEFERRED | app:web | DEFER |
+| [BUG-2647](../../docs/bugs/BUG-2647-reporting-record-tables-and-metric-tiles-format-without-the-.md) | Reporting record tables and metric tiles format without the tenant context, causing a hydration mismatch | UX | MEDIUM | P2 | FIXED | app:web, app:web | DONE |
+| [BUG-2648](../../docs/bugs/BUG-2648-reports-pages-scroll-sideways-at-1440-because-grid-items-can.md) | Reports pages scroll sideways at 1440 because grid items cannot shrink below their content | UX | MEDIUM | P2 | FIXED | app:web | DONE |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |

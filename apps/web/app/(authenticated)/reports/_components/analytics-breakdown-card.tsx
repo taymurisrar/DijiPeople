@@ -22,6 +22,7 @@ import type {
   AnalyticsMetricResult,
 } from "../_lib/reporting-types";
 import { toChartValue, toChartValueFormat } from "../_lib/report-format";
+import { useFormattingContext } from "@/app/components/filters/use-formatting-context";
 
 /*
  * The chosen metric, split by a dimension — and the way into the rows behind a
@@ -69,6 +70,7 @@ export function AnalyticsBreakdownCard({
   currencyCode,
   emptyMessage,
 }: AnalyticsBreakdownCardProps) {
+  const formattingContext = useFormattingContext();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -152,7 +154,7 @@ export function AnalyticsBreakdownCard({
       : `${metricLabel} by ${breakdown?.label}: ${points.length} groups totalling ${formatChartValue(
           total,
           valueFormat,
-          { currencyCode },
+          { currencyCode, context: formattingContext },
         )} across ${periodLabel}.`;
 
   const handleSelect = React.useCallback(

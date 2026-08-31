@@ -6,6 +6,7 @@ import { formatChartValue, formatShare, pointAccessibleLabel } from "./chart-for
 import { funnelStages } from "./chart-geometry";
 import { seriesColor } from "./chart-tokens";
 import { hasChartData, type BaseChartProps } from "./chart-types";
+import { useFormattingContext } from "@/app/components/filters/use-formatting-context";
 
 /*
  * A pipeline, stage by stage.
@@ -39,6 +40,7 @@ export function FunnelChart({
   series,
   valueFormat = "number",
 }: FunnelChartProps) {
+  const formattingContext = useFormattingContext();
   if (!hasChartData(series)) {
     return <ChartEmpty message={emptyMessage} />;
   }
@@ -47,7 +49,7 @@ export function FunnelChart({
   const stages = funnelStages(primary.points);
 
   const formatValue = (value: number) =>
-    formatChartValue(value, valueFormat, { currencyCode });
+    formatChartValue(value, valueFormat, { currencyCode, context: formattingContext });
 
   return (
     <div>

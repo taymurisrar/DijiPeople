@@ -70,7 +70,7 @@ export function ReportList({
   const isSearching = search.trim().length > 0;
 
   return (
-    <div className="grid gap-5">
+    <div className="grid gap-5 [&>*]:min-w-0">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <TextField
           className="sm:max-w-sm"

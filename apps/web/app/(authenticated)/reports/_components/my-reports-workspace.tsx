@@ -47,7 +47,6 @@ export function MyReportsWorkspace({
   currentUserId,
   canCreate,
 }: MyReportsWorkspaceProps) {
-  const formattingContext = useFormattingContext();
   const router = useRouter();
   const [busyKey, setBusyKey] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -122,7 +121,7 @@ export function MyReportsWorkspace({
   }
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-6 [&>*]:min-w-0">
       {error ? (
         <p
           className="rounded-xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger"

@@ -28,6 +28,7 @@ import {
 } from "./chart-geometry";
 import { seriesColor, seriesDashArray } from "./chart-tokens";
 import { hasChartData, type BaseChartProps } from "./chart-types";
+import { useFormattingContext } from "@/app/components/filters/use-formatting-context";
 
 /*
  * A trend with the volume under it filled in.
@@ -56,6 +57,7 @@ export function AreaChart({
   series,
   valueFormat = "number",
 }: BaseChartProps) {
+  const formattingContext = useFormattingContext();
   const idPrefix = useChartIdPrefix();
 
   if (!hasChartData(series)) {
@@ -115,7 +117,7 @@ export function AreaChart({
       </defs>
 
       <ChartValueGrid
-        formatTick={(tick) => formatChartValue(tick, valueFormat, { currencyCode })}
+        formatTick={(tick) => formatChartValue(tick, valueFormat, { currencyCode, context: formattingContext })}
         plot={plot}
         ticks={ticks}
         yScale={yScale}
@@ -169,7 +171,7 @@ export function AreaChart({
                           valueText: formatChartValue(
                             Number(point.value),
                             valueFormat,
-                            { currencyCode },
+                            { currencyCode, context: formattingContext },
                           ),
                           qualifier:
                             comparisonLabel && seriesIndex > 0

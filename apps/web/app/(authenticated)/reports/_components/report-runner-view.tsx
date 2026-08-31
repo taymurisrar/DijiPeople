@@ -59,7 +59,7 @@ export function ReportRunnerView({
 }: ReportRunnerViewProps) {
   const formattingContext = useFormattingContext();
   return (
-    <div className="grid gap-5">
+    <div className="grid gap-5 [&>*]:min-w-0">
       <section className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
         <Link
           className="inline-flex items-center gap-1.5 text-xs font-medium text-muted hover:text-foreground"

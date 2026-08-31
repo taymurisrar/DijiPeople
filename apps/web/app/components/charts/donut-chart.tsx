@@ -20,6 +20,8 @@ import {
 import { collapseToTopN, computeShares, donutArcs } from "./chart-geometry";
 import { MAX_CHART_SLICES } from "./chart-tokens";
 import { hasChartData, type BaseChartProps } from "./chart-types";
+import { useFormattingContext } from "@/app/components/filters/use-formatting-context";
+import type { ResolvedFormattingContext } from "@/lib/formatting-context";
 
 /*
  * A composition, as a ring.
@@ -53,6 +55,7 @@ export function DonutChart({
   series,
   valueFormat = "number",
 }: DonutChartProps) {
+  const formattingContext = useFormattingContext();
   const idPrefix = useChartIdPrefix();
 
   if (!hasChartData(series)) {
@@ -82,7 +85,7 @@ export function DonutChart({
   });
 
   const formatValue = (value: number) =>
-    formatChartValue(value, valueFormat, { currencyCode });
+    formatChartValue(value, valueFormat, { currencyCode, context: formattingContext });
 
   return (
     <ChartSurface
@@ -184,6 +187,7 @@ export function donutLegendItems(
   options: {
     limit?: number;
     valueFormat?: BaseChartProps["valueFormat"];
+    context?: ResolvedFormattingContext | null;
     currencyCode?: string | null;
   } = {},
 ) {
@@ -198,6 +202,7 @@ export function donutLegendItems(
     colorIndex: index,
     valueText: `${formatChartValue(row.value, options.valueFormat ?? "number", {
       currencyCode: options.currencyCode,
+      context: options.context,
     })} (${formatShare(row.displayShare)})`,
   }));
 }

@@ -2,7 +2,7 @@
 ID: BUG-2624
 aliases: [BUG-2624]
 Title: The reports endpoints return tenant-wide aggregates regardless of the caller's row scope
-Status: OPEN
+Status: VERIFIED
 Severity: HIGH
 Priority: P1
 Type: AUTHORIZATION
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-30
 DetectedInSha: 1965b5cc
 AffectedModules: [services/api/src/modules/reports/reports.service.ts]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
-QAReport: 
-RegressionId: 
+ArchitectDisposition: DONE
+QAReport: docs/qa/runs/2026-08-31-reports-analytics-platform-96ff155.md
+RegressionId: REG-380
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-30
-UpdatedAt: 2026-08-30
-ResolvedAt:
+UpdatedAt: 2026-08-31
+ResolvedAt: 2026-08-31
 ---
 
 # BUG-2624 — The reports endpoints return tenant-wide aggregates regardless of the caller's row scope
@@ -133,7 +133,13 @@ Fixed by routing the legacy endpoints through the reporting engine under TASK-00
 
 ## QA Retest
 
-Pending the QA run for TASK-0028.
+Retested 2026-08-31 in the QA run for TASK-0028, against a real PostgreSQL rather than a double.
+
+Scope now resolves through each data source’s own `rbacEntityKey`, so `reports.read` opens the workspace and the data’s owning entity decides the rows. `scope.resolver.spec.ts` exercises every `SecurityAccessLevel`: `BUSINESS_UNIT`, `ORGANIZATION`, `PARENT_CHILD_BUSINESS_UNIT(S)` and `SELF` each narrow the `where`, `NONE` yields the poison-pill id and a count of 0, and no level returns `{}`. `reporting-tenant-isolation.e2e-spec.ts` confirms against real data that tenant A counts only tenant A’s employees and every returned row carries A’s `tenantId`.
+
+Regression: REG-380. A second defect found while fixing this one — a sanitiser that dropped unverifiable predicates instead of replacing them, which widens rather than fails closed — is recorded as REG-381.
+
+Operator note: a scoped reader’s numbers get **smaller** after this release. That is the correction landing, not a regression.
 
 ## History
 
@@ -143,8 +149,6 @@ Pending the QA run for TASK-0028.
 
 ## Related
 
-- No related record, module or decision is declared in this record's
-  frontmatter. Declare one rather than adding a link here by hand — this
-  block is regenerated and a hand-written link inside it is lost.
+- Regression — REG-380 (see the regression register)
 
 <!-- GRAPH:END -->

@@ -11,6 +11,8 @@ import { formatChartValue, formatShare, summarizeChartShape } from "./chart-form
 import { computeShares } from "./chart-geometry";
 import type { ChartSeries, ChartValueFormat } from "./chart-types";
 import { hasChartData } from "./chart-types";
+import type { ResolvedFormattingContext } from "@/lib/formatting-context";
+import { useFormattingContext } from "@/app/components/filters/use-formatting-context";
 
 /*
  * The wrapper that makes a chart a complete thing rather than a picture.
@@ -74,13 +76,23 @@ export function ChartFrame({
   title,
   valueFormat = "number",
 }: ChartFrameProps) {
+  /* Tenant formatting, read during render rather than from the module-level
+   * default an effect installs — see BUG-2647. */
+  const formattingContext = useFormattingContext();
   const [showTable, setShowTable] = React.useState(false);
 
   const hasData = hasChartData(series);
 
   const { rows, columns } = React.useMemo(
-    () => buildTable({ series, valueFormat, currencyCode, showShares }),
-    [series, valueFormat, currencyCode, showShares],
+    () =>
+      buildTable({
+        series,
+        valueFormat,
+        currencyCode,
+        showShares,
+        context: formattingContext,
+      }),
+    [series, valueFormat, currencyCode, showShares, formattingContext],
   );
 
   const summary = summarizeChartShape({
@@ -168,11 +180,13 @@ export function ChartFrame({
  * says something the chart does not.
  */
 function buildTable({
+  context,
   currencyCode,
   series,
   showShares,
   valueFormat,
 }: {
+  context?: ResolvedFormattingContext | null;
   currencyCode?: string | null;
   series: ChartSeries[];
   showShares: boolean;
@@ -240,6 +254,7 @@ function buildTable({
         <span className="tabular-nums text-foreground">
           {formatChartValue(row.values[entry.key] ?? null, valueFormat, {
             currencyCode,
+            context,
           })}
         </span>
       ),

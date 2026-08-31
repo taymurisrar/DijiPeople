@@ -15,7 +15,7 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
-| Open HIGH | 27 |
+| Open HIGH | 26 |
 | Awaiting Architect triage | 2 |
 | Owner decisions pending | 6 |
 | QA coverage gaps | 142 |
@@ -34,8 +34,8 @@ survives every review by being unfalsifiable.
 | No next action | 102 |
 | Aging — 7d / 30d / 90d | 19 / 0 / 0 |
 | Architecture and technical debt | 8 |
-| Security gaps | 8 |
-| Database gaps | 9 |
+| Security gaps | 7 |
+| Database gaps | 8 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:

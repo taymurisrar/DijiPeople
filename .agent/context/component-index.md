@@ -1,7 +1,7 @@
 # Component Index
 
 > **Last verified:** 2026-08-31
-> **Verified against commit:** fcc0880b
+> **Verified against commit:** e5258e80
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -148,10 +148,10 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `SessionExpiredDialog` | component | 1 | `apps/web/app/components/feedback/session-expired-dialog.tsx`:16 | This had no dialog semantics, no focus containment and no Escape at all — which for this one is partly deliberate: there is nothing behind it the user can usefully do. |
 | `WorkspaceEnvironmentBanner` | component | 1 | `apps/web/app/components/workspace-environment-banner.tsx`:38 | A persistent marker on non-production workspaces. |
 | `WorkspaceContextLabel` | component | 0 | `apps/web/app/components/workspace-environment-banner.tsx`:66 | The workspace label for the app shell. |
+| `useFormattingContext` | function | 19 | `apps/web/app/components/filters/use-formatting-context.ts`:28 | The tenant's formatting context, safe to use during render. |
 | `useDialogBehavior` | function | 16 | `apps/web/app/components/ui/dialog.tsx`:130 | The behaviour half of {@link Dialog}, on its own. |
 | `formatChartValue` | function | 10 | `apps/web/app/components/charts/chart-format.ts`:47 | Render one measured number the way the tenant has asked for numbers to be rendered. |
 | `hasChartData` | function | 8 | `apps/web/app/components/charts/chart-types.ts`:97 | `true` when there is nothing to draw: no series, or every series empty. |
-| `useFormattingContext` | function | 8 | `apps/web/app/components/filters/use-formatting-context.ts`:28 | The tenant's formatting context, safe to use during render. |
 | `pointAccessibleLabel` | function | 6 | `apps/web/app/components/charts/chart-format.ts`:128 | The accessible name for a single plotted point — the BUG-2148 countermeasure. |
 | `seriesColor` | function | 6 | `apps/web/app/components/charts/chart-tokens.ts`:62 | Colour for the series (or slice) at `index`, wrapping when there are more series than colours. |
 | `activateOnKey` | function | 4 | `apps/web/app/components/charts/chart-chrome.tsx`:392 | Keyboard activation for a plotted point. |
@@ -200,7 +200,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `toLocalDateTimeInput` | function | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:399 | An ISO instant as a `datetime-local` input value, in the viewer's own zone. |
 | `validateDraft` | function | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:206 | Checks a draft before it is sent. |
 | `bucketByPeriod` | function | 0 | `apps/web/app/components/charts/chart-geometry.ts`:454 | Group dated measurements into calendar buckets, summing each bucket. |
-| `donutLegendItems` | function | 0 | `apps/web/app/components/charts/donut-chart.tsx`:182 | Legend entries for a donut, in the same order and with the same bucketing the chart used. |
+| `donutLegendItems` | function | 0 | `apps/web/app/components/charts/donut-chart.tsx`:185 | Legend entries for a donut, in the same order and with the same bucketing the chart used. |
 | `entryAttendanceDate` | function | 0 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:384 | The day the record belongs to, as YYYY-MM-DD. |
 | `fieldsFor` | function | 0 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:100 | The fields a given correction type actually uses. |
 | `formatTimeBucketLabel` | function | 0 | `apps/web/app/components/charts/chart-format.ts`:182 | A time bucket's axis label, in the tenant's date format where that is meaningful. |
@@ -210,7 +210,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `polarToCartesian` | function | 0 | `apps/web/app/components/charts/chart-geometry.ts`:1046 | Polar to Cartesian in SVG's coordinate space: `y` grows downward, so a clockwise sweep from twelve o'clock is `(cx + r·sin a, cy − r·cos a)`. |
 | `readFieldErrorNames` | function | 0 | `apps/web/lib/runtime/command-failure-visibility.ts`:39 | Field names from either supported error shape, at the root or under `details`. |
 | `resolveVisibleByRules` | function | 0 | `apps/web/lib/runtime/visibility.resolver.ts`:84 | Filters any list of rule-carrying items. |
-| `sparklineAriaLabel` | function | 0 | `apps/web/app/components/charts/sparkline.tsx`:168 | A ready-made `ariaLabel` for the common case: a metric over a period. |
+| `sparklineAriaLabel` | function | 0 | `apps/web/app/components/charts/sparkline.tsx`:169 | A ready-made `ariaLabel` for the common case: a metric over a period. |
 | `startOfWeek` | function | 0 | `apps/web/app/components/filters/period.ts`:468 | Start of the week containing `date`. |
 | `tenantToday` | function | 0 | `apps/web/app/components/filters/period.ts`:237 | The calendar date it is *right now, where the tenant is*. |
 | `truncateLabel` | function | 0 | `apps/web/app/components/charts/chart-chrome.tsx`:276 | SVG has no text overflow, so a long department name runs off the canvas and over the next chart. |
@@ -231,13 +231,13 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `SCOPE_FILTER_PARAMS` | constant | 1 | `apps/web/app/components/filters/analytics-search-params.ts`:64 | The organisational narrowing parameters, as distinct from the period and the grouping. |
 | `VALUELESS_FILTER_OPERATORS` | constant | 1 | `apps/web/app/components/data-table/types.ts`:31 | Operators that compare nothing, so the value input is hidden for them. |
 | `ANALYTICS_FILTER_PARAMS` | constant | 0 | `apps/web/app/components/filters/analytics-search-params.ts`:38 | The parameter names, as a fixed contract. |
-| `AREA_CHART_MARGINS` | constant | 0 | `apps/web/app/components/charts/area-chart.tsx`:42 | A trend with the volume under it filled in. |
-| `BAR_CHART_MARGINS` | constant | 0 | `apps/web/app/components/charts/bar-chart.tsx`:45 | Vertical bars, grouped or stacked. |
+| `AREA_CHART_MARGINS` | constant | 0 | `apps/web/app/components/charts/area-chart.tsx`:43 | A trend with the volume under it filled in. |
+| `BAR_CHART_MARGINS` | constant | 0 | `apps/web/app/components/charts/bar-chart.tsx`:46 | Vertical bars, grouped or stacked. |
 | `CHART_PATTERN_GEOMETRIES` | constant | 0 | `apps/web/app/components/charts/chart-tokens.ts`:93 | BUG-2148 — severity was conveyed by colour alone and hidden from assistive technology. |
 | `CHART_SERIES_COLORS` | constant | 0 | `apps/web/app/components/charts/chart-tokens.ts`:44 | The one palette every chart in the Reports & Analytics workspace draws from. |
 | `DEFAULT_WEEK_STARTS_ON` | constant | 0 | `apps/web/app/components/charts/chart-geometry.ts`:345 | `weekStartsOn` is a parameter and not a constant on purpose. |
 | `DEFAULT_WEEK_STARTS_ON` | constant | 0 | `apps/web/app/components/filters/period.ts`:130 | Sunday. This product's default weekend is **Friday/Saturday**, so the working week begins on Sunday and not on Monday. |
-| `LINE_CHART_MARGINS` | constant | 0 | `apps/web/app/components/charts/line-chart.tsx`:35 | A trend over time. A thin renderer: every number on screen was computed by `chart-geometry.ts` and every string was formatted by `chart-format.ts`, both of which are covered by specs. |
+| `LINE_CHART_MARGINS` | constant | 0 | `apps/web/app/components/charts/line-chart.tsx`:36 | A trend over time. A thin renderer: every number on screen was computed by `chart-geometry.ts` and every string was formatted by `chart-format.ts`, both of which are covered by specs. |
 | `VisibilityRule` | type | 5 | `apps/web/lib/runtime/visibility.resolver.ts`:27 | One place to ask "should this person see this". |
 | `ChartValueFormat` | type | 3 | `apps/web/app/components/charts/chart-types.ts`:50 | How a raw number should read once it reaches a person. |
 | `ChartGranularity` | type | 2 | `apps/web/app/components/charts/chart-types.ts`:85 | Time bucketing granularity for `bucketByPeriod`. |
@@ -250,7 +250,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `AnalyticsSearchParamsInput` | type | 0 | `apps/web/app/components/filters/analytics-search-params.ts`:79 | Next's `searchParams` prop, or a real `URLSearchParams`, or a query string. |
 | `AudienceOption` | type | 0 | `apps/web/app/components/runtime/visibility-rules-editor.tsx`:24 | One editor for audience rules, shared by every designer that gates a surface. |
 | `BaseChartProps` | type | 0 | `apps/web/app/components/charts/chart-types.ts`:63 | Props shared by every chart component in this directory. |
-| `ChartFrameProps` | type | 0 | `apps/web/app/components/charts/chart-frame.tsx`:33 | The wrapper that makes a chart a complete thing rather than a picture. |
+| `ChartFrameProps` | type | 0 | `apps/web/app/components/charts/chart-frame.tsx`:35 | The wrapper that makes a chart a complete thing rather than a picture. |
 | `CollapsedPoint` | type | 0 | `apps/web/app/components/charts/chart-geometry.ts`:773 | ------------------------------------------------------- ranked proportions |
 | `CommandContextSource` | type | 0 | `apps/web/lib/runtime/command-context-labels.ts`:14 | Labels for the context line a command surface shows above its form. |
 | `CommandFailureContract` | type | 0 | `apps/web/lib/runtime/command-failure-message.ts`:22 | What a failed runtime command means, read out of whatever the adapter threw. |
@@ -261,15 +261,15 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `DateRange` | type | 0 | `apps/web/app/components/filters/period.ts`:38 | Inclusive, `yyyy-MM-dd` at both ends. |
 | `DateRangeFilterValue` | type | 0 | `apps/web/app/components/filters/date-range-filter.tsx`:32 | Preset first, custom dates second. |
 | `DonutArc` | type | 0 | `apps/web/app/components/charts/chart-geometry.ts`:1029 | ------------------------------------------------------------------- donut |
-| `DonutChartProps` | type | 0 | `apps/web/app/components/charts/donut-chart.tsx`:35 | A composition, as a ring. |
-| `FunnelChartProps` | type | 0 | `apps/web/app/components/charts/funnel-chart.tsx`:25 | A pipeline, stage by stage. |
+| `DonutChartProps` | type | 0 | `apps/web/app/components/charts/donut-chart.tsx`:37 | A composition, as a ring. |
+| `FunnelChartProps` | type | 0 | `apps/web/app/components/charts/funnel-chart.tsx`:26 | A pipeline, stage by stage. |
 | `FunnelStage` | type | 0 | `apps/web/app/components/charts/chart-geometry.ts`:954 | ------------------------------------------------------------------ funnel |
 | `GovernedInputRequest` | type | 0 | `apps/web/app/components/feedback/use-governed-input.tsx`:37 | Collect a governed value through the design system, instead of `window.prompt`. |
-| `HorizontalBarListProps` | type | 0 | `apps/web/app/components/charts/horizontal-bar-list.tsx`:42 | Ranked proportions: "how is this split up, and what is at the top". |
+| `HorizontalBarListProps` | type | 0 | `apps/web/app/components/charts/horizontal-bar-list.tsx`:43 | Ranked proportions: "how is this split up, and what is at the top". |
 | `Point2D` | type | 0 | `apps/web/app/components/charts/chart-geometry.ts`:33 | Every calculation a chart in this directory performs, with no React in sight. |
 | `QuickCreateSubmission` | type | 0 | `apps/web/lib/runtime/quick-create-metadata.ts`:130 | Whether a quick-create dialog may submit, and what to say when it may not. |
 | `RuntimeTabContentContext` | type | 0 | `apps/web/app/components/metadata/runtime-metadata-form-renderer.tsx`:65 | What a purpose-built tab body gets to work with. |
-| `SparklineProps` | type | 0 | `apps/web/app/components/charts/sparkline.tsx`:30 | A trend at the size of a word. |
+| `SparklineProps` | type | 0 | `apps/web/app/components/charts/sparkline.tsx`:31 | A trend at the size of a word. |
 | `StackedSegment` | type | 0 | `apps/web/app/components/charts/chart-geometry.ts`:650 | ------------------------------------------------------------------ stacks |
 | `TimeSeriesPoint` | type | 0 | `apps/web/app/components/charts/chart-geometry.ts`:247 | ------------------------------------------------------------ time buckets |
 
