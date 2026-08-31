@@ -200,11 +200,7 @@ export class ReportQueryExecutor {
     // number.
     const latestDateWhere =
       calculation.kind === 'point_in_time_count'
-        ? await this.restrictToLatestDate(
-            source,
-            calculation.dateField,
-            where,
-          )
+        ? await this.restrictToLatestDate(source, calculation.dateField, where)
         : null;
 
     // A filtered_count metric carries its own predicate, and a breakdown must

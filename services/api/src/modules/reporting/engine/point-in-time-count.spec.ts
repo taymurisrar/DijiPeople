@@ -5,7 +5,7 @@ import { getMetric } from '../metrics/metric.registry';
 /**
  * Headcount is a stock, not a flow.
  *
- * BUG-2685 / REG-389. `workforce_history` holds one row per employee per day,
+ * BUG-2693 / REG-389. `workforce_history` holds one row per employee per day,
  * and "Historical headcount" was a plain `count` over the period — so a company
  * of twelve read **323** across thirty days and **70** across seven, growing
  * with the length of the window rather than describing the workforce.
@@ -74,9 +74,7 @@ describe('workforce.historical_headcount', () => {
     expect(calls.aggregate).toHaveLength(1);
     // ...then counted with that date pinned, not the bare period where.
     expect(calls.count).toHaveLength(1);
-    expect(JSON.stringify(calls.count[0].where)).toContain(
-      day.toISOString(),
-    );
+    expect(JSON.stringify(calls.count[0].where)).toContain(day.toISOString());
   });
 
   it('resolves the latest date present rather than the end of the period', async () => {

@@ -300,7 +300,7 @@ export type ReportMetricCalculation =
    * the window. A true number and a wrong answer, on a headline tile, with a
    * caveat underneath explaining that the reader should have counted a single
    * snapshot date instead — the caveat telling the reader the tile was wrong
-   * rather than the tile being right. BUG-2685.
+   * rather than the tile being right. BUG-2693.
    *
    * This resolves the latest date present in the period and counts only that
    * day. Trends are unaffected: a trend already groups by snapshot date, so

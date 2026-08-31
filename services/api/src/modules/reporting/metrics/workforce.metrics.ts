@@ -125,7 +125,7 @@ export const WORKFORCE_METRICS: ReportMetricDefinition[] = [
      * A stock, not a flow. `workforce_history` holds one row per employee per
      * day, so a plain `count` answered "how many employee-days" and labelled it
      * headcount — 323 for a company of twelve over thirty days, growing with the
-     * window. BUG-2685.
+     * window. BUG-2693.
      */
     calculation: {
       kind: 'point_in_time_count',
