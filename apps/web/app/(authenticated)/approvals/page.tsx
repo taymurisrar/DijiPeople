@@ -1,4 +1,5 @@
 import { StandardModuleListPage } from "@/app/components/runtime";
+import { moduleDisplayName } from "@/app/components/approvals/approval-display";
 import type { ApprovalsResponse } from "@/app/components/approvals/approval-types";
 import { requireSessionUser } from "@/lib/auth";
 import { hasAnyPermission } from "@/lib/permissions";
@@ -54,7 +55,7 @@ export default async function ApprovalsPage({
   const records = response.items.map((approval) => ({
     ...approval,
     approvalName: approval.title || approval.requestNumber || approval.id,
-    moduleLabel: approval.moduleKey,
+    moduleLabel: moduleDisplayName(approval.moduleKey),
     requesterName:
       fullName(approval.submittedByUser) ||
       fullName(approval.submittedForEmployee) ||

@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 328** · automated: 286 · manual: 23 · blocked by infrastructure: 0
+**Scenarios: 329** · automated: 286 · manual: 23 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -263,6 +263,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-RUNTIME-036](../../../docs/qa/scenarios/QA-RUNTIME-036-aria-that-described-a-listbox-nobody-had-built.md) | ARIA that described a listbox nobody had built | runtime-modules | E2E | MEDIUM | AUTOMATED | `apps/web/lib/a11y/listbox-navigation.spec.ts` | BUG-1956 | REG-338 |
 | [QA-RUNTIME-037](../../../docs/qa/scenarios/QA-RUNTIME-037-a-recognised-timestamp-formatted-for-the-wrong-tenant.md) | A recognised timestamp, formatted for the wrong tenant | runtime-modules | E2E | MEDIUM | AUTOMATED | `apps/web/app/components/dashboard/dashboard-widget-formatting.spec.ts` | BUG-2010 | REG-342 |
 | [QA-RUNTIME-038](../../../docs/qa/scenarios/QA-RUNTIME-038-a-cell-that-already-had-a-link-and-a-label-neither-ever-read.md) | A cell that already had a link and a label, neither ever read | runtime-modules | E2E | MEDIUM | AUTOMATED | `apps/web/app/components/inbox/inbox-related-record-cell.spec.ts` | BUG-2017 | REG-343 |
+| [QA-RUNTIME-039](../../../docs/qa/scenarios/QA-RUNTIME-039-the-approvals-inbox-shows-a-full-record-and-decides-through-.md) | The approvals inbox shows a full record and decides through the owning module | approvals | API | HIGH | PARTIAL | `services/api/src/modules/approvals/approvals.decision.spec.ts` | BUG-2718 | REG-390 |
 | [QA-SECURITY-001](../../../docs/qa/scenarios/QA-SECURITY-001-a-refused-cors-origin-returns-a-normal-status-and-no-allow-o.md) | A refused CORS origin returns a normal status and no allow-origin header | authorization | SECURITY | HIGH | AUTOMATED | `services/api/src/config/cors-options.spec.ts` | BUG-0976 | REG-240 |
 | [QA-SETTINGS-001](../../../docs/qa/scenarios/QA-SETTINGS-001-resolved-settings-reject-arbitrary-context-preview.md) | Resolved settings reject arbitrary context preview | authorization | SECURITY | CRITICAL | AUTOMATED | `services/api/src/modules/tenant-settings/settings-context-authorization.spec.ts` | BUG-0057 | REG-044 |
 | [QA-SETTINGS-002](../../../docs/qa/scenarios/QA-SETTINGS-002-email-providers-offered-are-providers-implemented.md) | Email providers offered are email providers implemented | runtime-modules | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/notifications/email/email-provider-support.spec.ts` | BUG-0050 | REG-053 |

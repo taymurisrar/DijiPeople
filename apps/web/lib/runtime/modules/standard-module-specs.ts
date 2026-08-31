@@ -2883,7 +2883,19 @@ export const approvalRuntimeSpec: StandardModuleRuntimeSpec = {
   // command set still emitted `system.new`, whose handler resolves to
   // `/approvals/new`; no page exists at that route, so it fell through to
   // `approvals/[approvalId]` with the literal id "new" and threw.
-  adapterCapabilities: { disableCreate: true },
+  //
+  // `disableEdit` and `disableSave` are the same argument one step on. The
+  // record page offered Edit and Save on a projection of somebody else's
+  // record — there are no writable fields here and no endpoint behind them, so
+  // the buttons could only ever fail. What a caller may do to an approval is
+  // approve it, reject it or withdraw it, and those are the commands below.
+  adapterCapabilities: {
+    disableCreate: true,
+    disableEdit: true,
+    disableSave: true,
+    import: false,
+    exportTemplate: false,
+  },
   permissions: {
     read: PERMISSION_KEYS.APPROVALS_READ,
   },
@@ -2994,8 +3006,50 @@ export const approvalRuntimeSpec: StandardModuleRuntimeSpec = {
       defaultSort: [{ fieldLogicalName: "submittedAt", direction: "desc" }],
     },
   ],
+  /*
+   * These were `disabledBusinessCommand` stubs — greyed out on every row for
+   * every caller, explaining themselves with "not wired to a generic
+   * ModuleDataAdapter handler yet". The inbox listed work and could not act on
+   * it.
+   *
+   * They are live now, and each one's enabled state comes from the record
+   * rather than from the spec: the API returns `canApprove` / `canReject` /
+   * `canCancel` per approval, computed from the module that raised it, the
+   * caller's permissions in that module and whether the step is theirs. A
+   * command that is off therefore says *why* it is off, in the row's own
+   * `decisionReason` — "This step is assigned to someone else", "This request
+   * is already approved", "Payroll approvals are decided on the Payroll
+   * record" — instead of one sentence written for whoever maintains the
+   * runtime.
+   */
   commands: [
-    disabledBusinessCommand("approval.approve", "Approve"),
-    disabledBusinessCommand("approval.reject", "Reject"),
+    approvalDecisionCommand("approval.approve", "Approve", "canApprove", 10),
+    approvalDecisionCommand("approval.reject", "Reject", "canReject", 20),
+    approvalDecisionCommand("approval.cancel", "Withdraw", "canCancel", 30),
   ],
 };
+
+function approvalDecisionCommand(
+  key: string,
+  label: string,
+  capabilityField: string,
+  order: number,
+): CommandDefinition {
+  return {
+    key,
+    label,
+    description: `${label} this request from the approvals inbox. The decision is applied by the module that raised it.`,
+    scope: "record",
+    placement: "detail-command-bar",
+    executionMode: "client",
+    handlerKey: key,
+    payloadSchemaKey: key,
+    dynamicDisabled: {
+      fieldLogicalName: capabilityField,
+      enabledValue: true,
+      reasonFieldLogicalName: "decisionReason",
+      fallbackReason: `${label} is not available for this request.`,
+    },
+    order,
+  };
+}

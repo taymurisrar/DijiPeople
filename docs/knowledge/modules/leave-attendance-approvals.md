@@ -137,20 +137,47 @@ same class of defect on the same form.
 
 ## Approvals
 
-### `/api/approvals` has no action endpoint
+### `/api/approvals` decides by delegating — corrected 2026-08-31
 
-`ApprovalsController` declares two routes, both `GET`. `ApprovalsService.action()`
-and `cancel()` exist but no controller exposes them — their only callers are
-`claims` and `benefits`, in-process. **Every approval action is driven from the
-owning module's endpoint**: `POST /leave-requests/{id}/approve|reject|cancel`,
-`POST /attendance/correction-requests/{id}/approve|reject`.
+**This section described the state before [[BUG-2718]].** It read: "`ApprovalsController`
+declares two routes, both `GET` … the Approve/Reject buttons on `/approvals` are
+declared disabled. That is intended, not a defect." The first half was true; the
+second half was a judgement, and the owner overruled it — a screen that lists
+work it cannot act on is not finished.
 
-The frontend agrees and says so: `approvalRuntimeSpec.commands` are
-`disabledBusinessCommand("approval.approve")` and `…reject`
-(`standard-module-specs.ts:2971-2972`). **The Approve/Reject buttons on
-`/approvals` are declared disabled.** That is intended, not a defect — though it
-is a UX finding, and [[BUG-2004]] covers the New action on the same screen,
-which is not intended.
+There are now three more routes, all `POST`:
+`/approvals/{id}/approve|reject|cancel`.
+
+**They do not write the approval row.** `ApprovalRequest` is a mirror for leave
+and attendance, and moving the mirror would report APPROVED on the inbox while
+the leave request stayed PENDING with no balance consumed. Instead
+`ApprovalsService.decide` resolves an `ApprovalDecisionDelegate` from
+`ApprovalDecisionRegistry` and calls the same method the owning module's own
+controller calls, so the record, its mirror, its audit row and its notifications
+all move together.
+
+Two things about that path are worth knowing before changing it:
+
+- **Registration runs owning-module → approvals**, the same direction as
+  `createWorkflow`, so no `forwardRef` is involved. Each module contributes an
+  `OnModuleInit` provider; `AttendanceModule` had to start importing
+  `ApprovalsModule`, which it previously did not.
+- **Dispatching in-process skips the owning controller, so it skips
+  `PermissionsGuard`.** The delegate therefore declares the permission its own
+  route demands, and `decide` evaluates it with `satisfiesPermissionRequirement`
+  — the function extracted *out of* `PermissionsGuard`, which now calls it too.
+  Reimplementing the check instead of sharing it is the [[BUG-2015]] shape,
+  where approve turned out to be gated on read.
+
+**Only leave and attendance have delegates.** Timesheets, payroll, benefits,
+claims and loans deliberately do not: each needs input a one-line inbox row
+cannot show — `ApproveLoanDto` *requires* `approvedAmount`, a timesheet week is
+a grid of hours, a payroll run is a payroll run. For those the inbox reports
+which module decides them and links to its screen, which is a capability the API
+computes per record rather than a disabled button with a developer-facing
+caption. Adding one later is a small delegate class.
+
+[[BUG-2004]] covers the New action on the same screen, which was never intended.
 
 Two parallel systems exist and they are **mirrors, not one system**:
 `LeaveApprovalStep` is authoritative and written inside the submit transaction;
