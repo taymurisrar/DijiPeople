@@ -224,7 +224,7 @@ are verified, and when the security cases above first pass — each will own a
 
 ## Related
 
-- Scenarios — [[QA-REPORTING-001]], [[QA-REPORTING-002]], [[QA-REPORTING-003]], [[QA-REPORTING-004]], [[QA-REPORTING-005]], [[QA-REPORTING-006]], [[QA-REPORTING-007]]
+- Scenarios — [[QA-REPORTING-001]], [[QA-REPORTING-002]], [[QA-REPORTING-003]], [[QA-REPORTING-004]], [[QA-REPORTING-005]], [[QA-REPORTING-006]], [[QA-REPORTING-007]], [[QA-REPORTING-010]]
 - Bugs — [[BUG-2623]], [[BUG-2624]], [[BUG-2625]], [[BUG-2626]]
 
 <!-- GRAPH:END -->

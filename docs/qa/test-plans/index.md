@@ -6,7 +6,7 @@ One evergreen plan per product area: scope, risks, the cases that must always
 be covered, and the declared coverage per dimension. QA loads the plan for
 every area a change touches **before** designing anything new.
 
-**Plans: 27** · scenarios across them: 327
+**Plans: 27** · scenarios across them: 328
 
 | Plan | Area | Risk | Status | Scenarios | Related bugs | Verified against |
 |---|---|---|---|---|---|---|
@@ -28,7 +28,7 @@ every area a change touches **before** designing anything new.
 | [PLAN-006](../../../docs/qa/test-plans/PLAN-006-partner-lifecycle.md) | partner-lifecycle | HIGH | CURRENT | 6 | BUG-0016, BUG-0019, BUG-0025, BUG-0048 | `287612d` |
 | [PLAN-010](../../../docs/qa/test-plans/PLAN-010-payroll.md) | payroll | CRITICAL | CURRENT | 7 | BUG-0001, BUG-0039 | `287612d` |
 | [PLAN-019](../../../docs/qa/test-plans/PLAN-019-platform-admin.md) | platform-admin | HIGH | CURRENT | 56 | BUG-0073, BUG-0074, BUG-1419, BUG-1420, BUG-1421, BUG-1422, BUG-1423, BUG-1424, BUG-1425 | `4290c03` |
-| [PLAN-034](../../../docs/qa/test-plans/PLAN-034-reports.md) | reports | HIGH | CURRENT | 7 | BUG-2623, BUG-2624, BUG-2625, BUG-2626 | `091bb375` |
+| [PLAN-034](../../../docs/qa/test-plans/PLAN-034-reports.md) | reports | HIGH | CURRENT | 8 | BUG-2623, BUG-2624, BUG-2625, BUG-2626 | `091bb375` |
 | [PLAN-031](../../../docs/qa/test-plans/PLAN-031-routing.md) | routing | MEDIUM | CURRENT | 1 | BUG-2461 | `39d8ddc4` |
 | [PLAN-011](../../../docs/qa/test-plans/PLAN-011-runtime-modules.md) | runtime-modules | HIGH | CURRENT | 34 | BUG-0019, BUG-0020, BUG-0044 | `287612d` |
 | [PLAN-016](../../../docs/qa/test-plans/PLAN-016-seat-billing.md) | seat-billing | CRITICAL | CURRENT | 4 | — | `39bd665` |

@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 327** · automated: 285 · manual: 23 · blocked by infrastructure: 0
+**Scenarios: 328** · automated: 286 · manual: 23 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -228,6 +228,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-REPORTING-007](../../../docs/qa/scenarios/QA-REPORTING-007-scheduled-report-delivery-passes-every-declared-template-var.md) | Scheduled report delivery passes every declared template variable | reports | UNIT | HIGH | AUTOMATED | `services/api/src/modules/reporting/schedule/report-scheduler.worker.spec.ts` | BUG-2683 | REG-386 |
 | [QA-REPORTING-008](../../../docs/qa/scenarios/QA-REPORTING-008-owned-record-scope-emits-no-column-the-model-lacks.md) | Owned-record scope emits no column the model lacks | authorization | SECURITY | HIGH | AUTOMATED | `services/api/src/common/security/rbac-query-scope.spec.ts` | BUG-2623 | REG-387 |
 | [QA-REPORTING-009](../../../docs/qa/scenarios/QA-REPORTING-009-an-expired-session-lands-on-the-login-form-not-a-redirect-lo.md) | An expired session lands on the login form, not a redirect loop | authentication | BROWSER_E2E | MEDIUM | AUTOMATED | `apps/web/login-bounce.spec.ts` | BUG-2662 | REG-388 |
+| [QA-REPORTING-010](../../../docs/qa/scenarios/QA-REPORTING-010-headcount-is-a-stock-and-does-not-scale-with-the-period.md) | Headcount is a stock and does not scale with the period | reports | UNIT | HIGH | AUTOMATED | `services/api/src/modules/reporting/engine/point-in-time-count.spec.ts` | BUG-2693 | REG-389 |
 | [QA-RUNTIME-001](../../../docs/qa/scenarios/QA-RUNTIME-001-every-declared-runtime-module-has-a-route-that-renders-it.md) | Every declared runtime module has a route that renders it | runtime-modules | UNIT | HIGH | AUTOMATED | `apps/admin/lib/runtime/module-routes.invariant.spec.ts` | BUG-0019, BUG-0024 | REG-028 |
 | [QA-RUNTIME-002](../../../docs/qa/scenarios/QA-RUNTIME-002-entity-scope-resolution-never-falls-back-to-unscoped.md) | Entity scope resolution never falls back to unscoped | runtime-modules | SECURITY | CRITICAL | AUTOMATED | `services/api/src/modules/data/entity-scope.resolver.spec.ts` | — | — |
 | [QA-RUNTIME-003](../../../docs/qa/scenarios/QA-RUNTIME-003-the-entity-query-validator-rejects-filters-it-cannot-safely-.md) | The entity query validator rejects filters it cannot safely translate | runtime-modules | UNIT | HIGH | AUTOMATED | `services/api/src/modules/data/entity-query-validator.spec.ts` | — | — |

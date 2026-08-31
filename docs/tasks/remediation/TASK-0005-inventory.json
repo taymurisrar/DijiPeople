@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 429,
+    "total_records": 430,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -14569,6 +14569,48 @@
           "services/api/src/modules/reporting/schedule"
         ],
         "verification_scope": "See docs/bugs/BUG-2683-every-scheduled-report-fails-to-deliver-because-the-email-te.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2693",
+      "type": "DATA_INTEGRITY",
+      "title": "Historical headcount reports employee-days instead of headcount and grows with the length of the period",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-2693-historical-headcount-reports-employee-days-instead-of-headco.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "bcc188bf",
+        "created_at": "2026-08-31",
+        "updated_at": "2026-08-31",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/reporting"
+      ],
+      "regressions": [
+        "REG-389"
+      ],
+      "qa_scenarios": [
+        "QA-REPORTING-010"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/reporting"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2693-historical-headcount-reports-employee-days-instead-of-headco.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

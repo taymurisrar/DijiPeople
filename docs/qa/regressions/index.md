@@ -4336,3 +4336,17 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Two things generalise. First, a `next` or `reason` parameter is *evidence*: it means an earlier hop already decided the session failed, and trusting it over a cookie is what breaks the cycle. Second, the fix deliberately does **not** clear the cookies at that point — it is a plain GET, and signing someone out because one request returned 401 would be a worse failure than the one being fixed; clearing them belongs to the logout path that knows the refresh itself failed. The rule was extracted into a named function purely so it could be tested, because `apps/web` runs jest with no jsdom and the middleware cannot be booted there. |
 | **Fixed** | 2026-08-31, branch `agent/session-redirect-loop` |
 | **Active** | yes |
+### REG-389 — Headcount counted employee-days and grew with the period
+
+| | |
+|---|---|
+| **Bug class** | `stock-counted-as-flow` |
+| **Module** | `services/api/src/modules/reporting` |
+| **Bug record** | BUG-2693 |
+| **Root cause** | `workforce_history` holds one row per employee per day, and `workforce.historical_headcount` was declared `{ kind: 'count' }`. So the tile reported employee-days: 70 over seven days and 323 over thirty, for a company of twelve. The metric's own `description` said "Headcount on a given day" and its calculation did not implement that description; nothing compared the two. The engine had no kind able to express a point-in-time count, so `count` was the only one available and it was reached for. |
+| **Regression test** | `services/api/src/modules/reporting/engine/point-in-time-count.spec.ts` |
+| **Scenario** | Assert the metric is declared `point_in_time_count` on `workforce_history.snapshot_date`. Execute it against a stubbed delegate: it must resolve the latest date first, then count with that date pinned rather than counting the bare period. A period whose newest snapshot is yesterday must pin yesterday, not today. A period holding no snapshot at all must return `null`, and must not issue a count. |
+| **Proven to fail without the fix** | Reverting the metric to `{ kind: 'count' }` fails all four cases. |
+| **Note** | Three things generalise. **A stock is not a flow**: counting rows is right for an event table and wrong for a daily snapshot, and the same trap waits on any future "as at" metric. **Pin the latest date that exists, not the end of the period** — the snapshot job captures yesterday, so a period ending today has an empty final day and pinning it would report zero every morning. **The breakdown needed the same narrowing**, or "headcount by department" becomes "employee-days by department": the identical defect drawn as a chart instead of printed as a number, which is harder to notice. Also worth remembering how it surfaced: the tile had always been wrong, but `workforce_history` was empty until the backfill ran, so it had never been on screen. Making a screen reachable is what exposes its bugs. |
+| **Fixed** | 2026-08-31, branch `agent/session-redirect-loop` |
+| **Active** | yes |

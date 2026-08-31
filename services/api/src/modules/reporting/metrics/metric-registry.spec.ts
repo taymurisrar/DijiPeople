@@ -85,6 +85,8 @@ function calculationFieldKeys(metric: ReportMetricDefinition): string[] {
   switch (calculation.kind) {
     case 'count':
       return [];
+    case 'point_in_time_count':
+      return [calculation.dateField];
     case 'count_distinct':
     case 'sum':
     case 'avg':

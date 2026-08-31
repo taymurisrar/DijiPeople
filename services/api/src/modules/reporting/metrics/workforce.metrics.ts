@@ -118,15 +118,25 @@ export const WORKFORCE_METRICS: ReportMetricDefinition[] = [
     key: 'workforce.historical_headcount',
     label: 'Historical headcount',
     description:
-      'Headcount on a given day, from the daily workforce snapshot, using the organisational placement that was true on that day.',
+      'Headcount on the last day of the selected period, from the daily workforce snapshot, using the organisational placement that was true on that day.',
     dataSourceKey: 'workforce_history',
     valueType: 'integer',
-    calculation: { kind: 'count' },
+    /*
+     * A stock, not a flow. `workforce_history` holds one row per employee per
+     * day, so a plain `count` answered "how many employee-days" and labelled it
+     * headcount — 323 for a company of twelve over thirty days, growing with the
+     * window. BUG-2685.
+     */
+    calculation: {
+      kind: 'point_in_time_count',
+      dateField: 'workforce_history.snapshot_date',
+    },
     supportedDimensions: HISTORY_DIMENSIONS,
     comparable: true,
     direction: 'neutral',
     caveats: [
-      'One row per employee per day. A period spanning several days must be grouped by snapshot date; the raw row count over a month is roughly thirty times the headcount.',
+      'Counted on the last day in the period that has a snapshot, not averaged across it and not counted on the closing date of the period — the daily job captures yesterday, so the newest day is usually the day before today.',
+      'A period with no snapshot at all reports nothing rather than zero. Days before this tenant’s first snapshot were never recorded, so an empty result means unmeasured, not unstaffed.',
       'BACKFILLED rows place employees in their current department, so a breakdown across the backfilled range shows today’s structure applied to the past.',
     ],
   },

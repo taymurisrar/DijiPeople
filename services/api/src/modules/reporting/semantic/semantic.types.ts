@@ -291,6 +291,22 @@ export interface ReportMetricDefinition {
 
 export type ReportMetricCalculation =
   | { kind: 'count' }
+  /**
+   * A count on ONE date, not across a range — a stock, not a flow.
+   *
+   * `workforce_history` holds one row per employee per day, so a plain `count`
+   * over a period answers "how many employee-days" and labels it headcount: 323
+   * for a company of twelve across thirty days, and it grows with the length of
+   * the window. A true number and a wrong answer, on a headline tile, with a
+   * caveat underneath explaining that the reader should have counted a single
+   * snapshot date instead — the caveat telling the reader the tile was wrong
+   * rather than the tile being right. BUG-2685.
+   *
+   * This resolves the latest date present in the period and counts only that
+   * day. Trends are unaffected: a trend already groups by snapshot date, so
+   * every bucket was a single day and was always correct.
+   */
+  | { kind: 'point_in_time_count'; dateField: string }
   | { kind: 'count_distinct'; field: string }
   | { kind: 'sum'; field: string }
   | { kind: 'avg'; field: string }
