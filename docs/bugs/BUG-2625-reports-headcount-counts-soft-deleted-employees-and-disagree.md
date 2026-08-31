@@ -2,7 +2,7 @@
 ID: BUG-2625
 aliases: [BUG-2625]
 Title: Reports headcount counts soft-deleted employees and disagrees with the Employees screen
-Status: OPEN
+Status: VERIFIED
 Severity: MEDIUM
 Priority: P2
 Type: DATA_INTEGRITY
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-30
 DetectedInSha: 1965b5cc
 AffectedModules: [services/api/src/modules/reports/reports.service.ts]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
-QAReport: 
-RegressionId: 
+ArchitectDisposition: DONE
+QAReport: docs/qa/runs/2026-08-31-reports-analytics-platform-96ff155.md
+RegressionId: REG-382
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-30
-UpdatedAt: 2026-08-30
-ResolvedAt:
+UpdatedAt: 2026-08-31
+ResolvedAt: 2026-08-31
 ---
 
 # BUG-2625 — Reports headcount counts soft-deleted employees and disagrees with the Employees screen
@@ -110,7 +110,11 @@ Fixed by the workforce data source's `baseWhere` under TASK-0028.
 
 ## QA Retest
 
-Pending the QA run for TASK-0028.
+Retested 2026-08-31 in the QA run for TASK-0028.
+
+Headcount read through the engine on the seeded demo tenant returns 15 and its department breakdown sums to 15, matching the Employees screen. The exclusion now lives in the `workforce` data source’s `baseWhere` (`isDeleted: false, deletedAt: null`) rather than in each metric, so every metric, breakdown, standard report and export built on that source inherits it and opting out has to be deliberate.
+
+Regression: REG-382, which pins both the declaration and its survival into a composed `where` — a `baseWhere` the planner dropped would satisfy the declaration test alone.
 
 ## History
 
@@ -120,8 +124,6 @@ Pending the QA run for TASK-0028.
 
 ## Related
 
-- No related record, module or decision is declared in this record's
-  frontmatter. Declare one rather than adding a link here by hand — this
-  block is regenerated and a hand-written link inside it is lost.
+- Regression — REG-382 (see the regression register)
 
 <!-- GRAPH:END -->

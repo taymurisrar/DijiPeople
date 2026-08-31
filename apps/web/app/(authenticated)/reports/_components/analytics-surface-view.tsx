@@ -156,7 +156,7 @@ export function AnalyticsSurfaceView({
   const isEmpty = !hasBreakdown && !hasTrend && !hasMetric;
 
   return (
-    <div className="grid gap-5">
+    <div className="grid gap-5 [&>*]:min-w-0">
       <section className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div className="max-w-3xl">

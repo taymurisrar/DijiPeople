@@ -5,6 +5,10 @@ import {
 } from '../semantic/data-sources';
 import { isGroupable } from '../semantic/semantic.types';
 import type { ReportMetricDefinition } from '../semantic/semantic.types';
+import {
+  LEAVE_CONSUMPTION_PERIOD_CAVEAT,
+  LEAVE_REQUEST_PERIOD_CAVEAT,
+} from '../semantic/caveats';
 
 /**
  * Leave metrics.
@@ -55,10 +59,7 @@ const statusCount = (
   supportedDimensions: REQUEST_DIMENSIONS,
   comparable: true,
   direction,
-  caveats: [
-    'A period selects requests by their leave START date, not by when they were raised.',
-    ...extraCaveats,
-  ],
+  caveats: [LEAVE_REQUEST_PERIOD_CAVEAT, ...extraCaveats],
 });
 
 export const LEAVE_METRICS: ReportMetricDefinition[] = [
@@ -74,7 +75,7 @@ export const LEAVE_METRICS: ReportMetricDefinition[] = [
     comparable: true,
     direction: 'neutral',
     caveats: [
-      'A period selects requests by their leave START date. To count requests by when they were raised, filter on "Requested at" explicitly.',
+      LEAVE_REQUEST_PERIOD_CAVEAT,
       'Counts requests, not days and not people.',
     ],
   },
@@ -130,7 +131,7 @@ export const LEAVE_METRICS: ReportMetricDefinition[] = [
     comparable: true,
     direction: 'neutral',
     caveats: [
-      'A period selects consumption records by when they were WRITTEN, not by the leave dates. Filter on "Leave start date" to report by when leave was taken.',
+      LEAVE_CONSUMPTION_PERIOD_CAVEAT,
       'Only leave types that consume balance produce a record. Leave on a non-consuming type is genuinely absent here, by design.',
       'Half days count as fractions, so this is not a count of calendar days off.',
     ],

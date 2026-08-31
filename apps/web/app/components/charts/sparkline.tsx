@@ -10,6 +10,7 @@ import {
 import { formatChartValue } from "./chart-format";
 import { seriesColor } from "./chart-tokens";
 import { hasChartData, type ChartSeries, type ChartValueFormat } from "./chart-types";
+import type { ResolvedFormattingContext } from "@/lib/formatting-context";
 
 /*
  * A trend at the size of a word.
@@ -169,6 +170,7 @@ export function sparklineAriaLabel(
   series: ChartSeries,
   options: {
     valueFormat?: ChartValueFormat;
+    context?: ResolvedFormattingContext | null;
     currencyCode?: string | null;
     periodLabel?: string;
   } = {},
@@ -182,6 +184,7 @@ export function sparklineAriaLabel(
   const format = (value: number) =>
     formatChartValue(value, options.valueFormat ?? "number", {
       currencyCode: options.currencyCode,
+      context: options.context,
     });
 
   const first = Number(points[0].value);

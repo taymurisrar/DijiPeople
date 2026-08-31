@@ -12,6 +12,7 @@ import type {
   AnalyticsTrend,
 } from "../_lib/reporting-types";
 import { toChartValue, toChartValueFormat } from "../_lib/report-format";
+import { useFormattingContext } from "@/app/components/filters/use-formatting-context";
 
 /*
  * How the chosen metric moved *inside* the period.
@@ -47,6 +48,7 @@ export function AnalyticsTrendCard({
   currencyCode,
   emptyMessage,
 }: AnalyticsTrendCardProps) {
+  const formattingContext = useFormattingContext();
   const valueFormat = toChartValueFormat(metric?.format);
   const metricKey = metric?.key ?? trend?.metricKey ?? "";
   const label = metric?.label ?? "Trend";
@@ -79,9 +81,10 @@ export function AnalyticsTrendCard({
       : `${label} by ${granularityWord} over ${periodLabel}: ${measured.length} points, from ${formatChartValue(
           first.value,
           valueFormat,
-          { currencyCode },
+          { currencyCode, context: formattingContext },
         )} on ${first.label} to ${formatChartValue(last.value, valueFormat, {
           currencyCode,
+          context: formattingContext,
         })} on ${last.label}.`;
 
   const droppedBuckets = (trend?.points.length ?? 0) - measured.length;

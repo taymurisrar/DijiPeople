@@ -8,6 +8,7 @@ import { PERMISSION_KEYS } from '../../../../common/constants/permissions';
 import { ENTITY_KEYS } from '../../../../common/constants/rbac-matrix';
 import { TENANT_FEATURE_KEYS } from '../../../../common/constants/tenant-features';
 import type { ReportDataSource } from '../semantic.types';
+import { REQUISITION_COUNT_CAVEAT } from '../caveats';
 
 /**
  * Recruitment, in four sources.
@@ -56,7 +57,7 @@ export const RECRUITMENT_OPENINGS_SOURCE: ReportDataSource = {
   requiredFeatureKey: TENANT_FEATURE_KEYS.RECRUITMENT,
   caveats: [
     'JobOpening has no opened-at or closed-at column. A period narrows this source on when the opening record was created, so "openings created this quarter" is answerable and "openings closed this quarter" is not.',
-    'There is no headcount or vacancy-count column on an opening, so one opening is one requisition regardless of how many people it is meant to hire.',
+    REQUISITION_COUNT_CAVEAT,
   ],
   fields: [
     {

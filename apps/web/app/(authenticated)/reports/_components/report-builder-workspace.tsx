@@ -246,7 +246,7 @@ export function ReportBuilderWorkspace({
   }
 
   return (
-    <div className="grid gap-5">
+    <div className="grid gap-5 [&>*]:min-w-0">
       <SectionCard
         description="A report is a data source, a set of columns, and the filters that narrow them. It runs against each reader's own access, so sharing a report is not sharing its rows."
         title="What this report reads"

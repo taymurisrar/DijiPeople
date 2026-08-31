@@ -10,6 +10,7 @@ import type {
   ReportDataSource,
   ReportMetricDefinition,
 } from '../semantic/semantic.types';
+import { REQUISITION_COUNT_CAVEAT } from '../semantic/caveats';
 
 /**
  * Recruitment metrics.
@@ -58,7 +59,7 @@ export const RECRUITMENT_METRICS: ReportMetricDefinition[] = [
     direction: 'neutral',
     caveats: [
       'Current status. JobOpening has no opened-at or closed-at column, so how long a requisition has been open is not computable and neither is a count of openings closed in a period.',
-      'One opening is one requisition however many people it is meant to hire — there is no headcount column on an opening.',
+      REQUISITION_COUNT_CAVEAT,
       'ON_HOLD openings are excluded; they are neither open nor closed.',
     ],
   },

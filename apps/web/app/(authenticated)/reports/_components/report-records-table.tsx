@@ -13,6 +13,7 @@ import type {
   ReportResultRow,
 } from "../_lib/reporting-types";
 import { formatRecordCell, MISSING_VALUE_TEXT } from "../_lib/report-format";
+import { useFormattingContext } from "@/app/components/filters/use-formatting-context";
 
 /*
  * The rows behind the numbers.
@@ -73,6 +74,15 @@ export function ReportRecordsTable({
 }: ReportRecordsTableProps) {
   const pathname = usePathname() ?? "";
   const searchParams = useSearchParams();
+  /*
+   * Formatting has to be read from the provider, not left to the module-level
+   * default. That default is installed by an effect, and effects do not run
+   * during server rendering: the server produced "Mar 10, 2025" while the
+   * client produced the tenant's "03/10/2025", React reported a hydration
+   * mismatch (#418) and threw the whole table away to re-render it. Found on
+   * production after deploy, not by the local suite — see BUG-2647.
+   */
+  const formattingContext = useFormattingContext();
 
   const paginationParams = React.useMemo(() => {
     const entries: Record<string, string | undefined> = {};
@@ -98,6 +108,7 @@ export function ReportRecordsTable({
         render: (row) => {
           const text = formatRecordCell(row.values[column.key], column, {
             currencyCode,
+            context: formattingContext,
           });
 
           if (index !== 0 || !row.href) {
@@ -120,7 +131,7 @@ export function ReportRecordsTable({
           );
         },
       })),
-    [columns, currencyCode, recordNoun, sortable],
+    [columns, currencyCode, formattingContext, recordNoun, sortable],
   );
 
   if (rows.length === 0) {

@@ -4206,3 +4206,89 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The instructive part is that this was **tested and green while completely broken**. The test asked whether the form behaved as its author intended, never whether the request the form produces is one the server accepts. A form's field map and its endpoint's validation are two statements of one contract; when only one side is asserted, the assertion is worth nothing. The loop over every type is what makes a ninth type unable to reintroduce this. |
 | **Fixed** | 2026-08-30 |
 | **Active** | yes |
+### REG-380 — Reporting endpoints returned tenant-wide aggregates to a scoped reader
+
+| | |
+|---|---|
+| **Bug class** | `authorization-missing` |
+| **Module** | `services/api/src/modules/reporting`, `services/api/src/modules/reports` |
+| **Bug record** | BUG-2624 |
+| **Root cause** | Every query in the old `ReportsService` filtered on `tenantId` alone and never called `buildScopedAccessWhere`. A manager whose `employees` privilege was `BUSINESS_UNIT` — or even `SELF` — received the whole tenant's headcount, attendance and leave aggregates, because row scope was simply never consulted on this surface. The permission check passed (they legitimately hold `reports.read`), so nothing looked wrong: holding a permission was treated as holding it over every row. The replacement resolves scope through each data source's own `rbacEntityKey`, so the data's owning entity decides the rows and `reports.read` only opens the workspace. |
+| **Regression test** | `services/api/src/modules/reporting/engine/scope.resolver.spec.ts`, `services/api/test/reporting-tenant-isolation.e2e-spec.ts` |
+| **Scenario** | Resolve a scope for each `SecurityAccessLevel` against a reporting data source: `BUSINESS_UNIT`, `ORGANIZATION`, `PARENT_CHILD_BUSINESS_UNIT(S)` and `SELF` each narrow the `where`; `NONE` yields the poison-pill id and a count of 0. Assert no level ever produces `{}`. Against a real database, tenant A's engine query counts only tenant A's employees and every returned row carries A's `tenantId`. |
+| **Proven to fail without the fix** | With the sanitiser reverted, the business-unit case returns a `where` carrying no business-unit term and the count matches the tenant-wide total. |
+| **Note** | The instructive half is the *second* defect found in the fix itself: the sanitiser originally **dropped** a predicate it could not verify. Dropping a term from an `AND` does not fail closed — it widens, leaving the tenant-wide remainder. Unknown predicates are now **replaced** with the poison pill, which narrows inside an `OR` and fails closed inside an `AND`. A sanitiser that removes rather than replaces is the general shape to watch for. |
+| **Fixed** | 2026-08-31, branch `agent/reports-analytics-platform` |
+| **Active** | yes |
+
+### REG-381 — Scope sanitiser poisoned every source that relied on a column default
+
+| | |
+|---|---|
+| **Bug class** | `authorization-missing` |
+| **Module** | `services/api/src/modules/reporting/engine` |
+| **Bug record** | BUG-2624 |
+| **Root cause** | The sanitiser built its `knownColumns` set from the raw scope options a data source declared, while `buildScopedAccessWhere` applies **defaults** for any field a source leaves unnamed (`tenantId`, `businessUnitId`, `organizationId`, `ownerUserId`, `userId`, `createdById`). A source that never mentioned `businessUnitIdField` therefore emitted a `businessUnitId` predicate the sanitiser did not recognise, replaced with the poison pill — so every business-unit, organization and team-scoped reader saw **zero rows** on every surface. Only tenant-level readers worked, which is exactly who the first e2e tests used. `knownColumns` now mirrors the same defaults, and `ownerTeamId` deliberately keeps **no** default because `Employee` has no such column (BUG-2623). |
+| **Regression test** | `services/api/src/modules/reporting/engine/scope.resolver.spec.ts` |
+| **Scenario** | Resolve a business-unit-scoped user against a data source that declares no `businessUnitIdField`; the business-unit term must survive into the `where` rather than being replaced by the poison pill. Separately, the `ownerTeamId` term `Employee` has no column for is dropped inside its `OR` while the three real ownership terms survive. |
+| **Proven to fail without the fix** | The "keeps the business-unit term for a source that does not name the column" case returns the poison pill and a count of 0. |
+| **Note** | This was found from a live API returning headcount `0`, not from a test — the DB-backed isolation suite missed it entirely because every fixture user was tenant-level, the one scope where the bug is invisible. A security test that only exercises the widest role proves the least. It is also a fail-closed bug that a fail-closed design produced: erring shut is right, but a sanitiser whose vocabulary disagrees with the generator's defaults turns "deny what I cannot verify" into "deny everything", and silently. |
+| **Fixed** | 2026-08-31, branch `agent/reports-analytics-platform` |
+| **Active** | yes |
+### REG-382 — Reports headcount counted soft-deleted employees
+
+| | |
+|---|---|
+| **Bug class** | `doc-code-drift` |
+| **Module** | `services/api/src/modules/reporting/semantic`, `services/api/src/modules/reports` |
+| **Bug record** | BUG-2625 |
+| **Root cause** | `Employee` is one of the few models in this schema carrying `isDeleted`, and the legacy reports aggregates omitted it from their `where`. The Employees screen filters it; the reports surface did not. The two therefore disagreed by exactly the number of employees the tenant had ever soft-deleted, and the gap grew silently over time — the reports number was always the larger, always plausible, and never right. The reporting semantic layer now pins `isDeleted: false, deletedAt: null` in the `workforce` data source's `baseWhere`, so every metric, breakdown, standard report and export built on that source inherits the exclusion rather than each restating it. |
+| **Regression test** | `services/api/src/modules/reporting/semantic/workforce-soft-delete.spec.ts`, `services/api/test/reporting-tenant-isolation.e2e-spec.ts` |
+| **Scenario** | Soft-delete an employee, then read headcount through the engine: the count drops by one and matches `GET /employees`. Assert the `workforce` source's `baseWhere` carries both `isDeleted: false` and `deletedAt: null` so a newly added metric cannot opt out by omission. |
+| **Proven to fail without the fix** | With `baseWhere` emptied, headcount returns the soft-deleted employee and disagrees with the Employees list by one. |
+| **Note** | Soft delete is **not universal in this schema** — only a handful of models carry `isDeleted` — which is precisely why it gets forgotten. The durable fix is placing the predicate in the shared data source rather than in each metric, so the default is correct and opting out has to be deliberate and visible. |
+| **Fixed** | 2026-08-31, branch `agent/reports-analytics-platform` |
+| **Active** | yes |
+### REG-383 — Reporting pages scrolled the whole document sideways
+
+| | |
+|---|---|
+| **Bug class** | `responsive-overflow` |
+| **Module** | `apps/web/app/(authenticated)/reports` |
+| **Bug record** | BUG-2648 |
+| **Root cause** | A grid item's `min-width` defaults to `auto`, which refuses to shrink it below its content's min-content width. At the `xl` breakpoint the workspace header becomes a row, placing a `max-w-3xl` paragraph beside a five-link navigation; their combined min-content width exceeds the available track, so the section grew to 1326px inside a 1104px parent and pushed the document 206px past a 1440px viewport. Invisible at 1920 because there is room, and absent below `xl` because the header stacks. |
+| **Regression test** | `apps/web/app/(authenticated)/reports/_lib/formatting-and-layout-invariants.spec.ts` |
+| **Scenario** | For each of the eight reporting page wrappers, the page-level `grid gap-*` container carries `[&>*]:min-w-0`. |
+| **Proven to fail without the fix** | Removing `[&>*]:min-w-0` from `reports-layout-shell.tsx` fails the wrapper case for that file. |
+| **Note** | Two things are worth carrying forward. First, the fix was verified **before** shipping by applying the same constraint to the live production DOM and re-measuring — `scrollWidth` 1646 to 1440 — which is cheaper and more conclusive than deploying and looking. That measurement also disproved a first, wrong diagnosis: constraining only the header left `scrollWidth` unchanged, because a second page-level wrapper had the same defect. Second, Tailwind v4 emits `min-width:calc(var(--spacing) * 0)`, not `min-width:0`; grepping built CSS for the literal suggests the utility was never generated when it was. |
+| **Fixed** | 2026-08-31, branch `agent/reports-analytics-platform-fixes` |
+| **Active** | yes |
+
+### REG-384 — Reporting formatters fell back to a server-unsafe module default
+
+| | |
+|---|---|
+| **Bug class** | `ssr-hydration-mismatch` |
+| **Module** | `apps/web/app/(authenticated)/reports`, `apps/web/app/components/charts` |
+| **Bug record** | BUG-2647 |
+| **Root cause** | `formatRecordCell`, `formatReportValue`, `formatChartValue` and `describeDelta` all accept an optional formatting `context`, and the record table, the metric tile and all seven chart components called them without one. With no context they fall back to a module-level default that is installed by an effect in `SystemPreferencesProvider` — and effects do not run during server rendering. The server therefore formatted with the built-in fallback (`Mar 10, 2025`) while the client formatted with the tenant's settings (`03/10/2025`), and React discarded the server-rendered tree with error #418. |
+| **Regression test** | `apps/web/app/(authenticated)/reports/_lib/formatting-and-layout-invariants.spec.ts` |
+| **Scenario** | Scan every reporting component and chart component; every call to a context-taking formatter that passes an options object must include a `context` key. A guard case asserts the scan finds more than ten call sites, so a scan that matches nothing cannot pass for the wrong reason. |
+| **Proven to fail without the fix** | Removing `context: formattingContext` from `report-records-table.tsx` fails the `formatRecordCell` case. |
+| **Note** | The tempting fix is to make the module default available on the server. **Do not.** A module-level mutable default is shared between concurrent requests in one Node process, so on a multi-tenant server it can render one tenant's response with another tenant's formatting. Explicit threading is the architecture; the module default is a client-only convenience. Also instructive: this is the same defect class already fixed for eight components earlier in the same task, and it survived because that sweep fixed the components that formatted a date *directly* and never followed the value into the shared cell and chart formatters. Writing the test is what found the remaining five call sites — it failed on first run and named every one. |
+| **Fixed** | 2026-08-31, branch `agent/reports-analytics-platform-fixes` |
+| **Active** | yes |
+### REG-385 — The caveat panel listed the same note twice in two wordings
+
+| | |
+|---|---|
+| **Bug class** | `duplicate-source-of-truth` |
+| **Module** | `services/api/src/modules/reporting` |
+| **Bug record** | BUG-2657 |
+| **Root cause** | `AnalyticsService.collectCaveats` unions a source's caveats with those of every metric on the surface and deduplicates with a `Set`, which deduplicates by exact string. Both placements are deliberate — the metric's copy puts the note beside the tile, the source's copy puts it in the page panel — but each was written by hand in its own file and the two drifted into near-synonyms: "not measured" against "rather than measured", "are the ones whose" against "are those whose". Two correct sentences are not one string, so both survived the fold and the reader saw the note twice. Fourteen colliding pairs across attendance, leave, recruitment and desktop; Desktop Activity showed five notes doubled. The deduplication was never broken — the inputs were. |
+| **Regression test** | `services/api/src/modules/reporting/semantic/caveat-uniqueness.spec.ts` |
+| **Scenario** | Collect every caveat on every data source and every metric. No two that differ as strings may share 60% or more of their vocabulary. Identical strings are skipped, because a source and its metric carrying the same string is the intended arrangement and the `Set` folds those into one. |
+| **Proven to fail without the fix** | On the tree as deployed, the test reports fourteen colliding pairs and names both sides of each. |
+| **Note** | The first version of this test compared a normalised 60-character prefix and **passed on the broken tree** — the pair that shipped diverges at the fourth word, so any prefix long enough to avoid false positives is already past the divergence. It was only caught because the fix was deliberately reverted to check the test failed, which it did not. Word-set overlap is what matches the real shape: one sentence said twice with small edits. A near-duplicate test that compares prefixes is worth nothing; measure the whole string. |
+| **Fixed** | 2026-08-31, branch `agent/reports-analytics-platform-fixes` |
+| **Active** | yes |

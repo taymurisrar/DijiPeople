@@ -29,6 +29,7 @@ import {
   type ChartMargins,
 } from "./chart-geometry";
 import { hasChartData, type BaseChartProps, type ChartSeries } from "./chart-types";
+import { useFormattingContext } from "@/app/components/filters/use-formatting-context";
 
 /*
  * Vertical bars, grouped or stacked.
@@ -65,6 +66,7 @@ export function BarChart({
   series,
   valueFormat = "number",
 }: BarChartProps) {
+  const formattingContext = useFormattingContext();
   const idPrefix = useChartIdPrefix();
 
   if (!hasChartData(series)) {
@@ -97,7 +99,7 @@ export function BarChart({
       : bandWidth / Math.max(1, series.length);
 
   const formatValue = (value: number) =>
-    formatChartValue(value, valueFormat, { currencyCode });
+    formatChartValue(value, valueFormat, { currencyCode, context: formattingContext });
 
   const zeroY = yScale(0);
 
@@ -110,7 +112,7 @@ export function BarChart({
       <ChartPatternDefs count={series.length} prefix={idPrefix} />
 
       <ChartValueGrid
-        formatTick={(tick) => formatChartValue(tick, valueFormat, { currencyCode })}
+        formatTick={(tick) => formatChartValue(tick, valueFormat, { currencyCode, context: formattingContext })}
         plot={plot}
         ticks={ticks}
         yScale={yScale}

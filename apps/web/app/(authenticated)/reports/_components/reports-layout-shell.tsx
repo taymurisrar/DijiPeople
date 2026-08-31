@@ -23,11 +23,19 @@ export function ReportsLayoutShell({
 }) {
   const pathname = usePathname();
 
+  /*
+   * `[&>*]:min-w-0` is load-bearing, not decoration. A grid item defaults to
+   * `min-width: auto`, which refuses to shrink below its content's min-content
+   * width; the header below then pushed the whole page 206px wider than the
+   * viewport at 1440, and the browser scrolled sideways. It is applied to every
+   * direct child rather than to this one section so that a page dropped into
+   * `children` cannot reintroduce it. See BUG-2648.
+   */
   return (
-    <div className="dp-theme-scope grid gap-4">
-      <section className="rounded-[22px] border border-border bg-surface px-5 py-4 shadow-sm">
+    <div className="dp-theme-scope grid gap-4 [&>*]:min-w-0">
+      <section className="min-w-0 rounded-[22px] border border-border bg-surface px-5 py-4 shadow-sm">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
-          <div>
+          <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent">
               Reports &amp; Analytics
             </p>

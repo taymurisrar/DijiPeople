@@ -76,6 +76,25 @@ const secondsField = (args: {
   sensitivity: 'INTERNAL',
 });
 
+/**
+ * The five caveats that qualify every telemetry number.
+ *
+ * Exported, and imported by `desktop.metrics.ts` rather than restated there.
+ * Both are needed: a metric carries its own copy so the note appears beside the
+ * tile, and the source carries them so they appear in the page panel. When the
+ * two were worded separately the panel showed each one twice — the union is
+ * deduplicated by exact string, and "are the ones whose" and "are those whose"
+ * are not the same string. One authoritative wording is what makes the
+ * deduplication work.
+ */
+export const TELEMETRY_CAVEATS = [
+  'Rows written before the BUG-0036 deduplication fix are inflated: a re-sent heartbeat batch permanently added time that was never worked, and those totals were never corrected. The contaminated rows are the ones whose underlying ActivityEvent rows have a null dedupeKey.',
+  'The day boundary is UTC, not the tenant timezone. For a tenant several hours from UTC, part of each evening or early morning lands on the neighbouring day.',
+  'Seconds are nominal, not measured: each heartbeat credits a whole heartbeat interval to the state it reported. A missed heartbeat is absent rather than counted as away, so uptime understates rather than overstates gaps.',
+  'History is bounded by the tenant AgentTrackingSettings retention window, 90 days by default. Beyond it the rows are deleted, and an empty period means swept data rather than an inactive workforce.',
+  'Telemetry exists only for employees who have the desktop agent installed and signed in. An employee with no rows is not an employee who did nothing.',
+];
+
 export const DESKTOP_ACTIVITY_SOURCE: ReportDataSource = {
   key: 'desktop_activity',
   label: 'Desktop activity',
@@ -102,11 +121,7 @@ export const DESKTOP_ACTIVITY_SOURCE: ReportDataSource = {
   defaultDateField: 'date',
   recordIdField: 'id',
   caveats: [
-    'Rows written before the BUG-0036 deduplication fix are inflated: a re-sent heartbeat batch permanently added time that was never worked, and those totals were never corrected. The contaminated rows are the ones whose underlying ActivityEvent rows have a null dedupeKey.',
-    'The day boundary is UTC, not the tenant timezone. For a tenant several hours from UTC, part of each evening or early morning lands on the neighbouring day.',
-    'Seconds are nominal, not measured: each heartbeat credits a whole heartbeat interval to the state it reported. A missed heartbeat is absent rather than counted as away, so uptime understates rather than overstates gaps.',
-    'History is bounded by the tenant AgentTrackingSettings retention window, 90 days by default. Beyond it the rows are deleted, and an empty period means swept data rather than an inactive workforce.',
-    'Telemetry exists only for employees who have the desktop agent installed and signed in. An employee with no rows is not an employee who did nothing.',
+    ...TELEMETRY_CAVEATS,
     'Active share is a share of the time the agent was running, not of scheduled hours. It is not comparable to an attendance rate and must never be presented beside one as though it were.',
     'Application names, window titles and browser tabs are not reported on. No aggregate over them exists in this system.',
   ],

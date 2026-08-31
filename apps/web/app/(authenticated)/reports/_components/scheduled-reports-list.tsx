@@ -139,7 +139,7 @@ export function ScheduledReportsList({
   }
 
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-4 [&>*]:min-w-0">
       {error ? (
         <p
           className="rounded-xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger"

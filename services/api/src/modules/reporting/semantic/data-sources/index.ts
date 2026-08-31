@@ -5,6 +5,7 @@ import type {
 } from '../semantic.types';
 import { ATTENDANCE_SOURCE } from './attendance.source';
 import { DESKTOP_ACTIVITY_SOURCE } from './desktop-activity.source';
+export { TELEMETRY_CAVEATS } from './desktop-activity.source';
 import { DESKTOP_DEVICES_SOURCE } from './desktop-device.source';
 import {
   LEAVE_BALANCES_SOURCE,

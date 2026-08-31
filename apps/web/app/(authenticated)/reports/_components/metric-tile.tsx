@@ -8,6 +8,7 @@ import {
   formatReportValue,
   metricTileAccessibleLabel,
 } from "../_lib/report-format";
+import { useFormattingContext } from "@/app/components/filters/use-formatting-context";
 
 /*
  * A KPI tile: a number, how it moved, and why it might not mean what it looks
@@ -48,13 +49,24 @@ export function MetricTile({
   comparisonLabel,
   currencyCode,
 }: MetricTileProps) {
+  /* Read from the provider, not the effect-installed module default — see the
+   * comment in report-records-table.tsx and BUG-2647. A plain integer formats
+   * the same either way, which is what kept this latent; a currency, a percent
+   * or a decimal does not. */
+  const formattingContext = useFormattingContext();
+
   const valueText = metric.suppressed
     ? "Withheld"
     : formatReportValue(metric.value, metric.format, metric.key, {
         currencyCode,
+        context: formattingContext,
       });
 
-  const delta = describeDelta(metric, { currencyCode, comparisonLabel });
+  const delta = describeDelta(metric, {
+    currencyCode,
+    comparisonLabel,
+    context: formattingContext,
+  });
   const accessibleLabel = metricTileAccessibleLabel(metric, valueText, delta);
 
   return (

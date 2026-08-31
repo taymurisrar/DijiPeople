@@ -6,6 +6,7 @@ import { formatChartValue, formatShare, pointAccessibleLabel } from "./chart-for
 import { collapseToTopN, computeShares } from "./chart-geometry";
 import { MAX_CHART_SLICES, seriesColor } from "./chart-tokens";
 import { hasChartData, type BaseChartProps } from "./chart-types";
+import { useFormattingContext } from "@/app/components/filters/use-formatting-context";
 
 /*
  * Ranked proportions: "how is this split up, and what is at the top".
@@ -59,6 +60,7 @@ export function HorizontalBarList({
   totalNoun,
   valueFormat = "number",
 }: HorizontalBarListProps) {
+  const formattingContext = useFormattingContext();
   if (!hasChartData(series)) {
     return <ChartEmpty message={emptyMessage} />;
   }
@@ -79,7 +81,7 @@ export function HorizontalBarList({
   );
 
   const formatValue = (value: number) =>
-    formatChartValue(value, valueFormat, { currencyCode });
+    formatChartValue(value, valueFormat, { currencyCode, context: formattingContext });
 
   return (
     <div>

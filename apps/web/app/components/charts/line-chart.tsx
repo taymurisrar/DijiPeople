@@ -22,6 +22,7 @@ import {
 } from "./chart-geometry";
 import { seriesColor, seriesDashArray } from "./chart-tokens";
 import { hasChartData, type BaseChartProps, type ChartPoint } from "./chart-types";
+import { useFormattingContext } from "@/app/components/filters/use-formatting-context";
 
 /*
  * A trend over time.
@@ -49,6 +50,7 @@ export function LineChart({
   series,
   valueFormat = "number",
 }: BaseChartProps) {
+  const formattingContext = useFormattingContext();
   if (!hasChartData(series)) {
     return <ChartEmpty message={emptyMessage} />;
   }
@@ -85,7 +87,7 @@ export function LineChart({
       : plot.x + plot.width / 2;
 
   const formatValue = (value: number) =>
-    formatChartValue(value, valueFormat, { currencyCode });
+    formatChartValue(value, valueFormat, { currencyCode, context: formattingContext });
 
   return (
     <ChartSurface
@@ -94,7 +96,7 @@ export function LineChart({
       interactive={Boolean(onPointSelect)}
     >
       <ChartValueGrid
-        formatTick={(tick) => formatChartValue(tick, valueFormat, { currencyCode })}
+        formatTick={(tick) => formatChartValue(tick, valueFormat, { currencyCode, context: formattingContext })}
         plot={plot}
         ticks={ticks}
         yScale={yScale}

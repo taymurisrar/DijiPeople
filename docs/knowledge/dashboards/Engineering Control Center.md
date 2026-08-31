@@ -15,7 +15,7 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
-| Open HIGH | 27 |
+| Open HIGH | 26 |
 | Awaiting Architect triage | 2 |
 | Owner decisions pending | 6 |
 | QA coverage gaps | 142 |
@@ -30,12 +30,12 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 102 |
-| No next action | 102 |
+| No acceptance criteria | 103 |
+| No next action | 103 |
 | Aging — 7d / 30d / 90d | 19 / 0 / 0 |
 | Architecture and technical debt | 8 |
-| Security gaps | 8 |
-| Database gaps | 9 |
+| Security gaps | 7 |
+| Database gaps | 8 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -269,7 +269,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 103 |
+| Open total | 104 |
 | Blocked | 2 |
 | Deferred | 25 |
 | Awaiting a product decision | 6 |
@@ -283,6 +283,7 @@ Deployment state is **not** derivable from Git. A merge is Git state; what is
 running is a separate fact with separate evidence, recorded per release under
 `docs/deployment/release-history/`.
 
+- [[2026-08-31-production-cace6cd|Deployment Report — PRODUCTION — cace6cd]]
 - [[2026-08-30-production-6ffed9f|Release — production — `6ffed9f`]]
 - [[2026-08-25-production-08d7901|Release — production — `08d7901`]]
 - [[2026-08-24-production-6ed7a44|Release — production — `6ed7a44`]]
