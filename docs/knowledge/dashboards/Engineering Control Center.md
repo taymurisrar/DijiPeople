@@ -32,7 +32,7 @@ survives every review by being unfalsifiable.
 | Ownerless actionable records | 0 |
 | No acceptance criteria | 109 |
 | No next action | 109 |
-| Aging — 7d / 30d / 90d | 19 / 0 / 0 |
+| Aging — 7d / 30d / 90d | 110 / 0 / 0 |
 | Architecture and technical debt | 8 |
 | Security gaps | 7 |
 | Database gaps | 9 |
@@ -270,7 +270,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 |---|---|
 | Open total | 110 |
 | Blocked | 2 |
-| Deferred | 26 |
+| Deferred | 27 |
 | Awaiting a product decision | 6 |
 | Awaiting Architect triage | 3 |
 
@@ -282,11 +282,11 @@ Deployment state is **not** derivable from Git. A merge is Git state; what is
 running is a separate fact with separate evidence, recorded per release under
 `docs/deployment/release-history/`.
 
+- [[2026-09-08-production-fe1cd3d|Deployment Report — PRODUCTION — fe1cd3d]]
 - [[2026-08-31-production-dae0e37|Deployment Report — PRODUCTION — dae0e37]]
 - [[2026-08-31-production-cace6cd|Deployment Report — PRODUCTION — cace6cd]]
 - [[2026-08-31-production-6d17e93|Deployment Report — PRODUCTION — 6d17e93]]
 - [[2026-08-30-production-6ffed9f|Release — production — `6ffed9f`]]
-- [[2026-08-25-production-08d7901|Release — production — `08d7901`]]
 
 ## How this is maintained
 

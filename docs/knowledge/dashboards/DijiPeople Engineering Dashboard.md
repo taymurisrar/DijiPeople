@@ -12,7 +12,7 @@
 | Open total | 110 |
 | Blocked | 2 |
 | Awaiting a product decision | 6 |
-| Deferred | 26 |
+| Deferred | 27 |
 | Completed | 290 |
 | Awaiting Architect triage | 3 |
 
@@ -425,11 +425,11 @@ _None. Nothing open at CRITICAL._
 
 ## Recent Releases
 
+- [[2026-09-08-production-fe1cd3d|Deployment Report — PRODUCTION — fe1cd3d]]
 - [[2026-08-31-production-dae0e37|Deployment Report — PRODUCTION — dae0e37]]
 - [[2026-08-31-production-cace6cd|Deployment Report — PRODUCTION — cace6cd]]
 - [[2026-08-31-production-6d17e93|Deployment Report — PRODUCTION — 6d17e93]]
 - [[2026-08-30-production-6ffed9f|Release — production — `6ffed9f`]]
-- [[2026-08-25-production-08d7901|Release — production — `08d7901`]]
 
 ## Active / Recent Backlog
 
@@ -531,11 +531,11 @@ _None. Nothing open at CRITICAL._
 | Knowledge | Count |
 |---|---|
 | Bug records | 314 |
-| Backlog items | 120 |
+| Backlog items | 121 |
 | Known bug patterns | 32 |
 | QA runs | 32 |
 | Engineering history records | 73 |
-| Release records | 7 |
+| Release records | 8 |
 | Module notes | 30 |
 | Architecture notes | 22 |
 | Decision notes (ADR + generated) | 8 |

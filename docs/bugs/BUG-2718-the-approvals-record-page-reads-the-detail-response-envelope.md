@@ -214,6 +214,7 @@ delegate class; the registry exists for exactly that.
 
 ## Related
 
+- Referenced by — [[ITEM-0121]]
 - Modules — [[approvals]], [[attendance]]
 - Regression — REG-390 (see the regression register)
 
