@@ -3,13 +3,13 @@ ID: ITEM-0122
 aliases: [ITEM-0122]
 Title: Fifteen production advisories have no disposition, so the CI advisory gate fails on every branch including main
 Type: SECURITY
-Status: PRODUCT_DECISION
+Status: DONE
 Priority: P1
 Severity: HIGH
 AffectedModules: [ci, dependencies]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: PRODUCT_DECISION
+ArchitectDisposition: DONE
 CreatedAt: 2026-09-08
 UpdatedAt: 2026-09-08
 RelatedBug: 
@@ -136,3 +136,71 @@ Blocks [[BUG-2822]], which is unrelated to it and cannot merge past the gate.
 - Modules — [[ci-architecture]]
 
 <!-- GRAPH:END -->
+
+## Outcome — resolved 2026-09-09
+
+**The premise this record was opened on was wrong, and the correction is the
+useful part.**
+
+It stated that 20 packages needed a major bump, including a prisma downgrade.
+That was npm's *package-level* count, inflated by `apps/admin` pinning fifteen
+tiptap packages at an exact `3.29.2` with no caret: npm reports any move off an
+exact pin as out-of-range, and `isSemVerMajor` was `false` for every one of them.
+The real fix was **3.29.2 → 3.31.3, a minor bump inside 3.x**, and it cleared 34
+of the 40 undocumented advisories on its own.
+
+At the advisory level the shape was: **everything in-range except `mysql2`.**
+
+### What was done
+
+| | |
+|---|---|
+| `npm audit fix --omit=dev` | in-range upgrades — `@xmldom/xmldom` 0.8.13→0.8.15, `sanitize-html` 2.17.6→2.17.7, `qs`, `fast-uri`, `baseline-browser-mapping`, `brace-expansion`, `js-yaml`, `nodemailer` |
+| tiptap pins | fifteen manifests entries, `3.29.2` → `3.31.3` |
+| `mysql2` | dispositioned in `scripts/check-production-advisories.mjs` |
+
+Nothing was force-fixed. `npm audit fix --force` was never run.
+
+### The mysql2 disposition, and why it is not an inspection claim
+
+The script's header is explicit that two earlier dispositions failed because they
+rested on reachability asserted by reading. This one names checkable facts:
+
+- the chain is `@prisma/client@7.8.0 → prisma → mysql2`, i.e. the CLI package,
+  which the existing `prisma` / `@prisma/config` / `deepmerge-ts` entries already
+  disposition on the same grounds;
+- `schema.prisma` declares `provider = "postgresql"`;
+- the runtime adapter is `PrismaPg` from `@prisma/adapter-pg`
+  (`common/prisma/prisma.service.ts:29`);
+- the only occurrence of the string `mysql` in application source is a CV skill
+  keyword in `recruitment/document-parsing.service.ts:1376`.
+
+Both advisories require *connecting to a MySQL server* — an auth-plugin
+downgrade that leaks the password to a malicious server, and unbounded zlib
+inflate in the compressed protocol. Neither is reachable without a connection
+this product cannot make. npm's only offered fix remains `prisma@6.19.3`, which
+cannot run the driver-adapter data layer.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| `check:production-advisories` | 0 critical, 7 dispositioned, **exit 0** |
+| `npm ci` from the committed lockfile | clean |
+| lockfile regenerates from manifests alone (BUG-0163's job) | clean |
+| api / web / admin / landing suites | 304 / 70 / 44 / 14 suites, all passing |
+| typecheck, all three apps | pass |
+| `npm run build` | 6 of 6 tasks |
+
+The build matters most here: tiptap is the admin contract document editor
+(`apps/admin/app/_components/documents/contract-document-editor.tsx`), the only
+consumer of any of those fifteen packages, and it compiles on 3.31.3.
+
+### What this does not do
+
+It does not remove `xlsx`, which still has **no fix available** and remains
+dispositioned as unreachable via [[ITEM-0070]]. It does not change the exact-pin
+policy on tiptap, which is what disguised a minor bump as a major one — worth
+revisiting, but it is also what made this upgrade a deliberate act rather than a
+silent drift.
+

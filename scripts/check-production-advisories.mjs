@@ -57,6 +57,10 @@ const DISPOSITIONED = new Map([
     'Transitive through the prisma CLI. Same disposition as `prisma`. BUG-0052.',
   ],
   [
+    'mysql2',
+    "Transitive through the prisma CLI (@prisma/client -> prisma -> mysql2), which bundles a driver per supported database. This product never opens a MySQL connection: the datasource provider is `postgresql` (schema.prisma), the runtime adapter is `PrismaPg` from @prisma/adapter-pg (common/prisma/prisma.service.ts), and the only occurrence of the string 'mysql' in application source is a CV skill keyword in recruitment/document-parsing.service.ts. Both advisories require connecting to a MySQL server — an auth-plugin downgrade that leaks the password to a malicious server, and unbounded zlib inflate in the compressed protocol — so neither is reachable without a connection this product cannot make. npm's only fix is a downgrade to prisma@6.19.3, which cannot run the driver-adapter data layer, exactly as for `prisma` above. ITEM-0122.",
+  ],
+  [
     'xlsx',
     'Present but unreachable: every XLSX.read call site moved to ExcelJS in TASK-0010, and no read call remains anywhere in the repository. Only the write path still uses SheetJS, and it consumes data this application produced. Removing the dependency means moving the writer too, which changes the bytes of payroll workbooks that go to banks — deferred as ITEM-0070, not forgotten. BUG-0052.',
   ],

@@ -20247,8 +20247,8 @@
       "title": "Fifteen production advisories have no disposition, so the CI advisory gate fails on every branch including main",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "PRODUCT_DECISION",
-      "architect_disposition": "PRODUCT_DECISION",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0122-fifteen-production-advisories-have-no-disposition-so-the-ci-.md",
         "provenance": "ARCHITECT",

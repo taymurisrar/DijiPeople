@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **1** |
+| Active sessions | **2** |
 | Active parent tasks | 4 |
 | Active work packages | 4 |
 | Blocked work packages | 0 |
@@ -17,7 +17,7 @@
 | Open CRITICAL | **0** |
 | Open HIGH | 31 |
 | Awaiting Architect triage | 3 |
-| Owner decisions pending | 7 |
+| Owner decisions pending | 6 |
 | QA coverage gaps | 142 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -49,6 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
+| [[SESSION-0091-production-advisories-clear-the-gate-that-is-red-on-main|SESSION-0091]] | — | Production advisories: clear the gate that is red on main | ACTIVE | `agent/production-advisories` | `develop` | — | NO |
 | [[SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser|SESSION-0061]] | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
@@ -107,7 +108,6 @@ _None. Nothing open at CRITICAL._
 Questions where the engineering is understood and the **product answer is**
 **not**. No agent may resolve one by implementing a side of it.
 
-- [[ITEM-0122-fifteen-production-advisories-have-no-disposition-so-the-ci-|ITEM-0122]] — **Fifteen production advisories have no disposition, so the CI advisory gate fails on every branch including main**
 - [[BUG-2509-platform-admin-remember-me-has-no-policy-able-to-refuse-it|BUG-2509]] — **Platform admin remember-me has no policy able to refuse it**
 - [[ITEM-0106-an-employee-cannot-use-self-service-until-their-manager-acti|ITEM-0106]] — **An employee cannot use self-service until their manager activates their own account**
 - [[ITEM-0115-provisioning-seeds-four-departments-with-no-business-unit-on|ITEM-0115]] — **Provisioning seeds four departments with no business unit on every tenant**
@@ -272,7 +272,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 | Open total | 112 |
 | Blocked | 2 |
 | Deferred | 27 |
-| Awaiting a product decision | 7 |
+| Awaiting a product decision | 6 |
 | Awaiting Architect triage | 3 |
 
 **A record nobody has triaged is work nobody has decided about.** No ordinary record may stay `TRIAGE_REQUIRED` at the end of a task.

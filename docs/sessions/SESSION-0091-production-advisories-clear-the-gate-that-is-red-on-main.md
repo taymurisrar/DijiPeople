@@ -1,0 +1,44 @@
+---
+SESSION_ID: SESSION-0091
+aliases: [SESSION-0091]
+TASK_ID:
+TITLE: Production advisories: clear the gate that is red on main
+ARCHITECT_INTENT: Production advisories: clear the gate that is red on main
+STATUS: ACTIVE
+TASK_TYPE: SECURITY
+TASK_SIZE: MEDIUM
+BASE_BRANCH: origin/develop
+BASE_SHA: e053c6f6580ca9114df39dfcee139319ffd78193
+TASK_BRANCH: agent/production-advisories
+TARGET_BRANCH: develop
+WORKTREE: D:/My Work/hrm-dijipeople/dijipeople-advisories
+AFFECTED_MODULES: []
+WRITE_LEASES: []
+ACTIVE_WORK_PACKAGES: []
+SCHEMA_WRITE: NO
+CI_STATUS: NOT_RUN
+MERGE_STATUS: NOT_STARTED
+STARTED_AT: 2026-09-08T22:02:23.453Z
+LAST_HEARTBEAT: 2026-09-08T22:02:23.453Z
+BLOCKERS: none
+---
+
+# SESSION-0091 — Production advisories: clear the gate that is red on main
+
+## Intent
+
+Production advisories: clear the gate that is red on main
+
+## Scope
+
+_To be established during planning._
+
+## Concurrency
+
+Write leases held, overlap classification against other active sessions, and
+anything this session deliberately serialised behind another. Live state:
+`node scripts/session.mjs list`.
+
+## History
+
+- 2026-09-08 — session started from `origin/develop` at `e053c6f`.
