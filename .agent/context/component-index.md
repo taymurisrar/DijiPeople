@@ -1,7 +1,7 @@
 # Component Index
 
-> **Last verified:** 2026-09-08
-> **Verified against commit:** 2cee8b9b
+> **Last verified:** 2026-09-09
+> **Verified against commit:** 5beea8ba
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
