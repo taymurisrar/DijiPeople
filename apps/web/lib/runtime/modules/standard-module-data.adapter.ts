@@ -66,6 +66,61 @@ export function createStandardModuleDataAdapter(
           },
         }
       : {}),
+    /*
+     * The generic inbox decides an approval by calling the approvals API, which
+     * dispatches to whichever module raised it. There is deliberately no
+     * per-module branch here: adding leave, then attendance, then claims to
+     * this file would put the routing table on the client, where it would drift
+     * from the server's registry and be wrong the moment a module changed how
+     * it decides.
+     */
+    ...(spec.moduleKey === "approvals"
+      ? {
+          commandHandlers: Object.fromEntries(
+            (
+              [
+                ["approval.approve", "approve", "Request approved."],
+                ["approval.reject", "reject", "Request rejected."],
+                ["approval.cancel", "cancel", "Request withdrawn."],
+              ] as const
+            ).map(([commandKey, action, message]) => [
+              commandKey,
+              async (context: {
+                recordId?: string;
+                payload?: unknown;
+                runtime: { cacheKeys?: readonly string[] };
+              }) => {
+                if (!context.recordId) {
+                  return { ok: false, errors: ["No approval is selected."] };
+                }
+                const payload = (context.payload ?? {}) as {
+                  comment?: unknown;
+                };
+                const comment =
+                  typeof payload.comment === "string"
+                    ? payload.comment.trim()
+                    : "";
+                const result = await requestJson(
+                  `${basePath}/${encodeURIComponent(context.recordId)}/${action}`,
+                  {
+                    method: "POST",
+                    // An empty string is not "no comment": the DTO bounds the
+                    // field and treats a blank as absent, so it is omitted
+                    // rather than sent as "".
+                    body: JSON.stringify(comment ? { comment } : {}),
+                  },
+                );
+                return {
+                  ok: true,
+                  data: result,
+                  message,
+                  invalidateCacheKeys: context.runtime.cacheKeys,
+                };
+              },
+            ]),
+          ),
+        }
+      : {}),
     ...(spec.moduleKey === "timesheets"
       ? {
           commandHandlers: {

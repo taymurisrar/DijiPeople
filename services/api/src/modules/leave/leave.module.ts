@@ -10,6 +10,7 @@ import { ApprovalsModule } from '../approvals/approvals.module';
 import { LeavePoliciesController } from './leave-policies.controller';
 import { LeaveRequestsController } from './leave-requests.controller';
 import { LeaveTypesController } from './leave-types.controller';
+import { LeaveApprovalDelegate } from './leave-approval.delegate';
 import { LeaveEntitlementService } from './leave-entitlement.service';
 import { LeavePolicyResolverService } from './leave-policy-resolver.service';
 import { LeaveRepository } from './leave.repository';
@@ -34,6 +35,7 @@ import { LeaveService } from './leave.service';
     LeavePolicyResolverService,
     LeaveEntitlementService,
     LeaveService,
+    LeaveApprovalDelegate,
     JwtAuthGuard,
     PermissionsGuard,
   ],

@@ -12,6 +12,7 @@ import { SECRET_KEY_PATTERN } from './email-safety';
 import { NotificationsRepository } from '../notifications.repository';
 import { EmailProviderFactory } from './email-provider-factory.service';
 import { PlatformEmailProviderResolver } from './platform-email-provider.resolver';
+import { isSinkProvider } from './providers';
 import {
   EmailTemplateRendererService,
   EmailTemplateRenderResult,
@@ -77,6 +78,21 @@ export type SendTemplateEmailInput = {
 
 export type SendTemplateEmailResult = {
   sent: boolean;
+  /*
+   * Whether the message actually left the building.
+   *
+   * Additive, and deliberately not a change to `sent`. `sent` means "the
+   * provider accepted it without throwing", which is what the orchestrator, the
+   * report scheduler, password resets and invitations all already count on: the
+   * scheduler's success counter increments when `dispatch` does not throw, and
+   * making a sink *fail* would auto-disable every schedule on a sink tenant
+   * after MAX_CONSECUTIVE_FAILURES. That may well be right, and it is a
+   * behaviour change nobody has asked for.
+   *
+   * So `sent` keeps its meaning and `delivered` answers the question it was
+   * being misread as answering.
+   */
+  delivered: boolean;
   dryRun: boolean;
   skipped: boolean;
   status: EmailDeliveryStatus;
@@ -122,6 +138,41 @@ export class EmailExecutionService {
    * Both paths end at the same base chain, so nothing that worked before stops
    * working. See PLAN-023.
    */
+  /**
+   * Whether this workspace can actually deliver email, and through what.
+   *
+   * Resolved through `resolveProviderForOrigin` — the very chain a real send
+   * walks, including the platform provider that slots between the tenant's own
+   * providers and the environment fallback (PLAN-023). A capability check that
+   * consulted only `listEnabledProviders` would report "cannot deliver" for
+   * every tenant relying on the platform relay, and "can deliver" for a tenant
+   * whose only enabled provider is a CONSOLE sink.
+   *
+   * `providerType` is returned so an operator can see *which* provider the
+   * answer came from; the screens only need `canDeliver`.
+   */
+  async resolveDeliveryCapability(
+    tenantId: string,
+    origin: SendTemplateEmailInput['origin'] = 'TENANT',
+  ): Promise<{
+    canDeliver: boolean;
+    providerType: EmailProviderType | null;
+  }> {
+    const resolved = await this.resolveProviderForOrigin({
+      tenantId,
+      origin,
+    } as SendTemplateEmailInput);
+
+    if (!resolved) {
+      return { canDeliver: false, providerType: null };
+    }
+
+    return {
+      canDeliver: !isSinkProvider(resolved.providerType),
+      providerType: resolved.providerType,
+    };
+  }
+
   private async resolveProviderForOrigin(input: SendTemplateEmailInput) {
     if (input.origin === 'PLATFORM') {
       return (
@@ -416,8 +467,20 @@ export class EmailExecutionService {
         metadata: providerMetadata,
       });
 
+      /*
+       * The provider returned success. Whether that means anybody received the
+       * message depends on whether the provider delivers at all — a CONSOLE or
+       * DEV sink writes it to a log and reports success exactly as SMTP does.
+       * Recording that as SENT is what let a demo tenant run scheduled reports
+       * for weeks with a green delivery log and no email.
+       */
+      const delivered = !isSinkProvider(resolvedProvider.providerType);
+      const deliveryStatus = delivered
+        ? EmailDeliveryStatus.SENT
+        : EmailDeliveryStatus.NOT_DELIVERED;
+
       await this.repository.updateDeliveryLogStatus(input.tenantId, log.id, {
-        status: EmailDeliveryStatus.SENT,
+        status: deliveryStatus,
         deliveredAt: new Date(),
         providerMessageId: sendResult.providerMessageId ?? null,
         retryable: false,
@@ -431,21 +494,34 @@ export class EmailExecutionService {
         } as Prisma.InputJsonValue,
       });
 
-      this.logger.log(
-        JSON.stringify({
-          message: 'Email notification sent.',
-          tenantId: input.tenantId,
-          eventCode: input.eventCode,
-          providerType: resolvedProvider.providerType,
-          deliveryLogId: log.id,
-        }),
-      );
+      /*
+       * `warn`, not `log`, when nothing was delivered — and that choice is
+       * load-bearing rather than cosmetic. Production runs with LOG_LEVEL
+       * resolving to ['error','warn'], so a `log` line here would never be
+       * emitted, which is exactly why the console provider's own output never
+       * reached the logs and the sink went unnoticed for as long as it did.
+       */
+      const summary = JSON.stringify({
+        message: delivered
+          ? 'Email notification sent.'
+          : 'Email notification was handed to a sink provider and not delivered.',
+        tenantId: input.tenantId,
+        eventCode: input.eventCode,
+        providerType: resolvedProvider.providerType,
+        deliveryLogId: log.id,
+      });
+      if (delivered) {
+        this.logger.log(summary);
+      } else {
+        this.logger.warn(summary);
+      }
 
       return {
         sent: true,
+        delivered,
         dryRun: false,
         skipped: false,
-        status: EmailDeliveryStatus.SENT,
+        status: deliveryStatus,
         providerType: resolvedProvider.providerType,
         providerMessageId: sendResult.providerMessageId,
         deliveryLogId: log.id,
@@ -557,6 +633,13 @@ export class EmailExecutionService {
   ): SendTemplateEmailResult {
     return {
       sent,
+      /*
+       * Every path through this builder is a failure, a skip or a rehearsal —
+       * nothing here reached a provider that delivers. The one place that can
+       * claim delivery is the successful send above, which decides it from the
+       * resolved provider.
+       */
+      delivered: false,
       dryRun,
       skipped,
       status,

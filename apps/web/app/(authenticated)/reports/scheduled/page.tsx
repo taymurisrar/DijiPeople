@@ -4,12 +4,14 @@ import { PERMISSION_KEYS } from "@/lib/security-keys";
 import { EmptyState } from "@/app/components/ui/empty-state";
 import { SectionCard } from "@/app/components/ui/section-card";
 import { AccessDeniedState } from "../../_components/access-denied-state";
+import { DeliveryCapabilityNotice } from "../_components/delivery-capability-notice";
 import { ScheduledReportsList } from "../_components/scheduled-reports-list";
 import {
   CAPABILITY_UNAVAILABLE_COPY,
   getReportingCapabilities,
 } from "../_lib/reporting-capabilities";
 import {
+  fetchReportDeliveryCapability,
   fetchReportLibrary,
   fetchReportSchedules,
 } from "../_lib/reporting-server";
@@ -78,9 +80,10 @@ export default async function ScheduledReportsPage() {
     );
   }
 
-  const [schedules, library] = await Promise.all([
+  const [schedules, library, deliveryCapability] = await Promise.all([
     fetchReportSchedules(),
     fetchReportLibrary().catch(() => null),
+    fetchReportDeliveryCapability(),
   ]);
 
   if (schedules === null) {
@@ -106,6 +109,16 @@ export default async function ScheduledReportsPage() {
       description="Each run executes under its owner's access and is delivered to named recipients, so a schedule never widens what anyone could see for themselves."
       title="Scheduled reports"
     >
+      {/*
+        * Above the list, not beside a row: it is a fact about the workspace and
+        * it applies to every schedule on the screen, including the ones already
+        * running that nobody has been receiving.
+        */}
+      {deliveryCapability.canDeliver ? null : (
+        <div className="mb-5">
+          <DeliveryCapabilityNotice context="list" />
+        </div>
+      )}
       <ScheduledReportsList
         currentUserId={user.userId}
         reportNames={reportNames}

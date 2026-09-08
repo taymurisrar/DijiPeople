@@ -6,6 +6,9 @@ Sessions that reached a terminal state. Kept as history: the branch, the base it
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0090](../../docs/sessions/SESSION-0090-approvals-inbox-make-the-decision-surface-real.md) | — | Approvals inbox: make the decision surface real | COMPLETE | `agent/approvals-inbox-decisions` | `develop` | — | 2026-08-31T10:46:00.709Z |
+| [SESSION-0089](../../docs/sessions/SESSION-0089-a-workspace-that-cannot-send-email-should-say-so.md) | — | A workspace that cannot send email should say so | COMPLETE | `agent/email-sink-visibility` | `develop` | — | 2026-08-31T10:03:42.809Z |
+| [SESSION-0088](../../docs/sessions/SESSION-0088-expired-session-redirect-loop-and-an-audit-of-buildscopedacc.md) | — | Expired-session redirect loop, and an audit of buildScopedAccessWhere callers | COMPLETE | `agent/session-redirect-loop` | `develop` | — | 2026-08-31T08:15:00.000Z |
 | [SESSION-0087](../../docs/sessions/SESSION-0087-enterprise-reports-and-analytics-platform.md) | TASK-0028 | Enterprise Reports and Analytics platform | COMPLETE | `agent/reports-analytics-platform-fixes` | `develop` | — | 2026-08-31T05:00:00.000Z |
 | [SESSION-0086](../../docs/sessions/SESSION-0086-hotfix-to-production-one-customer-per-self-service-signup.md) | — | Hotfix to production: one customer per self-service signup | COMPLETE | `develop` | `main` | — | 2026-08-30T20:19:48.912Z |
 | [SESSION-0085](../../docs/sessions/SESSION-0085-duplicate-customer-on-self-service-checkout-the-wizard-s-dra.md) | — | Duplicate customer on self-service checkout: the wizard's draft id is dropped | COMPLETE | `agent/checkout-duplicate-customer` | `develop` | — | 2026-08-30T19:25:21.859Z |

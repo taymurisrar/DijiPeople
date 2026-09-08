@@ -282,6 +282,27 @@ export class ReportingController {
     return this.schedules.create(user, dto);
   }
 
+  /**
+   * Whether a schedule created here would actually send anybody an email.
+   *
+   * Declared with the other static `schedules` routes and above every
+   * parameterised one, or `schedules/:scheduleId` shadows it and it is silently
+   * dead — the route-order invariant in this file's header, and BUG-2461.
+   *
+   * Gated on `REPORTS_WRITE` to match `createSchedule` rather than on the
+   * notification-admin permission that guards
+   * `GET /notifications/email-providers`: the person who needs this answer is
+   * the person about to create a schedule, and they will not hold the admin
+   * key. It exposes one boolean and a provider type name, no configuration and
+   * no credentials.
+   */
+  @Get('schedules/delivery-capability')
+  @Permissions(PERMISSION_KEYS.REPORTS_WRITE)
+  @RequirePermission(ENTITY_KEYS.REPORTS, 'read')
+  getScheduleDeliveryCapability(@CurrentUser() user: AuthenticatedUser) {
+    return this.schedules.deliveryCapability(user);
+  }
+
   // ── parameterised export and schedule routes ─────────────────────────────
 
   @Get('exports/:runId')

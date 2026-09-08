@@ -1,5 +1,6 @@
 import type { Prisma } from '@prisma/client';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
+import { ApprovalDecisionRegistry } from './approval-decision.registry';
 import { ApprovalsService } from './approvals.service';
 
 /*
@@ -53,7 +54,11 @@ async function capturedWhere(
       count: jest.fn(async () => 0),
     },
   };
-  const service = new ApprovalsService(prisma as never, {} as never);
+  const service = new ApprovalsService(
+    prisma as never,
+    {} as never,
+    new ApprovalDecisionRegistry(),
+  );
 
   await service.list(buildUser(permissionKeys), query);
 

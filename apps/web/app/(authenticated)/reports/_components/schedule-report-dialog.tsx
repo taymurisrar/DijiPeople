@@ -14,8 +14,10 @@ import {
 import { PERIOD_PRESET_OPTIONS } from "@/app/components/filters";
 import {
   createReportSchedule,
+  fetchReportDeliveryCapability,
   reportingErrorMessage,
 } from "../_lib/reporting-browser";
+import { DeliveryCapabilityNotice } from "./delivery-capability-notice";
 
 /*
  * Scheduling a report for delivery.
@@ -87,6 +89,26 @@ export function ScheduleReportDialog({
   const router = useRouter();
 
   const [open, setOpen] = React.useState(false);
+  /*
+   * Null until asked. Fetched when the dialog opens rather than on mount: this
+   * button sits on every report runner, and the answer only matters to someone
+   * who is actually about to promise a recurring email.
+   *
+   * `true` while unknown, so a slow or failed answer never flashes a warning at
+   * a workspace that can send perfectly well.
+   */
+  const [canDeliver, setCanDeliver] = React.useState(true);
+
+  React.useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    void fetchReportDeliveryCapability().then((capability) => {
+      if (!cancelled) setCanDeliver(capability.canDeliver);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
   const [name, setName] = React.useState(`${reportName} - scheduled`);
   const [frequency, setFrequency] = React.useState("WEEKLY");
   const [hour, setHour] = React.useState<number | null>(8);
@@ -205,6 +227,19 @@ export function ScheduleReportDialog({
           </p>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
+            {/*
+              * Above the fields, and the form stays usable. Creating the
+              * schedule is still a reasonable thing to do — the report is
+              * built and stored either way, and it will start arriving by
+              * email the moment a provider is configured. What must not
+              * happen is someone promising themselves a daily email and
+              * finding out a day later.
+              */}
+            {canDeliver ? null : (
+              <div className="md:col-span-2">
+                <DeliveryCapabilityNotice context="dialog" />
+              </div>
+            )}
             <TextField
               className="md:col-span-2"
               label="Schedule name"

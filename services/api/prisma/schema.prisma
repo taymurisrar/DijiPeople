@@ -796,6 +796,12 @@ enum EmailDeliveryStatus {
   FAILED
   SKIPPED
   DRY_RUN
+  /// The provider accepted the message and discards it — a CONSOLE or DEV sink.
+  /// Nothing failed and nothing was delivered, which no existing value said.
+  /// Deliberately not DRY_RUN: that means the caller asked for a rehearsal
+  /// (`input.dryRun`), and conflating "you asked for a test" with "your
+  /// workspace cannot deliver" makes both unreadable.
+  NOT_DELIVERED
 }
 
 enum NotificationType {

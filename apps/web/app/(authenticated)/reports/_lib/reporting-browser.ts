@@ -229,6 +229,25 @@ export type ReportScheduleWriteInput = {
   isEnabled?: boolean;
 };
 
+export type ReportDeliveryCapability = {
+  canDeliver: boolean;
+  providerType: string | null;
+};
+
+/**
+ * Whether this workspace can actually email a scheduled report.
+ *
+ * A failure resolves to `canDeliver: true`, matching the server-side helper: a
+ * warning that fires on any transient error would tell people their email is
+ * broken whenever the network hiccups, and they would learn to ignore the one
+ * time it is right.
+ */
+export function fetchReportDeliveryCapability(): Promise<ReportDeliveryCapability> {
+  return reportingRequest<ReportDeliveryCapability>(
+    "/schedules/delivery-capability",
+  ).catch(() => ({ canDeliver: true, providerType: null }));
+}
+
 export function createReportSchedule(
   input: ReportScheduleWriteInput,
 ): Promise<ReportSchedule> {

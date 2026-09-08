@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 430,
+    "total_records": 434,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -14623,6 +14623,136 @@
       "verification_result": "NOT_VERIFIED"
     },
     {
+      "record_id": "BUG-2718",
+      "type": "UX",
+      "title": "The approvals record page reads the detail response envelope, so every field is blank",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-2718-the-approvals-record-page-reads-the-detail-response-envelope.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "2b001494",
+        "created_at": "2026-08-31",
+        "updated_at": "2026-08-31",
+        "resolved_at": "2026-08-31"
+      },
+      "affected_modules": [
+        "approvals",
+        "leave",
+        "attendance"
+      ],
+      "regressions": [
+        "REG-390"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-039"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "approvals",
+          "leave",
+          "attendance"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2718-the-approvals-record-page-reads-the-detail-response-envelope.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2732",
+      "type": "STATE_MACHINE",
+      "title": "Attendance integration cannot be activated: activation requires a verified device, but only an active integration is ever verified",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-2732-attendance-integration-cannot-be-activated-activation-requir.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "2b001494",
+        "created_at": "2026-08-31",
+        "updated_at": "2026-08-31",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/attendance-integrations",
+        "gateway/src/DijiPeople.Gateway.Host"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/attendance-integrations",
+          "gateway/src/DijiPeople.Gateway.Host"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2732-attendance-integration-cannot-be-activated-activation-requir.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2741",
+      "type": "BUG",
+      "title": "A workspace whose email provider is a sink reports every message as SENT",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-2741-a-workspace-whose-email-provider-is-a-sink-reports-every-mes.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "2b001494",
+        "created_at": "2026-08-31",
+        "updated_at": "2026-08-31",
+        "resolved_at": "2026-08-31"
+      },
+      "affected_modules": [
+        "notifications",
+        "reporting"
+      ],
+      "regressions": [
+        "REG-391"
+      ],
+      "qa_scenarios": [
+        "QA-REPORTING-011"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "notifications",
+          "reporting"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2741-a-workspace-whose-email-provider-is-a-sink-reports-every-mes.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
       "record_id": "ITEM-0001",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md",
@@ -19934,6 +20064,44 @@
           "super-admin"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0119-stop-writing-a-placeholder-e-mail-into-an-identity-column-wh.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0120",
+      "type": "TECH_DEBT",
+      "title": "schema.prisma declares constraints no migration creates, so migrate dev cannot run without a reset",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0120-schema-prisma-declares-constraints-no-migration-creates-so-m.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-08-31",
+        "updated_at": "2026-08-31",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "prisma"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "prisma"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0120-schema-prisma-declares-constraints-no-migration-creates-so-m.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

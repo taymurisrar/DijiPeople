@@ -1,5 +1,8 @@
 import { StandardModuleRecordPage } from "@/app/components/runtime";
-import type { ApprovalRequestItem } from "@/app/components/approvals/approval-types";
+import { ApprovalChain } from "@/app/components/approvals/approval-chain";
+import { moduleDisplayName } from "@/app/components/approvals/approval-display";
+import { buildApprovalRecord } from "@/app/components/approvals/approval-record";
+import type { ApprovalDetailResponse } from "@/app/components/approvals/approval-types";
 import { getSessionUser } from "@/lib/auth";
 import {
   buildStandardRouteRuntime,
@@ -33,11 +36,20 @@ export default async function ApprovalDetailPage({
    * A record that is not there is a not-found state, not a crash — for a stale
    * link or a hand-typed URL just as much as for the "new" segment.
    */
-  let approval: ApprovalRequestItem;
+  let approval: ApprovalDetailResponse["item"];
   try {
-    approval = await apiRequestJson<ApprovalRequestItem>(
+    /*
+     * BUG-2695 — `GET /approvals/:id` answers `{ item: {...} }` while
+     * `GET /approvals` answers a bare list, and this page was typed as the bare
+     * record. Every read below therefore came off the envelope and was
+     * `undefined`: Approval, Module and Assigned To rendered empty and Requester
+     * fell through to its "Unknown requester" fallback, on a record whose row in
+     * the list one click earlier showed all four correctly.
+     */
+    const response = await apiRequestJson<ApprovalDetailResponse>(
       `/approvals/${approvalId}`,
     );
+    approval = response.item;
   } catch (error: unknown) {
     if (
       error instanceof ApiRequestError &&
@@ -72,48 +84,20 @@ export default async function ApprovalDetailPage({
     resolvedSearchParams.formId ?? "",
   );
 
+  const moduleLabel = moduleDisplayName(approval.moduleKey);
+
   return (
     <div className="grid gap-6">
       <StandardModuleRecordPage
         activeForm={activeForm}
         mode="read"
-        record={{
-          ...approval,
-          approvalName: approval.title || approval.requestNumber || approval.id,
-          moduleLabel: approval.moduleKey,
-          requesterName:
-            fullName(approval.submittedByUser) ||
-            fullName(approval.submittedForEmployee) ||
-            "Unknown requester",
-          assignedToName:
-            approval.currentStep?.assignments
-              .map((assignment) =>
-                assignment.assignedToUser
-                  ? fullName(assignment.assignedToUser)
-                  : assignment.assignedToRole?.name,
-              )
-              .filter(Boolean)
-              .join(", ") ?? "",
-          submittedAt: approval.submittedAtUtc,
-        }}
+        record={buildApprovalRecord(approval)}
         recordId={approval.id}
         runtime={runtime}
         spec={approvalRuntimeSpec}
         title={approval.title}
       />
+      <ApprovalChain approval={approval} moduleLabel={moduleLabel} />
     </div>
   );
-}
-
-function fullName(
-  user:
-    | {
-        readonly firstName: string;
-        readonly lastName: string;
-      }
-    | null
-    | undefined,
-) {
-  if (!user) return "";
-  return [user.firstName, user.lastName].filter(Boolean).join(" ");
 }

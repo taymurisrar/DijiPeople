@@ -1,0 +1,127 @@
+---
+ID: ITEM-0120
+aliases: [ITEM-0120]
+Title: schema.prisma declares constraints no migration creates, so migrate dev cannot run without a reset
+Type: TECH_DEBT
+Status: DEFERRED
+Priority: P2
+Severity: MEDIUM
+AffectedModules: [prisma]
+Source: ARCHITECT
+OwnerAgent: architect
+ArchitectDisposition: DEFER
+CreatedAt: 2026-08-31
+UpdatedAt: 2026-08-31
+RelatedBug: BUG-2741
+RelatedQA:
+RelatedADR:
+RelatedImplementation:
+TargetMilestone:
+BlockedBy:
+---
+
+# ITEM-0120 — schema.prisma declares constraints no migration creates, so migrate dev cannot run without a reset
+
+## Summary
+
+`services/api/prisma/schema.prisma` and `services/api/prisma/migrations/`
+disagree. Applying all 225 migrations to an empty database and diffing the
+unmodified schema against the result produces a long script of constraint drops
+and additions — Timesheet foreign-key constraint **names**, plus seven unique
+constraints the schema declares that no migration creates.
+
+Found while adding one enum value for [[BUG-2741]]. It is unrelated to that
+change and reproduces on the unmodified schema at `2b001494`, so it was left
+alone rather than folded into an email fix.
+
+## Why It Matters
+
+Two costs, one immediate and one latent.
+
+**The repo convention for creating a migration does not work.** `AGENTS.md` and
+`services/api/prisma/AGENTS.md` both say to use `npm run prisma:migrate:dev`. It
+cannot proceed here: it detects the drift and asks to reset, which is refused in
+a non-interactive shell and should be refused by a human too. Every future
+migration on this branch has to be produced with `prisma migrate diff` and placed
+by hand — exactly the kind of undocumented workaround that becomes folklore.
+
+**The seven unique constraints are declared and not enforced.** Prisma's client
+believes `@@unique([tenantId, name])` on `HolidayCalendar` exists; the database
+does not have it. Uniqueness enforced only by application code is uniqueness that
+two concurrent writers can violate. This has not been observed to bite, and it is
+a real gap between what the schema promises and what the database guarantees.
+
+## Evidence
+
+Reproduce without changing anything:
+
+1. Create an empty database and apply every migration with
+   `prisma migrate deploy` — 225 applied, 327 tables.
+2. Diff the committed schema against it:
+   `prisma migrate diff --from-config-datasource --to-schema <schema> --script`.
+
+The output begins with constraint drops on `Timesheet`,
+`TimesheetAccessRestriction`, `TimesheetDay`, `TimesheetEntry`,
+`TimesheetExportRequest`, `TimesheetJobExecution`, `TimesheetMigrationResult` and
+`TimesheetPayrollHandoff` — renames rather than removals, the migrations having
+created them under abbreviated names.
+
+`prisma migrate dev` separately reports seven unique constraints it would add:
+`HolidayCalendar[tenantId,name]`,
+`PartnerOnboardingApplication[invitationTokenHash]`,
+`PartnerOnboardingSubmission[applicationId,version]`,
+`PartnerPortalUser[invitationTokenHash]`,
+`PlatformApprovalRequest[requestNumber]`,
+`PlatformApprovalStep[approvalRequestId,stepOrder]`,
+`SupportCaseIncident[supportCaseId,errorLogId]`.
+
+Note the warning each carries: "If there are existing duplicate values, this will
+fail." Production may hold rows that violate them, which is why this needs
+measuring before it needs fixing.
+
+## Proposed Approach
+
+**Needs an ExecPlan** under `PLANS.md` — it touches production data integrity and
+its safe path depends on what is already in the database.
+
+1. Measure first. For each of the seven, count duplicate groups in production.
+   That determines whether this is a one-line migration or a data-repair job.
+2. Split the two halves. The Timesheet constraint **names** are cosmetic and can
+   be reconciled by a migration that renames them to what the schema expects. The
+   unique constraints are the part carrying real risk.
+3. Do not "fix" this by editing the schema to match the database unless the
+   uniqueness was never wanted — for `invitationTokenHash` it plainly is wanted,
+   and a token collision is a security question rather than a tidiness one.
+
+## Acceptance Criteria
+
+- `prisma migrate diff` between the committed migrations and the committed schema
+  produces an empty script.
+- `npm run prisma:migrate:dev` creates a new migration without proposing a reset.
+- Each of the seven unique constraints either exists in the database or has been
+  deliberately removed from the schema, with the decision recorded.
+
+## Dependencies
+
+A duplicate-row count from production, which needs read access to the Neon
+database.
+
+## Related Items
+
+[[BUG-2741]] — the change during which this was found; its migration had to be
+produced with `migrate diff` because of this.
+
+## History
+
+- 2026-08-31 — created at `2b001494`, found while adding an enum value for
+  BUG-2741. Deferred: it is pre-existing, it is not what that task was for, and
+  resolving it safely needs production data that was not to hand.
+
+<!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
+
+## Related
+
+- Bug — [[BUG-2741]]
+- Modules — [[database-architecture]]
+
+<!-- GRAPH:END -->

@@ -3,10 +3,12 @@ import { JwtModule } from '@nestjs/jwt';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { AttendanceEngineModule } from '../attendance-engine/attendance-engine.module';
+import { ApprovalsModule } from '../approvals/approvals.module';
 import { AuditModule } from '../audit/audit.module';
 import { EmployeesModule } from '../employees/employees.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { TenantSettingsModule } from '../tenant-settings/tenant-settings.module';
+import { AttendanceApprovalDelegate } from './attendance-approval.delegate';
 import { AttendanceController } from './attendance.controller';
 import { AttendanceRepository } from './attendance.repository';
 import { AttendanceService } from './attendance.service';
@@ -18,12 +20,14 @@ import { AttendanceService } from './attendance.service';
     AuditModule,
     TenantSettingsModule,
     NotificationsModule,
+    ApprovalsModule,
     forwardRef(() => AttendanceEngineModule),
   ],
   controllers: [AttendanceController],
   providers: [
     AttendanceRepository,
     AttendanceService,
+    AttendanceApprovalDelegate,
     JwtAuthGuard,
     PermissionsGuard,
   ],

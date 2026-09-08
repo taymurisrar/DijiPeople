@@ -1,4 +1,4 @@
-import { Logger, LogLevel, ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import {
   getPlatformDomainConfig,
@@ -16,6 +16,7 @@ import {
   type Response,
 } from 'express';
 import { AppModule } from './app.module';
+import { resolveLogLevels } from './log-level';
 import { OutboxWorkerService } from './modules/outbox/outbox-worker.service';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { assertAuthEnvironment } from './common/config/auth.config';
@@ -25,41 +26,6 @@ import {
   getRuntimeHealthPayload,
   validateApiEnvironment,
 } from './config/env.validation';
-
-/*
- * Nest's default level logs every mapped route at boot, which buries real
- * warnings under several hundred lines. Development keeps them for orientation;
- * production keeps only what someone would act on.
- *
- * LOG_LEVEL names the *lowest* severity to show, the way it usually reads
- * elsewhere: LOG_LEVEL=debug means "debug and everything more serious", not
- * "debug only". Nest wants the explicit list, so the ladder is expanded here.
- *
- * Errors are always included, since the ladder starts there and every setting
- * keeps its head. Setting LOG_LEVEL=error does drop warnings, which is what
- * asking for errors only should do; an unset or unrecognised value falls back
- * to the environment default rather than silencing anything.
- */
-const LOG_LEVEL_LADDER: LogLevel[] = [
-  'error',
-  'warn',
-  'log',
-  'debug',
-  'verbose',
-];
-
-function resolveLogLevels(): LogLevel[] {
-  const configured = process.env.LOG_LEVEL?.trim().toLowerCase();
-  const threshold = LOG_LEVEL_LADDER.indexOf(configured as LogLevel);
-
-  if (configured && threshold !== -1) {
-    return LOG_LEVEL_LADDER.slice(0, threshold + 1);
-  }
-
-  return process.env.NODE_ENV === 'production'
-    ? ['error', 'warn']
-    : ['error', 'warn', 'log'];
-}
 
 async function bootstrap() {
   validateDeploymentEnv(process.env, { app: 'api' });

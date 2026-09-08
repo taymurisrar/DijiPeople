@@ -22,3 +22,16 @@ async function proxy(request: Request, context: RouteContext) {
 export async function GET(request: Request, context: RouteContext) {
   return proxy(request, context);
 }
+
+/*
+ * `proxy` has always forwarded a body for any non-GET method; only GET was
+ * exported, so `POST /api/approvals/<id>/approve` answered 405 and the inbox
+ * had no way to act even once the API grew the route.
+ *
+ * This stays a pass-through. Which permission governs the decision, whether the
+ * step belongs to this caller, and which module applies it are all settled by
+ * the API — a route handler here must never re-make an authorization decision.
+ */
+export async function POST(request: Request, context: RouteContext) {
+  return proxy(request, context);
+}
