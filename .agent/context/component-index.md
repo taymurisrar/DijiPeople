@@ -1,7 +1,7 @@
 # Component Index
 
 > **Last verified:** 2026-09-08
-> **Verified against commit:** fe1cd3dd
+> **Verified against commit:** 2cee8b9b
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -16,8 +16,8 @@ question an agent can answer by retrieval rather than by reading a directory.
 comment beside it is the reasoning; this document is a route to both. Every row
 carries `file`:`line` for that reason — read the source before changing it.
 
-**An export missing from here is undocumented, not absent.** 815 of
-1033 exports across these kits carry no
+**An export missing from here is undocumented, not absent.** 817 of
+1036 exports across these kits carry no
 doc-comment and are omitted rather than listed as bare names. That ratio is
 itself worth knowing: it is where a UI/UX or Frontend agent is working without
 stated rationale, and where adding one is worth more than a new abstraction.
@@ -125,7 +125,7 @@ re-derived on each run.
 
 Metadata-driven UI is the default. New modules are declared through `lib/runtime/` and rendered by the standard runtime pages; a bespoke page needs a stated reason in the plan.
 
-147 documented export(s); 566 undocumented export(s) omitted.
+148 documented export(s); 568 undocumented export(s) omitted.
 
 | Export | Kind | Used by | Where | What it is |
 |---|---|---|---|---|
@@ -172,11 +172,11 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `resolvePeriod` | function | 3 | `apps/web/app/components/filters/period.ts`:329 | Turn a preset into a concrete inclusive date range. |
 | `resolvePlotArea` | function | 3 | `apps/web/app/components/charts/chart-geometry.ts`:229 | The drawable rectangle inside a viewBox once axis gutters are removed. |
 | `useChartIdPrefix` | function | 3 | `apps/web/app/components/charts/chart-chrome.tsx`:51 | A stable, per-instance id prefix for SVG defs. |
+| `useSideToast` | function | 3 | `apps/web/app/components/notifications/use-side-toast.tsx`:19 | Local toast state plus the element that renders it. |
 | `buildApprovalRecord` | function | 2 | `apps/web/app/components/approvals/approval-record.ts`:15 | One approval, flattened into the shape the runtime record page reads. |
 | `buildAreaPath` | function | 2 | `apps/web/app/components/charts/chart-geometry.ts`:592 | The same shape, closed down to a baseline so it can be filled. |
 | `collapseToTopN` | function | 2 | `apps/web/app/components/charts/chart-geometry.ts`:791 | Sort descending and roll everything past the first `limit` into one bucket. |
 | `periodLengthInDays` | function | 2 | `apps/web/app/components/filters/period.ts`:404 | Inclusive day count. A single-day period is 1, never 0. |
-| `useSideToast` | function | 2 | `apps/web/app/components/notifications/use-side-toast.tsx`:19 | Local toast state plus the element that renders it. |
 | `activeAnalyticsFilterCount` | function | 1 | `apps/web/app/components/filters/analytics-search-params.ts`:196 | How many scope filters are narrowing the data. |
 | `buildQuickCreateValues` | function | 1 | `apps/web/lib/runtime/related-record-create-values.ts`:56 | The dialog's value map, in precedence order: declared inheritance from the parent, then the record being edited, then whatever the user has typed, then the parent foreign key — which is not the user's to change. |
 | `buildSubgridQuickCreate` | function | 1 | `apps/web/lib/runtime/quick-create-metadata.ts`:23 | Quick-create metadata and the gate in front of it. |
@@ -248,6 +248,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `ModuleViewSelectorConfig` | type | 2 | `apps/web/app/components/runtime/module-view-selector.tsx`:48 | The server-side shape pages pass through; kept for callers that build it. |
 | `AttendanceEntrySeed` | type | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:347 | The attendance record a correction can be seeded from. |
 | `ChartPoint` | type | 1 | `apps/web/app/components/charts/chart-types.ts`:27 | One measured value. `key` identifies the point for React keys, drill-down and stacking across series; it is a record id or a stable slug, never a display string. |
+| `CommandFailureContract` | type | 1 | `apps/web/lib/runtime/command-failure-message.ts`:22 | What a failed runtime command means, read out of whatever the adapter threw. |
 | `ModuleViewType` | type | 1 | `apps/web/app/components/runtime/module-view-selector.tsx`:15 | The one view selector. |
 | `AnalyticsScopeFilter` | type | 0 | `apps/web/app/components/filters/analytics-filter-bar.tsx`:39 | The filter bar for every analytics screen. |
 | `AnalyticsSearchParamsInput` | type | 0 | `apps/web/app/components/filters/analytics-search-params.ts`:79 | Next's `searchParams` prop, or a real `URLSearchParams`, or a query string. |
@@ -257,7 +258,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `ChartFrameProps` | type | 0 | `apps/web/app/components/charts/chart-frame.tsx`:35 | The wrapper that makes a chart a complete thing rather than a picture. |
 | `CollapsedPoint` | type | 0 | `apps/web/app/components/charts/chart-geometry.ts`:773 | ------------------------------------------------------- ranked proportions |
 | `CommandContextSource` | type | 0 | `apps/web/lib/runtime/command-context-labels.ts`:14 | Labels for the context line a command surface shows above its form. |
-| `CommandFailureContract` | type | 0 | `apps/web/lib/runtime/command-failure-message.ts`:22 | What a failed runtime command means, read out of whatever the adapter threw. |
+| `CommandFailureKind` | type | 0 | `apps/web/lib/runtime/command-failure-classification.ts`:23 | Whether a failed command is the product refusing, or the product breaking. |
 | `CommandPlacementKey` | type | 0 | `apps/web/lib/runtime/command-catalog.ts`:9 | The commands an action bar can carry, and where a bar can appear. |
 | `ComparisonSelectorProps` | type | 0 | `apps/web/app/components/filters/comparison-selector.tsx`:31 | What the current period is measured against. |
 | `CorrectionOriginals` | type | 0 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:361 | The values the record already holds, as the correction form's own vocabulary. |

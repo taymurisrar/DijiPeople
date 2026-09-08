@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**435 records** — 314 bugs under [`docs/bugs/`](../bugs/), 121 non-bug items under [`items/`](items/).
+**436 records** — 315 bugs under [`docs/bugs/`](../bugs/), 121 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,7 +13,7 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 110 |
+| Open (active work) | 111 |
 | Blocked | 2 |
 | Deferred | 27 |
 | Awaiting a product decision | 6 |
@@ -27,7 +27,7 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | HIGH | 31 |
-| MEDIUM | 65 |
+| MEDIUM | 66 |
 | LOW | 14 |
 
 ## Open by type
@@ -47,7 +47,7 @@ see [`README.md`](README.md) for why.
 | STATE_MACHINE | 3 |
 | TECH_DEBT | 6 |
 | TEST_GAP | 6 |
-| UX | 29 |
+| UX | 30 |
 
 ## All records by status
 
@@ -57,7 +57,7 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 2 |
 | DEFERRED | 27 |
 | PRODUCT_DECISION | 6 |
-| FIXED | 74 |
+| FIXED | 75 |
 | VERIFIED | 218 |
 | DUPLICATE | 5 |
 | ACCEPTED_RISK | 3 |
@@ -367,6 +367,7 @@ see [`README.md`](README.md) for why.
 | [BUG-2647](../../docs/bugs/BUG-2647-reporting-record-tables-and-metric-tiles-format-without-the-.md) | Reporting record tables and metric tiles format without the tenant context, causing a hydration mismatch | UX | MEDIUM | P2 | FIXED | app:web, app:web | DONE |
 | [BUG-2648](../../docs/bugs/BUG-2648-reports-pages-scroll-sideways-at-1440-because-grid-items-can.md) | Reports pages scroll sideways at 1440 because grid items cannot shrink below their content | UX | MEDIUM | P2 | FIXED | app:web | DONE |
 | [BUG-2662](../../docs/bugs/BUG-2662-an-expired-refresh-token-puts-the-tenant-app-into-a-redirect.md) | An expired refresh token puts the tenant app into a redirect loop instead of the login page | UX | MEDIUM | P2 | FIXED | apps/web | DONE |
+| [BUG-2822](../../docs/bugs/BUG-2822-a-business-refusal-is-rendered-as-a-fatal-error-dialog-with-.md) | A business refusal is rendered as a fatal error dialog with a reference id and a log download | UX | MEDIUM | P2 | FIXED | runtime, approvals, attendance | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |

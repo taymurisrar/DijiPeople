@@ -28,6 +28,8 @@ import {
 import { AttendanceActionFeedback } from "./attendance-action-feedback";
 import { debugRuntime } from "@/lib/runtime/runtime-debug";
 import { fieldValidationErrorsAreVisible } from "@/lib/runtime/command-failure-visibility";
+import { classifyCommandFailure } from "@/lib/runtime/command-failure-classification";
+import { useSideToast } from "@/app/components/notifications/use-side-toast";
 import { readCommandFailureContract } from "@/lib/runtime/command-failure-message";
 import type { CommandDefinition } from "@/lib/runtime/command-runtime.types";
 import type {
@@ -103,6 +105,12 @@ export function ModuleRuntimeCommandHandler({
   const [attendanceBusyLabel, setAttendanceBusyLabel] = useState<string | null>(
     null,
   );
+  /*
+   * Business refusals land here rather than in the platform's technical error
+   * dialog. See `command-failure-classification.ts` for where the line is drawn
+   * and why it is drawn on the status rather than on a list of error codes.
+   */
+  const { notifyError, toast: failureToast } = useSideToast();
   const [attendanceOutcome, setAttendanceOutcome] =
     useState<AttendanceOutcome | null>(null);
   const [attendanceRetry, setAttendanceRetry] = useState<(() => void) | null>(
@@ -314,20 +322,31 @@ export function ModuleRuntimeCommandHandler({
       !fieldValidationErrorsAreVisible(result.data, activeForm)
     ) {
       /*
-       * Expected attendance outcomes are answered in place; only genuine
-       * defects reach the platform's technical dialog. Routing a
-       * device-required refusal into that dialog showed an employee
-       * "ERROR VALIDATION_FAILED", a reference id and a log download for the
-       * system working exactly as configured.
+       * Expected outcomes are answered in place; only genuine defects reach the
+       * platform's technical dialog. Routing a refusal into that dialog showed
+       * a user "ERROR ACCESS_DENIED", a reference id and a log download for the
+       * system working exactly as configured — first for a device-required
+       * check-in, then again for approving one's own request.
+       *
+       * Attendance keeps its richer treatment because it has more to say: a
+       * retry affordance and the distance and accuracy numbers behind the
+       * refusal. Every other module now gets the generic split rather than
+       * falling through to the dialog by default.
        */
-      const outcome = isAttendanceCommand(result.command?.key)
-        ? classifyAttendanceFailure(readCommandFailureError(result))
+      const contract = readCommandFailureError(result);
+      const attendance = isAttendanceCommand(result.command?.key)
+        ? classifyAttendanceFailure(contract)
         : null;
 
-      if (outcome && !outcome.useTechnicalErrorModal) {
-        setAttendanceOutcome(outcome);
+      if (attendance && !attendance.useTechnicalErrorModal) {
+        setAttendanceOutcome(attendance);
       } else {
-        dispatchCommandFailure(result, runtime);
+        const failure = classifyCommandFailure(contract);
+        if (failure.kind === "business") {
+          notifyError(failure.title, failure.description);
+        } else {
+          dispatchCommandFailure(result, runtime);
+        }
       }
     }
 
@@ -525,6 +544,7 @@ export function ModuleRuntimeCommandHandler({
         onClose={() => setShareLink("")}
         open={Boolean(shareLink)}
       />
+      {failureToast}
     </>
   );
 }
