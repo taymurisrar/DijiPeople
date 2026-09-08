@@ -1,0 +1,154 @@
+---
+ID: BUG-2839
+aliases: [BUG-2839]
+Title: A dashboard FX test asserted on the last month bucket, so it passed in August and failed on 1 September
+Status: FIXED
+Severity: MEDIUM
+Priority: P2
+Type: BUG
+Source: QA_RUN
+DetectedDate: 2026-09-08
+DetectedInSha: bdbf9dc1
+AffectedModules: [super-admin]
+OwnerAgent: architect
+ArchitectDisposition: FIX_NOW
+QAReport: QA-PLATFORM-032
+RegressionId: REG-393
+RelatedBacklogItem:
+RelatedDecision:
+RelatedImplementation:
+CreatedAt: 2026-09-08
+UpdatedAt: 2026-09-08
+ResolvedAt: 2026-09-09
+---
+
+# BUG-2839 — A dashboard FX test asserted on the last month bucket, so it passed in August and failed on 1 September
+
+## Summary
+
+`dashboard-fx.spec.ts` pins its fixture to August 2026 and then asserts on
+`trend[trend.length - 1]`, assuming the last bucket is August. `monthlyBuckets`
+builds from `start` to **today**, so that held only while the wall clock was in
+August. On 1 September the last bucket became an empty September, both figures
+read `0`, and the CI job `API tests` went red on every branch.
+
+A test that passes only during the month it was written in.
+
+## Expected Behavior
+
+A test whose fixture is pinned to a fixed month asserts on that month, and
+produces the same verdict on any day it is run.
+
+## Actual Behavior
+
+`Expected: 8140, Received: 0` at `dashboard-fx.spec.ts:138`, on every branch,
+from 1 September onward. `API tests` fails, so the `CI required gate` fails.
+
+## Reproduction
+
+Run `npm --workspace api run test -- dashboard-fx` on any commit, on any date
+outside August 2026.
+
+## Evidence
+
+The fixture is explicitly August — `Date.UTC(2026, 7, day)`, month index 7 — and
+`start` is 1 August 2026.
+
+`super-admin.service.ts:127` sizes the window from the current date:
+
+```ts
+function monthlyBuckets(start: Date) {
+  const current = new Date();
+  const length = Math.max(1,
+    (current.getUTCFullYear() - start.getUTCFullYear()) * 12 +
+    current.getUTCMonth() - start.getUTCMonth() + 1);
+```
+
+So in August the array had one bucket and `trend[trend.length - 1]` was August;
+in September it has two and the last is September, which no fixture row falls in.
+
+Confirmed unrelated to the change that surfaced it: that commit touched only
+`apps/web`. The same failure reproduces locally on the released tree.
+
+## Root Cause
+
+**The assertion used position as a proxy for identity.** "The last bucket" and
+"August" were the same thing on the day the test was written, and the test
+recorded the coincidence rather than the intent. Nothing about the fixture is
+time-dependent; only the assertion is.
+
+The window itself is correct — a dashboard trend should run to today.
+
+## Impact
+
+CI-blocking on every branch from 1 September. No product defect: the code under
+test is right, and `buildMonthlyTrend` behaved correctly throughout.
+
+The real cost is the one a false red always carries. It appeared in an unrelated
+UX change, where the honest first reading is "I broke something", and it sits in
+the same run as a genuine, separate advisory-gate failure ([[ITEM-0122]]) — two
+red jobs, neither caused by the commit, in a release window.
+
+## Affected Areas
+
+`services/api/src/modules/super-admin/dashboard-fx.spec.ts`. Test-only; no
+product code changed.
+
+## Proposed Resolution
+
+Assert by key, not by position: find the bucket whose `key` is `'2026-08'`.
+
+Keep an assertion that the window still reaches today, so the fix does not
+quietly turn a window bug into a passing test.
+
+## Acceptance Criteria
+
+- The spec passes on any date after August 2026.
+- It still fails when currency conversion is applied per query instead of per
+  row, which is the defect it exists for.
+
+## Regression Coverage
+
+`REG-393` — the spec is its own regression. Proven still meaningful by mutating
+`sumConverted` to convert every row at `rows[0].currency`: `Received: 45840`
+against `Expected: 8140`. A date fix that had made the test vacuous would have
+stayed green under that mutation.
+
+## Dependencies
+
+None.
+
+## Related Items
+
+[[ITEM-0122]] — the other red job in the same CI run, also not caused by the
+commit under test. Unrelated in cause; related in that both are failures the
+repository accumulated while standing still.
+
+## Resolution
+
+Fixed on `agent/approvals-inbox-decisions`. Test-only.
+
+The general rule, which is the durable part: **a test that pins its fixture to a
+date must pin its assertion to the same date.** Position in a to-date window is
+not identity. Any `[length - 1]`, `.at(-1)` or `[0]` reached for on a range that
+ends at `new Date()` is the same bug waiting for a month boundary.
+
+## QA Retest
+
+`QA-PLATFORM-032`. Its step 4 is the one that matters: mutate the conversion
+back to one currency per query and confirm the test still fails. A date fix that
+had made the assertion vacuous would pass step 1 and fail step 4.
+
+## History
+
+- 2026-09-09 — created and fixed, found when `API tests` failed on an unrelated
+  frontend change.
+
+<!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
+
+## Related
+
+- Modules — [[super-admin]]
+- Regression — REG-393 (see the regression register)
+
+<!-- GRAPH:END -->

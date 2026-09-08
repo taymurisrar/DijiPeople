@@ -9,7 +9,7 @@
 |---|---|
 | Open CRITICAL | **0** |
 | Open HIGH | **31** |
-| Open total | 111 |
+| Open total | 112 |
 | Blocked | 2 |
 | Awaiting a product decision | 7 |
 | Deferred | 27 |
@@ -367,6 +367,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2648-reports-pages-scroll-sideways-at-1440-because-grid-items-can|BUG-2648]] | Reports pages scroll sideways at 1440 because grid items cannot shrink below their content | UX | MEDIUM | FIXED | app:web | DONE |
 | [[BUG-2662-an-expired-refresh-token-puts-the-tenant-app-into-a-redirect|BUG-2662]] | An expired refresh token puts the tenant app into a redirect loop instead of the login page | UX | MEDIUM | FIXED | apps/web | DONE |
 | [[BUG-2822-a-business-refusal-is-rendered-as-a-fatal-error-dialog-with-|BUG-2822]] | A business refusal is rendered as a fatal error dialog with a reference id and a log download | UX | MEDIUM | FIXED | runtime, approvals, attendance | FIX_NOW |
+| [[BUG-2839-a-dashboard-fx-test-asserted-on-the-last-month-bucket-so-it-|BUG-2839]] | A dashboard FX test asserted on the last month bucket, so it passed in August and failed on 1 September | BUG | MEDIUM | FIXED | super-admin | FIX_NOW |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -482,6 +483,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2648-reports-pages-scroll-sideways-at-1440-because-grid-items-can|BUG-2648]] | Reports pages scroll sideways at 1440 because grid items cannot shrink below their content | UX | MEDIUM | FIXED | app:web | DONE |
 | [[BUG-2662-an-expired-refresh-token-puts-the-tenant-app-into-a-redirect|BUG-2662]] | An expired refresh token puts the tenant app into a redirect loop instead of the login page | UX | MEDIUM | FIXED | apps/web | DONE |
 | [[BUG-2822-a-business-refusal-is-rendered-as-a-fatal-error-dialog-with-|BUG-2822]] | A business refusal is rendered as a fatal error dialog with a reference id and a log download | UX | MEDIUM | FIXED | runtime, approvals, attendance | FIX_NOW |
+| [[BUG-2839-a-dashboard-fx-test-asserted-on-the-last-month-bucket-so-it-|BUG-2839]] | A dashboard FX test asserted on the last month bucket, so it passed in August and failed on 1 September | BUG | MEDIUM | FIXED | super-admin | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -533,7 +535,7 @@ _None. Nothing open at CRITICAL._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 315 |
+| Bug records | 316 |
 | Backlog items | 122 |
 | Known bug patterns | 32 |
 | QA runs | 32 |

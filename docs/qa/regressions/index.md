@@ -4395,3 +4395,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Three things generalise. **Draw the line on the HTTP status, not on a list of error codes**: a code list in the frontend is a second copy of the API's error catalog and will misclassify whichever code was added most recently, and the direction it fails in is the dangerous one — a real defect wearing a friendly toast. **A business status is necessary and not sufficient**: a proxy or WAF answers 403 with an HTML page, and the contract reader fills missing fields with its own defaults, so the payload must be checked for a message the server actually wrote. **A correct idea owned by one module is a defect in every other module**: attendance had this right for months, with the reasoning written down in its own header, and nothing carried it into the shared runtime — so each module added afterwards inherited the fatal dialog by default. 401 and 404 are deliberately excluded: the dialog is the only surface that can offer Sign in, and a dead route must stay loud. |
 | **Fixed** | 2026-09-08, branch `agent/approvals-inbox-decisions` |
 | **Active** | yes |
+
+### REG-393 — A test asserted on the last month bucket, so it passed only during that month
+
+| | |
+|---|---|
+| **Bug class** | `position-used-as-identity` |
+| **Module** | `services/api/src/modules/super-admin` |
+| **Bug record** | BUG-2839 |
+| **Root cause** | The fixture pinned every row to August 2026 and the assertion then read `trend[trend.length - 1]`, assuming the last bucket was August. `monthlyBuckets` sizes its window from `start` to **today**, so that held only while the wall clock was in August. On 1 September the last bucket became an empty September, both figures read 0, and `API tests` went red on every branch. "The last bucket" and "August" were the same thing on the day it was written, and the test recorded the coincidence rather than the intent. |
+| **Regression test** | `services/api/src/modules/super-admin/dashboard-fx.spec.ts` |
+| **Scenario** | Assert on the bucket whose key is the fixture's month, not on its position, so the verdict does not depend on the date the suite runs. Keep an assertion that the window still reaches today, so a date fix cannot quietly turn a window bug into a passing test. |
+| **Proven to fail without the fix** | Reproduced by running the spec on any date after August 2026: `Expected: 8140, Received: 0`. The fix was separately proven not to be vacuous by mutating `sumConverted` to convert every row at `rows[0].currency` — the per-query defect the test exists for — which gives `Received: 45840`. |
+| **Note** | Two things generalise. **A test that pins its fixture to a date must pin its assertion to the same date**: any `[length - 1]`, `.at(-1)` or `[0]` reached for on a range that ends at `new Date()` is this bug waiting for a month boundary, and it will surface in whatever unrelated change happens to run first after it. **A false red is expensive out of proportion to its cause**: this appeared inside an unrelated frontend change, where the honest first reading is "I broke something", alongside a second unrelated red job (ITEM-0122) in a release window — and the cost is the minutes spent proving innocence, every time, for as long as it stands. |
+| **Fixed** | 2026-09-09, branch `agent/approvals-inbox-decisions` |
+| **Active** | yes |

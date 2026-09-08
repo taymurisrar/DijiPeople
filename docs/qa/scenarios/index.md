@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 331** · automated: 286 · manual: 23 · blocked by infrastructure: 0
+**Scenarios: 332** · automated: 287 · manual: 23 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -213,6 +213,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-PLATFORM-029](../../../docs/qa/scenarios/QA-PLATFORM-029-a-client-cannot-store-a-rendered-web-page-as-an-incident-mes.md) | A client cannot store a rendered web page as an incident message | monitoring | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/error-logs/client-error-message.spec.ts` | BUG-2460 | REG-369 |
 | [QA-PLATFORM-030](../../../docs/qa/scenarios/QA-PLATFORM-030-expected-protocol-outcomes-stay-out-of-the-triage-queue-and-.md) | Expected protocol outcomes stay out of the triage queue and defects stay in it | monitoring | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/error-logs/expected-protocol-outcome.spec.ts` | BUG-2465, BUG-1754 | REG-371, REG-282 |
 | [QA-PLATFORM-031](../../../docs/qa/scenarios/QA-PLATFORM-031-the-under-investigation-count-is-measured-from-the-states-it.md) | The under-investigation count is measured from the states it names | monitoring | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/platform-monitoring/investigating-count.spec.ts` | BUG-2495 | REG-373 |
+| [QA-PLATFORM-032](../../../docs/qa/scenarios/QA-PLATFORM-032-the-platform-revenue-trend-is-correct-on-any-date-it-is-run.md) | The platform revenue trend is correct on any date it is run | platform-admin | UNIT | LOW | AUTOMATED | `services/api/src/modules/super-admin/dashboard-fx.spec.ts` | BUG-2839 | REG-393 |
 | [QA-PROV-001](../../../docs/qa/scenarios/QA-PROV-001-a-tenant-that-failed-provisioning-can-be-retried.md) | A tenant that failed provisioning can be retried | tenant-provisioning | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/tenant-control-plane/tenant-provisioning-retry.spec.ts` | BUG-0014 | REG-012 |
 | [QA-PROV-002](../../../docs/qa/scenarios/QA-PROV-002-provisioning-is-safe-to-submit-twice.md) | Provisioning is safe to submit twice | tenant-provisioning | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/super-admin/tenant-provisioning-idempotency.spec.ts` | BUG-0022 | REG-030 |
 | [QA-PROV-003](../../../docs/qa/scenarios/QA-PROV-003-issued-tenant-hostnames-honour-the-configured-base-domain.md) | Issued tenant hostnames honour the configured base domain | tenant-provisioning | UNIT | HIGH | AUTOMATED | `services/api/src/common/config/tenant-url.config.spec.ts` | BUG-0017, BUG-0026 | REG-016, REG-027 |
