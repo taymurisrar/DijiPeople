@@ -46,6 +46,24 @@ surface rather than a route module; **enforced where settings resolve**, not by 
 route gate". The exemption named an enforcer that did not exist. Nobody checked,
 because the sentence reads like a decision rather than a claim.
 
+## It recurred within hours of being written
+
+This pattern was written on 2026-09-09 from BUG-2958. The same afternoon, on the
+same tenant, the user opened Reports & Analytics and found the third instance:
+BUG-3007, an entitlement gate that reaches API route modules and the settings
+tree and not the reporting catalog — whose own code asserts, in two comments,
+that the catalog "is already permission- and entitlement-filtered by the API".
+
+Recording that here rather than quietly adding a row. **Writing the pattern down
+did not cause it to be applied.** The task that authored this file went on to
+verify only the structure it had changed, and a reader who wanted to catch
+BUG-3007 needed to do step 2 below against a module the task had no other reason
+to open.
+
+The practical lesson is in step 1: enumerate the sibling structures *before*
+declaring a cross-cutting fix complete, and write the list into the record so
+the omission is visible to a reviewer rather than resident in one agent's head.
+
 ## How to catch it
 
 1. **Ask what else expresses this concept.** For any rule applied per directory,
