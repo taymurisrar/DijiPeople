@@ -222,6 +222,7 @@ export default async function AttendanceDeviceDetailPage({
                 deviceId={device.id}
                 isEnabled={device.isEnabled}
                 syncRequestPending={device.syncRequestPending ?? false}
+                verificationStatus={device.verificationStatus}
               />
             </div>
           ) : null}

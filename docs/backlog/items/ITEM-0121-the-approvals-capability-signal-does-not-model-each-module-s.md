@@ -1,0 +1,127 @@
+---
+ID: ITEM-0121
+aliases: [ITEM-0121]
+Title: The approvals capability signal does not model each module's object-level rules, so a refused action can look available
+Type: UX
+Status: DEFERRED
+Priority: P3
+Severity: LOW
+AffectedModules: [approvals, attendance]
+Source: ARCHITECT
+OwnerAgent: architect
+ArchitectDisposition: DEFER
+CreatedAt: 2026-09-08
+UpdatedAt: 2026-09-08
+RelatedBug: BUG-2718
+RelatedQA: 
+RelatedADR: 
+RelatedImplementation:
+TargetMilestone: 
+BlockedBy: 
+---
+
+# ITEM-0121 — The approvals capability signal does not model each module's object-level rules, so a refused action can look available
+
+## Summary
+
+The approvals inbox decides what to enable from a `decision` block the API
+computes per record: is there a delegate for this module, is the request still
+pending, is the caller the assigned approver or an approvals manager, and does
+the caller hold the owning module's permission. That is four of the five
+questions. The fifth — **does the owning module's own object-level rule allow
+*this* caller to act on *this* record** — is not modelled.
+
+Found by live verification of [[BUG-2718]] on the demo tenant immediately after
+release. Approve was enabled on `ACR-000001`; pressing it produced
+`ACCESS_DENIED — "You cannot approve or reject your own attendance correction
+request."` The refusal is correct and the record was left untouched. The button
+should not have invited it.
+
+## Why It Matters
+
+The whole point of the capability block was that a disabled control explains
+itself in terms the reader can act on, instead of a caption written for whoever
+maintains the runtime. An **enabled** control that then refuses is the same
+defect wearing the opposite mask: the screen still misleads, and now it costs a
+round trip and an error modal to find out.
+
+The cost is bounded — the server is authoritative and refuses correctly, so this
+is a UX defect and not a security one. Severity LOW for that reason. But
+self-approval is not an exotic case: on a small tenant the person raising a
+correction is very often the person holding the admin role.
+
+## Evidence
+
+Live, production, `fe1cd3dd`, 2026-09-08 20:39 UTC. Reference id
+`client_1788899957479_kyd1z35tgn`.
+
+The rule that fired is `assertCanActionCorrection`
+(`services/api/src/modules/attendance/attendance.service.ts`), which checks the
+self condition **before** the elevated-role bypass — deliberately, and
+`docs/knowledge/modules/leave-attendance-approvals.md` holds it up as the
+correctly-ordered example of the [[self-approval]] pattern. Delegating preserved
+it, which is the good news; the inbox simply could not see it in advance.
+
+Leave has the same shape and the opposite ordering defect ([[BUG-1970]]), so
+whatever is built here must not assume every module answers the question the same
+way.
+
+## Proposed Approach
+
+No ExecPlan. The mechanism exists; this extends it.
+
+Add an optional predicate to `ApprovalDecisionDelegate` — something like
+`canDecide(action, user, entityId): Promise<string | null>`, returning a reason
+when the module would refuse — and have `resolveDecisionCapability` consult it.
+
+Two constraints, both learned from building the current version:
+
+1. **Do not reimplement the rule in the delegate.** The delegate must call the
+   module's own check, exactly as `decide()` calls the module's own decision
+   method, or the inbox and the module will drift and the inbox will be the one
+   that is wrong. `satisfiesPermissionRequirement` is the precedent: extract and
+   share, never copy.
+2. **It must stay optional.** A delegate that does not implement it keeps
+   today's behaviour, which is a button that may be refused — strictly better
+   than a button disabled by a guess.
+
+Cost: `resolveDecisionCapability` runs per row on the list. A predicate that
+issues a query per record turns one list request into N. Either restrict it to
+the detail page, or require the predicate to answer from data already loaded.
+
+## Acceptance Criteria
+
+- On a request the caller raised themselves, Approve and Reject are disabled on
+  the attendance correction above, and the reason says the caller cannot decide
+  their own request.
+- A caller who legitimately may decide sees no change.
+- The list request issues no additional query per row.
+- Reverting the module's own guard makes a test fail — the delegate must not be
+  asserting a rule it owns a private copy of.
+
+## Dependencies
+
+None. `ApprovalDecisionRegistry` and the `decision` block both shipped in
+[[BUG-2718]].
+
+## Related Items
+
+[[BUG-2718]] — the release this was found verifying.
+[[BUG-1970]] — leave's elevated-before-self ordering, the reason this cannot
+assume a uniform rule.
+
+## History
+
+- 2026-09-08 — created at `fe1cd3dd`, from live post-release verification of
+  BUG-2718 on the demo tenant. Not a regression: this behaviour is no worse than
+  the disabled-for-everyone buttons it replaced, and the server refuses
+  correctly.
+
+<!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
+
+## Related
+
+- Bug — [[BUG-2718]]
+- Modules — [[approvals]], [[attendance]]
+
+<!-- GRAPH:END -->

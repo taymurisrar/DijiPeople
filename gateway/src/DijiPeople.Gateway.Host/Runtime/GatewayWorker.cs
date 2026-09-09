@@ -304,7 +304,29 @@ public sealed class GatewayWorker : BackgroundService
 
         foreach (var integration in _configuration.Integrations)
         {
-            if (!integration.IsActive) continue;
+            // An inactive integration is normally left entirely alone. There is
+            // one exception, and it exists because of the first move.
+            //
+            // DijiPeople refuses to activate an integration until one of its
+            // devices has reported VERIFIED, and only a gateway can make a
+            // device report anything at all. Skipping every inactive
+            // integration outright therefore deadlocked the two against each
+            // other: the terminal stayed UNVERIFIED for ever, activation stayed
+            // impossible, and nobody could bring an on-premise integration live
+            // (BUG-2732).
+            //
+            // So an integration still waiting to be verified may run exactly
+            // one operation — a verification — and only when an administrator
+            // has explicitly asked for it. No attendance is read, nothing is
+            // queued, and nothing happens on a timer.
+            var verificationOnly = !integration.IsActive;
+
+            if (verificationOnly && !AwaitsVerification(integration))
+            {
+                // DISABLED or ARCHIVED: switched off on purpose. A request left
+                // over from before that decision must not reach the terminal.
+                continue;
+            }
 
             foreach (var device in integration.Devices)
             {
@@ -327,12 +349,20 @@ public sealed class GatewayWorker : BackgroundService
                 var policy = device.SyncPolicy ?? new SyncPolicyConfiguration();
 
                 var manualRequest = PendingManualRequest(device, state);
-                var due = manualRequest is not null || SyncSchedule.IsDue(
-                    policy,
-                    state?.LastSyncCompletedAt,
-                    state?.NextEligibleAt,
-                    device.DeviceId,
-                    now);
+
+                // Before activation the schedule gets no say. A tenant that has
+                // not switched an integration on has not agreed to this gateway
+                // dialling their terminal every half hour, so the only thing
+                // that may start a pre-activation verification is an operator
+                // asking for one.
+                var due = verificationOnly
+                    ? manualRequest is not null
+                    : manualRequest is not null || SyncSchedule.IsDue(
+                        policy,
+                        state?.LastSyncCompletedAt,
+                        state?.NextEligibleAt,
+                        device.DeviceId,
+                        now);
 
                 if (!due) continue;
 
@@ -348,10 +378,24 @@ public sealed class GatewayWorker : BackgroundService
                     policy,
                     state,
                     manualRequest,
+                    verificationOnly,
                     cancellationToken);
             }
         }
     }
+
+    /// <summary>
+    /// Whether an inactive integration is one still waiting to be verified,
+    /// rather than one somebody switched off.
+    ///
+    /// Decided from the server's own status rather than inferred from the
+    /// absence of a flag. DISABLED and ARCHIVED are deliberate operator
+    /// decisions, and treating them the same as "not yet set up" would let a
+    /// stale request reach a terminal the tenant had already stood down.
+    /// </summary>
+    internal static bool AwaitsVerification(IntegrationConfiguration integration) =>
+        string.Equals(integration.Status, "DRAFT", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(integration.Status, "UNVERIFIED", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// An outstanding manual request the gateway has not answered yet.
@@ -379,6 +423,7 @@ public sealed class GatewayWorker : BackgroundService
         SyncPolicyConfiguration policy,
         DeviceRuntimeState? state,
         DateTimeOffset? manualRequest,
+        bool verificationOnly,
         CancellationToken cancellationToken)
     {
         try
@@ -395,6 +440,29 @@ public sealed class GatewayWorker : BackgroundService
             if (neverVerified || manualRequest is not null)
             {
                 await _syncRunner.VerifyAsync(integration, device, cancellationToken);
+            }
+
+            if (verificationOnly)
+            {
+                // Pre-activation. The operator asked "can you see this
+                // terminal?" and has now been answered. Reading attendance for
+                // an integration the tenant has not activated is precisely what
+                // the IsActive gate exists to prevent, so this returns here
+                // rather than falling through.
+                //
+                // The request is acknowledged explicitly because
+                // SyncAttendanceAsync — which normally does it — is deliberately
+                // not called. Without this the same request would be honoured
+                // again on every cycle, dialling the terminal for ever.
+                if (manualRequest is not null)
+                {
+                    await _store.AcknowledgeSyncRequestAsync(
+                        device.DeviceId,
+                        manualRequest.Value,
+                        cancellationToken);
+                }
+
+                return;
             }
 
             var outcome = await _syncRunner.SyncAttendanceAsync(

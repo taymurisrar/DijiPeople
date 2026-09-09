@@ -115,7 +115,7 @@ pairing is what connects an installation to one organisation.
 
 ```powershell
 # elevated PowerShell, in the unpacked folder
-./install.ps1 -Url https://api.yourcompany.com -PairingCode ABCD-EFGH
+./install.ps1 -Url https://api.yourcompany.com/api -PairingCode ABCD-EFGH
 ```
 
 Copies to Program Files, registers the service as `delayed-auto` under

@@ -134,9 +134,22 @@ describe('dashboard revenue trend', () => {
       convert,
     );
 
-    const august = trend[trend.length - 1];
-    expect(august.invoiced).toBe(8140); // 100 QAR → 7640, plus 500 PKR
-    expect(august.collected).toBe(6112); // 80 QAR
+    /*
+     * By key, not by position. `monthlyBuckets` runs from `start` to **today**,
+     * so "the last bucket" is only August during August — this assertion passed
+     * for the month it was written in and failed on 1 September, when the last
+     * bucket became an empty September and both figures read 0.
+     *
+     * The fixture is pinned to August on purpose; the assertion has to be too.
+     */
+    const august = trend.find((bucket) => bucket.key === '2026-08');
+    expect(august).toBeDefined();
+    expect(august!.invoiced).toBe(8140); // 100 QAR → 7640, plus 500 PKR
+    expect(august!.collected).toBe(6112); // 80 QAR
+
+    // The window still reaches today, and a month with no rows is zero rather
+    // than absent — which is what made the original assertion look plausible.
+    expect(trend[trend.length - 1].key >= '2026-08').toBe(true);
   });
 
   it('skips a row it cannot convert rather than adding it at par', () => {

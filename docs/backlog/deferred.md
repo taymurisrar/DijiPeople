@@ -13,6 +13,7 @@ or `BLOCKED_EXTERNAL` with an explicit reason. See
 
 | ID | Title | Type | Severity | Priority | Status | Affected | Architect |
 |---|---|---|---|---|---|---|---|
+| [ITEM-0123](../../docs/backlog/items/ITEM-0123-multer-carries-three-high-advisories-and-the-override-that-f.md) | multer carries three high advisories and the override that fixes it cannot be applied without a full re-resolve | SECURITY | HIGH | P1 | DEFERRED | dependencies, ci | DEFER |
 | [BUG-2626](../../docs/bugs/BUG-2626-dashboard-numbers-render-in-the-visitor-s-browser-locale-ins.md) | Dashboard numbers render in the visitor's browser locale instead of the tenant's | UX | MEDIUM | P2 | DEFERRED | app:web | DEFER |
 | [ITEM-0054](../../docs/backlog/items/ITEM-0054-contract-placeholder-examples-fabricate-a-saudi-legal-entity.md) | Contract placeholder examples fabricate a Saudi legal entity, CR number and tax ID | DOCUMENTATION | MEDIUM | P2 | DEFERRED | contracts | DEFER |
 | [ITEM-0055](../../docs/backlog/items/ITEM-0055-database-e2e-runs-serially-and-now-dominates-its-own-job.md) | Database e2e runs serially and now dominates its own job | PERFORMANCE | MEDIUM | P2 | DEFERRED | api, ci | DEFER |
@@ -36,6 +37,7 @@ or `BLOCKED_EXTERNAL` with an explicit reason. See
 | [ITEM-0083](../../docs/backlog/items/ITEM-0083-scheduled-reconciliation-sweep-for-orders-stuck-awaiting-pay.md) | Scheduled reconciliation sweep for orders stuck awaiting payment | FOLLOW_UP | LOW | P3 | DEFERRED | api:billing | DEFER |
 | [ITEM-0104](../../docs/backlog/items/ITEM-0104-the-customization-settings-category-renders-no-leaf-pages-in.md) | The customization settings category renders no leaf pages in server HTML | UX | LOW | P3 | DEFERRED | apps/web | DEFER |
 | [ITEM-0110](../../docs/backlog/items/ITEM-0110-attendance-entry-appears-to-create-timesheet-drafts-on-a-ten.md) | Attendance entry appears to create Timesheet drafts on a tenant without the Timesheets entitlement | PRODUCT_DECISION | LOW | P3 | DEFERRED | api:timesheets, api:attendance | DEFER |
+| [ITEM-0121](../../docs/backlog/items/ITEM-0121-the-approvals-capability-signal-does-not-model-each-module-s.md) | The approvals capability signal does not model each module's object-level rules, so a refused action can look available | UX | LOW | P3 | DEFERRED | approvals, attendance | DEFER |
 | [ITEM-0101](../../docs/backlog/items/ITEM-0101-mailerservice-silently-logs-instead-of-sending-and-nothing-u.md) | MailerService silently logs instead of sending, and nothing uses it | TECH_DEBT | — | P2 | DEFERRED | services/api/src/common/mailer | DEFER |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |

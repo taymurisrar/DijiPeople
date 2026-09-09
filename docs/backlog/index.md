@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**434 records** — 314 bugs under [`docs/bugs/`](../bugs/), 120 non-bug items under [`items/`](items/).
+**442 records** — 317 bugs under [`docs/bugs/`](../bugs/), 125 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,21 +13,21 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 110 |
+| Open (active work) | 115 |
 | Blocked | 2 |
-| Deferred | 26 |
+| Deferred | 28 |
 | Awaiting a product decision | 6 |
-| Completed / closed | 290 |
+| Completed / closed | 291 |
 | **Open CRITICAL** | **0** |
-| **Open HIGH** | **31** |
-| **Awaiting Architect triage** | **3** |
+| **Open HIGH** | **32** |
+| **Awaiting Architect triage** | **5** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 31 |
-| MEDIUM | 65 |
+| HIGH | 32 |
+| MEDIUM | 69 |
 | LOW | 14 |
 
 ## Open by type
@@ -36,18 +36,18 @@ see [`README.md`](README.md) for why.
 |---|---|
 | ARCHITECTURE | 2 |
 | AUTHORIZATION | 3 |
-| BUG | 36 |
+| BUG | 37 |
 | DATA_INTEGRITY | 9 |
 | DOCUMENTATION | 2 |
 | FOLLOW_UP | 2 |
 | INFRA | 4 |
-| INTEGRATION | 3 |
+| INTEGRATION | 4 |
 | PERFORMANCE | 1 |
-| SECURITY | 4 |
+| SECURITY | 5 |
 | STATE_MACHINE | 3 |
 | TECH_DEBT | 6 |
-| TEST_GAP | 6 |
-| UX | 29 |
+| TEST_GAP | 7 |
+| UX | 30 |
 
 ## All records by status
 
@@ -55,14 +55,15 @@ see [`README.md`](README.md) for why.
 |---|---|
 | OPEN | 9 |
 | BLOCKED | 2 |
-| DEFERRED | 26 |
+| DEFERRED | 28 |
 | PRODUCT_DECISION | 6 |
-| FIXED | 74 |
+| FIXED | 77 |
 | VERIFIED | 218 |
 | DUPLICATE | 5 |
 | ACCEPTED_RISK | 3 |
+| TRIAGE_REQUIRED | 2 |
 | READY | 27 |
-| DONE | 64 |
+| DONE | 65 |
 
 ## All records
 
@@ -219,7 +220,7 @@ see [`README.md`](README.md) for why.
 | [BUG-2683](../../docs/bugs/BUG-2683-every-scheduled-report-fails-to-deliver-because-the-email-te.md) | Every scheduled report fails to deliver because the email template variable tenantName is never passed | BUG | HIGH | P1 | FIXED | api:reporting/schedule | DONE |
 | [BUG-2693](../../docs/bugs/BUG-2693-historical-headcount-reports-employee-days-instead-of-headco.md) | Historical headcount reports employee-days instead of headcount and grows with the length of the period | DATA_INTEGRITY | HIGH | P1 | FIXED | api:reporting | DONE |
 | [BUG-2718](../../docs/bugs/BUG-2718-the-approvals-record-page-reads-the-detail-response-envelope.md) | The approvals record page reads the detail response envelope, so every field is blank | UX | HIGH | P1 | FIXED | approvals, leave, attendance | FIX_NOW |
-| [BUG-2732](../../docs/bugs/BUG-2732-attendance-integration-cannot-be-activated-activation-requir.md) | Attendance integration cannot be activated: activation requires a verified device, but only an active integration is ever verified | STATE_MACHINE | HIGH | P1 | OPEN | api:attendance-integrations, gateway/src/DijiPeople.Gateway.Host | TRIAGE_REQUIRED |
+| [BUG-2732](../../docs/bugs/BUG-2732-attendance-integration-cannot-be-activated-activation-requir.md) | Attendance integration cannot be activated: activation requires a verified device, but only an active integration is ever verified | STATE_MACHINE | HIGH | P1 | FIXED | api:attendance-integrations, gateway/src/DijiPeople.Gateway.Host | FIX_NOW |
 | [BUG-2741](../../docs/bugs/BUG-2741-a-workspace-whose-email-provider-is-a-sink-reports-every-mes.md) | A workspace whose email provider is a sink reports every message as SENT | BUG | HIGH | P1 | FIXED | notifications, reporting | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
@@ -231,6 +232,9 @@ see [`README.md`](README.md) for why.
 | [ITEM-0096](../../docs/backlog/items/ITEM-0096-a-critical-notification-named-no-reason-and-no-action-and-th.md) | A critical notification named no reason and no action, and the price estimate showed no working | UX | HIGH | P1 | DONE | api:platform-events, apps/admin, apps/landing | DONE |
 | [ITEM-0097](../../docs/backlog/items/ITEM-0097-a-saved-column-preference-could-hide-the-column-that-identif.md) | A saved column preference could hide the column that identifies the row | UX | HIGH | P1 | DONE | apps/admin, e2e | DONE |
 | [ITEM-0103](../../docs/backlog/items/ITEM-0103-deployment-check-the-composed-tenant-workspace-host-must-res.md) | Deployment check: the composed tenant workspace host must resolve | TEST_GAP | HIGH | P1 | DONE | web, tenant-domains | DONE |
+| [ITEM-0122](../../docs/backlog/items/ITEM-0122-fifteen-production-advisories-have-no-disposition-so-the-ci-.md) | Fifteen production advisories have no disposition, so the CI advisory gate fails on every branch including main | SECURITY | HIGH | P1 | DONE | ci, dependencies | DONE |
+| [ITEM-0123](../../docs/backlog/items/ITEM-0123-multer-carries-three-high-advisories-and-the-override-that-f.md) | multer carries three high advisories and the override that fixes it cannot be applied without a full re-resolve | SECURITY | HIGH | P1 | DEFERRED | dependencies, ci | DEFER |
+| [ITEM-0124](../../docs/backlog/items/ITEM-0124-production-advisory-gate-blocks-every-release-to-main-and-np.md) | Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile | SECURITY | HIGH | P1 | TRIAGE_REQUIRED | scripts/check-production-advisories.mjs | TRIAGE_REQUIRED |
 | [ITEM-0048](../../docs/backlog/items/ITEM-0048-replace-or-contain-active-win-and-the-xlsx-export-path.md) | Replace or contain active-win and the xlsx export path | SECURITY | HIGH | P2 | BLOCKED | apps/agent-desktop, services/api/src/common/excel, package-lock.json | BLOCKED_EXTERNAL |
 | [ITEM-0086](../../docs/backlog/items/ITEM-0086-smoke-deployment-does-not-assert-that-a-launched-market-has-.md) | smoke:deployment does not assert that a launched market has a purchasable price or a running outbox worker | TEST_GAP | HIGH | P2 | DONE | scripts | DONE |
 | [BUG-0051](../../docs/bugs/BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state.md) | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | P1 | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
@@ -367,6 +371,9 @@ see [`README.md`](README.md) for why.
 | [BUG-2647](../../docs/bugs/BUG-2647-reporting-record-tables-and-metric-tiles-format-without-the-.md) | Reporting record tables and metric tiles format without the tenant context, causing a hydration mismatch | UX | MEDIUM | P2 | FIXED | app:web, app:web | DONE |
 | [BUG-2648](../../docs/bugs/BUG-2648-reports-pages-scroll-sideways-at-1440-because-grid-items-can.md) | Reports pages scroll sideways at 1440 because grid items cannot shrink below their content | UX | MEDIUM | P2 | FIXED | app:web | DONE |
 | [BUG-2662](../../docs/bugs/BUG-2662-an-expired-refresh-token-puts-the-tenant-app-into-a-redirect.md) | An expired refresh token puts the tenant app into a redirect loop instead of the login page | UX | MEDIUM | P2 | FIXED | apps/web | DONE |
+| [BUG-2822](../../docs/bugs/BUG-2822-a-business-refusal-is-rendered-as-a-fatal-error-dialog-with-.md) | A business refusal is rendered as a fatal error dialog with a reference id and a log download | UX | MEDIUM | P2 | FIXED | runtime, approvals, attendance | FIX_NOW |
+| [BUG-2839](../../docs/bugs/BUG-2839-a-dashboard-fx-test-asserted-on-the-last-month-bucket-so-it-.md) | A dashboard FX test asserted on the last month bucket, so it passed in August and failed on 1 September | BUG | MEDIUM | P2 | FIXED | super-admin | FIX_NOW |
+| [BUG-2888](../../docs/bugs/BUG-2888-an-externally-hosted-release-is-invisible-to-the-desktop-age.md) | An externally hosted release is invisible to the desktop agent update feed, because the platform publish route cannot record a SHA-512 | INTEGRATION | MEDIUM | P2 | OPEN | api:app-releases | TRIAGE_REQUIRED |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -428,6 +435,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0118](../../docs/backlog/items/ITEM-0118-merge-the-duplicate-customeraccount-rows-self-service-checko.md) | Merge the duplicate CustomerAccount rows self-service checkout created before BUG-2530 | DATA_MIGRATION | MEDIUM | P2 | DONE | super-admin, billing | DONE |
 | [ITEM-0119](../../docs/backlog/items/ITEM-0119-stop-writing-a-placeholder-e-mail-into-an-identity-column-wh.md) | Stop writing a placeholder e-mail into an identity column when the wizard opens a draft | TECH_DEBT | MEDIUM | P2 | READY | billing, landing, super-admin | PLAN_REQUIRED |
 | [ITEM-0120](../../docs/backlog/items/ITEM-0120-schema-prisma-declares-constraints-no-migration-creates-so-m.md) | schema.prisma declares constraints no migration creates, so migrate dev cannot run without a reset | TECH_DEBT | MEDIUM | P2 | DEFERRED | prisma | DEFER |
+| [ITEM-0125](../../docs/backlog/items/ITEM-0125-the-net-integration-gateway-ships-to-customers-with-no-ci-co.md) | The .NET Integration Gateway ships to customers with no CI coverage at all | TEST_GAP | MEDIUM | P2 | TRIAGE_REQUIRED | gateway | TRIAGE_REQUIRED |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |
@@ -494,6 +502,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0109](../../docs/backlog/items/ITEM-0109-the-disabled-check-in-button-explains-itself-only-in-a-title.md) | The disabled Check In button explains itself only in a title tooltip | UX | LOW | P3 | READY | apps/web | FIX_NOW |
 | [ITEM-0110](../../docs/backlog/items/ITEM-0110-attendance-entry-appears-to-create-timesheet-drafts-on-a-ten.md) | Attendance entry appears to create Timesheet drafts on a tenant without the Timesheets entitlement | PRODUCT_DECISION | LOW | P3 | DEFERRED | api:timesheets, api:attendance | DEFER |
 | [ITEM-0111](../../docs/backlog/items/ITEM-0111-protected-route-prefixes-omits-twelve-authenticated-route-tr.md) | PROTECTED_ROUTE_PREFIXES omits twelve authenticated route trees, so deep links to them are lost at sign-in | UX | LOW | P3 | READY | apps/web | FIX_NOW |
+| [ITEM-0121](../../docs/backlog/items/ITEM-0121-the-approvals-capability-signal-does-not-model-each-module-s.md) | The approvals capability signal does not model each module's object-level rules, so a refused action can look available | UX | LOW | P3 | DEFERRED | approvals, attendance | DEFER |
 | [ITEM-0057](../../docs/backlog/items/ITEM-0057-landing-production-env-examples-still-name-the-vercel-and-re.md) | Landing production env examples still name the vercel and render hosts, not the dijipeople.com apex | PRODUCT_DECISION | — | P2 | DONE | apps/landing | DONE |
 | [ITEM-0091](../../docs/backlog/items/ITEM-0091-repo-health-blocks-every-release-task-on-its-own-defining-ou.md) | repo:health blocks every RELEASE task on its own defining outcome | INFRA | — | P2 | DONE | framework | DONE |
 | [ITEM-0100](../../docs/backlog/items/ITEM-0100-apps-landing-env-examples-omit-next-public-web-root-domain-a.md) | apps/landing env examples omit NEXT_PUBLIC_WEB_ROOT_DOMAIN and no parity test guards them | INFRA | — | P2 | DONE | apps/landing, pkg:config | DONE |

@@ -15,8 +15,8 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
-| Open HIGH | 31 |
-| Awaiting Architect triage | 3 |
+| Open HIGH | 32 |
+| Awaiting Architect triage | 5 |
 | Owner decisions pending | 6 |
 | QA coverage gaps | 142 |
 | Scenarios blocked by infrastructure | 0 |
@@ -30,11 +30,11 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 109 |
-| No next action | 109 |
-| Aging — 7d / 30d / 90d | 19 / 0 / 0 |
+| No acceptance criteria | 114 |
+| No next action | 114 |
+| Aging — 7d / 30d / 90d | 110 / 0 / 0 |
 | Architecture and technical debt | 8 |
-| Security gaps | 7 |
+| Security gaps | 8 |
 | Database gaps | 9 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
@@ -268,11 +268,11 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 110 |
+| Open total | 115 |
 | Blocked | 2 |
-| Deferred | 26 |
+| Deferred | 28 |
 | Awaiting a product decision | 6 |
-| Awaiting Architect triage | 3 |
+| Awaiting Architect triage | 5 |
 
 **A record nobody has triaged is work nobody has decided about.** No ordinary record may stay `TRIAGE_REQUIRED` at the end of a task.
 
@@ -282,11 +282,11 @@ Deployment state is **not** derivable from Git. A merge is Git state; what is
 running is a separate fact with separate evidence, recorded per release under
 `docs/deployment/release-history/`.
 
+- [[2026-09-08-production-fe1cd3d|Deployment Report — PRODUCTION — fe1cd3d]]
 - [[2026-08-31-production-dae0e37|Deployment Report — PRODUCTION — dae0e37]]
 - [[2026-08-31-production-cace6cd|Deployment Report — PRODUCTION — cace6cd]]
 - [[2026-08-31-production-6d17e93|Deployment Report — PRODUCTION — 6d17e93]]
 - [[2026-08-30-production-6ffed9f|Release — production — `6ffed9f`]]
-- [[2026-08-25-production-08d7901|Release — production — `08d7901`]]
 
 ## How this is maintained
 

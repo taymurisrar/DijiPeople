@@ -14,7 +14,9 @@
     needs no .NET runtime, no Node.js, no npm, no Git and no DijiPeople source.
 
 .PARAMETER Url
-    Your DijiPeople API address, for example https://api.yourcompany.com
+    Your DijiPeople API address, including the /api prefix the API is
+    served under, for example https://api.yourcompany.com/api
+    (a bare host is accepted and the prefix is added for you)
 
 .PARAMETER PairingCode
     The single-use code from DijiPeople, under
@@ -25,7 +27,7 @@
     Where to install. Defaults to Program Files.
 
 .EXAMPLE
-    ./install.ps1 -Url https://api.yourcompany.com -PairingCode ABCD-EFGH
+    ./install.ps1 -Url https://api.yourcompany.com/api -PairingCode ABCD-EFGH
 #>
 
 [CmdletBinding()]

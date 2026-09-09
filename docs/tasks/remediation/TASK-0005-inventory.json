@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 434,
+    "total_records": 442,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -14674,22 +14674,26 @@
       "title": "Attendance integration cannot be activated: activation requires a verified device, but only an active integration is ever verified",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-2732-attendance-integration-cannot-be-activated-activation-requir.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "2b001494",
         "created_at": "2026-08-31",
-        "updated_at": "2026-08-31",
-        "resolved_at": ""
+        "updated_at": "2026-09-09",
+        "resolved_at": "2026-09-09"
       },
       "affected_modules": [
         "services/api/src/modules/attendance-integrations",
         "gateway/src/DijiPeople.Gateway.Host"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-394"
+      ],
+      "qa_scenarios": [
+        "QA-ATT-014"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -14741,6 +14745,132 @@
           "reporting"
         ],
         "verification_scope": "See docs/bugs/BUG-2741-a-workspace-whose-email-provider-is-a-sink-reports-every-mes.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2822",
+      "type": "UX",
+      "title": "A business refusal is rendered as a fatal error dialog with a reference id and a log download",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-2822-a-business-refusal-is-rendered-as-a-fatal-error-dialog-with-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "2cee8b9b",
+        "created_at": "2026-09-08",
+        "updated_at": "2026-09-08",
+        "resolved_at": "2026-09-08"
+      },
+      "affected_modules": [
+        "runtime",
+        "approvals",
+        "attendance"
+      ],
+      "regressions": [
+        "REG-392"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-040"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "runtime",
+          "approvals",
+          "attendance"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2822-a-business-refusal-is-rendered-as-a-fatal-error-dialog-with-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2839",
+      "type": "BUG",
+      "title": "A dashboard FX test asserted on the last month bucket, so it passed in August and failed on 1 September",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-2839-a-dashboard-fx-test-asserted-on-the-last-month-bucket-so-it-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "bdbf9dc1",
+        "created_at": "2026-09-08",
+        "updated_at": "2026-09-08",
+        "resolved_at": "2026-09-09"
+      },
+      "affected_modules": [
+        "super-admin"
+      ],
+      "regressions": [
+        "REG-393"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-032"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "super-admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2839-a-dashboard-fx-test-asserted-on-the-last-month-bucket-so-it-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-2888",
+      "type": "INTEGRATION",
+      "title": "An externally hosted release is invisible to the desktop agent update feed, because the platform publish route cannot record a SHA-512",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-2888-an-externally-hosted-release-is-invisible-to-the-desktop-age.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "4ee7b2cd",
+        "created_at": "2026-09-09",
+        "updated_at": "2026-09-09",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/app-releases"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/app-releases"
+        ],
+        "verification_scope": "See docs/bugs/BUG-2888-an-externally-hosted-release-is-invisible-to-the-desktop-age.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],
@@ -20102,6 +20232,202 @@
           "prisma"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0120-schema-prisma-declares-constraints-no-migration-creates-so-m.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0121",
+      "type": "UX",
+      "title": "The approvals capability signal does not model each module's object-level rules, so a refused action can look available",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0121-the-approvals-capability-signal-does-not-model-each-module-s.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-08",
+        "updated_at": "2026-09-08",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "approvals",
+        "attendance"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "approvals",
+          "attendance"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0121-the-approvals-capability-signal-does-not-model-each-module-s.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0122",
+      "type": "SECURITY",
+      "title": "Fifteen production advisories have no disposition, so the CI advisory gate fails on every branch including main",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0122-fifteen-production-advisories-have-no-disposition-so-the-ci-.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-08",
+        "updated_at": "2026-09-08",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "ci",
+        "dependencies"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "ci",
+          "dependencies"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0122-fifteen-production-advisories-have-no-disposition-so-the-ci-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0123",
+      "type": "SECURITY",
+      "title": "multer carries three high advisories and the override that fixes it cannot be applied without a full re-resolve",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0123-multer-carries-three-high-advisories-and-the-override-that-f.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-09",
+        "updated_at": "2026-09-09",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "dependencies",
+        "ci"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "dependencies",
+          "ci"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0123-multer-carries-three-high-advisories-and-the-override-that-f.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0124",
+      "type": "SECURITY",
+      "title": "Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "TRIAGE_REQUIRED",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0124-production-advisory-gate-blocks-every-release-to-main-and-np.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "",
+        "created_at": "2026-09-09",
+        "updated_at": "2026-09-09",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "scripts/check-production-advisories.mjs"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "scripts/check-production-advisories.mjs"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0124-production-advisory-gate-blocks-every-release-to-main-and-np.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0125",
+      "type": "TEST_GAP",
+      "title": "The .NET Integration Gateway ships to customers with no CI coverage at all",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "TRIAGE_REQUIRED",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0125-the-net-integration-gateway-ships-to-customers-with-no-ci-co.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "",
+        "created_at": "2026-09-09",
+        "updated_at": "2026-09-09",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "gateway"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "gateway"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0125-the-net-integration-gateway-ships-to-customers-with-no-ci-co.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

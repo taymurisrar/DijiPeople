@@ -7,6 +7,7 @@ import {
   AttendanceDeviceDirectionMode,
   AttendanceDeviceScopeType,
   AttendanceDeviceStatus,
+  AttendanceIntegrationStatus,
   AttendanceSyncIntervalUnit,
   AttendanceSyncMode,
   Prisma,
@@ -392,6 +393,96 @@ export class AttendanceDeviceService {
       requested: true,
       alreadyOutstanding: false,
       syncRequestedAt: requestedAt,
+    };
+  }
+
+  /**
+   * Asks the gateway to reach this terminal and report what answered.
+   *
+   * This is the action the readiness panel has always named — "Install and pair
+   * a gateway, then run Verify device" — and until BUG-2732 it existed nowhere:
+   * no route, no control, and a gateway that skipped any integration the tenant
+   * had not activated. Since activation itself requires a verified device, the
+   * two waited on each other and no on-premise integration could ever go live.
+   *
+   * It rides the same `syncRequestedAt` channel as Sync now, because that is
+   * already the tested way an operator's intent reaches a gateway that nothing
+   * in the cloud can call. What makes it a verification rather than a sync is
+   * decided by the gateway from the integration's own status: before
+   * activation it verifies and stops, and reads no attendance.
+   *
+   * Deliberately permitted while the integration is still DRAFT or UNVERIFIED —
+   * that is the entire point of it.
+   */
+  async requestDeviceVerification(user: AuthenticatedUser, id: string) {
+    const device = await this.prisma.attendanceDevice.findFirst({
+      where: { id, tenantId: user.tenantId },
+      select: {
+        id: true,
+        isEnabled: true,
+        gatewayId: true,
+        syncRequestedAt: true,
+        syncRequestAcknowledgedAt: true,
+        integration: { select: { gatewayId: true, status: true } },
+      },
+    });
+
+    if (!device) {
+      throw new NotFoundException('Attendance device could not be found.');
+    }
+
+    if (!device.isEnabled) {
+      throw new BadRequestException(
+        'This device is disabled. Enable it before verifying it.',
+      );
+    }
+
+    if (!(device.gatewayId ?? device.integration.gatewayId)) {
+      throw new BadRequestException(
+        'No gateway serves this device, so nothing can reach the terminal.',
+      );
+    }
+
+    // A request a switched-off integration would never answer is worse than a
+    // refusal: the operator waits for a result that cannot arrive, because the
+    // gateway will not dial a terminal the tenant deliberately stood down.
+    if (device.integration.status === AttendanceIntegrationStatus.DISABLED) {
+      throw new BadRequestException(
+        'This integration is disabled. Re-enable it before verifying the device.',
+      );
+    }
+
+    const outstanding =
+      device.syncRequestedAt !== null &&
+      (device.syncRequestAcknowledgedAt === null ||
+        device.syncRequestAcknowledgedAt < device.syncRequestedAt);
+
+    if (outstanding) {
+      return {
+        requested: true,
+        alreadyOutstanding: true,
+        verificationRequestedAt: device.syncRequestedAt,
+      };
+    }
+
+    const requestedAt = new Date();
+    await this.prisma.attendanceDevice.update({
+      where: { id: device.id },
+      data: { syncRequestedAt: requestedAt, syncRequestedById: user.userId },
+    });
+
+    await this.audit(
+      user,
+      'attendance_device_verification_requested',
+      device.id,
+      null,
+      { verificationRequestedAt: requestedAt },
+    );
+
+    return {
+      requested: true,
+      alreadyOutstanding: false,
+      verificationRequestedAt: requestedAt,
     };
   }
 
