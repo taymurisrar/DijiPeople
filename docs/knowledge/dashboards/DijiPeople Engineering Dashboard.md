@@ -11,7 +11,7 @@
 | Open HIGH | **32** |
 | Open total | 115 |
 | Blocked | 2 |
-| Awaiting a product decision | 6 |
+| Awaiting a product decision | 7 |
 | Deferred | 27 |
 | Completed | 291 |
 | Awaiting Architect triage | 5 |
@@ -61,6 +61,7 @@ _None. Nothing open at CRITICAL._
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
+| [[ITEM-0123-multer-carries-three-high-advisories-and-the-override-that-f|ITEM-0123]] | multer carries three high advisories and the override that fixes it cannot be applied without a full re-resolve | SECURITY | HIGH | PRODUCT_DECISION | dependencies, ci | PRODUCT_DECISION |
 | [[BUG-2509-platform-admin-remember-me-has-no-policy-able-to-refuse-it|BUG-2509]] | Platform admin remember-me has no policy able to refuse it | SECURITY | MEDIUM | PRODUCT_DECISION | api:auth | PRODUCT_DECISION |
 | [[ITEM-0106-an-employee-cannot-use-self-service-until-their-manager-acti|ITEM-0106]] | An employee cannot use self-service until their manager activates their own account | PRODUCT_DECISION | MEDIUM | PRODUCT_DECISION | api:leave, api:employees | PRODUCT_DECISION |
 | [[ITEM-0115-provisioning-seeds-four-departments-with-no-business-unit-on|ITEM-0115]] | Provisioning seeds four departments with no business unit on every tenant | PRODUCT_DECISION | MEDIUM | PRODUCT_DECISION | services/api/prisma, api:organization | PRODUCT_DECISION |
@@ -540,8 +541,8 @@ _None. Nothing open at CRITICAL._
 | Knowledge | Count |
 |---|---|
 | Bug records | 317 |
-| Backlog items | 124 |
-| Known bug patterns | 32 |
+| Backlog items | 125 |
+| Known bug patterns | 33 |
 | QA runs | 32 |
 | Engineering history records | 73 |
 | Release records | 8 |
