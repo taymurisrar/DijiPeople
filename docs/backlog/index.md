@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**446 records** — 319 bugs under [`docs/bugs/`](../bugs/), 127 non-bug items under [`items/`](items/).
+**447 records** — 320 bugs under [`docs/bugs/`](../bugs/), 127 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,20 +13,20 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 117 |
+| Open (active work) | 118 |
 | Blocked | 2 |
 | Deferred | 29 |
 | Awaiting a product decision | 6 |
 | Completed / closed | 292 |
 | **Open CRITICAL** | **0** |
-| **Open HIGH** | **34** |
+| **Open HIGH** | **35** |
 | **Awaiting Architect triage** | **5** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 34 |
+| HIGH | 35 |
 | MEDIUM | 69 |
 | LOW | 14 |
 
@@ -35,7 +35,7 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | ARCHITECTURE | 2 |
-| AUTHORIZATION | 4 |
+| AUTHORIZATION | 5 |
 | BUG | 37 |
 | DATA_INTEGRITY | 9 |
 | DOCUMENTATION | 2 |
@@ -53,7 +53,7 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 9 |
+| OPEN | 10 |
 | BLOCKED | 2 |
 | DEFERRED | 29 |
 | PRODUCT_DECISION | 6 |
@@ -224,6 +224,7 @@ see [`README.md`](README.md) for why.
 | [BUG-2741](../../docs/bugs/BUG-2741-a-workspace-whose-email-provider-is-a-sink-reports-every-mes.md) | A workspace whose email provider is a sink reports every message as SENT | BUG | HIGH | P1 | FIXED | notifications, reporting | FIX_NOW |
 | [BUG-2933](../../docs/bugs/BUG-2933-mapping-a-device-user-never-requeues-its-punches-so-backfill.md) | Mapping a device user never requeues its punches, so backfilled attendance is silently never built | INTEGRATION | HIGH | P1 | FIXED | api:attendance-integrations | FIX_NOW |
 | [BUG-2958](../../docs/bugs/BUG-2958-settings-shows-every-category-group-and-page-regardless-of-t.md) | Settings shows every category, group and page regardless of the tenant's plan | AUTHORIZATION | HIGH | P1 | FIXED | apps/web, api:tenant-settings | FIX_NOW |
+| [BUG-3007](../../docs/bugs/BUG-3007-reports-and-analytics-offers-surfaces-and-reports-for-capabi.md) | Reports and Analytics offers surfaces and reports for capabilities the plan does not include | AUTHORIZATION | HIGH | P1 | OPEN | apps/web, api:reporting | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
