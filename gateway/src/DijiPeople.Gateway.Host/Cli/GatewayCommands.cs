@@ -85,14 +85,52 @@ internal static class GatewayCommands
 
     // ------------------------------------------------------------- configure
 
+    /// <summary>
+    /// Accepts the address an administrator would naturally type and turns it
+    /// into the one the API actually answers on.
+    ///
+    /// Every DijiPeople route is served under a global `/api` prefix, and this
+    /// value is used verbatim as an HTTP base address, so `https://api.example.com`
+    /// produces `https://api.example.com/integrations/gateway/pair` — a 404 on
+    /// every call. The failure is invisible in the worst way: pairing reports
+    /// "Pairing failed", which reads as a bad or expired code, so an installer
+    /// keeps generating fresh codes against an address that can never work.
+    ///
+    /// Documentation alone did not prevent this — the shipped install.ps1
+    /// example omitted the prefix — so the address is repaired here instead,
+    /// and the repair is printed rather than done behind the operator's back.
+    /// An address that already carries a path is left exactly as given, so a
+    /// deployment behind a different prefix is not second-guessed.
+    /// </summary>
+    internal static string NormaliseCloudBaseUrl(string value, out bool apiPrefixAdded)
+    {
+        apiPrefixAdded = false;
+
+        if (!Uri.TryCreate(value, UriKind.Absolute, out var uri))
+        {
+            // Not parseable. Validate() reports it far better than a guess here.
+            return value;
+        }
+
+        if (uri.AbsolutePath.Trim('/').Length > 0)
+        {
+            return value;
+        }
+
+        apiPrefixAdded = true;
+        return $"{value.TrimEnd('/')}/api";
+    }
+
     private static int Configure(
         GatewayPaths paths,
         GatewaySettings settings,
         IReadOnlyDictionary<string, string> options)
     {
+        var apiPrefixAdded = false;
+
         if (options.TryGetValue("url", out var url))
         {
-            settings.CloudBaseUrl = url.Trim();
+            settings.CloudBaseUrl = NormaliseCloudBaseUrl(url.Trim(), out apiPrefixAdded);
         }
 
         if (options.TryGetValue("worker", out var worker))
@@ -118,6 +156,10 @@ internal static class GatewayCommands
         settings.Save(paths);
         Console.WriteLine($"Configuration saved to {paths.SettingsFile}.");
         Console.WriteLine($"DijiPeople address: {settings.CloudBaseUrl}");
+        if (apiPrefixAdded)
+        {
+            Console.WriteLine("  (added the /api prefix — the DijiPeople API is served under it)");
+        }
         return 0;
     }
 
@@ -163,7 +205,7 @@ internal static class GatewayCommands
     {
         if (options.TryGetValue("url", out var url) && !string.IsNullOrWhiteSpace(url))
         {
-            settings.CloudBaseUrl = url.Trim();
+            settings.CloudBaseUrl = NormaliseCloudBaseUrl(url.Trim(), out _);
             settings.Save(paths);
         }
 

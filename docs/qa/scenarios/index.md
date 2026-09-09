@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 332** · automated: 287 · manual: 23 · blocked by infrastructure: 0
+**Scenarios: 333** · automated: 287 · manual: 23 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -37,6 +37,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-ATT-011](../../../docs/qa/scenarios/QA-ATT-011-saving-one-screen-froze-the-settings-behind-another.md) | Saving one screen froze the settings behind another | attendance | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/attendance/attendance-policy-write.spec.ts` | BUG-1980 | REG-323 |
 | [QA-ATT-012](../../../docs/qa/scenarios/QA-ATT-012-the-create-branch-fallback-skipped-the-two-grace-fields-and-th.md) | The create-branch fallback skipped the two grace fields and the office-location switch | attendance | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/attendance/attendance-policy-write.spec.ts` | BUG-1980 | REG-359 |
 | [QA-ATT-013](../../../docs/qa/scenarios/QA-ATT-013-one-surface-that-stayed-silent-and-one-that-was-never-silent-a.md) | One surface that stayed silent, and one that was never silent at all | attendance | MANUAL_VISUAL | MEDIUM | MANUAL | — | BUG-2006 | REG-340 |
+| [QA-ATT-014](../../../docs/qa/scenarios/QA-ATT-014-an-on-premise-attendance-integration-can-be-verified-and-the.md) | An on-premise attendance integration can be verified and then activated | attendance | INTEGRATION | HIGH | PARTIAL | `gateway/tests/DijiPeople.Gateway.Tests/ActivationDeadlockTests.cs` | BUG-2732 | REG-394 |
 | [QA-ATTENDANCE-001](../../../docs/qa/scenarios/QA-ATTENDANCE-001-attendance-coordinates-never-leak-through-the-day-payload.md) | Attendance coordinates never leak through the day payload | attendance | E2E | MEDIUM | AUTOMATED | `services/api/test/attendance-operational.e2e-spec.ts` | BUG-1364 | REG-258 |
 | [QA-ATTENDANCE-002](../../../docs/qa/scenarios/QA-ATTENDANCE-002-web-attendance-check-in-prompts-for-location-and-records-a-p.md) | Web attendance check-in prompts for location and records a position | attendance | E2E | HIGH | MANUAL | `packages/config/security-headers.test.js` | BUG-2331 | REG-360 |
 | [QA-ATTENDANCE-003](../../../docs/qa/scenarios/QA-ATTENDANCE-003-an-attendance-refusal-renders-as-a-policy-answer-not-the-tec.md) | An attendance refusal renders as a policy answer, not the technical error dialog | attendance | E2E | HIGH | MANUAL | `services/api/src/common/errors/attendance-reason-codes.spec.ts` | BUG-2332 | REG-361 |

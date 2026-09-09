@@ -229,6 +229,25 @@ export class AttendanceDeviceController {
     return this.service.requestDeviceSync(user, id);
   }
 
+  /**
+   * Verify device — the action the readiness panel has always named, and which
+   * had no route at all until BUG-2732.
+   *
+   * Like Sync now it records a request rather than dialling anything: the
+   * terminal sits on the customer's LAN and only their gateway can reach it.
+   * Unlike Sync now it is meant to be used *before* activation, because a
+   * verified device is what activation waits for.
+   */
+  @Post('devices/:id/verify')
+  @Permissions('attendanceDevices.manage')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
+  requestVerification(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.service.requestDeviceVerification(user, id);
+  }
+
   // --- device scopes -------------------------------------------------------
 
   @Get('devices/:id/scopes')

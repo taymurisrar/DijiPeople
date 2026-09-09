@@ -6,10 +6,20 @@ namespace DijiPeople.Gateway.FakeWorker;
 /// <summary>
 /// Reproduces the behaviours the real worker can exhibit, on demand.
 ///
-/// The mode comes from the DIJI_FAKE_WORKER_MODE environment variable rather
-/// than an argument, so the gateway's own argument construction stays under test
-/// — the supervisor builds the command line it would really build, and this
-/// process ignores it exactly as an unhealthy worker would.
+/// DIJI_FAKE_WORKER_MODE forces one behaviour and overrides everything else,
+/// because that is how the failure modes are selected: a hang, a crash, a flood
+/// or a contract mismatch has to be demanded, and demanding it through the
+/// environment rather than an argument leaves the gateway's own command-line
+/// construction genuinely under test — the supervisor builds the line it would
+/// really build and this process ignores it, exactly as an unhealthy worker
+/// would.
+///
+/// With no mode forced it instead answers the argument it was actually given,
+/// which makes it a faithful stand-in for a terminal across a whole run:
+/// verification asks for --device-info, a sync asks for --attendance, and
+/// directory discovery asks for --users. Returning an attendance document to a
+/// --device-info call would be a worker fault, and simulating one by accident
+/// is not what an end-to-end rehearsal is for.
 ///
 /// The JSON is assembled by concatenation rather than with interpolated raw
 /// strings: the payloads are dense with braces, and a quoting mistake here would
@@ -19,7 +29,8 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
-        var mode = Environment.GetEnvironmentVariable("DIJI_FAKE_WORKER_MODE") ?? "attendance";
+        var mode = Environment.GetEnvironmentVariable("DIJI_FAKE_WORKER_MODE")
+            ?? ModeFromArguments(args);
 
         switch (mode)
         {
@@ -84,6 +95,28 @@ internal static class Program
                 Console.Out.Write(AttendanceDocument());
                 return 0;
         }
+    }
+
+    /// <summary>
+    /// The operation the gateway actually asked for.
+    ///
+    /// Defaults to attendance, which is what this fixture answered for every
+    /// call before it could read its arguments at all — so a caller that passes
+    /// nothing recognisable gets exactly the old behaviour.
+    /// </summary>
+    private static string ModeFromArguments(string[] args)
+    {
+        foreach (var argument in args)
+        {
+            switch (argument)
+            {
+                case "--device-info": return "device-info";
+                case "--users": return "users";
+                case "--attendance": return "attendance";
+            }
+        }
+
+        return "attendance";
     }
 
     private static string Runtime() =>

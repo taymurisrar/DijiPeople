@@ -20,7 +20,7 @@ see [`README.md`](README.md) for why.
 | Completed / closed | 291 |
 | **Open CRITICAL** | **0** |
 | **Open HIGH** | **31** |
-| **Awaiting Architect triage** | **3** |
+| **Awaiting Architect triage** | **2** |
 
 ## Open by severity
 
@@ -53,11 +53,11 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 9 |
+| OPEN | 8 |
 | BLOCKED | 2 |
 | DEFERRED | 27 |
 | PRODUCT_DECISION | 6 |
-| FIXED | 76 |
+| FIXED | 77 |
 | VERIFIED | 218 |
 | DUPLICATE | 5 |
 | ACCEPTED_RISK | 3 |
@@ -219,7 +219,7 @@ see [`README.md`](README.md) for why.
 | [BUG-2683](../../docs/bugs/BUG-2683-every-scheduled-report-fails-to-deliver-because-the-email-te.md) | Every scheduled report fails to deliver because the email template variable tenantName is never passed | BUG | HIGH | P1 | FIXED | api:reporting/schedule | DONE |
 | [BUG-2693](../../docs/bugs/BUG-2693-historical-headcount-reports-employee-days-instead-of-headco.md) | Historical headcount reports employee-days instead of headcount and grows with the length of the period | DATA_INTEGRITY | HIGH | P1 | FIXED | api:reporting | DONE |
 | [BUG-2718](../../docs/bugs/BUG-2718-the-approvals-record-page-reads-the-detail-response-envelope.md) | The approvals record page reads the detail response envelope, so every field is blank | UX | HIGH | P1 | FIXED | approvals, leave, attendance | FIX_NOW |
-| [BUG-2732](../../docs/bugs/BUG-2732-attendance-integration-cannot-be-activated-activation-requir.md) | Attendance integration cannot be activated: activation requires a verified device, but only an active integration is ever verified | STATE_MACHINE | HIGH | P1 | OPEN | api:attendance-integrations, gateway/src/DijiPeople.Gateway.Host | TRIAGE_REQUIRED |
+| [BUG-2732](../../docs/bugs/BUG-2732-attendance-integration-cannot-be-activated-activation-requir.md) | Attendance integration cannot be activated: activation requires a verified device, but only an active integration is ever verified | STATE_MACHINE | HIGH | P1 | FIXED | api:attendance-integrations, gateway/src/DijiPeople.Gateway.Host | FIX_NOW |
 | [BUG-2741](../../docs/bugs/BUG-2741-a-workspace-whose-email-provider-is-a-sink-reports-every-mes.md) | A workspace whose email provider is a sink reports every message as SENT | BUG | HIGH | P1 | FIXED | notifications, reporting | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |

@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **2** |
+| Active sessions | **3** |
 | Active parent tasks | 4 |
 | Active work packages | 4 |
 | Blocked work packages | 0 |
@@ -16,7 +16,7 @@
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
 | Open HIGH | 31 |
-| Awaiting Architect triage | 3 |
+| Awaiting Architect triage | 2 |
 | Owner decisions pending | 6 |
 | QA coverage gaps | 142 |
 | Scenarios blocked by infrastructure | 0 |
@@ -49,6 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
+| [[SESSION-0092-attendance-gateway-fix-the-activation-deadlock-publish-the-i|SESSION-0092]] | — | Attendance gateway: fix the activation deadlock, publish the installers, deploy to production | ACTIVE | `agent/attendance-activation-and-release` | `main` | — | NO |
 | [[SESSION-0091-production-advisories-clear-the-gate-that-is-red-on-main|SESSION-0091]] | — | Production advisories: clear the gate that is red on main | ACTIVE | `agent/production-advisories` | `develop` | — | NO |
 | [[SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser|SESSION-0061]] | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | NO |
 
@@ -273,7 +274,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 | Blocked | 2 |
 | Deferred | 27 |
 | Awaiting a product decision | 6 |
-| Awaiting Architect triage | 3 |
+| Awaiting Architect triage | 2 |
 
 **A record nobody has triaged is work nobody has decided about.** No ordinary record may stay `TRIAGE_REQUIRED` at the end of a task.
 

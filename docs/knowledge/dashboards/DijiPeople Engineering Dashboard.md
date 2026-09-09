@@ -14,7 +14,7 @@
 | Awaiting a product decision | 6 |
 | Deferred | 27 |
 | Completed | 291 |
-| Awaiting Architect triage | 3 |
+| Awaiting Architect triage | 2 |
 
 ## Open Critical Bugs
 
@@ -53,7 +53,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2683-every-scheduled-report-fails-to-deliver-because-the-email-te|BUG-2683]] | Every scheduled report fails to deliver because the email template variable tenantName is never passed | BUG | HIGH | FIXED | api:reporting/schedule | DONE |
 | [[BUG-2693-historical-headcount-reports-employee-days-instead-of-headco|BUG-2693]] | Historical headcount reports employee-days instead of headcount and grows with the length of the period | DATA_INTEGRITY | HIGH | FIXED | api:reporting | DONE |
 | [[BUG-2718-the-approvals-record-page-reads-the-detail-response-envelope|BUG-2718]] | The approvals record page reads the detail response envelope, so every field is blank | UX | HIGH | FIXED | approvals, leave, attendance | FIX_NOW |
-| [[BUG-2732-attendance-integration-cannot-be-activated-activation-requir|BUG-2732]] | Attendance integration cannot be activated: activation requires a verified device, but only an active integration is ever verified | STATE_MACHINE | HIGH | OPEN | api:attendance-integrations, gateway/src/DijiPeople.Gateway.Host | TRIAGE_REQUIRED |
+| [[BUG-2732-attendance-integration-cannot-be-activated-activation-requir|BUG-2732]] | Attendance integration cannot be activated: activation requires a verified device, but only an active integration is ever verified | STATE_MACHINE | HIGH | FIXED | api:attendance-integrations, gateway/src/DijiPeople.Gateway.Host | FIX_NOW |
 | [[BUG-2741-a-workspace-whose-email-provider-is-a-sink-reports-every-mes|BUG-2741]] | A workspace whose email provider is a sink reports every message as SENT | BUG | HIGH | FIXED | notifications, reporting | FIX_NOW |
 
 ## Product Decisions Needed
@@ -242,6 +242,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2683-every-scheduled-report-fails-to-deliver-because-the-email-te|BUG-2683]] | Every scheduled report fails to deliver because the email template variable tenantName is never passed | BUG | HIGH | FIXED | api:reporting/schedule | DONE |
 | [[BUG-2693-historical-headcount-reports-employee-days-instead-of-headco|BUG-2693]] | Historical headcount reports employee-days instead of headcount and grows with the length of the period | DATA_INTEGRITY | HIGH | FIXED | api:reporting | DONE |
 | [[BUG-2718-the-approvals-record-page-reads-the-detail-response-envelope|BUG-2718]] | The approvals record page reads the detail response envelope, so every field is blank | UX | HIGH | FIXED | approvals, leave, attendance | FIX_NOW |
+| [[BUG-2732-attendance-integration-cannot-be-activated-activation-requir|BUG-2732]] | Attendance integration cannot be activated: activation requires a verified device, but only an active integration is ever verified | STATE_MACHINE | HIGH | FIXED | api:attendance-integrations, gateway/src/DijiPeople.Gateway.Host | FIX_NOW |
 | [[BUG-2741-a-workspace-whose-email-provider-is-a-sink-reports-every-mes|BUG-2741]] | A workspace whose email provider is a sink reports every message as SENT | BUG | HIGH | FIXED | notifications, reporting | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
@@ -545,7 +546,7 @@ _None. Nothing open at CRITICAL._
 | Decision notes (ADR + generated) | 8 |
 | Implementation records | 7 |
 
-**Awaiting Architect triage: 3.** A record nobody has
+**Awaiting Architect triage: 2.** A record nobody has
 triaged is work nobody has decided about — the number that should stay near
 zero between tasks.
 

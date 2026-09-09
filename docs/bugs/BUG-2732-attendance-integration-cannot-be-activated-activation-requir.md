@@ -2,7 +2,7 @@
 ID: BUG-2732
 aliases: [BUG-2732]
 Title: Attendance integration cannot be activated: activation requires a verified device, but only an active integration is ever verified
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: STATE_MACHINE
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-31
 DetectedInSha: 2b001494
 AffectedModules: [services/api/src/modules/attendance-integrations, gateway/src/DijiPeople.Gateway.Host]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-394
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-31
-UpdatedAt: 2026-08-31
-ResolvedAt:
+UpdatedAt: 2026-09-09
+ResolvedAt: 2026-09-09
 ---
 
 # BUG-2732 — Attendance integration cannot be activated: activation requires a verified device, but only an active integration is ever verified
@@ -111,6 +111,18 @@ AttendanceIntegration  status=UNVERIFIED  isActive=false   connectorType=zkteco-
 AttendanceDevice       status=ACTIVE      isEnabled=true   verificationStatus=UNVERIFIED
 IntegrationGateway     status=ONLINE      isPaired=true    integrationCount=1  deviceCount=1
 ```
+
+**Correction, established 2026-09-09.** The observation below is real but its
+proximate cause was not the deadlock. This tenant also had the attendance
+`integrationEnabled` master switch off (it defaults to `false`, and no
+`TenantSetting` row existed), and `RunDeviceCyclesAsync` returns on that before
+it reaches any integration. So on 31 August the gateway was stopped one gate
+earlier than the record originally implied. The deadlock is nonetheless real and
+independent: with the master switch on and the old code, `if
+(!integration.IsActive) continue;` still skips an `UNVERIFIED` integration, and
+activation still requires the verification that skip prevents. Confirmed by the
+end-to-end rehearsal in **Resolution** below, where turning the master switch on
+was necessary but not sufficient — the fix was what let the device verify.
 
 Gateway log across two runs and a **Sync now**, with no verification attempt:
 
@@ -222,11 +234,59 @@ None. The fix is self-contained across the API, the gateway and the tenant UI.
 
 ## Resolution
 
-Not yet fixed.
+Fixed on `agent/attendance-activation-and-release`.
+
+**Gateway** (`GatewayWorker.cs`). `if (!integration.IsActive) continue;` is
+replaced by a verification-only pass. An integration whose status is `DRAFT` or
+`UNVERIFIED` may run one operation — a verification — and only when an
+administrator has explicitly asked for it; the schedule cannot start one, so a
+tenant who has not activated an integration is never dialled on a timer.
+`DISABLED` and `ERROR` are excluded by `AwaitsVerification`, so a stale request
+cannot reach a terminal the tenant stood down. The verification-only branch
+returns before `SyncAttendanceAsync`, and acknowledges the manual request
+itself — without that the same request would be honoured on every cycle for
+ever, because acknowledgement normally happens inside the sync it skips.
+
+**API.** `POST /integrations/attendance/devices/:id/verify` now exists, so the
+readiness message names a real action. It rides the existing `syncRequestedAt`
+channel rather than adding a second one, needs no migration, and is deliberately
+permitted while the integration is `DRAFT` or `UNVERIFIED`. It refuses on a
+`DISABLED` integration, because a request that can never be answered is worse
+than a refusal.
+
+**Web.** A **Verify device** control on the device page, shown until a terminal
+has actually answered.
+
+**Also fixed alongside it**, because it would have broken the customer install
+just as completely and silently: `configure --url` took the address verbatim and
+used it as an HTTP base, so an address without the `/api` prefix 404'd every
+call and pairing reported "Pairing failed" — which reads as a bad code. The
+shipped `install.ps1` example omitted the prefix. The address is now repaired
+and the repair printed, and both documents were corrected.
+
+**Proven end to end** on the local `xoul-ltd` tenant against the bundled K50
+simulator. A device that had been `UNVERIFIED` with an unacknowledged request
+since 31 August verified within one configuration refresh:
+
+```
+04:15:53 [INF] Configuration updated (1cf99265...): 1 integration(s), 1 device(s).
+04:15:53 [INF] Verified ZKTeco K50 - Karachi Office: VERIFIED, serial match True, clock drift OK.
+```
+
+with every safety property intact: `RawAttendanceEvent` count 0 and
+`IntegrationRun` count 0 (verification read no attendance), the integration
+still `UNVERIFIED`/`isActive=false` (verification did not activate anything),
+and exactly one verification across 47 seconds of one-second cycles (the local
+acknowledgement holds). Activation then returned `blockers: []` and `ACTIVE`.
+
+Gateway version bumped to 2.1.0.
 
 ## QA Retest
 
-Not yet retested.
+Rehearsed end to end against the simulator on 2026-09-09 as described in
+**Resolution**. Not yet retested against the physical K50, which sits on the
+customer's LAN behind their own laptop; the COM path itself was proved by the
+earlier POC against that unit.
 
 ## History
 
@@ -240,8 +300,6 @@ Not yet retested.
 
 ## Related
 
-- No related record, module or decision is declared in this record's
-  frontmatter. Declare one rather than adding a link here by hand — this
-  block is regenerated and a hand-written link inside it is lost.
+- Regression — REG-394 (see the regression register)
 
 <!-- GRAPH:END -->
