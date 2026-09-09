@@ -1116,7 +1116,12 @@ export async function backfillCapabilitiesOnCustomPlans(
   prisma: BootstrapClient,
   featureKeys: readonly string[],
 ) {
-  const catalogKeys = new Set(
+  /*
+   * `Set<string>`, annotated. `DEFAULT_PLAN_DEFINITIONS` is `as const`, so an
+   * inferred set is keyed on the literal union of the four catalog plan keys and
+   * `.has(plan.key)` — a plain `string` off a database row — does not compile.
+   */
+  const catalogKeys = new Set<string>(
     DEFAULT_PLAN_DEFINITIONS.map((definition) => definition.key),
   );
   const plans = await prisma.plan.findMany({
