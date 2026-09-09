@@ -225,6 +225,9 @@ describe('Attendance integration tenant isolation (e2e, DB-backed)', () => {
           useValue: {
             enqueue: async () => undefined,
             enqueueMany: async () => 0,
+            // confirmMapping calls this once a mapping backfills events, so the
+            // punches that were waiting for an owner get reconciled.
+            requeueForMapping: async () => 0,
           },
         },
         EmployeeMappingService,

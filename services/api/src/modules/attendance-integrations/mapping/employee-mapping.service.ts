@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   EmployeeEmploymentStatus,
   ExternalIdentityStatus,
@@ -6,6 +6,7 @@ import {
 } from '@prisma/client';
 
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { AttendanceReconciliationQueueService } from '../../attendance-engine/attendance-reconciliation-queue.service';
 
 /**
  * Matching device users to DijiPeople employees.
@@ -55,7 +56,12 @@ function normalizeName(value: string): string {
 
 @Injectable()
 export class EmployeeMappingService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(EmployeeMappingService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly reconciliationQueue: AttendanceReconciliationQueueService,
+  ) {}
 
   /**
    * Works out who a discovered device user is.
@@ -276,7 +282,7 @@ export class EmployeeMappingService {
     const deviceId = input.deviceId ?? null;
     const externalUserId = input.externalUserId.trim();
 
-    return this.prisma.$transaction(async (tx) => {
+    const outcome = await this.prisma.$transaction(async (tx) => {
       // Every referenced entity must belong to the acting tenant. Checked here
       // rather than trusting the caller, so a guessed id from another tenant
       // cannot create a cross-tenant mapping.
@@ -392,6 +398,39 @@ export class EmployeeMappingService {
 
       return { identity, backfilledEvents: backfilled.count };
     });
+
+    // The half of the design that was written but never wired up.
+    //
+    // Ingestion deliberately does not queue an event nobody owns yet — there is
+    // no attendance day to rebuild for an unmapped punch — and its comment says
+    // "the mapping service requeues its events, so nothing is stranded".
+    // `requeueForMapping` was written for exactly that, and had no callers, so
+    // nothing was requeued and everything was stranded. An administrator mapped
+    // a device user, was told how many punches had been attributed to them, and
+    // no attendance ever appeared, because nothing had asked for it to be built.
+    //
+    // Called after the transaction, and best effort: the mapping is already
+    // durable and is what the operator asked for, so a queue failure must not
+    // undo it. An unqueued day is still reachable through Recalculate.
+    if (outcome.backfilledEvents > 0) {
+      try {
+        await this.reconciliationQueue.requeueForMapping({
+          tenantId,
+          employeeId,
+          integrationId,
+          externalUserId,
+          reason: 'IDENTITY_MAPPED',
+        });
+      } catch (error) {
+        this.logger.error(
+          `Attendance reconciliation could not be queued after mapping ${externalUserId} to employee ${employeeId}: ${
+            error instanceof Error ? error.message : 'unknown error'
+          }`,
+        );
+      }
+    }
+
+    return outcome;
   }
 
   /** Marks a discovered user as deliberately not a DijiPeople employee. */

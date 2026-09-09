@@ -58,6 +58,7 @@ _None._
 | [BUG-2718](../../docs/bugs/BUG-2718-the-approvals-record-page-reads-the-detail-response-envelope.md) | The approvals record page reads the detail response envelope, so every field is blank | UX | HIGH | P1 | FIXED | approvals, leave, attendance | FIX_NOW |
 | [BUG-2732](../../docs/bugs/BUG-2732-attendance-integration-cannot-be-activated-activation-requir.md) | Attendance integration cannot be activated: activation requires a verified device, but only an active integration is ever verified | STATE_MACHINE | HIGH | P1 | FIXED | api:attendance-integrations, gateway/src/DijiPeople.Gateway.Host | FIX_NOW |
 | [BUG-2741](../../docs/bugs/BUG-2741-a-workspace-whose-email-provider-is-a-sink-reports-every-mes.md) | A workspace whose email provider is a sink reports every message as SENT | BUG | HIGH | P1 | FIXED | notifications, reporting | FIX_NOW |
+| [BUG-2933](../../docs/bugs/BUG-2933-mapping-a-device-user-never-requeues-its-punches-so-backfill.md) | Mapping a device user never requeues its punches, so backfilled attendance is silently never built | INTEGRATION | HIGH | P1 | FIXED | api:attendance-integrations | FIX_NOW |
 | [ITEM-0124](../../docs/backlog/items/ITEM-0124-production-advisory-gate-blocks-every-release-to-main-and-np.md) | Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile | SECURITY | HIGH | P1 | TRIAGE_REQUIRED | scripts/check-production-advisories.mjs | TRIAGE_REQUIRED |
 
 ## MEDIUM

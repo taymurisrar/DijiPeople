@@ -8,8 +8,8 @@
 | | |
 |---|---|
 | Open CRITICAL | **0** |
-| Open HIGH | **32** |
-| Open total | 115 |
+| Open HIGH | **33** |
+| Open total | 116 |
 | Blocked | 2 |
 | Awaiting a product decision | 6 |
 | Deferred | 28 |
@@ -55,6 +55,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2718-the-approvals-record-page-reads-the-detail-response-envelope|BUG-2718]] | The approvals record page reads the detail response envelope, so every field is blank | UX | HIGH | FIXED | approvals, leave, attendance | FIX_NOW |
 | [[BUG-2732-attendance-integration-cannot-be-activated-activation-requir|BUG-2732]] | Attendance integration cannot be activated: activation requires a verified device, but only an active integration is ever verified | STATE_MACHINE | HIGH | FIXED | api:attendance-integrations, gateway/src/DijiPeople.Gateway.Host | FIX_NOW |
 | [[BUG-2741-a-workspace-whose-email-provider-is-a-sink-reports-every-mes|BUG-2741]] | A workspace whose email provider is a sink reports every message as SENT | BUG | HIGH | FIXED | notifications, reporting | FIX_NOW |
+| [[BUG-2933-mapping-a-device-user-never-requeues-its-punches-so-backfill|BUG-2933]] | Mapping a device user never requeues its punches, so backfilled attendance is silently never built | INTEGRATION | HIGH | FIXED | api:attendance-integrations | FIX_NOW |
 | [[ITEM-0124-production-advisory-gate-blocks-every-release-to-main-and-np|ITEM-0124]] | Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile | SECURITY | HIGH | TRIAGE_REQUIRED | scripts/check-production-advisories.mjs | TRIAGE_REQUIRED |
 
 ## Product Decisions Needed
@@ -246,6 +247,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2718-the-approvals-record-page-reads-the-detail-response-envelope|BUG-2718]] | The approvals record page reads the detail response envelope, so every field is blank | UX | HIGH | FIXED | approvals, leave, attendance | FIX_NOW |
 | [[BUG-2732-attendance-integration-cannot-be-activated-activation-requir|BUG-2732]] | Attendance integration cannot be activated: activation requires a verified device, but only an active integration is ever verified | STATE_MACHINE | HIGH | FIXED | api:attendance-integrations, gateway/src/DijiPeople.Gateway.Host | FIX_NOW |
 | [[BUG-2741-a-workspace-whose-email-provider-is-a-sink-reports-every-mes|BUG-2741]] | A workspace whose email provider is a sink reports every message as SENT | BUG | HIGH | FIXED | notifications, reporting | FIX_NOW |
+| [[BUG-2933-mapping-a-device-user-never-requeues-its-punches-so-backfill|BUG-2933]] | Mapping a device user never requeues its punches, so backfilled attendance is silently never built | INTEGRATION | HIGH | FIXED | api:attendance-integrations | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | VERIFIED | app:admin | DONE |
@@ -539,7 +541,7 @@ _None. Nothing open at CRITICAL._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 317 |
+| Bug records | 318 |
 | Backlog items | 125 |
 | Known bug patterns | 33 |
 | QA runs | 32 |
