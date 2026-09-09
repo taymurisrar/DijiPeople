@@ -204,3 +204,61 @@ policy on tiptap, which is what disguised a minor bump as a major one — worth
 revisiting, but it is also what made this upgrade a deliberate act rather than a
 silent drift.
 
+## A property of this gate, recorded rather than changed
+
+This check queries the **live** advisory feed, so "green" is a point-in-time
+property of the world rather than of the tree. That is not a defect — it found
+three genuine, reachable highs — but it has two consequences worth writing down,
+because both bit during this work.
+
+**A green verdict expires.** The gate went green on a branch at 22:32 and red on
+its own release PR at 22:48, sixteen minutes later, on the identical commit. New
+advisories had been published in between. Nothing in the repository changed.
+
+**Exact-SHA evidence reuse keys on the tree, not the world.** The 2026-09-08
+release to `main` was authorised by a `CI required gate` verdict from
+2026-08-31 — valid by the reuse rule, because the tree was byte-identical. The
+merge commit then ran fresh and failed this job, so `main` was red the moment it
+was created. The evidence was true when written and false when used.
+
+Deliberately **not** acting on this. Weakening or restructuring a security
+control to make a release smoother is the wrong instinct, and the gate behaved
+correctly both times. It is recorded here so that whoever next sees a mystery red
+on an untouched tree recognises it in seconds instead of bisecting, and so that
+any future change to the reuse rule is made knowing this case exists.
+
+See [[ITEM-0123]] for the advisory that is still open.
+
+## A property of the gate, recorded rather than changed
+
+This job went red **twice in one session without a single line of code
+changing**, and the second time inside a sixteen-minute window between a
+branch's CI run and its own release PR's run. That is not a malfunction — both
+times it found real advisories, and one of them (`multer`, [[ITEM-0123]]) is
+genuinely reachable. It is a property worth writing down.
+
+**"Green" here is a point-in-time claim, not a property of the tree.** Every
+other required job answers a question about the commit; this one answers a
+question about the world on the day it ran. The same tree passes and then fails
+with nothing edited.
+
+That interacts badly with one thing in particular. The `CI required gate` reuses
+a green verdict when the tree is byte-identical — right for tests, and it means
+**a stale green can authorise a merge**. It already did: the 2026-09-08 release
+merged on advisory evidence from 2026-08-31, and the merge commit then ran fresh
+and failed. `main` was red while production was deployed from it, and nothing
+reported that, because the merge was correctly authorised by the rules as
+written.
+
+Deliberately **not** changed here. Options exist — pin an advisory snapshot so
+the check is deterministic, or move the feed-dependent half out of the required
+gate into a scheduled job that raises a record instead of blocking merges — but
+each trades away some of a security control's bite, and that is not a trade to
+make as a side effect of clearing the control. Recorded so the next person
+meeting a red gate on an untouched tree recognises it in a minute rather than an
+hour, and so the decision is available to take deliberately.
+
+See [[gate-that-depends-on-the-outside-world]] for the operational version:
+check whether your commit touched the job's inputs before assuming you broke it,
+and read **every** failing job rather than the first.
+
