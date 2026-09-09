@@ -28,7 +28,7 @@ BlockedBy:
 that for pages a capability key exists for. There are thirteen keys and 87
 settings pages, so **41 pages — 47% of the tree — are attributed `CORE` and
 render on every plan**, including a tenant whose subscription entitles nothing.
-Each of those is a deliberate declaration reviewed under [[ADR-0005]], and
+Each of those is a deliberate declaration reviewed under ADR-0005, and
 several are defensible only because no key exists to sell them with.
 
 This item asks the question the fix could not: which of the 41 should become
@@ -46,7 +46,7 @@ designers.
 
 The cost of not deciding is that these stay free by default and get harder to
 sell later: carving out a capability people already use needs a backfill or it
-reads as a removal, which is the trap [[ADR-0005]] Decision 5 records for
+reads as a removal, which is the trap ADR-0005 Decision 5 records for
 Customization.
 
 ## Evidence
@@ -75,7 +75,7 @@ and it is *not* fixable by attribution — it needs its own key.
 
 **Customization (9)** — `tables`, `fields`, `sidebar`, `forms`, `views`,
 `action-bars`, `widgets`, `packages`, `publish-center`. Free by explicit
-decision ([[ADR-0005]] Decision 5), listed here so the decision is revisited
+decision (ADR-0005 Decision 5), listed here so the decision is revisited
 rather than forgotten.
 
 **Audit and compliance (4)** — `audit-logs`, `data-access-history`,
@@ -95,7 +95,7 @@ stakes.
 
 **Shared master data (5)** — `locations`, `shifts`, `work-calendars`,
 `holiday-calendars`, `work-schedules`. Reviewed and confirmed free under
-[[ADR-0005]] Decision 3; listed for completeness, not as a candidate.
+ADR-0005 Decision 3; listed for completeness, not as a candidate.
 
 **Identity, tenancy and billing (14)** — `tenant`, `subscription`, `users`,
 `roles`, `permissions`, `access-teams`, `countries`, `states`, `cities`,
@@ -119,7 +119,7 @@ same change, or existing tenants silently lose it.
 ## Acceptance Criteria
 
 - Each of the four candidate blocks has a recorded decision — sold or free —
-  with a reason, appended to [[ADR-0005]] or in an ADR of its own.
+  with a reason, appended to ADR-0005 or in an ADR of its own.
 - Any block decided "sold" has a capability key, plan assignments, page
   attributions and a backfill for tenants already using it.
 - The count of `CORE` settings pages is restated after the decisions, so the
@@ -134,7 +134,7 @@ product decision layered on top of it.
 
 - [[BUG-2958]] — the fix that surfaced this residual.
 - [[BUG-1952]] — the API enforcement underneath it.
-- [[ADR-0005]] — the five attribution decisions already taken.
+- ADR-0005 — the five attribution decisions already taken.
 - [[ITEM-0127]] — the IA reorganization found in the same audit.
 - Modules — [[settings]], [[tenant-application]]
 
@@ -162,7 +162,7 @@ product decision layered on top of it.
   (`compliance`, Enterprise up, 4 pages) and bulk import/export
   (`data-management`, Growth up, 1 page). Field security and the advanced
   workflow pages stay free, as does Customization under Decision 5. Recorded as
-  [[ADR-0005]] Decisions 6 and 7.
+  ADR-0005 Decisions 6 and 7.
 
   The residual moves from 41 always-visible pages to 28, and a Starter tenant
   from 67 resolved pages to 54. What remains free is now free by a decision that

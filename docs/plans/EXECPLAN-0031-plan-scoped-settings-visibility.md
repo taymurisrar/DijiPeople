@@ -1,6 +1,6 @@
 ---
-ID: PLAN-031
-aliases: [PLAN-031, EXECPLAN-0031]
+ID: PLAN-035
+aliases: [PLAN-035, EXECPLAN-0031]
 Title: Plan-scoped settings visibility — entitlements gate settings categories, groups and items
 Status: IMPLEMENTED
 Session: SESSION-0094

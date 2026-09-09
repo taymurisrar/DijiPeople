@@ -12,5 +12,4 @@ therefore sees sibling worktrees without anybody having pushed.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
-| [SESSION-0094](../../docs/sessions/SESSION-0094-plan-scoped-settings-visibility-entitlement-gating-for-setti.md) | — | Plan-scoped settings visibility: entitlement gating for settings categories, groups and items | ACTIVE | `agent/settings-plan-entitlements` | `develop` | — | 2026-09-09T10:12:43.128Z |
 | [SESSION-0061](../../docs/sessions/SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser.md) | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | 2026-08-26T09:54:37.336Z |

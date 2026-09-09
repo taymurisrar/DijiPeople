@@ -6,6 +6,7 @@ Sessions that reached a terminal state. Kept as history: the branch, the base it
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0094](../../docs/sessions/SESSION-0094-plan-scoped-settings-visibility-entitlement-gating-for-setti.md) | — | Plan-scoped settings visibility: entitlement gating for settings categories, groups and items | COMPLETE | `agent/settings-plan-entitlements` | `develop` | — | 2026-09-09T10:12:43.128Z |
 | [SESSION-0093](../../docs/sessions/SESSION-0093-disposition-multer-so-the-release-can-ship.md) | — | Disposition multer so the release can ship | COMPLETE | `agent/multer-disposition` | `develop` | — | 2026-09-09T07:46:06.293Z |
 | [SESSION-0092](../../docs/sessions/SESSION-0092-attendance-gateway-fix-the-activation-deadlock-publish-the-i.md) | — | Attendance gateway: fix the activation deadlock, publish the installers, deploy to production | COMPLETE | `agent/attendance-activation-and-release` | `main` | — | 2026-09-08T23:10:15.602Z |
 | [SESSION-0091](../../docs/sessions/SESSION-0091-production-advisories-clear-the-gate-that-is-red-on-main.md) | — | Production advisories: clear the gate that is red on main | COMPLETE | `agent/production-advisories` | `develop` | — | 2026-09-08T22:02:23.453Z |

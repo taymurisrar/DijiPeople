@@ -231,5 +231,5 @@ presentation, with the group layer and every URL left intact.
   — the defect these decisions were needed to fix.
 - [`BUG-1952`](../bugs/BUG-1952-plan-entitlements-gate-nothing-so-a-starter-tenant-can-use-e.md)
   — the API enforcement layer this mirrors, and the record Decision 2 corrects.
-- [`PLAN-031`](../plans/EXECPLAN-0031-plan-scoped-settings-visibility.md) — the
+- [`PLAN-035`](../plans/EXECPLAN-0031-plan-scoped-settings-visibility.md) — the
   ExecPlan.

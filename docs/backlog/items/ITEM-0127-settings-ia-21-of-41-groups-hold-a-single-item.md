@@ -160,7 +160,7 @@ to review; doing it now is a self-contained presentation change.
   and Appearance & Experience flatten; nothing else does.
 
   Deliberately NOT done: moving or regrouping any page. Every URL is derived from
-  `category/group/item`, so regrouping breaks existing links, and [[ADR-0005]]
+  `category/group/item`, so regrouping breaks existing links, and ADR-0005
   Decision 8 records the rule that came out of this — the group layer describes
   what a page *is* and must not be reshaped to carry an entitlement boundary. The
   nineteen remaining single-page groups sit inside categories that also hold
