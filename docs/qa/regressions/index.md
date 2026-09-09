@@ -4425,3 +4425,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Three things generalise. **A deadlock between two safety rules is invisible in either file**: both reviews pass, both tests pass, and the defect lives in the composition — the tell is a precondition each side expects the other to establish. **A message naming an action that does not exist is evidence, not decoration**: "then run Verify device" had no route and no button, and that gap was the clearest signal the intended first move had never been built. **Verifying an absence needs the gate above it opened first**: the 31 August observation that the gateway "never attempted a device cycle" was true but proximately caused by the tenant's `integrationEnabled` master switch being off, not by the deadlock; the deadlock only became observable once that switch was on. A second gate can hide the one you are hunting. |
 | **Fixed** | 2026-09-09, branch `agent/attendance-activation-and-release` |
 | **Active** | yes |
+
+### REG-395 — A contract agreed in comments between two services and implemented in neither
+
+| | |
+|---|---|
+| **Bug class** | `documented-but-unwired-contract` |
+| **Module** | `services/api/src/modules/attendance-integrations`, `services/api/src/modules/attendance-engine` |
+| **Bug record** | BUG-2933 |
+| **Root cause** | Ingestion does not queue reconciliation for a punch nobody owns yet, and its comment names who will: "the mapping service requeues its events, so nothing is stranded". The queue service provides `requeueForMapping` for exactly that, and its own comment warns that without it "the employee's attendance silently stays missing". The mapping service never called it — `grep` returned one line, the definition. So a mapping attributed the waiting punches, reported how many, and no attendance was ever built. Both ends existed and were documented; only the wire between them was missing, and a missing call has no error path. |
+| **Regression test** | `services/api/src/modules/attendance-integrations/mapping/employee-mapping-requeue.service.spec.ts` |
+| **Scenario** | Map a device user who already has punches. The days those punches fall on must be queued for reconciliation. Mapping a user with no punches must queue nothing, and a queue failure must not fail the mapping. |
+| **Proven to fail without the fix** | Mutation-tested: guarding the call with `if (false && ...)` fails "requeues the days the newly attributed punches fall on" while the other two still pass, so the assertion is on the call and not on the surrounding shape. Independently reproduced on the production demo tenant, where a mapping reporting `backfilledEvents: 1` produced no attendance day across five and a half minutes of polling, and an explicit `reconcile/day` then built it immediately. |
+| **Note** | Two things generalise. **A comment naming another service's obligation is not an implementation of it** — both of these were written by authors who believed the other half existed, and each was right about the other's intent and wrong about its code; grep for the callers of any method a comment promises will be called. **An absence has no error path**, so it cannot be found by reading logs or watching for failures: every indicator here was green, the integration was ONLINE, the device HEALTHY, the sync SUCCEEDED, the mapping MATCHED, and the only symptom was a screen that stayed empty. That is why the end-to-end rehearsal had to go all the way to the attendance screen rather than stopping at "events ingested". |
+| **Fixed** | 2026-09-09, branch `agent/attendance-mapping-reconcile` |
+| **Active** | yes |
