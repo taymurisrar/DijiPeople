@@ -849,6 +849,29 @@ export const TENANT_FEATURE_DEFINITIONS = [
     icon: 'palette',
     isVisible: true,
   },
+  /*
+   * Sold separately from Attendance, which is what the agent captures for.
+   *
+   * The separation is deliberate and narrow: this key gates the Desktop Agent
+   * settings page — installers, enrolment and agent policy — and nothing else.
+   * The agent's own sync endpoints stay gated on `attendance`, because agents
+   * are already deployed in the field on a version they cannot be upgraded
+   * past, and gating those would stop attendance reaching a tenant that had
+   * bought attendance. See docs/decisions/ADR-0031-desktop-agent-capability.md.
+   */
+  {
+    key: 'desktop-agent',
+    label: 'Desktop Agent',
+    description:
+      'The attendance desktop agent: installers, enrolment, and agent policy.',
+    defaultEnabled: true,
+    categoryKey: 'platform',
+    categoryLabel: 'Platform',
+    categoryOrder: 50,
+    sortOrder: 40,
+    icon: 'monitor-smartphone',
+    isVisible: true,
+  },
   {
     key: 'payroll',
     label: 'Payroll',

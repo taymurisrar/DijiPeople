@@ -2,7 +2,7 @@
 ID: PLAN-031
 aliases: [PLAN-031, EXECPLAN-0031]
 Title: Plan-scoped settings visibility — entitlements gate settings categories, groups and items
-Status: DRAFT
+Status: IMPLEMENTED
 Session: SESSION-0094
 Type: ARCHITECTURE
 Size: LARGE
@@ -11,6 +11,45 @@ UpdatedAt: 2026-09-09
 ---
 
 # EXECPLAN-0031 — Plan-scoped settings visibility
+
+## Correction — this plan was first written against a stale checkout
+
+**Read this before the sections below.** The first draft measured "Existing
+behavior" in the user's primary checkout, which was on `develop` at `c22889ab`.
+The task branch was cut from `origin/develop` at `4d0635a0`, sixteen commits
+ahead, and in between another session had landed the API half of
+[`BUG-1952`](../bugs/BUG-1952-plan-entitlements-gate-nothing-so-a-starter-tenant-can-use-e.md).
+That record is now `Status: FIXED`, `ArchitectDisposition: DONE`.
+
+What already existed at the real baseline, and was **not** built by this plan:
+
+| Already shipped at `4d0635a0` | Path |
+|---|---|
+| The entitlement guard, with OFF / REPORT_ONLY / ENFORCE modes | `services/api/src/common/guards/entitlement.guard.ts` |
+| `@RequireEntitlement`, on 28 controllers across 13 modules | `services/api/src/common/decorators/require-entitlement.decorator.ts` |
+| The resolver, its cache and its stale-snapshot handling | `services/api/src/common/security/tenant-entitlement.service.ts` |
+| The typed key mirror and the gated/ungated registers | `services/api/src/common/constants/tenant-features.ts` |
+| The wiring invariant that fails on an undecorated controller | `entitlement-wiring.invariants.spec.ts` |
+| The sidebar fix: the feature check now precedes the admin bypass | `apps/web/app/(authenticated)/_components/navigation.ts:302-313` |
+
+So work packages **WP2, WP3 and WP6 below were already done by someone else**,
+and the plan's original claim that `assertFeatureEnabled` had zero call sites was
+true at `c22889ab` and irrelevant at `4d0635a0` — the enforcement was rebuilt
+around a different primitive rather than by calling that one.
+
+What was genuinely missing is exactly what the user reported: **the settings
+information architecture**. It is a second structure with its own resolver and
+its own registry, and the module-directory gate structurally cannot reach it.
+The existing register says so itself — `branding` is exempted there on the
+grounds that it is "enforced where settings resolve, not by a route gate" — and
+nothing was enforcing where settings resolve. That gap is
+[`BUG-2958`](../bugs/BUG-2958-settings-shows-every-category-group-and-page-regardless-of-t.md),
+and it is what this plan actually delivered.
+
+The sections below are left as written, with this correction governing. The
+lesson is recorded as REG-396 and belongs to the `doc-code-drift` family: a
+baseline measured in the wrong worktree produces a plan that is internally
+coherent and externally wrong.
 
 ```
 CONTEXT_FILES_REQUIRED:
@@ -794,9 +833,18 @@ no external contract. Reverting the merge restores today's behaviour exactly.
 
 ---
 
-## Open product questions
+## Open product questions — all five answered
 
-Each routes through the Architect to the user under
+**Answered on 2026-09-09 and recorded as
+[ADR-0005](../decisions/ADR-0005-settings-capability-attribution.md).** Q1:
+Desktop Agent becomes its own sold capability, gating the settings page only.
+Q2: Work Management and Business Calendar stay core. Q3: downgraded data is
+retained and unreachable, which also answers ITEM-0110. Q4: Document Templates
+is Documents and moves out of the payroll tree. Q5: Customization stays free,
+deliberately. The questions are left below as they were asked, because the
+reasoning in each is what the ADR's decisions are answers to.
+
+Each routed through the Architect to the user under
 [`question-protocol.md`](../../.agent/context/question-protocol.md) and becomes
 an ADR, so nobody is asked twice.
 
@@ -856,15 +904,26 @@ nothing to update. WP9 exists to prove this rather than assert it.
 2. Mirror it into `FEATURE_KEYS` (`apps/web/lib/security-keys.ts:312`).
 3. Attribute the settings items it owns in `settings-entitlements.ts`, and
    decorate the controllers it owns.
-4. Decide which seeded plans include it in
-   `plans.catalog.ts` — existing plans do not gain it automatically, and
-   existing tenants get a `PlanFeature` row only when their plan is next saved.
+4. Decide which seeded plans include it, in `plans.catalog.ts`.
 
-Step 4 is the one that bites: adding a key defaults every existing plan to
-**not** entitled, because `getResolvedTenantFeatures` treats a missing
-`PlanFeature` row as `false` (`feature-access.service.ts:31`). A new capability
-therefore goes dark for every existing tenant until someone updates the plans.
-For a genuinely new capability that is correct. For a capability being carved out
-of what was previously free — Q5's Customization, say — it is a silent removal,
-and it needs a backfill of `PlanFeature` rows for existing subscribers written in
-the same change. Document that in the ADR that adds any such key.
+**Correction to an earlier draft of this section.** It claimed step 4 leaves
+existing plans without the new key until somebody edits each one by hand. That
+is wrong, and the mistake was reading `ensurePlans` and stopping before
+`reconcilePlan`. `reconcilePlan` calls `reconcilePlanFeatures`
+(`commercial-bootstrap.ts:240-244`), which converges an existing plan's feature
+rows against the catalog in both directions — creating a row for a newly listed
+key and disabling one the catalog has dropped. So on a live platform the next
+`seed:config`, which every release runs, gives the four seeded plans their new
+rows. No repair script is needed, and one was drafted and discarded on that
+basis.
+
+Two caveats survive. Plans an operator created by hand are **not** in the
+catalog and are not reconciled — they keep whatever the operator set, which is
+correct, since the catalog is not authoritative for them. And carving a key out
+of what was previously free is still a silent removal for anyone already using
+it: `getResolvedTenantFeatures` treats a missing `PlanFeature` row as `false`
+(`feature-access.service.ts:31`), so the capability goes dark for every tenant
+whose plan does not list it. For a genuinely new capability that is correct. For
+Decision 5's Customization, were it ever sold, it would need a backfill shipped
+in the same change — which is why ADR-0005 says so rather than leaving it to be
+discovered.

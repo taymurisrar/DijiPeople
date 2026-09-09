@@ -58,6 +58,13 @@ export const DEFAULT_PLAN_DEFINITIONS = [
       'documents',
       'notifications',
       'branding',
+      /*
+       * Growth is the lowest tier that sells the desktop agent. Starter buys
+       * Attendance and clocks in through the web; the agent is the upgrade.
+       * Enterprise and Enterprise+ take every key in the catalog, so they pick
+       * this up without being listed here.
+       */
+      'desktop-agent',
     ],
   },
   {

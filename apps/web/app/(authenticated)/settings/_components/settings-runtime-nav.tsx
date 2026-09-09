@@ -8,6 +8,7 @@ import {
   getSettingsRuntimeItemByPath,
   resolveVisibleSettingsRuntime,
 } from "../_lib/settings-runtime";
+import { useTenantEntitlements } from "../../_components/tenant-entitlements-provider";
 
 export function SettingsRuntimeNav({
   currentPath,
@@ -17,13 +18,22 @@ export function SettingsRuntimeNav({
   isCollapsed?: boolean;
 }) {
   const { user } = useCurrentUserAccess();
+  const enabledFeatureKeys = useTenantEntitlements();
   const categories = useMemo(
     () =>
-      resolveVisibleSettingsRuntime(
-        user?.permissionKeys ?? [],
-        user?.roleKeys ?? [],
-      ),
-    [user?.permissionKeys, user?.roleKeys],
+      /*
+       * An unresolved entitlement set renders an empty nav rather than the
+       * whole tree. The page beside it already says why; repeating the message
+       * in the navigation strip would put it on screen twice.
+       */
+      enabledFeatureKeys === null
+        ? []
+        : resolveVisibleSettingsRuntime(
+            user?.permissionKeys ?? [],
+            user?.roleKeys ?? [],
+            enabledFeatureKeys,
+          ),
+    [user?.permissionKeys, user?.roleKeys, enabledFeatureKeys],
   );
   const currentItem = getSettingsRuntimeItemByPath(currentPath);
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>(

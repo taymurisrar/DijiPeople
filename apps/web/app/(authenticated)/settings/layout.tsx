@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { AuthenticatedAccessBoundary } from "../_components/authenticated-shell-provider";
 import { requireSettingsPermissions } from "./_lib/require-settings-permission";
+import { SettingsEntitlementBoundary } from "./_components/settings-entitlement-boundary";
 
 export default async function SettingsLayout({
   children,
@@ -26,7 +27,13 @@ export default async function SettingsLayout({
         tenantSlug: user.tenantSlug,
       }}
     >
-      {children}
+      {/*
+        Inside the access boundary, so permission is settled before plan is. A
+        user without `settings.read` should be told they lack access rather
+        than told their plan is missing something: they would not see the page
+        either way, and only one of those two answers is theirs to act on.
+      */}
+      <SettingsEntitlementBoundary>{children}</SettingsEntitlementBoundary>
     </AuthenticatedAccessBoundary>
   );
 }

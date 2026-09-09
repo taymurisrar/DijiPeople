@@ -24,6 +24,7 @@ export const TENANT_FEATURE_KEYS = {
   DOCUMENTS: 'documents',
   NOTIFICATIONS: 'notifications',
   BRANDING: 'branding',
+  DESKTOP_AGENT: 'desktop-agent',
   PAYROLL: 'payroll',
 } as const;
 
@@ -90,6 +91,8 @@ export const ENTITLEMENT_UNGATED_FEATURE_KEYS: Readonly<
     'Delivery infrastructure, invoked by modules rather than bought by a tenant.',
   [TENANT_FEATURE_KEYS.BRANDING]:
     'A settings surface rather than a route module; enforced where settings resolve.',
+  [TENANT_FEATURE_KEYS.DESKTOP_AGENT]:
+    'Sold separately from Attendance, but enforced only where settings resolve — the Desktop Agent settings page, its installers and its enrolment. Deliberately NOT a route gate on the `agent` module: agents are already deployed in the field on a build that cannot be upgraded past a refusal, and their sync endpoints carry attendance a tenant did buy. Gating those would break attendance capture to enforce a packaging boundary.',
 };
 
 /**

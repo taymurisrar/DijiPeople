@@ -5,6 +5,7 @@ import {
   type VisibleSettingsNavItem,
 } from "./settings-navigation";
 import { getSettingsAdapter } from "./settings-adapter-registry";
+import { isSettingsItemEntitled } from "./settings-entitlements";
 
 export type SettingsRuntimeAction =
   | "new"
@@ -193,7 +194,14 @@ const itemPlacement: Record<
   banks: ["payroll", "banking", "Banking"],
   "payroll-banks": ["payroll", "banking", "Banking"],
   "employer-bank-accounts": ["payroll", "banking", "Banking"],
-  "document-templates": ["payroll", "operations", "Operations and Governance"],
+  /*
+   * Moved out of Payroll & Finance, where it was the only item in an
+   * "Operations and Governance" group. It reads generic document templating
+   * from the settings runtime and has no payroll dependency, so leaving it
+   * there would have taken document templating away from every plan that buys
+   * Documents but not Payroll once entitlements gate the IA. ADR-0031-D.
+   */
+  "document-templates": ["people", "documents", "Document Rules"],
   notifications: ["notifications", "rules", "Notification Rules"],
   "notification-email-templates": ["notifications", "templates", "Templates"],
   "notification-email-providers": ["notifications", "providers", "Providers"],
@@ -222,6 +230,19 @@ const itemPlacement: Record<
   packages: ["customization", "packages", "Packages"],
   "publish-center": ["customization", "publishing", "Publishing"],
   features: ["general-setup", "modules", "Apps & Modules"],
+  /*
+   * Placed, where it used to fall through to `defaultPlacement` and land in
+   * Payroll & Finance > Payroll Configuration.
+   *
+   * That was already wrong — the tenant's own plan, price and invoices are not
+   * payroll configuration — and entitlement gating turned it into a visible
+   * defect: with every real payroll page hidden on a plan without payroll, a
+   * "Payroll & Finance" tile would have survived on Starter holding nothing but
+   * Subscription. Gating the category instead of the item would have been worse
+   * still, hiding a tenant's billing page behind the capability they would go
+   * there to buy.
+   */
+  subscription: ["general-setup", "plan-billing", "Plan & Billing"],
   recruitment: ["general-setup", "modules", "Apps & Modules"],
   "desktop-agent": ["general-setup", "modules", "Apps & Modules"],
   /*
@@ -292,6 +313,14 @@ const routeKeys: Record<string, string> = {
 const implementationRoutes: Record<string, string> = {
   "payroll-settings": "/settings/payroll/configuration/payroll-settings",
   notifications: "/settings/notifications/rules",
+  /*
+   * The subscription screen is purpose-built — plan, price, Stripe actions,
+   * invoices — and lives at its own route with an overview, a plans picker and
+   * a billing history beneath it. Its landing card pointed at the derived
+   * runtime route instead, which renders the generic list adapter rather than
+   * that screen.
+   */
+  subscription: "/settings/subscription",
   // Purpose-built pages, so the runtime's derived category/group route does not
   // describe them. These are the URLs that actually answer.
   "attendance-integrations-overview": "/settings/integrations/attendance",
@@ -717,18 +746,69 @@ export function getSettingsRuntimeItemByPath(pathname: string) {
   );
 }
 
+/**
+ * Raised when the settings IA is asked to resolve without knowing what the
+ * tenant's plan includes.
+ *
+ * This is thrown rather than defaulted, and that is the whole point. The
+ * sidebar's equivalent check treats an unresolved entitlement set as
+ * allow-everything (`navigation.ts`), which is how a Starter tenant came to be
+ * offered five modules it had not bought whenever the availability call
+ * hiccuped. Settings fails closed instead: the caller catches this and renders
+ * an error state that says entitlements could not be read, so a transient
+ * failure looks like a transient failure rather than like a free upgrade.
+ */
+export class SettingsEntitlementsUnavailableError extends Error {
+  constructor() {
+    super(
+      "Settings cannot be resolved without the tenant's plan entitlements.",
+    );
+    this.name = "SettingsEntitlementsUnavailableError";
+  }
+}
+
+/**
+ * The settings categories, groups and items this user may see on this plan.
+ *
+ * Three independent filters, applied to every item:
+ *
+ * 1. **Permissions and roles** — may this user configure it. Unchanged.
+ * 2. **Visibility rules** — the declarative per-item rules. Unchanged.
+ * 3. **Plan entitlement** — did this tenant buy the capability at all. New.
+ *
+ * The third is orthogonal to the first two and no role escapes it: a
+ * `global-admin` on Starter does not see Payroll settings, because the tenant
+ * did not buy payroll and no amount of authority inside the tenant changes what
+ * the tenant purchased.
+ *
+ * Empty groups and then empty categories collapse, which is the mechanism the
+ * permission filter has always used. That is why a category tile disappears
+ * without any category-level rule: Payroll & Finance vanishes because all
+ * eighteen of its items did.
+ *
+ * @throws {SettingsEntitlementsUnavailableError} when `enabledFeatureKeys` is
+ * null — meaning the availability call failed, not that the plan includes
+ * nothing.
+ */
 export function resolveVisibleSettingsRuntime(
   permissionKeys: readonly string[],
   roleKeys: readonly string[],
+  enabledFeatureKeys: readonly string[] | null,
 ) {
+  if (enabledFeatureKeys === null) {
+    throw new SettingsEntitlementsUnavailableError();
+  }
+
   return settingsRuntimeCategories
     .map((category) => ({
       ...category,
       groups: category.groups
         .map((group) => ({
           ...group,
-          items: group.items.filter((item) =>
-            canViewSettingsItem(permissionKeys, roleKeys, item),
+          items: group.items.filter(
+            (item) =>
+              canViewSettingsItem(permissionKeys, roleKeys, item) &&
+              isSettingsItemEntitled(item.key, enabledFeatureKeys),
           ),
         }))
         .filter((group) => group.items.length > 0),

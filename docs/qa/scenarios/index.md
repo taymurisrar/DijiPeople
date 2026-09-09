@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 334** · automated: 287 · manual: 23 · blocked by infrastructure: 0
+**Scenarios: 335** · automated: 287 · manual: 23 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -286,6 +286,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-SETTINGS-014](../../../docs/qa/scenarios/QA-SETTINGS-014-a-singular-derived-by-deleting-a-letter-and-a-title-never-deri.md) | A singular derived by deleting a letter, and a title never derived at all | settings | E2E | MEDIUM | AUTOMATED | `apps/web/lib/text/inflection.spec.ts` | BUG-1964 | REG-339 |
 | [QA-SETTINGS-015](../../../docs/qa/scenarios/QA-SETTINGS-015-three-places-a-value-s-label-was-never-declared-one-helper-for.md) | Three places a value's label was never declared, one helper for the floor under all three | settings | E2E | MEDIUM | AUTOMATED | `apps/web/lib/runtime/runtime-value-formatter.spec.ts` | BUG-2009 | REG-341 |
 | [QA-SETTINGS-016](../../../docs/qa/scenarios/QA-SETTINGS-016-a-defect-not-found-where-the-record-s-own-evidence-said-to-loo.md) | A defect not found where the record's own evidence said to look | settings | MANUAL_VISUAL | MEDIUM | MANUAL | — | BUG-1960 | REG-345 |
+| [QA-SETTINGS-017](../../../docs/qa/scenarios/QA-SETTINGS-017-settings-visibility-follows-the-tenant-s-plan-entitlements.md) | Settings visibility follows the tenant's plan entitlements | settings | BROWSER_E2E | HIGH | PARTIAL | `apps/web/app/(authenticated)/settings/_lib/settings-entitlements.spec.ts` | BUG-2958 | REG-396 |
 | [QA-TENANT-001](../../../docs/qa/scenarios/QA-TENANT-001-the-two-tenant-isolation-pattern-scoped-read-and-scoped-writ.md) | The two-tenant isolation pattern: scoped read and scoped write | tenant-isolation | SECURITY | CRITICAL | AUTOMATED | `services/api/test/tenant-isolation-pattern.e2e-spec.ts` | — | — |
 | [QA-TENANT-002](../../../docs/qa/scenarios/QA-TENANT-002-a-support-role-cannot-read-another-tenant-s-error-logs.md) | A support role cannot read another tenant's error logs | tenant-isolation | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/error-logs/error-logs.service.spec.ts` | BUG-0005 | REG-005 |
 | [QA-TENANT-003](../../../docs/qa/scenarios/QA-TENANT-003-attendance-integration-credentials-never-cross-a-tenant-boun.md) | Attendance-integration credentials never cross a tenant boundary | tenant-isolation | E2E | CRITICAL | AUTOMATED | `services/api/test/attendance-integrations-isolation.e2e-spec.ts` | — | — |

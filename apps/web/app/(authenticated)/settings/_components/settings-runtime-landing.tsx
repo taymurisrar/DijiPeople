@@ -24,9 +24,33 @@ import type {
   SettingsRuntimeGroup,
 } from "../_lib/settings-runtime";
 import { resolveVisibleSettingsRuntime } from "../_lib/settings-runtime";
+import {
+  isSettingsItemEntitled,
+  missingCapabilityLabels,
+} from "../_lib/settings-entitlements";
 import { canViewSettingsItem } from "../_lib/settings-navigation";
 import { SettingsShell } from "./settings-shell";
 import { AccessDeniedState } from "../../_components/access-denied-state";
+import { useTenantEntitlements } from "../../_components/tenant-entitlements-provider";
+import {
+  SettingsEntitlementsUnavailableState,
+  SettingsNotOnPlanState,
+} from "./settings-plan-state";
+
+/**
+ * "Payroll", "Payroll and Timesheets", "Payroll, Timesheets and Projects".
+ *
+ * A group can span more than one capability, so the blocked state names every
+ * one that is missing rather than the first. The empty case reads "this
+ * capability" — reachable only if an item is attributed to a key with no label,
+ * which the entitlement spec prevents, but a sentence with a hole in it is a
+ * worse failure than a vague one.
+ */
+function formatCapabilityList(labels: readonly string[]): string {
+  if (labels.length === 0) return "a capability";
+  if (labels.length === 1) return labels[0]!;
+  return `${labels.slice(0, -1).join(", ")} and ${labels[labels.length - 1]}`;
+}
 
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
   "general-setup": Building2,
@@ -44,9 +68,27 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
 
 export function SettingsWorkspaceLanding() {
   const { user } = useCurrentUserAccess();
+  const enabledFeatureKeys = useTenantEntitlements();
+
+  /*
+   * Fail closed. `null` means the availability call did not answer — not that
+   * the plan is empty — and a settings tree resolved from an unknown plan is
+   * the bug this gate exists to close, so nothing is rendered from a guess.
+   */
+  if (enabledFeatureKeys === null) {
+    return (
+      <div className="min-h-screen bg-background px-2 py-4 sm:px-4 lg:px-6">
+        <div className="mx-auto w-full max-w-7xl">
+          <SettingsEntitlementsUnavailableState />
+        </div>
+      </div>
+    );
+  }
+
   const categories = resolveVisibleSettingsRuntime(
     user?.permissionKeys ?? [],
     user?.roleKeys ?? [],
+    enabledFeatureKeys,
   );
   return (
     <div className="min-h-screen bg-background px-2 py-4 sm:px-4 lg:px-6">
@@ -111,9 +153,22 @@ export function SettingsCategoryLanding({
   category: SettingsRuntimeCategory;
 }) {
   const { user } = useCurrentUserAccess();
+  const enabledFeatureKeys = useTenantEntitlements();
   const permissions = user?.permissionKeys ?? [];
   const roles = user?.roleKeys ?? [];
-  const groups = category.groups
+
+  if (enabledFeatureKeys === null) {
+    return <SettingsEntitlementsUnavailableState />;
+  }
+
+  /*
+   * Permission and entitlement are resolved separately, not folded into one
+   * filter, because the two dead ends need different answers. "You do not have
+   * access" is resolved by the tenant's own administrator; "not included in
+   * your plan" is resolved by DijiPeople. Collapsing them would send half the
+   * people who hit this page to the wrong place.
+   */
+  const permittedGroups = category.groups
     .map((group) => ({
       ...group,
       items: group.items.filter((item) =>
@@ -122,11 +177,34 @@ export function SettingsCategoryLanding({
     }))
     .filter((group) => group.items.length > 0);
 
-  if (groups.length === 0) {
+  if (permittedGroups.length === 0) {
     return (
       <AccessDeniedState
         title="Access denied"
         description={`You do not have access to ${category.label} settings.`}
+      />
+    );
+  }
+
+  const groups = permittedGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) =>
+        isSettingsItemEntitled(item.key, enabledFeatureKeys),
+      ),
+    }))
+    .filter((group) => group.items.length > 0);
+
+  if (groups.length === 0) {
+    const missing = missingCapabilityLabels(
+      permittedGroups.flatMap((group) => group.items.map((item) => item.key)),
+      enabledFeatureKeys,
+    );
+
+    return (
+      <SettingsNotOnPlanState
+        scopeLabel={category.label}
+        capabilityLabel={formatCapabilityList(missing)}
       />
     );
   }
@@ -191,14 +269,37 @@ export function SettingsGroupLanding({
   group: SettingsRuntimeGroup;
 }) {
   const { user } = useCurrentUserAccess();
-  const items = group.items.filter((item) =>
+  const enabledFeatureKeys = useTenantEntitlements();
+
+  if (enabledFeatureKeys === null) {
+    return <SettingsEntitlementsUnavailableState />;
+  }
+
+  const permitted = group.items.filter((item) =>
     canViewSettingsItem(user?.permissionKeys ?? [], user?.roleKeys ?? [], item),
   );
-  if (items.length === 0) {
+  if (permitted.length === 0) {
     return (
       <AccessDeniedState
         title="Access denied"
         description={`You do not have access to ${group.label} settings.`}
+      />
+    );
+  }
+
+  const items = permitted.filter((item) =>
+    isSettingsItemEntitled(item.key, enabledFeatureKeys),
+  );
+  if (items.length === 0) {
+    return (
+      <SettingsNotOnPlanState
+        scopeLabel={group.label}
+        capabilityLabel={formatCapabilityList(
+          missingCapabilityLabels(
+            permitted.map((item) => item.key),
+            enabledFeatureKeys,
+          ),
+        )}
       />
     );
   }
