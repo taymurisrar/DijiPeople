@@ -3,13 +3,13 @@ ID: ITEM-0123
 aliases: [ITEM-0123]
 Title: multer carries three high advisories and the override that fixes it cannot be applied without a full re-resolve
 Type: SECURITY
-Status: PRODUCT_DECISION
+Status: DEFERRED
 Priority: P1
 Severity: HIGH
 AffectedModules: [dependencies, ci]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: PRODUCT_DECISION
+ArchitectDisposition: DEFER
 CreatedAt: 2026-09-09
 UpdatedAt: 2026-09-09
 RelatedBug: 
@@ -144,3 +144,52 @@ and cleared 40 advisories.
 - Modules — [[ci-architecture]]
 
 <!-- GRAPH:END -->
+
+## Decision — 2026-09-09: accepted, with a removal trigger
+
+The owner asked for the release to ship and delegated the choice. **Option 2**,
+dispositioned in `scripts/check-production-advisories.mjs` against the three
+package names the gate reports.
+
+The fact that decided it, and it is not the one that seemed obvious:
+
+> **multer 2.2.0 is already in production.** It is in `main`'s lockfile at
+> `fe1cd3dd`, serving traffic today, and it has been for as long as
+> `@nestjs/platform-express` has pinned it.
+
+So the choice was never "ship a vulnerability or don't". The vulnerability is
+live either way. The choice was whether to *also* delay **37 advisories this
+release genuinely fixes** — two of them high, `@xmldom/xmldom` and `fast-uri` —
+in order to avoid writing down a risk that already exists. Holding the release
+protects nobody from multer and leaves 37 real fixes out of production.
+
+Weighed against accepting it:
+
+| | |
+|---|---|
+| Impact | denial of service on an authenticated endpoint — not disclosure, not tenant crossing, not RCE |
+| Introduced by this release? | **no** — present in production before it |
+| Reachable? | **yes**, and no reachability claim is made to the contrary |
+| Alternative available? | **no** — no published `platform-express` bumps the pin |
+| Cost of forcing it | a CRITICAL `tar` advisory plus four highs, measured |
+
+**This is a risk acceptance, not a reachability argument.** The distinction
+matters, because BUG-0052 recorded three dispositions that failed by claiming
+unreachability from inspection. This one claims the opposite: the path is live,
+and the fix is unavailable.
+
+**Removal trigger**, one line:
+
+```bash
+npm view @nestjs/platform-express@latest dependencies.multer
+```
+
+The moment that prints anything above `2.2.0`, remove all three entries, take the
+bump, and let the gate prove it. Until then the entry carries its own argument so
+the next reader can audit it rather than inherit it.
+
+Recorded `DEFERRED` / `DEFER` rather than `DONE`: the advisory is accepted,
+not resolved, and the removal trigger above is what closes it. (A backlog item
+has no `ACCEPTED_RISK` status — that value exists only on bug records — so the
+acceptance lives in this section rather than in the frontmatter.)
+

@@ -72,6 +72,30 @@ const DISPOSITIONED = new Map([
     'uuid',
     'Moderate, transitive through exceljs. Same disposition. BUG-0052.',
   ],
+  /*
+   * multer and the two @nestjs packages that carry it.
+   *
+   * These three are one advisory set: `@nestjs/platform-express` pins
+   * `multer: 2.2.0` exactly, and `@nestjs/core` is dragged in beside it, so all
+   * three are reported for the same underlying vulnerability in multer.
+   *
+   * This is a REACHABLE high, not a build-tool finding, and it is dispositioned
+   * anyway. The argument is below rather than in a commit message, because a
+   * disposition nobody can audit later is the failure mode BUG-0052 recorded
+   * three times over.
+   */
+  [
+    'multer',
+    "REACHABLE, and accepted deliberately until upstream ships a bump. Three high DoS advisories in versions <=2.2.0: crafted multipart field names (GHSA-wc9g-mqfw-jrwm), a file-descriptor leak on aborted uploads (GHSA-qfvm-cv95-jqjf), and an oversized array index in field names (GHSA-535w-7cp7-47q4). multer is the multipart parser behind every authenticated upload this API accepts, so the code path is live — no reachability claim is being made here. What is claimed is this: (1) the fixed 2.3.0 cannot be reached. @nestjs/platform-express pins multer at exactly 2.2.0 and NO published version bumps it — checked 2026-09-09: 11.2.3, the newest of the 11.x line this product is on, and 12.0.1, the latest overall, both pin 2.2.0. npm's own offered fix is @nestjs/core@7.5.5, a downgrade from v11, which is not a fix. (2) A root override to ^2.3.0 does resolve, but npm honours it only when no lockfile exists; forcing that by regenerating from scratch produced multer 2.3.0 together with a CRITICAL tar advisory, four further highs and 294 unrelated version changes — strictly worse, and reverted. (3) The risk is NOT introduced by the release this unblocks. multer 2.2.0 is already in production: it is in main's lockfile at fe1cd3dd, serving traffic today. Holding the release protects nobody from multer while delaying 37 advisories it genuinely fixes, two of them high (@xmldom/xmldom, fast-uri). (4) The impact is denial of service against an authenticated endpoint, not data disclosure, tenant crossing or remote code execution. REMOVE THIS ENTRY the moment @nestjs/platform-express ships a multer >2.2.0 — one line checks it: `npm view @nestjs/platform-express@latest dependencies.multer`. ITEM-0123.",
+  ],
+  [
+    '@nestjs/platform-express',
+    'Reported for the multer pin it carries, not for a defect of its own. See the `multer` entry above, including its removal trigger. ITEM-0123.',
+  ],
+  [
+    '@nestjs/core',
+    'Reported alongside @nestjs/platform-express for the same multer pin. See the `multer` entry above. ITEM-0123.',
+  ],
 ]);
 
 /** Locate `npm-cli.js` beside the running Node, falling back to `npm_execpath`. */

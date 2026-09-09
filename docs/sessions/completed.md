@@ -6,6 +6,7 @@ Sessions that reached a terminal state. Kept as history: the branch, the base it
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0093](../../docs/sessions/SESSION-0093-disposition-multer-so-the-release-can-ship.md) | — | Disposition multer so the release can ship | COMPLETE | `agent/multer-disposition` | `develop` | — | 2026-09-09T07:46:06.293Z |
 | [SESSION-0092](../../docs/sessions/SESSION-0092-attendance-gateway-fix-the-activation-deadlock-publish-the-i.md) | — | Attendance gateway: fix the activation deadlock, publish the installers, deploy to production | COMPLETE | `agent/attendance-activation-and-release` | `main` | — | 2026-09-08T23:10:15.602Z |
 | [SESSION-0091](../../docs/sessions/SESSION-0091-production-advisories-clear-the-gate-that-is-red-on-main.md) | — | Production advisories: clear the gate that is red on main | COMPLETE | `agent/production-advisories` | `develop` | — | 2026-09-08T22:02:23.453Z |
 | [SESSION-0090](../../docs/sessions/SESSION-0090-approvals-inbox-make-the-decision-surface-real.md) | — | Approvals inbox: make the decision surface real | COMPLETE | `agent/approvals-inbox-decisions` | `develop` | — | 2026-08-31T10:46:00.709Z |

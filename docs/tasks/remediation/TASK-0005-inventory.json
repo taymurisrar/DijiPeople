@@ -20329,8 +20329,8 @@
       "title": "multer carries three high advisories and the override that fixes it cannot be applied without a full re-resolve",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "PRODUCT_DECISION",
-      "architect_disposition": "PRODUCT_DECISION",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0123-multer-carries-three-high-advisories-and-the-override-that-f.md",
         "provenance": "ARCHITECT",

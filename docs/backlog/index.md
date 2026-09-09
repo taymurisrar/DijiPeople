@@ -15,8 +15,8 @@ see [`README.md`](README.md) for why.
 |---|---|
 | Open (active work) | 115 |
 | Blocked | 2 |
-| Deferred | 27 |
-| Awaiting a product decision | 7 |
+| Deferred | 28 |
+| Awaiting a product decision | 6 |
 | Completed / closed | 291 |
 | **Open CRITICAL** | **0** |
 | **Open HIGH** | **32** |
@@ -55,8 +55,8 @@ see [`README.md`](README.md) for why.
 |---|---|
 | OPEN | 9 |
 | BLOCKED | 2 |
-| DEFERRED | 27 |
-| PRODUCT_DECISION | 7 |
+| DEFERRED | 28 |
+| PRODUCT_DECISION | 6 |
 | FIXED | 77 |
 | VERIFIED | 218 |
 | DUPLICATE | 5 |
@@ -233,7 +233,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0097](../../docs/backlog/items/ITEM-0097-a-saved-column-preference-could-hide-the-column-that-identif.md) | A saved column preference could hide the column that identifies the row | UX | HIGH | P1 | DONE | apps/admin, e2e | DONE |
 | [ITEM-0103](../../docs/backlog/items/ITEM-0103-deployment-check-the-composed-tenant-workspace-host-must-res.md) | Deployment check: the composed tenant workspace host must resolve | TEST_GAP | HIGH | P1 | DONE | web, tenant-domains | DONE |
 | [ITEM-0122](../../docs/backlog/items/ITEM-0122-fifteen-production-advisories-have-no-disposition-so-the-ci-.md) | Fifteen production advisories have no disposition, so the CI advisory gate fails on every branch including main | SECURITY | HIGH | P1 | DONE | ci, dependencies | DONE |
-| [ITEM-0123](../../docs/backlog/items/ITEM-0123-multer-carries-three-high-advisories-and-the-override-that-f.md) | multer carries three high advisories and the override that fixes it cannot be applied without a full re-resolve | SECURITY | HIGH | P1 | PRODUCT_DECISION | dependencies, ci | PRODUCT_DECISION |
+| [ITEM-0123](../../docs/backlog/items/ITEM-0123-multer-carries-three-high-advisories-and-the-override-that-f.md) | multer carries three high advisories and the override that fixes it cannot be applied without a full re-resolve | SECURITY | HIGH | P1 | DEFERRED | dependencies, ci | DEFER |
 | [ITEM-0124](../../docs/backlog/items/ITEM-0124-production-advisory-gate-blocks-every-release-to-main-and-np.md) | Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile | SECURITY | HIGH | P1 | TRIAGE_REQUIRED | scripts/check-production-advisories.mjs | TRIAGE_REQUIRED |
 | [ITEM-0048](../../docs/backlog/items/ITEM-0048-replace-or-contain-active-win-and-the-xlsx-export-path.md) | Replace or contain active-win and the xlsx export path | SECURITY | HIGH | P2 | BLOCKED | apps/agent-desktop, services/api/src/common/excel, package-lock.json | BLOCKED_EXTERNAL |
 | [ITEM-0086](../../docs/backlog/items/ITEM-0086-smoke-deployment-does-not-assert-that-a-launched-market-has-.md) | smoke:deployment does not assert that a launched market has a purchasable price or a running outbox worker | TEST_GAP | HIGH | P2 | DONE | scripts | DONE |
