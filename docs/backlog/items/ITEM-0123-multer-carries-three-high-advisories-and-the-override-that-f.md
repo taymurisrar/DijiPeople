@@ -87,10 +87,22 @@ releases later, in one uncontrolled step.
 
 Three options; this needs a decision, not a default.
 
-1. **Wait for upstream.** `@nestjs/platform-express` will bump its multer pin —
-   this advisory is hours old and affects every Nest deployment. Costs nothing,
-   fixes it properly, and the gate clears with no override at all. The exposure
-   window is the wait.
+1. **Wait for upstream.** `@nestjs/platform-express` will bump its multer pin;
+   the advisory affects every Nest deployment, so it will not be ignored. Costs
+   nothing and fixes it properly, and the gate clears with no override at all.
+
+   **Measured 2026-09-09, and this is the part that decides it: no published
+   version has the bump yet.** `12.0.1`, the latest, pins `multer: 2.2.0`. So
+   does `11.2.3`, the newest of the 11.x line this product is on (installed:
+   `11.1.28`). There is no version to upgrade *to* — this is a genuine wait of
+   unknown length, not a bump somebody has already shipped. Re-check with:
+
+   ```bash
+   npm view @nestjs/platform-express@11.2.3 dependencies.multer
+   ```
+
+   and note that moving to 12.x would be a major framework upgrade in its own
+   right, not a security patch.
 2. **Disposition with an explicit expiry.** Honest, time-bounded, naming the
    three GHSAs and the upload endpoints, plus a follow-up to remove it. Unblocks
    releases immediately. It is a risk acceptance on a *reachable high*, which is
