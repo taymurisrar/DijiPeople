@@ -15,6 +15,7 @@ import { DbFixtures } from './helpers/db-fixtures';
 import type { AuthenticatedUser } from '../src/common/interfaces/authenticated-request.interface';
 import { AttendanceDeviceService } from '../src/modules/attendance-integrations/devices/attendance-device.service';
 import { GatewayCredentialService } from '../src/modules/attendance-integrations/gateways/gateway-credential.service';
+import { TenantSettingsResolverService } from '../src/modules/tenant-settings/tenant-settings-resolver.service';
 import { AttendanceIntegrationService } from '../src/modules/attendance-integrations/integrations/attendance-integration.service';
 import { AttendanceOperationsService } from '../src/modules/attendance-integrations/operations/attendance-operations.service';
 import { RawAttendanceIngestionService } from '../src/modules/attendance-integrations/ingestion/raw-attendance-ingestion.service';
@@ -227,6 +228,16 @@ describe('Attendance integration tenant isolation (e2e, DB-backed)', () => {
           },
         },
         EmployeeMappingService,
+        // Readiness reads the tenant's attendance master switch, and the real
+        // resolver would drag the settings stack in behind it. This suite is
+        // about tenant-scoped SQL, so the switch is stubbed on — readiness then
+        // behaves as it does for a tenant that has configured attendance.
+        {
+          provide: TenantSettingsResolverService,
+          useValue: {
+            getAttendanceSettings: async () => ({ integrationEnabled: true }),
+          },
+        },
         AttendanceIntegrationService,
         AttendanceDeviceService,
         AttendanceOperationsService,
