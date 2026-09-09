@@ -4,7 +4,7 @@ aliases: [SESSION-0091]
 TASK_ID:
 TITLE: Production advisories: clear the gate that is red on main
 ARCHITECT_INTENT: Production advisories: clear the gate that is red on main
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: SECURITY
 TASK_SIZE: MEDIUM
 BASE_BRANCH: origin/develop
