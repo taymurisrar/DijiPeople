@@ -65,6 +65,14 @@ export const DEFAULT_PLAN_DEFINITIONS = [
        * this up without being listed here.
        */
       'desktop-agent',
+      /*
+       * Attendance hardware and the bulk data path are Growth capabilities.
+       * Compliance is Enterprise: retention policy and compliance exports are
+       * what an enterprise buyer's security review asks for, and no Growth
+       * customer has asked for them.
+       */
+      'attendance-integrations',
+      'data-management',
     ],
   },
   {

@@ -57,13 +57,14 @@ export const SETTINGS_ITEM_ENTITLEMENTS: Record<string, SettingsEntitlement> = {
   departments: FEATURE_KEYS.ORGANIZATION,
   "organization-teams": FEATURE_KEYS.ORGANIZATION,
   /*
-   * Import & Export. Core: it moves the tenant's own data, and the modules it
-   * can reach are already gated individually.
+   * Import & Export. Sold from Growth up. The modules it can reach are each
+   * gated on their own key already, so this sells the bulk path rather than
+   * access to anything a tenant could not otherwise see.
    */
-  "data-management": SETTINGS_CORE,
+  "data-management": FEATURE_KEYS.DATA_MANAGEMENT,
   recruitment: FEATURE_KEYS.RECRUITMENT,
   /*
-   * Sold separately from Attendance as of ADR-0031-B. This gates the settings
+   * Sold separately from Attendance as of ADR-0005 Decision 2. This gates the settings
    * page only — installers, enrolment keys and agent policy. The agent's own
    * sync endpoints stay on `attendance`, so no deployed agent stops working
    * when a tenant's plan lacks this key.
@@ -94,7 +95,7 @@ export const SETTINGS_ITEM_ENTITLEMENTS: Record<string, SettingsEntitlement> = {
   "document-categories": FEATURE_KEYS.DOCUMENTS,
   documents: FEATURE_KEYS.DOCUMENTS,
   /*
-   * Moved out of Payroll & Finance by ADR-0031-D. It reads generic document
+   * Moved out of Payroll & Finance by ADR-0005 Decision 4. It reads generic document
    * templating from the settings runtime and has no payroll dependency; leaving
    * it attributed to `payroll` would have taken document templating away from
    * every plan that bought Documents but not Payroll.
@@ -113,7 +114,7 @@ export const SETTINGS_ITEM_ENTITLEMENTS: Record<string, SettingsEntitlement> = {
   /*
    * Core despite reading as payroll. A fiscal year scopes leave accrual periods
    * and reporting ranges as well as pay periods, and a tenant with no payroll
-   * still needs one. ADR-0031-C.
+   * still needs one. ADR-0005 Decision 3.
    */
   "fiscal-years": SETTINGS_CORE,
 
@@ -143,16 +144,17 @@ export const SETTINGS_ITEM_ENTITLEMENTS: Record<string, SettingsEntitlement> = {
    * CORE, despite living in the payroll category — and this row is the reason
    * an attribution audit had to be done item by item.
    *
-   * `subscription` has no `itemPlacement` entry, so it falls through to
-   * `defaultPlacement` and lands in Payroll & Finance > Payroll Configuration.
+   * `subscription` had no `itemPlacement` entry, so it fell through to
+   * `defaultPlacement` and landed in Payroll & Finance > Payroll Configuration.
    * It is the tenant's own subscription: what plan they are on, what it costs,
    * what an upgrade would add. Attributing the category rather than the item
-   * would have hidden a Starter tenant's billing page behind the very
-   * capability they would go there to buy.
+   * would have hidden a Starter tenant's billing page behind the very capability
+   * they would go there to buy.
    *
-   * The misplacement itself is a pre-existing IA fault and is not corrected
-   * here — moving it changes a live URL, which is its own change. Filed as a
-   * finding on this task.
+   * Now placed in General Setup > Tenant & Company — an existing group, not a
+   * new one invented to hold it. It is listed under this heading because that is
+   * where it used to live, and because the row is the clearest argument in the
+   * file for attributing pages rather than categories.
    */
   subscription: SETTINGS_CORE,
   "payroll-periods": FEATURE_KEYS.PAYROLL,
@@ -183,14 +185,23 @@ export const SETTINGS_ITEM_ENTITLEMENTS: Record<string, SettingsEntitlement> = {
   "system-preferences": SETTINGS_CORE,
 
   // ---------------------------------------------------------- Audit & Compliance
-  "audit-logs": SETTINGS_CORE,
-  "data-access-history": SETTINGS_CORE,
-  "retention-rules": SETTINGS_CORE,
-  "compliance-exports": SETTINGS_CORE,
+  /*
+   * Sold as one capability from Enterprise up. The four are read together — an
+   * export is assembled from the histories — so splitting them would sell a
+   * report without its source.
+   *
+   * Audit history is arguably table stakes rather than a compliance tier, and
+   * including it here is the decision most likely to be revisited. If it is, the
+   * change is these two lines, not the catalog.
+   */
+  "audit-logs": FEATURE_KEYS.COMPLIANCE,
+  "data-access-history": FEATURE_KEYS.COMPLIANCE,
+  "retention-rules": FEATURE_KEYS.COMPLIANCE,
+  "compliance-exports": FEATURE_KEYS.COMPLIANCE,
 
   // ------------------------------------------------------------- Customization
   /*
-   * Free on every plan, by decision rather than by omission (ADR-0031-E).
+   * Free on every plan, by decision rather than by omission (ADR-0005 Decision 5).
    *
    * These nine are the most Enterprise-shaped pages in Settings and there is a
    * commercial case for selling them. Carving them out later means a fourteenth
@@ -210,19 +221,38 @@ export const SETTINGS_ITEM_ENTITLEMENTS: Record<string, SettingsEntitlement> = {
   "publish-center": SETTINGS_CORE,
 
   // ------------------------------------------------------------- Integrations
-  "attendance-integrations-overview": FEATURE_KEYS.ATTENDANCE,
-  "attendance-integrations": FEATURE_KEYS.ATTENDANCE,
-  "attendance-devices": FEATURE_KEYS.ATTENDANCE,
-  "attendance-employee-mapping": FEATURE_KEYS.ATTENDANCE,
-  "attendance-provisioning": FEATURE_KEYS.ATTENDANCE,
-  "attendance-sync-history": FEATURE_KEYS.ATTENDANCE,
-  "attendance-gateways": FEATURE_KEYS.ATTENDANCE,
   /*
-   * Core, not `desktop-agent`. This page lists every downloadable client, and a
-   * tenant on a plan without the agent still needs the page to exist so it can
-   * see what it would get. The Desktop Agent settings page is the gated one.
+   * Attendance hardware, sold apart from Attendance itself from Growth up.
+   *
+   * These seven were attributed to `attendance`, which every plan holds, so a
+   * Starter tenant could configure ZKTeco terminals and pair an on-premise .NET
+   * gateway. Web and desktop check-in stay on `attendance`; the machinery that
+   * carries punches in from hardware is the upgrade.
    */
-  "apps-downloads": SETTINGS_CORE,
+  "attendance-integrations-overview": FEATURE_KEYS.ATTENDANCE_INTEGRATIONS,
+  "attendance-integrations": FEATURE_KEYS.ATTENDANCE_INTEGRATIONS,
+  "attendance-devices": FEATURE_KEYS.ATTENDANCE_INTEGRATIONS,
+  "attendance-employee-mapping": FEATURE_KEYS.ATTENDANCE_INTEGRATIONS,
+  "attendance-provisioning": FEATURE_KEYS.ATTENDANCE_INTEGRATIONS,
+  "attendance-sync-history": FEATURE_KEYS.ATTENDANCE_INTEGRATIONS,
+  "attendance-gateways": FEATURE_KEYS.ATTENDANCE_INTEGRATIONS,
+  /*
+   * The installer page, following the clients it installs.
+   *
+   * It was CORE on the argument that a tenant should be able to see what it
+   * would get. That held while the agent was free; now that both the desktop
+   * agent and the gateway are sold, an Integrations category offering nothing
+   * but a download list for two things the plan does not include is an odd
+   * shape, and the subscription screen is the honest place to learn what an
+   * upgrade adds.
+   *
+   * Attributed to `desktop-agent` rather than `attendance-integrations` because
+   * the agent is the client most tenants install. A custom plan buying the
+   * gateway without the agent would lose the gateway installer from this page —
+   * an edge no shipped plan produces, and one to split this row on if a
+   * customer ever asks for it.
+   */
+  "apps-downloads": FEATURE_KEYS.DESKTOP_AGENT,
 };
 
 /*
@@ -246,6 +276,9 @@ export const FEATURE_LABELS: Record<FeatureKey, string> = {
   [FEATURE_KEYS.NOTIFICATIONS]: "Notifications",
   [FEATURE_KEYS.BRANDING]: "Branding",
   [FEATURE_KEYS.DESKTOP_AGENT]: "Desktop Agent",
+  [FEATURE_KEYS.ATTENDANCE_INTEGRATIONS]: "Attendance Devices & Gateways",
+  [FEATURE_KEYS.COMPLIANCE]: "Compliance & Retention",
+  [FEATURE_KEYS.DATA_MANAGEMENT]: "Import & Export",
 };
 
 /**

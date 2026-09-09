@@ -23,7 +23,11 @@ import type {
   SettingsRuntimeCategory,
   SettingsRuntimeGroup,
 } from "../_lib/settings-runtime";
-import { resolveVisibleSettingsRuntime } from "../_lib/settings-runtime";
+import {
+  countSettingsPages,
+  isFlatSettingsCategory,
+  resolveVisibleSettingsRuntime,
+} from "../_lib/settings-runtime";
 import {
   isSettingsItemEntitled,
   missingCapabilityLabels,
@@ -108,7 +112,14 @@ export function SettingsWorkspaceLanding() {
         <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {categories.map((category) => {
             const Icon = CATEGORY_ICONS[category.key] ?? FolderCog;
-            const groupCount = category.groups.length;
+            /*
+             * Pages, not groups. The group count described containers rather
+             * than content — "4 groups" for four pages — and it now shifts with
+             * the plan as groups collapse, so the same tenant saw a different
+             * number before and after an upgrade for reasons unrelated to how
+             * much was in there.
+             */
+            const pageCount = countSettingsPages(category);
 
             return (
               <Link
@@ -135,7 +146,7 @@ export function SettingsWorkspaceLanding() {
                   </span>
 
                   <span className="mt-2 block text-[11px] font-semibold uppercase tracking-wide text-accent">
-                    {groupCount} {groupCount === 1 ? "group" : "groups"}
+                    {pageCount} {pageCount === 1 ? "setting" : "settings"}
                   </span>
                 </span>
               </Link>
@@ -206,6 +217,50 @@ export function SettingsCategoryLanding({
         scopeLabel={category.label}
         capabilityLabel={formatCapabilityList(missing)}
       />
+    );
+  }
+
+  /*
+   * A category whose every group holds one page renders its pages directly.
+   *
+   * Notifications & Communication was four group cards for four pages, and
+   * Appearance & Experience two for two: a card and a click each, wrapped
+   * around a single link. Nothing moves and no URL changes — the group layer is
+   * still there in the data and in the routing, and each group's own landing
+   * still answers. Only the container stops being drawn.
+   */
+  if (isFlatSettingsCategory(category.key)) {
+    const items = groups.flatMap((group) => group.items);
+
+    return (
+      <SettingsShell
+        title={category.label}
+        description={category.description}
+        eyebrow="Settings"
+      >
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {items.map((item) => (
+            <Link
+              key={item.key}
+              href={item.route}
+              className="group rounded-[22px] border border-border bg-surface p-5 shadow-sm transition hover:border-accent/30 hover:shadow-md"
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-surface text-muted group-hover:bg-accent-soft group-hover:text-accent">
+                <Settings2 className="h-5 w-5" />
+              </span>
+              <h2 className="mt-4 font-semibold text-foreground">
+                {item.label}
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-muted">
+                {item.description}
+              </p>
+              <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-accent">
+                Open configuration
+              </p>
+            </Link>
+          ))}
+        </div>
+      </SettingsShell>
     );
   }
 

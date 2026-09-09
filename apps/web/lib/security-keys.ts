@@ -365,6 +365,9 @@ export const FEATURE_KEYS = {
   NOTIFICATIONS: "notifications",
   BRANDING: "branding",
   DESKTOP_AGENT: "desktop-agent",
+  ATTENDANCE_INTEGRATIONS: "attendance-integrations",
+  COMPLIANCE: "compliance",
+  DATA_MANAGEMENT: "data-management",
 } as const;
 
 export type FeatureKey = (typeof FEATURE_KEYS)[keyof typeof FEATURE_KEYS];

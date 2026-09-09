@@ -872,6 +872,73 @@ export const TENANT_FEATURE_DEFINITIONS = [
     icon: 'monitor-smartphone',
     isVisible: true,
   },
+  /*
+   * Attendance hardware, sold apart from Attendance itself.
+   *
+   * Attendance is on every plan, so attaching terminals and the on-premise
+   * gateway to that key gave a Starter tenant eight pages of enterprise
+   * integration machinery for free. This key carries them instead: ZKTeco
+   * terminals, the .NET gateway, device provisioning, employee mapping and sync
+   * history. Web and desktop check-in stay on `attendance`.
+   *
+   * Gated at the settings surface only. `attendance-integrations` stays in
+   * ENTITLEMENT_UNGATED_MODULES for the reason recorded there — two of its
+   * controllers carry no AuthenticatedUser, and refusing a gateway that is
+   * already dialling a customer's network is an integration break. See ADR-0005.
+   */
+  {
+    key: 'attendance-integrations',
+    label: 'Attendance Devices & Gateways',
+    description:
+      'Attendance terminals, the on-premise gateway, device provisioning, and employee mapping.',
+    defaultEnabled: true,
+    categoryKey: 'workforce',
+    categoryLabel: 'Workforce Operations',
+    categoryOrder: 20,
+    sortOrder: 40,
+    icon: 'router',
+    isVisible: true,
+  },
+  /*
+   * Retention policy, compliance exports and the two audit histories.
+   *
+   * Audit history is arguably table stakes rather than a compliance tier, and
+   * this key deliberately includes it because the four pages are read together —
+   * an export is assembled from the histories. If that proves wrong the split is
+   * a one-line change to the attribution map, not to this catalog.
+   */
+  {
+    key: 'compliance',
+    label: 'Compliance & Retention',
+    description:
+      'Audit history, data access evidence, retention policy, and compliance exports.',
+    defaultEnabled: true,
+    categoryKey: 'platform',
+    categoryLabel: 'Platform',
+    categoryOrder: 50,
+    sortOrder: 50,
+    icon: 'scroll-text',
+    isVisible: true,
+  },
+  /*
+   * Bulk import and export of the tenant's own records.
+   *
+   * A scaling capability rather than a compliance one: the modules it can reach
+   * are already gated individually, so this sells the bulk path, not access to
+   * data the tenant could not otherwise see.
+   */
+  {
+    key: 'data-management',
+    label: 'Import & Export',
+    description: 'Bulk import and export of tenant records, with templates.',
+    defaultEnabled: true,
+    categoryKey: 'platform',
+    categoryLabel: 'Platform',
+    categoryOrder: 50,
+    sortOrder: 60,
+    icon: 'arrow-down-up',
+    isVisible: true,
+  },
   {
     key: 'payroll',
     label: 'Payroll',

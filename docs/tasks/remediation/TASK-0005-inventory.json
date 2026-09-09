@@ -20531,8 +20531,8 @@
       "title": "Decide which of the 41 always-visible settings pages should be sold",
       "severity": "",
       "priority": "P1",
-      "current_status": "PRODUCT_DECISION",
-      "architect_disposition": "PRODUCT_DECISION",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0126-decide-which-of-the-41-always-visible-settings-pages-should-.md",
         "provenance": "ARCHITECT",

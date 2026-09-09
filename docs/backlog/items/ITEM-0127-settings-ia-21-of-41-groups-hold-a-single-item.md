@@ -151,3 +151,20 @@ to review; doing it now is a self-contained presentation change.
 - 2026-09-09 — triaged by the Architect for SESSION-0094: DEFER. Presentation
   only, no correctness or commercial consequence, and it changes URLs — which is
   worth doing deliberately rather than folded into an entitlement fix.
+
+- 2026-09-09 — partly addressed in the same session, and reduced rather than
+  closed. The two decisions this item said were needed were taken: a category
+  whose every group holds one page now renders its pages directly
+  (`isFlatSettingsCategory`, derived from content rather than listed), and the
+  workspace tile counts pages rather than groups. Notifications & Communication
+  and Appearance & Experience flatten; nothing else does.
+
+  Deliberately NOT done: moving or regrouping any page. Every URL is derived from
+  `category/group/item`, so regrouping breaks existing links, and [[ADR-0005]]
+  Decision 8 records the rule that came out of this — the group layer describes
+  what a page *is* and must not be reshaped to carry an entitlement boundary. The
+  nineteen remaining single-page groups sit inside categories that also hold
+  multi-page groups, so flattening them would need real regrouping and real
+  redirects.
+
+  Stays DEFERRED for that remainder.

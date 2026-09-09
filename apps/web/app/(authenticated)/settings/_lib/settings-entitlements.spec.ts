@@ -8,7 +8,10 @@ import {
   resolveSettingsEntitlementVerdict,
 } from "./settings-entitlements";
 import {
+  countSettingsPages,
+  isFlatSettingsCategory,
   resolveVisibleSettingsRuntime,
+  settingsRuntimeCategories,
   settingsRuntimeItems,
   SettingsEntitlementsUnavailableError,
 } from "./settings-runtime";
@@ -157,16 +160,14 @@ describe("the Starter leaks BUG-1952 recorded", () => {
    * sells neither, so the whole group collapses while General Setup survives on
    * its other groups.
    */
-  it("removes the Apps & Modules group but keeps General Setup", () => {
-    const generalSetup = starterCategories().find(
-      (category) => category.key === "general-setup",
-    );
+  it("empties Apps & Modules down to Subscription, which survives", () => {
+    const modules = starterCategories()
+      .find((category) => category.key === "general-setup")
+      ?.groups.find((group) => group.key === "modules");
 
-    expect(generalSetup).toBeDefined();
-    expect(generalSetup?.groups.map((group) => group.key)).not.toContain(
-      "modules",
-    );
-    expect(generalSetup?.groups.map((group) => group.key)).toContain("tenant");
+    const keys = modules?.items.map((item) => item.key) ?? [];
+
+    expect(keys).toEqual(["subscription"]);
   });
 
   /*
@@ -175,17 +176,20 @@ describe("the Starter leaks BUG-1952 recorded", () => {
    * Payroll & Finance, so gating that category would have hidden a Starter
    * tenant's own billing page behind the capability they would go there to buy.
    */
-  it("keeps the subscription page, and out of the payroll category", () => {
+  it("keeps the subscription page, in an existing group and out of payroll", () => {
     const generalSetup = starterCategories().find(
       (category) => category.key === "general-setup",
     );
-    const planBilling = generalSetup?.groups.find(
-      (group) => group.key === "plan-billing",
+    const modules = generalSetup?.groups.find(
+      (group) => group.key === "modules",
     );
 
-    expect(planBilling?.items.map((item) => item.key)).toContain(
-      "subscription",
-    );
+    /*
+     * In Apps & Modules — a group that already existed — rather than in a group
+     * invented to hold it. A group created so that something can sit on one side
+     * of an entitlement boundary makes the IA a copy of the price list.
+     */
+    expect(modules?.items.map((item) => item.key)).toContain("subscription");
   });
 
   /*
@@ -304,6 +308,8 @@ const GROWTH = [
   FEATURE_KEYS.RECRUITMENT,
   FEATURE_KEYS.ONBOARDING,
   FEATURE_KEYS.DESKTOP_AGENT,
+  FEATURE_KEYS.ATTENDANCE_INTEGRATIONS,
+  FEATURE_KEYS.DATA_MANAGEMENT,
 ];
 
 /* Enterprise and Enterprise+ both take every key in the catalog. */
@@ -335,14 +341,14 @@ describe("every shipped plan resolves to the right shape", () => {
     const growth = shapeOf(GROWTH);
     const enterprise = shapeOf(ENTERPRISE);
 
-    expect(none.items).toBe(41);
-    expect(starter.items).toBe(67);
-    expect(growth.items).toBe(70);
+    expect(none.items).toBe(35);
+    expect(starter.items).toBe(54);
+    expect(growth.items).toBe(66);
     expect(enterprise.items).toBe(87);
 
-    expect(none.categories).toBe(9);
-    expect(starter.categories).toBe(10);
-    expect(growth.categories).toBe(10);
+    expect(none.categories).toBe(7);
+    expect(starter.categories).toBe(8);
+    expect(growth.categories).toBe(9);
     expect(enterprise.categories).toBe(11);
 
     /*
@@ -357,27 +363,42 @@ describe("every shipped plan resolves to the right shape", () => {
     }
   });
 
-  it("gives Growth exactly Timesheets, Recruitment and the Desktop Agent over Starter", () => {
+  it("gives Growth the attendance hardware, the bulk data path and the talent pages", () => {
     const starter = shapeOf(STARTER);
     const growth = shapeOf(GROWTH);
     const added = [...growth.itemKeys].filter((k) => !starter.itemKeys.has(k));
 
     /*
      * Projects and Onboarding are Growth capabilities with no settings page, so
-     * they add nothing here. That is worth pinning: if a settings page is ever
-     * added for either, this assertion fails and somebody attributes it on
-     * purpose.
+     * they add nothing here. Worth pinning: if a settings page is ever added for
+     * either, this fails and somebody attributes it on purpose.
      */
-    expect(added.sort()).toEqual(["desktop-agent", "recruitment", "timesheets"]);
+    expect(added.sort()).toEqual([
+      "apps-downloads",
+      "attendance-devices",
+      "attendance-employee-mapping",
+      "attendance-gateways",
+      "attendance-integrations",
+      "attendance-integrations-overview",
+      "attendance-provisioning",
+      "attendance-sync-history",
+      "data-management",
+      "desktop-agent",
+      "recruitment",
+      "timesheets",
+    ]);
   });
 
-  it("gives Enterprise exactly the payroll tree over Growth", () => {
+  it("gives Enterprise the payroll tree and compliance over Growth", () => {
     const growth = shapeOf(GROWTH);
     const enterprise = shapeOf(ENTERPRISE);
     const added = [...enterprise.itemKeys].filter((k) => !growth.itemKeys.has(k));
 
-    expect(added).toHaveLength(17);
+    expect(added).toHaveLength(21);
     expect(added).toContain("payroll-regions");
+    expect(added).toContain("compliance-exports");
+    expect(added).toContain("audit-logs");
+    /* Neither is payroll, and both must survive on every plan below it. */
     expect(added).not.toContain("subscription");
     expect(added).not.toContain("document-templates");
   });
@@ -436,5 +457,99 @@ describe("resolveSettingsEntitlementVerdict", () => {
     expect(
       resolveSettingsEntitlementVerdict("a-page-that-does-not-exist", STARTER),
     ).toEqual({ kind: "NOT_ON_PLAN", capabilityLabel: "a capability" });
+  });
+});
+
+/*
+ * The IA presentation changes, which are deliberately *not* structural.
+ *
+ * Nothing moves and no URL changes: the group layer stays in the data and every
+ * group route still answers. What changes is that a category whose groups each
+ * hold one page draws its pages directly, and the workspace tile counts pages
+ * rather than containers.
+ */
+describe("flat categories", () => {
+  it("flattens exactly the categories whose every group holds one page", () => {
+    const flat = settingsRuntimeCategories
+      .filter((category) => isFlatSettingsCategory(category.key))
+      .map((category) => category.key)
+      .sort();
+
+    /*
+     * Notifications & Communication is four groups for four pages; Appearance &
+     * Experience is two for two. Pinned by name as well as by rule, because the
+     * rule going quietly wrong — matching everything, or nothing — is the
+     * failure a derived predicate invites.
+     */
+    expect(flat).toEqual(["appearance", "notifications"]);
+  });
+
+  it("never flattens a category with a group holding more than one page", () => {
+    for (const category of settingsRuntimeCategories) {
+      if (!isFlatSettingsCategory(category.key)) continue;
+      for (const group of category.groups) {
+        expect(group.items).toHaveLength(1);
+      }
+    }
+  });
+
+  it("never flattens a single-group category", () => {
+    /*
+     * A category with one group is already flat on screen; declaring it flat
+     * would drop the only heading it has.
+     */
+    for (const category of settingsRuntimeCategories) {
+      if (category.groups.length <= 1) {
+        expect(isFlatSettingsCategory(category.key)).toBe(false);
+      }
+    }
+  });
+
+  it("decides flatness from the whole tree, not from one plan", () => {
+    /*
+     * Otherwise a category would change layout when a tenant upgrades: Regional
+     * Operations loses Payroll Geography on a plan without payroll, leaving
+     * three one-page groups beside Countries & States, and a plan-derived rule
+     * would flatten it for some tenants and not others.
+     */
+    const starter = resolveVisibleSettingsRuntime(
+      ALL_PERMISSIONS,
+      ADMIN_ROLES,
+      STARTER,
+    );
+    const regional = starter.find((category) => category.key === "regional");
+
+    expect(regional).toBeDefined();
+    expect(isFlatSettingsCategory("regional")).toBe(false);
+  });
+});
+
+describe("countSettingsPages", () => {
+  it("counts pages rather than groups", () => {
+    const notifications = settingsRuntimeCategories.find(
+      (category) => category.key === "notifications",
+    )!;
+
+    /* Four groups, four pages — the tile that used to read "4 groups". */
+    expect(notifications.groups).toHaveLength(4);
+    expect(countSettingsPages(notifications)).toBe(4);
+  });
+
+  it("counts what a plan actually resolves to", () => {
+    const [starterPeople] = resolveVisibleSettingsRuntime(
+      ALL_PERMISSIONS,
+      ADMIN_ROLES,
+      STARTER,
+    ).filter((category) => category.key === "people");
+    const [fullPeople] = resolveVisibleSettingsRuntime(
+      ALL_PERMISSIONS,
+      ADMIN_ROLES,
+      EVERY_CAPABILITY,
+    ).filter((category) => category.key === "people");
+
+    /* Starter loses Timesheet Settings from People, and the tile must say so. */
+    expect(countSettingsPages(starterPeople!)).toBe(
+      countSettingsPages(fullPeople!) - 1,
+    );
   });
 });

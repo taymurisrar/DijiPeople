@@ -3,13 +3,13 @@ ID: ITEM-0126
 aliases: [ITEM-0126]
 Title: Decide which of the 41 always-visible settings pages should be sold
 Type: PRODUCT_DECISION
-Status: PRODUCT_DECISION
+Status: DONE
 Priority: P1
 Severity: 
 AffectedModules: [apps/web]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: PRODUCT_DECISION
+ArchitectDisposition: DONE
 CreatedAt: 2026-09-09
 UpdatedAt: 2026-09-09
 RelatedBug: BUG-2958
@@ -155,3 +155,17 @@ product decision layered on top of it.
 - 2026-09-09 — triaged by the Architect for SESSION-0094: PRODUCT_DECISION. The
   engineering question is settled and the mechanism is in place; what remains is
   a pricing judgement that no agent should make by attributing a page quietly.
+
+- 2026-09-09 — answered in the same session. Four blocks were put to the product
+  owner and three were carved out: attendance hardware
+  (`attendance-integrations`, Growth up, 8 pages), compliance and retention
+  (`compliance`, Enterprise up, 4 pages) and bulk import/export
+  (`data-management`, Growth up, 1 page). Field security and the advanced
+  workflow pages stay free, as does Customization under Decision 5. Recorded as
+  [[ADR-0005]] Decisions 6 and 7.
+
+  The residual moves from 41 always-visible pages to 28, and a Starter tenant
+  from 67 resolved pages to 54. What remains free is now free by a decision that
+  was put to a person, which is what this item asked for. Closing DONE rather
+  than leaving it open on the un-carved remainder: those were considered and
+  declined, not overlooked.

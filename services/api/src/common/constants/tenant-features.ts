@@ -25,6 +25,9 @@ export const TENANT_FEATURE_KEYS = {
   NOTIFICATIONS: 'notifications',
   BRANDING: 'branding',
   DESKTOP_AGENT: 'desktop-agent',
+  ATTENDANCE_INTEGRATIONS: 'attendance-integrations',
+  COMPLIANCE: 'compliance',
+  DATA_MANAGEMENT: 'data-management',
   PAYROLL: 'payroll',
 } as const;
 
@@ -91,6 +94,12 @@ export const ENTITLEMENT_UNGATED_FEATURE_KEYS: Readonly<
     'Delivery infrastructure, invoked by modules rather than bought by a tenant.',
   [TENANT_FEATURE_KEYS.BRANDING]:
     'A settings surface rather than a route module; enforced where settings resolve.',
+  [TENANT_FEATURE_KEYS.ATTENDANCE_INTEGRATIONS]:
+    'Attendance hardware, sold apart from Attendance itself, and enforced only where settings resolve. The `attendance-integrations` MODULE stays ungated for its own reason, recorded below: two of its controllers carry no AuthenticatedUser, and refusing a gateway already dialling a customer network is an integration break rather than a commercial one.',
+  [TENANT_FEATURE_KEYS.COMPLIANCE]:
+    'Retention policy, compliance exports and the two audit histories. Enforced where settings resolve: the reads behind these pages are served by `audit`, which every tenant needs for its own record, so a route gate would refuse writes the product depends on.',
+  [TENANT_FEATURE_KEYS.DATA_MANAGEMENT]:
+    'Bulk import and export. Enforced where settings resolve: the `data-management` module reaches modules that are each already gated on their own key, so this sells the bulk path rather than access to anything otherwise unreachable.',
   [TENANT_FEATURE_KEYS.DESKTOP_AGENT]:
     'Sold separately from Attendance, but enforced only where settings resolve — the Desktop Agent settings page, its installers and its enrolment. Deliberately NOT a route gate on the `agent` module: agents are already deployed in the field on a build that cannot be upgraded past a refusal, and their sync endpoints carry attendance a tenant did buy. Gating those would break attendance capture to enforce a packaging boundary.',
 };

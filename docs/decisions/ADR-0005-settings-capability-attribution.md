@@ -4,11 +4,17 @@
 
 Accepted — 2026-09-09.
 
-Five questions, answered by the product owner during SESSION-0094 while
+Eight decisions, taken in two rounds by the product owner during SESSION-0094
+while
 [`BUG-2958`](../bugs/BUG-2958-settings-shows-every-category-group-and-page-regardless-of-t.md)
-was being fixed. Recorded together because they are one decision seen from five
+was being fixed. Recorded together because they are one question seen from eight
 angles: what does a plan actually sell, and therefore what disappears when a
 tenant has not bought it.
+
+Decisions 1 to 5 are the first round, taken while the fix was being written.
+Decisions 6 to 8 are the second, taken after the fix was measured — the audit
+showed that 41 of 87 settings pages were still visible on every plan, several of
+them free only because no key existed to sell them with.
 
 ## Context
 
@@ -19,13 +25,14 @@ commercial judgement rather than a technical fact, and getting one wrong costs
 either a leak (a page a customer did not buy) or an outage (a page a customer
 did buy, hidden).
 
-The catalog offers twelve capability keys
-(`services/api/src/modules/tenant-settings/tenant-settings.catalog.ts`). The
-questions below are the rows where twelve was not obviously enough, or where
-more than one key could plausibly claim a page.
+The catalog offered twelve capability keys
+(`services/api/src/modules/tenant-settings/tenant-settings.catalog.ts`) and now
+offers sixteen. The decisions below are the rows where twelve was not enough,
+where more than one key could plausibly claim a page, or where the coarseness of
+the catalog was itself the defect.
 
 None of these decisions is encoded as a plan key. Every one is a capability
-attribution, so a plan an operator invents tomorrow inherits all five without a
+attribution, so a plan an operator invents tomorrow inherits all eight without a
 code change.
 
 ## Decision 1 — Data already created under a capability survives losing it
@@ -123,9 +130,78 @@ built customizations. Without the backfill, a plan without the key hides work
 those tenants have already done — a silent removal, not a packaging change. That
 is the reason this is a decision and not a default.
 
+## Decision 6 — Attendance hardware is sold apart from Attendance
+
+**`attendance-integrations` becomes a capability key, sold from Growth up. It
+carries the seven device and gateway pages plus the installer list. Web and
+desktop check-in stay on `attendance`, which every plan holds.**
+
+The eight pages were attributed to `attendance` because that is the module they
+serve. The effect was that a Starter tenant at USD 69 per month could configure
+ZKTeco terminals, pair an on-premise .NET gateway, provision devices and map
+device users to employees. That is enterprise integration machinery riding on a
+key every plan holds, and no attribution could fix it — the key itself was
+wrong.
+
+Enforced only where settings resolve, exactly as Decision 2. The
+`attendance-integrations` *module* stays in `ENTITLEMENT_UNGATED_MODULES` for
+the reason already recorded there: two of its controllers carry no
+`AuthenticatedUser`, and refusing a gateway already dialling a customer's
+network is an integration break rather than a commercial one.
+
+`apps-downloads` follows to `desktop-agent` rather than staying core. It lists
+the clients a tenant can install, and once both clients are sold, an Integrations
+category offering nothing but a download list for two things the plan does not
+include is a worse answer than not offering it. A bespoke plan buying the gateway
+without the agent would lose the gateway installer from that page; no shipped
+plan produces that, and the row splits if a customer ever asks.
+
+## Decision 7 — Compliance and bulk data movement become capabilities
+
+**`compliance` (audit history, data access history, retention rules, compliance
+exports) is sold from Enterprise up. `data-management` (bulk import and export)
+is sold from Growth up.**
+
+Both were core only because no key existed to sell them with.
+
+Compliance is one key rather than four pages sold separately: an export is
+assembled from the histories, so splitting them would sell a report without its
+source. Including audit history is the part most likely to be revisited — it is
+arguably table stakes rather than a compliance tier — and if it is, the change is
+two lines in the attribution map, not a change to the catalog.
+
+Field security and the advanced workflow pages (policy engine, workflow
+templates) were considered and stay free. Approval matrices, delegation and
+escalation stay free because Starter buys Leave and leave requests route through
+them.
+
+## Decision 8 — Restriction goes on the page, never on a new group
+
+**The group layer describes what a page is. It must not be reshaped to carry an
+entitlement boundary.**
+
+A first pass created a "Plan & Billing" group so that `subscription` could sit
+outside Payroll & Finance. That is the wrong instinct: a group invented so
+something can fall on one side of a paywall makes the information architecture a
+copy of the price list, and every future capability adds a container. Restriction
+belongs on the item, where `SETTINGS_ITEM_ENTITLEMENTS` already puts it.
+
+`subscription` is placed in the existing Apps & Modules group instead — where a
+tenant already sees which capabilities it has. That placement also avoids a
+mechanical trap: the `tenant` group key equals the `tenant` item key, so item
+resolution wins at `/settings/general-setup/tenant` and that group's own landing
+is unreachable. Harmless while the group held one page; it would have hidden
+Subscription the moment it held two.
+
+The corollary is that the IA cleanup done alongside this change moves nothing and
+renames nothing. A category whose every group holds a single page now renders its
+pages directly, and the workspace tile counts pages rather than groups — both
+presentation, with the group layer and every URL left intact.
+
 ## Consequences
 
-- One new capability key, `desktop-agent`, taking the catalog to thirteen. The
+- Four new capability keys — `desktop-agent`, `attendance-integrations`,
+  `compliance` and `data-management` — taking the catalog to sixteen. The
   typed mirror in `common/constants/tenant-features.ts` and the web mirror in
   `apps/web/lib/security-keys.ts` both carry it; a spec asserts the first
   matches the catalog in both directions.
@@ -140,6 +216,14 @@ is the reason this is a decision and not a default.
   with no attribution. A new page cannot ship without answering this ADR's
   question for itself.
 - No plan key, plan name or plan id appears anywhere in the gating path.
+- A Starter tenant now resolves to 54 settings pages where it resolved to 87
+  before any of this work, and 67 after the first round. A tenant entitled to
+  nothing resolves to 35.
+- Carving four keys out of what was free needs grandfathering for plans the
+  catalog does not own. `npm run repair:plan-capabilities` grants the missing
+  rows on operator-created plans only, never on the four catalog plans — those
+  are converged by `reconcilePlanFeatures`, which is how Starter is meant to lose
+  what it was never sold.
 
 ## Related
 

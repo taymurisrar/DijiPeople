@@ -76,7 +76,6 @@ Questions where the engineering is understood and the **product answer**
 - [[ITEM-0115-provisioning-seeds-four-departments-with-no-business-unit-on|ITEM-0115]] — **Provisioning seeds four departments with no business unit on every tenant** (MEDIUM)
 - [[ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle|ITEM-0108]] — **Decide whether the roughly one-hour session lifetime is idle or absolute** (LOW)
 - [[BUG-2007-projects-and-customers-can-be-created-but-never-deleted|BUG-2007]] — **Projects and customers can be created but never deleted** (LOW)
-- [[ITEM-0126-decide-which-of-the-41-always-visible-settings-pages-should-|ITEM-0126]] — **Decide which of the 41 always-visible settings pages should be sold** (unrated)
 - [[ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-|ITEM-0114]] — **The workspace shell states the tenant's identity four times and its purpose twice** (unrated)
 
 ## Recent Product Changes

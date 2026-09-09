@@ -241,8 +241,26 @@ const itemPlacement: Record<
    * Subscription. Gating the category instead of the item would have been worse
    * still, hiding a tenant's billing page behind the capability they would go
    * there to buy.
+   *
+   * It goes into an EXISTING group rather than a new one. A first pass invented
+   * a "Plan & Billing" group to hold it, which is the shape this tree should not
+   * grow: a group created so something can sit on one side of an entitlement
+   * boundary. Restriction belongs on the item. The group layer should say what a
+   * page *is*, not what a plan includes — otherwise the information architecture
+   * slowly becomes a copy of the price list, and every new capability adds a
+   * container.
+   *
+   * Apps & Modules rather than Tenant & Company, and for a mechanical reason as
+   * well as a semantic one. Semantically this is where a tenant sees which
+   * capabilities it has, so the page that says which plan grants them belongs
+   * beside them. Mechanically, the `tenant` group key equals the `tenant` item
+   * key: item resolution wins at `/settings/general-setup/tenant`, so that
+   * group's own landing is unreachable. That was harmless while the group held
+   * one page and would have hidden Subscription the moment it held two — the
+   * collision the note above `attendance-integrations-overview` warns about,
+   * met from the other direction.
    */
-  subscription: ["general-setup", "plan-billing", "Plan & Billing"],
+  subscription: ["general-setup", "modules", "Apps & Modules"],
   recruitment: ["general-setup", "modules", "Apps & Modules"],
   "desktop-agent": ["general-setup", "modules", "Apps & Modules"],
   /*
@@ -694,6 +712,59 @@ export const settingsRuntimeCategories: readonly SettingsRuntimeCategory[] =
       };
     },
   );
+
+/*
+ * Categories whose group layer carries no information, computed from content.
+ *
+ * Twenty-one of the tree's forty-one groups hold exactly one page. Where that is
+ * true of *every* group in a category, the group layer is pure overhead: the
+ * reader gets a card and a click per page, and the workspace tile advertises a
+ * group count that is really a page count wearing a different label.
+ * Notifications & Communication is four groups for four pages; Appearance &
+ * Experience is two for two.
+ *
+ * Derived rather than listed, so a category that grows a second page in any
+ * group stops being flat on its own, and one that shrinks becomes flat without
+ * anybody remembering to update a set.
+ *
+ * ## What this deliberately does NOT do
+ *
+ * It does not move a page, rename a group or change a single URL. Routes are
+ * derived from `category/group/item`, so regrouping would break every existing
+ * link, bookmark and documentation reference to those pages. The group layer
+ * stays exactly where it is in the data and in the routing; only the category
+ * landing and the settings nav stop drawing a container around one page.
+ *
+ * Computed from the full static tree, not from what a plan resolves to, so the
+ * layout of a category does not change when a tenant upgrades.
+ */
+const FLAT_CATEGORY_KEYS: ReadonlySet<string> = new Set(
+  settingsRuntimeCategories
+    .filter(
+      (category) =>
+        category.groups.length > 1 &&
+        category.groups.every((group) => group.items.length === 1),
+    )
+    .map((category) => category.key),
+);
+
+export function isFlatSettingsCategory(categoryKey: string) {
+  return FLAT_CATEGORY_KEYS.has(categoryKey);
+}
+
+/**
+ * How many configuration pages a category holds, for the workspace tile.
+ *
+ * The tile used to print a group count, which counts containers rather than
+ * content — "4 groups" for four pages in Notifications — and which now moves
+ * with the plan as groups collapse, so the same tenant saw a different number
+ * before and after an upgrade for reasons unrelated to how much was in there.
+ */
+export function countSettingsPages(category: {
+  groups: readonly { items: readonly unknown[] }[];
+}) {
+  return category.groups.reduce((total, group) => total + group.items.length, 0);
+}
 
 export function getSettingsRuntimeCategory(key: string) {
   return (

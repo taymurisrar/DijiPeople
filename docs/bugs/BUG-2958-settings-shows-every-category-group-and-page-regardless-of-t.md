@@ -222,6 +222,51 @@ Awaiting a QA run against a provisioned Starter tenant. Automated coverage is in
 place and passing; the manual pass in [[PLAN-031]] (upgrade to Enterprise and
 back with no deploy) has not been run against a live stack.
 
+## Second round — the residual, and the IA
+
+The first fix gated every page a capability key existed for. It could not gate a
+page no key covered, and the per-plan audit that followed measured the gap: 41 of
+87 pages rendered on every plan, including a tenant entitled to nothing. Several
+were free only because the catalog was coarser than the settings tree.
+
+Three capabilities were carved out ([[ADR-0005]] Decisions 6 and 7):
+
+| Key | Pages | Sold from | Was |
+|---|---|---|---|
+| `attendance-integrations` | 8 | Growth | riding on `attendance`, which every plan holds |
+| `compliance` | 4 | Enterprise | CORE |
+| `data-management` | 1 | Growth | CORE |
+
+The attendance block is the one that mattered: terminals, the on-premise .NET
+gateway, device provisioning and employee mapping were attributed to
+`attendance`, so a Starter tenant could configure all of it. No attribution could
+fix that — the key itself was wrong.
+
+A Starter tenant now resolves to 54 pages, from 67 after the first round and 87
+before any of this work. A tenant entitled to nothing resolves to 35.
+
+Two IA changes shipped alongside, both presentation and neither structural. A
+category whose every group holds a single page renders its pages directly —
+Notifications & Communication was four groups for four pages, Appearance &
+Experience two for two — and the workspace tile counts pages rather than groups,
+which had been counting containers and shifting with the plan. Nothing moved and
+no URL changed.
+
+One first-round decision was reversed. `subscription` had been placed in a new
+"Plan & Billing" group; it now sits in the existing Apps & Modules group.
+Inventing a group so a page can fall on one side of a paywall makes the IA a copy
+of the price list, and restriction belongs on the item. That placement also
+avoided a collision: the `tenant` group key equals the `tenant` item key, so item
+resolution wins at `/settings/general-setup/tenant` and that group's landing is
+unreachable — harmless while it held one page, and it would have hidden
+Subscription the moment it held two.
+
+Carving keys out of what was free needs grandfathering for plans the catalog does
+not own. `npm run repair:plan-capabilities` grants the missing rows on
+operator-created plans only; the four catalog plans are converged by
+`reconcilePlanFeatures`, which is how Starter is meant to lose what it was never
+sold.
+
 ## History
 
 - 2026-09-09 — reported by the user with a screenshot of the Configuration
@@ -243,3 +288,8 @@ back with no deploy) has not been run against a live stack.
 - Regression — REG-396 (see the regression register)
 
 <!-- GRAPH:END -->
+- 2026-09-09 — second round. Per-plan audit measured 41 always-visible pages;
+  three capabilities carved out, two IA presentation changes shipped, and the
+  first round's "Plan & Billing" group reversed into an existing group. Starter
+  resolves to 54 pages. [[ITEM-0126]] closed DONE, [[ITEM-0127]] reduced and left
+  deferred.

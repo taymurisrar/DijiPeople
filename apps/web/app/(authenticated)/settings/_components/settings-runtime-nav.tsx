@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { useCurrentUserAccess } from "../../_components/authenticated-shell-provider";
 import {
   getSettingsRuntimeItemByPath,
+  isFlatSettingsCategory,
   resolveVisibleSettingsRuntime,
 } from "../_lib/settings-runtime";
 import { useTenantEntitlements } from "../../_components/tenant-entitlements-provider";
@@ -114,7 +115,44 @@ export function SettingsRuntimeNav({
                 {category.label}
               </Link>
             </div>
-            {categoryOpen ? (
+            {categoryOpen && isFlatSettingsCategory(category.key) ? (
+              /*
+               * A category whose every group holds one page lists its pages
+               * directly. Matching the category landing: the group layer is
+               * still in the data and every group route still answers, but a
+               * disclosure triangle wrapping a single link is two clicks to
+               * reach one page.
+               */
+              <div className="border-t border-border px-3 py-2">
+                {category.groups
+                  .flatMap((group) => group.items)
+                  .map((item) => {
+                    const active = currentItem?.key === item.key;
+                    return (
+                      /*
+                        Same treatment as the grouped branch below, and for the
+                        same reason (BUG-1986): `--accent-soft` is the tenant
+                        primary mixed into white and `--accent` is that primary,
+                        so pairing them fails contrast on every tenant palette.
+                        The current page is marked with `aria-current`, not with
+                        colour alone.
+                      */
+                      <Link
+                        key={item.key}
+                        href={item.route}
+                        aria-current={active ? "page" : undefined}
+                        className={`block truncate rounded-lg px-2 py-1.5 text-xs ${
+                          active
+                            ? "bg-accent-soft font-semibold text-foreground"
+                            : "text-muted hover:bg-surface hover:text-foreground"
+                        }`}
+                      >
+                        {item.shortLabel ?? item.label}
+                      </Link>
+                    );
+                  })}
+              </div>
+            ) : categoryOpen ? (
               <div className="border-t border-border px-3 py-2">
                 {category.groups.map((group) => {
                   const groupStateKey = `${category.key}:${group.key}`;

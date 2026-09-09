@@ -1085,3 +1085,67 @@ function isUniqueViolation(error: unknown) {
     error.code === UNIQUE_VIOLATION
   );
 }
+
+/**
+ * Grandfather newly-carved capability keys onto plans the catalog does not own.
+ *
+ * A capability key that did not exist yesterday resolves to `false` today for
+ * every plan with no row for it, because `getResolvedTenantFeatures` treats a
+ * missing `PlanFeature` as not-included. For the four catalog plans that is
+ * correct and automatic: `reconcilePlanFeatures` converges them against
+ * `plans.catalog.ts`, so Starter losing a key it was never meant to sell is the
+ * intended effect.
+ *
+ * Plans an operator created by hand are the gap. The catalog is not
+ * authoritative for them and `ensurePlans` never touches them, so a key carved
+ * out of what used to be free disappears from them silently — a customer on a
+ * bespoke plan loses a screen they were using, with no seed, no migration and no
+ * error to trace it to. That is the difference between "we started selling this"
+ * and "we took this away", and only the second one is a defect.
+ *
+ * So: for non-catalog plans only, create a missing row for each named key as
+ * **enabled**. Existing rows are never touched — an operator who deliberately
+ * switched something off keeps that decision, and a second run writes nothing.
+ *
+ * Deliberately not part of `bootstrapCommercialDefaults`. This grandfathers a
+ * specific set of keys at a specific moment; running it forever would re-enable
+ * a capability an operator later removed from a bespoke plan, which is the
+ * opposite of the intent.
+ */
+export async function backfillCapabilitiesOnCustomPlans(
+  prisma: BootstrapClient,
+  featureKeys: readonly string[],
+) {
+  const catalogKeys = new Set(
+    DEFAULT_PLAN_DEFINITIONS.map((definition) => definition.key),
+  );
+  const plans = await prisma.plan.findMany({
+    select: { id: true, key: true, name: true },
+  });
+  const granted: string[] = [];
+
+  for (const plan of plans) {
+    if (catalogKeys.has(plan.key)) continue;
+
+    const existing = await prisma.planFeature.findMany({
+      where: { planId: plan.id, featureKey: { in: [...featureKeys] } },
+      select: { featureKey: true },
+    });
+    const seen = new Set(existing.map((row) => row.featureKey));
+
+    for (const featureKey of featureKeys) {
+      if (seen.has(featureKey)) continue;
+      try {
+        await prisma.planFeature.create({
+          data: { planId: plan.id, featureKey, isEnabled: true },
+        });
+        granted.push(`${plan.name} (${plan.key}) += ${featureKey}`);
+      } catch (error) {
+        // `@@unique([planId, featureKey])` — a concurrent run wrote it first.
+        if (!isUniqueViolation(error)) throw error;
+      }
+    }
+  }
+
+  return { plansExamined: plans.length, granted };
+}
