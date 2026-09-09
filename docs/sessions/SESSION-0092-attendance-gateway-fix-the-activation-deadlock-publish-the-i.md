@@ -4,7 +4,7 @@ aliases: [SESSION-0092]
 TASK_ID:
 TITLE: Attendance gateway: fix the activation deadlock, publish the installers, deploy to production
 ARCHITECT_INTENT: Attendance gateway: fix the activation deadlock, publish the installers, deploy to production
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: RELEASE
 TASK_SIZE: LARGE
 BASE_BRANCH: origin/develop

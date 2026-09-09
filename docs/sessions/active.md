@@ -12,6 +12,5 @@ therefore sees sibling worktrees without anybody having pushed.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
-| [SESSION-0092](../../docs/sessions/SESSION-0092-attendance-gateway-fix-the-activation-deadlock-publish-the-i.md) | — | Attendance gateway: fix the activation deadlock, publish the installers, deploy to production | ACTIVE | `agent/attendance-activation-and-release` | `main` | — | 2026-09-08T23:10:15.602Z |
 | [SESSION-0091](../../docs/sessions/SESSION-0091-production-advisories-clear-the-gate-that-is-red-on-main.md) | — | Production advisories: clear the gate that is red on main | ACTIVE | `agent/production-advisories` | `develop` | — | 2026-09-08T22:02:23.453Z |
 | [SESSION-0061](../../docs/sessions/SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser.md) | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | 2026-08-26T09:54:37.336Z |

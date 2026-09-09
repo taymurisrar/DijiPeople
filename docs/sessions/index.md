@@ -6,13 +6,12 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 3** · completed: 86
+**Active: 2** · completed: 87
 
 ## Active
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
-| [SESSION-0092](../../docs/sessions/SESSION-0092-attendance-gateway-fix-the-activation-deadlock-publish-the-i.md) | — | Attendance gateway: fix the activation deadlock, publish the installers, deploy to production | ACTIVE | `agent/attendance-activation-and-release` | `main` | — | 2026-09-08T23:10:15.602Z |
 | [SESSION-0091](../../docs/sessions/SESSION-0091-production-advisories-clear-the-gate-that-is-red-on-main.md) | — | Production advisories: clear the gate that is red on main | ACTIVE | `agent/production-advisories` | `develop` | — | 2026-09-08T22:02:23.453Z |
 | [SESSION-0061](../../docs/sessions/SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser.md) | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | 2026-08-26T09:54:37.336Z |
 
@@ -20,6 +19,7 @@ see [`README.md`](README.md) for how they stay out of each other's way.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0092](../../docs/sessions/SESSION-0092-attendance-gateway-fix-the-activation-deadlock-publish-the-i.md) | — | Attendance gateway: fix the activation deadlock, publish the installers, deploy to production | COMPLETE | `agent/attendance-activation-and-release` | `main` | — | 2026-09-08T23:10:15.602Z |
 | [SESSION-0090](../../docs/sessions/SESSION-0090-approvals-inbox-make-the-decision-surface-real.md) | — | Approvals inbox: make the decision surface real | COMPLETE | `agent/approvals-inbox-decisions` | `develop` | — | 2026-08-31T10:46:00.709Z |
 | [SESSION-0089](../../docs/sessions/SESSION-0089-a-workspace-that-cannot-send-email-should-say-so.md) | — | A workspace that cannot send email should say so | COMPLETE | `agent/email-sink-visibility` | `develop` | — | 2026-08-31T10:03:42.809Z |
 | [SESSION-0088](../../docs/sessions/SESSION-0088-expired-session-redirect-loop-and-an-audit-of-buildscopedacc.md) | — | Expired-session redirect loop, and an audit of buildScopedAccessWhere callers | COMPLETE | `agent/session-redirect-loop` | `develop` | — | 2026-08-31T08:15:00.000Z |
