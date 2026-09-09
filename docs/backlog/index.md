@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**443 records** — 318 bugs under [`docs/bugs/`](../bugs/), 125 non-bug items under [`items/`](items/).
+**446 records** — 319 bugs under [`docs/bugs/`](../bugs/), 127 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,20 +13,20 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 116 |
+| Open (active work) | 117 |
 | Blocked | 2 |
-| Deferred | 28 |
+| Deferred | 29 |
 | Awaiting a product decision | 6 |
-| Completed / closed | 291 |
+| Completed / closed | 292 |
 | **Open CRITICAL** | **0** |
-| **Open HIGH** | **33** |
+| **Open HIGH** | **34** |
 | **Awaiting Architect triage** | **5** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 33 |
+| HIGH | 34 |
 | MEDIUM | 69 |
 | LOW | 14 |
 
@@ -35,7 +35,7 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | ARCHITECTURE | 2 |
-| AUTHORIZATION | 3 |
+| AUTHORIZATION | 4 |
 | BUG | 37 |
 | DATA_INTEGRITY | 9 |
 | DOCUMENTATION | 2 |
@@ -55,15 +55,15 @@ see [`README.md`](README.md) for why.
 |---|---|
 | OPEN | 9 |
 | BLOCKED | 2 |
-| DEFERRED | 28 |
+| DEFERRED | 29 |
 | PRODUCT_DECISION | 6 |
-| FIXED | 78 |
+| FIXED | 79 |
 | VERIFIED | 218 |
 | DUPLICATE | 5 |
 | ACCEPTED_RISK | 3 |
 | TRIAGE_REQUIRED | 2 |
 | READY | 27 |
-| DONE | 65 |
+| DONE | 66 |
 
 ## All records
 
@@ -223,6 +223,7 @@ see [`README.md`](README.md) for why.
 | [BUG-2732](../../docs/bugs/BUG-2732-attendance-integration-cannot-be-activated-activation-requir.md) | Attendance integration cannot be activated: activation requires a verified device, but only an active integration is ever verified | STATE_MACHINE | HIGH | P1 | FIXED | api:attendance-integrations, gateway/src/DijiPeople.Gateway.Host | FIX_NOW |
 | [BUG-2741](../../docs/bugs/BUG-2741-a-workspace-whose-email-provider-is-a-sink-reports-every-mes.md) | A workspace whose email provider is a sink reports every message as SENT | BUG | HIGH | P1 | FIXED | notifications, reporting | FIX_NOW |
 | [BUG-2933](../../docs/bugs/BUG-2933-mapping-a-device-user-never-requeues-its-punches-so-backfill.md) | Mapping a device user never requeues its punches, so backfilled attendance is silently never built | INTEGRATION | HIGH | P1 | FIXED | api:attendance-integrations | FIX_NOW |
+| [BUG-2958](../../docs/bugs/BUG-2958-settings-shows-every-category-group-and-page-regardless-of-t.md) | Settings shows every category, group and page regardless of the tenant's plan | AUTHORIZATION | HIGH | P1 | FIXED | apps/web, api:tenant-settings | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -504,11 +505,13 @@ see [`README.md`](README.md) for why.
 | [ITEM-0110](../../docs/backlog/items/ITEM-0110-attendance-entry-appears-to-create-timesheet-drafts-on-a-ten.md) | Attendance entry appears to create Timesheet drafts on a tenant without the Timesheets entitlement | PRODUCT_DECISION | LOW | P3 | DEFERRED | api:timesheets, api:attendance | DEFER |
 | [ITEM-0111](../../docs/backlog/items/ITEM-0111-protected-route-prefixes-omits-twelve-authenticated-route-tr.md) | PROTECTED_ROUTE_PREFIXES omits twelve authenticated route trees, so deep links to them are lost at sign-in | UX | LOW | P3 | READY | apps/web | FIX_NOW |
 | [ITEM-0121](../../docs/backlog/items/ITEM-0121-the-approvals-capability-signal-does-not-model-each-module-s.md) | The approvals capability signal does not model each module's object-level rules, so a refused action can look available | UX | LOW | P3 | DEFERRED | approvals, attendance | DEFER |
+| [ITEM-0126](../../docs/backlog/items/ITEM-0126-decide-which-of-the-41-always-visible-settings-pages-should-.md) | Decide which of the 41 always-visible settings pages should be sold | PRODUCT_DECISION | — | P1 | DONE | apps/web | DONE |
 | [ITEM-0057](../../docs/backlog/items/ITEM-0057-landing-production-env-examples-still-name-the-vercel-and-re.md) | Landing production env examples still name the vercel and render hosts, not the dijipeople.com apex | PRODUCT_DECISION | — | P2 | DONE | apps/landing | DONE |
 | [ITEM-0091](../../docs/backlog/items/ITEM-0091-repo-health-blocks-every-release-task-on-its-own-defining-ou.md) | repo:health blocks every RELEASE task on its own defining outcome | INFRA | — | P2 | DONE | framework | DONE |
 | [ITEM-0100](../../docs/backlog/items/ITEM-0100-apps-landing-env-examples-omit-next-public-web-root-domain-a.md) | apps/landing env examples omit NEXT_PUBLIC_WEB_ROOT_DOMAIN and no parity test guards them | INFRA | — | P2 | DONE | apps/landing, pkg:config | DONE |
 | [ITEM-0101](../../docs/backlog/items/ITEM-0101-mailerservice-silently-logs-instead-of-sending-and-nothing-u.md) | MailerService silently logs instead of sending, and nothing uses it | TECH_DEBT | — | P2 | DEFERRED | services/api/src/common/mailer | DEFER |
 | [ITEM-0102](../../docs/backlog/items/ITEM-0102-move-switch-workspace-into-the-avatar-menu.md) | Move Switch workspace into the avatar menu | UX | — | P2 | DONE | views | DONE |
+| [ITEM-0127](../../docs/backlog/items/ITEM-0127-settings-ia-21-of-41-groups-hold-a-single-item.md) | Settings IA: 21 of 41 groups hold a single item | UX | — | P2 | DEFERRED | apps/web | DEFER |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |
 | [ITEM-0114](../../docs/backlog/items/ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-.md) | The workspace shell states the tenant's identity four times and its purpose twice | UX | — | P3 | PRODUCT_DECISION | views | PRODUCT_DECISION |

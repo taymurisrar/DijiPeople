@@ -336,8 +336,24 @@ export const PERMISSION_KEYS = {
   BUSINESS_UNITS_READ: "business-units.read",
 } as const;
 
+/*
+ * The capabilities a subscription plan sells, mirrored from the API's
+ * `TENANT_FEATURE_DEFINITIONS`.
+ *
+ * All thirteen are listed, not just the ones the sidebar happens to gate. The
+ * settings entitlement map attributes every settings page to one of these, and
+ * an attribution can only be as complete as this constant — when this held
+ * eight of the twelve, `organization`, `documents`, `notifications` and
+ * `branding` were unexpressible, which is a quiet way for a gate to be missing.
+ *
+ * These are NOT permissions. A permission asks whether this user may act; a
+ * feature key asks whether this tenant bought the capability at all. A caller
+ * holding every permission is still refused a capability the plan does not
+ * include, and no role bypasses that.
+ */
 export const FEATURE_KEYS = {
   EMPLOYEES: "employees",
+  ORGANIZATION: "organization",
   LEAVE: "leave",
   ATTENDANCE: "attendance",
   TIMESHEETS: "timesheets",
@@ -345,4 +361,13 @@ export const FEATURE_KEYS = {
   PAYROLL: "payroll",
   RECRUITMENT: "recruitment",
   ONBOARDING: "onboarding",
+  DOCUMENTS: "documents",
+  NOTIFICATIONS: "notifications",
+  BRANDING: "branding",
+  DESKTOP_AGENT: "desktop-agent",
+  ATTENDANCE_INTEGRATIONS: "attendance-integrations",
+  COMPLIANCE: "compliance",
+  DATA_MANAGEMENT: "data-management",
 } as const;
+
+export type FeatureKey = (typeof FEATURE_KEYS)[keyof typeof FEATURE_KEYS];

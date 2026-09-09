@@ -27,6 +27,7 @@ import { getBusinessUnitAccessSummary } from "./_lib/business-unit-access";
 import { getCurrentEmployee } from "./_lib/current-employee";
 
 import { AuthenticatedShellProvider } from "./_components/authenticated-shell-provider";
+import { TenantEntitlementsProvider } from "./_components/tenant-entitlements-provider";
 import { DashboardSidebar } from "./_components/dashboard-sidebar";
 import { DashboardTopbar } from "./_components/dashboard-topbar";
 import type { DashboardNavOverride } from "./_components/navigation";
@@ -229,6 +230,17 @@ export default async function DashboardLayout({
     <SystemPreferencesProvider
       initialResolvedSettings={resolvedSettings}
     >
+    <TenantEntitlementsProvider
+      /*
+       * `?? null` is load-bearing and is not a tidy-up. The fetch above catches
+       * to `null` on failure, and `null` must survive all the way to the
+       * consumer as "unknown" — Settings refuses to render a filtered tree from
+       * an unknown entitlement set. Substituting `[]` here would turn a network
+       * blip into "your plan includes nothing", and substituting a permissive
+       * default would restore BUG-1952.
+       */
+      enabledFeatureKeys={featureAvailability?.enabledKeys ?? null}
+    >
       <AuthenticatedShellProvider
         inactivityTimeoutMinutes={sessionTimeoutMinutes}
         user={{
@@ -343,6 +355,7 @@ export default async function DashboardLayout({
           </div>
         </div>
       </AuthenticatedShellProvider>
+    </TenantEntitlementsProvider>
     </SystemPreferencesProvider>
   );
 }

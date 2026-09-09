@@ -51,6 +51,7 @@
     "seed:config": "npm --workspace api run seed:config",
     "seed:commercial": "npm --workspace api run seed:commercial",
     "repair:market-countries": "npm --workspace api run repair:market-countries",
+    "repair:plan-capabilities": "npm --workspace api run repair:plan-capabilities",
     "repair:routine-incidents": "npm --workspace api run repair:routine-incidents",
     "report:commercial": "npm --workspace api run report:commercial",
     "stripe:sync-prices": "node scripts/sync-stripe-prices.mjs",

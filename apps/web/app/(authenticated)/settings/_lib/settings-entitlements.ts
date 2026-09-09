@@ -1,0 +1,388 @@
+import { FEATURE_KEYS, type FeatureKey } from "@/lib/security-keys";
+
+/*
+ * Which capability each settings page belongs to.
+ *
+ * The Configuration workspace used to be resolved from permissions and roles
+ * alone, so a tenant on a plan without Payroll was still offered the whole
+ * Payroll & Finance tree — eighteen pages configuring a module it had not
+ * bought (BUG-1952). This map is the missing third input.
+ *
+ * ## CORE is a declaration, not a default
+ *
+ * `CORE` means "no plan gates this page; it renders on every subscription". It
+ * is written out for every such item rather than inferred from absence, because
+ * the failure mode worth preventing is a *new* settings page that nobody
+ * attributed. If absence meant core, that page would silently be free forever.
+ * `settings-entitlements.spec.ts` fails the build when a runtime settings item
+ * is missing here, so adding a settings page forces the question to be
+ * answered. It compares against `settingsRuntimeItems` — the built item set —
+ * rather than against `itemPlacement`, which is only a placement lookup: it
+ * carries keys for pages that no longer exist and misses pages that fall
+ * through to `defaultPlacement`. Auditing the lookup instead of the items is
+ * how `subscription`, `sidebar` and `data-management` were missed on the first
+ * pass of this map.
+ *
+ * ## Why the map lives beside the IA rather than inside it
+ *
+ * Two structures, compared by a spec, catch a drift that one structure cannot:
+ * if the attribution were a field on the placement tuple, a wrong value would
+ * still be a well-formed tuple. Here, an item present in one and absent from
+ * the other is a build failure.
+ *
+ * ## The audit this encodes
+ *
+ * Attribution was decided item by item, not category by category, and two rows
+ * are why.
+ *
+ * `timesheets` sits beside an entitled `attendance` in People > Attendance &
+ * Time, so its group and its category both survive a Starter plan and only the
+ * one row may go. `payroll-regions` is the only member of Regional Operations >
+ * Payroll Geography, so its group collapses inside a category that belongs to
+ * every plan. A category-level map would have left both in place, which is
+ * exactly what the reported screenshot showed.
+ *
+ * The reverse mistake is `subscription`, below: attributing a whole category
+ * would have hidden a Starter tenant's own billing page behind Payroll.
+ */
+export const SETTINGS_CORE = "CORE" as const;
+
+export type SettingsEntitlement = FeatureKey | typeof SETTINGS_CORE;
+
+export const SETTINGS_ITEM_ENTITLEMENTS: Record<string, SettingsEntitlement> = {
+  // ---------------------------------------------------------------- General Setup
+  tenant: SETTINGS_CORE,
+  organizations: FEATURE_KEYS.ORGANIZATION,
+  "business-units": FEATURE_KEYS.ORGANIZATION,
+  departments: FEATURE_KEYS.ORGANIZATION,
+  "organization-teams": FEATURE_KEYS.ORGANIZATION,
+  /*
+   * Import & Export. Sold from Growth up. The modules it can reach are each
+   * gated on their own key already, so this sells the bulk path rather than
+   * access to anything a tenant could not otherwise see.
+   */
+  "data-management": FEATURE_KEYS.DATA_MANAGEMENT,
+  recruitment: FEATURE_KEYS.RECRUITMENT,
+  /*
+   * Sold separately from Attendance as of ADR-0005 Decision 2. This gates the settings
+   * page only — installers, enrolment keys and agent policy. The agent's own
+   * sync endpoints stay on `attendance`, so no deployed agent stops working
+   * when a tenant's plan lacks this key.
+   */
+  "desktop-agent": FEATURE_KEYS.DESKTOP_AGENT,
+
+  // ---------------------------------------------------------- People Configuration
+  designations: FEATURE_KEYS.EMPLOYEES,
+  "employment-types": FEATURE_KEYS.EMPLOYEES,
+  "employee-settings": FEATURE_KEYS.EMPLOYEES,
+  "employee-levels": FEATURE_KEYS.EMPLOYEES,
+  /*
+   * Work Management is core on every plan.
+   *
+   * Shifts and work schedules look like attendance, and holiday calendars look
+   * like leave, but all five are shared master data: a holiday calendar drives
+   * leave accrual on a plan with no attendance, and a work site is an employee
+   * field before it is a geofence. Attributing them narrowly would hide
+   * configuration a Starter tenant genuinely uses.
+   */
+  locations: SETTINGS_CORE,
+  "work-calendars": SETTINGS_CORE,
+  "holiday-calendars": SETTINGS_CORE,
+  shifts: SETTINGS_CORE,
+  "work-schedules": SETTINGS_CORE,
+  attendance: FEATURE_KEYS.ATTENDANCE,
+  timesheets: FEATURE_KEYS.TIMESHEETS,
+  "document-categories": FEATURE_KEYS.DOCUMENTS,
+  documents: FEATURE_KEYS.DOCUMENTS,
+  /*
+   * Moved out of Payroll & Finance by ADR-0005 Decision 4. It reads generic document
+   * templating from the settings runtime and has no payroll dependency; leaving
+   * it attributed to `payroll` would have taken document templating away from
+   * every plan that bought Documents but not Payroll.
+   */
+  "document-templates": FEATURE_KEYS.DOCUMENTS,
+  "leave-types": FEATURE_KEYS.LEAVE,
+  "leave-policies": FEATURE_KEYS.LEAVE,
+
+  // --------------------------------------------------------- Regional Operations
+  "payroll-regions": FEATURE_KEYS.PAYROLL,
+  countries: SETTINGS_CORE,
+  states: SETTINGS_CORE,
+  cities: SETTINGS_CORE,
+  timezones: SETTINGS_CORE,
+  currencies: SETTINGS_CORE,
+  /*
+   * Core despite reading as payroll. A fiscal year scopes leave accrual periods
+   * and reporting ranges as well as pay periods, and a tenant with no payroll
+   * still needs one. ADR-0005 Decision 3.
+   */
+  "fiscal-years": SETTINGS_CORE,
+
+  // ------------------------------------------------------------ Security & Access
+  users: SETTINGS_CORE,
+  roles: SETTINGS_CORE,
+  permissions: SETTINGS_CORE,
+  "access-teams": SETTINGS_CORE,
+  "field-security": SETTINGS_CORE,
+  "password-login-policies": SETTINGS_CORE,
+  "login-history": SETTINGS_CORE,
+
+  // ------------------------------------------------------- Approvals & Workflows
+  /*
+   * Core because Starter buys Leave, and leave requests route through these
+   * pages. Approvals is not one of the thirteen capabilities and gating it
+   * would break the cheapest plan's headline feature.
+   */
+  "approval-matrices": SETTINGS_CORE,
+  "delegation-rules": SETTINGS_CORE,
+  "escalation-rules": SETTINGS_CORE,
+  "workflow-templates": SETTINGS_CORE,
+  "policy-engine": SETTINGS_CORE,
+
+  // ------------------------------------------------------------ Payroll & Finance
+  /*
+   * CORE, despite living in the payroll category — and this row is the reason
+   * an attribution audit had to be done item by item.
+   *
+   * `subscription` had no `itemPlacement` entry, so it fell through to
+   * `defaultPlacement` and landed in Payroll & Finance > Payroll Configuration.
+   * It is the tenant's own subscription: what plan they are on, what it costs,
+   * what an upgrade would add. Attributing the category rather than the item
+   * would have hidden a Starter tenant's billing page behind the very capability
+   * they would go there to buy.
+   *
+   * Now placed in General Setup > Tenant & Company — an existing group, not a
+   * new one invented to hold it. It is listed under this heading because that is
+   * where it used to live, and because the row is the clearest argument in the
+   * file for attributing pages rather than categories.
+   */
+  subscription: SETTINGS_CORE,
+  "payroll-periods": FEATURE_KEYS.PAYROLL,
+  "pay-components": FEATURE_KEYS.PAYROLL,
+  "claim-types": FEATURE_KEYS.PAYROLL,
+  "travel-allowance-policies": FEATURE_KEYS.PAYROLL,
+  "time-payroll-policies": FEATURE_KEYS.PAYROLL,
+  "overtime-policies": FEATURE_KEYS.PAYROLL,
+  "tax-rules": FEATURE_KEYS.PAYROLL,
+  "employee-tax-profiles": FEATURE_KEYS.PAYROLL,
+  "gl-accounts": FEATURE_KEYS.PAYROLL,
+  "posting-rules": FEATURE_KEYS.PAYROLL,
+  "payroll-settings": FEATURE_KEYS.PAYROLL,
+  "salary-package-rules": FEATURE_KEYS.PAYROLL,
+  "benefit-policies": FEATURE_KEYS.PAYROLL,
+  "loan-policies": FEATURE_KEYS.PAYROLL,
+  "payroll-banks": FEATURE_KEYS.PAYROLL,
+  "employer-bank-accounts": FEATURE_KEYS.PAYROLL,
+
+  // ------------------------------------------------ Notifications & Communication
+  notifications: FEATURE_KEYS.NOTIFICATIONS,
+  "notification-email-templates": FEATURE_KEYS.NOTIFICATIONS,
+  "notification-email-providers": FEATURE_KEYS.NOTIFICATIONS,
+  "notification-email-logs": FEATURE_KEYS.NOTIFICATIONS,
+
+  // ----------------------------------------------------- Appearance & Experience
+  branding: FEATURE_KEYS.BRANDING,
+  "system-preferences": SETTINGS_CORE,
+
+  // ---------------------------------------------------------- Audit & Compliance
+  /*
+   * Sold as one capability from Enterprise up. The four are read together — an
+   * export is assembled from the histories — so splitting them would sell a
+   * report without its source.
+   *
+   * Audit history is arguably table stakes rather than a compliance tier, and
+   * including it here is the decision most likely to be revisited. If it is, the
+   * change is these two lines, not the catalog.
+   */
+  "audit-logs": FEATURE_KEYS.COMPLIANCE,
+  "data-access-history": FEATURE_KEYS.COMPLIANCE,
+  "retention-rules": FEATURE_KEYS.COMPLIANCE,
+  "compliance-exports": FEATURE_KEYS.COMPLIANCE,
+
+  // ------------------------------------------------------------- Customization
+  /*
+   * Free on every plan, by decision rather than by omission (ADR-0005 Decision 5).
+   *
+   * These nine are the most Enterprise-shaped pages in Settings and there is a
+   * commercial case for selling them. Carving them out later means a fourteenth
+   * capability key AND a backfill for every tenant that has already built
+   * customizations, because a plan without the key would otherwise hide work
+   * they have already done. That is a deliberate future change, not something
+   * to arrive at by leaving them unattributed.
+   */
+  tables: SETTINGS_CORE,
+  fields: SETTINGS_CORE,
+  forms: SETTINGS_CORE,
+  views: SETTINGS_CORE,
+  "action-bars": SETTINGS_CORE,
+  widgets: SETTINGS_CORE,
+  sidebar: SETTINGS_CORE,
+  packages: SETTINGS_CORE,
+  "publish-center": SETTINGS_CORE,
+
+  // ------------------------------------------------------------- Integrations
+  /*
+   * Attendance hardware, sold apart from Attendance itself from Growth up.
+   *
+   * These seven were attributed to `attendance`, which every plan holds, so a
+   * Starter tenant could configure ZKTeco terminals and pair an on-premise .NET
+   * gateway. Web and desktop check-in stay on `attendance`; the machinery that
+   * carries punches in from hardware is the upgrade.
+   */
+  "attendance-integrations-overview": FEATURE_KEYS.ATTENDANCE_INTEGRATIONS,
+  "attendance-integrations": FEATURE_KEYS.ATTENDANCE_INTEGRATIONS,
+  "attendance-devices": FEATURE_KEYS.ATTENDANCE_INTEGRATIONS,
+  "attendance-employee-mapping": FEATURE_KEYS.ATTENDANCE_INTEGRATIONS,
+  "attendance-provisioning": FEATURE_KEYS.ATTENDANCE_INTEGRATIONS,
+  "attendance-sync-history": FEATURE_KEYS.ATTENDANCE_INTEGRATIONS,
+  "attendance-gateways": FEATURE_KEYS.ATTENDANCE_INTEGRATIONS,
+  /*
+   * The installer page, following the clients it installs.
+   *
+   * It was CORE on the argument that a tenant should be able to see what it
+   * would get. That held while the agent was free; now that both the desktop
+   * agent and the gateway are sold, an Integrations category offering nothing
+   * but a download list for two things the plan does not include is an odd
+   * shape, and the subscription screen is the honest place to learn what an
+   * upgrade adds.
+   *
+   * Attributed to `desktop-agent` rather than `attendance-integrations` because
+   * the agent is the client most tenants install. A custom plan buying the
+   * gateway without the agent would lose the gateway installer from this page —
+   * an edge no shipped plan produces, and one to split this row on if a
+   * customer ever asks for it.
+   */
+  "apps-downloads": FEATURE_KEYS.DESKTOP_AGENT,
+};
+
+/*
+ * Human labels for the capability keys, for the "not included in your plan"
+ * state. Mirrors the `label` field of the API's `TENANT_FEATURE_DEFINITIONS`;
+ * the API's copy is authoritative and is what the Apps & Modules page renders,
+ * this one exists so a blocked settings page can name what is missing without a
+ * round trip.
+ */
+export const FEATURE_LABELS: Record<FeatureKey, string> = {
+  [FEATURE_KEYS.EMPLOYEES]: "Employees",
+  [FEATURE_KEYS.ORGANIZATION]: "Organization",
+  [FEATURE_KEYS.LEAVE]: "Leave",
+  [FEATURE_KEYS.ATTENDANCE]: "Attendance",
+  [FEATURE_KEYS.TIMESHEETS]: "Timesheets",
+  [FEATURE_KEYS.PROJECTS]: "Projects",
+  [FEATURE_KEYS.PAYROLL]: "Payroll",
+  [FEATURE_KEYS.RECRUITMENT]: "Recruitment",
+  [FEATURE_KEYS.ONBOARDING]: "Onboarding",
+  [FEATURE_KEYS.DOCUMENTS]: "Documents",
+  [FEATURE_KEYS.NOTIFICATIONS]: "Notifications",
+  [FEATURE_KEYS.BRANDING]: "Branding",
+  [FEATURE_KEYS.DESKTOP_AGENT]: "Desktop Agent",
+  [FEATURE_KEYS.ATTENDANCE_INTEGRATIONS]: "Attendance Devices & Gateways",
+  [FEATURE_KEYS.COMPLIANCE]: "Compliance & Retention",
+  [FEATURE_KEYS.DATA_MANAGEMENT]: "Import & Export",
+};
+
+/**
+ * The capabilities a set of settings items needs, as labels, without repeats.
+ *
+ * Used to tell a blocked visitor which capability is missing. A group can span
+ * more than one, so this returns all of them in the order they appear rather
+ * than picking the first and hoping it is representative.
+ */
+export function missingCapabilityLabels(
+  itemKeys: readonly string[],
+  enabledFeatureKeys: readonly string[],
+): string[] {
+  const labels: string[] = [];
+
+  for (const itemKey of itemKeys) {
+    const entitlement = SETTINGS_ITEM_ENTITLEMENTS[itemKey];
+    if (entitlement === undefined || entitlement === SETTINGS_CORE) continue;
+    if (enabledFeatureKeys.includes(entitlement)) continue;
+
+    const label = FEATURE_LABELS[entitlement];
+    if (!labels.includes(label)) labels.push(label);
+  }
+
+  return labels;
+}
+
+/**
+ * What a settings URL should render, given the tenant's plan.
+ *
+ * The decision the layout boundary makes, extracted as a pure function so it can
+ * be tested. The component around it resolves the pathname to an item and picks
+ * a component from this verdict; everything that could be wrong is here.
+ *
+ * `PASS_THROUGH` for a path that resolves to no item — the workspace, a category
+ * or a group landing. Those render their own contents and their own states, and
+ * blocking them here would blank the Configuration workspace whenever one
+ * capability was missing.
+ *
+ * A core page passes through even when entitlements are unresolved. Tenant
+ * Profile and the subscription screen must survive an availability outage —
+ * the subscription screen especially, since it is where every blocked page
+ * sends the reader.
+ */
+export type SettingsEntitlementVerdict =
+  | { kind: "PASS_THROUGH" }
+  | { kind: "UNRESOLVED" }
+  | { kind: "NOT_ON_PLAN"; capabilityLabel: string };
+
+export function resolveSettingsEntitlementVerdict(
+  itemKey: string | null,
+  enabledFeatureKeys: readonly string[] | null,
+): SettingsEntitlementVerdict {
+  if (itemKey === null) return { kind: "PASS_THROUGH" };
+
+  const entitlement = SETTINGS_ITEM_ENTITLEMENTS[itemKey];
+  if (entitlement === SETTINGS_CORE) return { kind: "PASS_THROUGH" };
+
+  if (enabledFeatureKeys === null) return { kind: "UNRESOLVED" };
+
+  if (entitlement !== undefined && enabledFeatureKeys.includes(entitlement)) {
+    return { kind: "PASS_THROUGH" };
+  }
+
+  return {
+    kind: "NOT_ON_PLAN",
+    /*
+     * An unattributed item lands here rather than passing through. The coverage
+     * spec makes that unreachable in a built tree, but at runtime an
+     * unattributed page is an unanswered question about what the customer
+     * bought, and the safe answer is no.
+     */
+    capabilityLabel:
+      entitlement === undefined
+        ? "a capability"
+        : FEATURE_LABELS[entitlement],
+  };
+}
+
+/**
+ * Whether a settings item is included in the tenant's plan.
+ *
+ * `enabledFeatureKeys` is the resolved entitlement set from
+ * `GET /tenant-settings/features/availability` — plan features intersected with
+ * the tenant's own overrides. It is deliberately **not** nullable here: a caller
+ * that has not resolved entitlements must not reach this function and quietly
+ * receive `true`. `resolveVisibleSettingsRuntime` enforces that at its own
+ * boundary by throwing, so a fetch failure surfaces as an error state rather
+ * than as an unlocked settings tree.
+ */
+export function isSettingsItemEntitled(
+  itemKey: string,
+  enabledFeatureKeys: readonly string[],
+): boolean {
+  const entitlement = SETTINGS_ITEM_ENTITLEMENTS[itemKey];
+
+  /*
+   * An unmapped item denies. The spec makes this unreachable in a built tree,
+   * but the two structures can only be compared at test time — at runtime an
+   * item nobody attributed is an unanswered commercial question, and the safe
+   * answer to an unanswered question about what a customer bought is "no".
+   */
+  if (entitlement === undefined) return false;
+  if (entitlement === SETTINGS_CORE) return true;
+
+  return enabledFeatureKeys.includes(entitlement);
+}

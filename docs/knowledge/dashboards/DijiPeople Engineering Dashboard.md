@@ -8,12 +8,12 @@
 | | |
 |---|---|
 | Open CRITICAL | **0** |
-| Open HIGH | **33** |
-| Open total | 116 |
+| Open HIGH | **34** |
+| Open total | 117 |
 | Blocked | 2 |
 | Awaiting a product decision | 6 |
-| Deferred | 28 |
-| Completed | 291 |
+| Deferred | 29 |
+| Completed | 292 |
 | Awaiting Architect triage | 5 |
 
 ## Open Critical Bugs
@@ -56,6 +56,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2732-attendance-integration-cannot-be-activated-activation-requir|BUG-2732]] | Attendance integration cannot be activated: activation requires a verified device, but only an active integration is ever verified | STATE_MACHINE | HIGH | FIXED | api:attendance-integrations, gateway/src/DijiPeople.Gateway.Host | FIX_NOW |
 | [[BUG-2741-a-workspace-whose-email-provider-is-a-sink-reports-every-mes|BUG-2741]] | A workspace whose email provider is a sink reports every message as SENT | BUG | HIGH | FIXED | notifications, reporting | FIX_NOW |
 | [[BUG-2933-mapping-a-device-user-never-requeues-its-punches-so-backfill|BUG-2933]] | Mapping a device user never requeues its punches, so backfilled attendance is silently never built | INTEGRATION | HIGH | FIXED | api:attendance-integrations | FIX_NOW |
+| [[BUG-2958-settings-shows-every-category-group-and-page-regardless-of-t|BUG-2958]] | Settings shows every category, group and page regardless of the tenant's plan | AUTHORIZATION | HIGH | FIXED | apps/web, api:tenant-settings | FIX_NOW |
 | [[ITEM-0124-production-advisory-gate-blocks-every-release-to-main-and-np|ITEM-0124]] | Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile | SECURITY | HIGH | TRIAGE_REQUIRED | scripts/check-production-advisories.mjs | TRIAGE_REQUIRED |
 
 ## Product Decisions Needed
@@ -248,6 +249,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2732-attendance-integration-cannot-be-activated-activation-requir|BUG-2732]] | Attendance integration cannot be activated: activation requires a verified device, but only an active integration is ever verified | STATE_MACHINE | HIGH | FIXED | api:attendance-integrations, gateway/src/DijiPeople.Gateway.Host | FIX_NOW |
 | [[BUG-2741-a-workspace-whose-email-provider-is-a-sink-reports-every-mes|BUG-2741]] | A workspace whose email provider is a sink reports every message as SENT | BUG | HIGH | FIXED | notifications, reporting | FIX_NOW |
 | [[BUG-2933-mapping-a-device-user-never-requeues-its-punches-so-backfill|BUG-2933]] | Mapping a device user never requeues its punches, so backfilled attendance is silently never built | INTEGRATION | HIGH | FIXED | api:attendance-integrations | FIX_NOW |
+| [[BUG-2958-settings-shows-every-category-group-and-page-regardless-of-t|BUG-2958]] | Settings shows every category, group and page regardless of the tenant's plan | AUTHORIZATION | HIGH | FIXED | apps/web, api:tenant-settings | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | VERIFIED | app:admin | DONE |
@@ -421,6 +423,7 @@ _None. Nothing open at CRITICAL._
 
 ## Recent Engineering History
 
+- [[2026-09-09-settings-plan-entitlements-c3627cad|Engineering History — Settings plan entitlements]]
 - [[2026-08-31-session-redirect-loop-77abf947|Engineering History — Session redirect loop]]
 - [[2026-08-31-reports-analytics-platform-d833e694|Engineering History — Reports analytics platform]]
 - [[2026-08-31-email-sink-visibility-1b60690f|Engineering History — Email sink visibility]]
@@ -428,7 +431,6 @@ _None. Nothing open at CRITICAL._
 - [[2026-08-30-release-attendance-location-capture-ec1d58da|Engineering History — Release attendance location capture]]
 - [[2026-08-30-prod-monitoring-triage-fba846d1|Engineering History — Prod monitoring triage]]
 - [[2026-08-30-open-bug-burndown-4d75b37c|Engineering History — Open bug burndown]]
-- [[2026-08-30-data-model-and-screen-discovery-122ce41e|Engineering History — Data model and screen discovery]]
 
 ## Recent Releases
 
@@ -532,6 +534,7 @@ _None. Nothing open at CRITICAL._
 - [[ADR-0002-tenant-base-domain-single-source|ADR-0002 — Configuration is the single source of the tenant base domain]]
 - [[ADR-0003-attendance-location-capture-is-mandatory|ADR-0003 — Attendance location capture is a platform mandate, not tenant configuration]]
 - [[ADR-0004-recurring-background-jobs-in-the-api-process|ADR-0004 — Recurring background jobs run in the API process, on a claim-and-guard pattern]]
+- [[ADR-0005-settings-capability-attribution|ADR-0005 — Which capability each settings page belongs to]]
 - [[decision-a-bug-record-is-its-own-backlog-item|Decision — A bug record **is** its own backlog item]]
 - [[decision-ci-verdict-gates-shared-merges|Decision — A shared-target merge requires a read CI verdict on the exact SHA]]
 - [[decision-platform-admin-is-a-separate-identity|Decision — Platform admin is a separate identity, not an elevated tenant user]]
@@ -541,15 +544,15 @@ _None. Nothing open at CRITICAL._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 318 |
-| Backlog items | 125 |
-| Known bug patterns | 33 |
+| Bug records | 319 |
+| Backlog items | 127 |
+| Known bug patterns | 34 |
 | QA runs | 32 |
-| Engineering history records | 73 |
+| Engineering history records | 74 |
 | Release records | 9 |
 | Module notes | 30 |
 | Architecture notes | 22 |
-| Decision notes (ADR + generated) | 8 |
+| Decision notes (ADR + generated) | 9 |
 | Implementation records | 7 |
 
 **Awaiting Architect triage: 5.** A record nobody has

@@ -23,10 +23,38 @@ import type {
   SettingsRuntimeCategory,
   SettingsRuntimeGroup,
 } from "../_lib/settings-runtime";
-import { resolveVisibleSettingsRuntime } from "../_lib/settings-runtime";
+import {
+  countSettingsPages,
+  isFlatSettingsCategory,
+  resolveVisibleSettingsRuntime,
+} from "../_lib/settings-runtime";
+import {
+  isSettingsItemEntitled,
+  missingCapabilityLabels,
+} from "../_lib/settings-entitlements";
 import { canViewSettingsItem } from "../_lib/settings-navigation";
 import { SettingsShell } from "./settings-shell";
 import { AccessDeniedState } from "../../_components/access-denied-state";
+import { useTenantEntitlements } from "../../_components/tenant-entitlements-provider";
+import {
+  SettingsEntitlementsUnavailableState,
+  SettingsNotOnPlanState,
+} from "./settings-plan-state";
+
+/**
+ * "Payroll", "Payroll and Timesheets", "Payroll, Timesheets and Projects".
+ *
+ * A group can span more than one capability, so the blocked state names every
+ * one that is missing rather than the first. The empty case reads "this
+ * capability" — reachable only if an item is attributed to a key with no label,
+ * which the entitlement spec prevents, but a sentence with a hole in it is a
+ * worse failure than a vague one.
+ */
+function formatCapabilityList(labels: readonly string[]): string {
+  if (labels.length === 0) return "a capability";
+  if (labels.length === 1) return labels[0]!;
+  return `${labels.slice(0, -1).join(", ")} and ${labels[labels.length - 1]}`;
+}
 
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
   "general-setup": Building2,
@@ -44,9 +72,27 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
 
 export function SettingsWorkspaceLanding() {
   const { user } = useCurrentUserAccess();
+  const enabledFeatureKeys = useTenantEntitlements();
+
+  /*
+   * Fail closed. `null` means the availability call did not answer — not that
+   * the plan is empty — and a settings tree resolved from an unknown plan is
+   * the bug this gate exists to close, so nothing is rendered from a guess.
+   */
+  if (enabledFeatureKeys === null) {
+    return (
+      <div className="min-h-screen bg-background px-2 py-4 sm:px-4 lg:px-6">
+        <div className="mx-auto w-full max-w-7xl">
+          <SettingsEntitlementsUnavailableState />
+        </div>
+      </div>
+    );
+  }
+
   const categories = resolveVisibleSettingsRuntime(
     user?.permissionKeys ?? [],
     user?.roleKeys ?? [],
+    enabledFeatureKeys,
   );
   return (
     <div className="min-h-screen bg-background px-2 py-4 sm:px-4 lg:px-6">
@@ -66,7 +112,14 @@ export function SettingsWorkspaceLanding() {
         <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {categories.map((category) => {
             const Icon = CATEGORY_ICONS[category.key] ?? FolderCog;
-            const groupCount = category.groups.length;
+            /*
+             * Pages, not groups. The group count described containers rather
+             * than content — "4 groups" for four pages — and it now shifts with
+             * the plan as groups collapse, so the same tenant saw a different
+             * number before and after an upgrade for reasons unrelated to how
+             * much was in there.
+             */
+            const pageCount = countSettingsPages(category);
 
             return (
               <Link
@@ -93,7 +146,7 @@ export function SettingsWorkspaceLanding() {
                   </span>
 
                   <span className="mt-2 block text-[11px] font-semibold uppercase tracking-wide text-accent">
-                    {groupCount} {groupCount === 1 ? "group" : "groups"}
+                    {pageCount} {pageCount === 1 ? "setting" : "settings"}
                   </span>
                 </span>
               </Link>
@@ -111,9 +164,22 @@ export function SettingsCategoryLanding({
   category: SettingsRuntimeCategory;
 }) {
   const { user } = useCurrentUserAccess();
+  const enabledFeatureKeys = useTenantEntitlements();
   const permissions = user?.permissionKeys ?? [];
   const roles = user?.roleKeys ?? [];
-  const groups = category.groups
+
+  if (enabledFeatureKeys === null) {
+    return <SettingsEntitlementsUnavailableState />;
+  }
+
+  /*
+   * Permission and entitlement are resolved separately, not folded into one
+   * filter, because the two dead ends need different answers. "You do not have
+   * access" is resolved by the tenant's own administrator; "not included in
+   * your plan" is resolved by DijiPeople. Collapsing them would send half the
+   * people who hit this page to the wrong place.
+   */
+  const permittedGroups = category.groups
     .map((group) => ({
       ...group,
       items: group.items.filter((item) =>
@@ -122,12 +188,79 @@ export function SettingsCategoryLanding({
     }))
     .filter((group) => group.items.length > 0);
 
-  if (groups.length === 0) {
+  if (permittedGroups.length === 0) {
     return (
       <AccessDeniedState
         title="Access denied"
         description={`You do not have access to ${category.label} settings.`}
       />
+    );
+  }
+
+  const groups = permittedGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) =>
+        isSettingsItemEntitled(item.key, enabledFeatureKeys),
+      ),
+    }))
+    .filter((group) => group.items.length > 0);
+
+  if (groups.length === 0) {
+    const missing = missingCapabilityLabels(
+      permittedGroups.flatMap((group) => group.items.map((item) => item.key)),
+      enabledFeatureKeys,
+    );
+
+    return (
+      <SettingsNotOnPlanState
+        scopeLabel={category.label}
+        capabilityLabel={formatCapabilityList(missing)}
+      />
+    );
+  }
+
+  /*
+   * A category whose every group holds one page renders its pages directly.
+   *
+   * Notifications & Communication was four group cards for four pages, and
+   * Appearance & Experience two for two: a card and a click each, wrapped
+   * around a single link. Nothing moves and no URL changes — the group layer is
+   * still there in the data and in the routing, and each group's own landing
+   * still answers. Only the container stops being drawn.
+   */
+  if (isFlatSettingsCategory(category.key)) {
+    const items = groups.flatMap((group) => group.items);
+
+    return (
+      <SettingsShell
+        title={category.label}
+        description={category.description}
+        eyebrow="Settings"
+      >
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {items.map((item) => (
+            <Link
+              key={item.key}
+              href={item.route}
+              className="group rounded-[22px] border border-border bg-surface p-5 shadow-sm transition hover:border-accent/30 hover:shadow-md"
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-surface text-muted group-hover:bg-accent-soft group-hover:text-accent">
+                <Settings2 className="h-5 w-5" />
+              </span>
+              <h2 className="mt-4 font-semibold text-foreground">
+                {item.label}
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-muted">
+                {item.description}
+              </p>
+              <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-accent">
+                Open configuration
+              </p>
+            </Link>
+          ))}
+        </div>
+      </SettingsShell>
     );
   }
 
@@ -191,14 +324,37 @@ export function SettingsGroupLanding({
   group: SettingsRuntimeGroup;
 }) {
   const { user } = useCurrentUserAccess();
-  const items = group.items.filter((item) =>
+  const enabledFeatureKeys = useTenantEntitlements();
+
+  if (enabledFeatureKeys === null) {
+    return <SettingsEntitlementsUnavailableState />;
+  }
+
+  const permitted = group.items.filter((item) =>
     canViewSettingsItem(user?.permissionKeys ?? [], user?.roleKeys ?? [], item),
   );
-  if (items.length === 0) {
+  if (permitted.length === 0) {
     return (
       <AccessDeniedState
         title="Access denied"
         description={`You do not have access to ${group.label} settings.`}
+      />
+    );
+  }
+
+  const items = permitted.filter((item) =>
+    isSettingsItemEntitled(item.key, enabledFeatureKeys),
+  );
+  if (items.length === 0) {
+    return (
+      <SettingsNotOnPlanState
+        scopeLabel={group.label}
+        capabilityLabel={formatCapabilityList(
+          missingCapabilityLabels(
+            permitted.map((item) => item.key),
+            enabledFeatureKeys,
+          ),
+        )}
       />
     );
   }

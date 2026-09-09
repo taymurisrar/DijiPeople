@@ -1085,3 +1085,102 @@ function isUniqueViolation(error: unknown) {
     error.code === UNIQUE_VIOLATION
   );
 }
+
+/**
+ * Write the `PlanFeature` rows a newly-carved capability key needs, and nothing else.
+ *
+ * A capability key that did not exist yesterday resolves to `false` today for
+ * every plan with no row for it, because `getResolvedTenantFeatures` treats a
+ * missing `PlanFeature` as not-included. Ship the code without writing the rows
+ * and every tenant loses the pages that key now gates — including the Enterprise
+ * customers who are entitled to them.
+ *
+ * The obvious remedy is `seed:config`, and on this production database it is the
+ * wrong one by a wide margin. That entry point runs the whole commercial
+ * bootstrap, which also reconciles `PlanPrice` against `pricing.catalog.ts` —
+ * and the catalog and the live QAR/USD schedules disagree. Writing plan features
+ * would have superseded every live price as a side effect. Nothing already sold
+ * changes, but the next customer would be charged a number nobody decided on
+ * today. This function exists so that fixing an entitlement does not quietly
+ * reprice the product.
+ *
+ * **Additive only.** It creates a missing row as enabled and never disables,
+ * deletes or updates one. Two consequences, both intended:
+ *
+ * - An operator who deliberately switched a capability off keeps that decision,
+ *   and a second run writes nothing.
+ * - A **catalog** plan gets the key only if `plans.catalog.ts` says it sells it,
+ *   so Starter is correctly left without the keys carved out of what used to be
+ *   free. That withholding is reported rather than skipped in silence, because
+ *   "we started selling this" and "we took this away" look identical in a
+ *   database and only the second is a defect.
+ *
+ * Deliberately not part of `bootstrapCommercialDefaults`. This grants a specific
+ * set of keys at a specific moment; running it on every deploy would re-enable a
+ * capability an operator later removed, which is the opposite of the intent.
+ */
+export async function backfillPlanCapabilities(
+  prisma: BootstrapClient,
+  featureKeys: readonly string[],
+  options: { dryRun?: boolean } = {},
+) {
+  /*
+   * `Set<string>`, annotated. `DEFAULT_PLAN_DEFINITIONS` is `as const`, so an
+   * inferred set is keyed on the literal union of the four catalog plan keys and
+   * `.has(plan.key)` — a plain `string` off a database row — does not compile.
+   */
+  const catalogPlans = new Map<string, readonly string[]>(
+    DEFAULT_PLAN_DEFINITIONS.map((definition) => [
+      definition.key as string,
+      definition.enabledFeatureKeys as readonly string[],
+    ]),
+  );
+  const plans = await prisma.plan.findMany({
+    select: { id: true, key: true, name: true },
+  });
+  const granted: string[] = [];
+  const withheld: string[] = [];
+
+  for (const plan of plans) {
+    const catalogued = catalogPlans.get(plan.key);
+
+    const existing = await prisma.planFeature.findMany({
+      where: { planId: plan.id, featureKey: { in: [...featureKeys] } },
+      select: { featureKey: true },
+    });
+    const seen = new Set(existing.map((row) => row.featureKey));
+
+    for (const featureKey of featureKeys) {
+      if (seen.has(featureKey)) continue;
+
+      /*
+       * A catalog plan gets the key only if the catalog says it sells it. That
+       * is what makes Starter correctly LOSE a capability carved out of what
+       * used to be free: no row is written, and a missing row resolves to not
+       * included. Withholding is the intended outcome, so it is reported rather
+       * than silently skipped.
+       */
+      if (catalogued && !catalogued.includes(featureKey)) {
+        withheld.push(`${plan.name} (${plan.key}) withholds ${featureKey}`);
+        continue;
+      }
+
+      if (options.dryRun) {
+        granted.push(`${plan.name} (${plan.key}) += ${featureKey} [DRY RUN]`);
+        continue;
+      }
+
+      try {
+        await prisma.planFeature.create({
+          data: { planId: plan.id, featureKey, isEnabled: true },
+        });
+        granted.push(`${plan.name} (${plan.key}) += ${featureKey}`);
+      } catch (error) {
+        // `@@unique([planId, featureKey])` — a concurrent run wrote it first.
+        if (!isUniqueViolation(error)) throw error;
+      }
+    }
+  }
+
+  return { plansExamined: plans.length, granted, withheld };
+}

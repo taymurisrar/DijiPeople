@@ -1,0 +1,555 @@
+import { FEATURE_KEYS } from "@/lib/security-keys";
+import {
+  FEATURE_LABELS,
+  SETTINGS_CORE,
+  SETTINGS_ITEM_ENTITLEMENTS,
+  isSettingsItemEntitled,
+  missingCapabilityLabels,
+  resolveSettingsEntitlementVerdict,
+} from "./settings-entitlements";
+import {
+  countSettingsPages,
+  isFlatSettingsCategory,
+  resolveVisibleSettingsRuntime,
+  settingsRuntimeCategories,
+  settingsRuntimeItems,
+  SettingsEntitlementsUnavailableError,
+} from "./settings-runtime";
+
+/*
+ * The Starter plan's capability set, from
+ * `services/api/src/modules/super-admin/plans.catalog.ts`. Written out rather
+ * than imported because the two workspaces do not share a module and a copy
+ * that drifts is the thing these tests exist to catch — if Starter's contents
+ * change, a test naming the old set should fail loudly rather than follow.
+ */
+const STARTER = [
+  FEATURE_KEYS.EMPLOYEES,
+  FEATURE_KEYS.ORGANIZATION,
+  FEATURE_KEYS.LEAVE,
+  FEATURE_KEYS.ATTENDANCE,
+  FEATURE_KEYS.DOCUMENTS,
+  FEATURE_KEYS.NOTIFICATIONS,
+  FEATURE_KEYS.BRANDING,
+];
+
+const EVERY_CAPABILITY = Object.values(FEATURE_KEYS);
+
+const ALL_PERMISSIONS = [
+  ...new Set(
+    settingsRuntimeItems.flatMap((item) => item.requiredAnyPermissions ?? []),
+  ),
+];
+
+const ADMIN_ROLES = ["global-admin", "system-admin", "system-customizer"];
+
+describe("settings entitlement attribution", () => {
+  /*
+   * The structural guard. A test naming the pages that happen to be attributed
+   * today goes green while the next settings page ships unattributed — which is
+   * the defect class BUG-1952 is: something built, and nothing reaching it.
+   */
+  it("attributes every settings item the IA places", () => {
+    const unattributed = settingsRuntimeItems
+      .map((item) => item.key)
+      .filter((key) => SETTINGS_ITEM_ENTITLEMENTS[key] === undefined);
+
+    expect(unattributed).toEqual([]);
+  });
+
+  it("attributes nothing the IA does not place", () => {
+    const placed = new Set(settingsRuntimeItems.map((item) => item.key));
+    const stray = Object.keys(SETTINGS_ITEM_ENTITLEMENTS).filter(
+      (key) => !placed.has(key),
+    );
+
+    expect(stray).toEqual([]);
+  });
+
+  it("attributes only to capability keys the catalog defines", () => {
+    const known = new Set<string>([...EVERY_CAPABILITY, SETTINGS_CORE]);
+    const unknown = Object.entries(SETTINGS_ITEM_ENTITLEMENTS)
+      .filter(([, entitlement]) => !known.has(entitlement))
+      .map(([key]) => key);
+
+    expect(unknown).toEqual([]);
+  });
+
+  it("gives every capability key a label the blocked state can print", () => {
+    for (const key of EVERY_CAPABILITY) {
+      expect(FEATURE_LABELS[key]).toBeTruthy();
+    }
+  });
+});
+
+describe("isSettingsItemEntitled", () => {
+  it("allows a core page on a plan that includes nothing", () => {
+    expect(isSettingsItemEntitled("tenant", [])).toBe(true);
+  });
+
+  it("allows the subscription page on a plan that includes nothing", () => {
+    /*
+     * The upgrade surface, and the page every "not included in your plan" state
+     * links to. If this ever fails, a tenant whose plan lost a capability has no
+     * in-product way to see what it lost or to get it back.
+     */
+    expect(isSettingsItemEntitled("subscription", [])).toBe(true);
+  });
+
+  it("refuses a capability page the plan omits", () => {
+    expect(isSettingsItemEntitled("payroll-periods", STARTER)).toBe(false);
+  });
+
+  it("allows a capability page the plan includes", () => {
+    expect(isSettingsItemEntitled("leave-types", STARTER)).toBe(true);
+  });
+
+  /*
+   * Fail closed on the unknown. The specs above make an unattributed item
+   * impossible in a built tree, but the two structures can only be compared at
+   * test time — at runtime an unattributed page is an unanswered question about
+   * what a customer bought, and the safe answer is no.
+   */
+  it("refuses an item nobody attributed", () => {
+    expect(isSettingsItemEntitled("a-page-that-does-not-exist", STARTER)).toBe(
+      false,
+    );
+  });
+});
+
+describe("the Starter leaks BUG-1952 recorded", () => {
+  const starterCategories = () =>
+    resolveVisibleSettingsRuntime(ALL_PERMISSIONS, ADMIN_ROLES, STARTER);
+
+  it("removes the whole Payroll & Finance category", () => {
+    expect(
+      starterCategories().find((category) => category.key === "payroll"),
+    ).toBeUndefined();
+  });
+
+  it("removes the Payroll Geography group but keeps Regional Operations", () => {
+    const regional = starterCategories().find(
+      (category) => category.key === "regional",
+    );
+
+    expect(regional).toBeDefined();
+    expect(regional?.groups.map((group) => group.key)).not.toContain(
+      "payroll-geography",
+    );
+    expect(regional?.groups.map((group) => group.key)).toContain("geography");
+  });
+
+  /*
+   * The two within-group leaks, and the reason a category-level map would have
+   * been insufficient. Both sit beside an entitled sibling, so their group and
+   * their category both survive and only the row must go.
+   */
+  it("removes Timesheet Settings while keeping Attendance Settings beside it", () => {
+    const attendanceGroup = starterCategories()
+      .find((category) => category.key === "people")
+      ?.groups.find((group) => group.key === "attendance");
+
+    const keys = attendanceGroup?.items.map((item) => item.key) ?? [];
+
+    expect(keys).toContain("attendance");
+    expect(keys).not.toContain("timesheets");
+  });
+
+  /*
+   * Apps & Modules holds exactly Recruitment and Desktop Agent, and Starter
+   * sells neither, so the whole group collapses while General Setup survives on
+   * its other groups.
+   */
+  it("empties Apps & Modules down to Subscription, which survives", () => {
+    const modules = starterCategories()
+      .find((category) => category.key === "general-setup")
+      ?.groups.find((group) => group.key === "modules");
+
+    const keys = modules?.items.map((item) => item.key) ?? [];
+
+    expect(keys).toEqual(["subscription"]);
+  });
+
+  /*
+   * The reverse leak, and the one an audit stopping at category level would
+   * have caused rather than found: Subscription used to fall through into
+   * Payroll & Finance, so gating that category would have hidden a Starter
+   * tenant's own billing page behind the capability they would go there to buy.
+   */
+  it("keeps the subscription page, in an existing group and out of payroll", () => {
+    const generalSetup = starterCategories().find(
+      (category) => category.key === "general-setup",
+    );
+    const modules = generalSetup?.groups.find(
+      (group) => group.key === "modules",
+    );
+
+    /*
+     * In Apps & Modules — a group that already existed — rather than in a group
+     * invented to hold it. A group created so that something can sit on one side
+     * of an entitlement boundary makes the IA a copy of the price list.
+     */
+    expect(modules?.items.map((item) => item.key)).toContain("subscription");
+  });
+
+  /*
+   * Moved out of the payroll tree. On Starter it must survive, because Starter
+   * buys Documents — if this fails, generic document templating has been taken
+   * away from a plan that paid for it.
+   */
+  it("keeps Document Templates, which is Documents rather than Payroll", () => {
+    const documentsGroup = starterCategories()
+      .find((category) => category.key === "people")
+      ?.groups.find((group) => group.key === "documents");
+
+    expect(documentsGroup?.items.map((item) => item.key)).toContain(
+      "document-templates",
+    );
+  });
+});
+
+describe("resolveVisibleSettingsRuntime", () => {
+  it("shows every category on a plan that includes everything", () => {
+    const categories = resolveVisibleSettingsRuntime(
+      ALL_PERMISSIONS,
+      ADMIN_ROLES,
+      EVERY_CAPABILITY,
+    );
+
+    expect(categories.map((category) => category.key)).toContain("payroll");
+    expect(categories.length).toBeGreaterThanOrEqual(11);
+  });
+
+  /*
+   * No role bypasses the plan. An administrator legitimately overrides their own
+   * tenant's permission model and cannot override their own tenant's contract —
+   * the property whose absence in the sidebar was BUG-1952's fourth acceptance
+   * criterion.
+   */
+  it("does not restore payroll for an administrator on Starter", () => {
+    for (const role of ADMIN_ROLES) {
+      const categories = resolveVisibleSettingsRuntime(
+        ALL_PERMISSIONS,
+        [role],
+        STARTER,
+      );
+
+      expect(
+        categories.find((category) => category.key === "payroll"),
+      ).toBeUndefined();
+    }
+  });
+
+  /*
+   * Fail closed. `null` is "we could not read the plan", not "the plan is
+   * empty", and the caller must render an error rather than a filtered tree.
+   * Returning everything here is precisely the sidebar behaviour that let five
+   * unbought modules through whenever the availability call failed.
+   */
+  it("throws rather than guessing when entitlements are unresolved", () => {
+    expect(() =>
+      resolveVisibleSettingsRuntime(ALL_PERMISSIONS, ADMIN_ROLES, null),
+    ).toThrow(SettingsEntitlementsUnavailableError);
+  });
+
+  it("distinguishes an empty plan from an unresolved one", () => {
+    /*
+     * `[]` is legitimate: a subscription that is neither ACTIVE nor TRIALING
+     * entitles nothing. It must resolve to the core pages, not throw.
+     */
+    const categories = resolveVisibleSettingsRuntime(
+      ALL_PERMISSIONS,
+      ADMIN_ROLES,
+      [],
+    );
+
+    expect(categories.length).toBeGreaterThan(0);
+    expect(
+      categories.find((category) => category.key === "payroll"),
+    ).toBeUndefined();
+  });
+});
+
+describe("missingCapabilityLabels", () => {
+  it("names each missing capability once, in order", () => {
+    expect(
+      missingCapabilityLabels(
+        ["payroll-periods", "timesheets", "pay-components"],
+        STARTER,
+      ),
+    ).toEqual(["Payroll", "Timesheets"]);
+  });
+
+  it("ignores core pages and entitled ones", () => {
+    expect(missingCapabilityLabels(["tenant", "leave-types"], STARTER)).toEqual(
+      [],
+    );
+  });
+});
+
+/*
+ * The four shipped plans, resolved end to end.
+ *
+ * Written as counts plus the differences between adjacent tiers, because the
+ * question "did you do this for every plan, not just Starter" cannot be
+ * answered by a mechanism argument. The mechanism is plan-agnostic — nothing
+ * branches on a plan key — but a wrong *attribution* shows up on exactly one
+ * tier, and only a per-plan resolution finds it.
+ *
+ * The key sets are copied from `services/api/src/modules/super-admin/plans.catalog.ts`
+ * rather than imported: the workspaces share no module, and a copy that follows
+ * the catalog silently would defeat the purpose. If a plan's contents change,
+ * these numbers should fail and be re-read by a person.
+ */
+const GROWTH = [
+  ...STARTER,
+  FEATURE_KEYS.TIMESHEETS,
+  FEATURE_KEYS.PROJECTS,
+  FEATURE_KEYS.RECRUITMENT,
+  FEATURE_KEYS.ONBOARDING,
+  FEATURE_KEYS.DESKTOP_AGENT,
+  FEATURE_KEYS.ATTENDANCE_INTEGRATIONS,
+  FEATURE_KEYS.DATA_MANAGEMENT,
+];
+
+/* Enterprise and Enterprise+ both take every key in the catalog. */
+const ENTERPRISE = EVERY_CAPABILITY;
+
+function shapeOf(keys: readonly string[]) {
+  const categories = resolveVisibleSettingsRuntime(
+    ALL_PERMISSIONS,
+    ADMIN_ROLES,
+    keys,
+  );
+  return {
+    categories: categories.length,
+    groups: categories.reduce((n, c) => n + c.groups.length, 0),
+    items: categories.reduce(
+      (n, c) => n + c.groups.reduce((m, g) => m + g.items.length, 0),
+      0,
+    ),
+    itemKeys: new Set(
+      categories.flatMap((c) => c.groups.flatMap((g) => g.items.map((i) => i.key))),
+    ),
+  };
+}
+
+describe("every shipped plan resolves to the right shape", () => {
+  it("gives each tier strictly more than the one below it", () => {
+    const none = shapeOf([]);
+    const starter = shapeOf(STARTER);
+    const growth = shapeOf(GROWTH);
+    const enterprise = shapeOf(ENTERPRISE);
+
+    expect(none.items).toBe(35);
+    expect(starter.items).toBe(54);
+    expect(growth.items).toBe(66);
+    expect(enterprise.items).toBe(87);
+
+    expect(none.categories).toBe(7);
+    expect(starter.categories).toBe(8);
+    expect(growth.categories).toBe(9);
+    expect(enterprise.categories).toBe(11);
+
+    /*
+     * Monotonic: a bigger plan never hides something a smaller one shows. A
+     * mis-attribution that swapped two keys could still produce the right
+     * totals, and this is what catches it.
+     */
+    for (const key of none.itemKeys) expect(starter.itemKeys.has(key)).toBe(true);
+    for (const key of starter.itemKeys) expect(growth.itemKeys.has(key)).toBe(true);
+    for (const key of growth.itemKeys) {
+      expect(enterprise.itemKeys.has(key)).toBe(true);
+    }
+  });
+
+  it("gives Growth the attendance hardware, the bulk data path and the talent pages", () => {
+    const starter = shapeOf(STARTER);
+    const growth = shapeOf(GROWTH);
+    const added = [...growth.itemKeys].filter((k) => !starter.itemKeys.has(k));
+
+    /*
+     * Projects and Onboarding are Growth capabilities with no settings page, so
+     * they add nothing here. Worth pinning: if a settings page is ever added for
+     * either, this fails and somebody attributes it on purpose.
+     */
+    expect(added.sort()).toEqual([
+      "apps-downloads",
+      "attendance-devices",
+      "attendance-employee-mapping",
+      "attendance-gateways",
+      "attendance-integrations",
+      "attendance-integrations-overview",
+      "attendance-provisioning",
+      "attendance-sync-history",
+      "data-management",
+      "desktop-agent",
+      "recruitment",
+      "timesheets",
+    ]);
+  });
+
+  it("gives Enterprise the payroll tree and compliance over Growth", () => {
+    const growth = shapeOf(GROWTH);
+    const enterprise = shapeOf(ENTERPRISE);
+    const added = [...enterprise.itemKeys].filter((k) => !growth.itemKeys.has(k));
+
+    expect(added).toHaveLength(21);
+    expect(added).toContain("payroll-regions");
+    expect(added).toContain("compliance-exports");
+    expect(added).toContain("audit-logs");
+    /* Neither is payroll, and both must survive on every plan below it. */
+    expect(added).not.toContain("subscription");
+    expect(added).not.toContain("document-templates");
+  });
+
+  /*
+   * A subscription that is neither ACTIVE nor TRIALING resolves to no
+   * capabilities at all (`feature-access.service.ts`). The tenant must still be
+   * able to reach its own subscription screen, or a lapsed customer cannot pay.
+   */
+  it("leaves a tenant entitled to nothing able to reach billing and sign-in settings", () => {
+    const none = shapeOf([]);
+
+    expect(none.itemKeys.has("subscription")).toBe(true);
+    expect(none.itemKeys.has("users")).toBe(true);
+    expect(none.itemKeys.has("roles")).toBe(true);
+    expect(none.itemKeys.has("tenant")).toBe(true);
+  });
+});
+
+describe("resolveSettingsEntitlementVerdict", () => {
+  it("passes through a path that resolves to no item", () => {
+    expect(resolveSettingsEntitlementVerdict(null, STARTER)).toEqual({
+      kind: "PASS_THROUGH",
+    });
+  });
+
+  /*
+   * Even with entitlements unresolved. The subscription screen is where every
+   * blocked page points, so an availability outage must not take it out too.
+   */
+  it("passes through a core page even when entitlements are unresolved", () => {
+    expect(resolveSettingsEntitlementVerdict("subscription", null)).toEqual({
+      kind: "PASS_THROUGH",
+    });
+  });
+
+  it("reports unresolved for a gated page when the plan could not be read", () => {
+    expect(resolveSettingsEntitlementVerdict("payroll-periods", null)).toEqual({
+      kind: "UNRESOLVED",
+    });
+  });
+
+  it("blocks a gated page the plan omits, naming the capability", () => {
+    expect(
+      resolveSettingsEntitlementVerdict("payroll-periods", STARTER),
+    ).toEqual({ kind: "NOT_ON_PLAN", capabilityLabel: "Payroll" });
+  });
+
+  it("passes through a gated page the plan includes", () => {
+    expect(resolveSettingsEntitlementVerdict("leave-types", STARTER)).toEqual({
+      kind: "PASS_THROUGH",
+    });
+  });
+
+  it("blocks an unattributed page rather than passing it through", () => {
+    expect(
+      resolveSettingsEntitlementVerdict("a-page-that-does-not-exist", STARTER),
+    ).toEqual({ kind: "NOT_ON_PLAN", capabilityLabel: "a capability" });
+  });
+});
+
+/*
+ * The IA presentation changes, which are deliberately *not* structural.
+ *
+ * Nothing moves and no URL changes: the group layer stays in the data and every
+ * group route still answers. What changes is that a category whose groups each
+ * hold one page draws its pages directly, and the workspace tile counts pages
+ * rather than containers.
+ */
+describe("flat categories", () => {
+  it("flattens exactly the categories whose every group holds one page", () => {
+    const flat = settingsRuntimeCategories
+      .filter((category) => isFlatSettingsCategory(category.key))
+      .map((category) => category.key)
+      .sort();
+
+    /*
+     * Notifications & Communication is four groups for four pages; Appearance &
+     * Experience is two for two. Pinned by name as well as by rule, because the
+     * rule going quietly wrong — matching everything, or nothing — is the
+     * failure a derived predicate invites.
+     */
+    expect(flat).toEqual(["appearance", "notifications"]);
+  });
+
+  it("never flattens a category with a group holding more than one page", () => {
+    for (const category of settingsRuntimeCategories) {
+      if (!isFlatSettingsCategory(category.key)) continue;
+      for (const group of category.groups) {
+        expect(group.items).toHaveLength(1);
+      }
+    }
+  });
+
+  it("never flattens a single-group category", () => {
+    /*
+     * A category with one group is already flat on screen; declaring it flat
+     * would drop the only heading it has.
+     */
+    for (const category of settingsRuntimeCategories) {
+      if (category.groups.length <= 1) {
+        expect(isFlatSettingsCategory(category.key)).toBe(false);
+      }
+    }
+  });
+
+  it("decides flatness from the whole tree, not from one plan", () => {
+    /*
+     * Otherwise a category would change layout when a tenant upgrades: Regional
+     * Operations loses Payroll Geography on a plan without payroll, leaving
+     * three one-page groups beside Countries & States, and a plan-derived rule
+     * would flatten it for some tenants and not others.
+     */
+    const starter = resolveVisibleSettingsRuntime(
+      ALL_PERMISSIONS,
+      ADMIN_ROLES,
+      STARTER,
+    );
+    const regional = starter.find((category) => category.key === "regional");
+
+    expect(regional).toBeDefined();
+    expect(isFlatSettingsCategory("regional")).toBe(false);
+  });
+});
+
+describe("countSettingsPages", () => {
+  it("counts pages rather than groups", () => {
+    const notifications = settingsRuntimeCategories.find(
+      (category) => category.key === "notifications",
+    )!;
+
+    /* Four groups, four pages — the tile that used to read "4 groups". */
+    expect(notifications.groups).toHaveLength(4);
+    expect(countSettingsPages(notifications)).toBe(4);
+  });
+
+  it("counts what a plan actually resolves to", () => {
+    const [starterPeople] = resolveVisibleSettingsRuntime(
+      ALL_PERMISSIONS,
+      ADMIN_ROLES,
+      STARTER,
+    ).filter((category) => category.key === "people");
+    const [fullPeople] = resolveVisibleSettingsRuntime(
+      ALL_PERMISSIONS,
+      ADMIN_ROLES,
+      EVERY_CAPABILITY,
+    ).filter((category) => category.key === "people");
+
+    /* Starter loses Timesheet Settings from People, and the tile must say so. */
+    expect(countSettingsPages(starterPeople!)).toBe(
+      countSettingsPages(fullPeople!) - 1,
+    );
+  });
+});
