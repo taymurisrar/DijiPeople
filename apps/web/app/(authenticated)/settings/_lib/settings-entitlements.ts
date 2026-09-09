@@ -274,6 +274,58 @@ export function missingCapabilityLabels(
 }
 
 /**
+ * What a settings URL should render, given the tenant's plan.
+ *
+ * The decision the layout boundary makes, extracted as a pure function so it can
+ * be tested. The component around it resolves the pathname to an item and picks
+ * a component from this verdict; everything that could be wrong is here.
+ *
+ * `PASS_THROUGH` for a path that resolves to no item — the workspace, a category
+ * or a group landing. Those render their own contents and their own states, and
+ * blocking them here would blank the Configuration workspace whenever one
+ * capability was missing.
+ *
+ * A core page passes through even when entitlements are unresolved. Tenant
+ * Profile and the subscription screen must survive an availability outage —
+ * the subscription screen especially, since it is where every blocked page
+ * sends the reader.
+ */
+export type SettingsEntitlementVerdict =
+  | { kind: "PASS_THROUGH" }
+  | { kind: "UNRESOLVED" }
+  | { kind: "NOT_ON_PLAN"; capabilityLabel: string };
+
+export function resolveSettingsEntitlementVerdict(
+  itemKey: string | null,
+  enabledFeatureKeys: readonly string[] | null,
+): SettingsEntitlementVerdict {
+  if (itemKey === null) return { kind: "PASS_THROUGH" };
+
+  const entitlement = SETTINGS_ITEM_ENTITLEMENTS[itemKey];
+  if (entitlement === SETTINGS_CORE) return { kind: "PASS_THROUGH" };
+
+  if (enabledFeatureKeys === null) return { kind: "UNRESOLVED" };
+
+  if (entitlement !== undefined && enabledFeatureKeys.includes(entitlement)) {
+    return { kind: "PASS_THROUGH" };
+  }
+
+  return {
+    kind: "NOT_ON_PLAN",
+    /*
+     * An unattributed item lands here rather than passing through. The coverage
+     * spec makes that unreachable in a built tree, but at runtime an
+     * unattributed page is an unanswered question about what the customer
+     * bought, and the safe answer is no.
+     */
+    capabilityLabel:
+      entitlement === undefined
+        ? "a capability"
+        : FEATURE_LABELS[entitlement],
+  };
+}
+
+/**
  * Whether a settings item is included in the tenant's plan.
  *
  * `enabledFeatureKeys` is the resolved entitlement set from

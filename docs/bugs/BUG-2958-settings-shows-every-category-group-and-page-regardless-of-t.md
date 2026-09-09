@@ -238,6 +238,7 @@ back with no deploy) has not been run against a live stack.
 
 ## Related
 
+- Referenced by — [[ITEM-0126]], [[ITEM-0127]]
 - Modules — [[tenant-application]], [[settings]]
 - Regression — REG-396 (see the regression register)
 

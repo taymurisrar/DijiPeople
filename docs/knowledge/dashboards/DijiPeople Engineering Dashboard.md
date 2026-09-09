@@ -11,8 +11,8 @@
 | Open HIGH | **34** |
 | Open total | 117 |
 | Blocked | 2 |
-| Awaiting a product decision | 6 |
-| Deferred | 28 |
+| Awaiting a product decision | 7 |
+| Deferred | 29 |
 | Completed | 291 |
 | Awaiting Architect triage | 5 |
 
@@ -68,6 +68,7 @@ _None. Nothing open at CRITICAL._
 | [[ITEM-0115-provisioning-seeds-four-departments-with-no-business-unit-on|ITEM-0115]] | Provisioning seeds four departments with no business unit on every tenant | PRODUCT_DECISION | MEDIUM | PRODUCT_DECISION | services/api/prisma, api:organization | PRODUCT_DECISION |
 | [[ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle|ITEM-0108]] | Decide whether the roughly one-hour session lifetime is idle or absolute | PRODUCT_DECISION | LOW | PRODUCT_DECISION | api:auth | PRODUCT_DECISION |
 | [[BUG-2007-projects-and-customers-can-be-created-but-never-deleted|BUG-2007]] | Projects and customers can be created but never deleted | BUG | LOW | PRODUCT_DECISION | api:projects | PRODUCT_DECISION |
+| [[ITEM-0126-decide-which-of-the-41-always-visible-settings-pages-should-|ITEM-0126]] | Decide which of the 41 always-visible settings pages should be sold | PRODUCT_DECISION | — | PRODUCT_DECISION | apps/web | PRODUCT_DECISION |
 | [[ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-|ITEM-0114]] | The workspace shell states the tenant's identity four times and its purpose twice | UX | — | PRODUCT_DECISION | views | PRODUCT_DECISION |
 
 ## Blocked Items
@@ -545,7 +546,7 @@ _None. Nothing open at CRITICAL._
 | Knowledge | Count |
 |---|---|
 | Bug records | 319 |
-| Backlog items | 125 |
+| Backlog items | 127 |
 | Known bug patterns | 34 |
 | QA runs | 32 |
 | Engineering history records | 73 |

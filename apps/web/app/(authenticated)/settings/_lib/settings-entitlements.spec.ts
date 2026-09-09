@@ -5,6 +5,7 @@ import {
   SETTINGS_ITEM_ENTITLEMENTS,
   isSettingsItemEntitled,
   missingCapabilityLabels,
+  resolveSettingsEntitlementVerdict,
 } from "./settings-entitlements";
 import {
   resolveVisibleSettingsRuntime,
@@ -279,5 +280,161 @@ describe("missingCapabilityLabels", () => {
     expect(missingCapabilityLabels(["tenant", "leave-types"], STARTER)).toEqual(
       [],
     );
+  });
+});
+
+/*
+ * The four shipped plans, resolved end to end.
+ *
+ * Written as counts plus the differences between adjacent tiers, because the
+ * question "did you do this for every plan, not just Starter" cannot be
+ * answered by a mechanism argument. The mechanism is plan-agnostic — nothing
+ * branches on a plan key — but a wrong *attribution* shows up on exactly one
+ * tier, and only a per-plan resolution finds it.
+ *
+ * The key sets are copied from `services/api/src/modules/super-admin/plans.catalog.ts`
+ * rather than imported: the workspaces share no module, and a copy that follows
+ * the catalog silently would defeat the purpose. If a plan's contents change,
+ * these numbers should fail and be re-read by a person.
+ */
+const GROWTH = [
+  ...STARTER,
+  FEATURE_KEYS.TIMESHEETS,
+  FEATURE_KEYS.PROJECTS,
+  FEATURE_KEYS.RECRUITMENT,
+  FEATURE_KEYS.ONBOARDING,
+  FEATURE_KEYS.DESKTOP_AGENT,
+];
+
+/* Enterprise and Enterprise+ both take every key in the catalog. */
+const ENTERPRISE = EVERY_CAPABILITY;
+
+function shapeOf(keys: readonly string[]) {
+  const categories = resolveVisibleSettingsRuntime(
+    ALL_PERMISSIONS,
+    ADMIN_ROLES,
+    keys,
+  );
+  return {
+    categories: categories.length,
+    groups: categories.reduce((n, c) => n + c.groups.length, 0),
+    items: categories.reduce(
+      (n, c) => n + c.groups.reduce((m, g) => m + g.items.length, 0),
+      0,
+    ),
+    itemKeys: new Set(
+      categories.flatMap((c) => c.groups.flatMap((g) => g.items.map((i) => i.key))),
+    ),
+  };
+}
+
+describe("every shipped plan resolves to the right shape", () => {
+  it("gives each tier strictly more than the one below it", () => {
+    const none = shapeOf([]);
+    const starter = shapeOf(STARTER);
+    const growth = shapeOf(GROWTH);
+    const enterprise = shapeOf(ENTERPRISE);
+
+    expect(none.items).toBe(41);
+    expect(starter.items).toBe(67);
+    expect(growth.items).toBe(70);
+    expect(enterprise.items).toBe(87);
+
+    expect(none.categories).toBe(9);
+    expect(starter.categories).toBe(10);
+    expect(growth.categories).toBe(10);
+    expect(enterprise.categories).toBe(11);
+
+    /*
+     * Monotonic: a bigger plan never hides something a smaller one shows. A
+     * mis-attribution that swapped two keys could still produce the right
+     * totals, and this is what catches it.
+     */
+    for (const key of none.itemKeys) expect(starter.itemKeys.has(key)).toBe(true);
+    for (const key of starter.itemKeys) expect(growth.itemKeys.has(key)).toBe(true);
+    for (const key of growth.itemKeys) {
+      expect(enterprise.itemKeys.has(key)).toBe(true);
+    }
+  });
+
+  it("gives Growth exactly Timesheets, Recruitment and the Desktop Agent over Starter", () => {
+    const starter = shapeOf(STARTER);
+    const growth = shapeOf(GROWTH);
+    const added = [...growth.itemKeys].filter((k) => !starter.itemKeys.has(k));
+
+    /*
+     * Projects and Onboarding are Growth capabilities with no settings page, so
+     * they add nothing here. That is worth pinning: if a settings page is ever
+     * added for either, this assertion fails and somebody attributes it on
+     * purpose.
+     */
+    expect(added.sort()).toEqual(["desktop-agent", "recruitment", "timesheets"]);
+  });
+
+  it("gives Enterprise exactly the payroll tree over Growth", () => {
+    const growth = shapeOf(GROWTH);
+    const enterprise = shapeOf(ENTERPRISE);
+    const added = [...enterprise.itemKeys].filter((k) => !growth.itemKeys.has(k));
+
+    expect(added).toHaveLength(17);
+    expect(added).toContain("payroll-regions");
+    expect(added).not.toContain("subscription");
+    expect(added).not.toContain("document-templates");
+  });
+
+  /*
+   * A subscription that is neither ACTIVE nor TRIALING resolves to no
+   * capabilities at all (`feature-access.service.ts`). The tenant must still be
+   * able to reach its own subscription screen, or a lapsed customer cannot pay.
+   */
+  it("leaves a tenant entitled to nothing able to reach billing and sign-in settings", () => {
+    const none = shapeOf([]);
+
+    expect(none.itemKeys.has("subscription")).toBe(true);
+    expect(none.itemKeys.has("users")).toBe(true);
+    expect(none.itemKeys.has("roles")).toBe(true);
+    expect(none.itemKeys.has("tenant")).toBe(true);
+  });
+});
+
+describe("resolveSettingsEntitlementVerdict", () => {
+  it("passes through a path that resolves to no item", () => {
+    expect(resolveSettingsEntitlementVerdict(null, STARTER)).toEqual({
+      kind: "PASS_THROUGH",
+    });
+  });
+
+  /*
+   * Even with entitlements unresolved. The subscription screen is where every
+   * blocked page points, so an availability outage must not take it out too.
+   */
+  it("passes through a core page even when entitlements are unresolved", () => {
+    expect(resolveSettingsEntitlementVerdict("subscription", null)).toEqual({
+      kind: "PASS_THROUGH",
+    });
+  });
+
+  it("reports unresolved for a gated page when the plan could not be read", () => {
+    expect(resolveSettingsEntitlementVerdict("payroll-periods", null)).toEqual({
+      kind: "UNRESOLVED",
+    });
+  });
+
+  it("blocks a gated page the plan omits, naming the capability", () => {
+    expect(
+      resolveSettingsEntitlementVerdict("payroll-periods", STARTER),
+    ).toEqual({ kind: "NOT_ON_PLAN", capabilityLabel: "Payroll" });
+  });
+
+  it("passes through a gated page the plan includes", () => {
+    expect(resolveSettingsEntitlementVerdict("leave-types", STARTER)).toEqual({
+      kind: "PASS_THROUGH",
+    });
+  });
+
+  it("blocks an unattributed page rather than passing it through", () => {
+    expect(
+      resolveSettingsEntitlementVerdict("a-page-that-does-not-exist", STARTER),
+    ).toEqual({ kind: "NOT_ON_PLAN", capabilityLabel: "a capability" });
   });
 });

@@ -17,7 +17,7 @@
 | Open CRITICAL | **0** |
 | Open HIGH | 34 |
 | Awaiting Architect triage | 5 |
-| Owner decisions pending | 6 |
+| Owner decisions pending | 7 |
 | QA coverage gaps | 142 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -113,6 +113,7 @@ Questions where the engineering is understood and the **product answer is**
 - [[ITEM-0115-provisioning-seeds-four-departments-with-no-business-unit-on|ITEM-0115]] — **Provisioning seeds four departments with no business unit on every tenant**
 - [[ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle|ITEM-0108]] — **Decide whether the roughly one-hour session lifetime is idle or absolute**
 - [[BUG-2007-projects-and-customers-can-be-created-but-never-deleted|BUG-2007]] — **Projects and customers can be created but never deleted**
+- [[ITEM-0126-decide-which-of-the-41-always-visible-settings-pages-should-|ITEM-0126]] — **Decide which of the 41 always-visible settings pages should be sold**
 - [[ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-|ITEM-0114]] — **The workspace shell states the tenant's identity four times and its purpose twice**
 
 ## QA Coverage Gaps
@@ -271,8 +272,8 @@ gap into scope — or files a `TEST_GAP` item and says so.
 |---|---|
 | Open total | 117 |
 | Blocked | 2 |
-| Deferred | 28 |
-| Awaiting a product decision | 6 |
+| Deferred | 29 |
+| Awaiting a product decision | 7 |
 | Awaiting Architect triage | 5 |
 
 **A record nobody has triaged is work nobody has decided about.** No ordinary record may stay `TRIAGE_REQUIRED` at the end of a task.

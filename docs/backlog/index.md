@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**444 records** — 319 bugs under [`docs/bugs/`](../bugs/), 125 non-bug items under [`items/`](items/).
+**446 records** — 319 bugs under [`docs/bugs/`](../bugs/), 127 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -15,8 +15,8 @@ see [`README.md`](README.md) for why.
 |---|---|
 | Open (active work) | 117 |
 | Blocked | 2 |
-| Deferred | 28 |
-| Awaiting a product decision | 6 |
+| Deferred | 29 |
+| Awaiting a product decision | 7 |
 | Completed / closed | 291 |
 | **Open CRITICAL** | **0** |
 | **Open HIGH** | **34** |
@@ -55,8 +55,8 @@ see [`README.md`](README.md) for why.
 |---|---|
 | OPEN | 9 |
 | BLOCKED | 2 |
-| DEFERRED | 28 |
-| PRODUCT_DECISION | 6 |
+| DEFERRED | 29 |
+| PRODUCT_DECISION | 7 |
 | FIXED | 79 |
 | VERIFIED | 218 |
 | DUPLICATE | 5 |
@@ -505,11 +505,13 @@ see [`README.md`](README.md) for why.
 | [ITEM-0110](../../docs/backlog/items/ITEM-0110-attendance-entry-appears-to-create-timesheet-drafts-on-a-ten.md) | Attendance entry appears to create Timesheet drafts on a tenant without the Timesheets entitlement | PRODUCT_DECISION | LOW | P3 | DEFERRED | api:timesheets, api:attendance | DEFER |
 | [ITEM-0111](../../docs/backlog/items/ITEM-0111-protected-route-prefixes-omits-twelve-authenticated-route-tr.md) | PROTECTED_ROUTE_PREFIXES omits twelve authenticated route trees, so deep links to them are lost at sign-in | UX | LOW | P3 | READY | apps/web | FIX_NOW |
 | [ITEM-0121](../../docs/backlog/items/ITEM-0121-the-approvals-capability-signal-does-not-model-each-module-s.md) | The approvals capability signal does not model each module's object-level rules, so a refused action can look available | UX | LOW | P3 | DEFERRED | approvals, attendance | DEFER |
+| [ITEM-0126](../../docs/backlog/items/ITEM-0126-decide-which-of-the-41-always-visible-settings-pages-should-.md) | Decide which of the 41 always-visible settings pages should be sold | PRODUCT_DECISION | — | P1 | PRODUCT_DECISION | apps/web | PRODUCT_DECISION |
 | [ITEM-0057](../../docs/backlog/items/ITEM-0057-landing-production-env-examples-still-name-the-vercel-and-re.md) | Landing production env examples still name the vercel and render hosts, not the dijipeople.com apex | PRODUCT_DECISION | — | P2 | DONE | apps/landing | DONE |
 | [ITEM-0091](../../docs/backlog/items/ITEM-0091-repo-health-blocks-every-release-task-on-its-own-defining-ou.md) | repo:health blocks every RELEASE task on its own defining outcome | INFRA | — | P2 | DONE | framework | DONE |
 | [ITEM-0100](../../docs/backlog/items/ITEM-0100-apps-landing-env-examples-omit-next-public-web-root-domain-a.md) | apps/landing env examples omit NEXT_PUBLIC_WEB_ROOT_DOMAIN and no parity test guards them | INFRA | — | P2 | DONE | apps/landing, pkg:config | DONE |
 | [ITEM-0101](../../docs/backlog/items/ITEM-0101-mailerservice-silently-logs-instead-of-sending-and-nothing-u.md) | MailerService silently logs instead of sending, and nothing uses it | TECH_DEBT | — | P2 | DEFERRED | services/api/src/common/mailer | DEFER |
 | [ITEM-0102](../../docs/backlog/items/ITEM-0102-move-switch-workspace-into-the-avatar-menu.md) | Move Switch workspace into the avatar menu | UX | — | P2 | DONE | views | DONE |
+| [ITEM-0127](../../docs/backlog/items/ITEM-0127-settings-ia-21-of-41-groups-hold-a-single-item.md) | Settings IA: 21 of 41 groups hold a single item | UX | — | P2 | DEFERRED | apps/web | DEFER |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |
 | [ITEM-0114](../../docs/backlog/items/ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-.md) | The workspace shell states the tenant's identity four times and its purpose twice | UX | — | P3 | PRODUCT_DECISION | views | PRODUCT_DECISION |
