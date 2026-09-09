@@ -13,6 +13,7 @@ import {
 } from '@prisma/client';
 
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { TenantSettingsResolverService } from '../../tenant-settings/tenant-settings-resolver.service';
 import { SecretEncryptionService } from '../../../common/security/secret-encryption.service';
 import type { AuthenticatedUser } from '../../../common/interfaces/authenticated-request.interface';
 import { AuditService } from '../../audit/audit.service';
@@ -66,6 +67,7 @@ export class AttendanceIntegrationService {
     private readonly validator: ConnectorConfigurationValidator,
     private readonly secrets: SecretEncryptionService,
     private readonly auditService: AuditService,
+    private readonly tenantSettings: TenantSettingsResolverService,
   ) {}
 
   async list(
@@ -439,6 +441,22 @@ export class AttendanceIntegrationService {
         },
       }),
     ]);
+
+    // The tenant's master switch, and the most silent way this can fail.
+    // `integrationEnabled` defaults to false, and the gateway checks it before
+    // it reaches any integration — so with it off a tenant can have a paired
+    // gateway, a verified device and an ACTIVE integration and still collect
+    // nothing at all, with every other indicator green. Readiness said nothing
+    // about it, which made that state unexplainable from the screen that exists
+    // to explain exactly this.
+    const attendanceSettings =
+      await this.tenantSettings.getAttendanceSettings(tenantId);
+
+    if (!attendanceSettings.integrationEnabled) {
+      blockers.push(
+        'Attendance integrations are switched off for this organisation. Turn them on in Settings, Attendance before activating.',
+      );
+    }
 
     if (enabledDeviceCount === 0) {
       blockers.push('No enabled device is configured for this integration.');

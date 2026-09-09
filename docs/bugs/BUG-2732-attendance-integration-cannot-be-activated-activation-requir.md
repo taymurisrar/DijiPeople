@@ -264,6 +264,14 @@ call and pairing reported "Pairing failed" — which reads as a bad code. The
 shipped `install.ps1` example omitted the prefix. The address is now repaired
 and the repair printed, and both documents were corrected.
 
+**Readiness now names the master switch too.** `integrationEnabled` defaults to
+`false` and the gateway checks it before it reaches any integration, so with it
+off a tenant could have a paired gateway, a verified device and an `ACTIVE`
+integration and still collect nothing — every indicator green, nothing
+collected, and no explanation on the screen that exists to give one. It cost
+this session half an hour before the deadlock could even be observed. It is now
+an activation blocker with the setting named.
+
 **Proven end to end** on the local `xoul-ltd` tenant against the bundled K50
 simulator. A device that had been `UNVERIFIED` with an unacknowledged request
 since 31 August verified within one configuration refresh:
