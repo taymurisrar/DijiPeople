@@ -789,7 +789,7 @@ export class TenantSettingsService {
  * identical list of resolved policy fields, `MANDATORY_LOCATION_CAPTURE`; the
  * two overlap in five entries and differ in the rest.
  */
-const MANDATORY_ATTENDANCE_SETTINGS: Record<
+export const MANDATORY_ATTENDANCE_SETTINGS: Record<
   string,
   Prisma.InputJsonValue | typeof Prisma.JsonNull
 > = {
@@ -873,7 +873,7 @@ function assertAttendanceSettingIsChangeable(
  * still cannot write past the mandate. It reads the same map so the two can't
  * disagree about which keys are locked.
  */
-function enforceCriticalAttendanceSetting(
+export function enforceCriticalAttendanceSetting(
   category: string,
   key: string,
   value: Prisma.InputJsonValue | typeof Prisma.JsonNull,
