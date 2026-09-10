@@ -1,6 +1,6 @@
 # Deployment Architecture
 
-> Generated from repository evidence at `ad8f77f`.
+> Generated from repository evidence at `11afbd50`.
 
 ## Components and order
 
@@ -31,6 +31,31 @@ operations and table locks, determine rollback feasibility, confirm the backup
 path, and **verify `DATABASE_URL` points at the intended target**. If the target
 cannot be confirmed, stop. Migrating the wrong database is unrecoverable in the
 way that matters.
+
+### `render.yaml` describes intent, not the live service
+
+`render.yaml` is what the repository *asserts* the service is configured as.
+It is not what Render is actually running, and the two have drifted before
+without anything detecting it: the FILE-01/INF-05 remediation
+([[SESSION-0097]]) removed a persistent disk from `render.yaml` that had
+been declared there since an earlier task and had **never been applied to
+the live service** — the API container had no disk attached the entire time,
+so every file `StorageService` wrote to `FILE_STORAGE_DIR` was on the
+container's ephemeral filesystem and was destroyed on every deploy, restart
+and instance replacement. Nothing about the committed file was wrong-looking;
+it simply described a configuration step that was never carried out on the
+dashboard, and no check compares the two.
+
+**Verify the live service's actual configuration — env vars, disk, deploy
+command — against the Render API or dashboard directly before relying on
+what `render.yaml` says it should be**, especially before trusting that a
+migration will run automatically via `preDeployCommand`. When a schema change
+must land ahead of code that depends on it, keep it **expand-only** (additive
+columns/enums, no drops, no narrowing, no `NOT NULL` without a default) so it
+is safe to apply before the deploy and safe to leave in place if the deploy
+or the code rolls back — the object-storage metadata migration
+(`20260910121838_add_object_storage_metadata`) was built this way specifically
+so its timing relative to the code deploy did not matter.
 
 ## Rollback classes
 
@@ -77,7 +102,7 @@ about this repository rather than a gap.
 
 [[system-architecture]] · [[database-architecture]] ·
 [[tenant-workspace-routing]] · [[qa-and-ci-architecture]] ·
-[[integration-architecture]]
+[[integration-architecture]] · [[SESSION-0097]]
 
 Source: `.agent/context/deployment-runtime.md`,
 `.agent/agents/release-devops.md`, `docs/deployment/`,
