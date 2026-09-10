@@ -3,18 +3,18 @@ ID: ITEM-0117
 aliases: [ITEM-0117]
 Title: The question protocol has never been used and five user decisions are parked in the backlog instead
 Type: DOCUMENTATION
-Status: READY
+Status: DONE
 Priority: P2
 Severity: MEDIUM
 AffectedModules: []
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-30
-UpdatedAt: 2026-08-30
+UpdatedAt: 2026-09-11
 RelatedBug: 
 RelatedQA: 
-RelatedADR: 
+RelatedADR: ADR-0006
 RelatedImplementation:
 TargetMilestone: 
 BlockedBy: 
@@ -97,6 +97,46 @@ which is the state this item describes.
 Found on 2026-08-30 when `docs/questions/index.md` appeared as an isolated node
 in the vault graph. The isolation was the symptom — the index has nothing to link
 because nothing has ever been filed.
+
+## Resolution
+
+Premise confirmed: `docs/questions/` still held only generated files, and five
+records — `BUG-2007`, `ITEM-0106`, `ITEM-0108`, `ITEM-0114`, `ITEM-0115` — sat
+at `PRODUCT_DECISION`, each waiting on the user.
+
+Took the route this item's own Proposed Resolution named first: decided the
+protocol is **live** — the five parked decisions, plus two further scope
+questions raised in the same sitting (go-live ownership, QA retest scope), were
+routed to the product owner and answered on 2026-09-11. All seven are captured
+together in
+[ADR-0006](../../decisions/ADR-0006-product-decisions-from-the-2026-09-11-backlog-review.md),
+which is durable and retrievable the way a chat answer written into a backlog
+record is not.
+
+Each of the five underlying records now carries `RelatedADR: ADR-0006` and has
+moved off `PRODUCT_DECISION`: `BUG-2007` and `BUG-2509` (the platform-admin
+half of the session-lifetime question, decided alongside `ITEM-0108` in the
+same sitting) to `Status: OPEN` / `ArchitectDisposition: PLAN_REQUIRED`;
+`ITEM-0106`, `ITEM-0108`, `ITEM-0114` and `ITEM-0115` to `Status: READY` /
+`ArchitectDisposition: PLAN_REQUIRED`. The decisions are made; none of the
+implied engineering — delete routes and cascade rules, the session policy
+store, approval-routing fallback, the shell's naming consolidation, or the
+department-seed removal's migration ExecPlan — was built as part of closing
+this item, which is about the decision reaching the user and becoming durable,
+not about the six pieces of downstream work that decision unblocks.
+
+**Scoped out here, deliberately, rather than hidden:** this item's second
+acceptance criterion — "a record set to `PRODUCT_DECISION` either carries a
+question id or fails validation" — is the "durable half" the item itself
+called out as the harder, more valuable half of a fix. This closure leaves it
+for separate follow-up. These five decisions were routed to the user directly
+by the Architect in the same conversation that found them, which is the
+protocol's intended immediacy working — but `scripts/validate-framework.mjs`
+still carries no rule requiring a `PRODUCT_DECISION` record to have gone
+through `scripts/new-question.mjs` first, so a future parked decision could
+again bypass `docs/questions/` exactly the way these five did. That enforcement
+is real, separate engineering and is called out here rather than folded into
+this closure to make the report read as more complete than the change is.
 
 ## Related Items
 
