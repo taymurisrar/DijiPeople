@@ -202,6 +202,8 @@ export const PERMISSION_KEYS = {
   PROJECTS_CREATE: "projects.create",
   PROJECTS_UPDATE: "projects.update",
   PROJECTS_ASSIGN: "projects.assign",
+  // BUG-2007 - real delete, wired into the standard runtime's delete command.
+  PROJECTS_DELETE: "projects.delete",
   CUSTOMERS_READ: "customers.read",
   CUSTOMERS_CREATE: "customers.create",
   CUSTOMERS_WRITE: "customers.write",

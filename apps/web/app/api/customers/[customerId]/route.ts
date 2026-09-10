@@ -24,3 +24,14 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
   return proxyApiJsonResponse(response);
 }
+
+// BUG-2007 - real delete. Refused by the API with a reasoned error when the
+// customer still owns a project; this route stays a thin proxy either way.
+export async function DELETE(_request: NextRequest, context: RouteContext) {
+  const { customerId } = await context.params;
+  const response = await apiRequest(`/customers/${customerId}`, {
+    method: "DELETE",
+  });
+
+  return proxyApiJsonResponse(response);
+}

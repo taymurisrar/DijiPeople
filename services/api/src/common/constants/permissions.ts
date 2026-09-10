@@ -1411,6 +1411,12 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     description: 'Assign employees to projects and manage allocation details.',
   },
   {
+    key: 'projects.delete',
+    name: 'Delete projects',
+    description:
+      'Delete tenant project records that have no dependent assignments, timesheets or cost allocations.',
+  },
+  {
     key: PERMISSION_KEYS.CUSTOMERS_READ,
     name: 'Read customers',
     description: 'View tenant customers and related projects.',
@@ -2373,10 +2379,13 @@ export const BASE_ROLE_PERMISSION_KEYS: Record<BaseRoleKey, string[]> = {
     'projects.create',
     'projects.update',
     'projects.assign',
+    // BUG-2007 - real delete, tenant-scoped and refused when dependent data exists.
+    'projects.delete',
     'customers.read',
     'customers.create',
     'customers.write',
     'customers.assign',
+    'customers.delete',
     'onboarding.read',
     'onboarding.create',
     'onboarding.update',

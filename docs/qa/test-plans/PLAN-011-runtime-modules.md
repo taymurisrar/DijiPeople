@@ -4,7 +4,7 @@ aliases: [PLAN-011]
 TITLE: Runtime Module System
 AREA: runtime-modules
 STATUS: CURRENT
-MODULES: [services/api/src/modules/data, services/api/src/modules/customization, apps/web/lib/runtime, apps/admin/lib/runtime]
+MODULES: [services/api/src/modules/data, services/api/src/modules/customization, services/api/src/modules/projects, apps/web/lib/runtime, apps/admin/lib/runtime]
 RISK: HIGH
 COVERAGE_UNIT: GOOD
 COVERAGE_API: GAP

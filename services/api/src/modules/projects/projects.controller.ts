@@ -102,6 +102,18 @@ export class ProjectsController {
     return this.projectsService.update(user, projectId, dto);
   }
 
+  // BUG-2007 - real delete, refused with a reasoned error when the project
+  // has dependent assignments, timesheet entries or cost allocations.
+  @Delete(':projectId')
+  @Permissions('projects.delete')
+  @RequirePermission(ENTITY_KEYS.PROJECTS, 'delete')
+  remove(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('projectId', new ParseUUIDPipe()) projectId: string,
+  ) {
+    return this.projectsService.remove(user, projectId);
+  }
+
   @Post(':projectId/assignments')
   @Permissions('projects.assign')
   @RequirePermission(ENTITY_KEYS.PROJECTS, 'assign')
