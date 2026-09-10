@@ -47,12 +47,22 @@ const MEGABYTE = 1024 * 1024;
  */
 export const MAX_BRANDING_ASSET_BYTES = 3 * MEGABYTE;
 
+/**
+ * Raster types only. SVG was accepted here until 2026-09-10 and is not any
+ * more, because an SVG is a script host: branding assets are served from a
+ * `@Public()` route that any origin can navigate to directly, and a browser
+ * executes script in an SVG document it navigates to. The API's CSP is
+ * Report-Only, so nothing else would have stopped it (FILE-02, stored XSS).
+ *
+ * The serving route refuses non-raster types independently. Refusing at upload
+ * too means a tenant admin is told immediately, rather than discovering later
+ * that a logo which uploaded successfully never renders.
+ */
 const IMAGE_MIME_TYPES = [
   'image/png',
   'image/jpeg',
   'image/jpg',
   'image/webp',
-  'image/svg+xml',
 ] as const;
 
 /** Favicons additionally accept the two `.ico` MIME spellings browsers send. */

@@ -511,18 +511,23 @@ async function main() {
       for (const field of spec.keyFields) {
         const key = row[field] ?? null;
 
+        const isDocument = spec.model === 'Document';
+
         if (!key) {
           counts.NO_KEY += 1;
+          if (isDocument) documentBucketById.set(row.id, 'NO_KEY');
           continue;
         }
 
         if (!provider) {
           counts.LEGACY_UNRECOVERABLE += 1;
+          if (isDocument) documentBucketById.set(row.id, 'LEGACY_UNRECOVERABLE');
           continue;
         }
 
         if (!checker) {
           counts.UNVERIFIED += 1;
+          if (isDocument) documentBucketById.set(row.id, 'UNVERIFIED');
           unverifiedRows.push({
             model: spec.model,
             field,
@@ -536,6 +541,7 @@ async function main() {
 
         if (provider !== checker.provider) {
           counts.UNVERIFIED += 1;
+          if (isDocument) documentBucketById.set(row.id, 'UNVERIFIED');
           unverifiedRows.push({
             model: spec.model,
             field,
@@ -556,6 +562,7 @@ async function main() {
           storageKey: key,
           createdAt: row.createdAt,
           counts,
+          isDocument,
         });
       }
     }
@@ -566,8 +573,10 @@ async function main() {
       const result = await checker.exists(item.storageKey);
       if (result.state === 'exists') {
         item.counts.DURABLE += 1;
+        if (item.isDocument) documentBucketById.set(item.id, 'DURABLE');
       } else if (result.state === 'absent') {
         item.counts.MISSING_IN_STORE += 1;
+        if (item.isDocument) documentBucketById.set(item.id, 'MISSING_IN_STORE');
         missingRows.push({
           model: item.model,
           field: item.field,
@@ -578,6 +587,7 @@ async function main() {
         });
       } else {
         item.counts.UNVERIFIED += 1;
+        if (item.isDocument) documentBucketById.set(item.id, 'UNVERIFIED');
         unverifiedRows.push({
           model: item.model,
           field: item.field,
@@ -612,37 +622,8 @@ async function main() {
       return 2;
     }
 
-    // Re-fetch just the id/bucket classification for Document, so this
-    // section can attribute each branding asset to a bucket without a second
-    // network round trip per row. Cheap: ids only.
-    const documentBucketById = new Map();
-    for (const row of missingRows) {
-      if (row.model === 'Document') documentBucketById.set(row.id, 'MISSING_IN_STORE');
-    }
-    // DURABLE / LEGACY_UNRECOVERABLE / NO_KEY / UNVERIFIED documents were not
-    // individually retained above (only counts), so re-query minimally.
-    let documentRows;
-    try {
-      documentRows = await prisma.document.findMany({
-        select: { id: true, storageKey: true, storageProvider: true },
-      });
-    } catch {
-      documentRows = [];
-    }
-    for (const doc of documentRows) {
-      if (documentBucketById.has(doc.id)) continue;
-      if (!doc.storageKey) documentBucketById.set(doc.id, 'NO_KEY');
-      else if (!doc.storageProvider) documentBucketById.set(doc.id, 'LEGACY_UNRECOVERABLE');
-      else if (checker && doc.storageProvider === checker.provider) {
-        // Already checked above as part of the main pass — DURABLE unless it
-        // was recorded MISSING_IN_STORE (handled above) or UNVERIFIED.
-        const wasUnverified = unverifiedRows.some((u) => u.model === 'Document' && u.id === doc.id);
-        documentBucketById.set(doc.id, wasUnverified ? 'UNVERIFIED' : 'DURABLE');
-      } else {
-        documentBucketById.set(doc.id, 'UNVERIFIED');
-      }
-    }
-
+    // `documentBucketById` was filled in during the main pass above as each
+    // Document row was classified — no second query needed.
     const viewPathPattern = /^\/api\/documents\/([^/]+)\/(?:view|download)$/;
     const assetFields = ['logoUrl', 'faviconUrl', 'loginImageUrl'];
     const crossReference = emptyCounts();

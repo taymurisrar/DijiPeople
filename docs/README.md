@@ -41,6 +41,7 @@ Implementation-facing architecture. How the system is actually built.
 | [`frontend.md`](architecture/frontend.md) | Next.js apps, module runtime, settings runtime |
 | [`database.md`](architecture/database.md) | Prisma conventions, migrations, seeds |
 | [`module-runtime-overhaul.md`](architecture/module-runtime-overhaul.md) | Metadata-driven module runtime (pre-existing, authoritative) |
+| [`object-storage.md`](architecture/object-storage.md) | **Canonical** for durable file storage: the provider abstraction, Cloudflare R2, object keys and tenant scoping, upload limits, download authorization, deletion and reconciliation |
 | [`tenant-control-plane.md`](architecture/tenant-control-plane.md) | Platform Admin's control plane over a tenant: lifecycle, access, modules, apps, provisioning runs and erasure |
 | [`settings-and-branding.md`](architecture/settings-and-branding.md) | Settings and branding contract (pre-existing, **canonical**) |
 | [`reports-and-analytics.md`](architecture/reports-and-analytics.md) | Reporting platform contract (**canonical**) |
