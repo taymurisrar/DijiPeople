@@ -72,9 +72,24 @@ branch production           br-snowy-mud-am2378xn
   protected                 false
 ```
 
-Attempts to raise retention and to set `protected: true` were not completed —
-this session's harness refuses production control-plane mutations — but the plan
-tier makes the outcome moot: both are paid capabilities.
+Both remedies were then attempted against the live API rather than inferred from
+the plan tier. Setting `protected: true` on the production branch returns:
+
+```
+BRANCHES_PROTECTED_LIMIT_EXCEEDED
+You have reached the maximum number of protected branches for your current
+plan. To protect this branch, either upgrade your plan or reduce the number of
+existing protected branches.
+```
+
+There are no protected branches to reduce. The free plan's allowance is zero, so
+this is not a quota that housekeeping can free — it is the capability being
+absent. Raising `history_retention_seconds` from 21600 to 86400 was likewise
+refused.
+
+So the audit's "two settings" are two API calls that cannot succeed, and acting
+on its advice without checking would have produced two errors and a P0 believed
+to be handled.
 
 The audit's own supporting files are `raw/INF.md` (INF-02, INF-09) and section 10
 of `00-EXECUTIVE-AUDIT-REPORT.md`. Their conclusion stands. Their proposed remedy
