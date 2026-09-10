@@ -56,7 +56,6 @@ _None._
 | [BUG-2958](../../docs/bugs/BUG-2958-settings-shows-every-category-group-and-page-regardless-of-t.md) | Settings shows every category, group and page regardless of the tenant's plan | AUTHORIZATION | HIGH | P1 | FIXED | apps/web, api:tenant-settings | FIX_NOW |
 | [BUG-3007](../../docs/bugs/BUG-3007-reports-and-analytics-offers-surfaces-and-reports-for-capabi.md) | Reports and Analytics offers surfaces and reports for capabilities the plan does not include | AUTHORIZATION | HIGH | P1 | OPEN | apps/web, api:reporting | FIX_NOW |
 | [BUG-3020](../../docs/bugs/BUG-3020-records-behind-these-numbers-shows-raw-guids-and-a-count-tha.md) | Records behind these numbers shows raw GUIDs and a count that does not match the metric | UX | HIGH | P1 | OPEN | apps/web, api:reporting | FIX_NOW |
-| [ITEM-0124](../../docs/backlog/items/ITEM-0124-production-advisory-gate-blocks-every-release-to-main-and-np.md) | Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile | SECURITY | HIGH | P1 | READY | scripts/check-production-advisories.mjs | FIX_NOW |
 
 ## MEDIUM
 

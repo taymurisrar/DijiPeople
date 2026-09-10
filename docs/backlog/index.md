@@ -13,20 +13,20 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 122 |
+| Open (active work) | 121 |
 | Blocked | 2 |
 | Deferred | 29 |
 | Awaiting a product decision | 6 |
-| Completed / closed | 293 |
+| Completed / closed | 294 |
 | **Open CRITICAL** | **0** |
-| **Open HIGH** | **36** |
+| **Open HIGH** | **35** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 36 |
+| HIGH | 35 |
 | MEDIUM | 68 |
 | LOW | 15 |
 
@@ -43,7 +43,7 @@ see [`README.md`](README.md) for why.
 | INFRA | 4 |
 | INTEGRATION | 5 |
 | PERFORMANCE | 1 |
-| SECURITY | 5 |
+| SECURITY | 4 |
 | STATE_MACHINE | 3 |
 | TECH_DEBT | 6 |
 | TEST_GAP | 7 |
@@ -61,8 +61,8 @@ see [`README.md`](README.md) for why.
 | VERIFIED | 218 |
 | DUPLICATE | 5 |
 | ACCEPTED_RISK | 3 |
-| READY | 31 |
-| DONE | 67 |
+| READY | 30 |
+| DONE | 68 |
 
 ## All records
 
@@ -237,7 +237,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0103](../../docs/backlog/items/ITEM-0103-deployment-check-the-composed-tenant-workspace-host-must-res.md) | Deployment check: the composed tenant workspace host must resolve | TEST_GAP | HIGH | P1 | DONE | web, tenant-domains | DONE |
 | [ITEM-0122](../../docs/backlog/items/ITEM-0122-fifteen-production-advisories-have-no-disposition-so-the-ci-.md) | Fifteen production advisories have no disposition, so the CI advisory gate fails on every branch including main | SECURITY | HIGH | P1 | DONE | ci, dependencies | DONE |
 | [ITEM-0123](../../docs/backlog/items/ITEM-0123-multer-carries-three-high-advisories-and-the-override-that-f.md) | multer carries three high advisories and the override that fixes it cannot be applied without a full re-resolve | SECURITY | HIGH | P1 | DEFERRED | dependencies, ci | DEFER |
-| [ITEM-0124](../../docs/backlog/items/ITEM-0124-production-advisory-gate-blocks-every-release-to-main-and-np.md) | Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile | SECURITY | HIGH | P1 | READY | scripts/check-production-advisories.mjs | FIX_NOW |
+| [ITEM-0124](../../docs/backlog/items/ITEM-0124-production-advisory-gate-blocks-every-release-to-main-and-np.md) | Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile | SECURITY | HIGH | P1 | DONE | scripts/check-production-advisories.mjs | DONE |
 | [ITEM-0048](../../docs/backlog/items/ITEM-0048-replace-or-contain-active-win-and-the-xlsx-export-path.md) | Replace or contain active-win and the xlsx export path | SECURITY | HIGH | P2 | BLOCKED | apps/agent-desktop, services/api/src/common/excel, package-lock.json | BLOCKED_EXTERNAL |
 | [ITEM-0086](../../docs/backlog/items/ITEM-0086-smoke-deployment-does-not-assert-that-a-launched-market-has-.md) | smoke:deployment does not assert that a launched market has a purchasable price or a running outbox worker | TEST_GAP | HIGH | P2 | DONE | scripts | DONE |
 | [BUG-0051](../../docs/bugs/BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state.md) | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | P1 | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |

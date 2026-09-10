@@ -20577,8 +20577,8 @@
       "title": "Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "READY",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0124-production-advisory-gate-blocks-every-release-to-main-and-np.md",
         "provenance": "QA_RUN",

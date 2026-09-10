@@ -8,12 +8,12 @@
 | | |
 |---|---|
 | Open CRITICAL | **0** |
-| Open HIGH | **36** |
-| Open total | 122 |
+| Open HIGH | **35** |
+| Open total | 121 |
 | Blocked | 2 |
 | Awaiting a product decision | 6 |
 | Deferred | 29 |
-| Completed | 293 |
+| Completed | 294 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -59,7 +59,6 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2958-settings-shows-every-category-group-and-page-regardless-of-t|BUG-2958]] | Settings shows every category, group and page regardless of the tenant's plan | AUTHORIZATION | HIGH | FIXED | apps/web, api:tenant-settings | FIX_NOW |
 | [[BUG-3007-reports-and-analytics-offers-surfaces-and-reports-for-capabi|BUG-3007]] | Reports and Analytics offers surfaces and reports for capabilities the plan does not include | AUTHORIZATION | HIGH | OPEN | apps/web, api:reporting | FIX_NOW |
 | [[BUG-3020-records-behind-these-numbers-shows-raw-guids-and-a-count-tha|BUG-3020]] | Records behind these numbers shows raw GUIDs and a count that does not match the metric | UX | HIGH | OPEN | apps/web, api:reporting | FIX_NOW |
-| [[ITEM-0124-production-advisory-gate-blocks-every-release-to-main-and-np|ITEM-0124]] | Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile | SECURITY | HIGH | READY | scripts/check-production-advisories.mjs | FIX_NOW |
 
 ## Product Decisions Needed
 
