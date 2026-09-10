@@ -15,6 +15,24 @@ import {
   ApprovalMatrixWithApprovers,
 } from './approval-matrix.repository';
 
+/*
+ * ITEM-0106 - the reporting-manager step can fail two different ways, and
+ * only one of them should stay a hard block.
+ *
+ * A manager account that exists but cannot approve (disabled, or a dangling
+ * id) is a misconfiguration and keeps failing the whole chain, per BUG-1968's
+ * "refuse, but say what is missing" policy. An employee with no active or
+ * invited manager to route to yet - the ordinary state of a fresh hire, or of
+ * an entire tenant on day one before any hierarchy is built - is not a
+ * misconfiguration, and should not block a chain that has another way to
+ * route (e.g. the seeded HR fallback step). This subclass lets the caller
+ * tell the two apart without parsing message text: it is dropped from the
+ * chain rather than refused whenever something else in the matrix resolves.
+ * If nothing else resolves either, it is folded back into the refusal exactly
+ * as before - there is nothing to route the request to.
+ */
+class UnresolvedManagerStep extends BadRequestException {}
+
 @Injectable()
 export class ApprovalMatrixResolverService {
   constructor(private readonly repository: ApprovalMatrixRepository) {}
@@ -65,15 +83,31 @@ export class ApprovalMatrixResolverService {
      */
     const route: ResolvedApprovalStep[] = [];
     const unresolved: string[] = [];
+    const unresolvedManagerSteps: string[] = [];
     for (const matrix of selected) {
       try {
         route.push(await this.resolveApprovers(input, matrix));
       } catch (error) {
         if (!(error instanceof BadRequestException)) throw error;
-        unresolved.push(
-          `Step ${matrix.sequence} (${this.humanizeApproverType(matrix.approverType)}): ${this.remediation(this.messageOf(error))}`,
-        );
+        const formatted = `Step ${matrix.sequence} (${this.humanizeApproverType(matrix.approverType)}): ${this.remediation(this.messageOf(error))}`;
+        if (error instanceof UnresolvedManagerStep) {
+          unresolvedManagerSteps.push(formatted);
+        } else {
+          unresolved.push(formatted);
+        }
       }
+    }
+
+    /*
+     * ITEM-0106 - an unassigned or not-yet-approvable reporting manager only
+     * blocks the submission when nothing else in the chain can route it. If
+     * another step resolved (e.g. the seeded HR fallback), the manager step is
+     * simply not part of the route; if nothing resolved at all, fold it back
+     * into the refusal so the "a step nobody can approve" policy holds exactly
+     * as BUG-1968 left it.
+     */
+    if (!route.length) {
+      unresolved.push(...unresolvedManagerSteps);
     }
 
     if (unresolved.length) {
@@ -274,10 +308,13 @@ export class ApprovalMatrixResolverService {
     ) {
       const managerUserId = input.requesterEmployee.manager?.userId;
       const managerUser = managerUserId
-        ? await this.repository.findUserById(input.tenantId, managerUserId)
+        ? await this.repository.findApprovableManagerById(
+            input.tenantId,
+            managerUserId,
+          )
         : null;
       if (!managerUser) {
-        throw new BadRequestException(
+        throw new UnresolvedManagerStep(
           'Approval route requires a reporting manager with a linked active user.',
         );
       }
