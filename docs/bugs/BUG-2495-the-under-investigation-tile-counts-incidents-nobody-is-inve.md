@@ -11,18 +11,20 @@ DetectedDate: 2026-08-30
 DetectedInSha: c4ffd13b
 AffectedModules: [admin:monitoring, api:platform-monitoring]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport:
 RegressionId:
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-30
-UpdatedAt: 2026-08-30
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-2495 — The Under investigation tile counts incidents nobody is investigating
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** A tile that reports 27 people investigating nothing, and whose own link opens an empty list, actively misleads the operator reading it. The arithmetic simply predates a fourth state. Small, contained, no reason to defer.
 
 ## Summary
 

@@ -11,18 +11,20 @@ DetectedDate: 2026-08-30
 DetectedInSha: c4ffd13b
 AffectedModules: [api:attendance]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport:
 RegressionId:
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-30
-UpdatedAt: 2026-08-30
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-2494 — Check-out re-validates check-in preconditions and traps the entry open for ever
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** An employee cannot close their working day and no request they can make succeeds. It was observed trapping a real production entry. A record the system accepted at check-in must always be closable, so this is a correctness defect in the state machine rather than a validation preference. Fix now.
 
 ## Summary
 

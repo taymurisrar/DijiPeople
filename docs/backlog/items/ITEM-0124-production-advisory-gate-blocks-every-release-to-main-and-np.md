@@ -3,15 +3,15 @@ ID: ITEM-0124
 aliases: [ITEM-0124]
 Title: Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile
 Type: SECURITY
-Status: TRIAGE_REQUIRED
+Status: READY
 Priority: P1
 Severity: HIGH
 AffectedModules: [scripts/check-production-advisories.mjs]
 Source: QA_RUN
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 CreatedAt: 2026-09-09
-UpdatedAt: 2026-09-09
+UpdatedAt: 2026-09-11
 RelatedBug: 
 RelatedQA: 
 RelatedADR: 
@@ -21,6 +21,8 @@ BlockedBy:
 ---
 
 # ITEM-0124 — Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** Re-measured on 2026-09-11 before triage: the gate now passes (0 critical, 10 dispositioned). The blocking half of this record is therefore historical. The substance is not. Overrides have never taken effect in this lockfile, so the only available remedy is a written risk acceptance, and eight high advisories now stand accepted rather than fixed. The record itself names the danger precisely: that pressure arrives exactly when a release is blocked, which is the worst moment to decide what risk is acceptable. Fix the override mechanism so a real remedy exists.
 
 ## Summary
 

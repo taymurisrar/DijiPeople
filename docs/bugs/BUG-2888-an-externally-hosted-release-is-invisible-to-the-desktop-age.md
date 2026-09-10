@@ -11,18 +11,20 @@ DetectedDate: 2026-09-09
 DetectedInSha: 4ee7b2cd
 AffectedModules: [services/api/src/modules/app-releases]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-09
-UpdatedAt: 2026-09-09
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-2888 — An externally hosted release is invisible to the desktop agent update feed, because the platform publish route cannot record a SHA-512
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** This fails silently in the one direction that matters: the release looks published, listed and downloadable, and the update feed quietly omits it for ever. Silent breakage of the customer-facing auto-update path is worth more than its MEDIUM severity suggests. Fix now.
 
 ## Summary
 

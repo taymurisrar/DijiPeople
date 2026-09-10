@@ -3,15 +3,15 @@ ID: ITEM-0125
 aliases: [ITEM-0125]
 Title: The .NET Integration Gateway ships to customers with no CI coverage at all
 Type: TEST_GAP
-Status: TRIAGE_REQUIRED
+Status: READY
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [gateway]
 Source: QA_RUN
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 CreatedAt: 2026-09-09
-UpdatedAt: 2026-09-09
+UpdatedAt: 2026-09-11
 RelatedBug: 
 RelatedQA: 
 RelatedADR: 
@@ -21,6 +21,8 @@ BlockedBy:
 ---
 
 # ITEM-0125 — The .NET Integration Gateway ships to customers with no CI coverage at all
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** The gateway is the only software installed as a binary on a customer network, talking to their hardware, and it is the least verified component in the pipeline. The scripts and the runner capability both already exist; the gap is a job, not a capability. Cheap, and it closes a genuine hole in the required gate.
 
 ## Summary
 

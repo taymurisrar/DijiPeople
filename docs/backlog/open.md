@@ -11,13 +11,7 @@ The Architect reads this before planning any substantial change —
 
 ## Awaiting Architect triage
 
-| ID | Title | Type | Severity | Priority | Status | Affected | Architect |
-|---|---|---|---|---|---|---|---|
-| [BUG-2494](../../docs/bugs/BUG-2494-check-out-re-validates-check-in-preconditions-and-traps-the-.md) | Check-out re-validates check-in preconditions and traps the entry open for ever | STATE_MACHINE | HIGH | P1 | OPEN | api:attendance | TRIAGE_REQUIRED |
-| [ITEM-0124](../../docs/backlog/items/ITEM-0124-production-advisory-gate-blocks-every-release-to-main-and-np.md) | Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile | SECURITY | HIGH | P1 | TRIAGE_REQUIRED | scripts/check-production-advisories.mjs | TRIAGE_REQUIRED |
-| [BUG-2495](../../docs/bugs/BUG-2495-the-under-investigation-tile-counts-incidents-nobody-is-inve.md) | The Under investigation tile counts incidents nobody is investigating | UX | MEDIUM | P2 | OPEN | admin:monitoring, api:platform-monitoring | TRIAGE_REQUIRED |
-| [BUG-2888](../../docs/bugs/BUG-2888-an-externally-hosted-release-is-invisible-to-the-desktop-age.md) | An externally hosted release is invisible to the desktop agent update feed, because the platform publish route cannot record a SHA-512 | INTEGRATION | MEDIUM | P2 | OPEN | api:app-releases | TRIAGE_REQUIRED |
-| [ITEM-0125](../../docs/backlog/items/ITEM-0125-the-net-integration-gateway-ships-to-customers-with-no-ci-co.md) | The .NET Integration Gateway ships to customers with no CI coverage at all | TEST_GAP | MEDIUM | P2 | TRIAGE_REQUIRED | gateway | TRIAGE_REQUIRED |
+_None._
 
 ## CRITICAL
 
@@ -47,7 +41,7 @@ _None._
 | [BUG-2458](../../docs/bugs/BUG-2458-token-refresh-is-throttled-by-the-public-login-rate-limiter-.md) | Token refresh is throttled by the public login rate limiter, signing users out | BUG | HIGH | P1 | FIXED | api:auth, api:common | FIX_NOW |
 | [BUG-2459](../../docs/bugs/BUG-2459-the-notification-bell-polls-forever-after-a-session-ends-flo.md) | The notification bell polls forever after a session ends, flooding the error log | PERFORMANCE | HIGH | P1 | FIXED | web:notifications, api:error-logs, api:notifications | FIX_NOW |
 | [BUG-2462](../../docs/bugs/BUG-2462-stripe-subscription-webhooks-fail-because-the-customer-resol.md) | Stripe subscription webhooks fail because the customer resolves to no tenant | INTEGRATION | HIGH | P1 | OPEN | api:billing, api:super-admin | PLAN_REQUIRED |
-| [BUG-2494](../../docs/bugs/BUG-2494-check-out-re-validates-check-in-preconditions-and-traps-the-.md) | Check-out re-validates check-in preconditions and traps the entry open for ever | STATE_MACHINE | HIGH | P1 | OPEN | api:attendance | TRIAGE_REQUIRED |
+| [BUG-2494](../../docs/bugs/BUG-2494-check-out-re-validates-check-in-preconditions-and-traps-the-.md) | Check-out re-validates check-in preconditions and traps the entry open for ever | STATE_MACHINE | HIGH | P1 | OPEN | api:attendance | FIX_NOW |
 | [BUG-2504](../../docs/bugs/BUG-2504-approving-a-correction-never-applies-the-requested-work-mode.md) | Approving a correction never applies the requested work mode, work site or overtime | STATE_MACHINE | HIGH | P1 | OPEN | api:attendance | PLAN_REQUIRED |
 | [BUG-2505](../../docs/bugs/BUG-2505-a-mode-or-location-correction-could-never-be-submitted-at-al.md) | A mode-or-location correction could never be submitted at all | BUG | HIGH | P1 | FIXED | apps/web, api:attendance | DONE |
 | [BUG-2506](../../docs/bugs/BUG-2506-sign-out-leaves-the-refresh-token-live-whenever-the-tenant-i.md) | Sign-out leaves the refresh token live whenever the tenant is busy | SECURITY | HIGH | P1 | FIXED | api:auth | DONE |
@@ -62,7 +56,7 @@ _None._
 | [BUG-2958](../../docs/bugs/BUG-2958-settings-shows-every-category-group-and-page-regardless-of-t.md) | Settings shows every category, group and page regardless of the tenant's plan | AUTHORIZATION | HIGH | P1 | FIXED | apps/web, api:tenant-settings | FIX_NOW |
 | [BUG-3007](../../docs/bugs/BUG-3007-reports-and-analytics-offers-surfaces-and-reports-for-capabi.md) | Reports and Analytics offers surfaces and reports for capabilities the plan does not include | AUTHORIZATION | HIGH | P1 | OPEN | apps/web, api:reporting | FIX_NOW |
 | [BUG-3020](../../docs/bugs/BUG-3020-records-behind-these-numbers-shows-raw-guids-and-a-count-tha.md) | Records behind these numbers shows raw GUIDs and a count that does not match the metric | UX | HIGH | P1 | OPEN | apps/web, api:reporting | FIX_NOW |
-| [ITEM-0124](../../docs/backlog/items/ITEM-0124-production-advisory-gate-blocks-every-release-to-main-and-np.md) | Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile | SECURITY | HIGH | P1 | TRIAGE_REQUIRED | scripts/check-production-advisories.mjs | TRIAGE_REQUIRED |
+| [ITEM-0124](../../docs/backlog/items/ITEM-0124-production-advisory-gate-blocks-every-release-to-main-and-np.md) | Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile | SECURITY | HIGH | P1 | READY | scripts/check-production-advisories.mjs | FIX_NOW |
 
 ## MEDIUM
 
@@ -103,7 +97,7 @@ _None._
 | [BUG-2413](../../docs/bugs/BUG-2413-allocate-id-plan-scans-only-docs-qa-test-plans-so-execplan-i.md) | allocate-id plan scans only docs qa test-plans so ExecPlan ids collide | DATA_INTEGRITY | MEDIUM | P2 | FIXED | scripts | DONE |
 | [BUG-2460](../../docs/bugs/BUG-2460-client-error-reports-store-the-whole-html-error-page-as-the-.md) | Client error reports store the whole HTML error page as the incident message | BUG | MEDIUM | P2 | FIXED | web:error-reporting, api:error-logs, admin:monitoring | FIX_NOW |
 | [BUG-2465](../../docs/bugs/BUG-2465-session-revoked-401s-and-client-reported-failures-escape-the.md) | Session-revoked 401s and client-reported failures escape the not-an-incident filter | BUG | MEDIUM | P2 | FIXED | api:error-logs, api:platform-monitoring | FIX_NOW |
-| [BUG-2495](../../docs/bugs/BUG-2495-the-under-investigation-tile-counts-incidents-nobody-is-inve.md) | The Under investigation tile counts incidents nobody is investigating | UX | MEDIUM | P2 | OPEN | admin:monitoring, api:platform-monitoring | TRIAGE_REQUIRED |
+| [BUG-2495](../../docs/bugs/BUG-2495-the-under-investigation-tile-counts-incidents-nobody-is-inve.md) | The Under investigation tile counts incidents nobody is investigating | UX | MEDIUM | P2 | OPEN | admin:monitoring, api:platform-monitoring | FIX_NOW |
 | [BUG-2507](../../docs/bugs/BUG-2507-the-manager-s-correction-screen-hides-four-of-the-eight-kind.md) | The manager's correction screen hides four of the eight kinds of change | UX | MEDIUM | P2 | FIXED | apps/web | DONE |
 | [BUG-2508](../../docs/bugs/BUG-2508-the-correction-work-site-selector-is-never-populated-for-an-.md) | The correction work-site selector is never populated for an employee | BUG | MEDIUM | P2 | OPEN | apps/web, api:attendance-integrations | PLAN_REQUIRED |
 | [BUG-2547](../../docs/bugs/BUG-2547-a-revoked-session-still-answers-on-auth-me.md) | A revoked session still answers on /auth/me | SECURITY | MEDIUM | P2 | FIXED | api:auth | DONE |
@@ -114,7 +108,7 @@ _None._
 | [BUG-2662](../../docs/bugs/BUG-2662-an-expired-refresh-token-puts-the-tenant-app-into-a-redirect.md) | An expired refresh token puts the tenant app into a redirect loop instead of the login page | UX | MEDIUM | P2 | FIXED | apps/web | DONE |
 | [BUG-2822](../../docs/bugs/BUG-2822-a-business-refusal-is-rendered-as-a-fatal-error-dialog-with-.md) | A business refusal is rendered as a fatal error dialog with a reference id and a log download | UX | MEDIUM | P2 | FIXED | runtime, approvals, attendance | FIX_NOW |
 | [BUG-2839](../../docs/bugs/BUG-2839-a-dashboard-fx-test-asserted-on-the-last-month-bucket-so-it-.md) | A dashboard FX test asserted on the last month bucket, so it passed in August and failed on 1 September | BUG | MEDIUM | P2 | FIXED | super-admin | FIX_NOW |
-| [BUG-2888](../../docs/bugs/BUG-2888-an-externally-hosted-release-is-invisible-to-the-desktop-age.md) | An externally hosted release is invisible to the desktop agent update feed, because the platform publish route cannot record a SHA-512 | INTEGRATION | MEDIUM | P2 | OPEN | api:app-releases | TRIAGE_REQUIRED |
+| [BUG-2888](../../docs/bugs/BUG-2888-an-externally-hosted-release-is-invisible-to-the-desktop-age.md) | An externally hosted release is invisible to the desktop agent update feed, because the platform publish route cannot record a SHA-512 | INTEGRATION | MEDIUM | P2 | OPEN | api:app-releases | FIX_NOW |
 | [ITEM-0009](../../docs/backlog/items/ITEM-0009-no-observability-platform-exists.md) | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | P2 | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [ITEM-0020](../../docs/backlog/items/ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns.md) | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | P2 | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [ITEM-0022](../../docs/backlog/items/ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur.md) | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | P2 | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -136,7 +130,7 @@ _None._
 | [ITEM-0116](../../docs/backlog/items/ITEM-0116-53-bug-fixes-are-regression-covered-but-have-never-been-qa-r.md) | 53 bug fixes are regression-covered but have never been QA-retested | TEST_GAP | MEDIUM | P2 | READY | — | FIX_NOW |
 | [ITEM-0117](../../docs/backlog/items/ITEM-0117-the-question-protocol-has-never-been-used-and-five-user-deci.md) | The question protocol has never been used and five user decisions are parked in the backlog instead | DOCUMENTATION | MEDIUM | P2 | READY | — | FIX_NOW |
 | [ITEM-0119](../../docs/backlog/items/ITEM-0119-stop-writing-a-placeholder-e-mail-into-an-identity-column-wh.md) | Stop writing a placeholder e-mail into an identity column when the wizard opens a draft | TECH_DEBT | MEDIUM | P2 | READY | billing, landing, super-admin | PLAN_REQUIRED |
-| [ITEM-0125](../../docs/backlog/items/ITEM-0125-the-net-integration-gateway-ships-to-customers-with-no-ci-co.md) | The .NET Integration Gateway ships to customers with no CI coverage at all | TEST_GAP | MEDIUM | P2 | TRIAGE_REQUIRED | gateway | TRIAGE_REQUIRED |
+| [ITEM-0125](../../docs/backlog/items/ITEM-0125-the-net-integration-gateway-ships-to-customers-with-no-ci-co.md) | The .NET Integration Gateway ships to customers with no CI coverage at all | TEST_GAP | MEDIUM | P2 | READY | gateway | FIX_NOW |
 
 ## LOW and unrated
 
