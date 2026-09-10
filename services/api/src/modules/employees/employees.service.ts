@@ -1983,6 +1983,28 @@ export class EmployeesService {
     employeeId: string,
   ): Promise<CsvFile> {
     const employee = await this.findById(currentUser.tenantId, employeeId);
+
+    // AUTHZ-03 (BOLA): `findById` only tenant-scopes the lookup. Its sibling
+    // read path, `GET /employees/:employeeId` (`getProfile` /
+    // `assertEmployeeAccess`), additionally applies the OWN/TEAM/
+    // BUSINESS_UNIT row-scope via `canViewEmployeeRecord` before returning a
+    // record. This export skipped that, so a manager or any role holding
+    // `employees.export` at `SELF`/`TEAM` RBAC level could export the full
+    // profile CSV for any employee id in the tenant, not just their own
+    // reports. Same decision `canViewEmployeeRecord` already makes for the
+    // read path — called here rather than re-implemented.
+    if (
+      !(await this.employeeAccessService.canViewEmployeeRecord(
+        currentUser,
+        employeeId,
+      ))
+    ) {
+      throw new ForbiddenException({
+        code: 'ACCESS_DENIED',
+        message: 'You do not have permission to export this employee record.',
+      });
+    }
+
     const rows = [
       {
         section: 'Profile',

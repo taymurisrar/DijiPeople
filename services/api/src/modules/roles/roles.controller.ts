@@ -97,12 +97,7 @@ export class RolesController {
     @Param('roleId') roleId: string,
     @Body() dto: UpdateRolePermissionsDto,
   ) {
-    return this.rolesService.updatePermissions(
-      user.tenantId,
-      roleId,
-      dto.permissionIds,
-      user.userId,
-    );
+    return this.rolesService.updatePermissions(user, roleId, dto.permissionIds);
   }
 
   @Put(':roleId/matrix')
