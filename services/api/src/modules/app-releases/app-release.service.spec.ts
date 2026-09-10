@@ -326,7 +326,12 @@ describe('AppReleaseService.promote', () => {
  * refused rather than silently accepted.
  */
 describe('AppReleaseService.publish — BUG-2888 sha512', () => {
-  function build(existing: { checksumSha256: string | null; checksumSha512: string | null } | null = null) {
+  function build(
+    existing: {
+      checksumSha256: string | null;
+      checksumSha512: string | null;
+    } | null = null,
+  ) {
     const upserted: Array<{
       create: Record<string, unknown>;
       update: Record<string, unknown>;
@@ -334,18 +339,20 @@ describe('AppReleaseService.publish — BUG-2888 sha512', () => {
     const prisma = {
       applicationRelease: {
         findUnique: jest.fn().mockResolvedValue(existing),
-        upsert: jest.fn().mockImplementation(
-          (args: {
-            create: Record<string, unknown>;
-            update: Record<string, unknown>;
-          }) => {
-            upserted.push(args);
-            return Promise.resolve({
-              id: 'rel-1',
-              ...(existing ? args.update : args.create),
-            });
-          },
-        ),
+        upsert: jest
+          .fn()
+          .mockImplementation(
+            (args: {
+              create: Record<string, unknown>;
+              update: Record<string, unknown>;
+            }) => {
+              upserted.push(args);
+              return Promise.resolve({
+                id: 'rel-1',
+                ...(existing ? args.update : args.create),
+              });
+            },
+          ),
       },
     };
     const audit = { log: jest.fn().mockResolvedValue(undefined) };
