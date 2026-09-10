@@ -518,7 +518,7 @@ Before reporting any change complete, verify each of these that applies:
 | **Mass assignment** | Never spread a DTO straight into `prisma.*.create/update`. Pick fields explicitly. Never let a client set `tenantId`, `id`, `createdById`, status/approval fields or money fields that the domain should compute. |
 | **Sensitive data exposure** | No password hashes, refresh tokens, encrypted secrets, full national ids or bank details in responses or logs. Use explicit `select`, not `include` everything. |
 | **Auditability** | State-changing operations call `AuditService.log()` with before/after snapshots. |
-| **Secrets** | Nothing hardcoded. Integration credentials via `SecretEncryptionService`. New env vars registered in `packages/config` validation, `turbo.json` `globalEnv`, `render.yaml` and `docs/environment-variables.md`. |
+| **Secrets** | Nothing hardcoded. Integration credentials via `SecretEncryptionService`. New env vars registered in `packages/config` validation, `render.yaml` and `docs/environment-variables.md` — plus `turbo.json` `globalEnv` when the variable is a **build input** (a Next app reads it, or it would change `services/api` build output); see `docs/deployment/environments.md#registration-requirement` (`ITEM-0049`) for the build-input/runtime-configuration distinction. |
 | **Unsafe client trust** | Server never trusts client-sent role, permission, tenant, price, total or approval state. Frontend gating is UX only. |
 
 Public endpoints (`@Public()`) additionally need rate limiting

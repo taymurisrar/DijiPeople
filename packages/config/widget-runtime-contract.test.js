@@ -121,11 +121,34 @@ test("standard record routes consume published-only Widget placement", () => {
   for (const path of [
     "apps/web/app/(authenticated)/leaves/[id]/page.tsx",
     "apps/web/app/(authenticated)/attendance/[entryId]/page.tsx",
-    "apps/web/app/(authenticated)/timesheets/[timesheetId]/page.tsx",
     "apps/web/app/(authenticated)/projects/[projectId]/page.tsx",
   ]) {
     assert.match(source(path), /buildPublishedStandardRouteRuntime/);
   }
+
+  /*
+   * ITEM-0092: the monthly timesheet detail page is deliberately off this
+   * contract, not drifted off it. Commit a8c04f16 ("major release", 2026-07-29)
+   * replaced `StandardModuleRecordPage` + `buildPublishedStandardRouteRuntime`
+   * with a bespoke `TimesheetMONTHLYEditor` grid, because a month's worth of
+   * daily entries edited in place is not a single-record read/edit form the
+   * generic runtime expresses — exactly the case AGENTS.md carves out for a
+   * bespoke page. `timesheetRuntimeSpec` in `standard-module-specs.ts` still
+   * exists and still backs the *list* view and the timeline widget contract
+   * above; only this detail route opted out. Assert the bespoke contract
+   * instead of the generic one, so a future regression here is a real defect
+   * again rather than a permanent, unexamined red.
+   */
+  const timesheetDetailPage = source(
+    "apps/web/app/(authenticated)/timesheets/[timesheetId]/page.tsx",
+  );
+  assert.doesNotMatch(
+    timesheetDetailPage,
+    /buildPublishedStandardRouteRuntime/,
+    "the monthly timesheet detail page has opted out of the standard route runtime (ITEM-0092) — " +
+      "if it now calls buildPublishedStandardRouteRuntime again, update this assertion to the positive case",
+  );
+  assert.match(timesheetDetailPage, /TimesheetMONTHLYEditor/);
 });
 
 test("Employee system Forms declare Widget-capable Form types", () => {

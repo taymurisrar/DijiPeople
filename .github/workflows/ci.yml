@@ -489,6 +489,13 @@ jobs:
         # landing port. It broke nothing, because the port is normalised away
         # before classification, which is exactly why it survived.
         run: npm run test:env-examples
+      - name: Widget runtime contract
+        # ITEM-0092 — this asserted the Timeline/Widget contract across the
+        # runtime module registry and the standard record pages, but had no
+        # script and no CI job, so it failed unobserved on origin/develop.
+        # Fails the build if a page's Timeline, Widget-placement or
+        # standard-route contract silently drifts.
+        run: npm run test:widget-runtime-contract
       - name: No loopback URLs in shipped source
         # The other half of the same defect: a hardcoded literal never consults
         # an environment variable, so environment validation cannot see it.

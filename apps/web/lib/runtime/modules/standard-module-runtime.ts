@@ -22,6 +22,7 @@ import type { RuntimePrincipal } from "../security-runtime.types";
 import { resolveTenantRuntimeConfig } from "../tenant-runtime.resolver";
 import type { TenantRuntimeConfig } from "../tenant-runtime.types";
 import { stableRuntimeMetadataId } from "../metadata-id";
+import { defaultPrimaryNameFieldForEntity } from "./entity-primary-name-field";
 
 export type StandardModuleFieldSpec = {
   readonly logicalName: string;
@@ -430,23 +431,6 @@ function assertPrimaryNameField(spec: StandardModuleRuntimeSpec) {
       `Standard module ${spec.moduleKey} is missing a primary name field.`,
     );
   }
-}
-
-function defaultPrimaryNameFieldForEntity(entityLogicalName: string) {
-  if (
-    entityLogicalName === "currency" ||
-    entityLogicalName === "settings_currencies"
-  ) {
-    return "name";
-  }
-  if (entityLogicalName === "employerBankAccount") return "name";
-  if (entityLogicalName === "businessUnit") return "name";
-  if (entityLogicalName === "employee") return "fullName";
-  if (entityLogicalName === "employeeBankAccount") {
-    return "accountTitle";
-  }
-
-  return "name";
 }
 
 function inferEntityLogicalNameFromLookupPath(path: string) {

@@ -15,7 +15,7 @@ import type {
   FieldMetadata,
   ViewMetadata,
 } from "@/lib/runtime/metadata-runtime.types";
-import { getEntityMetadata } from "@/lib/runtime/metadata-registry";
+import { defaultPrimaryNameFieldForEntity } from "@/lib/runtime/modules/entity-primary-name-field";
 import type { ModuleRuntimeContext } from "@/lib/runtime/module-runtime.types";
 import type { RuntimeRecordData } from "./module-runtime-ui.types";
 
@@ -421,7 +421,7 @@ function lookupPrimaryNameField(field: FieldMetadata) {
   const targetEntityLogicalName = target?.entityLogicalName;
   if (!targetEntityLogicalName) return "name";
 
-  return getEntityMetadata(targetEntityLogicalName)?.primaryNameField ?? "name";
+  return defaultPrimaryNameFieldForEntity(targetEntityLogicalName);
 }
 
 function stringValue(value: unknown) {

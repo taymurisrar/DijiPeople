@@ -11,7 +11,7 @@ Source: ARCHITECT
 OwnerAgent: architect
 ArchitectDisposition: PLAN_REQUIRED
 CreatedAt: 2026-08-16
-UpdatedAt: 2026-08-16
+UpdatedAt: 2026-09-11
 RelatedBug: 
 RelatedQA: 
 RelatedADR: 
@@ -84,6 +84,28 @@ Builds directly on [[ITEM-0018]], which landed in Wave 1.
 ## Related Items
 
 [[ITEM-0018]] · [[BUG-0027]] · [[ITEM-0020]]
+
+## ExecPlan
+
+[`EXECPLAN-0034`](../../plans/EXECPLAN-0034-governed-plan-price-publish-archive.md).
+
+**Material correction found while planning, worth the Architect's attention
+at triage:** re-deriving this record's own evidence found that
+`publicationStatus` is **not** currently settable through any operator-facing
+path at all — `CreatePlanDto`/`UpdatePlanDto`/`CreatePlanPriceDto`/
+`UpdatePlanPriceDto` never exposed the field, and the only writer anywhere in
+`services/api/src` is `commercial-bootstrap.ts` (the seed). So today an
+operator cannot publish a new plan or price through Admin at all, outside
+re-running `seed:config` — a narrower and more basic gap than "publishing is
+ungoverned." The plan proceeds with the same design either way (governed
+publish/archive actions), but flags this because it may warrant a higher
+priority than `P2`/`MEDIUM` if launching a new paid offering through Admin is
+currently blocked entirely.
+
+Also found: `updatePlanPrice` already contains a **partial** version-on-edit
+mechanism (`super-admin.service.ts:2334-2377`), but it is keyed off whether
+an edit touches a Stripe-immutable field, not off `publicationStatus` — the
+plan generalizes this existing mechanism rather than building a second one.
 
 ## History
 
