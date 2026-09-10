@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { ChartEmpty } from "./chart-chrome";
-import { formatChartValue, formatShare, pointAccessibleLabel } from "./chart-format";
+import { formatChartValue, formatShares, pointAccessibleLabel } from "./chart-format";
 import { collapseToTopN, computeShares } from "./chart-geometry";
 import { MAX_CHART_SLICES, seriesColor } from "./chart-tokens";
 import { hasChartData, type BaseChartProps } from "./chart-types";
@@ -74,6 +74,15 @@ export function HorizontalBarList({
   const primary = series[0];
   const collapsed = collapseToTopN(primary.points, limit);
   const rows = computeShares(collapsed);
+  /*
+   * One decimal decision for the whole list, not one per row — see
+   * `formatShares` (BUG-3020). `computeShares` already apportioned
+   * `displayShare` to sum to exactly 100; formatting each row with
+   * `formatShare` independently re-rounds a value like 33.4 down to 0
+   * decimals while a sibling row's 8.3 keeps its decimal, and the printed
+   * column stops summing to 100 even though the numbers behind it do.
+   */
+  const shareTexts = formatShares(rows.map((row) => row.displayShare));
 
   const total = rows.reduce(
     (sum, row) => sum + (row.value > 0 ? row.value : 0),
@@ -107,7 +116,7 @@ export function HorizontalBarList({
           const description = pointAccessibleLabel({
             pointLabel: row.label,
             valueText: formatValue(row.value),
-            shareText: formatShare(row.displayShare),
+            shareText: shareTexts[index],
           });
 
           const point = primary.points.find(
@@ -140,7 +149,7 @@ export function HorizontalBarList({
                   <span className="font-medium text-foreground">
                     {formatValue(row.value)}
                   </span>{" "}
-                  ({formatShare(row.displayShare)})
+                  ({shareTexts[index]})
                 </span>
               </div>
 

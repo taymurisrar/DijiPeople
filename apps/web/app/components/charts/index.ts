@@ -47,6 +47,7 @@ export {
 export {
   formatChartValue,
   formatShare,
+  formatShares,
   formatTimeBucketLabel,
   pointAccessibleLabel,
   pointActionAccessibleLabel,

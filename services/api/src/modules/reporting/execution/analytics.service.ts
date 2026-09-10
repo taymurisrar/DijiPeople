@@ -9,6 +9,7 @@ import { getMetric, listMetricsForSource } from '../metrics/metric.registry';
 import type {
   ReportDataSource,
   ReportDimensionValue,
+  ReportFieldDefinition,
   ReportMetricDefinition,
 } from '../semantic/semantic.types';
 import { ReportQueryExecutor } from '../engine/query-executor';
@@ -352,6 +353,67 @@ export class AnalyticsService {
     const fieldsByKey = new Map(permitted.map((field) => [field.key, field]));
     const idField = source.recordIdField ?? 'id';
 
+    const resultRows = rows.map((row) => {
+      const rawId = row[idField];
+      const id = typeof rawId === 'string' ? rawId : '';
+      const values: Record<string, unknown> = {};
+      for (const key of requested) {
+        const field = fieldsByKey.get(key);
+        values[key] = field ? readFieldValue(row, field) : null;
+      }
+      return {
+        id,
+        href: source.recordHrefTemplate
+          ? source.recordHrefTemplate.replace('{id}', id)
+          : null,
+        values,
+      };
+    });
+
+    /*
+     * BUG-3020. A field with a `labelLookup` — every organisational dimension
+     * on `workforce_history`, because that source stores denormalised foreign
+     * keys rather than relations (see the class comment on
+     * `WORKFORCE_HISTORY_SOURCE`) — is grouped-and-labelled correctly by
+     * `buildBreakdown` but was read here with the same `readFieldValue` used
+     * for every other field, which returns the raw scalar. The breakdown chart
+     * above this table printed "Engineering"; the table under it printed the
+     * department's uuid, for the same field, on the same page. Resolved in one
+     * batch per field across the whole page, the same shape
+     * `ReportQueryExecutor.resolveLabels` already uses for a breakdown bucket
+     * set, so this is not a second lookup mechanism.
+     */
+    const lookupFields = requested
+      .map((key) => fieldsByKey.get(key))
+      .filter(
+        (field): field is ReportFieldDefinition =>
+          field !== undefined && field.labelLookup !== undefined,
+      );
+
+    await Promise.all(
+      lookupFields.map(async (field) => {
+        const rawValues = resultRows.map((row) => row.values[field.key]);
+        const labels = await this.executor.resolveFieldLabels(
+          field,
+          rawValues,
+        );
+        const nullLabel = field.nullLabel ?? null;
+
+        for (const row of resultRows) {
+          const raw = row.values[field.key];
+          if (raw === null || raw === undefined) {
+            row.values[field.key] = nullLabel;
+            continue;
+          }
+          // A raw value whose lookup found nothing — the referenced row was
+          // deleted after the snapshot was taken — falls back to the id
+          // itself rather than disappearing, exactly as an unresolvable id
+          // should: visible as what it is, not blanked into looking entitled.
+          row.values[field.key] = labels.get(String(raw)) ?? raw;
+        }
+      }),
+    );
+
     return {
       columns: requested.map((key) => {
         const field = fieldsByKey.get(key);
@@ -362,22 +424,7 @@ export class AnalyticsService {
           format: field?.format ?? 'plain',
         };
       }),
-      rows: rows.map((row) => {
-        const rawId = row[idField];
-        const id = typeof rawId === 'string' ? rawId : '';
-        const values: Record<string, unknown> = {};
-        for (const key of requested) {
-          const field = fieldsByKey.get(key);
-          values[key] = field ? readFieldValue(row, field) : null;
-        }
-        return {
-          id,
-          href: source.recordHrefTemplate
-            ? source.recordHrefTemplate.replace('{id}', id)
-            : null,
-          values,
-        };
-      }),
+      rows: resultRows,
       // The real total for this filtered, scoped query — not the page length.
       // Reporting the loaded row count as the total is a defect this product
       // has already shipped once (BUG-2043).

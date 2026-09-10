@@ -5,6 +5,7 @@ import {
   formatReportValue,
   metricTileAccessibleLabel,
   MISSING_VALUE_TEXT,
+  pluralizeRecordNoun,
   resolveDurationUnit,
   toChartValue,
   toChartValueFormat,
@@ -234,5 +235,24 @@ describe("metricTileAccessibleLabel", () => {
 
     expect(label).toMatch(/withheld/i);
     expect(label).toMatch(/too small/i);
+  });
+});
+
+describe("pluralizeRecordNoun", () => {
+  /*
+   * BUG-3020. The drill-down's row count used to read "332 records behind
+   * these numbers" beside a "Historical headcount 12" tile on the same
+   * page — both individually correct (332 daily snapshot rows, 12 people)
+   * but the sentence claimed the 332 were the records *behind* the 12. The
+   * fix names the actual unit instead of the generic word "records".
+   */
+  it("appends an s to every noun this catalog currently uses", () => {
+    expect(pluralizeRecordNoun("employee")).toBe("employees");
+    expect(pluralizeRecordNoun("daily snapshot row")).toBe(
+      "daily snapshot rows",
+    );
+    expect(pluralizeRecordNoun("attendance day")).toBe("attendance days");
+    expect(pluralizeRecordNoun("leave request")).toBe("leave requests");
+    expect(pluralizeRecordNoun("job opening")).toBe("job openings");
   });
 });
