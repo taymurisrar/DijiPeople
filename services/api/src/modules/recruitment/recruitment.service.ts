@@ -769,6 +769,11 @@ export class RecruitmentService {
     let storageKey: string | undefined;
     let checksumSha256: string | undefined;
     let storageProviderValue: string | undefined;
+    // Copied from the source document, never taken from the request. The
+    // download route sends this value as the response Content-Type with an
+    // inline disposition, so a caller who could set it freely could have any
+    // stored bytes rendered as text/html in a colleague's browser.
+    let contentType: string | undefined;
     let scanStatus: Prisma.DocumentReferenceUncheckedCreateInput['scanStatus'];
     if (dto.documentId) {
       const sourceDocument = await this.prisma.document.findFirst({
@@ -788,6 +793,7 @@ export class RecruitmentService {
           checksumSha256: true,
           storageProvider: true,
           scanStatus: true,
+          mimeType: true,
         },
       });
       if (!sourceDocument?.storageKey) {
@@ -799,6 +805,7 @@ export class RecruitmentService {
       checksumSha256 = sourceDocument.checksumSha256 ?? undefined;
       storageProviderValue = sourceDocument.storageProvider ?? undefined;
       scanStatus = sourceDocument.scanStatus ?? 'SCAN_NOT_CONFIGURED';
+      contentType = sourceDocument.mimeType ?? undefined;
     }
 
     await this.prisma.$transaction(async (tx) => {
@@ -830,7 +837,7 @@ export class RecruitmentService {
           name: dto.name.trim(),
           kind: dto.kind?.trim().toLowerCase() ?? 'resume',
           fileName: dto.fileName.trim(),
-          contentType: dto.contentType?.trim(),
+          contentType,
           fileSizeBytes: dto.fileSizeBytes,
           storageKey,
           storageProvider: storageProviderValue,
@@ -1646,16 +1653,56 @@ export class RecruitmentService {
     };
   }
 
-  private mapCandidate(candidate: CandidateWithRelations) {
-    const mappedDocuments = candidate.documents.map((document) => ({
-      ...document,
+  /**
+   * Project a candidate document for the API response.
+   *
+   * Fields are listed rather than spread. Spreading the Prisma row shipped
+   * `storageKey`, `storageProvider` and `checksumSha256` to every caller
+   * holding `recruitment.read` — exactly the leak FILE-18 recorded, and the
+   * reason a storage key is no longer treated as a secret anywhere. Callers
+   * address a document by id through `viewPath`/`downloadPath`; they never need
+   * the key, and it is no longer accepted as input if they had it.
+   *
+   * Adding a field here is a deliberate act. That is the point of the list.
+   */
+  private mapCandidateDocument(
+    candidateId: string,
+    document: CandidateWithRelations['documents'][number],
+  ) {
+    return {
+      id: document.id,
+      name: document.name,
+      kind: document.kind,
+      fileName: document.fileName,
+      contentType: document.contentType,
+      fileSizeBytes: document.fileSizeBytes,
+      isResume: document.isResume,
+      isPrimaryResume: document.isPrimaryResume,
+      isLatestResume: document.isLatestResume,
+      sourceChannel: document.sourceChannel,
+      uploadedAt: document.uploadedAt,
+      parserVersion: document.parserVersion,
+      parsingStatus: document.parsingStatus,
+      parsedAt: document.parsedAt,
+      extractionConfidence: document.extractionConfidence,
+      parsingWarnings: document.parsingWarnings,
+      scanStatus: document.scanStatus,
+      candidateId: document.candidateId,
+      createdAt: document.createdAt,
+      updatedAt: document.updatedAt,
       viewPath: document.storageKey
-        ? `/api/candidates/${candidate.id}/documents/${document.id}/view`
+        ? `/api/candidates/${candidateId}/documents/${document.id}/view`
         : null,
       downloadPath: document.storageKey
-        ? `/api/candidates/${candidate.id}/documents/${document.id}/download`
+        ? `/api/candidates/${candidateId}/documents/${document.id}/download`
         : null,
-    }));
+    };
+  }
+
+  private mapCandidate(candidate: CandidateWithRelations) {
+    const mappedDocuments = candidate.documents.map((document) =>
+      this.mapCandidateDocument(candidate.id, document),
+    );
 
     return {
       ...candidate,
@@ -1673,26 +1720,13 @@ export class RecruitmentService {
       strengths: arr(candidate.strengths),
       documents: mappedDocuments,
       resumeDocument: candidate.resumeDocument
-        ? {
-            ...candidate.resumeDocument,
-            viewPath: candidate.resumeDocument.storageKey
-              ? `/api/candidates/${candidate.id}/documents/${candidate.resumeDocument.id}/view`
-              : null,
-            downloadPath: candidate.resumeDocument.storageKey
-              ? `/api/candidates/${candidate.id}/documents/${candidate.resumeDocument.id}/download`
-              : null,
-          }
+        ? this.mapCandidateDocument(candidate.id, candidate.resumeDocument)
         : null,
       latestResumeDocument: candidate.latestResumeDocument
-        ? {
-            ...candidate.latestResumeDocument,
-            viewPath: candidate.latestResumeDocument.storageKey
-              ? `/api/candidates/${candidate.id}/documents/${candidate.latestResumeDocument.id}/view`
-              : null,
-            downloadPath: candidate.latestResumeDocument.storageKey
-              ? `/api/candidates/${candidate.id}/documents/${candidate.latestResumeDocument.id}/download`
-              : null,
-          }
+        ? this.mapCandidateDocument(
+            candidate.id,
+            candidate.latestResumeDocument,
+          )
         : null,
       identities: candidate.identities,
       educationRecords: candidate.educationRecords.map((record) => ({

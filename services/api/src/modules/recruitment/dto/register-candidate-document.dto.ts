@@ -23,10 +23,14 @@ export class RegisterCandidateDocumentDto {
   @MaxLength(255)
   fileName!: string;
 
-  @IsOptional()
-  @IsString()
-  @MaxLength(120)
-  contentType?: string;
+  // `contentType` is deliberately absent. It was free text here and was written
+  // straight onto the row that the download route sends as the response
+  // Content-Type, with an inline disposition — so a recruiter could register
+  // any stored bytes as `text/html` and have them execute in a colleague's
+  // browser. It is now copied from the already-validated source Document.
+  //
+  // The global ValidationPipe runs with forbidNonWhitelisted, so a client still
+  // sending the field gets a 400 rather than having it quietly ignored.
 
   @IsOptional()
   @IsInt()

@@ -110,7 +110,7 @@ describe('StorageService', () => {
           scope: TENANT_A,
           domain: 'documents',
         })
-        .catch((e) => e);
+        .catch((e: unknown) => e);
 
       expect(error).toBeInstanceOf(AppError);
       expect((error as AppError).errorCode).toBe('FILE_STORAGE_UNAVAILABLE');
@@ -335,7 +335,7 @@ describe('StorageService', () => {
       });
 
       const [, options] = (provider.getSignedDownloadUrl as jest.Mock).mock
-        .calls[0];
+        .calls[0] as [string, { expiresInSeconds: number }];
       // A week-long URL is a permanent public link in practice.
       expect(options.expiresInSeconds).toBeLessThanOrEqual(900);
     });

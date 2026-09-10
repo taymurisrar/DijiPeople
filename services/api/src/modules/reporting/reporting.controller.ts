@@ -312,7 +312,7 @@ export class ReportingController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('runId') runId: string,
   ) {
-    return this.artifacts.getRun(user.tenantId, runId);
+    return this.artifacts.getRun(user.tenantId, runId, user.userId);
   }
 
   @Get('exports/:runId/download')
@@ -323,7 +323,11 @@ export class ReportingController {
     @Param('runId') runId: string,
     @Res({ passthrough: true }) response: Response,
   ): Promise<StreamableFile> {
-    const artifact = await this.artifacts.openArtifact(user.tenantId, runId);
+    const artifact = await this.artifacts.openArtifact(
+      user.tenantId,
+      runId,
+      user.userId,
+    );
     response.setHeader(
       'Content-Type',
       artifact.contentType ?? 'application/octet-stream',

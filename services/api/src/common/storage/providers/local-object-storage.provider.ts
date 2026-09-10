@@ -1,4 +1,4 @@
-import { createReadStream, createWriteStream } from 'fs';
+import { createReadStream, createWriteStream, type Stats } from 'fs';
 import { mkdir, rm, stat } from 'fs/promises';
 import { dirname, join, resolve, sep } from 'path';
 import { pipeline } from 'stream/promises';
@@ -60,7 +60,7 @@ export class LocalObjectStorageProvider implements ObjectStorageProvider {
   async getObject(key: string): Promise<GetObjectResult> {
     const absolutePath = this.resolvePath(key);
 
-    let fileStat;
+    let fileStat: Stats;
     try {
       fileStat = await stat(absolutePath);
     } catch {

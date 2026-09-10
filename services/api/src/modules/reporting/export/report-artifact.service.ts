@@ -230,9 +230,16 @@ export class ReportArtifactService {
     });
   }
 
-  /** One run, or `REPORT_NOT_FOUND`. Tenant-scoped. */
-  async getRun(tenantId: string, runId: string): Promise<ReportRun> {
-    return this.requireRun(tenantId, runId);
+  /**
+   * One run, or `REPORT_NOT_FOUND`. Tenant-scoped, and scoped to the requester
+   * when one is given — see `requireRun`.
+   */
+  async getRun(
+    tenantId: string,
+    runId: string,
+    requestedByUserId?: string,
+  ): Promise<ReportRun> {
+    return this.requireRun(tenantId, runId, requestedByUserId);
   }
 
   async listRuns(
@@ -269,8 +276,9 @@ export class ReportArtifactService {
   async openArtifact(
     tenantId: string,
     runId: string,
+    requestedByUserId?: string,
   ): Promise<ReportArtifactDownload> {
-    const run = await this.requireRun(tenantId, runId);
+    const run = await this.requireRun(tenantId, runId, requestedByUserId);
 
     if (
       run.status === ReportRunStatus.QUEUED ||
@@ -409,16 +417,33 @@ export class ReportArtifactService {
   private async requireRun(
     tenantId: string,
     runId: string,
+    requestedByUserId?: string,
   ): Promise<ReportRun> {
     const run = await this.prisma.reportRun.findFirst({
-      where: { id: runId, tenantId },
+      where: {
+        id: runId,
+        tenantId,
+        /*
+         * Scoped to the requester when the caller supplies one.
+         *
+         * A report export contains whatever the person who ran it could see,
+         * which is often wider than what another holder of the same coarse
+         * `reports.export` permission is entitled to — so tenant scope alone is
+         * not enough. `listExports` has always filtered by `requestedByUserId`;
+         * fetch and download did not, so a run id learned from a schedule
+         * email, a ticket or a log was enough to read a colleague's export.
+         * That is the FILE-12 shape, fixed for data-management exports and
+         * missed here.
+         */
+        ...(requestedByUserId ? { requestedByUserId } : {}),
+      },
     });
 
     if (!run) {
       /*
-       * The same error whether the run is absent or belongs to another tenant.
-       * Distinguishing them would confirm the existence of another tenant's
-       * run to anyone willing to guess ids.
+       * The same error whether the run is absent, belongs to another tenant, or
+       * belongs to another user. Distinguishing them would confirm the run
+       * exists to anyone willing to guess ids.
        */
       throw new AppError('REPORT_NOT_FOUND', {
         message: 'The requested export could not be found.',

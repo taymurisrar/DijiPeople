@@ -39,6 +39,21 @@ type UploadedFile = {
   size: number;
 };
 
+/**
+ * SVG is deliberately absent.
+ *
+ * `/documents/:id/view` serves the stored MIME type with
+ * `Content-Disposition: inline`, and a browser executes script in an SVG
+ * document it navigates to. The API's CSP is Report-Only, so nothing downstream
+ * would stop it. That is the same stored-XSS shape as FILE-02, fixed for
+ * branding assets on 2026-09-10 — but this allowlist gates the general document
+ * vault that employees, recruitment and contracts all upload through, and it
+ * was missed in that pass.
+ *
+ * The declared type is still only the caller's claim; nothing here sniffs
+ * content. This list bounds the blast radius, it does not prove a file is what
+ * it says it is.
+ */
 const ALLOWED_DOCUMENT_MIME_TYPES = new Set([
   'application/pdf',
   'application/msword',
@@ -46,7 +61,6 @@ const ALLOWED_DOCUMENT_MIME_TYPES = new Set([
   'image/jpeg',
   'image/png',
   'image/webp',
-  'image/svg+xml',
   'image/x-icon',
   'image/vnd.microsoft.icon',
 ]);
