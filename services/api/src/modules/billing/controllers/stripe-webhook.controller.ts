@@ -10,7 +10,10 @@ import {
 import { Public } from '../../../common/decorators/public.decorator';
 import type { StripeWebhookRequest } from '../types/stripe-webhook-request.type';
 import { BillingService } from '../services/billing.service';
-import { WebhookService } from '../services/webhook.service';
+import {
+  WebhookService,
+  isUnmappableStripeTenantError,
+} from '../services/webhook.service';
 
 @Controller('billing/stripe')
 export class StripeWebhookController {
@@ -90,13 +93,47 @@ export class StripeWebhookController {
         cause: error instanceof Error ? error.message : 'unknown',
       });
     }
-    const persisted = await this.webhookService.processStripeEvent(event);
+    try {
+      const persisted = await this.webhookService.processStripeEvent(event);
 
-    return {
-      received: true,
-      duplicate: persisted.duplicate,
-      stripeEventId: persisted.stripeEventId,
-      status: persisted.status,
-    };
+      return {
+        received: true,
+        duplicate: persisted.duplicate,
+        stripeEventId: persisted.stripeEventId,
+        status: persisted.status,
+      };
+    } catch (error) {
+      /*
+       * BUG-2462. A customer or subscription that cannot be mapped to exactly
+       * one tenant is not something Stripe redelivering will ever fix — it
+       * answered `400` for six days and 19 redeliveries of one event, and
+       * Stripe eventually disables an endpoint that keeps failing. The record
+       * is still written `FAILED` by `processStripeEvent` (unchanged — the
+       * critical payment-attribution alert still fires and an operator can
+       * still see and retry it from the platform events queue). Only what
+       * Stripe hears back changes: acknowledged, so the redelivery loop stops
+       * and reconciliation becomes an operator task instead of a retry storm.
+       *
+       * Every other failure — including a signature that verified but a
+       * handler that then threw for an unrelated reason — still propagates as
+       * it always has.
+       */
+      if (isUnmappableStripeTenantError(error)) {
+        this.logger.warn(
+          JSON.stringify({
+            event: 'stripe.webhook.unmapped_tenant_acknowledged',
+            stripeEventId: event.id,
+            stripeEventType: event.type,
+          }),
+        );
+        return {
+          received: true,
+          duplicate: false,
+          stripeEventId: event.id,
+          status: 'FAILED',
+        };
+      }
+      throw error;
+    }
   }
 }

@@ -565,6 +565,28 @@ export const ERROR_CATALOG = {
     'No action needed — the provider will deliver it again.',
     true,
   ),
+  /*
+   * A Stripe customer or subscription that cannot be mapped to exactly one
+   * tenant (BUG-2462) — zero `CustomerAccount` matches, or more than one.
+   *
+   * Distinct from `VALIDATION_FAILED` for the same reason
+   * `INTEGRATION_EVENT_NOT_READY` is: redelivering this event can never
+   * resolve it, because nothing about Stripe retrying fixes an ambiguous or
+   * missing tenant mapping. `StripeWebhookController` matches on this code to
+   * acknowledge Stripe with `2xx` regardless, so the redelivery does not loop
+   * forever — the stored `StripeWebhookEvent` row is durable, `FAILED`, and
+   * queued for an operator instead. `retryable: false`: unlike the early-event
+   * race, an operator reconciling the customer is what fixes this, not time.
+   */
+  STRIPE_CUSTOMER_UNMAPPED: entry(
+    400,
+    'Stripe customer could not be mapped',
+    'This Stripe customer or subscription does not resolve to exactly one tenant.',
+    'error',
+    'integration',
+    'Reconcile the Stripe customer account, then retry the stored webhook event.',
+    false,
+  ),
   AGENT_HEARTBEAT_FAILED: entry(
     502,
     'Agent heartbeat failed',

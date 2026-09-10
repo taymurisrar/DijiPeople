@@ -29,6 +29,7 @@ import type { AttendanceEntrySeed } from "./correction-form-fields";
 export function AttendanceCorrectionPanel({
   entry,
   canRequest,
+  workSites = [],
 }: {
   entry: AttendanceEntrySeed;
   /**
@@ -39,6 +40,8 @@ export function AttendanceCorrectionPanel({
    * counts.
    */
   canRequest: boolean;
+  /** BUG-2508. The viewer's own authorised sites, fetched by the page. */
+  workSites?: ReadonlyArray<{ id: string; name: string }>;
 }) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
@@ -74,6 +77,7 @@ export function AttendanceCorrectionPanel({
   return (
     <AttendanceCorrectionForm
       entry={entry}
+      workSites={workSites}
       onCancel={() => setIsOpen(false)}
       onSubmitted={(requestId) => {
         // Straight to the request, so the employee can see it exists and where

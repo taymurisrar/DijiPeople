@@ -29,6 +29,8 @@ export type AttendanceCorrectionRequest = {
   attendanceDate: string | null;
   requestedWorkMode: string | null;
   requestedWorkSiteId: string | null;
+  /** BUG-2508. Resolved server-side — the request stores an id, not a name. */
+  requestedWorkSiteName: string | null;
   requestedOvertimeMinutes: number | null;
   fallbackReason: string | null;
   reason: string;
@@ -43,6 +45,7 @@ export type AttendanceCorrectionRequest = {
   canEdit: boolean;
   canApprove: boolean;
   canReject: boolean;
+  canCancel: boolean;
   relatedRecordUrl: string;
   employee: {
     id: string;

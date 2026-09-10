@@ -172,6 +172,15 @@ export const NOTIFICATION_EVENT_CATALOG: NotificationEventDefinition[] = [
     enabledByDefault: true,
   },
   {
+    code: 'attendance.correction.cancelled.approver',
+    name: 'Attendance correction withdrawn',
+    description:
+      'Created when an employee withdraws their own pending attendance correction request.',
+    category: NotificationEventCategory.ATTENDANCE,
+    defaultChannels: [NotificationChannel.IN_APP],
+    enabledByDefault: true,
+  },
+  {
     code: 'attendance.exception.detected.manager',
     name: 'Attendance exception detected',
     description:

@@ -50,6 +50,17 @@ export default async function AttendanceRecordPage({
     }
     throw error;
   }
+  const canRequest = canRequestCorrection(sessionUser, record);
+  // BUG-2508. Only fetched when the panel can actually be opened — the
+  // employee who cannot request a correction here has no use for the list,
+  // and a failure to load it must not break the record page.
+  const workSites = canRequest
+    ? await apiRequestJson<{ items: Array<{ id: string; name: string }> }>(
+        "/attendance/correction-requests/work-sites",
+      )
+        .then((response) => response.items)
+        .catch(() => [])
+    : [];
   const runtime = await buildPublishedStandardRouteRuntime({
     pageKind: "detail",
     recordId: entryId,
@@ -74,7 +85,8 @@ export default async function AttendanceRecordPage({
         than a shortcut.
       */}
       <AttendanceCorrectionPanel
-        canRequest={canRequestCorrection(sessionUser, record)}
+        canRequest={canRequest}
+        workSites={workSites}
         entry={{
           id: record.id,
           date: record.date,
