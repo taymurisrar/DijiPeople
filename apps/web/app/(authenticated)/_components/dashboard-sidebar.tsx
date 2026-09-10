@@ -45,7 +45,6 @@ type DashboardSidebarProps = {
   permissionKeys: string[];
   roleKeys?: string[];
   businessUnitAccess?: BusinessUnitAccessSummary | null;
-  tenantId: string;
   tenantName?: string;
   navOverrides?: readonly DashboardNavOverride[] | null;
   placement?: VisibilityPlacement | null;
@@ -65,7 +64,6 @@ export function DashboardSidebar({
   permissionKeys,
   roleKeys,
   businessUnitAccess,
-  tenantId,
   tenantName,
   navOverrides,
   placement,
@@ -109,6 +107,7 @@ export function DashboardSidebar({
             brandLogoUrl={brandLogoUrl}
             brandName={brandName}
             brandTagline={brandTagline}
+            tenantName={tenantName}
             onToggleCollapse={() => setIsCollapsed(true)}
           />
         ) : (
@@ -153,11 +152,14 @@ export function DashboardSidebar({
         </nav>
       </div>
 
-      {!isCollapsed ? (
-        <div className="mt-3 hidden px-0 xl:block">
-          <TenantCard tenantId={tenantId} tenantName={tenantName} />
-        </div>
-      ) : null}
+      {/*
+        ITEM-0114 — this used to render a "TenantCard" footer restating
+        "Active tenant · <name>", the fourth time this shell named the tenant
+        and the second with a different string than the sidebar brand. The
+        big slot above now carries the tenant's own name, so this line added
+        nothing but a repeated identity and a truncated string that could
+        disagree with it.
+      */}
     </aside>
   );
 }
@@ -236,15 +238,32 @@ function SidebarBrand({
   brandLogoUrl,
   brandName,
   brandTagline,
+  tenantName,
   onToggleCollapse,
 }: {
   brandLogoUrl?: string | null;
   brandName?: string | null;
   brandTagline?: string | null;
+  tenantName?: string | null;
   onToggleCollapse: () => void;
 }) {
   const effectiveBrandName = resolveText(
     brandName,
+    DEFAULT_BRANDING_VALUES.brandName,
+  );
+
+  /*
+   * ITEM-0114 — the product decision (2026-09-11): the sidebar's most
+   * prominent line carries the tenant's own name, not the literal word
+   * "Workspace", and it carries the same canonical name the rest of the
+   * shell uses. `tenantName` is `effectiveTenantName` from the layout —
+   * the exact value `DashboardTopbar` shows as its own eyebrow — so this is
+   * deliberately not a third branding field: the tenant's identity now
+   * appears in exactly two places in the shell, both reading the same
+   * string, instead of four with two of them disagreeing.
+   */
+  const effectiveTenantName = resolveText(
+    tenantName,
     DEFAULT_BRANDING_VALUES.brandName,
   );
 
@@ -274,20 +293,27 @@ function SidebarBrand({
         />
 
         <div className="min-w-0">
-          <p className="truncate text-xs font-semibold uppercase tracking-[0.18em] text-accent">
-            {effectiveBrandName}
-          </p>
           {/*
             Identity, not document structure (BUG-1673).
 
-            This was an `<h1>`, and so was its compact twin below, and so was the
-            page's own heading — three on every screen, so somebody navigating
-            by headings heard "Workspace, Workspace, Dashboard" on the payroll
-            screen, the settings screen and an employee's record alike. The word
-            is a brand label; the page owns the only h1.
+            This was an `<h1>`, and so was its compact twin below, and so was
+            the page's own heading — three on every screen, so somebody
+            navigating by headings heard "Workspace, Workspace, Dashboard" on
+            the payroll screen, the settings screen and an employee's record
+            alike. The page still owns the only h1.
+
+            ITEM-0114 — the line used to be the literal word "Workspace",
+            which is a category noun and says nothing about this tenant. The
+            eyebrow that used to sit above it (the brand name, truncated) is
+            gone too: showing the brand name here and the tenant name here
+            was the two-different-strings defect this record described, so
+            there is one line now, not two.
           */}
-          <p className="truncate text-lg font-semibold text-foreground">
-            Workspace
+          <p
+            className="truncate text-lg font-semibold text-foreground"
+            title={effectiveTenantName}
+          >
+            {effectiveTenantName}
           </p>
         </div>
       </div>
@@ -330,58 +356,6 @@ function CompactBrand({
         name={effectiveBrandName}
         sizeClassName="h-8 w-8"
       />
-    </div>
-  );
-}
-
-function TenantCard({
-  tenantId,
-  tenantName,
-}: {
-  tenantId: string;
-  tenantName?: string;
-}) {
-  const displayName = resolveText(tenantName, "Tenant workspace");
-  const [copiedTenantId, setCopiedTenantId] = useState(false);
-
-  async function handleCopyTenantId() {
-    if (!tenantId) return;
-
-    await navigator.clipboard.writeText(tenantId);
-    setCopiedTenantId(true);
-
-    window.setTimeout(() => {
-      setCopiedTenantId(false);
-    }, 1500);
-  }
-
-  return (
-    <div className="rounded-[22px] border border-border/70 bg-white/55 p-2">
-      <div className="flex items-start gap-3">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-surface text-foreground shadow-sm">
-          <Building2 className="h-3 w-3" />
-        </div>
-
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
-            Active tenant
-          </p>
-
-          <p className="mt-1 truncate text-sm font-semibold text-foreground">
-            {displayName}
-          </p>
-
-          <Button
-            variant="link"
-            size="xs"
-            onClick={handleCopyTenantId}
-            title={`Copy tenant ID: ${tenantId}`}
-            className="mt-1 max-w-full justify-start truncate text-[10px]"
-          >
-            {copiedTenantId ? "Copied!" : `ID: ${tenantId}`}
-          </Button>
-        </div>
-      </div>
     </div>
   );
 }

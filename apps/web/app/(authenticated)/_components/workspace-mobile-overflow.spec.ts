@@ -56,9 +56,14 @@ describe("BUG-1668 — the sidebar no longer sizes itself from unwrapped label t
   it("reduces the compact brand card so it fits the narrower rail instead of overflowing it", () => {
     // The full brand card (logo at h-10 w-10, plus two lines of text) does
     // not fit inside a 64px rail; only a smaller logo does.
+    //
+    // ITEM-0114 removed the "TenantCard" footer that used to mark the end of
+    // this slice (a restatement of the tenant's name the sidebar's own brand
+    // block now carries); `SidebarEmptyState` is the function that follows
+    // `CompactBrand` now.
     const compactBrand = code.slice(
       code.indexOf("function CompactBrand"),
-      code.indexOf("function TenantCard"),
+      code.indexOf("function SidebarEmptyState"),
     );
     expect(compactBrand).not.toContain('sizeClassName="h-10 w-10"');
     expect(compactBrand).toContain('sizeClassName="h-8 w-8"');

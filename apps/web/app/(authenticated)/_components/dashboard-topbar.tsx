@@ -63,12 +63,14 @@ export function DashboardTopbar({
   const pathname = usePathname();
   const resolvedTitle = pageTitle?.trim() || resolveRouteTitle(pathname) || "Workspace";
   /*
-   * The generic line belongs to the overview it was written for. Under
-   * "Employees" it said nothing, so it is not rendered there.
+   * ITEM-0114 — this used to default to "Manage your workspace from one
+   * place." on the overview route, restating in near-identical words what
+   * the sidebar's own tagline (`branding.portalTagline`) already said a few
+   * hundred pixels away. The product decision was one tagline in the shell,
+   * not two, so there is no default here now: this line renders only when a
+   * page explicitly has something page-specific to say.
    */
-  const resolvedDescription =
-    pageDescription ??
-    (pathname === "/" ? "Manage your workspace from one place." : null);
+  const resolvedDescription = pageDescription ?? null;
   const contextLabel = tenantName?.trim() || roleLabel;
 
   return (
