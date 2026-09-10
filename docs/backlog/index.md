@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**452 records** — 322 bugs under [`docs/bugs/`](../bugs/), 130 non-bug items under [`items/`](items/).
+**453 records** — 323 bugs under [`docs/bugs/`](../bugs/), 130 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,20 +13,20 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 123 |
+| Open (active work) | 124 |
 | Blocked | 2 |
 | Deferred | 29 |
 | Awaiting a product decision | 6 |
 | Completed / closed | 292 |
 | **Open CRITICAL** | **0** |
-| **Open HIGH** | **36** |
+| **Open HIGH** | **37** |
 | **Awaiting Architect triage** | **5** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 36 |
+| HIGH | 37 |
 | MEDIUM | 69 |
 | LOW | 15 |
 
@@ -43,7 +43,7 @@ see [`README.md`](README.md) for why.
 | INFRA | 4 |
 | INTEGRATION | 5 |
 | PERFORMANCE | 1 |
-| SECURITY | 5 |
+| SECURITY | 6 |
 | STATE_MACHINE | 3 |
 | TECH_DEBT | 6 |
 | TEST_GAP | 8 |
@@ -57,7 +57,7 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 2 |
 | DEFERRED | 29 |
 | PRODUCT_DECISION | 6 |
-| FIXED | 79 |
+| FIXED | 80 |
 | VERIFIED | 218 |
 | DUPLICATE | 5 |
 | ACCEPTED_RISK | 3 |
@@ -226,6 +226,7 @@ see [`README.md`](README.md) for why.
 | [BUG-2958](../../docs/bugs/BUG-2958-settings-shows-every-category-group-and-page-regardless-of-t.md) | Settings shows every category, group and page regardless of the tenant's plan | AUTHORIZATION | HIGH | P1 | FIXED | apps/web, api:tenant-settings | FIX_NOW |
 | [BUG-3007](../../docs/bugs/BUG-3007-reports-and-analytics-offers-surfaces-and-reports-for-capabi.md) | Reports and Analytics offers surfaces and reports for capabilities the plan does not include | AUTHORIZATION | HIGH | P1 | OPEN | apps/web, api:reporting | FIX_NOW |
 | [BUG-3020](../../docs/bugs/BUG-3020-records-behind-these-numbers-shows-raw-guids-and-a-count-tha.md) | Records behind these numbers shows raw GUIDs and a count that does not match the metric | UX | HIGH | P1 | OPEN | apps/web, api:reporting | FIX_NOW |
+| [BUG-3115](../../docs/bugs/BUG-3115-rate-limiter-trusts-a-forged-x-forwarded-for-and-covers-no-a.md) | Rate limiter trusts a forged X-Forwarded-For and covers no authenticated endpoint | SECURITY | HIGH | P1 | FIXED | services/api/src/common/security/client-ip.ts, services/api/src/common/guards/public-rate-limit.guard.ts, services/api/src/common/interceptors/authenticated-rate-limit.interceptor.ts | DONE |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |

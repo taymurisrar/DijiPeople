@@ -4456,3 +4456,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Three things generalise. **A fix scoped by one structure's shape stops at that structure's edge**: gating by module directory is exactly right for route modules and structurally cannot reach a registry that has no directory, so "the gate is built" and "the surface is gated" are different claims. **An exemption that names its enforcer is a claim to verify, not a decision to trust** — the ungated register said branding was enforced where settings resolve, and reading the resolver would have shown in one minute that it was not. **Audit the built artifact, not the lookup table**: the first pass of the attribution map was written against `itemPlacement` and was wrong in both directions — it carried four keys naming pages that no longer exist and missed three pages that fall through to `defaultPlacement`, one of which was the tenant's own subscription screen sitting inside the payroll category. The coverage spec caught it because it compares against `settingsRuntimeItems`. |
 | **Fixed** | 2026-09-09, branch `agent/settings-plan-entitlements` |
 | **Active** | yes |
+
+### REG-397 — A rate limiter that trusted the one header a direct caller controls
+
+| | |
+|---|---|
+| **Bug class** | `client-supplied-trust-boundary` |
+| **Module** | `services/api/src/common/security/client-ip.ts`, `packages/config/client-ip.js` |
+| **Bug record** | BUG-3115 |
+| **Root cause** | `resolveClientIp` trusted forwarded headers as a boolean ("is any proxy in front at all") and, once trusted, always read the *leftmost* entry of `X-Forwarded-For` — correct only when nothing untrusted can ever write that position. The API is directly reachable, so an external caller writes it directly. The configured hop count (`resolveTrustProxySetting` already computed it) was discarded rather than used to index the one position a real trusted hop had actually appended to. |
+| **Regression test** | `services/api/src/common/security/client-ip.spec.ts`, `services/api/src/common/guards/public-rate-limit.guard.spec.ts`, `services/api/src/common/interceptors/authenticated-rate-limit.interceptor.spec.ts` |
+| **Scenario** | Two requests whose `X-Forwarded-For` differ only in the attacker-controlled prefix (`forged-identity-1, 203.0.113.7` vs `forged-identity-2, 203.0.113.7`) must resolve to the same client and share one rate-limit budget. A chain shorter than the configured trusted-hop count must resolve to neither the forged value nor the raw socket address. An authenticated user's write budget, once exhausted, must not throttle a different user or that same user's read budget. |
+| **Proven to fail without the fix** | Reverting `readForwardedForClientIp` to `raw.split(',')[0]` makes "is not moved by how many fake entries a caller prepends" and "does not let a caller mint a fresh identity by varying the untrusted prefix" fail immediately — both then observe a different identity per request, which is the exploit. |
+| **Note** | Closing this reopens BUG-0032's original coarseness for one specific, already-narrow scenario: visitors proxied through this product's own first-party Next.js apps behind Cloudflare can no longer be told apart per browser visitor, because Cloudflare/Render append the *relay's* address for that path too. Documented as an accepted, honest trade-off in BUG-3115 rather than hidden — the alternative was leaving a CONFIRMED forgery bypass live on a production payroll platform's login. |
+| **Fixed** | 2026-09-11, branch `agent/cs-s5-security` |
+| **Active** | yes |

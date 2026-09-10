@@ -10,6 +10,7 @@ import { AppService } from './app.service';
 import { MailerModule } from './common/mailer/mailer.module';
 import { BusinessUnitAccessMiddleware } from './common/middleware/business-unit-access.middleware';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { AuthenticatedRateLimitInterceptor } from './common/interceptors/authenticated-rate-limit.interceptor';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { RequestContextModule } from './common/request-context/request-context.module';
@@ -163,6 +164,7 @@ import { SupportCasesModule } from './modules/support-cases/support-cases.module
     BusinessUnitAccessMiddleware,
     RequestIdMiddleware,
     HttpExceptionFilter,
+    AuthenticatedRateLimitInterceptor,
   ],
 })
 export class AppModule implements NestModule {

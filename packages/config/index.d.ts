@@ -82,12 +82,15 @@ export declare function contentSecurityPolicy(options?: {
 }): string;
 
 /**
- * The client-closest address in an `X-Forwarded-For` chain, or null when the
- * header is absent or empty. Callers must decide whether the chain is
- * trustworthy before believing the result.
+ * The client-closest address in an `X-Forwarded-For` chain, indexed from the
+ * right by `hopCount` trusted proxies (default 1), or null when the header is
+ * absent, empty, or has too few entries to contain that many genuine hops.
+ * Callers must decide whether the chain is trustworthy — and how many hops it
+ * passes through — before calling this.
  */
 export declare function readForwardedForClientIp(
   headerValue: string | string[] | undefined | null,
+  hopCount?: number,
 ): string | null;
 
 /**
