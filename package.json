@@ -54,6 +54,7 @@
     "repair:plan-capabilities": "npm --workspace api run repair:plan-capabilities",
     "repair:routine-incidents": "npm --workspace api run repair:routine-incidents",
     "report:commercial": "npm --workspace api run report:commercial",
+    "storage:reconcile": "node scripts/storage-reconcile.mjs",
     "stripe:sync-prices": "node scripts/sync-stripe-prices.mjs",
     "seed:verify": "npm --workspace api run seed:verify",
     "seed:admin": "npm --workspace api run seed:admin",

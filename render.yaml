@@ -38,26 +38,52 @@ services:
     preDeployCommand: npm --workspace api run release
     healthCheckPath: /api
 
-    # Durable file storage (TASK-0025). StorageService writes uploaded files —
-    # tenant documents, branding assets, and published app-release installers —
-    # under FILE_STORAGE_DIR. Without a persistent disk that path is on the
-    # instance's ephemeral filesystem and every deploy wipes it, so a published
-    # agent installer (or any uploaded document) vanishes on the next deploy.
-    # This disk gives those bytes a durable home.
+    # Durable file storage (TASK-0025, superseded by the Cloudflare R2 migration
+    # below). StorageService writes tenant documents, branding assets, and
+    # published app-release installers.
     #
-    # TRADEOFF: a Render disk pins this service to a SINGLE INSTANCE — it cannot
-    # be attached to a horizontally scaled service. `starter` runs one instance,
-    # so this is free today; if the API ever needs to scale out, file storage
-    # must move to object storage (S3/R2) via a release `externalUrl` instead.
-    disk:
-      name: dijipeople-storage
-      mountPath: /var/data
-      sizeGB: 5
+    # This service originally got a Render persistent disk here and wrote to it
+    # under FILE_STORAGE_DIR, because without one that path sits on the
+    # instance's ephemeral filesystem and every deploy wipes it. That disk was
+    # declared in this file but NEVER ACTUALLY APPLIED to the live service
+    # (BUG-0767's finding: the dashboard and this file had diverged) — meaning
+    # every file written before this migration was already lost, on an
+    # ephemeral disk, regardless of what this file said.
+    #
+    # The disk approach is abandoned rather than fixed: a Render disk pins a
+    # service to a SINGLE INSTANCE permanently — it cannot attach to a
+    # horizontally scaled service, so choosing it here would have closed off
+    # scaling out for good. Object storage (Cloudflare R2) has no such
+    # constraint, is durable from the first write, and is what StorageService
+    # now uses exclusively — see services/api/src/common/storage/ and
+    # docs/environment-variables.md ("Object storage (Cloudflare R2)").
+    # FILE_STORAGE_DIR is development-only now (STORAGE_PROVIDER=local); it is
+    # deliberately not set here, and StorageModule refuses to boot with
+    # STORAGE_PROVIDER=local in production.
     envVars:
-      # Absolute path on the persistent disk above. StorageService resolves
-      # relative paths against cwd; an absolute path pins it to the disk.
-      - key: FILE_STORAGE_DIR
-        value: /var/data/storage
+      - key: STORAGE_PROVIDER
+        value: r2
+      # R2 credentials and bucket identity. Set the values in the Render
+      # dashboard; never commit them. R2_REGION, R2_REQUEST_TIMEOUT_MS and
+      # R2_MAX_ATTEMPTS are tuning knobs with safe defaults (see
+      # resolveStorageConfig) and are set here only so an operator can change
+      # them without a code change.
+      - key: R2_BUCKET_NAME
+        sync: false
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_ENDPOINT
+        sync: false
+      - key: R2_REGION
+        value: auto
+      - key: R2_REQUEST_TIMEOUT_MS
+        value: "15000"
+      - key: R2_MAX_ATTEMPTS
+        value: "3"
       - key: NODE_ENV
         value: production
       - key: APP_ENV
@@ -173,8 +199,8 @@ services:
       # turning it off stops history accumulating rather than losing what exists.
       - key: REPORTS_WORKFORCE_SNAPSHOT_ENABLED
         value: "true"
-      # How long a generated export stays downloadable before it is swept off
-      # the persistent disk. DataJob artifacts have no expiry and accumulate
+      # How long a generated export stays downloadable before it is swept from
+      # object storage. DataJob artifacts have no expiry and accumulate
       # forever; these do not.
       - key: REPORTS_ARTIFACT_RETENTION_DAYS
         value: "7"

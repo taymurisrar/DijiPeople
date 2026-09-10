@@ -195,8 +195,7 @@ if (ARGS.help) {
 // scripts/backfill-incident-classification.mjs.
 // ---------------------------------------------------------------------------
 
-async function loadTsModule(distRelParts, srcRelParts) {
-  const distSpecifier = './' + path.posix.join(...distRelParts);
+async function loadTsModule(distSpecifier, srcRelParts) {
   try {
     return await import(distSpecifier);
   } catch {
@@ -218,14 +217,14 @@ async function loadTsModule(distRelParts, srcRelParts) {
 
 async function loadStorageConfig() {
   return loadTsModule(
-    ['..', 'services', 'api', 'dist', 'src', 'common', 'storage', 'storage.config.js'],
+    '../services/api/dist/src/common/storage/storage.config.js',
     ['services', 'api', 'src', 'common', 'storage', 'storage.config.ts'],
   );
 }
 
 async function loadStorageKeys() {
   return loadTsModule(
-    ['..', 'services', 'api', 'dist', 'src', 'common', 'storage', 'storage-keys.js'],
+    '../services/api/dist/src/common/storage/storage-keys.js',
     ['services', 'api', 'src', 'common', 'storage', 'storage-keys.ts'],
   );
 }
@@ -399,6 +398,9 @@ async function mapWithConcurrency(items, limit, worker) {
 // DataJob is the one model with more than one, sharing a single
 // `providerField`. `tenantField` is null where the model carries no direct
 // tenantId (e.g. ContractDocument, reached only through its Contract).
+// `createdAtField` defaults to `createdAt`; SignatureEvidence has no
+// `createdAt` column at all and is timestamped by `signedAt` instead —
+// verified against schema.prisma, not assumed.
 // ---------------------------------------------------------------------------
 
 const MODEL_SPECS = [
@@ -410,13 +412,13 @@ const MODEL_SPECS = [
   { model: 'ContractDocument', prop: 'contractDocument', keyFields: ['storageKey'], providerField: 'storageProvider', tenantField: null },
   { model: 'ContractTemplateVersion', prop: 'contractTemplateVersion', keyFields: ['sourceStorageKey'], providerField: 'sourceStorageProvider', tenantField: null },
   { model: 'ContractVersion', prop: 'contractVersion', keyFields: ['sourceStorageKey'], providerField: 'sourceStorageProvider', tenantField: null },
-  { model: 'SignatureEvidence', prop: 'signatureEvidence', keyFields: ['signatureStorageKey'], providerField: 'signatureStorageProvider', tenantField: null },
+  { model: 'SignatureEvidence', prop: 'signatureEvidence', keyFields: ['signatureStorageKey'], providerField: 'signatureStorageProvider', tenantField: null, createdAtField: 'signedAt' },
   { model: 'Invoice', prop: 'invoice', keyFields: ['pdfStorageKey'], providerField: 'pdfStorageProvider', tenantField: 'tenantId' },
   { model: 'ScreenCaptureEvent', prop: 'screenCaptureEvent', keyFields: ['storageKey'], providerField: 'storageProvider', tenantField: 'tenantId' },
   { model: 'DataJob', prop: 'dataJob', keyFields: ['sourceFileKey', 'resultFileKey', 'errorFileKey'], providerField: 'storageProvider', tenantField: 'tenantId' },
   { model: 'ReportRun', prop: 'reportRun', keyFields: ['resultFileKey'], providerField: 'storageProvider', tenantField: 'tenantId' },
   { model: 'ApplicationRelease', prop: 'applicationRelease', keyFields: ['storageKey'], providerField: 'storageProvider', tenantField: null },
-];
+].map((s) => ({ createdAtField: 'createdAt', ...s }));
 
 const BUCKETS = ['DURABLE', 'MISSING_IN_STORE', 'LEGACY_UNRECOVERABLE', 'NO_KEY', 'UNVERIFIED'];
 
@@ -433,8 +435,15 @@ async function main() {
     return 2;
   }
 
+  // `new PrismaClient()` with no arguments throws under this schema's
+  // `engineType = "client"` generator — it has no binary engine to fall back
+  // to and requires a driver adapter, exactly like
+  // services/api/src/common/prisma/prisma.service.ts constructs it.
   const { PrismaClient } = await import('@prisma/client');
-  const prisma = new PrismaClient();
+  const { PrismaPg } = await import('@prisma/adapter-pg');
+  const prisma = new PrismaClient({
+    adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+  });
 
   const { resolveStorageConfig, describeStorageConfig } = await loadStorageConfig();
   const { normalizeKey } = await loadStorageKeys();
@@ -484,7 +493,7 @@ async function main() {
     const select = { id: true, [spec.providerField]: true };
     for (const field of spec.keyFields) select[field] = true;
     if (spec.tenantField) select[spec.tenantField] = true;
-    select.createdAt = true;
+    select[spec.createdAtField] = true;
 
     let rows;
     try {
@@ -560,7 +569,7 @@ async function main() {
           id: row.id,
           tenantId,
           storageKey: key,
-          createdAt: row.createdAt,
+          createdAt: row[spec.createdAtField],
           counts,
           isDocument,
         });
