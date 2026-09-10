@@ -31,3 +31,20 @@ export async function PATCH(request: Request, context: RouteContext) {
     return proxyErrorResponse(error, "Unable to update project.");
   }
 }
+
+// BUG-2007 - real delete. Refused by the API with a reasoned error when the
+// project has dependent assignments, timesheet entries or cost allocations;
+// this route stays a thin proxy either way.
+export async function DELETE(_: Request, context: RouteContext) {
+  const { projectId } = await context.params;
+
+  try {
+    const response = await apiRequest(`/projects/${projectId}`, {
+      method: "DELETE",
+    });
+
+    return proxyApiJsonResponse(response);
+  } catch (error) {
+    return proxyErrorResponse(error, "Unable to delete project.");
+  }
+}

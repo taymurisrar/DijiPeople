@@ -13,7 +13,7 @@ AffectedModules: [services/api/src/modules/attendance]
 OwnerAgent: architect
 ArchitectDisposition: DONE
 QAReport:
-RegressionId:
+RegressionId: REG-404
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: EXECPLAN-0032
@@ -129,7 +129,7 @@ overstates what happened.
 
 ## Regression Coverage
 
-None yet. Owed with the fix.
+Covered by REG-404 in the regression register.
 
 ## Dependencies
 
@@ -202,5 +202,6 @@ Not run as a live QA session — verified by targeted regression specs only
 ## Related
 
 - Modules — [[attendance]]
+- Regression — REG-404 (see the regression register)
 
 <!-- GRAPH:END -->

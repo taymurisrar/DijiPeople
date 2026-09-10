@@ -53,6 +53,16 @@ const DEFAULT_LEAVE_TYPES = [
   { name: 'Unpaid Leave', code: 'UNPAID', category: 'UNPAID', isPaid: false },
 ] as const;
 
+/*
+ * ITEM-0115 - no longer seeded (see `seedTenantWorkforceReferenceData`); the
+ * product decision, 2026-09-11, was to stop provisioning departments with no
+ * business unit rather than invent a default business unit to assign them
+ * to. This list stays defined only so the two call sites below can still
+ * recognise a tenant's *existing* rows with these codes - backfilling
+ * `defaultWorkScheduleId` on them, and no longer requiring their presence in
+ * `verifyRequiredSeedData`. It is deliberately not deleted from a live
+ * tenant that already has them.
+ */
 const DEFAULT_DEPARTMENTS = [
   { code: 'HR', name: 'Human Resources' },
   { code: 'OPS', name: 'Operations' },
@@ -1220,23 +1230,25 @@ export async function seedTenantWorkforceReferenceData(
 ) {
   let count = 0;
 
-  for (const department of DEFAULT_DEPARTMENTS) {
-    await client.department.upsert({
-      where: {
-        tenantId_code: { tenantId: tenant.id, code: department.code },
-      },
-      create: {
-        tenantId: tenant.id,
-        code: department.code,
-        name: department.name,
-      },
-      update: {
-        name: department.name,
-        isActive: true,
-      },
-    });
-    count += 1;
-  }
+  /*
+   * ITEM-0115 - the repository owner decided 2026-09-11 to stop seeding
+   * these four departments, not to assign them a business unit. They carried
+   * no `businessUnitId`, so they sat outside every tenant's business-unit
+   * hierarchy and were invisible to any BUSINESS_UNIT-scoped role - an HR
+   * manager scoped to a business unit never saw the department they were
+   * meant to work in, and provisioning gave no explanation. Letting a tenant
+   * create its own departments (inside a business unit, from the start) is
+   * cheaper than inventing a default business unit for provisioning to
+   * assign them to, which was the only alternative that kept seeding them.
+   *
+   * This runs from `seed:config` on every deploy, for every tenant
+   * (`release:api`), so the upsert is removed rather than left disabled: a
+   * "stop seeding" decision that still ran on every deploy would not be one.
+   * Nothing here deletes the rows a tenant already has - `DEFAULT_DEPARTMENTS`
+   * stays defined and is still read below to keep `defaultWorkScheduleId`
+   * filled in on those existing rows, and `verifyRequiredSeedData` no longer
+   * requires their presence (a freshly provisioned tenant has none).
+   */
 
   for (const designation of DEFAULT_DESIGNATIONS) {
     await client.designation.upsert({
@@ -2001,7 +2013,6 @@ export async function verifyRequiredSeedData(
   for (const tenant of tenants) {
     const [
       leaveTypeCount,
-      departmentCount,
       designationCount,
       employeeLevelCount,
       locationCount,
@@ -2013,13 +2024,6 @@ export async function verifyRequiredSeedData(
           tenantId: tenant.id,
           isActive: true,
           code: { in: DEFAULT_LEAVE_TYPES.map((item) => item.code) },
-        },
-      }),
-      client.department.count({
-        where: {
-          tenantId: tenant.id,
-          isActive: true,
-          code: { in: DEFAULT_DEPARTMENTS.map((item) => item.code) },
         },
       }),
       client.designation.count({
@@ -2066,11 +2070,8 @@ export async function verifyRequiredSeedData(
         `${tenant.name}: leave type reference data incomplete (${leaveTypeCount}/${DEFAULT_LEAVE_TYPES.length}).`,
       );
     }
-    if (departmentCount < DEFAULT_DEPARTMENTS.length) {
-      failures.push(
-        `${tenant.name}: department lookup data incomplete (${departmentCount}/${DEFAULT_DEPARTMENTS.length}).`,
-      );
-    }
+    // ITEM-0115 - departments are no longer seeded, so their presence is no
+    // longer required here; see `seedTenantWorkforceReferenceData`.
     if (designationCount < DEFAULT_DESIGNATIONS.length) {
       failures.push(
         `${tenant.name}: designation lookup data incomplete (${designationCount}/${DEFAULT_DESIGNATIONS.length}).`,

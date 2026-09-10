@@ -11,6 +11,7 @@ export type ErrorCategory =
   | 'user'
   | 'employee'
   | 'attendance'
+  | 'project'
   | 'validation'
   | 'database'
   | 'file'
@@ -336,6 +337,28 @@ export const ERROR_CATALOG = {
     'The employee record could not be deleted.',
     'error',
     'employee',
+  ),
+  /*
+   * BUG-2007 - projects and customers could be created but never deleted.
+   * The product decision was to add real delete rather than keep
+   * retire-by-status, refusing with a reasoned error instead of cascading
+   * away assignments, timesheet entries or cost allocations silently.
+   */
+  PROJECT_DELETE_HAS_DEPENDENTS: entry(
+    409,
+    'Project has dependent data',
+    'This project has assignments, timesheet entries or cost allocations tied to it and cannot be deleted. Remove or reassign those first, or cancel the project instead.',
+    'warning',
+    'project',
+    'Remove the assignments and other records linked to this project, or set its status to Cancelled instead of deleting it.',
+  ),
+  CUSTOMER_DELETE_HAS_DEPENDENTS: entry(
+    409,
+    'Customer has dependent projects',
+    'This customer has projects tied to it and cannot be deleted. Remove or reassign those projects first.',
+    'warning',
+    'project',
+    'Delete or reassign the projects linked to this customer before deleting it.',
   ),
   VALIDATION_FAILED: entry(
     400,

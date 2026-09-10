@@ -4,14 +4,20 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { AUDIT_ACTIONS } from '../../common/constants/audit-actions';
+import { AppError } from '../../common/errors/app-error';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 
 @Injectable()
 export class CustomersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditService: AuditService,
+  ) {}
 
   findAll(tenantId: string, search?: string) {
     return this.prisma.customer.findMany({
@@ -157,6 +163,51 @@ export class CustomersService {
     } catch (error) {
       handleCustomerWriteError(error);
     }
+  }
+
+  /*
+   * BUG-2007 - real delete, tenant-scoped and refused when the customer still
+   * has projects tied to it. `Project.customer` is already `onDelete: Restrict`
+   * at the database level, so a dependent-data delete would fail as a raw
+   * Postgres foreign-key violation without this check - this turns that into
+   * a reasoned, catalog-backed refusal instead.
+   */
+  async remove(currentUser: AuthenticatedUser, customerId: string) {
+    const existing = await this.prisma.customer.findFirst({
+      where: { tenantId: currentUser.tenantId, id: customerId },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Customer was not found for this tenant.');
+    }
+
+    const projectCount = await this.prisma.project.count({
+      where: { tenantId: currentUser.tenantId, customerId },
+    });
+    if (projectCount > 0) {
+      throw new AppError('CUSTOMER_DELETE_HAS_DEPENDENTS', {
+        details: { projects: projectCount },
+      });
+    }
+
+    const deleted = await this.prisma.customer.deleteMany({
+      where: { tenantId: currentUser.tenantId, id: customerId },
+    });
+    if (deleted.count === 0) {
+      throw new NotFoundException('Customer was not found for this tenant.');
+    }
+
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action: AUDIT_ACTIONS.CUSTOMER_DELETED,
+      entityType: 'Customer',
+      entityId: customerId,
+      beforeSnapshot: existing,
+      afterSnapshot: null,
+    });
+
+    return { success: true };
   }
 
   private async resolveCode(tenantId: string, dto: CreateCustomerDto) {

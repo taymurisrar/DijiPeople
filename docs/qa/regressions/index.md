@@ -4457,19 +4457,19 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-09-09, branch `agent/settings-plan-entitlements` |
 | **Active** | yes |
 
-### REG-397 — A sweep with a passing test and no caller in the running application
+### REG-397 — Projects and customers had no delete route at all
 
 | | |
 |---|---|
-| **Bug class** | `orphaned-scheduled-job` |
-| **Module** | `services/api/src/modules/billing` |
-| **Bug record** | BUG-2618 |
-| **Root cause** | `SubscriptionOrderService.abandonExpired` was written, commented and covered by an e2e test — and nothing in the running application ever called it, because the API registered no scheduler of any kind. `submissionHash` and `requestedSlug` are unique columns, so an unpaid order nobody ages out holds both forever: the workspace address becomes permanently unpurchasable and the buyer's own retry collides with their own dead order. The e2e test could not see the gap because it calls the function directly, which is the same blind spot BUG-2530 found in a guard that supplied its own input. |
-| **Regression test** | `services/api/src/modules/billing/services/subscription-order-sweeper.worker.spec.ts` |
-| **Scenario** | Boot `BillingModule` with `SUBSCRIPTION_ORDER_SWEEPER_ENABLED=true`: a `SubscriptionOrderSweeperWorker` provider starts an unref'd interval and its `tick()` calls `abandonExpired()` on its own, with no test invoking the service. With the flag unset or `false`, no timer starts. A tick that receives a rejected promise from `abandonExpired` logs and returns rather than throwing, so a transient database error cannot take the process down or stop the next tick. |
-| **Proven to fail without the fix** | The regression test exercises `SubscriptionOrderSweeperWorker.tick()`, not `SubscriptionOrderService.abandonExpired()` directly, so it fails if the call from `tick()` is removed even though `abandonExpired()` itself still passes its own e2e coverage. A second assertion reads `billing.module.ts` and fails if `SubscriptionOrderSweeperWorker` is removed from the `providers` array — the exact way this bug shipped originally: a fully-implemented, fully-tested method with nothing wiring it into the application. |
-| **Note** | A test that calls the function under test directly cannot prove the function is ever called in production — that is a statement about wiring, not about behaviour, and needs a wiring-shaped assertion (source inspection or a DI boot) rather than a deeper unit test. |
-| **Fixed** | 2026-09-11, branch `agent/cs-s1-openbugs` |
+| **Bug class** | `missing-delete-operation` |
+| **Module** | `services/api/src/modules/projects` |
+| **Bug record** | BUG-2007 |
+| **Root cause** | Neither `ProjectsController` nor `CustomersController` ever declared a `DELETE` route for the entity itself — `projects.controller.ts`'s only `DELETE` was `:projectId/assignments/:assignmentId`, and `customers.controller.ts` had none. The routes were never written, not broken; `DELETE /api/projects/:id` answered the framework's bare 405 and the customer route did not exist to be called. `customers.delete` already existed as a legacy permission key with no route, guard mapping or handler consuming it. |
+| **Regression test** | `services/api/src/modules/projects/projects.service.spec.ts` and `services/api/src/modules/projects/customers.service.spec.ts` — the `remove` describe blocks in each |
+| **Scenario** | A project or customer that is not found refuses with `NotFoundException`. One with dependent data (project assignments, timesheet entries or payroll cost-allocation lines for a project; any project for a customer) refuses with a catalog `AppError` (`PROJECT_DELETE_HAS_DEPENDENTS` / `CUSTOMER_DELETE_HAS_DEPENDENTS`, 409) naming the dependent counts, and neither the repository delete nor the audit log is called. One with nothing depending on it deletes (tenant-scoped `deleteMany`) and writes an audit row with a `beforeSnapshot` and a `null` `afterSnapshot`. |
+| **Proven to fail without the fix** | There was no `remove` method on either service before this change, so every assertion in both describe blocks fails on the method being undefined. The dependent-data case is the one worth re-running by hand after a schema change: it exists because `ProjectAssignment` cascades at the database level and `TimesheetEntry` / `PayrollCostAllocationLine` merely `SetNull` their `projectId`, so Postgres alone would either silently erase assignment history or silently orphan payroll cost lines rather than refuse. |
+| **Note** | The product decision (2026-09-11) was to add real delete rather than adopt retire-by-status, refusing with a reasoned catalog error when dependent data exists instead of cascading. `customers.delete` already existed as an unused legacy permission key — a permission key with no route and no guard mapping consuming it is itself worth checking for on a "why can't this be deleted" report, before assuming the key needs to be created. `Customer.projects` is `onDelete: Restrict` at the database level, so the dependent-data check on the customer side additionally turns what would have been a raw Postgres foreign-key violation into an actionable message. |
+| **Fixed** | 2026-09-11 |
 | **Active** | yes |
 
 ### REG-398 — A second reporting registry gated by permission and never by entitlement
@@ -4515,4 +4515,80 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Proven to fail without the fix** | Removing either class from `workspace-switcher.tsx` fails the corresponding assertion: `min-w-0` alone without `overflow-x-hidden` leaves the underlying overflow-spec interaction able to reintroduce the scrollbar from a different source; `overflow-x-hidden` alone without `min-w-0` would hide the scrollbar while the row still visually overflowed the menu — both were needed and both are asserted separately. |
 | **Note** | The generalisable shape: a flex or grid *item* defaults to `min-width: auto`, and `truncate` (`overflow: hidden` + `white-space: nowrap`) computes its min-content width from the *unwrapped* text — so truncation inside a flex/grid item silently does nothing until the item itself is given `min-w-0`. This is a classic CSS gotcha and worth checking anywhere a `truncate` class sits inside a grid or flex container without an explicit `min-w-0` on the item boundary. |
 | **Fixed** | 2026-09-11, branch `agent/cs-s1-openbugs` |
+| **Active** | yes |
+
+### REG-401 — A sweep with a passing test and no caller in the running application
+
+| | |
+|---|---|
+| **Bug class** | `orphaned-scheduled-job` |
+| **Module** | `services/api/src/modules/billing` |
+| **Bug record** | BUG-2618 |
+| **Root cause** | `SubscriptionOrderService.abandonExpired` was written, commented and covered by an e2e test — and nothing in the running application ever called it, because the API registered no scheduler of any kind. `submissionHash` and `requestedSlug` are unique columns, so an unpaid order nobody ages out holds both forever: the workspace address becomes permanently unpurchasable and the buyer's own retry collides with their own dead order. The e2e test could not see the gap because it calls the function directly, which is the same blind spot BUG-2530 found in a guard that supplied its own input. |
+| **Regression test** | `services/api/src/modules/billing/services/subscription-order-sweeper.worker.spec.ts` |
+| **Scenario** | Boot `BillingModule` with `SUBSCRIPTION_ORDER_SWEEPER_ENABLED=true`: a `SubscriptionOrderSweeperWorker` provider starts an unref'd interval and its `tick()` calls `abandonExpired()` on its own, with no test invoking the service. With the flag unset or `false`, no timer starts. A tick that receives a rejected promise from `abandonExpired` logs and returns rather than throwing, so a transient database error cannot take the process down or stop the next tick. |
+| **Proven to fail without the fix** | The regression test exercises `SubscriptionOrderSweeperWorker.tick()`, not `SubscriptionOrderService.abandonExpired()` directly, so it fails if the call from `tick()` is removed even though `abandonExpired()` itself still passes its own e2e coverage. A second assertion reads `billing.module.ts` and fails if `SubscriptionOrderSweeperWorker` is removed from the `providers` array — the exact way this bug shipped originally: a fully-implemented, fully-tested method with nothing wiring it into the application. |
+| **Note** | A test that calls the function under test directly cannot prove the function is ever called in production — that is a statement about wiring, not about behaviour, and needs a wiring-shaped assertion (source inspection or a DI boot) rather than a deeper unit test. |
+| **Fixed** | 2026-09-11, branch `agent/cs-s1-openbugs` |
+| **Active** | yes |
+
+
+### REG-402 — A selector resolved from a client-supplied id instead of the caller
+
+| | |
+|---|---|
+| **Bug class** | `caller-supplied-scope` |
+| **Module** | `services/api/src/modules/attendance` |
+| **Bug record** | BUG-2508 |
+| **Root cause** | The correction work-site selector was never populated, because no endpoint returned the sites an employee is authorised to use. The fix adds `AttendanceService.listMyWorkSites`, and the risk it had to avoid is the one this class is named for: resolving the site list from an employee id the client supplies would let any caller enumerate another employee's authorised sites. It resolves from the authenticated caller instead. |
+| **Regression test** | `services/api/src/modules/attendance/attendance-correction-work-sites.spec.ts` |
+| **Scenario** | The endpoint returns the caller's own authorised sites; it resolves for the CALLER and never for an id the client could supply; a caller holding none of the correction or read permissions is refused; and the route deliberately does not require `attendanceDevices.read`, which would have gated an employee-facing selector behind a device-administration permission. A second block covers the correction read model resolving the requested site name tenant-scoped, and returning null when no site was requested. |
+| **Proven to fail without the fix** | `listMyWorkSites` did not exist before this change, so every assertion fails on an undefined method. The scope assertion is the one worth re-running after any change to how the caller is resolved: it fails if the implementation is refactored to accept an employee id argument, which is the shape the defect would take on reintroduction. |
+| **Note** | An employee-facing selector gated behind an administrative permission reads as a permissions bug and presents as an empty dropdown. Check which permission a selector's data route requires before concluding the data is missing. |
+| **Fixed** | 2026-09-11 |
+| **Active** | yes |
+
+### REG-403 — A withdraw path that trusted the wrong identity
+
+| | |
+|---|---|
+| **Bug class** | `missing-state-transition` |
+| **Module** | `services/api/src/modules/attendance` |
+| **Bug record** | BUG-2573 |
+| **Root cause** | A correction request could not be withdrawn by the person who filed it: no cancel transition existed at all, so a mistaken request sat pending until an approver disposed of it. Adding one introduces two distinct authorisation risks — letting somebody other than the requester withdraw, and letting a withdrawal serve as a back door around a decision that has already been made. |
+| **Regression test** | `services/api/src/modules/attendance/attendance-correction-cancel.spec.ts` |
+| **Scenario** | The requester may withdraw their own pending request. Anyone else is refused. The assigned approver is refused too — withdrawal is not a route around separation of duties, which is the assertion most likely to be lost in a later refactor that treats the approver as privileged. A request that has already been decided cannot be cancelled, and an already-cancelled one cannot be re-cancelled. |
+| **Proven to fail without the fix** | `cancelCorrectionRequest` did not exist before this change, so all five assertions fail on an undefined method. |
+| **Note** | When adding a withdraw or cancel transition, the approver is not automatically entitled to it. "Who may undo this" is a separate question from "who may decide it", and answering the second by default collapses separation of duties. |
+| **Fixed** | 2026-09-11 |
+| **Active** | yes |
+
+### REG-404 — An approval that recorded a decision and applied none of it
+
+| | |
+|---|---|
+| **Bug class** | `decision-not-applied` |
+| **Module** | `services/api/src/modules/attendance` |
+| **Bug record** | BUG-2504 |
+| **Root cause** | Approving an attendance correction wrote the approval and never applied what had been approved: the requested work mode, work site and overtime were recorded on the request and never copied onto the entry. The employee saw their correction approved and the entry unchanged, which is worse than a refusal because nothing indicates the change did not happen. The subtle half is status: an entry's status is derived from its mode, so applying an approved mode without re-deriving status leaves the entry internally inconsistent. |
+| **Regression test** | `services/api/src/modules/attendance/attendance-correction-apply.spec.ts` |
+| **Scenario** | An approved `requestedWorkSiteId` reaches `officeLocationId`; a correction requesting no site leaves the existing one alone. An approved REMOTE request maps onto the entry's `AttendanceMode`, and status is re-derived from the APPROVED mode rather than the mode as it was — the assertion that matters, because deriving from the stale mode is the natural way to reintroduce this. A correction requesting no mode leaves the mode untouched. A FIELD-mode approval is refused outright rather than silently doing nothing. A separate block covers the no-linked-entry path, where the entry is created for a wholly missing day and must still carry the approved mode and site. |
+| **Proven to fail without the fix** | Before the fix `applyApprovedCorrection` did not copy any requested value onto the entry, so every positive assertion fails. The re-derivation assertion fails on the intermediate implementation that applies the mode but derives status first, which is the state this fix passed through. |
+| **Note** | "Silently doing nothing" is the failure mode to test for on any approve/apply pair. A test that only asserts the approval row was written cannot see that the approval had no effect, and that is exactly the shape this defect shipped in. |
+| **Fixed** | 2026-09-11 |
+| **Active** | yes |
+
+### REG-405 — A webhook that answered a provider error with a retry it could never satisfy
+
+| | |
+|---|---|
+| **Bug class** | `unretryable-retry` |
+| **Module** | `services/api/src/modules/billing` |
+| **Bug record** | BUG-2462 |
+| **Root cause** | Stripe subscription webhooks failed when the Stripe customer could not be resolved to exactly one tenant, and the failure was returned to Stripe as a non-2xx. Stripe retries a non-2xx, and no retry can fix an unmappable customer, so the event was redelivered on Stripe's full backoff schedule and failed identically every time. The fix separates "we cannot map this, stop sending it" from "we failed, please retry", acknowledging the former with a 2xx while still recording it. |
+| **Regression test** | `services/api/src/modules/billing/controllers/stripe-webhook.controller.spec.ts` and `services/api/src/modules/billing/services/webhook-event-not-ready.spec.ts` |
+| **Scenario** | An unresolvable customer is acknowledged with 2xx; an ambiguous mapping to more than one tenant is treated the same way. A failure that is *not* the unmapped-tenant class is still rejected, and so is a generic `VALIDATION_FAILED` that is not tagged as unmapped — the two assertions that stop this fix widening into "acknowledge everything", which would silently swallow real processing failures. A successful call returns its shape untouched. |
+| **Proven to fail without the fix** | The two acknowledgement cases fail before the fix, because the controller rejected them. The two rejection cases are the ones to re-run after any change here: they fail if the acknowledgement is broadened past the unmapped-tenant class, which is the likely direction of a careless later edit. |
+| **Note** | Answering a provider webhook with a retryable error for a condition no retry can change converts one failure into an indefinite series of them. Deciding whether a failure is the caller's to retry is part of designing a webhook handler, not an afterthought. |
+| **Fixed** | 2026-09-11 |
 | **Active** | yes |

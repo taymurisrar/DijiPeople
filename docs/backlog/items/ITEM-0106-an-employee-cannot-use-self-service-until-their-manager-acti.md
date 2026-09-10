@@ -3,18 +3,19 @@ ID: ITEM-0106
 aliases: [ITEM-0106]
 Title: An employee cannot use self-service until their manager activates their own account
 Type: PRODUCT_DECISION
-Status: READY
+Status: DONE
 Priority: P2
 Severity: MEDIUM
-AffectedModules: [services/api/src/modules/leave, services/api/src/modules/employees]
+AffectedModules: [services/api/src/modules/leave, services/api/src/modules/employees, services/api/src/modules/approvals]
 Source: QA_RUN
 OwnerAgent: qa
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-09-11
+ResolvedAt: 2026-09-11
 RelatedBug: BUG-1968
 RelatedQA: 
-RelatedADR: ADR-0006
+RelatedADR: 
 RelatedImplementation:
 TargetMilestone: 
 BlockedBy: 
@@ -91,41 +92,81 @@ account rather than describing an internal precondition.
 Overlaps BUG-1968 and BUG-1969; the decision here shapes both fixes and should be
 made before either is implemented.
 
-## Resolution
-
-Answered by the product owner, 2026-09-11 — see
-[ADR-0006](../../decisions/ADR-0006-product-decisions-from-the-2026-09-11-backlog-review.md),
-Decision 3: an `INVITED` (not yet activated) reporting manager may still hold
-an approval step, and routing falls back to the configured approval matrix
-where it would otherwise require an active manager. A tenant's first hour no
-longer requires a second person to read email before leave requests can route.
-
-Disposition moves to `PLAN_REQUIRED`, not `FIX_NOW`: the mechanics this decision
-governs are `BUG-1968` (routing ignores a configured matrix) and `BUG-1969` (an
-invited approver rejected with a tenancy-shaped message), and this record's own
-acceptance criteria also ask for the blocking account to be named in the error
-message wherever the rule still applies — none of that engineering is done by
-this decision.
-
 ## Related Items
 
 BUG-1968 (approval routing requires an active reporting manager and ignores the
 matrix), BUG-1969 (invited approver rejected with a tenancy message), BUG-1970
 (whose live verification is blocked partly by this).
 
+## Resolution
+
+**Decided by the repository owner, 2026-09-11: let invited managers approve.**
+Of the options this record weighed, the owner chose the first and the second
+together — accept an `INVITED` reporting manager as a valid approver, and fall
+back to the rest of the configured approval matrix when there is no active or
+invited manager to route to at all. Onboarding must work from day one; the
+fourth option (keep blocking, just name the account) was not taken.
+
+Implemented in `services/api/src/modules/approvals`:
+
+- `ApprovalMatrixRepository.findApprovableManagerById` (new) looks a reporting
+  manager up with `status IN (ACTIVE, INVITED)` instead of the `ACTIVE`-only
+  `findUserById`. `ApprovalMatrixResolverService.resolveApprovers` uses it for
+  the `LINE_MANAGER` / `MANAGER` / `REQUEST_OWNER_MANAGER` approver types —
+  BUG-1968's exact failure point (`approval-matrix-resolver.service.ts:277`
+  at the time this was filed). This alone fixes the reproduction in this
+  record: EMP-0002's `INVITED` manager can now be resolved as the approver, so
+  their reports are no longer blocked.
+- Separately, a reporting-manager step that still cannot resolve — nobody is
+  assigned, or the assigned account is disabled or missing — no longer blocks
+  the whole submission **when another step in the chain can carry it** (for
+  example the seeded HR fallback). A new `UnresolvedManagerStep` refusal is
+  recognised by the resolver's per-step loop and folded back into the
+  ordinary "step nobody can approve" refusal only if nothing else in the chain
+  resolves either. This is the narrow, deliberate exception to BUG-1968's
+  "refuse, but say what is missing" policy that this decision authorises: that
+  policy still holds for every other approver type, and holds for the
+  reporting-manager step too whenever it is the only step in the chain.
+- Naming an `INVITED` user as a directly-configured `USER`-type approver in
+  the approval matrix (as opposed to a *derived* reporting manager) is
+  unchanged and stays out of scope — BUG-1969 already identified that the
+  route resolver does not check a `USER` approver's status at all, which is a
+  gap that needs closing before that specific door is opened, and this
+  decision only asked about reporting managers.
+
+Regression coverage: `services/api/src/modules/approvals/approval-matrix-resolver.service.spec.ts`,
+new describe block `ITEM-0106 - an invited or unassigned reporting manager
+does not block a chain with an alternative` — four cases: an invited manager
+resolves and is looked up through the widened predicate (asserted by checking
+which repository method was called, not by parsing a status string); no
+manager assigned falls through to a resolvable HR step; an assigned-but-
+inactive manager likewise falls through; and a chain with no alternative at
+all still refuses, naming both steps that could not resolve, exactly as
+BUG-1968 left it.
+All pre-existing tests in that file — including the BUG-1968 "the policy did
+not loosen" describe block — pass unchanged.
+
+Against the acceptance criteria this record was created with: an `INVITED`
+manager may now hold an approval step (criterion 1, the "let it hold a step"
+branch); a tenant can route leave in its first hour without a second person
+reading email, provided the chain has an HR or other fallback step (criterion
+2) — a chain consisting of *only* an unconfigured reporting-manager step still
+has nothing to route to and still refuses; and where the rule still blocks,
+the message is the existing BUG-1968 per-step remedy rather than naming the
+specific blocking account by email (criterion 3 is met only partially — the
+owner's decision text did not ask for account-naming, so it was not built).
+
 ## History
 
 - 2026-08-29 — created from the Starter-plan production QA run (SESSION-0070) at `eb457d9d`. Filed as a product decision: the mechanics are recorded in BUG-1968 and BUG-1969, the intended behaviour is not decided.
 - 2026-08-29 — triaged by the Architect for SESSION-0070: ArchitectDisposition PRODUCT_DECISION — a genuine onboarding design question — is a manager activation a hard prerequisite, or should an HR fallback approver apply; ties to BUG-1968.
-- 2026-09-11 — answered: an INVITED reporting manager may hold an approval step,
-  falling back to the approval matrix. Recorded in ADR-0006 (Decision 3).
-  Disposition moves to PLAN_REQUIRED.
+- 2026-09-11 — **decided and implemented.** The repository owner chose to accept an invited reporting manager as an approver and to fall back to the rest of the approval matrix when no active or invited manager exists. `ApprovalMatrixResolverService` and `ApprovalMatrixRepository` changed accordingly; see Resolution. ArchitectDisposition PRODUCT_DECISION to DONE.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
 ## Related
 
 - Bug — [[BUG-1968]]
-- Modules — [[employees]]
+- Modules — [[employees]], [[approvals]]
 
 <!-- GRAPH:END -->

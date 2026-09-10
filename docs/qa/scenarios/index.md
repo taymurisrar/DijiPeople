@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 335** · automated: 287 · manual: 23 · blocked by infrastructure: 0
+**Scenarios: 336** · automated: 288 · manual: 23 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -269,6 +269,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-RUNTIME-038](../../../docs/qa/scenarios/QA-RUNTIME-038-a-cell-that-already-had-a-link-and-a-label-neither-ever-read.md) | A cell that already had a link and a label, neither ever read | runtime-modules | E2E | MEDIUM | AUTOMATED | `apps/web/app/components/inbox/inbox-related-record-cell.spec.ts` | BUG-2017 | REG-343 |
 | [QA-RUNTIME-039](../../../docs/qa/scenarios/QA-RUNTIME-039-the-approvals-inbox-shows-a-full-record-and-decides-through-.md) | The approvals inbox shows a full record and decides through the owning module | approvals | API | HIGH | PARTIAL | `services/api/src/modules/approvals/approvals.decision.spec.ts` | BUG-2718 | REG-390 |
 | [QA-RUNTIME-040](../../../docs/qa/scenarios/QA-RUNTIME-040-a-refused-command-reads-as-a-refusal-not-as-a-crash.md) | A refused command reads as a refusal, not as a crash | runtime-modules | API | MEDIUM | PARTIAL | `apps/web/lib/runtime/command-failure-classification.spec.ts` | BUG-2822 | REG-392 |
+| [QA-RUNTIME-041](../../../docs/qa/scenarios/QA-RUNTIME-041-deleting-a-project-or-customer-refuses-when-dependent-data-e.md) | Deleting a project or customer refuses when dependent data exists, succeeds when it does not | runtime-modules | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/projects/projects.service.spec.ts` | BUG-2007 | REG-397 |
 | [QA-SECURITY-001](../../../docs/qa/scenarios/QA-SECURITY-001-a-refused-cors-origin-returns-a-normal-status-and-no-allow-o.md) | A refused CORS origin returns a normal status and no allow-origin header | authorization | SECURITY | HIGH | AUTOMATED | `services/api/src/config/cors-options.spec.ts` | BUG-0976 | REG-240 |
 | [QA-SETTINGS-001](../../../docs/qa/scenarios/QA-SETTINGS-001-resolved-settings-reject-arbitrary-context-preview.md) | Resolved settings reject arbitrary context preview | authorization | SECURITY | CRITICAL | AUTOMATED | `services/api/src/modules/tenant-settings/settings-context-authorization.spec.ts` | BUG-0057 | REG-044 |
 | [QA-SETTINGS-002](../../../docs/qa/scenarios/QA-SETTINGS-002-email-providers-offered-are-providers-implemented.md) | Email providers offered are email providers implemented | runtime-modules | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/notifications/email/email-provider-support.spec.ts` | BUG-0050 | REG-053 |

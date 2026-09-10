@@ -13,7 +13,7 @@ AffectedModules: [apps/web, services/api/src/modules/attendance-integrations]
 OwnerAgent: architect
 ArchitectDisposition: DONE
 QAReport:
-RegressionId:
+RegressionId: REG-402
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: EXECPLAN-0032
@@ -108,7 +108,7 @@ same time, since the two are the same missing capability seen from either end.
 
 ## Regression Coverage
 
-None yet. Owed with the fix.
+Covered by REG-402 in the regression register.
 
 ## Dependencies
 
@@ -178,5 +178,6 @@ Not run as a live QA session — verified by targeted regression specs and
 ## Related
 
 - Modules — [[tenant-application]]
+- Regression — REG-402 (see the regression register)
 
 <!-- GRAPH:END -->

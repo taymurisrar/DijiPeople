@@ -7,6 +7,7 @@ import {
 import { Prisma, SecurityAccessLevel, SecurityPrivilege } from '@prisma/client';
 import { AUDIT_ACTIONS } from '../../common/constants/audit-actions';
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import { AppError } from '../../common/errors/app-error';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { resolveEffectiveAccessLevel } from '../../common/security/rbac-query-scope';
 import { AuditService } from '../audit/audit.service';
@@ -452,6 +453,54 @@ export class ProjectsService {
     } catch (error) {
       handleProjectWriteError(error);
     }
+  }
+
+  /*
+   * BUG-2007 - real delete, tenant-scoped and refused when dependent data
+   * exists rather than cascading silently. See `ProjectsRepository.countDependents`
+   * for why the check has to happen here rather than being left to the
+   * database's own `onDelete` rules.
+   */
+  async remove(currentUser: AuthenticatedUser, projectId: string) {
+    const existing = await this.projectsRepository.findById(
+      currentUser.tenantId,
+      projectId,
+    );
+
+    if (!existing) {
+      throw new NotFoundException('Project was not found for this tenant.');
+    }
+
+    const dependents = await this.projectsRepository.countDependents(
+      currentUser.tenantId,
+      projectId,
+    );
+    const hasDependents = Object.values(dependents).some((count) => count > 0);
+    if (hasDependents) {
+      throw new AppError('PROJECT_DELETE_HAS_DEPENDENTS', {
+        details: dependents,
+      });
+    }
+
+    const result = await this.projectsRepository.delete(
+      currentUser.tenantId,
+      projectId,
+    );
+    if (result.count === 0) {
+      throw new NotFoundException('Project was not found for this tenant.');
+    }
+
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action: AUDIT_ACTIONS.PROJECT_DELETED,
+      entityType: 'Project',
+      entityId: projectId,
+      beforeSnapshot: existing,
+      afterSnapshot: null,
+    });
+
+    return { success: true };
   }
 
   async assignEmployee(

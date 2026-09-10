@@ -29,9 +29,14 @@ describe("BUG-1673 — the workspace shell owns no headings", () => {
 
   it("renders the brand as a label, not a heading", () => {
     expect(sidebar).not.toContain("<h1");
-    // The words stay; only the element changes. This is identity, not
-    // structure, and removing it would be a different decision.
-    expect(sidebar).toContain("Workspace");
+    /*
+     * ITEM-0114 (2026-09-11) superseded "the words stay; only the element
+     * changes" — the product decision was that the sidebar's most prominent
+     * line carries the tenant's own name, not the constant "Workspace",
+     * which said nothing about any specific tenant. BUG-1673's structural
+     * claim (a label, not a heading) still holds; only the words changed.
+     */
+    expect(sidebar).toContain("effectiveTenantName");
   });
 
   it("leaves exactly one heading, and it names the page", () => {

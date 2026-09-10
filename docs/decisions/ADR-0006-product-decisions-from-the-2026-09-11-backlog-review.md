@@ -47,7 +47,13 @@ project can carry assignments, timesheet entries and cost allocations, and
 `BUG-2007` is explicit that deciding what happens to those is "the real work
 here, not the route." That cascade design, plus the usual tenant-scoped delete
 rule (`deleteMany` with `{ id, tenantId }`, or read-verify-write in a
-transaction), is implementation work this ADR unblocks rather than performs.
+transaction), was implementation work this ADR unblocked — and which a sibling
+stream then performed in the same session. `ProjectsService.remove` and
+`CustomersService.remove` count dependents and refuse with a catalog error
+naming the counts, rather than letting the database decide: project assignments
+would have cascaded away and payroll cost lines would have been silently
+orphaned, while a customer's projects would have surfaced a raw foreign-key
+violation instead of a reasoned refusal.
 
 ## Decision 2 — Platform admin session lifetime: refusable remember-me, a capped refresh TTL, and an idle-based limit with a warning
 
@@ -165,11 +171,26 @@ sending real mail or writing rows into the production database.
 
 - `docs/bugs/BUG-2007`, `docs/bugs/BUG-2509`, `docs/backlog/items/ITEM-0106`,
   `docs/backlog/items/ITEM-0108`, `docs/backlog/items/ITEM-0114` and
-  `docs/backlog/items/ITEM-0115` move from `PRODUCT_DECISION` to
-  `PLAN_REQUIRED` (bugs to `Status: OPEN`, items to `Status: READY`), each
-  carrying `RelatedADR: ADR-0006`. None is implemented by this ADR — the
-  decision and the engineering are deliberately kept separate, consistent with
-  how `ITEM-0115` already required an ExecPlan for two of its three options.
+  `docs/backlog/items/ITEM-0115` each carry `RelatedADR: ADR-0006`.
+
+  This paragraph originally said all six moved to `PLAN_REQUIRED` and that none
+  was implemented by this ADR, on the reasoning that the decision and the
+  engineering should be kept separate. That was written while a sibling stream
+  was implementing four of them in the same session, and the two halves met at
+  integration: `BUG-2007` (real delete for projects and customers, with the
+  dependent-data refusal that record named as the actual work), `ITEM-0106`
+  (routing accepts an `INVITED` reporting manager), `ITEM-0114` (the workspace
+  name in the sidebar's prominent slot) and `ITEM-0115` (provisioning seeds no
+  departments) are **implemented and closed**, not planned.
+
+  `BUG-2509` and `ITEM-0108` — the platform session-lifetime work — remain
+  outstanding, because they need a policy store and a schema change rather than
+  only code.
+
+  The correction is left visible rather than rewritten away, because the useful
+  lesson is in the collision: an ADR that states what will happen next can be
+  overtaken by the work it authorised, and a consequences section is a claim
+  about the future that ages the moment it is written.
 - [ITEM-0117](../backlog/items/ITEM-0117-the-question-protocol-has-never-been-used-and-five-user-deci.md) closes: the mechanism this ADR demonstrates — a specialist
   names the open questions, the Architect routes them to the user, the answers
   become one durable record — is the question protocol working, even though the

@@ -2,24 +2,24 @@
 ID: BUG-2007
 aliases: [BUG-2007]
 Title: Projects and customers can be created but never deleted
-Status: OPEN
+Status: FIXED
 Severity: LOW
 Priority: P3
 Type: BUG
 Source: QA_RUN
 DetectedDate: 2026-08-29
 DetectedInSha: eb457d9d
-AffectedModules: [services/api/src/modules/projects]
+AffectedModules: [services/api/src/modules/projects, apps/web]
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-397
 RelatedBacklogItem:
-RelatedDecision: ADR-0006
+RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-09-11
-ResolvedAt:
+ResolvedAt: 2026-09-11
 ---
 
 # BUG-2007 — Projects and customers can be created but never deleted
@@ -152,30 +152,102 @@ semantics elsewhere in the product.
 
 ## Resolution
 
-Not yet implemented. The product question this record was blocked on is now
-answered — see [ADR-0006](../decisions/ADR-0006-product-decisions-from-the-2026-09-11-backlog-review.md):
-projects and customers get real `DELETE` routes; retire-by-status is not the
-intended model. What remains is the engineering this record already named as
-the real work — the cascade decision for a project's assignments, timesheet
-entries and cost allocations, plus the usual tenant-scoped delete rule
-(`deleteMany` with `{ id, tenantId }` or read-verify-write in a transaction) —
-which is why disposition moves to `PLAN_REQUIRED` rather than `FIX_NOW`.
+**Decided by the repository owner, 2026-09-11: add real delete.** Not
+retire-by-status. Both the projects and customers modules now expose a
+tenant-scoped `DELETE`, refused with a reasoned `AppError` when the record has
+dependent data rather than cascading silently or being answered with a bare
+405/404.
+
+Backend, `services/api/src/modules/projects`:
+
+- `ProjectsService.remove` (new) — looks the project up tenant-scoped, counts
+  `ProjectAssignment`, `TimesheetEntry` and `PayrollCostAllocationLine` rows
+  against it via `ProjectsRepository.countDependents` (new), and refuses with
+  `AppError('PROJECT_DELETE_HAS_DEPENDENTS')` (409, naming the counts) if any
+  exist. The check exists because the database would not have refused on its
+  own: `ProjectAssignment.project` cascades on delete, and the timesheet /
+  payroll-line relations merely `SetNull` their `projectId` — an unchecked
+  delete would have silently erased assignment history or silently orphaned
+  payroll cost lines. With nothing dependent, `ProjectsRepository.delete`
+  (`deleteMany({ tenantId, id })`) removes it and `AuditService.log()` records
+  a `PROJECT_DELETED` row with a `beforeSnapshot` and a `null`
+  `afterSnapshot`.
+- `CustomersService.remove` (new) — same shape: counts `Project` rows against
+  the customer and refuses with `AppError('CUSTOMER_DELETE_HAS_DEPENDENTS')`
+  if any exist, otherwise deletes and audits `CUSTOMER_DELETED`.
+  `Customer.projects` **is** `onDelete: Restrict` at the database level, so
+  without this check the same refusal would have surfaced as a raw Postgres
+  foreign-key violation instead of a catalog error naming the cause.
+- Both controllers gained a `@Delete` route (`projects.delete` /
+  `customers.delete`, both already-defined legacy permission keys —
+  `customers.delete` existed with no route or guard mapping consuming it —
+  plus `@RequirePermission(ENTITY_KEYS.PROJECTS, 'delete')`). `projects.delete`
+  is a new permission key; both are granted to `hr` and, via
+  `NON_CUSTOMIZATION_PERMISSION_KEYS`, to `system-admin`.
+- Two new `ERROR_CATALOG` entries (`PROJECT_DELETE_HAS_DEPENDENTS`,
+  `CUSTOMER_DELETE_HAS_DEPENDENTS`, category `project`, added to
+  `ErrorCategory`) and two new `AUDIT_ACTIONS` (`PROJECT_DELETED`,
+  `CUSTOMER_DELETED`).
+
+Frontend, `apps/web`: the delete affordance is the existing runtime "Delete"
+command (`system.delete` / `selection.delete` in
+`standard-module-runtime.ts`), not a bespoke button. It already existed as
+disabled/hidden infrastructure — `customerRuntimeSpec.permissions.delete` was
+already set with nothing to arm it, since the command is disabled whenever
+`spec.adapterCapabilities?.softDelete` is not `true`. Wiring it was: adding
+`delete: PERMISSION_KEYS.PROJECTS_DELETE` to `projectRuntimeSpec.permissions`
+(new key, `apps/web/lib/security-keys.ts`), adding
+`adapterCapabilities: { softDelete: true }` to both `projectRuntimeSpec` and
+`customerRuntimeSpec`, and adding a `DELETE` handler to the two thin proxy
+routes (`app/api/projects/[projectId]/route.ts`,
+`app/api/customers/[customerId]/route.ts`) that were missing one, matching the
+existing `GET`/`PATCH` handlers alongside them. The standard module data
+adapter's `softDelete` already issues a genuine `DELETE` request to the
+record's API path despite the generic name (see
+`standard-module-data.adapter.ts`) — no new adapter code was needed once the
+spec declared the capability.
+
+**Deliberately out of scope.** The record's "if yes" branch (document
+retire-by-status, filter cancelled records from lookups) does not apply — the
+owner chose delete. The "if no" branch's acceptance criteria are met: delete is
+tenant-scoped and its cascade behaviour (refuse rather than cascade) is
+specified and tested. Filtering `CANCELLED` projects/customers out of lookups
+was not touched — status-based retirement remains available alongside delete
+and is unaffected by this change. The other commercial entities the record
+asked to be checked for the same asymmetry (BUG-1757 promotions, BUG-1958
+departments) were not re-audited here; they remain their own records.
+
+### Regression coverage
+
+REG-397. `services/api/src/modules/projects/projects.service.spec.ts`
+(`ProjectsService.remove`, new describe block) and
+`services/api/src/modules/projects/customers.service.spec.ts` (new file,
+`CustomersService.remove`) — not-found refuses, dependent data refuses with
+the catalog error and neither deletes nor audits, and the clean case deletes
+and audits with the exact before/after snapshot shape. `QA-RUNTIME-041` is the
+reusable scenario, covering both the API and (for step 4) the frontend route
+that previously did not exist at all.
 
 ## QA Retest
 
-Not retestable yet — the decision is made, the fix is not written.
+Not performed live — this task did not reach a live tenant. `npm --workspace
+api run test -- projects.service customers.service` passes (8/8), and
+`npm --workspace web run check-types` passes with the new route handlers and
+spec fields in place. The retest is `QA-RUNTIME-041`'s steps against a real
+tenant: a project with an assignment refuses 409, one without deletes 200 with
+an audit row, the same pair for a customer and its projects, and an id from
+another tenant (or a nonexistent one) 404s rather than 409 or 200.
 
 ## History
 
 - 2026-08-29 — created from the Starter-plan production QA run (SESSION-0070) at `eb457d9d`; observed against production API `949f461c`. Disposition PRODUCT_DECISION per the SESSION-0070 Architect triage: is retire-by-status the intended model?
-- 2026-09-11 — answered by the product owner: real delete for both entities, not retire-by-status. Recorded in ADR-0006 (Decision 1). Disposition moves to PLAN_REQUIRED — the cascade design is the remaining work.
+- 2026-09-11 — **decided and fixed.** The repository owner chose real delete over retire-by-status. `ProjectsService.remove` / `CustomersService.remove` added, tenant-scoped, refusing with a catalog `AppError` when dependent data exists; both permission decorators and `AuditService.log()` wired; the existing runtime "Delete" command enabled for both modules in `apps/web` rather than a bespoke button. Guarded by REG-397 and QA-RUNTIME-041. Status PRODUCT_DECISION to FIXED.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
 ## Related
 
-- No related record, module or decision is declared in this record's
-  frontmatter. Declare one rather than adding a link here by hand — this
-  block is regenerated and a hand-written link inside it is lost.
+- Modules — [[tenant-application]]
+- Regression — REG-397 (see the regression register)
 
 <!-- GRAPH:END -->

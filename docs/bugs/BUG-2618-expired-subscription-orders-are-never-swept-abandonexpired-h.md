@@ -13,7 +13,7 @@ AffectedModules: [billing, super-admin]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: REG-397
+RegressionId: REG-401
 RelatedBacklogItem: ITEM-0119
 RelatedDecision:
 RelatedImplementation:
@@ -235,7 +235,7 @@ purchasable again is still owed.
   measured against production the same day.
 - 2026-09-11 — fixed on `agent/cs-s1-openbugs`: `SubscriptionOrderSweeperWorker`
   gives `abandonExpired` a runner, following the `OutboxWorkerService` pattern
-  the record proposed. `RegressionId` set to `REG-397` — not centrally
+  the record proposed. `RegressionId` set to `REG-401` — not centrally
   reserved; chosen as the next unused integer after `REG-396`, following the
   precedent BUG-1980 set for an unallocated regression id.
 
@@ -245,5 +245,6 @@ purchasable again is still owed.
 
 - Backlog item — [[ITEM-0119]]
 - Modules — [[billing]], [[super-admin]]
+- Regression — REG-401 (see the regression register)
 
 <!-- GRAPH:END -->

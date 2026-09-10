@@ -282,5 +282,6 @@ table agree — is still owed, matching this record's own reproduction steps.
 ## Related
 
 - Modules — [[tenant-application]], [[reporting]]
+- Regression — REG-399 (see the regression register)
 
 <!-- GRAPH:END -->

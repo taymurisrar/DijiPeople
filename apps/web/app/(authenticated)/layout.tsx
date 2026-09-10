@@ -312,7 +312,6 @@ export default async function DashboardLayout({
               isSelfService={selfService}
               permissionKeys={user.permissionKeys}
               roleKeys={user.roleKeys}
-              tenantId={user.tenantId}
               tenantName={effectiveTenantName}
               businessUnitAccess={businessUnitAccess}
               brandLogoUrl={brandingSettings.logoUrl}

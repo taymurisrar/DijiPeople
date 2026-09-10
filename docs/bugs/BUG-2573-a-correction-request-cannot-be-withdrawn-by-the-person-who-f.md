@@ -13,7 +13,7 @@ AffectedModules: [services/api/src/modules/attendance, apps/web]
 OwnerAgent: architect
 ArchitectDisposition: DONE
 QAReport:
-RegressionId:
+RegressionId: REG-403
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: EXECPLAN-0032
@@ -126,7 +126,7 @@ folded into a frontend task.
 
 ## Regression Coverage
 
-None yet. Owed with the fix.
+Covered by REG-403 in the regression register.
 
 ## Dependencies
 
@@ -207,5 +207,6 @@ retest once this deploys.
 ## Related
 
 - Modules — [[attendance]], [[tenant-application]]
+- Regression — REG-403 (see the regression register)
 
 <!-- GRAPH:END -->

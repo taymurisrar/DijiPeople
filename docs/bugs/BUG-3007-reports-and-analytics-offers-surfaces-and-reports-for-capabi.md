@@ -273,5 +273,6 @@ is still owed, matching the reproduction steps in this record.
 ## Related
 
 - Modules — [[tenant-application]], [[reporting]]
+- Regression — REG-398 (see the regression register)
 
 <!-- GRAPH:END -->

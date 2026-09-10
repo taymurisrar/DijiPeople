@@ -3,18 +3,19 @@ ID: ITEM-0114
 aliases: [ITEM-0114]
 Title: The workspace shell states the tenant's identity four times and its purpose twice
 Type: UX
-Status: READY
+Status: DONE
 Priority: P3
 Severity: 
-AffectedModules: [views]
+AffectedModules: [views, apps/web]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-09-11
+ResolvedAt: 2026-09-11
 RelatedBug: BUG-2148, BUG-2149
 RelatedQA: 
-RelatedADR: ADR-0006
+RelatedADR: 
 RelatedImplementation:
 TargetMilestone: 
 BlockedBy: 
@@ -117,38 +118,75 @@ batching with whichever of those is opened next, for the reason [[ITEM-0102]]
 was originally deferred: opening this header repeatedly costs more than the
 changes do.
 
-## Resolution
-
-Answered by the product owner, 2026-09-11 — see
-[ADR-0006](../../decisions/ADR-0006-product-decisions-from-the-2026-09-11-backlog-review.md),
-Decision 4: the sidebar's most prominent line carries the tenant's own name
-rather than the literal word "Workspace", and the same resolved name (the
-existing `effectiveTenantName` precedence — `shortBrandName` → `brandName` →
-company display name) is used everywhere the shell states the tenant's
-identity, rather than different fields disagreeing a few hundred pixels apart.
-
-Disposition moves to `PLAN_REQUIRED`: which field wins is now decided, but how
-many slots survive, which literal strings and topbar defaults are removed, and
-the actual component changes are not — this record still tracks that
-consolidation, ideally batched with [[ITEM-0102]], [[BUG-1673]] and
-[[BUG-1668]] as its own Dependencies section already recommended.
-
 ## Related Items
 
 Raised from the same screenshot review as [[BUG-2148]] and [[BUG-2149]].
+
+## Resolution
+
+**Decided by the repository owner, 2026-09-11: workspace name in the big
+slot.** The sidebar's most prominent line now carries the tenant's own name
+instead of the constant "Workspace". One canonical name is used consistently
+across the shell, and the duplicated eyebrow, the second tagline and the
+footer restatement are gone.
+
+Against the six positions in the record's table, in
+`apps/web/app/(authenticated)/_components/dashboard-sidebar.tsx`,
+`dashboard-topbar.tsx` and `layout.tsx`:
+
+- **Sidebar eyebrow** (`branding.brandName`, truncated) — removed. It sat
+  directly above the sidebar title and would have disagreed with it the
+  moment a tenant filled in `brandName` and `shortBrandName` differently,
+  which is the exact defect this record opened with.
+- **Sidebar title** (the literal `"Workspace"`) — now renders `tenantName`,
+  the same `effectiveTenantName` value (`shortBrandName` → `brandName` →
+  company display name) the layout already computed and already passed to
+  the topbar. `SidebarBrand` gained a `tenantName` prop for this; no third
+  branding field was introduced.
+- **Sidebar tagline** (`branding.portalTagline`) — kept, as the shell's one
+  remaining tagline.
+- **Page eyebrow** (`DashboardTopbar`'s `contextLabel`, already
+  `tenantName?.trim() || roleLabel`) — left as is, deliberately: it already
+  reads the same `effectiveTenantName` the sidebar title now shows, so this
+  is the shell's *second* and last appearance of the tenant's name, in the
+  same string, satisfying "at most two places, the same string in both"
+  without a further change.
+- **Page description default** (`"Manage your workspace from one place."` on
+  the `/` route) — removed. `resolvedDescription` is now `pageDescription ??
+  null`; no page in the tree ever passed `pageDescription` explicitly, so
+  this was purely the duplicate default and no route loses page-specific
+  copy.
+- **Sidebar footer** (`TenantCard`, `"Active tenant · <name>"`) — removed
+  entirely, along with the now-unused `tenantId` prop threaded through
+  `DashboardSidebar` and its call site in `layout.tsx` for no other purpose.
+  The card's secondary "copy tenant ID" affordance was removed with it; there
+  is no other reason it needs to live in the sidebar specifically, and
+  nothing else in this task depended on it.
+
+**Regression test updated, not just re-passed.** `workspace-shell-headings.spec.ts`
+(BUG-1673) asserted `sidebar.toContain("Workspace")` with a comment reading
+"the words stay; only the element changes" — exactly the prior decision this
+record's product call reverses. Updated to assert `effectiveTenantName`
+instead; BUG-1673's structural claim (a label, not a heading) is unchanged
+and still holds. `workspace-mobile-overflow.spec.ts` (BUG-1668) sliced the
+source from `CompactBrand` up to the now-deleted `TenantCard` to isolate an
+assertion; repointed to the function that follows `CompactBrand` now
+(`SidebarEmptyState`).
 
 ## History
 
 - 2026-08-29 — raised by the Architect while reviewing owner-supplied
   screenshots of the tenant dashboard, alongside [[ITEM-0102]].
-- 2026-09-11 — answered: the tenant's own name, one canonical source, in the
-  sidebar's most prominent slot. Recorded in ADR-0006 (Decision 4).
-  Disposition moves to PLAN_REQUIRED.
+- 2026-09-11 — **decided and implemented.** The repository owner chose
+  "workspace name in the big slot": one canonical tenant name, the duplicated
+  eyebrow/second tagline/footer restatement removed. See Resolution. Status
+  PRODUCT_DECISION to DONE.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
 ## Related
 
 - Referenced by — [[BUG-2148]], [[BUG-2149]]
+- Modules — [[tenant-application]]
 
 <!-- GRAPH:END -->

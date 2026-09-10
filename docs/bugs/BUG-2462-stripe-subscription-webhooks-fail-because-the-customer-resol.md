@@ -13,7 +13,7 @@ AffectedModules: [api:billing, api:super-admin]
 OwnerAgent: architect
 ArchitectDisposition: DONE
 QAReport:
-RegressionId:
+RegressionId: REG-405
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: EXECPLAN-0033
@@ -246,5 +246,6 @@ Stripe.
 ## Related
 
 - Modules — [[billing]], [[super-admin]]
+- Regression — REG-405 (see the regression register)
 
 <!-- GRAPH:END -->

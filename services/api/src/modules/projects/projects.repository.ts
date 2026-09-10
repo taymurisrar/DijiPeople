@@ -177,6 +177,32 @@ export class ProjectsRepository {
     });
   }
 
+  /*
+   * BUG-2007 - a project is deleted only when nothing depends on it.
+   * `ProjectAssignment` cascades at the database level and `TimesheetEntry`
+   * / `PayrollCostAllocationLine` merely `SetNull` on their `projectId`, so
+   * Postgres alone would let the delete through and quietly erase allocation
+   * history or orphan payroll cost lines. The service checks these counts
+   * before deleting rather than relying on either behaviour.
+   */
+  async countDependents(
+    tenantId: string,
+    projectId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    const [assignments, timesheetEntries, payrollCostAllocationLines] =
+      await Promise.all([
+        db.projectAssignment.count({ where: { tenantId, projectId } }),
+        db.timesheetEntry.count({ where: { tenantId, projectId } }),
+        db.payrollCostAllocationLine.count({ where: { tenantId, projectId } }),
+      ]);
+    return { assignments, timesheetEntries, payrollCostAllocationLines };
+  }
+
+  delete(tenantId: string, id: string, db: PrismaDb = this.prisma) {
+    return db.project.deleteMany({ where: { tenantId, id } });
+  }
+
   findAssignment(
     tenantId: string,
     projectId: string,
