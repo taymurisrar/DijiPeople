@@ -15,6 +15,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { uploadLimits } from '../../common/storage/upload-limits';
 import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
@@ -97,7 +98,7 @@ export class CandidatesController {
     { entityKey: ENTITY_KEYS.JOBS, action: 'create' },
     { entityKey: ENTITY_KEYS.CANDIDATES, action: 'create' },
   )
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', uploadLimits('resume')))
   parseUploadedResumeDraft(
     @CurrentUser() user: AuthenticatedUser,
     @UploadedFile() file: UploadedResumeFile | undefined,

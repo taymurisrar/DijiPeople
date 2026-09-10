@@ -13,6 +13,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { uploadLimits } from '../../common/storage/upload-limits';
 import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -95,9 +96,7 @@ export class SupportCasesController {
     return this.service.merge(user, id, dto);
   }
   @Post(':id/attachments')
-  @UseInterceptors(
-    FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024 } }),
-  )
+  @UseInterceptors(FileInterceptor('file', uploadLimits('document')))
   uploadAttachment(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,

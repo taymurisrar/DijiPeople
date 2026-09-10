@@ -12,6 +12,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { uploadLimits } from '../../common/storage/upload-limits';
 import { PERMISSION_KEYS } from '../../common/constants/permissions';
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -56,9 +57,7 @@ export class TenantSettingsController {
   @Post('branding-assets')
   @Permissions('branding.manage')
   @RequirePermission(ENTITY_KEYS.BRANDING, 'configure')
-  @UseInterceptors(
-    FileInterceptor('file', { limits: { fileSize: MAX_BRANDING_ASSET_BYTES } }),
-  )
+  @UseInterceptors(FileInterceptor('file', uploadLimits('brandingAsset')))
   async uploadBrandingAsset(
     @CurrentUser() user: AuthenticatedUser,
     @Body('settingKey') settingKey: string,

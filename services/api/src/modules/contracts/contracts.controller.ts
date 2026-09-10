@@ -15,6 +15,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { uploadLimits } from '../../common/storage/upload-limits';
 import type { Request, Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -81,9 +82,7 @@ export class ContractsController {
   }
 
   @Post('upload')
-  @UseInterceptors(
-    FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024 } }),
-  )
+  @UseInterceptors(FileInterceptor('file', uploadLimits('document')))
   upload(
     @CurrentUser() user: AuthenticatedUser,
     @UploadedFile() file: ContractUploadFile,
@@ -93,9 +92,7 @@ export class ContractsController {
   }
 
   @Post('import-document')
-  @UseInterceptors(
-    FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024 } }),
-  )
+  @UseInterceptors(FileInterceptor('file', uploadLimits('document')))
   importDocument(
     @CurrentUser() user: AuthenticatedUser,
     @UploadedFile() file: ContractUploadFile,

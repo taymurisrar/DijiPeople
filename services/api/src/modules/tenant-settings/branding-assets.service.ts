@@ -12,6 +12,7 @@ import { DocumentsService } from '../documents/documents.service';
 import { UpdateTenantSettingsDto } from './dto/update-tenant-settings.dto';
 import { TenantSettingsService } from './tenant-settings.service';
 import { toDisplayString } from '../../common/utils/display-string';
+import { UPLOAD_LIMITS } from '../../common/storage/upload-limits';
 
 /**
  * Uploading a branding asset is two writes — create a document, then point a
@@ -41,11 +42,16 @@ export type UploadedBrandingFile = {
 const MEGABYTE = 1024 * 1024;
 
 /**
- * 3 MB. Branding assets are logos and favicons displayed at a few hundred
- * pixels; anything larger is a mistake, and this is a smaller limit than the
- * tenant's general document upload allowance deliberately.
+ * Branding assets are logos and favicons displayed at a few hundred pixels;
+ * anything larger is a mistake, and this is deliberately a smaller limit than
+ * the tenant's general document allowance.
+ *
+ * Re-exported from UPLOAD_LIMITS rather than defined here, so the number the
+ * multipart interceptor aborts at and the number this service rejects at
+ * cannot drift apart. The interceptor is the real bound; this check is what
+ * produces the readable message.
  */
-export const MAX_BRANDING_ASSET_BYTES = 3 * MEGABYTE;
+export const MAX_BRANDING_ASSET_BYTES = UPLOAD_LIMITS.brandingAsset;
 
 /**
  * Raster types only. SVG was accepted here until 2026-09-10 and is not any
@@ -151,8 +157,8 @@ export class BrandingAssetsService {
     if (!policy.allowedMimeTypes.includes(mimeType)) {
       throw new BadRequestException(
         normalizedKey === 'faviconUrl'
-          ? 'Favicon supports PNG, JPG, WEBP, SVG, and ICO files.'
-          : 'Only PNG, JPG, WEBP, or SVG branding files are allowed.',
+          ? 'Favicon supports PNG, JPG, WEBP, and ICO files.'
+          : 'Only PNG, JPG, or WEBP branding files are allowed.',
       );
     }
 

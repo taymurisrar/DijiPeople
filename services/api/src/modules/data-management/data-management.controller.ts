@@ -13,6 +13,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { uploadLimits } from '../../common/storage/upload-limits';
 import { DataImportMode } from '@prisma/client';
 import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -130,7 +131,7 @@ export class DataManagementController {
   @Post('modules/:moduleKey/imports/analyse')
   @Permissions(VALIDATE_PERMISSION)
   @RequirePermission(ENTITY_KEYS.CUSTOM_RECORDS, 'import')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', uploadLimits('spreadsheet')))
   analyseImport(
     @CurrentUser() user: AuthenticatedUser,
     @Param('moduleKey') moduleKey: string,
