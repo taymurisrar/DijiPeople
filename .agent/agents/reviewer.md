@@ -39,6 +39,71 @@ recommend a context update.
 
 ---
 
+## Open the screen, and its neighbours — not only the diff
+
+ITEM-0130. A task shipped through CI, a full framework validation and 1,598
+web tests, and a post-deploy verification. Minutes later the user found four
+defects on the screen the work changed and the screens next to it: an
+entitlement leak in Reports ([[BUG-3007]]), raw UUIDs in every analytics
+drill-down ([[BUG-3020]]), a horizontal scrollbar in the account menu
+([[BUG-3021]]), and two explanatory cards nobody reads (ITEM-0128). None was
+subtle — all four were visible on first sight of the screen. Every test that
+ran was sound for what it covered; nothing in the process had looked at a
+screen until the work was already in production, and when it did look, it
+looked only where the change was. Four separate causes, and this section is
+the standing check for each.
+
+**1. A cross-cutting rule enforced on one structure was never checked against
+the others.** The settings tree was audited exhaustively for an entitlement
+gate; the reporting catalog — same class of surface, same capabilities, same
+sidebar — was never opened. This is
+[`gate-scoped-to-one-structure`](../../docs/qa/known-bug-patterns/gate-scoped-to-one-structure.md),
+and it recurred within hours of being written down: writing a pattern file
+does not apply it. When a review covers a rule enforced "per module
+directory", "per route" or "per registry entry", **list the other structures
+in the repository that express the same concept** — the settings tree, the
+module runtime, the command registry and the reporting catalog are the
+recurring ones in this codebase — and state which were actually opened.
+
+**2. A resolver-level assertion cannot see a rendered defect.** Coverage that
+compares two data structures — an attribution map against a built registry,
+for instance — cannot see a raw UUID in a labelled cell, a horizontal
+scrollbar, or thirteen paragraphs sitting above the fold, because it never
+renders anything. `apps/web` has no jsdom or React Testing Library
+([`jest.config.js`](../../apps/web/jest.config.js) says so explicitly), but
+that is not the same as "no rendered check is possible": a plain,
+context-light component can be rendered for real with
+`react-dom/server`'s `renderToStaticMarkup` inside the existing Node test
+environment — no new dependency — and the resulting markup string asserted on
+directly (a UUID pattern in a cell, an unexpected `<details>` left open, text
+order on the page). See `apps/web/app/(authenticated)/reports/_components/item-0128-caveat-placement.spec.ts`
+for a worked example. Reach for this before concluding "no rendering
+tooling exists, so this can't be tested."
+
+**3. Global chrome touched by no commit in the diff is still in scope.** The
+account menu in BUG-3021 was global chrome no commit in that task touched. A
+diff-scoped review never opens it, and neither does a test suite organised by
+module. Before approving a change to what a user sees, open the changed
+screen **and its immediate neighbours** — the tabs beside it, the shell chrome
+around it (top bar, account menu, sidebar) — the same way
+[`ui-ux.md`](ui-ux.md) already asks for "consistency with the neighbouring
+screens": this is that check, restated as a gate rather than a suggestion.
+
+**4. A number can be permitted and still be implausible.** Authorization and
+entitlement checks ask whether a figure is allowed to be shown; they do not
+ask whether it makes sense. The same production run that verified every plan
+resolved to the right capability set also shipped an attendance surface
+showing 36% in one tile and 107.917% for the same metric beside it, and a
+trend line drawn from two points across thirty days — findable by looking,
+and by nothing that checks entitlement. When a change touches a metric,
+**read the number**, not only the guard in front of it.
+
+Record, in the review, which screens were opened (the changed one and its
+named neighbours) or that none needed to be — a change with no user-visible
+surface is a legitimate reason, an unexamined one is not.
+
+---
+
 ## Instance identity
 
 This role is **singular and permanent**; its executions are not. Every review
@@ -383,6 +448,7 @@ backlog and bug state accurate         — status matches what the code now does
 architecture follow-up classified      — ARCHITECTURE_IMPACT recorded; FOLLOW_UP_REQUIRED produced an item
 improvement budget respected           — at most three proposals, each with evidence
 questions resolved or explicitly open  — never disclosed for the first time in the final report
+screens opened named                   — ITEM-0130: the changed screen and its neighbours, by name, or why none needed opening
 ```
 
 `UNKNOWN` is not a terminal value for any of them.
