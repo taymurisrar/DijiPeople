@@ -148,6 +148,33 @@ A new variable must be added in **four** places or it will misbehave:
 
 Plus `packages/config` validation if it is required at boot.
 
+**Item 1 covers build inputs, not every runtime configuration value** —
+`ITEM-0049`. A `NEXT_PUBLIC_*` variable earns its `globalEnv` entry because it
+is inlined into the client bundle at *build* time (see above): change it,
+rebuild, and a stale cached artifact ships the old value with no error unless
+Turborepo knows to invalidate on it. `services/api` reads its configuration at
+runtime and inlines nothing — its `build` script is `clean:dist && prisma
+generate && nest build`, a plain `tsc` compile plus Prisma client generation
+from a `datasource` block with no `env(...)` pointer
+(`services/api/prisma/schema.prisma`; the connection URL is supplied to
+`@prisma/adapter-pg` at runtime instead) — so no API environment variable can
+currently bake a stale value into a build artifact, and registering one in
+`globalEnv` only broadens cache invalidation for every task in the repository
+for no corresponding safety gain. `DATABASE_URL` and a handful of other
+API-and-frontend-shared variables are registered because something in the
+three Next apps also reads them, not because the API build needs it.
+
+So: register a **build input** (anything a Next app's build reads, or anything
+that would change API build *output* if it changed) in `globalEnv`. Register
+everything else — ordinary `services/api` runtime configuration — in items 2-4
+only. `node scripts/check-env-registered.mjs` enforces items 1-4 for the three
+Next apps and separately guards the premise this rule rests on: that the API
+build pipeline contains nothing capable of inlining an environment variable
+into its output. If that check ever fails because the API build pipeline
+changed shape (a bundler, a codegen step reading `process.env`, a
+`datasource … env(...)` pointer), this decision needs re-deriving, not
+silently overriding.
+
 ---
 
 ## Findings from this audit
