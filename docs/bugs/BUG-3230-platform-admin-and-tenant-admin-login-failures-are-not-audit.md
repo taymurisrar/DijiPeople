@@ -1,0 +1,110 @@
+---
+ID: BUG-3230
+aliases: [BUG-3230]
+Title: Platform-admin and tenant-admin login failures are not audited; only tenant-user login failures are
+Status: OPEN
+Severity: MEDIUM
+Priority: P2
+Type: DATA_INTEGRITY
+Source: SECURITY_REVIEW
+DetectedDate: 2026-09-10
+DetectedInSha: f36749b3
+AffectedModules: [services/api/src/modules/platform-auth, services/api/src/modules/auth]
+OwnerAgent: architect
+ArchitectDisposition: TRIAGE_REQUIRED
+QAReport: 
+RegressionId: 
+RelatedBacklogItem:
+RelatedDecision:
+RelatedImplementation:
+CreatedAt: 2026-09-10
+UpdatedAt: 2026-09-10
+ResolvedAt:
+---
+
+# BUG-3230 — Platform-admin and tenant-admin login failures are not audited; only tenant-user login failures are
+
+## Summary
+
+Platform-admin and tenant-admin login failures are not audited; only tenant-user login failures are
+
+Identified by the 2026-09-10 full technical audit as OBS-10 (confidence: OBS-10=CONFIRMED).
+
+## Expected Behavior
+
+`AuditService.log({ tenantId: 'platform', action: 'PLATFORM_AUTH_LOGIN_FAILED', … })` with IP and user agent, symmetric with the tenant path.
+
+## Actual Behavior
+
+Brute force against the platform admin console — the account that can reach every tenant — produces no durable record. The `logger.warn` is at a level that *is* emitted, so it reaches Render's console, but nothing aggregates or retains it (OBS-01).
+
+## Reproduction
+
+This is a code-review finding from a static technical audit, not a QA-run runtime reproduction. To confirm: open the file(s) cited in Evidence and trace the call path described in Actual Behavior.
+
+## Evidence
+
+**OBS-10** (services/api/src/modules/auth/auth.service.ts):
+
+Tenant login failures **are** audited, with reason, IP, user agent and client — `modules/auth/auth.service.ts:1301-1319` and `:1412-1424`, both calling `logTenantAuthEvent` → `AuditService.log` (`:1748-1766`).
+The two admin paths write only a console warning and stop: `modules/auth/auth.service.ts:1461-1476` (`validateAdminCredentials`):
+```ts
+this.logger.warn(JSON.stringify({
+  event: 'admin.auth.login.failed',
+  reason: adminCandidates.length > 0 ? 'PASSWORD_MISMATCH' : 'NO_ADMIN_USER',
+  identifier: normalizedEmail,
+}));
+throw this.authUnauthorized('ADMIN_AUTH_INVALID_CREDENTIALS', 'Invalid admin credentials.');
+```
+`modules/auth/auth.service.ts:1481-1508` (`validatePlatformAdminCredentials`) — same shape, `PLATFORM_USER_NOT_FOUND` / `PASSWORD_MISMATCH`, no `AuditService` call and no `PlatformAuditLog` row.
+
+---
+
+
+Full finding text: OBS-10 in `docs/engineering/audits/2026-09-10-full-technical-audit/raw/OBS.md`.
+
+## Root Cause
+
+Not established — the audit's analysis (see Evidence) identifies the mechanism but a full root-cause investigation has not been performed. See Actual Behavior for the closest available explanation.
+
+## Impact
+
+After a platform-admin compromise there is no record of the attempts that preceded it, and no way to establish when the attack began.
+
+## Affected Areas
+
+services/api/src/modules/platform-auth, services/api/src/modules/auth
+
+## Proposed Resolution
+
+Add a `logPlatformAuthEvent` mirroring `logTenantAuthEvent` (`auth.service.ts:1735`) and call it from both admin validators, success and failure.
+
+(Difficulty: LOW; Regression risk: LOW; Fix now: YES)
+
+## Acceptance Criteria
+
+- The behaviour described in Expected Behavior holds for services/api/src/modules/auth/auth.service.ts (audit id OBS-10).
+
+## Regression Coverage
+
+No automated test currently fails without this fix. Audit-assessed regression risk of the fix itself: OBS-10=LOW. Add a regression test alongside the fix; link its `REG-nnn` entry here once it exists.
+
+## Dependencies
+
+None identified beyond the fix itself.
+
+## Related Items
+
+- Audit finding `OBS-10` — `docs/engineering/audits/2026-09-10-full-technical-audit/raw/OBS.md`
+
+## Resolution
+
+Not yet resolved.
+
+## QA Retest
+
+Not yet retested.
+
+## History
+
+- 2026-09-10 — created from the 2026-09-10 full technical audit (OBS-10) at `f36749b3`.

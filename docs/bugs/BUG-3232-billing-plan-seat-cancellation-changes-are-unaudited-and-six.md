@@ -1,0 +1,106 @@
+---
+ID: BUG-3232
+aliases: [BUG-3232]
+Title: Billing plan/seat/cancellation changes are unaudited, and six webhook paths write raw auditLog rows bypassing central redaction
+Status: OPEN
+Severity: MEDIUM
+Priority: P2
+Type: DATA_INTEGRITY
+Source: SECURITY_REVIEW
+DetectedDate: 2026-09-10
+DetectedInSha: f36749b3
+AffectedModules: [services/api/src/modules/billing]
+OwnerAgent: architect
+ArchitectDisposition: TRIAGE_REQUIRED
+QAReport: 
+RegressionId: 
+RelatedBacklogItem:
+RelatedDecision:
+RelatedImplementation:
+CreatedAt: 2026-09-10
+UpdatedAt: 2026-09-10
+ResolvedAt:
+---
+
+# BUG-3232 — Billing plan/seat/cancellation changes are unaudited, and six webhook paths write raw auditLog rows bypassing central redaction
+
+## Summary
+
+Billing plan/seat/cancellation changes are unaudited, and six webhook paths write raw auditLog rows bypassing central redaction
+
+Identified by the 2026-09-10 full technical audit as OBS-18 (confidence: OBS-18=CONFIRMED).
+
+## Expected Behavior
+
+All eight raw inserts route through `AuditService.log(data, tx)` (the two-argument transactional form already exists and is used correctly by `approvals.service.ts:664`).
+
+## Actual Behavior
+
+Entitlement changes — which decide what a customer is billed for and what they can reach — are largely untraceable, and the paths that do write use an unredacted side door.
+
+## Reproduction
+
+This is a code-review finding from a static technical audit, not a QA-run runtime reproduction. To confirm: open the file(s) cited in Evidence and trace the call path described in Actual Behavior.
+
+## Evidence
+
+**OBS-18** (services/api/src/modules/billing/services/):
+
+Only 3 of 27 files in `modules/billing/services/` reference `AuditService` — `retention-hold.service.ts:73,142`, `payment-recheck.service.ts:204`. No audit call exists in `plan-change.service.ts`, `seat-change.service.ts`, `cancellation.service.ts`, `subscription-order.service.ts`, `order-activation.service.ts` or `commercial-config.service.ts`.
+Six raw inserts bypass the service — `modules/billing/services/webhook.service.ts:499, 637, 688, 701, 743, 1679`:
+```ts
+await tx.auditLog.create({ data: { ... action: 'SUBSCRIPTION_ACTIVATED_BY_INVOICE_PAID', ... } });
+```
+Two more in `modules/employees/employees.service.ts:1426` and `:1548`.
+Bypassing `AuditService.log` skips `normalizeSnapshot` → `redactAuditSnapshot` (`audit.service.ts:267-269`) and the actor resolution at `:46-54` that distinguishes a tenant user from a platform actor.
+
+---
+
+
+Full finding text: OBS-18 in `docs/engineering/audits/2026-09-10-full-technical-audit/raw/OBS.md`.
+
+## Root Cause
+
+Not established — the audit's analysis (see Evidence) identifies the mechanism but a full root-cause investigation has not been performed. See Actual Behavior for the closest available explanation.
+
+## Impact
+
+A billing dispute cannot be reconstructed. A snapshot written raw can carry an unredacted field that the central redactor would have caught.
+
+## Affected Areas
+
+services/api/src/modules/billing
+
+## Proposed Resolution
+
+Replace the eight `tx.auditLog.create` calls with `this.auditService.log({...}, tx)`; add audit calls to plan/seat/cancellation services; add a lint or spec rule forbidding `auditLog.create` outside `modules/audit/audit.repository.ts`.
+
+(Difficulty: LOW; Regression risk: LOW; Fix now: YES (the raw-insert half))
+
+## Acceptance Criteria
+
+- The behaviour described in Expected Behavior holds for services/api/src/modules/billing/services/ (audit id OBS-18).
+
+## Regression Coverage
+
+No automated test currently fails without this fix. Audit-assessed regression risk of the fix itself: OBS-18=LOW. Add a regression test alongside the fix; link its `REG-nnn` entry here once it exists.
+
+## Dependencies
+
+None identified beyond the fix itself.
+
+## Related Items
+
+- Audit finding `OBS-18` — `docs/engineering/audits/2026-09-10-full-technical-audit/raw/OBS.md`
+
+## Resolution
+
+Not yet resolved.
+
+## QA Retest
+
+Not yet retested.
+
+## History
+
+- 2026-09-10 — created from the 2026-09-10 full technical audit (OBS-18) at `f36749b3`.
