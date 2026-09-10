@@ -13,11 +13,11 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 122 |
+| Open (active work) | 121 |
 | Blocked | 2 |
 | Deferred | 29 |
 | Awaiting a product decision | 6 |
-| Completed / closed | 293 |
+| Completed / closed | 294 |
 | **Open CRITICAL** | **0** |
 | **Open HIGH** | **36** |
 | **Awaiting Architect triage** | **5** |
@@ -27,7 +27,7 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | HIGH | 36 |
-| MEDIUM | 69 |
+| MEDIUM | 68 |
 | LOW | 14 |
 
 ## Open by type
@@ -47,7 +47,7 @@ see [`README.md`](README.md) for why.
 | STATE_MACHINE | 3 |
 | TECH_DEBT | 5 |
 | TEST_GAP | 8 |
-| UX | 33 |
+| UX | 32 |
 
 ## All records by status
 
@@ -62,8 +62,8 @@ see [`README.md`](README.md) for why.
 | DUPLICATE | 5 |
 | ACCEPTED_RISK | 3 |
 | TRIAGE_REQUIRED | 2 |
-| READY | 29 |
-| DONE | 67 |
+| READY | 28 |
+| DONE | 68 |
 
 ## All records
 
@@ -414,7 +414,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0054](../../docs/backlog/items/ITEM-0054-contract-placeholder-examples-fabricate-a-saudi-legal-entity.md) | Contract placeholder examples fabricate a Saudi legal entity, CR number and tax ID | DOCUMENTATION | MEDIUM | P2 | DEFERRED | contracts | DEFER |
 | [ITEM-0055](../../docs/backlog/items/ITEM-0055-database-e2e-runs-serially-and-now-dominates-its-own-job.md) | Database e2e runs serially and now dominates its own job | PERFORMANCE | MEDIUM | P2 | DEFERRED | api, ci | DEFER |
 | [ITEM-0060](../../docs/backlog/items/ITEM-0060-schema-prisma-and-the-applied-migration-history-do-not-agree.md) | schema.prisma and the applied migration history do not agree | TECH_DEBT | MEDIUM | P2 | DEFERRED | prisma, timesheets, attendance, payroll, billing | DEFER |
-| [ITEM-0068](../../docs/backlog/items/ITEM-0068-legal-documents-have-no-operator-ui-so-publishing-is-a-scrip.md) | Legal publication has an operator UI, but no diff before publishing | UX | MEDIUM | P2 | READY | legal, admin | FIX_NOW |
+| [ITEM-0068](../../docs/backlog/items/ITEM-0068-legal-documents-have-no-operator-ui-so-publishing-is-a-scrip.md) | Legal publication has an operator UI, but no diff before publishing | UX | MEDIUM | P2 | DONE | legal, admin | DONE |
 | [ITEM-0069](../../docs/backlog/items/ITEM-0069-a-global-identity-lock-can-be-triggered-by-an-unauthenticate.md) | A global identity lock can be triggered by an unauthenticated attacker | SECURITY | MEDIUM | P2 | DONE | auth, users | DONE |
 | [ITEM-0071](../../docs/backlog/items/ITEM-0071-a-terminal-bug-record-may-claim-fixed-while-its-resolution-s.md) | A terminal bug record may claim FIXED while its Resolution says pending | TEST_GAP | MEDIUM | P2 | DONE | scripts | DONE |
 | [ITEM-0073](../../docs/backlog/items/ITEM-0073-agent-role-names-are-spelled-inconsistently-across-bug-and-t.md) | Agent role names are spelled inconsistently across bug and task records | TECH_DEBT | MEDIUM | P2 | DEFERRED | framework | DEFER |
