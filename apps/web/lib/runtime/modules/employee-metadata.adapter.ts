@@ -14,6 +14,7 @@ import type {
 } from "../metadata-runtime.types";
 import { stableRuntimeMetadataId } from "../metadata-id";
 import { createSystemWidgetComponent } from "../system-widget-metadata";
+import { defaultPrimaryNameFieldForEntity } from "./entity-primary-name-field";
 import type { ModuleMetadataBundle } from "../module-runtime.types";
 import type { ModuleRuntimeContext } from "../module-runtime.types";
 import type { RuntimePrincipal } from "../security-runtime.types";
@@ -2313,7 +2314,14 @@ function buildEmployeeField(
     ...dependencyMetadata,
     options: employeeOptionSets[definition.logicalName],
     lookupTargets: definition.lookupEntity
-      ? [{ entityLogicalName: definition.lookupEntity }]
+      ? [
+          {
+            entityLogicalName: definition.lookupEntity,
+            primaryNameField: defaultPrimaryNameFieldForEntity(
+              definition.lookupEntity,
+            ),
+          },
+        ]
       : undefined,
   };
 }
