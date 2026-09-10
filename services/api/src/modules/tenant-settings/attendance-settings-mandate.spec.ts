@@ -1,6 +1,10 @@
 import { BadRequestException } from '@nestjs/common';
 
-import { TenantSettingsService } from './tenant-settings.service';
+import {
+  enforceCriticalAttendanceSetting,
+  MANDATORY_ATTENDANCE_SETTINGS,
+  TenantSettingsService,
+} from './tenant-settings.service';
 
 /**
  * The mandated attendance settings, and the refusal that now reports them.
@@ -233,5 +237,73 @@ describe('mandated attendance settings', () => {
         ] as never,
       }),
     ).resolves.toBeDefined();
+  });
+});
+
+/*
+ * ITEM-0112 — everything above exercises the lock only through the public
+ * `updateTenantSettings` entry point, and `assertAttendanceSettingIsChangeable`
+ * throws before `enforceCriticalAttendanceSetting` is ever reached for a
+ * contradicting value, so the write-time lock itself — the function this
+ * record is about — had no test naming it. `grep -rn
+ * "enforceCriticalAttendanceSetting" services/api/src --include=*.spec.ts`
+ * returned nothing before this block existed.
+ *
+ * These tests call the function directly, so deleting it fails the suite at
+ * compile time rather than only at runtime, and they check the exported
+ * `MANDATORY_ATTENDANCE_SETTINGS` map's *key set* against the independent
+ * `MANDATED` table above — not by re-deriving expected values from the map
+ * itself, which would pass whatever the map says (the mutation-testing
+ * failure this repository has hit before), but by asserting the two lists of
+ * *which keys are mandated* agree. Adding a key to the map without deciding
+ * whether it belongs in `MANDATED` now fails a test instead of shipping
+ * silently.
+ */
+describe('ITEM-0112 — enforceCriticalAttendanceSetting has direct test coverage', () => {
+  it.each(MANDATED)(
+    'rewrites a submitted attendance.%s to the mandated value regardless of input',
+    (key, mandated, contradicting) => {
+      expect(
+        enforceCriticalAttendanceSetting('attendance', key, contradicting),
+      ).toEqual(mandated);
+      expect(
+        enforceCriticalAttendanceSetting('attendance', key, mandated),
+      ).toEqual(mandated);
+    },
+  );
+
+  it('passes through a non-mandated attendance key unchanged', () => {
+    expect(
+      enforceCriticalAttendanceSetting('attendance', 'defaultGraceMinutes', 25),
+    ).toBe(25);
+  });
+
+  it('does not police a mandated key name outside the attendance category', () => {
+    // Same key name as a mandated attendance setting, different category: the
+    // `category !== 'attendance'` early return must fire before the map is
+    // even consulted.
+    expect(
+      enforceCriticalAttendanceSetting(
+        'timesheets',
+        'locationCaptureRequired',
+        false,
+      ),
+    ).toBe(false);
+  });
+
+  it('the MANDATED table names exactly the keys the exported map mandates', () => {
+    /*
+     * `locationRequiredForModes` is mandated but array-valued, so it is
+     * covered by its own tests above ("refuses a locationRequiredForModes
+     * that drops a mandated mode", "accepts ... in a different order") rather
+     * than by the [key, mandated, contradicting]-of-booleans shape `MANDATED`
+     * uses. It is listed here explicitly rather than silently excluded, so a
+     * second array-valued key added to the map without a decision either way
+     * still fails this test.
+     */
+    const coveredElsewhere = ['locationRequiredForModes'];
+    expect(Object.keys(MANDATORY_ATTENDANCE_SETTINGS).sort()).toEqual(
+      [...MANDATED.map(([key]) => key), ...coveredElsewhere].sort(),
+    );
   });
 });

@@ -102,6 +102,13 @@ the omission is visible to a reviewer rather than resident in one agent's head.
 
 - [[BUG-1952]] — the fix that was complete for route modules.
 - [[BUG-2958]] — the surface it could not reach.
+- [[BUG-3007]] — the third instance, described in "It recurred within hours of
+  being written" above.
+- [[ITEM-0130]] — the process record raised once the same review pass that
+  missed [[BUG-3007]] was also found to have missed three unrelated defects on
+  the same and neighbouring screens. This pattern accounts for the first of
+  ITEM-0130's four causes; the other three are new lessons, recorded in
+  `docs/knowledge/framework/`.
 - REG-396 — the regression entry, in the register rather than a note of its own.
 - [`per-module-fix-behind-a-per-module-test`](per-module-fix-behind-a-per-module-test.md)
   — the neighbouring shape: one rule fixed in one module and left unfixed in its
