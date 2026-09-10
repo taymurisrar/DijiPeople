@@ -140,12 +140,30 @@ Four parts. Two are done; two need the product owner's hand.
    Security stream of SESSION-0098.
 3. **Rotate the Neon role password — NOT DONE. Requires the product owner.**
    The rotation, and the Render environment update that must accompany it, are
-   production control-plane mutations that this session's harness refuses.
-   Rotate the `neondb_owner` password on Neon project `wispy-dream-20751252`,
-   write the new value to both `DATABASE_URL` and `DIRECT_DATABASE_URL` on the
-   Render service, then redeploy. New connections fail between the rotation and
-   the redeploy, so the window should be minutes, and it is the only real
-   remedy — everything else on this list reduces recurrence, not exposure.
+   production control-plane mutations that this session's harness refuses. It is
+   the only remedy that actually removes the exposure; everything else on this
+   list reduces recurrence.
+
+   The runbook, verified against the live control plane on 2026-09-11:
+
+   1. Neon project `wispy-dream-20751252`, branch `production`
+      (`br-snowy-mud-am2378xn`), role `neondb_owner` — reset the password.
+   2. Render service `srv-d7js7fqqqhas739v4i7g` — set `DATABASE_URL` to the new
+      connection string.
+      **Only that one variable.** `platform-access.md` records that
+      `DIRECT_DATABASE_URL` is *not set* on the live service and that
+      `DIRECT_URL` *is* set but is read by nothing in the codebase. Migrations
+      fall back to `DATABASE_URL`, which is the direct endpoint. So there is one
+      real variable to change, not two, and `DIRECT_URL` should be deleted rather
+      than updated.
+   3. Redeploy the service, then confirm `commitShort` at
+      `https://dijipeople.onrender.com/api/health` and that the API is serving
+      data rather than merely returning `ok` — the health check is static and
+      cannot see a dead database, which is finding OBS-02 of the same audit.
+
+   Between step 1 and the redeploy completing, new database connections fail
+   while existing pooled connections survive, so the window is minutes rather
+   than instant.
 4. **History rewrite — DEFERRED, deliberately.** Rewriting published history on a
    public repository invalidates every existing clone and fork and does not
    recall what has already been read. Rotation is the remedy that works;
