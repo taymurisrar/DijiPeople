@@ -16,6 +16,11 @@ import {
 } from '@prisma/client';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { SecretEncryptionService } from '../../common/security/secret-encryption.service';
+import {
+  decryptEmployeeBankAccountFields,
+  encryptEmployeeBankAccountFields,
+} from '../../common/security/pii-field-codec';
 import { AuditService } from '../audit/audit.service';
 import { ApprovalsService } from '../approvals/approvals.service';
 import { ApprovalMatrixResolverService } from '../approvals/approval-matrix-resolver.service';
@@ -57,6 +62,7 @@ export class LoansService {
     private readonly approvalsService: ApprovalsService,
     private readonly approvalResolver: ApprovalMatrixResolverService,
     private readonly notificationsService: NotificationsService,
+    private readonly secretEncryption: SecretEncryptionService,
   ) {}
 
   listLoanPolicies(user: AuthenticatedUser) {
@@ -676,7 +682,7 @@ export class LoansService {
       this.prisma.employeeBankAccount.count({ where }),
     ]);
     return {
-      items: rows.map(maskBankAccount),
+      items: rows.map((row) => maskBankAccount(this.secretEncryption, row)),
       meta: {
         page,
         pageSize,
@@ -751,7 +757,7 @@ export class LoansService {
       this.prisma.employeeBankAccount.count({ where }),
     ]);
     return {
-      items: rows.map(maskBankAccount),
+      items: rows.map((row) => maskBankAccount(this.secretEncryption, row)),
       meta: {
         page,
         pageSize,
@@ -779,7 +785,7 @@ export class LoansService {
     if (!row)
       throw new NotFoundException('Employee bank account was not found.');
     await this.assertEmployeeScope(user, row.employeeId);
-    return maskBankAccount(row);
+    return maskBankAccount(this.secretEncryption, row);
   }
 
   async createBankAccount(
@@ -829,6 +835,11 @@ export class LoansService {
           accountNumber: dto.accountNumber?.replace(/\s/g, '') || null,
           iban: dto.iban?.replace(/\s/g, '').toUpperCase() || null,
           swiftOrRoutingCode: dto.swiftOrRoutingCode?.trim() || null,
+          ...encryptEmployeeBankAccountFields(this.secretEncryption, {
+            accountNumber: dto.accountNumber?.replace(/\s/g, '') || null,
+            iban: dto.iban?.replace(/\s/g, '').toUpperCase() || null,
+            swiftOrRoutingCode: dto.swiftOrRoutingCode?.trim() || null,
+          }),
           branchName: dto.branchName?.trim() || null,
           branchCode: dto.branchCode?.trim() || null,
           countryCode: dto.countryCode.toUpperCase(),
@@ -842,12 +853,16 @@ export class LoansService {
         include: { bank: true },
       });
     });
+    const decryptedCreated = decryptEmployeeBankAccountFields(
+      this.secretEncryption,
+      created,
+    );
     await this.audit(user, 'EMPLOYEE_BANK_ACCOUNT_CREATED', created.id, null, {
-      ...created,
-      accountNumber: mask(created.accountNumber),
-      iban: mask(created.iban),
+      ...decryptedCreated,
+      accountNumber: mask(decryptedCreated.accountNumber),
+      iban: mask(decryptedCreated.iban),
     });
-    return maskBankAccount(created);
+    return maskBankAccount(this.secretEncryption, created);
   }
 
   async updateBankAccount(
@@ -913,7 +928,7 @@ export class LoansService {
       accountNumber: mask(updated.accountNumber),
       iban: mask(updated.iban),
     });
-    return maskBankAccount(updated);
+    return maskBankAccount(this.secretEncryption, updated);
   }
 
   async submitBankAccountForVerification(user: AuthenticatedUser, id: string) {
@@ -946,7 +961,7 @@ export class LoansService {
       { verificationStatus: existing.verificationStatus },
       { verificationStatus: updated.verificationStatus },
     );
-    return maskBankAccount(updated);
+    return maskBankAccount(this.secretEncryption, updated);
   }
 
   async rejectBankAccount(
@@ -978,7 +993,7 @@ export class LoansService {
       { verificationStatus: existing.verificationStatus },
       { verificationStatus: updated.verificationStatus, reason: dto.reason },
     );
-    return maskBankAccount(updated);
+    return maskBankAccount(this.secretEncryption, updated);
   }
 
   async deactivateBankAccount(user: AuthenticatedUser, id: string) {
@@ -998,7 +1013,7 @@ export class LoansService {
       isActive: updated.isActive,
       isPrimaryPayroll: updated.isPrimaryPayroll,
     });
-    return maskBankAccount(updated);
+    return maskBankAccount(this.secretEncryption, updated);
   }
 
   async setPayrollBankAccount(user: AuthenticatedUser, id: string) {
@@ -1041,7 +1056,7 @@ export class LoansService {
       { isPrimaryPayroll: existing.isPrimaryPayroll },
       { isPrimaryPayroll: updated.isPrimaryPayroll },
     );
-    return maskBankAccount(updated);
+    return maskBankAccount(this.secretEncryption, updated);
   }
 
   async verifyBankAccount(
@@ -1096,7 +1111,7 @@ export class LoansService {
       { verificationStatus: existing.verificationStatus },
       { verificationStatus: updated.verificationStatus },
     );
-    return maskBankAccount(updated);
+    return maskBankAccount(this.secretEncryption, updated);
   }
 
   private async findLoan(tenantId: string, id: string) {
@@ -1476,12 +1491,20 @@ function mask(value: string | null) {
   return `${'*'.repeat(Math.max(0, value.length - 4))}${value.slice(-4)}`;
 }
 function maskBankAccount<
-  T extends { accountNumber: string | null; iban: string | null },
->(row: T) {
+  T extends {
+    accountNumber: string | null;
+    iban: string | null;
+    swiftOrRoutingCode: string | null;
+    accountNumberEnc?: string | null;
+    ibanEnc?: string | null;
+    swiftOrRoutingCodeEnc?: string | null;
+  },
+>(codec: SecretEncryptionService, row: T) {
+  const decrypted = decryptEmployeeBankAccountFields(codec, row);
   return {
-    ...row,
-    accountNumber: mask(row.accountNumber),
-    iban: mask(row.iban),
+    ...decrypted,
+    accountNumber: mask(decrypted.accountNumber),
+    iban: mask(decrypted.iban),
   };
 }
 function mapLoan<
