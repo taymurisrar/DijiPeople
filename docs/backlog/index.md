@@ -13,11 +13,11 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 123 |
+| Open (active work) | 122 |
 | Blocked | 2 |
 | Deferred | 29 |
 | Awaiting a product decision | 6 |
-| Completed / closed | 292 |
+| Completed / closed | 293 |
 | **Open CRITICAL** | **0** |
 | **Open HIGH** | **36** |
 | **Awaiting Architect triage** | **5** |
@@ -28,7 +28,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | HIGH | 36 |
 | MEDIUM | 69 |
-| LOW | 15 |
+| LOW | 14 |
 
 ## Open by type
 
@@ -45,7 +45,7 @@ see [`README.md`](README.md) for why.
 | PERFORMANCE | 1 |
 | SECURITY | 5 |
 | STATE_MACHINE | 3 |
-| TECH_DEBT | 6 |
+| TECH_DEBT | 5 |
 | TEST_GAP | 8 |
 | UX | 33 |
 
@@ -62,8 +62,8 @@ see [`README.md`](README.md) for why.
 | DUPLICATE | 5 |
 | ACCEPTED_RISK | 3 |
 | TRIAGE_REQUIRED | 2 |
-| READY | 30 |
-| DONE | 66 |
+| READY | 29 |
+| DONE | 67 |
 
 ## All records
 
@@ -501,7 +501,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0080](../../docs/backlog/items/ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by.md) | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | P3 | READY | services/api | FIX_NOW |
 | [ITEM-0082](../../docs/backlog/items/ITEM-0082-contract-phase-drop-the-inert-plan-ispublic-column.md) | Contract phase: drop the inert Plan.isPublic column | DATA_MIGRATION | LOW | P3 | DEFERRED | services/api/prisma, api:billing | DEFER |
 | [ITEM-0083](../../docs/backlog/items/ITEM-0083-scheduled-reconciliation-sweep-for-orders-stuck-awaiting-pay.md) | Scheduled reconciliation sweep for orders stuck awaiting payment | FOLLOW_UP | LOW | P3 | DEFERRED | api:billing | DEFER |
-| [ITEM-0093](../../docs/backlog/items/ITEM-0093-link-validation-skips-untracked-files-so-a-new-record-s-brok.md) | Link validation skips untracked files, so a new record's broken links only surface in CI | TECH_DEBT | LOW | P3 | READY | scripts | FIX_NOW |
+| [ITEM-0093](../../docs/backlog/items/ITEM-0093-link-validation-skips-untracked-files-so-a-new-record-s-brok.md) | Link validation skips untracked files, so a new record's broken links only surface in CI | TECH_DEBT | LOW | P3 | DONE | scripts | DONE |
 | [ITEM-0099](../../docs/backlog/items/ITEM-0099-sync-obsidian-does-not-map-docs-plans-so-every-execplan-wiki.md) | sync-obsidian does not map docs/plans, so every ExecPlan wikilink is an orphan | DOCUMENTATION | LOW | P3 | DONE | scripts | DONE |
 | [ITEM-0104](../../docs/backlog/items/ITEM-0104-the-customization-settings-category-renders-no-leaf-pages-in.md) | The customization settings category renders no leaf pages in server HTML | UX | LOW | P3 | DEFERRED | apps/web | DEFER |
 | [ITEM-0109](../../docs/backlog/items/ITEM-0109-the-disabled-check-in-button-explains-itself-only-in-a-title.md) | The disabled Check In button explains itself only in a title tooltip | UX | LOW | P3 | READY | apps/web | FIX_NOW |
