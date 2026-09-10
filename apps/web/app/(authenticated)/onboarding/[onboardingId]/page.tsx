@@ -12,11 +12,7 @@ import {
   OnboardingTaskStatusBadge,
 } from "../_components/onboarding-status-badge";
 import { OnboardingTaskProgressForm } from "../_components/onboarding-task-progress-form";
-import type {
-  EmployeeOnboardingRecord,
-  UserListItem,
-  UserListResponse,
-} from "../types";
+import type { EmployeeOnboardingRecord, UserListItem } from "../types";
 
 type OnboardingDetailPageProps = {
   params: Promise<{
