@@ -4486,3 +4486,33 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Third occurrence of the same generalisation REG-396 recorded: a fix scoped to one structure (BUG-1952's route-module gate) does not reach a second structure with its own registry (settings, then reporting), and a comment asserting an enforcer exists is a claim to verify, not a fact to trust. The new finding this instance adds: **the offer and the execution path can leak independently**. Gating only the catalog (the offer) would have left the execution choke point (`resolveSource`, shared by `query()` and `records()`) ungated, so the fix here closes both in the same choke point rather than only the listing. |
 | **Fixed** | 2026-09-11, branch `agent/cs-s1-openbugs` |
 | **Active** | yes |
+
+### REG-399 — A breakdown's chart and its own table disagreed on the same numbers
+
+| | |
+|---|---|
+| **Bug class** | `unresolved-lookup-and-independent-rounding` |
+| **Module** | `services/api/src/modules/reporting`, `apps/web/app/components/charts`, `apps/web/app/(authenticated)/reports` |
+| **Bug record** | BUG-3020 |
+| **Root cause** | Two unrelated defects on the same screen. (1) `workforce_history`'s organisational dimensions are denormalised foreign keys resolved to a label only via `labelLookup`; `buildBreakdown` used that lookup for the chart, and `AnalyticsService.records()` never did for the drill-down table, so the table printed the raw uuid the chart above it had already turned into a name. (2) `formatShare` picks its decimal count per value (0 for >=10%, 1 below), independently re-rounding a `displayShare` that `computeShares` had already apportioned by largest remainder to sum to exactly 100 at one shared precision — so a breakdown spanning the 10% line printed a column that no longer summed to 100, and the chart's inline percentages could disagree with the same breakdown's table view. |
+| **Regression test** | `services/api/src/modules/reporting/engine/query-executor.spec.ts` (`resolveFieldLabels`), `apps/web/app/components/charts/chart-format.spec.ts` (`formatShares`), `apps/web/app/(authenticated)/reports/_lib/report-format.spec.ts` (`pluralizeRecordNoun`) |
+| **Scenario** | A drill-down field with a `labelLookup` resolves its raw ids to labels in one batch query across the whole fetched page, excluding nulls, deduplicating, and falling back to the id for one the lookup no longer has. A breakdown of 4/2/2/1/1/1/1 (the record's own reproduction) apportions to 33.4/16.7/16.7/8.3/8.3/8.3/8.3 and prints at that one precision, summing to exactly 100 — printed independently per value with the old function, the same set sums to 100.2. The row-count sentence names the actual unit (`pluralizeRecordNoun`) instead of the generic word "records". |
+| **Proven to fail without the fix** | Reverting `records()` to `readFieldValue` alone (no lookup resolution) is exactly the shipped defect and fails the query-executor suite. Calling `formatShare` on the reconstructed 33.4/16.7/16.7/8.3×4 set instead of the new `formatShares` sums to 100.2, not 100 — asserted directly in `chart-format.spec.ts` as the "this is not simply what the old function did" case. |
+| **Note** | The rounding half of this record needed verification, not just a fix: hand-tracing `computeShares`' largest-remainder algorithm against the exact split the record reported showed it was already correct and already summed to 100 — the record's specific claim (8.4/8.3/8.3/8.3 summing to 99.6%) did not reproduce against `computeShares` itself. The real, reproducible defect was one layer downstream in `formatShare`. Fixing the mechanism a bug report guesses at, rather than the one that actually reproduces, would have shipped a change that fixed nothing — this is the case for tracing a claim to its source before writing the fix. |
+| **Fixed** | 2026-09-11, branch `agent/cs-s1-openbugs` |
+| **Active** | yes |
+
+### REG-400 — A grid item's default min-width defeated a truncate rule, and overflow-y-auto quietly enabled overflow-x
+
+| | |
+|---|---|
+| **Bug class** | `grid-item-min-width-defeats-truncate` |
+| **Module** | `apps/web/app/components/workspace-switcher.tsx` |
+| **Bug record** | BUG-3021 |
+| **Root cause** | The "Switch workspace" list is `display: grid`; a `<li>` grid item defaults to `min-width: auto`, which for grid track sizing means "at least the min-content width" — and a `truncate` span's `white-space: nowrap` makes its min-content width the entire unwrapped string. A 43-character hostname therefore widened the grid track to fit it regardless of the `truncate` class on the span inside. Separately, the list had `overflow-y-auto` and no `overflow-x` at all; per the CSS overflow spec a non-`visible` `overflow-y` with a `visible` `overflow-x` computes the x-axis to `auto` too, so the oversized row got its own independent horizontal scrollbar the dropdown's own `overflow-hidden` could not suppress. |
+| **Regression test** | `apps/web/app/components/workspace-switcher-overflow.spec.ts` |
+| **Scenario** | The `<li>` carries `min-w-0`; the list declares `overflow-x-hidden` alongside `overflow-y-auto`; the workspace name and hostname lines both still sit on a `min-w-0`/`truncate` element so the fix has something to clip against. Source-reading, like the existing `workspace-switcher-placement.spec.ts` beside it — `apps/web` has no jsdom or testing library, so a rendered-layout measurement is not available. |
+| **Proven to fail without the fix** | Removing either class from `workspace-switcher.tsx` fails the corresponding assertion: `min-w-0` alone without `overflow-x-hidden` leaves the underlying overflow-spec interaction able to reintroduce the scrollbar from a different source; `overflow-x-hidden` alone without `min-w-0` would hide the scrollbar while the row still visually overflowed the menu — both were needed and both are asserted separately. |
+| **Note** | The generalisable shape: a flex or grid *item* defaults to `min-width: auto`, and `truncate` (`overflow: hidden` + `white-space: nowrap`) computes its min-content width from the *unwrapped* text — so truncation inside a flex/grid item silently does nothing until the item itself is given `min-w-0`. This is a classic CSS gotcha and worth checking anywhere a `truncate` class sits inside a grid or flex container without an explicit `min-w-0` on the item boundary. |
+| **Fixed** | 2026-09-11, branch `agent/cs-s1-openbugs` |
+| **Active** | yes |
