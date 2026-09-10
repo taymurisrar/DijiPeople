@@ -99,7 +99,10 @@ export class LocalObjectStorageProvider implements ObjectStorageProvider {
     // Nothing can sign a URL for a local file. Returning a fake one would let a
     // flow appear to work in development and fail only in production.
     return Promise.reject(
-      new ObjectStorageUnavailableError('sign', 'unsupported for local storage'),
+      new ObjectStorageUnavailableError(
+        'sign',
+        'unsupported for local storage',
+      ),
     );
   }
 

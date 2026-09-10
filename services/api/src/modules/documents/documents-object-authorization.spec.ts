@@ -84,7 +84,13 @@ describe('DocumentsService object authorization', () => {
       tenantSettingsResolverService as never,
       {} as never,
     );
-    return { service, repository, prisma, storage, tenantSettingsResolverService };
+    return {
+      service,
+      repository,
+      prisma,
+      storage,
+      tenantSettingsResolverService,
+    };
   }
 
   it('returns a self-scoped employee document only when its owner is visible', async () => {

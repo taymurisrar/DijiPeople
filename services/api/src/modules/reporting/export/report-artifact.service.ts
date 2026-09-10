@@ -206,7 +206,9 @@ export class ReportArtifactService {
         },
       });
     } catch (error) {
-      await this.storage.deleteFile(saved.storageKey, scope).catch(() => undefined);
+      await this.storage
+        .deleteFile(saved.storageKey, scope)
+        .catch(() => undefined);
       throw error;
     }
   }

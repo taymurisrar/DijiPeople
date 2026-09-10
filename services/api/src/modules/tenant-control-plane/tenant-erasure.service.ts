@@ -753,49 +753,56 @@ export class TenantErasureService {
       }),
     ]);
 
-    const entries: Array<{ model: string; id: string; key: string | null }> =
-      [
-        ...documents.map((item) => ({
-          model: 'document',
+    const entries: Array<{ model: string; id: string; key: string | null }> = [
+      ...documents.map((item) => ({
+        model: 'document',
+        id: item.id,
+        key: item.storageKey,
+      })),
+      ...versions.map((item) => ({
+        model: 'documentVersion',
+        id: item.id,
+        key: item.storageKey,
+      })),
+      ...documentReferences.map((item) => ({
+        model: 'documentReference',
+        id: item.id,
+        key: item.storageKey,
+      })),
+      ...employeeDocumentReferences.map((item) => ({
+        model: 'employeeDocumentReference',
+        id: item.id,
+        key: item.storageKey,
+      })),
+      ...invoices.map((item) => ({
+        model: 'invoice',
+        id: item.id,
+        key: item.pdfStorageKey,
+      })),
+      ...screenCaptureEvents.map((item) => ({
+        model: 'screenCaptureEvent',
+        id: item.id,
+        key: item.storageKey,
+      })),
+      ...reportRuns.map((item) => ({
+        model: 'reportRun',
+        id: item.id,
+        key: item.resultFileKey,
+      })),
+      ...dataJobs.flatMap((item) => [
+        {
+          model: 'dataJob:sourceFileKey',
           id: item.id,
-          key: item.storageKey,
-        })),
-        ...versions.map((item) => ({
-          model: 'documentVersion',
-          id: item.id,
-          key: item.storageKey,
-        })),
-        ...documentReferences.map((item) => ({
-          model: 'documentReference',
-          id: item.id,
-          key: item.storageKey,
-        })),
-        ...employeeDocumentReferences.map((item) => ({
-          model: 'employeeDocumentReference',
-          id: item.id,
-          key: item.storageKey,
-        })),
-        ...invoices.map((item) => ({
-          model: 'invoice',
-          id: item.id,
-          key: item.pdfStorageKey,
-        })),
-        ...screenCaptureEvents.map((item) => ({
-          model: 'screenCaptureEvent',
-          id: item.id,
-          key: item.storageKey,
-        })),
-        ...reportRuns.map((item) => ({
-          model: 'reportRun',
+          key: item.sourceFileKey,
+        },
+        {
+          model: 'dataJob:resultFileKey',
           id: item.id,
           key: item.resultFileKey,
-        })),
-        ...dataJobs.flatMap((item) => [
-          { model: 'dataJob:sourceFileKey', id: item.id, key: item.sourceFileKey },
-          { model: 'dataJob:resultFileKey', id: item.id, key: item.resultFileKey },
-          { model: 'dataJob:errorFileKey', id: item.id, key: item.errorFileKey },
-        ]),
-      ];
+        },
+        { model: 'dataJob:errorFileKey', id: item.id, key: item.errorFileKey },
+      ]),
+    ];
 
     return entries.filter(
       (entry): entry is { model: string; id: string; key: string } =>

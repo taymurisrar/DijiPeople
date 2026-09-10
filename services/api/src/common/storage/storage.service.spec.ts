@@ -1,3 +1,13 @@
+/*
+ * Several assertions reference mocked provider methods by name
+ * (`expect(provider.getObject).not.toHaveBeenCalled()`), which makes
+ * `unbound-method` fire even though jest never calls them detached. Disabling
+ * the rule for this spec follows the same pattern as `dlp.service.spec.ts` and
+ * keeps the provider mock strongly typed rather than cast to `any` — which
+ * matters here, because these are the assertions that prove a cross-tenant read
+ * never reaches the store at all.
+ */
+/* eslint-disable @typescript-eslint/unbound-method */
 import { readdirSync } from 'fs';
 import { mkdtemp, readdir, rm } from 'fs/promises';
 import { tmpdir } from 'os';
@@ -37,7 +47,10 @@ function fakeProvider(overrides: Partial<ObjectStorageProvider> = {}) {
   const provider: ObjectStorageProvider = {
     name: 'r2',
     putObject: jest.fn(async (input) => {
-      stored.set(input.key, Buffer.isBuffer(input.body) ? input.body : Buffer.alloc(0));
+      stored.set(
+        input.key,
+        Buffer.isBuffer(input.body) ? input.body : Buffer.alloc(0),
+      );
       return { key: input.key, size: input.contentLength };
     }),
     getObject: jest.fn(async (key: string) => {
@@ -279,7 +292,10 @@ describe('StorageService', () => {
       });
 
       await expect(
-        svc.readFileBuffer('tenants/tenant-aaa/documents/2026/09/x.bin', TENANT_A),
+        svc.readFileBuffer(
+          'tenants/tenant-aaa/documents/2026/09/x.bin',
+          TENANT_A,
+        ),
       ).rejects.toMatchObject({ errorCode: 'FILE_TOO_LARGE' });
     });
   });

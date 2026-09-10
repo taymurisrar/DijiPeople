@@ -63,7 +63,10 @@ export class PublicTenantsController {
     // even if a non-raster type ever slipped through, these two headers stop
     // a browser from sniffing or executing the response as anything active.
     response.setHeader('X-Content-Type-Options', 'nosniff');
-    response.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
+    response.setHeader(
+      'Content-Security-Policy',
+      "default-src 'none'; sandbox",
+    );
     response.setHeader(
       'Cache-Control',
       'public, max-age=300, stale-while-revalidate=86400',

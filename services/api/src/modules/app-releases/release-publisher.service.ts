@@ -527,10 +527,9 @@ export class ReleasePublisherService {
           downloadPath: `/app-releases/${release.id}/download`,
           // The storage key itself never crosses this boundary; only whether the
           // object it names is there.
-          artifactAvailable: await this.storage.fileExists(
-            release.storageKey,
-            { kind: 'platform' },
-          ),
+          artifactAvailable: await this.storage.fileExists(release.storageKey, {
+            kind: 'platform',
+          }),
         })),
       ),
     };

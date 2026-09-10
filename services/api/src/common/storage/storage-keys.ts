@@ -192,7 +192,10 @@ export function normalizeKey(key: string): string | null {
 }
 
 function assertOpaqueSegment(value: string): string {
-  if (typeof value !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(value)) {
+  if (
+    typeof value !== 'string' ||
+    !/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(value)
+  ) {
     throw new Error(
       'Storage key segments must be opaque identifiers. Filenames and free text are not accepted.',
     );
