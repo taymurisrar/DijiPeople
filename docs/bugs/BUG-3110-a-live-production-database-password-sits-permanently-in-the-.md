@@ -1,0 +1,141 @@
+---
+ID: BUG-3110
+aliases: [BUG-3110]
+Title: A live production database password sits permanently in the public git history
+Status: OPEN
+Severity: CRITICAL
+Priority: P0
+Type: SECURITY
+Source: QA_RUN
+DetectedDate: 2026-09-10
+DetectedInSha: 9b2fc338
+AffectedModules: [services/api]
+OwnerAgent: architect
+ArchitectDisposition: FIX_NOW
+QAReport:
+RegressionId:
+RelatedBacklogItem:
+RelatedDecision:
+RelatedImplementation:
+CreatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
+ResolvedAt:
+---
+
+# BUG-3110 — A live production database password sits permanently in the public git history
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** This is the highest-severity
+> finding the platform currently carries and the first of the ten actions in the
+> 2026-09-10 technical audit. It is filed as its own record because the audit
+> observed, correctly, that no bug record tracked it — the leak was noted only as
+> an operational warning in two deployment documents, and the admin-password half
+> was never noted anywhere.
+
+## Summary
+
+`services/api/.env.production.example` carried the real production Neon
+`DATABASE_URL`, password included, as a tracked file in a **public** GitHub
+repository. The line was added on 2026-05-12 and removed on 2026-07-02, so it was
+readable in the working tree for roughly seven weeks. Removing the line does not
+remove the secret: history was never rewritten, so the password remains readable
+today by anyone who clones the repository.
+
+A second secret in the same file — `BOOTSTRAP_ADMIN_PASSWORD` — was never removed
+at all and is still in the current tracked tree.
+
+The endpoint is not a placeholder. It is the exact production host independently
+documented in `docs/deployment/platform-access.md`, which distinguishes this from
+the fabricated example hostnames used elsewhere in the repository's own tests.
+
+## Expected Behavior
+
+No real credential is ever committed. A credential that has been committed to a
+public repository is treated as compromised from that moment: it is rotated, and
+the platform is configured so the same class of mistake cannot be pushed again.
+
+## Actual Behavior
+
+- The production database password is permanently readable in the public history.
+- The bootstrap admin password is in the current tree.
+- Secret scanning, push protection and Dependabot security updates were all
+  **disabled** on the repository, so nothing detected either one and nothing
+  would have blocked the push.
+
+## Reproduction
+
+Anyone with a clone of the public repository:
+
+```
+git log --all -p -S'.neon.tech' -- services/api/.env.production.example
+```
+
+returns the full connection string, password included, from commit `74d3ea3d`
+(2026-05-12, "tenant slug fixes"). Commit `e2b03b69` (2026-07-02) removes the
+line and does not remove the secret.
+
+```
+grep -n BOOTSTRAP_ADMIN_PASSWORD services/api/.env.production.example
+```
+
+returns the admin password from the current tree.
+
+## Evidence
+
+- Repository visibility confirmed `PUBLIC` via the GitHub API on 2026-09-11.
+- Host `ep-crimson-field-amm402fv.c-5.us-east-1.aws.neon.tech` matches
+  `docs/deployment/platform-access.md` exactly.
+- Repository security settings read on 2026-09-11, before remediation:
+  secret scanning `disabled`, push protection `disabled`, Dependabot security
+  updates `disabled`.
+- Full finding, with the surrounding sweep that found no other real secret in any
+  tracked file, is SUP-01 in
+  `docs/engineering/audits/2026-09-10-full-technical-audit/raw/SUP.md`.
+
+The leaked credential was **not** used to test whether it still authenticates.
+Connecting to a production database with a leaked password is not a safe
+diagnostic, and the answer does not change the remedy: a credential published to
+a public repository is rotated regardless of whether it currently works.
+
+## Root Cause
+
+`.env.production.example` is meant to be a template of variable *names*. It was
+filled in with real values at some point and committed, and nothing in the
+repository or the platform checked that an example file contained only examples.
+
+## Remediation
+
+Four parts. Two are done; two need the product owner's hand.
+
+1. **Repository protections — DONE, 2026-09-11.** Secret scanning, push
+   protection and Dependabot security updates enabled via the GitHub API. Push
+   protection is the part that matters: it refuses the next push carrying a
+   recognised credential. Two sub-settings, non-provider patterns and validity
+   checks, remain `disabled`.
+2. **Remove the admin password from the tree.** Replaced with an obvious
+   placeholder, with a validation check that fails if an example env file ever
+   again contains something shaped like a real credential. Carried by the
+   Security stream of SESSION-0098.
+3. **Rotate the Neon role password — NOT DONE. Requires the product owner.**
+   The rotation, and the Render environment update that must accompany it, are
+   production control-plane mutations that this session's harness refuses.
+   Rotate the `neondb_owner` password on Neon project `wispy-dream-20751252`,
+   write the new value to both `DATABASE_URL` and `DIRECT_DATABASE_URL` on the
+   Render service, then redeploy. New connections fail between the rotation and
+   the redeploy, so the window should be minutes, and it is the only real
+   remedy — everything else on this list reduces recurrence, not exposure.
+4. **History rewrite — DEFERRED, deliberately.** Rewriting published history on a
+   public repository invalidates every existing clone and fork and does not
+   recall what has already been read. Rotation is the remedy that works;
+   rewriting history is cosmetic once the credential is dead. If the owner wants
+   it done anyway, it is a separate planned change, not part of this fix.
+
+## Notes
+
+The audit's companion recommendation — raise Neon history retention to the plan
+maximum and protect the production branch — rests on a false premise, and the
+correction matters more than the original advice. The project is on the Neon
+**free** plan. Six hours is not a retention setting somebody left low, it is the
+plan maximum, and branch protection is not available on that plan at all. So
+production HR and payroll data has no backup beyond a six-hour restore window
+that nobody has ever tested. That is a spending decision rather than an
+engineering one, and it is recorded separately rather than buried here.
