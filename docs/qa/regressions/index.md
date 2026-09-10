@@ -4456,3 +4456,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Three things generalise. **A fix scoped by one structure's shape stops at that structure's edge**: gating by module directory is exactly right for route modules and structurally cannot reach a registry that has no directory, so "the gate is built" and "the surface is gated" are different claims. **An exemption that names its enforcer is a claim to verify, not a decision to trust** — the ungated register said branding was enforced where settings resolve, and reading the resolver would have shown in one minute that it was not. **Audit the built artifact, not the lookup table**: the first pass of the attribution map was written against `itemPlacement` and was wrong in both directions — it carried four keys naming pages that no longer exist and missed three pages that fall through to `defaultPlacement`, one of which was the tenant's own subscription screen sitting inside the payroll category. The coverage spec caught it because it compares against `settingsRuntimeItems`. |
 | **Fixed** | 2026-09-09, branch `agent/settings-plan-entitlements` |
 | **Active** | yes |
+
+### REG-397 — A sweep with a passing test and no caller in the running application
+
+| | |
+|---|---|
+| **Bug class** | `orphaned-scheduled-job` |
+| **Module** | `services/api/src/modules/billing` |
+| **Bug record** | BUG-2618 |
+| **Root cause** | `SubscriptionOrderService.abandonExpired` was written, commented and covered by an e2e test — and nothing in the running application ever called it, because the API registered no scheduler of any kind. `submissionHash` and `requestedSlug` are unique columns, so an unpaid order nobody ages out holds both forever: the workspace address becomes permanently unpurchasable and the buyer's own retry collides with their own dead order. The e2e test could not see the gap because it calls the function directly, which is the same blind spot BUG-2530 found in a guard that supplied its own input. |
+| **Regression test** | `services/api/src/modules/billing/services/subscription-order-sweeper.worker.spec.ts` |
+| **Scenario** | Boot `BillingModule` with `SUBSCRIPTION_ORDER_SWEEPER_ENABLED=true`: a `SubscriptionOrderSweeperWorker` provider starts an unref'd interval and its `tick()` calls `abandonExpired()` on its own, with no test invoking the service. With the flag unset or `false`, no timer starts. A tick that receives a rejected promise from `abandonExpired` logs and returns rather than throwing, so a transient database error cannot take the process down or stop the next tick. |
+| **Proven to fail without the fix** | The regression test exercises `SubscriptionOrderSweeperWorker.tick()`, not `SubscriptionOrderService.abandonExpired()` directly, so it fails if the call from `tick()` is removed even though `abandonExpired()` itself still passes its own e2e coverage. A second assertion reads `billing.module.ts` and fails if `SubscriptionOrderSweeperWorker` is removed from the `providers` array — the exact way this bug shipped originally: a fully-implemented, fully-tested method with nothing wiring it into the application. |
+| **Note** | A test that calls the function under test directly cannot prove the function is ever called in production — that is a statement about wiring, not about behaviour, and needs a wiring-shaped assertion (source inspection or a DI boot) rather than a deeper unit test. |
+| **Fixed** | 2026-09-11, branch `agent/cs-s1-openbugs` |
+| **Active** | yes |
