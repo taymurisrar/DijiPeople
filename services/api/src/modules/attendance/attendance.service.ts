@@ -80,6 +80,8 @@ import { OverrideAttendanceEntryDto } from './dto/override-attendance-entry.dto'
 import { UpdateAttendanceIntegrationDto } from './dto/update-attendance-integration.dto';
 import { UpdateAttendancePolicyDto } from './dto/update-attendance-policy.dto';
 import { UpdateManualAttendanceEntryDto } from './dto/update-manual-attendance-entry.dto';
+import { AppError } from '../../common/errors/app-error';
+import { UPLOAD_LIMITS } from '../../common/storage/upload-limits';
 
 type UploadedFile = {
   buffer: Buffer;
@@ -4963,6 +4965,20 @@ function validateImportFile(file: UploadedFile | undefined) {
     throw new BadRequestException(
       'Attendance import currently supports CSV files only.',
     );
+  }
+
+  // The multipart limit on the controller is the real bound — multer aborts the
+  // stream before the body is allocated. This is the second check, for a caller
+  // that reaches the service by another route, and because the parse below does
+  // `buffer.toString('utf8')`, which holds the file twice for a moment.
+  if (file.size > UPLOAD_LIMITS.spreadsheet) {
+    throw new AppError('FILE_TOO_LARGE', {
+      message: 'The attendance import file exceeds the maximum allowed size.',
+    });
+  }
+
+  if (file.size === 0) {
+    throw new BadRequestException('The attendance import file is empty.');
   }
 
   return file;

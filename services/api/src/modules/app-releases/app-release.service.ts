@@ -219,7 +219,9 @@ export class AppReleaseService {
     }
 
     if (release.storageKey) {
-      const file = await this.storage.openFile(release.storageKey);
+      const file = await this.storage.openFile(release.storageKey, {
+        kind: 'platform',
+      });
       return {
         kind: 'stream' as const,
         fileName: release.fileName ?? `${release.appKey}-${release.version}`,
@@ -252,7 +254,9 @@ export class AppReleaseService {
       platform: ApplicationPlatform;
       architecture: ApplicationArchitecture;
       channel?: ApplicationReleaseChannel;
-      storageKey?: string;
+      // No `storageKey` here (FILE-03) — see the DTO comment in
+      // app-release.controller.ts. This endpoint may only edit metadata or
+      // register an externally-hosted artefact.
       externalUrl?: string;
       fileName?: string;
       fileSizeBytes?: number;
@@ -320,7 +324,6 @@ export class AppReleaseService {
         platform: dto.platform,
         architecture: dto.architecture,
         channel,
-        storageKey: dto.storageKey ?? null,
         externalUrl: dto.externalUrl ?? null,
         fileName: dto.fileName ?? null,
         fileSizeBytes: dto.fileSizeBytes ?? null,
@@ -337,7 +340,6 @@ export class AppReleaseService {
       update: {
         name: dto.name,
         description: dto.description ?? null,
-        storageKey: dto.storageKey ?? undefined,
         externalUrl: dto.externalUrl ?? undefined,
         fileName: dto.fileName ?? undefined,
         fileSizeBytes: dto.fileSizeBytes ?? undefined,

@@ -16,6 +16,8 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+
+import { uploadLimits } from '../../common/storage/upload-limits';
 import type { Request, Response } from 'express';
 import { setCsvDownloadHeaders } from '../../common/utils/csv-response.util';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -287,7 +289,7 @@ export class AttendanceController {
   @Post('import')
   @Permissions('attendance.import')
   @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'import')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', uploadLimits('spreadsheet')))
   importAttendance(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: ImportAttendanceDto,

@@ -72,14 +72,19 @@ describe('DocumentsService object authorization', () => {
     const storage = {
       openFile: jest.fn(async () => ({ stream: 'file-stream' })),
     };
+    const tenantSettingsResolverService = {
+      getDocumentSettings: jest.fn(async () => ({
+        disableExternalDownloads: false,
+      })),
+    };
     const service = new DocumentsService(
       repository as never,
       prisma as never,
       storage as never,
-      { getDocumentSettings: jest.fn() } as never,
+      tenantSettingsResolverService as never,
       {} as never,
     );
-    return { service, repository, prisma, storage };
+    return { service, repository, prisma, storage, tenantSettingsResolverService };
   }
 
   it('returns a self-scoped employee document only when its owner is visible', async () => {
@@ -87,7 +92,10 @@ describe('DocumentsService object authorization', () => {
     await expect(
       service.openForView(buildUser(SecurityAccessLevel.SELF), 'document-2'),
     ).resolves.toMatchObject({ document: { id: 'document-2' } });
-    expect(storage.openFile).toHaveBeenCalledWith('tenant-a/document-2.pdf');
+    expect(storage.openFile).toHaveBeenCalledWith('tenant-a/document-2.pdf', {
+      kind: 'tenant',
+      tenantId: 'tenant-a',
+    });
   });
 
   it('hides another employee document from a self-scoped caller', async () => {
@@ -95,6 +103,37 @@ describe('DocumentsService object authorization', () => {
     await expect(
       service.openForView(buildUser(SecurityAccessLevel.SELF), 'document-2'),
     ).rejects.toThrow('Document was not found for this tenant.');
+    expect(storage.openFile).not.toHaveBeenCalled();
+  });
+
+  it('blocks openForView when tenant document settings disable external downloads (FILE-11)', async () => {
+    const { service, storage, tenantSettingsResolverService } =
+      buildService(true);
+    tenantSettingsResolverService.getDocumentSettings.mockResolvedValueOnce({
+      disableExternalDownloads: true,
+    });
+    await expect(
+      service.openForView(buildUser(SecurityAccessLevel.TENANT), 'document-2'),
+    ).rejects.toThrow(
+      'Document downloads are disabled by tenant document settings.',
+    );
+    expect(storage.openFile).not.toHaveBeenCalled();
+  });
+
+  it('blocks openForDownload for the same reason, via the same shared path', async () => {
+    const { service, storage, tenantSettingsResolverService } =
+      buildService(true);
+    tenantSettingsResolverService.getDocumentSettings.mockResolvedValueOnce({
+      disableExternalDownloads: true,
+    });
+    await expect(
+      service.openForDownload(
+        buildUser(SecurityAccessLevel.TENANT),
+        'document-2',
+      ),
+    ).rejects.toThrow(
+      'Document downloads are disabled by tenant document settings.',
+    );
     expect(storage.openFile).not.toHaveBeenCalled();
   });
 

@@ -8,8 +8,6 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import path from 'node:path';
 import {
   BillingCycle,
   BillingInterval,
@@ -47,6 +45,7 @@ import { TenantSettingsResolverService } from '../tenant-settings/tenant-setting
 import { TENANT_FEATURE_DEFINITIONS } from '../tenant-settings/tenant-settings.catalog';
 import { TenantsRepository } from '../tenants/tenants.repository';
 import { TenantDomainService } from '../tenant-domains/tenant-domain.service';
+import { StorageService } from '../../common/storage/storage.service';
 import { AuditService } from '../audit/audit.service';
 import { BillingService } from './billing.service';
 import {
@@ -308,6 +307,7 @@ export class SuperAdminService {
     private readonly stripeBillingService: StripeBillingService,
     private readonly tenantDomains: TenantDomainService,
     private readonly fx: PlatformFxService,
+    private readonly storage: StorageService,
   ) {}
 
   getLifecycleOptions() {
@@ -3223,7 +3223,10 @@ export class SuperAdminService {
 
     return {
       fileName: `${generated.invoiceNumber}.pdf`,
-      buffer: await readFile(generated.absolutePath),
+      buffer: await this.storage.readFileBuffer(generated.pdfStorageKey, {
+        kind: 'tenant',
+        tenantId: generated.tenantId,
+      }),
     };
   }
 
@@ -4175,25 +4178,32 @@ export class SuperAdminService {
 
   private async ensureInvoicePdf(invoiceId: string, actorUserId: string) {
     const invoice = await this.getInvoiceRecord(invoiceId);
-    const storageRoot = this.getInvoiceStorageRoot();
     const fileName = `${sanitizeFilePart(invoice.invoiceNumber)}.pdf`;
-    const relativePath = path.join('invoices', invoice.id, fileName);
-    const absolutePath = path.join(storageRoot, relativePath);
     const generatedAt = new Date();
 
-    await mkdir(path.dirname(absolutePath), { recursive: true });
-    await writeFile(
-      absolutePath,
-      buildProfessionalInvoicePdf(
-        await this.buildInvoicePdfModel(invoice, generatedAt),
-      ),
+    const pdfBuffer = buildProfessionalInvoicePdf(
+      await this.buildInvoicePdfModel(invoice, generatedAt),
     );
+
+    // Invoices are a tenant's own billing record, so the PDF is stored under
+    // that tenant's scope even though this method runs on the platform side.
+    const stored = await this.storage.saveFile({
+      buffer: pdfBuffer,
+      originalFileName: fileName,
+      contentType: 'application/pdf',
+      scope: { kind: 'tenant', tenantId: invoice.tenantId },
+      domain: 'invoices',
+      segments: [invoice.id],
+    });
+
     await this.prisma.invoice.update({
       where: { id: invoice.id },
       data: {
         generatedAt,
         generatedByUserId: actorUserId,
-        pdfStorageKey: relativePath.replaceAll(path.sep, '/'),
+        pdfStorageKey: stored.storageKey,
+        pdfChecksumSha256: stored.checksumSha256,
+        pdfStorageProvider: stored.storageProvider,
         updatedById: actorUserId,
       },
     });
@@ -4201,17 +4211,8 @@ export class SuperAdminService {
     return {
       tenantId: invoice.tenantId,
       invoiceNumber: invoice.invoiceNumber,
-      pdfStorageKey: relativePath.replaceAll(path.sep, '/'),
-      absolutePath,
+      pdfStorageKey: stored.storageKey,
     };
-  }
-
-  private getInvoiceStorageRoot() {
-    return path.resolve(
-      this.configService.get<string>('INVOICE_STORAGE_DIR') ??
-        process.env.INVOICE_STORAGE_DIR ??
-        path.join(process.cwd(), 'storage', 'generated'),
-    );
   }
 
   private resolveInvoiceRecipient(

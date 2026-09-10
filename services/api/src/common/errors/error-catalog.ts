@@ -489,6 +489,29 @@ export const ERROR_CATALOG = {
     'warning',
     'file',
   ),
+  // Deliberately distinct from FILE_DOWNLOAD_FAILED. A 404 tells the operator
+  // the document is gone; this tells them the object store is unreachable and
+  // the document is almost certainly intact. Conflating the two sends an
+  // incident down the wrong path, which is why the storage spec requires the
+  // distinction rather than a generic failure.
+  FILE_STORAGE_UNAVAILABLE: entry(
+    503,
+    'File storage unavailable',
+    'Files cannot be stored or retrieved right now. No document has been lost.',
+    'critical',
+    'file',
+    'Try again in a few minutes.',
+    true,
+  ),
+  // The object store is misconfigured rather than merely unreachable. Never
+  // retryable: retrying a misconfiguration only repeats it.
+  FILE_STORAGE_MISCONFIGURED: entry(
+    500,
+    'File storage is not configured',
+    'File storage is not configured correctly on this environment.',
+    'critical',
+    'file',
+  ),
   INTEGRATION_FAILED: entry(
     502,
     'Integration failed',

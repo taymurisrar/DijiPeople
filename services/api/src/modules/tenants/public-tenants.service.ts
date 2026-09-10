@@ -29,6 +29,25 @@ type ResolveInput = {
 
 type PublicBrandingAssetType = 'logo' | 'favicon' | 'login-image';
 
+/**
+ * Raster types this @Public() endpoint will serve. The branding UPLOAD
+ * allowlist (tenant-settings/branding-assets.service.ts, owned elsewhere)
+ * still accepts `image/svg+xml`, but SVG is a script host: a browser that is
+ * navigated straight to this route executes whatever markup the SVG carries,
+ * and this route has no auth and the API's CSP is Report-Only, so nothing
+ * else would stop it (FILE-02, stored XSS). This is the enforcement point
+ * this migration owns — refuse anything outside a known-inert raster type,
+ * regardless of what was allowed in at upload time.
+ */
+const PUBLIC_BRANDING_RASTER_MIME_TYPES: ReadonlySet<string> = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/jpg',
+  'image/webp',
+  'image/x-icon',
+  'image/vnd.microsoft.icon',
+]);
+
 type ResolvedTenant = Awaited<
   ReturnType<PublicTenantsService['findTenantForPublicResolution']>
 >;
@@ -195,12 +214,17 @@ export class PublicTenantsService {
 
     if (
       !document?.storageKey ||
-      !document.mimeType?.toLowerCase().startsWith('image/')
+      !PUBLIC_BRANDING_RASTER_MIME_TYPES.has(
+        document.mimeType?.toLowerCase() ?? '',
+      )
     ) {
       return null;
     }
 
-    const file = await this.storageService.openFile(document.storageKey);
+    const file = await this.storageService.openFile(document.storageKey, {
+      kind: 'tenant',
+      tenantId: tenant.id,
+    });
 
     return {
       document,

@@ -3,15 +3,24 @@ import { DataJobStatus } from '@prisma/client';
 import { createHash } from 'node:crypto';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from '../../common/storage/storage.service';
+import type { StorageScope } from '../../common/storage/object-storage.types';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { csvCell, type CsvFile } from '../../common/utils/csv.util';
 import { SecurityPrivilege } from '@prisma/client';
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import { PERMISSION_KEYS } from '../../common/constants/permissions';
 import { buildScopedAccessWhere } from '../../common/security/rbac-query-scope';
 import { AttendanceService } from '../attendance/attendance.service';
 import { EmployeesService } from '../employees/employees.service';
 import { DataModuleRegistryService } from './module-registry.service';
 import { toDisplayString } from '../../common/utils/display-string';
+
+/** Every export CSV this service produces uses one content type. */
+const EXPORT_CONTENT_TYPE = 'text/csv; charset=utf-8';
+
+function tenantScope(tenantId: string): StorageScope {
+  return { kind: 'tenant', tenantId };
+}
 
 /** Entity each module is scoped by, so an export never widens visibility. */
 const MODULE_ENTITY_KEYS: Record<string, string> = {
@@ -268,7 +277,9 @@ export class ExportExecutionService {
     const stored = await this.storage.saveFile({
       buffer: file.buffer,
       originalFileName: file.filename,
-      subdirectory: `data-exports/${currentUser.tenantId}`,
+      contentType: EXPORT_CONTENT_TYPE,
+      scope: tenantScope(currentUser.tenantId),
+      domain: 'data-exports',
     });
 
     // Header row excluded from the count the user sees.
@@ -282,6 +293,7 @@ export class ExportExecutionService {
       data: {
         status: DataJobStatus.COMPLETED,
         resultFileKey: stored.storageKey,
+        storageProvider: stored.storageProvider,
         fileName: file.filename,
         totalRows: rowCount,
         processedRows: rowCount,
@@ -323,10 +335,27 @@ export class ExportExecutionService {
     };
   }
 
-  /** Opens the stored export file for streaming back to the user. */
+  /**
+   * Opens the stored export file for streaming back to the user.
+   *
+   * `queueExport` already records `submittedByUserId`. An export can contain
+   * any data the requester could see, which can be wider than what every other
+   * user in the tenant is entitled to — so a download is restricted to the
+   * user who submitted it, unless the caller holds the tenant-wide jobs
+   * read-all permission (FILE-12).
+   */
   async openExportFile(currentUser: AuthenticatedUser, jobId: string) {
+    const canReadAllJobs = currentUser.permissionKeys.includes(
+      PERMISSION_KEYS.DATA_MANAGEMENT_JOBS_READ_ALL,
+    );
+
     const job = await this.prisma.dataJob.findFirst({
-      where: { id: jobId, tenantId: currentUser.tenantId, kind: 'EXPORT' },
+      where: {
+        id: jobId,
+        tenantId: currentUser.tenantId,
+        kind: 'EXPORT',
+        ...(canReadAllJobs ? {} : { submittedByUserId: currentUser.userId }),
+      },
       select: { resultFileKey: true, fileName: true, status: true },
     });
 
@@ -342,7 +371,10 @@ export class ExportExecutionService {
       );
     }
 
-    const stored = await this.storage.openFile(job.resultFileKey);
+    const stored = await this.storage.openFile(
+      job.resultFileKey,
+      tenantScope(currentUser.tenantId),
+    );
 
     return {
       stream: stored.stream,

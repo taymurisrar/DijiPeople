@@ -7,13 +7,13 @@ import {
 import {
   ApplicationHistoryReason,
   CandidateHistoryReason,
+  DocumentEntityType,
   EmployeeEmploymentStatus,
   EmployeeType,
   EmployeeWorkMode,
   Prisma,
   RecruitmentStage,
 } from '@prisma/client';
-import { createHash } from 'crypto';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from '../../common/storage/storage.service';
@@ -760,10 +760,46 @@ export class RecruitmentService {
 
     const isResumeKind =
       (dto.kind?.trim().toLowerCase() ?? 'resume') === 'resume';
-    const storageKey = dto.storageKey?.trim();
-    const checksumSha256 = storageKey
-      ? createHash('sha256').update(storageKey).digest('hex')
-      : undefined;
+
+    // `storageKey` is resolved from the uploaded `Document` row rather than
+    // trusted from the request body (FILE-03). The client points at the
+    // document id the upload endpoint returned; that row must belong to this
+    // tenant AND already be linked to this exact candidate before its key,
+    // checksum and provider are copied onto the resume-tracking row.
+    let storageKey: string | undefined;
+    let checksumSha256: string | undefined;
+    let storageProviderValue: string | undefined;
+    let scanStatus: Prisma.DocumentReferenceUncheckedCreateInput['scanStatus'];
+    if (dto.documentId) {
+      const sourceDocument = await this.prisma.document.findFirst({
+        where: {
+          id: dto.documentId,
+          tenantId: currentUser.tenantId,
+          links: {
+            some: {
+              tenantId: currentUser.tenantId,
+              entityType: DocumentEntityType.CANDIDATE,
+              entityId: candidateId,
+            },
+          },
+        },
+        select: {
+          storageKey: true,
+          checksumSha256: true,
+          storageProvider: true,
+          scanStatus: true,
+        },
+      });
+      if (!sourceDocument?.storageKey) {
+        throw new BadRequestException(
+          'Uploaded document was not found for this candidate.',
+        );
+      }
+      storageKey = sourceDocument.storageKey;
+      checksumSha256 = sourceDocument.checksumSha256 ?? undefined;
+      storageProviderValue = sourceDocument.storageProvider ?? undefined;
+      scanStatus = sourceDocument.scanStatus ?? 'SCAN_NOT_CONFIGURED';
+    }
 
     await this.prisma.$transaction(async (tx) => {
       if (isResumeKind) {
@@ -797,6 +833,8 @@ export class RecruitmentService {
           contentType: dto.contentType?.trim(),
           fileSizeBytes: dto.fileSizeBytes,
           storageKey,
+          storageProvider: storageProviderValue,
+          scanStatus,
           uploadedAt: new Date(),
           candidateId,
           isResume: isResumeKind,
@@ -998,18 +1036,17 @@ export class RecruitmentService {
       );
     }
 
-    if (isAbsoluteHttpUrl(document.storageKey)) {
-      return {
-        document,
-        redirectUrl: document.storageKey,
-        file: null,
-      };
-    }
-
+    // No redirect branch (FILE-17): a storage key is a key, not a URL. An
+    // absolute-URL value here is not a legitimate external link — nothing in
+    // this product publishes one onto `storageKey` — so `openFile` rejects it
+    // as out-of-scope and this resolves to a controlled 404 rather than an
+    // authenticated open redirect.
     return {
       document,
-      file: await this.storageService.openFile(document.storageKey),
-      redirectUrl: null,
+      file: await this.storageService.openFile(document.storageKey, {
+        kind: 'tenant',
+        tenantId,
+      }),
     };
   }
 
@@ -2786,10 +2823,6 @@ function num(value?: Prisma.Decimal | null) {
 
 function serializeJson<T>(value: T): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
-}
-
-function isAbsoluteHttpUrl(value: string) {
-  return /^https?:\/\//i.test(value);
 }
 
 function parseDocumentParsingStatus(

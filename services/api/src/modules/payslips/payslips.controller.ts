@@ -85,6 +85,7 @@ export class PayslipsController {
     return this.payslipsService.getPayslip({
       tenantId: user.tenantId,
       payslipId: id,
+      currentUser: user,
     });
   }
 
@@ -98,6 +99,7 @@ export class PayslipsController {
     return this.payslipsService.publishPayslip({
       tenantId: user.tenantId,
       payslipId: id,
+      currentUser: user,
       actorUserId: user.userId,
     });
   }
@@ -113,6 +115,7 @@ export class PayslipsController {
     return this.payslipsService.voidPayslip({
       tenantId: user.tenantId,
       payslipId: id,
+      currentUser: user,
       actorUserId: user.userId,
       reason: dto.reason,
     });
@@ -128,6 +131,7 @@ export class PayslipsController {
     return this.payslipsService.regeneratePayslip({
       tenantId: user.tenantId,
       payslipId: id,
+      currentUser: user,
       actorUserId: user.userId,
     });
   }
@@ -142,6 +146,7 @@ export class PayslipsController {
     return this.payslipsService.deliverPayslip({
       tenantId: user.tenantId,
       payslipId: id,
+      currentUser: user,
       actorUserId: user.userId,
     });
   }
@@ -157,6 +162,7 @@ export class PayslipsController {
     const file = await this.payslipsService.downloadPayslip({
       tenantId: user.tenantId,
       payslipId: id,
+      currentUser: user,
       actorUserId: user.userId,
     });
     response.setHeader('Content-Type', file.contentType);
@@ -208,6 +214,7 @@ export class PayslipsController {
     const file = await this.payslipsService.downloadPayslip({
       tenantId: user.tenantId,
       payslipId: id,
+      currentUser: user,
       actorUserId: user.userId,
       own: true,
     });

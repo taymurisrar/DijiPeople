@@ -6,10 +6,10 @@ import {
 } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
 import sanitizeHtml from 'sanitize-html';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from '../../common/storage/storage.service';
+import type { StorageScope } from '../../common/storage/object-storage.types';
 import { redactEmailError } from '../notifications/email/email-safety';
 import { PlatformEmailSettingsService } from './platform-email-settings.service';
 import type { EmailAttachment } from '../notifications/interfaces/email-provider.interface';
@@ -215,14 +215,29 @@ export class PlatformCommunicationsService
       return undefined;
     const document = await this.prisma.contractDocument.findUnique({
       where: { id: metadata.attachmentDocumentId },
-      select: { fileName: true, mimeType: true, storageKey: true },
+      select: {
+        fileName: true,
+        mimeType: true,
+        storageKey: true,
+        // ContractDocument has no tenantId of its own (FILE-15); the file
+        // was originally written under the parent contract's tenant scope,
+        // so reading it back requires that same scope or the read is
+        // refused as out-of-scope.
+        contract: { select: { tenantId: true } },
+      },
     });
     if (!document) return undefined;
-    const stored = await this.storage.openFile(document.storageKey);
+    const scope: StorageScope = document.contract.tenantId
+      ? { kind: 'tenant', tenantId: document.contract.tenantId }
+      : { kind: 'platform' };
+    const content = await this.storage.readFileBuffer(
+      document.storageKey,
+      scope,
+    );
     return [
       {
         filename: document.fileName,
-        content: await readFile(stored.absolutePath),
+        content,
         contentType: document.mimeType,
       },
     ];

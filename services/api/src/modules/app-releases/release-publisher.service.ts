@@ -17,10 +17,10 @@ import { AuditService } from '../audit/audit.service';
 import type { ReleasePublisherIdentity } from './release-publish-token.guard';
 import {
   DEFAULT_RELEASE_ARTIFACT_MAX_BYTES,
-  RELEASE_STORAGE_PREFIX,
   defaultPermissionForApp,
   isValidReleaseVersion,
   resolvePublishableApp,
+  type PublishableApp,
 } from './release-publisher.constants';
 
 /**
@@ -144,6 +144,7 @@ export class ReleasePublisherService {
       // has gone is a broken download, not a successful publish.
       const artifactAvailable = await this.storage.fileExists(
         existing.storageKey,
+        { kind: 'platform' },
       );
       if (artifactAvailable) {
         return this.describeOutcome('ALREADY_PUBLISHED', existing, {
@@ -155,7 +156,7 @@ export class ReleasePublisherService {
       // Self-repair: re-upload the identical bytes and repoint the row. The
       // checksum is unchanged, so nothing a customer already verified changes.
       const repaired = await this.storeArtifact(
-        app.appKey,
+        app,
         version,
         fileName,
         input.artifact,
@@ -164,6 +165,7 @@ export class ReleasePublisherService {
         where: { id: existing.id },
         data: {
           storageKey: repaired.storageKey,
+          storageProvider: repaired.storageProvider,
           fileSizeBytes,
           updatedById: null,
         },
@@ -211,7 +213,7 @@ export class ReleasePublisherService {
     // --- upload, then register, then verify ---------------------------------
 
     const stored = await this.storeArtifact(
-      app.appKey,
+      app,
       version,
       fileName,
       input.artifact,
@@ -225,6 +227,7 @@ export class ReleasePublisherService {
           name: app.name,
           description: app.description,
           storageKey: stored.storageKey,
+          storageProvider: stored.storageProvider,
           fileName,
           fileSizeBytes,
           checksumSha256: checksum,
@@ -243,7 +246,7 @@ export class ReleasePublisherService {
       // which key needs cleaning up by hand.
       let compensation = 'The uploaded artefact was deleted.';
       try {
-        await this.storage.deleteFile(stored.storageKey);
+        await this.storage.deleteFile(stored.storageKey, { kind: 'platform' });
       } catch (cleanupError) {
         compensation = `The uploaded artefact could NOT be deleted and is orphaned at storage key "${stored.storageKey}". Remove it manually.`;
         this.logger.error(
@@ -343,7 +346,9 @@ export class ReleasePublisherService {
     if (source.channel === input.toChannel) {
       return this.describeOutcome('ALREADY_PUBLISHED', source, {
         environment,
-        artifactAvailable: await this.storage.fileExists(source.storageKey),
+        artifactAvailable: await this.storage.fileExists(source.storageKey, {
+          kind: 'platform',
+        }),
         note: 'The release is already in the requested channel.',
       });
     }
@@ -378,11 +383,14 @@ export class ReleasePublisherService {
         environment,
         artifactAvailable: await this.storage.fileExists(
           existingTarget.storageKey,
+          { kind: 'platform' },
         ),
       });
     }
 
-    if (!(await this.storage.fileExists(source.storageKey))) {
+    if (
+      !(await this.storage.fileExists(source.storageKey, { kind: 'platform' }))
+    ) {
       throw new AppError('RELEASE_ARTIFACT_INVALID', {
         description:
           'The source release points at an artefact that is no longer in storage, so it cannot be promoted.',
@@ -414,6 +422,7 @@ export class ReleasePublisherService {
         name: source.name,
         description: source.description,
         storageKey: source.storageKey,
+        storageProvider: source.storageProvider,
         fileName: source.fileName,
         fileSizeBytes: source.fileSizeBytes,
         checksumSha256: source.checksumSha256,
@@ -518,7 +527,10 @@ export class ReleasePublisherService {
           downloadPath: `/app-releases/${release.id}/download`,
           // The storage key itself never crosses this boundary; only whether the
           // object it names is there.
-          artifactAvailable: await this.storage.fileExists(release.storageKey),
+          artifactAvailable: await this.storage.fileExists(
+            release.storageKey,
+            { kind: 'platform' },
+          ),
         })),
       ),
     };
@@ -669,8 +681,21 @@ export class ReleasePublisherService {
     return { checksum, checksumSha512 };
   }
 
+  /**
+   * `app.cliAlias` is used as the partitioning segment rather than
+   * `app.appKey`: the opaque-segment grammar `buildObjectKey` enforces is
+   * `[A-Za-z0-9._-]` (no underscore), and every `appKey` in this catalogue
+   * (`INTEGRATION_GATEWAY`, `AGENT_DESKTOP`, `ZKTECO_DIAGNOSTIC`) contains one.
+   * `cliAlias` is already a hyphenated, lowercase form of the same identifier,
+   * so it partitions the same way without tripping the segment validator.
+   * `version` is used as-is: `assertVersion` already restricts it to
+   * `RELEASE_VERSION_PATTERN`, which is a strict subset of the opaque-segment
+   * grammar (digits, dots, hyphens — never `+` build metadata), so it never
+   * needs the fallback-to-row-id the storage migration contract describes for
+   * a version string that could contain something wider.
+   */
   private async storeArtifact(
-    appKey: string,
+    app: PublishableApp,
     version: string,
     fileName: string,
     artifact: Buffer,
@@ -678,7 +703,10 @@ export class ReleasePublisherService {
     return this.storage.saveFile({
       buffer: artifact,
       originalFileName: fileName,
-      subdirectory: `${RELEASE_STORAGE_PREFIX}/${appKey}/${version}`,
+      contentType: 'application/octet-stream',
+      scope: { kind: 'platform' },
+      domain: 'app-releases',
+      segments: [app.cliAlias, version],
     });
   }
 
@@ -731,7 +759,11 @@ export class ReleasePublisherService {
         problems.push('file size differs');
       }
       if (!stored.publishedAt) problems.push('publishedAt was not set');
-      if (!(await this.storage.fileExists(stored.storageKey))) {
+      if (
+        !(await this.storage.fileExists(stored.storageKey, {
+          kind: 'platform',
+        }))
+      ) {
         problems.push('the artefact is not retrievable from storage');
       }
     }

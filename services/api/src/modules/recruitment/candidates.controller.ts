@@ -195,17 +195,12 @@ export class CandidatesController {
     @Param('documentId', new ParseUUIDPipe()) documentId: string,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const { document, file, redirectUrl } =
+    const { document, file } =
       await this.recruitmentService.openCandidateDocumentForView(
         user.tenantId,
         candidateId,
         documentId,
       );
-
-    if (redirectUrl) {
-      response.redirect(redirectUrl);
-      return;
-    }
 
     response.setHeader(
       'Content-Type',
@@ -215,9 +210,6 @@ export class CandidatesController {
       'Content-Disposition',
       `inline; filename="${document.fileName}"`,
     );
-    if (!file) {
-      return;
-    }
     return new StreamableFile(file.stream);
   }
 
@@ -233,17 +225,12 @@ export class CandidatesController {
     @Param('documentId', new ParseUUIDPipe()) documentId: string,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const { document, file, redirectUrl } =
+    const { document, file } =
       await this.recruitmentService.openCandidateDocumentForDownload(
         user.tenantId,
         candidateId,
         documentId,
       );
-
-    if (redirectUrl) {
-      response.redirect(redirectUrl);
-      return;
-    }
 
     response.setHeader(
       'Content-Type',
@@ -253,9 +240,6 @@ export class CandidatesController {
       'Content-Disposition',
       `attachment; filename="${document.fileName}"`,
     );
-    if (!file) {
-      return;
-    }
     return new StreamableFile(file.stream);
   }
 }

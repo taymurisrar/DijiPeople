@@ -73,7 +73,14 @@ class PublishReleaseDto {
   @IsOptional()
   @IsEnum(ApplicationReleaseChannel)
   channel?: ApplicationReleaseChannel;
-  @IsOptional() @IsString() @MaxLength(500) storageKey?: string;
+  // `storageKey` is deliberately not a field here (FILE-03): this route lets
+  // any caller holding `appDownloads.manage` — including a tenant System
+  // Admin — set release metadata, and a client-supplied storage key would let
+  // that caller point a release's download at an arbitrary object in the
+  // store. A storage-backed artefact can only be registered through the
+  // token-gated `ReleasePublisherService` pipeline, which uploads the bytes
+  // itself and computes the key server-side. This route may still register a
+  // release hosted outside DijiPeople storage via `externalUrl`.
   @IsOptional() @IsUrl({ require_tld: false }) externalUrl?: string;
   @IsOptional() @IsString() @MaxLength(255) fileName?: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) fileSizeBytes?: number;

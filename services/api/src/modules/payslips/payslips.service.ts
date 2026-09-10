@@ -12,7 +12,15 @@ import {
   NotificationChannel,
   Prisma,
   DocumentEntityType,
+  SecurityAccessLevel,
+  SecurityPrivilege,
 } from '@prisma/client';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
+import {
+  buildScopedAccessWhere,
+  resolveEffectiveAccessLevel,
+} from '../../common/security/rbac-query-scope';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from '../../common/storage/storage.service';
 import { AuditService } from '../audit/audit.service';
@@ -287,9 +295,13 @@ export class PayslipsService {
     };
   }
 
-  async getPayslip(params: { tenantId: string; payslipId: string }) {
+  async getPayslip(params: {
+    tenantId: string;
+    payslipId: string;
+    currentUser: AuthenticatedUser;
+  }) {
     const payslip = await this.findPayslipOrThrow(
-      params.tenantId,
+      params.currentUser,
       params.payslipId,
     );
     return mapPayslip(payslip);
@@ -319,9 +331,10 @@ export class PayslipsService {
     tenantId: string;
     payslipId: string;
     actorUserId: string;
+    currentUser: AuthenticatedUser;
   }) {
     const existing = await this.findPayslipOrThrow(
-      params.tenantId,
+      params.currentUser,
       params.payslipId,
     );
     if (existing.status !== PayslipStatus.GENERATED) {
@@ -373,6 +386,7 @@ export class PayslipsService {
     payslipId: string;
     actorUserId: string;
     reason: string;
+    currentUser: AuthenticatedUser;
   }) {
     const reason = params.reason.trim();
     if (!reason) {
@@ -380,7 +394,7 @@ export class PayslipsService {
     }
 
     const existing = await this.findPayslipOrThrow(
-      params.tenantId,
+      params.currentUser,
       params.payslipId,
     );
     if (
@@ -507,9 +521,10 @@ export class PayslipsService {
     tenantId: string;
     payslipId: string;
     actorUserId: string;
+    currentUser: AuthenticatedUser;
   }) {
     const payslip = await this.findPayslipOrThrow(
-      params.tenantId,
+      params.currentUser,
       params.payslipId,
     );
     return this.generatePayslipForRunEmployee({
@@ -524,9 +539,10 @@ export class PayslipsService {
     tenantId: string;
     payslipId: string;
     actorUserId: string;
+    currentUser: AuthenticatedUser;
   }) {
     const payslip = await this.findPayslipOrThrow(
-      params.tenantId,
+      params.currentUser,
       params.payslipId,
     );
     if (payslip.status !== PayslipStatus.PUBLISHED) {
@@ -657,11 +673,12 @@ export class PayslipsService {
     tenantId: string;
     payslipId: string;
     actorUserId: string;
+    currentUser: AuthenticatedUser;
     own?: boolean;
   }) {
     let payslip = params.own
       ? await this.getAuthorizedOwnPayslip(params)
-      : await this.findPayslipOrThrow(params.tenantId, params.payslipId);
+      : await this.findPayslipOrThrow(params.currentUser, params.payslipId);
     if (!payslip.document?.storageKey || payslip.documentVersion < 3) {
       await this.storeGeneratedPayslipPdf({
         tenantId: params.tenantId,
@@ -673,12 +690,15 @@ export class PayslipsService {
       });
       payslip = params.own
         ? await this.getAuthorizedOwnPayslip(params)
-        : await this.findPayslipOrThrow(params.tenantId, params.payslipId);
+        : await this.findPayslipOrThrow(params.currentUser, params.payslipId);
     }
     if (!payslip.document?.storageKey) {
       throw new NotFoundException('Payslip PDF could not be generated.');
     }
-    const file = await this.storage.openFile(payslip.document.storageKey);
+    const file = await this.storage.openFile(payslip.document.storageKey, {
+      kind: 'tenant',
+      tenantId: params.tenantId,
+    });
     await this.prisma.payslipEventLog.create({
       data: {
         tenantId: params.tenantId,
@@ -725,7 +745,19 @@ export class PayslipsService {
     return payslip;
   }
 
-  private async findPayslipOrThrow(tenantId: string, payslipId: string) {
+  /**
+   * The tenant-scoped-but-not-row-scoped lookup, used only by the internal
+   * PDF-generation continuation below.
+   *
+   * That caller always operates on a `payslipId` it already resolved a moment
+   * earlier in the same call — either through `findPayslipOrThrow` (a fresh
+   * user request) or through `generatePayslipForRunEmployee` (a payroll job
+   * acting on the run it was just given). It is never handed an arbitrary id
+   * from a request the way the public read/download/action paths below are,
+   * so it does not need FILE-07's row-level narrowing on top of the tenant
+   * filter.
+   */
+  private async findPayslipRecordOrThrow(tenantId: string, payslipId: string) {
     const payslip = await this.prisma.payslip.findFirst({
       where: { tenantId, id: payslipId },
       include: payslipInclude,
@@ -736,6 +768,68 @@ export class PayslipsService {
     }
 
     return payslip;
+  }
+
+  /**
+   * FILE-07: `findPayslipOrThrow` used to filter on `{ tenantId, id }` alone,
+   * so any caller holding the tenant-wide `payslips.read` privilege — the
+   * entity-level permission check `PermissionsGuard` performs — could fetch
+   * or download any employee's payslip by id, regardless of the row-level
+   * access level (SELF/TEAM/BUSINESS_UNIT) their role actually grants for the
+   * PAYSLIPS entity. `PermissionsGuard` only proves the caller holds *some*
+   * privilege on payslips; it says nothing about *whose* payslips, which is
+   * exactly the gap `buildScopedAccessWhere` closes for every other tenant
+   * resource in this codebase (see `DocumentsService.buildDocumentReadWhere`).
+   *
+   * A TENANT-level caller still sees every payslip in the tenant. Anyone
+   * scoped narrower is additionally required to have READ access, under the
+   * same scoping rules, to the *employee* the payslip belongs to.
+   */
+  private async findPayslipOrThrow(
+    currentUser: AuthenticatedUser,
+    payslipId: string,
+  ) {
+    const payslip = await this.prisma.payslip.findFirst({
+      where: {
+        tenantId: currentUser.tenantId,
+        id: payslipId,
+        ...this.buildPayslipAccessWhere(currentUser),
+      },
+      include: payslipInclude,
+    });
+
+    if (!payslip) {
+      throw new NotFoundException('Payslip was not found.');
+    }
+
+    return payslip;
+  }
+
+  private buildPayslipAccessWhere(
+    currentUser: AuthenticatedUser,
+  ): Prisma.PayslipWhereInput {
+    const accessLevel = resolveEffectiveAccessLevel(
+      currentUser,
+      ENTITY_KEYS.PAYSLIPS,
+      SecurityPrivilege.READ,
+    );
+
+    if (accessLevel === SecurityAccessLevel.TENANT) {
+      return {};
+    }
+
+    if (accessLevel === SecurityAccessLevel.NONE) {
+      return { id: '__rbac_no_payslip_access__' };
+    }
+
+    const employeeWhere = buildScopedAccessWhere<Prisma.EmployeeWhereInput>(
+      currentUser,
+      ENTITY_KEYS.EMPLOYEES,
+      SecurityPrivilege.READ,
+      { organizationIdField: null, userIdField: 'userId' },
+    );
+
+    return { employee: { is: employeeWhere } };
   }
 
   private async findEmployeeForUser(tenantId: string, userId: string) {
@@ -805,7 +899,7 @@ export class PayslipsService {
     actorUserId: string;
     eventType: PayslipEventType;
   }) {
-    const payslip = await this.findPayslipOrThrow(
+    const payslip = await this.findPayslipRecordOrThrow(
       params.tenantId,
       params.payslipId,
     );

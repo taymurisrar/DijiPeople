@@ -9,6 +9,7 @@ import {
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from '../../common/storage/storage.service';
+import type { StorageScope } from '../../common/storage/object-storage.types';
 import { AuditService } from '../audit/audit.service';
 import { PlatformEventsService } from '../platform-events/platform-events.service';
 import {
@@ -247,7 +248,44 @@ export class TenantErasureService {
        * transaction. It runs afterwards and is reported rather than allowed to
        * fail an erasure that has already committed.
        */
-      const files = await this.deleteStoredFiles(storageKeys);
+      const files = await this.deleteStoredFiles(tenant.id, storageKeys);
+
+      if (files.failed > 0) {
+        /*
+         * The database half of the erasure already committed — that cannot be
+         * undone, and should not be. What must not happen is the failure going
+         * quiet: an orphaned object is still readable by whoever holds its key,
+         * and nothing left in the database can point an operator at it. The
+         * full list is in the log line `deleteStoredFiles` already wrote; the
+         * receipt gets the count and a pointer to it, since it is the record
+         * this erasure is required to leave behind.
+         */
+        const orphanedRefs = files.failedItems
+          .map((item) => `${item.model}:${item.id}`)
+          .join(', ');
+        this.logger.error(
+          `Tenant erasure ${tenant.slug} (${tenant.id}) completed, but ${files.failed} ` +
+            `of ${files.total} storage object(s) could not be deleted (${orphanedRefs}). ` +
+            `Receipt ${receipt.id} records the count; see the preceding per-object log ` +
+            'lines for the storage keys.',
+        );
+        await this.prisma.tenantErasureReceipt.update({
+          where: { id: receipt.id },
+          data: {
+            failureMessage:
+              `Database rows were erased, but ${files.failed} of ${files.total} ` +
+              `storage object(s) could not be deleted and are orphaned (${orphanedRefs}). ` +
+              'They were not lost silently: see the API logs around this receipt ' +
+              'for the exact storage keys, and remove or reconcile them manually.',
+            erasedRecordCounts: {
+              ...counts.erased,
+              storageObjectsDeleted: files.deleted,
+              storageObjectsFailed: files.failed,
+              storageObjectsTotal: files.total,
+            } as Prisma.InputJsonValue,
+          },
+        });
+      }
 
       await this.events.record({
         eventCode: 'TENANT_ERASURE_COMPLETED',
@@ -654,39 +692,160 @@ export class TenantErasureService {
   /**
    * Storage keys are read before the rows go, because afterwards there is
    * nothing left to read them from.
+   *
+   * Every tenant-scoped model that carries an object-storage key is read here.
+   * `Contract`/`SupportCase` attachments (`ContractDocument`,
+   * `ContractTemplateVersion`, `ContractVersion`, `SignatureEvidence`,
+   * `SupportCaseAttachment`) are deliberately excluded: `Contract` and
+   * `SupportCase` themselves are *detached* rather than deleted by this erasure
+   * (`TENANT_ERASURE_DETACHED_MODELS`), so their attachments' rows — and the
+   * bytes those rows point at — are never touched and must stay readable.
    */
-  private async collectStorageKeys(tenantId: string) {
-    const [documents, versions] = await Promise.all([
+  private async collectStorageKeys(
+    tenantId: string,
+  ): Promise<Array<{ model: string; id: string; key: string }>> {
+    const [
+      documents,
+      versions,
+      documentReferences,
+      employeeDocumentReferences,
+      invoices,
+      screenCaptureEvents,
+      reportRuns,
+      dataJobs,
+    ] = await Promise.all([
       this.prisma.document.findMany({
         where: { tenantId },
-        select: { storageKey: true },
+        select: { id: true, storageKey: true },
       }),
       this.prisma.documentVersion.findMany({
         where: { tenantId },
-        select: { storageKey: true },
+        select: { id: true, storageKey: true },
+      }),
+      this.prisma.documentReference.findMany({
+        where: { tenantId },
+        select: { id: true, storageKey: true },
+      }),
+      this.prisma.employeeDocumentReference.findMany({
+        where: { tenantId },
+        select: { id: true, storageKey: true },
+      }),
+      this.prisma.invoice.findMany({
+        where: { tenantId },
+        select: { id: true, pdfStorageKey: true },
+      }),
+      this.prisma.screenCaptureEvent.findMany({
+        where: { tenantId },
+        select: { id: true, storageKey: true },
+      }),
+      this.prisma.reportRun.findMany({
+        where: { tenantId },
+        select: { id: true, resultFileKey: true },
+      }),
+      this.prisma.dataJob.findMany({
+        where: { tenantId },
+        select: {
+          id: true,
+          sourceFileKey: true,
+          resultFileKey: true,
+          errorFileKey: true,
+        },
       }),
     ]);
-    return [
-      ...documents.map((item) => item.storageKey),
-      ...versions.map((item) => item.storageKey),
-    ].filter((key): key is string => Boolean(key));
+
+    const entries: Array<{ model: string; id: string; key: string | null }> =
+      [
+        ...documents.map((item) => ({
+          model: 'document',
+          id: item.id,
+          key: item.storageKey,
+        })),
+        ...versions.map((item) => ({
+          model: 'documentVersion',
+          id: item.id,
+          key: item.storageKey,
+        })),
+        ...documentReferences.map((item) => ({
+          model: 'documentReference',
+          id: item.id,
+          key: item.storageKey,
+        })),
+        ...employeeDocumentReferences.map((item) => ({
+          model: 'employeeDocumentReference',
+          id: item.id,
+          key: item.storageKey,
+        })),
+        ...invoices.map((item) => ({
+          model: 'invoice',
+          id: item.id,
+          key: item.pdfStorageKey,
+        })),
+        ...screenCaptureEvents.map((item) => ({
+          model: 'screenCaptureEvent',
+          id: item.id,
+          key: item.storageKey,
+        })),
+        ...reportRuns.map((item) => ({
+          model: 'reportRun',
+          id: item.id,
+          key: item.resultFileKey,
+        })),
+        ...dataJobs.flatMap((item) => [
+          { model: 'dataJob:sourceFileKey', id: item.id, key: item.sourceFileKey },
+          { model: 'dataJob:resultFileKey', id: item.id, key: item.resultFileKey },
+          { model: 'dataJob:errorFileKey', id: item.id, key: item.errorFileKey },
+        ]),
+      ];
+
+    return entries.filter(
+      (entry): entry is { model: string; id: string; key: string } =>
+        Boolean(entry.key),
+    );
   }
 
-  private async deleteStoredFiles(storageKeys: string[]) {
+  /**
+   * Deletes the bytes named by `collectStorageKeys`, after the database rows
+   * are already gone.
+   *
+   * A row being removed and its object being deleted are two systems, not one
+   * transaction, so a delete can fail here with nothing left in the database to
+   * retry it from. Losing track of that is the whole failure mode this erasure
+   * feature exists to close, so a failure is never swallowed: it is logged with
+   * exactly which model and row produced the orphaned key, and the caller
+   * threads the outcome into the erasure receipt so an operator — not a log
+   * grep — is the one who finds out.
+   */
+  private async deleteStoredFiles(
+    tenantId: string,
+    entries: Array<{ model: string; id: string; key: string }>,
+  ) {
+    const scope: StorageScope = { kind: 'tenant', tenantId };
     let deleted = 0;
-    let failed = 0;
-    for (const key of storageKeys) {
+    const failedItems: Array<{ model: string; id: string; key: string }> = [];
+
+    for (const entry of entries) {
       try {
-        await this.storage.deleteFile(key);
+        await this.storage.deleteFile(entry.key, scope);
         deleted += 1;
       } catch (error) {
-        failed += 1;
-        this.logger.warn(
-          `Unable to delete stored file ${key}: ${error instanceof Error ? error.message : String(error)}`,
+        failedItems.push(entry);
+        this.logger.error(
+          `Tenant erasure left an orphaned storage object after its database ` +
+            `row was deleted: model=${entry.model} id=${entry.id} key=${entry.key} ` +
+            `tenantId=${tenantId} reason=${
+              error instanceof Error ? error.message : String(error)
+            }. This object must be removed or reconciled manually — it is no ` +
+            `longer reachable from any row.`,
         );
       }
     }
-    return { deleted, failed, total: storageKeys.length };
+
+    return {
+      deleted,
+      failed: failedItems.length,
+      total: entries.length,
+      failedItems,
+    };
   }
 }
 

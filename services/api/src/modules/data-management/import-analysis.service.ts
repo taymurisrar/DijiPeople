@@ -4,6 +4,7 @@ import * as ExcelJS from 'exceljs';
 import { createHash } from 'node:crypto';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from '../../common/storage/storage.service';
+import type { StorageScope } from '../../common/storage/object-storage.types';
 import { AttendanceService } from '../attendance/attendance.service';
 import { EmployeesService } from '../employees/employees.service';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -55,6 +56,10 @@ const LABEL_ROW = 1;
 const KEY_ROW = 2;
 const EXAMPLE_ROW = 3;
 const EXAMPLE_MARKER = '#EXAMPLE';
+
+function tenantScope(tenantId: string): StorageScope {
+  return { kind: 'tenant', tenantId };
+}
 
 @Injectable()
 export class ImportAnalysisService {
@@ -235,7 +240,9 @@ export class ImportAnalysisService {
     const stored = await this.storage.saveFile({
       buffer: validated.buffer,
       originalFileName: validated.originalname,
-      subdirectory: `data-imports/${currentUser.tenantId}`,
+      contentType: validated.mimetype,
+      scope: tenantScope(currentUser.tenantId),
+      domain: 'data-imports',
     });
 
     const validRows = issuesByRow.filter(
@@ -260,6 +267,7 @@ export class ImportAnalysisService {
         name: `${module.label} import — ${validated.originalname}`,
         fileName: validated.originalname,
         sourceFileKey: stored.storageKey,
+        storageProvider: stored.storageProvider,
         sheetName: sheet.name,
         mappingJson: mappings as unknown as Prisma.InputJsonValue,
         totalRows: rows.length,

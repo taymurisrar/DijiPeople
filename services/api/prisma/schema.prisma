@@ -3052,6 +3052,8 @@ model ContractTemplateVersion {
   sourceFileName       String?
   sourceMimeType       String?
   sourceStorageKey     String?
+  scanStatus           FileScanStatus?
+  sourceStorageProvider String?
   sourceSha256         String?
   changeSummary        String?
   isPublished          Boolean           @default(false)
@@ -3181,6 +3183,7 @@ model ContractVersion {
   sourceFileName            String?
   sourceMimeType            String?
   sourceStorageKey          String?
+  sourceStorageProvider     String?
   contentSha256             String
   placeholderSnapshot       Json?
   placeholderSnapshotSha256 String?                  @db.VarChar(64)
@@ -3212,6 +3215,8 @@ model ContractDocument {
   fileName            String
   mimeType            String
   storageKey          String
+  scanStatus          FileScanStatus?
+  storageProvider     String?
   sizeBytes           Int
   sha256              String
   isImmutable         Boolean                @default(false)
@@ -3443,6 +3448,7 @@ model SignatureEvidence {
   method               SignatureMethod
   typedName            String?
   signatureStorageKey  String?
+  signatureStorageProvider String?
   signatureSha256      String
   consentText          String
   consentVersion       String             @default("1")
@@ -3755,6 +3761,8 @@ model SupportCaseAttachment {
   fileName       String
   mimeType       String
   storageKey     String
+  scanStatus     FileScanStatus?
+  storageProvider String?
   sizeBytes      Int
   sha256         String
   isCustomerSafe Boolean     @default(false)
@@ -5464,6 +5472,9 @@ model EmployeeDocumentReference {
   contentType   String?
   fileSizeBytes Int?
   storageKey    String?
+  scanStatus    FileScanStatus?
+  checksumSha256 String?
+  storageProvider String?
   uploadedAt    DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -7192,6 +7203,8 @@ model DocumentReference {
   contentType          String?
   fileSizeBytes        Int?
   storageKey           String?
+  scanStatus           FileScanStatus?
+  storageProvider      String?
   isResume             Boolean                @default(false)
   isPrimaryResume      Boolean                @default(false)
   isLatestResume       Boolean                @default(false)
@@ -7332,6 +7345,20 @@ model OnboardingTask {
   @@index([tenantId, assignedUserId, status])
 }
 
+/// Lifecycle of the malware scan for an uploaded object.
+///
+/// No scanner is wired yet (FILE-04), so uploads are recorded as
+/// SCAN_NOT_CONFIGURED rather than as CLEAN — claiming a file was scanned
+/// when nothing scanned it is worse than admitting the gap. The download
+/// path already refuses QUARANTINED, so introducing a scanner later is a
+/// matter of writing the verdict, not of changing every download.
+enum FileScanStatus {
+  PENDING
+  CLEAN
+  QUARANTINED
+  SCAN_FAILED
+  SCAN_NOT_CONFIGURED
+}
 model Document {
   id                      String                @id @default(uuid())
   tenantId                String
@@ -7344,6 +7371,9 @@ model Document {
   fileExtension           String?
   sizeInBytes             Int?
   storageKey              String?
+  scanStatus              FileScanStatus?
+  checksumSha256          String?
+  storageProvider         String?
   uploadedByUserId        String?
   description             String?
   isArchived              Boolean               @default(false)
@@ -7382,6 +7412,9 @@ model DocumentVersion {
   fileExtension      String?
   sizeInBytes        Int?
   storageKey         String?
+  scanStatus         FileScanStatus?
+  checksumSha256     String?
+  storageProvider    String?
   documentTypeId     String?
   documentCategoryId String?
   description        String?
@@ -8322,6 +8355,8 @@ model Invoice {
   emailedTo              String?
   emailStatus            String?
   pdfStorageKey          String?
+  pdfChecksumSha256      String?
+  pdfStorageProvider     String?
   subtotal               Decimal?      @db.Decimal(12, 2)
   tax                    Decimal?      @db.Decimal(12, 2)
   total                  Decimal?      @db.Decimal(12, 2)
@@ -10924,6 +10959,7 @@ model ScreenCaptureEvent {
   firedRuleId    String?
   capturedReason String?
   storageKey     String?
+  storageProvider String?
   contentBytes   Int
   contentSha256  String
   agentVersion   String
@@ -11377,6 +11413,7 @@ model DataJob {
   /// StorageService key for the uploaded workbook; never the binary itself.
   sourceFileKey     String?
   resultFileKey     String?
+  storageProvider   String?
   errorFileKey      String?
   sheetName         String?
   /// Column mapping and cleansing rules actually used, retained for audit.
@@ -12456,6 +12493,7 @@ model ApplicationRelease {
   channel                 ApplicationReleaseChannel @default(STABLE)
   /// Storage reference resolved through StorageService; never a hard-coded URL.
   storageKey              String?
+  storageProvider         String?
   /// Absolute URL for artefacts hosted outside DijiPeople storage.
   externalUrl             String?
   fileName                String?
@@ -14316,6 +14354,8 @@ model ReportRun {
   rowCount           Int?
   durationMs         Int?
   resultFileKey      String?
+  checksumSha256     String?
+  storageProvider    String?
   fileName           String?
   contentType        String?
   fileSizeBytes      Int?

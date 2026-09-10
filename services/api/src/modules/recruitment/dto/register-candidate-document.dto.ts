@@ -4,6 +4,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   Min,
 } from 'class-validator';
@@ -32,10 +33,18 @@ export class RegisterCandidateDocumentDto {
   @Min(0)
   fileSizeBytes?: number;
 
+  /**
+   * The `Document` row the upload endpoint (`POST /api/documents/upload`)
+   * already created for this file. `storageKey` is deliberately NOT accepted
+   * here (FILE-03): a client that merely knew a key used to be able to attach
+   * anyone's stored file — including another tenant's — to a candidate
+   * profile. The service resolves the real key server-side from this id,
+   * after confirming the row belongs to this tenant and is already linked to
+   * this exact candidate.
+   */
   @IsOptional()
-  @IsString()
-  @MaxLength(512)
-  storageKey?: string;
+  @IsUUID()
+  documentId?: string;
 
   @IsOptional()
   @IsBoolean()

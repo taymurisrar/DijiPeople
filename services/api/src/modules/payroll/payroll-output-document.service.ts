@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { DocumentEntityType, Prisma } from '@prisma/client';
-import { createHash } from 'node:crypto';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from '../../common/storage/storage.service';
 
@@ -27,7 +26,10 @@ export class PayrollOutputDocumentService {
     const stored = await this.storage.saveFile({
       buffer: params.buffer,
       originalFileName: params.fileName,
-      subdirectory: `${params.tenantId}/documents/${params.entityType.toLowerCase()}/${params.entityId}`,
+      contentType: params.contentType,
+      scope: { kind: 'tenant', tenantId: params.tenantId },
+      domain: 'payroll',
+      segments: [params.entityType.toLowerCase(), params.entityId],
     });
     const document = await db.document.create({
       data: {
@@ -39,6 +41,11 @@ export class PayrollOutputDocumentService {
         fileExtension: extensionFor(params.fileName),
         sizeInBytes: stored.size,
         storageKey: stored.storageKey,
+        storageProvider: stored.storageProvider,
+        checksumSha256: stored.checksumSha256,
+        // Server-generated payroll output (payslip/report PDFs), not a
+        // user-uploaded file, so `scanStatus` stays null rather than claiming
+        // a scan state that was never evaluated.
         uploadedByUserId: params.actorUserId,
         description: params.description,
         createdById: params.actorUserId,
@@ -57,7 +64,7 @@ export class PayrollOutputDocumentService {
     });
     return {
       document,
-      checksum: createHash('sha256').update(params.buffer).digest('hex'),
+      checksum: stored.checksumSha256,
     };
   }
 

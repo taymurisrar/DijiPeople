@@ -11,6 +11,7 @@ import {
 import { AppError } from '../../../common/errors/app-error';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { StorageService } from '../../../common/storage/storage.service';
+import type { StorageScope } from '../../../common/storage/object-storage.types';
 import { parseTargetKey } from '../execution/report-execution.service';
 import type { ReportExportFile } from './report-export.service';
 
@@ -24,7 +25,9 @@ const SWEEP_BATCH_SIZE = 500;
 /** Failure text is stored and shown; a stack trace is neither useful nor safe. */
 const MAX_FAILURE_REASON = 500;
 
-const STORAGE_ROOT_SUBDIRECTORY = 'report-exports';
+function tenantScope(tenantId: string): StorageScope {
+  return { kind: 'tenant', tenantId };
+}
 
 export interface CreateReportRunInput {
   /** Always `request.user.tenantId` — never a body, query or header value. */
@@ -174,11 +177,14 @@ export class ReportArtifactService {
     options: { durationMs?: number; rowCount?: number } = {},
   ): Promise<ReportRun> {
     const run = await this.requireRun(tenantId, runId);
+    const scope = tenantScope(tenantId);
 
     const saved = await this.storage.saveFile({
       buffer: file.buffer,
       originalFileName: file.fileName,
-      subdirectory: `${STORAGE_ROOT_SUBDIRECTORY}/${tenantId}`,
+      contentType: file.contentType,
+      scope,
+      domain: 'report-exports',
     });
 
     try {
@@ -188,6 +194,8 @@ export class ReportArtifactService {
           status: ReportRunStatus.COMPLETED,
           completedAt: new Date(),
           resultFileKey: saved.storageKey,
+          checksumSha256: saved.checksumSha256,
+          storageProvider: saved.storageProvider,
           fileName: file.fileName,
           contentType: file.contentType,
           fileSizeBytes: saved.size,
@@ -198,7 +206,7 @@ export class ReportArtifactService {
         },
       });
     } catch (error) {
-      await this.storage.deleteFile(saved.storageKey).catch(() => undefined);
+      await this.storage.deleteFile(saved.storageKey, scope).catch(() => undefined);
       throw error;
     }
   }
@@ -305,7 +313,10 @@ export class ReportArtifactService {
       });
     }
 
-    const opened = await this.storage.openFile(run.resultFileKey);
+    const opened = await this.storage.openFile(
+      run.resultFileKey,
+      tenantScope(tenantId),
+    );
 
     return {
       runId: run.id,
@@ -349,7 +360,10 @@ export class ReportArtifactService {
     for (const run of due) {
       try {
         if (run.resultFileKey) {
-          await this.storage.deleteFile(run.resultFileKey);
+          await this.storage.deleteFile(
+            run.resultFileKey,
+            tenantScope(run.tenantId),
+          );
           result.filesDeleted += 1;
         }
 

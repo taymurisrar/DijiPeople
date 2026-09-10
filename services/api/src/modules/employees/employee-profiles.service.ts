@@ -8,7 +8,12 @@ import { getAppOrigin } from '@repo/config';
 import { extname } from 'path';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { Prisma, SecurityAccessLevel, SecurityPrivilege } from '@prisma/client';
+import {
+  FileScanStatus,
+  Prisma,
+  SecurityAccessLevel,
+  SecurityPrivilege,
+} from '@prisma/client';
 import { normalizeEmail } from '../../common/utils/email.util';
 import { getAccessTokenSecret } from '../../common/config/auth.config';
 import { PERMISSION_KEYS } from '../../common/constants/permissions';
@@ -1126,7 +1131,6 @@ export class EmployeeProfilesService {
       documentCategory: document.documentCategory,
       mimeType: document.mimeType,
       size: document.sizeInBytes,
-      storageKey: document.storageKey,
       createdAt: document.createdAt,
       uploadedAt: document.createdAt,
       updatedAt: document.updatedAt,
@@ -1167,7 +1171,10 @@ export class EmployeeProfilesService {
     const stored = await this.storageService.saveFile({
       buffer: validatedFile.buffer,
       originalFileName: validatedFile.originalname,
-      subdirectory: `${currentUser.tenantId}/employees/${employeeId}/documents`,
+      contentType: validatedFile.mimetype,
+      scope: { kind: 'tenant', tenantId: currentUser.tenantId },
+      domain: 'employees',
+      segments: [employeeId, 'documents'],
     });
 
     const document = await this.prisma.$transaction(async (tx) => {
@@ -1184,6 +1191,9 @@ export class EmployeeProfilesService {
             extname(validatedFile.originalname).toLowerCase() || null,
           sizeInBytes: validatedFile.size,
           storageKey: stored.storageKey,
+          storageProvider: stored.storageProvider,
+          checksumSha256: stored.checksumSha256,
+          scanStatus: FileScanStatus.SCAN_NOT_CONFIGURED,
           uploadedByUserId: currentUser.userId,
           description: dto.description?.trim(),
           createdById: currentUser.userId,
@@ -1258,7 +1268,10 @@ export class EmployeeProfilesService {
       ? await this.storageService.saveFile({
           buffer: validatedFile.buffer,
           originalFileName: validatedFile.originalname,
-          subdirectory: `${currentUser.tenantId}/employees/${employeeId}/documents`,
+          contentType: validatedFile.mimetype,
+          scope: { kind: 'tenant', tenantId: currentUser.tenantId },
+          domain: 'employees',
+          segments: [employeeId, 'documents'],
         })
       : null;
 
@@ -1282,6 +1295,9 @@ export class EmployeeProfilesService {
             fileExtension: existing.fileExtension,
             sizeInBytes: existing.sizeInBytes,
             storageKey: existing.storageKey,
+            storageProvider: existing.storageProvider,
+            checksumSha256: existing.checksumSha256,
+            scanStatus: existing.scanStatus,
             documentTypeId: existing.documentTypeId,
             documentCategoryId: existing.documentCategoryId,
             description: existing.description,
@@ -1305,6 +1321,9 @@ export class EmployeeProfilesService {
                     extname(validatedFile.originalname).toLowerCase() || null,
                   sizeInBytes: validatedFile.size,
                   storageKey: stored.storageKey,
+                  storageProvider: stored.storageProvider,
+                  checksumSha256: stored.checksumSha256,
+                  scanStatus: FileScanStatus.SCAN_NOT_CONFIGURED,
                 }
               : {}),
             updatedById: currentUser.userId,
@@ -1315,7 +1334,10 @@ export class EmployeeProfilesService {
       return updated;
     } catch (error) {
       if (stored?.storageKey) {
-        await this.storageService.deleteFile(stored.storageKey);
+        await this.storageService.deleteFile(stored.storageKey, {
+          kind: 'tenant',
+          tenantId: currentUser.tenantId,
+        });
       }
       throw error;
     }
@@ -1377,7 +1399,10 @@ export class EmployeeProfilesService {
 
     return {
       document,
-      file: await this.storageService.openFile(document.storageKey),
+      file: await this.storageService.openFile(document.storageKey, {
+        kind: 'tenant',
+        tenantId: currentUser.tenantId,
+      }),
     };
   }
 
@@ -1436,7 +1461,10 @@ export class EmployeeProfilesService {
     const stored = await this.storageService.saveFile({
       buffer: validatedFile.buffer,
       originalFileName: validatedFile.originalname,
-      subdirectory: `${currentUser.tenantId}/employees/${employeeId}/profile-image`,
+      contentType: validatedFile.mimetype,
+      scope: { kind: 'tenant', tenantId: currentUser.tenantId },
+      domain: 'employees',
+      segments: [employeeId, 'profile-image'],
     });
 
     const document = await this.prisma.$transaction(async (tx) => {
@@ -1467,6 +1495,9 @@ export class EmployeeProfilesService {
             extname(validatedFile.originalname).toLowerCase() || null,
           sizeInBytes: validatedFile.size,
           storageKey: stored.storageKey,
+          storageProvider: stored.storageProvider,
+          checksumSha256: stored.checksumSha256,
+          scanStatus: FileScanStatus.SCAN_NOT_CONFIGURED,
           uploadedByUserId: currentUser.userId,
           description: 'Employee profile image',
           createdById: currentUser.userId,
@@ -1502,6 +1533,7 @@ export class EmployeeProfilesService {
     if (employee.profileImageDocument?.storageKey) {
       await this.storageService.deleteFile(
         employee.profileImageDocument.storageKey,
+        { kind: 'tenant', tenantId: currentUser.tenantId },
       );
     }
 
@@ -1538,6 +1570,7 @@ export class EmployeeProfilesService {
       document: employee.profileImageDocument,
       file: await this.storageService.openFile(
         employee.profileImageDocument.storageKey,
+        { kind: 'tenant', tenantId: currentUser.tenantId },
       ),
     };
   }
@@ -2028,7 +2061,10 @@ export class EmployeeProfilesService {
       !document.storageKey ||
       !document.mimeType ||
       !ALLOWED_PROFILE_IMAGE_TYPES.has(document.mimeType) ||
-      !(await this.storageService.fileExists(document.storageKey))
+      !(await this.storageService.fileExists(document.storageKey, {
+        kind: 'tenant',
+        tenantId: employee.tenantId,
+      }))
     ) {
       return null;
     }

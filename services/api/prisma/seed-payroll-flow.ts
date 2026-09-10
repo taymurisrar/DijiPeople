@@ -116,6 +116,10 @@ async function main() {
     tenantId: tenant.id,
     payslipId: essPayslip.id,
     actorUserId: actor.id,
+    // Payslip reads are row-scoped now (FILE-07), so the service needs the
+    // acting principal rather than an id alone. `user` is the tenant-wide
+    // system principal this seed already uses for the journal export below.
+    currentUser: user,
   });
   const journal = await services.journal.generateJournalForPayrollRun({
     tenantId: tenant.id,

@@ -520,6 +520,10 @@ export function CvUploadParseFlow({
         onProgress: setUploadProgress,
       });
 
+      if (!uploadResult.documentId) {
+        throw new Error("Resume upload did not return a document reference.");
+      }
+
       const registerResponse = await fetch(
         `/api/candidates/${candidateId}/documents`,
         {
@@ -533,7 +537,9 @@ export function CvUploadParseFlow({
             fileName: selectedFile.name,
             contentType: selectedFile.type || uploadResult.mimeType,
             fileSizeBytes: selectedFile.size,
-            storageKey: uploadResult.storageKey,
+            // The server resolves the storage key from this id itself — a
+            // client-supplied storage key is no longer accepted (FILE-03).
+            documentId: uploadResult.documentId,
             isPrimaryResume: true,
             sourceChannel: source,
             parserVersion: parserVersion || "resume-parser-v4",
@@ -552,7 +558,6 @@ export function CvUploadParseFlow({
         documents?: Array<{
           id: string;
           fileName: string;
-          storageKey?: string | null;
           createdAt?: string;
         }>;
       } | null;
@@ -566,9 +571,7 @@ export function CvUploadParseFlow({
 
       const linkedDocumentId =
         registeredCandidate?.documents?.find(
-          (item) =>
-            item.storageKey === uploadResult.storageKey ||
-            item.fileName === selectedFile.name,
+          (item) => item.fileName === selectedFile.name,
         )?.id ?? registeredCandidate?.documents?.[0]?.id;
 
       if (linkedDocumentId) {
@@ -1123,7 +1126,7 @@ async function uploadResumeForCandidate({
   formData.set("title", "Resume");
   formData.set("description", "Uploaded through CV intake flow");
 
-  return new Promise<{ storageKey?: string | null; mimeType?: string | null }>(
+  return new Promise<{ documentId?: string | null; mimeType?: string | null }>(
     (resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open("POST", "/api/documents/upload");
@@ -1143,7 +1146,7 @@ async function uploadResumeForCandidate({
 
         let data: {
           message?: string;
-          storageKey?: string | null;
+          id?: string | null;
           mimeType?: string | null;
         } | null = null;
 
@@ -1155,8 +1158,12 @@ async function uploadResumeForCandidate({
 
         if (xhr.status >= 200 && xhr.status < 300) {
           onProgress(100);
+          // The upload response's `id` is the generic `Document` row's id —
+          // the candidate-document register step resolves the storage key
+          // from this id itself rather than accepting one from the client
+          // (FILE-03).
           resolve({
-            storageKey: data?.storageKey ?? null,
+            documentId: data?.id ?? null,
             mimeType: data?.mimeType ?? null,
           });
           return;
