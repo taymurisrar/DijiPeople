@@ -3,7 +3,26 @@ import { AttendanceCorrectionForm } from "@/app/components/attendance-correction
 import { requireSessionUser } from "@/lib/auth";
 import { hasAnyPermission } from "@/lib/permissions";
 import { PERMISSION_KEYS } from "@/lib/security-keys";
+import { apiRequestJson } from "@/lib/server-api";
 import { AccessDeniedState } from "../../../_components/access-denied-state";
+
+/**
+ * BUG-2508. Sites the employee is themselves authorised for, so "Which work
+ * site?" has something to offer instead of only "Not applicable". Failure
+ * here must not break the page — a correction could always be filed without
+ * naming a site — so this deliberately falls back to empty rather than
+ * letting a secondary read 500 the form.
+ */
+async function loadMyWorkSites() {
+  try {
+    const response = await apiRequestJson<{
+      items: Array<{ id: string; name: string }>;
+    }>("/attendance/correction-requests/work-sites");
+    return response.items;
+  } catch {
+    return [];
+  }
+}
 
 export default async function NewAttendanceCorrectionPage() {
   const user = await requireSessionUser("/");
@@ -26,6 +45,8 @@ export default async function NewAttendanceCorrectionPage() {
     );
   }
 
+  const workSites = await loadMyWorkSites();
+
   return (
     <div className="dp-theme-scope dp-attendance-scope space-y-6">
       <section>
@@ -46,7 +67,7 @@ export default async function NewAttendanceCorrectionPage() {
           record is updated only after approval.
         </p>
       </section>
-      <AttendanceCorrectionForm />
+      <AttendanceCorrectionForm workSites={workSites} />
     </div>
   );
 }
