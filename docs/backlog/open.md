@@ -130,7 +130,6 @@ _None._
 | [ITEM-0116](../../docs/backlog/items/ITEM-0116-53-bug-fixes-are-regression-covered-but-have-never-been-qa-r.md) | 53 bug fixes are regression-covered but have never been QA-retested | TEST_GAP | MEDIUM | P2 | READY | — | FIX_NOW |
 | [ITEM-0117](../../docs/backlog/items/ITEM-0117-the-question-protocol-has-never-been-used-and-five-user-deci.md) | The question protocol has never been used and five user decisions are parked in the backlog instead | DOCUMENTATION | MEDIUM | P2 | READY | — | FIX_NOW |
 | [ITEM-0119](../../docs/backlog/items/ITEM-0119-stop-writing-a-placeholder-e-mail-into-an-identity-column-wh.md) | Stop writing a placeholder e-mail into an identity column when the wizard opens a draft | TECH_DEBT | MEDIUM | P2 | READY | billing, landing, super-admin | PLAN_REQUIRED |
-| [ITEM-0125](../../docs/backlog/items/ITEM-0125-the-net-integration-gateway-ships-to-customers-with-no-ci-co.md) | The .NET Integration Gateway ships to customers with no CI coverage at all | TEST_GAP | MEDIUM | P2 | READY | gateway | FIX_NOW |
 
 ## LOW and unrated
 

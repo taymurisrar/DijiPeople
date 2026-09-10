@@ -13,11 +13,11 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 123 |
+| Open (active work) | 122 |
 | Blocked | 2 |
 | Deferred | 29 |
 | Awaiting a product decision | 6 |
-| Completed / closed | 292 |
+| Completed / closed | 293 |
 | **Open CRITICAL** | **0** |
 | **Open HIGH** | **36** |
 | **Awaiting Architect triage** | **0** |
@@ -27,7 +27,7 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | HIGH | 36 |
-| MEDIUM | 69 |
+| MEDIUM | 68 |
 | LOW | 15 |
 
 ## Open by type
@@ -46,7 +46,7 @@ see [`README.md`](README.md) for why.
 | SECURITY | 5 |
 | STATE_MACHINE | 3 |
 | TECH_DEBT | 6 |
-| TEST_GAP | 8 |
+| TEST_GAP | 7 |
 | UX | 33 |
 
 ## All records by status
@@ -61,8 +61,8 @@ see [`README.md`](README.md) for why.
 | VERIFIED | 218 |
 | DUPLICATE | 5 |
 | ACCEPTED_RISK | 3 |
-| READY | 32 |
-| DONE | 66 |
+| READY | 31 |
+| DONE | 67 |
 
 ## All records
 
@@ -438,7 +438,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0118](../../docs/backlog/items/ITEM-0118-merge-the-duplicate-customeraccount-rows-self-service-checko.md) | Merge the duplicate CustomerAccount rows self-service checkout created before BUG-2530 | DATA_MIGRATION | MEDIUM | P2 | DONE | super-admin, billing | DONE |
 | [ITEM-0119](../../docs/backlog/items/ITEM-0119-stop-writing-a-placeholder-e-mail-into-an-identity-column-wh.md) | Stop writing a placeholder e-mail into an identity column when the wizard opens a draft | TECH_DEBT | MEDIUM | P2 | READY | billing, landing, super-admin | PLAN_REQUIRED |
 | [ITEM-0120](../../docs/backlog/items/ITEM-0120-schema-prisma-declares-constraints-no-migration-creates-so-m.md) | schema.prisma declares constraints no migration creates, so migrate dev cannot run without a reset | TECH_DEBT | MEDIUM | P2 | DEFERRED | prisma | DEFER |
-| [ITEM-0125](../../docs/backlog/items/ITEM-0125-the-net-integration-gateway-ships-to-customers-with-no-ci-co.md) | The .NET Integration Gateway ships to customers with no CI coverage at all | TEST_GAP | MEDIUM | P2 | READY | gateway | FIX_NOW |
+| [ITEM-0125](../../docs/backlog/items/ITEM-0125-the-net-integration-gateway-ships-to-customers-with-no-ci-co.md) | The .NET Integration Gateway ships to customers with no CI coverage at all | TEST_GAP | MEDIUM | P2 | DONE | gateway | DONE |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |

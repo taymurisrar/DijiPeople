@@ -9,12 +9,12 @@
 |---|---|
 | Open CRITICAL | **0** |
 | Open HIGH | **36** |
-| Open total | 123 |
+| Open total | 122 |
 | Blocked | 2 |
 | Awaiting a product decision | 6 |
 | Deferred | 29 |
-| Completed | 292 |
-| Awaiting Architect triage | 5 |
+| Completed | 293 |
+| Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
 
@@ -44,7 +44,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2458-token-refresh-is-throttled-by-the-public-login-rate-limiter-|BUG-2458]] | Token refresh is throttled by the public login rate limiter, signing users out | BUG | HIGH | FIXED | api:auth, api:common | FIX_NOW |
 | [[BUG-2459-the-notification-bell-polls-forever-after-a-session-ends-flo|BUG-2459]] | The notification bell polls forever after a session ends, flooding the error log | PERFORMANCE | HIGH | FIXED | web:notifications, api:error-logs, api:notifications | FIX_NOW |
 | [[BUG-2462-stripe-subscription-webhooks-fail-because-the-customer-resol|BUG-2462]] | Stripe subscription webhooks fail because the customer resolves to no tenant | INTEGRATION | HIGH | OPEN | api:billing, api:super-admin | PLAN_REQUIRED |
-| [[BUG-2494-check-out-re-validates-check-in-preconditions-and-traps-the-|BUG-2494]] | Check-out re-validates check-in preconditions and traps the entry open for ever | STATE_MACHINE | HIGH | OPEN | api:attendance | TRIAGE_REQUIRED |
+| [[BUG-2494-check-out-re-validates-check-in-preconditions-and-traps-the-|BUG-2494]] | Check-out re-validates check-in preconditions and traps the entry open for ever | STATE_MACHINE | HIGH | FIXED | api:attendance | DONE |
 | [[BUG-2504-approving-a-correction-never-applies-the-requested-work-mode|BUG-2504]] | Approving a correction never applies the requested work mode, work site or overtime | STATE_MACHINE | HIGH | OPEN | api:attendance | PLAN_REQUIRED |
 | [[BUG-2505-a-mode-or-location-correction-could-never-be-submitted-at-al|BUG-2505]] | A mode-or-location correction could never be submitted at all | BUG | HIGH | FIXED | apps/web, api:attendance | DONE |
 | [[BUG-2506-sign-out-leaves-the-refresh-token-live-whenever-the-tenant-i|BUG-2506]] | Sign-out leaves the refresh token live whenever the tenant is busy | SECURITY | HIGH | FIXED | api:auth | DONE |
@@ -59,7 +59,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2958-settings-shows-every-category-group-and-page-regardless-of-t|BUG-2958]] | Settings shows every category, group and page regardless of the tenant's plan | AUTHORIZATION | HIGH | FIXED | apps/web, api:tenant-settings | FIX_NOW |
 | [[BUG-3007-reports-and-analytics-offers-surfaces-and-reports-for-capabi|BUG-3007]] | Reports and Analytics offers surfaces and reports for capabilities the plan does not include | AUTHORIZATION | HIGH | OPEN | apps/web, api:reporting | FIX_NOW |
 | [[BUG-3020-records-behind-these-numbers-shows-raw-guids-and-a-count-tha|BUG-3020]] | Records behind these numbers shows raw GUIDs and a count that does not match the metric | UX | HIGH | OPEN | apps/web, api:reporting | FIX_NOW |
-| [[ITEM-0124-production-advisory-gate-blocks-every-release-to-main-and-np|ITEM-0124]] | Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile | SECURITY | HIGH | TRIAGE_REQUIRED | scripts/check-production-advisories.mjs | TRIAGE_REQUIRED |
+| [[ITEM-0124-production-advisory-gate-blocks-every-release-to-main-and-np|ITEM-0124]] | Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile | SECURITY | HIGH | READY | scripts/check-production-advisories.mjs | FIX_NOW |
 
 ## Product Decisions Needed
 
@@ -89,7 +89,6 @@ _None. Nothing open at CRITICAL._
 | [[ITEM-0092-widget-runtime-contract-test-js-fails-and-no-script-or-ci-jo|ITEM-0092]] | widget-runtime-contract.test.js fails and no script or CI job runs it | TEST_GAP | MEDIUM | READY | pkg:config, apps/web | PLAN_REQUIRED |
 | [[ITEM-0112-enforcecriticalattendancesetting-has-no-test-coverage-despit|ITEM-0112]] | enforceCriticalAttendanceSetting has no test coverage despite enforcing a mandatory integrity control | TEST_GAP | MEDIUM | READY | api:tenant-settings | FIX_NOW |
 | [[ITEM-0116-53-bug-fixes-are-regression-covered-but-have-never-been-qa-r|ITEM-0116]] | 53 bug fixes are regression-covered but have never been QA-retested | TEST_GAP | MEDIUM | READY | — | FIX_NOW |
-| [[ITEM-0125-the-net-integration-gateway-ships-to-customers-with-no-ci-co|ITEM-0125]] | The .NET Integration Gateway ships to customers with no CI coverage at all | TEST_GAP | MEDIUM | TRIAGE_REQUIRED | gateway | TRIAGE_REQUIRED |
 | [[ITEM-0130-review-process-missed-four-defects-on-screens-adjacent-to-th|ITEM-0130]] | Review process missed four defects on screens adjacent to the change | TEST_GAP | — | READY | apps/web, .agent | FIX_NOW |
 
 ## Current Infrastructure Gaps
@@ -241,6 +240,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2332-every-attendance-refusal-reaches-the-browser-as-validation-f|BUG-2332]] | Every attendance refusal reaches the browser as VALIDATION_FAILED and raises the technical error dialog | BUG | HIGH | FIXED | services/api/src/common/errors, api:attendance, apps/web | FIX_NOW |
 | [[BUG-2458-token-refresh-is-throttled-by-the-public-login-rate-limiter-|BUG-2458]] | Token refresh is throttled by the public login rate limiter, signing users out | BUG | HIGH | FIXED | api:auth, api:common | FIX_NOW |
 | [[BUG-2459-the-notification-bell-polls-forever-after-a-session-ends-flo|BUG-2459]] | The notification bell polls forever after a session ends, flooding the error log | PERFORMANCE | HIGH | FIXED | web:notifications, api:error-logs, api:notifications | FIX_NOW |
+| [[BUG-2494-check-out-re-validates-check-in-preconditions-and-traps-the-|BUG-2494]] | Check-out re-validates check-in preconditions and traps the entry open for ever | STATE_MACHINE | HIGH | FIXED | api:attendance | DONE |
 | [[BUG-2505-a-mode-or-location-correction-could-never-be-submitted-at-al|BUG-2505]] | A mode-or-location correction could never be submitted at all | BUG | HIGH | FIXED | apps/web, api:attendance | DONE |
 | [[BUG-2506-sign-out-leaves-the-refresh-token-live-whenever-the-tenant-i|BUG-2506]] | Sign-out leaves the refresh token live whenever the tenant is busy | SECURITY | HIGH | FIXED | api:auth | DONE |
 | [[BUG-2530-self-service-checkout-still-creates-two-customer-records-the|BUG-2530]] | Self-service checkout still creates two customer records: the wizard's draft id is dropped between the controller and the order service | DATA_INTEGRITY | HIGH | VERIFIED | billing, super-admin, landing | DONE |
@@ -368,6 +368,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2413-allocate-id-plan-scans-only-docs-qa-test-plans-so-execplan-i|BUG-2413]] | allocate-id plan scans only docs qa test-plans so ExecPlan ids collide | DATA_INTEGRITY | MEDIUM | FIXED | scripts | DONE |
 | [[BUG-2460-client-error-reports-store-the-whole-html-error-page-as-the-|BUG-2460]] | Client error reports store the whole HTML error page as the incident message | BUG | MEDIUM | FIXED | web:error-reporting, api:error-logs, admin:monitoring | FIX_NOW |
 | [[BUG-2465-session-revoked-401s-and-client-reported-failures-escape-the|BUG-2465]] | Session-revoked 401s and client-reported failures escape the not-an-incident filter | BUG | MEDIUM | FIXED | api:error-logs, api:platform-monitoring | FIX_NOW |
+| [[BUG-2495-the-under-investigation-tile-counts-incidents-nobody-is-inve|BUG-2495]] | The Under investigation tile counts incidents nobody is investigating | UX | MEDIUM | FIXED | admin:monitoring, api:platform-monitoring | DONE |
 | [[BUG-2507-the-manager-s-correction-screen-hides-four-of-the-eight-kind|BUG-2507]] | The manager's correction screen hides four of the eight kinds of change | UX | MEDIUM | FIXED | apps/web | DONE |
 | [[BUG-2547-a-revoked-session-still-answers-on-auth-me|BUG-2547]] | A revoked session still answers on /auth/me | SECURITY | MEDIUM | FIXED | api:auth | DONE |
 | [[BUG-2560-the-requester-is-shown-approve-and-reject-buttons-that-alway|BUG-2560]] | The requester is shown Approve and Reject buttons that always refuse | AUTHORIZATION | MEDIUM | FIXED | api:attendance, apps/web | DONE |
@@ -377,6 +378,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2662-an-expired-refresh-token-puts-the-tenant-app-into-a-redirect|BUG-2662]] | An expired refresh token puts the tenant app into a redirect loop instead of the login page | UX | MEDIUM | FIXED | apps/web | DONE |
 | [[BUG-2822-a-business-refusal-is-rendered-as-a-fatal-error-dialog-with-|BUG-2822]] | A business refusal is rendered as a fatal error dialog with a reference id and a log download | UX | MEDIUM | FIXED | runtime, approvals, attendance | FIX_NOW |
 | [[BUG-2839-a-dashboard-fx-test-asserted-on-the-last-month-bucket-so-it-|BUG-2839]] | A dashboard FX test asserted on the last month bucket, so it passed in August and failed on 1 September | BUG | MEDIUM | FIXED | super-admin | FIX_NOW |
+| [[BUG-2888-an-externally-hosted-release-is-invisible-to-the-desktop-age|BUG-2888]] | An externally hosted release is invisible to the desktop agent update feed, because the platform publish route cannot record a SHA-512 | INTEGRATION | MEDIUM | FIXED | api:app-releases | DONE |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -482,7 +484,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2413-allocate-id-plan-scans-only-docs-qa-test-plans-so-execplan-i|BUG-2413]] | allocate-id plan scans only docs qa test-plans so ExecPlan ids collide | DATA_INTEGRITY | MEDIUM | FIXED | scripts | DONE |
 | [[BUG-2460-client-error-reports-store-the-whole-html-error-page-as-the-|BUG-2460]] | Client error reports store the whole HTML error page as the incident message | BUG | MEDIUM | FIXED | web:error-reporting, api:error-logs, admin:monitoring | FIX_NOW |
 | [[BUG-2465-session-revoked-401s-and-client-reported-failures-escape-the|BUG-2465]] | Session-revoked 401s and client-reported failures escape the not-an-incident filter | BUG | MEDIUM | FIXED | api:error-logs, api:platform-monitoring | FIX_NOW |
-| [[BUG-2495-the-under-investigation-tile-counts-incidents-nobody-is-inve|BUG-2495]] | The Under investigation tile counts incidents nobody is investigating | UX | MEDIUM | OPEN | admin:monitoring, api:platform-monitoring | TRIAGE_REQUIRED |
+| [[BUG-2495-the-under-investigation-tile-counts-incidents-nobody-is-inve|BUG-2495]] | The Under investigation tile counts incidents nobody is investigating | UX | MEDIUM | FIXED | admin:monitoring, api:platform-monitoring | DONE |
 | [[BUG-2507-the-manager-s-correction-screen-hides-four-of-the-eight-kind|BUG-2507]] | The manager's correction screen hides four of the eight kinds of change | UX | MEDIUM | FIXED | apps/web | DONE |
 | [[BUG-2508-the-correction-work-site-selector-is-never-populated-for-an-|BUG-2508]] | The correction work-site selector is never populated for an employee | BUG | MEDIUM | OPEN | apps/web, api:attendance-integrations | PLAN_REQUIRED |
 | [[BUG-2547-a-revoked-session-still-answers-on-auth-me|BUG-2547]] | A revoked session still answers on /auth/me | SECURITY | MEDIUM | FIXED | api:auth | DONE |
@@ -493,7 +495,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2662-an-expired-refresh-token-puts-the-tenant-app-into-a-redirect|BUG-2662]] | An expired refresh token puts the tenant app into a redirect loop instead of the login page | UX | MEDIUM | FIXED | apps/web | DONE |
 | [[BUG-2822-a-business-refusal-is-rendered-as-a-fatal-error-dialog-with-|BUG-2822]] | A business refusal is rendered as a fatal error dialog with a reference id and a log download | UX | MEDIUM | FIXED | runtime, approvals, attendance | FIX_NOW |
 | [[BUG-2839-a-dashboard-fx-test-asserted-on-the-last-month-bucket-so-it-|BUG-2839]] | A dashboard FX test asserted on the last month bucket, so it passed in August and failed on 1 September | BUG | MEDIUM | FIXED | super-admin | FIX_NOW |
-| [[BUG-2888-an-externally-hosted-release-is-invisible-to-the-desktop-age|BUG-2888]] | An externally hosted release is invisible to the desktop agent update feed, because the platform publish route cannot record a SHA-512 | INTEGRATION | MEDIUM | OPEN | api:app-releases | TRIAGE_REQUIRED |
+| [[BUG-2888-an-externally-hosted-release-is-invisible-to-the-desktop-age|BUG-2888]] | An externally hosted release is invisible to the desktop agent update feed, because the platform publish route cannot record a SHA-512 | INTEGRATION | MEDIUM | FIXED | api:app-releases | DONE |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -515,7 +517,6 @@ _None. Nothing open at CRITICAL._
 | [[ITEM-0116-53-bug-fixes-are-regression-covered-but-have-never-been-qa-r|ITEM-0116]] | 53 bug fixes are regression-covered but have never been QA-retested | TEST_GAP | MEDIUM | READY | — | FIX_NOW |
 | [[ITEM-0117-the-question-protocol-has-never-been-used-and-five-user-deci|ITEM-0117]] | The question protocol has never been used and five user decisions are parked in the backlog instead | DOCUMENTATION | MEDIUM | READY | — | FIX_NOW |
 | [[ITEM-0119-stop-writing-a-placeholder-e-mail-into-an-identity-column-wh|ITEM-0119]] | Stop writing a placeholder e-mail into an identity column when the wizard opens a draft | TECH_DEBT | MEDIUM | READY | billing, landing, super-admin | PLAN_REQUIRED |
-| [[ITEM-0125-the-net-integration-gateway-ships-to-customers-with-no-ci-co|ITEM-0125]] | The .NET Integration Gateway ships to customers with no CI coverage at all | TEST_GAP | MEDIUM | TRIAGE_REQUIRED | gateway | TRIAGE_REQUIRED |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [[BUG-1964-record-headings-and-dialog-titles-are-singularised-by-stripp|BUG-1964]] | Record headings and dialog titles are singularised by stripping a trailing s | UX | LOW | FIXED | apps/web | DONE |
 | [[BUG-2010-the-dashboard-recent-changes-list-renders-unformatted-iso-86|BUG-2010]] | The dashboard Recent changes list renders unformatted ISO-8601 timestamps | UX | LOW | FIXED | apps/web | DONE |
@@ -562,7 +563,7 @@ _None. Nothing open at CRITICAL._
 | Decision notes (ADR + generated) | 9 |
 | Implementation records | 7 |
 
-**Awaiting Architect triage: 5.** A record nobody has
+**Awaiting Architect triage: 0.** A record nobody has
 triaged is work nobody has decided about — the number that should stay near
 zero between tasks.
 
