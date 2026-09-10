@@ -2,7 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { AppError } from '../../../common/errors/app-error';
 import type { AuthenticatedUser } from '../../../common/interfaces/authenticated-request.interface';
 import { TenantSettingsResolverService } from '../../tenant-settings/tenant-settings-resolver.service';
+import { FeatureAccessService } from '../../tenant-settings/feature-access.service';
 import { getDataSource, listDataSources } from '../semantic/data-sources';
+import { isReportSourceEntitled } from '../semantic/report-source-entitlements';
 import { getMetric, listMetricsForSource } from '../metrics/metric.registry';
 import type {
   ReportDataSource,
@@ -103,12 +105,43 @@ export class AnalyticsService {
     private readonly executor: ReportQueryExecutor,
     private readonly scope: ReportScopeResolver,
     private readonly tenantSettings: TenantSettingsResolverService,
+    private readonly featureAccess: FeatureAccessService,
   ) {}
+
+  /**
+   * The tenant's resolved plan entitlements, as the key set
+   * `isReportSourceEntitled` checks against.
+   *
+   * One lookup per request rather than one per source: `catalog()` calls this
+   * once and reuses it across every source in the registry, and `records()` /
+   * `query()` each call it once for the single source they resolve.
+   * `FeatureAccessService` does not cache within a request, so calling it once
+   * per source here would turn a catalog fetch into a dozen database round
+   * trips for no reason.
+   */
+  private async enabledFeatureKeys(
+    user: AuthenticatedUser,
+  ): Promise<readonly string[]> {
+    if (!user.tenantId) {
+      // Not this method's decision. A platform caller, or a request that
+      // reaches here before tenant context is established, is refused
+      // elsewhere if it should be — see EntitlementGuard's identical carve-out.
+      return [];
+    }
+    const { enabledKeys } = await this.featureAccess.getResolvedTenantFeatures(
+      user.tenantId,
+    );
+    return enabledKeys;
+  }
 
   /** Sources this user may reach, with their permitted fields and metrics. */
   async catalog(user: AuthenticatedUser) {
-    const sources = listDataSources().filter((source) =>
-      this.scope.hasAnyAccess(user, source),
+    const enabledFeatureKeys = await this.enabledFeatureKeys(user);
+
+    const sources = listDataSources().filter(
+      (source) =>
+        this.scope.hasAnyAccess(user, source) &&
+        isReportSourceEntitled(source.key, enabledFeatureKeys),
     );
 
     return sources.map((source) => ({
@@ -147,7 +180,7 @@ export class AnalyticsService {
     user: AuthenticatedUser,
     input: AnalyticsQueryInput,
   ): Promise<AnalyticsResult> {
-    const source = this.resolveSource(user, input.sourceKey);
+    const source = await this.resolveSource(user, input.sourceKey);
     const timezone = await this.timezone(user);
 
     const period = resolvePeriod({
@@ -262,7 +295,7 @@ export class AnalyticsService {
       applyPeriod?: boolean;
     },
   ) {
-    const source = this.resolveSource(user, input.sourceKey);
+    const source = await this.resolveSource(user, input.sourceKey);
     const timezone = await this.timezone(user);
     const period = resolvePeriod({
       preset: input.preset ?? 'last_30_days',
@@ -354,10 +387,10 @@ export class AnalyticsService {
     };
   }
 
-  private resolveSource(
+  private async resolveSource(
     user: AuthenticatedUser,
     key: string,
-  ): ReportDataSource {
+  ): Promise<ReportDataSource> {
     const source = getDataSource(key);
     if (!source) {
       throw new AppError('REPORT_SOURCE_UNKNOWN', {
@@ -371,6 +404,23 @@ export class AnalyticsService {
       // silently empty chart.
       throw new AppError('REPORT_SOURCE_FORBIDDEN', {
         message: `You do not have access to ${source.label}.`,
+        details: { source: key },
+      });
+    }
+    /*
+     * BUG-3007. `catalog()` filters an unentitled source out of the list, but
+     * before this a caller who already knew (or guessed) a source key —
+     * `std:recruitment-hires`, say — could still run it and get real rows
+     * through `query()` / `records()`, both of which resolve a source here.
+     * Reusing `TENANT_FEATURE_NOT_ENTITLED` rather than a reporting-specific
+     * code: this is the same commercial boundary `EntitlementGuard` enforces
+     * on a whole route module, applied at the one place both entry points to
+     * query execution share.
+     */
+    const enabledFeatureKeys = await this.enabledFeatureKeys(user);
+    if (!isReportSourceEntitled(source.key, enabledFeatureKeys)) {
+      throw new AppError('TENANT_FEATURE_NOT_ENTITLED', {
+        message: `${source.label} is not included in your plan.`,
         details: { source: key },
       });
     }

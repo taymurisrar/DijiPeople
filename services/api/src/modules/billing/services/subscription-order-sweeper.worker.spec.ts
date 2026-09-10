@@ -29,8 +29,7 @@ describe('SubscriptionOrderSweeperWorker', () => {
       SUBSCRIPTION_ORDER_SWEEPER_ENABLED: options.enabled ? 'true' : 'false',
       ...(options.pollIntervalMs !== undefined
         ? {
-            SUBSCRIPTION_ORDER_SWEEPER_POLL_INTERVAL_MS:
-              options.pollIntervalMs,
+            SUBSCRIPTION_ORDER_SWEEPER_POLL_INTERVAL_MS: options.pollIntervalMs,
           }
         : {}),
     };

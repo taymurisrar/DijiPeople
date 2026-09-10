@@ -4471,3 +4471,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | A test that calls the function under test directly cannot prove the function is ever called in production — that is a statement about wiring, not about behaviour, and needs a wiring-shaped assertion (source inspection or a DI boot) rather than a deeper unit test. |
 | **Fixed** | 2026-09-11, branch `agent/cs-s1-openbugs` |
 | **Active** | yes |
+
+### REG-398 — A second reporting registry gated by permission and never by entitlement
+
+| | |
+|---|---|
+| **Bug class** | `parallel-structure-missed-by-a-fix` |
+| **Module** | `services/api/src/modules/reporting`, `apps/web/app/(authenticated)/reports` |
+| **Bug record** | BUG-3007 |
+| **Root cause** | Same class as REG-396 (BUG-2958), a third time. `AnalyticsService.catalog()` filtered `listDataSources()` by `scope.hasAnyAccess` only; the tenant's plan was never an input. Two comments in `apps/web` asserted the catalog was "already permission- and entitlement-filtered by the API" — describing an enforcer that did not exist, the same failure `gate-scoped-to-one-structure` predicted. The gap was deeper than the reported symptom: `resolveSource()`, the choke point both `query()` and `records()` call to actually run a report, had the identical permission-only check, so a caller who already knew a source key could execute an unentitled report even though the catalog would not have offered it. |
+| **Regression test** | `services/api/src/modules/reporting/semantic/report-source-entitlements.spec.ts` |
+| **Scenario** | Resolve `isReportSourceEntitled` for every registered data source against the Starter plan's seven keys (`plans.catalog.ts`): the four recruitment sources and both desktop sources refuse, the rest grant. Resolve against every catalog key (Enterprise): everything grants. Resolve against an empty set: everything refuses. An unattributed source key refuses even against a full key set. A coverage test fails if any registered source lacks an attribution or any attribution names a source that no longer exists. |
+| **Proven to fail without the fix** | Mutation-tested by hand: forcing `isReportSourceEntitled` to return `true` unconditionally fails the Starter-refusal case (6 of 8 tests); deleting the `recruitment_openings` entry from `REPORT_SOURCE_ENTITLEMENTS` fails the coverage test instead of silently granting access to an unmapped source. |
+| **Note** | Third occurrence of the same generalisation REG-396 recorded: a fix scoped to one structure (BUG-1952's route-module gate) does not reach a second structure with its own registry (settings, then reporting), and a comment asserting an enforcer exists is a claim to verify, not a fact to trust. The new finding this instance adds: **the offer and the execution path can leak independently**. Gating only the catalog (the offer) would have left the execution choke point (`resolveSource`, shared by `query()` and `records()`) ungated, so the fix here closes both in the same choke point rather than only the listing. |
+| **Fixed** | 2026-09-11, branch `agent/cs-s1-openbugs` |
+| **Active** | yes |
