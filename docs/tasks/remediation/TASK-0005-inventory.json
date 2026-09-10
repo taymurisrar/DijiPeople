@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 552,
+    "total_records": 556,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -18021,6 +18021,158 @@
           "apps/web"
         ],
         "verification_scope": "See docs/bugs/BUG-3221-two-of-apps-web-four-error-boundaries-render-the-raw-error-m.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3222",
+      "type": "SECURITY",
+      "title": "Declared content type is trusted; no upload path sniffs content, and MIME/extension checks are independent",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3222-declared-content-type-is-trusted-no-upload-path-sniffs-conte.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "08f388da",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/common"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/common"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3222-declared-content-type-is-trusted-no-upload-path-sniffs-conte.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3223",
+      "type": "AUTHORIZATION",
+      "title": "GET /payslips/:id/download applies no row-level scope",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3223-get-payslips-id-download-applies-no-row-level-scope.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "08f388da",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/payslips"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/payslips"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3223-get-payslips-id-download-applies-no-row-level-scope.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3224",
+      "type": "DATA_INTEGRITY",
+      "title": "Deleting a document deletes nothing; the bytes stay in storage forever",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3224-deleting-a-document-deletes-nothing-the-bytes-stay-in-storag.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "08f388da",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/documents"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/documents"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3224-deleting-a-document-deletes-nothing-the-bytes-stay-in-storag.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3225",
+      "type": "DATA_INTEGRITY",
+      "title": "Tenant erasure sweeps only two of the eight models that hold storage keys",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3225-tenant-erasure-sweeps-only-two-of-the-eight-models-that-hold.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "08f388da",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/tenants"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/tenants"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3225-tenant-erasure-sweeps-only-two-of-the-eight-models-that-hold.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

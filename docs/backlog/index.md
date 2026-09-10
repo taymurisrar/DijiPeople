@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**552 records** — 399 bugs under [`docs/bugs/`](../bugs/), 153 non-bug items under [`items/`](items/).
+**556 records** — 403 bugs under [`docs/bugs/`](../bugs/), 153 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,14 +13,14 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 222 |
+| Open (active work) | 226 |
 | Blocked | 2 |
 | Deferred | 29 |
 | Awaiting a product decision | 7 |
 | Completed / closed | 292 |
 | **Open CRITICAL** | **5** |
 | **Open HIGH** | **87** |
-| **Awaiting Architect triage** | **98** |
+| **Awaiting Architect triage** | **102** |
 
 ## Open by severity
 
@@ -28,7 +28,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 5 |
 | HIGH | 87 |
-| MEDIUM | 112 |
+| MEDIUM | 116 |
 | LOW | 15 |
 
 ## Open by type
@@ -36,16 +36,16 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | ARCHITECTURE | 6 |
-| AUTHORIZATION | 12 |
+| AUTHORIZATION | 13 |
 | BUG | 40 |
 | DATABASE | 1 |
-| DATA_INTEGRITY | 18 |
+| DATA_INTEGRITY | 20 |
 | DOCUMENTATION | 2 |
 | FOLLOW_UP | 2 |
 | INFRA | 15 |
 | INTEGRATION | 5 |
 | PERFORMANCE | 23 |
-| SECURITY | 34 |
+| SECURITY | 35 |
 | STATE_MACHINE | 3 |
 | TECH_DEBT | 10 |
 | TENANT_ISOLATION | 2 |
@@ -56,7 +56,7 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 89 |
+| OPEN | 93 |
 | BLOCKED | 2 |
 | DEFERRED | 29 |
 | PRODUCT_DECISION | 7 |
@@ -464,6 +464,10 @@ see [`README.md`](README.md) for why.
 | [BUG-3219](../../docs/bugs/BUG-3219-independent-backend-calls-are-awaited-sequentially-instead-o.md) | Independent backend calls are awaited sequentially instead of in parallel in at least two shared code paths | PERFORMANCE | MEDIUM | P2 | OPEN | apps/web | TRIAGE_REQUIRED |
 | [BUG-3220](../../docs/bugs/BUG-3220-apps-admin-has-zero-loading-and-error-boundary-files-apps-we.md) | apps/admin has zero loading and error boundary files; apps/web has 22 genuinely uncovered pages including login | UX | MEDIUM | P2 | OPEN | apps/admin, apps/web | TRIAGE_REQUIRED |
 | [BUG-3221](../../docs/bugs/BUG-3221-two-of-apps-web-four-error-boundaries-render-the-raw-error-m.md) | Two of apps/web four error boundaries render the raw Error.message directly with no classification | UX | MEDIUM | P2 | OPEN | apps/web | TRIAGE_REQUIRED |
+| [BUG-3222](../../docs/bugs/BUG-3222-declared-content-type-is-trusted-no-upload-path-sniffs-conte.md) | Declared content type is trusted; no upload path sniffs content, and MIME/extension checks are independent | SECURITY | MEDIUM | P2 | OPEN | services/api/src/common | TRIAGE_REQUIRED |
+| [BUG-3223](../../docs/bugs/BUG-3223-get-payslips-id-download-applies-no-row-level-scope.md) | GET /payslips/:id/download applies no row-level scope | AUTHORIZATION | MEDIUM | P2 | OPEN | api:payslips | TRIAGE_REQUIRED |
+| [BUG-3224](../../docs/bugs/BUG-3224-deleting-a-document-deletes-nothing-the-bytes-stay-in-storag.md) | Deleting a document deletes nothing; the bytes stay in storage forever | DATA_INTEGRITY | MEDIUM | P2 | OPEN | api:documents | TRIAGE_REQUIRED |
+| [BUG-3225](../../docs/bugs/BUG-3225-tenant-erasure-sweeps-only-two-of-the-eight-models-that-hold.md) | Tenant erasure sweeps only two of the eight models that hold storage keys | DATA_INTEGRITY | MEDIUM | P2 | OPEN | api:tenants | TRIAGE_REQUIRED |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
