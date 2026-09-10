@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**454 records** — 323 bugs under [`docs/bugs/`](../bugs/), 131 non-bug items under [`items/`](items/).
+**457 records** — 326 bugs under [`docs/bugs/`](../bugs/), 131 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,21 +13,21 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 113 |
+| Open (active work) | 116 |
 | Blocked | 2 |
 | Deferred | 29 |
 | Awaiting a product decision | 1 |
 | Completed / closed | 309 |
-| **Open CRITICAL** | **1** |
-| **Open HIGH** | **36** |
+| **Open CRITICAL** | **2** |
+| **Open HIGH** | **38** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| CRITICAL | 1 |
-| HIGH | 36 |
+| CRITICAL | 2 |
+| HIGH | 38 |
 | MEDIUM | 62 |
 | LOW | 13 |
 
@@ -36,7 +36,7 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | ARCHITECTURE | 1 |
-| AUTHORIZATION | 5 |
+| AUTHORIZATION | 7 |
 | BUG | 38 |
 | DATA_INTEGRITY | 9 |
 | DOCUMENTATION | 1 |
@@ -45,7 +45,7 @@ see [`README.md`](README.md) for why.
 | INTEGRATION | 5 |
 | PERFORMANCE | 1 |
 | PRODUCT_DECISION | 2 |
-| SECURITY | 7 |
+| SECURITY | 8 |
 | STATE_MACHINE | 3 |
 | TECH_DEBT | 5 |
 | TEST_GAP | 5 |
@@ -59,7 +59,7 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 2 |
 | DEFERRED | 29 |
 | PRODUCT_DECISION | 1 |
-| FIXED | 88 |
+| FIXED | 91 |
 | VERIFIED | 218 |
 | DUPLICATE | 5 |
 | ACCEPTED_RISK | 3 |
@@ -90,6 +90,7 @@ see [`README.md`](README.md) for why.
 | [BUG-1743](../../docs/bugs/BUG-1743-customers-and-partners-cannot-be-edited-the-runtime-form-ech.md) | Customers and partners cannot be edited: the runtime form echoes fields the update DTO forbids | BUG | CRITICAL | P0 | VERIFIED | apps/admin, api:platform-runtime, api:super-admin | DONE |
 | [BUG-1744](../../docs/bugs/BUG-1744-every-subscription-has-a-zero-length-billing-period-and-a-re.md) | Every subscription has a zero-length billing period and a renewal date in the past | DATA_INTEGRITY | CRITICAL | P0 | VERIFIED | api:super-admin, api:billing, integration:stripe | DONE |
 | [BUG-3110](../../docs/bugs/BUG-3110-a-live-production-database-password-sits-permanently-in-the-.md) | A live production database password sits permanently in the public git history | SECURITY | CRITICAL | P0 | OPEN | services/api | FIX_NOW |
+| [BUG-3152](../../docs/bugs/BUG-3152-post-users-userid-roles-lets-a-delegated-role-assignment-adm.md) | POST /users/:userId/roles lets a delegated role-assignment admin self-grant GLOBAL_ADMIN | AUTHORIZATION | CRITICAL | P0 | FIXED | api:users/users.service.ts, api:users/users.controller.ts | DONE |
 | [ITEM-0131](../../docs/backlog/items/ITEM-0131-production-hr-and-payroll-data-has-no-backup-the-database-is.md) | Production HR and payroll data has no backup: the database is on the Neon free plan | INFRA | CRITICAL | P0 | PRODUCT_DECISION | services/api | PRODUCT_DECISION |
 | [BUG-1494](../../docs/bugs/BUG-1494-git-worktree-remove-follows-node-modules-junctions-and-delet.md) | git worktree remove follows node_modules junctions and deletes the primary checkout | INFRA | CRITICAL | P1 | VERIFIED | scripts | DONE |
 | [BUG-0049](../../docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md) | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | P0 | VERIFIED | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | DONE |
@@ -229,6 +230,8 @@ see [`README.md`](README.md) for why.
 | [BUG-2958](../../docs/bugs/BUG-2958-settings-shows-every-category-group-and-page-regardless-of-t.md) | Settings shows every category, group and page regardless of the tenant's plan | AUTHORIZATION | HIGH | P1 | FIXED | apps/web, api:tenant-settings | FIX_NOW |
 | [BUG-3007](../../docs/bugs/BUG-3007-reports-and-analytics-offers-surfaces-and-reports-for-capabi.md) | Reports and Analytics offers surfaces and reports for capabilities the plan does not include | AUTHORIZATION | HIGH | P1 | FIXED | apps/web, api:reporting | FIX_NOW |
 | [BUG-3020](../../docs/bugs/BUG-3020-records-behind-these-numbers-shows-raw-guids-and-a-count-tha.md) | Records behind these numbers shows raw GUIDs and a count that does not match the metric | UX | HIGH | P1 | FIXED | apps/web, api:reporting | FIX_NOW |
+| [BUG-3115](../../docs/bugs/BUG-3115-rate-limiter-trusts-a-forged-x-forwarded-for-and-covers-no-a.md) | Rate limiter trusts a forged X-Forwarded-For and covers no authenticated endpoint | SECURITY | HIGH | P1 | FIXED | services/api/src/common/security/client-ip.ts, services/api/src/common/guards/public-rate-limit.guard.ts, services/api/src/common/interceptors/authenticated-rate-limit.interceptor.ts | DONE |
+| [BUG-3241](../../docs/bugs/BUG-3241-legacy-role-permission-grant-and-employee-export-both-skip-t.md) | Legacy role-permission grant and employee export both skip the sibling endpoint's access check | AUTHORIZATION | HIGH | P1 | FIXED | api:roles/roles.service.ts, api:employees/employees.service.ts | DONE |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |

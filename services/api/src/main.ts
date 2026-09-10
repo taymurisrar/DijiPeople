@@ -19,6 +19,7 @@ import { AppModule } from './app.module';
 import { resolveLogLevels } from './log-level';
 import { OutboxWorkerService } from './modules/outbox/outbox-worker.service';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { AuthenticatedRateLimitInterceptor } from './common/interceptors/authenticated-rate-limit.interceptor';
 import { assertAuthEnvironment } from './common/config/auth.config';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -103,6 +104,10 @@ async function bootstrap() {
     }),
   );
   app.useGlobalFilters(app.get(HttpExceptionFilter));
+  // RATE-03: the only prior rate limiter, PublicRateLimitGuard, covers 13
+  // pre-session handlers and no authenticated route at all. See the
+  // interceptor's own doc comment for why this is an interceptor, not a guard.
+  app.useGlobalInterceptors(app.get(AuthenticatedRateLimitInterceptor));
 
   const port = Number(process.env.PORT) || 4000;
   const host = '0.0.0.0';

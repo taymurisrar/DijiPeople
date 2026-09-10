@@ -4592,3 +4592,49 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Answering a provider webhook with a retryable error for a condition no retry can change converts one failure into an indefinite series of them. Deciding whether a failure is the caller's to retry is part of designing a webhook handler, not an afterthought. |
 | **Fixed** | 2026-09-11 |
 | **Active** | yes |
+
+### REG-406 — A second role-grant endpoint that never learned the first one's escalation rule
+
+| | |
+|---|---|
+| **Bug class** | `duplicated-authorization-logic` |
+| **Module** | `services/api/src/modules/users` |
+| **Bug record** | BUG-3152 |
+| **Root cause** | `PUT /users/:userId/roles` (`assignRoles`) and `POST /users/:userId/roles` (`addRole`) require the identical permission pair, so `PermissionsGuard` treats them as equally sensitive. Only `assignRoles` enforced the escalation rules that make that permission pair safe to grant to a delegated "assign roles" admin — no system role without owner/`SYSTEM_ADMIN` standing, no `GLOBAL_ADMIN` to a non-owner. `addRole` was added later against the same permission pair without factoring out or reusing that rule, so it granted any role, including `GLOBAL_ADMIN`, unconditionally, including self-grant. |
+| **Regression test** | `services/api/src/modules/users/users.service.spec.ts` |
+| **Scenario** | An actor with no owner/`SYSTEM_ADMIN` standing must be rejected granting `GLOBAL_ADMIN` to a non-owner target through *both* `addRole` and `assignRoles`. A spy on the shared `assertRoleGrantWithinActorAuthority` method asserts both call sites actually invoke it, not just that the outcome happens to be correct today. |
+| **Proven to fail without the fix** | Reverting `addRole` to call `usersRepository.addUserRole` directly (its pre-fix body) makes "addRole rejects a non-owner, non-system-admin actor granting GLOBAL_ADMIN to a non-owner target" fail immediately — the call succeeds instead of throwing. |
+| **Note** | Two routes requiring the identical permission decorators is not evidence they enforce the identical rule — `PermissionsGuard` only proves the *gate* is the same; nothing proves the *service* behind it is. The generalizable fix is structural, not a one-off patch: factor the rule into one method both call, so a future third route against this permission pair inherits the check by construction rather than by someone remembering to copy it. |
+| **Fixed** | 2026-09-11, branch `agent/cs-s5-security` |
+| **Active** | yes |
+
+### REG-407 — A rate limiter that trusted the one header a direct caller controls
+
+| | |
+|---|---|
+| **Bug class** | `client-supplied-trust-boundary` |
+| **Module** | `services/api/src/common/security/client-ip.ts`, `packages/config/client-ip.js` |
+| **Bug record** | BUG-3115 |
+| **Root cause** | `resolveClientIp` trusted forwarded headers as a boolean ("is any proxy in front at all") and, once trusted, always read the *leftmost* entry of `X-Forwarded-For` — correct only when nothing untrusted can ever write that position. The API is directly reachable, so an external caller writes it directly. The configured hop count (`resolveTrustProxySetting` already computed it) was discarded rather than used to index the one position a real trusted hop had actually appended to. |
+| **Regression test** | `services/api/src/common/security/client-ip.spec.ts`, `services/api/src/common/guards/public-rate-limit.guard.spec.ts`, `services/api/src/common/interceptors/authenticated-rate-limit.interceptor.spec.ts` |
+| **Scenario** | Two requests whose `X-Forwarded-For` differ only in the attacker-controlled prefix (`forged-identity-1, 203.0.113.7` vs `forged-identity-2, 203.0.113.7`) must resolve to the same client and share one rate-limit budget. A chain shorter than the configured trusted-hop count must resolve to neither the forged value nor the raw socket address. An authenticated user's write budget, once exhausted, must not throttle a different user or that same user's read budget. |
+| **Proven to fail without the fix** | Reverting `readForwardedForClientIp` to `raw.split(',')[0]` makes "is not moved by how many fake entries a caller prepends" and "does not let a caller mint a fresh identity by varying the untrusted prefix" fail immediately — both then observe a different identity per request, which is the exploit. |
+| **Note** | Closing this reopens BUG-0032's original coarseness for one specific, already-narrow scenario: visitors proxied through this product's own first-party Next.js apps behind Cloudflare can no longer be told apart per browser visitor, because Cloudflare/Render append the *relay's* address for that path too. Documented as an accepted, honest trade-off in BUG-3115 rather than hidden — the alternative was leaving a CONFIRMED forgery bypass live on a production payroll platform's login. |
+| **Fixed** | 2026-09-11, branch `agent/cs-s5-security` |
+| **Active** | yes |
+
+
+### REG-408 — Two endpoint pairs where only one side of each enforced the rule
+
+| | |
+|---|---|
+| **Bug class** | `duplicated-authorization-logic` |
+| **Module** | `services/api/src/modules/roles`, `services/api/src/modules/employees` |
+| **Bug record** | BUG-3241 |
+| **Root cause** | Two pairs of endpoints, each pair gated by identical permission decorators, where only one side made the authorization decision. `PUT /roles/:roleId/permissions` granted any legacy key existing in the tenant while its sibling `/matrix` route enforced "not beyond your own effective access"; the employee profile CSV export resolved the record tenant-scoped and skipped the `OWN`/`TEAM`/`BUSINESS_UNIT` row-scope its sibling read path applies. Identical decorators are what hid both: `PermissionsGuard` proves the gate matches, never that the service behind it does. |
+| **Regression test** | `services/api/src/modules/roles/roles.service.spec.ts` and `services/api/src/modules/employees/employees.service.spec.ts` |
+| **Scenario** | An actor not holding `payslips.read-all` is refused when granting it through `updatePermissions`, `update` and `create` alike. `update` is *not* blocked when it leaves `permissionIds` untouched, so renaming a broader role somebody else built still works — the check guards widening, not editing. A caller whose effective employee access is `SELF` or `TEAM` is refused the profile export for an id outside that scope, matching what the profile read already refuses. Spies assert each call site actually invokes the shared method. |
+| **Proven to fail without the fix** | Reverting `updatePermissions` to write the granted keys directly makes the escalation assertion pass the grant instead of throwing. Removing the `canViewEmployeeRecord` call from `exportProfile` returns the CSV for an out-of-scope id. |
+| **Note** | The spy assertions matter more than the outcome assertions here. This defect's shape is a call site drifting away from a shared rule while still returning the right answer for whichever cases a test happens to cover, so a test that only checks outcomes cannot see the drift arrive. Sibling endpoints sharing a permission pair should share one enforcement method, not two copies of one. |
+| **Fixed** | 2026-09-11 |
+| **Active** | yes |

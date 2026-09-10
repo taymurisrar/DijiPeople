@@ -43,6 +43,9 @@ describe('EmployeesService', () => {
   let duplicateRuleEngine: {
     checkEmployeeDuplicates: jest.Mock;
   };
+  let employeeAccessService: {
+    canViewEmployeeRecord: jest.Mock;
+  };
 
   beforeEach(() => {
     prisma = {
@@ -83,6 +86,9 @@ describe('EmployeesService', () => {
     duplicateRuleEngine = {
       checkEmployeeDuplicates: jest.fn(),
     };
+    employeeAccessService = {
+      canViewEmployeeRecord: jest.fn(),
+    };
 
     service = new EmployeesService(
       prisma as never,
@@ -96,7 +102,7 @@ describe('EmployeesService', () => {
       auditService as never,
       duplicateRuleEngine as never,
       {} as never,
-      {} as never,
+      employeeAccessService as never,
       { assignDefaults: jest.fn() } as never,
     );
   });
@@ -317,5 +323,76 @@ describe('EmployeesService', () => {
         lastLoginAt: new Date('2026-06-01T00:00:00.000Z'),
       }),
     ).toBe(false);
+  });
+
+  /**
+   * AUTHZ-03 (HIGH, confirmed BOLA). `exportEmployeeProfile` called `findById`
+   * — tenant-scoped only — and never checked the OWN/TEAM/BUSINESS_UNIT
+   * row-scope its sibling read path (`getProfile` / `assertEmployeeAccess`)
+   * applies via `canViewEmployeeRecord`. A manager or any role holding
+   * `employees.export` at `SELF`/`TEAM` RBAC level could export the full
+   * profile CSV — name, work email, phone, department, designation, owner —
+   * for any employee id in the tenant, not just their own reports.
+   *
+   * `findById` is stubbed rather than driven through the real repository
+   * fixture here: the property under test is the authorization decision this
+   * fix adds, not the CSV mapping (already covered by
+   * `employees.export-import-contract.spec.ts`), and stubbing keeps this spec
+   * from becoming a second, drifting copy of the mapping fixture used
+   * elsewhere in this file.
+   */
+  describe('exportEmployeeProfile (AUTHZ-03)', () => {
+    const mappedEmployee = {
+      id: 'employee-1',
+      employeeCode: 'EMP-001',
+      fullName: 'Ada Lovelace',
+      workEmail: 'ada@example.com',
+      phone: '1234567890',
+      employmentStatus: 'Active',
+      department: null,
+      designation: null,
+      ownerUser: null,
+    };
+
+    const currentUser = {
+      userId: 'manager-1',
+      tenantId: 'tenant-1',
+      email: 'manager@example.com',
+      roleIds: [],
+      roleKeys: [],
+      permissionKeys: ['employees.export'],
+    } as never;
+
+    it('rejects the export when canViewEmployeeRecord denies row-level access', async () => {
+      jest
+        .spyOn(service, 'findById')
+        .mockResolvedValue(mappedEmployee as never);
+      employeeAccessService.canViewEmployeeRecord.mockResolvedValue(false);
+
+      await expect(
+        service.exportEmployeeProfile(currentUser, 'out-of-scope-employee'),
+      ).rejects.toThrow(
+        'You do not have permission to export this employee record.',
+      );
+      expect(employeeAccessService.canViewEmployeeRecord).toHaveBeenCalledWith(
+        currentUser,
+        'out-of-scope-employee',
+      );
+    });
+
+    it('allows the export when canViewEmployeeRecord grants row-level access', async () => {
+      jest
+        .spyOn(service, 'findById')
+        .mockResolvedValue(mappedEmployee as never);
+      employeeAccessService.canViewEmployeeRecord.mockResolvedValue(true);
+
+      const result = await service.exportEmployeeProfile(
+        currentUser,
+        'employee-1',
+      );
+
+      expect(result.filename).toContain('EMP-001');
+      expect(result.buffer.toString('utf8')).toContain('Ada Lovelace');
+    });
   });
 });

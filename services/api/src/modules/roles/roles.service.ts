@@ -77,17 +77,7 @@ export class RolesService {
         );
       }
 
-      if (!this.canEscalateBeyondOwnAccess(currentUser)) {
-        const unauthorizedPermission = permissions.find(
-          (permission) => !currentUser.permissionKeys.includes(permission.key),
-        );
-
-        if (unauthorizedPermission) {
-          throw new ForbiddenException(
-            'Custom roles cannot exceed your own effective access.',
-          );
-        }
-      }
+      this.assertPermissionKeysWithinActorAccess(currentUser, permissions);
     }
 
     const role = await this.rolesRepository.create({
@@ -121,11 +111,11 @@ export class RolesService {
   }
 
   async updatePermissions(
-    tenantId: string,
+    currentUser: AuthenticatedUser,
     roleId: string,
     permissionIds: string[],
-    actorId: string,
   ) {
+    const tenantId = currentUser.tenantId;
     const role = await this.rolesRepository.findByIdAndTenant(tenantId, roleId);
 
     if (!role) {
@@ -149,11 +139,20 @@ export class RolesService {
       );
     }
 
+    // AUTHZ-02: this legacy-keys endpoint used to grant any legacy
+    // permission key that exists in the tenant, regardless of whether the
+    // actor holds that key themselves. Its sibling `/matrix` endpoint
+    // enforces this via the identical permission pair
+    // (roles.assign-permissions + SETTINGS:configure) — same shared check
+    // `create()` already applies, called here so the three call sites cannot
+    // drift apart again.
+    this.assertPermissionKeysWithinActorAccess(currentUser, permissions);
+
     return this.rolesRepository.replacePermissions(
       tenantId,
       roleId,
       permissionIds,
-      actorId,
+      currentUser.userId,
     );
   }
 
@@ -202,6 +201,14 @@ export class RolesService {
       throw new BadRequestException(
         'One or more permissions do not belong to this tenant.',
       );
+    }
+
+    // Same rule as `updatePermissions`/`create` — only when the caller is
+    // actually widening the permission set, so an actor who merely renames a
+    // broader role someone else built is not blocked from an edit that
+    // leaves permissions untouched.
+    if (dto.permissionIds) {
+      this.assertPermissionKeysWithinActorAccess(currentUser, permissions);
     }
 
     await this.rolesRepository.update(roleId, {
@@ -621,6 +628,36 @@ export class RolesService {
       currentUser.accessContext?.isTenantOwner ||
       currentUser.accessContext?.isSystemAdministrator
     );
+  }
+
+  /**
+   * AUTHZ-02. "Cannot exceed your own effective access", for legacy
+   * permission keys — the same rule `assertMatrixWithinActorAccess` applies
+   * to RBAC matrix privileges. `updateMatrix` (`PUT /roles/:roleId/matrix`)
+   * enforced this; `updatePermissions` (`PUT /roles/:roleId/permissions`),
+   * gated by the identical permission pair
+   * (`roles.assign-permissions` + `SETTINGS:configure`), did not — an actor
+   * could grant any editable role any legacy key that exists in the tenant
+   * (e.g. `payslips.read-all`) regardless of whether they held it themselves.
+   * `create()` already had a correct inline copy of this; it and both
+   * `update()` and `updatePermissions()` now call this one method instead of
+   * each carrying its own copy that can silently stop matching the others.
+   */
+  private assertPermissionKeysWithinActorAccess(
+    currentUser: AuthenticatedUser,
+    permissions: Array<{ key: string }>,
+  ): void {
+    if (this.canEscalateBeyondOwnAccess(currentUser)) return;
+
+    const unauthorizedPermission = permissions.find(
+      (permission) => !currentUser.permissionKeys.includes(permission.key),
+    );
+
+    if (unauthorizedPermission) {
+      throw new ForbiddenException(
+        'Custom roles cannot exceed your own effective access.',
+      );
+    }
   }
 
   private resolveUniqueName(baseName: string, existingNames: string[]) {

@@ -41,19 +41,43 @@ describe('public workflow rate limiting', () => {
    *
    * Both directions are asserted: one visitor must not spend another's
    * allowance, and a visitor must still be stopped once they spend their own.
+   *
+   * The fixture reads two-entry chains where only the *second* entry differs —
+   * see RATE-01 below for why the position matters. This test is about the
+   * position the guard actually trusts, not the leftmost one.
    */
-  it('gives each visitor their own allowance behind a shared proxy', () => {
+  it('gives each visitor their own allowance for what the trusted hop itself observed', () => {
     const guard = new PublicRateLimitGuard();
     const path = `/public-proxied-test-${Date.now()}`;
-    const noisy = context(path, 'POST', '203.0.113.7, 198.51.100.2');
-    const quiet = context(path, 'POST', '203.0.113.9, 198.51.100.2');
+    const noisy = context(path, 'POST', 'anything-here, 203.0.113.7');
+    const quiet = context(path, 'POST', 'anything-here, 203.0.113.9');
 
     for (let index = 0; index < 20; index += 1)
       expect(guard.canActivate(noisy)).toBe(true);
     expect(() => guard.canActivate(noisy)).toThrow(HttpException);
 
-    // Same egress address, different visitor — must be unaffected.
+    // Different address at the position the trusted hop appended — unaffected.
     expect(guard.canActivate(quiet)).toBe(true);
+  });
+
+  /**
+   * RATE-01 / INF-06. The API is directly reachable, so the *first* entry of
+   * `X-Forwarded-For` is exactly what an attacker controls — `resolveClientIp`
+   * used to read it unconditionally, so rotating that value bought a fresh
+   * 20-request budget on every call. It now reads the position a trusted hop
+   * itself appended, which an attacker cannot move by padding the header.
+   */
+  it('does not let a caller mint a fresh identity by varying the untrusted prefix', () => {
+    const guard = new PublicRateLimitGuard();
+    const path = `/public-forge-test-${Date.now()}`;
+    const first = context(path, 'POST', 'forged-identity-1, 203.0.113.7');
+    const second = context(path, 'POST', 'forged-identity-2, 203.0.113.7');
+
+    for (let index = 0; index < 20; index += 1)
+      expect(guard.canActivate(first)).toBe(true);
+    // Same trusted-hop-observed address, different forged prefix — must share
+    // the one budget, not mint a fresh one.
+    expect(() => guard.canActivate(second)).toThrow(HttpException);
   });
 
   /**
