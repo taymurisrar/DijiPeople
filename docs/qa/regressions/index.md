@@ -4471,3 +4471,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Closing this reopens BUG-0032's original coarseness for one specific, already-narrow scenario: visitors proxied through this product's own first-party Next.js apps behind Cloudflare can no longer be told apart per browser visitor, because Cloudflare/Render append the *relay's* address for that path too. Documented as an accepted, honest trade-off in BUG-3115 rather than hidden — the alternative was leaving a CONFIRMED forgery bypass live on a production payroll platform's login. |
 | **Fixed** | 2026-09-11, branch `agent/cs-s5-security` |
 | **Active** | yes |
+
+### REG-398 — A second role-grant endpoint that never learned the first one's escalation rule
+
+| | |
+|---|---|
+| **Bug class** | `duplicated-authorization-logic` |
+| **Module** | `services/api/src/modules/users` |
+| **Bug record** | BUG-3152 |
+| **Root cause** | `PUT /users/:userId/roles` (`assignRoles`) and `POST /users/:userId/roles` (`addRole`) require the identical permission pair, so `PermissionsGuard` treats them as equally sensitive. Only `assignRoles` enforced the escalation rules that make that permission pair safe to grant to a delegated "assign roles" admin — no system role without owner/`SYSTEM_ADMIN` standing, no `GLOBAL_ADMIN` to a non-owner. `addRole` was added later against the same permission pair without factoring out or reusing that rule, so it granted any role, including `GLOBAL_ADMIN`, unconditionally, including self-grant. |
+| **Regression test** | `services/api/src/modules/users/users.service.spec.ts` |
+| **Scenario** | An actor with no owner/`SYSTEM_ADMIN` standing must be rejected granting `GLOBAL_ADMIN` to a non-owner target through *both* `addRole` and `assignRoles`. A spy on the shared `assertRoleGrantWithinActorAuthority` method asserts both call sites actually invoke it, not just that the outcome happens to be correct today. |
+| **Proven to fail without the fix** | Reverting `addRole` to call `usersRepository.addUserRole` directly (its pre-fix body) makes "addRole rejects a non-owner, non-system-admin actor granting GLOBAL_ADMIN to a non-owner target" fail immediately — the call succeeds instead of throwing. |
+| **Note** | Two routes requiring the identical permission decorators is not evidence they enforce the identical rule — `PermissionsGuard` only proves the *gate* is the same; nothing proves the *service* behind it is. The generalizable fix is structural, not a one-off patch: factor the rule into one method both call, so a future third route against this permission pair inherits the check by construction rather than by someone remembering to copy it. |
+| **Fixed** | 2026-09-11, branch `agent/cs-s5-security` |
+| **Active** | yes |

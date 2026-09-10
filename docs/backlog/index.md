@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**453 records** — 323 bugs under [`docs/bugs/`](../bugs/), 130 non-bug items under [`items/`](items/).
+**454 records** — 324 bugs under [`docs/bugs/`](../bugs/), 130 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,12 +13,12 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 124 |
+| Open (active work) | 125 |
 | Blocked | 2 |
 | Deferred | 29 |
 | Awaiting a product decision | 6 |
 | Completed / closed | 292 |
-| **Open CRITICAL** | **0** |
+| **Open CRITICAL** | **1** |
 | **Open HIGH** | **37** |
 | **Awaiting Architect triage** | **5** |
 
@@ -26,6 +26,7 @@ see [`README.md`](README.md) for why.
 
 | Severity | Count |
 |---|---|
+| CRITICAL | 1 |
 | HIGH | 37 |
 | MEDIUM | 69 |
 | LOW | 15 |
@@ -35,7 +36,7 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | ARCHITECTURE | 3 |
-| AUTHORIZATION | 5 |
+| AUTHORIZATION | 6 |
 | BUG | 37 |
 | DATA_INTEGRITY | 9 |
 | DOCUMENTATION | 2 |
@@ -57,7 +58,7 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 2 |
 | DEFERRED | 29 |
 | PRODUCT_DECISION | 6 |
-| FIXED | 80 |
+| FIXED | 81 |
 | VERIFIED | 218 |
 | DUPLICATE | 5 |
 | ACCEPTED_RISK | 3 |
@@ -88,6 +89,7 @@ see [`README.md`](README.md) for why.
 | [BUG-1742](../../docs/bugs/BUG-1742-lead-creation-is-impossible-the-runtime-form-always-sends-pa.md) | Lead creation is impossible: the runtime form always sends partnerId as an empty string | BUG | CRITICAL | P0 | VERIFIED | apps/admin, api:platform-runtime, api:super-admin | DONE |
 | [BUG-1743](../../docs/bugs/BUG-1743-customers-and-partners-cannot-be-edited-the-runtime-form-ech.md) | Customers and partners cannot be edited: the runtime form echoes fields the update DTO forbids | BUG | CRITICAL | P0 | VERIFIED | apps/admin, api:platform-runtime, api:super-admin | DONE |
 | [BUG-1744](../../docs/bugs/BUG-1744-every-subscription-has-a-zero-length-billing-period-and-a-re.md) | Every subscription has a zero-length billing period and a renewal date in the past | DATA_INTEGRITY | CRITICAL | P0 | VERIFIED | api:super-admin, api:billing, integration:stripe | DONE |
+| [BUG-3152](../../docs/bugs/BUG-3152-post-users-userid-roles-lets-a-delegated-role-assignment-adm.md) | POST /users/:userId/roles lets a delegated role-assignment admin self-grant GLOBAL_ADMIN | AUTHORIZATION | CRITICAL | P0 | FIXED | api:users/users.service.ts, api:users/users.controller.ts | DONE |
 | [BUG-1494](../../docs/bugs/BUG-1494-git-worktree-remove-follows-node-modules-junctions-and-delet.md) | git worktree remove follows node_modules junctions and deletes the primary checkout | INFRA | CRITICAL | P1 | VERIFIED | scripts | DONE |
 | [BUG-0049](../../docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md) | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | P0 | VERIFIED | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | DONE |
 | [BUG-0052](../../docs/bugs/BUG-0052-production-dependency-graph-carries-critical-and-high-securi.md) | Production dependency graph carries critical and high security advisories | SECURITY | HIGH | P0 | VERIFIED | package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api | DONE |

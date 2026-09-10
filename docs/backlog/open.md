@@ -21,7 +21,9 @@ The Architect reads this before planning any substantial change —
 
 ## CRITICAL
 
-_None._
+| ID | Title | Type | Severity | Priority | Status | Affected | Architect |
+|---|---|---|---|---|---|---|---|
+| [BUG-3152](../../docs/bugs/BUG-3152-post-users-userid-roles-lets-a-delegated-role-assignment-adm.md) | POST /users/:userId/roles lets a delegated role-assignment admin self-grant GLOBAL_ADMIN | AUTHORIZATION | CRITICAL | P0 | FIXED | api:users/users.service.ts, api:users/users.controller.ts | DONE |
 
 ## HIGH
 
