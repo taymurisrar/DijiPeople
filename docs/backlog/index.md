@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**454 records** — 323 bugs under [`docs/bugs/`](../bugs/), 131 non-bug items under [`items/`](items/).
+**475 records** — 343 bugs under [`docs/bugs/`](../bugs/), 132 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,22 +13,22 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 124 |
+| Open (active work) | 145 |
 | Blocked | 2 |
 | Deferred | 29 |
 | Awaiting a product decision | 7 |
 | Completed / closed | 292 |
-| **Open CRITICAL** | **1** |
-| **Open HIGH** | **36** |
-| **Awaiting Architect triage** | **0** |
+| **Open CRITICAL** | **2** |
+| **Open HIGH** | **44** |
+| **Awaiting Architect triage** | **21** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| CRITICAL | 1 |
-| HIGH | 36 |
-| MEDIUM | 69 |
+| CRITICAL | 2 |
+| HIGH | 44 |
+| MEDIUM | 81 |
 | LOW | 15 |
 
 ## Open by type
@@ -36,7 +36,7 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | ARCHITECTURE | 3 |
-| AUTHORIZATION | 5 |
+| AUTHORIZATION | 9 |
 | BUG | 37 |
 | DATA_INTEGRITY | 9 |
 | DOCUMENTATION | 2 |
@@ -44,7 +44,7 @@ see [`README.md`](README.md) for why.
 | INFRA | 4 |
 | INTEGRATION | 5 |
 | PERFORMANCE | 1 |
-| SECURITY | 6 |
+| SECURITY | 23 |
 | STATE_MACHINE | 3 |
 | TECH_DEBT | 6 |
 | TEST_GAP | 8 |
@@ -54,7 +54,7 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 13 |
+| OPEN | 33 |
 | BLOCKED | 2 |
 | DEFERRED | 29 |
 | PRODUCT_DECISION | 7 |
@@ -62,6 +62,7 @@ see [`README.md`](README.md) for why.
 | VERIFIED | 218 |
 | DUPLICATE | 5 |
 | ACCEPTED_RISK | 3 |
+| TRIAGE_REQUIRED | 1 |
 | READY | 32 |
 | DONE | 66 |
 
@@ -89,6 +90,7 @@ see [`README.md`](README.md) for why.
 | [BUG-1743](../../docs/bugs/BUG-1743-customers-and-partners-cannot-be-edited-the-runtime-form-ech.md) | Customers and partners cannot be edited: the runtime form echoes fields the update DTO forbids | BUG | CRITICAL | P0 | VERIFIED | apps/admin, api:platform-runtime, api:super-admin | DONE |
 | [BUG-1744](../../docs/bugs/BUG-1744-every-subscription-has-a-zero-length-billing-period-and-a-re.md) | Every subscription has a zero-length billing period and a renewal date in the past | DATA_INTEGRITY | CRITICAL | P0 | VERIFIED | api:super-admin, api:billing, integration:stripe | DONE |
 | [BUG-3110](../../docs/bugs/BUG-3110-a-live-production-database-password-sits-permanently-in-the-.md) | A live production database password sits permanently in the public git history | SECURITY | CRITICAL | P0 | OPEN | services/api | FIX_NOW |
+| [BUG-3132](../../docs/bugs/BUG-3132-self-service-privilege-escalation-to-global-admin-via-post-u.md) | Self-service privilege escalation to GLOBAL_ADMIN via POST /users/:userId/roles | AUTHORIZATION | CRITICAL | P0 | OPEN | api:users | TRIAGE_REQUIRED |
 | [ITEM-0131](../../docs/backlog/items/ITEM-0131-production-hr-and-payroll-data-has-no-backup-the-database-is.md) | Production HR and payroll data has no backup: the database is on the Neon free plan | INFRA | CRITICAL | P0 | PRODUCT_DECISION | services/api | PRODUCT_DECISION |
 | [BUG-1494](../../docs/bugs/BUG-1494-git-worktree-remove-follows-node-modules-junctions-and-delet.md) | git worktree remove follows node_modules junctions and deletes the primary checkout | INFRA | CRITICAL | P1 | VERIFIED | scripts | DONE |
 | [BUG-0049](../../docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md) | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | P0 | VERIFIED | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | DONE |
@@ -228,6 +230,13 @@ see [`README.md`](README.md) for why.
 | [BUG-2958](../../docs/bugs/BUG-2958-settings-shows-every-category-group-and-page-regardless-of-t.md) | Settings shows every category, group and page regardless of the tenant's plan | AUTHORIZATION | HIGH | P1 | FIXED | apps/web, api:tenant-settings | FIX_NOW |
 | [BUG-3007](../../docs/bugs/BUG-3007-reports-and-analytics-offers-surfaces-and-reports-for-capabi.md) | Reports and Analytics offers surfaces and reports for capabilities the plan does not include | AUTHORIZATION | HIGH | P1 | OPEN | apps/web, api:reporting | FIX_NOW |
 | [BUG-3020](../../docs/bugs/BUG-3020-records-behind-these-numbers-shows-raw-guids-and-a-count-tha.md) | Records behind these numbers shows raw GUIDs and a count that does not match the metric | UX | HIGH | P1 | OPEN | apps/web, api:reporting | FIX_NOW |
+| [BUG-3133](../../docs/bugs/BUG-3133-legacy-permission-assignment-endpoint-skips-the-cannot-excee.md) | Legacy permission-assignment endpoint skips the cannot-exceed-own-access check its matrix sibling applies | AUTHORIZATION | HIGH | P1 | OPEN | api:roles | TRIAGE_REQUIRED |
+| [BUG-3134](../../docs/bugs/BUG-3134-employee-export-endpoint-skips-the-row-level-access-scope-it.md) | Employee export endpoint skips the row-level access scope its read sibling applies (BOLA) | AUTHORIZATION | HIGH | P1 | OPEN | api:employees | TRIAGE_REQUIRED |
+| [BUG-3137](../../docs/bugs/BUG-3137-live-password-reset-links-and-invite-tokens-sit-in-the-tenan.md) | Live password-reset links and invite tokens sit in the tenant-readable email delivery log | SECURITY | HIGH | P1 | OPEN | api:notifications | TRIAGE_REQUIRED |
+| [BUG-3138](../../docs/bugs/BUG-3138-password-reset-unconditionally-reactivates-a-disabled-accoun.md) | Password reset unconditionally reactivates a disabled account | SECURITY | HIGH | P1 | OPEN | api:auth | TRIAGE_REQUIRED |
+| [BUG-3139](../../docs/bugs/BUG-3139-tenant-password-reset-tokens-are-stateless-and-replayable-fo.md) | Tenant password-reset tokens are stateless and replayable for 24 hours after use | SECURITY | HIGH | P1 | OPEN | api:auth | TRIAGE_REQUIRED |
+| [BUG-3140](../../docs/bugs/BUG-3140-client-supplied-startnewsession-flag-on-the-public-agent-ref.md) | Client-supplied startNewSession flag on the public agent refresh endpoint resets absolute session lifetime | SECURITY | HIGH | P1 | OPEN | api:auth, api:agent | TRIAGE_REQUIRED |
+| [BUG-3141](../../docs/bugs/BUG-3141-branding-svg-served-unauthenticated-and-inline-enabled-store.md) | Branding SVG served unauthenticated and inline enabled stored XSS on the API origin | SECURITY | HIGH | P1 | OPEN | api:customization | TRIAGE_REQUIRED |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -243,6 +252,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0124](../../docs/backlog/items/ITEM-0124-production-advisory-gate-blocks-every-release-to-main-and-np.md) | Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile | SECURITY | HIGH | P1 | READY | scripts/check-production-advisories.mjs | FIX_NOW |
 | [ITEM-0048](../../docs/backlog/items/ITEM-0048-replace-or-contain-active-win-and-the-xlsx-export-path.md) | Replace or contain active-win and the xlsx export path | SECURITY | HIGH | P2 | BLOCKED | apps/agent-desktop, services/api/src/common/excel, package-lock.json | BLOCKED_EXTERNAL |
 | [ITEM-0086](../../docs/backlog/items/ITEM-0086-smoke-deployment-does-not-assert-that-a-launched-market-has-.md) | smoke:deployment does not assert that a launched market has a purchasable price or a running outbox worker | TEST_GAP | HIGH | P2 | DONE | scripts | DONE |
+| [ITEM-0132](../../docs/backlog/items/ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for.md) | No multi-factor authentication exists anywhere, including for platform super admins | SECURITY | HIGH | P2 | TRIAGE_REQUIRED | api:auth | TRIAGE_REQUIRED |
 | [BUG-0051](../../docs/bugs/BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state.md) | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | P1 | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [ITEM-0018](../../docs/backlog/items/ITEM-0018-plans-and-prices-have-no-draft-publish-or-archive-lifecycle.md) | Plans and prices have no draft, publish or archive lifecycle | ARCHITECTURE | MEDIUM | P1 | DONE | services/api/prisma, api:super-admin, apps/admin, apps/landing | DONE |
 | [ITEM-0044](../../docs/backlog/items/ITEM-0044-validate-forwarded-host-before-tenant-web-workspace-resoluti.md) | Validate forwarded host before tenant web workspace resolution | SECURITY | MEDIUM | P1 | DONE | apps/web | DONE |
@@ -380,6 +390,18 @@ see [`README.md`](README.md) for why.
 | [BUG-2822](../../docs/bugs/BUG-2822-a-business-refusal-is-rendered-as-a-fatal-error-dialog-with-.md) | A business refusal is rendered as a fatal error dialog with a reference id and a log download | UX | MEDIUM | P2 | FIXED | runtime, approvals, attendance | FIX_NOW |
 | [BUG-2839](../../docs/bugs/BUG-2839-a-dashboard-fx-test-asserted-on-the-last-month-bucket-so-it-.md) | A dashboard FX test asserted on the last month bucket, so it passed in August and failed on 1 September | BUG | MEDIUM | P2 | FIXED | super-admin | FIX_NOW |
 | [BUG-2888](../../docs/bugs/BUG-2888-an-externally-hosted-release-is-invisible-to-the-desktop-age.md) | An externally hosted release is invisible to the desktop agent update feed, because the platform publish route cannot record a SHA-512 | INTEGRATION | MEDIUM | P2 | OPEN | api:app-releases | FIX_NOW |
+| [BUG-3135](../../docs/bugs/BUG-3135-project-allocations-export-has-the-same-row-scope-gap-as-the.md) | Project-allocations export has the same row-scope gap as the employee export, gated by a different permission | AUTHORIZATION | MEDIUM | P2 | OPEN | api:projects | TRIAGE_REQUIRED |
+| [BUG-3136](../../docs/bugs/BUG-3136-five-public-read-routes-carry-no-publicratelimitguard.md) | Five public read routes carry no PublicRateLimitGuard | SECURITY | MEDIUM | P2 | OPEN | services/api/src/common | TRIAGE_REQUIRED |
+| [BUG-3142](../../docs/bugs/BUG-3142-desktop-agent-login-has-no-per-account-lockout-recalibrated-.md) | Desktop-agent login has no per-account lockout (recalibrated from an overstated unthrottled-oracle claim) | SECURITY | MEDIUM | P2 | OPEN | api:agent, api:auth | TRIAGE_REQUIRED |
+| [BUG-3143](../../docs/bugs/BUG-3143-session-cookies-scoped-to-domain-dijipeople-com-transmit-the.md) | Session cookies scoped to Domain=.dijipeople.com transmit the platform-admin token to every tenant hostname | SECURITY | MEDIUM | P2 | OPEN | api:auth | TRIAGE_REQUIRED |
+| [BUG-3144](../../docs/bugs/BUG-3144-constant-time-defence-in-verifyidentitycredential-is-inert-l.md) | Constant-time defence in verifyIdentityCredential is inert, leaving a 2700x timing oracle for email existence | SECURITY | MEDIUM | P2 | OPEN | api:auth | TRIAGE_REQUIRED |
+| [BUG-3145](../../docs/bugs/BUG-3145-no-refresh-token-reuse-detection-anywhere-tokenfamilyid-is-w.md) | No refresh-token reuse detection anywhere; tokenFamilyId is written and never read | SECURITY | MEDIUM | P2 | OPEN | api:auth | TRIAGE_REQUIRED |
+| [BUG-3146](../../docs/bugs/BUG-3146-platform-admin-login-has-no-account-lockout-of-any-kind.md) | Platform-admin login has no account lockout of any kind | SECURITY | MEDIUM | P2 | OPEN | api:platform-auth | TRIAGE_REQUIRED |
+| [BUG-3147](../../docs/bugs/BUG-3147-placeholder-and-reset-passwords-are-derived-from-date-now.md) | Placeholder and reset passwords are derived from Date.now() | SECURITY | MEDIUM | P2 | OPEN | api:auth | TRIAGE_REQUIRED |
+| [BUG-3148](../../docs/bugs/BUG-3148-web-proxy-rewrites-auth-cookies-to-samesite-none-in-producti.md) | Web proxy rewrites auth cookies to SameSite=None in production with no CSRF token anywhere | SECURITY | MEDIUM | P2 | OPEN | apps/web | TRIAGE_REQUIRED |
+| [BUG-3149](../../docs/bugs/BUG-3149-account-lockout-has-no-per-ip-dimension-so-any-known-email-c.md) | Account lockout has no per-IP dimension, so any known email can be locked out indefinitely | SECURITY | MEDIUM | P2 | OPEN | api:auth | TRIAGE_REQUIRED |
+| [BUG-3150](../../docs/bugs/BUG-3150-a-password-reset-does-not-revoke-existing-desktop-agent-sess.md) | A password reset does not revoke existing desktop-agent sessions | SECURITY | MEDIUM | P2 | OPEN | api:auth, api:agent | TRIAGE_REQUIRED |
+| [BUG-3151](../../docs/bugs/BUG-3151-agent-device-fingerprint-is-derived-from-hostname-and-userna.md) | Agent device fingerprint is derived from hostname and username; enrolment silently reassigns an existing device | SECURITY | MEDIUM | P2 | OPEN | api:agent | TRIAGE_REQUIRED |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |

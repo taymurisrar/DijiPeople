@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 452,
+    "total_records": 475,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -13657,13 +13657,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-2494-check-out-re-validates-check-in-preconditions-and-traps-the-.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "c4ffd13b",
         "created_at": "2026-08-30",
-        "updated_at": "2026-08-30",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -13699,13 +13699,13 @@
       "severity": "MEDIUM",
       "priority": "P2",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-2495-the-under-investigation-tile-counts-incidents-nobody-is-inve.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "c4ffd13b",
         "created_at": "2026-08-30",
-        "updated_at": "2026-08-30",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -14851,13 +14851,13 @@
       "severity": "MEDIUM",
       "priority": "P2",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-2888-an-externally-hosted-release-is-invisible-to-the-desktop-age.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "4ee7b2cd",
         "created_at": "2026-09-09",
-        "updated_at": "2026-09-09",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -15075,6 +15075,810 @@
           "apps/web"
         ],
         "verification_scope": "See docs/bugs/BUG-3021-workspace-switcher-in-the-avatar-menu-overflows-horizontally.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3110",
+      "type": "SECURITY",
+      "title": "A live production database password sits permanently in the public git history",
+      "severity": "CRITICAL",
+      "priority": "P0",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3110-a-live-production-database-password-sits-permanently-in-the-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "9b2fc338",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-11",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3110-a-live-production-database-password-sits-permanently-in-the-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3132",
+      "type": "AUTHORIZATION",
+      "title": "Self-service privilege escalation to GLOBAL_ADMIN via POST /users/:userId/roles",
+      "severity": "CRITICAL",
+      "priority": "P0",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3132-self-service-privilege-escalation-to-global-admin-via-post-u.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "a800d8f2",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/users"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/users"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3132-self-service-privilege-escalation-to-global-admin-via-post-u.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3133",
+      "type": "AUTHORIZATION",
+      "title": "Legacy permission-assignment endpoint skips the cannot-exceed-own-access check its matrix sibling applies",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3133-legacy-permission-assignment-endpoint-skips-the-cannot-excee.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "a800d8f2",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/roles"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/roles"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3133-legacy-permission-assignment-endpoint-skips-the-cannot-excee.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3134",
+      "type": "AUTHORIZATION",
+      "title": "Employee export endpoint skips the row-level access scope its read sibling applies (BOLA)",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3134-employee-export-endpoint-skips-the-row-level-access-scope-it.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "a800d8f2",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/employees"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/employees"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3134-employee-export-endpoint-skips-the-row-level-access-scope-it.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3135",
+      "type": "AUTHORIZATION",
+      "title": "Project-allocations export has the same row-scope gap as the employee export, gated by a different permission",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3135-project-allocations-export-has-the-same-row-scope-gap-as-the.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "a800d8f2",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/projects"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/projects"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3135-project-allocations-export-has-the-same-row-scope-gap-as-the.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3136",
+      "type": "SECURITY",
+      "title": "Five public read routes carry no PublicRateLimitGuard",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3136-five-public-read-routes-carry-no-publicratelimitguard.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "a800d8f2",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/common"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/common"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3136-five-public-read-routes-carry-no-publicratelimitguard.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3137",
+      "type": "SECURITY",
+      "title": "Live password-reset links and invite tokens sit in the tenant-readable email delivery log",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3137-live-password-reset-links-and-invite-tokens-sit-in-the-tenan.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "a800d8f2",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/notifications"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/notifications"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3137-live-password-reset-links-and-invite-tokens-sit-in-the-tenan.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3138",
+      "type": "SECURITY",
+      "title": "Password reset unconditionally reactivates a disabled account",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3138-password-reset-unconditionally-reactivates-a-disabled-accoun.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "a800d8f2",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/auth"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/auth"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3138-password-reset-unconditionally-reactivates-a-disabled-accoun.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3139",
+      "type": "SECURITY",
+      "title": "Tenant password-reset tokens are stateless and replayable for 24 hours after use",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3139-tenant-password-reset-tokens-are-stateless-and-replayable-fo.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "a800d8f2",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/auth"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/auth"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3139-tenant-password-reset-tokens-are-stateless-and-replayable-fo.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3140",
+      "type": "SECURITY",
+      "title": "Client-supplied startNewSession flag on the public agent refresh endpoint resets absolute session lifetime",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3140-client-supplied-startnewsession-flag-on-the-public-agent-ref.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "a800d8f2",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/auth",
+        "services/api/src/modules/agent"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/auth",
+          "services/api/src/modules/agent"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3140-client-supplied-startnewsession-flag-on-the-public-agent-ref.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3141",
+      "type": "SECURITY",
+      "title": "Branding SVG served unauthenticated and inline enabled stored XSS on the API origin",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3141-branding-svg-served-unauthenticated-and-inline-enabled-store.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "a800d8f2",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/customization"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/customization"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3141-branding-svg-served-unauthenticated-and-inline-enabled-store.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3142",
+      "type": "SECURITY",
+      "title": "Desktop-agent login has no per-account lockout (recalibrated from an overstated unthrottled-oracle claim)",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3142-desktop-agent-login-has-no-per-account-lockout-recalibrated-.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "a800d8f2",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/agent",
+        "services/api/src/modules/auth"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/agent",
+          "services/api/src/modules/auth"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3142-desktop-agent-login-has-no-per-account-lockout-recalibrated-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3143",
+      "type": "SECURITY",
+      "title": "Session cookies scoped to Domain=.dijipeople.com transmit the platform-admin token to every tenant hostname",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3143-session-cookies-scoped-to-domain-dijipeople-com-transmit-the.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "a800d8f2",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/auth"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/auth"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3143-session-cookies-scoped-to-domain-dijipeople-com-transmit-the.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3144",
+      "type": "SECURITY",
+      "title": "Constant-time defence in verifyIdentityCredential is inert, leaving a 2700x timing oracle for email existence",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3144-constant-time-defence-in-verifyidentitycredential-is-inert-l.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "a800d8f2",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/auth"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/auth"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3144-constant-time-defence-in-verifyidentitycredential-is-inert-l.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3145",
+      "type": "SECURITY",
+      "title": "No refresh-token reuse detection anywhere; tokenFamilyId is written and never read",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3145-no-refresh-token-reuse-detection-anywhere-tokenfamilyid-is-w.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "a800d8f2",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/auth"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/auth"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3145-no-refresh-token-reuse-detection-anywhere-tokenfamilyid-is-w.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3146",
+      "type": "SECURITY",
+      "title": "Platform-admin login has no account lockout of any kind",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3146-platform-admin-login-has-no-account-lockout-of-any-kind.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "a800d8f2",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/platform-auth"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/platform-auth"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3146-platform-admin-login-has-no-account-lockout-of-any-kind.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3147",
+      "type": "SECURITY",
+      "title": "Placeholder and reset passwords are derived from Date.now()",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3147-placeholder-and-reset-passwords-are-derived-from-date-now.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "a800d8f2",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/auth"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/auth"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3147-placeholder-and-reset-passwords-are-derived-from-date-now.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3148",
+      "type": "SECURITY",
+      "title": "Web proxy rewrites auth cookies to SameSite=None in production with no CSRF token anywhere",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3148-web-proxy-rewrites-auth-cookies-to-samesite-none-in-producti.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "a800d8f2",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3148-web-proxy-rewrites-auth-cookies-to-samesite-none-in-producti.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3149",
+      "type": "SECURITY",
+      "title": "Account lockout has no per-IP dimension, so any known email can be locked out indefinitely",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3149-account-lockout-has-no-per-ip-dimension-so-any-known-email-c.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "a800d8f2",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/auth"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/auth"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3149-account-lockout-has-no-per-ip-dimension-so-any-known-email-c.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3150",
+      "type": "SECURITY",
+      "title": "A password reset does not revoke existing desktop-agent sessions",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3150-a-password-reset-does-not-revoke-existing-desktop-agent-sess.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "a800d8f2",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/auth",
+        "services/api/src/modules/agent"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/auth",
+          "services/api/src/modules/agent"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3150-a-password-reset-does-not-revoke-existing-desktop-agent-sess.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3151",
+      "type": "SECURITY",
+      "title": "Agent device fingerprint is derived from hostname and username; enrolment silently reassigns an existing device",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3151-agent-device-fingerprint-is-derived-from-hostname-and-userna.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "a800d8f2",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/agent"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/agent"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3151-agent-device-fingerprint-is-derived-from-hostname-and-userna.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],
@@ -20573,14 +21377,14 @@
       "title": "Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "READY",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0124-production-advisory-gate-blocks-every-release-to-main-and-np.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-09-09",
-        "updated_at": "2026-09-09",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -20611,14 +21415,14 @@
       "title": "The .NET Integration Gateway ships to customers with no CI coverage at all",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "READY",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0125-the-net-integration-gateway-ships-to-customers-with-no-ci-co.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-09-09",
-        "updated_at": "2026-09-09",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -20826,6 +21630,82 @@
           ".agent"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0130-review-process-missed-four-defects-on-screens-adjacent-to-th.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0131",
+      "type": "INFRA",
+      "title": "Production HR and payroll data has no backup: the database is on the Neon free plan",
+      "severity": "CRITICAL",
+      "priority": "P0",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0131-production-hr-and-payroll-data-has-no-backup-the-database-is.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-11",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0131-production-hr-and-payroll-data-has-no-backup-the-database-is.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0132",
+      "type": "SECURITY",
+      "title": "No multi-factor authentication exists anywhere, including for platform super admins",
+      "severity": "HIGH",
+      "priority": "P2",
+      "current_status": "TRIAGE_REQUIRED",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/auth"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/auth"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

@@ -11,13 +11,36 @@ The Architect reads this before planning any substantial change —
 
 ## Awaiting Architect triage
 
-_None._
+| ID | Title | Type | Severity | Priority | Status | Affected | Architect |
+|---|---|---|---|---|---|---|---|
+| [BUG-3132](../../docs/bugs/BUG-3132-self-service-privilege-escalation-to-global-admin-via-post-u.md) | Self-service privilege escalation to GLOBAL_ADMIN via POST /users/:userId/roles | AUTHORIZATION | CRITICAL | P0 | OPEN | api:users | TRIAGE_REQUIRED |
+| [BUG-3133](../../docs/bugs/BUG-3133-legacy-permission-assignment-endpoint-skips-the-cannot-excee.md) | Legacy permission-assignment endpoint skips the cannot-exceed-own-access check its matrix sibling applies | AUTHORIZATION | HIGH | P1 | OPEN | api:roles | TRIAGE_REQUIRED |
+| [BUG-3134](../../docs/bugs/BUG-3134-employee-export-endpoint-skips-the-row-level-access-scope-it.md) | Employee export endpoint skips the row-level access scope its read sibling applies (BOLA) | AUTHORIZATION | HIGH | P1 | OPEN | api:employees | TRIAGE_REQUIRED |
+| [BUG-3137](../../docs/bugs/BUG-3137-live-password-reset-links-and-invite-tokens-sit-in-the-tenan.md) | Live password-reset links and invite tokens sit in the tenant-readable email delivery log | SECURITY | HIGH | P1 | OPEN | api:notifications | TRIAGE_REQUIRED |
+| [BUG-3138](../../docs/bugs/BUG-3138-password-reset-unconditionally-reactivates-a-disabled-accoun.md) | Password reset unconditionally reactivates a disabled account | SECURITY | HIGH | P1 | OPEN | api:auth | TRIAGE_REQUIRED |
+| [BUG-3139](../../docs/bugs/BUG-3139-tenant-password-reset-tokens-are-stateless-and-replayable-fo.md) | Tenant password-reset tokens are stateless and replayable for 24 hours after use | SECURITY | HIGH | P1 | OPEN | api:auth | TRIAGE_REQUIRED |
+| [BUG-3140](../../docs/bugs/BUG-3140-client-supplied-startnewsession-flag-on-the-public-agent-ref.md) | Client-supplied startNewSession flag on the public agent refresh endpoint resets absolute session lifetime | SECURITY | HIGH | P1 | OPEN | api:auth, api:agent | TRIAGE_REQUIRED |
+| [BUG-3141](../../docs/bugs/BUG-3141-branding-svg-served-unauthenticated-and-inline-enabled-store.md) | Branding SVG served unauthenticated and inline enabled stored XSS on the API origin | SECURITY | HIGH | P1 | OPEN | api:customization | TRIAGE_REQUIRED |
+| [ITEM-0132](../../docs/backlog/items/ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for.md) | No multi-factor authentication exists anywhere, including for platform super admins | SECURITY | HIGH | P2 | TRIAGE_REQUIRED | api:auth | TRIAGE_REQUIRED |
+| [BUG-3135](../../docs/bugs/BUG-3135-project-allocations-export-has-the-same-row-scope-gap-as-the.md) | Project-allocations export has the same row-scope gap as the employee export, gated by a different permission | AUTHORIZATION | MEDIUM | P2 | OPEN | api:projects | TRIAGE_REQUIRED |
+| [BUG-3136](../../docs/bugs/BUG-3136-five-public-read-routes-carry-no-publicratelimitguard.md) | Five public read routes carry no PublicRateLimitGuard | SECURITY | MEDIUM | P2 | OPEN | services/api/src/common | TRIAGE_REQUIRED |
+| [BUG-3142](../../docs/bugs/BUG-3142-desktop-agent-login-has-no-per-account-lockout-recalibrated-.md) | Desktop-agent login has no per-account lockout (recalibrated from an overstated unthrottled-oracle claim) | SECURITY | MEDIUM | P2 | OPEN | api:agent, api:auth | TRIAGE_REQUIRED |
+| [BUG-3143](../../docs/bugs/BUG-3143-session-cookies-scoped-to-domain-dijipeople-com-transmit-the.md) | Session cookies scoped to Domain=.dijipeople.com transmit the platform-admin token to every tenant hostname | SECURITY | MEDIUM | P2 | OPEN | api:auth | TRIAGE_REQUIRED |
+| [BUG-3144](../../docs/bugs/BUG-3144-constant-time-defence-in-verifyidentitycredential-is-inert-l.md) | Constant-time defence in verifyIdentityCredential is inert, leaving a 2700x timing oracle for email existence | SECURITY | MEDIUM | P2 | OPEN | api:auth | TRIAGE_REQUIRED |
+| [BUG-3145](../../docs/bugs/BUG-3145-no-refresh-token-reuse-detection-anywhere-tokenfamilyid-is-w.md) | No refresh-token reuse detection anywhere; tokenFamilyId is written and never read | SECURITY | MEDIUM | P2 | OPEN | api:auth | TRIAGE_REQUIRED |
+| [BUG-3146](../../docs/bugs/BUG-3146-platform-admin-login-has-no-account-lockout-of-any-kind.md) | Platform-admin login has no account lockout of any kind | SECURITY | MEDIUM | P2 | OPEN | api:platform-auth | TRIAGE_REQUIRED |
+| [BUG-3147](../../docs/bugs/BUG-3147-placeholder-and-reset-passwords-are-derived-from-date-now.md) | Placeholder and reset passwords are derived from Date.now() | SECURITY | MEDIUM | P2 | OPEN | api:auth | TRIAGE_REQUIRED |
+| [BUG-3148](../../docs/bugs/BUG-3148-web-proxy-rewrites-auth-cookies-to-samesite-none-in-producti.md) | Web proxy rewrites auth cookies to SameSite=None in production with no CSRF token anywhere | SECURITY | MEDIUM | P2 | OPEN | apps/web | TRIAGE_REQUIRED |
+| [BUG-3149](../../docs/bugs/BUG-3149-account-lockout-has-no-per-ip-dimension-so-any-known-email-c.md) | Account lockout has no per-IP dimension, so any known email can be locked out indefinitely | SECURITY | MEDIUM | P2 | OPEN | api:auth | TRIAGE_REQUIRED |
+| [BUG-3150](../../docs/bugs/BUG-3150-a-password-reset-does-not-revoke-existing-desktop-agent-sess.md) | A password reset does not revoke existing desktop-agent sessions | SECURITY | MEDIUM | P2 | OPEN | api:auth, api:agent | TRIAGE_REQUIRED |
+| [BUG-3151](../../docs/bugs/BUG-3151-agent-device-fingerprint-is-derived-from-hostname-and-userna.md) | Agent device fingerprint is derived from hostname and username; enrolment silently reassigns an existing device | SECURITY | MEDIUM | P2 | OPEN | api:agent | TRIAGE_REQUIRED |
 
 ## CRITICAL
 
 | ID | Title | Type | Severity | Priority | Status | Affected | Architect |
 |---|---|---|---|---|---|---|---|
 | [BUG-3110](../../docs/bugs/BUG-3110-a-live-production-database-password-sits-permanently-in-the-.md) | A live production database password sits permanently in the public git history | SECURITY | CRITICAL | P0 | OPEN | services/api | FIX_NOW |
+| [BUG-3132](../../docs/bugs/BUG-3132-self-service-privilege-escalation-to-global-admin-via-post-u.md) | Self-service privilege escalation to GLOBAL_ADMIN via POST /users/:userId/roles | AUTHORIZATION | CRITICAL | P0 | OPEN | api:users | TRIAGE_REQUIRED |
 
 ## HIGH
 
@@ -58,7 +81,15 @@ _None._
 | [BUG-2958](../../docs/bugs/BUG-2958-settings-shows-every-category-group-and-page-regardless-of-t.md) | Settings shows every category, group and page regardless of the tenant's plan | AUTHORIZATION | HIGH | P1 | FIXED | apps/web, api:tenant-settings | FIX_NOW |
 | [BUG-3007](../../docs/bugs/BUG-3007-reports-and-analytics-offers-surfaces-and-reports-for-capabi.md) | Reports and Analytics offers surfaces and reports for capabilities the plan does not include | AUTHORIZATION | HIGH | P1 | OPEN | apps/web, api:reporting | FIX_NOW |
 | [BUG-3020](../../docs/bugs/BUG-3020-records-behind-these-numbers-shows-raw-guids-and-a-count-tha.md) | Records behind these numbers shows raw GUIDs and a count that does not match the metric | UX | HIGH | P1 | OPEN | apps/web, api:reporting | FIX_NOW |
+| [BUG-3133](../../docs/bugs/BUG-3133-legacy-permission-assignment-endpoint-skips-the-cannot-excee.md) | Legacy permission-assignment endpoint skips the cannot-exceed-own-access check its matrix sibling applies | AUTHORIZATION | HIGH | P1 | OPEN | api:roles | TRIAGE_REQUIRED |
+| [BUG-3134](../../docs/bugs/BUG-3134-employee-export-endpoint-skips-the-row-level-access-scope-it.md) | Employee export endpoint skips the row-level access scope its read sibling applies (BOLA) | AUTHORIZATION | HIGH | P1 | OPEN | api:employees | TRIAGE_REQUIRED |
+| [BUG-3137](../../docs/bugs/BUG-3137-live-password-reset-links-and-invite-tokens-sit-in-the-tenan.md) | Live password-reset links and invite tokens sit in the tenant-readable email delivery log | SECURITY | HIGH | P1 | OPEN | api:notifications | TRIAGE_REQUIRED |
+| [BUG-3138](../../docs/bugs/BUG-3138-password-reset-unconditionally-reactivates-a-disabled-accoun.md) | Password reset unconditionally reactivates a disabled account | SECURITY | HIGH | P1 | OPEN | api:auth | TRIAGE_REQUIRED |
+| [BUG-3139](../../docs/bugs/BUG-3139-tenant-password-reset-tokens-are-stateless-and-replayable-fo.md) | Tenant password-reset tokens are stateless and replayable for 24 hours after use | SECURITY | HIGH | P1 | OPEN | api:auth | TRIAGE_REQUIRED |
+| [BUG-3140](../../docs/bugs/BUG-3140-client-supplied-startnewsession-flag-on-the-public-agent-ref.md) | Client-supplied startNewSession flag on the public agent refresh endpoint resets absolute session lifetime | SECURITY | HIGH | P1 | OPEN | api:auth, api:agent | TRIAGE_REQUIRED |
+| [BUG-3141](../../docs/bugs/BUG-3141-branding-svg-served-unauthenticated-and-inline-enabled-store.md) | Branding SVG served unauthenticated and inline enabled stored XSS on the API origin | SECURITY | HIGH | P1 | OPEN | api:customization | TRIAGE_REQUIRED |
 | [ITEM-0124](../../docs/backlog/items/ITEM-0124-production-advisory-gate-blocks-every-release-to-main-and-np.md) | Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile | SECURITY | HIGH | P1 | READY | scripts/check-production-advisories.mjs | FIX_NOW |
+| [ITEM-0132](../../docs/backlog/items/ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for.md) | No multi-factor authentication exists anywhere, including for platform super admins | SECURITY | HIGH | P2 | TRIAGE_REQUIRED | api:auth | TRIAGE_REQUIRED |
 
 ## MEDIUM
 
@@ -111,6 +142,18 @@ _None._
 | [BUG-2822](../../docs/bugs/BUG-2822-a-business-refusal-is-rendered-as-a-fatal-error-dialog-with-.md) | A business refusal is rendered as a fatal error dialog with a reference id and a log download | UX | MEDIUM | P2 | FIXED | runtime, approvals, attendance | FIX_NOW |
 | [BUG-2839](../../docs/bugs/BUG-2839-a-dashboard-fx-test-asserted-on-the-last-month-bucket-so-it-.md) | A dashboard FX test asserted on the last month bucket, so it passed in August and failed on 1 September | BUG | MEDIUM | P2 | FIXED | super-admin | FIX_NOW |
 | [BUG-2888](../../docs/bugs/BUG-2888-an-externally-hosted-release-is-invisible-to-the-desktop-age.md) | An externally hosted release is invisible to the desktop agent update feed, because the platform publish route cannot record a SHA-512 | INTEGRATION | MEDIUM | P2 | OPEN | api:app-releases | FIX_NOW |
+| [BUG-3135](../../docs/bugs/BUG-3135-project-allocations-export-has-the-same-row-scope-gap-as-the.md) | Project-allocations export has the same row-scope gap as the employee export, gated by a different permission | AUTHORIZATION | MEDIUM | P2 | OPEN | api:projects | TRIAGE_REQUIRED |
+| [BUG-3136](../../docs/bugs/BUG-3136-five-public-read-routes-carry-no-publicratelimitguard.md) | Five public read routes carry no PublicRateLimitGuard | SECURITY | MEDIUM | P2 | OPEN | services/api/src/common | TRIAGE_REQUIRED |
+| [BUG-3142](../../docs/bugs/BUG-3142-desktop-agent-login-has-no-per-account-lockout-recalibrated-.md) | Desktop-agent login has no per-account lockout (recalibrated from an overstated unthrottled-oracle claim) | SECURITY | MEDIUM | P2 | OPEN | api:agent, api:auth | TRIAGE_REQUIRED |
+| [BUG-3143](../../docs/bugs/BUG-3143-session-cookies-scoped-to-domain-dijipeople-com-transmit-the.md) | Session cookies scoped to Domain=.dijipeople.com transmit the platform-admin token to every tenant hostname | SECURITY | MEDIUM | P2 | OPEN | api:auth | TRIAGE_REQUIRED |
+| [BUG-3144](../../docs/bugs/BUG-3144-constant-time-defence-in-verifyidentitycredential-is-inert-l.md) | Constant-time defence in verifyIdentityCredential is inert, leaving a 2700x timing oracle for email existence | SECURITY | MEDIUM | P2 | OPEN | api:auth | TRIAGE_REQUIRED |
+| [BUG-3145](../../docs/bugs/BUG-3145-no-refresh-token-reuse-detection-anywhere-tokenfamilyid-is-w.md) | No refresh-token reuse detection anywhere; tokenFamilyId is written and never read | SECURITY | MEDIUM | P2 | OPEN | api:auth | TRIAGE_REQUIRED |
+| [BUG-3146](../../docs/bugs/BUG-3146-platform-admin-login-has-no-account-lockout-of-any-kind.md) | Platform-admin login has no account lockout of any kind | SECURITY | MEDIUM | P2 | OPEN | api:platform-auth | TRIAGE_REQUIRED |
+| [BUG-3147](../../docs/bugs/BUG-3147-placeholder-and-reset-passwords-are-derived-from-date-now.md) | Placeholder and reset passwords are derived from Date.now() | SECURITY | MEDIUM | P2 | OPEN | api:auth | TRIAGE_REQUIRED |
+| [BUG-3148](../../docs/bugs/BUG-3148-web-proxy-rewrites-auth-cookies-to-samesite-none-in-producti.md) | Web proxy rewrites auth cookies to SameSite=None in production with no CSRF token anywhere | SECURITY | MEDIUM | P2 | OPEN | apps/web | TRIAGE_REQUIRED |
+| [BUG-3149](../../docs/bugs/BUG-3149-account-lockout-has-no-per-ip-dimension-so-any-known-email-c.md) | Account lockout has no per-IP dimension, so any known email can be locked out indefinitely | SECURITY | MEDIUM | P2 | OPEN | api:auth | TRIAGE_REQUIRED |
+| [BUG-3150](../../docs/bugs/BUG-3150-a-password-reset-does-not-revoke-existing-desktop-agent-sess.md) | A password reset does not revoke existing desktop-agent sessions | SECURITY | MEDIUM | P2 | OPEN | api:auth, api:agent | TRIAGE_REQUIRED |
+| [BUG-3151](../../docs/bugs/BUG-3151-agent-device-fingerprint-is-derived-from-hostname-and-userna.md) | Agent device fingerprint is derived from hostname and username; enrolment silently reassigns an existing device | SECURITY | MEDIUM | P2 | OPEN | api:agent | TRIAGE_REQUIRED |
 | [ITEM-0009](../../docs/backlog/items/ITEM-0009-no-observability-platform-exists.md) | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | P2 | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [ITEM-0020](../../docs/backlog/items/ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns.md) | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | P2 | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [ITEM-0022](../../docs/backlog/items/ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur.md) | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | P2 | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
