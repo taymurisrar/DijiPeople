@@ -23,6 +23,24 @@ BlockedBy:
 # ITEM-0124 — Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile
 
 > **Architect triage, 2026-09-11 — `FIX_NOW`.** Re-measured on 2026-09-11 before triage: the gate now passes (0 critical, 10 dispositioned). The blocking half of this record is therefore historical. The substance is not. Overrides have never taken effect in this lockfile, so the only available remedy is a written risk acceptance, and eight high advisories now stand accepted rather than fixed. The record itself names the danger precisely: that pressure arrives exactly when a release is blocked, which is the worst moment to decide what risk is acceptable. Fix the override mechanism so a real remedy exists.
+>
+> **CORRECTED, 2026-09-11, after direct investigation (see Resolution below).**
+> The claim above — "overrides have never taken effect in this lockfile" — is
+> **false**, and left standing here it would mislead the next reader. Evidence:
+> `node scripts/check-overrides-applied.mjs` reports the existing
+> `@mapbox/node-pre-gyp` override as `APPLIED`, in the committed lockfile,
+> today; that script already exists and is already wired into the required CI
+> gate for exactly this capability. What actually fails is narrower than the
+> triage note claimed: adding a **new** override to a package that is already
+> resolved in an existing lockfile is not honoured by an incremental
+> `npm install --package-lock-only` (reproduced, with and without `--force`).
+> A genuinely fresh resolve — no lockfile, no `node_modules` — **does** honour
+> it, and does not downgrade `@nestjs/core`. So "fix the override mechanism"
+> was the wrong framing: the mechanism works and is already proven in CI; the
+> real question was whether spending a fresh resolve on `multer` today is worth
+> what it costs — it is not (see Resolution). This annotation corrects the
+> note rather than deleting it, so the reasoning trail, including the mistake,
+> stays visible.
 
 ## Summary
 
