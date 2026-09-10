@@ -262,5 +262,6 @@ task-level validation summary). REG-372 registered
 ## Related
 
 - Modules — [[attendance]]
+- Regression — REG-372 (see the regression register)
 
 <!-- GRAPH:END -->
