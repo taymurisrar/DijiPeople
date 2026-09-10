@@ -426,6 +426,7 @@ _None. Nothing open at CRITICAL._
 
 ## Recent Engineering History
 
+- [[2026-09-10-release-settings-entitlements-254e8d2b|Engineering History — Release settings entitlements]]
 - [[2026-09-09-settings-plan-entitlements-c3627cad|Engineering History — Settings plan entitlements]]
 - [[2026-08-31-session-redirect-loop-77abf947|Engineering History — Session redirect loop]]
 - [[2026-08-31-reports-analytics-platform-d833e694|Engineering History — Reports analytics platform]]
@@ -433,7 +434,6 @@ _None. Nothing open at CRITICAL._
 - [[2026-08-31-approvals-inbox-decisions-d084dd7b|Engineering History — Approvals inbox decisions]]
 - [[2026-08-30-release-attendance-location-capture-ec1d58da|Engineering History — Release attendance location capture]]
 - [[2026-08-30-prod-monitoring-triage-fba846d1|Engineering History — Prod monitoring triage]]
-- [[2026-08-30-open-bug-burndown-4d75b37c|Engineering History — Open bug burndown]]
 
 ## Recent Releases
 
@@ -555,7 +555,7 @@ _None. Nothing open at CRITICAL._
 | Backlog items | 130 |
 | Known bug patterns | 34 |
 | QA runs | 32 |
-| Engineering history records | 74 |
+| Engineering history records | 75 |
 | Release records | 9 |
 | Module notes | 30 |
 | Architecture notes | 22 |
