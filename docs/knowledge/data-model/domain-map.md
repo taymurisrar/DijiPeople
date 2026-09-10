@@ -8,7 +8,7 @@ aliases: [Domain Map]
 
 Attribution is by counted Prisma call sites, not by name. A model with no call site anywhere is listed under **Unattributed** — that is a finding, not a gap in the tooling. See [[known-gaps]].
 
-**325 models · 305 enums · 261 tenant-scoped · 13 with an entity note**
+**325 models · 306 enums · 261 tenant-scoped · 13 with an entity note**
 
 Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 
@@ -330,7 +330,7 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `NotificationRule` | yes | **none** | — |
 | `NotificationTemplate` | yes | **none** | — |
 
-## Platform ops — 36 models
+## Platform ops — 37 models
 
 | Model | Tenant | Owning module | Note |
 |---|---|---|---|
@@ -347,6 +347,7 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `DlpAlert` | yes | `agent` | — |
 | `DlpRule` | yes | `agent` | — |
 | `EmployeeDevice` | yes | `agent` | — |
+| `EmployeeDocumentReference` | yes | **none** | — |
 | `NotificationInteractionLog` | yes | `inbox` | — |
 | `OutboxEvent` | yes | `outbox` | — |
 | `OutboxEventConsumption` | no | `outbox` | — |
@@ -371,7 +372,7 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `WorkforceSnapshotDaily` | yes | `reporting` | — |
 | `WorkSession` | yes | `agent` | — |
 
-## Unattributed — 16 models
+## Unattributed — 15 models
 
 | Model | Tenant | Owning module | Note |
 |---|---|---|---|
@@ -379,7 +380,6 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `DataJobBatch` | yes | **none** | — |
 | `DataMappingProfile` | yes | **none** | — |
 | `EmergencyContact` | yes | **none** | — |
-| `EmployeeDocumentReference` | yes | **none** | — |
 | `PolicySnapshot` | yes | **none** | — |
 | `ProcessingCycle` | yes | **none** | — |
 | `ProjectRole` | yes | **none** | — |

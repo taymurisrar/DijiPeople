@@ -2,7 +2,7 @@ import { apiRequest } from "@/lib/server-api";
 
 export async function GET() {
   const response = await apiRequest("/payroll/employer-bank-accounts/actions/export");
-  return new Response(await response.arrayBuffer(), {
+  return new Response(response.body, {
     status: response.status,
     headers: {
       "Content-Type":

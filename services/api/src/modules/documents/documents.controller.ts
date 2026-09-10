@@ -16,6 +16,8 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+
+import { uploadLimits } from '../../common/storage/upload-limits';
 import { DocumentEntityType } from '@prisma/client';
 import type { Response } from 'express';
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
@@ -136,7 +138,7 @@ export class DocumentsController {
   @Post('upload')
   @Permissions('documents.upload')
   @RequirePermission(ENTITY_KEYS.DOCUMENTS, 'create')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', uploadLimits('document')))
   upload(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: UploadDocumentDto,

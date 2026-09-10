@@ -489,6 +489,12 @@ describe('permission wiring invariants', () => {
       'PartnerExperienceAdminController',
       'PlatformEventsController',
       'PlatformMonitoringController',
+      // Authorizes inside the handler with the same check as its sibling above:
+      // a platform identity plus `monitoring.read`. It is absent from the tenant
+      // permission matrix because it answers a question about the platform's own
+      // storage dependency rather than about any tenant's data, and it returns
+      // no bucket name, object key or credential.
+      'StorageReadinessController',
       'PlatformRuntimeController',
       'PlatformUsersController',
       'SupportCasesController',

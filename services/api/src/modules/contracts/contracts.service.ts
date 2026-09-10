@@ -17,7 +17,6 @@ import {
   PartnerStatus,
 } from '@prisma/client';
 import { createHash, randomBytes } from 'crypto';
-import { readFile } from 'fs/promises';
 import sanitizeHtml from 'sanitize-html';
 import PDFDocument from 'pdfkit';
 import {
@@ -45,6 +44,7 @@ import {
   TENANT_ORDER_AGREEMENT_REQUIRED_MESSAGE,
 } from './governing-agreement';
 import { StorageService } from '../../common/storage/storage.service';
+import type { StorageScope } from '../../common/storage/object-storage.types';
 import { userHasPlatformPermission } from '../platform-auth/platform-permissions';
 import {
   emailPage,
@@ -1738,7 +1738,10 @@ export class ContractsService {
     const saved = await this.storage.saveFile({
       buffer: file.buffer,
       originalFileName: file.originalname,
-      subdirectory: `contracts/${created.id}/source`,
+      contentType: file.mimetype,
+      scope: this.contractStorageScope(created.tenantId),
+      domain: 'contracts',
+      segments: [created.id],
     });
     await this.prisma.$transaction([
       this.prisma.contractVersion.update({
@@ -1747,6 +1750,7 @@ export class ContractsService {
           sourceFileName: file.originalname,
           sourceMimeType: file.mimetype,
           sourceStorageKey: saved.storageKey,
+          sourceStorageProvider: saved.storageProvider,
         },
       }),
       this.prisma.contractDocument.create({
@@ -1758,6 +1762,11 @@ export class ContractsService {
           fileName: file.originalname,
           mimeType: file.mimetype,
           storageKey: saved.storageKey,
+          storageProvider: saved.storageProvider,
+          // User-uploaded content; no scanner is wired yet (see storage
+          // migration contract) so this records that honestly rather than
+          // implying a scan that never ran.
+          scanStatus: 'SCAN_NOT_CONFIGURED',
           sizeBytes: saved.size,
           sha256: sha256(file.buffer),
           uploadedById: user.userId,
@@ -3684,6 +3693,13 @@ export class ContractsService {
         ? settings.consentText
         : 'I agree to sign this document electronically and understand that my electronic signature is legally binding.';
     const recipient = await this.findRecipient(token);
+    // The signer has no session of their own — this scope comes from the
+    // contract the signature request belongs to, not from any caller-side
+    // identity, which is what `findRecipient`'s `contract: true` include
+    // exists to make possible.
+    const scope = this.contractStorageScope(
+      recipient.signatureRequest.contract.tenantId,
+    );
     if (recipient.status === SignatureRecipientStatus.SIGNED) {
       return {
         success: true,
@@ -3712,16 +3728,22 @@ export class ContractsService {
         'A drawn or uploaded signature image is required.',
       );
     let signatureStorageKey: string | undefined;
+    let signatureStorageProvider: string | undefined;
     let signatureBytes = Buffer.from(dto.typedName?.trim() ?? recipient.name);
     if (dto.signatureDataUrl) {
       signatureBytes = decodeSignatureDataUrl(dto.signatureDataUrl);
-      signatureStorageKey = (
-        await this.storage.saveFile({
-          buffer: signatureBytes,
-          originalFileName: `signature-${recipient.id}.png`,
-          subdirectory: `contracts/${recipient.signatureRequest.contractId}/signatures`,
-        })
-      ).storageKey;
+      const signatureContentType =
+        signatureBytes[0] === 0x89 ? 'image/png' : 'image/jpeg';
+      const savedSignature = await this.storage.saveFile({
+        buffer: signatureBytes,
+        originalFileName: `signature-${recipient.id}.${signatureContentType === 'image/png' ? 'png' : 'jpg'}`,
+        contentType: signatureContentType,
+        scope,
+        domain: 'contracts',
+        segments: [recipient.signatureRequest.contractId],
+      });
+      signatureStorageKey = savedSignature.storageKey;
+      signatureStorageProvider = savedSignature.storageProvider;
     }
     const previousEvidence = await this.prisma.signatureEvidence.findFirst({
       where: {
@@ -3757,6 +3779,7 @@ export class ContractsService {
           method: dto.method,
           typedName: dto.typedName?.trim(),
           signatureStorageKey,
+          signatureStorageProvider,
           signatureSha256: signatureHash,
           consentText,
           consentVersion:
@@ -4008,7 +4031,10 @@ export class ContractsService {
       const evidenceSaved = await this.storage.saveFile({
         buffer: evidenceBuffer,
         originalFileName: `${recipient.signatureRequest.requestNumber}-evidence.json`,
-        subdirectory: `contracts/${recipient.signatureRequest.contractId}/evidence`,
+        contentType: 'application/json',
+        scope,
+        domain: 'contracts',
+        segments: [recipient.signatureRequest.contractId],
       });
       const evidenceDocument = await this.prisma.contractDocument.create({
         data: {
@@ -4019,6 +4045,9 @@ export class ContractsService {
           fileName: `${recipient.signatureRequest.requestNumber}-evidence.json`,
           mimeType: 'application/json',
           storageKey: evidenceSaved.storageKey,
+          storageProvider: evidenceSaved.storageProvider,
+          // Server-generated bundle, not user-uploaded content — leave
+          // scanStatus null rather than claiming a scan that never applied.
           sizeBytes: evidenceSaved.size,
           sha256: sha256(evidenceBuffer),
           isImmutable: true,
@@ -4232,6 +4261,7 @@ export class ContractsService {
     if (!contract || !contract.versions[0])
       throw new NotFoundException('Contract document was not found.');
     const version = contract.versions[0];
+    const scope = this.contractStorageScope(contract.tenantId);
     let documentHtml = version.contentHtml;
     let documentText = '';
     if (immutable) {
@@ -4265,10 +4295,10 @@ export class ContractsService {
       await Promise.all(
         evidenceRows.map(async (evidence) => {
           if (!evidence.signatureStorageKey) return;
-          const stored = await this.storage.openFile(
+          const bytes = await this.storage.readFileBuffer(
             evidence.signatureStorageKey,
+            scope,
           );
-          const bytes = await readFile(stored.absolutePath);
           const mimeType = bytes[0] === 0x89 ? 'image/png' : 'image/jpeg';
           signatureImages.set(
             evidence.id,
@@ -4355,7 +4385,10 @@ export class ContractsService {
     const saved = await this.storage.saveFile({
       buffer,
       originalFileName: fileName,
-      subdirectory: `contracts/${contract.id}/documents`,
+      contentType: mimeType,
+      scope,
+      domain: 'contracts',
+      segments: [contract.id],
     });
     const document = await this.prisma.contractDocument.create({
       data: {
@@ -4370,6 +4403,9 @@ export class ContractsService {
         fileName,
         mimeType,
         storageKey: saved.storageKey,
+        storageProvider: saved.storageProvider,
+        // Server-generated (rendered from the version, or an assembled
+        // signed copy) — never user-uploaded — so scanStatus stays null.
         sizeBytes: saved.size,
         sha256: sha256(buffer),
         isImmutable: immutable,
@@ -4399,8 +4435,15 @@ export class ContractsService {
 
   async openDocument(user: AuthenticatedUser, documentId: string) {
     this.assertPlatform(user);
+    // ContractDocument has no tenantId of its own (FILE-15): the owning
+    // tenant is only reachable by walking to the parent contract, so it is
+    // resolved here rather than via a bare `findUnique` on the id. This
+    // route is reachable only by platform staff via `assertPlatform` above,
+    // so there is no tenant-crossing bug today — but resolving the scope
+    // this way means a future non-platform caller does not inherit one.
     const document = await this.prisma.contractDocument.findUnique({
       where: { id: documentId },
+      include: { contract: { select: { tenantId: true } } },
     });
     if (!document)
       throw new NotFoundException('Contract document was not found.');
@@ -4411,7 +4454,13 @@ export class ContractsService {
       `${document.fileName} was downloaded.`,
       { documentId },
     );
-    return { document, file: await this.storage.openFile(document.storageKey) };
+    return {
+      document,
+      file: await this.storage.openFile(
+        document.storageKey,
+        this.contractStorageScope(document.contract.tenantId),
+      ),
+    };
   }
 
   private async resolveSource(
@@ -5039,6 +5088,24 @@ export class ContractsService {
     this.assertPlatform(user);
     if (!userHasPlatformPermission(user, 'contracts.manage'))
       throw new ForbiddenException('Contract management access is required.');
+  }
+
+  /**
+   * A contract's storage scope follows the tenant the agreement is *with*,
+   * not the platform staff member handling it. Most contracts govern a
+   * specific tenant (a service agreement, a signed amendment), and their
+   * documents belong in that tenant's storage partition even though
+   * `ContractDocument` / `ContractVersion` / `SignatureEvidence` carry no
+   * `tenantId` column of their own — the owning tenant is only reachable by
+   * walking to `Contract.tenantId` (FILE-15). A contract with no tenant — a
+   * partner agreement, or a lead that was never provisioned into a tenant —
+   * genuinely has none to scope to, so platform scope is correct there; it
+   * is not a fallback taken because the lookup was inconvenient.
+   */
+  private contractStorageScope(
+    tenantId: string | null | undefined,
+  ): StorageScope {
+    return tenantId ? { kind: 'tenant', tenantId } : { kind: 'platform' };
   }
 
   private assertApprovalStep(user: AuthenticatedUser, approverRole: string) {

@@ -16,6 +16,8 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+
+import { uploadLimits } from '../../common/storage/upload-limits';
 import type { Response } from 'express';
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -144,7 +146,7 @@ export class EmployeesController {
   @Post('import')
   @Permissions('employees.create')
   @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'create')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', uploadLimits('spreadsheet')))
   async importEmployees(
     @CurrentUser() user: AuthenticatedUser,
     @UploadedFile() file: UploadedFile | undefined,
@@ -587,7 +589,7 @@ export class EmployeesController {
   }
 
   @Post(':employeeId/documents/upload')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', uploadLimits('document')))
   @Permissions('dashboard.view')
   @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
   uploadDocument(
@@ -605,7 +607,7 @@ export class EmployeesController {
   }
 
   @Patch(':employeeId/documents/:documentId')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', uploadLimits('document')))
   @Permissions('dashboard.view')
   @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
   updateDocument(
@@ -692,7 +694,7 @@ export class EmployeesController {
   }
 
   @Post(':employeeId/profile-image/upload')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', uploadLimits('image')))
   @Permissions('dashboard.view')
   @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
   uploadProfileImage(

@@ -103,8 +103,9 @@ describe('ReleasePublisherService', () => {
     storage = {
       saveFile: jest.fn().mockResolvedValue({
         storageKey: 'app-releases/INTEGRATION_GATEWAY/2-0-0/pkg.zip',
-        absolutePath: '/tmp/pkg.zip',
         size: ARTIFACT.byteLength,
+        checksumSha256: ARTIFACT_SHA,
+        storageProvider: 'local',
       }),
       fileExists: jest.fn().mockResolvedValue(true),
       deleteFile: jest.fn().mockResolvedValue(undefined),
@@ -388,6 +389,7 @@ describe('ReleasePublisherService', () => {
       expect(code).toBe('RELEASE_REGISTRATION_FAILED');
       expect(storage.deleteFile).toHaveBeenCalledWith(
         'app-releases/INTEGRATION_GATEWAY/2-0-0/pkg.zip',
+        { kind: 'platform' },
       );
     });
 

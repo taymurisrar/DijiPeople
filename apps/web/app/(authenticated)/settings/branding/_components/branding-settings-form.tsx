@@ -38,19 +38,21 @@ type ToastState = {
   variant: "success" | "error" | "warning" | "info";
 };
 
+// Raster only. The API refuses image/svg+xml because branding assets are
+// served from a public route and a browser executes script in an SVG it
+// navigates to (FILE-02). Kept in step with IMAGE_MIME_TYPES in
+// services/api/src/modules/tenant-settings/branding-assets.service.ts.
 const ALLOWED_LOGO_TYPES = new Set([
   "image/png",
   "image/jpeg",
   "image/jpg",
   "image/webp",
-  "image/svg+xml",
 ]);
 const ALLOWED_FAVICON_TYPES = new Set([
   "image/png",
   "image/jpeg",
   "image/jpg",
   "image/webp",
-  "image/svg+xml",
   "image/x-icon",
   "image/vnd.microsoft.icon",
 ]);
@@ -451,8 +453,8 @@ export function BrandingSettingsForm({
         title: "Unsupported image format",
         description:
           kind === "logo"
-            ? "Logo supports PNG, JPG, WEBP, and SVG."
-            : "Favicon supports PNG, JPG, WEBP, SVG, and ICO.",
+            ? "Logo supports PNG, JPG, and WEBP."
+            : "Favicon supports PNG, JPG, WEBP, and ICO.",
         variant: "warning",
       });
       return;
@@ -524,7 +526,7 @@ export function BrandingSettingsForm({
 
         <div className="mt-5 grid gap-5 lg:grid-cols-2">
           <AssetField
-            accept=".png,.jpg,.jpeg,.webp,.svg,image/png,image/jpeg,image/webp,image/svg+xml"
+            accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
             fileLabel={logoFile?.name}
             label="Logo image"
             onFileSelect={(file) => handleFilePick("logo", file)}
@@ -535,7 +537,7 @@ export function BrandingSettingsForm({
           />
 
           <AssetField
-            accept=".png,.jpg,.jpeg,.webp,.svg,.ico,image/png,image/jpeg,image/webp,image/svg+xml,image/x-icon,image/vnd.microsoft.icon"
+            accept=".png,.jpg,.jpeg,.webp,.ico,image/png,image/jpeg,image/webp,image/x-icon,image/vnd.microsoft.icon"
             fileLabel={faviconFile?.name}
             label="Favicon image"
             onFileSelect={(file) => handleFilePick("favicon", file)}

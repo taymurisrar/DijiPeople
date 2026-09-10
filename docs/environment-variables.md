@@ -270,17 +270,56 @@ generating an invoice for 880 phantom employees is not a billing policy anyone
 would defend afterwards. Raising these thresholds makes that outcome *more*
 likely, so change them deliberately.
 
+## Object storage (Cloudflare R2)
+
+Read by `services/api/src/common/storage/` (`StorageModule`, `StorageService`,
+`resolveStorageConfig`). This is the one place tenant documents, branding
+assets, signed contracts, support-case attachments, invoices, screen captures,
+data-job files, report exports and app-release installers are read and
+written — see `services/api/prisma/migrations/20260910121838_add_object_storage_metadata`
+for the metadata columns this backs.
+
+The live Render service never had a persistent disk, so any row whose
+`storageProvider` is `NULL` predates this and its bytes are already gone
+(`scripts/storage-reconcile.mjs` measures exactly how many). See
+[`docs/architecture/object-storage.md`](architecture/object-storage.md) for the
+provider abstraction, key layout and authorization rules this configures.
+
+| Variable | Where | Required | Meaning |
+|---|---|---|---|
+| `STORAGE_PROVIDER` | API | yes | `r2` or `local`. Production refuses to boot with `local` — the container filesystem is ephemeral, so `resolveStorageConfig` fails closed rather than accepting it (FILE-01/INF-05). Defaults to `local` outside production when unset. |
+| `FILE_STORAGE_DIR` | API | **development only** | Where the `local` provider writes files. Ignored entirely when `STORAGE_PROVIDER=r2`. Never set this in production — see `STORAGE_PROVIDER` above. Defaults to `storage/uploads` (relative to cwd). |
+| `R2_BUCKET_NAME` | API | yes, when `STORAGE_PROVIDER=r2` | The private R2 bucket. Must match `^[a-z0-9][a-z0-9.-]{1,62}$`. |
+| `R2_ENDPOINT` | API | yes, when `STORAGE_PROVIDER=r2` | The account's R2 S3-compatible endpoint. Must be `https://` — `resolveStorageConfig` rejects `http://` so credentials and documents are never sent in clear text. |
+| `R2_ACCESS_KEY_ID` | API | yes, when `STORAGE_PROVIDER=r2` | R2 API token access key id. |
+| `R2_SECRET_ACCESS_KEY` | API | yes, when `STORAGE_PROVIDER=r2` | R2 API token secret. Never logged; never returned in any response. |
+| `R2_ACCOUNT_ID` | API | recommended | Not required for S3 API access (the endpoint already carries the account), but its absence usually means the rest of the R2 configuration was assembled by hand and something else is missing too — logged as a boot warning, not an error. |
+| `R2_REGION` | API | optional | Defaults to `auto`, which is correct for R2 in effectively every case. |
+| `R2_REQUEST_TIMEOUT_MS` | API | optional | Per-request timeout against R2, in milliseconds. Defaults to 15000. Bounded on both ends deliberately — an unreachable R2 must not hold an Express worker open indefinitely. |
+| `R2_MAX_ATTEMPTS` | API | optional | SDK retry attempts per request. Defaults to 3. |
+
+`FILE_UPLOAD_MAX_BYTES` (documented under Application release publishing
+below) applies to both providers — it is enforced by `StorageService`, not by
+either provider implementation.
+
+Read-only reconciliation between the database and the store — orphan rows,
+orphan objects — is `scripts/storage-reconcile.mjs` (`npm run
+storage:reconcile`). It never modifies anything; there is no `--fix` mode.
+
 ## Application release publishing
 
 Read by `services/api` (the publisher endpoint) and by
 `scripts/publish-release.mjs` (the CLI). See
 [`docs/development/release-publishing.md`](development/release-publishing.md).
+An uploaded installer's bytes go through `StorageService` like every other
+upload — see [Object storage (Cloudflare R2)](#object-storage-cloudflare-r2)
+above for `STORAGE_PROVIDER` and the R2 variables. `externalUrl` remains the
+path for artefacts hosted outside DijiPeople storage entirely.
 
 | Variable | Where | Required | Meaning |
 |---|---|---|---|
 | `RELEASE_PUBLISH_TOKEN` | API | only where publishing is allowed | The machine credential `ReleasePublishTokenGuard` checks. **Unset means publishing is disabled on that environment** — the guard fails closed, which is the intended default for any environment nobody publishes to. Minimum 32 characters. |
 | `RELEASE_ARTIFACT_MAX_BYTES` | API | optional | Ceiling for one release artefact. Defaults to 536870912 (512 MB). Deliberately separate from `FILE_UPLOAD_MAX_BYTES`, which governs tenant document uploads and must stay small. |
-| `FILE_STORAGE_DIR` | API | recommended in prod | Where `StorageService` writes uploaded files — tenant documents, branding assets, and published app-release installers. Defaults to `storage/uploads` (relative to cwd, ephemeral). In production set it to a path on a **persistent disk** (see `render.yaml`, mounted at `/var/data`) or the bytes are wiped on every deploy. TASK-0025. |
 | `DIJIPEOPLE_RELEASE_TOKEN` | CLI / CI | yes, to publish | The value of the target environment's `RELEASE_PUBLISH_TOKEN`. Never passed as a command-line flag — a flag lands in shell history and in CI logs. |
 | `DIJIPEOPLE_RELEASE_API_URL` | CLI / CI | optional | API base URL to publish to, including `/api`. Defaults to `http://localhost:4000/api`. |
 

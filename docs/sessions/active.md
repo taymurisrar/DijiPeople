@@ -12,5 +12,5 @@ therefore sees sibling worktrees without anybody having pushed.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
-| [SESSION-0095](../../docs/sessions/SESSION-0095-release-promote-settings-plan-entitlements-to-main-with-a-fe.md) | — | Release: promote settings plan entitlements to main, with a feature-row backfill first | ACTIVE | `agent/release-settings-entitlements` | `main` | — | 2026-09-09T13:26:10.444Z |
+| [SESSION-0097](../../docs/sessions/SESSION-0097-durable-object-storage-move-persistent-files-to-cloudflare-r.md) | — | Durable object storage: move persistent files to Cloudflare R2 (FILE-01/INF-05) | ACTIVE | `agent/r2-durable-storage` | `develop` | — | 2026-09-10T11:53:32.125Z |
 | [SESSION-0061](../../docs/sessions/SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser.md) | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | 2026-08-26T09:54:37.336Z |

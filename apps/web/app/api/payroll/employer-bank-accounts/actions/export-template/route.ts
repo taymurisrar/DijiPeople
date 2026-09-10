@@ -4,7 +4,7 @@ export async function GET() {
   const response = await apiRequest(
     "/payroll/employer-bank-accounts/actions/export-template",
   );
-  return new Response(await response.arrayBuffer(), {
+  return new Response(response.body, {
     status: response.status,
     headers: {
       "Content-Type":

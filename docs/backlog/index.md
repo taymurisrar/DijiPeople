@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**446 records** — 319 bugs under [`docs/bugs/`](../bugs/), 127 non-bug items under [`items/`](items/).
+**452 records** — 322 bugs under [`docs/bugs/`](../bugs/), 130 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,29 +13,29 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 117 |
+| Open (active work) | 123 |
 | Blocked | 2 |
 | Deferred | 29 |
 | Awaiting a product decision | 6 |
 | Completed / closed | 292 |
 | **Open CRITICAL** | **0** |
-| **Open HIGH** | **34** |
+| **Open HIGH** | **36** |
 | **Awaiting Architect triage** | **5** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| HIGH | 34 |
+| HIGH | 36 |
 | MEDIUM | 69 |
-| LOW | 14 |
+| LOW | 15 |
 
 ## Open by type
 
 | Type | Count |
 |---|---|
-| ARCHITECTURE | 2 |
-| AUTHORIZATION | 4 |
+| ARCHITECTURE | 3 |
+| AUTHORIZATION | 5 |
 | BUG | 37 |
 | DATA_INTEGRITY | 9 |
 | DOCUMENTATION | 2 |
@@ -46,14 +46,14 @@ see [`README.md`](README.md) for why.
 | SECURITY | 5 |
 | STATE_MACHINE | 3 |
 | TECH_DEBT | 6 |
-| TEST_GAP | 7 |
-| UX | 30 |
+| TEST_GAP | 8 |
+| UX | 33 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 9 |
+| OPEN | 12 |
 | BLOCKED | 2 |
 | DEFERRED | 29 |
 | PRODUCT_DECISION | 6 |
@@ -62,7 +62,7 @@ see [`README.md`](README.md) for why.
 | DUPLICATE | 5 |
 | ACCEPTED_RISK | 3 |
 | TRIAGE_REQUIRED | 2 |
-| READY | 27 |
+| READY | 30 |
 | DONE | 66 |
 
 ## All records
@@ -224,6 +224,8 @@ see [`README.md`](README.md) for why.
 | [BUG-2741](../../docs/bugs/BUG-2741-a-workspace-whose-email-provider-is-a-sink-reports-every-mes.md) | A workspace whose email provider is a sink reports every message as SENT | BUG | HIGH | P1 | FIXED | notifications, reporting | FIX_NOW |
 | [BUG-2933](../../docs/bugs/BUG-2933-mapping-a-device-user-never-requeues-its-punches-so-backfill.md) | Mapping a device user never requeues its punches, so backfilled attendance is silently never built | INTEGRATION | HIGH | P1 | FIXED | api:attendance-integrations | FIX_NOW |
 | [BUG-2958](../../docs/bugs/BUG-2958-settings-shows-every-category-group-and-page-regardless-of-t.md) | Settings shows every category, group and page regardless of the tenant's plan | AUTHORIZATION | HIGH | P1 | FIXED | apps/web, api:tenant-settings | FIX_NOW |
+| [BUG-3007](../../docs/bugs/BUG-3007-reports-and-analytics-offers-surfaces-and-reports-for-capabi.md) | Reports and Analytics offers surfaces and reports for capabilities the plan does not include | AUTHORIZATION | HIGH | P1 | OPEN | apps/web, api:reporting | FIX_NOW |
+| [BUG-3020](../../docs/bugs/BUG-3020-records-behind-these-numbers-shows-raw-guids-and-a-count-tha.md) | Records behind these numbers shows raw GUIDs and a count that does not match the metric | UX | HIGH | P1 | OPEN | apps/web, api:reporting | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -476,6 +478,7 @@ see [`README.md`](README.md) for why.
 | [BUG-2463](../../docs/bugs/BUG-2463-raw-prisma-constraint-failures-reach-operators-as-database-c.md) | Raw Prisma constraint failures reach operators as Database constraint failed | UX | LOW | P3 | DEFERRED | api:platform-runtime, api:super-admin, api:common | DEFER |
 | [BUG-2464](../../docs/bugs/BUG-2464-three-tenant-screens-crash-the-react-tree-with-hydration-err.md) | Three tenant screens crash the React tree with hydration errors 418 and 441 | UX | LOW | P3 | DUPLICATE | web:inbox, web:users, web:approvals | DUPLICATE |
 | [BUG-2657](../../docs/bugs/BUG-2657-analytics-caveat-panels-list-the-same-note-twice-in-differen.md) | Analytics caveat panels list the same note twice in different wording | UX | LOW | P3 | FIXED | api:reporting | DONE |
+| [BUG-3021](../../docs/bugs/BUG-3021-workspace-switcher-in-the-avatar-menu-overflows-horizontally.md) | Workspace switcher in the avatar menu overflows horizontally and shows a scrollbar | UX | LOW | P3 | OPEN | apps/web | FIX_NOW |
 | [ITEM-0007](../../docs/backlog/items/ITEM-0007-should-duplicate-website-leads-be-deduplicated.md) | Product decision — should duplicate website leads be deduplicated? | PRODUCT_DECISION | LOW | P3 | DONE | api:leads, apps/landing | DONE |
 | [ITEM-0008](../../docs/backlog/items/ITEM-0008-customeraccount-has-no-origin-channel.md) | Product decision — CustomerAccount carries no origin channel | PRODUCT_DECISION | LOW | P3 | DONE | services/api/prisma, api:super-admin | DONE |
 | [ITEM-0011](../../docs/backlog/items/ITEM-0011-framework-validation-should-catch-absence-claims.md) | Framework validation should catch false absence claims in context documents | TECH_DEBT | LOW | P3 | DONE | .agent/context, scripts | DONE |
@@ -506,12 +509,15 @@ see [`README.md`](README.md) for why.
 | [ITEM-0111](../../docs/backlog/items/ITEM-0111-protected-route-prefixes-omits-twelve-authenticated-route-tr.md) | PROTECTED_ROUTE_PREFIXES omits twelve authenticated route trees, so deep links to them are lost at sign-in | UX | LOW | P3 | READY | apps/web | FIX_NOW |
 | [ITEM-0121](../../docs/backlog/items/ITEM-0121-the-approvals-capability-signal-does-not-model-each-module-s.md) | The approvals capability signal does not model each module's object-level rules, so a refused action can look available | UX | LOW | P3 | DEFERRED | approvals, attendance | DEFER |
 | [ITEM-0126](../../docs/backlog/items/ITEM-0126-decide-which-of-the-41-always-visible-settings-pages-should-.md) | Decide which of the 41 always-visible settings pages should be sold | PRODUCT_DECISION | — | P1 | DONE | apps/web | DONE |
+| [ITEM-0129](../../docs/backlog/items/ITEM-0129-tenants-should-inherit-the-platform-email-provider-by-defaul.md) | Tenants should inherit the platform email provider by default, and may override it | ARCHITECTURE | — | P1 | READY | services/api, apps/web | PLAN_REQUIRED |
+| [ITEM-0130](../../docs/backlog/items/ITEM-0130-review-process-missed-four-defects-on-screens-adjacent-to-th.md) | Review process missed four defects on screens adjacent to the change | TEST_GAP | — | P1 | READY | apps/web, .agent | FIX_NOW |
 | [ITEM-0057](../../docs/backlog/items/ITEM-0057-landing-production-env-examples-still-name-the-vercel-and-re.md) | Landing production env examples still name the vercel and render hosts, not the dijipeople.com apex | PRODUCT_DECISION | — | P2 | DONE | apps/landing | DONE |
 | [ITEM-0091](../../docs/backlog/items/ITEM-0091-repo-health-blocks-every-release-task-on-its-own-defining-ou.md) | repo:health blocks every RELEASE task on its own defining outcome | INFRA | — | P2 | DONE | framework | DONE |
 | [ITEM-0100](../../docs/backlog/items/ITEM-0100-apps-landing-env-examples-omit-next-public-web-root-domain-a.md) | apps/landing env examples omit NEXT_PUBLIC_WEB_ROOT_DOMAIN and no parity test guards them | INFRA | — | P2 | DONE | apps/landing, pkg:config | DONE |
 | [ITEM-0101](../../docs/backlog/items/ITEM-0101-mailerservice-silently-logs-instead-of-sending-and-nothing-u.md) | MailerService silently logs instead of sending, and nothing uses it | TECH_DEBT | — | P2 | DEFERRED | services/api/src/common/mailer | DEFER |
 | [ITEM-0102](../../docs/backlog/items/ITEM-0102-move-switch-workspace-into-the-avatar-menu.md) | Move Switch workspace into the avatar menu | UX | — | P2 | DONE | views | DONE |
 | [ITEM-0127](../../docs/backlog/items/ITEM-0127-settings-ia-21-of-41-groups-hold-a-single-item.md) | Settings IA: 21 of 41 groups hold a single item | UX | — | P2 | DEFERRED | apps/web | DEFER |
+| [ITEM-0128](../../docs/backlog/items/ITEM-0128-reports-and-analytics-two-explanatory-cards-nobody-reads-sit.md) | Reports and Analytics: two explanatory cards nobody reads sit above the data | UX | — | P2 | READY | apps/web | FIX_NOW |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |
 | [ITEM-0114](../../docs/backlog/items/ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-.md) | The workspace shell states the tenant's identity four times and its purpose twice | UX | — | P3 | PRODUCT_DECISION | views | PRODUCT_DECISION |

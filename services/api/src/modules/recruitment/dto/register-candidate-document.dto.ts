@@ -4,6 +4,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   Min,
 } from 'class-validator';
@@ -22,20 +23,32 @@ export class RegisterCandidateDocumentDto {
   @MaxLength(255)
   fileName!: string;
 
-  @IsOptional()
-  @IsString()
-  @MaxLength(120)
-  contentType?: string;
+  // `contentType` is deliberately absent. It was free text here and was written
+  // straight onto the row that the download route sends as the response
+  // Content-Type, with an inline disposition — so a recruiter could register
+  // any stored bytes as `text/html` and have them execute in a colleague's
+  // browser. It is now copied from the already-validated source Document.
+  //
+  // The global ValidationPipe runs with forbidNonWhitelisted, so a client still
+  // sending the field gets a 400 rather than having it quietly ignored.
 
   @IsOptional()
   @IsInt()
   @Min(0)
   fileSizeBytes?: number;
 
+  /**
+   * The `Document` row the upload endpoint (`POST /api/documents/upload`)
+   * already created for this file. `storageKey` is deliberately NOT accepted
+   * here (FILE-03): a client that merely knew a key used to be able to attach
+   * anyone's stored file — including another tenant's — to a candidate
+   * profile. The service resolves the real key server-side from this id,
+   * after confirming the row belongs to this tenant and is already linked to
+   * this exact candidate.
+   */
   @IsOptional()
-  @IsString()
-  @MaxLength(512)
-  storageKey?: string;
+  @IsUUID()
+  documentId?: string;
 
   @IsOptional()
   @IsBoolean()

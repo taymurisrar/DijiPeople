@@ -6,19 +6,20 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 2** · completed: 90
+**Active: 2** · completed: 91
 
 ## Active
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
-| [SESSION-0095](../../docs/sessions/SESSION-0095-release-promote-settings-plan-entitlements-to-main-with-a-fe.md) | — | Release: promote settings plan entitlements to main, with a feature-row backfill first | ACTIVE | `agent/release-settings-entitlements` | `main` | — | 2026-09-09T13:26:10.444Z |
+| [SESSION-0097](../../docs/sessions/SESSION-0097-durable-object-storage-move-persistent-files-to-cloudflare-r.md) | — | Durable object storage: move persistent files to Cloudflare R2 (FILE-01/INF-05) | ACTIVE | `agent/r2-durable-storage` | `develop` | — | 2026-09-10T11:53:32.125Z |
 | [SESSION-0061](../../docs/sessions/SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser.md) | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | 2026-08-26T09:54:37.336Z |
 
 ## Completed
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0095](../../docs/sessions/SESSION-0095-release-promote-settings-plan-entitlements-to-main-with-a-fe.md) | — | Release: promote settings plan entitlements to main, with a feature-row backfill first | COMPLETE | `agent/release-settings-entitlements` | `main` | — | 2026-09-09T13:26:10.444Z |
 | [SESSION-0094](../../docs/sessions/SESSION-0094-plan-scoped-settings-visibility-entitlement-gating-for-setti.md) | — | Plan-scoped settings visibility: entitlement gating for settings categories, groups and items | COMPLETE | `agent/settings-plan-entitlements` | `develop` | — | 2026-09-09T10:12:43.128Z |
 | [SESSION-0093](../../docs/sessions/SESSION-0093-disposition-multer-so-the-release-can-ship.md) | — | Disposition multer so the release can ship | COMPLETE | `agent/multer-disposition` | `develop` | — | 2026-09-09T07:46:06.293Z |
 | [SESSION-0092](../../docs/sessions/SESSION-0092-attendance-gateway-fix-the-activation-deadlock-publish-the-i.md) | — | Attendance gateway: fix the activation deadlock, publish the installers, deploy to production | COMPLETE | `agent/attendance-activation-and-release` | `main` | — | 2026-09-08T23:10:15.602Z |

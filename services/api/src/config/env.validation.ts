@@ -1,4 +1,6 @@
 import type { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
+import { resolveStorageConfig } from '../common/storage/storage.config';
+
 import {
   getAllowedCorsOrigins,
   getApiBaseUrl,
@@ -67,6 +69,14 @@ export function validateApiEnvironment(env: NodeJS.ProcessEnv) {
       errors.push(`${key} must be a valid http(s) URL.`);
     }
   }
+
+  // Durable file storage. Folded in here rather than left to StorageModule's
+  // own boot check so that a misconfigured environment reports every problem
+  // at once instead of one per restart. StorageModule still refuses to
+  // construct a provider, which is what actually stops the process.
+  const storage = resolveStorageConfig(env);
+  errors.push(...storage.errors);
+  warnings.push(...storage.warnings);
 
   const corsOrigins = getAllowedCorsOrigins(env);
   if (parseBoolean(env.CORS_ALLOW_CREDENTIALS, true)) {

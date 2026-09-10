@@ -14,6 +14,8 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+
+import { uploadLimits } from '../../common/storage/upload-limits';
 import {
   PayrollBankExportFormat,
   PayrollPaymentLineStatus,
@@ -234,7 +236,7 @@ export class PayrollOperationsController {
   @Post('runs/:id/payment-batches/:exportId/import-results')
   @Permissions('payroll-runs.disburse')
   @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'manage')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', uploadLimits('spreadsheet')))
   importPaymentResults(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -248,7 +250,7 @@ export class PayrollOperationsController {
   @Post('runs/:id/payment-batches/:exportId/import-results/preview')
   @Permissions('payroll-runs.disburse')
   @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'manage')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', uploadLimits('spreadsheet')))
   previewPaymentResults(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,

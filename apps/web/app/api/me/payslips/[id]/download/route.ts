@@ -3,7 +3,7 @@ type Context = { params: Promise<{ id: string }> };
 export async function GET(_request: Request, context: Context) {
   const { id } = await context.params;
   const response = await apiRequest(`/me/payslips/${encodeURIComponent(id)}/download`);
-  return new Response(await response.arrayBuffer(), {
+  return new Response(response.body, {
     status: response.status,
     headers: {
       "Content-Type": response.headers.get("content-type") ?? "application/pdf",

@@ -43,7 +43,10 @@ function build(overrides: Record<string, unknown> = {}) {
         .mockResolvedValue({ id: 'customer-1', companyName: 'Maseer Group' }),
     },
     subscription: { findUnique: jest.fn().mockResolvedValue(null) },
-    invoice: { count: jest.fn().mockResolvedValue(0) },
+    invoice: {
+      count: jest.fn().mockResolvedValue(0),
+      findMany: jest.fn().mockResolvedValue([]),
+    },
     employee: { count: jest.fn().mockResolvedValue(12) },
     user: { count: jest.fn().mockResolvedValue(14) },
     document: {
@@ -51,6 +54,16 @@ function build(overrides: Record<string, unknown> = {}) {
       findMany: jest.fn().mockResolvedValue([]),
     },
     documentVersion: { findMany: jest.fn().mockResolvedValue([]) },
+    // The sweep used to collect storage keys from Document and DocumentVersion
+    // alone, so candidate resumes, DLP screenshots of employees' screens,
+    // invoices and export artifacts survived an erasure that reported success
+    // (FILE-09). It now walks every tenant-scoped model that holds a key, and
+    // the mock has to offer those delegates too.
+    documentReference: { findMany: jest.fn().mockResolvedValue([]) },
+    employeeDocumentReference: { findMany: jest.fn().mockResolvedValue([]) },
+    screenCaptureEvent: { findMany: jest.fn().mockResolvedValue([]) },
+    reportRun: { findMany: jest.fn().mockResolvedValue([]) },
+    dataJob: { findMany: jest.fn().mockResolvedValue([]) },
     contract: { count: jest.fn().mockResolvedValue(2) },
     supportCase: { count: jest.fn().mockResolvedValue(1) },
     payrollRun: { count: jest.fn().mockResolvedValue(0) },
@@ -174,14 +187,20 @@ describe('TenantErasureService', () => {
 
   it('requires an explicit acknowledgement when unpaid invoices exist', async () => {
     const { service } = build({
-      invoice: { count: jest.fn().mockResolvedValue(2) },
+      invoice: {
+        count: jest.fn().mockResolvedValue(2),
+        findMany: jest.fn().mockResolvedValue([]),
+      },
     });
     await expect(
       service.erase(admin, 'tenant-1', validRequest),
     ).rejects.toThrow(/outstanding billing/);
 
     const { service: second, prisma } = build({
-      invoice: { count: jest.fn().mockResolvedValue(2) },
+      invoice: {
+        count: jest.fn().mockResolvedValue(2),
+        findMany: jest.fn().mockResolvedValue([]),
+      },
     });
     prisma.$transaction.mockResolvedValue({ erased: {}, retained: {} });
     await expect(

@@ -137,12 +137,14 @@ function storageDouble() {
   return {
     saveFile: jest.fn().mockResolvedValue({
       storageKey: 'report-exports/tenant-a/2026-08-24-abc.csv',
-      absolutePath: '/data/report-exports/tenant-a/2026-08-24-abc.csv',
       size: 4096,
+      checksumSha256: 'a'.repeat(64),
+      storageProvider: 'local',
     }),
     openFile: jest.fn().mockResolvedValue({
-      absolutePath: '/data/report-exports/tenant-a/2026-08-24-abc.csv',
+      storageKey: 'report-exports/tenant-a/2026-08-24-abc.csv',
       size: 4096,
+      contentType: 'text/csv; charset=utf-8',
       stream: { pipe: jest.fn() },
     }),
     deleteFile: jest.fn().mockResolvedValue(undefined),
@@ -358,6 +360,7 @@ describe('ReportArtifactService — download preconditions', () => {
 
     expect(storage.openFile).toHaveBeenCalledWith(
       'report-exports/tenant-a/2026-08-24-abc.csv',
+      { kind: 'tenant', tenantId: 'tenant-a' },
     );
     expect(download).toMatchObject({
       runId: 'run-1',
@@ -443,11 +446,15 @@ describe('ReportArtifactService — completing and failing', () => {
     expect(storage.saveFile).toHaveBeenCalledWith({
       buffer: expect.any(Buffer),
       originalFileName: 'headcount-2026-08-24.csv',
-      subdirectory: 'report-exports/tenant-a',
+      contentType: 'text/csv; charset=utf-8',
+      scope: { kind: 'tenant', tenantId: 'tenant-a' },
+      domain: 'report-exports',
     });
     expect(prisma.update.mock.calls[0][0].data).toMatchObject({
       status: ReportRunStatus.COMPLETED,
       resultFileKey: 'report-exports/tenant-a/2026-08-24-abc.csv',
+      checksumSha256: 'a'.repeat(64),
+      storageProvider: 'local',
       fileName: 'headcount-2026-08-24.csv',
       contentType: 'text/csv; charset=utf-8',
       fileSizeBytes: 4096,
@@ -469,6 +476,7 @@ describe('ReportArtifactService — completing and failing', () => {
     // Otherwise the disk keeps a file nothing points at.
     expect(storage.deleteFile).toHaveBeenCalledWith(
       'report-exports/tenant-a/2026-08-24-abc.csv',
+      { kind: 'tenant', tenantId: 'tenant-a' },
     );
   });
 
@@ -544,6 +552,7 @@ describe('ReportArtifactService — sweepExpired', () => {
     expect(storage.deleteFile).toHaveBeenCalledTimes(1);
     expect(storage.deleteFile).toHaveBeenCalledWith(
       'report-exports/tenant-a/old.csv',
+      { kind: 'tenant', tenantId: 'tenant-a' },
     );
     expect(result).toEqual({ swept: 1, filesDeleted: 1, failures: 0 });
   });

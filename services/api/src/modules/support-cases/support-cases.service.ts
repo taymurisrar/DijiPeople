@@ -14,6 +14,7 @@ import { createHash, randomBytes } from 'crypto';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from '../../common/storage/storage.service';
+import type { StorageScope } from '../../common/storage/object-storage.types';
 import { EmailService } from '../notifications/email/email.service';
 import { userHasPlatformPermission } from '../platform-auth/platform-permissions';
 import { toDisplayString } from '../../common/utils/display-string';
@@ -470,7 +471,7 @@ export class SupportCasesService {
     customerSafe = false,
   ) {
     this.assertWrite(user);
-    await this.get(user, id);
+    const supportCase = await this.get(user, id);
     const allowed = new Set([
       'application/pdf',
       'image/png',
@@ -482,7 +483,10 @@ export class SupportCasesService {
     const saved = await this.storage.saveFile({
       buffer: file.buffer,
       originalFileName: file.originalname,
-      subdirectory: `support-cases/${id}/attachments`,
+      contentType: file.mimetype,
+      scope: this.supportCaseStorageScope(supportCase.tenantId),
+      domain: 'support-cases',
+      segments: [id],
     });
     const attachment = await this.prisma.supportCaseAttachment.create({
       data: {
@@ -490,6 +494,10 @@ export class SupportCasesService {
         fileName: file.originalname,
         mimeType: file.mimetype,
         storageKey: saved.storageKey,
+        storageProvider: saved.storageProvider,
+        // User-uploaded content; no scanner is wired yet, so this records
+        // that honestly rather than implying a scan that never ran.
+        scanStatus: 'SCAN_NOT_CONFIGURED',
         sizeBytes: saved.size,
         sha256: createHash('sha256').update(file.buffer).digest('hex'),
         isCustomerSafe: customerSafe,
@@ -511,14 +519,24 @@ export class SupportCasesService {
 
   async openAttachment(user: AuthenticatedUser, attachmentId: string) {
     this.assertPlatform(user);
+    // SupportCaseAttachment has no tenantId of its own (FILE-15): the owning
+    // tenant is only reachable by walking to the parent case, so it is
+    // resolved here rather than via a bare `findUnique` on the id. This
+    // route is reachable only by platform staff via `assertPlatform` above,
+    // so there is no tenant-crossing bug today — but resolving the scope
+    // this way means a future non-platform caller does not inherit one.
     const attachment = await this.prisma.supportCaseAttachment.findUnique({
       where: { id: attachmentId },
+      include: { supportCase: { select: { tenantId: true } } },
     });
     if (!attachment)
       throw new NotFoundException('Support attachment was not found.');
     return {
       attachment,
-      file: await this.storage.openFile(attachment.storageKey),
+      file: await this.storage.openFile(
+        attachment.storageKey,
+        this.supportCaseStorageScope(attachment.supportCase.tenantId),
+      ),
     };
   }
 
@@ -627,6 +645,19 @@ export class SupportCasesService {
       throw new ForbiddenException(
         'Support case management access is required.',
       );
+  }
+
+  /**
+   * `SupportCaseAttachment` has no `tenantId` of its own (FILE-15); the
+   * owning tenant is only reachable via `SupportCase.tenantId`. A case
+   * raised by a partner, or one filed before a lead is provisioned into a
+   * tenant, genuinely has no tenant to attribute — platform scope there is
+   * correct, not a shortcut for an inconvenient lookup.
+   */
+  private supportCaseStorageScope(
+    tenantId: string | null | undefined,
+  ): StorageScope {
+    return tenantId ? { kind: 'tenant', tenantId } : { kind: 'platform' };
   }
 }
 

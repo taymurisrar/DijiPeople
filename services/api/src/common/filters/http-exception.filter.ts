@@ -197,6 +197,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
       };
     }
 
+    const uploadError = this.mapUploadError(exception);
+    if (uploadError) return uploadError;
+
     const prismaError = this.mapPrismaError(exception);
     if (prismaError) return prismaError;
 
@@ -220,6 +223,43 @@ export class HttpExceptionFilter implements ExceptionFilter {
       severity: catalog.severity,
       cause: sanitizeCause(exception),
       stack: exception instanceof Error ? exception.stack : undefined,
+    };
+  }
+
+  /**
+   * Multer aborts an over-limit multipart body by throwing `MulterError`, which
+   * is a plain `Error` and would otherwise fall through to a 500.
+   *
+   * A 500 is both wrong and unhelpful here: the request was rejected exactly as
+   * intended, and the caller needs to know it was the file's size rather than a
+   * server fault, or the UI cannot tell the user anything useful. Multer is
+   * matched structurally rather than by importing it so this filter keeps no
+   * dependency on the upload layer.
+   */
+  private mapUploadError(exception: unknown) {
+    if (!(exception instanceof Error) || exception.name !== 'MulterError') {
+      return null;
+    }
+
+    const code = (exception as Error & { code?: string }).code;
+
+    const errorCode: ErrorCode =
+      code === 'LIMIT_FILE_SIZE' ? 'FILE_TOO_LARGE' : 'FILE_UPLOAD_FAILED';
+    const catalog = getErrorCatalogEntry(errorCode);
+
+    return {
+      errorCode,
+      statusCode: catalog.statusCode,
+      message:
+        code === 'LIMIT_FILE_SIZE'
+          ? 'The uploaded file exceeds the maximum size allowed for this upload.'
+          : catalog.message,
+      description: catalog.description,
+      // The raw message names the multipart field, which is internal detail the
+      // caller has no use for.
+      details: {},
+      severity: catalog.severity,
+      stack: exception.stack,
     };
   }
 

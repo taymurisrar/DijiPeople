@@ -102,6 +102,7 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-2693-historical-headcount-reports-employee-days-instead-of-headco|BUG-2693]] | Historical headcount reports employee-days instead of headcount and grows with the length of the period | DATA_INTEGRITY | HIGH | FIXED | api:reporting | DONE |
 | [[BUG-2718-the-approvals-record-page-reads-the-detail-response-envelope|BUG-2718]] | The approvals record page reads the detail response envelope, so every field is blank | UX | HIGH | FIXED | approvals, leave, attendance | FIX_NOW |
 | [[BUG-2732-attendance-integration-cannot-be-activated-activation-requir|BUG-2732]] | Attendance integration cannot be activated: activation requires a verified device, but only an active integration is ever verified | STATE_MACHINE | HIGH | FIXED | api:attendance-integrations, gateway/src/DijiPeople.Gateway.Host | FIX_NOW |
+| [[BUG-3020-records-behind-these-numbers-shows-raw-guids-and-a-count-tha|BUG-3020]] | Records behind these numbers shows raw GUIDs and a count that does not match the metric | UX | HIGH | OPEN | apps/web, api:reporting | FIX_NOW |
 | [[BUG-1668-tenant-workspace-pages-scroll-horizontally-at-mobile-width|BUG-1668]] | Tenant workspace pages scroll horizontally at mobile width | UX | MEDIUM | FIXED | views | DONE |
 | [[BUG-1950-every-tenant-workspace-screen-renders-the-same-h1-so-no-page|BUG-1950]] | Every tenant workspace screen renders the same h1, so no page announces what it is | UX | MEDIUM | FIXED | apps/web | DONE |
 | [[BUG-1951-most-tenant-workspace-pages-render-no-main-landmark-includin|BUG-1951]] | Most tenant workspace pages render no main landmark, including every settings category | UX | MEDIUM | FIXED | apps/web | DONE |
@@ -131,8 +132,10 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-2149-every-dashboard-metric-card-offers-a-link-named-only-open|BUG-2149]] | Every dashboard metric card offers a link named only Open | UX | LOW | FIXED | views, dashboard | DONE |
 | [[BUG-2384-tenant-record-shows-primary-tenant-owner-unassigned-while-it|BUG-2384]] | Tenant record shows Primary Tenant Owner Unassigned while its readiness check reports one active Tenant Owner | UX | LOW | FIXED | api:tenant-control-plane, apps/admin | DONE |
 | [[BUG-2657-analytics-caveat-panels-list-the-same-note-twice-in-differen|BUG-2657]] | Analytics caveat panels list the same note twice in different wording | UX | LOW | FIXED | api:reporting | DONE |
+| [[BUG-3021-workspace-switcher-in-the-avatar-menu-overflows-horizontally|BUG-3021]] | Workspace switcher in the avatar menu overflows horizontally and shows a scrollbar | UX | LOW | OPEN | apps/web | FIX_NOW |
 | [[ITEM-0109-the-disabled-check-in-button-explains-itself-only-in-a-title|ITEM-0109]] | The disabled Check In button explains itself only in a title tooltip | UX | LOW | READY | apps/web | FIX_NOW |
 | [[ITEM-0111-protected-route-prefixes-omits-twelve-authenticated-route-tr|ITEM-0111]] | PROTECTED_ROUTE_PREFIXES omits twelve authenticated route trees, so deep links to them are lost at sign-in | UX | LOW | READY | apps/web | FIX_NOW |
+| [[ITEM-0128-reports-and-analytics-two-explanatory-cards-nobody-reads-sit|ITEM-0128]] | Reports and Analytics: two explanatory cards nobody reads sit above the data | UX | — | READY | apps/web | FIX_NOW |
 
 ## How to read this
 

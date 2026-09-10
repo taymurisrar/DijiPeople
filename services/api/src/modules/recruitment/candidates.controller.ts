@@ -15,6 +15,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { uploadLimits } from '../../common/storage/upload-limits';
 import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
@@ -97,7 +98,7 @@ export class CandidatesController {
     { entityKey: ENTITY_KEYS.JOBS, action: 'create' },
     { entityKey: ENTITY_KEYS.CANDIDATES, action: 'create' },
   )
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', uploadLimits('resume')))
   parseUploadedResumeDraft(
     @CurrentUser() user: AuthenticatedUser,
     @UploadedFile() file: UploadedResumeFile | undefined,
@@ -195,17 +196,12 @@ export class CandidatesController {
     @Param('documentId', new ParseUUIDPipe()) documentId: string,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const { document, file, redirectUrl } =
+    const { document, file } =
       await this.recruitmentService.openCandidateDocumentForView(
         user.tenantId,
         candidateId,
         documentId,
       );
-
-    if (redirectUrl) {
-      response.redirect(redirectUrl);
-      return;
-    }
 
     response.setHeader(
       'Content-Type',
@@ -215,9 +211,6 @@ export class CandidatesController {
       'Content-Disposition',
       `inline; filename="${document.fileName}"`,
     );
-    if (!file) {
-      return;
-    }
     return new StreamableFile(file.stream);
   }
 
@@ -233,17 +226,12 @@ export class CandidatesController {
     @Param('documentId', new ParseUUIDPipe()) documentId: string,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const { document, file, redirectUrl } =
+    const { document, file } =
       await this.recruitmentService.openCandidateDocumentForDownload(
         user.tenantId,
         candidateId,
         documentId,
       );
-
-    if (redirectUrl) {
-      response.redirect(redirectUrl);
-      return;
-    }
 
     response.setHeader(
       'Content-Type',
@@ -253,9 +241,6 @@ export class CandidatesController {
       'Content-Disposition',
       `attachment; filename="${document.fileName}"`,
     );
-    if (!file) {
-      return;
-    }
     return new StreamableFile(file.stream);
   }
 }

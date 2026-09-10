@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import {
   DocumentEntityType,
+  FileScanStatus,
   Prisma,
   SecurityAccessLevel,
   SecurityPrivilege,
@@ -38,6 +39,21 @@ type UploadedFile = {
   size: number;
 };
 
+/**
+ * SVG is deliberately absent.
+ *
+ * `/documents/:id/view` serves the stored MIME type with
+ * `Content-Disposition: inline`, and a browser executes script in an SVG
+ * document it navigates to. The API's CSP is Report-Only, so nothing downstream
+ * would stop it. That is the same stored-XSS shape as FILE-02, fixed for
+ * branding assets on 2026-09-10 — but this allowlist gates the general document
+ * vault that employees, recruitment and contracts all upload through, and it
+ * was missed in that pass.
+ *
+ * The declared type is still only the caller's claim; nothing here sniffs
+ * content. This list bounds the blast radius, it does not prove a file is what
+ * it says it is.
+ */
 const ALLOWED_DOCUMENT_MIME_TYPES = new Set([
   'application/pdf',
   'application/msword',
@@ -45,7 +61,6 @@ const ALLOWED_DOCUMENT_MIME_TYPES = new Set([
   'image/jpeg',
   'image/png',
   'image/webp',
-  'image/svg+xml',
   'image/x-icon',
   'image/vnd.microsoft.icon',
 ]);
@@ -270,7 +285,10 @@ export class DocumentsService {
     const stored = await this.storageService.saveFile({
       buffer: validatedFile.buffer,
       originalFileName: validatedFile.originalname,
-      subdirectory: `${currentUser.tenantId}/documents/${dto.entityType.toLowerCase()}/${dto.entityId}`,
+      contentType: validatedFile.mimetype,
+      scope: { kind: 'tenant', tenantId: currentUser.tenantId },
+      domain: 'documents',
+      segments: [dto.entityType.toLowerCase(), dto.entityId],
     });
 
     const created = await this.prisma.$transaction(async (tx) => {
@@ -286,6 +304,9 @@ export class DocumentsService {
           fileExtension: normalizeFileExtension(validatedFile.originalname),
           sizeInBytes: validatedFile.size,
           storageKey: stored.storageKey,
+          storageProvider: stored.storageProvider,
+          checksumSha256: stored.checksumSha256,
+          scanStatus: FileScanStatus.SCAN_NOT_CONFIGURED,
           uploadedByUserId: currentUser.userId,
           description: dto.description?.trim(),
           createdById: currentUser.userId,
@@ -443,6 +464,17 @@ export class DocumentsService {
     return { id: documentId, archived: true };
   }
 
+  /**
+   * The shared open path for both `/view` and `/download`.
+   *
+   * `disableExternalDownloads` used to gate only the download route, but an
+   * inline PDF opened through `/view` can be saved from the browser's own
+   * viewer just as easily as a `Content-Disposition: attachment` response —
+   * the setting's purpose is stopping bytes from leaving the tenant, not
+   * choosing a disposition header. So the check lives here, in the one method
+   * both routes ultimately call, rather than being duplicated (and therefore
+   * driftable) at each call site (FILE-11).
+   */
   async openForView(currentUser: AuthenticatedUser, documentId: string) {
     const document = await this.documentsRepository.findById(
       currentUser.tenantId,
@@ -455,13 +487,6 @@ export class DocumentsService {
 
     await this.assertDocumentReadAccess(currentUser, document);
 
-    return {
-      document,
-      file: await this.storageService.openFile(document.storageKey),
-    };
-  }
-
-  async openForDownload(currentUser: AuthenticatedUser, documentId: string) {
     const documentSettings =
       await this.tenantSettingsResolverService.getDocumentSettings(
         currentUser.tenantId,
@@ -471,6 +496,17 @@ export class DocumentsService {
         'Document downloads are disabled by tenant document settings.',
       );
     }
+
+    return {
+      document,
+      file: await this.storageService.openFile(document.storageKey, {
+        kind: 'tenant',
+        tenantId: currentUser.tenantId,
+      }),
+    };
+  }
+
+  async openForDownload(currentUser: AuthenticatedUser, documentId: string) {
     return this.openForView(currentUser, documentId);
   }
 
@@ -975,7 +1011,6 @@ export class DocumentsService {
       mimeType: document.mimeType,
       fileExtension: document.fileExtension,
       sizeInBytes: document.sizeInBytes,
-      storageKey: document.storageKey,
       description: document.description,
       isArchived: document.isArchived,
       createdAt: document.createdAt,

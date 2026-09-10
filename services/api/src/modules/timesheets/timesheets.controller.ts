@@ -14,6 +14,8 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+
+import { uploadLimits } from '../../common/storage/upload-limits';
 import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
@@ -404,7 +406,7 @@ export class TimesheetsController {
   @Post('template/import/preview')
   @Permissions('timesheets.import')
   @RequirePermission(ENTITY_KEYS.TIMESHEETS, 'import')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', uploadLimits('spreadsheet')))
   previewImport(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: ImportTimesheetTemplateDto,

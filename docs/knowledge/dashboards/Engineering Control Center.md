@@ -15,7 +15,7 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **0** |
-| Open HIGH | 34 |
+| Open HIGH | 36 |
 | Awaiting Architect triage | 5 |
 | Owner decisions pending | 6 |
 | QA coverage gaps | 142 |
@@ -30,11 +30,11 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 116 |
-| No next action | 116 |
+| No acceptance criteria | 122 |
+| No next action | 122 |
 | Aging — 7d / 30d / 90d | 110 / 0 / 0 |
-| Architecture and technical debt | 8 |
-| Security gaps | 9 |
+| Architecture and technical debt | 9 |
+| Security gaps | 10 |
 | Database gaps | 9 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
@@ -49,7 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
-| [[SESSION-0095-release-promote-settings-plan-entitlements-to-main-with-a-fe|SESSION-0095]] | — | Release: promote settings plan entitlements to main, with a feature-row backfill first | ACTIVE | `agent/release-settings-entitlements` | `main` | — | NO |
+| [[SESSION-0097-durable-object-storage-move-persistent-files-to-cloudflare-r|SESSION-0097]] | — | Durable object storage: move persistent files to Cloudflare R2 (FILE-01/INF-05) | ACTIVE | `agent/r2-durable-storage` | `develop` | — | NO |
 | [[SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser|SESSION-0061]] | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
@@ -269,7 +269,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 117 |
+| Open total | 123 |
 | Blocked | 2 |
 | Deferred | 29 |
 | Awaiting a product decision | 6 |

@@ -26,9 +26,6 @@ import {
  */
 const DLP_MONITORING_POLICY_SLUG = 'dlp-monitoring-policy';
 
-/** Where encrypted screenshot bytes live under the storage root. */
-const DLP_SCREENSHOT_PREFIX = 'dlp-screenshots';
-
 const DEFAULT_ALERT_LIMIT = 100;
 const MAX_ALERT_LIMIT = 500;
 
@@ -184,7 +181,9 @@ export class DlpService {
       const stored = await this.storage.saveFile({
         buffer: Buffer.from(encrypted, 'utf8'),
         originalFileName: `${dedupeKey.replace(/[^a-zA-Z0-9]/g, '_')}.enc`,
-        subdirectory: `${DLP_SCREENSHOT_PREFIX}/${user.tenantId}`,
+        contentType: 'application/octet-stream',
+        scope: { kind: 'tenant', tenantId: user.tenantId },
+        domain: 'dlp-captures',
       });
 
       const created = await this.createIdempotently(() =>
@@ -200,6 +199,7 @@ export class DlpService {
             firedRuleId: event.firedRuleId,
             capturedReason: event.capturedReason ?? null,
             storageKey: stored.storageKey,
+            storageProvider: stored.storageProvider,
             contentBytes: event.contentBytes,
             contentSha256: event.contentSha256,
             agentVersion: event.agentVersion ?? 'unknown',
@@ -423,7 +423,10 @@ export class DlpService {
       },
     });
 
-    const file = await this.storage.openFile(event.storageKey);
+    const file = await this.storage.openFile(event.storageKey, {
+      kind: 'tenant',
+      tenantId: user.tenantId,
+    });
     const chunks: Buffer[] = [];
     for await (const chunk of file.stream) {
       chunks.push(chunk as Buffer);
@@ -463,13 +466,15 @@ export class DlpService {
     });
     for (const shot of expiredShots) {
       if (shot.storageKey) {
-        await this.storage.deleteFile(shot.storageKey).catch((error) => {
-          this.logger.warn(
-            `dlp.retention.screenshot_delete_failed key=${shot.storageKey} reason=${
-              error instanceof Error ? error.message : 'unknown'
-            }`,
-          );
-        });
+        await this.storage
+          .deleteFile(shot.storageKey, { kind: 'tenant', tenantId })
+          .catch((error) => {
+            this.logger.warn(
+              `dlp.retention.screenshot_delete_failed key=${shot.storageKey} reason=${
+                error instanceof Error ? error.message : 'unknown'
+              }`,
+            );
+          });
       }
     }
 
