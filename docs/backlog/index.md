@@ -13,11 +13,11 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 121 |
+| Open (active work) | 120 |
 | Blocked | 2 |
 | Deferred | 29 |
 | Awaiting a product decision | 6 |
-| Completed / closed | 294 |
+| Completed / closed | 295 |
 | **Open CRITICAL** | **0** |
 | **Open HIGH** | **36** |
 | **Awaiting Architect triage** | **5** |
@@ -27,7 +27,7 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | HIGH | 36 |
-| MEDIUM | 68 |
+| MEDIUM | 67 |
 | LOW | 14 |
 
 ## Open by type
@@ -40,7 +40,7 @@ see [`README.md`](README.md) for why.
 | DATA_INTEGRITY | 9 |
 | DOCUMENTATION | 2 |
 | FOLLOW_UP | 2 |
-| INFRA | 4 |
+| INFRA | 3 |
 | INTEGRATION | 5 |
 | PERFORMANCE | 1 |
 | SECURITY | 5 |
@@ -62,8 +62,8 @@ see [`README.md`](README.md) for why.
 | DUPLICATE | 5 |
 | ACCEPTED_RISK | 3 |
 | TRIAGE_REQUIRED | 2 |
-| READY | 28 |
-| DONE | 68 |
+| READY | 27 |
+| DONE | 69 |
 
 ## All records
 
@@ -423,7 +423,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0077](../../docs/backlog/items/ITEM-0077-re-read-the-packaged-agent-archive-after-the-node-pre-gyp-up.md) | Re-read the packaged agent archive after the node-pre-gyp upgrade | TEST_GAP | MEDIUM | P2 | READY | apps/agent-desktop, package-lock.json | PLAN_REQUIRED |
 | [ITEM-0078](../../docs/backlog/items/ITEM-0078-no-end-to-end-payment-to-provisioned-tenant-run-against-stri.md) | No end-to-end payment to provisioned tenant run against Stripe test mode | TEST_GAP | MEDIUM | P2 | READY | api:billing, api:tenant-control-plane, api:outbox, apps/landing | PLAN_REQUIRED |
 | [ITEM-0081](../../docs/backlog/items/ITEM-0081-nine-test-plans-are-needs-review-against-a-five-day-old-comm.md) | Nine test plans are NEEDS_REVIEW against a five-day-old commit | TEST_GAP | MEDIUM | P2 | DONE | docs/qa/test-plans | DONE |
-| [ITEM-0084](../../docs/backlog/items/ITEM-0084-detect-drift-between-render-yaml-and-the-live-render-service.md) | Detect drift between render.yaml and the live Render service | INFRA | MEDIUM | P2 | READY | render.yaml, scripts | FIX_NOW |
+| [ITEM-0084](../../docs/backlog/items/ITEM-0084-detect-drift-between-render-yaml-and-the-live-render-service.md) | Detect drift between render.yaml and the live Render service | INFRA | MEDIUM | P2 | DONE | render.yaml, scripts | DONE |
 | [ITEM-0085](../../docs/backlog/items/ITEM-0085-no-bulk-command-exists-to-sync-plan-prices-to-stripe-so-a-la.md) | No bulk command exists to sync plan prices to Stripe, so a launch needs 36 manual admin edits | INFRA | MEDIUM | P2 | DONE | api:super-admin | DONE |
 | [ITEM-0090](../../docs/backlog/items/ITEM-0090-legal-documents-can-be-authored-from-platform-admin-instead-.md) | Legal documents can be authored from Platform Admin instead of a seed file | PRODUCT_DECISION | MEDIUM | P2 | DONE | apps/admin, api:legal | DONE |
 | [ITEM-0092](../../docs/backlog/items/ITEM-0092-widget-runtime-contract-test-js-fails-and-no-script-or-ci-jo.md) | widget-runtime-contract.test.js fails and no script or CI job runs it | TEST_GAP | MEDIUM | P2 | READY | pkg:config, apps/web | PLAN_REQUIRED |

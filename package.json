@@ -65,6 +65,7 @@
     "seed:platform-workflows": "npm --workspace api run seed:platform-workflows",
     "seed:all": "npm --workspace api run seed:all",
     "smoke:deployment": "node scripts/smoke-deployment.mjs",
+    "check:render-config": "node scripts/check-render-config.mjs",
     "validate:framework": "node scripts/validate-framework.mjs",
     "components:rebuild": "node scripts/generate-component-index.mjs",
     "components:check": "node scripts/generate-component-index.mjs --check",

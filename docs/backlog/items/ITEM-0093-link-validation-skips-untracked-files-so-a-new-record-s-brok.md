@@ -112,10 +112,14 @@ the index regardless of whether it is present on disk, and the existing
 an untracked file with a deliberately broken relative link and confirmed
 `npm run validate:framework` fails on it before the file is ever staged.
 
+(The probe's own link syntax is written with an escaped `\(` below so this
+record's link check does not trip over its own evidence — the actual probe
+file had no backslash.)
+
 ```
 $ mkdir -p docs/scratch-mutation-test && cat > docs/scratch-mutation-test/probe.md
 # Mutation probe for ITEM-0093
-[broken link](../plans/does-not-exist-EXECPLAN-9999.md)
+[broken link]\(../plans/does-not-exist-EXECPLAN-9999.md)
 
 $ git status --short docs/scratch-mutation-test/probe.md
 ?? docs/scratch-mutation-test/probe.md          # confirmed untracked, unstaged

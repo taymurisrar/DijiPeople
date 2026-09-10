@@ -18285,14 +18285,14 @@
         "provenance": "IMPLEMENTATION",
         "detected_in_sha": "",
         "created_at": "2026-08-20",
-        "updated_at": "2026-08-24",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "type": "UX",
       "title": "Legal publication has an operator UI, but no diff before publishing",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "services/api/src/modules/legal/",
@@ -18316,7 +18316,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "OPEN",
         "classification": "PRELIMINARY",
@@ -19011,14 +19011,14 @@
         "provenance": "DEPLOYMENT",
         "detected_in_sha": "",
         "created_at": "2026-08-22",
-        "updated_at": "2026-08-22",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "type": "INFRA",
       "title": "Detect drift between render.yaml and the live Render service",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "render.yaml",
@@ -19044,7 +19044,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "FIX_NOW",
+      "architect_disposition": "DONE",
       "verification_result": "NOT_VERIFIED"
     },
     {
@@ -19359,14 +19359,14 @@
       "title": "Link validation skips untracked files, so a new record's broken links only surface in CI",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "READY",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0093-link-validation-skips-untracked-files-so-a-new-record-s-brok.md",
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-08-24",
-        "updated_at": "2026-08-24",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [

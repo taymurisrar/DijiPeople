@@ -57,6 +57,48 @@ or the code rolls back — the object-storage metadata migration
 (`20260910121838_add_object_storage_metadata`) was built this way specifically
 so its timing relative to the code deploy did not matter.
 
+### Detecting the drift instead of only warning about it (ITEM-0084)
+
+`npm run check:render-config` (`scripts/check-render-config.mjs`) makes the
+paragraph above checkable rather than merely advisory. It reads `render.yaml`,
+calls the Render API **read-only** (`GET` only — it never writes to Render),
+and reports every field where the file and the live service disagree. It
+requires `RENDER_API_KEY`; without it, it — and the `RENDER_CONFIG_STATUS` line
+`npm run repo:health` prints — say **SKIPPED**, deliberately, rather than
+silently reporting nothing.
+
+Run at commit `f26357a8` (2026-09-11), it found real, current drift — not the
+already-fixed BUG-0767 shape, but the same structural cause producing a new
+instance of it:
+
+- **Scalar fields**: `name` (`dijipeople-api` in the file vs `DijiPeople` on
+  the live service), `plan` (`starter` vs `standard`), `buildCommand` (the file
+  omits `--include=dev`, which the live service's build actually uses),
+  `startCommand` (the file's is workspace-qualified, the live one is not — both
+  resolve to the same script but the strings differ), and `healthCheckPath`
+  (`/api` declared, **unset** on the live service — the health check running at
+  all currently depends on Render's default, not on this file).
+- **Env vars**: of the **51** keys `render.yaml` declares, **24** do not exist
+  on the live service at all — including the entire email-provider block
+  (`EMAIL_PROVIDER`, `EMAIL_SMTP_*`, `EMAIL_FROM*`), the seat-overage review
+  thresholds, `TENANT_RETENTION_DAYS`, and the bootstrap
+  `PLATFORM_SUPER_ADMIN_*` triple. This is a materially larger drift than the
+  "13 of 16" figure BUG-0767 was fixed against — declared keys have grown from
+  16 to 51 since, and the fraction missing has stayed almost exactly
+  proportional (roughly half), which is the drift-over-time this item
+  predicted, observed rather than assumed.
+- **Annotated, not counted as drift**: `preDeployCommand` differs only by a
+  `NODE_OPTIONS="--max-old-space-size=4096"` prefix on the live command — a
+  deliberate memory cap, not an accident. The script shows this under its own
+  heading instead of silently normalising it away.
+- **Not drift** (not declared in the file at all, so there is no expectation to
+  violate): `autoDeploy` (`yes`) and `branch` (`main`) on the live service.
+
+None of this was corrected as part of adding the check — see [[ITEM-0084]] for
+why: the item asked for detection, and the live service is production. Fixing
+it is a separate, deliberate change with its own review, not a side effect of
+writing a script.
+
 ## Rollback classes
 
 Determined **before** deploying, not after something breaks:
