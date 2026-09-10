@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**475 records** — 343 bugs under [`docs/bugs/`](../bugs/), 132 non-bug items under [`items/`](items/).
+**520 records** — 384 bugs under [`docs/bugs/`](../bugs/), 136 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,21 +13,21 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 145 |
+| Open (active work) | 190 |
 | Blocked | 2 |
 | Deferred | 29 |
 | Awaiting a product decision | 7 |
 | Completed / closed | 292 |
-| **Open CRITICAL** | **2** |
-| **Open HIGH** | **44** |
-| **Awaiting Architect triage** | **21** |
+| **Open CRITICAL** | **5** |
+| **Open HIGH** | **86** |
+| **Awaiting Architect triage** | **66** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| CRITICAL | 2 |
-| HIGH | 44 |
+| CRITICAL | 5 |
+| HIGH | 86 |
 | MEDIUM | 81 |
 | LOW | 15 |
 
@@ -36,25 +36,26 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | ARCHITECTURE | 3 |
-| AUTHORIZATION | 9 |
-| BUG | 37 |
-| DATA_INTEGRITY | 9 |
+| AUTHORIZATION | 11 |
+| BUG | 39 |
+| DATA_INTEGRITY | 17 |
 | DOCUMENTATION | 2 |
 | FOLLOW_UP | 2 |
-| INFRA | 4 |
+| INFRA | 12 |
 | INTEGRATION | 5 |
-| PERFORMANCE | 1 |
-| SECURITY | 23 |
+| PERFORMANCE | 14 |
+| SECURITY | 30 |
 | STATE_MACHINE | 3 |
 | TECH_DEBT | 6 |
-| TEST_GAP | 8 |
+| TENANT_ISOLATION | 2 |
+| TEST_GAP | 11 |
 | UX | 33 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 33 |
+| OPEN | 74 |
 | BLOCKED | 2 |
 | DEFERRED | 29 |
 | PRODUCT_DECISION | 7 |
@@ -62,7 +63,7 @@ see [`README.md`](README.md) for why.
 | VERIFIED | 218 |
 | DUPLICATE | 5 |
 | ACCEPTED_RISK | 3 |
-| TRIAGE_REQUIRED | 1 |
+| TRIAGE_REQUIRED | 5 |
 | READY | 32 |
 | DONE | 66 |
 
@@ -91,6 +92,9 @@ see [`README.md`](README.md) for why.
 | [BUG-1744](../../docs/bugs/BUG-1744-every-subscription-has-a-zero-length-billing-period-and-a-re.md) | Every subscription has a zero-length billing period and a renewal date in the past | DATA_INTEGRITY | CRITICAL | P0 | VERIFIED | api:super-admin, api:billing, integration:stripe | DONE |
 | [BUG-3110](../../docs/bugs/BUG-3110-a-live-production-database-password-sits-permanently-in-the-.md) | A live production database password sits permanently in the public git history | SECURITY | CRITICAL | P0 | OPEN | services/api | FIX_NOW |
 | [BUG-3132](../../docs/bugs/BUG-3132-self-service-privilege-escalation-to-global-admin-via-post-u.md) | Self-service privilege escalation to GLOBAL_ADMIN via POST /users/:userId/roles | AUTHORIZATION | CRITICAL | P0 | OPEN | api:users | TRIAGE_REQUIRED |
+| [BUG-3153](../../docs/bugs/BUG-3153-production-had-no-persistent-disk-so-every-uploaded-hr-docum.md) | Production had no persistent disk, so every uploaded HR document was destroyed on the next deploy | INFRA | CRITICAL | P0 | OPEN | services/api/src/common, api:documents | TRIAGE_REQUIRED |
+| [BUG-3154](../../docs/bugs/BUG-3154-employee-bank-accounts-ibans-cnics-and-tax-identifiers-are-s.md) | Employee bank accounts, IBANs, CNICs and tax identifiers are stored in plaintext beside an unused AES-256-GCM service | DATA_INTEGRITY | CRITICAL | P0 | OPEN | api:employees, api:compensation | TRIAGE_REQUIRED |
+| [BUG-3155](../../docs/bugs/BUG-3155-fieldsecurityrule-masking-is-enforced-only-in-the-browser-th.md) | FieldSecurityRule masking is enforced only in the browser; the API sends the unmasked value | AUTHORIZATION | CRITICAL | P0 | OPEN | api:employees | TRIAGE_REQUIRED |
 | [ITEM-0131](../../docs/backlog/items/ITEM-0131-production-hr-and-payroll-data-has-no-backup-the-database-is.md) | Production HR and payroll data has no backup: the database is on the Neon free plan | INFRA | CRITICAL | P0 | PRODUCT_DECISION | services/api | PRODUCT_DECISION |
 | [BUG-1494](../../docs/bugs/BUG-1494-git-worktree-remove-follows-node-modules-junctions-and-delet.md) | git worktree remove follows node_modules junctions and deletes the primary checkout | INFRA | CRITICAL | P1 | VERIFIED | scripts | DONE |
 | [BUG-0049](../../docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md) | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | P0 | VERIFIED | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | DONE |
@@ -237,6 +241,44 @@ see [`README.md`](README.md) for why.
 | [BUG-3139](../../docs/bugs/BUG-3139-tenant-password-reset-tokens-are-stateless-and-replayable-fo.md) | Tenant password-reset tokens are stateless and replayable for 24 hours after use | SECURITY | HIGH | P1 | OPEN | api:auth | TRIAGE_REQUIRED |
 | [BUG-3140](../../docs/bugs/BUG-3140-client-supplied-startnewsession-flag-on-the-public-agent-ref.md) | Client-supplied startNewSession flag on the public agent refresh endpoint resets absolute session lifetime | SECURITY | HIGH | P1 | OPEN | api:auth, api:agent | TRIAGE_REQUIRED |
 | [BUG-3141](../../docs/bugs/BUG-3141-branding-svg-served-unauthenticated-and-inline-enabled-store.md) | Branding SVG served unauthenticated and inline enabled stored XSS on the API origin | SECURITY | HIGH | P1 | OPEN | api:customization | TRIAGE_REQUIRED |
+| [BUG-3156](../../docs/bugs/BUG-3156-a-tenant-admin-can-create-rename-or-deactivate-the-platform-.md) | A tenant admin can create, rename or deactivate the platform-wide shared geography reference data | TENANT_ISOLATION | HIGH | P1 | OPEN | api:lookups | TRIAGE_REQUIRED |
+| [BUG-3157](../../docs/bugs/BUG-3157-the-lookups-usage-endpoint-discloses-a-cross-tenant-employee.md) | The lookups usage endpoint discloses a cross-tenant employee-count aggregate and lets one tenant block another tenant's delete | TENANT_ISOLATION | HIGH | P1 | OPEN | api:lookups | TRIAGE_REQUIRED |
+| [BUG-3162](../../docs/bugs/BUG-3162-public-tenant-resolve-cache-is-keyed-on-caller-supplied-sele.md) | Public tenant-resolve cache is keyed on caller-supplied selectors instead of the resolved tenant (downgraded from CRITICAL to HIGH on reconciliation) | SECURITY | HIGH | P1 | OPEN | api:tenants | TRIAGE_REQUIRED |
+| [BUG-3163](../../docs/bugs/BUG-3163-the-rate-limit-key-trusts-a-client-supplied-x-forwarded-for-.md) | The rate-limit key trusts a client-supplied X-Forwarded-For because the API is directly reachable, bypassing Cloudflare | SECURITY | HIGH | P1 | OPEN | services/api/src/common | TRIAGE_REQUIRED |
+| [BUG-3164](../../docs/bugs/BUG-3164-the-timesheet-restriction-allowlist-omits-the-api-prefix-so-.md) | The timesheet-restriction allowlist omits the /api prefix, so it never matches | BUG | HIGH | P1 | OPEN | api:timesheets | TRIAGE_REQUIRED |
+| [BUG-3165](../../docs/bugs/BUG-3165-every-authenticated-request-costs-roughly-26-database-round-.md) | Every authenticated request costs roughly 26 database round trips before the handler runs | PERFORMANCE | HIGH | P1 | OPEN | services/api/src/common | TRIAGE_REQUIRED |
+| [BUG-3166](../../docs/bugs/BUG-3166-production-deploys-before-the-deployed-commit-has-a-ci-verdi.md) | Production deploys before the deployed commit has a CI verdict | INFRA | HIGH | P1 | OPEN | .github/workflows | TRIAGE_REQUIRED |
+| [BUG-3167](../../docs/bugs/BUG-3167-the-required-browser-gate-executes-zero-tests-against-apps-w.md) | The required browser gate executes zero tests against apps/web | TEST_GAP | HIGH | P1 | OPEN | .github/workflows | TRIAGE_REQUIRED |
+| [BUG-3168](../../docs/bugs/BUG-3168-two-required-ci-gates-report-success-while-executing-nothing.md) | Two required CI gates report success while executing nothing | INFRA | HIGH | P1 | OPEN | .github/workflows | TRIAGE_REQUIRED |
+| [BUG-3169](../../docs/bugs/BUG-3169-notification-fan-out-runs-o-rules-x-recipients-sequential-ro.md) | Notification fan-out runs O(rules x recipients) sequential round trips inline on the triggering request | PERFORMANCE | HIGH | P1 | OPEN | api:notifications | TRIAGE_REQUIRED |
+| [BUG-3170](../../docs/bugs/BUG-3170-timesheet-bulk-import-confirmation-runs-an-unbounded-per-row.md) | Timesheet bulk-import confirmation runs an unbounded per-row loop inside one transaction on the default 5-second timeout | PERFORMANCE | HIGH | P1 | OPEN | api:timesheets | TRIAGE_REQUIRED |
+| [BUG-3171](../../docs/bugs/BUG-3171-the-audit-log-filter-metadata-query-does-an-unbounded-distin.md) | The Audit Log filter-metadata query does an unbounded DISTINCT scan over the tenant's entire audit history on every page load | PERFORMANCE | HIGH | P1 | OPEN | api:audit | TRIAGE_REQUIRED |
+| [BUG-3172](../../docs/bugs/BUG-3172-get-payslips-has-no-pagination-and-can-return-every-payslip-.md) | GET /payslips has no pagination and can return every payslip the tenant has ever generated | PERFORMANCE | HIGH | P1 | OPEN | api:payslips | TRIAGE_REQUIRED |
+| [BUG-3173](../../docs/bugs/BUG-3173-roughly-20-pages-redundantly-re-fetch-business-unit-access-a.md) | Roughly 20 pages redundantly re-fetch business-unit access and current-employee context the shell layout already loaded | PERFORMANCE | HIGH | P1 | OPEN | apps/web | TRIAGE_REQUIRED |
+| [BUG-3174](../../docs/bugs/BUG-3174-every-pagination-sort-or-filter-click-on-a-runtime-list-page.md) | Every pagination, sort or filter click on a runtime list page re-executes the whole server-side call fan-out, not just the list query | PERFORMANCE | HIGH | P1 | OPEN | apps/web, apps/admin | TRIAGE_REQUIRED |
+| [BUG-3175](../../docs/bugs/BUG-3175-nine-platform-admin-runtime-modules-fetch-entire-tables-into.md) | Nine platform-admin runtime modules fetch entire tables into Node memory and paginate/sort/search with JavaScript instead of the database | PERFORMANCE | HIGH | P1 | OPEN | apps/admin | TRIAGE_REQUIRED |
+| [BUG-3176](../../docs/bugs/BUG-3176-the-employees-list-search-box-and-every-server-mode-datatabl.md) | The Employees list search box, and every server-mode DataTable instance, never reaches the backend and only filters the already-loaded page | BUG | HIGH | P1 | OPEN | apps/web, apps/admin | TRIAGE_REQUIRED |
+| [BUG-3177](../../docs/bugs/BUG-3177-two-endpoints-accepted-a-caller-supplied-storagekey-and-read.md) | Two endpoints accepted a caller-supplied storageKey and read it back with no tenant-prefix check | AUTHORIZATION | HIGH | P1 | OPEN | api:recruitment, api:app-releases | TRIAGE_REQUIRED |
+| [BUG-3178](../../docs/bugs/BUG-3178-no-malware-scanning-exists-anywhere-the-tenant-setting-that-.md) | No malware scanning exists anywhere; the tenant setting that claims it does is inert | SECURITY | HIGH | P1 | OPEN | services/api/src/common | TRIAGE_REQUIRED |
+| [BUG-3179](../../docs/bugs/BUG-3179-nine-upload-endpoints-had-no-multipart-size-limit-the-check-.md) | Nine/ten upload endpoints had no multipart size limit; the check ran after the whole file was already in the heap | SECURITY | HIGH | P1 | OPEN | services/api/src/common | TRIAGE_REQUIRED |
+| [BUG-3180](../../docs/bugs/BUG-3180-the-render-service-cannot-be-rebuilt-from-the-repository-sev.md) | The Render service cannot be rebuilt from the repository: seven boot-required env vars are absent from render.yaml | INFRA | HIGH | P1 | OPEN | render.yaml | TRIAGE_REQUIRED |
+| [BUG-3181](../../docs/bugs/BUG-3181-single-environment-no-staging-one-neon-branch-one-stripe-acc.md) | Single environment: no staging, one Neon branch, one Stripe account, one email sender, and demo data in production | INFRA | HIGH | P1 | OPEN | docs/deployment | TRIAGE_REQUIRED |
+| [BUG-3182](../../docs/bugs/BUG-3182-no-per-tenant-restore-is-possible-restoring-one-tenant-means.md) | No per-tenant restore is possible: restoring one tenant means rolling back all of them | INFRA | HIGH | P1 | OPEN | api:tenants | TRIAGE_REQUIRED |
+| [BUG-3183](../../docs/bugs/BUG-3183-platform-ops-alerts-for-failed-payments-and-provisioning-are.md) | Platform-ops alerts for failed payments and provisioning are written to a log line that is never sent and is suppressed at the production log level | INFRA | HIGH | P1 | OPEN | api:platform-monitoring | TRIAGE_REQUIRED |
+| [BUG-3184](../../docs/bugs/BUG-3184-employee-termination-writes-no-audit-row-invisible-to-the-co.md) | Employee termination writes no audit row, invisible to the coverage spec designed to catch exactly this | DATA_INTEGRITY | HIGH | P1 | OPEN | api:employees | TRIAGE_REQUIRED |
+| [BUG-3185](../../docs/bugs/BUG-3185-reading-or-downloading-a-document-is-recorded-nowhere.md) | Reading or downloading a document is recorded nowhere | DATA_INTEGRITY | HIGH | P1 | OPEN | api:documents | TRIAGE_REQUIRED |
+| [BUG-3186](../../docs/bugs/BUG-3186-no-individual-erasure-or-anonymisation-path-exists-and-emplo.md) | No individual erasure or anonymisation path exists, and employee deletion is soft, so personal data survives deletion indefinitely | DATA_INTEGRITY | HIGH | P1 | OPEN | api:employees | TRIAGE_REQUIRED |
+| [BUG-3187](../../docs/bugs/BUG-3187-the-rate-limit-invariant-covers-writes-only-every-unprotecte.md) | The rate-limit invariant covers writes only; every unprotected public surface is a read | SECURITY | HIGH | P1 | OPEN | services/api/src/common | TRIAGE_REQUIRED |
+| [BUG-3188](../../docs/bugs/BUG-3188-every-rejected-rate-limited-request-writes-a-database-row-so.md) | Every rejected rate-limited request writes a database row, so throttling costs more than serving | PERFORMANCE | HIGH | P1 | OPEN | services/api/src/common | TRIAGE_REQUIRED |
+| [BUG-3189](../../docs/bugs/BUG-3189-one-unauthenticated-login-request-costs-about-1-1s-of-cpu-on.md) | One unauthenticated login request costs about 1.1s of CPU on a single-instance API | PERFORMANCE | HIGH | P1 | OPEN | api:auth | TRIAGE_REQUIRED |
+| [BUG-3195](../../docs/bugs/BUG-3195-the-postgres-connection-pool-is-entirely-default-and-waits-f.md) | The Postgres connection pool is entirely default and waits forever for a connection | PERFORMANCE | HIGH | P1 | OPEN | services/api/src/common | TRIAGE_REQUIRED |
+| [BUG-3196](../../docs/bugs/BUG-3196-payroll-calculation-runs-inline-on-the-http-request-per-empl.md) | Payroll calculation runs inline on the HTTP request, per employee, with no idempotency and no crash recovery | DATA_INTEGRITY | HIGH | P1 | OPEN | api:payroll | TRIAGE_REQUIRED |
+| [BUG-3197](../../docs/bugs/BUG-3197-leave-balance-is-checked-at-submission-and-decremented-at-ap.md) | Leave balance is checked at submission and decremented at approval, so pending requests are invisible and the balance can be overdrawn | DATA_INTEGRITY | HIGH | P1 | OPEN | api:leave | TRIAGE_REQUIRED |
+| [BUG-3198](../../docs/bugs/BUG-3198-api-health-is-a-static-ok-payload-so-a-broken-deploy-and-a-d.md) | api/health is a static ok payload, so a broken deploy and a dead database both report healthy | INFRA | HIGH | P1 | OPEN | services/api/src/common | TRIAGE_REQUIRED |
+| [BUG-3199](../../docs/bugs/BUG-3199-an-outbound-fetch-with-no-timeout-is-reachable-from-an-authe.md) | An outbound fetch with no timeout is reachable from an authenticated tenant endpoint; Stripe has no explicit timeout or circuit breaker | PERFORMANCE | HIGH | P1 | OPEN | api:billing | TRIAGE_REQUIRED |
+| [BUG-3200](../../docs/bugs/BUG-3200-the-notification-queue-is-a-synchronous-fallback-every-tenan.md) | The notification queue is a synchronous fallback: every tenant email is sent on the HTTP request thread with no retry | PERFORMANCE | HIGH | P1 | OPEN | api:notifications | TRIAGE_REQUIRED |
+| [BUG-3201](../../docs/bugs/BUG-3201-the-p2002-recovery-pattern-used-inside-interactive-transacti.md) | The P2002 recovery pattern used inside interactive transactions cannot work on Postgres, and it is on the tenant-provisioning path | DATA_INTEGRITY | HIGH | P1 | OPEN | api:tenants | TRIAGE_REQUIRED |
+| [BUG-3202](../../docs/bugs/BUG-3202-payroll-run-eligibility-never-checks-employee-isdeleted-an-a.md) | Payroll run eligibility never checks Employee.isDeleted; an archived employee with a stale employmentStatus is paid | DATA_INTEGRITY | HIGH | P1 | OPEN | api:payroll | TRIAGE_REQUIRED |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -253,6 +295,10 @@ see [`README.md`](README.md) for why.
 | [ITEM-0048](../../docs/backlog/items/ITEM-0048-replace-or-contain-active-win-and-the-xlsx-export-path.md) | Replace or contain active-win and the xlsx export path | SECURITY | HIGH | P2 | BLOCKED | apps/agent-desktop, services/api/src/common/excel, package-lock.json | BLOCKED_EXTERNAL |
 | [ITEM-0086](../../docs/backlog/items/ITEM-0086-smoke-deployment-does-not-assert-that-a-launched-market-has-.md) | smoke:deployment does not assert that a launched market has a purchasable price or a running outbox worker | TEST_GAP | HIGH | P2 | DONE | scripts | DONE |
 | [ITEM-0132](../../docs/backlog/items/ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for.md) | No multi-factor authentication exists anywhere, including for platform super admins | SECURITY | HIGH | P2 | TRIAGE_REQUIRED | api:auth | TRIAGE_REQUIRED |
+| [ITEM-0133](../../docs/backlog/items/ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no.md) | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | P2 | TRIAGE_REQUIRED | services/api/test | TRIAGE_REQUIRED |
+| [ITEM-0134](../../docs/backlog/items/ITEM-0134-the-payroll-run-engine-has-no-tests.md) | The payroll run engine has no tests | TEST_GAP | HIGH | P2 | TRIAGE_REQUIRED | api:payroll | TRIAGE_REQUIRED |
+| [ITEM-0135](../../docs/backlog/items/ITEM-0135-no-authenticated-endpoint-in-the-product-is-rate-limited-at-.md) | No authenticated endpoint in the product is rate limited at all | SECURITY | HIGH | P2 | TRIAGE_REQUIRED | services/api/src/common | TRIAGE_REQUIRED |
+| [ITEM-0136](../../docs/backlog/items/ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-.md) | electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major | SECURITY | HIGH | P2 | TRIAGE_REQUIRED | apps/agent-desktop | TRIAGE_REQUIRED |
 | [BUG-0051](../../docs/bugs/BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state.md) | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | P1 | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [ITEM-0018](../../docs/backlog/items/ITEM-0018-plans-and-prices-have-no-draft-publish-or-archive-lifecycle.md) | Plans and prices have no draft, publish or archive lifecycle | ARCHITECTURE | MEDIUM | P1 | DONE | services/api/prisma, api:super-admin, apps/admin, apps/landing | DONE |
 | [ITEM-0044](../../docs/backlog/items/ITEM-0044-validate-forwarded-host-before-tenant-web-workspace-resoluti.md) | Validate forwarded host before tenant web workspace resolution | SECURITY | MEDIUM | P1 | DONE | apps/web | DONE |
