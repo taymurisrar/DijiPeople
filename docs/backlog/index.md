@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**452 records** — 322 bugs under [`docs/bugs/`](../bugs/), 130 non-bug items under [`items/`](items/).
+**454 records** — 323 bugs under [`docs/bugs/`](../bugs/), 131 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,12 +13,12 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 123 |
+| Open (active work) | 124 |
 | Blocked | 2 |
 | Deferred | 29 |
-| Awaiting a product decision | 6 |
+| Awaiting a product decision | 7 |
 | Completed / closed | 292 |
-| **Open CRITICAL** | **0** |
+| **Open CRITICAL** | **1** |
 | **Open HIGH** | **36** |
 | **Awaiting Architect triage** | **0** |
 
@@ -26,6 +26,7 @@ see [`README.md`](README.md) for why.
 
 | Severity | Count |
 |---|---|
+| CRITICAL | 1 |
 | HIGH | 36 |
 | MEDIUM | 69 |
 | LOW | 15 |
@@ -43,7 +44,7 @@ see [`README.md`](README.md) for why.
 | INFRA | 4 |
 | INTEGRATION | 5 |
 | PERFORMANCE | 1 |
-| SECURITY | 5 |
+| SECURITY | 6 |
 | STATE_MACHINE | 3 |
 | TECH_DEBT | 6 |
 | TEST_GAP | 8 |
@@ -53,10 +54,10 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 12 |
+| OPEN | 13 |
 | BLOCKED | 2 |
 | DEFERRED | 29 |
-| PRODUCT_DECISION | 6 |
+| PRODUCT_DECISION | 7 |
 | FIXED | 79 |
 | VERIFIED | 218 |
 | DUPLICATE | 5 |
@@ -87,6 +88,8 @@ see [`README.md`](README.md) for why.
 | [BUG-1742](../../docs/bugs/BUG-1742-lead-creation-is-impossible-the-runtime-form-always-sends-pa.md) | Lead creation is impossible: the runtime form always sends partnerId as an empty string | BUG | CRITICAL | P0 | VERIFIED | apps/admin, api:platform-runtime, api:super-admin | DONE |
 | [BUG-1743](../../docs/bugs/BUG-1743-customers-and-partners-cannot-be-edited-the-runtime-form-ech.md) | Customers and partners cannot be edited: the runtime form echoes fields the update DTO forbids | BUG | CRITICAL | P0 | VERIFIED | apps/admin, api:platform-runtime, api:super-admin | DONE |
 | [BUG-1744](../../docs/bugs/BUG-1744-every-subscription-has-a-zero-length-billing-period-and-a-re.md) | Every subscription has a zero-length billing period and a renewal date in the past | DATA_INTEGRITY | CRITICAL | P0 | VERIFIED | api:super-admin, api:billing, integration:stripe | DONE |
+| [BUG-3110](../../docs/bugs/BUG-3110-a-live-production-database-password-sits-permanently-in-the-.md) | A live production database password sits permanently in the public git history | SECURITY | CRITICAL | P0 | OPEN | services/api | FIX_NOW |
+| [ITEM-0131](../../docs/backlog/items/ITEM-0131-production-hr-and-payroll-data-has-no-backup-the-database-is.md) | Production HR and payroll data has no backup: the database is on the Neon free plan | INFRA | CRITICAL | P0 | PRODUCT_DECISION | services/api | PRODUCT_DECISION |
 | [BUG-1494](../../docs/bugs/BUG-1494-git-worktree-remove-follows-node-modules-junctions-and-delet.md) | git worktree remove follows node_modules junctions and deletes the primary checkout | INFRA | CRITICAL | P1 | VERIFIED | scripts | DONE |
 | [BUG-0049](../../docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md) | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | P0 | VERIFIED | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | DONE |
 | [BUG-0052](../../docs/bugs/BUG-0052-production-dependency-graph-carries-critical-and-high-securi.md) | Production dependency graph carries critical and high security advisories | SECURITY | HIGH | P0 | VERIFIED | package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api | DONE |
