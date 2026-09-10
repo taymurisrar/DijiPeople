@@ -11,10 +11,21 @@ import { Info, ShieldAlert } from "lucide-react";
  * row; that a day boundary is the shift's and not the calendar's; that a period
  * including today is short a day because reconciliation has not run.
  *
- * A metric rendered without its caveat is a misleading number, so this panel
- * sits above the tiles rather than below the fold. Per-metric notes stay on
- * their own tile — the note about attendance-day denominators belongs to the
- * attendance rate, not to the page.
+ * ITEM-0128 — this panel used to print every caveat as an always-open list
+ * above the tiles: 13 paragraphs on Attendance, 12 on Workforce, 6 on
+ * Recruitment, all before the first number. Genuinely good writing that a
+ * reader skips at that size and placement, which means the caveats most in
+ * need of being read were the ones guaranteed not to be.
+ *
+ * The fix reuses the disclosure pattern `metric-tile.tsx` already established
+ * for a per-metric caveat ("N notes on how X is measured") rather than
+ * inventing a second one: a native `<details>`, keyboard-operable and
+ * announced as expandable with no JavaScript, whose `<summary>` names how many
+ * notes it holds — nothing here is lost, it is one control away instead of
+ * occupying the page by default. Suppression stays outside the disclosure and
+ * always visible: it is not a note about how to *interpret* the numbers below,
+ * it is a statement that some of the data is not there, which changes what the
+ * breakdown chart's bars add up to right now.
  */
 
 export function CaveatPanel({
@@ -60,16 +71,25 @@ export function CaveatPanel({
       ) : null}
 
       {caveats.length > 0 ? (
-        <ul className="mt-3 grid gap-2">
-          {caveats.map((caveat) => (
-            <li
-              key={caveat}
-              className="border-l-2 border-border pl-3 text-xs leading-5 text-muted"
-            >
-              {caveat}
-            </li>
-          ))}
-        </ul>
+        <details className="group mt-3">
+          <summary className="flex cursor-pointer list-none items-center gap-1.5 text-xs font-medium text-muted outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-accent">
+            <Info aria-hidden="true" className="h-3.5 w-3.5" />
+            <span>
+              {caveats.length} {caveats.length === 1 ? "note" : "notes"} on how
+              these numbers are measured
+            </span>
+          </summary>
+          <ul className="mt-2 grid gap-2">
+            {caveats.map((caveat) => (
+              <li
+                key={caveat}
+                className="border-l-2 border-border pl-3 text-xs leading-5 text-muted"
+              >
+                {caveat}
+              </li>
+            ))}
+          </ul>
+        </details>
       ) : null}
     </section>
   );
