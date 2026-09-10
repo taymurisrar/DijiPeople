@@ -19,6 +19,22 @@ export const DASHBOARD_ROUTE = "/";
 export const LOGIN_ROUTE = "/login";
 export const DEFAULT_AUTHENTICATED_ROUTE = "/";
 
+/*
+ * ITEM-0111 — this list used to omit twelve route trees under
+ * `app/(authenticated)/`. `matchesPrefix` treats an absent prefix as "not
+ * protected" rather than as a catch-all, so `isProtectedRoute` returned false
+ * for every one of them: the proxy (`proxy.ts`) let an anonymous request
+ * through instead of redirecting to `/login?next=<path>`, and the deep link
+ * was lost when the authenticated layout's own fallback caught it later (it
+ * no longer hardcodes "/" either — see `app/(authenticated)/layout.tsx`).
+ * No content was ever served to an unauthenticated caller either way: this is
+ * about which layer catches the request and whether the destination survives
+ * sign-in, not about access.
+ *
+ * `auth-config.spec.ts` walks `app/(authenticated)/` and fails if a route
+ * tree is added here without a matching prefix, so this list cannot drift
+ * again the same way.
+ */
 export const PROTECTED_ROUTE_PREFIXES = [
   "/",
   "/me",
@@ -38,6 +54,18 @@ export const PROTECTED_ROUTE_PREFIXES = [
   "/claims",
   "/business-trips",
   "/customization",
+  "/access-denied",
+  "/approvals",
+  "/benefits",
+  "/dlp-review",
+  "/employee-bank-accounts",
+  "/executive",
+  "/hr",
+  "/inbox",
+  "/loans",
+  "/manager",
+  "/my-preferences",
+  "/profile",
 ] as const;
 export const PUBLIC_ROUTE_PREFIXES = [
   "/login",
