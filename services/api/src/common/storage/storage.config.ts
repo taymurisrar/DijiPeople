@@ -195,8 +195,23 @@ function parsePositiveInteger(value: unknown, fallback: number): number {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+/**
+ * Which environments must have durable storage.
+ *
+ * `staging` counts, matching `isProductionLike` in `config/env.validation.ts`.
+ * A staging instance on Render has the same ephemeral filesystem as production,
+ * so permitting the local provider there would reproduce FILE-01 somewhere that
+ * is also used to sign off releases.
+ *
+ * Unlike that function this checks both variables rather than falling back from
+ * one to the other, so `NODE_ENV=development` cannot mask `APP_ENV=production`.
+ * Erring toward "this is production" is the safe direction: the cost of being
+ * wrong is a developer having to name a provider, against silently losing a
+ * customer's documents.
+ */
 function isProductionLike(env: NodeJS.ProcessEnv): boolean {
+  const durable = ['production', 'staging'];
   const nodeEnv = (env.NODE_ENV ?? '').trim().toLowerCase();
   const appEnv = (env.APP_ENV ?? '').trim().toLowerCase();
-  return nodeEnv === 'production' || appEnv === 'production';
+  return durable.includes(nodeEnv) || durable.includes(appEnv);
 }

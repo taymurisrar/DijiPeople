@@ -92,6 +92,34 @@ describe('resolveStorageConfig', () => {
 
       expect(config).toBeNull();
     });
+
+    it.each([
+      ['NODE_ENV', 'staging'],
+      ['APP_ENV', 'staging'],
+      ['NODE_ENV', 'PRODUCTION'],
+      ['NODE_ENV', ' production '],
+    ])('refuses local storage when %s is %p', (key, value) => {
+      // Staging on Render has the same ephemeral filesystem as production, and
+      // it is where releases get signed off, so losing documents there is not a
+      // lesser problem. Casing and stray whitespace must not open the gate
+      // either.
+      const { config } = resolveStorageConfig({
+        [key]: value,
+        STORAGE_PROVIDER: 'local',
+      });
+
+      expect(config).toBeNull();
+    });
+
+    it('does not let a development NODE_ENV mask a production APP_ENV', () => {
+      const { config } = resolveStorageConfig({
+        NODE_ENV: 'development',
+        APP_ENV: 'production',
+        STORAGE_PROVIDER: 'local',
+      });
+
+      expect(config).toBeNull();
+    });
   });
 
   describe('development', () => {
