@@ -203,7 +203,6 @@ function buildProxyErrorEnvelope(input: {
 }
 
 export async function proxyApiFileResponse(response: Response) {
-  const body = await response.arrayBuffer();
   const headers = new Headers();
 
   copyHeaderIfPresent(response.headers, headers, "content-type");
@@ -213,11 +212,18 @@ export async function proxyApiFileResponse(response: Response) {
   /*
    * Content-Length is deliberately not forwarded. fetch() transparently decodes
    * a compressed upstream body, so the upstream header describes the encoded
-   * payload while `body` holds the decoded bytes. Forwarding the smaller value
-   * makes Node stop writing at that byte count and truncates the download
-   * mid-stream. The runtime derives the correct length from the buffer.
+   * payload while `response.body` streams the decoded bytes. Forwarding the
+   * smaller encoded-length value makes Node stop writing at that byte count and
+   * truncates the download mid-stream. The runtime derives the correct length
+   * as the stream is written.
+   *
+   * The body itself is passed through as the raw upstream ReadableStream rather
+   * than buffered into memory first: these responses back file downloads (R2
+   * objects and generated PDFs/exports), and buffering every byte into the
+   * Next.js heap before writing any of it out defeats the point of having moved
+   * storage off the API host.
    */
-  return new NextResponse(body, {
+  return new NextResponse(response.body, {
     status: response.status,
     headers,
   });

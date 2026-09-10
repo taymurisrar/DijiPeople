@@ -13,7 +13,7 @@ export async function GET(request: Request, context: Context) {
 async function proxyOperationResponse(response: Response) {
   const disposition = response.headers.get("content-disposition");
   if (!disposition) return proxyApiJsonResponse(response);
-  return new Response(await response.arrayBuffer(), {
+  return new Response(response.body, {
     status: response.status,
     headers: {
       "Content-Type":
