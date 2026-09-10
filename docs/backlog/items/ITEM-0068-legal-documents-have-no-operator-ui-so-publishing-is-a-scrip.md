@@ -3,15 +3,15 @@ ID: ITEM-0068
 aliases: [ITEM-0068]
 Title: Legal publication has an operator UI, but no diff before publishing
 Type: UX
-Status: READY
+Status: DONE
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [legal, admin]
 Source: IMPLEMENTATION
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-20
-UpdatedAt: 2026-08-24
+UpdatedAt: 2026-09-11
 RelatedBug:
 RelatedQA:
 RelatedADR:
@@ -131,6 +131,54 @@ existing screen.
 - `services/api/prisma/publish-legal.ts` — the script written to close the gap.
 - `services/api/test/legal-publish.e2e-spec.ts` — the contract the UI must also
   satisfy.
+
+## Resolution
+
+Premise confirmed: five of six acceptance criteria were already met, and the
+diff genuinely was the only gap. Closed it without touching any of the other
+five.
+
+**Backend** — `LegalService.getVersionForAdministration` (`legal.service.ts`)
+now also returns `previousPublished`: the currently-published version's
+`version`, `contentMarkdown` and `publishedAt` for the same document, or `null`
+when there is nothing published yet or the version being viewed is itself
+already published (a published version is never diffed against itself — that
+comparison serves no operator decision). Three new specs cover it in
+`legal.service.spec.ts`: has-a-published-comparison, first-publication-is-null,
+published-version-never-compares-to-itself.
+
+**Frontend** — `legal-document-editor.tsx` renders the diff whenever a saved
+draft exists (`isDraft && !dirty`, so what is shown is exactly what Publish
+would send): a line-level diff (`diffLines`, a ~30-line LCS table — not a new
+dependency, since a legal document is a few hundred lines and one more package
+for one screen was not justified), context-collapsed around changes, with
+`+added/-removed` counts. A document too large for the line table (>4,000,000
+`a.length * b.length` cells) falls back to an explicit "read both versions in
+full" notice rather than hanging the tab or silently omitting rows. A document
+with no prior publication shows "first publication" wording instead of a diff.
+
+**Acknowledgement**: Publish stays disabled — same mechanism as the existing
+`dirty`/`blockers` gates — until the operator types the document's own slug
+into a confirmation field placed directly under the diff. That is the "explicit
+confirmation naming the document" the Proposed Approach asked for, and it
+doubles as the task's acknowledgement requirement: there is no way to publish
+without the diff (or the first-publication notice) having been rendered on
+screen first, because the confirmation field only appears alongside it. The
+confirmation resets on every load and every save, so a previously-typed
+confirmation can never carry over to text the operator has not seen in this
+exact form.
+
+**Validated**: `npm --workspace api run test -- legal` — 4 suites, 58 tests,
+all passing (58 includes the 3 new specs). `npm --workspace admin run
+check-types` — passed. `npx eslint --fix` run on both changed files; the admin
+component had nothing to report, and the pre-existing `no-unsafe-*` warnings in
+`legal.service.spec.ts` are all in code this task did not touch (confirmed by
+line content, not just number, since the new test block shifted every
+subsequent line).
+
+Not touched: the script (`prisma/publish-legal.ts`), `effectiveFrom`
+scheduling, placeholder blocking, attribution — all five already-met criteria
+are exactly as they were.
 
 ## Related Items
 

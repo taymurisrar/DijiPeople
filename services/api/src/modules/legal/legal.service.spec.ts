@@ -186,6 +186,77 @@ describe('LegalService', () => {
     });
   });
 
+  describe('getVersionForAdministration', () => {
+    it('includes the currently published version for a draft, so the editor can diff', async () => {
+      prisma.legalDocumentVersion.findUnique.mockResolvedValue({
+        id: 'ver_draft',
+        version: 4,
+        status: LegalDocumentVersionStatus.DRAFT,
+        contentMarkdown: '# Privacy v4',
+        changeSummary: null,
+        effectiveFrom: null,
+        publishedAt: null,
+        document: { id: 'doc_1', slug: 'privacy', title: 'Privacy Policy' },
+      });
+      prisma.legalDocumentVersion.findFirst.mockResolvedValue({
+        version: 3,
+        contentMarkdown: '# Privacy v3',
+        publishedAt: new Date('2026-01-01'),
+      });
+
+      const result = await service.getVersionForAdministration('ver_draft');
+
+      expect(prisma.legalDocumentVersion.findFirst).toHaveBeenCalledWith({
+        where: {
+          legalDocumentId: 'doc_1',
+          status: LegalDocumentVersionStatus.PUBLISHED,
+        },
+        select: { version: true, contentMarkdown: true, publishedAt: true },
+      });
+      expect(result.previousPublished).toEqual({
+        version: 3,
+        contentMarkdown: '# Privacy v3',
+        publishedAt: new Date('2026-01-01'),
+      });
+    });
+
+    it('is null for a document that has never been published', async () => {
+      prisma.legalDocumentVersion.findUnique.mockResolvedValue({
+        id: 'ver_draft',
+        version: 1,
+        status: LegalDocumentVersionStatus.DRAFT,
+        contentMarkdown: '# Terms v1',
+        changeSummary: null,
+        effectiveFrom: null,
+        publishedAt: null,
+        document: { id: 'doc_2', slug: 'terms', title: 'Terms' },
+      });
+      prisma.legalDocumentVersion.findFirst.mockResolvedValue(null);
+
+      const result = await service.getVersionForAdministration('ver_draft');
+
+      expect(result.previousPublished).toBeNull();
+    });
+
+    it('never diffs a published version against itself', async () => {
+      prisma.legalDocumentVersion.findUnique.mockResolvedValue({
+        id: 'ver_pub',
+        version: 3,
+        status: LegalDocumentVersionStatus.PUBLISHED,
+        contentMarkdown: '# Privacy v3',
+        changeSummary: null,
+        effectiveFrom: new Date('2026-01-01'),
+        publishedAt: new Date('2026-01-01'),
+        document: { id: 'doc_1', slug: 'privacy', title: 'Privacy Policy' },
+      });
+
+      const result = await service.getVersionForAdministration('ver_pub');
+
+      expect(prisma.legalDocumentVersion.findFirst).not.toHaveBeenCalled();
+      expect(result.previousPublished).toBeNull();
+    });
+  });
+
   describe('publish', () => {
     it('archives the version in force and publishes the draft in one transaction', async () => {
       prisma.legalDocumentVersion.findUnique.mockResolvedValue({

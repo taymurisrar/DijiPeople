@@ -13,11 +13,11 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 124 |
+| Open (active work) | 119 |
 | Blocked | 2 |
 | Deferred | 29 |
-| Awaiting a product decision | 7 |
-| Completed / closed | 292 |
+| Awaiting a product decision | 1 |
+| Completed / closed | 303 |
 | **Open CRITICAL** | **1** |
 | **Open HIGH** | **36** |
 | **Awaiting Architect triage** | **0** |
@@ -28,42 +28,43 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 1 |
 | HIGH | 36 |
-| MEDIUM | 69 |
-| LOW | 15 |
+| MEDIUM | 66 |
+| LOW | 14 |
 
 ## Open by type
 
 | Type | Count |
 |---|---|
-| ARCHITECTURE | 3 |
+| ARCHITECTURE | 2 |
 | AUTHORIZATION | 5 |
-| BUG | 37 |
+| BUG | 38 |
 | DATA_INTEGRITY | 9 |
-| DOCUMENTATION | 2 |
+| DOCUMENTATION | 1 |
 | FOLLOW_UP | 2 |
-| INFRA | 4 |
+| INFRA | 3 |
 | INTEGRATION | 5 |
 | PERFORMANCE | 1 |
-| SECURITY | 6 |
+| PRODUCT_DECISION | 3 |
+| SECURITY | 7 |
 | STATE_MACHINE | 3 |
-| TECH_DEBT | 6 |
-| TEST_GAP | 8 |
-| UX | 33 |
+| TECH_DEBT | 5 |
+| TEST_GAP | 6 |
+| UX | 29 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 13 |
+| OPEN | 15 |
 | BLOCKED | 2 |
 | DEFERRED | 29 |
-| PRODUCT_DECISION | 7 |
+| PRODUCT_DECISION | 1 |
 | FIXED | 79 |
 | VERIFIED | 218 |
 | DUPLICATE | 5 |
 | ACCEPTED_RISK | 3 |
-| READY | 32 |
-| DONE | 66 |
+| READY | 25 |
+| DONE | 77 |
 
 ## All records
 
@@ -368,7 +369,7 @@ see [`README.md`](README.md) for why.
 | [BUG-2495](../../docs/bugs/BUG-2495-the-under-investigation-tile-counts-incidents-nobody-is-inve.md) | The Under investigation tile counts incidents nobody is investigating | UX | MEDIUM | P2 | OPEN | admin:monitoring, api:platform-monitoring | FIX_NOW |
 | [BUG-2507](../../docs/bugs/BUG-2507-the-manager-s-correction-screen-hides-four-of-the-eight-kind.md) | The manager's correction screen hides four of the eight kinds of change | UX | MEDIUM | P2 | FIXED | apps/web | DONE |
 | [BUG-2508](../../docs/bugs/BUG-2508-the-correction-work-site-selector-is-never-populated-for-an-.md) | The correction work-site selector is never populated for an employee | BUG | MEDIUM | P2 | OPEN | apps/web, api:attendance-integrations | PLAN_REQUIRED |
-| [BUG-2509](../../docs/bugs/BUG-2509-platform-admin-remember-me-has-no-policy-able-to-refuse-it.md) | Platform admin remember-me has no policy able to refuse it | SECURITY | MEDIUM | P2 | PRODUCT_DECISION | api:auth | PRODUCT_DECISION |
+| [BUG-2509](../../docs/bugs/BUG-2509-platform-admin-remember-me-has-no-policy-able-to-refuse-it.md) | Platform admin remember-me has no policy able to refuse it | SECURITY | MEDIUM | P2 | OPEN | api:auth | PLAN_REQUIRED |
 | [BUG-2547](../../docs/bugs/BUG-2547-a-revoked-session-still-answers-on-auth-me.md) | A revoked session still answers on /auth/me | SECURITY | MEDIUM | P2 | FIXED | api:auth | DONE |
 | [BUG-2560](../../docs/bugs/BUG-2560-the-requester-is-shown-approve-and-reject-buttons-that-alway.md) | The requester is shown Approve and Reject buttons that always refuse | AUTHORIZATION | MEDIUM | P2 | FIXED | api:attendance, apps/web | DONE |
 | [BUG-2573](../../docs/bugs/BUG-2573-a-correction-request-cannot-be-withdrawn-by-the-person-who-f.md) | A correction request cannot be withdrawn by the person who filed it | UX | MEDIUM | P2 | OPEN | api:attendance, apps/web | PLAN_REQUIRED |
@@ -416,7 +417,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0054](../../docs/backlog/items/ITEM-0054-contract-placeholder-examples-fabricate-a-saudi-legal-entity.md) | Contract placeholder examples fabricate a Saudi legal entity, CR number and tax ID | DOCUMENTATION | MEDIUM | P2 | DEFERRED | contracts | DEFER |
 | [ITEM-0055](../../docs/backlog/items/ITEM-0055-database-e2e-runs-serially-and-now-dominates-its-own-job.md) | Database e2e runs serially and now dominates its own job | PERFORMANCE | MEDIUM | P2 | DEFERRED | api, ci | DEFER |
 | [ITEM-0060](../../docs/backlog/items/ITEM-0060-schema-prisma-and-the-applied-migration-history-do-not-agree.md) | schema.prisma and the applied migration history do not agree | TECH_DEBT | MEDIUM | P2 | DEFERRED | prisma, timesheets, attendance, payroll, billing | DEFER |
-| [ITEM-0068](../../docs/backlog/items/ITEM-0068-legal-documents-have-no-operator-ui-so-publishing-is-a-scrip.md) | Legal publication has an operator UI, but no diff before publishing | UX | MEDIUM | P2 | READY | legal, admin | FIX_NOW |
+| [ITEM-0068](../../docs/backlog/items/ITEM-0068-legal-documents-have-no-operator-ui-so-publishing-is-a-scrip.md) | Legal publication has an operator UI, but no diff before publishing | UX | MEDIUM | P2 | DONE | legal, admin | DONE |
 | [ITEM-0069](../../docs/backlog/items/ITEM-0069-a-global-identity-lock-can-be-triggered-by-an-unauthenticate.md) | A global identity lock can be triggered by an unauthenticated attacker | SECURITY | MEDIUM | P2 | DONE | auth, users | DONE |
 | [ITEM-0071](../../docs/backlog/items/ITEM-0071-a-terminal-bug-record-may-claim-fixed-while-its-resolution-s.md) | A terminal bug record may claim FIXED while its Resolution says pending | TEST_GAP | MEDIUM | P2 | DONE | scripts | DONE |
 | [ITEM-0073](../../docs/backlog/items/ITEM-0073-agent-role-names-are-spelled-inconsistently-across-bug-and-t.md) | Agent role names are spelled inconsistently across bug and task records | TECH_DEBT | MEDIUM | P2 | DEFERRED | framework | DEFER |
@@ -425,19 +426,19 @@ see [`README.md`](README.md) for why.
 | [ITEM-0077](../../docs/backlog/items/ITEM-0077-re-read-the-packaged-agent-archive-after-the-node-pre-gyp-up.md) | Re-read the packaged agent archive after the node-pre-gyp upgrade | TEST_GAP | MEDIUM | P2 | READY | apps/agent-desktop, package-lock.json | PLAN_REQUIRED |
 | [ITEM-0078](../../docs/backlog/items/ITEM-0078-no-end-to-end-payment-to-provisioned-tenant-run-against-stri.md) | No end-to-end payment to provisioned tenant run against Stripe test mode | TEST_GAP | MEDIUM | P2 | READY | api:billing, api:tenant-control-plane, api:outbox, apps/landing | PLAN_REQUIRED |
 | [ITEM-0081](../../docs/backlog/items/ITEM-0081-nine-test-plans-are-needs-review-against-a-five-day-old-comm.md) | Nine test plans are NEEDS_REVIEW against a five-day-old commit | TEST_GAP | MEDIUM | P2 | DONE | docs/qa/test-plans | DONE |
-| [ITEM-0084](../../docs/backlog/items/ITEM-0084-detect-drift-between-render-yaml-and-the-live-render-service.md) | Detect drift between render.yaml and the live Render service | INFRA | MEDIUM | P2 | READY | render.yaml, scripts | FIX_NOW |
+| [ITEM-0084](../../docs/backlog/items/ITEM-0084-detect-drift-between-render-yaml-and-the-live-render-service.md) | Detect drift between render.yaml and the live Render service | INFRA | MEDIUM | P2 | DONE | render.yaml, scripts | DONE |
 | [ITEM-0085](../../docs/backlog/items/ITEM-0085-no-bulk-command-exists-to-sync-plan-prices-to-stripe-so-a-la.md) | No bulk command exists to sync plan prices to Stripe, so a launch needs 36 manual admin edits | INFRA | MEDIUM | P2 | DONE | api:super-admin | DONE |
 | [ITEM-0090](../../docs/backlog/items/ITEM-0090-legal-documents-can-be-authored-from-platform-admin-instead-.md) | Legal documents can be authored from Platform Admin instead of a seed file | PRODUCT_DECISION | MEDIUM | P2 | DONE | apps/admin, api:legal | DONE |
 | [ITEM-0092](../../docs/backlog/items/ITEM-0092-widget-runtime-contract-test-js-fails-and-no-script-or-ci-jo.md) | widget-runtime-contract.test.js fails and no script or CI job runs it | TEST_GAP | MEDIUM | P2 | READY | pkg:config, apps/web | PLAN_REQUIRED |
 | [ITEM-0095](../../docs/backlog/items/ITEM-0095-home-page-plan-cards-showed-a-price-with-no-indication-of-wh.md) | Home page plan cards showed a price with no indication of what it buys | UX | MEDIUM | P2 | DONE | apps/landing | DONE |
-| [ITEM-0105](../../docs/backlog/items/ITEM-0105-the-leave-entitlement-dialog-cannot-set-accrualtype-which-th.md) | The leave entitlement dialog cannot set accrualType, which the API requires | UX | MEDIUM | P2 | READY | apps/web, api:leave | FIX_NOW |
-| [ITEM-0106](../../docs/backlog/items/ITEM-0106-an-employee-cannot-use-self-service-until-their-manager-acti.md) | An employee cannot use self-service until their manager activates their own account | PRODUCT_DECISION | MEDIUM | P2 | PRODUCT_DECISION | api:leave, api:employees | PRODUCT_DECISION |
-| [ITEM-0107](../../docs/backlog/items/ITEM-0107-three-separate-users-screens-exist-in-the-tenant-app.md) | Four Users screens exist in the tenant app and two of them are unreachable | ARCHITECTURE | MEDIUM | P2 | READY | apps/web | FIX_NOW |
-| [ITEM-0112](../../docs/backlog/items/ITEM-0112-enforcecriticalattendancesetting-has-no-test-coverage-despit.md) | enforceCriticalAttendanceSetting has no test coverage despite enforcing a mandatory integrity control | TEST_GAP | MEDIUM | P2 | READY | api:tenant-settings | FIX_NOW |
+| [ITEM-0105](../../docs/backlog/items/ITEM-0105-the-leave-entitlement-dialog-cannot-set-accrualtype-which-th.md) | The leave entitlement dialog cannot set accrualType, which the API requires | UX | MEDIUM | P2 | DONE | apps/web, api:leave | DONE |
+| [ITEM-0106](../../docs/backlog/items/ITEM-0106-an-employee-cannot-use-self-service-until-their-manager-acti.md) | An employee cannot use self-service until their manager activates their own account | PRODUCT_DECISION | MEDIUM | P2 | READY | api:leave, api:employees | PLAN_REQUIRED |
+| [ITEM-0107](../../docs/backlog/items/ITEM-0107-three-separate-users-screens-exist-in-the-tenant-app.md) | Four Users screens exist in the tenant app and two of them are unreachable | ARCHITECTURE | MEDIUM | P2 | DONE | apps/web | DONE |
+| [ITEM-0112](../../docs/backlog/items/ITEM-0112-enforcecriticalattendancesetting-has-no-test-coverage-despit.md) | enforceCriticalAttendanceSetting has no test coverage despite enforcing a mandatory integrity control | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-settings | DONE |
 | [ITEM-0113](../../docs/backlog/items/ITEM-0113-the-seeded-leave-approval-chain-cannot-route-on-a-newly-prov.md) | The seeded leave approval chain cannot route on a newly provisioned tenant, and the Approval Matrices screen gives no warning | PRODUCT_DECISION | MEDIUM | P2 | DONE | services/api/prisma, api:approvals, apps/web | DONE |
-| [ITEM-0115](../../docs/backlog/items/ITEM-0115-provisioning-seeds-four-departments-with-no-business-unit-on.md) | Provisioning seeds four departments with no business unit on every tenant | PRODUCT_DECISION | MEDIUM | P2 | PRODUCT_DECISION | services/api/prisma, api:organization | PRODUCT_DECISION |
+| [ITEM-0115](../../docs/backlog/items/ITEM-0115-provisioning-seeds-four-departments-with-no-business-unit-on.md) | Provisioning seeds four departments with no business unit on every tenant | PRODUCT_DECISION | MEDIUM | P2 | READY | services/api/prisma, api:organization | PLAN_REQUIRED |
 | [ITEM-0116](../../docs/backlog/items/ITEM-0116-53-bug-fixes-are-regression-covered-but-have-never-been-qa-r.md) | 53 bug fixes are regression-covered but have never been QA-retested | TEST_GAP | MEDIUM | P2 | READY | — | FIX_NOW |
-| [ITEM-0117](../../docs/backlog/items/ITEM-0117-the-question-protocol-has-never-been-used-and-five-user-deci.md) | The question protocol has never been used and five user decisions are parked in the backlog instead | DOCUMENTATION | MEDIUM | P2 | READY | — | FIX_NOW |
+| [ITEM-0117](../../docs/backlog/items/ITEM-0117-the-question-protocol-has-never-been-used-and-five-user-deci.md) | The question protocol has never been used and five user decisions are parked in the backlog instead | DOCUMENTATION | MEDIUM | P2 | DONE | — | DONE |
 | [ITEM-0118](../../docs/backlog/items/ITEM-0118-merge-the-duplicate-customeraccount-rows-self-service-checko.md) | Merge the duplicate CustomerAccount rows self-service checkout created before BUG-2530 | DATA_MIGRATION | MEDIUM | P2 | DONE | super-admin, billing | DONE |
 | [ITEM-0119](../../docs/backlog/items/ITEM-0119-stop-writing-a-placeholder-e-mail-into-an-identity-column-wh.md) | Stop writing a placeholder e-mail into an identity column when the wizard opens a draft | TECH_DEBT | MEDIUM | P2 | READY | billing, landing, super-admin | PLAN_REQUIRED |
 | [ITEM-0120](../../docs/backlog/items/ITEM-0120-schema-prisma-declares-constraints-no-migration-creates-so-m.md) | schema.prisma declares constraints no migration creates, so migrate dev cannot run without a reset | TECH_DEBT | MEDIUM | P2 | DEFERRED | prisma | DEFER |
@@ -450,7 +451,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0088](../../docs/backlog/items/ITEM-0088-npm-workspace-api-run-start-dev-always-frees-port-4000-regar.md) | npm --workspace api run start:dev always frees port 4000 regardless of PORT, killing any other API instance | TECH_DEBT | LOW | P2 | DEFERRED | services/api | DEFER |
 | [ITEM-0089](../../docs/backlog/items/ITEM-0089-the-contact-form-is-the-only-public-lead-creating-form-with-.md) | The contact form is the only public lead-creating form with no honeypot | SECURITY | LOW | P2 | DEFERRED | apps/landing | DEFER |
 | [ITEM-0098](../../docs/backlog/items/ITEM-0098-753-of-846-shared-frontend-exports-carry-no-doc-comment.md) | 753 of 846 shared frontend exports carry no doc-comment | DOCUMENTATION | LOW | P2 | DEFERRED | admin, web | DEFER |
-| [ITEM-0108](../../docs/backlog/items/ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle.md) | Decide whether the roughly one-hour session lifetime is idle or absolute | PRODUCT_DECISION | LOW | P2 | PRODUCT_DECISION | api:auth | PRODUCT_DECISION |
+| [ITEM-0108](../../docs/backlog/items/ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle.md) | Decide whether the roughly one-hour session lifetime is idle or absolute | PRODUCT_DECISION | LOW | P2 | READY | api:auth | PLAN_REQUIRED |
 | [BUG-0018](../../docs/bugs/BUG-0018-bulk-lead-delete-is-unreachable-for-every-role.md) | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | P3 | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [BUG-0023](../../docs/bugs/BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist.md) | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | P3 | VERIFIED | .agent/context | DONE |
 | [BUG-0024](../../docs/bugs/BUG-0024-start-onboarding-api-and-proxy-have-no-caller.md) | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | P3 | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -470,7 +471,7 @@ see [`README.md`](README.md) for why.
 | [BUG-1753](../../docs/bugs/BUG-1753-lookup-display-labels-mangle-acronyms-and-numeric-ranges-acr.md) | Lookup display labels mangle acronyms and numeric ranges across the admin console | BUG | LOW | P3 | VERIFIED | apps/admin | DONE |
 | [BUG-1960](../../docs/bugs/BUG-1960-the-departments-table-overflows-its-settings-panel-by-111px-.md) | The departments table overflows its settings panel by 111px at 1440px | UX | LOW | P3 | DEFERRED | apps/web | DEFER |
 | [BUG-1964](../../docs/bugs/BUG-1964-record-headings-and-dialog-titles-are-singularised-by-stripp.md) | Record headings and dialog titles are singularised by stripping a trailing s | UX | LOW | P3 | FIXED | apps/web | DONE |
-| [BUG-2007](../../docs/bugs/BUG-2007-projects-and-customers-can-be-created-but-never-deleted.md) | Projects and customers can be created but never deleted | BUG | LOW | P3 | PRODUCT_DECISION | api:projects | PRODUCT_DECISION |
+| [BUG-2007](../../docs/bugs/BUG-2007-projects-and-customers-can-be-created-but-never-deleted.md) | Projects and customers can be created but never deleted | BUG | LOW | P3 | OPEN | api:projects | PLAN_REQUIRED |
 | [BUG-2010](../../docs/bugs/BUG-2010-the-dashboard-recent-changes-list-renders-unformatted-iso-86.md) | The dashboard Recent changes list renders unformatted ISO-8601 timestamps | UX | LOW | P3 | FIXED | apps/web | DONE |
 | [BUG-2017](../../docs/bugs/BUG-2017-the-inbox-related-record-column-renders-a-bare-uuid-with-no-.md) | The inbox Related record column renders a bare UUID with no label and no link | UX | LOW | P3 | FIXED | apps/web | DONE |
 | [BUG-2046](../../docs/bugs/BUG-2046-audit-actions-use-two-naming-conventions-and-the-result-colu.md) | Audit actions use two naming conventions and the Result column is populated only by login events | BUG | LOW | P3 | FIXED | api:audit | DONE |
@@ -503,26 +504,26 @@ see [`README.md`](README.md) for why.
 | [ITEM-0080](../../docs/backlog/items/ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by.md) | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | P3 | READY | services/api | FIX_NOW |
 | [ITEM-0082](../../docs/backlog/items/ITEM-0082-contract-phase-drop-the-inert-plan-ispublic-column.md) | Contract phase: drop the inert Plan.isPublic column | DATA_MIGRATION | LOW | P3 | DEFERRED | services/api/prisma, api:billing | DEFER |
 | [ITEM-0083](../../docs/backlog/items/ITEM-0083-scheduled-reconciliation-sweep-for-orders-stuck-awaiting-pay.md) | Scheduled reconciliation sweep for orders stuck awaiting payment | FOLLOW_UP | LOW | P3 | DEFERRED | api:billing | DEFER |
-| [ITEM-0093](../../docs/backlog/items/ITEM-0093-link-validation-skips-untracked-files-so-a-new-record-s-brok.md) | Link validation skips untracked files, so a new record's broken links only surface in CI | TECH_DEBT | LOW | P3 | READY | scripts | FIX_NOW |
+| [ITEM-0093](../../docs/backlog/items/ITEM-0093-link-validation-skips-untracked-files-so-a-new-record-s-brok.md) | Link validation skips untracked files, so a new record's broken links only surface in CI | TECH_DEBT | LOW | P3 | DONE | scripts | DONE |
 | [ITEM-0099](../../docs/backlog/items/ITEM-0099-sync-obsidian-does-not-map-docs-plans-so-every-execplan-wiki.md) | sync-obsidian does not map docs/plans, so every ExecPlan wikilink is an orphan | DOCUMENTATION | LOW | P3 | DONE | scripts | DONE |
 | [ITEM-0104](../../docs/backlog/items/ITEM-0104-the-customization-settings-category-renders-no-leaf-pages-in.md) | The customization settings category renders no leaf pages in server HTML | UX | LOW | P3 | DEFERRED | apps/web | DEFER |
-| [ITEM-0109](../../docs/backlog/items/ITEM-0109-the-disabled-check-in-button-explains-itself-only-in-a-title.md) | The disabled Check In button explains itself only in a title tooltip | UX | LOW | P3 | READY | apps/web | FIX_NOW |
+| [ITEM-0109](../../docs/backlog/items/ITEM-0109-the-disabled-check-in-button-explains-itself-only-in-a-title.md) | The disabled Check In button explains itself only in a title tooltip | UX | LOW | P3 | DONE | apps/web | DONE |
 | [ITEM-0110](../../docs/backlog/items/ITEM-0110-attendance-entry-appears-to-create-timesheet-drafts-on-a-ten.md) | Attendance entry appears to create Timesheet drafts on a tenant without the Timesheets entitlement | PRODUCT_DECISION | LOW | P3 | DEFERRED | api:timesheets, api:attendance | DEFER |
-| [ITEM-0111](../../docs/backlog/items/ITEM-0111-protected-route-prefixes-omits-twelve-authenticated-route-tr.md) | PROTECTED_ROUTE_PREFIXES omits twelve authenticated route trees, so deep links to them are lost at sign-in | UX | LOW | P3 | READY | apps/web | FIX_NOW |
+| [ITEM-0111](../../docs/backlog/items/ITEM-0111-protected-route-prefixes-omits-twelve-authenticated-route-tr.md) | PROTECTED_ROUTE_PREFIXES omits twelve authenticated route trees, so deep links to them are lost at sign-in | UX | LOW | P3 | DONE | apps/web | DONE |
 | [ITEM-0121](../../docs/backlog/items/ITEM-0121-the-approvals-capability-signal-does-not-model-each-module-s.md) | The approvals capability signal does not model each module's object-level rules, so a refused action can look available | UX | LOW | P3 | DEFERRED | approvals, attendance | DEFER |
 | [ITEM-0126](../../docs/backlog/items/ITEM-0126-decide-which-of-the-41-always-visible-settings-pages-should-.md) | Decide which of the 41 always-visible settings pages should be sold | PRODUCT_DECISION | — | P1 | DONE | apps/web | DONE |
 | [ITEM-0129](../../docs/backlog/items/ITEM-0129-tenants-should-inherit-the-platform-email-provider-by-defaul.md) | Tenants should inherit the platform email provider by default, and may override it | ARCHITECTURE | — | P1 | READY | services/api, apps/web | PLAN_REQUIRED |
-| [ITEM-0130](../../docs/backlog/items/ITEM-0130-review-process-missed-four-defects-on-screens-adjacent-to-th.md) | Review process missed four defects on screens adjacent to the change | TEST_GAP | — | P1 | READY | apps/web, .agent | FIX_NOW |
+| [ITEM-0130](../../docs/backlog/items/ITEM-0130-review-process-missed-four-defects-on-screens-adjacent-to-th.md) | Review process missed four defects on screens adjacent to the change | TEST_GAP | — | P1 | DONE | apps/web, .agent | DONE |
 | [ITEM-0057](../../docs/backlog/items/ITEM-0057-landing-production-env-examples-still-name-the-vercel-and-re.md) | Landing production env examples still name the vercel and render hosts, not the dijipeople.com apex | PRODUCT_DECISION | — | P2 | DONE | apps/landing | DONE |
 | [ITEM-0091](../../docs/backlog/items/ITEM-0091-repo-health-blocks-every-release-task-on-its-own-defining-ou.md) | repo:health blocks every RELEASE task on its own defining outcome | INFRA | — | P2 | DONE | framework | DONE |
 | [ITEM-0100](../../docs/backlog/items/ITEM-0100-apps-landing-env-examples-omit-next-public-web-root-domain-a.md) | apps/landing env examples omit NEXT_PUBLIC_WEB_ROOT_DOMAIN and no parity test guards them | INFRA | — | P2 | DONE | apps/landing, pkg:config | DONE |
 | [ITEM-0101](../../docs/backlog/items/ITEM-0101-mailerservice-silently-logs-instead-of-sending-and-nothing-u.md) | MailerService silently logs instead of sending, and nothing uses it | TECH_DEBT | — | P2 | DEFERRED | services/api/src/common/mailer | DEFER |
 | [ITEM-0102](../../docs/backlog/items/ITEM-0102-move-switch-workspace-into-the-avatar-menu.md) | Move Switch workspace into the avatar menu | UX | — | P2 | DONE | views | DONE |
 | [ITEM-0127](../../docs/backlog/items/ITEM-0127-settings-ia-21-of-41-groups-hold-a-single-item.md) | Settings IA: 21 of 41 groups hold a single item | UX | — | P2 | DEFERRED | apps/web | DEFER |
-| [ITEM-0128](../../docs/backlog/items/ITEM-0128-reports-and-analytics-two-explanatory-cards-nobody-reads-sit.md) | Reports and Analytics: two explanatory cards nobody reads sit above the data | UX | — | P2 | READY | apps/web | FIX_NOW |
+| [ITEM-0128](../../docs/backlog/items/ITEM-0128-reports-and-analytics-two-explanatory-cards-nobody-reads-sit.md) | Reports and Analytics: two explanatory cards nobody reads sit above the data | UX | — | P2 | DONE | apps/web | DONE |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |
-| [ITEM-0114](../../docs/backlog/items/ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-.md) | The workspace shell states the tenant's identity four times and its purpose twice | UX | — | P3 | PRODUCT_DECISION | views | PRODUCT_DECISION |
+| [ITEM-0114](../../docs/backlog/items/ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-.md) | The workspace shell states the tenant's identity four times and its purpose twice | UX | — | P3 | READY | views | PLAN_REQUIRED |
 
 ## Views
 

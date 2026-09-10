@@ -17,7 +17,7 @@
 | Open CRITICAL | **0** |
 | Open HIGH | 36 |
 | Awaiting Architect triage | 5 |
-| Owner decisions pending | 6 |
+| Owner decisions pending | 0 |
 | QA coverage gaps | 142 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -30,11 +30,11 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 122 |
-| No next action | 122 |
-| Aging — 7d / 30d / 90d | 110 / 0 / 0 |
-| Architecture and technical debt | 9 |
-| Security gaps | 10 |
+| No acceptance criteria | 124 |
+| No next action | 124 |
+| Aging — 7d / 30d / 90d | 112 / 0 / 0 |
+| Architecture and technical debt | 8 |
+| Security gaps | 11 |
 | Database gaps | 9 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
@@ -49,7 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
-| [[SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser|SESSION-0061]] | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | NO |
+| [[SESSION-0098-closeout-sweep-close-every-open-session-bug-and-backlog-item|SESSION-0098]] | — | Closeout sweep: close every open session, bug and backlog item | ACTIVE | `agent/closeout-sweep` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
 
@@ -104,15 +104,7 @@ _None. Nothing open at CRITICAL._
 
 ## Owner Decisions Pending
 
-Questions where the engineering is understood and the **product answer is**
-**not**. No agent may resolve one by implementing a side of it.
-
-- [[BUG-2509-platform-admin-remember-me-has-no-policy-able-to-refuse-it|BUG-2509]] — **Platform admin remember-me has no policy able to refuse it**
-- [[ITEM-0106-an-employee-cannot-use-self-service-until-their-manager-acti|ITEM-0106]] — **An employee cannot use self-service until their manager activates their own account**
-- [[ITEM-0115-provisioning-seeds-four-departments-with-no-business-unit-on|ITEM-0115]] — **Provisioning seeds four departments with no business unit on every tenant**
-- [[ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle|ITEM-0108]] — **Decide whether the roughly one-hour session lifetime is idle or absolute**
-- [[BUG-2007-projects-and-customers-can-be-created-but-never-deleted|BUG-2007]] — **Projects and customers can be created but never deleted**
-- [[ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-|ITEM-0114]] — **The workspace shell states the tenant's identity four times and its purpose twice**
+_None outstanding._
 
 ## QA Coverage Gaps
 
@@ -268,10 +260,10 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 123 |
+| Open total | 125 |
 | Blocked | 2 |
 | Deferred | 29 |
-| Awaiting a product decision | 6 |
+| Awaiting a product decision | 0 |
 | Awaiting Architect triage | 5 |
 
 **A record nobody has triaged is work nobody has decided about.** No ordinary record may stay `TRIAGE_REQUIRED` at the end of a task.

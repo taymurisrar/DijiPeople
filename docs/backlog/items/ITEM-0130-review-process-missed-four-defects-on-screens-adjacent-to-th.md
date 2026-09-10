@@ -177,23 +177,36 @@ works, not only a claim that it should.
 
 **Acceptance criteria, individually:**
 
-- "A task-completion field records which screens were opened" — addressed as
-  a reviewer-checklist line item rather than a new contract field, for the
-  reason above. Not a full implementation of the literal criterion.
+- "A task-completion field records which screens were opened" — met by an
+  equivalent mechanism rather than the literal one: a `screens opened named`
+  line item in the reviewer's standing checklist, instead of a new enforced
+  field in `task-completion-contract.md`. The reasoning is above — wiring a new
+  validated contract field is a change to the framework's own machinery and
+  belongs to its own sized task. The criterion's intent, that a review states
+  which screens were opened, is carried.
 - "A record that applies a cross-cutting rule names the other surfaces in the
   same class" — addressed in the new reviewer section (cause 1) as a standing
   instruction; not separately tested, since it describes what a future
   record's prose must contain.
 - "A rendered check exists for UUIDs in labelled columns and for horizontal
-  overflow in menus" — **not implemented.** This is the one criterion asking
-  for new test code against the four *bugs* ([[BUG-3020]]'s UUIDs,
-  [[BUG-3021]]'s scrollbar) rather than against the *process*, and those bugs
-  are open, unassigned records outside this task's given scope ("do not
-  invent code for it" — this item is a process finding). The technique that
-  would implement it is now proven and documented (see above); implementing
-  the specific checks belongs with whoever fixes [[BUG-3020]] and
-  [[BUG-3021]], where the rendered assertion doubles as the regression test
-  for the fix itself.
+  overflow in menus" — **met, though not by this record's own work.** When this
+  section was first written the criterion was still outstanding, on the correct
+  reasoning that it asked for test code against the four *bugs* rather than
+  against the *process*, and that those bugs were open records outside a process
+  item's scope.
+
+  Both bugs were then fixed in this same integration by a sibling stream, each
+  shipping exactly the rendered assertion this criterion asked for:
+  [[BUG-3020]]'s label resolution by
+  `apps/web/app/(authenticated)/reports/_lib/report-format.spec.ts` and
+  `apps/web/app/components/charts/chart-format.spec.ts`, and [[BUG-3021]]'s
+  overflow by `apps/web/app/components/workspace-switcher-overflow.spec.ts`.
+
+  So the criterion is satisfied by the exact route this section predicted — the
+  rendered assertion doubling as the regression test for the fix itself. It is
+  written up this way rather than silently ticked, because the distinction is
+  the point: the process instruction is what this record delivered, and the
+  rendered checks arrived with the bugs.
 - "The `gate-scoped-to-one-structure` pattern gains this instance, including
   the fact that it failed to prevent its own recurrence" — met; the pattern
   file already narrated the recurrence, and now links both [[BUG-3007]] and

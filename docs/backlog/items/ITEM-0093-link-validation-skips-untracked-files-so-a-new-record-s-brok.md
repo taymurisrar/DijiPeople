@@ -3,15 +3,15 @@ ID: ITEM-0093
 aliases: [ITEM-0093]
 Title: Link validation skips untracked files, so a new record's broken links only surface in CI
 Type: TECH_DEBT
-Status: READY
+Status: DONE
 Priority: P3
 Severity: LOW
 AffectedModules: [scripts]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-24
-UpdatedAt: 2026-08-24
+UpdatedAt: 2026-09-11
 RelatedBug: 
 RelatedQA: 
 RelatedADR: 
@@ -91,6 +91,60 @@ and confirming validation fails before the file is ever staged.
 ## Dependencies
 
 None.
+
+## Resolution
+
+Premise confirmed still true: `scripts/validate-framework.mjs` built its
+markdown link-check file list from `git ls-files` with no flags — tracked files
+only. Fixed by adding a second file list, `linkCheckFiles`, built from
+`git ls-files --cached --others --exclude-standard` (tracked ∪ untracked, minus
+anything `.gitignore` covers) and used **only** by the relative-link check. The
+original `trackedFiles` list is left untouched and still feeds the "no tracked
+build output" check unchanged — folding untracked files into that one would
+misreport an untracked, non-ignored `bin/`/`obj/` file as tracked build output,
+which is not the same finding.
+
+A deleted-but-tracked file still reports as missing: `--cached` lists it from
+the index regardless of whether it is present on disk, and the existing
+`existsSync` guard in the loop is untouched.
+
+**Mutation-tested per the acceptance criteria**, exactly as prescribed: created
+an untracked file with a deliberately broken relative link and confirmed
+`npm run validate:framework` fails on it before the file is ever staged.
+
+(The probe's own link syntax is written with an escaped `\(` below so this
+record's link check does not trip over its own evidence — the actual probe
+file had no backslash.)
+
+```
+$ mkdir -p docs/scratch-mutation-test && cat > docs/scratch-mutation-test/probe.md
+# Mutation probe for ITEM-0093
+[broken link]\(../plans/does-not-exist-EXECPLAN-9999.md)
+
+$ git status --short docs/scratch-mutation-test/probe.md
+?? docs/scratch-mutation-test/probe.md          # confirmed untracked, unstaged
+
+$ npm run validate:framework
+Framework validation FAILED — 3 of 5036 checks:
+  x docs/scratch-mutation-test/probe.md → ../plans/does-not-exist-EXECPLAN-9999.md resolves — broken relative link
+```
+
+(The other two failures in that run were a pre-existing stale Obsidian
+dashboard on this branch, unrelated to this change and regenerated separately
+via `node scripts/generate-dashboards.mjs`.) The probe file was then deleted —
+it was never staged or committed. Before the fix, the identical probe passed
+`validate:framework` cleanly, which is the exact failure mode this item
+described.
+
+`.gitignore`d files are still excluded because `--exclude-standard` is part of
+the git invocation, unchanged from the git default the working tree already
+honours.
+
+With the fix: `npm run validate:framework` → **passed, 5035 checks** (baseline
+before the fix, with the same repository state and no probe file, was already
+5035/2-failing on the stale dashboard alone — the check count differs by the
+scanned untracked-file corpus at any given moment, which is expected of a
+working-tree-dependent check).
 
 ## Related Items
 

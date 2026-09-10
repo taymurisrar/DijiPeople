@@ -4134,6 +4134,40 @@ const trackedFiles = (() => {
   }
 })();
 
+/*
+ * ITEM-0093 — the link-resolution check below must also see a record that
+ * exists only on disk. `trackedFiles` (git ls-files, no flags) reports only
+ * what is already in the index, so a record created and filled during this
+ * very task — the normal create → fill → validate → commit order — is
+ * invisible to it until `git add` has run. The natural workflow therefore
+ * validates before the file the operator is looking at ever gets checked,
+ * and the first real evaluation happens in CI, after a push.
+ *
+ * `--cached --others --exclude-standard` is the union: everything tracked,
+ * plus everything untracked that is not covered by .gitignore. It must stay a
+ * union, not a replacement — the build-output check further down deliberately
+ * keeps using `trackedFiles` alone, because an untracked bin/obj file is not a
+ * "tracked build output" finding and folding it in would misreport one.
+ *
+ * A tracked file already deleted from the working tree still needs to report
+ * as missing, and it does: `--cached` lists it from the index regardless of
+ * whether it exists on disk, and the existsSync guard in the loop below
+ * catches it exactly as before.
+ */
+const linkCheckFiles = (() => {
+  try {
+    return execFileSync(
+      'git',
+      ['ls-files', '--cached', '--others', '--exclude-standard'],
+      { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 },
+    )
+      .split('\n')
+      .filter(Boolean);
+  } catch {
+    return trackedFiles;
+  }
+})();
+
 /* -- 1. The two top-tier instruction files must carry provenance -------------
  * Every .agent/context/ document already records what commit it was verified
  * against, which is what made the audit's findings triageable by age. AGENTS.md
@@ -4165,9 +4199,13 @@ for (const file of ['AGENTS.md', 'PLANS.md']) {
  * deliberate history (see integrator.md's delete/modify case) and must stay.
  *
  * Both live in one pass over the file list: reading 461 files twice to report
- * the same broken link under two descriptions is cost without information. */
-if (trackedFiles) {
-  for (const file of trackedFiles.filter((f) => f.endsWith('.md'))) {
+ * the same broken link under two descriptions is cost without information.
+ *
+ * Scanned from `linkCheckFiles` (tracked + untracked-not-ignored), not
+ * `trackedFiles` — see ITEM-0093: a record is written before it is staged, and
+ * its links must resolve before that, not after CI finds them. */
+if (linkCheckFiles) {
+  for (const file of linkCheckFiles.filter((f) => f.endsWith('.md'))) {
     /*
      * A tracked file absent from the working tree is a finding, not a crash.
      *

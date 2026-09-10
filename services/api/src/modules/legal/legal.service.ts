@@ -211,7 +211,37 @@ export class LegalService {
     return {
       ...version,
       publishBlockers: await this.describePublishBlockers(versionId),
+      previousPublished: await this.findPreviousPublished(
+        version.document.id,
+        version.status,
+      ),
     };
+  }
+
+  /**
+   * ITEM-0068 — the version a draft would replace, so the editor can show a
+   * diff before an operator commits to something irreversible and
+   * tenant-visible.
+   *
+   * `null` for a version that is itself already published: comparing a
+   * published version against itself is not a diff an operator needs, and
+   * this method exists only to feed the pre-publish review.
+   */
+  private async findPreviousPublished(
+    legalDocumentId: string,
+    versionStatus: LegalDocumentVersionStatus,
+  ) {
+    if (versionStatus === LegalDocumentVersionStatus.PUBLISHED) {
+      return null;
+    }
+
+    return this.prisma.legalDocumentVersion.findFirst({
+      where: {
+        legalDocumentId,
+        status: LegalDocumentVersionStatus.PUBLISHED,
+      },
+      select: { version: true, contentMarkdown: true, publishedAt: true },
+    });
   }
 
   /**
