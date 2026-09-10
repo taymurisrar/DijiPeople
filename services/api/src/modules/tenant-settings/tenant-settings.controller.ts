@@ -28,7 +28,6 @@ import { UpdateTenantFeaturesDto } from './dto/update-tenant-features.dto';
 import { UpdateTenantSettingsDto } from './dto/update-tenant-settings.dto';
 import {
   BrandingAssetsService,
-  MAX_BRANDING_ASSET_BYTES,
   type UploadedBrandingFile,
 } from './branding-assets.service';
 import { TenantSettingsService } from './tenant-settings.service';

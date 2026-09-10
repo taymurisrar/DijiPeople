@@ -1,3 +1,12 @@
+/*
+ * The row-scope assertions added for FILE-07 check the shape of the Prisma
+ * `where` clause with `expect.objectContaining`, which jest's own types return
+ * as `any`. Disabling the rule for this spec keeps those assertions readable;
+ * casting each matcher instead would obscure what is being asserted — and what
+ * is asserted here is that a payslip download cannot reach outside the caller's
+ * access scope.
+ */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { NotFoundException } from '@nestjs/common';
 import { Readable } from 'node:stream';
 import {
