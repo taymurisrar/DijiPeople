@@ -750,6 +750,20 @@ export const ERROR_CATALOG = {
     'error',
     'validation',
   ),
+  // BUG-2888 — an externally hosted AGENT_DESKTOP release with no sha512 was
+  // accepted, listed and downloadable, and silently absent from the
+  // electron-updater feed for ever (`update-feed.service.ts` only ever
+  // advertises `checksumSha512: { not: null }`). Refusing at publish time turns
+  // that silent gap into an error the operator sees immediately, instead of one
+  // nobody notices until the second version ships.
+  RELEASE_SHA512_REQUIRED: entry(
+    400,
+    'Release cannot serve the update feed',
+    'AGENT_DESKTOP releases on the STABLE channel must carry a checksumSha512, or electron-updater will never see them — the update feed only advertises releases it can verify.',
+    'error',
+    'validation',
+    'Supply checksumSha512 (a 128-character hex SHA-512 digest) when publishing, or publish through the storage-backed CLI pipeline, which computes it automatically.',
+  ),
   LEGAL_VERSION_NOT_FOUND: entry(
     404,
     'Legal document version not found',

@@ -315,3 +315,118 @@ describe('AppReleaseService.promote', () => {
     expect(prisma.applicationRelease.create).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * BUG-2888 — an externally hosted AGENT_DESKTOP release had no way to carry a
+ * checksumSha512, so it was accepted, listed and downloadable while the
+ * update feed (`checksumSha512: { not: null }`) silently never saw it.
+ *
+ * These tests pin both halves of the fix: the digest now persists, and a
+ * STABLE AGENT_DESKTOP release that would still leave the feed empty is
+ * refused rather than silently accepted.
+ */
+describe('AppReleaseService.publish — BUG-2888 sha512', () => {
+  function build(existing: { checksumSha256: string | null; checksumSha512: string | null } | null = null) {
+    const upserted: Array<{
+      create: Record<string, unknown>;
+      update: Record<string, unknown>;
+    }> = [];
+    const prisma = {
+      applicationRelease: {
+        findUnique: jest.fn().mockResolvedValue(existing),
+        upsert: jest.fn().mockImplementation(
+          (args: {
+            create: Record<string, unknown>;
+            update: Record<string, unknown>;
+          }) => {
+            upserted.push(args);
+            return Promise.resolve({
+              id: 'rel-1',
+              ...(existing ? args.update : args.create),
+            });
+          },
+        ),
+      },
+    };
+    const audit = { log: jest.fn().mockResolvedValue(undefined) };
+    const service = new AppReleaseService(
+      prisma as unknown as PrismaService,
+      {} as StorageService,
+      audit as unknown as AuditService,
+    );
+    return { service, prisma, upserted };
+  }
+
+  const actor = { userId: 'u-1', tenantId: 'platform' } as never;
+
+  const basePublish = {
+    appKey: 'AGENT_DESKTOP',
+    name: 'DijiPeople Desktop Agent',
+    version: '1.1.0',
+    platform: 'WINDOWS' as never,
+    architecture: 'X64' as never,
+    channel: 'STABLE' as never,
+    externalUrl: 'https://downloads.example.com/agent-desktop/1.1.0/setup.exe',
+    fileName: 'setup.exe',
+    fileSizeBytes: 1024,
+    checksumSha256: 'a'.repeat(64),
+  };
+
+  it('refuses a STABLE AGENT_DESKTOP release with no checksumSha512', async () => {
+    const { service, prisma } = build();
+
+    await expect(service.publish(actor, basePublish)).rejects.toMatchObject({
+      errorCode: 'RELEASE_SHA512_REQUIRED',
+    });
+    expect(prisma.applicationRelease.upsert).not.toHaveBeenCalled();
+  });
+
+  it('accepts and persists a STABLE AGENT_DESKTOP release carrying a checksumSha512', async () => {
+    const { service, upserted } = build();
+    const sha512 = 'b'.repeat(128);
+
+    const result = await service.publish(actor, {
+      ...basePublish,
+      checksumSha512: sha512,
+    });
+
+    expect(upserted[0].create.checksumSha512).toBe(sha512);
+    expect(result.id).toBe('rel-1');
+  });
+
+  it('does not require a checksumSha512 on a BETA release, only STABLE', async () => {
+    const { service, upserted } = build();
+
+    await service.publish(actor, { ...basePublish, channel: 'BETA' as never });
+
+    expect(upserted[0].create.checksumSha512).toBeNull();
+  });
+
+  it('does not require a checksumSha512 for other apps', async () => {
+    const { service, upserted } = build();
+
+    await service.publish(actor, {
+      ...basePublish,
+      appKey: 'INTEGRATION_GATEWAY',
+    });
+
+    expect(upserted[0].create.checksumSha512).toBeNull();
+  });
+
+  it('is satisfied by a checksumSha512 already on record from an earlier metadata-only republish', async () => {
+    const { service, upserted } = build({
+      checksumSha256: basePublish.checksumSha256,
+      checksumSha512: 'c'.repeat(128),
+    });
+
+    // Re-publishing metadata (e.g. release notes) with no checksumSha512 in
+    // this call must not be refused when the stored row already has one, and
+    // the update must not clobber the existing digest with null.
+    await service.publish(actor, {
+      ...basePublish,
+      releaseNotes: 'Fixed a crash',
+    } as never);
+
+    expect(upserted[0].update.checksumSha512).toBeUndefined();
+  });
+});
