@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 556,
+    "total_records": 559,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -18185,6 +18185,44 @@
       "verification_result": "NOT_VERIFIED"
     },
     {
+      "record_id": "BUG-3226",
+      "type": "BUG",
+      "title": "Custom tenant domains can be registered but can never be verified or given a certificate; the feature is inert",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3226-custom-tenant-domains-can-be-registered-but-can-never-be-ver.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "bc3299f9",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/tenant-domains"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/tenant-domains"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3226-custom-tenant-domains-can-be-registered-but-can-never-be-ver.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
       "record_id": "ITEM-0001",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md",
@@ -24804,6 +24842,82 @@
           "apps/admin"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0153-packages-ui-is-unused-scaffolding-web-and-admin-each-maintai.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0154",
+      "type": "INFRA",
+      "title": "Scaling posture: no autoscaling, one instance, a Node heap ceiling that exceeds the declared plan memory",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "TRIAGE_REQUIRED",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0154-scaling-posture-no-autoscaling-one-instance-a-node-heap-ceil.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "render.yaml"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "render.yaml"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0154-scaling-posture-no-autoscaling-one-instance-a-node-heap-ceil.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0155",
+      "type": "SECURITY",
+      "title": "No key-rotation procedure exists for any secret, including the one whose loss is irreversible",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "TRIAGE_REQUIRED",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0155-no-key-rotation-procedure-exists-for-any-secret-including-th.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/common"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/common"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0155-no-key-rotation-procedure-exists-for-any-secret-including-th.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**556 records** — 403 bugs under [`docs/bugs/`](../bugs/), 153 non-bug items under [`items/`](items/).
+**559 records** — 404 bugs under [`docs/bugs/`](../bugs/), 155 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,14 +13,14 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 226 |
+| Open (active work) | 229 |
 | Blocked | 2 |
 | Deferred | 29 |
 | Awaiting a product decision | 7 |
 | Completed / closed | 292 |
 | **Open CRITICAL** | **5** |
 | **Open HIGH** | **87** |
-| **Awaiting Architect triage** | **102** |
+| **Awaiting Architect triage** | **105** |
 
 ## Open by severity
 
@@ -28,7 +28,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 5 |
 | HIGH | 87 |
-| MEDIUM | 116 |
+| MEDIUM | 119 |
 | LOW | 15 |
 
 ## Open by type
@@ -37,15 +37,15 @@ see [`README.md`](README.md) for why.
 |---|---|
 | ARCHITECTURE | 6 |
 | AUTHORIZATION | 13 |
-| BUG | 40 |
+| BUG | 41 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 20 |
 | DOCUMENTATION | 2 |
 | FOLLOW_UP | 2 |
-| INFRA | 15 |
+| INFRA | 16 |
 | INTEGRATION | 5 |
 | PERFORMANCE | 23 |
-| SECURITY | 35 |
+| SECURITY | 36 |
 | STATE_MACHINE | 3 |
 | TECH_DEBT | 10 |
 | TENANT_ISOLATION | 2 |
@@ -56,7 +56,7 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 93 |
+| OPEN | 94 |
 | BLOCKED | 2 |
 | DEFERRED | 29 |
 | PRODUCT_DECISION | 7 |
@@ -64,7 +64,7 @@ see [`README.md`](README.md) for why.
 | VERIFIED | 218 |
 | DUPLICATE | 5 |
 | ACCEPTED_RISK | 3 |
-| TRIAGE_REQUIRED | 22 |
+| TRIAGE_REQUIRED | 24 |
 | READY | 32 |
 | DONE | 66 |
 
@@ -468,6 +468,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3223](../../docs/bugs/BUG-3223-get-payslips-id-download-applies-no-row-level-scope.md) | GET /payslips/:id/download applies no row-level scope | AUTHORIZATION | MEDIUM | P2 | OPEN | api:payslips | TRIAGE_REQUIRED |
 | [BUG-3224](../../docs/bugs/BUG-3224-deleting-a-document-deletes-nothing-the-bytes-stay-in-storag.md) | Deleting a document deletes nothing; the bytes stay in storage forever | DATA_INTEGRITY | MEDIUM | P2 | OPEN | api:documents | TRIAGE_REQUIRED |
 | [BUG-3225](../../docs/bugs/BUG-3225-tenant-erasure-sweeps-only-two-of-the-eight-models-that-hold.md) | Tenant erasure sweeps only two of the eight models that hold storage keys | DATA_INTEGRITY | MEDIUM | P2 | OPEN | api:tenants | TRIAGE_REQUIRED |
+| [BUG-3226](../../docs/bugs/BUG-3226-custom-tenant-domains-can-be-registered-but-can-never-be-ver.md) | Custom tenant domains can be registered but can never be verified or given a certificate; the feature is inert | BUG | MEDIUM | P2 | OPEN | api:tenant-domains | TRIAGE_REQUIRED |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -547,6 +548,8 @@ see [`README.md`](README.md) for why.
 | [ITEM-0151](../../docs/backlog/items/ITEM-0151-two-recruitment-controllers-never-adopted-the-rbac-matrix-ha.md) | Two recruitment controllers never adopted the RBAC-matrix half of the dual permission system | TECH_DEBT | MEDIUM | P2 | TRIAGE_REQUIRED | api:recruitment | TRIAGE_REQUIRED |
 | [ITEM-0152](../../docs/backlog/items/ITEM-0152-tiptap-is-statically-imported-into-the-shared-runtimerecordp.md) | TipTap is statically imported into the shared RuntimeRecordPage/RuntimeForm shell instead of lazy-loaded | PERFORMANCE | MEDIUM | P2 | TRIAGE_REQUIRED | apps/admin | TRIAGE_REQUIRED |
 | [ITEM-0153](../../docs/backlog/items/ITEM-0153-packages-ui-is-unused-scaffolding-web-and-admin-each-maintai.md) | packages/ui is unused scaffolding; web and admin each maintain their own separate component kits | TECH_DEBT | MEDIUM | P2 | TRIAGE_REQUIRED | pkg:ui, apps/web, apps/admin | TRIAGE_REQUIRED |
+| [ITEM-0154](../../docs/backlog/items/ITEM-0154-scaling-posture-no-autoscaling-one-instance-a-node-heap-ceil.md) | Scaling posture: no autoscaling, one instance, a Node heap ceiling that exceeds the declared plan memory | INFRA | MEDIUM | P2 | TRIAGE_REQUIRED | render.yaml | TRIAGE_REQUIRED |
+| [ITEM-0155](../../docs/backlog/items/ITEM-0155-no-key-rotation-procedure-exists-for-any-secret-including-th.md) | No key-rotation procedure exists for any secret, including the one whose loss is irreversible | SECURITY | MEDIUM | P2 | TRIAGE_REQUIRED | services/api/src/common | TRIAGE_REQUIRED |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |
