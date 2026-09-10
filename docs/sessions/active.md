@@ -12,4 +12,4 @@ therefore sees sibling worktrees without anybody having pushed.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
-| [SESSION-0061](../../docs/sessions/SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser.md) | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | 2026-08-26T09:54:37.336Z |
+| [SESSION-0098](../../docs/sessions/SESSION-0098-closeout-sweep-close-every-open-session-bug-and-backlog-item.md) | — | Closeout sweep: close every open session, bug and backlog item | ACTIVE | `agent/closeout-sweep` | `develop` | — | 2026-09-10T19:06:45.272Z |
