@@ -24,7 +24,7 @@ listed — signed employment contracts, uploaded identity documents, payslip PDF
 
 The full evidence is the 2026-09-10 technical audit, findings FILE-01 and
 INF-05. The remediation record is
-[`REMEDIATION-P0.md`](../engineering/audits/2026-09-10-full-technical-audit/REMEDIATION-P0.md).
+[`REMEDIATION-storage-p0.md`](../engineering/REMEDIATION-storage-p0.md).
 
 ---
 
