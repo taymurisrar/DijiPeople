@@ -875,3 +875,22 @@ Collect the facts with `node scripts/finalize-agent-task.mjs`.
   substantial explanatory comments where behaviour is non-obvious (see
   `main.ts`, `tenant-modules.ts`, the `workedMinutes` field in `schema.prisma`).
   Match it — do not strip those comments.
+
+## DijiPeople Technical Audit Standard
+
+The authoritative specification for full technical, architecture, performance, security, scalability, resilience, database, infrastructure, and maintainability audits is:
+
+`docs/engineering/full_technical_audit.md`
+
+When a task requests a "DijiPeople audit", "DP audit", "platform health audit", "security audit", "architecture review", or equivalent comprehensive review:
+
+1. Read the complete audit specification before beginning.
+2. Inspect the actual repository and running system rather than relying on assumptions or existing documentation alone.
+3. Use specialized subagents where useful.
+4. Parallelize independent investigation areas.
+5. Consolidate all findings through the primary/orchestrator agent.
+6. Provide evidence for findings.
+7. Do not modify production data or perform destructive security tests.
+8. Audit first and preserve a baseline before performing remediation.
+9. Do not introduce new infrastructure or architectural complexity without measurable justification.
+10. Treat multi-tenant isolation, authentication, authorization, sensitive HR/payroll data, and data-loss risks as highest-priority areas.

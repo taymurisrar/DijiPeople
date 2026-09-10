@@ -154,7 +154,7 @@ export function PartnerInquiryForm({
               : undefined
           }
         >
-<Field label="Applicant type" required>
+          <Field label="Applicant type" required>
             <select
               name="type"
               required
@@ -188,7 +188,7 @@ export function PartnerInquiryForm({
               required
               autoComplete="organization"
               className={controlClass}
-              placeholder="e.g. Maseer Group"
+              placeholder="e.g. Acme Corporation"
             />
           </Field>
         ) : null}
@@ -230,7 +230,7 @@ export function PartnerInquiryForm({
             required
             autoComplete="tel"
             className={controlClass}
-            placeholder="+974 0000 0000"
+            placeholder="Include country code"
           />
         </Field>
 
