@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 520,
+    "total_records": 552,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -17459,6 +17459,580 @@
       "verification_result": "NOT_VERIFIED"
     },
     {
+      "record_id": "BUG-3203",
+      "type": "SECURITY",
+      "title": "The API origin sends no security response headers at all",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3203-the-api-origin-sends-no-security-response-headers-at-all.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "4c86a29b",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/main.ts"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/main.ts"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3203-the-api-origin-sends-no-security-response-headers-at-all.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3204",
+      "type": "SECURITY",
+      "title": "Per-client JWT secrets are documented but not provisioned; client separation rests on an unsigned claim check",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3204-per-client-jwt-secrets-are-documented-but-not-provisioned-cl.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "4c86a29b",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/auth"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/auth"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3204-per-client-jwt-secrets-are-documented-but-not-provisioned-cl.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3205",
+      "type": "DATABASE",
+      "title": "Tenant deletion cascades through the entire tenant-owned schema, including every audit and payroll table, with no database-level barrier",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3205-tenant-deletion-cascades-through-the-entire-tenant-owned-sch.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "4c86a29b",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/prisma"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/prisma"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3205-tenant-deletion-cascades-through-the-entire-tenant-owned-sch.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3206",
+      "type": "BUG",
+      "title": "35 mutating settings/lookup routes take Record<string, unknown> bodies, bypassing ValidationPipe whitelisting",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3206-35-mutating-settings-lookup-routes-take-record-string-unknow.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "4c86a29b",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/settings-runtime",
+        "services/api/src/modules/lookups"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/settings-runtime",
+          "services/api/src/modules/lookups"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3206-35-mutating-settings-lookup-routes-take-record-string-unknow.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3207",
+      "type": "AUTHORIZATION",
+      "title": "UpdateSupportCaseDto.tenantId is a client-settable field spread directly into the Prisma update",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3207-updatesupportcasedto-tenantid-is-a-client-settable-field-spr.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "4c86a29b",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/support-cases"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/support-cases"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3207-updatesupportcasedto-tenantid-is-a-client-settable-field-spr.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3208",
+      "type": "PERFORMANCE",
+      "title": "An unauthenticated caller can insert unbounded entries into a process-wide static Map",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3208-an-unauthenticated-caller-can-insert-unbounded-entries-into-.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "4c86a29b",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/common"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/common"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3208-an-unauthenticated-caller-can-insert-unbounded-entries-into-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3209",
+      "type": "SECURITY",
+      "title": "Authenticated document view and download responses set no Cache-Control at all",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3209-authenticated-document-view-and-download-responses-set-no-ca.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "4c86a29b",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/documents"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/documents"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3209-authenticated-document-view-and-download-responses-set-no-ca.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3210",
+      "type": "PERFORMANCE",
+      "title": "Every server-side API call opts out of Next fetch deduplication; tenant-settings/resolved is fetched twice on nine pages",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3210-every-server-side-api-call-opts-out-of-next-fetch-deduplicat.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "4c86a29b",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3210-every-server-side-api-call-opts-out-of-next-fetch-deduplicat.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3211",
+      "type": "PERFORMANCE",
+      "title": "Roughly two dozen SQL statements run before any controller does, on every authenticated request",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3211-roughly-two-dozen-sql-statements-run-before-any-controller-d.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "4c86a29b",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/common"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/common"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3211-roughly-two-dozen-sql-statements-run-before-any-controller-d.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3212",
+      "type": "PERFORMANCE",
+      "title": "The onboarding list issues a tenant-wide employee.count() for every row on the page",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3212-the-onboarding-list-issues-a-tenant-wide-employee-count-for-.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "4c86a29b",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/onboarding"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/onboarding"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3212-the-onboarding-list-issues-a-tenant-wide-employee-count-for-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3213",
+      "type": "PERFORMANCE",
+      "title": "bcrypt.hash runs synchronously inside open provisioning transactions, adding to the same 5-second budget as RES-09",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3213-bcrypt-hash-runs-synchronously-inside-open-provisioning-tran.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "4c86a29b",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/tenants"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/tenants"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3213-bcrypt-hash-runs-synchronously-inside-open-provisioning-tran.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3214",
+      "type": "DATA_INTEGRITY",
+      "title": "Generic entity CSV export silently truncates at 10,000 rows with no signal to the caller",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3214-generic-entity-csv-export-silently-truncates-at-10-000-rows-.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "4c86a29b",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/data"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/data"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3214-generic-entity-csv-export-silently-truncates-at-10-000-rows-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3219",
+      "type": "PERFORMANCE",
+      "title": "Independent backend calls are awaited sequentially instead of in parallel in at least two shared code paths",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3219-independent-backend-calls-are-awaited-sequentially-instead-o.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "4c86a29b",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3219-independent-backend-calls-are-awaited-sequentially-instead-o.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3220",
+      "type": "UX",
+      "title": "apps/admin has zero loading and error boundary files; apps/web has 22 genuinely uncovered pages including login",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3220-apps-admin-has-zero-loading-and-error-boundary-files-apps-we.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "4c86a29b",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/admin",
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin",
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3220-apps-admin-has-zero-loading-and-error-boundary-files-apps-we.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3221",
+      "type": "UX",
+      "title": "Two of apps/web four error boundaries render the raw Error.message directly with no classification",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3221-two-of-apps-web-four-error-boundaries-render-the-raw-error-m.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "4c86a29b",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3221-two-of-apps-web-four-error-boundaries-render-the-raw-error-m.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
       "record_id": "ITEM-0001",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md",
@@ -23426,6 +24000,658 @@
           "apps/agent-desktop"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0137",
+      "type": "ARCHITECTURE",
+      "title": "The API is architecturally pinned to a single instance, and several correctness mechanisms depend on that without saying so",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "TRIAGE_REQUIRED",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0137-the-api-is-architecturally-pinned-to-a-single-instance-and-s.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0137-the-api-is-architecturally-pinned-to-a-single-instance-and-s.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0138",
+      "type": "SECURITY",
+      "title": "The only automatic authorization-denial audit writer is dead code on the installed Prisma client",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "TRIAGE_REQUIRED",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0138-the-only-automatic-authorization-denial-audit-writer-is-dead.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/common"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/common"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0138-the-only-automatic-authorization-denial-audit-writer-is-dead.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0139",
+      "type": "TECH_DEBT",
+      "title": "Tenant-aware date/currency formatting is reimplemented locally in at least 21 files instead of the one documented entry point",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "TRIAGE_REQUIRED",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0139-tenant-aware-date-currency-formatting-is-reimplemented-local.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "apps/admin"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0139-tenant-aware-date-currency-formatting-is-reimplemented-local.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0140",
+      "type": "ARCHITECTURE",
+      "title": "The API module boundary is nominal: 152 of 310 Prisma models are queried directly from more than one module",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "TRIAGE_REQUIRED",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0140-the-api-module-boundary-is-nominal-152-of-310-prisma-models-.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0140-the-api-module-boundary-is-nominal-152-of-310-prisma-models-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0141",
+      "type": "ARCHITECTURE",
+      "title": "Circular module dependencies: 10 mutual pairs and one 18-module strongly-connected component",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "TRIAGE_REQUIRED",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0141-circular-module-dependencies-10-mutual-pairs-and-one-18-modu.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0141-circular-module-dependencies-10-mutual-pairs-and-one-18-modu.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0142",
+      "type": "TECH_DEBT",
+      "title": "services/api is not in TypeScript strict mode",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "TRIAGE_REQUIRED",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0142-services-api-is-not-in-typescript-strict-mode.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0142-services-api-is-not-in-typescript-strict-mode.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0143",
+      "type": "TEST_GAP",
+      "title": "24% of the API workspace is excluded from the typecheck CI runs",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "TRIAGE_REQUIRED",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0143-24-of-the-api-workspace-is-excluded-from-the-typecheck-ci-ru.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        ".github/workflows"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          ".github/workflows"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0143-24-of-the-api-workspace-is-excluded-from-the-typecheck-ci-ru.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0144",
+      "type": "INFRA",
+      "title": "Nothing detects a destructive migration before it merges",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "TRIAGE_REQUIRED",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0144-nothing-detects-a-destructive-migration-before-it-merges.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/prisma"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/prisma"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0144-nothing-detects-a-destructive-migration-before-it-merges.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0145",
+      "type": "INFRA",
+      "title": "A push to develop can publish a desktop-agent build with no CI dependency",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "TRIAGE_REQUIRED",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0145-a-push-to-develop-can-publish-a-desktop-agent-build-with-no-.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/agent-desktop"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/agent-desktop"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0145-a-push-to-develop-can-publish-a-desktop-agent-build-with-no-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0146",
+      "type": "INFRA",
+      "title": "smoke:deployment exists and is wired to nothing",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "TRIAGE_REQUIRED",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0146-smoke-deployment-exists-and-is-wired-to-nothing.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        ".github/workflows"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          ".github/workflows"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0146-smoke-deployment-exists-and-is-wired-to-nothing.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0147",
+      "type": "TEST_GAP",
+      "title": "Stripe webhook signature verification is asserted by reading source text, never by executing it",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "TRIAGE_REQUIRED",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0147-stripe-webhook-signature-verification-is-asserted-by-reading.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/billing"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/billing"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0147-stripe-webhook-signature-verification-is-asserted-by-reading.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0148",
+      "type": "TEST_GAP",
+      "title": "Notification delivery, employee termination, leave draw-down, refresh-token replay and the agent auth path are untested",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "TRIAGE_REQUIRED",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0148-notification-delivery-employee-termination-leave-draw-down-r.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/test"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/test"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0148-notification-delivery-employee-termination-leave-draw-down-r.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0149",
+      "type": "PERFORMANCE",
+      "title": "48 files use contains + mode insensitive with no supporting trigram/GIN index anywhere in the schema",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "TRIAGE_REQUIRED",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0149-48-files-use-contains-mode-insensitive-with-no-supporting-tr.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/prisma"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/prisma"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0149-48-files-use-contains-mode-insensitive-with-no-supporting-tr.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0150",
+      "type": "PERFORMANCE",
+      "title": "Reports and exports share the single request-serving connection pool with no replica, queue isolation or timeout",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "TRIAGE_REQUIRED",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0150-reports-and-exports-share-the-single-request-serving-connect.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/reports"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/reports"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0150-reports-and-exports-share-the-single-request-serving-connect.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0151",
+      "type": "TECH_DEBT",
+      "title": "Two recruitment controllers never adopted the RBAC-matrix half of the dual permission system",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "TRIAGE_REQUIRED",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0151-two-recruitment-controllers-never-adopted-the-rbac-matrix-ha.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/recruitment"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/recruitment"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0151-two-recruitment-controllers-never-adopted-the-rbac-matrix-ha.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0152",
+      "type": "PERFORMANCE",
+      "title": "TipTap is statically imported into the shared RuntimeRecordPage/RuntimeForm shell instead of lazy-loaded",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "TRIAGE_REQUIRED",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0152-tiptap-is-statically-imported-into-the-shared-runtimerecordp.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0152-tiptap-is-statically-imported-into-the-shared-runtimerecordp.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0153",
+      "type": "TECH_DEBT",
+      "title": "packages/ui is unused scaffolding; web and admin each maintain their own separate component kits",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "TRIAGE_REQUIRED",
+      "architect_disposition": "TRIAGE_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0153-packages-ui-is-unused-scaffolding-web-and-admin-each-maintai.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "packages/ui",
+        "apps/web",
+        "apps/admin"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "packages/ui",
+          "apps/web",
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0153-packages-ui-is-unused-scaffolding-web-and-admin-each-maintai.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

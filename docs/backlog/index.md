@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**520 records** — 384 bugs under [`docs/bugs/`](../bugs/), 136 non-bug items under [`items/`](items/).
+**552 records** — 399 bugs under [`docs/bugs/`](../bugs/), 153 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,49 +13,50 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 190 |
+| Open (active work) | 222 |
 | Blocked | 2 |
 | Deferred | 29 |
 | Awaiting a product decision | 7 |
 | Completed / closed | 292 |
 | **Open CRITICAL** | **5** |
-| **Open HIGH** | **86** |
-| **Awaiting Architect triage** | **66** |
+| **Open HIGH** | **87** |
+| **Awaiting Architect triage** | **98** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
 | CRITICAL | 5 |
-| HIGH | 86 |
-| MEDIUM | 81 |
+| HIGH | 87 |
+| MEDIUM | 112 |
 | LOW | 15 |
 
 ## Open by type
 
 | Type | Count |
 |---|---|
-| ARCHITECTURE | 3 |
-| AUTHORIZATION | 11 |
-| BUG | 39 |
-| DATA_INTEGRITY | 17 |
+| ARCHITECTURE | 6 |
+| AUTHORIZATION | 12 |
+| BUG | 40 |
+| DATABASE | 1 |
+| DATA_INTEGRITY | 18 |
 | DOCUMENTATION | 2 |
 | FOLLOW_UP | 2 |
-| INFRA | 12 |
+| INFRA | 15 |
 | INTEGRATION | 5 |
-| PERFORMANCE | 14 |
-| SECURITY | 30 |
+| PERFORMANCE | 23 |
+| SECURITY | 34 |
 | STATE_MACHINE | 3 |
-| TECH_DEBT | 6 |
+| TECH_DEBT | 10 |
 | TENANT_ISOLATION | 2 |
-| TEST_GAP | 11 |
-| UX | 33 |
+| TEST_GAP | 14 |
+| UX | 35 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 74 |
+| OPEN | 89 |
 | BLOCKED | 2 |
 | DEFERRED | 29 |
 | PRODUCT_DECISION | 7 |
@@ -63,7 +64,7 @@ see [`README.md`](README.md) for why.
 | VERIFIED | 218 |
 | DUPLICATE | 5 |
 | ACCEPTED_RISK | 3 |
-| TRIAGE_REQUIRED | 5 |
+| TRIAGE_REQUIRED | 22 |
 | READY | 32 |
 | DONE | 66 |
 
@@ -279,6 +280,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3200](../../docs/bugs/BUG-3200-the-notification-queue-is-a-synchronous-fallback-every-tenan.md) | The notification queue is a synchronous fallback: every tenant email is sent on the HTTP request thread with no retry | PERFORMANCE | HIGH | P1 | OPEN | api:notifications | TRIAGE_REQUIRED |
 | [BUG-3201](../../docs/bugs/BUG-3201-the-p2002-recovery-pattern-used-inside-interactive-transacti.md) | The P2002 recovery pattern used inside interactive transactions cannot work on Postgres, and it is on the tenant-provisioning path | DATA_INTEGRITY | HIGH | P1 | OPEN | api:tenants | TRIAGE_REQUIRED |
 | [BUG-3202](../../docs/bugs/BUG-3202-payroll-run-eligibility-never-checks-employee-isdeleted-an-a.md) | Payroll run eligibility never checks Employee.isDeleted; an archived employee with a stale employmentStatus is paid | DATA_INTEGRITY | HIGH | P1 | OPEN | api:payroll | TRIAGE_REQUIRED |
+| [BUG-3205](../../docs/bugs/BUG-3205-tenant-deletion-cascades-through-the-entire-tenant-owned-sch.md) | Tenant deletion cascades through the entire tenant-owned schema, including every audit and payroll table, with no database-level barrier | DATABASE | HIGH | P1 | OPEN | services/api/prisma | TRIAGE_REQUIRED |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -448,6 +450,20 @@ see [`README.md`](README.md) for why.
 | [BUG-3149](../../docs/bugs/BUG-3149-account-lockout-has-no-per-ip-dimension-so-any-known-email-c.md) | Account lockout has no per-IP dimension, so any known email can be locked out indefinitely | SECURITY | MEDIUM | P2 | OPEN | api:auth | TRIAGE_REQUIRED |
 | [BUG-3150](../../docs/bugs/BUG-3150-a-password-reset-does-not-revoke-existing-desktop-agent-sess.md) | A password reset does not revoke existing desktop-agent sessions | SECURITY | MEDIUM | P2 | OPEN | api:auth, api:agent | TRIAGE_REQUIRED |
 | [BUG-3151](../../docs/bugs/BUG-3151-agent-device-fingerprint-is-derived-from-hostname-and-userna.md) | Agent device fingerprint is derived from hostname and username; enrolment silently reassigns an existing device | SECURITY | MEDIUM | P2 | OPEN | api:agent | TRIAGE_REQUIRED |
+| [BUG-3203](../../docs/bugs/BUG-3203-the-api-origin-sends-no-security-response-headers-at-all.md) | The API origin sends no security response headers at all | SECURITY | MEDIUM | P2 | OPEN | services/api/src/main.ts | TRIAGE_REQUIRED |
+| [BUG-3204](../../docs/bugs/BUG-3204-per-client-jwt-secrets-are-documented-but-not-provisioned-cl.md) | Per-client JWT secrets are documented but not provisioned; client separation rests on an unsigned claim check | SECURITY | MEDIUM | P2 | OPEN | api:auth | TRIAGE_REQUIRED |
+| [BUG-3206](../../docs/bugs/BUG-3206-35-mutating-settings-lookup-routes-take-record-string-unknow.md) | 35 mutating settings/lookup routes take Record<string, unknown> bodies, bypassing ValidationPipe whitelisting | BUG | MEDIUM | P2 | OPEN | api:settings-runtime, api:lookups | TRIAGE_REQUIRED |
+| [BUG-3207](../../docs/bugs/BUG-3207-updatesupportcasedto-tenantid-is-a-client-settable-field-spr.md) | UpdateSupportCaseDto.tenantId is a client-settable field spread directly into the Prisma update | AUTHORIZATION | MEDIUM | P2 | OPEN | api:support-cases | TRIAGE_REQUIRED |
+| [BUG-3208](../../docs/bugs/BUG-3208-an-unauthenticated-caller-can-insert-unbounded-entries-into-.md) | An unauthenticated caller can insert unbounded entries into a process-wide static Map | PERFORMANCE | MEDIUM | P2 | OPEN | services/api/src/common | TRIAGE_REQUIRED |
+| [BUG-3209](../../docs/bugs/BUG-3209-authenticated-document-view-and-download-responses-set-no-ca.md) | Authenticated document view and download responses set no Cache-Control at all | SECURITY | MEDIUM | P2 | OPEN | api:documents | TRIAGE_REQUIRED |
+| [BUG-3210](../../docs/bugs/BUG-3210-every-server-side-api-call-opts-out-of-next-fetch-deduplicat.md) | Every server-side API call opts out of Next fetch deduplication; tenant-settings/resolved is fetched twice on nine pages | PERFORMANCE | MEDIUM | P2 | OPEN | apps/web | TRIAGE_REQUIRED |
+| [BUG-3211](../../docs/bugs/BUG-3211-roughly-two-dozen-sql-statements-run-before-any-controller-d.md) | Roughly two dozen SQL statements run before any controller does, on every authenticated request | PERFORMANCE | MEDIUM | P2 | OPEN | services/api/src/common | TRIAGE_REQUIRED |
+| [BUG-3212](../../docs/bugs/BUG-3212-the-onboarding-list-issues-a-tenant-wide-employee-count-for-.md) | The onboarding list issues a tenant-wide employee.count() for every row on the page | PERFORMANCE | MEDIUM | P2 | OPEN | api:onboarding | TRIAGE_REQUIRED |
+| [BUG-3213](../../docs/bugs/BUG-3213-bcrypt-hash-runs-synchronously-inside-open-provisioning-tran.md) | bcrypt.hash runs synchronously inside open provisioning transactions, adding to the same 5-second budget as RES-09 | PERFORMANCE | MEDIUM | P2 | OPEN | api:tenants | TRIAGE_REQUIRED |
+| [BUG-3214](../../docs/bugs/BUG-3214-generic-entity-csv-export-silently-truncates-at-10-000-rows-.md) | Generic entity CSV export silently truncates at 10,000 rows with no signal to the caller | DATA_INTEGRITY | MEDIUM | P2 | OPEN | api:data | TRIAGE_REQUIRED |
+| [BUG-3219](../../docs/bugs/BUG-3219-independent-backend-calls-are-awaited-sequentially-instead-o.md) | Independent backend calls are awaited sequentially instead of in parallel in at least two shared code paths | PERFORMANCE | MEDIUM | P2 | OPEN | apps/web | TRIAGE_REQUIRED |
+| [BUG-3220](../../docs/bugs/BUG-3220-apps-admin-has-zero-loading-and-error-boundary-files-apps-we.md) | apps/admin has zero loading and error boundary files; apps/web has 22 genuinely uncovered pages including login | UX | MEDIUM | P2 | OPEN | apps/admin, apps/web | TRIAGE_REQUIRED |
+| [BUG-3221](../../docs/bugs/BUG-3221-two-of-apps-web-four-error-boundaries-render-the-raw-error-m.md) | Two of apps/web four error boundaries render the raw Error.message directly with no classification | UX | MEDIUM | P2 | OPEN | apps/web | TRIAGE_REQUIRED |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -510,6 +526,23 @@ see [`README.md`](README.md) for why.
 | [ITEM-0119](../../docs/backlog/items/ITEM-0119-stop-writing-a-placeholder-e-mail-into-an-identity-column-wh.md) | Stop writing a placeholder e-mail into an identity column when the wizard opens a draft | TECH_DEBT | MEDIUM | P2 | READY | billing, landing, super-admin | PLAN_REQUIRED |
 | [ITEM-0120](../../docs/backlog/items/ITEM-0120-schema-prisma-declares-constraints-no-migration-creates-so-m.md) | schema.prisma declares constraints no migration creates, so migrate dev cannot run without a reset | TECH_DEBT | MEDIUM | P2 | DEFERRED | prisma | DEFER |
 | [ITEM-0125](../../docs/backlog/items/ITEM-0125-the-net-integration-gateway-ships-to-customers-with-no-ci-co.md) | The .NET Integration Gateway ships to customers with no CI coverage at all | TEST_GAP | MEDIUM | P2 | READY | gateway | FIX_NOW |
+| [ITEM-0137](../../docs/backlog/items/ITEM-0137-the-api-is-architecturally-pinned-to-a-single-instance-and-s.md) | The API is architecturally pinned to a single instance, and several correctness mechanisms depend on that without saying so | ARCHITECTURE | MEDIUM | P2 | TRIAGE_REQUIRED | services/api/src | TRIAGE_REQUIRED |
+| [ITEM-0138](../../docs/backlog/items/ITEM-0138-the-only-automatic-authorization-denial-audit-writer-is-dead.md) | The only automatic authorization-denial audit writer is dead code on the installed Prisma client | SECURITY | MEDIUM | P2 | TRIAGE_REQUIRED | services/api/src/common | TRIAGE_REQUIRED |
+| [ITEM-0139](../../docs/backlog/items/ITEM-0139-tenant-aware-date-currency-formatting-is-reimplemented-local.md) | Tenant-aware date/currency formatting is reimplemented locally in at least 21 files instead of the one documented entry point | TECH_DEBT | MEDIUM | P2 | TRIAGE_REQUIRED | apps/web, apps/admin | TRIAGE_REQUIRED |
+| [ITEM-0140](../../docs/backlog/items/ITEM-0140-the-api-module-boundary-is-nominal-152-of-310-prisma-models-.md) | The API module boundary is nominal: 152 of 310 Prisma models are queried directly from more than one module | ARCHITECTURE | MEDIUM | P2 | TRIAGE_REQUIRED | services/api/src/modules | TRIAGE_REQUIRED |
+| [ITEM-0141](../../docs/backlog/items/ITEM-0141-circular-module-dependencies-10-mutual-pairs-and-one-18-modu.md) | Circular module dependencies: 10 mutual pairs and one 18-module strongly-connected component | ARCHITECTURE | MEDIUM | P2 | TRIAGE_REQUIRED | services/api/src/modules | TRIAGE_REQUIRED |
+| [ITEM-0142](../../docs/backlog/items/ITEM-0142-services-api-is-not-in-typescript-strict-mode.md) | services/api is not in TypeScript strict mode | TECH_DEBT | MEDIUM | P2 | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
+| [ITEM-0143](../../docs/backlog/items/ITEM-0143-24-of-the-api-workspace-is-excluded-from-the-typecheck-ci-ru.md) | 24% of the API workspace is excluded from the typecheck CI runs | TEST_GAP | MEDIUM | P2 | TRIAGE_REQUIRED | .github/workflows | TRIAGE_REQUIRED |
+| [ITEM-0144](../../docs/backlog/items/ITEM-0144-nothing-detects-a-destructive-migration-before-it-merges.md) | Nothing detects a destructive migration before it merges | INFRA | MEDIUM | P2 | TRIAGE_REQUIRED | services/api/prisma | TRIAGE_REQUIRED |
+| [ITEM-0145](../../docs/backlog/items/ITEM-0145-a-push-to-develop-can-publish-a-desktop-agent-build-with-no-.md) | A push to develop can publish a desktop-agent build with no CI dependency | INFRA | MEDIUM | P2 | TRIAGE_REQUIRED | apps/agent-desktop | TRIAGE_REQUIRED |
+| [ITEM-0146](../../docs/backlog/items/ITEM-0146-smoke-deployment-exists-and-is-wired-to-nothing.md) | smoke:deployment exists and is wired to nothing | INFRA | MEDIUM | P2 | TRIAGE_REQUIRED | .github/workflows | TRIAGE_REQUIRED |
+| [ITEM-0147](../../docs/backlog/items/ITEM-0147-stripe-webhook-signature-verification-is-asserted-by-reading.md) | Stripe webhook signature verification is asserted by reading source text, never by executing it | TEST_GAP | MEDIUM | P2 | TRIAGE_REQUIRED | api:billing | TRIAGE_REQUIRED |
+| [ITEM-0148](../../docs/backlog/items/ITEM-0148-notification-delivery-employee-termination-leave-draw-down-r.md) | Notification delivery, employee termination, leave draw-down, refresh-token replay and the agent auth path are untested | TEST_GAP | MEDIUM | P2 | TRIAGE_REQUIRED | services/api/test | TRIAGE_REQUIRED |
+| [ITEM-0149](../../docs/backlog/items/ITEM-0149-48-files-use-contains-mode-insensitive-with-no-supporting-tr.md) | 48 files use contains + mode insensitive with no supporting trigram/GIN index anywhere in the schema | PERFORMANCE | MEDIUM | P2 | TRIAGE_REQUIRED | services/api/prisma | TRIAGE_REQUIRED |
+| [ITEM-0150](../../docs/backlog/items/ITEM-0150-reports-and-exports-share-the-single-request-serving-connect.md) | Reports and exports share the single request-serving connection pool with no replica, queue isolation or timeout | PERFORMANCE | MEDIUM | P2 | TRIAGE_REQUIRED | api:reports | TRIAGE_REQUIRED |
+| [ITEM-0151](../../docs/backlog/items/ITEM-0151-two-recruitment-controllers-never-adopted-the-rbac-matrix-ha.md) | Two recruitment controllers never adopted the RBAC-matrix half of the dual permission system | TECH_DEBT | MEDIUM | P2 | TRIAGE_REQUIRED | api:recruitment | TRIAGE_REQUIRED |
+| [ITEM-0152](../../docs/backlog/items/ITEM-0152-tiptap-is-statically-imported-into-the-shared-runtimerecordp.md) | TipTap is statically imported into the shared RuntimeRecordPage/RuntimeForm shell instead of lazy-loaded | PERFORMANCE | MEDIUM | P2 | TRIAGE_REQUIRED | apps/admin | TRIAGE_REQUIRED |
+| [ITEM-0153](../../docs/backlog/items/ITEM-0153-packages-ui-is-unused-scaffolding-web-and-admin-each-maintai.md) | packages/ui is unused scaffolding; web and admin each maintain their own separate component kits | TECH_DEBT | MEDIUM | P2 | TRIAGE_REQUIRED | pkg:ui, apps/web, apps/admin | TRIAGE_REQUIRED |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |
