@@ -7,7 +7,12 @@ import { SectionCard } from "@/app/components/ui/section-card";
 import { DataTable } from "@/app/components/data-table/data-table";
 import type { DataTableColumn } from "@/app/components/data-table/types";
 import { ChartEmpty, ChartLegend, type ChartLegendItem } from "./chart-chrome";
-import { formatChartValue, formatShare, summarizeChartShape } from "./chart-format";
+import {
+  formatChartValue,
+  formatShares,
+  MISSING_VALUE_TEXT,
+  summarizeChartShape,
+} from "./chart-format";
 import { computeShares } from "./chart-geometry";
 import type { ChartSeries, ChartValueFormat } from "./chart-types";
 import { hasChartData } from "./chart-types";
@@ -214,6 +219,16 @@ function buildTable({
 
   const rows = [...byKey.values()];
 
+  /*
+   * One shared decimal decision for the whole Share column — see
+   * `formatShares` (BUG-3020). Rendering each row's `formatShare(row.share)`
+   * independently was the exact defect this table sits directly under: the
+   * bar list above it apportions `displayShare` to sum to 100 and then this
+   * table re-rounded each one to a different, value-dependent precision,
+   * so the two could disagree about the same breakdown on the same screen.
+   */
+  const shareTextByKey = new Map<string, string>();
+
   /* Shares are only meaningful against a single series' total. */
   if (showShares && series.length > 0) {
     const primary = series[0];
@@ -225,8 +240,14 @@ function buildTable({
       })),
     );
 
+    const shareTexts = formatShares(
+      shares.map((entry) => entry.displayShare),
+      context,
+    );
+
     shares.forEach((entry, index) => {
       rows[index].share = entry.displayShare;
+      shareTextByKey.set(entry.key, shareTexts[index]);
     });
   }
 
@@ -271,7 +292,9 @@ function buildTable({
       cellClassName: "text-right",
       sortAccessor: (row) => row.share,
       render: (row) => (
-        <span className="tabular-nums text-muted">{formatShare(row.share)}</span>
+        <span className="tabular-nums text-muted">
+          {shareTextByKey.get(row.key) ?? MISSING_VALUE_TEXT}
+        </span>
       ),
     });
   }

@@ -353,3 +353,15 @@ export function metricTileAccessibleLabel(
   const base = `${metric.label}: ${valueText}`;
   return delta.present ? `${base}. ${delta.text}` : base;
 }
+
+/**
+ * The plural of a record noun, for a count sentence.
+ *
+ * Every current noun ("employee", "attendance day", "leave request", "daily
+ * snapshot row", …) pluralizes with a trailing "s"; nothing here needs to be
+ * cleverer than that today. If a source ever needs an irregular plural, give
+ * it one here rather than teaching the caller about pluralization.
+ */
+export function pluralizeRecordNoun(noun: string): string {
+  return `${noun}s`;
+}

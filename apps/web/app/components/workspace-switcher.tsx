@@ -56,10 +56,28 @@ export async function WorkspaceSwitcher() {
 
       <ul
         aria-labelledby={SECTION_LABEL_ID}
-        className="grid max-h-64 gap-1 overflow-y-auto px-2"
+        /*
+         * BUG-3021. `overflow-y-auto` alone put this list one CSS rule away
+         * from a horizontal scrollbar: per the overflow spec, a non-visible
+         * `overflow-y` with a `visible` `overflow-x` computes the x-axis as
+         * `auto` too, so any row wider than the menu got its own independent
+         * scrollport rather than being clipped by the dropdown's own
+         * `overflow-hidden`. `overflow-x-hidden` closes that.
+         *
+         * It only mattered because a row's `<li>` — a CSS Grid item, from
+         * this `grid` display — defaults to `min-width: auto`, which for
+         * grid sizing means "at least the min-content width". A `truncate`
+         * span's min-content width with `white-space: nowrap` is its full
+         * unwrapped text, so a 43-character hostname widened the grid track
+         * to fit it and the truncation inside never had a narrower box to
+         * clip against. `min-w-0` on the item is the other half of the fix —
+         * without it, `overflow-x-hidden` would just hide the scrollbar
+         * while the row still visually overflowed the menu.
+         */
+        className="grid max-h-64 gap-1 overflow-x-hidden overflow-y-auto px-2"
       >
         {otherWorkspaces.map((workspace) => (
-          <li key={workspace.tenantId}>
+          <li key={workspace.tenantId} className="min-w-0">
             <WorkspaceItem workspace={workspace} />
           </li>
         ))}

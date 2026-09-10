@@ -116,6 +116,54 @@ export function formatShare(
 }
 
 /**
+ * A whole breakdown's shares, rendered with one shared rounding rule.
+ *
+ * BUG-3020. `formatShare` above picks its decimal count *per value* — none
+ * for 10% and over, one below it — which is the right call for a single
+ * number shown alone (a funnel stage's conversion rate, say). It is the wrong
+ * call for a column of shares that `computeShares`' `displayShare` already
+ * apportioned to sum to exactly 100 at one shared precision: formatting
+ * 33.4 with zero decimals and 8.3 with one throws away part of that
+ * apportionment, and the printed column stops summing to 100 even though the
+ * numbers behind it did. A breakdown with a leading share at 33.4% and a
+ * trailing one at 8.3% is an ordinary shape, not an edge case, so this was
+ * reachable on any breakdown with more than two or three groups.
+ *
+ * The fix is not a new rounding rule; it is applying the *one* `formatShare`
+ * already computes correctly to every value in the set, uniformly, instead of
+ * letting each value pick its own. Decimals are shown for the whole column
+ * whenever any member of it would have wanted one under `formatShare`'s own
+ * rule — the common case, since a breakdown with any share under 10% is
+ * ordinary. `null`/`undefined` entries still render as `MISSING_VALUE_TEXT`
+ * and take no part in the decision.
+ */
+export function formatShares(
+  shares: readonly (number | null | undefined)[],
+  context?: ResolvedFormattingContext | null,
+): string[] {
+  const finite = shares.filter(
+    (share): share is number =>
+      share !== null && share !== undefined && Number.isFinite(Number(share)),
+  );
+
+  const decimals = finite.some((share) => Math.abs(Number(share)) < 10)
+    ? 1
+    : 0;
+
+  return shares.map((share) => {
+    if (share === null || share === undefined) return MISSING_VALUE_TEXT;
+    const numeric = Number(share);
+    if (!Number.isFinite(numeric)) return MISSING_VALUE_TEXT;
+
+    const rendered = formatNumber(
+      Number(numeric.toFixed(decimals)),
+      context ?? null,
+    );
+    return rendered ? `${rendered}%` : MISSING_VALUE_TEXT;
+  });
+}
+
+/**
  * The accessible name for a single plotted point — the BUG-2148 countermeasure.
  *
  * Every chart in this directory puts this on the element a reader can focus or

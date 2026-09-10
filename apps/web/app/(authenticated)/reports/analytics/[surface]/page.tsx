@@ -260,10 +260,18 @@ function parseOrderBy(
   return [field, direction === "asc" ? "asc" : "desc"];
 }
 
-/** What the drill-down link opens, per source, so no link is named "Open". */
+/**
+ * What the drill-down link opens, per source, so no link is named "Open" —
+ * and, since BUG-3020, what the drill-down table's own row count is counted
+ * in. `workforce_history` is one row per employee *per day*, never one row
+ * per employee (see `WORKFORCE_HISTORY_SOURCE`'s class comment); calling it
+ * "employee" here is what let a 12-person headcount be introduced as
+ * "332 records behind these numbers" with nothing saying 332 was days, not
+ * people.
+ */
 const RECORD_NOUNS: Record<string, string> = {
   workforce: "employee",
-  workforce_history: "employee",
+  workforce_history: "daily snapshot row",
   attendance: "attendance day",
   leave_requests: "leave request",
   leave_consumption: "leave record",

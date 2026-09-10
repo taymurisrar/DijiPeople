@@ -204,6 +204,15 @@ services:
       # forever; these do not.
       - key: REPORTS_ARTIFACT_RETENTION_DAYS
         value: "7"
+      # BUG-2618: an unpaid checkout order held its workspace address and its
+      # submission hash forever because nothing ever called abandonExpired.
+      # This ages PENDING_PAYMENT orders out and releases both once they pass
+      # their 24-hour TTL. Off by default like the other two workers above;
+      # exactly one deployed service should have it true.
+      - key: SUBSCRIPTION_ORDER_SWEEPER_ENABLED
+        value: "true"
+      - key: SUBSCRIPTION_ORDER_SWEEPER_POLL_INTERVAL_MS
+        value: "900000"
       # When exceeding purchased capacity is ordinary, warned, or stopped for a
       # human. The review thresholds exist for the import accident: 20 -> 22 is
       # hiring, 20 -> 900 overnight is a bad CSV, and billing the second one

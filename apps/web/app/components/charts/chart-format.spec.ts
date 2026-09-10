@@ -2,6 +2,7 @@ import { setDefaultFormattingContext } from "@/lib/formatting-context";
 import {
   formatChartValue,
   formatShare,
+  formatShares,
   formatTimeBucketLabel,
   MISSING_VALUE_TEXT,
   pointAccessibleLabel,
@@ -111,6 +112,78 @@ describe("formatShare", () => {
   it("handles a missing share", () => {
     expect(formatShare(null)).toBe(MISSING_VALUE_TEXT);
     expect(formatShare(Number.NaN)).toBe(MISSING_VALUE_TEXT);
+  });
+});
+
+describe("formatShares", () => {
+  afterEach(() => {
+    setDefaultFormattingContext(null);
+  });
+
+  /*
+   * BUG-3020. `computeShares`' `displayShare` apportions a breakdown so the
+   * column sums to exactly 100 at one shared precision. Formatting each value
+   * with `formatShare` independently throws that away the moment the column
+   * spans the 10% threshold: 33.4 loses its decimal, 8.3 keeps its, and the
+   * printed column no longer sums to 100 even though the numbers behind it
+   * do. This is the exact shape the live bug was found on — a 12-person
+   * headcount split 4/2/2/1/1/1/1, whose `displayShare`s are
+   * 33.4/16.7/16.7/8.3/8.3/8.3/8.3.
+   */
+  it("keeps a whole breakdown printing at one precision so it still sums to 100", () => {
+    setDefaultFormattingContext({ locale: "en-US" });
+    const displayShares = [33.4, 16.7, 16.7, 8.3, 8.3, 8.3, 8.3];
+
+    const rendered = formatShares(displayShares);
+
+    expect(rendered).toEqual([
+      "33.4%",
+      "16.7%",
+      "16.7%",
+      "8.3%",
+      "8.3%",
+      "8.3%",
+      "8.3%",
+    ]);
+
+    const total = rendered.reduce(
+      (sum, text) => sum + Number.parseFloat(text),
+      0,
+    );
+    expect(total).toBeCloseTo(100, 5);
+
+    /*
+     * Proof this is not simply what `formatShare` would have produced anyway:
+     * called per value, it drops the decimal from the two shares at or above
+     * 10%, and the column then falls short of 100.
+     */
+    const perValue = displayShares.map((share) => formatShare(share));
+    expect(perValue).toEqual(["33%", "17%", "17%", "8.3%", "8.3%", "8.3%", "8.3%"]);
+    const perValueTotal = perValue.reduce(
+      (sum, text) => sum + Number.parseFloat(text),
+      0,
+    );
+    expect(perValueTotal).not.toBeCloseTo(100, 5);
+  });
+
+  it("drops the decimal for every value when none of them need one", () => {
+    setDefaultFormattingContext({ locale: "en-US" });
+    expect(formatShares([50, 30, 20])).toEqual(["50%", "30%", "20%"]);
+  });
+
+  it("passes missing values through without affecting the shared decision", () => {
+    setDefaultFormattingContext({ locale: "en-US" });
+    expect(formatShares([50, null, 8.3, undefined, Number.NaN])).toEqual([
+      "50%",
+      MISSING_VALUE_TEXT,
+      "8.3%",
+      MISSING_VALUE_TEXT,
+      MISSING_VALUE_TEXT,
+    ]);
+  });
+
+  it("returns an empty array for an empty breakdown", () => {
+    expect(formatShares([])).toEqual([]);
   });
 });
 
