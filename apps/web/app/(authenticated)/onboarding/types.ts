@@ -142,3 +142,39 @@ export type OnboardingListResponse = {
     status: OnboardingStatus | null;
   };
 };
+
+/*
+ * ITEM-0107 — moved from the now-deleted `app/(authenticated)/users/types.ts`.
+ * That bespoke Users screen was one of four implementations of "list the
+ * tenant's users" and is gone; this candidate-conversion picker
+ * (`[onboardingId]/page.tsx`) was its only consumer outside itself, so the two
+ * types it actually uses came here rather than to a new shared module for a
+ * single caller.
+ */
+export type UserStatus = "ACTIVE" | "INACTIVE" | "SUSPENDED" | "INVITED";
+
+export type UserListItem = {
+  id: string;
+  userId?: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  email: string;
+  status: UserStatus | string;
+  isServiceAccount: boolean;
+};
+
+export type UserListResponse = {
+  items: UserListItem[];
+  meta?: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
+  filters?: {
+    search: string | null;
+    status: UserStatus | string | null;
+    businessUnitId: string | null;
+  };
+};

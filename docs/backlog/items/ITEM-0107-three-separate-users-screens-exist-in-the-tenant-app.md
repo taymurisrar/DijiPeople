@@ -3,15 +3,16 @@ ID: ITEM-0107
 aliases: [ITEM-0107]
 Title: Four Users screens exist in the tenant app and two of them are unreachable
 Type: ARCHITECTURE
-Status: READY
+Status: DONE
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [apps/web]
 Source: QA_RUN
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-29
-UpdatedAt: 2026-08-29
+UpdatedAt: 2026-09-11
+ResolvedAt: 2026-09-11
 RelatedBug: BUG-2003
 RelatedQA: 
 RelatedADR: 
@@ -125,6 +126,75 @@ BUG-2003 is the crash on implementation (2). BUG-2014 covers `/users/new` and
 ## History
 
 - 2026-08-29 — created from the Starter-plan production QA run (SESSION-0070) at `eb457d9d`, out of the React #441 root-cause investigation. Filed initially as three screens; corrected to four once the redirect list in `next.config.ts` was read and the two dead trees counted. Disposition FIX_NOW: it is the cheapest resolution for BUG-2003, and the tenant app should not carry four answers to one question.
+- 2026-09-11 — resolved. See Resolution below.
+
+## Resolution
+
+Premise re-verified before touching anything, and it had partly moved: BUG-2003
+shows `Status: FIXED` with its own Resolution recording that commit `d3ffb3aa`
+(on a different, unmerged branch) removed implementation (2)'s crash by
+dropping its `USE_ENTITY_DATA_API` branch — and that fix had already reached
+this branch's `develop` history under a different SHA (`86f8f056`), confirmed
+by `grep -n "USE_ENTITY_DATA_API" apps/web/app/(authenticated)/users/page.tsx`
+returning nothing but a comment. So at the start of this task, implementation
+(2) rendered rather than crashed — the crash half of the record's premise was
+already stale. Everything else held: still four implementations, still two
+genuinely unreachable (`/settings/access/users`, `/settings/security-access/users`,
+both still redirected in `next.config.ts`), still no route linking to the
+canonical one, still the same duplication cost. BUG-2003's own Resolution said
+so explicitly: "it deliberately does not pre-empt ITEM-0107, which may still
+redirect `/users` to the canonical settings screen."
+
+**Fix — the redirect-and-delete path, as proposed:**
+
+- `/users` (and `/users/:path*`) now redirects to
+  `/settings/security-access/identities/users`, using the exact mechanism
+  already applied to the other two dead trees (`apps/web/next.config.ts`).
+- Deleted implementation (2): `app/(authenticated)/users/` — `page.tsx`,
+  `types.ts`, `[userId]/page.tsx`, and the five files under `_components/` and
+  `_lib/` (9 files).
+- Deleted implementation (3): `app/(authenticated)/settings/security-access/users/`
+  (4 files) and implementation (4):
+  `app/(authenticated)/settings/access/users/` (4 files) — the sibling
+  `roles`/`teams` directories under each parent were left untouched.
+- Deleted two now-orphaned components that existed only to serve the deleted
+  routes and had no other importer:
+  `settings/_components/user-access-management.tsx` (implementation (4)'s
+  `UserAccessManagement`) and `settings/_components/user-form.tsx`.
+- `types.ts`'s `UserListItem`/`UserListResponse` types had one real external
+  consumer — `onboarding/[onboardingId]/page.tsx`'s candidate-to-employee user
+  picker — trimmed to the two fields it actually reads and moved into
+  `onboarding/types.ts` rather than left behind or promoted to a new shared
+  module for one caller.
+- `apps/web/app/components/metadata/runtime-metadata-form-renderer.tsx`'s
+  `LOOKUP_REFERENCE_ROUTES.users` now points at the canonical path directly
+  instead of at a path that only works because it redirects.
+- The four `dashboard.service.ts` links and the sidebar's icon-matching logic
+  were left pointing at `/users`, per the record's own suggestion — the
+  redirect makes them correct, and repointing them is optional tidiness that
+  touches the API for no behavioural gain.
+
+**Acceptance criteria:**
+
+- Exactly one Users list implementation remains — met.
+- `/users` reaches it — met, via redirect.
+- All four `dashboard.service.ts` links reach it — met, unchanged, via the
+  same redirect.
+- No route under `/settings/access/users` or `/settings/security-access/users`
+  exists — met.
+- BUG-2003 and BUG-2014 closed or re-scoped — both already `FIXED` in their own
+  records; BUG-2003's Resolution explicitly deferred the final shape to this
+  item, which this change now completes. Not re-opened or edited here, since
+  neither record's own status needed to change.
+
+**Tests:** `apps/web/next-config-users-redirect.spec.ts` (new) asserts `/users`
+and `/users/:path*` redirect to the canonical path and that the two
+already-dead trees still do.
+`apps/web/app/components/entity-data/entity-registry-contract.spec.ts`
+(pre-existing, BUG-2003's own regression test) still passes with the deleted
+implementation gone. `npm --workspace web run check-types` clean.
+`npm --workspace web run test -- next-config-users-redirect entity-registry-contract`
+— 6 passed.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 

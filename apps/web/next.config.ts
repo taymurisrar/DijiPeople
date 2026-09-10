@@ -78,6 +78,17 @@ const nextConfig: NextConfig = {
         "/settings/security-access/users",
         "/settings/security-access/identities/users",
       ],
+      /*
+       * ITEM-0107 — the tenant app carried four separate "list the tenant's
+       * users" implementations: this settings-runtime one (the only one that
+       * worked and the only one anything should build on), a bespoke `/users`
+       * screen (BUG-2003, since fixed to render but still a second answer to
+       * the same question), and the two dead trees redirected just above.
+       * `/users` is where the dashboard already sends administrators four
+       * times over (`dashboard.service.ts`) and where the sidebar points, so
+       * it redirects here rather than being deleted outright.
+       */
+      ["/users", "/settings/security-access/identities/users"],
       [
         "/settings/access/roles",
         "/settings/security-access/authorization/roles",
