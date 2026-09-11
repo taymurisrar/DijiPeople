@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **1** |
+| Active sessions | **2** |
 | Active parent tasks | 4 |
 | Active work packages | 4 |
 | Blocked work packages | 0 |
@@ -15,9 +15,9 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **4** |
-| Open HIGH | 82 |
+| Open HIGH | 83 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 8 |
+| Owner decisions pending | 9 |
 | QA coverage gaps | 142 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -30,10 +30,10 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 168 |
-| No next action | 168 |
+| No acceptance criteria | 174 |
+| No next action | 174 |
 | Aging — 7d / 30d / 90d | 100 / 0 / 0 |
-| Architecture and technical debt | 5 |
+| Architecture and technical debt | 6 |
 | Security gaps | 28 |
 | Database gaps | 18 |
 
@@ -49,6 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
+| [[SESSION-0100-investigate-access-token-expiry-and-session-revocation-on-th|SESSION-0100]] | — | Investigate access token expiry and session revocation on the tenant web app | ACTIVE | `agent/auth-session-revocation` | `develop` | — | NO |
 | [[SESSION-0099-review-tenant-subscription-plans-features-screen|SESSION-0099]] | — | Review tenant subscription Plans & Features screen | ACTIVE | `agent/review-subscription-plans-screen` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
@@ -119,6 +120,7 @@ Questions where the engineering is understood and the **product answer is**
 - [[BUG-3182-no-per-tenant-restore-is-possible-restoring-one-tenant-means|BUG-3182]] — **No per-tenant restore is possible: restoring one tenant means rolling back all of them**
 - [[BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-|BUG-3333]] — **Tenant buyers choose their own currency and the three price schedules are not equivalent**
 - [[BUG-3350-the-plan-comparison-sells-module-exclusivity-the-platform-is|BUG-3350]] — **The plan comparison sells module exclusivity the platform is configured only to report on**
+- [[BUG-3355-a-second-sign-in-silently-destroys-the-first-session-and-the|BUG-3355]] — **A second sign-in silently destroys the first session, and the displaced browser is never told**
 - [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] — **No multi-factor authentication exists anywhere, including for platform super admins**
 
 ## QA Coverage Gaps
@@ -275,10 +277,10 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 168 |
+| Open total | 174 |
 | Blocked | 2 |
 | Deferred | 92 |
-| Awaiting a product decision | 8 |
+| Awaiting a product decision | 9 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

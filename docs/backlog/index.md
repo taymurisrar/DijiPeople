@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**589 records** — 428 bugs under [`docs/bugs/`](../bugs/), 161 non-bug items under [`items/`](items/).
+**596 records** — 434 bugs under [`docs/bugs/`](../bugs/), 162 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 168 |
+| Open (active work) | 174 |
 | Blocked | 2 |
 | Deferred | 92 |
-| Awaiting a product decision | 8 |
+| Awaiting a product decision | 9 |
 | Completed / closed | 319 |
 | **Open CRITICAL** | **4** |
-| **Open HIGH** | **82** |
+| **Open HIGH** | **83** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,16 +27,16 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 4 |
-| HIGH | 82 |
-| MEDIUM | 69 |
-| LOW | 13 |
+| HIGH | 83 |
+| MEDIUM | 73 |
+| LOW | 14 |
 
 ## Open by type
 
 | Type | Count |
 |---|---|
 | AUTHORIZATION | 9 |
-| BUG | 40 |
+| BUG | 45 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 17 |
 | DOCUMENTATION | 1 |
@@ -47,7 +47,7 @@ see [`README.md`](README.md) for why.
 | PRODUCT_DECISION | 1 |
 | SECURITY | 17 |
 | STATE_MACHINE | 3 |
-| TECH_DEBT | 5 |
+| TECH_DEBT | 6 |
 | TENANT_ISOLATION | 2 |
 | TEST_GAP | 9 |
 | UX | 36 |
@@ -56,15 +56,15 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 51 |
+| OPEN | 56 |
 | BLOCKED | 2 |
 | DEFERRED | 92 |
-| PRODUCT_DECISION | 8 |
+| PRODUCT_DECISION | 9 |
 | FIXED | 97 |
 | VERIFIED | 218 |
 | DUPLICATE | 10 |
 | ACCEPTED_RISK | 3 |
-| READY | 20 |
+| READY | 21 |
 | DONE | 88 |
 
 ## All records
@@ -288,6 +288,8 @@ see [`README.md`](README.md) for why.
 | [BUG-3332](../../docs/bugs/BUG-3332-plan-cards-truncate-to-eight-features-so-growth-and-enterpri.md) | Plan cards truncate to eight features so Growth and Enterprise advertise identical capability | UX | HIGH | P1 | OPEN | apps/web, api:billing | FIX_NOW |
 | [BUG-3333](../../docs/bugs/BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-.md) | Tenant buyers choose their own currency and the three price schedules are not equivalent | DATA_INTEGRITY | HIGH | P1 | PRODUCT_DECISION | apps/web, api:billing | PRODUCT_DECISION |
 | [BUG-3350](../../docs/bugs/BUG-3350-the-plan-comparison-sells-module-exclusivity-the-platform-is.md) | The plan comparison sells module exclusivity the platform is configured only to report on | BUG | HIGH | P1 | PRODUCT_DECISION | apps/web, services/api/src/common/security | PRODUCT_DECISION |
+| [BUG-3355](../../docs/bugs/BUG-3355-a-second-sign-in-silently-destroys-the-first-session-and-the.md) | A second sign-in silently destroys the first session, and the displaced browser is never told | BUG | HIGH | P1 | PRODUCT_DECISION | api:auth, web:auth | PRODUCT_DECISION |
+| [BUG-3356](../../docs/bugs/BUG-3356-a-revoked-or-expired-session-is-reported-to-the-user-as-auth.md) | A revoked or expired session is reported to the user as AUTH_TOKEN_MISSING and is never logged | BUG | HIGH | P1 | OPEN | web:auth, api:auth | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -492,6 +494,9 @@ see [`README.md`](README.md) for why.
 | [BUG-3335](../../docs/bugs/BUG-3335-subscription-plans-screen-overflows-horizontally-on-phones-a.md) | Subscription plans screen overflows horizontally on phones and loses its comparison layout below 1280px | UX | MEDIUM | P2 | OPEN | apps/web | FIX_NOW |
 | [BUG-3336](../../docs/bugs/BUG-3336-subscription-settings-has-no-loading-or-error-boundary-and-r.md) | Subscription settings has no loading or error boundary and renders a failed load as access denied | UX | MEDIUM | P2 | OPEN | apps/web | FIX_NOW |
 | [BUG-3345](../../docs/bugs/BUG-3345-subscription-screens-paint-every-primary-action-in-body-text.md) | Subscription screens paint every primary action in body-text black instead of the tenant brand colour | UX | MEDIUM | P2 | OPEN | apps/web | FIX_NOW |
+| [BUG-3357](../../docs/bugs/BUG-3357-remember-me-is-overridden-by-the-web-middleware-which-pins-t.md) | Remember me is overridden by the web middleware, which pins the cookies to 15 minutes and 1 hour | BUG | MEDIUM | P2 | OPEN | web:auth, api:auth | FIX_NOW |
+| [BUG-3358](../../docs/bugs/BUG-3358-a-server-component-render-rotates-the-refresh-token-and-cann.md) | A Server Component render rotates the refresh token and cannot persist it, orphaning the browser | BUG | MEDIUM | P2 | OPEN | web:auth, api:auth | FIX_NOW |
+| [BUG-3359](../../docs/bugs/BUG-3359-refresh-rotation-has-no-grace-window-and-the-web-middleware-.md) | Refresh rotation has no grace window and the web middleware has no concurrency control | BUG | MEDIUM | P2 | OPEN | api:auth, web:auth | PLAN_REQUIRED |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -577,6 +582,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0157](../../docs/backlog/items/ITEM-0157-can-we-detect-an-attack-the-raw-material-exists-in-one-table.md) | Can we detect an attack: the raw material exists in one table, but nothing looks at it | SECURITY | MEDIUM | P2 | DEFERRED | api:audit | DEFER |
 | [ITEM-0158](../../docs/backlog/items/ITEM-0158-public-traffic-that-bypasses-cloudflare-shares-one-rate-limi.md) | Public traffic that bypasses Cloudflare shares one rate-limit bucket, by design and untested | INFRA | MEDIUM | P2 | READY | pkg:config, services/api/src/common/security | PLAN_REQUIRED |
 | [ITEM-0159](../../docs/backlog/items/ITEM-0159-plans-and-features-screen-fails-several-accessibility-basics.md) | Plans and Features screen fails several accessibility basics for a data-comparison surface | UX | MEDIUM | P2 | READY | apps/web | FIX_NOW |
+| [ITEM-0162](../../docs/backlog/items/ITEM-0162-session-timeout-configuration-lives-in-two-places-that-disag.md) | Session timeout configuration lives in two places that disagree, and most of the env values are inert | TECH_DEBT | MEDIUM | P2 | READY | api:auth, api:tenant-settings | FIX_NOW |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |
@@ -616,6 +622,7 @@ see [`README.md`](README.md) for why.
 | [BUG-2464](../../docs/bugs/BUG-2464-three-tenant-screens-crash-the-react-tree-with-hydration-err.md) | Three tenant screens crash the React tree with hydration errors 418 and 441 | UX | LOW | P3 | DUPLICATE | web:inbox, web:users, web:approvals | DUPLICATE |
 | [BUG-2657](../../docs/bugs/BUG-2657-analytics-caveat-panels-list-the-same-note-twice-in-differen.md) | Analytics caveat panels list the same note twice in different wording | UX | LOW | P3 | FIXED | api:reporting | DONE |
 | [BUG-3021](../../docs/bugs/BUG-3021-workspace-switcher-in-the-avatar-menu-overflows-horizontally.md) | Workspace switcher in the avatar menu overflows horizontally and shows a scrollbar | UX | LOW | P3 | FIXED | apps/web | FIX_NOW |
+| [BUG-3360](../../docs/bugs/BUG-3360-every-session-row-records-the-user-agent-as-node-and-the-clo.md) | Every session row records the user agent as node and the Cloudflare edge IP | BUG | LOW | P3 | OPEN | api:auth, web:auth | FIX_NOW |
 | [ITEM-0007](../../docs/backlog/items/ITEM-0007-should-duplicate-website-leads-be-deduplicated.md) | Product decision — should duplicate website leads be deduplicated? | PRODUCT_DECISION | LOW | P3 | DONE | api:leads, apps/landing | DONE |
 | [ITEM-0008](../../docs/backlog/items/ITEM-0008-customeraccount-has-no-origin-channel.md) | Product decision — CustomerAccount carries no origin channel | PRODUCT_DECISION | LOW | P3 | DONE | services/api/prisma, api:super-admin | DONE |
 | [ITEM-0011](../../docs/backlog/items/ITEM-0011-framework-validation-should-catch-absence-claims.md) | Framework validation should catch false absence claims in context documents | TECH_DEBT | LOW | P3 | DONE | .agent/context, scripts | DONE |

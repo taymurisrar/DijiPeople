@@ -6,12 +6,13 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 1** · completed: 95
+**Active: 2** · completed: 95
 
 ## Active
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0100](../../docs/sessions/SESSION-0100-investigate-access-token-expiry-and-session-revocation-on-th.md) | — | Investigate access token expiry and session revocation on the tenant web app | ACTIVE | `agent/auth-session-revocation` | `develop` | — | 2026-09-11T21:49:42.277Z |
 | [SESSION-0099](../../docs/sessions/SESSION-0099-review-tenant-subscription-plans-features-screen.md) | — | Review tenant subscription Plans & Features screen | ACTIVE | `agent/review-subscription-plans-screen` | `develop` | — | 2026-09-11T20:30:13.810Z |
 
 ## Completed

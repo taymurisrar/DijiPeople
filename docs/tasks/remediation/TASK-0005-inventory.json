@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 589,
+    "total_records": 596,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -19228,6 +19228,246 @@
       "verification_result": "NOT_VERIFIED"
     },
     {
+      "record_id": "BUG-3355",
+      "type": "BUG",
+      "title": "A second sign-in silently destroys the first session, and the displaced browser is never told",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
+      "source": {
+        "record_path": "docs/bugs/BUG-3355-a-second-sign-in-silently-destroys-the-first-session-and-the.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "118d22ed",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-11",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "api:auth",
+        "web:auth"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "api:auth",
+          "web:auth"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3355-a-second-sign-in-silently-destroys-the-first-session-and-the.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3356",
+      "type": "BUG",
+      "title": "A revoked or expired session is reported to the user as AUTH_TOKEN_MISSING and is never logged",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3356-a-revoked-or-expired-session-is-reported-to-the-user-as-auth.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "118d22ed",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-11",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "web:auth",
+        "api:auth"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "web:auth",
+          "api:auth"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3356-a-revoked-or-expired-session-is-reported-to-the-user-as-auth.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3357",
+      "type": "BUG",
+      "title": "Remember me is overridden by the web middleware, which pins the cookies to 15 minutes and 1 hour",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3357-remember-me-is-overridden-by-the-web-middleware-which-pins-t.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "118d22ed",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-11",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "web:auth",
+        "api:auth"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "web:auth",
+          "api:auth"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3357-remember-me-is-overridden-by-the-web-middleware-which-pins-t.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3358",
+      "type": "BUG",
+      "title": "A Server Component render rotates the refresh token and cannot persist it, orphaning the browser",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3358-a-server-component-render-rotates-the-refresh-token-and-cann.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "118d22ed",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-11",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "web:auth",
+        "api:auth"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "web:auth",
+          "api:auth"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3358-a-server-component-render-rotates-the-refresh-token-and-cann.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3359",
+      "type": "BUG",
+      "title": "Refresh rotation has no grace window and the web middleware has no concurrency control",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3359-refresh-rotation-has-no-grace-window-and-the-web-middleware-.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "118d22ed",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-11",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "api:auth",
+        "web:auth"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "api:auth",
+          "web:auth"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3359-refresh-rotation-has-no-grace-window-and-the-web-middleware-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3360",
+      "type": "BUG",
+      "title": "Every session row records the user agent as node and the Cloudflare edge IP",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3360-every-session-row-records-the-user-agent-as-node-and-the-clo.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "118d22ed",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-11",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "api:auth",
+        "web:auth"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "api:auth",
+          "web:auth"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3360-every-session-row-records-the-user-agent-as-node-and-the-clo.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
       "record_id": "ITEM-0001",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md",
@@ -26157,6 +26397,46 @@
           "apps/web"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0161-subscription-plans-screen-content-and-interaction-polish.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0162",
+      "type": "TECH_DEBT",
+      "title": "Session timeout configuration lives in two places that disagree, and most of the env values are inert",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "READY",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0162-session-timeout-configuration-lives-in-two-places-that-disag.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-11",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "api:auth",
+        "api:tenant-settings"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "api:auth",
+          "api:tenant-settings"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0162-session-timeout-configuration-lives-in-two-places-that-disag.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

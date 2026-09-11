@@ -8,10 +8,10 @@
 | | |
 |---|---|
 | Open CRITICAL | **4** |
-| Open HIGH | **82** |
-| Open total | 168 |
+| Open HIGH | **83** |
+| Open total | 174 |
 | Blocked | 2 |
-| Awaiting a product decision | 8 |
+| Awaiting a product decision | 9 |
 | Deferred | 92 |
 | Completed | 319 |
 | Awaiting Architect triage | 0 |
@@ -108,6 +108,7 @@
 | [[BUG-3330-plan-cards-quote-a-per-seat-price-as-the-whole-monthly-charg|BUG-3330]] | Plan cards quote a per-seat price as the whole monthly charge and ignore the seat count entirely | UX | HIGH | OPEN | apps/web, api:billing | FIX_NOW |
 | [[BUG-3331-subscribe-is-enabled-for-a-tenant-that-already-has-an-active|BUG-3331]] | Subscribe is enabled for a tenant that already has an active subscription and can only ever return 409 | UX | HIGH | OPEN | apps/web, api:billing | PLAN_REQUIRED |
 | [[BUG-3332-plan-cards-truncate-to-eight-features-so-growth-and-enterpri|BUG-3332]] | Plan cards truncate to eight features so Growth and Enterprise advertise identical capability | UX | HIGH | OPEN | apps/web, api:billing | FIX_NOW |
+| [[BUG-3356-a-revoked-or-expired-session-is-reported-to-the-user-as-auth|BUG-3356]] | A revoked or expired session is reported to the user as AUTH_TOKEN_MISSING and is never logged | BUG | HIGH | OPEN | web:auth, api:auth | FIX_NOW |
 | [[ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no|ITEM-0133]] | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | READY | services/api/test | PLAN_REQUIRED |
 | [[ITEM-0134-the-payroll-run-engine-has-no-tests|ITEM-0134]] | The payroll run engine has no tests | TEST_GAP | HIGH | READY | api:payroll | PLAN_REQUIRED |
 | [[ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-|ITEM-0136]] | electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major | SECURITY | HIGH | READY | apps/agent-desktop | FIX_NOW |
@@ -123,6 +124,7 @@
 | [[BUG-3182-no-per-tenant-restore-is-possible-restoring-one-tenant-means|BUG-3182]] | No per-tenant restore is possible: restoring one tenant means rolling back all of them | INFRA | HIGH | PRODUCT_DECISION | api:tenants | PRODUCT_DECISION |
 | [[BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-|BUG-3333]] | Tenant buyers choose their own currency and the three price schedules are not equivalent | DATA_INTEGRITY | HIGH | PRODUCT_DECISION | apps/web, api:billing | PRODUCT_DECISION |
 | [[BUG-3350-the-plan-comparison-sells-module-exclusivity-the-platform-is|BUG-3350]] | The plan comparison sells module exclusivity the platform is configured only to report on | BUG | HIGH | PRODUCT_DECISION | apps/web, services/api/src/common/security | PRODUCT_DECISION |
+| [[BUG-3355-a-second-sign-in-silently-destroys-the-first-session-and-the|BUG-3355]] | A second sign-in silently destroys the first session, and the displaced browser is never told | BUG | HIGH | PRODUCT_DECISION | api:auth, web:auth | PRODUCT_DECISION |
 | [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] | No multi-factor authentication exists anywhere, including for platform super admins | SECURITY | HIGH | PRODUCT_DECISION | api:auth | PRODUCT_DECISION |
 
 ## Blocked Items
@@ -576,6 +578,9 @@
 | [[BUG-3335-subscription-plans-screen-overflows-horizontally-on-phones-a|BUG-3335]] | Subscription plans screen overflows horizontally on phones and loses its comparison layout below 1280px | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
 | [[BUG-3336-subscription-settings-has-no-loading-or-error-boundary-and-r|BUG-3336]] | Subscription settings has no loading or error boundary and renders a failed load as access denied | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
 | [[BUG-3345-subscription-screens-paint-every-primary-action-in-body-text|BUG-3345]] | Subscription screens paint every primary action in body-text black instead of the tenant brand colour | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
+| [[BUG-3357-remember-me-is-overridden-by-the-web-middleware-which-pins-t|BUG-3357]] | Remember me is overridden by the web middleware, which pins the cookies to 15 minutes and 1 hour | BUG | MEDIUM | OPEN | web:auth, api:auth | FIX_NOW |
+| [[BUG-3358-a-server-component-render-rotates-the-refresh-token-and-cann|BUG-3358]] | A Server Component render rotates the refresh token and cannot persist it, orphaning the browser | BUG | MEDIUM | OPEN | web:auth, api:auth | FIX_NOW |
+| [[BUG-3359-refresh-rotation-has-no-grace-window-and-the-web-middleware-|BUG-3359]] | Refresh rotation has no grace window and the web middleware has no concurrency control | BUG | MEDIUM | OPEN | api:auth, web:auth | PLAN_REQUIRED |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -590,6 +595,7 @@
 | [[ITEM-0119-stop-writing-a-placeholder-e-mail-into-an-identity-column-wh|ITEM-0119]] | Stop writing a placeholder e-mail into an identity column when the wizard opens a draft | TECH_DEBT | MEDIUM | READY | billing, landing, super-admin | PLAN_REQUIRED |
 | [[ITEM-0158-public-traffic-that-bypasses-cloudflare-shares-one-rate-limi|ITEM-0158]] | Public traffic that bypasses Cloudflare shares one rate-limit bucket, by design and untested | INFRA | MEDIUM | READY | pkg:config, services/api/src/common/security | PLAN_REQUIRED |
 | [[ITEM-0159-plans-and-features-screen-fails-several-accessibility-basics|ITEM-0159]] | Plans and Features screen fails several accessibility basics for a data-comparison surface | UX | MEDIUM | READY | apps/web | FIX_NOW |
+| [[ITEM-0162-session-timeout-configuration-lives-in-two-places-that-disag|ITEM-0162]] | Session timeout configuration lives in two places that disagree, and most of the env values are inert | TECH_DEBT | MEDIUM | READY | api:auth, api:tenant-settings | FIX_NOW |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [[ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle|ITEM-0108]] | Decide whether the roughly one-hour session lifetime is idle or absolute | PRODUCT_DECISION | LOW | READY | api:auth | PLAN_REQUIRED |
 | [[BUG-1964-record-headings-and-dialog-titles-are-singularised-by-stripp|BUG-1964]] | Record headings and dialog titles are singularised by stripping a trailing s | UX | LOW | FIXED | apps/web | DONE |
@@ -602,6 +608,7 @@
 | [[BUG-2461-get-employees-me-direct-reports-is-shadowed-by-the-employeei|BUG-2461]] | GET employees me direct-reports is shadowed by the employeeId route and returns 400 | BUG | LOW | FIXED | api:employees | FIX_NOW |
 | [[BUG-2657-analytics-caveat-panels-list-the-same-note-twice-in-differen|BUG-2657]] | Analytics caveat panels list the same note twice in different wording | UX | LOW | FIXED | api:reporting | DONE |
 | [[BUG-3021-workspace-switcher-in-the-avatar-menu-overflows-horizontally|BUG-3021]] | Workspace switcher in the avatar menu overflows horizontally and shows a scrollbar | UX | LOW | FIXED | apps/web | FIX_NOW |
+| [[BUG-3360-every-session-row-records-the-user-agent-as-node-and-the-clo|BUG-3360]] | Every session row records the user agent as node and the Cloudflare edge IP | BUG | LOW | OPEN | api:auth, web:auth | FIX_NOW |
 | [[ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by|ITEM-0080]] | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
 
 ## Key Architecture Decisions
@@ -623,8 +630,8 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 428 |
-| Backlog items | 161 |
+| Bug records | 434 |
+| Backlog items | 162 |
 | Known bug patterns | 34 |
 | QA runs | 32 |
 | Engineering history records | 77 |

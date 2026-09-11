@@ -78,6 +78,7 @@ Questions where the engineering is understood and the **product answer**
 - [[BUG-3182-no-per-tenant-restore-is-possible-restoring-one-tenant-means|BUG-3182]] — **No per-tenant restore is possible: restoring one tenant means rolling back all of them** (HIGH)
 - [[BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-|BUG-3333]] — **Tenant buyers choose their own currency and the three price schedules are not equivalent** (HIGH)
 - [[BUG-3350-the-plan-comparison-sells-module-exclusivity-the-platform-is|BUG-3350]] — **The plan comparison sells module exclusivity the platform is configured only to report on** (HIGH)
+- [[BUG-3355-a-second-sign-in-silently-destroys-the-first-session-and-the|BUG-3355]] — **A second sign-in silently destroys the first session, and the displaced browser is never told** (HIGH)
 - [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] — **No multi-factor authentication exists anywhere, including for platform super admins** (HIGH)
 
 ## Recent Product Changes
