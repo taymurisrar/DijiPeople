@@ -506,11 +506,11 @@
 
 ## Recent Releases
 
+- [[2026-09-11-production-5a1afa64|Deployment Report — PRODUCTION — 5a1afa64]]
 - [[2026-09-09-production-1c04776|Deployment Report — PRODUCTION — 1c04776]]
 - [[2026-09-08-production-fe1cd3d|Deployment Report — PRODUCTION — fe1cd3d]]
 - [[2026-08-31-production-dae0e37|Deployment Report — PRODUCTION — dae0e37]]
 - [[2026-08-31-production-cace6cd|Deployment Report — PRODUCTION — cace6cd]]
-- [[2026-08-31-production-6d17e93|Deployment Report — PRODUCTION — 6d17e93]]
 
 ## Active / Recent Backlog
 
@@ -619,7 +619,7 @@
 | Known bug patterns | 34 |
 | QA runs | 32 |
 | Engineering history records | 77 |
-| Release records | 9 |
+| Release records | 10 |
 | Module notes | 30 |
 | Architecture notes | 22 |
 | Decision notes (ADR + generated) | 12 |

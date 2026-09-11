@@ -285,11 +285,11 @@ Deployment state is **not** derivable from Git. A merge is Git state; what is
 running is a separate fact with separate evidence, recorded per release under
 `docs/deployment/release-history/`.
 
+- [[2026-09-11-production-5a1afa64|Deployment Report — PRODUCTION — 5a1afa64]]
 - [[2026-09-09-production-1c04776|Deployment Report — PRODUCTION — 1c04776]]
 - [[2026-09-08-production-fe1cd3d|Deployment Report — PRODUCTION — fe1cd3d]]
 - [[2026-08-31-production-dae0e37|Deployment Report — PRODUCTION — dae0e37]]
 - [[2026-08-31-production-cace6cd|Deployment Report — PRODUCTION — cace6cd]]
-- [[2026-08-31-production-6d17e93|Deployment Report — PRODUCTION — 6d17e93]]
 
 ## How this is maintained
 
