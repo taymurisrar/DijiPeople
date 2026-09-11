@@ -3,15 +3,15 @@ ID: ITEM-0151
 aliases: [ITEM-0151]
 Title: Two recruitment controllers never adopted the RBAC-matrix half of the dual permission system
 Type: TECH_DEBT
-Status: TRIAGE_REQUIRED
+Status: DEFERRED
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [services/api/src/modules/recruitment]
 Source: REVIEWER
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 RelatedBug: 
 RelatedQA: 
 RelatedADR: 
@@ -21,6 +21,8 @@ BlockedBy:
 ---
 
 # ITEM-0151 — Two recruitment controllers never adopted the RBAC-matrix half of the dual permission system
+
+> **Architect triage, 2026-09-11 — `DEFER`.** Real and recorded, below the line for this cycle. Revisit at the next backlog review — the evidence is in the record, so nothing is lost by scheduling it later.
 
 ## Summary
 

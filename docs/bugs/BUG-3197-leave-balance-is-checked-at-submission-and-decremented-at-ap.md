@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/leave]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3197 — Leave balance is checked at submission and decremented at approval, so pending requests are invisible and the balance can be overdrawn
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** Checking leave balance at submission and decrementing at approval lets two requests both pass. Check and decrement in one transaction at the decision point.
 
 ## Summary
 

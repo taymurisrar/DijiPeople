@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/payslips]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3172 — GET /payslips has no pagination and can return every payslip the tenant has ever generated
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** An endpoint returning every payslip in the tenant is a pagination omission, not an architecture question.
 
 ## Summary
 

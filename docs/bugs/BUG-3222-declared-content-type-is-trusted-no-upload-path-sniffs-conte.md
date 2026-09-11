@@ -2,7 +2,7 @@
 ID: BUG-3222
 aliases: [BUG-3222]
 Title: Declared content type is trusted; no upload path sniffs content, and MIME/extension checks are independent
-Status: OPEN
+Status: DEFERRED
 Severity: MEDIUM
 Priority: P2
 Type: SECURITY
@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 08f388da
 AffectedModules: [services/api/src/common]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3222 — Declared content type is trusted; no upload path sniffs content, and MIME/extension checks are independent
+
+> **Architect triage, 2026-09-11 — `DEFER`.** Real and recorded, below the line for this cycle. Revisit at the next backlog review — the evidence is in the record, so nothing is lost by scheduling it later.
 
 ## Summary
 

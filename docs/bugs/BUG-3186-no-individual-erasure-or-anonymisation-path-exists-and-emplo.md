@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/employees]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: PLAN_REQUIRED
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3186 — No individual erasure or anonymisation path exists, and employee deletion is soft, so personal data survives deletion indefinitely
+
+> **Architect triage, 2026-09-11 — `PLAN_REQUIRED`.** No erasure or anonymisation path is a data-protection obligation, not a bug fix. It needs a decision about what "erased" means for payroll history that must legally survive.
 
 ## Summary
 

@@ -3,15 +3,15 @@ ID: ITEM-0149
 aliases: [ITEM-0149]
 Title: 48 files use contains + mode insensitive with no supporting trigram/GIN index anywhere in the schema
 Type: PERFORMANCE
-Status: TRIAGE_REQUIRED
+Status: DEFERRED
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [services/api/prisma]
 Source: REVIEWER
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 RelatedBug: 
 RelatedQA: 
 RelatedADR: 
@@ -21,6 +21,8 @@ BlockedBy:
 ---
 
 # ITEM-0149 — 48 files use contains + mode insensitive with no supporting trigram/GIN index anywhere in the schema
+
+> **Architect triage, 2026-09-11 — `DEFER`.** Real and recorded, below the line for this cycle. Revisit at the next backlog review — the evidence is in the record, so nothing is lost by scheduling it later.
 
 ## Summary
 

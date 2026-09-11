@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/employees]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3155 — FieldSecurityRule masking is enforced only in the browser; the API sends the unmasked value
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** Field masking enforced only in the browser means the API ships the unmasked value to anyone who reads the response body. That is not a UI defect, it is the server trusting the client to redact — the same class as BUG-3241, and cheaper to fix than either.
 
 ## Summary
 

@@ -329,7 +329,12 @@ the same defect again.
 
 | ID | Title | Type | Severity | Priority | Status | Affected | Architect |
 |---|---|---|---|---|---|---|---|
+| [BUG-3132](../../docs/bugs/BUG-3132-self-service-privilege-escalation-to-global-admin-via-post-u.md) | Self-service privilege escalation to GLOBAL_ADMIN via POST /users/:userId/roles | AUTHORIZATION | CRITICAL | P0 | DUPLICATE | api:users | DUPLICATE |
+| [BUG-3153](../../docs/bugs/BUG-3153-production-had-no-persistent-disk-so-every-uploaded-hr-docum.md) | Production had no persistent disk, so every uploaded HR document was destroyed on the next deploy | INFRA | CRITICAL | P0 | DUPLICATE | services/api/src/common, api:documents | DUPLICATE |
 | [BUG-1542](../../docs/bugs/BUG-1542-monitoring-incident-detail-pages-return-404-for-every-incide.md) | Monitoring incident detail pages return 404 for every incident | BUG | HIGH | P1 | DUPLICATE | platform-monitoring, error-logs | DUPLICATE |
+| [BUG-3133](../../docs/bugs/BUG-3133-legacy-permission-assignment-endpoint-skips-the-cannot-excee.md) | Legacy permission-assignment endpoint skips the cannot-exceed-own-access check its matrix sibling applies | AUTHORIZATION | HIGH | P1 | DUPLICATE | api:roles | DUPLICATE |
+| [BUG-3134](../../docs/bugs/BUG-3134-employee-export-endpoint-skips-the-row-level-access-scope-it.md) | Employee export endpoint skips the row-level access scope its read sibling applies (BOLA) | AUTHORIZATION | HIGH | P1 | DUPLICATE | api:employees | DUPLICATE |
+| [BUG-3163](../../docs/bugs/BUG-3163-the-rate-limit-key-trusts-a-client-supplied-x-forwarded-for-.md) | The rate-limit key trusts a client-supplied X-Forwarded-For because the API is directly reachable, bypassing Cloudflare | SECURITY | HIGH | P1 | DUPLICATE | services/api/src/common | DUPLICATE |
 | [BUG-0532](../../docs/bugs/BUG-0532-plan-form-offered-editable-legacy-price-fields-that-bill-nob.md) | Plan form offered editable legacy price fields that bill nobody | UX | MEDIUM | P2 | DUPLICATE | apps/admin | DUPLICATE |
 | [BUG-1552](../../docs/bugs/BUG-1552-admin-form-inputs-have-no-accessible-name.md) | Admin form inputs have no accessible name | UX | MEDIUM | P2 | DUPLICATE | leads, super-admin | DUPLICATE |
 | [BUG-2464](../../docs/bugs/BUG-2464-three-tenant-screens-crash-the-react-tree-with-hydration-err.md) | Three tenant screens crash the React tree with hydration errors 418 and 441 | UX | LOW | P3 | DUPLICATE | web:inbox, web:users, web:approvals | DUPLICATE |

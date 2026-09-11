@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: a800d8f2
 AffectedModules: [services/api/src/modules/notifications]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3137 — Live password-reset links and invite tokens sit in the tenant-readable email delivery log
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** Live reset links and invite tokens in a tenant-readable log is credential storage by accident. Stop persisting the token; log that a message was sent, never its contents.
 
 ## Summary
 

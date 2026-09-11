@@ -2,7 +2,7 @@
 ID: BUG-3226
 aliases: [BUG-3226]
 Title: Custom tenant domains can be registered but can never be verified or given a certificate; the feature is inert
-Status: OPEN
+Status: DEFERRED
 Severity: MEDIUM
 Priority: P2
 Type: BUG
@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: bc3299f9
 AffectedModules: [services/api/src/modules/tenant-domains]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3226 — Custom tenant domains can be registered but can never be verified or given a certificate; the feature is inert
+
+> **Architect triage, 2026-09-11 — `DEFER`.** Real and recorded, below the line for this cycle. Revisit at the next backlog review — the evidence is in the record, so nothing is lost by scheduling it later.
 
 ## Summary
 

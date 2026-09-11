@@ -3,15 +3,15 @@ ID: ITEM-0135
 aliases: [ITEM-0135]
 Title: No authenticated endpoint in the product is rate limited at all
 Type: SECURITY
-Status: TRIAGE_REQUIRED
+Status: READY
 Priority: P2
 Severity: HIGH
 AffectedModules: [services/api/src/common]
 Source: SECURITY_REVIEW
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: PLAN_REQUIRED
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 RelatedBug: 
 RelatedQA: 
 RelatedADR: 
@@ -21,6 +21,8 @@ BlockedBy:
 ---
 
 # ITEM-0135 — No authenticated endpoint in the product is rate limited at all
+
+> **Architect triage, 2026-09-11 — `PLAN_REQUIRED`.** No authenticated endpoint is rate limited. Covering them needs a per-identity budget that does not break legitimate bulk operations, and BUG-2458 is the warning about getting that wrong.
 
 ## Summary
 

@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/common]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3198 — api/health is a static ok payload, so a broken deploy and a dead database both report healthy
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** A static ok health check cannot distinguish a healthy deploy from a dead database — and this session relied on that endpoint to verify a deploy. ITEM-0009 has the ExecPlan.
 
 ## Summary
 

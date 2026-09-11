@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/employees, services/api/src/modules/compensation]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: PLAN_REQUIRED
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3154 — Employee bank accounts, IBANs, CNICs and tax identifiers are stored in plaintext beside an unused AES-256-GCM service
+
+> **Architect triage, 2026-09-11 — `PLAN_REQUIRED`.** The ExecPlan exists (EXECPLAN-0032) and the expand phase is written on agent/cs-s10-pii, deliberately not merged. It rewrites every stored bank account, IBAN and national id, and this database has no backup beyond an untested six-hour window (ITEM-0131). Sequencing, not scope, is what blocks it: take a dump, run the backfill attended, then contract.
 
 ## Summary
 

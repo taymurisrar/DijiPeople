@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/common]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3188 — Every rejected rate-limited request writes a database row, so throttling costs more than serving
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** Writing a database row per rejected request makes throttling amplify the load it exists to shed. Count in memory, persist a summary.
 
 ## Summary
 

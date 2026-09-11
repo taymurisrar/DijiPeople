@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/notifications]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: PLAN_REQUIRED
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3169 — Notification fan-out runs O(rules x recipients) sequential round trips inline on the triggering request
+
+> **Architect triage, 2026-09-11 — `PLAN_REQUIRED`.** O(rules x recipients) sequential round trips needs batching and a queue that is actually a queue — see BUG-3200, same root.
 
 ## Summary
 

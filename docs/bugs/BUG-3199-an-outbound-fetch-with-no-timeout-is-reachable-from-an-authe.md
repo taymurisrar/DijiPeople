@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/billing]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3199 — An outbound fetch with no timeout is reachable from an authenticated tenant endpoint; Stripe has no explicit timeout or circuit breaker
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** An outbound fetch with no timeout, reachable from a tenant, holds a connection until something else gives up. Adding a timeout is contained.
 
 ## Summary
 

@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [.github/workflows]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3168 — Two required CI gates report success while executing nothing
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** Same class, two more gates. A fail-open required job is the failure mode ITEM-0125 was raised about, and validate-framework already checks for continue-on-error; these pass by running nothing, which that check cannot see.
 
 ## Summary
 

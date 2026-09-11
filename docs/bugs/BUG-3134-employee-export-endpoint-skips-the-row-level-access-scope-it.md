@@ -2,7 +2,7 @@
 ID: BUG-3134
 aliases: [BUG-3134]
 Title: Employee export endpoint skips the row-level access scope its read sibling applies (BOLA)
-Status: OPEN
+Status: DUPLICATE
 Severity: HIGH
 Priority: P1
 Type: AUTHORIZATION
@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: a800d8f2
 AffectedModules: [services/api/src/modules/employees]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DUPLICATE
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3134 — Employee export endpoint skips the row-level access scope its read sibling applies (BOLA)
+
+> **Architect triage, 2026-09-11 — `DUPLICATE`.** Fixed in this session as BUG-3241 (AUTHZ-03). exportProfile now calls canViewEmployeeRecord, the same decision the sibling read makes.
 
 ## Summary
 

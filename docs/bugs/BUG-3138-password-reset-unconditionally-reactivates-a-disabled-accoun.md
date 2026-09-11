@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: a800d8f2
 AffectedModules: [services/api/src/modules/auth]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3138 — Password reset unconditionally reactivates a disabled account
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** A password reset that reactivates a disabled account turns offboarding into a suggestion. Small, and the consequence is somebody who was removed getting back in.
 
 ## Summary
 

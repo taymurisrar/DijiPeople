@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: a800d8f2
 AffectedModules: [services/api/src/modules/auth, services/api/src/modules/agent]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3140 — Client-supplied startNewSession flag on the public agent refresh endpoint resets absolute session lifetime
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** A client-supplied flag that changes session behaviour on a public endpoint is the server trusting input about its own security decisions.
 
 ## Summary
 

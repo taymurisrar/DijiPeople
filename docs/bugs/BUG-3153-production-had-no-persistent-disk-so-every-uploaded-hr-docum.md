@@ -2,7 +2,7 @@
 ID: BUG-3153
 aliases: [BUG-3153]
 Title: Production had no persistent disk, so every uploaded HR document was destroyed on the next deploy
-Status: OPEN
+Status: DUPLICATE
 Severity: CRITICAL
 Priority: P0
 Type: INFRA
@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/common, services/api/src/modules/documents]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DUPLICATE
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3153 — Production had no persistent disk, so every uploaded HR document was destroyed on the next deploy
+
+> **Architect triage, 2026-09-11 — `DUPLICATE`.** Resolved before this session by the Cloudflare R2 durable object storage release (SESSION-0097, on main at 6b2cd007). The audit was taken at 890cd96, before that shipped.
 
 ## Summary
 

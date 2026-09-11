@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [.github/workflows]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3167 — The required browser gate executes zero tests against apps/web
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** A browser gate executing zero tests against apps/web reports success for coverage it does not have — worse than no job, because it reads as protection.
 
 ## Summary
 

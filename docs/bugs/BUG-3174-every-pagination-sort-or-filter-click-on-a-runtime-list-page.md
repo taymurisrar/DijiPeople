@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [apps/web, apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: PLAN_REQUIRED
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3174 — Every pagination, sort or filter click on a runtime list page re-executes the whole server-side call fan-out, not just the list query
+
+> **Architect triage, 2026-09-11 — `PLAN_REQUIRED`.** Re-executing on every pagination or sort click is the runtime list contract; changing it touches every module that uses it.
 
 ## Summary
 

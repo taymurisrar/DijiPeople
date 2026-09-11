@@ -2,7 +2,7 @@
 ID: BUG-3182
 aliases: [BUG-3182]
 Title: No per-tenant restore is possible: restoring one tenant means rolling back all of them
-Status: OPEN
+Status: PRODUCT_DECISION
 Severity: HIGH
 Priority: P1
 Type: INFRA
@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/tenants]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: PRODUCT_DECISION
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3182 — No per-tenant restore is possible: restoring one tenant means rolling back all of them
+
+> **Architect triage, 2026-09-11 — `PRODUCT_DECISION`.** Per-tenant restore does not exist and cannot be built on a six-hour window. Depends entirely on ITEM-0131, which is itself a spend decision.
 
 ## Summary
 

@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/payroll]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3202 — Payroll run eligibility never checks Employee.isDeleted; an archived employee with a stale employmentStatus is paid
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** Payroll eligibility ignoring Employee.isDeleted pays archived employees. Soft delete is not universal in this schema, which is exactly why each query must be explicit.
 
 ## Summary
 

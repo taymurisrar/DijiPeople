@@ -2,7 +2,7 @@
 ID: BUG-3219
 aliases: [BUG-3219]
 Title: Independent backend calls are awaited sequentially instead of in parallel in at least two shared code paths
-Status: OPEN
+Status: DEFERRED
 Severity: MEDIUM
 Priority: P2
 Type: PERFORMANCE
@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 4c86a29b
 AffectedModules: [apps/web]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3219 — Independent backend calls are awaited sequentially instead of in parallel in at least two shared code paths
+
+> **Architect triage, 2026-09-11 — `DEFER`.** Real and recorded, below the line for this cycle. Revisit at the next backlog review — the evidence is in the record, so nothing is lost by scheduling it later.
 
 ## Summary
 

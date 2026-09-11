@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [apps/web, apps/admin]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3176 — The Employees list search box, and every server-mode DataTable instance, never reaches the backend and only filters the already-loaded page
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** A search box that does not reach the server on a server-mode table is a wiring defect users hit immediately.
 
 ## Summary
 

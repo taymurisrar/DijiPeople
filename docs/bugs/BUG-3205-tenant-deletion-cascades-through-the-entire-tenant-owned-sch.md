@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 4c86a29b
 AffectedModules: [services/api/prisma]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: PLAN_REQUIRED
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3205 — Tenant deletion cascades through the entire tenant-owned schema, including every audit and payroll table, with no database-level barrier
+
+> **Architect triage, 2026-09-11 — `PLAN_REQUIRED`.** Tenant deletion cascading through the whole schema is correct until it is catastrophic. Needs a design with a soft-delete window and a tested restore, which depends on ITEM-0131.
 
 ## Summary
 

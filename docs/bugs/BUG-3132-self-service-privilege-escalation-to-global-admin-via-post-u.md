@@ -2,7 +2,7 @@
 ID: BUG-3132
 aliases: [BUG-3132]
 Title: Self-service privilege escalation to GLOBAL_ADMIN via POST /users/:userId/roles
-Status: OPEN
+Status: DUPLICATE
 Severity: CRITICAL
 Priority: P0
 Type: AUTHORIZATION
@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: a800d8f2
 AffectedModules: [services/api/src/modules/users]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DUPLICATE
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3132 — Self-service privilege escalation to GLOBAL_ADMIN via POST /users/:userId/roles
+
+> **Architect triage, 2026-09-11 — `DUPLICATE`.** Fixed in this session as BUG-3152 — the self-grant path through POST /users/:userId/roles now calls the same escalation guard its sibling does, with a spy asserting both call sites invoke it.
 
 ## Summary
 

@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/payroll]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: PLAN_REQUIRED
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3196 — Payroll calculation runs inline on the HTTP request, per employee, with no idempotency and no crash recovery
+
+> **Architect triage, 2026-09-11 — `PLAN_REQUIRED`.** Payroll calculated inline per employee on the HTTP request is a correctness risk under timeout as much as a performance one. Moving it off the request path changes how a run is observed and resumed, so it needs a design.
 
 ## Summary
 

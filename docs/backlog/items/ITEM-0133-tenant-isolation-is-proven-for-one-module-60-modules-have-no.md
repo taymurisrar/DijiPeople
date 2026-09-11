@@ -3,15 +3,15 @@ ID: ITEM-0133
 aliases: [ITEM-0133]
 Title: Tenant isolation is proven for one module; 60+ modules have no isolation test
 Type: TEST_GAP
-Status: TRIAGE_REQUIRED
+Status: READY
 Priority: P2
 Severity: HIGH
 AffectedModules: [services/api/test]
 Source: REVIEWER
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: PLAN_REQUIRED
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 RelatedBug: 
 RelatedQA: 
 RelatedADR: 
@@ -21,6 +21,8 @@ BlockedBy:
 ---
 
 # ITEM-0133 — Tenant isolation is proven for one module; 60+ modules have no isolation test
+
+> **Architect triage, 2026-09-11 — `PLAN_REQUIRED`.** Isolation proven for one module of sixty-plus. The single most important invariant in this codebase is enforced by convention; a generated per-module suite is the only way to cover it, and that is a design task.
 
 ## Summary
 

@@ -2,7 +2,7 @@
 ID: BUG-3133
 aliases: [BUG-3133]
 Title: Legacy permission-assignment endpoint skips the cannot-exceed-own-access check its matrix sibling applies
-Status: OPEN
+Status: DUPLICATE
 Severity: HIGH
 Priority: P1
 Type: AUTHORIZATION
@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: a800d8f2
 AffectedModules: [services/api/src/modules/roles]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DUPLICATE
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3133 — Legacy permission-assignment endpoint skips the cannot-exceed-own-access check its matrix sibling applies
+
+> **Architect triage, 2026-09-11 — `DUPLICATE`.** Fixed in this session as BUG-3241 (AUTHZ-02). assertPermissionKeysWithinActorAccess is now one method called by create, update and updatePermissions.
 
 ## Summary
 
