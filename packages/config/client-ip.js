@@ -35,12 +35,32 @@ const FORWARDED_FOR_HEADER = "x-forwarded-for";
  *
  * `hopCount` must equal the number of real proxies between the untrusted
  * network and this process (e.g. Cloudflare + Render = 2 — see
- * `resolveTrustProxySetting`/`TRUST_PROXY_HEADERS`). When the chain has too few
- * entries to contain that many genuine hops (`entries.length <= hopCount`),
- * there is no position this can vouch for, so it returns `null` rather than
- * guessing — the caller must not fall back to the leftmost entry either, only
- * to a value it independently trusts (e.g. the raw socket address, or
- * `'unknown'`).
+ * `resolveTrustProxySetting`/`TRUST_PROXY_HEADERS`). The client sits `hopCount`
+ * positions from the right, so an honest chain needs **at least** `hopCount`
+ * entries, not more than that. Only `entries.length < hopCount` is too short to
+ * vouch for a position; it returns `null` then rather than guessing, and the
+ * caller must not fall back to the leftmost entry either, only to a value it
+ * independently trusts (the raw socket address, or `'unknown'`).
+ *
+ * ## The off-by-one this guard used to have, and why it inverted the fix
+ *
+ * The condition was `entries.length <= hopCount`, which rejects exactly the
+ * honest case. A proxy appends the peer it received from, so one trusted hop
+ * (Render alone) yields a one-entry chain that *is* the client, and two
+ * (Cloudflare then Render) yield `client, cf-edge`. Both have `length === hops`,
+ * so both returned `null`, while a chain with an attacker's entry prepended was
+ * long enough to resolve.
+ *
+ * The consequence was the opposite of the hardening intended: every honest
+ * caller collapsed to `'unknown'`, so the public rate limiter keyed all of them
+ * into one shared bucket and the first twenty writes on the whole deployment
+ * locked out everybody — the self-inflicted denial of service BUG-0032 was about,
+ * arriving through the fix for it. Production masked it, because
+ * `cf-connecting-ip` is preferred and Cloudflare is in front; the API is also
+ * directly reachable (INF-06), and that path had no mask.
+ *
+ * Caught by `public-rate-limit.e2e-spec.ts`, which asserts one noisy visitor
+ * cannot lock out a quiet one. The unit tests below now pin all four shapes.
  *
  * This value is only meaningful when the deployment says a proxy is in front;
  * the caller decides that, because only the API knows its own topology.
@@ -57,7 +77,7 @@ function readForwardedForClientIp(headerValue, hopCount = 1) {
     .split(",")
     .map((entry) => entry.trim())
     .filter(Boolean);
-  if (entries.length === 0 || entries.length <= hops) return null;
+  if (entries.length === 0 || entries.length < hops) return null;
   const trimmed = entries[entries.length - hops];
   // IPv6 arrives bracketed and sometimes with a port: [::1]:1234.
   const unbracketed = /^\[(.+)\]/.exec(trimmed);

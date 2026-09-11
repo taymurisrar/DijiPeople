@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 457,
+    "total_records": 458,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -15284,6 +15284,50 @@
           "services/api/src/modules/employees/employees.service.ts"
         ],
         "verification_scope": "See docs/bugs/BUG-3241-legacy-role-permission-grant-and-employee-export-both-skip-t.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3254",
+      "type": "SECURITY",
+      "title": "The forwarded-for hop guard rejected every honest chain, collapsing all callers into one rate-limit bucket",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3254-the-forwarded-for-hop-guard-rejected-every-honest-chain-coll.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "1473af92",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-11",
+        "resolved_at": "2026-09-11"
+      },
+      "affected_modules": [
+        "pkg:config",
+        "services/api/src/common/security"
+      ],
+      "regressions": [
+        "REG-409"
+      ],
+      "qa_scenarios": [
+        "QA-SECURITY-003"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "pkg:config",
+          "services/api/src/common/security"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3254-the-forwarded-for-hop-guard-rejected-every-honest-chain-coll.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

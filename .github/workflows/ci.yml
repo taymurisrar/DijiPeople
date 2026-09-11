@@ -581,6 +581,18 @@ jobs:
         # report-only until observed, and that frame protection is not deferred
         # with it.
         run: npm run test:security-headers
+      - name: Client IP and forwarded-header trust
+        # The trust boundary every rate limit keys on, and it had no test at all
+        # until the fix for RATE-01 shipped an inverted hop guard:
+        # `entries.length <= hopCount` rejects exactly the honest chain, so every
+        # caller collapsed onto one fallback identity and twenty public writes
+        # locked out the whole deployment — BUG-0032's denial of service arriving
+        # through the fix for it. Production masked it behind `cf-connecting-ip`.
+        #
+        # Also runs forwarded-host.test.js, which existed but was wired into no
+        # script and no job, so it had never run. A test nobody executes is not
+        # coverage.
+        run: npm run test:client-ip
 
   database-migration:
     name: Database migration gate

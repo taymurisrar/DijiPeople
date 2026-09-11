@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 347** · automated: 299 · manual: 23 · blocked by infrastructure: 0
+**Scenarios: 348** · automated: 300 · manual: 23 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -281,6 +281,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-RUNTIME-041](../../../docs/qa/scenarios/QA-RUNTIME-041-deleting-a-project-or-customer-refuses-when-dependent-data-e.md) | Deleting a project or customer refuses when dependent data exists, succeeds when it does not | runtime-modules | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/projects/projects.service.spec.ts` | BUG-2007 | REG-397 |
 | [QA-SECURITY-001](../../../docs/qa/scenarios/QA-SECURITY-001-a-refused-cors-origin-returns-a-normal-status-and-no-allow-o.md) | A refused CORS origin returns a normal status and no allow-origin header | authorization | SECURITY | HIGH | AUTOMATED | `services/api/src/config/cors-options.spec.ts` | BUG-0976 | REG-240 |
 | [QA-SECURITY-002](../../../docs/qa/scenarios/QA-SECURITY-002-the-rate-limiter-does-not-trust-a-client-supplied-x-forwarde.md) | The rate limiter does not trust a client-supplied X-Forwarded-For | authorization | UNIT | HIGH | AUTOMATED | `services/api/src/common/security/client-ip.spec.ts` | BUG-3115 | REG-407 |
+| [QA-SECURITY-003](../../../docs/qa/scenarios/QA-SECURITY-003-the-forwarded-for-hop-arithmetic-resolves-the-visitor-not-nu.md) | The forwarded-for hop arithmetic resolves the visitor, not null and not a forged entry | authorization | UNIT | HIGH | AUTOMATED | `packages/config/client-ip.test.js` | BUG-3254 | REG-409 |
 | [QA-SETTINGS-001](../../../docs/qa/scenarios/QA-SETTINGS-001-resolved-settings-reject-arbitrary-context-preview.md) | Resolved settings reject arbitrary context preview | authorization | SECURITY | CRITICAL | AUTOMATED | `services/api/src/modules/tenant-settings/settings-context-authorization.spec.ts` | BUG-0057 | REG-044 |
 | [QA-SETTINGS-002](../../../docs/qa/scenarios/QA-SETTINGS-002-email-providers-offered-are-providers-implemented.md) | Email providers offered are email providers implemented | runtime-modules | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/notifications/email/email-provider-support.spec.ts` | BUG-0050 | REG-053 |
 | [QA-SETTINGS-003](../../../docs/qa/scenarios/QA-SETTINGS-003-a-currency-conversion-uses-the-rate-in-force-on-the-date-it-.md) | A currency conversion uses the rate in force on the date it was given | settings | UNIT | HIGH | AUTOMATED | `services/api/src/modules/tenant-settings/exchange-rate-effective-date.spec.ts` | BUG-0668 | REG-223 |

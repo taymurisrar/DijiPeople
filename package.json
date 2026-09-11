@@ -22,6 +22,7 @@
     "test:platform-currencies": "node --test packages/config/platform-currencies.test.js",
     "test:empty-list-message": "node --test packages/config/empty-list-message.test.js",
     "test:security-headers": "node --test packages/config/security-headers.test.js",
+    "test:client-ip": "node --test packages/config/client-ip.test.js packages/config/forwarded-host.test.js",
     "test:app-urls": "node --test packages/config/app-urls.test.js",
     "test:database-urls": "node --test packages/config/database-urls.test.js",
     "test:env-examples": "node --test packages/config/env-examples.test.js",

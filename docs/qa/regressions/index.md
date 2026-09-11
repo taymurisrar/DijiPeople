@@ -4638,3 +4638,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The spy assertions matter more than the outcome assertions here. This defect's shape is a call site drifting away from a shared rule while still returning the right answer for whichever cases a test happens to cover, so a test that only checks outcomes cannot see the drift arrive. Sibling endpoints sharing a permission pair should share one enforcement method, not two copies of one. |
 | **Fixed** | 2026-09-11 |
 | **Active** | yes |
+
+### REG-409 — A hop guard that rejected the honest chain and accepted the forged one
+
+| | |
+|---|---|
+| **Bug class** | `off-by-one-boundary` |
+| **Module** | `packages/config/client-ip.js` |
+| **Bug record** | BUG-3254 |
+| **Root cause** | `readForwardedForClientIp` indexes the client `hopCount` positions from the right of `X-Forwarded-For`, which is correct, behind a guard that read `entries.length <= hopCount`, which is not. A proxy appends the peer it received from, so an honest chain carries exactly `hopCount` entries — one trusted hop yields a one-entry chain that *is* the visitor, two yield `visitor, cf-edge`. Both returned `null`, so `resolveClientIp` answered `'unknown'` and the public write limiter put every caller in the world into one bucket. A chain with an attacker's entry prepended is one longer, so it passed. The condition was inverted in both directions at once. |
+| **Regression test** | `packages/config/client-ip.test.js`, run by `npm run test:client-ip` |
+| **Scenario** | Both honest shapes resolve to the visitor: `[visitor]` at one hop, `[visitor, cf-edge]` at two. Both attacker-prepended shapes resolve to the same visitor. A chain genuinely shorter than the hop count resolves to `null` rather than guessing. Absent, blank and comma-only headers resolve to `null`. An array header reads its first value; IPv6 is unbracketed and de-ported; a missing, zero, negative or fractional hop count defaults to one rather than zero, since zero would index past the end. |
+| **Proven to fail without the fix** | Restoring `<=` fails the two honest-chain cases immediately, and fails the cross-address assertion in `services/api/test/public-rate-limit.e2e-spec.ts`, which is how the defect was found. The two attacker-prepended cases pass either way — they are there to prove the fix did not widen trust while restoring availability. |
+| **Note** | Two lessons, both general. First, a boundary guard and the index it protects must be derived together: `entries[length - hops]` and `length <= hops` disagree about what `hops` counts, and only one of them can be right. Second, production masked this entirely, because `cf-connecting-ip` is preferred when Cloudflare is in front — a fix verified only against the masked path is not verified. The module had no test file at all, and its sibling `forwarded-host.test.js` existed while being wired into no script and no job, so it had never run once. |
+| **Fixed** | 2026-09-11 |
+| **Active** | yes |

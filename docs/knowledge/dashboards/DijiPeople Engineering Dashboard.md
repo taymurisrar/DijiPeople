@@ -8,8 +8,8 @@
 | | |
 |---|---|
 | Open CRITICAL | **2** |
-| Open HIGH | **38** |
-| Open total | 116 |
+| Open HIGH | **39** |
+| Open total | 117 |
 | Blocked | 2 |
 | Awaiting a product decision | 1 |
 | Deferred | 29 |
@@ -64,6 +64,7 @@
 | [[BUG-3020-records-behind-these-numbers-shows-raw-guids-and-a-count-tha|BUG-3020]] | Records behind these numbers shows raw GUIDs and a count that does not match the metric | UX | HIGH | FIXED | apps/web, api:reporting | FIX_NOW |
 | [[BUG-3115-rate-limiter-trusts-a-forged-x-forwarded-for-and-covers-no-a|BUG-3115]] | Rate limiter trusts a forged X-Forwarded-For and covers no authenticated endpoint | SECURITY | HIGH | FIXED | services/api/src/common/security/client-ip.ts, services/api/src/common/guards/public-rate-limit.guard.ts, services/api/src/common/interceptors/authenticated-rate-limit.interceptor.ts | DONE |
 | [[BUG-3241-legacy-role-permission-grant-and-employee-export-both-skip-t|BUG-3241]] | Legacy role-permission grant and employee export both skip the sibling endpoint's access check | AUTHORIZATION | HIGH | FIXED | api:roles/roles.service.ts, api:employees/employees.service.ts | DONE |
+| [[BUG-3254-the-forwarded-for-hop-guard-rejected-every-honest-chain-coll|BUG-3254]] | The forwarded-for hop guard rejected every honest chain, collapsing all callers into one rate-limit bucket | SECURITY | HIGH | FIXED | pkg:config, services/api/src/common/security | DONE |
 | [[ITEM-0124-production-advisory-gate-blocks-every-release-to-main-and-np|ITEM-0124]] | Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile | SECURITY | HIGH | READY | scripts/check-production-advisories.mjs | FIX_NOW |
 
 ## Product Decisions Needed
@@ -255,6 +256,7 @@
 | [[BUG-3020-records-behind-these-numbers-shows-raw-guids-and-a-count-tha|BUG-3020]] | Records behind these numbers shows raw GUIDs and a count that does not match the metric | UX | HIGH | FIXED | apps/web, api:reporting | FIX_NOW |
 | [[BUG-3115-rate-limiter-trusts-a-forged-x-forwarded-for-and-covers-no-a|BUG-3115]] | Rate limiter trusts a forged X-Forwarded-For and covers no authenticated endpoint | SECURITY | HIGH | FIXED | services/api/src/common/security/client-ip.ts, services/api/src/common/guards/public-rate-limit.guard.ts, services/api/src/common/interceptors/authenticated-rate-limit.interceptor.ts | DONE |
 | [[BUG-3241-legacy-role-permission-grant-and-employee-export-both-skip-t|BUG-3241]] | Legacy role-permission grant and employee export both skip the sibling endpoint's access check | AUTHORIZATION | HIGH | FIXED | api:roles/roles.service.ts, api:employees/employees.service.ts | DONE |
+| [[BUG-3254-the-forwarded-for-hop-guard-rejected-every-honest-chain-coll|BUG-3254]] | The forwarded-for hop guard rejected every honest chain, collapsing all callers into one rate-limit bucket | SECURITY | HIGH | FIXED | pkg:config, services/api/src/common/security | DONE |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | VERIFIED | app:admin | DONE |
@@ -549,7 +551,7 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 326 |
+| Bug records | 327 |
 | Backlog items | 131 |
 | Known bug patterns | 34 |
 | QA runs | 32 |
