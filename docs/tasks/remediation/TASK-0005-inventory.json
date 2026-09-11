@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 596,
+    "total_records": 612,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -19468,6 +19468,280 @@
       "verification_result": "NOT_VERIFIED"
     },
     {
+      "record_id": "BUG-3373",
+      "type": "UX",
+      "title": "Web paints the operating-system dark theme before the tenant Light default arrives",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3373-web-paints-the-operating-system-dark-theme-before-the-tenant.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "cbd9b812",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-11",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3373-web-paints-the-operating-system-dark-theme-before-the-tenant.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3374",
+      "type": "AUTHORIZATION",
+      "title": "Settings Customization and its twelve child routes silently redirect to Roles",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3374-settings-customization-and-its-twelve-child-routes-silently-.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "cbd9b812",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-11",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "customization"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "customization"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3374-settings-customization-and-its-twelve-child-routes-silently-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3375",
+      "type": "UX",
+      "title": "The Notification Rules screen edits preferences and cannot reach NotificationRule at all",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3375-the-notification-rules-screen-edits-preferences-and-cannot-r.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "cbd9b812",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-11",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "notifications",
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "notifications",
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3375-the-notification-rules-screen-edits-preferences-and-cannot-r.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3376",
+      "type": "DATA_INTEGRITY",
+      "title": "Runtime lookups fetch one unpaged page and filter it in the browser, hiding every record past the server page size",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3376-runtime-lookups-fetch-one-unpaged-page-and-filter-it-in-the-.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "cbd9b812",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-11",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "apps/admin"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3376-runtime-lookups-fetch-one-unpaged-page-and-filter-it-in-the-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3377",
+      "type": "UX",
+      "title": "Admin lookup controls still carry the nested-interactive listbox that BUG-1956 fixed only in web",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3377-admin-lookup-controls-still-carry-the-nested-interactive-lis.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "cbd9b812",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-11",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3377-admin-lookup-controls-still-carry-the-nested-interactive-lis.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3378",
+      "type": "UX",
+      "title": "The responsive runtime tab strip hides a measurement copy from screen readers while leaving thirteen buttons in the tab order",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3378-the-responsive-runtime-tab-strip-hides-a-measurement-copy-fr.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "cbd9b812",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-11",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3378-the-responsive-runtime-tab-strip-hides-a-measurement-copy-fr.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3379",
+      "type": "UX",
+      "title": "A delivery log row says Not delivered and carries nothing that explains why",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3379-a-delivery-log-row-says-not-delivered-and-carries-nothing-th.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "cbd9b812",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-11",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "notifications",
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "notifications",
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3379-a-delivery-log-row-says-not-delivered-and-carries-nothing-th.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
       "record_id": "ITEM-0001",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md",
@@ -26437,6 +26711,396 @@
           "api:tenant-settings"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0162-session-timeout-configuration-lives-in-two-places-that-disag.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0163",
+      "type": "UX",
+      "title": "Give every lookup one behaviour: an openable label, one implementation, and a reference route that is not an allowlist",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "READY",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0163-give-every-lookup-one-behaviour-an-openable-label-one-implem.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-11",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "apps/admin"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0163-give-every-lookup-one-behaviour-an-openable-label-one-implem.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0164",
+      "type": "UX",
+      "title": "An organization hierarchy viewer reachable from the employee record",
+      "severity": "",
+      "priority": "P2",
+      "current_status": "READY",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0164-an-organization-hierarchy-viewer-reachable-from-the-employee.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-11",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "employees",
+        "organization"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "employees",
+          "organization"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0164-an-organization-hierarchy-viewer-reachable-from-the-employee.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0165",
+      "type": "UX",
+      "title": "Present an employee's primary location and authorised work sites as one control",
+      "severity": "",
+      "priority": "P2",
+      "current_status": "READY",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0165-present-an-employee-s-primary-location-and-authorised-work-s.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-11",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "employees",
+        "attendance"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "employees",
+          "attendance"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0165-present-an-employee-s-primary-location-and-authorised-work-s.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0166",
+      "type": "UX",
+      "title": "Move data-loss prevention captures off the employee record page into the Agent surface",
+      "severity": "",
+      "priority": "P2",
+      "current_status": "READY",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0166-move-data-loss-prevention-captures-off-the-employee-record-p.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-11",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "agent"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "agent"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0166-move-data-loss-prevention-captures-off-the-employee-record-p.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0167",
+      "type": "ARCHITECTURE",
+      "title": "Adopt the employee record shell across the record pages that still hand-roll their own",
+      "severity": "",
+      "priority": "P2",
+      "current_status": "READY",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0167-adopt-the-employee-record-shell-across-the-record-pages-that.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-11",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0167-adopt-the-employee-record-shell-across-the-record-pages-that.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0168",
+      "type": "FOLLOW_UP",
+      "title": "A retry action on an email delivery log",
+      "severity": "",
+      "priority": "P2",
+      "current_status": "READY",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0168-a-retry-action-on-an-email-delivery-log.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-11",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "notifications",
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "notifications",
+          "apps/web"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0168-a-retry-action-on-an-email-delivery-log.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0169",
+      "type": "UX",
+      "title": "Notification catalog hygiene: dead events, duplicate leave pairs, two key conventions and placeholder copy",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "READY",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0169-notification-catalog-hygiene-dead-events-duplicate-leave-pai.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-11",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "notifications",
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "notifications",
+          "apps/web"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0169-notification-catalog-hygiene-dead-events-duplicate-leave-pai.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0170",
+      "type": "FOLLOW_UP",
+      "title": "Eleven tenant modules emit no notifications at all",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "READY",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0170-eleven-tenant-modules-emit-no-notifications-at-all.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-11",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "notifications",
+        "recruitment",
+        "documents",
+        "policies",
+        "contracts",
+        "support-cases",
+        "business-trips",
+        "benefits",
+        "compensation",
+        "projects",
+        "sla",
+        "legal",
+        "partners"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "notifications",
+          "recruitment",
+          "documents",
+          "policies",
+          "contracts",
+          "support-cases",
+          "business-trips",
+          "benefits",
+          "compensation",
+          "projects",
+          "sla",
+          "legal",
+          "partners"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0170-eleven-tenant-modules-emit-no-notifications-at-all.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0171",
+      "type": "ARCHITECTURE",
+      "title": "A second dispatch path sends email without consulting NotificationRule",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "READY",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0171-a-second-dispatch-path-sends-email-without-consulting-notifi.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-11",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "notifications",
+        "payroll",
+        "payslips",
+        "auth",
+        "reporting"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "notifications",
+          "payroll",
+          "payslips",
+          "auth",
+          "reporting"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0171-a-second-dispatch-path-sends-email-without-consulting-notifi.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

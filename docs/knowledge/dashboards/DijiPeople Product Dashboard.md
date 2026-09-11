@@ -117,6 +117,8 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-3330-plan-cards-quote-a-per-seat-price-as-the-whole-monthly-charg|BUG-3330]] | Plan cards quote a per-seat price as the whole monthly charge and ignore the seat count entirely | UX | HIGH | OPEN | apps/web, api:billing | FIX_NOW |
 | [[BUG-3331-subscribe-is-enabled-for-a-tenant-that-already-has-an-active|BUG-3331]] | Subscribe is enabled for a tenant that already has an active subscription and can only ever return 409 | UX | HIGH | OPEN | apps/web, api:billing | PLAN_REQUIRED |
 | [[BUG-3332-plan-cards-truncate-to-eight-features-so-growth-and-enterpri|BUG-3332]] | Plan cards truncate to eight features so Growth and Enterprise advertise identical capability | UX | HIGH | OPEN | apps/web, api:billing | FIX_NOW |
+| [[BUG-3375-the-notification-rules-screen-edits-preferences-and-cannot-r|BUG-3375]] | The Notification Rules screen edits preferences and cannot reach NotificationRule at all | UX | HIGH | OPEN | notifications, apps/web | PLAN_REQUIRED |
+| [[BUG-3376-runtime-lookups-fetch-one-unpaged-page-and-filter-it-in-the-|BUG-3376]] | Runtime lookups fetch one unpaged page and filter it in the browser, hiding every record past the server page size | DATA_INTEGRITY | HIGH | OPEN | apps/web, apps/admin | PLAN_REQUIRED |
 | [[BUG-1668-tenant-workspace-pages-scroll-horizontally-at-mobile-width|BUG-1668]] | Tenant workspace pages scroll horizontally at mobile width | UX | MEDIUM | FIXED | views | DONE |
 | [[BUG-1950-every-tenant-workspace-screen-renders-the-same-h1-so-no-page|BUG-1950]] | Every tenant workspace screen renders the same h1, so no page announces what it is | UX | MEDIUM | FIXED | apps/web | DONE |
 | [[BUG-1951-most-tenant-workspace-pages-render-no-main-landmark-includin|BUG-1951]] | Most tenant workspace pages render no main landmark, including every settings category | UX | MEDIUM | FIXED | apps/web | DONE |
@@ -142,7 +144,12 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-3335-subscription-plans-screen-overflows-horizontally-on-phones-a|BUG-3335]] | Subscription plans screen overflows horizontally on phones and loses its comparison layout below 1280px | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
 | [[BUG-3336-subscription-settings-has-no-loading-or-error-boundary-and-r|BUG-3336]] | Subscription settings has no loading or error boundary and renders a failed load as access denied | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
 | [[BUG-3345-subscription-screens-paint-every-primary-action-in-body-text|BUG-3345]] | Subscription screens paint every primary action in body-text black instead of the tenant brand colour | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
+| [[BUG-3373-web-paints-the-operating-system-dark-theme-before-the-tenant|BUG-3373]] | Web paints the operating-system dark theme before the tenant Light default arrives | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
+| [[BUG-3377-admin-lookup-controls-still-carry-the-nested-interactive-lis|BUG-3377]] | Admin lookup controls still carry the nested-interactive listbox that BUG-1956 fixed only in web | UX | MEDIUM | OPEN | apps/admin | FIX_NOW |
+| [[BUG-3378-the-responsive-runtime-tab-strip-hides-a-measurement-copy-fr|BUG-3378]] | The responsive runtime tab strip hides a measurement copy from screen readers while leaving thirteen buttons in the tab order | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
 | [[ITEM-0159-plans-and-features-screen-fails-several-accessibility-basics|ITEM-0159]] | Plans and Features screen fails several accessibility basics for a data-comparison surface | UX | MEDIUM | READY | apps/web | FIX_NOW |
+| [[ITEM-0163-give-every-lookup-one-behaviour-an-openable-label-one-implem|ITEM-0163]] | Give every lookup one behaviour: an openable label, one implementation, and a reference route that is not an allowlist | UX | MEDIUM | READY | apps/web, apps/admin | PLAN_REQUIRED |
+| [[ITEM-0169-notification-catalog-hygiene-dead-events-duplicate-leave-pai|ITEM-0169]] | Notification catalog hygiene: dead events, duplicate leave pairs, two key conventions and placeholder copy | UX | MEDIUM | READY | notifications, apps/web | FIX_NOW |
 | [[BUG-1964-record-headings-and-dialog-titles-are-singularised-by-stripp|BUG-1964]] | Record headings and dialog titles are singularised by stripping a trailing s | UX | LOW | FIXED | apps/web | DONE |
 | [[BUG-2010-the-dashboard-recent-changes-list-renders-unformatted-iso-86|BUG-2010]] | The dashboard Recent changes list renders unformatted ISO-8601 timestamps | UX | LOW | FIXED | apps/web | DONE |
 | [[BUG-2017-the-inbox-related-record-column-renders-a-bare-uuid-with-no-|BUG-2017]] | The inbox Related record column renders a bare UUID with no label and no link | UX | LOW | FIXED | apps/web | DONE |
@@ -150,6 +157,10 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-2384-tenant-record-shows-primary-tenant-owner-unassigned-while-it|BUG-2384]] | Tenant record shows Primary Tenant Owner Unassigned while its readiness check reports one active Tenant Owner | UX | LOW | FIXED | api:tenant-control-plane, apps/admin | DONE |
 | [[BUG-2657-analytics-caveat-panels-list-the-same-note-twice-in-differen|BUG-2657]] | Analytics caveat panels list the same note twice in different wording | UX | LOW | FIXED | api:reporting | DONE |
 | [[BUG-3021-workspace-switcher-in-the-avatar-menu-overflows-horizontally|BUG-3021]] | Workspace switcher in the avatar menu overflows horizontally and shows a scrollbar | UX | LOW | FIXED | apps/web | FIX_NOW |
+| [[BUG-3379-a-delivery-log-row-says-not-delivered-and-carries-nothing-th|BUG-3379]] | A delivery log row says Not delivered and carries nothing that explains why | UX | LOW | OPEN | notifications, apps/web | FIX_NOW |
+| [[ITEM-0164-an-organization-hierarchy-viewer-reachable-from-the-employee|ITEM-0164]] | An organization hierarchy viewer reachable from the employee record | UX | — | READY | apps/web, employees, organization | PLAN_REQUIRED |
+| [[ITEM-0165-present-an-employee-s-primary-location-and-authorised-work-s|ITEM-0165]] | Present an employee's primary location and authorised work sites as one control | UX | — | READY | apps/web, employees, attendance | FIX_NOW |
+| [[ITEM-0166-move-data-loss-prevention-captures-off-the-employee-record-p|ITEM-0166]] | Move data-loss prevention captures off the employee record page into the Agent surface | UX | — | READY | apps/web, agent | FIX_NOW |
 
 ## How to read this
 

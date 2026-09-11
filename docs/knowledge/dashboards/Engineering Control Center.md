@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **1** |
+| Active sessions | **2** |
 | Active parent tasks | 4 |
 | Active work packages | 4 |
 | Blocked work packages | 0 |
@@ -15,7 +15,7 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **4** |
-| Open HIGH | 83 |
+| Open HIGH | 86 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 9 |
 | QA coverage gaps | 142 |
@@ -30,12 +30,12 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 174 |
-| No next action | 174 |
+| No acceptance criteria | 190 |
+| No next action | 190 |
 | Aging — 7d / 30d / 90d | 100 / 0 / 0 |
-| Architecture and technical debt | 6 |
-| Security gaps | 28 |
-| Database gaps | 18 |
+| Architecture and technical debt | 8 |
+| Security gaps | 29 |
+| Database gaps | 19 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -49,6 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
+| [[SESSION-0101-review-and-file-eight-ui-ux-and-settings-findings-from-demo-|SESSION-0101]] | — | Review and file eight UI/UX and settings findings from demo walkthrough | ACTIVE | `agent/ux-findings-audit` | `develop` | — | NO |
 | [[SESSION-0099-review-tenant-subscription-plans-features-screen|SESSION-0099]] | — | Review tenant subscription Plans & Features screen | ACTIVE | `agent/review-subscription-plans-screen` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
@@ -276,7 +277,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 174 |
+| Open total | 190 |
 | Blocked | 2 |
 | Deferred | 92 |
 | Awaiting a product decision | 9 |
