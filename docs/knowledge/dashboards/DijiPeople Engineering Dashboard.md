@@ -503,13 +503,13 @@
 ## Recent Engineering History
 
 - [[2026-09-11-closeout-sweep-658eb39c|Engineering History — Closeout sweep]]
+- [[2026-09-11-auth-session-revocation-690cacbc|Engineering History — Auth session revocation]]
 - [[2026-09-10-release-settings-entitlements-254e8d2b|Engineering History — Release settings entitlements]]
 - [[2026-09-10-r2-durable-object-storage-11afbd50|Engineering History — Durable object storage on Cloudflare R2 (FILE-01/INF-05)]]
 - [[2026-09-09-settings-plan-entitlements-c3627cad|Engineering History — Settings plan entitlements]]
 - [[2026-08-31-session-redirect-loop-77abf947|Engineering History — Session redirect loop]]
 - [[2026-08-31-reports-analytics-platform-d833e694|Engineering History — Reports analytics platform]]
 - [[2026-08-31-email-sink-visibility-1b60690f|Engineering History — Email sink visibility]]
-- [[2026-08-31-approvals-inbox-decisions-d084dd7b|Engineering History — Approvals inbox decisions]]
 
 ## Recent Releases
 
@@ -634,7 +634,7 @@
 | Backlog items | 162 |
 | Known bug patterns | 34 |
 | QA runs | 32 |
-| Engineering history records | 77 |
+| Engineering history records | 78 |
 | Release records | 10 |
 | Module notes | 30 |
 | Architecture notes | 22 |

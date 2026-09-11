@@ -6,19 +6,19 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 2** · completed: 95
+**Active: 1** · completed: 96
 
 ## Active
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
-| [SESSION-0100](../../docs/sessions/SESSION-0100-investigate-access-token-expiry-and-session-revocation-on-th.md) | — | Investigate access token expiry and session revocation on the tenant web app | ACTIVE | `agent/auth-session-revocation` | `develop` | — | 2026-09-11T21:49:42.277Z |
 | [SESSION-0099](../../docs/sessions/SESSION-0099-review-tenant-subscription-plans-features-screen.md) | — | Review tenant subscription Plans & Features screen | ACTIVE | `agent/review-subscription-plans-screen` | `develop` | — | 2026-09-11T20:30:13.810Z |
 
 ## Completed
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0100](../../docs/sessions/SESSION-0100-investigate-access-token-expiry-and-session-revocation-on-th.md) | — | Investigate access token expiry and session revocation on the tenant web app | COMPLETE | `agent/auth-session-revocation` | `develop` | — | 2026-09-11T21:49:42.277Z |
 | [SESSION-0098](../../docs/sessions/SESSION-0098-closeout-sweep-close-every-open-session-bug-and-backlog-item.md) | — | Closeout sweep: close every open session, bug and backlog item | COMPLETE | `agent/closeout-sweep` | `develop` | — | 2026-09-10T19:06:45.272Z |
 | [SESSION-0097](../../docs/sessions/SESSION-0097-durable-object-storage-move-persistent-files-to-cloudflare-r.md) | — | Durable object storage: move persistent files to Cloudflare R2 (FILE-01/INF-05) | COMPLETE | `agent/r2-durable-storage` | `develop` | — | 2026-09-10T18:33:18.243Z |
 | [SESSION-0096](../../docs/sessions/SESSION-0096-full-technical-health-audit-of-dijipeople.md) | — | Full technical health audit of DijiPeople | COMPLETE | `agent/full-technical-audit` | `develop` | — | 2026-09-10T07:40:10.716Z |
