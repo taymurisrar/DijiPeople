@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { Public } from '../../../common/decorators/public.decorator';
 import type { StripeWebhookRequest } from '../types/stripe-webhook-request.type';
+import type { StripeEvent } from '../constants/stripe.constants';
 import { BillingService } from '../services/billing.service';
 import {
   WebhookService,
@@ -74,7 +75,15 @@ export class StripeWebhookController {
       });
     }
 
-    let event;
+    /*
+     * Annotated rather than inferred. `verifyWebhookSignature` has no declared
+     * return type, so a bare `let event` is `any`, and every later read of
+     * `event.id` / `event.type` — including the BUG-2462 acknowledgement path
+     * below — silently loses its type. The cast is at the one boundary where
+     * the Stripe SDK hands back a verified event, which is where the shape is
+     * actually known.
+     */
+    let event: StripeEvent;
     try {
       event = this.billingService.verifyWebhookSignature(
         request.body,

@@ -21,6 +21,31 @@ import { AttendanceService } from './attendance.service';
 
 const TENANT = 'tenant-1';
 
+/**
+ * The `data` every assertion below reaches for, typed once.
+ *
+ * `jest.Mock`'s `mock.calls[0][0]` is `any`, so reading `.data.attendanceMode`
+ * off it seven times meant seven unsafe-member-access warnings and no type
+ * checking on the very field names this bug is about — renaming
+ * `attendanceMode` would have left each assertion silently comparing
+ * `undefined` and still passing. Naming the shape once makes them checked.
+ */
+function firstWriteData(mock: jest.Mock): {
+  officeLocationId?: string | null;
+  attendanceMode?: AttendanceMode;
+  status?: string;
+} {
+  return (
+    mock.mock.calls[0][0] as {
+      data: {
+        officeLocationId?: string | null;
+        attendanceMode?: AttendanceMode;
+        status?: string;
+      };
+    }
+  ).data;
+}
+
 function buildUser(): AuthenticatedUser {
   return {
     userId: 'manager-1',
@@ -110,7 +135,7 @@ describe('applyApprovedCorrection — work site (BUG-2504)', () => {
     );
 
     expect(update).toHaveBeenCalledTimes(1);
-    expect(update.mock.calls[0][0].data.officeLocationId).toBe('site-new');
+    expect(firstWriteData(update).officeLocationId).toBe('site-new');
   });
 
   it('keeps the existing site when the correction did not request one', async () => {
@@ -125,7 +150,7 @@ describe('applyApprovedCorrection — work site (BUG-2504)', () => {
 
     await callApply(service, baseRequest(), tx);
 
-    expect(update.mock.calls[0][0].data.officeLocationId).toBe('site-old');
+    expect(firstWriteData(update).officeLocationId).toBe('site-old');
   });
 });
 
@@ -146,9 +171,7 @@ describe('applyApprovedCorrection — work mode (BUG-2504)', () => {
 
     await callApply(service, baseRequest({ requestedWorkMode: 'REMOTE' }), tx);
 
-    expect(update.mock.calls[0][0].data.attendanceMode).toBe(
-      AttendanceMode.REMOTE,
-    );
+    expect(firstWriteData(update).attendanceMode).toBe(AttendanceMode.REMOTE);
   });
 
   it('re-derives status from the APPROVED mode, not the mode as it was', async () => {
@@ -179,7 +202,7 @@ describe('applyApprovedCorrection — work mode (BUG-2504)', () => {
       tx,
     );
 
-    expect(update.mock.calls[0][0].data.status).toBe('LATE');
+    expect(firstWriteData(update).status).toBe('LATE');
   });
 
   it('leaves the mode untouched when the correction did not request one', async () => {
@@ -198,9 +221,7 @@ describe('applyApprovedCorrection — work mode (BUG-2504)', () => {
 
     await callApply(service, baseRequest(), tx);
 
-    expect(update.mock.calls[0][0].data.attendanceMode).toBe(
-      AttendanceMode.OFFICE,
-    );
+    expect(firstWriteData(update).attendanceMode).toBe(AttendanceMode.OFFICE);
   });
 
   it('refuses a FIELD-mode approval rather than silently doing nothing', async () => {
@@ -246,9 +267,7 @@ describe('applyApprovedCorrection — the no-linked-entry path', () => {
       tx,
     );
 
-    expect(create.mock.calls[0][0].data.attendanceMode).toBe(
-      AttendanceMode.REMOTE,
-    );
-    expect(create.mock.calls[0][0].data.officeLocationId).toBe('site-new');
+    expect(firstWriteData(create).attendanceMode).toBe(AttendanceMode.REMOTE);
+    expect(firstWriteData(create).officeLocationId).toBe('site-new');
   });
 });

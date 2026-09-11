@@ -1,3 +1,11 @@
+---
+ID: ADR-0007
+aliases: [ADR-0007]
+Title: Remove the inert apps/web runtime registries rather than revive them
+Status: ACCEPTED
+CreatedAt: 2026-09-11
+UpdatedAt: 2026-09-11
+---
 # ADR-0007 — Remove the inert `apps/web` runtime registries rather than revive them
 
 ## Status

@@ -393,10 +393,7 @@ export class AnalyticsService {
     await Promise.all(
       lookupFields.map(async (field) => {
         const rawValues = resultRows.map((row) => row.values[field.key]);
-        const labels = await this.executor.resolveFieldLabels(
-          field,
-          rawValues,
-        );
+        const labels = await this.executor.resolveFieldLabels(field, rawValues);
         const nullLabel = field.nullLabel ?? null;
 
         for (const row of resultRows) {

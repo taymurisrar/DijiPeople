@@ -106,9 +106,7 @@ describe('ReportQueryExecutor.resolveFieldLabels', () => {
   it('returns an empty map for a field with no labelLookup, without querying', async () => {
     const { executor, departmentFindMany } = buildExecutor();
 
-    const labels = await executor.resolveFieldLabels(plainField, [
-      'anything',
-    ]);
+    const labels = await executor.resolveFieldLabels(plainField, ['anything']);
 
     expect(departmentFindMany).not.toHaveBeenCalled();
     expect(labels.size).toBe(0);

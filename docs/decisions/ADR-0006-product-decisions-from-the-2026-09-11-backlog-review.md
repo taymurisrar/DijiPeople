@@ -1,3 +1,11 @@
+---
+ID: ADR-0006
+aliases: [ADR-0006]
+Title: Seven product decisions from the 2026-09-11 backlog review
+Status: ACCEPTED
+CreatedAt: 2026-09-11
+UpdatedAt: 2026-09-11
+---
 # ADR-0006 — Seven product decisions from the 2026-09-11 backlog review
 
 ## Status

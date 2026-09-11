@@ -14,10 +14,10 @@
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
-| Open CRITICAL | **0** |
-| Open HIGH | 36 |
-| Awaiting Architect triage | 5 |
-| Owner decisions pending | 0 |
+| Open CRITICAL | **2** |
+| Open HIGH | 38 |
+| Awaiting Architect triage | 0 |
+| Owner decisions pending | 1 |
 | QA coverage gaps | 142 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -30,11 +30,11 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 124 |
-| No next action | 124 |
-| Aging — 7d / 30d / 90d | 112 / 0 / 0 |
-| Architecture and technical debt | 8 |
-| Security gaps | 11 |
+| No acceptance criteria | 116 |
+| No next action | 116 |
+| Aging — 7d / 30d / 90d | 101 / 0 / 0 |
+| Architecture and technical debt | 6 |
+| Security gaps | 15 |
 | Database gaps | 9 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
@@ -100,11 +100,17 @@ what they own, and what the backlog and QA systems currently say.
 
 ## Open Critical
 
-_None. Nothing open at CRITICAL._
+| ID | Title | Type | Severity | Status | Affected | Architect |
+|---|---|---|---|---|---|---|
+| [[BUG-3110-a-live-production-database-password-sits-permanently-in-the-|BUG-3110]] | A live production database password sits permanently in the public git history | SECURITY | CRITICAL | OPEN | services/api | FIX_NOW |
+| [[BUG-3152-post-users-userid-roles-lets-a-delegated-role-assignment-adm|BUG-3152]] | POST /users/:userId/roles lets a delegated role-assignment admin self-grant GLOBAL_ADMIN | AUTHORIZATION | CRITICAL | FIXED | api:users/users.service.ts, api:users/users.controller.ts | DONE |
 
 ## Owner Decisions Pending
 
-_None outstanding._
+Questions where the engineering is understood and the **product answer is**
+**not**. No agent may resolve one by implementing a side of it.
+
+- [[ITEM-0131-production-hr-and-payroll-data-has-no-backup-the-database-is|ITEM-0131]] — **Production HR and payroll data has no backup: the database is on the Neon free plan**
 
 ## QA Coverage Gaps
 
@@ -260,13 +266,13 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 125 |
+| Open total | 116 |
 | Blocked | 2 |
 | Deferred | 29 |
-| Awaiting a product decision | 0 |
-| Awaiting Architect triage | 5 |
+| Awaiting a product decision | 1 |
+| Awaiting Architect triage | 0 |
 
-**A record nobody has triaged is work nobody has decided about.** No ordinary record may stay `TRIAGE_REQUIRED` at the end of a task.
+Every ordinary record carries a disposition.
 
 ## Deployment
 

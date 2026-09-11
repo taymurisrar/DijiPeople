@@ -1,4 +1,12 @@
-# ADR-0006 — An `agent/*` branch with no registered session warns, it does not block
+---
+ID: ADR-0008
+aliases: [ADR-0008]
+Title: An agent/* branch with no registered session warns, it does not block
+Status: ACCEPTED
+CreatedAt: 2026-09-11
+UpdatedAt: 2026-09-11
+---
+# ADR-0008 — An `agent/*` branch with no registered session warns, it does not block
 
 ## Status
 

@@ -130,8 +130,19 @@ describe('LegalService', () => {
 
       await service.resolvePublished(LegalDocumentType.TERMS_OF_SERVICE, null);
 
-      const where =
-        prisma.legalDocument.findMany.mock.calls[0][0].select.versions.where;
+      const { where } = (
+        prisma.legalDocument.findMany.mock.calls[0][0] as {
+          select: {
+            versions: {
+              where: {
+                status: LegalDocumentVersionStatus;
+                effectiveFrom: unknown;
+                OR: unknown[];
+              };
+            };
+          };
+        }
+      ).select.versions;
       expect(where.status).toBe(LegalDocumentVersionStatus.PUBLISHED);
       expect(where.effectiveFrom).toHaveProperty('lte');
       expect(where.OR).toEqual([
@@ -275,7 +286,11 @@ describe('LegalService', () => {
 
       await service.publish('ver_new', 'platform_user_1');
 
-      const archive = prisma.legalDocumentVersion.updateMany.mock.calls[0][0];
+      const archive = prisma.legalDocumentVersion.updateMany.mock
+        .calls[0][0] as {
+        where: unknown;
+        data: { status: LegalDocumentVersionStatus };
+      };
       expect(archive.where).toMatchObject({
         legalDocumentId: 'doc_1',
         status: LegalDocumentVersionStatus.PUBLISHED,
@@ -284,7 +299,13 @@ describe('LegalService', () => {
       // Archived, never deleted — acknowledgements point at it.
       expect(archive.data.status).toBe(LegalDocumentVersionStatus.ARCHIVED);
 
-      const publish = prisma.legalDocumentVersion.update.mock.calls[0][0];
+      const publish = prisma.legalDocumentVersion.update.mock.calls[0][0] as {
+        data: {
+          status: LegalDocumentVersionStatus;
+          publishedByPlatformUser: string;
+          effectiveTo: Date | null;
+        };
+      };
       expect(publish.data.status).toBe(LegalDocumentVersionStatus.PUBLISHED);
       expect(publish.data.publishedByPlatformUser).toBe('platform_user_1');
       expect(publish.data.effectiveTo).toBeNull();
@@ -388,7 +409,10 @@ describe('LegalService', () => {
       expect(tx.legalDocumentAcknowledgement.create).toHaveBeenCalled();
       expect(prisma.legalDocumentAcknowledgement.create).not.toHaveBeenCalled();
 
-      const data = tx.legalDocumentAcknowledgement.create.mock.calls[0][0].data;
+      const { data } = tx.legalDocumentAcknowledgement.create.mock
+        .calls[0][0] as {
+        data: { subjectEmail: string };
+      };
       expect(data.subjectEmail).toBe('person@example.com');
     });
   });

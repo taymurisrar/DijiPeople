@@ -182,23 +182,36 @@ artifacts to server logs.
 
 ### Users Settings Module
 
-The canonical route is `/settings/security-access/users`, rendered by the
-settings runtime like every other catalogue item.
+The canonical route is `/settings/security-access/identities/users`, rendered by
+the settings runtime like every other catalogue item. It is the **only** user
+management screen in the tenant product.
 
-`/settings/access/users` is **not** a redirect and never was. It is a second,
-fully implemented surface — the "Users & Access" operational view, which loads
-roles, users, business units and teams together and presents them as one
-expandable table. Two live user-management screens exist, and the canonical
-document claimed one of them was a redirect to the other (BUG-0045).
+Three older paths redirect to it and no longer have implementations behind them.
+They are named in the history below rather than here, because naming a dead route
+outside a blockquote is a claim that it resolves — which is the mistake this
+section has now made twice.
 
-The decision, recorded here rather than left implicit: **the runtime route is
-canonical for the settings catalogue**, because metadata-driven UI is the
-default and the catalogue must have exactly one entry per item.
-`/settings/access/users` stays as a deep-dive reached from it, on the same
-grounds the module already claims for itself — user lifecycle, role and team
-assignment and effective-access diagnostics are compound operations the generic
-list cannot express. It is a specialised view of the same data, not a rival
-catalogue entry, and it does not appear in the sidebar.
+> **History, and why this section is short.** This document was wrong about user
+> management twice, in opposite directions.
+>
+> First it claimed `/settings/access/users` was a redirect when it was a second
+> live implementation (BUG-0045). Having corrected that, it then recorded a
+> deliberate decision to *keep* that surface as a specialised deep-dive, on the
+> grounds that user lifecycle, role assignment and effective-access diagnostics
+> are compound operations a generic list cannot express.
+>
+> ITEM-0107 then found **four** user-management implementations —
+> `/users`, `/settings/access/users`, `/settings/security-access/users` and the
+> runtime one — two already unreachable behind redirects, and none of them linked
+> from the canonical screen. All three of the others now redirect to
+> `/settings/security-access/identities/users` and their implementations are
+> deleted. The compound operations the deep-dive was kept for live on the
+> canonical screen.
+>
+> The generalisable lesson, since this file made the same mistake twice: an
+> architecture document that records *why a duplicate is allowed to exist* is
+> making the duplicate's argument for it. Four implementations accumulated while
+> this section explained that two of them were fine.
 
 Create User creates the security identity and links an existing Employee by a
 searchable Employee lookup. It does not create a duplicate Employee. Roles are
@@ -454,7 +467,8 @@ compound operation the generic renderer cannot express.
 
 | Route | Purpose | Visibility |
 | --- | --- | --- |
-| `/settings/access`, `/settings/access/roles`, `/settings/access/teams`, `/settings/access/users` | Role, team and user operational views | Private; sensitive |
+| `/settings/access`, `/settings/access/roles`, `/settings/access/teams` | Role and team operational views | Private; sensitive |
+| `/settings/security-access/identities/users` | The one user management screen; three older paths redirect here, see Users Settings Module (ITEM-0107) | Private; sensitive |
 | `/settings/approval-matrices` | Approval routing | Private; cross-module policy |
 | `/settings/billing`, `/settings/subscription` | Subscription lifecycle | Private; financial |
 | `/settings/branding` | Identity, assets, theme, typography, density | Public-safe subset, private editor |

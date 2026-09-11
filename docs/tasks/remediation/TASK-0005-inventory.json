@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 452,
+    "total_records": 457,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -12133,21 +12133,26 @@
       "title": "Projects and customers can be created but never deleted",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "OPEN",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-2007-projects-and-customers-can-be-created-but-never-deleted.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "eb457d9d",
         "created_at": "2026-08-29",
         "updated_at": "2026-09-11",
-        "resolved_at": ""
+        "resolved_at": "2026-09-11"
       },
       "affected_modules": [
-        "services/api/src/modules/projects"
+        "services/api/src/modules/projects",
+        "apps/web"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-397"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-041"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -13486,22 +13491,26 @@
       "title": "Stripe subscription webhooks fail because the customer resolves to no tenant",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-2462-stripe-subscription-webhooks-fail-because-the-customer-resol.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "39d8ddc4",
         "created_at": "2026-08-30",
-        "updated_at": "2026-08-30",
-        "resolved_at": ""
+        "updated_at": "2026-09-11",
+        "resolved_at": "2026-09-11"
       },
       "affected_modules": [
         "api:billing",
         "api:super-admin"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-405"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-029"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -13657,13 +13666,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-2494-check-out-re-validates-check-in-preconditions-and-traps-the-.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "c4ffd13b",
         "created_at": "2026-08-30",
-        "updated_at": "2026-08-30",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -13699,13 +13708,13 @@
       "severity": "MEDIUM",
       "priority": "P2",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-2495-the-under-investigation-tile-counts-incidents-nobody-is-inve.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "c4ffd13b",
         "created_at": "2026-08-30",
-        "updated_at": "2026-08-30",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -13742,21 +13751,25 @@
       "title": "Approving a correction never applies the requested work mode, work site or overtime",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-2504-approving-a-correction-never-applies-the-requested-work-mode.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "ade1fea7",
         "created_at": "2026-08-30",
-        "updated_at": "2026-08-30",
-        "resolved_at": ""
+        "updated_at": "2026-09-11",
+        "resolved_at": "2026-09-11"
       },
       "affected_modules": [
         "services/api/src/modules/attendance"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-404"
+      ],
+      "qa_scenarios": [
+        "QA-ATTENDANCE-012"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -13908,22 +13921,26 @@
       "title": "The correction work-site selector is never populated for an employee",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-2508-the-correction-work-site-selector-is-never-populated-for-an-.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "ade1fea7",
         "created_at": "2026-08-30",
-        "updated_at": "2026-08-30",
-        "resolved_at": ""
+        "updated_at": "2026-09-11",
+        "resolved_at": "2026-09-11"
       },
       "affected_modules": [
         "apps/web",
         "services/api/src/modules/attendance-integrations"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-402"
+      ],
+      "qa_scenarios": [
+        "QA-ATTENDANCE-010"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -14120,22 +14137,26 @@
       "title": "A correction request cannot be withdrawn by the person who filed it",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-2573-a-correction-request-cannot-be-withdrawn-by-the-person-who-f.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "fba846d1",
         "created_at": "2026-08-30",
-        "updated_at": "2026-08-30",
-        "resolved_at": ""
+        "updated_at": "2026-09-11",
+        "resolved_at": "2026-09-11"
       },
       "affected_modules": [
         "services/api/src/modules/attendance",
         "apps/web"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-403"
+      ],
+      "qa_scenarios": [
+        "QA-ATTENDANCE-011"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -14160,22 +14181,26 @@
       "title": "Expired subscription orders are never swept: abandonExpired has no caller and the API has no scheduler",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-2618-expired-subscription-orders-are-never-swept-abandonexpired-h.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "8d400641",
         "created_at": "2026-08-30",
-        "updated_at": "2026-08-30",
-        "resolved_at": ""
+        "updated_at": "2026-09-11",
+        "resolved_at": "2026-09-11"
       },
       "affected_modules": [
         "billing",
         "super-admin"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-401"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-028"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -14851,13 +14876,13 @@
       "severity": "MEDIUM",
       "priority": "P2",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-2888-an-externally-hosted-release-is-invisible-to-the-desktop-age.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "4ee7b2cd",
         "created_at": "2026-09-09",
-        "updated_at": "2026-09-09",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -14974,22 +14999,26 @@
       "title": "Reports and Analytics offers surfaces and reports for capabilities the plan does not include",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3007-reports-and-analytics-offers-surfaces-and-reports-for-capabi.md",
         "provenance": "USER_REPORT",
         "detected_in_sha": "6f841a15",
         "created_at": "2026-09-09",
-        "updated_at": "2026-09-09",
-        "resolved_at": ""
+        "updated_at": "2026-09-11",
+        "resolved_at": "2026-09-11"
       },
       "affected_modules": [
         "apps/web",
         "services/api/src/modules/reporting"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-398"
+      ],
+      "qa_scenarios": [
+        "QA-REPORTS-001"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -15014,22 +15043,26 @@
       "title": "Records behind these numbers shows raw GUIDs and a count that does not match the metric",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3020-records-behind-these-numbers-shows-raw-guids-and-a-count-tha.md",
         "provenance": "USER_REPORT",
         "detected_in_sha": "72d9db1f",
         "created_at": "2026-09-09",
-        "updated_at": "2026-09-09",
-        "resolved_at": ""
+        "updated_at": "2026-09-11",
+        "resolved_at": "2026-09-11"
       },
       "affected_modules": [
         "apps/web",
         "services/api/src/modules/reporting"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-399"
+      ],
+      "qa_scenarios": [
+        "QA-REPORTS-002"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -15054,27 +15087,203 @@
       "title": "Workspace switcher in the avatar menu overflows horizontally and shows a scrollbar",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3021-workspace-switcher-in-the-avatar-menu-overflows-horizontally.md",
         "provenance": "USER_REPORT",
         "detected_in_sha": "72d9db1f",
         "created_at": "2026-09-09",
-        "updated_at": "2026-09-09",
-        "resolved_at": ""
+        "updated_at": "2026-09-11",
+        "resolved_at": "2026-09-11"
       },
       "affected_modules": [
         "apps/web"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-400"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-063"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
           "apps/web"
         ],
         "verification_scope": "See docs/bugs/BUG-3021-workspace-switcher-in-the-avatar-menu-overflows-horizontally.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3110",
+      "type": "SECURITY",
+      "title": "A live production database password sits permanently in the public git history",
+      "severity": "CRITICAL",
+      "priority": "P0",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3110-a-live-production-database-password-sits-permanently-in-the-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "9b2fc338",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-11",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3110-a-live-production-database-password-sits-permanently-in-the-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3115",
+      "type": "SECURITY",
+      "title": "Rate limiter trusts a forged X-Forwarded-For and covers no authenticated endpoint",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3115-rate-limiter-trusts-a-forged-x-forwarded-for-and-covers-no-a.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "f26357a8",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": "2026-09-11"
+      },
+      "affected_modules": [
+        "services/api/src/common/security/client-ip.ts",
+        "services/api/src/common/guards/public-rate-limit.guard.ts",
+        "services/api/src/common/interceptors/authenticated-rate-limit.interceptor.ts"
+      ],
+      "regressions": [
+        "REG-407"
+      ],
+      "qa_scenarios": [
+        "QA-SECURITY-002"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/common/security/client-ip.ts",
+          "services/api/src/common/guards/public-rate-limit.guard.ts",
+          "services/api/src/common/interceptors/authenticated-rate-limit.interceptor.ts"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3115-rate-limiter-trusts-a-forged-x-forwarded-for-and-covers-no-a.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3152",
+      "type": "AUTHORIZATION",
+      "title": "POST /users/:userId/roles lets a delegated role-assignment admin self-grant GLOBAL_ADMIN",
+      "severity": "CRITICAL",
+      "priority": "P0",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3152-post-users-userid-roles-lets-a-delegated-role-assignment-adm.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "ef3d13e8",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-10",
+        "resolved_at": "2026-09-11"
+      },
+      "affected_modules": [
+        "services/api/src/modules/users/users.service.ts",
+        "services/api/src/modules/users/users.controller.ts"
+      ],
+      "regressions": [
+        "REG-406"
+      ],
+      "qa_scenarios": [
+        "QA-AUTHZ-014"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/users/users.service.ts",
+          "services/api/src/modules/users/users.controller.ts"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3152-post-users-userid-roles-lets-a-delegated-role-assignment-adm.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3241",
+      "type": "AUTHORIZATION",
+      "title": "Legacy role-permission grant and employee export both skip the sibling endpoint's access check",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3241-legacy-role-permission-grant-and-employee-export-both-skip-t.md",
+        "provenance": "SECURITY_REVIEW",
+        "detected_in_sha": "9bc0245b",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-11",
+        "resolved_at": "2026-09-11"
+      },
+      "affected_modules": [
+        "services/api/src/modules/roles/roles.service.ts",
+        "services/api/src/modules/employees/employees.service.ts"
+      ],
+      "regressions": [
+        "REG-408"
+      ],
+      "qa_scenarios": [
+        "QA-AUTHZ-015"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/roles/roles.service.ts",
+          "services/api/src/modules/employees/employees.service.ts"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3241-legacy-role-permission-grant-and-employee-export-both-skip-t.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],
@@ -15496,7 +15705,7 @@
         "provenance": "DEPLOYMENT",
         "detected_in_sha": "",
         "created_at": "2026-08-15",
-        "updated_at": "2026-08-17",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "type": "INFRA",
@@ -16038,7 +16247,7 @@
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-08-16",
-        "updated_at": "2026-08-16",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "type": "TECH_DEBT",
@@ -16139,7 +16348,7 @@
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-08-16",
-        "updated_at": "2026-08-16",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "type": "FOLLOW_UP",
@@ -16187,7 +16396,7 @@
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-08-16",
-        "updated_at": "2026-08-17",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "type": "FOLLOW_UP",
@@ -16852,14 +17061,14 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-17",
-        "updated_at": "2026-08-17",
-        "resolved_at": ""
+        "updated_at": "2026-09-11",
+        "resolved_at": "2026-09-11"
       },
       "type": "ARCHITECTURE",
       "title": "Decide the fate of the inert runtime registries in apps/web",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "docs/backlog/items/ITEM-0036-decide-the-fate-of-the-inert-runtime-registries-in-apps-web.md",
@@ -16883,7 +17092,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "PLAN_REQUIRED",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "VERIFIED",
         "classification": "ACTIVE_AS_DOCUMENTED",
@@ -17451,15 +17660,15 @@
         "provenance": "IMPLEMENTATION",
         "detected_in_sha": "",
         "created_at": "2026-08-17",
-        "updated_at": "2026-08-17",
-        "resolved_at": ""
+        "updated_at": "2026-09-11",
+        "resolved_at": "2026-09-11"
       },
       "type": "INFRA",
       "title": "Register services/api environment reads or scope the rule to build inputs",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "READY",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "affected_modules": [
         "services/api",
         "turbo.json",
@@ -18557,14 +18766,14 @@
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-08-21",
-        "updated_at": "2026-08-21",
-        "resolved_at": ""
+        "updated_at": "2026-09-11",
+        "resolved_at": "2026-09-11"
       },
       "type": "INFRA",
       "title": "allocate-id and session tooling accept a session id that does not exist",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
+      "current_status": "DONE",
       "current_evidence": {
         "paths": [
           "scripts/allocate-id.mjs",
@@ -18587,7 +18796,7 @@
       "test_plan": [],
       "active_session_conflict": "NONE",
       "owner_decision_required": "NO",
-      "architect_disposition": "PLAN_REQUIRED",
+      "architect_disposition": "DONE",
       "verification_result": {
         "result": "PRELIMINARY",
         "classification": "ACTIVE_AS_DOCUMENTED",
@@ -19319,15 +19528,15 @@
       "title": "widget-runtime-contract.test.js fails and no script or CI job runs it",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0092-widget-runtime-contract-test-js-fails-and-no-script-or-ci-jo.md",
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-08-24",
-        "updated_at": "2026-08-24",
-        "resolved_at": ""
+        "updated_at": "2026-09-11",
+        "resolved_at": "2026-09-11"
       },
       "affected_modules": [
         "pkg:config",
@@ -19831,15 +20040,15 @@
       "title": "The leave entitlement dialog cannot set accrualType, which the API requires",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0105-the-leave-entitlement-dialog-cannot-set-accrualtype-which-th.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-29",
-        "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "updated_at": "2026-09-11",
+        "resolved_at": "2026-09-11"
       },
       "affected_modules": [
         "apps/web",
@@ -19871,19 +20080,20 @@
       "title": "An employee cannot use self-service until their manager activates their own account",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0106-an-employee-cannot-use-self-service-until-their-manager-acti.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-29",
         "updated_at": "2026-09-11",
-        "resolved_at": ""
+        "resolved_at": "2026-09-11"
       },
       "affected_modules": [
         "services/api/src/modules/leave",
-        "services/api/src/modules/employees"
+        "services/api/src/modules/employees",
+        "services/api/src/modules/approvals"
       ],
       "regressions": [],
       "qa_scenarios": [],
@@ -19911,15 +20121,15 @@
       "title": "Four Users screens exist in the tenant app and two of them are unreachable",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0107-three-separate-users-screens-exist-in-the-tenant-app.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-29",
-        "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "updated_at": "2026-09-11",
+        "resolved_at": "2026-09-11"
       },
       "affected_modules": [
         "apps/web"
@@ -19987,15 +20197,15 @@
       "title": "The disabled Check In button explains itself only in a title tooltip",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "READY",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0109-the-disabled-check-in-button-explains-itself-only-in-a-title.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-29",
-        "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "updated_at": "2026-09-11",
+        "resolved_at": "2026-09-11"
       },
       "affected_modules": [
         "apps/web"
@@ -20065,15 +20275,15 @@
       "title": "PROTECTED_ROUTE_PREFIXES omits twelve authenticated route trees, so deep links to them are lost at sign-in",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "READY",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0111-protected-route-prefixes-omits-twelve-authenticated-route-tr.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-29",
-        "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "updated_at": "2026-09-11",
+        "resolved_at": "2026-09-11"
       },
       "affected_modules": [
         "apps/web"
@@ -20103,15 +20313,15 @@
       "title": "enforceCriticalAttendanceSetting has no test coverage despite enforcing a mandatory integrity control",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0112-enforcecriticalattendancesetting-has-no-test-coverage-despit.md",
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-08-29",
-        "updated_at": "2026-08-29",
-        "resolved_at": ""
+        "updated_at": "2026-09-11",
+        "resolved_at": "2026-09-11"
       },
       "affected_modules": [
         "services/api/src/modules/tenant-settings"
@@ -20187,18 +20397,19 @@
       "title": "The workspace shell states the tenant's identity four times and its purpose twice",
       "severity": "",
       "priority": "P3",
-      "current_status": "READY",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-.md",
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-08-29",
         "updated_at": "2026-09-11",
-        "resolved_at": ""
+        "resolved_at": "2026-09-11"
       },
       "affected_modules": [
-        "views"
+        "views",
+        "apps/web"
       ],
       "regressions": [],
       "qa_scenarios": [],
@@ -20573,14 +20784,14 @@
       "title": "Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "READY",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0124-production-advisory-gate-blocks-every-release-to-main-and-np.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-09-09",
-        "updated_at": "2026-09-09",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -20611,14 +20822,14 @@
       "title": "The .NET Integration Gateway ships to customers with no CI coverage at all",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "READY",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0125-the-net-integration-gateway-ships-to-customers-with-no-ci-co.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-09-09",
-        "updated_at": "2026-09-09",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -20725,15 +20936,15 @@
       "title": "Reports and Analytics: two explanatory cards nobody reads sit above the data",
       "severity": "",
       "priority": "P2",
-      "current_status": "READY",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0128-reports-and-analytics-two-explanatory-cards-nobody-reads-sit.md",
         "provenance": "USER_REPORT",
         "detected_in_sha": "",
         "created_at": "2026-09-09",
-        "updated_at": "2026-09-09",
-        "resolved_at": ""
+        "updated_at": "2026-09-11",
+        "resolved_at": "2026-09-11"
       },
       "affected_modules": [
         "apps/web"
@@ -20803,15 +21014,15 @@
       "title": "Review process missed four defects on screens adjacent to the change",
       "severity": "",
       "priority": "P1",
-      "current_status": "READY",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0130-review-process-missed-four-defects-on-screens-adjacent-to-th.md",
         "provenance": "USER_REPORT",
         "detected_in_sha": "",
         "created_at": "2026-09-09",
-        "updated_at": "2026-09-09",
-        "resolved_at": ""
+        "updated_at": "2026-09-11",
+        "resolved_at": "2026-09-11"
       },
       "affected_modules": [
         "apps/web",
@@ -20826,6 +21037,44 @@
           ".agent"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0130-review-process-missed-four-defects-on-screens-adjacent-to-th.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0131",
+      "type": "INFRA",
+      "title": "Production HR and payroll data has no backup: the database is on the Neon free plan",
+      "severity": "CRITICAL",
+      "priority": "P0",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0131-production-hr-and-payroll-data-has-no-backup-the-database-is.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-10",
+        "updated_at": "2026-09-11",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0131-production-hr-and-payroll-data-has-no-backup-the-database-is.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],
