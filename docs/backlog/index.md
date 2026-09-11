@@ -13,11 +13,11 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 162 |
+| Open (active work) | 161 |
 | Blocked | 2 |
 | Deferred | 90 |
 | Awaiting a product decision | 6 |
-| Completed / closed | 316 |
+| Completed / closed | 317 |
 | **Open CRITICAL** | **4** |
 | **Open HIGH** | **80** |
 | **Awaiting Architect triage** | **0** |
@@ -28,7 +28,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 4 |
 | HIGH | 80 |
-| MEDIUM | 64 |
+| MEDIUM | 63 |
 | LOW | 13 |
 
 ## Open by type
@@ -45,7 +45,7 @@ see [`README.md`](README.md) for why.
 | INFRA | 6 |
 | INTEGRATION | 5 |
 | PERFORMANCE | 14 |
-| PRODUCT_DECISION | 2 |
+| PRODUCT_DECISION | 1 |
 | SECURITY | 17 |
 | STATE_MACHINE | 3 |
 | TECH_DEBT | 5 |
@@ -65,8 +65,8 @@ see [`README.md`](README.md) for why.
 | VERIFIED | 218 |
 | DUPLICATE | 10 |
 | ACCEPTED_RISK | 3 |
-| READY | 22 |
-| DONE | 85 |
+| READY | 21 |
+| DONE | 86 |
 
 ## All records
 
@@ -538,7 +538,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0107](../../docs/backlog/items/ITEM-0107-three-separate-users-screens-exist-in-the-tenant-app.md) | Four Users screens exist in the tenant app and two of them are unreachable | ARCHITECTURE | MEDIUM | P2 | DONE | apps/web | DONE |
 | [ITEM-0112](../../docs/backlog/items/ITEM-0112-enforcecriticalattendancesetting-has-no-test-coverage-despit.md) | enforceCriticalAttendanceSetting has no test coverage despite enforcing a mandatory integrity control | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-settings | DONE |
 | [ITEM-0113](../../docs/backlog/items/ITEM-0113-the-seeded-leave-approval-chain-cannot-route-on-a-newly-prov.md) | The seeded leave approval chain cannot route on a newly provisioned tenant, and the Approval Matrices screen gives no warning | PRODUCT_DECISION | MEDIUM | P2 | DONE | services/api/prisma, api:approvals, apps/web | DONE |
-| [ITEM-0115](../../docs/backlog/items/ITEM-0115-provisioning-seeds-four-departments-with-no-business-unit-on.md) | Provisioning seeds four departments with no business unit on every tenant | PRODUCT_DECISION | MEDIUM | P2 | READY | services/api/prisma, api:organization | PLAN_REQUIRED |
+| [ITEM-0115](../../docs/backlog/items/ITEM-0115-provisioning-seeds-four-departments-with-no-business-unit-on.md) | Provisioning seeds four departments with no business unit on every tenant | PRODUCT_DECISION | MEDIUM | P2 | DONE | services/api/prisma, api:organization | DONE |
 | [ITEM-0116](../../docs/backlog/items/ITEM-0116-53-bug-fixes-are-regression-covered-but-have-never-been-qa-r.md) | 53 bug fixes are regression-covered but have never been QA-retested | TEST_GAP | MEDIUM | P2 | READY | — | FIX_NOW |
 | [ITEM-0117](../../docs/backlog/items/ITEM-0117-the-question-protocol-has-never-been-used-and-five-user-deci.md) | The question protocol has never been used and five user decisions are parked in the backlog instead | DOCUMENTATION | MEDIUM | P2 | DONE | — | DONE |
 | [ITEM-0118](../../docs/backlog/items/ITEM-0118-merge-the-duplicate-customeraccount-rows-self-service-checko.md) | Merge the duplicate CustomerAccount rows self-service checkout created before BUG-2530 | DATA_MIGRATION | MEDIUM | P2 | DONE | super-admin, billing | DONE |

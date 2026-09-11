@@ -153,10 +153,33 @@ export type PayrollCycleWithRelations = Prisma.PayrollCycleGetPayload<{
   include: typeof payrollCycleInclude;
 }>;
 
-export type EmployeeCompensationWithRelations =
+/*
+ * What this repository actually hands out, which is not the raw row.
+ *
+ * OBS-24. Every compensation read here passes through
+ * `decryptEmployeeCompensationFields`, which returns the plaintext fields
+ * populated and the `*Enc` ciphertext columns **removed** — deliberately, so
+ * ciphertext cannot travel past this boundary into a service, a DTO or a response
+ * by accident.
+ *
+ * The exported type has to say so. Declared as the bare
+ * `EmployeeCompensationGetPayload` it described a shape no caller ever receives,
+ * and the moment the expand-phase migration added the `*Enc` columns to the
+ * schema, three call sites in `payroll.service.ts` stopped compiling: annotated
+ * with the raw payload while being handed the narrowed one.
+ *
+ * Omitting them here rather than widening each consumer keeps the invariant in one
+ * place. Past this repository, the ciphertext columns do not exist.
+ */
+export type EmployeeCompensationWithRelations = Omit<
   Prisma.EmployeeCompensationGetPayload<{
     include: typeof compensationInclude;
-  }>;
+  }>,
+  | 'bankAccountNumberEnc'
+  | 'bankIbanEnc'
+  | 'bankRoutingNumberEnc'
+  | 'taxIdentifierEnc'
+>;
 
 @Injectable()
 export class PayrollRepository {

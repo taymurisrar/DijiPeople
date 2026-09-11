@@ -57,7 +57,9 @@ export class EmployerBankAccountsService {
       this.prisma.employerBankAccount.count({ where }),
     ]);
     return {
-      items: items.map((row) => maskEmployerBankAccount(this.secretEncryption, row)),
+      items: items.map((row) =>
+        maskEmployerBankAccount(this.secretEncryption, row),
+      ),
       meta: {
         page,
         pageSize,
@@ -68,7 +70,10 @@ export class EmployerBankAccountsService {
   }
 
   async detail(user: AuthenticatedUser, id: string) {
-    return maskEmployerBankAccount(this.secretEncryption, await this.find(user.tenantId, id));
+    return maskEmployerBankAccount(
+      this.secretEncryption,
+      await this.find(user.tenantId, id),
+    );
   }
 
   async create(user: AuthenticatedUser, dto: CreateEmployerBankAccountDto) {
@@ -119,7 +124,10 @@ export class EmployerBankAccountsService {
         }
         return tx.employerBankAccount.update({
           where: { id },
-          data: { ...data(this.secretEncryption, dto), updatedById: user.userId },
+          data: {
+            ...data(this.secretEncryption, dto),
+            updatedById: user.userId,
+          },
           include: { bank: true },
         });
       });
@@ -129,7 +137,10 @@ export class EmployerBankAccountsService {
         action: 'EMPLOYER_BANK_ACCOUNT_UPDATED',
         entityType: 'EmployerBankAccount',
         entityId: id,
-        beforeSnapshot: maskEmployerBankAccount(this.secretEncryption, existing),
+        beforeSnapshot: maskEmployerBankAccount(
+          this.secretEncryption,
+          existing,
+        ),
         afterSnapshot: maskEmployerBankAccount(this.secretEncryption, updated),
       });
       return maskEmployerBankAccount(this.secretEncryption, updated);
@@ -199,7 +210,9 @@ export class EmployerBankAccountsService {
         include: { bank: true },
         orderBy: [{ currencyCode: 'asc' }, { accountName: 'asc' }],
       })
-    ).map((row) => decryptEmployerBankAccountFields(this.secretEncryption, row));
+    ).map((row) =>
+      decryptEmployerBankAccountFields(this.secretEncryption, row),
+    );
     const columns = [
       'accountName',
       'bankCode',

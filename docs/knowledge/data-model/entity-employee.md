@@ -137,6 +137,8 @@ fail without the fix.
 | `nationalityCountryId` | `String` | no | — |
 | `nationality` | `String` | no | — |
 | `cnic` | `String` | no | — |
+| `cnicEnc` | `String` | no | — |
+| `cnicHmac` | `String` | no | — |
 | `bloodGroup` | `String` | no | — |
 | `employmentStatus` | `EmployeeEmploymentStatus` (enum) | yes | default `ACTIVE` |
 | `employeeType` | `EmployeeType` (enum) | no | — |
@@ -175,6 +177,7 @@ fail without the fix.
 | `emergencyContactAlternatePhone` | `String` | no | — |
 | `noticePeriodDays` | `Int` | no | — |
 | `taxIdentifier` | `String` | no | — |
+| `taxIdentifierEnc` | `String` | no | — |
 | `isDraftProfile` | `Boolean` | yes | default `false` |
 | `sourceCandidateId` | `String` | no | — |
 | `sourceApplicationId` | `String` | no | unique |
@@ -230,7 +233,7 @@ fail without the fix.
 
 ### Constraints and indexes
 
-- Unique: `profileImageDocumentId`, `userId`, `sourceApplicationId`, `@@unique([id, tenantId])`, `@@unique([tenantId, employeeCode])`, `@@unique([tenantId, email])`, `@@unique([tenantId, personalEmail])`, `@@unique([tenantId, cnic])`
+- Unique: `profileImageDocumentId`, `userId`, `sourceApplicationId`, `@@unique([id, tenantId])`, `@@unique([tenantId, employeeCode])`, `@@unique([tenantId, email])`, `@@unique([tenantId, personalEmail])`, `@@unique([tenantId, cnic])`, `@@unique([tenantId, cnicHmac])`
 - Indexes: 22
 <!-- /GENERATED:schema-facts -->
 

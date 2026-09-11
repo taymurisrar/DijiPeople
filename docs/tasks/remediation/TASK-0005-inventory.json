@@ -23974,8 +23974,8 @@
       "title": "Provisioning seeds four departments with no business unit on every tenant",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0115-provisioning-seeds-four-departments-with-no-business-unit-on.md",
         "provenance": "ARCHITECT",

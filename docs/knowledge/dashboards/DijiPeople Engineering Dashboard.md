@@ -9,11 +9,11 @@
 |---|---|
 | Open CRITICAL | **4** |
 | Open HIGH | **80** |
-| Open total | 162 |
+| Open total | 161 |
 | Blocked | 2 |
 | Awaiting a product decision | 6 |
 | Deferred | 90 |
-| Completed | 316 |
+| Completed | 317 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -576,7 +576,6 @@
 | [[ITEM-0052-verify-the-agent-update-feed-against-a-real-published-artefact|ITEM-0052]] | Verify the agent update feed against a real published artefact | TEST_GAP | MEDIUM | READY | apps/agent-desktop, api:app-releases | PLAN_REQUIRED |
 | [[ITEM-0077-re-read-the-packaged-agent-archive-after-the-node-pre-gyp-up|ITEM-0077]] | Re-read the packaged agent archive after the node-pre-gyp upgrade | TEST_GAP | MEDIUM | READY | apps/agent-desktop, package-lock.json | PLAN_REQUIRED |
 | [[ITEM-0078-no-end-to-end-payment-to-provisioned-tenant-run-against-stri|ITEM-0078]] | No end-to-end payment to provisioned tenant run against Stripe test mode | TEST_GAP | MEDIUM | READY | api:billing, api:tenant-control-plane, api:outbox, apps/landing | PLAN_REQUIRED |
-| [[ITEM-0115-provisioning-seeds-four-departments-with-no-business-unit-on|ITEM-0115]] | Provisioning seeds four departments with no business unit on every tenant | PRODUCT_DECISION | MEDIUM | READY | services/api/prisma, api:organization | PLAN_REQUIRED |
 | [[ITEM-0116-53-bug-fixes-are-regression-covered-but-have-never-been-qa-r|ITEM-0116]] | 53 bug fixes are regression-covered but have never been QA-retested | TEST_GAP | MEDIUM | READY | — | FIX_NOW |
 | [[ITEM-0119-stop-writing-a-placeholder-e-mail-into-an-identity-column-wh|ITEM-0119]] | Stop writing a placeholder e-mail into an identity column when the wizard opens a draft | TECH_DEBT | MEDIUM | READY | billing, landing, super-admin | PLAN_REQUIRED |
 | [[ITEM-0158-public-traffic-that-bypasses-cloudflare-shares-one-rate-limi|ITEM-0158]] | Public traffic that bypasses Cloudflare shares one rate-limit bucket, by design and untested | INFRA | MEDIUM | READY | pkg:config, services/api/src/common/security | PLAN_REQUIRED |

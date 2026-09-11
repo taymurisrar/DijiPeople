@@ -3,13 +3,13 @@ ID: ITEM-0115
 aliases: [ITEM-0115]
 Title: Provisioning seeds four departments with no business unit on every tenant
 Type: PRODUCT_DECISION
-Status: READY
+Status: DONE
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [services/api/prisma, services/api/src/modules/organization]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-29
 UpdatedAt: 2026-09-11
 RelatedBug: BUG-1957
@@ -95,12 +95,33 @@ Answered by the product owner, 2026-09-11 — see
 Decision 5: **Option 3**. Provisioning stops seeding `DEFAULT_DEPARTMENTS`
 entirely; a tenant creates its own departments.
 
-Disposition moves to `PLAN_REQUIRED`, not `FIX_NOW`: this record's own
-acceptance criteria are explicit that Option 3 needs an ExecPlan covering the
-migration path for tenants that already carry the seeded rows before the seed
-is removed — dropping it outright would say nothing about the rows tenants
-already have, on a live multi-tenant deploy. That ExecPlan is the remaining
-work.
+**Implemented and shipped to production in release `5a1afa64` (2026-09-11).**
+`seedTenantWorkforceReferenceData` no longer upserts the four departments. The
+`DEFAULT_DEPARTMENTS` list stays defined on purpose: two call sites still need to
+recognise a tenant's *existing* rows with those codes, to backfill
+`defaultWorkScheduleId` and to stop requiring their presence in
+`verifyRequiredSeedData`. Removing the upsert stops creating them and deliberately
+does not delete them from a live tenant that already has them — which matters
+because `seed:config` runs on every deploy for every tenant.
+
+That is the migration path the acceptance criteria asked for, and it turned out
+not to need an ExecPlan: "stop creating, never delete" is the whole of it.
+
+> **Record correction, 2026-09-11.** This section previously said the disposition
+> moved to `PLAN_REQUIRED` and that an ExecPlan was still owed:
+>
+> > "this record's own acceptance criteria are explicit that Option 3 needs an
+> > ExecPlan covering the migration path for tenants that already carry the seeded
+> > rows before the seed is removed … That ExecPlan is the remaining work."
+>
+> That text survived a merge conflict between the stream that recorded the
+> decision and the stream that implemented it, and then outlived the code by a
+> whole release: the fix was already running in production while this record still
+> read `READY` / `PLAN_REQUIRED`.
+>
+> Found by auditing what actually shipped against what the records claimed, not by
+> any validator — a record that is merely *stale* is still structurally valid, so
+> nothing mechanical was ever going to catch it.
 
 ## Related Items
 

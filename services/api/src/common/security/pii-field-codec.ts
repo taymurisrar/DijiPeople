@@ -77,13 +77,11 @@ export function decryptEmployeeBankAccountFields<
     ibanEnc?: string | null;
     swiftOrRoutingCodeEnc?: string | null;
   },
->(codec: Codec, row: T): Omit<T, 'accountNumberEnc' | 'ibanEnc' | 'swiftOrRoutingCodeEnc'> {
-  const {
-    accountNumberEnc,
-    ibanEnc,
-    swiftOrRoutingCodeEnc,
-    ...rest
-  } = row;
+>(
+  codec: Codec,
+  row: T,
+): Omit<T, 'accountNumberEnc' | 'ibanEnc' | 'swiftOrRoutingCodeEnc'> {
+  const { accountNumberEnc, ibanEnc, swiftOrRoutingCodeEnc, ...rest } = row;
   return {
     ...rest,
     accountNumber: decryptOrKeep(codec, accountNumberEnc, row.accountNumber),
@@ -275,10 +273,7 @@ export function decryptEmployeeSensitiveFields<
     cnicHmac?: string | null;
     taxIdentifierEnc?: string | null;
   },
->(
-  codec: Codec,
-  row: T,
-): Omit<T, 'cnicEnc' | 'cnicHmac' | 'taxIdentifierEnc'> {
+>(codec: Codec, row: T): Omit<T, 'cnicEnc' | 'cnicHmac' | 'taxIdentifierEnc'> {
   const { cnicEnc, cnicHmac: _cnicHmac, taxIdentifierEnc, ...rest } = row;
   return {
     ...rest,
