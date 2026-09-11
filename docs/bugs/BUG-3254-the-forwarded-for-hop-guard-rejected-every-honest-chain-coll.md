@@ -1,15 +1,15 @@
 ---
 ID: BUG-3254
 aliases: [BUG-3254]
-Title: The forwarded-for hop guard rejected every honest chain, collapsing all callers into one rate-limit bucket
+Title: The rate-limit e2e suite sent a forwarded chain one hop short, and the guard was misread as an off-by-one
 Status: FIXED
-Severity: HIGH
-Priority: P1
-Type: SECURITY
+Severity: MEDIUM
+Priority: P2
+Type: TEST_GAP
 Source: QA_RUN
 DetectedDate: 2026-09-11
 DetectedInSha: 1473af92
-AffectedModules: [pkg:config, services/api/src/common/security]
+AffectedModules: [pkg:config, services/api/src/common/security, services/api/test]
 OwnerAgent: architect
 ArchitectDisposition: DONE
 QAReport:
@@ -22,172 +22,174 @@ UpdatedAt: 2026-09-11
 ResolvedAt: 2026-09-11
 ---
 
-# BUG-3254 — The forwarded-for hop guard rejected every honest chain, collapsing all callers into one rate-limit bucket
+# BUG-3254 — The rate-limit e2e suite sent a forwarded chain one hop short, and the guard was misread as an off-by-one
 
-> **Architect triage, 2026-09-11 — `DONE`.** Introduced and fixed inside the same
-> session. Recorded rather than quietly corrected, because the shape is worth
-> keeping: a security fix whose own off-by-one reinstated the denial of service it
-> was written to prevent, in the one code path production happens to mask.
+> **Architect triage, 2026-09-11 — `DONE`.** This record was first written
+> claiming the opposite of what is true, and is kept rather than deleted because
+> the mistake is the lesson. The title, severity and type were all changed once
+> the evidence was read properly: it is a MEDIUM test defect, not a HIGH security
+> regression, and the library it accused was correct throughout.
 
 ## Summary
 
-The fix for RATE-01 stopped the rate limiter trusting a client-supplied
-`X-Forwarded-For`, and read the client from a fixed distance from the right of the
-chain instead. The indexing was correct. The guard in front of it was not:
+The RATE-01 hardening made `readForwardedForClientIp` read the client from a
+fixed distance from the right of `X-Forwarded-For`, refusing any chain that does
+not have **strictly more** entries than the trusted hop count. The rate-limit e2e
+suite trusts one hop and sent a one-entry chain, which is therefore refused, so
+every caller resolved to the same fallback identity and the cross-address
+assertion failed.
 
-```js
-if (entries.length === 0 || entries.length <= hops) return null;
-```
+The fix is one line in the test: send a chain of realistic length.
 
-A proxy appends the peer it received from, so an honest chain carries exactly
-`hopCount` entries: one trusted hop (Render alone) yields a one-entry chain that
-*is* the visitor, and two (Cloudflare then Render) yield `visitor, cf-edge`. Both
-satisfy `length === hops`, so both returned `null`.
+## What was originally recorded here, and why it was wrong
 
-`resolveClientIp` then answers `'unknown'` for every such request. The public
-write limiter keys on `resolveClientIp(request) + path`, so every caller in the
-world shared one bucket: the first twenty public writes against a path exhausted
-the ten-minute window for everybody.
+The first version of this record said the guard was an off-by-one that
+reintroduced a denial of service, and the guard was relaxed from
+`entries.length <= hopCount` to `entries.length < hopCount` on this reasoning:
 
-The condition was wrong in both directions at once. A chain carrying an
-attacker's prepended entry is one longer, so it passed the guard and resolved,
-while every legitimate visitor did not.
+> A proxy appends the peer it received from, so an honest chain carries exactly
+> `hopCount` entries. Rejecting those rejects every real visitor.
+
+The first sentence is true. The conclusion does not follow, and CI said so
+immediately: `services/api/src/common/security/client-ip.spec.ts` failed on two
+assertions that exist precisely to pin this boundary.
+
+The missing fact is INF-06 — **the API is directly reachable**, so Cloudflare can
+be bypassed. With two hops configured, a caller who goes straight to Render and
+sends one forged entry produces `<forged>, <render-peer>`: two entries, the same
+length as an honest Cloudflare-then-Render chain. `entries[length - hops]` then
+reads the forged value. Accepting a chain of exactly `hopCount` hands the
+attacker an identity per request, which is the RATE-01 bypass the function exists
+to close.
+
+So the strict boundary is deliberate. Its cost is real and accepted: honest
+traffic that reaches the service without passing every configured hop resolves to
+`null`, and the caller keys it on something it independently trusts.
+`cf-connecting-ip` is preferred above the chain for exactly that reason —
+Cloudflare overwrites it and a caller cannot.
 
 ## Expected Behavior
 
-An honest chain resolves to the visitor. A chain genuinely too short to contain
-the configured number of hops resolves to `null`. Prepending entries changes
-nothing, because the genuine value is indexed from the right.
+A test that configures N trusted hops sends a chain of at least N+1 entries, the
+shape a real request has. The library refuses anything shorter, and keeps
+refusing it.
 
 ## Actual Behavior
 
-Measured directly against the shipped function:
-
-```
-null           hops=1 [203.0.113.7]                            honest, Render only
-null           hops=2 [203.0.113.7, 172.16.0.1]                honest, CF + Render
-203.0.113.7    hops=1 [1.2.3.4, 203.0.113.7]                   attacker prepended
-203.0.113.7    hops=2 [1.2.3.4, 203.0.113.7, 172.16.0.1]       attacker prepended
-```
-
-The two honest shapes are the two that failed.
+The suite set `TRUST_PROXY_HEADERS = 'true'` (one hop) and sent
+`x-forwarded-for: 203.0.113.12` — one entry. Every caller resolved to `'unknown'`,
+so the noisy visitor and the quiet one shared a bucket and the quiet one received
+`429`.
 
 ## Reproduction
 
-```
-node -e "const {readForwardedForClientIp}=require('./packages/config/client-ip.js');
-console.log(readForwardedForClientIp('203.0.113.7', 1))"
-```
-
-Before the fix: `null`. After: `203.0.113.7`.
-
-End to end, the symptom is the e2e assertion that caught it: exhaust the public
-write window from one address, then submit once from a different address. The
-second caller receives `429` because it is in the first caller's bucket.
+CI run `34545828468`, job `Database e2e`:
+`public-rate-limit.e2e-spec.ts › does not leak the throttle across addresses`,
+`Expected: not 429`. 407 of 408 e2e tests passed.
 
 ## Evidence
 
-- CI run `34545828468`, job `Database e2e`:
-  `public-rate-limit.e2e-spec.ts › does not leak the throttle across addresses`
-  — `Expected: not 429`. 407 of 408 e2e tests passed; this was the one.
-- `packages/config/client-ip.js`, the guard quoted above.
-- The suite already set `TRUST_PROXY_HEADERS = 'true'`, so hop resolution was
-  working and trust was not the problem — which is what pointed at the
-  arithmetic rather than the configuration.
+- The suite's own helper set a single-entry header while trusting one hop.
+- `client-ip.spec.ts` asserts a one-entry chain at one hop is `'unknown'`, and a
+  two-entry chain at two hops resolves to neither the leftmost entry nor the
+  socket address. Both are stated with their security rationale.
+- CI run `34548046363` failed those two assertions the moment the guard was
+  relaxed — the library's own tests caught the relaxation within one push.
 
 ## Root Cause
 
-An off-by-one in a boundary condition, in a module that had **no unit test file
-at all**. The index expression `entries[entries.length - hops]` and the guard
-`entries.length <= hops` disagree about whether `hops` counts positions or
-excess entries; the index was right and the guard was written as though the chain
-needed a spare entry beyond the hops.
+Two causes, and the second is the one worth carrying forward.
 
-Two things let it through. The module was untested, so nothing pinned the four
-chain shapes. And production masks it: `resolveClientIp` prefers
-`cf-connecting-ip`, which Cloudflare always sets, so the broken path is only
-reached where Cloudflare is absent — which includes the directly-reachable Render
-URL (INF-06) and every non-Cloudflare deployment.
+The proximate cause is the test: its header shape was updated for the new parsing
+behaviour without matching the chain length to the hop count it configures. Its
+comment shows the partial update — it explains why the value must be a real
+dotted address, and says nothing about how many entries are needed.
+
+The deeper cause is that a red test was diagnosed as a defect in the code it
+exercised rather than in its own setup. The guard reads like an off-by-one in
+isolation; it is only correct in light of a fact recorded elsewhere (INF-06), and
+that fact was not consulted before changing a security boundary. The library had
+no unit test of its own to make the intent visible at the point of change, which
+is what made the misreading easy.
 
 ## Impact
 
-A self-inflicted denial of service on every public write path, on any route that
-does not arrive through Cloudflare: twenty requests exhaust the window for all
-visitors for ten minutes. That is precisely the failure [[BUG-0032]] was about,
-reintroduced by the fix for its sibling, and it would have read in production as
-"the subscribe form is rejecting everyone" with no obvious cause.
+None shipped. The relaxation existed on a branch for one CI cycle and was caught
+by the API unit suite before any merge. Had it merged, it would have reopened the
+RATE-01 bypass on the directly-reachable service URL: a caller could mint one
+identity per request and never be throttled.
 
-No security weakening: the forged-header bypass RATE-01 described stayed closed
-throughout. The defect is availability, not authorization.
+The availability concern that motivated the mistake is genuine but separate, and
+is recorded as [[ITEM-0158]] rather than fixed here.
 
 ## Affected Areas
 
-- `packages/config/client-ip.js` — `readForwardedForClientIp`
-- `services/api/src/common/security/client-ip.ts` — the caller that turns `null`
-  into `'unknown'`
-- every `@Public()` write behind `PublicRateLimitGuard`
+- `services/api/test/public-rate-limit.e2e-spec.ts` — the chain shape
+- `packages/config/client-ip.js` — comment only; the logic is unchanged
+- `packages/config/client-ip.test.js` — new
 
 ## Proposed Resolution
 
-Change the guard to `entries.length < hops`, and give the module the unit tests
-it never had.
+Send `client-supplied, <caller>` from the e2e helper: one entry standing in for
+whatever a caller might put on the left, and the per-caller address where the
+trusted hop's append belongs. Restore the guard. Give the library the unit tests
+that would have made its intent obvious.
 
 ## Acceptance Criteria
 
-- Both honest shapes resolve to the visitor; both attacker-prepended shapes
-  resolve to the same visitor; a genuinely short chain resolves to `null`.
-- The rate-limit e2e suite's cross-address assertion passes.
-- The arithmetic is pinned by tests that run in CI.
+- The rate-limit e2e suite passes, including the cross-address assertion.
+- `client-ip.spec.ts` passes unchanged — it was never wrong.
+- The strict boundary is pinned by tests in the package that owns it.
+- The comment explains why the boundary is not an off-by-one, so the next reader
+  does not repeat this.
 
 ## Regression Coverage
 
-REG-409. `packages/config/client-ip.test.js`, ten cases covering all four chain
-shapes, the too-short case, absent and malformed headers, array headers, IPv6
-bracketing, and hop-count defaulting.
+REG-409. `packages/config/client-ip.test.js`, wired as `npm run test:client-ip`
+and added to the required gate. Its central case is
+`a chain of exactly the hop count vouches for nothing`, which fails if the guard
+is relaxed again.
 
-Wired as `npm run test:client-ip` and added to the `Framework validation` job.
-The script deliberately also runs `packages/config/forwarded-host.test.js`, which
-existed but was referenced by no script and no job — it had never executed once.
-A test nobody runs is not coverage, and that is how a module this sensitive came
-to have none.
+The script also runs `packages/config/forwarded-host.test.js`, which existed but
+was referenced by no script and no CI job — 14 tests that had never executed once.
 
 ## Dependencies
 
-None. Same code path as BUG-3115 (the forged-header bypass), which stays fixed.
+None. `BUG-3115`, the RATE-01 bypass fix, stands unmodified.
 
 ## Related Items
 
-- [[BUG-0032]] — the original "one address locks out everybody", from the other
-  direction
-- [[BUG-3115]] — the RATE-01 bypass fix that introduced this
-- RATE-01, INF-06 in the 2026-09-10 technical audit
+- [[BUG-3115]] — the hardening whose boundary this misread
+- [[ITEM-0158]] — the availability cost of the strict boundary, recorded not fixed
+- [[BUG-0032]] — the original per-address limiter defect
+- RATE-01 and INF-06 in the 2026-09-10 technical audit
 
 ## Resolution
 
-Guard changed to `entries.length < hops`. All five shapes verified before and
-after. `public-rate-limit.e2e-spec.ts` passes locally against a throwaway
-database: 6 tests, having failed 1 of 6 on CI.
-
-The comment above the function now explains the arithmetic and names the
-inversion, because "index from the right by the hop count" is easy to re-derive
-wrongly and the wrong version fails in the direction nobody tests.
+Guard restored to `entries.length <= hops`. The e2e helper now sends a chain one
+entry longer than the trusted hop count. Six of six e2e tests pass locally against
+a throwaway database, and the full API unit suite passes at 6566 tests in 322
+suites — the suite that was not re-run after the library change, which is how the
+relaxation reached CI at all.
 
 ## QA Retest
 
-Covered by REG-409's unit cases and the e2e suite. Both run in CI, so the retest
-is continuous rather than a one-off pass.
+Continuous, through REG-409 and the e2e suite, both in CI.
 
 ## History
 
-- 2026-09-11 — introduced by the RATE-01 hardening earlier in SESSION-0098.
-- 2026-09-11 — caught by CI run `34545828468` on the integrated branch, not by
-  any local run: the e2e job needs a database and had not been executed locally.
-- 2026-09-11 — fixed, unit-tested, and the test wired into the required gate.
+- 2026-09-11 — the rate-limit e2e suite failed on CI run `34545828468`.
+- 2026-09-11 — misdiagnosed as an off-by-one in `readForwardedForClientIp`; the
+  guard was relaxed and this record written asserting a denial of service.
+- 2026-09-11 — CI run `34548046363` failed `client-ip.spec.ts` on two assertions.
+  The guard was restored, the test fixed instead, and this record rewritten to say
+  what actually happened.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
 ## Related
 
+- Referenced by — [[ITEM-0158]]
 - Modules — [[deployment-architecture]]
 - Regression — REG-409 (see the regression register)
 

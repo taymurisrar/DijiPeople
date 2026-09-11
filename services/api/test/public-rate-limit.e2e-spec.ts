@@ -108,10 +108,31 @@ describe('Public write rate limiting (e2e)', () => {
     return `203.0.113.${nextOctet}`;
   }
 
+  /**
+   * The chain must be one entry LONGER than the trusted hop count, or
+   * `readForwardedForClientIp` vouches for nothing and every caller collapses
+   * onto the same fallback identity.
+   *
+   * This suite trusts one hop, so a bare `x-forwarded-for: <caller>` is exactly
+   * one entry and resolves to `null` — which is correct, not a bug. A chain of
+   * exactly `hopCount` entries could equally be an honest chain or a forged entry
+   * plus one real append, and since the API is directly reachable (INF-06) the
+   * safe reading is to refuse. Accepting it is the RATE-01 bypass.
+   *
+   * So the request is shaped the way a real one arrives: whatever the caller sent
+   * on the left, and the trusted hop's append on the right. Only the rightmost
+   * entry is read, so that is where the per-caller address goes, and the
+   * `client-supplied` prefix stands in for anything a caller might have put there
+   * — including a lie, which is the point.
+   *
+   * This shape was the actual defect behind the CI failure on 1473af9: the suite
+   * sent a one-entry chain, the cross-address assertion failed, and the guard
+   * looked like an off-by-one when the test was simply a hop short.
+   */
   async function post(path: string, ip: string, body: unknown = {}) {
     return request(app.getHttpServer())
       .post(path)
-      .set('x-forwarded-for', ip)
+      .set('x-forwarded-for', `client-supplied, ${ip}`)
       .send(body);
   }
 

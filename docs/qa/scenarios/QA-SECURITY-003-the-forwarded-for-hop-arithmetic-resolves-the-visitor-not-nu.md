@@ -24,33 +24,34 @@ A deployment that states its own topology through `TRUST_PROXY_HEADERS`, or
 infers it from the hosting platform. Two shapes matter: one trusted hop (Render
 alone) and two (Cloudflare then Render).
 
-No Cloudflare in front for the cases that matter — `cf-connecting-ip` is
-preferred when present, and it is what masked this defect in production.
+No `cf-connecting-ip` on the request for any of the chain cases, since it is
+preferred above the chain when present and would short-circuit all of them. That
+preference is also what keeps the strict boundary's cost off the normal path.
 
 ## Steps
 
-1. Resolve the client from an honest one-entry chain at one trusted hop.
-2. Resolve it from an honest two-entry chain, visitor then edge, at two hops.
-3. Repeat both with an attacker entry prepended on the left.
-4. Resolve from a chain genuinely shorter than the hop count.
+1. Resolve from a chain of exactly one entry at one trusted hop.
+2. Resolve from exactly two entries at two trusted hops.
+3. Resolve from two entries at one hop, and three at two hops, with an attacker
+   value prepended.
+4. Resolve from a chain shorter than the hop count.
 5. Resolve from an absent, blank and comma-only header.
-6. End to end: exhaust the public write window from one address, then submit
-   once from a different address.
+6. End to end: exhaust the public write window from one address, then submit once
+   from a different address, sending a chain one entry longer than the hop count.
 
 ## Expected Result
 
-- Both honest chains resolve to the visitor. This is the case that failed: a
-  proxy appends the peer it received from, so an honest chain carries exactly
-  `hopCount` entries, and a guard demanding more than that rejects every real
-  visitor.
-- Both prepended chains resolve to the same visitor, because the genuine value is
-  indexed from the right. These two passed before and after, and exist to prove
-  restoring availability did not widen trust.
-- A genuinely short chain resolves to `null`, and the caller turns that into a
-  value it trusts rather than the leftmost entry.
-- The second caller in step 6 is **not** throttled. When the arithmetic returns
-  `null` for honest traffic every caller shares one bucket, so twenty public
-  writes lock out the whole deployment for ten minutes.
+- A chain of **exactly** the trusted hop count resolves to `null`, and the caller
+  substitutes neither the leftmost entry nor the socket address. This is the
+  security-critical case: the service is reachable without its edge, so such a
+  chain could have been produced by a caller bypassing it, with their own value
+  leftmost.
+- A chain one entry longer resolves to the entry `hopCount` from the right,
+  however much is prepended on the left.
+- A chain shorter than the hop count resolves to `null` too.
+- End to end, the second caller in step 6 is **not** throttled — but only because
+  its chain is realistically shaped. A test that sends one entry while trusting
+  one hop makes every caller unattributable, which is what happened.
 
 ## Notes
 

@@ -582,12 +582,13 @@ jobs:
         # with it.
         run: npm run test:security-headers
       - name: Client IP and forwarded-header trust
-        # The trust boundary every rate limit keys on, and it had no test at all
-        # until the fix for RATE-01 shipped an inverted hop guard:
-        # `entries.length <= hopCount` rejects exactly the honest chain, so every
-        # caller collapsed onto one fallback identity and twenty public writes
-        # locked out the whole deployment — BUG-0032's denial of service arriving
-        # through the fix for it. Production masked it behind `cf-connecting-ip`.
+        # The trust boundary every rate limit keys on, and the package that owns
+        # it had no test at all. BUG-3254: a red e2e test was diagnosed as an
+        # off-by-one here and the guard relaxed from `entries.length <= hopCount`
+        # to `<`, which reopens RATE-01 — the service is reachable without its
+        # edge, so a caller bypassing it produces a chain of exactly `hopCount`
+        # entries with their own value leftmost. The e2e test was simply a hop
+        # short. The central case here fails if the guard is relaxed again.
         #
         # Also runs forwarded-host.test.js, which existed but was wired into no
         # script and no job, so it had never run. A test nobody executes is not

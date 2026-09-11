@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 458,
+    "total_records": 459,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -15297,10 +15297,10 @@
     },
     {
       "record_id": "BUG-3254",
-      "type": "SECURITY",
-      "title": "The forwarded-for hop guard rejected every honest chain, collapsing all callers into one rate-limit bucket",
-      "severity": "HIGH",
-      "priority": "P1",
+      "type": "TEST_GAP",
+      "title": "The rate-limit e2e suite sent a forwarded chain one hop short, and the guard was misread as an off-by-one",
+      "severity": "MEDIUM",
+      "priority": "P2",
       "current_status": "FIXED",
       "architect_disposition": "DONE",
       "source": {
@@ -15313,7 +15313,8 @@
       },
       "affected_modules": [
         "pkg:config",
-        "services/api/src/common/security"
+        "services/api/src/common/security",
+        "services/api/test"
       ],
       "regressions": [
         "REG-409"
@@ -21119,6 +21120,46 @@
           "services/api"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0131-production-hr-and-payroll-data-has-no-backup-the-database-is.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0158",
+      "type": "INFRA",
+      "title": "Public traffic that bypasses Cloudflare shares one rate-limit bucket, by design and untested",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "READY",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0158-public-traffic-that-bypasses-cloudflare-shares-one-rate-limi.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-11",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "pkg:config",
+        "services/api/src/common/security"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "pkg:config",
+          "services/api/src/common/security"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0158-public-traffic-that-bypasses-cloudflare-shares-one-rate-limi.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],
