@@ -6,6 +6,7 @@ import {
   SUPPORTED_EMAIL_PROVIDER_TYPES,
   isSupportedEmailProviderType,
 } from "@repo/config";
+import { useFormattingContext } from "@/app/components/filters/use-formatting-context";
 import { Button } from "@/app/components/ui/button";
 import { EmptyState } from "@/app/components/ui/empty-state";
 import {
@@ -147,6 +148,12 @@ export function EmailProvidersManager({
   schemas: ProviderSchema[];
 }) {
   const router = useRouter();
+  /*
+   * The tenant's timezone and locale, threaded through React rather than read
+   * from the module default — which is installed by an effect and so is empty
+   * during server rendering. See formatDateTime in notification-ui.
+   */
+  const formatting = useFormattingContext();
   const [form, setForm] = useState<ProviderForm>(emptyProvider);
   /*
    * Offer only what can actually send, plus whatever this record already uses.
@@ -492,7 +499,7 @@ export function EmailProvidersManager({
                       {provider.isDefault ? " / Default" : ""}
                     </td>
                     <td className="border-b border-border px-3 py-4">
-                      {formatDateTime(provider.updatedAt)}
+                      {formatDateTime(provider.updatedAt, formatting)}
                     </td>
                     <td className="border-b border-border px-3 py-4">
                       <div className="flex flex-wrap gap-2">

@@ -9,7 +9,7 @@
 |---|---|
 | Open CRITICAL | **4** |
 | Open HIGH | **79** |
-| Open total | 159 |
+| Open total | 160 |
 | Blocked | 2 |
 | Awaiting a product decision | 6 |
 | Deferred | 90 |
@@ -443,6 +443,7 @@
 | [[BUG-2888-an-externally-hosted-release-is-invisible-to-the-desktop-age|BUG-2888]] | An externally hosted release is invisible to the desktop agent update feed, because the platform publish route cannot record a SHA-512 | INTEGRATION | MEDIUM | FIXED | api:app-releases | DONE |
 | [[BUG-3254-the-forwarded-for-hop-guard-rejected-every-honest-chain-coll|BUG-3254]] | The rate-limit e2e suite sent a forwarded chain one hop short, and the guard was misread as an off-by-one | TEST_GAP | MEDIUM | FIXED | pkg:config, services/api/src/common/security, services/api/test | DONE |
 | [[BUG-3263-the-provisioning-queue-e2e-fixture-raced-the-clock-so-an-exa|BUG-3263]] | The provisioning queue e2e fixture raced the clock, so an exact five-minute interval came out 300001ms | TEST_GAP | MEDIUM | FIXED | services/api/test | DONE |
+| [[BUG-3316-notification-settings-screens-hydrate-with-utc-timestamps-an|BUG-3316]] | Notification settings screens hydrate with UTC timestamps and crash the React tree | UX | MEDIUM | FIXED | apps/web | DONE |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -565,6 +566,7 @@
 | [[BUG-2888-an-externally-hosted-release-is-invisible-to-the-desktop-age|BUG-2888]] | An externally hosted release is invisible to the desktop agent update feed, because the platform publish route cannot record a SHA-512 | INTEGRATION | MEDIUM | FIXED | api:app-releases | DONE |
 | [[BUG-3254-the-forwarded-for-hop-guard-rejected-every-honest-chain-coll|BUG-3254]] | The rate-limit e2e suite sent a forwarded chain one hop short, and the guard was misread as an off-by-one | TEST_GAP | MEDIUM | FIXED | pkg:config, services/api/src/common/security, services/api/test | DONE |
 | [[BUG-3263-the-provisioning-queue-e2e-fixture-raced-the-clock-so-an-exa|BUG-3263]] | The provisioning queue e2e fixture raced the clock, so an exact five-minute interval came out 300001ms | TEST_GAP | MEDIUM | FIXED | services/api/test | DONE |
+| [[BUG-3316-notification-settings-screens-hydrate-with-utc-timestamps-an|BUG-3316]] | Notification settings screens hydrate with UTC timestamps and crash the React tree | UX | MEDIUM | FIXED | apps/web | DONE |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -611,7 +613,7 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 418 |
+| Bug records | 419 |
 | Backlog items | 158 |
 | Known bug patterns | 34 |
 | QA runs | 32 |
