@@ -6,6 +6,7 @@ Sessions that reached a terminal state. Kept as history: the branch, the base it
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0098](../../docs/sessions/SESSION-0098-closeout-sweep-close-every-open-session-bug-and-backlog-item.md) | — | Closeout sweep: close every open session, bug and backlog item | COMPLETE | `agent/closeout-sweep` | `develop` | — | 2026-09-10T19:06:45.272Z |
 | [SESSION-0097](../../docs/sessions/SESSION-0097-durable-object-storage-move-persistent-files-to-cloudflare-r.md) | — | Durable object storage: move persistent files to Cloudflare R2 (FILE-01/INF-05) | COMPLETE | `agent/r2-durable-storage` | `develop` | — | 2026-09-10T18:33:18.243Z |
 | [SESSION-0096](../../docs/sessions/SESSION-0096-full-technical-health-audit-of-dijipeople.md) | — | Full technical health audit of DijiPeople | COMPLETE | `agent/full-technical-audit` | `develop` | — | 2026-09-10T07:40:10.716Z |
 | [SESSION-0095](../../docs/sessions/SESSION-0095-release-promote-settings-plan-entitlements-to-main-with-a-fe.md) | — | Release: promote settings plan entitlements to main, with a feature-row backfill first | COMPLETE | `agent/release-settings-entitlements` | `main` | — | 2026-09-09T13:26:10.444Z |
