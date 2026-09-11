@@ -4668,3 +4668,19 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Two patterns, both general. A fixture helper that reads the clock per call is safe for assertions about absolute age and unsound for assertions about the difference between two seeded values — and a suite mixing both hides the problem, because a lower bound cannot be broken by a millisecond. Separately: validating a CI job locally means running the whole job. Running single specs against a bare migrated database reported 66 failures in four suites that CI passes, because the job runs `verify-database`, `seed:demo` and `seed:admin` first. The reproduction includes the parts that are not tests. |
 | **Fixed** | 2026-09-11 |
 | **Active** | yes |
+
+### REG-411 — An externally hosted release could not carry the one digest its own update feed required
+
+| | |
+|---|---|
+| **Bug class** | `dto-shaped-around-one-of-two-paths` |
+| **Module** | `services/api/src/modules/app-releases` |
+| **Bug record** | BUG-2888 |
+| **Root cause** | `PublishReleaseDto` was shaped around the storage-upload path, where the server computes `checksumSha512` itself from bytes it just received (`release-publisher.service.ts`). `externalUrl` was added later as an alternative artefact source without extending the DTO to carry the metadata the server could no longer compute for itself — and `forbidNonWhitelisted` meant a caller sending the field outright got a 400 rather than a silent drop. `update-feed.service.ts` selects only `checksumSha512: { not: null }`, so a release published this way was accepted, listed and downloadable, and permanently and silently absent from the one thing releases exist to do: reach the fleet through auto-update. |
+| **Regression test** | `services/api/src/modules/app-releases/app-release.service.spec.ts` |
+| **QA scenario** | QA-DEPLOY-024 |
+| **Scenario** | Publish a STABLE AGENT_DESKTOP release with `externalUrl` and a valid `checksumSha512`: it must appear in `GET /app-releases/feed/AGENT_DESKTOP/latest.yml` with that digest. Publish the same shape with no `checksumSha512`: the publish route must refuse it (`RELEASE_SHA512_REQUIRED`) rather than accept a release the feed can never serve. A BETA release, or a release for a different app, needs no `checksumSha512`. A metadata-only republish of an existing release must not clobber its stored digest with `null`. |
+| **Proven to fail without the fix** | Before the fix there was no field to submit a checksumSha512 through — `class-validator`'s `forbidNonWhitelisted` rejected the request outright, so the failure was at the transport boundary, not inside business logic. Reproduced against production 2026-09-09: `AGENT_DESKTOP 1.0.0` published with `externalUrl` and a SHA-256; the catalogue and download both worked, `GET .../feed/AGENT_DESKTOP/latest.yml` returned 404. |
+| **Note** | Two things generalise. **A DTO is a claim about which paths exist, not just which fields are optional** — this one was complete for the path it was designed around and quietly excluded the one added afterwards, and `forbidNonWhitelisted` turned that omission into an immediate, visible 400 for the field itself while leaving the actual gap (an unreachable update feed) silent. **Silence in the direction that matters is worse than a loud failure in the direction that doesn't** — the release LOOKED fully functional (listed, downloadable) while being permanently broken in the one dimension nobody was watching, until a second version shipped and an operator went looking for why fleets did not move. |
+| **Fixed** | 2026-09-11, branch `agent/cs-s6-triaged` |
+| **Active** | yes |

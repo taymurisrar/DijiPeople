@@ -22,6 +22,7 @@ import {
   IsOptional,
   IsString,
   IsUrl,
+  Matches,
   MaxLength,
   Min,
 } from 'class-validator';
@@ -85,6 +86,16 @@ class PublishReleaseDto {
   @IsOptional() @IsString() @MaxLength(255) fileName?: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) fileSizeBytes?: number;
   @IsOptional() @IsString() @MaxLength(128) checksumSha256?: string;
+  // BUG-2888 — the only field an externally hosted AGENT_DESKTOP release needs
+  // and could not carry: `forbidNonWhitelisted` rejected it outright, so the
+  // update feed (`checksumSha512: { not: null }`) silently never saw such a
+  // release. Same digest format the storage-backed publisher computes for
+  // itself in `release-publisher.service.ts`.
+  @IsOptional()
+  @Matches(/^[a-f0-9]{128}$/i, {
+    message: 'checksumSha512 must be a 128-character hex SHA-512 digest.',
+  })
+  checksumSha512?: string;
   @IsOptional() @IsString() @MaxLength(40) minimumSupportedVersion?: string;
   @IsOptional() @IsString() @MaxLength(4000) releaseNotes?: string;
   @IsOptional() @IsString() @MaxLength(120) requiredPermission?: string;

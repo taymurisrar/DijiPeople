@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 349** · automated: 301 · manual: 23 · blocked by infrastructure: 0
+**Scenarios: 351** · automated: 303 · manual: 23 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -22,6 +22,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-AGENT-006](../../../docs/qa/scenarios/QA-AGENT-006-a-partial-agent-config-cannot-silently-disable-or-widen-what.md) | A partial agent config cannot silently disable or widen what is captured | agent-desktop | UNIT | HIGH | AUTOMATED | `apps/agent-desktop/src/main/config-manager.spec.ts` | ITEM-0033 | REG-213 |
 | [QA-AGENT-007](../../../docs/qa/scenarios/QA-AGENT-007-a-capability-that-is-off-captures-nothing-from-the-employee-.md) | A capability that is off captures nothing from the employee's machine | agent-desktop | SECURITY | HIGH | AUTOMATED | `apps/agent-desktop/src/main/activity-tracker.spec.ts` | ITEM-0033 | REG-214 |
 | [QA-AGENT-008](../../../docs/qa/scenarios/QA-AGENT-008-the-desktop-agent-is-one-settings-screen-on-the-shared-shell.md) | The desktop agent is one settings screen on the shared shell | platform-admin | UNIT | MEDIUM | AUTOMATED | `apps/admin/lib/desktop-agent-settings.spec.ts` | BUG-1883 | REG-300 |
+| [QA-AGENT-009](../../../docs/qa/scenarios/QA-AGENT-009-a-release-the-update-feed-cannot-serve-is-refused-at-publish.md) | A release the update feed cannot serve is refused at publish, not silently omitted | agent-desktop | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/app-releases/release-publisher.service.spec.ts` | BUG-2888 | REG-411 |
 | [QA-API-001](../../../docs/qa/scenarios/QA-API-001-plan-entitlements-survive-a-save-and-are-never-silently-empt.md) | Plan entitlements survive a save and are never silently emptied | platform-admin | API | CRITICAL | AUTOMATED | `services/api/src/modules/platform-runtime/plan-record-shape.spec.ts` | BUG-0994 | REG-241 |
 | [QA-API-002](../../../docs/qa/scenarios/QA-API-002-every-declared-api-route-is-reachable.md) | Every declared API route is reachable | routing | UNIT | MEDIUM | AUTOMATED | `services/api/src/common/routing/route-shadowing.invariant.spec.ts` | BUG-2461 | REG-370 |
 | [QA-ATT-001](../../../docs/qa/scenarios/QA-ATT-001-punch-interpretation-pairs-punches-correctly-across-shift-bo.md) | Punch interpretation pairs punches correctly across shift boundaries | attendance | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/attendance-engine/punch-interpreter.service.spec.ts` | — | — |
@@ -133,6 +134,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-DEPLOY-021](../../../docs/qa/scenarios/QA-DEPLOY-021-the-production-dependency-graph-carries-no-critical-advisory.md) | The production dependency graph carries no critical advisory | deployment-release | SECURITY | HIGH | AUTOMATED | `scripts/check-production-advisories.mjs` | BUG-0052 | REG-217 |
 | [QA-DEPLOY-022](../../../docs/qa/scenarios/QA-DEPLOY-022-the-deployment-says-whether-it-is-draining-the-outbox.md) | The deployment says whether it is draining the outbox | outbox | DEPLOYMENT_SMOKE | HIGH | AUTOMATED | `services/api/src/app.service.spec.ts` | BUG-0904, BUG-0767 | REG-280 |
 | [QA-DEPLOY-023](../../../docs/qa/scenarios/QA-DEPLOY-023-every-app-serves-a-usable-content-security-policy.md) | Every app serves a usable content security policy | deployment-release | DEPLOYMENT_SMOKE | MEDIUM | AUTOMATED | `packages/config/security-headers.test.js` | BUG-1822, BUG-1424, BUG-0040 | REG-295 |
+| [QA-DEPLOY-024](../../../docs/qa/scenarios/QA-DEPLOY-024-an-externally-hosted-agent-desktop-release-serves-the-update.md) | An externally hosted AGENT_DESKTOP release serves the update feed | deployment-release | API | MEDIUM | AUTOMATED | `services/api/src/modules/app-releases/app-release.service.spec.ts` | BUG-2888 | REG-397 |
 | [QA-FRAMEWORK-001](../../../docs/qa/scenarios/QA-FRAMEWORK-001-the-id-allocator-never-returns-a-plan-number-an-execplan-alr.md) | The id allocator never returns a PLAN number an ExecPlan already holds | framework | UNIT | MEDIUM | AUTOMATED | `scripts/id-allocator.test.mjs` | BUG-2413 | REG-365 |
 | [QA-INFRA-002](../../../docs/qa/scenarios/QA-INFRA-002-repo-health-attributes-main-changes-to-the-right-task.md) | repo-health attributes main changes to the right task | deployment-release | API | HIGH | AUTOMATED | `scripts/task-sha-ref.test.mjs` | BUG-1203 | REG-249 |
 | [QA-INFRA-003](../../../docs/qa/scenarios/QA-INFRA-003-the-component-index-drift-check-is-platform-independent.md) | the component index drift check is platform-independent | deployment-release | API | MEDIUM | AUTOMATED | `scripts/index-drift.test.mjs` | BUG-1208 | REG-250 |

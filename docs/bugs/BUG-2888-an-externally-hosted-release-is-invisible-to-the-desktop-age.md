@@ -2,7 +2,7 @@
 ID: BUG-2888
 aliases: [BUG-2888]
 Title: An externally hosted release is invisible to the desktop agent update feed, because the platform publish route cannot record a SHA-512
-Status: OPEN
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: INTEGRATION
@@ -11,15 +11,15 @@ DetectedDate: 2026-09-09
 DetectedInSha: 4ee7b2cd
 AffectedModules: [services/api/src/modules/app-releases]
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 QAReport: 
-RegressionId: 
+RegressionId: REG-411
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-09
 UpdatedAt: 2026-09-11
-ResolvedAt:
+ResolvedAt: 2026-09-11
 ---
 
 # BUG-2888 — An externally hosted release is invisible to the desktop agent update feed, because the platform publish route cannot record a SHA-512
@@ -137,11 +137,47 @@ None.
 
 ## Resolution
 
-Not yet fixed.
+Premise re-verified before implementing: `PublishReleaseDto` in
+`app-release.controller.ts` still had no `checksumSha512` field and
+`update-feed.service.ts` still filtered on `checksumSha512: { not: null }` —
+the defect was live and unchanged from when this record was written.
+
+Both halves of the Proposed Resolution were taken, deliberately:
+
+1. **Accept it.** `PublishReleaseDto` gained an optional `checksumSha512`,
+   validated as a 128-character hex digest (`@Matches(/^[a-f0-9]{128}$/i, ...)`),
+   the same shape `release-publisher.controller.ts` already validates on its
+   own path. `AppReleaseService.publish()` persists it on both create and
+   update, without clobbering an existing stored digest when a metadata-only
+   republish omits it.
+2. **Refuse the silent case**, per the record's "probably right" recommendation.
+   Publishing a **STABLE** **AGENT_DESKTOP** release with no `checksumSha512` —
+   neither in the request nor already on the stored row — now throws
+   `RELEASE_SHA512_REQUIRED` (new error-catalog entry) instead of succeeding
+   and disappearing from the feed. Scoped to exactly the combination the feed
+   serves: other apps and other channels (BETA, INTERNAL) are unaffected,
+   because the feed never advertises anything but AGENT_DESKTOP/STABLE.
+
+Files changed:
+- `services/api/src/modules/app-releases/app-release.controller.ts` — the DTO field.
+- `services/api/src/modules/app-releases/app-release.service.ts` — persistence and the refusal.
+- `services/api/src/common/errors/error-catalog.ts` — `RELEASE_SHA512_REQUIRED`.
+- `services/api/src/modules/app-releases/app-release.service.spec.ts` — regression coverage.
+
+Not changed: `update-feed.service.ts`'s filter, which is correct as written —
+the fix is upstream of it, at the point a release without the feed's one
+required field could be created at all.
 
 ## QA Retest
 
-Not yet retested.
+`services/api/src/modules/app-releases/app-release.service.spec.ts` —
+`AppReleaseService.publish — BUG-2888 sha512` (5 cases): refuses a STABLE
+AGENT_DESKTOP release with no digest; accepts and persists one with a valid
+digest; does not require one on BETA; does not require one for a different
+app; does not refuse a metadata-only republish when the stored row already has
+one. `npm --workspace api run test` — full suite green, 72/72 in
+`app-releases` specifically (see the task-level validation summary).
+REG-411 and QA-DEPLOY-024 registered.
 
 ## History
 
@@ -153,8 +189,6 @@ Not yet retested.
 
 ## Related
 
-- No related record, module or decision is declared in this record's
-  frontmatter. Declare one rather than adding a link here by hand — this
-  block is regenerated and a hand-written link inside it is lost.
+- Regression — REG-411 (see the regression register)
 
 <!-- GRAPH:END -->

@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 119 |
+| Open (active work) | 117 |
 | Blocked | 2 |
 | Deferred | 29 |
 | Awaiting a product decision | 1 |
-| Completed / closed | 309 |
+| Completed / closed | 311 |
 | **Open CRITICAL** | **2** |
-| **Open HIGH** | **38** |
+| **Open HIGH** | **37** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,8 +27,8 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 2 |
-| HIGH | 38 |
-| MEDIUM | 65 |
+| HIGH | 37 |
+| MEDIUM | 64 |
 | LOW | 13 |
 
 ## Open by type
@@ -45,26 +45,26 @@ see [`README.md`](README.md) for why.
 | INTEGRATION | 5 |
 | PERFORMANCE | 1 |
 | PRODUCT_DECISION | 2 |
-| SECURITY | 8 |
+| SECURITY | 7 |
 | STATE_MACHINE | 3 |
 | TECH_DEBT | 5 |
-| TEST_GAP | 7 |
+| TEST_GAP | 6 |
 | UX | 28 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 6 |
+| OPEN | 3 |
 | BLOCKED | 2 |
 | DEFERRED | 29 |
 | PRODUCT_DECISION | 1 |
-| FIXED | 93 |
+| FIXED | 96 |
 | VERIFIED | 218 |
 | DUPLICATE | 5 |
 | ACCEPTED_RISK | 3 |
-| READY | 20 |
-| DONE | 83 |
+| READY | 18 |
+| DONE | 85 |
 
 ## All records
 
@@ -213,7 +213,7 @@ see [`README.md`](README.md) for why.
 | [BUG-2458](../../docs/bugs/BUG-2458-token-refresh-is-throttled-by-the-public-login-rate-limiter-.md) | Token refresh is throttled by the public login rate limiter, signing users out | BUG | HIGH | P1 | FIXED | api:auth, api:common | FIX_NOW |
 | [BUG-2459](../../docs/bugs/BUG-2459-the-notification-bell-polls-forever-after-a-session-ends-flo.md) | The notification bell polls forever after a session ends, flooding the error log | PERFORMANCE | HIGH | P1 | FIXED | web:notifications, api:error-logs, api:notifications | FIX_NOW |
 | [BUG-2462](../../docs/bugs/BUG-2462-stripe-subscription-webhooks-fail-because-the-customer-resol.md) | Stripe subscription webhooks fail because the customer resolves to no tenant | INTEGRATION | HIGH | P1 | FIXED | api:billing, api:super-admin | DONE |
-| [BUG-2494](../../docs/bugs/BUG-2494-check-out-re-validates-check-in-preconditions-and-traps-the-.md) | Check-out re-validates check-in preconditions and traps the entry open for ever | STATE_MACHINE | HIGH | P1 | OPEN | api:attendance | FIX_NOW |
+| [BUG-2494](../../docs/bugs/BUG-2494-check-out-re-validates-check-in-preconditions-and-traps-the-.md) | Check-out re-validates check-in preconditions and traps the entry open for ever | STATE_MACHINE | HIGH | P1 | FIXED | api:attendance | DONE |
 | [BUG-2504](../../docs/bugs/BUG-2504-approving-a-correction-never-applies-the-requested-work-mode.md) | Approving a correction never applies the requested work mode, work site or overtime | STATE_MACHINE | HIGH | P1 | FIXED | api:attendance | DONE |
 | [BUG-2505](../../docs/bugs/BUG-2505-a-mode-or-location-correction-could-never-be-submitted-at-al.md) | A mode-or-location correction could never be submitted at all | BUG | HIGH | P1 | FIXED | apps/web, api:attendance | DONE |
 | [BUG-2506](../../docs/bugs/BUG-2506-sign-out-leaves-the-refresh-token-live-whenever-the-tenant-i.md) | Sign-out leaves the refresh token live whenever the tenant is busy | SECURITY | HIGH | P1 | FIXED | api:auth | DONE |
@@ -244,7 +244,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0103](../../docs/backlog/items/ITEM-0103-deployment-check-the-composed-tenant-workspace-host-must-res.md) | Deployment check: the composed tenant workspace host must resolve | TEST_GAP | HIGH | P1 | DONE | web, tenant-domains | DONE |
 | [ITEM-0122](../../docs/backlog/items/ITEM-0122-fifteen-production-advisories-have-no-disposition-so-the-ci-.md) | Fifteen production advisories have no disposition, so the CI advisory gate fails on every branch including main | SECURITY | HIGH | P1 | DONE | ci, dependencies | DONE |
 | [ITEM-0123](../../docs/backlog/items/ITEM-0123-multer-carries-three-high-advisories-and-the-override-that-f.md) | multer carries three high advisories and the override that fixes it cannot be applied without a full re-resolve | SECURITY | HIGH | P1 | DEFERRED | dependencies, ci | DEFER |
-| [ITEM-0124](../../docs/backlog/items/ITEM-0124-production-advisory-gate-blocks-every-release-to-main-and-np.md) | Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile | SECURITY | HIGH | P1 | READY | scripts/check-production-advisories.mjs | FIX_NOW |
+| [ITEM-0124](../../docs/backlog/items/ITEM-0124-production-advisory-gate-blocks-every-release-to-main-and-np.md) | Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile | SECURITY | HIGH | P1 | DONE | scripts/check-production-advisories.mjs | DONE |
 | [ITEM-0048](../../docs/backlog/items/ITEM-0048-replace-or-contain-active-win-and-the-xlsx-export-path.md) | Replace or contain active-win and the xlsx export path | SECURITY | HIGH | P2 | BLOCKED | apps/agent-desktop, services/api/src/common/excel, package-lock.json | BLOCKED_EXTERNAL |
 | [ITEM-0086](../../docs/backlog/items/ITEM-0086-smoke-deployment-does-not-assert-that-a-launched-market-has-.md) | smoke:deployment does not assert that a launched market has a purchasable price or a running outbox worker | TEST_GAP | HIGH | P2 | DONE | scripts | DONE |
 | [BUG-0051](../../docs/bugs/BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state.md) | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | P1 | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
@@ -369,7 +369,7 @@ see [`README.md`](README.md) for why.
 | [BUG-2413](../../docs/bugs/BUG-2413-allocate-id-plan-scans-only-docs-qa-test-plans-so-execplan-i.md) | allocate-id plan scans only docs qa test-plans so ExecPlan ids collide | DATA_INTEGRITY | MEDIUM | P2 | FIXED | scripts | DONE |
 | [BUG-2460](../../docs/bugs/BUG-2460-client-error-reports-store-the-whole-html-error-page-as-the-.md) | Client error reports store the whole HTML error page as the incident message | BUG | MEDIUM | P2 | FIXED | web:error-reporting, api:error-logs, admin:monitoring | FIX_NOW |
 | [BUG-2465](../../docs/bugs/BUG-2465-session-revoked-401s-and-client-reported-failures-escape-the.md) | Session-revoked 401s and client-reported failures escape the not-an-incident filter | BUG | MEDIUM | P2 | FIXED | api:error-logs, api:platform-monitoring | FIX_NOW |
-| [BUG-2495](../../docs/bugs/BUG-2495-the-under-investigation-tile-counts-incidents-nobody-is-inve.md) | The Under investigation tile counts incidents nobody is investigating | UX | MEDIUM | P2 | OPEN | admin:monitoring, api:platform-monitoring | FIX_NOW |
+| [BUG-2495](../../docs/bugs/BUG-2495-the-under-investigation-tile-counts-incidents-nobody-is-inve.md) | The Under investigation tile counts incidents nobody is investigating | UX | MEDIUM | P2 | FIXED | admin:monitoring, api:platform-monitoring | DONE |
 | [BUG-2507](../../docs/bugs/BUG-2507-the-manager-s-correction-screen-hides-four-of-the-eight-kind.md) | The manager's correction screen hides four of the eight kinds of change | UX | MEDIUM | P2 | FIXED | apps/web | DONE |
 | [BUG-2508](../../docs/bugs/BUG-2508-the-correction-work-site-selector-is-never-populated-for-an-.md) | The correction work-site selector is never populated for an employee | BUG | MEDIUM | P2 | FIXED | apps/web, api:attendance-integrations | DONE |
 | [BUG-2509](../../docs/bugs/BUG-2509-platform-admin-remember-me-has-no-policy-able-to-refuse-it.md) | Platform admin remember-me has no policy able to refuse it | SECURITY | MEDIUM | P2 | OPEN | api:auth | PLAN_REQUIRED |
@@ -383,7 +383,7 @@ see [`README.md`](README.md) for why.
 | [BUG-2662](../../docs/bugs/BUG-2662-an-expired-refresh-token-puts-the-tenant-app-into-a-redirect.md) | An expired refresh token puts the tenant app into a redirect loop instead of the login page | UX | MEDIUM | P2 | FIXED | apps/web | DONE |
 | [BUG-2822](../../docs/bugs/BUG-2822-a-business-refusal-is-rendered-as-a-fatal-error-dialog-with-.md) | A business refusal is rendered as a fatal error dialog with a reference id and a log download | UX | MEDIUM | P2 | FIXED | runtime, approvals, attendance | FIX_NOW |
 | [BUG-2839](../../docs/bugs/BUG-2839-a-dashboard-fx-test-asserted-on-the-last-month-bucket-so-it-.md) | A dashboard FX test asserted on the last month bucket, so it passed in August and failed on 1 September | BUG | MEDIUM | P2 | FIXED | super-admin | FIX_NOW |
-| [BUG-2888](../../docs/bugs/BUG-2888-an-externally-hosted-release-is-invisible-to-the-desktop-age.md) | An externally hosted release is invisible to the desktop agent update feed, because the platform publish route cannot record a SHA-512 | INTEGRATION | MEDIUM | P2 | OPEN | api:app-releases | FIX_NOW |
+| [BUG-2888](../../docs/bugs/BUG-2888-an-externally-hosted-release-is-invisible-to-the-desktop-age.md) | An externally hosted release is invisible to the desktop agent update feed, because the platform publish route cannot record a SHA-512 | INTEGRATION | MEDIUM | P2 | FIXED | api:app-releases | DONE |
 | [BUG-3254](../../docs/bugs/BUG-3254-the-forwarded-for-hop-guard-rejected-every-honest-chain-coll.md) | The rate-limit e2e suite sent a forwarded chain one hop short, and the guard was misread as an off-by-one | TEST_GAP | MEDIUM | P2 | FIXED | pkg:config, services/api/src/common/security, services/api/test | DONE |
 | [BUG-3263](../../docs/bugs/BUG-3263-the-provisioning-queue-e2e-fixture-raced-the-clock-so-an-exa.md) | The provisioning queue e2e fixture raced the clock, so an exact five-minute interval came out 300001ms | TEST_GAP | MEDIUM | P2 | FIXED | services/api/test | DONE |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
@@ -447,7 +447,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0118](../../docs/backlog/items/ITEM-0118-merge-the-duplicate-customeraccount-rows-self-service-checko.md) | Merge the duplicate CustomerAccount rows self-service checkout created before BUG-2530 | DATA_MIGRATION | MEDIUM | P2 | DONE | super-admin, billing | DONE |
 | [ITEM-0119](../../docs/backlog/items/ITEM-0119-stop-writing-a-placeholder-e-mail-into-an-identity-column-wh.md) | Stop writing a placeholder e-mail into an identity column when the wizard opens a draft | TECH_DEBT | MEDIUM | P2 | READY | billing, landing, super-admin | PLAN_REQUIRED |
 | [ITEM-0120](../../docs/backlog/items/ITEM-0120-schema-prisma-declares-constraints-no-migration-creates-so-m.md) | schema.prisma declares constraints no migration creates, so migrate dev cannot run without a reset | TECH_DEBT | MEDIUM | P2 | DEFERRED | prisma | DEFER |
-| [ITEM-0125](../../docs/backlog/items/ITEM-0125-the-net-integration-gateway-ships-to-customers-with-no-ci-co.md) | The .NET Integration Gateway ships to customers with no CI coverage at all | TEST_GAP | MEDIUM | P2 | READY | gateway | FIX_NOW |
+| [ITEM-0125](../../docs/backlog/items/ITEM-0125-the-net-integration-gateway-ships-to-customers-with-no-ci-co.md) | The .NET Integration Gateway ships to customers with no CI coverage at all | TEST_GAP | MEDIUM | P2 | DONE | gateway | DONE |
 | [ITEM-0158](../../docs/backlog/items/ITEM-0158-public-traffic-that-bypasses-cloudflare-shares-one-rate-limi.md) | Public traffic that bypasses Cloudflare shares one rate-limit bucket, by design and untested | INFRA | MEDIUM | P2 | READY | pkg:config, services/api/src/common/security | PLAN_REQUIRED |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |

@@ -12,8 +12,12 @@ name: CI
 #      `generate` nor `validate` connects. A placeholder is therefore safe and
 #      is used everywhere.
 #
-# Phase 2 candidates (e2e, gateway, electron, migration-against-ephemeral-db)
-# are documented in docs/development/ci-recommendation.md.
+# Phase 2 candidates (electron) are documented in
+# docs/development/ci-recommendation.md. `gateway` was promoted out of that list
+# on 2026-09-11 (ITEM-0125): it is the only DijiPeople software installed as a
+# binary on a customer's own network, talking to their hardware, and it had no
+# CI coverage of any kind — a change could break it and nothing but a human
+# running `npm run gateway:test` locally would ever know.
 
 on:
   # All branches, not just main/develop. The Integrator pushes an
@@ -422,6 +426,48 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm --workspace agent-desktop run test
+
+  gateway:
+    name: Integration Gateway (.NET)
+    # ITEM-0125. This is the one piece of DijiPeople software installed as a
+    # binary onto a customer's own network, where it talks to their attendance
+    # hardware — and it had no CI coverage of any kind: `gateway/` was listed as
+    # a "Phase 2 candidate" and no job anywhere built it, ran its tests, or
+    # would have noticed if it stopped compiling.
+    #
+    # Concretely: the BUG-2732 deadlock fix — the fix that unblocked every
+    # on-premise attendance integration from ever going live — was almost
+    # entirely a change to GatewayWorker.cs and GatewayCommands.cs. CI validated
+    # the API, web, admin, landing, typecheck, lint, framework, browser e2e and
+    # database migration halves of that release, and had nothing whatever to say
+    # about the part that mattered. The evidence for it was a local test run and
+    # a live rehearsal — real, but not reproducible by CI on the next change.
+    #
+    # windows-latest because the host and its tests target `net8.0-windows`
+    # (WMI device polling, Windows service hosting) — this cannot build on
+    # ubuntu-latest. `npm run gateway:build` / `gateway:test` need no Node
+    # dependency of their own (they only shell out to `dotnet`), so there is no
+    # `npm ci` here — just the .NET SDK the csproj files declare.
+    #
+    # Deliberately NO `continue-on-error`. A fail-open job on a customer-
+    # installed binary would read as coverage while providing none, which the
+    # record calls worse than no job at all.
+    runs-on: windows-latest
+    needs: [resolve]
+    if: needs.resolve.outputs.reuse != 'true'
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Restore and build the gateway solution
+        run: npm run gateway:build
+      # 104 xunit tests, ~13s locally (ITEM-0125). GatewayWorker's device polling
+      # loop, command handling, and the FakeWorker fixture BUG-2732 depended on
+      # are what this actually exercises.
+      - name: Run gateway tests
+        run: npm run gateway:test
 
   test-runtime:
     name: Runtime schema tests
@@ -1171,9 +1217,14 @@ jobs:
     # those is a tenant-boundary or data-integrity assertion. It gated nothing
     # for the entire period it was red, which is precisely why being red was
     # survivable for weeks.
+    #
+    # gateway joined on 2026-09-11 (ITEM-0125) — the only required job that runs
+    # on windows-latest, and the only one exercising the .NET Integration
+    # Gateway that ships onto customer networks. No continue-on-error: a job
+    # that reports success without meaning it would be worse than not having it.
     timeout-minutes: 10
     needs:
-      [resolve, validate, typecheck, lint, test-api, test-web, test-admin, test-landing, test-agent-desktop, test-runtime, database-migration, database-e2e-report, build, browser-e2e]
+      [resolve, validate, typecheck, lint, test-api, test-web, test-admin, test-landing, test-agent-desktop, gateway, test-runtime, database-migration, database-e2e-report, build, browser-e2e]
     if: always()
     steps:
       - name: Verify all required jobs passed
