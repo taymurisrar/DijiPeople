@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**576 records** — 418 bugs under [`docs/bugs/`](../bugs/), 158 non-bug items under [`items/`](items/).
+**577 records** — 419 bugs under [`docs/bugs/`](../bugs/), 158 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,7 +13,7 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 159 |
+| Open (active work) | 160 |
 | Blocked | 2 |
 | Deferred | 90 |
 | Awaiting a product decision | 6 |
@@ -28,7 +28,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 4 |
 | HIGH | 79 |
-| MEDIUM | 63 |
+| MEDIUM | 64 |
 | LOW | 13 |
 
 ## Open by type
@@ -50,7 +50,7 @@ see [`README.md`](README.md) for why.
 | TECH_DEBT | 5 |
 | TENANT_ISOLATION | 2 |
 | TEST_GAP | 9 |
-| UX | 28 |
+| UX | 29 |
 
 ## All records by status
 
@@ -60,7 +60,7 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 2 |
 | DEFERRED | 90 |
 | PRODUCT_DECISION | 6 |
-| FIXED | 96 |
+| FIXED | 97 |
 | VERIFIED | 218 |
 | DUPLICATE | 10 |
 | ACCEPTED_RISK | 3 |
@@ -482,6 +482,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3235](../../docs/bugs/BUG-3235-the-audit-ip-address-on-authentication-events-is-read-from-x.md) | The audit IP address on authentication events is read from X-Forwarded-For without the codebase's own trust check | SECURITY | MEDIUM | P2 | DEFERRED | api:auth | DEFER |
 | [BUG-3254](../../docs/bugs/BUG-3254-the-forwarded-for-hop-guard-rejected-every-honest-chain-coll.md) | The rate-limit e2e suite sent a forwarded chain one hop short, and the guard was misread as an off-by-one | TEST_GAP | MEDIUM | P2 | FIXED | pkg:config, services/api/src/common/security, services/api/test | DONE |
 | [BUG-3263](../../docs/bugs/BUG-3263-the-provisioning-queue-e2e-fixture-raced-the-clock-so-an-exa.md) | The provisioning queue e2e fixture raced the clock, so an exact five-minute interval came out 300001ms | TEST_GAP | MEDIUM | P2 | FIXED | services/api/test | DONE |
+| [BUG-3316](../../docs/bugs/BUG-3316-notification-settings-screens-hydrate-with-utc-timestamps-an.md) | Notification settings screens hydrate with UTC timestamps and crash the React tree | UX | MEDIUM | P2 | FIXED | apps/web | DONE |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |

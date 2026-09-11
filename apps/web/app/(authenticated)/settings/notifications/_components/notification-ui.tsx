@@ -3,6 +3,7 @@
 import { ReactNode } from "react";
 import { StatusPill } from "@/app/components/ui/status-pill";
 import { formatDateTime as formatResolvedDateTime } from "@/lib/formatting-context";
+import type { ResolvedFormattingContext } from "@/lib/formatting-context";
 
 export function SettingsPanel({
   children,
@@ -77,9 +78,30 @@ export function StatusBadge({ status }: { status: string }) {
   return <StatusPill tone={tone}>{status.replaceAll("_", " ")}</StatusPill>;
 }
 
-export function formatDateTime(value: string | null | undefined) {
+/**
+ * A timestamp, formatted in the tenant's own timezone and locale.
+ *
+ * `context` is not optional in spirit, only in signature. Omit it and
+ * `formatDateTime` falls back to `formatting-context`'s module-level default —
+ * which is installed by an effect in `ResolvedSettingsProvider`, so it is empty
+ * during server rendering and populated on the client.
+ *
+ * That difference is a hydration mismatch (React #418): the server renders the
+ * timestamp in UTC, the client renders it in the tenant's timezone, React sees
+ * two different strings for one text node and tears down the tree. It surfaces
+ * on client-side navigation, where the effect has already run from a previous
+ * page while the freshly server-rendered payload has not.
+ *
+ * Callers should pass `useFormattingContext()`. Threading the value through
+ * React's own tree is what makes both renders agree, because the context is
+ * available to SSR and to hydration alike — module-level mutable state is not.
+ */
+export function formatDateTime(
+  value: string | null | undefined,
+  context?: ResolvedFormattingContext | null,
+) {
   if (!value) return "Not set";
-  return formatResolvedDateTime(value) || value;
+  return formatResolvedDateTime(value, context) || value;
 }
 
 export function parseJsonObject(value: string, fallbackMessage: string) {

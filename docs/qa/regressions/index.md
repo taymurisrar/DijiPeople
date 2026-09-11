@@ -4684,3 +4684,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Two things generalise. **A DTO is a claim about which paths exist, not just which fields are optional** — this one was complete for the path it was designed around and quietly excluded the one added afterwards, and `forbidNonWhitelisted` turned that omission into an immediate, visible 400 for the field itself while leaving the actual gap (an unreachable update feed) silent. **Silence in the direction that matters is worse than a loud failure in the direction that doesn't** — the release LOOKED fully functional (listed, downloadable) while being permanently broken in the one dimension nobody was watching, until a second version shipped and an operator went looking for why fleets did not move. |
 | **Fixed** | 2026-09-11, branch `agent/cs-s6-triaged` |
 | **Active** | yes |
+
+### REG-412 — Formatting state held outside React, and therefore invisible to the server
+
+| | |
+|---|---|
+| **Bug class** | `hydration-mismatch` |
+| **Module** | `apps/web/app/(authenticated)/settings/notifications` |
+| **Bug record** | BUG-3316 |
+| **Root cause** | `formatDateTime` read its timezone and locale from a module-level variable in `lib/formatting-context.ts`, installed by `setDefaultFormattingContext` inside a `useEffect`. Effects do not run during server rendering, so the server formatted in the UTC fallback while the client — on any navigation after that effect had run once — formatted in the tenant's timezone. Two strings for one text node is React #418, and the tree is torn down. Anything held outside React's tree cannot be consistent across hydration by construction. |
+| **Regression test** | `apps/web/app/(authenticated)/settings/notifications/_components/notification-formatting.spec.ts` |
+| **Scenario** | Navigate *within the app* to Settings → Notifications → Email Providers or Templates, as a tenant whose timezone is not UTC. The Updated column shows tenant-local time and hydration completes with no error dialog. A hard reload is not a valid check: effects run after hydration, so both renders use the fallback and the bug cannot appear. |
+| **Proven to fail without the fix** | Reported from production with client error log `client_1789128436221_hif8q6ab6j8` on commit `ab566d22`. Reverting either `formatDateTime` call to omit its context restores it. |
+| **Note** | Two lessons. First, an optional parameter that selects module-level state is a trap — omitting it is silent and looks correct, so the doc comment now says the parameter is optional only in signature. Second, the `useMemo` dependency mattered as much as the fix: the columns memo closes over `formatting`, so without adding it the correction would have applied on first paint and never again — a correct change that does nothing, which is worse than no change because it reads as done. |
+| **Fixed** | 2026-09-11 |
+| **Active** | yes |

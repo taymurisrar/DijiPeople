@@ -1,7 +1,7 @@
 # Component Index
 
 > **Last verified:** 2026-09-11
-> **Verified against commit:** e6e62dee
+> **Verified against commit:** 06a8c4d8
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -149,7 +149,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `SessionExpiredDialog` | component | 1 | `apps/web/app/components/feedback/session-expired-dialog.tsx`:16 | This had no dialog semantics, no focus containment and no Escape at all — which for this one is partly deliberate: there is nothing behind it the user can usefully do. |
 | `WorkspaceEnvironmentBanner` | component | 1 | `apps/web/app/components/workspace-environment-banner.tsx`:38 | A persistent marker on non-production workspaces. |
 | `WorkspaceContextLabel` | component | 0 | `apps/web/app/components/workspace-environment-banner.tsx`:66 | The workspace label for the app shell. |
-| `useFormattingContext` | function | 19 | `apps/web/app/components/filters/use-formatting-context.ts`:28 | The tenant's formatting context, safe to use during render. |
+| `useFormattingContext` | function | 21 | `apps/web/app/components/filters/use-formatting-context.ts`:28 | The tenant's formatting context, safe to use during render. |
 | `useDialogBehavior` | function | 15 | `apps/web/app/components/ui/dialog.tsx`:130 | The behaviour half of {@link Dialog}, on its own. |
 | `formatChartValue` | function | 10 | `apps/web/app/components/charts/chart-format.ts`:47 | Render one measured number the way the tenant has asked for numbers to be rendered. |
 | `hasChartData` | function | 8 | `apps/web/app/components/charts/chart-types.ts`:97 | `true` when there is nothing to draw: no series, or every series empty. |

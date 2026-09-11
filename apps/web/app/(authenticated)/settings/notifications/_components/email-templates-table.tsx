@@ -15,6 +15,7 @@ import {
   cloneEmailTemplate,
 } from "@/lib/notifications-api";
 import { describeScope } from "../../_components/scope-picker";
+import { useFormattingContext } from "@/app/components/filters/use-formatting-context";
 import { formatDateTime, StatusBadge } from "./notification-ui";
 
 export function EmailTemplatesTable({
@@ -27,6 +28,10 @@ export function EmailTemplatesTable({
   templates: EmailTemplate[];
 }) {
   const router = useRouter();
+  // Same hydration fix as the providers screen — see formatDateTime in
+  // notification-ui: the module default is installed by an effect and is empty
+  // during server rendering.
+  const formatting = useFormattingContext();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -146,7 +151,7 @@ export function EmailTemplatesTable({
         header: "Updated",
         sortable: true,
         sortAccessor: (template) => new Date(template.updatedAt),
-        render: (template) => formatDateTime(template.updatedAt),
+        render: (template) => formatDateTime(template.updatedAt, formatting),
       },
       {
         key: "actions",
@@ -196,7 +201,10 @@ export function EmailTemplatesTable({
         ),
       },
     ],
-    [busyId, canManage, scopeOptions],
+    // `formatting` belongs here: the Updated column closes over it, so without
+    // it the memo keeps a renderer bound to the context from the first render
+    // and the timestamps never pick up the tenant's timezone.
+    [busyId, canManage, formatting, scopeOptions],
   );
 
   return (
