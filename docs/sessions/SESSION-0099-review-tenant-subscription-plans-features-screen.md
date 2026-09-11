@@ -4,7 +4,7 @@ aliases: [SESSION-0099]
 TASK_ID:
 TITLE: Review tenant subscription Plans & Features screen
 ARCHITECT_INTENT: Review tenant subscription Plans & Features screen
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: AUDIT
 TASK_SIZE: MEDIUM
 BASE_BRANCH: origin/develop
