@@ -22,6 +22,11 @@ import { resolveEffectiveAccessLevel } from '../../common/security/rbac-query-sc
 import { canManageEmployeeAccountActions } from '../../common/security/employee-account-actions';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { SecretEncryptionService } from '../../common/security/secret-encryption.service';
+import {
+  decryptEmployeeCompensationFields,
+  encryptEmployeeCompensationFields,
+} from '../../common/security/pii-field-codec';
 import { StorageService } from '../../common/storage/storage.service';
 import { AuditService } from '../audit/audit.service';
 import { DocumentsRepository } from '../documents/documents.repository';
@@ -85,6 +90,10 @@ const employeeCompensationSelect = {
   bankIban: true,
   bankRoutingNumber: true,
   taxIdentifier: true,
+  bankAccountNumberEnc: true,
+  bankIbanEnc: true,
+  bankRoutingNumberEnc: true,
+  taxIdentifierEnc: true,
   notes: true,
   createdAt: true,
   updatedAt: true,
@@ -104,6 +113,7 @@ export class EmployeeProfilesService {
     private readonly configService: ConfigService,
     private readonly employeeAccessService: EmployeeAccessService,
     private readonly notificationsService: NotificationsService,
+    private readonly secretEncryption: SecretEncryptionService,
   ) {}
 
   async getProfile(currentUser: AuthenticatedUser, employeeId: string) {

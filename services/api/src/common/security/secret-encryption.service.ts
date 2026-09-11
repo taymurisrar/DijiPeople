@@ -8,6 +8,7 @@ import {
   createCipheriv,
   createDecipheriv,
   createHash,
+  createHmac,
   randomBytes,
 } from 'node:crypto';
 
@@ -67,6 +68,29 @@ export class SecretEncryptionService {
 
   get isEnabled() {
     return this.key !== null;
+  }
+
+  /**
+   * Deterministic HMAC-SHA256 of a value, keyed from the same material as
+   * `encrypt`/`decrypt`. AES-256-GCM is intentionally non-deterministic (a
+   * fresh IV every call), so it cannot back a unique constraint — two calls
+   * encrypting the identical CNIC produce different ciphertext. This gives a
+   * stable, non-reversible token to index instead: it lets the database
+   * reject a duplicate national id per tenant without ever storing or
+   * comparing the plaintext, and it cannot be decrypted back to the original
+   * value the way `encrypt` output can.
+   *
+   * Throws when no key is configured, matching `decrypt`'s fail-closed
+   * behaviour: a uniqueness check silently keyed on an empty string would
+   * accept every value as "unique" and defeat the constraint it exists for.
+   */
+  hmac(value: string): string {
+    if (!this.key) {
+      throw new InternalServerErrorException(
+        'Cannot compute a deterministic lookup hash: SECRET_ENCRYPTION_KEY is not set.',
+      );
+    }
+    return createHmac('sha256', this.key).update(value, 'utf8').digest('hex');
   }
 
   isEncrypted(value: unknown): value is string {

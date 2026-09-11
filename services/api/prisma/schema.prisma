@@ -4972,6 +4972,13 @@ model Employee {
   nationalityCountryId           String?
   nationality                    String?
   cnic                           String?
+  /// AES-256-GCM ciphertext of `cnic` (see EmployeeBankAccount.accountNumberEnc).
+  /// `cnic` is unique per tenant, and non-deterministic encryption cannot back a
+  /// unique constraint, so `cnicHmac` — an HMAC-SHA256 of the normalized value,
+  /// keyed from the same SECRET_ENCRYPTION_KEY — carries the uniqueness check
+  /// once `@@unique([tenantId, cnic])` is dropped in the OBS-24 contract phase.
+  cnicEnc                        String?
+  cnicHmac                       String?
   bloodGroup                     String?
   employmentStatus               EmployeeEmploymentStatus      @default(ACTIVE)
   employeeType                   EmployeeType?
@@ -5013,6 +5020,10 @@ model Employee {
   emergencyContactAlternatePhone String?
   noticePeriodDays               Int?
   taxIdentifier                  String?
+  /// AES-256-GCM ciphertext, see EmployeeBankAccount.accountNumberEnc. Not in
+  /// OBS-24's own column list — found auditing schema.prisma for the same
+  /// pattern; it is the same national-tax-id shape as the columns OBS-24 named.
+  taxIdentifierEnc               String?
   isDraftProfile                 Boolean                       @default(false)
   sourceCandidateId              String?
   sourceApplicationId            String?                       @unique
@@ -5119,6 +5130,11 @@ model Employee {
   @@unique([tenantId, email])
   @@unique([tenantId, personalEmail])
   @@unique([tenantId, cnic])
+  // Expand-phase companion to the plaintext unique above (OBS-24). NULL
+  // cnicHmac values do not collide under Postgres unique-index semantics, so
+  // this is safe to add before any row has been backfilled. The contract
+  // phase drops @@unique([tenantId, cnic]) once this one is authoritative.
+  @@unique([tenantId, cnicHmac])
   @@index([tenantId])
   @@index([ownerUserId])
   @@index([tenantId, status])
@@ -9409,6 +9425,13 @@ model EmployeeBankAccount {
   accountNumber        String?
   iban                 String?
   swiftOrRoutingCode   String?
+  /// AES-256-GCM ciphertext of `accountNumber`/`iban`/`swiftOrRoutingCode`
+  /// (`SecretEncryptionService`, `enc:v1:...`). OBS-24 expand phase: written
+  /// alongside the plaintext columns above so both shapes stay valid while
+  /// readers migrate; the plaintext columns are the contract-phase drop.
+  accountNumberEnc     String?
+  ibanEnc              String?
+  swiftOrRoutingCodeEnc String?
   branchName           String?
   branchCode           String?
   countryCode          String
@@ -9445,6 +9468,9 @@ model EmployerBankAccount {
   accountTitle            String
   accountNumber           String?
   iban                    String?
+  /// AES-256-GCM ciphertext, see EmployeeBankAccount.accountNumberEnc.
+  accountNumberEnc        String?
+  ibanEnc                 String?
   branch                  String?
   currencyCode            String
   accountPurpose          EmployerBankAccountPurpose @default(PAYROLL)
@@ -10123,6 +10149,8 @@ model EmployeeTaxProfile {
   tenantId                      String
   employeeId                    String
   taxIdentificationNumber       String?
+  /// AES-256-GCM ciphertext, see EmployeeBankAccount.accountNumberEnc.
+  taxIdentificationNumberEnc    String?
   taxResidencyCountryCode       String?
   workTaxJurisdiction           String?
   taxStatus                     String?
@@ -10299,6 +10327,11 @@ model EmployeeCompensation {
   bankIban          String?
   bankRoutingNumber String?
   taxIdentifier     String?
+  /// AES-256-GCM ciphertext, see EmployeeBankAccount.accountNumberEnc.
+  bankAccountNumberEnc String?
+  bankIbanEnc          String?
+  bankRoutingNumberEnc String?
+  taxIdentifierEnc     String?
   notes             String?
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
