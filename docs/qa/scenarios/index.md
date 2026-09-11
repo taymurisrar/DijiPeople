@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 348** · automated: 300 · manual: 23 · blocked by infrastructure: 0
+**Scenarios: 349** · automated: 301 · manual: 23 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -362,3 +362,4 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-TENANT-061](../../../docs/qa/scenarios/QA-TENANT-061-two-naming-conventions-and-five-columns-nothing-filled.md) | Two naming conventions and five columns nothing filled | tenant-isolation | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/audit/audit-actions.spec.ts` | BUG-2046 | REG-356 |
 | [QA-TENANT-062](../../../docs/qa/scenarios/QA-TENANT-062-tenant-readiness-labels-owner-access-by-capability-not-desig.md) | Tenant readiness labels owner access by capability not designation | platform-admin | UNIT | LOW | AUTOMATED | `services/api/src/modules/tenant-control-plane/tenant-control-plane.service.spec.ts` | BUG-2384 | REG-366 |
 | [QA-TENANT-063](../../../docs/qa/scenarios/QA-TENANT-063-the-workspace-switcher-truncates-rather-than-scrolling-horiz.md) | The workspace switcher truncates rather than scrolling horizontally | runtime-modules | UNIT | LOW | AUTOMATED | `apps/web/app/components/workspace-switcher-overflow.spec.ts` | BUG-3021 | REG-400 |
+| [QA-TENANT-064](../../../docs/qa/scenarios/QA-TENANT-064-a-seeded-provisioning-interval-is-exact-on-every-run.md) | A seeded provisioning interval is exact on every run | tenant-provisioning | DATABASE | LOW | AUTOMATED | `services/api/test/provisioning-queue.e2e-spec.ts` | BUG-3263 | REG-410 |

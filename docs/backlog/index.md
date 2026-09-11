@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**459 records** — 327 bugs under [`docs/bugs/`](../bugs/), 132 non-bug items under [`items/`](items/).
+**460 records** — 328 bugs under [`docs/bugs/`](../bugs/), 132 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,7 +13,7 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 118 |
+| Open (active work) | 119 |
 | Blocked | 2 |
 | Deferred | 29 |
 | Awaiting a product decision | 1 |
@@ -28,7 +28,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 2 |
 | HIGH | 38 |
-| MEDIUM | 64 |
+| MEDIUM | 65 |
 | LOW | 13 |
 
 ## Open by type
@@ -48,7 +48,7 @@ see [`README.md`](README.md) for why.
 | SECURITY | 8 |
 | STATE_MACHINE | 3 |
 | TECH_DEBT | 5 |
-| TEST_GAP | 6 |
+| TEST_GAP | 7 |
 | UX | 28 |
 
 ## All records by status
@@ -59,7 +59,7 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 2 |
 | DEFERRED | 29 |
 | PRODUCT_DECISION | 1 |
-| FIXED | 92 |
+| FIXED | 93 |
 | VERIFIED | 218 |
 | DUPLICATE | 5 |
 | ACCEPTED_RISK | 3 |
@@ -385,6 +385,7 @@ see [`README.md`](README.md) for why.
 | [BUG-2839](../../docs/bugs/BUG-2839-a-dashboard-fx-test-asserted-on-the-last-month-bucket-so-it-.md) | A dashboard FX test asserted on the last month bucket, so it passed in August and failed on 1 September | BUG | MEDIUM | P2 | FIXED | super-admin | FIX_NOW |
 | [BUG-2888](../../docs/bugs/BUG-2888-an-externally-hosted-release-is-invisible-to-the-desktop-age.md) | An externally hosted release is invisible to the desktop agent update feed, because the platform publish route cannot record a SHA-512 | INTEGRATION | MEDIUM | P2 | OPEN | api:app-releases | FIX_NOW |
 | [BUG-3254](../../docs/bugs/BUG-3254-the-forwarded-for-hop-guard-rejected-every-honest-chain-coll.md) | The rate-limit e2e suite sent a forwarded chain one hop short, and the guard was misread as an off-by-one | TEST_GAP | MEDIUM | P2 | FIXED | pkg:config, services/api/src/common/security, services/api/test | DONE |
+| [BUG-3263](../../docs/bugs/BUG-3263-the-provisioning-queue-e2e-fixture-raced-the-clock-so-an-exa.md) | The provisioning queue e2e fixture raced the clock, so an exact five-minute interval came out 300001ms | TEST_GAP | MEDIUM | P2 | FIXED | services/api/test | DONE |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |

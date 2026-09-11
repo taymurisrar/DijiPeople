@@ -56,8 +56,25 @@ describeWithDatabase()('Provisioning queue (DB-backed)', () => {
     prisma as unknown as PrismaService,
   );
 
-  const minutesAgo = (n: number) => new Date(Date.now() - n * 60_000);
-  const minutesAhead = (n: number) => new Date(Date.now() + n * 60_000);
+  /*
+   * One instant for the whole fixture, captured once.
+   *
+   * These used to read `Date.now()` per call, which made any assertion on the
+   * *difference* between two fixture timestamps a race with the clock. A run
+   * seeded with `startedAt: minutesAgo(2880)` and
+   * `completedAt: minutesAgo(2875)` is meant to have taken exactly five
+   * minutes, but the two calls resolve a millisecond or two apart, so
+   * `elapsedMs` came out 300001 instead of 300000 and the suite failed on CI
+   * (run 34550081262) having passed locally minutes earlier.
+   *
+   * Pinning the base makes every seeded interval exact. It does not weaken the
+   * one assertion that reads elapsed time against the real clock — the stuck
+   * run's `toBeGreaterThan(80 * 60_000)` — because that compares a pinned
+   * `startedAt` to `now` at read time, and a lower bound is what it wants.
+   */
+  const BASE_NOW = Date.now();
+  const minutesAgo = (n: number) => new Date(BASE_NOW - n * 60_000);
+  const minutesAhead = (n: number) => new Date(BASE_NOW + n * 60_000);
 
   let stuckRunId = '';
   let failedRunId = '';

@@ -4653,3 +4653,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The transferable lesson is diagnostic, not technical: a red test was blamed on the code it exercises rather than on its own setup, and a security boundary was changed to make it pass. The boundary is only correct in light of a fact recorded elsewhere — that the service is reachable without its edge — and that fact was not consulted. When a guard looks like an off-by-one, the cheap check is whether a test is feeding it an unrealistic input. Note also that the library had no unit test of its own, so nothing stated the intent at the point of change; the module it sits beside had one that had never been wired into any script or job. |
 | **Fixed** | 2026-09-11 |
 | **Active** | yes |
+
+### REG-410 — A fixture that read the clock twice and asserted the difference
+
+| | |
+|---|---|
+| **Bug class** | `fixture-races-the-clock` |
+| **Module** | `services/api/test` |
+| **Bug record** | BUG-3263 |
+| **Root cause** | `provisioning-queue.e2e-spec.ts` built seeded timestamps with `const minutesAgo = (n) => new Date(Date.now() - n * 60_000)`, calling it once per timestamp. A run seeded as `startedAt: minutesAgo(2880)` and `completedAt: minutesAgo(2875)` is meant to have taken exactly five minutes, but the two calls straddle real time, so the stored interval was five minutes plus however far the clock moved between two adjacent statements. `expect(elapsedMs).toBe(300000)` then saw 300001. |
+| **Regression test** | `services/api/test/provisioning-queue.e2e-spec.ts` — structural rather than asserted: the fixture pins one base instant, so no path remains where a seeded interval can drift. Covered in practice by that suite’s existing elapsed-time assertions. |
+| **Scenario** | Every interval a fixture seeds is exactly the interval it names, on any run. Assertions about a *live* run's elapsed time still compare a seeded `startedAt` against the real clock, which is why the stuck-run case stays a lower bound (`toBeGreaterThan(80 * 60_000)`) rather than becoming exact. |
+| **Proven to fail without the fix** | Not deterministically — the window is one scheduler tick, which is what made it a flake rather than a failure. CI run `34550081262` hit it; three consecutive local runs did not. Restoring the per-call `Date.now()` restores the race. |
+| **Note** | Two patterns, both general. A fixture helper that reads the clock per call is safe for assertions about absolute age and unsound for assertions about the difference between two seeded values — and a suite mixing both hides the problem, because a lower bound cannot be broken by a millisecond. Separately: validating a CI job locally means running the whole job. Running single specs against a bare migrated database reported 66 failures in four suites that CI passes, because the job runs `verify-database`, `seed:demo` and `seed:admin` first. The reproduction includes the parts that are not tests. |
+| **Fixed** | 2026-09-11 |
+| **Active** | yes |
