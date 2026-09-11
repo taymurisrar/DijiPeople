@@ -17,16 +17,21 @@ import { useFormattingContext } from "@/app/components/filters/use-formatting-co
 /*
  * The way in.
  *
- * Ordered by what a returning reader wants first: the analytics surfaces they
- * live in, then the reports they pinned, then the ones they opened recently,
- * then the whole catalogue by category. A first-time reader gets the same order
- * with the middle two sections absent, which is why each has its own empty
- * condition rather than a shared one.
+ * ITEM-0128 — Reports used to lead with "Analytics surfaces": five cards, each
+ * a paragraph plus a quoted "The Dashboard shows..." note, occupying the whole
+ * first screen at 1440x900 before the report list a returning reader actually
+ * came for even appeared. The distinction between an analytics surface and a
+ * Dashboard widget is real and worth stating, but it is a distinction a reader
+ * has not yet asked about on a return visit — a first-run tour or an empty
+ * state is where an unasked-for explanation belongs, not the top of every
+ * visit.
  *
- * Each surface card prints the sentence that distinguishes it from the
- * Dashboard widget of the same name. That is not marketing copy — the two
- * screens genuinely answer different questions, and a reader who does not know
- * which one to open will open the wrong one.
+ * Reports now leads, and the surfaces are a compact single-column list: one
+ * line for the link and its description, with the Dashboard-contrast sentence
+ * one disclosure away rather than printed for everyone every time. Nothing is
+ * deleted — the acceptance criterion for this change is explicitly that no
+ * caveat text is lost, only that its volume and placement stop hiding the
+ * report list beneath it.
  */
 
 export type ReportsLandingProps = {
@@ -81,47 +86,12 @@ export function ReportsLanding({
   return (
     <div className="grid gap-5 [&>*]:min-w-0">
       <SectionCard
-        description="Each surface is period-scoped and comparative: pick a window, compare it with another, filter it, break it down, and open the records behind any number."
-        title="Analytics surfaces"
-      >
-        {surfaces.length === 0 ? (
-          <EmptyState
-            description="None of the reporting areas are available to your role, or the modules behind them are not enabled for this workspace. Standard reports below may still be available to you."
-            title="No analytics surfaces are available to you"
-          />
-        ) : (
-          <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {surfaces.map((surface) => (
-              <li key={surface.key}>
-                <article className="flex h-full flex-col gap-2 rounded-[22px] border border-border bg-surface-strong p-5">
-                  <h3 className="text-sm font-semibold text-foreground">
-                    <Link
-                      className="text-accent underline-offset-2 hover:underline"
-                      href={`/reports/analytics/${surface.key}`}
-                    >
-                      {surface.label}
-                    </Link>
-                  </h3>
-                  <p className="text-xs leading-5 text-muted">
-                    {surface.description}
-                  </p>
-                  <p className="mt-auto border-l-2 border-border pl-3 text-xs leading-5 text-muted">
-                    {surface.versusDashboard}
-                  </p>
-                </article>
-              </li>
-            ))}
-          </ul>
-        )}
-      </SectionCard>
-
-      <SectionCard
         description="Standard reports are built in; custom ones are saved by people in this workspace. Both run against your own access, so two people can open the same report and see different rows."
         title="Reports"
       >
         {!libraryAvailable ? (
           <EmptyState
-            description="The report library could not be loaded. The analytics surfaces above are unaffected, which usually means this is a temporary failure rather than a permission problem."
+            description="The report library could not be loaded. The analytics surfaces below are unaffected, which usually means this is a temporary failure rather than a permission problem."
             title="The report library is unavailable right now"
           />
         ) : (
@@ -187,6 +157,53 @@ export function ReportsLanding({
               </>
             }
           />
+        )}
+      </SectionCard>
+
+      <SectionCard
+        description="Each surface is period-scoped and comparative: pick a window, compare it with another, filter it, break it down, and open the records behind any number."
+        title="Analytics surfaces"
+      >
+        {surfaces.length === 0 ? (
+          <EmptyState
+            description="None of the reporting areas are available to your role, or the modules behind them are not enabled for this workspace. Standard reports above may still be available to you."
+            title="No analytics surfaces are available to you"
+          />
+        ) : (
+          <ul className="grid gap-1">
+            {surfaces.map((surface) => (
+              <li
+                className="border-b border-border py-2 last:border-b-0"
+                key={surface.key}
+              >
+                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                  <Link
+                    className="text-sm font-semibold text-accent underline-offset-2 hover:underline"
+                    href={`/reports/analytics/${surface.key}`}
+                  >
+                    {surface.label}
+                  </Link>
+                  <span className="text-xs leading-5 text-muted">
+                    {surface.description}
+                  </span>
+                </div>
+                {/*
+                 * The Dashboard-contrast sentence: true and useful, but not
+                 * something a returning reader has asked about on this visit.
+                 * One disclosure away rather than a quoted block on every
+                 * card — nothing here is lost, see the file comment above.
+                 */}
+                <details className="group mt-1">
+                  <summary className="cursor-pointer list-none text-xs font-medium text-muted outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-accent">
+                    How this differs from the Dashboard
+                  </summary>
+                  <p className="mt-1 border-l-2 border-border pl-3 text-xs leading-5 text-muted">
+                    {surface.versusDashboard}
+                  </p>
+                </details>
+              </li>
+            ))}
+          </ul>
         )}
       </SectionCard>
     </div>

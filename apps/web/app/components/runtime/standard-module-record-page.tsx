@@ -8,7 +8,7 @@ import type {
   FieldMetadata,
   FormMetadata,
 } from "@/lib/runtime/metadata-runtime.types";
-import { getEntityMetadata } from "@/lib/runtime/metadata-registry";
+import { defaultPrimaryNameFieldForEntity } from "@/lib/runtime/modules/entity-primary-name-field";
 import type { ModuleRuntimeContext } from "@/lib/runtime/module-runtime.types";
 import { createStandardModuleDataAdapter } from "@/lib/runtime/modules/standard-module-data.adapter";
 import type { StandardModuleRuntimeSpec } from "@/lib/runtime/modules/standard-module-runtime";
@@ -122,10 +122,12 @@ function readableLookupDisplayValue(field: FieldMetadata, value: unknown) {
 }
 
 function lookupPrimaryNameField(field: FieldMetadata) {
-  const targetEntityLogicalName = field.lookupTargets?.[0]?.entityLogicalName;
+  const target = field.lookupTargets?.[0];
+  if (target?.primaryNameField) return target.primaryNameField;
+  const targetEntityLogicalName = target?.entityLogicalName;
   if (!targetEntityLogicalName) return "name";
 
-  return getEntityMetadata(targetEntityLogicalName)?.primaryNameField ?? "name";
+  return defaultPrimaryNameFieldForEntity(targetEntityLogicalName);
 }
 
 function stringValue(value: unknown) {

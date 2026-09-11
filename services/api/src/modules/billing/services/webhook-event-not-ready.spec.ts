@@ -1,12 +1,16 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { BadRequestException } from '@nestjs/common';
 import {
   PlatformEventResult,
   SubscriptionOrderStatus,
   WebhookProcessingStatus,
 } from '@prisma/client';
 import { AppError } from '../../../common/errors/app-error';
-import { WebhookService } from './webhook.service';
+import {
+  WebhookService,
+  isUnmappableStripeTenantError,
+} from './webhook.service';
 import type { RecordPlatformEventInput } from '../../platform-events/platform-events.service';
 
 /**
@@ -36,6 +40,7 @@ function buildService(options: {
   order: FakeOrder;
   eventType?: string;
   eventObject?: Record<string, unknown>;
+  customerAccount?: unknown;
 }) {
   const updates: Array<Record<string, unknown>> = [];
   const platformEvents = {
@@ -47,7 +52,9 @@ function buildService(options: {
   const db = {
     subscription: { findFirst: jest.fn().mockResolvedValue(null) },
     tenant: { findUnique: jest.fn().mockResolvedValue(null) },
-    customerAccount: { findFirst: jest.fn().mockResolvedValue(null) },
+    customerAccount: {
+      findFirst: jest.fn().mockResolvedValue(options.customerAccount ?? null),
+    },
     subscriptionOrder: {
       findFirst: jest.fn().mockResolvedValue(options.order),
     },
@@ -185,7 +192,15 @@ describe('a Stripe event that cannot be attributed at all', () => {
       order: null,
     });
 
-    await expect(service.processStripeEvent(event as never)).rejects.toThrow(
+    const error: unknown = await service
+      .processStripeEvent(event as never)
+      .then(
+        () => null,
+        (thrown: unknown) => thrown,
+      );
+
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toMatch(
       /could not be resolved to one tenant/,
     );
 
@@ -194,6 +209,58 @@ describe('a Stripe event that cannot be attributed at all', () => {
       result: PlatformEventResult;
     };
     expect(recorded.result).toBe(PlatformEventResult.FAILED);
+
+    /*
+     * BUG-2462. `processStripeEvent` itself is unchanged by that fix — it
+     * still throws and still marks the row FAILED — but the thrown error now
+     * carries the code `StripeWebhookController` matches on to acknowledge
+     * Stripe instead of answering 400 forever.
+     */
+    expect(error).toBeInstanceOf(BadRequestException);
+    expect(isUnmappableStripeTenantError(error)).toBe(true);
+  });
+
+  it('tags the ambiguous-mapping case (more than one tenant matched) the same way', async () => {
+    // BUG-2462's root cause section names two candidates for "cannot resolve
+    // to one tenant": zero matches, and more than one. Both must be tagged —
+    // an operator reconciling a duplicate CustomerAccount needs the same
+    // acknowledged response as one reconciling a missing mapping.
+    const { service, event, updates } = buildService({
+      order: null,
+      customerAccount: {
+        id: 'ca_dupe',
+        tenants: [{ id: 'tenant-a' }, { id: 'tenant-b' }],
+      },
+    });
+
+    const error: unknown = await service
+      .processStripeEvent(event as never)
+      .then(
+        () => null,
+        (thrown: unknown) => thrown,
+      );
+
+    expect(isUnmappableStripeTenantError(error)).toBe(true);
+    expect((error as BadRequestException).getResponse()).toMatchObject({
+      code: 'STRIPE_CUSTOMER_UNMAPPED',
+      details: expect.objectContaining({
+        customerAccountId: 'ca_dupe',
+        matchedTenants: 2,
+      }),
+    });
+    expect(updates[0].processingStatus).toBe(WebhookProcessingStatus.FAILED);
+  });
+
+  it('does not tag an unrelated failure as the unmapped-tenant class', () => {
+    expect(isUnmappableStripeTenantError(new Error('boom'))).toBe(false);
+    expect(
+      isUnmappableStripeTenantError(
+        new BadRequestException({
+          code: 'VALIDATION_FAILED',
+          message: 'Some other problem.',
+        }),
+      ),
+    ).toBe(false);
   });
 });
 

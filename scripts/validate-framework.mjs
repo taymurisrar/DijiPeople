@@ -3308,6 +3308,47 @@ if (existsSync(join(ROOT, 'scripts/lib/session-registry.mjs'))) {
       `both received ${first}`,
     );
 
+    /*
+     * 1b — ITEM-0074: allocate-id must refuse a --session naming no durable
+     * record, and never stamp the ledger with it. SESSION-0029 was accepted
+     * this way and allocated REG-173 an hour before the record existed.
+     */
+    const reservationsBeforeRefusal = allocator.readReservations(sandbox).length;
+    let refusalMessage = '';
+    try {
+      allocator.allocateId(sandbox, 'bug', { sessionId: 'SESSION-9999' });
+    } catch (error) {
+      refusalMessage = String(error.message);
+    }
+    check(
+      'simulation 1b: allocate-id refuses a --session that names no record',
+      refusalMessage.includes('SESSION-9999') && refusalMessage.includes('names no record'),
+      refusalMessage || 'allocation succeeded instead of refusing',
+    );
+    check(
+      'simulation 1c: the refused allocation left the reservation ledger untouched',
+      allocator.readReservations(sandbox).length === reservationsBeforeRefusal,
+      `ledger grew from ${reservationsBeforeRefusal} to ${allocator.readReservations(sandbox).length}`,
+    );
+
+    /* 1d — a session id backed by a real durable record still allocates. */
+    mkdirSync(join(sandbox, 'docs/sessions'), { recursive: true });
+    writeFileSync(
+      join(sandbox, 'docs/sessions/SESSION-9001-probe.md'),
+      '---\nSESSION_ID: SESSION-9001\nSTATUS: ACTIVE\n---\n# probe\n',
+    );
+    let validSessionAllocation = '';
+    try {
+      validSessionAllocation = allocator.allocateId(sandbox, 'bug', { sessionId: 'SESSION-9001' });
+    } catch (error) {
+      validSessionAllocation = `ERROR: ${error.message}`;
+    }
+    check(
+      'simulation 1d: a --session backed by a real durable record still allocates',
+      /^BUG-\d+$/.test(validSessionAllocation),
+      validSessionAllocation,
+    );
+
     /* 4, 5 — duplicate BUG and ITEM allocation must be impossible. */
     for (const [kind, label] of [['bug', 'BUG'], ['item', 'ITEM']]) {
       const ids = new Set();
@@ -4134,6 +4175,40 @@ const trackedFiles = (() => {
   }
 })();
 
+/*
+ * ITEM-0093 — the link-resolution check below must also see a record that
+ * exists only on disk. `trackedFiles` (git ls-files, no flags) reports only
+ * what is already in the index, so a record created and filled during this
+ * very task — the normal create → fill → validate → commit order — is
+ * invisible to it until `git add` has run. The natural workflow therefore
+ * validates before the file the operator is looking at ever gets checked,
+ * and the first real evaluation happens in CI, after a push.
+ *
+ * `--cached --others --exclude-standard` is the union: everything tracked,
+ * plus everything untracked that is not covered by .gitignore. It must stay a
+ * union, not a replacement — the build-output check further down deliberately
+ * keeps using `trackedFiles` alone, because an untracked bin/obj file is not a
+ * "tracked build output" finding and folding it in would misreport one.
+ *
+ * A tracked file already deleted from the working tree still needs to report
+ * as missing, and it does: `--cached` lists it from the index regardless of
+ * whether it exists on disk, and the existsSync guard in the loop below
+ * catches it exactly as before.
+ */
+const linkCheckFiles = (() => {
+  try {
+    return execFileSync(
+      'git',
+      ['ls-files', '--cached', '--others', '--exclude-standard'],
+      { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 },
+    )
+      .split('\n')
+      .filter(Boolean);
+  } catch {
+    return trackedFiles;
+  }
+})();
+
 /* -- 1. The two top-tier instruction files must carry provenance -------------
  * Every .agent/context/ document already records what commit it was verified
  * against, which is what made the audit's findings triageable by age. AGENTS.md
@@ -4165,9 +4240,13 @@ for (const file of ['AGENTS.md', 'PLANS.md']) {
  * deliberate history (see integrator.md's delete/modify case) and must stay.
  *
  * Both live in one pass over the file list: reading 461 files twice to report
- * the same broken link under two descriptions is cost without information. */
-if (trackedFiles) {
-  for (const file of trackedFiles.filter((f) => f.endsWith('.md'))) {
+ * the same broken link under two descriptions is cost without information.
+ *
+ * Scanned from `linkCheckFiles` (tracked + untracked-not-ignored), not
+ * `trackedFiles` — see ITEM-0093: a record is written before it is staged, and
+ * its links must resolve before that, not after CI finds them. */
+if (linkCheckFiles) {
+  for (const file of linkCheckFiles.filter((f) => f.endsWith('.md'))) {
     /*
      * A tracked file absent from the working tree is a finding, not a crash.
      *

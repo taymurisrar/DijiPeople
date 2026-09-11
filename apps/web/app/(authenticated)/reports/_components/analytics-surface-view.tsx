@@ -15,6 +15,7 @@ import type {
   AnalyticsResult,
   SavedView,
 } from "../_lib/reporting-types";
+import { pluralizeRecordNoun } from "../_lib/report-format";
 import { AccessScopePill, MetricTile } from "./metric-tile";
 import { AnalyticsBreakdownCard } from "./analytics-breakdown-card";
 import { AnalyticsTrendCard } from "./analytics-trend-card";
@@ -284,9 +285,21 @@ export function AnalyticsSurfaceView({
           columns={records.columns}
           currencyCode={currencyCode}
           description={
+            /*
+             * BUG-3020. This used to read "332 records behind these numbers"
+             * beside a "Historical headcount 12" tile — both correct in
+             * isolation (332 daily snapshot rows across the period, 12
+             * people), but the sentence claimed the 332 were the records
+             * *behind* the 12, which a reader who counts them cannot
+             * reconcile. Naming the actual unit — pluralizing `recordNoun`,
+             * the same noun the drill-down's own "Open the …" links already
+             * use — is honest on every source, including the ones where the
+             * count genuinely does equal the metric (`workforce`'s rows are
+             * employees, one each).
+             */
             activeBucketLabel
-              ? `${formatNumber(records.total, formattingContext)} records in ${activeBucketLabel}, for ${periodLabel} and the filters above.`
-              : `${formatNumber(records.total, formattingContext)} records behind these numbers, for ${periodLabel} and the filters above.`
+              ? `${formatNumber(records.total, formattingContext)} ${pluralizeRecordNoun(recordNoun)} in ${activeBucketLabel}, for ${periodLabel} and the filters above.`
+              : `${formatNumber(records.total, formattingContext)} ${pluralizeRecordNoun(recordNoun)} behind these numbers, for ${periodLabel} and the filters above.`
           }
           emptyDescription={emptyDescription}
           emptyTitle={emptyTitle}

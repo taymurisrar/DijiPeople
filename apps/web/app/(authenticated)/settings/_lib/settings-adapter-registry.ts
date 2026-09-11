@@ -2783,6 +2783,7 @@ const adapters: readonly SettingsRuntimeAdapter[] = [
         columns: [
           "leaveTypeId",
           "entitlementDays",
+          "accrualType",
           "minimumServiceDays",
           "prorateOnJoining",
           "prorateOnExit",
@@ -2805,6 +2806,24 @@ const adapters: readonly SettingsRuntimeAdapter[] = [
             label: "Annual Entitlement Days",
             dataType: "number",
             required: true,
+          },
+          /*
+           * ITEM-0105 — `POST /api/leave-policies/:id/rules` requires
+           * `accrualType` (CreateLeavePolicyRuleDto). This tab used to omit the
+           * field entirely, so `withRelatedRecordDefaults` in
+           * `standard-module-data.adapter.ts` silently supplied "FIXED_ANNUAL"
+           * for every entitlement created here — a value the creating user
+           * never saw or chose. The field is exposed here, on the same tab that
+           * writes the record, rather than only on the separate "Accrual Rules"
+           * tab that edits the same underlying `leave_policy_rules` row. The
+           * silent default in the data adapter stays as a defensive fallback
+           * for callers that still leave it blank; it should not be the normal
+           * path.
+           */
+          {
+            fieldLogicalName: "accrualType",
+            label: "Accrual Type",
+            dataType: "optionset",
           },
           {
             fieldLogicalName: "minimumServiceDays",

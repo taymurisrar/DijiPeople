@@ -11,7 +11,7 @@ Source: ARCHITECT
 OwnerAgent: architect
 ArchitectDisposition: PLAN_REQUIRED
 CreatedAt: 2026-08-16
-UpdatedAt: 2026-08-17
+UpdatedAt: 2026-09-11
 RelatedBug: 
 RelatedQA: 
 RelatedADR: 
@@ -68,6 +68,20 @@ The tenant provisioning wave.
 ## Related Items
 
 [[ITEM-0019]] · [[ITEM-0018]]
+
+## ExecPlan
+
+[`EXECPLAN-0035`](../../plans/EXECPLAN-0035-tenant-data-region-from-market.md).
+Re-derived at 2026-09-11: there are three `prisma.tenant.create` call sites,
+but only one is the shared provisioning engine
+(`PlatformOnboardingService.provisionTenantForCustomer`) both sales-assisted
+and self-service onboarding actually converge on — that is the single change
+point. `SubscriptionOrder.marketId` (set from the resolved `PlanPrice` at
+checkout) is the authoritative signal the self-service path already has and
+does not yet select; `Market.dataRegion` is looked up from it. No backfill —
+`Tenant` has never recorded a market relationship at all, so there is no
+reliable historical signal to backfill from, which the plan records as a
+deliberate scope decision rather than an oversight.
 
 ## History
 

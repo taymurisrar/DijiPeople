@@ -76,8 +76,21 @@ export default async function DashboardLayout({
   /*
    * Authentication establishes the user's identity.
    * Workspace authorization is validated separately below.
+   *
+   * ITEM-0111 — this fallback used to hardcode "/", so any request that
+   * reached this layout without a session lost its destination: a route
+   * missing from `PROTECTED_ROUTE_PREFIXES` let the proxy wave it through,
+   * and a signed-out user landed on the dashboard instead of back where they
+   * were headed. `proxy.ts` stamps the real path onto every request as
+   * `x-dijipeople-pathname` before it gets here (see generateMetadata above,
+   * which already reads it for the page title), so reading it back makes the
+   * prefix list an optimisation — the common case still redirects from the
+   * proxy with `next` already set — rather than the only thing standing
+   * between a user and a lost deep link.
    */
-  const user = await requireSessionUser("/");
+  const requestHeaders = await headers();
+  const currentPathname = requestHeaders.get("x-dijipeople-pathname") ?? "/";
+  const user = await requireSessionUser(currentPathname);
 
   if (!user) {
     redirect(LOGIN_ROUTE);
@@ -299,7 +312,6 @@ export default async function DashboardLayout({
               isSelfService={selfService}
               permissionKeys={user.permissionKeys}
               roleKeys={user.roleKeys}
-              tenantId={user.tenantId}
               tenantName={effectiveTenantName}
               businessUnitAccess={businessUnitAccess}
               brandLogoUrl={brandingSettings.logoUrl}

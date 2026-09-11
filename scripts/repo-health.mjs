@@ -354,6 +354,27 @@ try {
   /* The registry is optional state; its absence is not a health failure. */
 }
 
+/*
+ * ITEM-0084 — render.yaml vs the live Render service. Read-only: it only
+ * calls the Render API's GET endpoints. Runs when RENDER_API_KEY is available
+ * in this environment and says so plainly when it is not, per the item's
+ * acceptance criteria — a check that silently does nothing here is worse than
+ * one that is visibly absent.
+ */
+let RENDER_CONFIG_STATUS = 'SKIPPED_NO_API_KEY';
+let renderConfigDrift = [];
+if (process.env.RENDER_API_KEY) {
+  try {
+    const { runCheck } = await import('./check-render-config.mjs');
+    const result = await runCheck({ root: ROOT });
+    RENDER_CONFIG_STATUS = result.status;
+    renderConfigDrift = result.drift ?? [];
+  } catch (error) {
+    RENDER_CONFIG_STATUS = 'ERROR';
+    renderConfigDrift = [String(error.message ?? error)];
+  }
+}
+
 // --------------------------------------------------------------- worktrees
 
 const worktrees = [];
@@ -862,6 +883,12 @@ if (integrationLock.holder) {
     `${integrationLock.holder} holds the ${INTEGRATION} integration lock — no other session may write it`,
   );
 }
+if (RENDER_CONFIG_STATUS === 'DRIFT') {
+  warningList.push(
+    `render.yaml disagrees with the live Render service on ${renderConfigDrift.length} field(s) — ` +
+      'run `npm run check:render-config` for the detail; not this task\'s to fix unless it is in scope',
+  );
+}
 
 const health = blockers.length ? 'FAIL' : warningList.length ? 'PASS_WITH_WARNINGS' : 'PASS';
 
@@ -915,6 +942,8 @@ const report = {
   unmergedBranches,
   mergedNonAgentBranches,
   staleRemoteBranches,
+  RENDER_CONFIG_STATUS,
+  renderConfigDrift,
   blockers,
   warnings: warningList,
 };
@@ -964,6 +993,10 @@ line('UNEXPLAINED_DIRTY_FILES', String(unexplainedDirtyFiles.length + orphanedSe
 line('OTHER_DIRTY_WORKTREES', String(otherDirtyWorktrees.length));
 line('STALE_WORKTREES', String(report.staleWorktrees.length));
 line('STALE_BRANCHES', String(staleBranches.length));
+line(
+  'RENDER_CONFIG_STATUS',
+  RENDER_CONFIG_STATUS === 'DRIFT' ? `DRIFT (${renderConfigDrift.length} field(s))` : RENDER_CONFIG_STATUS,
+);
 
 if (primaryDirtyFiles.length) {
   console.log('');

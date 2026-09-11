@@ -2,11 +2,14 @@ import { Injectable, Logger } from '@nestjs/common';
 import { AppError } from '../../../common/errors/app-error';
 import type { AuthenticatedUser } from '../../../common/interfaces/authenticated-request.interface';
 import { TenantSettingsResolverService } from '../../tenant-settings/tenant-settings-resolver.service';
+import { FeatureAccessService } from '../../tenant-settings/feature-access.service';
 import { getDataSource, listDataSources } from '../semantic/data-sources';
+import { isReportSourceEntitled } from '../semantic/report-source-entitlements';
 import { getMetric, listMetricsForSource } from '../metrics/metric.registry';
 import type {
   ReportDataSource,
   ReportDimensionValue,
+  ReportFieldDefinition,
   ReportMetricDefinition,
 } from '../semantic/semantic.types';
 import { ReportQueryExecutor } from '../engine/query-executor';
@@ -103,12 +106,43 @@ export class AnalyticsService {
     private readonly executor: ReportQueryExecutor,
     private readonly scope: ReportScopeResolver,
     private readonly tenantSettings: TenantSettingsResolverService,
+    private readonly featureAccess: FeatureAccessService,
   ) {}
+
+  /**
+   * The tenant's resolved plan entitlements, as the key set
+   * `isReportSourceEntitled` checks against.
+   *
+   * One lookup per request rather than one per source: `catalog()` calls this
+   * once and reuses it across every source in the registry, and `records()` /
+   * `query()` each call it once for the single source they resolve.
+   * `FeatureAccessService` does not cache within a request, so calling it once
+   * per source here would turn a catalog fetch into a dozen database round
+   * trips for no reason.
+   */
+  private async enabledFeatureKeys(
+    user: AuthenticatedUser,
+  ): Promise<readonly string[]> {
+    if (!user.tenantId) {
+      // Not this method's decision. A platform caller, or a request that
+      // reaches here before tenant context is established, is refused
+      // elsewhere if it should be — see EntitlementGuard's identical carve-out.
+      return [];
+    }
+    const { enabledKeys } = await this.featureAccess.getResolvedTenantFeatures(
+      user.tenantId,
+    );
+    return enabledKeys;
+  }
 
   /** Sources this user may reach, with their permitted fields and metrics. */
   async catalog(user: AuthenticatedUser) {
-    const sources = listDataSources().filter((source) =>
-      this.scope.hasAnyAccess(user, source),
+    const enabledFeatureKeys = await this.enabledFeatureKeys(user);
+
+    const sources = listDataSources().filter(
+      (source) =>
+        this.scope.hasAnyAccess(user, source) &&
+        isReportSourceEntitled(source.key, enabledFeatureKeys),
     );
 
     return sources.map((source) => ({
@@ -147,7 +181,7 @@ export class AnalyticsService {
     user: AuthenticatedUser,
     input: AnalyticsQueryInput,
   ): Promise<AnalyticsResult> {
-    const source = this.resolveSource(user, input.sourceKey);
+    const source = await this.resolveSource(user, input.sourceKey);
     const timezone = await this.timezone(user);
 
     const period = resolvePeriod({
@@ -262,7 +296,7 @@ export class AnalyticsService {
       applyPeriod?: boolean;
     },
   ) {
-    const source = this.resolveSource(user, input.sourceKey);
+    const source = await this.resolveSource(user, input.sourceKey);
     const timezone = await this.timezone(user);
     const period = resolvePeriod({
       preset: input.preset ?? 'last_30_days',
@@ -319,6 +353,64 @@ export class AnalyticsService {
     const fieldsByKey = new Map(permitted.map((field) => [field.key, field]));
     const idField = source.recordIdField ?? 'id';
 
+    const resultRows = rows.map((row) => {
+      const rawId = row[idField];
+      const id = typeof rawId === 'string' ? rawId : '';
+      const values: Record<string, unknown> = {};
+      for (const key of requested) {
+        const field = fieldsByKey.get(key);
+        values[key] = field ? readFieldValue(row, field) : null;
+      }
+      return {
+        id,
+        href: source.recordHrefTemplate
+          ? source.recordHrefTemplate.replace('{id}', id)
+          : null,
+        values,
+      };
+    });
+
+    /*
+     * BUG-3020. A field with a `labelLookup` — every organisational dimension
+     * on `workforce_history`, because that source stores denormalised foreign
+     * keys rather than relations (see the class comment on
+     * `WORKFORCE_HISTORY_SOURCE`) — is grouped-and-labelled correctly by
+     * `buildBreakdown` but was read here with the same `readFieldValue` used
+     * for every other field, which returns the raw scalar. The breakdown chart
+     * above this table printed "Engineering"; the table under it printed the
+     * department's uuid, for the same field, on the same page. Resolved in one
+     * batch per field across the whole page, the same shape
+     * `ReportQueryExecutor.resolveLabels` already uses for a breakdown bucket
+     * set, so this is not a second lookup mechanism.
+     */
+    const lookupFields = requested
+      .map((key) => fieldsByKey.get(key))
+      .filter(
+        (field): field is ReportFieldDefinition =>
+          field !== undefined && field.labelLookup !== undefined,
+      );
+
+    await Promise.all(
+      lookupFields.map(async (field) => {
+        const rawValues = resultRows.map((row) => row.values[field.key]);
+        const labels = await this.executor.resolveFieldLabels(field, rawValues);
+        const nullLabel = field.nullLabel ?? null;
+
+        for (const row of resultRows) {
+          const raw = row.values[field.key];
+          if (raw === null || raw === undefined) {
+            row.values[field.key] = nullLabel;
+            continue;
+          }
+          // A raw value whose lookup found nothing — the referenced row was
+          // deleted after the snapshot was taken — falls back to the id
+          // itself rather than disappearing, exactly as an unresolvable id
+          // should: visible as what it is, not blanked into looking entitled.
+          row.values[field.key] = labels.get(String(raw)) ?? raw;
+        }
+      }),
+    );
+
     return {
       columns: requested.map((key) => {
         const field = fieldsByKey.get(key);
@@ -329,22 +421,7 @@ export class AnalyticsService {
           format: field?.format ?? 'plain',
         };
       }),
-      rows: rows.map((row) => {
-        const rawId = row[idField];
-        const id = typeof rawId === 'string' ? rawId : '';
-        const values: Record<string, unknown> = {};
-        for (const key of requested) {
-          const field = fieldsByKey.get(key);
-          values[key] = field ? readFieldValue(row, field) : null;
-        }
-        return {
-          id,
-          href: source.recordHrefTemplate
-            ? source.recordHrefTemplate.replace('{id}', id)
-            : null,
-          values,
-        };
-      }),
+      rows: resultRows,
       // The real total for this filtered, scoped query — not the page length.
       // Reporting the loaded row count as the total is a defect this product
       // has already shipped once (BUG-2043).
@@ -354,10 +431,10 @@ export class AnalyticsService {
     };
   }
 
-  private resolveSource(
+  private async resolveSource(
     user: AuthenticatedUser,
     key: string,
-  ): ReportDataSource {
+  ): Promise<ReportDataSource> {
     const source = getDataSource(key);
     if (!source) {
       throw new AppError('REPORT_SOURCE_UNKNOWN', {
@@ -371,6 +448,23 @@ export class AnalyticsService {
       // silently empty chart.
       throw new AppError('REPORT_SOURCE_FORBIDDEN', {
         message: `You do not have access to ${source.label}.`,
+        details: { source: key },
+      });
+    }
+    /*
+     * BUG-3007. `catalog()` filters an unentitled source out of the list, but
+     * before this a caller who already knew (or guessed) a source key —
+     * `std:recruitment-hires`, say — could still run it and get real rows
+     * through `query()` / `records()`, both of which resolve a source here.
+     * Reusing `TENANT_FEATURE_NOT_ENTITLED` rather than a reporting-specific
+     * code: this is the same commercial boundary `EntitlementGuard` enforces
+     * on a whole route module, applied at the one place both entry points to
+     * query execution share.
+     */
+    const enabledFeatureKeys = await this.enabledFeatureKeys(user);
+    if (!isReportSourceEntitled(source.key, enabledFeatureKeys)) {
+      throw new AppError('TENANT_FEATURE_NOT_ENTITLED', {
+        message: `${source.label} is not included in your plan.`,
         details: { source: key },
       });
     }

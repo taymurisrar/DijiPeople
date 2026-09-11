@@ -6,19 +6,19 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 2** · completed: 91
+**Active: 0** · completed: 95
 
 ## Active
 
-| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
-|---|---|---|---|---|---|---|---|
-| [SESSION-0097](../../docs/sessions/SESSION-0097-durable-object-storage-move-persistent-files-to-cloudflare-r.md) | — | Durable object storage: move persistent files to Cloudflare R2 (FILE-01/INF-05) | ACTIVE | `agent/r2-durable-storage` | `develop` | — | 2026-09-10T11:53:32.125Z |
-| [SESSION-0061](../../docs/sessions/SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser.md) | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | 2026-08-26T09:54:37.336Z |
+_None. No session is currently running._
 
 ## Completed
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0098](../../docs/sessions/SESSION-0098-closeout-sweep-close-every-open-session-bug-and-backlog-item.md) | — | Closeout sweep: close every open session, bug and backlog item | COMPLETE | `agent/closeout-sweep` | `develop` | — | 2026-09-10T19:06:45.272Z |
+| [SESSION-0097](../../docs/sessions/SESSION-0097-durable-object-storage-move-persistent-files-to-cloudflare-r.md) | — | Durable object storage: move persistent files to Cloudflare R2 (FILE-01/INF-05) | COMPLETE | `agent/r2-durable-storage` | `develop` | — | 2026-09-10T18:33:18.243Z |
+| [SESSION-0096](../../docs/sessions/SESSION-0096-full-technical-health-audit-of-dijipeople.md) | — | Full technical health audit of DijiPeople | COMPLETE | `agent/full-technical-audit` | `develop` | — | 2026-09-10T07:40:10.716Z |
 | [SESSION-0095](../../docs/sessions/SESSION-0095-release-promote-settings-plan-entitlements-to-main-with-a-fe.md) | — | Release: promote settings plan entitlements to main, with a feature-row backfill first | COMPLETE | `agent/release-settings-entitlements` | `main` | — | 2026-09-09T13:26:10.444Z |
 | [SESSION-0094](../../docs/sessions/SESSION-0094-plan-scoped-settings-visibility-entitlement-gating-for-setti.md) | — | Plan-scoped settings visibility: entitlement gating for settings categories, groups and items | COMPLETE | `agent/settings-plan-entitlements` | `develop` | — | 2026-09-09T10:12:43.128Z |
 | [SESSION-0093](../../docs/sessions/SESSION-0093-disposition-multer-so-the-release-can-ship.md) | — | Disposition multer so the release can ship | COMPLETE | `agent/multer-disposition` | `develop` | — | 2026-09-09T07:46:06.293Z |
@@ -52,6 +52,7 @@ see [`README.md`](README.md) for how they stay out of each other's way.
 | [SESSION-0064](../../docs/sessions/SESSION-0064-tenant-app-assignment-which-tenants-receive-a-release.md) | TASK-0027 | Tenant app assignment: which tenants receive a release | COMPLETE | `agent/tenant-app-assignment` | `develop` | — | 2026-08-26T16:27:52.547Z |
 | [SESSION-0063](../../docs/sessions/SESSION-0063-admin-releases-ui-versions-enable-disable-promote-assign.md) | — | Admin releases UI: versions, enable/disable, promote, assign | COMPLETE | `agent/admin-releases-ui` | `develop` | — | 2026-08-26T10:49:05.973Z |
 | [SESSION-0062](../../docs/sessions/SESSION-0062-agent-distribution-storage-ci-auto-build-publish-download-ad.md) | — | Agent distribution: storage, CI auto-build/publish, download, admin versioning | COMPLETE | `agent/agent-distribution` | `develop` | — | 2026-08-26T10:03:35.409Z |
+| [SESSION-0061](../../docs/sessions/SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser.md) | — | Production admin E2E QA and invitation delivery visibility | COMPLETE | `agent/invitation-delivery-visibility` | `develop` | — | 2026-08-26T09:54:37.336Z |
 | [SESSION-0060](../../docs/sessions/SESSION-0060-guard-worktree-removal-against-destroying-the-primary-checko.md) | — | Guard worktree removal against destroying the primary checkout | COMPLETE | `agent/worktree-removal-guard` | `develop` | — | 2026-08-26T07:55:46.349Z |
 | [SESSION-0059](../../docs/sessions/SESSION-0059-admin-app-production-e2e-security-and-performance-qa.md) | — | Admin app production E2E, security and performance QA | COMPLETE | `agent/admin-prod-e2e-qa` | `develop` | — | 2026-08-26T02:10:00.000Z |
 | [SESSION-0058](../../docs/sessions/SESSION-0058-dlp-investigator-review-on-the-employee-form.md) | — | DLP investigator review on the employee form | COMPLETE | `agent/dlp-employee-review` | `develop` | — | 2026-08-25T23:28:07.299Z |

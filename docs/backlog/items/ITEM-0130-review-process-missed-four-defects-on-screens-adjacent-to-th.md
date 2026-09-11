@@ -3,15 +3,16 @@ ID: ITEM-0130
 aliases: [ITEM-0130]
 Title: Review process missed four defects on screens adjacent to the change
 Type: TEST_GAP
-Status: READY
+Status: DONE
 Priority: P1
 Severity: 
 AffectedModules: [apps/web, .agent]
 Source: USER_REPORT
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 CreatedAt: 2026-09-09
-UpdatedAt: 2026-09-09
+UpdatedAt: 2026-09-11
+ResolvedAt: 2026-09-11
 RelatedBug: 
 RelatedQA: 
 RelatedADR: 
@@ -132,6 +133,89 @@ None.
 - 2026-09-09 — triaged FIX_NOW by the Architect for SESSION-0095. Not deferred:
   each further task run under the current process is another chance to ship the
   same class of defect.
+- 2026-09-11 — resolved as a process record. See Resolution below.
+
+## Resolution
+
+This is a process finding, not a code defect, and was handled as one: no code
+was written against the four underlying bugs it names ([[BUG-3007]],
+[[BUG-3020]], [[BUG-3021]], [[ITEM-0128]] — [[ITEM-0128]] was independently in
+scope this session and closed on its own record). What closes *this* record
+is durable instruction and knowledge, per each of its four causes:
+
+**Cause 1 (gate-scoped-to-one-structure)** already had a home:
+[`docs/qa/known-bug-patterns/gate-scoped-to-one-structure.md`](../../qa/known-bug-patterns/gate-scoped-to-one-structure.md)
+documents it in full, including the fact that it recurred within hours of
+being written. That file's `Related` section was missing both [[BUG-3007]]
+(discussed prominently in its own body, but not linked) and this record —
+added, so the instance is discoverable from the graph and not only from
+prose.
+
+**Reviewer instructions** (the location this record itself points at) gained a
+new section, [`Open the screen, and its neighbours — not only the diff`](../../../.agent/agents/reviewer.md#open-the-screen-and-its-neighbours--not-only-the-diff),
+covering all four causes as standing checks, plus a line item in the existing
+"Also verify, on every review" checklist: `screens opened named`. This is the
+closest existing mechanism to "a task-completion field records which screens
+were opened" that does not require extending `.agent/context/task-completion-contract.md`
+and `scripts/validate-framework.mjs` — deliberately not attempted here.
+Wiring a new enforced contract field is a change to the framework's own
+validated machinery, disproportionate to a process-instruction item and out
+of the scope this task was given; a genuinely new field belongs to its own
+task, sized and reviewed as one.
+
+**A new knowledge note**,
+[`docs/knowledge/framework/a-review-that-never-opens-the-screen-2026-09-11.md`](../../knowledge/framework/a-review-that-never-opens-the-screen-2026-09-11.md),
+narrates all four causes together with the concrete fixes and cross-links —
+including a technique discovered and proven while fixing [[ITEM-0128]] and
+[[ITEM-0109]] in the same session: `react-dom/server`'s `renderToStaticMarkup`
+renders a plain, context-light `apps/web` component for real, inside the
+existing Node test environment, with no jsdom, no React Testing Library and no
+new dependency. Both items' fixes ship a rendered assertion built this way
+(`item-0128-caveat-placement.spec.ts`,
+`attendance-checkin-disabled-reason.spec.ts`), which is evidence the technique
+works, not only a claim that it should.
+
+**Acceptance criteria, individually:**
+
+- "A task-completion field records which screens were opened" — met by an
+  equivalent mechanism rather than the literal one: a `screens opened named`
+  line item in the reviewer's standing checklist, instead of a new enforced
+  field in `task-completion-contract.md`. The reasoning is above — wiring a new
+  validated contract field is a change to the framework's own machinery and
+  belongs to its own sized task. The criterion's intent, that a review states
+  which screens were opened, is carried.
+- "A record that applies a cross-cutting rule names the other surfaces in the
+  same class" — addressed in the new reviewer section (cause 1) as a standing
+  instruction; not separately tested, since it describes what a future
+  record's prose must contain.
+- "A rendered check exists for UUIDs in labelled columns and for horizontal
+  overflow in menus" — **met, though not by this record's own work.** When this
+  section was first written the criterion was still outstanding, on the correct
+  reasoning that it asked for test code against the four *bugs* rather than
+  against the *process*, and that those bugs were open records outside a process
+  item's scope.
+
+  Both bugs were then fixed in this same integration by a sibling stream, each
+  shipping exactly the rendered assertion this criterion asked for:
+  [[BUG-3020]]'s label resolution by
+  `apps/web/app/(authenticated)/reports/_lib/report-format.spec.ts` and
+  `apps/web/app/components/charts/chart-format.spec.ts`, and [[BUG-3021]]'s
+  overflow by `apps/web/app/components/workspace-switcher-overflow.spec.ts`.
+
+  So the criterion is satisfied by the exact route this section predicted — the
+  rendered assertion doubling as the regression test for the fix itself. It is
+  written up this way rather than silently ticked, because the distinction is
+  the point: the process instruction is what this record delivered, and the
+  rendered checks arrived with the bugs.
+- "The `gate-scoped-to-one-structure` pattern gains this instance, including
+  the fact that it failed to prevent its own recurrence" — met; the pattern
+  file already narrated the recurrence, and now links both [[BUG-3007]] and
+  this record from its `Related` section.
+
+**Tests:** none — this record's deliverables are instruction and knowledge
+files, not executable code. The rendered-testing technique it documents is
+exercised by the tests added for [[ITEM-0128]] and [[ITEM-0109]] in this same
+session (see those records).
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 

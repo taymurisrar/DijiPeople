@@ -261,6 +261,7 @@ export class AppReleaseService {
       fileName?: string;
       fileSizeBytes?: number;
       checksumSha256?: string;
+      checksumSha512?: string;
       minimumSupportedVersion?: string;
       releaseNotes?: string;
       requiredPermission?: string;
@@ -287,7 +288,7 @@ export class AppReleaseService {
           channel,
         },
       },
-      select: { checksumSha256: true },
+      select: { checksumSha256: true, checksumSha512: true },
     });
 
     if (
@@ -296,6 +297,38 @@ export class AppReleaseService {
       existing.checksumSha256.toLowerCase() !== dto.checksumSha256.toLowerCase()
     ) {
       throw new AppError('RELEASE_VERSION_CONFLICT', {
+        details: {
+          appKey: dto.appKey,
+          version: dto.version,
+          platform: dto.platform,
+          architecture: dto.architecture,
+          channel,
+        },
+      });
+    }
+
+    /*
+     * BUG-2888 — the update feed (`update-feed.service.ts`) only ever
+     * advertises a release with `checksumSha512: { not: null }` on the STABLE
+     * channel, because electron-updater verifies the download against that
+     * digest and there is no safe way to skip verification. A STABLE
+     * AGENT_DESKTOP release published here without one is accepted, listed and
+     * downloadable, and permanently invisible to auto-update — silently, with
+     * nothing anywhere reporting it. Refuse it instead: the failure becomes
+     * something the operator sees at publish time rather than a gap discovered
+     * when the second version ships and nobody's fleet moves.
+     *
+     * Scoped to AGENT_DESKTOP + STABLE because that is the only combination the
+     * feed serves; other apps and other channels do not need this digest.
+     */
+    const resolvedChecksumSha512 =
+      dto.checksumSha512 ?? existing?.checksumSha512 ?? null;
+    if (
+      dto.appKey === APP_KEYS.AGENT_DESKTOP &&
+      channel === ApplicationReleaseChannel.STABLE &&
+      !resolvedChecksumSha512
+    ) {
+      throw new AppError('RELEASE_SHA512_REQUIRED', {
         details: {
           appKey: dto.appKey,
           version: dto.version,
@@ -328,6 +361,7 @@ export class AppReleaseService {
         fileName: dto.fileName ?? null,
         fileSizeBytes: dto.fileSizeBytes ?? null,
         checksumSha256: dto.checksumSha256 ?? null,
+        checksumSha512: dto.checksumSha512 ?? null,
         minimumSupportedVersion: dto.minimumSupportedVersion ?? null,
         releaseNotes: dto.releaseNotes ?? null,
         requiredPermission:
@@ -344,6 +378,7 @@ export class AppReleaseService {
         fileName: dto.fileName ?? undefined,
         fileSizeBytes: dto.fileSizeBytes ?? undefined,
         checksumSha256: dto.checksumSha256 ?? undefined,
+        checksumSha512: dto.checksumSha512 ?? undefined,
         minimumSupportedVersion: dto.minimumSupportedVersion ?? undefined,
         releaseNotes: dto.releaseNotes ?? undefined,
         requiredPermission: dto.requiredPermission ?? undefined,

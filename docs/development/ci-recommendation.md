@@ -9,9 +9,10 @@ known baselines with written promotion paths. Browser E2E is named by the gate
 but remains fail-open through `continue-on-error: true`.
 
 Database E2E and empty-database migration application now run against ephemeral
-PostgreSQL; the former remains report-only with six failing suites. Remaining
-pipeline work includes closing those failures, removing fail-open conclusions,
-the .NET gateway, Electron packaging, and deployment readiness.
+PostgreSQL; the former remains report-only with six failing suites. The .NET
+gateway joined the required gate on 2026-09-11 (ITEM-0125), on `windows-latest`.
+Remaining pipeline work includes closing those e2e failures, removing fail-open
+conclusions, Electron packaging, and deployment readiness.
 
 ---
 

@@ -2444,7 +2444,10 @@ const LOOKUP_REFERENCE_ROUTES: Readonly<Record<string, string>> = {
   "holiday-calendars": "/settings/people/work-management/holiday-calendars",
   shifts: "/settings/people/work-management/shifts",
   "work-schedules": "/settings/people/work-management/work-schedules",
-  users: "/settings/security-access/users",
+  // ITEM-0107 — points at the canonical Users screen directly; the old path
+  // still redirects here, but this map should not be a fifth place naming the
+  // old one.
+  users: "/settings/security-access/identities/users",
   roles: "/settings/access/roles",
   teams: "/settings/access/teams",
   employees: "/employees",

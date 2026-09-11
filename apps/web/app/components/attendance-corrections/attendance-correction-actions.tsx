@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, X } from "lucide-react";
+import { Check, Undo2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -11,6 +11,8 @@ type AttendanceCorrectionActionsProps = {
   canApprove: boolean;
   canReject: boolean;
   canEdit: boolean;
+  /** BUG-2573. True only for the requester, and only while pending. */
+  canCancel?: boolean;
 };
 
 export function AttendanceCorrectionActions({
@@ -20,6 +22,7 @@ export function AttendanceCorrectionActions({
   canApprove,
   canReject,
   canEdit,
+  canCancel = false,
 }: AttendanceCorrectionActionsProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -91,7 +94,58 @@ export function AttendanceCorrectionActions({
     }
   }
 
-  if (!canApprove && !canReject) return null;
+  async function submitCancel() {
+    setIsSubmitting(true);
+    setMessage(null);
+
+    try {
+      const response = await fetch(
+        `/api/attendance/correction-requests/${requestId}/cancel`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ comment: comment.trim() || undefined }),
+        },
+      );
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(data?.message ?? "Unable to withdraw correction request.");
+      }
+      setMessage("Correction request withdrawn.");
+      router.refresh();
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to withdraw correction request.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  if (!canApprove && !canReject && !canCancel) return null;
+
+  if (canCancel) {
+    return (
+      <div className="space-y-3 rounded-2xl border border-border bg-white p-4">
+        <p className="text-sm text-muted">
+          You filed this request. You may withdraw it while it is still
+          pending manager review.
+        </p>
+        <button
+          className="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2 text-sm font-semibold text-foreground transition hover:border-accent/30 hover:text-accent disabled:opacity-60"
+          disabled={isSubmitting}
+          onClick={() => void submitCancel()}
+          type="button"
+        >
+          <Undo2 className="h-4 w-4" />
+          Withdraw request
+        </button>
+        {message ? <p className="text-sm text-muted">{message}</p> : null}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 rounded-2xl border border-danger/20 bg-danger/5 p-4">

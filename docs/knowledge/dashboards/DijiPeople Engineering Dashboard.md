@@ -7,18 +7,25 @@
 
 | | |
 |---|---|
-| Open CRITICAL | **0** |
-| Open HIGH | **36** |
-| Open total | 123 |
+| Open CRITICAL | **6** |
+| Open HIGH | **88** |
+| Open total | 233 |
 | Blocked | 2 |
-| Awaiting a product decision | 6 |
+| Awaiting a product decision | 1 |
 | Deferred | 29 |
-| Completed | 292 |
-| Awaiting Architect triage | 5 |
+| Completed | 311 |
+| Awaiting Architect triage | 116 |
 
 ## Open Critical Bugs
 
-_None. Nothing open at CRITICAL._
+| ID | Title | Type | Severity | Status | Affected | Architect |
+|---|---|---|---|---|---|---|
+| [[BUG-3110-a-live-production-database-password-sits-permanently-in-the-|BUG-3110]] | A live production database password sits permanently in the public git history | SECURITY | CRITICAL | OPEN | services/api | FIX_NOW |
+| [[BUG-3132-self-service-privilege-escalation-to-global-admin-via-post-u|BUG-3132]] | Self-service privilege escalation to GLOBAL_ADMIN via POST /users/:userId/roles | AUTHORIZATION | CRITICAL | OPEN | api:users | TRIAGE_REQUIRED |
+| [[BUG-3152-post-users-userid-roles-lets-a-delegated-role-assignment-adm|BUG-3152]] | POST /users/:userId/roles lets a delegated role-assignment admin self-grant GLOBAL_ADMIN | AUTHORIZATION | CRITICAL | FIXED | api:users/users.service.ts, api:users/users.controller.ts | DONE |
+| [[BUG-3153-production-had-no-persistent-disk-so-every-uploaded-hr-docum|BUG-3153]] | Production had no persistent disk, so every uploaded HR document was destroyed on the next deploy | INFRA | CRITICAL | OPEN | services/api/src/common, api:documents | TRIAGE_REQUIRED |
+| [[BUG-3154-employee-bank-accounts-ibans-cnics-and-tax-identifiers-are-s|BUG-3154]] | Employee bank accounts, IBANs, CNICs and tax identifiers are stored in plaintext beside an unused AES-256-GCM service | DATA_INTEGRITY | CRITICAL | OPEN | api:employees, api:compensation | TRIAGE_REQUIRED |
+| [[BUG-3155-fieldsecurityrule-masking-is-enforced-only-in-the-browser-th|BUG-3155]] | FieldSecurityRule masking is enforced only in the browser; the API sends the unmasked value | AUTHORIZATION | CRITICAL | OPEN | api:employees | TRIAGE_REQUIRED |
 
 ## Open High Bugs
 
@@ -43,12 +50,12 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2332-every-attendance-refusal-reaches-the-browser-as-validation-f|BUG-2332]] | Every attendance refusal reaches the browser as VALIDATION_FAILED and raises the technical error dialog | BUG | HIGH | FIXED | services/api/src/common/errors, api:attendance, apps/web | FIX_NOW |
 | [[BUG-2458-token-refresh-is-throttled-by-the-public-login-rate-limiter-|BUG-2458]] | Token refresh is throttled by the public login rate limiter, signing users out | BUG | HIGH | FIXED | api:auth, api:common | FIX_NOW |
 | [[BUG-2459-the-notification-bell-polls-forever-after-a-session-ends-flo|BUG-2459]] | The notification bell polls forever after a session ends, flooding the error log | PERFORMANCE | HIGH | FIXED | web:notifications, api:error-logs, api:notifications | FIX_NOW |
-| [[BUG-2462-stripe-subscription-webhooks-fail-because-the-customer-resol|BUG-2462]] | Stripe subscription webhooks fail because the customer resolves to no tenant | INTEGRATION | HIGH | OPEN | api:billing, api:super-admin | PLAN_REQUIRED |
-| [[BUG-2494-check-out-re-validates-check-in-preconditions-and-traps-the-|BUG-2494]] | Check-out re-validates check-in preconditions and traps the entry open for ever | STATE_MACHINE | HIGH | OPEN | api:attendance | TRIAGE_REQUIRED |
-| [[BUG-2504-approving-a-correction-never-applies-the-requested-work-mode|BUG-2504]] | Approving a correction never applies the requested work mode, work site or overtime | STATE_MACHINE | HIGH | OPEN | api:attendance | PLAN_REQUIRED |
+| [[BUG-2462-stripe-subscription-webhooks-fail-because-the-customer-resol|BUG-2462]] | Stripe subscription webhooks fail because the customer resolves to no tenant | INTEGRATION | HIGH | FIXED | api:billing, api:super-admin | DONE |
+| [[BUG-2494-check-out-re-validates-check-in-preconditions-and-traps-the-|BUG-2494]] | Check-out re-validates check-in preconditions and traps the entry open for ever | STATE_MACHINE | HIGH | FIXED | api:attendance | DONE |
+| [[BUG-2504-approving-a-correction-never-applies-the-requested-work-mode|BUG-2504]] | Approving a correction never applies the requested work mode, work site or overtime | STATE_MACHINE | HIGH | FIXED | api:attendance | DONE |
 | [[BUG-2505-a-mode-or-location-correction-could-never-be-submitted-at-al|BUG-2505]] | A mode-or-location correction could never be submitted at all | BUG | HIGH | FIXED | apps/web, api:attendance | DONE |
 | [[BUG-2506-sign-out-leaves-the-refresh-token-live-whenever-the-tenant-i|BUG-2506]] | Sign-out leaves the refresh token live whenever the tenant is busy | SECURITY | HIGH | FIXED | api:auth | DONE |
-| [[BUG-2618-expired-subscription-orders-are-never-swept-abandonexpired-h|BUG-2618]] | Expired subscription orders are never swept: abandonExpired has no caller and the API has no scheduler | DATA_INTEGRITY | HIGH | OPEN | billing, super-admin | FIX_NOW |
+| [[BUG-2618-expired-subscription-orders-are-never-swept-abandonexpired-h|BUG-2618]] | Expired subscription orders are never swept: abandonExpired has no caller and the API has no scheduler | DATA_INTEGRITY | HIGH | FIXED | billing, super-admin | FIX_NOW |
 | [[BUG-2623-buildscopedaccesswhere-filters-employee-on-ownerteamid-a-col|BUG-2623]] | buildScopedAccessWhere filters Employee on ownerTeamId, a column Employee does not have | AUTHORIZATION | HIGH | FIXED | services/api/src/common/security/rbac-query-scope.ts | DONE |
 | [[BUG-2683-every-scheduled-report-fails-to-deliver-because-the-email-te|BUG-2683]] | Every scheduled report fails to deliver because the email template variable tenantName is never passed | BUG | HIGH | FIXED | api:reporting/schedule | DONE |
 | [[BUG-2693-historical-headcount-reports-employee-days-instead-of-headco|BUG-2693]] | Historical headcount reports employee-days instead of headcount and grows with the length of the period | DATA_INTEGRITY | HIGH | FIXED | api:reporting | DONE |
@@ -57,20 +64,67 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2741-a-workspace-whose-email-provider-is-a-sink-reports-every-mes|BUG-2741]] | A workspace whose email provider is a sink reports every message as SENT | BUG | HIGH | FIXED | notifications, reporting | FIX_NOW |
 | [[BUG-2933-mapping-a-device-user-never-requeues-its-punches-so-backfill|BUG-2933]] | Mapping a device user never requeues its punches, so backfilled attendance is silently never built | INTEGRATION | HIGH | FIXED | api:attendance-integrations | FIX_NOW |
 | [[BUG-2958-settings-shows-every-category-group-and-page-regardless-of-t|BUG-2958]] | Settings shows every category, group and page regardless of the tenant's plan | AUTHORIZATION | HIGH | FIXED | apps/web, api:tenant-settings | FIX_NOW |
-| [[BUG-3007-reports-and-analytics-offers-surfaces-and-reports-for-capabi|BUG-3007]] | Reports and Analytics offers surfaces and reports for capabilities the plan does not include | AUTHORIZATION | HIGH | OPEN | apps/web, api:reporting | FIX_NOW |
-| [[BUG-3020-records-behind-these-numbers-shows-raw-guids-and-a-count-tha|BUG-3020]] | Records behind these numbers shows raw GUIDs and a count that does not match the metric | UX | HIGH | OPEN | apps/web, api:reporting | FIX_NOW |
-| [[ITEM-0124-production-advisory-gate-blocks-every-release-to-main-and-np|ITEM-0124]] | Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile | SECURITY | HIGH | TRIAGE_REQUIRED | scripts/check-production-advisories.mjs | TRIAGE_REQUIRED |
+| [[BUG-3007-reports-and-analytics-offers-surfaces-and-reports-for-capabi|BUG-3007]] | Reports and Analytics offers surfaces and reports for capabilities the plan does not include | AUTHORIZATION | HIGH | FIXED | apps/web, api:reporting | FIX_NOW |
+| [[BUG-3020-records-behind-these-numbers-shows-raw-guids-and-a-count-tha|BUG-3020]] | Records behind these numbers shows raw GUIDs and a count that does not match the metric | UX | HIGH | FIXED | apps/web, api:reporting | FIX_NOW |
+| [[BUG-3115-rate-limiter-trusts-a-forged-x-forwarded-for-and-covers-no-a|BUG-3115]] | Rate limiter trusts a forged X-Forwarded-For and covers no authenticated endpoint | SECURITY | HIGH | FIXED | services/api/src/common/security/client-ip.ts, services/api/src/common/guards/public-rate-limit.guard.ts, services/api/src/common/interceptors/authenticated-rate-limit.interceptor.ts | DONE |
+| [[BUG-3133-legacy-permission-assignment-endpoint-skips-the-cannot-excee|BUG-3133]] | Legacy permission-assignment endpoint skips the cannot-exceed-own-access check its matrix sibling applies | AUTHORIZATION | HIGH | OPEN | api:roles | TRIAGE_REQUIRED |
+| [[BUG-3134-employee-export-endpoint-skips-the-row-level-access-scope-it|BUG-3134]] | Employee export endpoint skips the row-level access scope its read sibling applies (BOLA) | AUTHORIZATION | HIGH | OPEN | api:employees | TRIAGE_REQUIRED |
+| [[BUG-3137-live-password-reset-links-and-invite-tokens-sit-in-the-tenan|BUG-3137]] | Live password-reset links and invite tokens sit in the tenant-readable email delivery log | SECURITY | HIGH | OPEN | api:notifications | TRIAGE_REQUIRED |
+| [[BUG-3138-password-reset-unconditionally-reactivates-a-disabled-accoun|BUG-3138]] | Password reset unconditionally reactivates a disabled account | SECURITY | HIGH | OPEN | api:auth | TRIAGE_REQUIRED |
+| [[BUG-3139-tenant-password-reset-tokens-are-stateless-and-replayable-fo|BUG-3139]] | Tenant password-reset tokens are stateless and replayable for 24 hours after use | SECURITY | HIGH | OPEN | api:auth | TRIAGE_REQUIRED |
+| [[BUG-3140-client-supplied-startnewsession-flag-on-the-public-agent-ref|BUG-3140]] | Client-supplied startNewSession flag on the public agent refresh endpoint resets absolute session lifetime | SECURITY | HIGH | OPEN | api:auth, api:agent | TRIAGE_REQUIRED |
+| [[BUG-3141-branding-svg-served-unauthenticated-and-inline-enabled-store|BUG-3141]] | Branding SVG served unauthenticated and inline enabled stored XSS on the API origin | SECURITY | HIGH | OPEN | api:customization | TRIAGE_REQUIRED |
+| [[BUG-3156-a-tenant-admin-can-create-rename-or-deactivate-the-platform-|BUG-3156]] | A tenant admin can create, rename or deactivate the platform-wide shared geography reference data | TENANT_ISOLATION | HIGH | OPEN | api:lookups | TRIAGE_REQUIRED |
+| [[BUG-3157-the-lookups-usage-endpoint-discloses-a-cross-tenant-employee|BUG-3157]] | The lookups usage endpoint discloses a cross-tenant employee-count aggregate and lets one tenant block another tenant's delete | TENANT_ISOLATION | HIGH | OPEN | api:lookups | TRIAGE_REQUIRED |
+| [[BUG-3162-public-tenant-resolve-cache-is-keyed-on-caller-supplied-sele|BUG-3162]] | Public tenant-resolve cache is keyed on caller-supplied selectors instead of the resolved tenant (downgraded from CRITICAL to HIGH on reconciliation) | SECURITY | HIGH | OPEN | api:tenants | TRIAGE_REQUIRED |
+| [[BUG-3163-the-rate-limit-key-trusts-a-client-supplied-x-forwarded-for-|BUG-3163]] | The rate-limit key trusts a client-supplied X-Forwarded-For because the API is directly reachable, bypassing Cloudflare | SECURITY | HIGH | OPEN | services/api/src/common | TRIAGE_REQUIRED |
+| [[BUG-3164-the-timesheet-restriction-allowlist-omits-the-api-prefix-so-|BUG-3164]] | The timesheet-restriction allowlist omits the /api prefix, so it never matches | BUG | HIGH | OPEN | api:timesheets | TRIAGE_REQUIRED |
+| [[BUG-3165-every-authenticated-request-costs-roughly-26-database-round-|BUG-3165]] | Every authenticated request costs roughly 26 database round trips before the handler runs | PERFORMANCE | HIGH | OPEN | services/api/src/common | TRIAGE_REQUIRED |
+| [[BUG-3166-production-deploys-before-the-deployed-commit-has-a-ci-verdi|BUG-3166]] | Production deploys before the deployed commit has a CI verdict | INFRA | HIGH | OPEN | .github/workflows | TRIAGE_REQUIRED |
+| [[BUG-3167-the-required-browser-gate-executes-zero-tests-against-apps-w|BUG-3167]] | The required browser gate executes zero tests against apps/web | TEST_GAP | HIGH | OPEN | .github/workflows | TRIAGE_REQUIRED |
+| [[BUG-3168-two-required-ci-gates-report-success-while-executing-nothing|BUG-3168]] | Two required CI gates report success while executing nothing | INFRA | HIGH | OPEN | .github/workflows | TRIAGE_REQUIRED |
+| [[BUG-3169-notification-fan-out-runs-o-rules-x-recipients-sequential-ro|BUG-3169]] | Notification fan-out runs O(rules x recipients) sequential round trips inline on the triggering request | PERFORMANCE | HIGH | OPEN | api:notifications | TRIAGE_REQUIRED |
+| [[BUG-3170-timesheet-bulk-import-confirmation-runs-an-unbounded-per-row|BUG-3170]] | Timesheet bulk-import confirmation runs an unbounded per-row loop inside one transaction on the default 5-second timeout | PERFORMANCE | HIGH | OPEN | api:timesheets | TRIAGE_REQUIRED |
+| [[BUG-3171-the-audit-log-filter-metadata-query-does-an-unbounded-distin|BUG-3171]] | The Audit Log filter-metadata query does an unbounded DISTINCT scan over the tenant's entire audit history on every page load | PERFORMANCE | HIGH | OPEN | api:audit | TRIAGE_REQUIRED |
+| [[BUG-3172-get-payslips-has-no-pagination-and-can-return-every-payslip-|BUG-3172]] | GET /payslips has no pagination and can return every payslip the tenant has ever generated | PERFORMANCE | HIGH | OPEN | api:payslips | TRIAGE_REQUIRED |
+| [[BUG-3173-roughly-20-pages-redundantly-re-fetch-business-unit-access-a|BUG-3173]] | Roughly 20 pages redundantly re-fetch business-unit access and current-employee context the shell layout already loaded | PERFORMANCE | HIGH | OPEN | apps/web | TRIAGE_REQUIRED |
+| [[BUG-3174-every-pagination-sort-or-filter-click-on-a-runtime-list-page|BUG-3174]] | Every pagination, sort or filter click on a runtime list page re-executes the whole server-side call fan-out, not just the list query | PERFORMANCE | HIGH | OPEN | apps/web, apps/admin | TRIAGE_REQUIRED |
+| [[BUG-3175-nine-platform-admin-runtime-modules-fetch-entire-tables-into|BUG-3175]] | Nine platform-admin runtime modules fetch entire tables into Node memory and paginate/sort/search with JavaScript instead of the database | PERFORMANCE | HIGH | OPEN | apps/admin | TRIAGE_REQUIRED |
+| [[BUG-3176-the-employees-list-search-box-and-every-server-mode-datatabl|BUG-3176]] | The Employees list search box, and every server-mode DataTable instance, never reaches the backend and only filters the already-loaded page | BUG | HIGH | OPEN | apps/web, apps/admin | TRIAGE_REQUIRED |
+| [[BUG-3177-two-endpoints-accepted-a-caller-supplied-storagekey-and-read|BUG-3177]] | Two endpoints accepted a caller-supplied storageKey and read it back with no tenant-prefix check | AUTHORIZATION | HIGH | OPEN | api:recruitment, api:app-releases | TRIAGE_REQUIRED |
+| [[BUG-3178-no-malware-scanning-exists-anywhere-the-tenant-setting-that-|BUG-3178]] | No malware scanning exists anywhere; the tenant setting that claims it does is inert | SECURITY | HIGH | OPEN | services/api/src/common | TRIAGE_REQUIRED |
+| [[BUG-3179-nine-upload-endpoints-had-no-multipart-size-limit-the-check-|BUG-3179]] | Nine/ten upload endpoints had no multipart size limit; the check ran after the whole file was already in the heap | SECURITY | HIGH | OPEN | services/api/src/common | TRIAGE_REQUIRED |
+| [[BUG-3180-the-render-service-cannot-be-rebuilt-from-the-repository-sev|BUG-3180]] | The Render service cannot be rebuilt from the repository: seven boot-required env vars are absent from render.yaml | INFRA | HIGH | OPEN | render.yaml | TRIAGE_REQUIRED |
+| [[BUG-3181-single-environment-no-staging-one-neon-branch-one-stripe-acc|BUG-3181]] | Single environment: no staging, one Neon branch, one Stripe account, one email sender, and demo data in production | INFRA | HIGH | OPEN | docs/deployment | TRIAGE_REQUIRED |
+| [[BUG-3182-no-per-tenant-restore-is-possible-restoring-one-tenant-means|BUG-3182]] | No per-tenant restore is possible: restoring one tenant means rolling back all of them | INFRA | HIGH | OPEN | api:tenants | TRIAGE_REQUIRED |
+| [[BUG-3183-platform-ops-alerts-for-failed-payments-and-provisioning-are|BUG-3183]] | Platform-ops alerts for failed payments and provisioning are written to a log line that is never sent and is suppressed at the production log level | INFRA | HIGH | OPEN | api:platform-monitoring | TRIAGE_REQUIRED |
+| [[BUG-3184-employee-termination-writes-no-audit-row-invisible-to-the-co|BUG-3184]] | Employee termination writes no audit row, invisible to the coverage spec designed to catch exactly this | DATA_INTEGRITY | HIGH | OPEN | api:employees | TRIAGE_REQUIRED |
+| [[BUG-3185-reading-or-downloading-a-document-is-recorded-nowhere|BUG-3185]] | Reading or downloading a document is recorded nowhere | DATA_INTEGRITY | HIGH | OPEN | api:documents | TRIAGE_REQUIRED |
+| [[BUG-3186-no-individual-erasure-or-anonymisation-path-exists-and-emplo|BUG-3186]] | No individual erasure or anonymisation path exists, and employee deletion is soft, so personal data survives deletion indefinitely | DATA_INTEGRITY | HIGH | OPEN | api:employees | TRIAGE_REQUIRED |
+| [[BUG-3187-the-rate-limit-invariant-covers-writes-only-every-unprotecte|BUG-3187]] | The rate-limit invariant covers writes only; every unprotected public surface is a read | SECURITY | HIGH | OPEN | services/api/src/common | TRIAGE_REQUIRED |
+| [[BUG-3188-every-rejected-rate-limited-request-writes-a-database-row-so|BUG-3188]] | Every rejected rate-limited request writes a database row, so throttling costs more than serving | PERFORMANCE | HIGH | OPEN | services/api/src/common | TRIAGE_REQUIRED |
+| [[BUG-3189-one-unauthenticated-login-request-costs-about-1-1s-of-cpu-on|BUG-3189]] | One unauthenticated login request costs about 1.1s of CPU on a single-instance API | PERFORMANCE | HIGH | OPEN | api:auth | TRIAGE_REQUIRED |
+| [[BUG-3195-the-postgres-connection-pool-is-entirely-default-and-waits-f|BUG-3195]] | The Postgres connection pool is entirely default and waits forever for a connection | PERFORMANCE | HIGH | OPEN | services/api/src/common | TRIAGE_REQUIRED |
+| [[BUG-3196-payroll-calculation-runs-inline-on-the-http-request-per-empl|BUG-3196]] | Payroll calculation runs inline on the HTTP request, per employee, with no idempotency and no crash recovery | DATA_INTEGRITY | HIGH | OPEN | api:payroll | TRIAGE_REQUIRED |
+| [[BUG-3197-leave-balance-is-checked-at-submission-and-decremented-at-ap|BUG-3197]] | Leave balance is checked at submission and decremented at approval, so pending requests are invisible and the balance can be overdrawn | DATA_INTEGRITY | HIGH | OPEN | api:leave | TRIAGE_REQUIRED |
+| [[BUG-3198-api-health-is-a-static-ok-payload-so-a-broken-deploy-and-a-d|BUG-3198]] | api/health is a static ok payload, so a broken deploy and a dead database both report healthy | INFRA | HIGH | OPEN | services/api/src/common | TRIAGE_REQUIRED |
+| [[BUG-3199-an-outbound-fetch-with-no-timeout-is-reachable-from-an-authe|BUG-3199]] | An outbound fetch with no timeout is reachable from an authenticated tenant endpoint; Stripe has no explicit timeout or circuit breaker | PERFORMANCE | HIGH | OPEN | api:billing | TRIAGE_REQUIRED |
+| [[BUG-3200-the-notification-queue-is-a-synchronous-fallback-every-tenan|BUG-3200]] | The notification queue is a synchronous fallback: every tenant email is sent on the HTTP request thread with no retry | PERFORMANCE | HIGH | OPEN | api:notifications | TRIAGE_REQUIRED |
+| [[BUG-3201-the-p2002-recovery-pattern-used-inside-interactive-transacti|BUG-3201]] | The P2002 recovery pattern used inside interactive transactions cannot work on Postgres, and it is on the tenant-provisioning path | DATA_INTEGRITY | HIGH | OPEN | api:tenants | TRIAGE_REQUIRED |
+| [[BUG-3202-payroll-run-eligibility-never-checks-employee-isdeleted-an-a|BUG-3202]] | Payroll run eligibility never checks Employee.isDeleted; an archived employee with a stale employmentStatus is paid | DATA_INTEGRITY | HIGH | OPEN | api:payroll | TRIAGE_REQUIRED |
+| [[BUG-3205-tenant-deletion-cascades-through-the-entire-tenant-owned-sch|BUG-3205]] | Tenant deletion cascades through the entire tenant-owned schema, including every audit and payroll table, with no database-level barrier | DATABASE | HIGH | OPEN | services/api/prisma | TRIAGE_REQUIRED |
+| [[BUG-3241-legacy-role-permission-grant-and-employee-export-both-skip-t|BUG-3241]] | Legacy role-permission grant and employee export both skip the sibling endpoint's access check | AUTHORIZATION | HIGH | FIXED | api:roles/roles.service.ts, api:employees/employees.service.ts | DONE |
+| [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] | No multi-factor authentication exists anywhere, including for platform super admins | SECURITY | HIGH | TRIAGE_REQUIRED | api:auth | TRIAGE_REQUIRED |
+| [[ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no|ITEM-0133]] | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | TRIAGE_REQUIRED | services/api/test | TRIAGE_REQUIRED |
+| [[ITEM-0134-the-payroll-run-engine-has-no-tests|ITEM-0134]] | The payroll run engine has no tests | TEST_GAP | HIGH | TRIAGE_REQUIRED | api:payroll | TRIAGE_REQUIRED |
+| [[ITEM-0135-no-authenticated-endpoint-in-the-product-is-rate-limited-at-|ITEM-0135]] | No authenticated endpoint in the product is rate limited at all | SECURITY | HIGH | TRIAGE_REQUIRED | services/api/src/common | TRIAGE_REQUIRED |
+| [[ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-|ITEM-0136]] | electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major | SECURITY | HIGH | TRIAGE_REQUIRED | apps/agent-desktop | TRIAGE_REQUIRED |
 
 ## Product Decisions Needed
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
-| [[BUG-2509-platform-admin-remember-me-has-no-policy-able-to-refuse-it|BUG-2509]] | Platform admin remember-me has no policy able to refuse it | SECURITY | MEDIUM | PRODUCT_DECISION | api:auth | PRODUCT_DECISION |
-| [[ITEM-0106-an-employee-cannot-use-self-service-until-their-manager-acti|ITEM-0106]] | An employee cannot use self-service until their manager activates their own account | PRODUCT_DECISION | MEDIUM | PRODUCT_DECISION | api:leave, api:employees | PRODUCT_DECISION |
-| [[ITEM-0115-provisioning-seeds-four-departments-with-no-business-unit-on|ITEM-0115]] | Provisioning seeds four departments with no business unit on every tenant | PRODUCT_DECISION | MEDIUM | PRODUCT_DECISION | services/api/prisma, api:organization | PRODUCT_DECISION |
-| [[ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle|ITEM-0108]] | Decide whether the roughly one-hour session lifetime is idle or absolute | PRODUCT_DECISION | LOW | PRODUCT_DECISION | api:auth | PRODUCT_DECISION |
-| [[BUG-2007-projects-and-customers-can-be-created-but-never-deleted|BUG-2007]] | Projects and customers can be created but never deleted | BUG | LOW | PRODUCT_DECISION | api:projects | PRODUCT_DECISION |
-| [[ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-|ITEM-0114]] | The workspace shell states the tenant's identity four times and its purpose twice | UX | — | PRODUCT_DECISION | views | PRODUCT_DECISION |
+| [[ITEM-0131-production-hr-and-payroll-data-has-no-backup-the-database-is|ITEM-0131]] | Production HR and payroll data has no backup: the database is on the Neon free plan | INFRA | CRITICAL | PRODUCT_DECISION | services/api | PRODUCT_DECISION |
 
 ## Blocked Items
 
@@ -83,23 +137,39 @@ _None. Nothing open at CRITICAL._
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
+| [[BUG-3167-the-required-browser-gate-executes-zero-tests-against-apps-w|BUG-3167]] | The required browser gate executes zero tests against apps/web | TEST_GAP | HIGH | OPEN | .github/workflows | TRIAGE_REQUIRED |
+| [[ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no|ITEM-0133]] | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | TRIAGE_REQUIRED | services/api/test | TRIAGE_REQUIRED |
+| [[ITEM-0134-the-payroll-run-engine-has-no-tests|ITEM-0134]] | The payroll run engine has no tests | TEST_GAP | HIGH | TRIAGE_REQUIRED | api:payroll | TRIAGE_REQUIRED |
+| [[BUG-3254-the-forwarded-for-hop-guard-rejected-every-honest-chain-coll|BUG-3254]] | The rate-limit e2e suite sent a forwarded chain one hop short, and the guard was misread as an off-by-one | TEST_GAP | MEDIUM | FIXED | pkg:config, services/api/src/common/security, services/api/test | DONE |
+| [[BUG-3263-the-provisioning-queue-e2e-fixture-raced-the-clock-so-an-exa|BUG-3263]] | The provisioning queue e2e fixture raced the clock, so an exact five-minute interval came out 300001ms | TEST_GAP | MEDIUM | FIXED | services/api/test | DONE |
 | [[ITEM-0052-verify-the-agent-update-feed-against-a-real-published-artefact|ITEM-0052]] | Verify the agent update feed against a real published artefact | TEST_GAP | MEDIUM | READY | apps/agent-desktop, api:app-releases | PLAN_REQUIRED |
 | [[ITEM-0077-re-read-the-packaged-agent-archive-after-the-node-pre-gyp-up|ITEM-0077]] | Re-read the packaged agent archive after the node-pre-gyp upgrade | TEST_GAP | MEDIUM | READY | apps/agent-desktop, package-lock.json | PLAN_REQUIRED |
 | [[ITEM-0078-no-end-to-end-payment-to-provisioned-tenant-run-against-stri|ITEM-0078]] | No end-to-end payment to provisioned tenant run against Stripe test mode | TEST_GAP | MEDIUM | READY | api:billing, api:tenant-control-plane, api:outbox, apps/landing | PLAN_REQUIRED |
-| [[ITEM-0092-widget-runtime-contract-test-js-fails-and-no-script-or-ci-jo|ITEM-0092]] | widget-runtime-contract.test.js fails and no script or CI job runs it | TEST_GAP | MEDIUM | READY | pkg:config, apps/web | PLAN_REQUIRED |
-| [[ITEM-0112-enforcecriticalattendancesetting-has-no-test-coverage-despit|ITEM-0112]] | enforceCriticalAttendanceSetting has no test coverage despite enforcing a mandatory integrity control | TEST_GAP | MEDIUM | READY | api:tenant-settings | FIX_NOW |
 | [[ITEM-0116-53-bug-fixes-are-regression-covered-but-have-never-been-qa-r|ITEM-0116]] | 53 bug fixes are regression-covered but have never been QA-retested | TEST_GAP | MEDIUM | READY | — | FIX_NOW |
-| [[ITEM-0125-the-net-integration-gateway-ships-to-customers-with-no-ci-co|ITEM-0125]] | The .NET Integration Gateway ships to customers with no CI coverage at all | TEST_GAP | MEDIUM | TRIAGE_REQUIRED | gateway | TRIAGE_REQUIRED |
-| [[ITEM-0130-review-process-missed-four-defects-on-screens-adjacent-to-th|ITEM-0130]] | Review process missed four defects on screens adjacent to the change | TEST_GAP | — | READY | apps/web, .agent | FIX_NOW |
+| [[ITEM-0143-24-of-the-api-workspace-is-excluded-from-the-typecheck-ci-ru|ITEM-0143]] | 24% of the API workspace is excluded from the typecheck CI runs | TEST_GAP | MEDIUM | TRIAGE_REQUIRED | .github/workflows | TRIAGE_REQUIRED |
+| [[ITEM-0147-stripe-webhook-signature-verification-is-asserted-by-reading|ITEM-0147]] | Stripe webhook signature verification is asserted by reading source text, never by executing it | TEST_GAP | MEDIUM | TRIAGE_REQUIRED | api:billing | TRIAGE_REQUIRED |
+| [[ITEM-0148-notification-delivery-employee-termination-leave-draw-down-r|ITEM-0148]] | Notification delivery, employee termination, leave draw-down, refresh-token replay and the agent auth path are untested | TEST_GAP | MEDIUM | TRIAGE_REQUIRED | services/api/test | TRIAGE_REQUIRED |
 
 ## Current Infrastructure Gaps
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
+| [[BUG-3153-production-had-no-persistent-disk-so-every-uploaded-hr-docum|BUG-3153]] | Production had no persistent disk, so every uploaded HR document was destroyed on the next deploy | INFRA | CRITICAL | OPEN | services/api/src/common, api:documents | TRIAGE_REQUIRED |
+| [[BUG-3166-production-deploys-before-the-deployed-commit-has-a-ci-verdi|BUG-3166]] | Production deploys before the deployed commit has a CI verdict | INFRA | HIGH | OPEN | .github/workflows | TRIAGE_REQUIRED |
+| [[BUG-3168-two-required-ci-gates-report-success-while-executing-nothing|BUG-3168]] | Two required CI gates report success while executing nothing | INFRA | HIGH | OPEN | .github/workflows | TRIAGE_REQUIRED |
+| [[BUG-3180-the-render-service-cannot-be-rebuilt-from-the-repository-sev|BUG-3180]] | The Render service cannot be rebuilt from the repository: seven boot-required env vars are absent from render.yaml | INFRA | HIGH | OPEN | render.yaml | TRIAGE_REQUIRED |
+| [[BUG-3181-single-environment-no-staging-one-neon-branch-one-stripe-acc|BUG-3181]] | Single environment: no staging, one Neon branch, one Stripe account, one email sender, and demo data in production | INFRA | HIGH | OPEN | docs/deployment | TRIAGE_REQUIRED |
+| [[BUG-3182-no-per-tenant-restore-is-possible-restoring-one-tenant-means|BUG-3182]] | No per-tenant restore is possible: restoring one tenant means rolling back all of them | INFRA | HIGH | OPEN | api:tenants | TRIAGE_REQUIRED |
+| [[BUG-3183-platform-ops-alerts-for-failed-payments-and-provisioning-are|BUG-3183]] | Platform-ops alerts for failed payments and provisioning are written to a log line that is never sent and is suppressed at the production log level | INFRA | HIGH | OPEN | api:platform-monitoring | TRIAGE_REQUIRED |
+| [[BUG-3198-api-health-is-a-static-ok-payload-so-a-broken-deploy-and-a-d|BUG-3198]] | api/health is a static ok payload, so a broken deploy and a dead database both report healthy | INFRA | HIGH | OPEN | services/api/src/common | TRIAGE_REQUIRED |
+| [[BUG-3227-no-access-log-and-traceid-never-reaches-an-application-log-l|BUG-3227]] | No access log, and traceId never reaches an application log line: a successful request leaves no trace at all | INFRA | MEDIUM | OPEN | services/api/src/common | TRIAGE_REQUIRED |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
-| [[ITEM-0074-allocate-id-and-session-tooling-accept-a-session-id-that-doe|ITEM-0074]] | allocate-id and session tooling accept a session id that does not exist | INFRA | MEDIUM | READY | framework | PLAN_REQUIRED |
-| [[ITEM-0084-detect-drift-between-render-yaml-and-the-live-render-service|ITEM-0084]] | Detect drift between render.yaml and the live Render service | INFRA | MEDIUM | READY | render.yaml, scripts | FIX_NOW |
-| [[ITEM-0049-register-services-api-environment-reads-or-scope-the-rule|ITEM-0049]] | Register services/api environment reads or scope the rule to build inputs | INFRA | LOW | READY | services/api, turbo.json, docs/deployment | PLAN_REQUIRED |
+| [[ITEM-0144-nothing-detects-a-destructive-migration-before-it-merges|ITEM-0144]] | Nothing detects a destructive migration before it merges | INFRA | MEDIUM | TRIAGE_REQUIRED | services/api/prisma | TRIAGE_REQUIRED |
+| [[ITEM-0145-a-push-to-develop-can-publish-a-desktop-agent-build-with-no-|ITEM-0145]] | A push to develop can publish a desktop-agent build with no CI dependency | INFRA | MEDIUM | TRIAGE_REQUIRED | apps/agent-desktop | TRIAGE_REQUIRED |
+| [[ITEM-0146-smoke-deployment-exists-and-is-wired-to-nothing|ITEM-0146]] | smoke:deployment exists and is wired to nothing | INFRA | MEDIUM | TRIAGE_REQUIRED | .github/workflows | TRIAGE_REQUIRED |
+| [[ITEM-0154-scaling-posture-no-autoscaling-one-instance-a-node-heap-ceil|ITEM-0154]] | Scaling posture: no autoscaling, one instance, a Node heap ceiling that exceeds the declared plan memory | INFRA | MEDIUM | TRIAGE_REQUIRED | render.yaml | TRIAGE_REQUIRED |
+| [[ITEM-0156-production-log-level-silently-discards-all-44-logger-log-cal|ITEM-0156]] | Production log level silently discards all 44 logger.log call sites, including the outbox drain counters | INFRA | MEDIUM | TRIAGE_REQUIRED | services/api/src/common | TRIAGE_REQUIRED |
+| [[ITEM-0158-public-traffic-that-bypasses-cloudflare-shares-one-rate-limi|ITEM-0158]] | Public traffic that bypasses Cloudflare shares one rate-limit bucket, by design and untested | INFRA | MEDIUM | READY | pkg:config, services/api/src/common/security | PLAN_REQUIRED |
 
 ## Recently Fixed Bugs
 
@@ -123,6 +193,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-1742-lead-creation-is-impossible-the-runtime-form-always-sends-pa|BUG-1742]] | Lead creation is impossible: the runtime form always sends partnerId as an empty string | BUG | CRITICAL | VERIFIED | apps/admin, api:platform-runtime, api:super-admin | DONE |
 | [[BUG-1743-customers-and-partners-cannot-be-edited-the-runtime-form-ech|BUG-1743]] | Customers and partners cannot be edited: the runtime form echoes fields the update DTO forbids | BUG | CRITICAL | VERIFIED | apps/admin, api:platform-runtime, api:super-admin | DONE |
 | [[BUG-1744-every-subscription-has-a-zero-length-billing-period-and-a-re|BUG-1744]] | Every subscription has a zero-length billing period and a renewal date in the past | DATA_INTEGRITY | CRITICAL | VERIFIED | api:super-admin, api:billing, integration:stripe | DONE |
+| [[BUG-3152-post-users-userid-roles-lets-a-delegated-role-assignment-adm|BUG-3152]] | POST /users/:userId/roles lets a delegated role-assignment admin self-grant GLOBAL_ADMIN | AUTHORIZATION | CRITICAL | FIXED | api:users/users.service.ts, api:users/users.controller.ts | DONE |
 | [[BUG-1494-git-worktree-remove-follows-node-modules-junctions-and-delet|BUG-1494]] | git worktree remove follows node_modules junctions and deletes the primary checkout | INFRA | CRITICAL | VERIFIED | scripts | DONE |
 | [[BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur|BUG-0049]] | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | VERIFIED | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | DONE |
 | [[BUG-0052-production-dependency-graph-carries-critical-and-high-securi|BUG-0052]] | Production dependency graph carries critical and high security advisories | SECURITY | HIGH | VERIFIED | package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api | DONE |
@@ -241,9 +312,13 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2332-every-attendance-refusal-reaches-the-browser-as-validation-f|BUG-2332]] | Every attendance refusal reaches the browser as VALIDATION_FAILED and raises the technical error dialog | BUG | HIGH | FIXED | services/api/src/common/errors, api:attendance, apps/web | FIX_NOW |
 | [[BUG-2458-token-refresh-is-throttled-by-the-public-login-rate-limiter-|BUG-2458]] | Token refresh is throttled by the public login rate limiter, signing users out | BUG | HIGH | FIXED | api:auth, api:common | FIX_NOW |
 | [[BUG-2459-the-notification-bell-polls-forever-after-a-session-ends-flo|BUG-2459]] | The notification bell polls forever after a session ends, flooding the error log | PERFORMANCE | HIGH | FIXED | web:notifications, api:error-logs, api:notifications | FIX_NOW |
+| [[BUG-2462-stripe-subscription-webhooks-fail-because-the-customer-resol|BUG-2462]] | Stripe subscription webhooks fail because the customer resolves to no tenant | INTEGRATION | HIGH | FIXED | api:billing, api:super-admin | DONE |
+| [[BUG-2494-check-out-re-validates-check-in-preconditions-and-traps-the-|BUG-2494]] | Check-out re-validates check-in preconditions and traps the entry open for ever | STATE_MACHINE | HIGH | FIXED | api:attendance | DONE |
+| [[BUG-2504-approving-a-correction-never-applies-the-requested-work-mode|BUG-2504]] | Approving a correction never applies the requested work mode, work site or overtime | STATE_MACHINE | HIGH | FIXED | api:attendance | DONE |
 | [[BUG-2505-a-mode-or-location-correction-could-never-be-submitted-at-al|BUG-2505]] | A mode-or-location correction could never be submitted at all | BUG | HIGH | FIXED | apps/web, api:attendance | DONE |
 | [[BUG-2506-sign-out-leaves-the-refresh-token-live-whenever-the-tenant-i|BUG-2506]] | Sign-out leaves the refresh token live whenever the tenant is busy | SECURITY | HIGH | FIXED | api:auth | DONE |
 | [[BUG-2530-self-service-checkout-still-creates-two-customer-records-the|BUG-2530]] | Self-service checkout still creates two customer records: the wizard's draft id is dropped between the controller and the order service | DATA_INTEGRITY | HIGH | VERIFIED | billing, super-admin, landing | DONE |
+| [[BUG-2618-expired-subscription-orders-are-never-swept-abandonexpired-h|BUG-2618]] | Expired subscription orders are never swept: abandonExpired has no caller and the API has no scheduler | DATA_INTEGRITY | HIGH | FIXED | billing, super-admin | FIX_NOW |
 | [[BUG-2623-buildscopedaccesswhere-filters-employee-on-ownerteamid-a-col|BUG-2623]] | buildScopedAccessWhere filters Employee on ownerTeamId, a column Employee does not have | AUTHORIZATION | HIGH | FIXED | services/api/src/common/security/rbac-query-scope.ts | DONE |
 | [[BUG-2624-the-reports-endpoints-return-tenant-wide-aggregates-regardle|BUG-2624]] | The reports endpoints return tenant-wide aggregates regardless of the caller's row scope | AUTHORIZATION | HIGH | VERIFIED | api:reports/reports.service.ts | DONE |
 | [[BUG-2683-every-scheduled-report-fails-to-deliver-because-the-email-te|BUG-2683]] | Every scheduled report fails to deliver because the email template variable tenantName is never passed | BUG | HIGH | FIXED | api:reporting/schedule | DONE |
@@ -253,6 +328,10 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2741-a-workspace-whose-email-provider-is-a-sink-reports-every-mes|BUG-2741]] | A workspace whose email provider is a sink reports every message as SENT | BUG | HIGH | FIXED | notifications, reporting | FIX_NOW |
 | [[BUG-2933-mapping-a-device-user-never-requeues-its-punches-so-backfill|BUG-2933]] | Mapping a device user never requeues its punches, so backfilled attendance is silently never built | INTEGRATION | HIGH | FIXED | api:attendance-integrations | FIX_NOW |
 | [[BUG-2958-settings-shows-every-category-group-and-page-regardless-of-t|BUG-2958]] | Settings shows every category, group and page regardless of the tenant's plan | AUTHORIZATION | HIGH | FIXED | apps/web, api:tenant-settings | FIX_NOW |
+| [[BUG-3007-reports-and-analytics-offers-surfaces-and-reports-for-capabi|BUG-3007]] | Reports and Analytics offers surfaces and reports for capabilities the plan does not include | AUTHORIZATION | HIGH | FIXED | apps/web, api:reporting | FIX_NOW |
+| [[BUG-3020-records-behind-these-numbers-shows-raw-guids-and-a-count-tha|BUG-3020]] | Records behind these numbers shows raw GUIDs and a count that does not match the metric | UX | HIGH | FIXED | apps/web, api:reporting | FIX_NOW |
+| [[BUG-3115-rate-limiter-trusts-a-forged-x-forwarded-for-and-covers-no-a|BUG-3115]] | Rate limiter trusts a forged X-Forwarded-For and covers no authenticated endpoint | SECURITY | HIGH | FIXED | services/api/src/common/security/client-ip.ts, services/api/src/common/guards/public-rate-limit.guard.ts, services/api/src/common/interceptors/authenticated-rate-limit.interceptor.ts | DONE |
+| [[BUG-3241-legacy-role-permission-grant-and-employee-export-both-skip-t|BUG-3241]] | Legacy role-permission grant and employee export both skip the sibling endpoint's access check | AUTHORIZATION | HIGH | FIXED | api:roles/roles.service.ts, api:employees/employees.service.ts | DONE |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | VERIFIED | app:admin | DONE |
@@ -368,15 +447,21 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2413-allocate-id-plan-scans-only-docs-qa-test-plans-so-execplan-i|BUG-2413]] | allocate-id plan scans only docs qa test-plans so ExecPlan ids collide | DATA_INTEGRITY | MEDIUM | FIXED | scripts | DONE |
 | [[BUG-2460-client-error-reports-store-the-whole-html-error-page-as-the-|BUG-2460]] | Client error reports store the whole HTML error page as the incident message | BUG | MEDIUM | FIXED | web:error-reporting, api:error-logs, admin:monitoring | FIX_NOW |
 | [[BUG-2465-session-revoked-401s-and-client-reported-failures-escape-the|BUG-2465]] | Session-revoked 401s and client-reported failures escape the not-an-incident filter | BUG | MEDIUM | FIXED | api:error-logs, api:platform-monitoring | FIX_NOW |
+| [[BUG-2495-the-under-investigation-tile-counts-incidents-nobody-is-inve|BUG-2495]] | The Under investigation tile counts incidents nobody is investigating | UX | MEDIUM | FIXED | admin:monitoring, api:platform-monitoring | DONE |
 | [[BUG-2507-the-manager-s-correction-screen-hides-four-of-the-eight-kind|BUG-2507]] | The manager's correction screen hides four of the eight kinds of change | UX | MEDIUM | FIXED | apps/web | DONE |
+| [[BUG-2508-the-correction-work-site-selector-is-never-populated-for-an-|BUG-2508]] | The correction work-site selector is never populated for an employee | BUG | MEDIUM | FIXED | apps/web, api:attendance-integrations | DONE |
 | [[BUG-2547-a-revoked-session-still-answers-on-auth-me|BUG-2547]] | A revoked session still answers on /auth/me | SECURITY | MEDIUM | FIXED | api:auth | DONE |
 | [[BUG-2560-the-requester-is-shown-approve-and-reject-buttons-that-alway|BUG-2560]] | The requester is shown Approve and Reject buttons that always refuse | AUTHORIZATION | MEDIUM | FIXED | api:attendance, apps/web | DONE |
+| [[BUG-2573-a-correction-request-cannot-be-withdrawn-by-the-person-who-f|BUG-2573]] | A correction request cannot be withdrawn by the person who filed it | UX | MEDIUM | FIXED | api:attendance, apps/web | DONE |
 | [[BUG-2625-reports-headcount-counts-soft-deleted-employees-and-disagree|BUG-2625]] | Reports headcount counts soft-deleted employees and disagrees with the Employees screen | DATA_INTEGRITY | MEDIUM | VERIFIED | api:reports/reports.service.ts | DONE |
 | [[BUG-2647-reporting-record-tables-and-metric-tiles-format-without-the-|BUG-2647]] | Reporting record tables and metric tiles format without the tenant context, causing a hydration mismatch | UX | MEDIUM | FIXED | app:web, app:web | DONE |
 | [[BUG-2648-reports-pages-scroll-sideways-at-1440-because-grid-items-can|BUG-2648]] | Reports pages scroll sideways at 1440 because grid items cannot shrink below their content | UX | MEDIUM | FIXED | app:web | DONE |
 | [[BUG-2662-an-expired-refresh-token-puts-the-tenant-app-into-a-redirect|BUG-2662]] | An expired refresh token puts the tenant app into a redirect loop instead of the login page | UX | MEDIUM | FIXED | apps/web | DONE |
 | [[BUG-2822-a-business-refusal-is-rendered-as-a-fatal-error-dialog-with-|BUG-2822]] | A business refusal is rendered as a fatal error dialog with a reference id and a log download | UX | MEDIUM | FIXED | runtime, approvals, attendance | FIX_NOW |
 | [[BUG-2839-a-dashboard-fx-test-asserted-on-the-last-month-bucket-so-it-|BUG-2839]] | A dashboard FX test asserted on the last month bucket, so it passed in August and failed on 1 September | BUG | MEDIUM | FIXED | super-admin | FIX_NOW |
+| [[BUG-2888-an-externally-hosted-release-is-invisible-to-the-desktop-age|BUG-2888]] | An externally hosted release is invisible to the desktop agent update feed, because the platform publish route cannot record a SHA-512 | INTEGRATION | MEDIUM | FIXED | api:app-releases | DONE |
+| [[BUG-3254-the-forwarded-for-hop-guard-rejected-every-honest-chain-coll|BUG-3254]] | The rate-limit e2e suite sent a forwarded chain one hop short, and the guard was misread as an off-by-one | TEST_GAP | MEDIUM | FIXED | pkg:config, services/api/src/common/security, services/api/test | DONE |
+| [[BUG-3263-the-provisioning-queue-e2e-fixture-raced-the-clock-so-an-exa|BUG-3263]] | The provisioning queue e2e fixture raced the clock, so an exact five-minute interval came out 300001ms | TEST_GAP | MEDIUM | FIXED | services/api/test | DONE |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -395,6 +480,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-1752-admin-empty-states-blame-filters-that-are-not-set|BUG-1752]] | Admin empty states blame filters that are not set | UX | LOW | VERIFIED | apps/admin | DONE |
 | [[BUG-1753-lookup-display-labels-mangle-acronyms-and-numeric-ranges-acr|BUG-1753]] | Lookup display labels mangle acronyms and numeric ranges across the admin console | BUG | LOW | VERIFIED | apps/admin | DONE |
 | [[BUG-1964-record-headings-and-dialog-titles-are-singularised-by-stripp|BUG-1964]] | Record headings and dialog titles are singularised by stripping a trailing s | UX | LOW | FIXED | apps/web | DONE |
+| [[BUG-2007-projects-and-customers-can-be-created-but-never-deleted|BUG-2007]] | Projects and customers can be created but never deleted | BUG | LOW | FIXED | api:projects, apps/web | DONE |
 | [[BUG-2010-the-dashboard-recent-changes-list-renders-unformatted-iso-86|BUG-2010]] | The dashboard Recent changes list renders unformatted ISO-8601 timestamps | UX | LOW | FIXED | apps/web | DONE |
 | [[BUG-2017-the-inbox-related-record-column-renders-a-bare-uuid-with-no-|BUG-2017]] | The inbox Related record column renders a bare UUID with no label and no link | UX | LOW | FIXED | apps/web | DONE |
 | [[BUG-2046-audit-actions-use-two-naming-conventions-and-the-result-colu|BUG-2046]] | Audit actions use two naming conventions and the Result column is populated only by login events | BUG | LOW | FIXED | api:audit | DONE |
@@ -402,6 +488,7 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2384-tenant-record-shows-primary-tenant-owner-unassigned-while-it|BUG-2384]] | Tenant record shows Primary Tenant Owner Unassigned while its readiness check reports one active Tenant Owner | UX | LOW | FIXED | api:tenant-control-plane, apps/admin | DONE |
 | [[BUG-2461-get-employees-me-direct-reports-is-shadowed-by-the-employeei|BUG-2461]] | GET employees me direct-reports is shadowed by the employeeId route and returns 400 | BUG | LOW | FIXED | api:employees | FIX_NOW |
 | [[BUG-2657-analytics-caveat-panels-list-the-same-note-twice-in-differen|BUG-2657]] | Analytics caveat panels list the same note twice in different wording | UX | LOW | FIXED | api:reporting | DONE |
+| [[BUG-3021-workspace-switcher-in-the-avatar-menu-overflows-horizontally|BUG-3021]] | Workspace switcher in the avatar menu overflows horizontally and shows a scrollbar | UX | LOW | FIXED | apps/web | FIX_NOW |
 
 ## Recent QA Runs
 
@@ -426,14 +513,14 @@ _None. Nothing open at CRITICAL._
 
 ## Recent Engineering History
 
+- [[2026-09-11-closeout-sweep-658eb39c|Engineering History — Closeout sweep]]
 - [[2026-09-10-release-settings-entitlements-254e8d2b|Engineering History — Release settings entitlements]]
+- [[2026-09-10-r2-durable-object-storage-11afbd50|Engineering History — Durable object storage on Cloudflare R2 (FILE-01/INF-05)]]
 - [[2026-09-09-settings-plan-entitlements-c3627cad|Engineering History — Settings plan entitlements]]
 - [[2026-08-31-session-redirect-loop-77abf947|Engineering History — Session redirect loop]]
 - [[2026-08-31-reports-analytics-platform-d833e694|Engineering History — Reports analytics platform]]
 - [[2026-08-31-email-sink-visibility-1b60690f|Engineering History — Email sink visibility]]
 - [[2026-08-31-approvals-inbox-decisions-d084dd7b|Engineering History — Approvals inbox decisions]]
-- [[2026-08-30-release-attendance-location-capture-ec1d58da|Engineering History — Release attendance location capture]]
-- [[2026-08-30-prod-monitoring-triage-fba846d1|Engineering History — Prod monitoring triage]]
 
 ## Recent Releases
 
@@ -482,42 +569,100 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2413-allocate-id-plan-scans-only-docs-qa-test-plans-so-execplan-i|BUG-2413]] | allocate-id plan scans only docs qa test-plans so ExecPlan ids collide | DATA_INTEGRITY | MEDIUM | FIXED | scripts | DONE |
 | [[BUG-2460-client-error-reports-store-the-whole-html-error-page-as-the-|BUG-2460]] | Client error reports store the whole HTML error page as the incident message | BUG | MEDIUM | FIXED | web:error-reporting, api:error-logs, admin:monitoring | FIX_NOW |
 | [[BUG-2465-session-revoked-401s-and-client-reported-failures-escape-the|BUG-2465]] | Session-revoked 401s and client-reported failures escape the not-an-incident filter | BUG | MEDIUM | FIXED | api:error-logs, api:platform-monitoring | FIX_NOW |
-| [[BUG-2495-the-under-investigation-tile-counts-incidents-nobody-is-inve|BUG-2495]] | The Under investigation tile counts incidents nobody is investigating | UX | MEDIUM | OPEN | admin:monitoring, api:platform-monitoring | TRIAGE_REQUIRED |
+| [[BUG-2495-the-under-investigation-tile-counts-incidents-nobody-is-inve|BUG-2495]] | The Under investigation tile counts incidents nobody is investigating | UX | MEDIUM | FIXED | admin:monitoring, api:platform-monitoring | DONE |
 | [[BUG-2507-the-manager-s-correction-screen-hides-four-of-the-eight-kind|BUG-2507]] | The manager's correction screen hides four of the eight kinds of change | UX | MEDIUM | FIXED | apps/web | DONE |
-| [[BUG-2508-the-correction-work-site-selector-is-never-populated-for-an-|BUG-2508]] | The correction work-site selector is never populated for an employee | BUG | MEDIUM | OPEN | apps/web, api:attendance-integrations | PLAN_REQUIRED |
+| [[BUG-2508-the-correction-work-site-selector-is-never-populated-for-an-|BUG-2508]] | The correction work-site selector is never populated for an employee | BUG | MEDIUM | FIXED | apps/web, api:attendance-integrations | DONE |
+| [[BUG-2509-platform-admin-remember-me-has-no-policy-able-to-refuse-it|BUG-2509]] | Platform admin remember-me has no policy able to refuse it | SECURITY | MEDIUM | OPEN | api:auth | PLAN_REQUIRED |
 | [[BUG-2547-a-revoked-session-still-answers-on-auth-me|BUG-2547]] | A revoked session still answers on /auth/me | SECURITY | MEDIUM | FIXED | api:auth | DONE |
 | [[BUG-2560-the-requester-is-shown-approve-and-reject-buttons-that-alway|BUG-2560]] | The requester is shown Approve and Reject buttons that always refuse | AUTHORIZATION | MEDIUM | FIXED | api:attendance, apps/web | DONE |
-| [[BUG-2573-a-correction-request-cannot-be-withdrawn-by-the-person-who-f|BUG-2573]] | A correction request cannot be withdrawn by the person who filed it | UX | MEDIUM | OPEN | api:attendance, apps/web | PLAN_REQUIRED |
+| [[BUG-2573-a-correction-request-cannot-be-withdrawn-by-the-person-who-f|BUG-2573]] | A correction request cannot be withdrawn by the person who filed it | UX | MEDIUM | FIXED | api:attendance, apps/web | DONE |
 | [[BUG-2647-reporting-record-tables-and-metric-tiles-format-without-the-|BUG-2647]] | Reporting record tables and metric tiles format without the tenant context, causing a hydration mismatch | UX | MEDIUM | FIXED | app:web, app:web | DONE |
 | [[BUG-2648-reports-pages-scroll-sideways-at-1440-because-grid-items-can|BUG-2648]] | Reports pages scroll sideways at 1440 because grid items cannot shrink below their content | UX | MEDIUM | FIXED | app:web | DONE |
 | [[BUG-2662-an-expired-refresh-token-puts-the-tenant-app-into-a-redirect|BUG-2662]] | An expired refresh token puts the tenant app into a redirect loop instead of the login page | UX | MEDIUM | FIXED | apps/web | DONE |
 | [[BUG-2822-a-business-refusal-is-rendered-as-a-fatal-error-dialog-with-|BUG-2822]] | A business refusal is rendered as a fatal error dialog with a reference id and a log download | UX | MEDIUM | FIXED | runtime, approvals, attendance | FIX_NOW |
 | [[BUG-2839-a-dashboard-fx-test-asserted-on-the-last-month-bucket-so-it-|BUG-2839]] | A dashboard FX test asserted on the last month bucket, so it passed in August and failed on 1 September | BUG | MEDIUM | FIXED | super-admin | FIX_NOW |
-| [[BUG-2888-an-externally-hosted-release-is-invisible-to-the-desktop-age|BUG-2888]] | An externally hosted release is invisible to the desktop agent update feed, because the platform publish route cannot record a SHA-512 | INTEGRATION | MEDIUM | OPEN | api:app-releases | TRIAGE_REQUIRED |
+| [[BUG-2888-an-externally-hosted-release-is-invisible-to-the-desktop-age|BUG-2888]] | An externally hosted release is invisible to the desktop agent update feed, because the platform publish route cannot record a SHA-512 | INTEGRATION | MEDIUM | FIXED | api:app-releases | DONE |
+| [[BUG-3135-project-allocations-export-has-the-same-row-scope-gap-as-the|BUG-3135]] | Project-allocations export has the same row-scope gap as the employee export, gated by a different permission | AUTHORIZATION | MEDIUM | OPEN | api:projects | TRIAGE_REQUIRED |
+| [[BUG-3136-five-public-read-routes-carry-no-publicratelimitguard|BUG-3136]] | Five public read routes carry no PublicRateLimitGuard | SECURITY | MEDIUM | OPEN | services/api/src/common | TRIAGE_REQUIRED |
+| [[BUG-3142-desktop-agent-login-has-no-per-account-lockout-recalibrated-|BUG-3142]] | Desktop-agent login has no per-account lockout (recalibrated from an overstated unthrottled-oracle claim) | SECURITY | MEDIUM | OPEN | api:agent, api:auth | TRIAGE_REQUIRED |
+| [[BUG-3143-session-cookies-scoped-to-domain-dijipeople-com-transmit-the|BUG-3143]] | Session cookies scoped to Domain=.dijipeople.com transmit the platform-admin token to every tenant hostname | SECURITY | MEDIUM | OPEN | api:auth | TRIAGE_REQUIRED |
+| [[BUG-3144-constant-time-defence-in-verifyidentitycredential-is-inert-l|BUG-3144]] | Constant-time defence in verifyIdentityCredential is inert, leaving a 2700x timing oracle for email existence | SECURITY | MEDIUM | OPEN | api:auth | TRIAGE_REQUIRED |
+| [[BUG-3145-no-refresh-token-reuse-detection-anywhere-tokenfamilyid-is-w|BUG-3145]] | No refresh-token reuse detection anywhere; tokenFamilyId is written and never read | SECURITY | MEDIUM | OPEN | api:auth | TRIAGE_REQUIRED |
+| [[BUG-3146-platform-admin-login-has-no-account-lockout-of-any-kind|BUG-3146]] | Platform-admin login has no account lockout of any kind | SECURITY | MEDIUM | OPEN | api:platform-auth | TRIAGE_REQUIRED |
+| [[BUG-3147-placeholder-and-reset-passwords-are-derived-from-date-now|BUG-3147]] | Placeholder and reset passwords are derived from Date.now() | SECURITY | MEDIUM | OPEN | api:auth | TRIAGE_REQUIRED |
+| [[BUG-3148-web-proxy-rewrites-auth-cookies-to-samesite-none-in-producti|BUG-3148]] | Web proxy rewrites auth cookies to SameSite=None in production with no CSRF token anywhere | SECURITY | MEDIUM | OPEN | apps/web | TRIAGE_REQUIRED |
+| [[BUG-3149-account-lockout-has-no-per-ip-dimension-so-any-known-email-c|BUG-3149]] | Account lockout has no per-IP dimension, so any known email can be locked out indefinitely | SECURITY | MEDIUM | OPEN | api:auth | TRIAGE_REQUIRED |
+| [[BUG-3150-a-password-reset-does-not-revoke-existing-desktop-agent-sess|BUG-3150]] | A password reset does not revoke existing desktop-agent sessions | SECURITY | MEDIUM | OPEN | api:auth, api:agent | TRIAGE_REQUIRED |
+| [[BUG-3151-agent-device-fingerprint-is-derived-from-hostname-and-userna|BUG-3151]] | Agent device fingerprint is derived from hostname and username; enrolment silently reassigns an existing device | SECURITY | MEDIUM | OPEN | api:agent | TRIAGE_REQUIRED |
+| [[BUG-3203-the-api-origin-sends-no-security-response-headers-at-all|BUG-3203]] | The API origin sends no security response headers at all | SECURITY | MEDIUM | OPEN | services/api/src/main.ts | TRIAGE_REQUIRED |
+| [[BUG-3204-per-client-jwt-secrets-are-documented-but-not-provisioned-cl|BUG-3204]] | Per-client JWT secrets are documented but not provisioned; client separation rests on an unsigned claim check | SECURITY | MEDIUM | OPEN | api:auth | TRIAGE_REQUIRED |
+| [[BUG-3206-35-mutating-settings-lookup-routes-take-record-string-unknow|BUG-3206]] | 35 mutating settings/lookup routes take Record<string, unknown> bodies, bypassing ValidationPipe whitelisting | BUG | MEDIUM | OPEN | api:settings-runtime, api:lookups | TRIAGE_REQUIRED |
+| [[BUG-3207-updatesupportcasedto-tenantid-is-a-client-settable-field-spr|BUG-3207]] | UpdateSupportCaseDto.tenantId is a client-settable field spread directly into the Prisma update | AUTHORIZATION | MEDIUM | OPEN | api:support-cases | TRIAGE_REQUIRED |
+| [[BUG-3208-an-unauthenticated-caller-can-insert-unbounded-entries-into-|BUG-3208]] | An unauthenticated caller can insert unbounded entries into a process-wide static Map | PERFORMANCE | MEDIUM | OPEN | services/api/src/common | TRIAGE_REQUIRED |
+| [[BUG-3209-authenticated-document-view-and-download-responses-set-no-ca|BUG-3209]] | Authenticated document view and download responses set no Cache-Control at all | SECURITY | MEDIUM | OPEN | api:documents | TRIAGE_REQUIRED |
+| [[BUG-3210-every-server-side-api-call-opts-out-of-next-fetch-deduplicat|BUG-3210]] | Every server-side API call opts out of Next fetch deduplication; tenant-settings/resolved is fetched twice on nine pages | PERFORMANCE | MEDIUM | OPEN | apps/web | TRIAGE_REQUIRED |
+| [[BUG-3211-roughly-two-dozen-sql-statements-run-before-any-controller-d|BUG-3211]] | Roughly two dozen SQL statements run before any controller does, on every authenticated request | PERFORMANCE | MEDIUM | OPEN | services/api/src/common | TRIAGE_REQUIRED |
+| [[BUG-3212-the-onboarding-list-issues-a-tenant-wide-employee-count-for-|BUG-3212]] | The onboarding list issues a tenant-wide employee.count() for every row on the page | PERFORMANCE | MEDIUM | OPEN | api:onboarding | TRIAGE_REQUIRED |
+| [[BUG-3213-bcrypt-hash-runs-synchronously-inside-open-provisioning-tran|BUG-3213]] | bcrypt.hash runs synchronously inside open provisioning transactions, adding to the same 5-second budget as RES-09 | PERFORMANCE | MEDIUM | OPEN | api:tenants | TRIAGE_REQUIRED |
+| [[BUG-3214-generic-entity-csv-export-silently-truncates-at-10-000-rows-|BUG-3214]] | Generic entity CSV export silently truncates at 10,000 rows with no signal to the caller | DATA_INTEGRITY | MEDIUM | OPEN | api:data | TRIAGE_REQUIRED |
+| [[BUG-3219-independent-backend-calls-are-awaited-sequentially-instead-o|BUG-3219]] | Independent backend calls are awaited sequentially instead of in parallel in at least two shared code paths | PERFORMANCE | MEDIUM | OPEN | apps/web | TRIAGE_REQUIRED |
+| [[BUG-3220-apps-admin-has-zero-loading-and-error-boundary-files-apps-we|BUG-3220]] | apps/admin has zero loading and error boundary files; apps/web has 22 genuinely uncovered pages including login | UX | MEDIUM | OPEN | apps/admin, apps/web | TRIAGE_REQUIRED |
+| [[BUG-3221-two-of-apps-web-four-error-boundaries-render-the-raw-error-m|BUG-3221]] | Two of apps/web four error boundaries render the raw Error.message directly with no classification | UX | MEDIUM | OPEN | apps/web | TRIAGE_REQUIRED |
+| [[BUG-3222-declared-content-type-is-trusted-no-upload-path-sniffs-conte|BUG-3222]] | Declared content type is trusted; no upload path sniffs content, and MIME/extension checks are independent | SECURITY | MEDIUM | OPEN | services/api/src/common | TRIAGE_REQUIRED |
+| [[BUG-3223-get-payslips-id-download-applies-no-row-level-scope|BUG-3223]] | GET /payslips/:id/download applies no row-level scope | AUTHORIZATION | MEDIUM | OPEN | api:payslips | TRIAGE_REQUIRED |
+| [[BUG-3224-deleting-a-document-deletes-nothing-the-bytes-stay-in-storag|BUG-3224]] | Deleting a document deletes nothing; the bytes stay in storage forever | DATA_INTEGRITY | MEDIUM | OPEN | api:documents | TRIAGE_REQUIRED |
+| [[BUG-3225-tenant-erasure-sweeps-only-two-of-the-eight-models-that-hold|BUG-3225]] | Tenant erasure sweeps only two of the eight models that hold storage keys | DATA_INTEGRITY | MEDIUM | OPEN | api:tenants | TRIAGE_REQUIRED |
+| [[BUG-3226-custom-tenant-domains-can-be-registered-but-can-never-be-ver|BUG-3226]] | Custom tenant domains can be registered but can never be verified or given a certificate; the feature is inert | BUG | MEDIUM | OPEN | api:tenant-domains | TRIAGE_REQUIRED |
+| [[BUG-3227-no-access-log-and-traceid-never-reaches-an-application-log-l|BUG-3227]] | No access log, and traceId never reaches an application log line: a successful request leaves no trace at all | INFRA | MEDIUM | OPEN | services/api/src/common | TRIAGE_REQUIRED |
+| [[BUG-3228-sanitizeforerrorlog-and-redactauditsnapshot-disagree-on-what|BUG-3228]] | sanitizeForErrorLog and redactAuditSnapshot disagree on what to redact, and the weaker one covers persisted query strings and route params | SECURITY | MEDIUM | OPEN | services/api/src/common | TRIAGE_REQUIRED |
+| [[BUG-3229-post-api-error-logs-client-accepts-an-unvalidated-arbitrary-|BUG-3229]] | POST /api/error-logs/client accepts an unvalidated arbitrary JSON body, stores it verbatim, and has no rate limit | SECURITY | MEDIUM | OPEN | api:error-logs | TRIAGE_REQUIRED |
+| [[BUG-3230-platform-admin-and-tenant-admin-login-failures-are-not-audit|BUG-3230]] | Platform-admin and tenant-admin login failures are not audited; only tenant-user login failures are | DATA_INTEGRITY | MEDIUM | OPEN | api:platform-auth, api:auth | TRIAGE_REQUIRED |
+| [[BUG-3231-whole-modules-have-no-audit-trail-contracts-31-mutating-endp|BUG-3231]] | Whole modules have no audit trail: contracts (31 mutating endpoints), customization (33), users.update, role creation | DATA_INTEGRITY | MEDIUM | OPEN | api:contracts, api:customization | TRIAGE_REQUIRED |
+| [[BUG-3232-billing-plan-seat-cancellation-changes-are-unaudited-and-six|BUG-3232]] | Billing plan/seat/cancellation changes are unaudited, and six webhook paths write raw auditLog rows bypassing central redaction | DATA_INTEGRITY | MEDIUM | OPEN | api:billing | TRIAGE_REQUIRED |
+| [[BUG-3233-no-audit-row-carries-an-ip-address-user-agent-session-id-or-|BUG-3233]] | No audit row carries an IP address, user agent, session id or request id; the two indexed correlation columns are dead | DATA_INTEGRITY | MEDIUM | OPEN | api:audit | TRIAGE_REQUIRED |
+| [[BUG-3234-deleting-a-user-nulls-the-actor-on-every-audit-row-they-ever|BUG-3234]] | Deleting a user nulls the actor on every audit row they ever wrote | DATA_INTEGRITY | MEDIUM | OPEN | api:audit, api:users | TRIAGE_REQUIRED |
+| [[BUG-3235-the-audit-ip-address-on-authentication-events-is-read-from-x|BUG-3235]] | The audit IP address on authentication events is read from X-Forwarded-For without the codebase's own trust check | SECURITY | MEDIUM | OPEN | api:auth | TRIAGE_REQUIRED |
+| [[BUG-3254-the-forwarded-for-hop-guard-rejected-every-honest-chain-coll|BUG-3254]] | The rate-limit e2e suite sent a forwarded chain one hop short, and the guard was misread as an off-by-one | TEST_GAP | MEDIUM | FIXED | pkg:config, services/api/src/common/security, services/api/test | DONE |
+| [[BUG-3263-the-provisioning-queue-e2e-fixture-raced-the-clock-so-an-exa|BUG-3263]] | The provisioning queue e2e fixture raced the clock, so an exact five-minute interval came out 300001ms | TEST_GAP | MEDIUM | FIXED | services/api/test | DONE |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0025-hidden-writes-remain-on-lookups-and-onboarding-read-paths|ITEM-0025]] | Hidden writes remain on lookups and onboarding read paths | TECH_DEBT | MEDIUM | READY | api:lookups, api:onboarding | PLAN_REQUIRED |
 | [[ITEM-0026-desktop-agent-windows-installer-is-unsigned|ITEM-0026]] | Desktop agent Windows installer is unsigned | SECURITY | MEDIUM | READY | apps/agent-desktop | PLAN_REQUIRED |
 | [[ITEM-0027-desktop-agent-has-no-retry-backoff-and-no-bounded-give-up|ITEM-0027]] | Desktop agent has no retry backoff and no bounded give up | TECH_DEBT | MEDIUM | READY | apps/agent-desktop, api:agent | PLAN_REQUIRED |
-| [[ITEM-0036-decide-the-fate-of-the-inert-runtime-registries-in-apps-web|ITEM-0036]] | Decide the fate of the inert runtime registries in apps/web | ARCHITECTURE | MEDIUM | READY | apps/web | PLAN_REQUIRED |
 | [[ITEM-0039-promote-the-csp-from-report-only-to-enforced|ITEM-0039]] | Promote the CSP from report-only to enforced | SECURITY | MEDIUM | READY | pkg:config, apps/web, apps/admin, apps/landing | PLAN_REQUIRED |
 | [[ITEM-0052-verify-the-agent-update-feed-against-a-real-published-artefact|ITEM-0052]] | Verify the agent update feed against a real published artefact | TEST_GAP | MEDIUM | READY | apps/agent-desktop, api:app-releases | PLAN_REQUIRED |
-| [[ITEM-0068-legal-documents-have-no-operator-ui-so-publishing-is-a-scrip|ITEM-0068]] | Legal publication has an operator UI, but no diff before publishing | UX | MEDIUM | READY | legal, admin | FIX_NOW |
-| [[ITEM-0074-allocate-id-and-session-tooling-accept-a-session-id-that-doe|ITEM-0074]] | allocate-id and session tooling accept a session id that does not exist | INFRA | MEDIUM | READY | framework | PLAN_REQUIRED |
 | [[ITEM-0077-re-read-the-packaged-agent-archive-after-the-node-pre-gyp-up|ITEM-0077]] | Re-read the packaged agent archive after the node-pre-gyp upgrade | TEST_GAP | MEDIUM | READY | apps/agent-desktop, package-lock.json | PLAN_REQUIRED |
 | [[ITEM-0078-no-end-to-end-payment-to-provisioned-tenant-run-against-stri|ITEM-0078]] | No end-to-end payment to provisioned tenant run against Stripe test mode | TEST_GAP | MEDIUM | READY | api:billing, api:tenant-control-plane, api:outbox, apps/landing | PLAN_REQUIRED |
-| [[ITEM-0084-detect-drift-between-render-yaml-and-the-live-render-service|ITEM-0084]] | Detect drift between render.yaml and the live Render service | INFRA | MEDIUM | READY | render.yaml, scripts | FIX_NOW |
-| [[ITEM-0092-widget-runtime-contract-test-js-fails-and-no-script-or-ci-jo|ITEM-0092]] | widget-runtime-contract.test.js fails and no script or CI job runs it | TEST_GAP | MEDIUM | READY | pkg:config, apps/web | PLAN_REQUIRED |
-| [[ITEM-0105-the-leave-entitlement-dialog-cannot-set-accrualtype-which-th|ITEM-0105]] | The leave entitlement dialog cannot set accrualType, which the API requires | UX | MEDIUM | READY | apps/web, api:leave | FIX_NOW |
-| [[ITEM-0107-three-separate-users-screens-exist-in-the-tenant-app|ITEM-0107]] | Four Users screens exist in the tenant app and two of them are unreachable | ARCHITECTURE | MEDIUM | READY | apps/web | FIX_NOW |
-| [[ITEM-0112-enforcecriticalattendancesetting-has-no-test-coverage-despit|ITEM-0112]] | enforceCriticalAttendanceSetting has no test coverage despite enforcing a mandatory integrity control | TEST_GAP | MEDIUM | READY | api:tenant-settings | FIX_NOW |
+| [[ITEM-0115-provisioning-seeds-four-departments-with-no-business-unit-on|ITEM-0115]] | Provisioning seeds four departments with no business unit on every tenant | PRODUCT_DECISION | MEDIUM | READY | services/api/prisma, api:organization | PLAN_REQUIRED |
 | [[ITEM-0116-53-bug-fixes-are-regression-covered-but-have-never-been-qa-r|ITEM-0116]] | 53 bug fixes are regression-covered but have never been QA-retested | TEST_GAP | MEDIUM | READY | — | FIX_NOW |
-| [[ITEM-0117-the-question-protocol-has-never-been-used-and-five-user-deci|ITEM-0117]] | The question protocol has never been used and five user decisions are parked in the backlog instead | DOCUMENTATION | MEDIUM | READY | — | FIX_NOW |
 | [[ITEM-0119-stop-writing-a-placeholder-e-mail-into-an-identity-column-wh|ITEM-0119]] | Stop writing a placeholder e-mail into an identity column when the wizard opens a draft | TECH_DEBT | MEDIUM | READY | billing, landing, super-admin | PLAN_REQUIRED |
-| [[ITEM-0125-the-net-integration-gateway-ships-to-customers-with-no-ci-co|ITEM-0125]] | The .NET Integration Gateway ships to customers with no CI coverage at all | TEST_GAP | MEDIUM | TRIAGE_REQUIRED | gateway | TRIAGE_REQUIRED |
+| [[ITEM-0137-the-api-is-architecturally-pinned-to-a-single-instance-and-s|ITEM-0137]] | The API is architecturally pinned to a single instance, and several correctness mechanisms depend on that without saying so | ARCHITECTURE | MEDIUM | TRIAGE_REQUIRED | services/api/src | TRIAGE_REQUIRED |
+| [[ITEM-0138-the-only-automatic-authorization-denial-audit-writer-is-dead|ITEM-0138]] | The only automatic authorization-denial audit writer is dead code on the installed Prisma client | SECURITY | MEDIUM | TRIAGE_REQUIRED | services/api/src/common | TRIAGE_REQUIRED |
+| [[ITEM-0139-tenant-aware-date-currency-formatting-is-reimplemented-local|ITEM-0139]] | Tenant-aware date/currency formatting is reimplemented locally in at least 21 files instead of the one documented entry point | TECH_DEBT | MEDIUM | TRIAGE_REQUIRED | apps/web, apps/admin | TRIAGE_REQUIRED |
+| [[ITEM-0140-the-api-module-boundary-is-nominal-152-of-310-prisma-models-|ITEM-0140]] | The API module boundary is nominal: 152 of 310 Prisma models are queried directly from more than one module | ARCHITECTURE | MEDIUM | TRIAGE_REQUIRED | services/api/src/modules | TRIAGE_REQUIRED |
+| [[ITEM-0141-circular-module-dependencies-10-mutual-pairs-and-one-18-modu|ITEM-0141]] | Circular module dependencies: 10 mutual pairs and one 18-module strongly-connected component | ARCHITECTURE | MEDIUM | TRIAGE_REQUIRED | services/api/src/modules | TRIAGE_REQUIRED |
+| [[ITEM-0142-services-api-is-not-in-typescript-strict-mode|ITEM-0142]] | services/api is not in TypeScript strict mode | TECH_DEBT | MEDIUM | TRIAGE_REQUIRED | services/api | TRIAGE_REQUIRED |
+| [[ITEM-0143-24-of-the-api-workspace-is-excluded-from-the-typecheck-ci-ru|ITEM-0143]] | 24% of the API workspace is excluded from the typecheck CI runs | TEST_GAP | MEDIUM | TRIAGE_REQUIRED | .github/workflows | TRIAGE_REQUIRED |
+| [[ITEM-0144-nothing-detects-a-destructive-migration-before-it-merges|ITEM-0144]] | Nothing detects a destructive migration before it merges | INFRA | MEDIUM | TRIAGE_REQUIRED | services/api/prisma | TRIAGE_REQUIRED |
+| [[ITEM-0145-a-push-to-develop-can-publish-a-desktop-agent-build-with-no-|ITEM-0145]] | A push to develop can publish a desktop-agent build with no CI dependency | INFRA | MEDIUM | TRIAGE_REQUIRED | apps/agent-desktop | TRIAGE_REQUIRED |
+| [[ITEM-0146-smoke-deployment-exists-and-is-wired-to-nothing|ITEM-0146]] | smoke:deployment exists and is wired to nothing | INFRA | MEDIUM | TRIAGE_REQUIRED | .github/workflows | TRIAGE_REQUIRED |
+| [[ITEM-0147-stripe-webhook-signature-verification-is-asserted-by-reading|ITEM-0147]] | Stripe webhook signature verification is asserted by reading source text, never by executing it | TEST_GAP | MEDIUM | TRIAGE_REQUIRED | api:billing | TRIAGE_REQUIRED |
+| [[ITEM-0148-notification-delivery-employee-termination-leave-draw-down-r|ITEM-0148]] | Notification delivery, employee termination, leave draw-down, refresh-token replay and the agent auth path are untested | TEST_GAP | MEDIUM | TRIAGE_REQUIRED | services/api/test | TRIAGE_REQUIRED |
+| [[ITEM-0149-48-files-use-contains-mode-insensitive-with-no-supporting-tr|ITEM-0149]] | 48 files use contains + mode insensitive with no supporting trigram/GIN index anywhere in the schema | PERFORMANCE | MEDIUM | TRIAGE_REQUIRED | services/api/prisma | TRIAGE_REQUIRED |
+| [[ITEM-0150-reports-and-exports-share-the-single-request-serving-connect|ITEM-0150]] | Reports and exports share the single request-serving connection pool with no replica, queue isolation or timeout | PERFORMANCE | MEDIUM | TRIAGE_REQUIRED | api:reports | TRIAGE_REQUIRED |
+| [[ITEM-0151-two-recruitment-controllers-never-adopted-the-rbac-matrix-ha|ITEM-0151]] | Two recruitment controllers never adopted the RBAC-matrix half of the dual permission system | TECH_DEBT | MEDIUM | TRIAGE_REQUIRED | api:recruitment | TRIAGE_REQUIRED |
+| [[ITEM-0152-tiptap-is-statically-imported-into-the-shared-runtimerecordp|ITEM-0152]] | TipTap is statically imported into the shared RuntimeRecordPage/RuntimeForm shell instead of lazy-loaded | PERFORMANCE | MEDIUM | TRIAGE_REQUIRED | apps/admin | TRIAGE_REQUIRED |
+| [[ITEM-0153-packages-ui-is-unused-scaffolding-web-and-admin-each-maintai|ITEM-0153]] | packages/ui is unused scaffolding; web and admin each maintain their own separate component kits | TECH_DEBT | MEDIUM | TRIAGE_REQUIRED | pkg:ui, apps/web, apps/admin | TRIAGE_REQUIRED |
+| [[ITEM-0154-scaling-posture-no-autoscaling-one-instance-a-node-heap-ceil|ITEM-0154]] | Scaling posture: no autoscaling, one instance, a Node heap ceiling that exceeds the declared plan memory | INFRA | MEDIUM | TRIAGE_REQUIRED | render.yaml | TRIAGE_REQUIRED |
+| [[ITEM-0155-no-key-rotation-procedure-exists-for-any-secret-including-th|ITEM-0155]] | No key-rotation procedure exists for any secret, including the one whose loss is irreversible | SECURITY | MEDIUM | TRIAGE_REQUIRED | services/api/src/common | TRIAGE_REQUIRED |
+| [[ITEM-0156-production-log-level-silently-discards-all-44-logger-log-cal|ITEM-0156]] | Production log level silently discards all 44 logger.log call sites, including the outbox drain counters | INFRA | MEDIUM | TRIAGE_REQUIRED | services/api/src/common | TRIAGE_REQUIRED |
+| [[ITEM-0157-can-we-detect-an-attack-the-raw-material-exists-in-one-table|ITEM-0157]] | Can we detect an attack: the raw material exists in one table, but nothing looks at it | SECURITY | MEDIUM | TRIAGE_REQUIRED | api:audit | TRIAGE_REQUIRED |
+| [[ITEM-0158-public-traffic-that-bypasses-cloudflare-shares-one-rate-limi|ITEM-0158]] | Public traffic that bypasses Cloudflare shares one rate-limit bucket, by design and untested | INFRA | MEDIUM | READY | pkg:config, services/api/src/common/security | PLAN_REQUIRED |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
+| [[ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle|ITEM-0108]] | Decide whether the roughly one-hour session lifetime is idle or absolute | PRODUCT_DECISION | LOW | READY | api:auth | PLAN_REQUIRED |
 | [[BUG-1964-record-headings-and-dialog-titles-are-singularised-by-stripp|BUG-1964]] | Record headings and dialog titles are singularised by stripping a trailing s | UX | LOW | FIXED | apps/web | DONE |
+| [[BUG-2007-projects-and-customers-can-be-created-but-never-deleted|BUG-2007]] | Projects and customers can be created but never deleted | BUG | LOW | FIXED | api:projects, apps/web | DONE |
 | [[BUG-2010-the-dashboard-recent-changes-list-renders-unformatted-iso-86|BUG-2010]] | The dashboard Recent changes list renders unformatted ISO-8601 timestamps | UX | LOW | FIXED | apps/web | DONE |
 | [[BUG-2017-the-inbox-related-record-column-renders-a-bare-uuid-with-no-|BUG-2017]] | The inbox Related record column renders a bare UUID with no label and no link | UX | LOW | FIXED | apps/web | DONE |
 | [[BUG-2046-audit-actions-use-two-naming-conventions-and-the-result-colu|BUG-2046]] | Audit actions use two naming conventions and the Result column is populated only by login events | BUG | LOW | FIXED | api:audit | DONE |
@@ -525,15 +670,9 @@ _None. Nothing open at CRITICAL._
 | [[BUG-2384-tenant-record-shows-primary-tenant-owner-unassigned-while-it|BUG-2384]] | Tenant record shows Primary Tenant Owner Unassigned while its readiness check reports one active Tenant Owner | UX | LOW | FIXED | api:tenant-control-plane, apps/admin | DONE |
 | [[BUG-2461-get-employees-me-direct-reports-is-shadowed-by-the-employeei|BUG-2461]] | GET employees me direct-reports is shadowed by the employeeId route and returns 400 | BUG | LOW | FIXED | api:employees | FIX_NOW |
 | [[BUG-2657-analytics-caveat-panels-list-the-same-note-twice-in-differen|BUG-2657]] | Analytics caveat panels list the same note twice in different wording | UX | LOW | FIXED | api:reporting | DONE |
-| [[BUG-3021-workspace-switcher-in-the-avatar-menu-overflows-horizontally|BUG-3021]] | Workspace switcher in the avatar menu overflows horizontally and shows a scrollbar | UX | LOW | OPEN | apps/web | FIX_NOW |
-| [[ITEM-0049-register-services-api-environment-reads-or-scope-the-rule|ITEM-0049]] | Register services/api environment reads or scope the rule to build inputs | INFRA | LOW | READY | services/api, turbo.json, docs/deployment | PLAN_REQUIRED |
+| [[BUG-3021-workspace-switcher-in-the-avatar-menu-overflows-horizontally|BUG-3021]] | Workspace switcher in the avatar menu overflows horizontally and shows a scrollbar | UX | LOW | FIXED | apps/web | FIX_NOW |
 | [[ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by|ITEM-0080]] | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
-| [[ITEM-0093-link-validation-skips-untracked-files-so-a-new-record-s-brok|ITEM-0093]] | Link validation skips untracked files, so a new record's broken links only surface in CI | TECH_DEBT | LOW | READY | scripts | FIX_NOW |
-| [[ITEM-0109-the-disabled-check-in-button-explains-itself-only-in-a-title|ITEM-0109]] | The disabled Check In button explains itself only in a title tooltip | UX | LOW | READY | apps/web | FIX_NOW |
-| [[ITEM-0111-protected-route-prefixes-omits-twelve-authenticated-route-tr|ITEM-0111]] | PROTECTED_ROUTE_PREFIXES omits twelve authenticated route trees, so deep links to them are lost at sign-in | UX | LOW | READY | apps/web | FIX_NOW |
 | [[ITEM-0129-tenants-should-inherit-the-platform-email-provider-by-defaul|ITEM-0129]] | Tenants should inherit the platform email provider by default, and may override it | ARCHITECTURE | — | READY | services/api, apps/web | PLAN_REQUIRED |
-| [[ITEM-0130-review-process-missed-four-defects-on-screens-adjacent-to-th|ITEM-0130]] | Review process missed four defects on screens adjacent to the change | TEST_GAP | — | READY | apps/web, .agent | FIX_NOW |
-| [[ITEM-0128-reports-and-analytics-two-explanatory-cards-nobody-reads-sit|ITEM-0128]] | Reports and Analytics: two explanatory cards nobody reads sit above the data | UX | — | READY | apps/web | FIX_NOW |
 
 ## Key Architecture Decisions
 
@@ -542,6 +681,9 @@ _None. Nothing open at CRITICAL._
 - [[ADR-0003-attendance-location-capture-is-mandatory|ADR-0003 — Attendance location capture is a platform mandate, not tenant configuration]]
 - [[ADR-0004-recurring-background-jobs-in-the-api-process|ADR-0004 — Recurring background jobs run in the API process, on a claim-and-guard pattern]]
 - [[ADR-0005-settings-capability-attribution|ADR-0005 — Which capability each settings page belongs to]]
+- [[ADR-0006-product-decisions-from-the-2026-09-11-backlog-review|ADR-0006 — Seven product decisions from the 2026-09-11 backlog review]]
+- [[ADR-0007-remove-inert-apps-web-runtime-registries|ADR-0007 — Remove the inert `apps/web` runtime registries rather than revive them]]
+- [[ADR-0008-unregistered-agent-branch-warns-not-blocks|ADR-0008 — An `agent/*` branch with no registered session warns, it does not block]]
 - [[decision-a-bug-record-is-its-own-backlog-item|Decision — A bug record **is** its own backlog item]]
 - [[decision-ci-verdict-gates-shared-merges|Decision — A shared-target merge requires a read CI verdict on the exact SHA]]
 - [[decision-platform-admin-is-a-separate-identity|Decision — Platform admin is a separate identity, not an elevated tenant user]]
@@ -551,18 +693,18 @@ _None. Nothing open at CRITICAL._
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 322 |
-| Backlog items | 130 |
+| Bug records | 418 |
+| Backlog items | 158 |
 | Known bug patterns | 34 |
 | QA runs | 32 |
-| Engineering history records | 75 |
+| Engineering history records | 77 |
 | Release records | 9 |
 | Module notes | 30 |
 | Architecture notes | 22 |
-| Decision notes (ADR + generated) | 9 |
+| Decision notes (ADR + generated) | 12 |
 | Implementation records | 7 |
 
-**Awaiting Architect triage: 5.** A record nobody has
+**Awaiting Architect triage: 116.** A record nobody has
 triaged is work nobody has decided about — the number that should stay near
 zero between tasks.
 

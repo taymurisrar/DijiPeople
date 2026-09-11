@@ -5,6 +5,7 @@ import { PrismaService } from '../../../common/prisma/prisma.service';
 import type {
   ReportDataSource,
   ReportDimensionValue,
+  ReportFieldDefinition,
   ReportMetricDefinition,
 } from '../semantic/semantic.types';
 import {
@@ -332,30 +333,7 @@ export class ReportQueryExecutor {
     }
 
     const ids = rows.map((row) => row.key).filter((key) => key !== NULL_KEY);
-
-    const client = this.prisma as unknown as Record<string, unknown>;
-    const lookupDelegate = client[lookup.model] as PrismaDelegate | undefined;
-
-    if (!lookupDelegate || ids.length === 0) {
-      return rows.map((row) => ({
-        key: row.key,
-        label: row.key === NULL_KEY ? nullLabel : row.key,
-        value: row.value,
-      }));
-    }
-
-    const records: Array<Record<string, unknown>> =
-      await lookupDelegate.findMany({
-        where: { [lookup.valueField]: { in: ids } },
-        select: { [lookup.valueField]: true, [lookup.labelField]: true },
-      });
-
-    const labels = new Map(
-      records.map((record) => [
-        String(record[lookup.valueField]),
-        scalarKey(record[lookup.labelField]) ?? '',
-      ]),
-    );
+    const labels = await this.lookupLabels(lookup, ids);
 
     return rows.map((row) => ({
       key: row.key,
@@ -363,6 +341,68 @@ export class ReportQueryExecutor {
         row.key === NULL_KEY ? nullLabel : (labels.get(row.key) ?? 'Unknown'),
       value: row.value,
     }));
+  }
+
+  /**
+   * The one query behind every `labelLookup` resolution: given a lookup table
+   * and a set of raw ids, the id -> label map for the ones that still exist.
+   * An id absent from the result was not found — deleted since, most likely —
+   * and every caller is responsible for its own "not found" label.
+   */
+  private async lookupLabels(
+    lookup: NonNullable<ReportFieldDefinition['labelLookup']>,
+    ids: string[],
+  ): Promise<Map<string, string>> {
+    if (ids.length === 0) return new Map();
+
+    const client = this.prisma as unknown as Record<string, unknown>;
+    const lookupDelegate = client[lookup.model] as PrismaDelegate | undefined;
+    if (!lookupDelegate) return new Map();
+
+    const records: Array<Record<string, unknown>> =
+      await lookupDelegate.findMany({
+        where: { [lookup.valueField]: { in: ids } },
+        select: { [lookup.valueField]: true, [lookup.labelField]: true },
+      });
+
+    return new Map(
+      records.map((record) => [
+        String(record[lookup.valueField]),
+        scalarKey(record[lookup.labelField]) ?? '',
+      ]),
+    );
+  }
+
+  /**
+   * Resolve a field's `labelLookup` for a set of raw record values.
+   *
+   * BUG-3020. `resolveLabels` above does this for a breakdown's grouped
+   * buckets; a drill-down record row needs the identical resolution applied
+   * per row instead of per bucket, or a field like `workforce_history
+   * .department` — stored as a denormalised foreign key with no relation of
+   * its own, see `WORKFORCE_HISTORY_SOURCE`'s class comment — renders the raw
+   * uuid `readFieldValue` reads off the row. One query per field across the
+   * whole fetched page, not one per row.
+   *
+   * A value with no `labelLookup` is not this method's business — the caller
+   * only calls it for fields that declare one.
+   */
+  async resolveFieldLabels(
+    field: ReportFieldDefinition,
+    rawValues: readonly unknown[],
+  ): Promise<Map<string, string>> {
+    const lookup = field.labelLookup;
+    if (!lookup) return new Map();
+
+    const ids = Array.from(
+      new Set(
+        rawValues
+          .map((value) => scalarKey(value))
+          .filter((key): key is string => key !== null),
+      ),
+    );
+
+    return this.lookupLabels(lookup, ids);
   }
 
   /** Page of underlying records for drill-down. */

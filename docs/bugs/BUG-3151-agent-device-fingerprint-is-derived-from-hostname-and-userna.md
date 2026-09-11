@@ -1,0 +1,130 @@
+---
+ID: BUG-3151
+aliases: [BUG-3151]
+Title: Agent device fingerprint is derived from hostname and username; enrolment silently reassigns an existing device
+Status: OPEN
+Severity: MEDIUM
+Priority: P2
+Type: SECURITY
+Source: SECURITY_REVIEW
+DetectedDate: 2026-09-10
+DetectedInSha: a800d8f2
+AffectedModules: [services/api/src/modules/agent]
+OwnerAgent: architect
+ArchitectDisposition: TRIAGE_REQUIRED
+QAReport: 
+RegressionId: 
+RelatedBacklogItem:
+RelatedDecision:
+RelatedImplementation:
+CreatedAt: 2026-09-10
+UpdatedAt: 2026-09-10
+ResolvedAt:
+---
+
+# BUG-3151 — Agent device fingerprint is derived from hostname and username; enrolment silently reassigns an existing device
+
+## Summary
+
+Agent device fingerprint is derived from hostname and username; enrolment silently reassigns an existing device
+
+Identified by the 2026-09-10 full technical audit as AUTH-16 (confidence: AUTH-16=CONFIRMED).
+
+## Expected Behavior
+
+Enrolment mints a server-side device secret on first registration and requires it thereafter; an upsert must never silently move a device between employees — that is an administrative action.
+
+## Actual Behavior
+
+Any employee of a tenant who knows a colleague's machine hostname, OS version and Windows username — all routinely visible in an office, a Teams call, or a file share — can compute their fingerprint, log in with their **own** credentials while presenting it, and take ownership of that device row. The victim's agent then fails `assertOwnDevice` (`agent.service.ts:1309`) and stops working; the device's history, location requests and DLP permissions now hang off the attacker's employee id.
+
+## Reproduction
+
+This is a code-review finding from a static technical audit, not a QA-run runtime reproduction. To confirm: open the file(s) cited in Evidence and trace the call path described in Actual Behavior.
+
+## Evidence
+
+**AUTH-16** (apps/agent-desktop/src/main/api-client.ts, services/api/src/modules/agent/agent.service.ts):
+
+`apps/agent-desktop/src/main/api-client.ts:485` — the fingerprint contains no secret:
+```ts
+function createDeviceFingerprint(): string {
+  const username = safeGetUsername();
+  const raw = [os.hostname(), os.platform(), os.arch(), os.release(), username]
+    .filter(Boolean).join("|");
+  return crypto.createHash("sha256").update(raw).digest("hex");
+}
+```
+`services/api/src/modules/agent/agent.service.ts:1339` — enrolment is an upsert keyed on `(tenantId, deviceFingerprint)` whose `update` branch **overwrites the owner**:
+```ts
+    where: { tenantId_deviceFingerprint: { tenantId: user.tenantId, deviceFingerprint: dto.deviceFingerprint } },
+    …
+    update: {
+      employeeId: user.employee.id,
+      userId: user.id,
+      …
+      isActive: true,
+    },
+```
+`services/api/src/modules/agent/agent.service.ts:270` — the fingerprint is also the only device binding on refresh, and it too comes from the request body (`AgentRefreshDto.deviceFingerprint`).
+
+---
+
+
+Full finding text: AUTH-16 in `docs/engineering/audits/2026-09-10-full-technical-audit/raw/AUTH.md`.
+
+## Root Cause
+
+Not established — the audit's analysis (see Evidence) identifies the mechanism but a full root-cause investigation has not been performed. See Actual Behavior for the closest available explanation.
+
+## Impact
+
+Attendance is an input to payroll. Reassigning a device is both a denial of service against a colleague's time tracking and a way to muddy the attribution of captured activity. It also means the "device" in `assertOwnDevice` is not an authorisation boundary.
+
+## Affected Areas
+
+services/api/src/modules/agent
+
+## Proposed Resolution
+
+Add a `deviceSecret` column (random 32 bytes, hashed at rest) issued on first enrolment and required on subsequent login/refresh for that fingerprint. Change the `upsert` to refuse when the existing row's `userId` differs, surfacing a "this device is registered to another employee" error that an administrator must clear.
+
+(Difficulty: MEDIUM; Regression risk: MEDIUM (needs a migration path for already-enrolled devices); Fix now: LATER)
+
+## Acceptance Criteria
+
+- The behaviour described in Expected Behavior holds for apps/agent-desktop/src/main/api-client.ts, services/api/src/modules/agent/agent.service.ts (audit id AUTH-16).
+
+## Regression Coverage
+
+No automated test currently fails without this fix. Audit-assessed regression risk of the fix itself: AUTH-16=MEDIUM (needs a migration path for already-enrolled devices). Add a regression test alongside the fix; link its `REG-nnn` entry here once it exists.
+
+## Dependencies
+
+None identified beyond the fix itself.
+
+## Related Items
+
+- Audit finding `AUTH-16` — `docs/engineering/audits/2026-09-10-full-technical-audit/raw/AUTH.md`
+
+## Resolution
+
+Not yet resolved.
+
+## QA Retest
+
+Not yet retested.
+
+## History
+
+- 2026-09-10 — created from the 2026-09-10 full technical audit (AUTH-16) at `a800d8f2`.
+
+<!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
+
+## Related
+
+- No related record, module or decision is declared in this record's
+  frontmatter. Declare one rather than adding a link here by hand — this
+  block is regenerated and a hand-written link inside it is lost.
+
+<!-- GRAPH:END -->

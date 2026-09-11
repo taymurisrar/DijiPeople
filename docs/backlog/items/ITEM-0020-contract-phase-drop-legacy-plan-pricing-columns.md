@@ -11,7 +11,7 @@ Source: ARCHITECT
 OwnerAgent: architect
 ArchitectDisposition: PLAN_REQUIRED
 CreatedAt: 2026-08-16
-UpdatedAt: 2026-08-16
+UpdatedAt: 2026-09-11
 RelatedBug: BUG-0027
 RelatedQA: 
 RelatedADR: 
@@ -84,6 +84,22 @@ authority — but a drop must remove the writers first, in that order.
 ## Related Items
 
 [[BUG-0027]] · [[ITEM-0018]] · [[ITEM-0019]]
+
+## ExecPlan
+
+[`EXECPLAN-0033`](../../plans/EXECPLAN-0033-drop-legacy-plan-pricing-columns.md).
+Re-deriving the consumer list on 2026-09-11 found materially more readers and
+writers than this record's original six — the surface has grown since
+Wave 1, not shrunk, which the plan treats as expected drift rather than a
+contradiction (see `AGENTS.md`'s "Verify counts on your branch"). The plan
+splits explicitly into a switch phase (remove every remaining reader/writer,
+in scope for implementation now) and a contract phase (the actual
+`DROP COLUMN`, deliberately deferred to a later, separately-approved plan
+until the switch phase has run in production for a full release cycle with a
+clean `report-legacy-price-conflicts.mjs` and a clean before/after
+subscription-price assertion) — dropping a column and removing its last
+reader in the same change is exactly the shortcut `PLANS.md`'s
+expand/backfill/contract discipline exists to prevent.
 
 ## History
 

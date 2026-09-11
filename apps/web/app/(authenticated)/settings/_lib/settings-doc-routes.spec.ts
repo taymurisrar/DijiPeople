@@ -106,12 +106,37 @@ function routeResolves(route: string): boolean {
   if (existsSync(join(directory, "page.tsx"))) return true;
   if (staticIndex !== -1 && existsSync(directory)) return true;
 
-  // Otherwise `/settings/<x>` only resolves through `[category]`, and only for
-  // a real category.
-  if (staticSegments.length === 2) {
-    return settingsRuntimeCategories.some(
-      (category) => category.key === staticSegments[1],
-    );
+  /*
+   * Otherwise the route resolves through the runtime's dynamic tree, which is
+   * four segments deep, not two:
+   *
+   *   [category]/[settingGroup]/[item]
+   *
+   * Each layer is validated against the catalogue rather than the filesystem,
+   * because none of these directories exists by name — that is the whole point
+   * of a metadata-driven tree. Checking the catalogue is *stricter* than
+   * checking `existsSync`: it rejects a category, group or item the runtime
+   * would `notFound()` on, which a directory check could never see.
+   *
+   * This originally handled only `/settings/<category>`, so every deeper runtime
+   * route read as broken. ITEM-0107 exposed it by making
+   * `/settings/security-access/identities/users` the canonical — and only —
+   * users screen, at which point the document could not name its own canonical
+   * route without failing this check.
+   */
+  const [, categoryKey, groupKey, itemKey] = staticSegments;
+  const category = settingsRuntimeCategories.find(
+    (candidate) => candidate.key === categoryKey,
+  );
+  if (!category) return false;
+  if (staticSegments.length === 2) return true;
+
+  const group = category.groups.find((candidate) => candidate.key === groupKey);
+  if (!group) return false;
+  if (staticSegments.length === 3) return true;
+
+  if (staticSegments.length === 4) {
+    return group.items.some((item) => item.key === itemKey);
   }
 
   return false;

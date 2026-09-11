@@ -999,13 +999,16 @@ export class WebhookService {
        * different causes. No payload, no keys, nothing `sanitizeForErrorLog`
        * would have to strip.
        *
-       * The response code is deliberately unchanged here. Answering Stripe with
-       * `400` is what drives the redelivery loop, but changing it means
-       * choosing where an unmappable event goes instead, and that needs the
-       * ExecPlan the record calls for.
+       * EXECPLAN-0033 resolved the response code. `code: 'STRIPE_CUSTOMER_UNMAPPED'`
+       * — distinct from the generic `VALIDATION_FAILED` every other 400 on this
+       * codebase renders as — is how `StripeWebhookController` tells this failure
+       * apart from a genuinely malformed or unsigned payload. The record is still
+       * persisted `FAILED` and still alerts (unchanged); only what Stripe is told
+       * changes, and only for this one class of failure. See
+       * `isUnmappableStripeTenantError` below.
        */
       throw new BadRequestException({
-        code: 'VALIDATION_FAILED',
+        code: 'STRIPE_CUSTOMER_UNMAPPED',
         message:
           'Stripe subscription customer could not be resolved to one tenant.',
         details: {
@@ -1206,8 +1209,10 @@ export class WebhookService {
       });
       // The invoice sibling of the subscription case above (BUG-2462): five
       // occurrences on 2026-08-24, likewise recorded with empty details.
+      // Same tagged code as the subscription resolver, for the same reason —
+      // see `isUnmappableStripeTenantError`.
       throw new BadRequestException({
-        code: 'VALIDATION_FAILED',
+        code: 'STRIPE_CUSTOMER_UNMAPPED',
         message:
           'Stripe invoice could not be mapped to a DijiPeople subscription.',
         details: {
@@ -1663,6 +1668,35 @@ function isEventNotReadyError(error: unknown): boolean {
     error instanceof AppError &&
     error.errorCode === 'INTEGRATION_EVENT_NOT_READY'
   );
+}
+
+/**
+ * A Stripe customer or subscription that cannot be mapped to exactly one
+ * tenant — as opposed to a malformed or unsigned payload.
+ *
+ * BUG-2462. Redelivering this event can never succeed on its own: nothing
+ * about Stripe retrying makes an ambiguous or missing `CustomerAccount`
+ * mapping resolve itself, so answering `4xx` only produces an unbounded
+ * redelivery loop (19 occurrences of one event over six days in production).
+ * `StripeWebhookController` uses this to decide when to acknowledge Stripe
+ * with `2xx` despite the underlying processing having failed.
+ *
+ * Matched on the catalog code, the same way `isEventNotReadyError` is matched
+ * on its own — so the distinction lives in one place and a caller reading the
+ * thrown error and this function agree on what it means. This deliberately
+ * does NOT change what `processStripeEvent` itself does: the event is still
+ * persisted `FAILED`, the platform event still records `FAILED`, and the
+ * critical payment-attribution alert still fires. Only the answer given to
+ * Stripe changes, and only at the controller boundary.
+ */
+export function isUnmappableStripeTenantError(error: unknown): boolean {
+  if (!(error instanceof BadRequestException)) return false;
+  const response = error.getResponse();
+  const code =
+    typeof response === 'object' && response !== null
+      ? (response as Record<string, unknown>).code
+      : undefined;
+  return code === 'STRIPE_CUSTOMER_UNMAPPED';
 }
 
 function toPrismaJson(value: unknown): Prisma.InputJsonValue {

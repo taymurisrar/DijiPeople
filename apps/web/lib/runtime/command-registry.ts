@@ -1,23 +1,20 @@
-import type {
-  CommandDefinition,
-  CommandHandler,
-} from "./command-runtime.types";
+/*
+ * ITEM-0036: this file held a second, CommandDefinition-keyed registry
+ * (`commandRegistry`, `registerCommand`, `getCommand`, `listCommands`)
+ * alongside the handler-override maps below. That half had zero callers
+ * anywhere — commands are declared as spec objects and read directly by the
+ * pages that need them, never through a lookup here — and was removed rather
+ * than revived; see ADR-0007. The handler-override maps below stay: unlike
+ * the deleted half, `getCommandHandler`/`getCommandKeyHandler` are read on
+ * every command execution in `command-execution.service.ts`, ahead of the
+ * spec's own `executionMode`. Nothing populates them today, so that read
+ * always falls through — that is a real, exercised extension point with no
+ * current registrant, not orphaned scaffolding.
+ */
+import type { CommandHandler } from "./command-runtime.types";
 
-const commandRegistry = new Map<string, CommandDefinition>();
 const commandHandlerRegistry = new Map<string, CommandHandler>();
 const commandKeyHandlerRegistry = new Map<string, CommandHandler>();
-
-export function registerCommand(command: CommandDefinition) {
-  commandRegistry.set(command.key, command);
-}
-
-export function getCommand(commandKey: string) {
-  return commandRegistry.get(commandKey) ?? null;
-}
-
-export function listCommands() {
-  return Array.from(commandRegistry.values());
-}
 
 export function registerCommandHandler(
   handlerKey: string,
@@ -42,10 +39,6 @@ export function getCommandKeyHandler(commandKey: string) {
 }
 
 export function clearCommandRegistryForTests() {
-  commandRegistry.clear();
   commandHandlerRegistry.clear();
   commandKeyHandlerRegistry.clear();
 }
-
-// Future phases should register system commands such as soft delete, restore,
-// purge, publish, import, export, and owner/status transitions here.

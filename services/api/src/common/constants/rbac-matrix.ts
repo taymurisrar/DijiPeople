@@ -1874,6 +1874,9 @@ export function legacyPermissionToMatrixPrivileges(
     ],
     [['customers.create'], ENTITY_KEYS.PROJECTS, SecurityPrivilege.CREATE],
     [['customers.write'], ENTITY_KEYS.PROJECTS, SecurityPrivilege.WRITE],
+    // BUG-2007 - customers can now be deleted; tenant-scoped and refused when
+    // dependent projects exist, same as the projects delete route below.
+    [['customers.delete'], ENTITY_KEYS.PROJECTS, SecurityPrivilege.DELETE],
     [
       ['customization.modules.manage'],
       ENTITY_KEYS.CUSTOMIZATION,
@@ -1953,6 +1956,8 @@ export function legacyPermissionToMatrixPrivileges(
     [['projects.read'], ENTITY_KEYS.PROJECTS, SecurityPrivilege.READ],
     [['projects.create'], ENTITY_KEYS.PROJECTS, SecurityPrivilege.CREATE],
     [['projects.update'], ENTITY_KEYS.PROJECTS, SecurityPrivilege.WRITE],
+    // BUG-2007 - real delete, tenant-scoped, refused when dependent data exists.
+    [['projects.delete'], ENTITY_KEYS.PROJECTS, SecurityPrivilege.DELETE],
     [['recruitment.advance'], ENTITY_KEYS.CANDIDATES, SecurityPrivilege.WRITE],
     [['recruitment.delete'], ENTITY_KEYS.CANDIDATES, SecurityPrivilege.DELETE],
   ];

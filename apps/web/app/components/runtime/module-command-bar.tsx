@@ -341,7 +341,7 @@ function CommandOverflow({
   );
 }
 
-function CommandButton({
+export function CommandButton({
   command,
   disabled,
   loading,
@@ -363,35 +363,60 @@ function CommandButton({
   const dynamicDisabledReason = resolveDynamicDisabledReason(command, record);
   const isDisabled =
     disabled || loading || command.isDisabled || Boolean(dynamicDisabledReason);
+  /*
+   * ITEM-0109 — a disabled Check In button explained itself only in its
+   * `title` attribute: unavailable to touch users, not reliably announced by
+   * screen readers, and reachable only by a hover the user has no reason to
+   * attempt. The reason was already correct, just invisible.
+   *
+   * `dynamicDisabledReason` is specifically a *reported* reason — the command
+   * knows exactly why it is unavailable right now (a schedule, a policy, a
+   * state) — as opposed to `disabled`/`loading`, which are transient UI
+   * states with nothing to disclose. Rendering it as visible text tied to the
+   * button by `aria-describedby`, rather than only in `title`, is the fix for
+   * this button and the pattern for every other command this shared bar
+   * renders — `title` stays too, for a mouse user who prefers to hover.
+   */
+  const reasonId = dynamicDisabledReason
+    ? `command-reason-${command.key}`
+    : undefined;
 
   return (
-    <button
-      className={`inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium transition hover:bg-muted/20 disabled:cursor-not-allowed disabled:opacity-60 ${
-        command.isDestructive ? "text-danger" : "text-foreground"
-      }`}
-      disabled={isDisabled}
-      onClick={() =>
-        emitCommand(
-          onCommand,
-          command.key,
-          runtime,
-          record,
-          selectedRecordIds,
-          source,
-        )
-      }
-      title={
-        command.isDisabled || dynamicDisabledReason
-          ? (dynamicDisabledReason ??
-            command.disabledReason ??
-            command.description)
-          : (command.description ?? command.label)
-      }
-      type="button"
-    >
-      {renderCommandIcon(command.key)}
-      <span>{command.label}</span>
-    </button>
+    <div className="flex flex-col gap-1">
+      <button
+        aria-describedby={reasonId}
+        className={`inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium transition hover:bg-muted/20 disabled:cursor-not-allowed disabled:opacity-60 ${
+          command.isDestructive ? "text-danger" : "text-foreground"
+        }`}
+        disabled={isDisabled}
+        onClick={() =>
+          emitCommand(
+            onCommand,
+            command.key,
+            runtime,
+            record,
+            selectedRecordIds,
+            source,
+          )
+        }
+        title={
+          command.isDisabled || dynamicDisabledReason
+            ? (dynamicDisabledReason ??
+              command.disabledReason ??
+              command.description)
+            : (command.description ?? command.label)
+        }
+        type="button"
+      >
+        {renderCommandIcon(command.key)}
+        <span>{command.label}</span>
+      </button>
+      {dynamicDisabledReason ? (
+        <p className="max-w-xs text-xs text-muted" id={reasonId}>
+          {dynamicDisabledReason}
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -438,7 +463,7 @@ function CommandMenuButton(props: Parameters<typeof CommandButton>[0]) {
   );
 }
 
-function resolveDynamicDisabledReason(
+export function resolveDynamicDisabledReason(
   command: CommandDefinition,
   record?: RuntimeRecordData | null,
 ) {

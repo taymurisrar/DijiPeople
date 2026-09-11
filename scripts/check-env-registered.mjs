@@ -55,21 +55,78 @@ for (const app of APPS) walk(join(ROOT, app));
 
 const missing = [...reads.keys()].filter((name) => !globalEnv.has(name)).sort();
 
-if (missing.length === 0) {
+/*
+ * ITEM-0049 — `services/api` reads roughly two dozen environment variables
+ * `globalEnv` does not list, and deliberately: it reads its configuration at
+ * runtime and inlines nothing, so an unregistered one cannot bake a stale
+ * value into a build artifact the way a `NEXT_PUBLIC_*` can, and registering
+ * all of them would broaden Turborepo's cache invalidation repo-wide for no
+ * safety gain — see `docs/deployment/environments.md#registration-requirement`.
+ *
+ * That conclusion rests on the API `build` task doing nothing capable of
+ * inlining an environment variable into its output: a plain `tsc` compile
+ * (`nest build`) plus Prisma client generation from a `datasource` block with
+ * no `env(...)` pointer. This guards the premise itself, not just the
+ * conclusion, so the day something changes that shape — a bundler, a codegen
+ * step reading `process.env`, a `datasource … env(...)` pointer — this check
+ * fails and says so, instead of the decision silently going stale.
+ */
+function checkApiBuildCannotInlineEnv() {
+  const pkgPath = join(ROOT, 'services/api/package.json');
+  const buildScript = String(JSON.parse(readFileSync(pkgPath, 'utf8')).scripts?.build ?? '').trim();
+  const EXPECTED_BUILD = 'npm run clean:dist && npm run prisma:generate && nest build';
+  if (buildScript !== EXPECTED_BUILD) {
+    console.error('\nenv registration: services/api build pipeline changed shape\n');
+    console.error(`  Expected build script:\n    ${EXPECTED_BUILD}`);
+    console.error(`  Found:\n    ${buildScript || '(none)'}\n`);
+    console.error(
+      '  ITEM-0049 decided services/api env vars need not be in turbo.json globalEnv because\n' +
+        '  this exact pipeline inlines nothing. A changed build script may no longer be true —\n' +
+        '  re-derive the finding (docs/deployment/environments.md#registration-requirement)\n' +
+        '  before assuming it still holds.\n',
+    );
+    return false;
+  }
+
+  const schema = readFileSync(join(ROOT, 'services/api/prisma/schema.prisma'), 'utf8');
+  const datasourceBlock = /datasource\s+\w+\s*\{[^}]*\}/.exec(schema)?.[0] ?? '';
+  if (/env\(/.test(datasourceBlock)) {
+    console.error('\nenv registration: services/api/prisma/schema.prisma datasource now uses env(...)\n');
+    console.error(`  ${datasourceBlock.split('\n').join('\n  ')}\n`);
+    console.error(
+      '  ITEM-0049 relied on the datasource URL being supplied to @prisma/adapter-pg at\n' +
+        '  runtime rather than resolved by `prisma generate` from an env() pointer. That has\n' +
+        '  changed — re-derive whether `prisma generate` output can now vary with the\n' +
+        '  environment before assuming services/api env vars still need no globalEnv entry.\n',
+    );
+    return false;
+  }
+
+  return true;
+}
+
+const apiBuildOk = checkApiBuildCannotInlineEnv();
+
+if (missing.length === 0 && apiBuildOk) {
   console.log(
     `env registration: OK — ${reads.size} variables read across ${APPS.length} apps, all in turbo globalEnv.`,
+  );
+  console.log(
+    'env registration: OK — services/api build pipeline still inlines no environment variable (ITEM-0049).',
   );
   process.exit(0);
 }
 
-console.error('\nenv registration: UNREGISTERED VARIABLES\n');
-console.error('  These are read by a Next app but absent from turbo.json globalEnv,');
-console.error('  so changing one can return a cached build with the old value inlined.\n');
-for (const name of missing) {
-  const [first] = [...reads.get(name)];
-  const extra = reads.get(name).size - 1;
-  console.error(`    ${name.padEnd(46)} ${first}${extra > 0 ? ` (+${extra} more)` : ''}`);
+if (missing.length > 0) {
+  console.error('\nenv registration: UNREGISTERED VARIABLES\n');
+  console.error('  These are read by a Next app but absent from turbo.json globalEnv,');
+  console.error('  so changing one can return a cached build with the old value inlined.\n');
+  for (const name of missing) {
+    const [first] = [...reads.get(name)];
+    const extra = reads.get(name).size - 1;
+    console.error(`    ${name.padEnd(46)} ${first}${extra > 0 ? ` (+${extra} more)` : ''}`);
+  }
+  console.error(`\n  Fix: add ${missing.length === 1 ? 'it' : 'them'} to "globalEnv" in turbo.json.`);
+  console.error('  A secret must never be exposed through a NEXT_PUBLIC_* name.\n');
 }
-console.error(`\n  Fix: add ${missing.length === 1 ? 'it' : 'them'} to "globalEnv" in turbo.json.`);
-console.error('  A secret must never be exposed through a NEXT_PUBLIC_* name.\n');
 process.exit(1);

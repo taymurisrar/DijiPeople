@@ -4,7 +4,7 @@ aliases: [SESSION-0061]
 TASK_ID:
 TITLE: Production admin E2E QA and invitation delivery visibility
 ARCHITECT_INTENT: Production admin E2E QA and invitation delivery visibility
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: QA
 TASK_SIZE: LARGE
 BASE_BRANCH: origin/develop
@@ -17,10 +17,10 @@ WRITE_LEASES: []
 ACTIVE_WORK_PACKAGES: []
 SCHEMA_WRITE: NO
 CI_STATUS: NOT_RUN
-MERGE_STATUS: NOT_STARTED
+MERGE_STATUS: INTEGRATED
 STARTED_AT: 2026-08-26T09:54:37.336Z
 LAST_HEARTBEAT: 2026-08-26T09:54:37.336Z
-BLOCKERS: GitHub Actions major outage from 2026-08-26T15:11Z — no CI gate verdict
+BLOCKERS: none
 ---
 
 # SESSION-0061 — Production admin E2E QA and invitation delivery visibility

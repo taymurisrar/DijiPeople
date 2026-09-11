@@ -80,6 +80,7 @@ export default async function AttendanceCorrectionDetailPage({
           </StatusPill>
           <AttendanceCorrectionActions
             canApprove={request.canApprove}
+            canCancel={request.canCancel}
             canEdit={request.canEdit}
             canReject={request.canReject}
             requestId={request.id}
@@ -111,6 +112,8 @@ export default async function AttendanceCorrectionDetailPage({
           <DetailCard title="What changed">
             <ChangeList
               changes={correctionChanges(request)}
+              requestedSiteId={request.requestedWorkSiteId}
+              requestedSiteName={request.requestedWorkSiteName}
               siteName={request.attendanceEntry?.officeLocation?.name ?? null}
               siteId={request.attendanceEntry?.officeLocationId ?? null}
             />
@@ -225,10 +228,15 @@ function ChangeList({
   changes,
   siteName,
   siteId,
+  requestedSiteId,
+  requestedSiteName,
 }: {
   changes: CorrectionChange[];
   siteName: string | null;
   siteId: string | null;
+  /** BUG-2508. The site the request itself is asking for, and its resolved name. */
+  requestedSiteId: string | null;
+  requestedSiteName: string | null;
 }) {
   if (changes.length === 0) {
     return (
@@ -244,11 +252,14 @@ function ChangeList({
     if (change.kind === "datetime") return formatDateTime(value);
     if (change.kind === "minutes") return `${value} minutes`;
     if (change.field === "workMode") return workModeLabel(value);
-    // The request stores a work site id and no name. The entry's own site is the
-    // one name available, so it is used where the id matches and the id is shown
-    // plainly where it does not, rather than inventing a label. See BUG-2508.
+    // The "from" side is the entry's current site, already named via its own
+    // relation. The "to" side is the site the request is asking for, which
+    // the API now resolves a name for too — previously a raw UUID. See
+    // BUG-2508.
     if (change.field === "workSite") {
-      return value === siteId && siteName ? siteName : value;
+      if (value === siteId && siteName) return siteName;
+      if (value === requestedSiteId && requestedSiteName) return requestedSiteName;
+      return value;
     }
     return value;
   };

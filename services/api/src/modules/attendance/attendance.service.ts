@@ -66,7 +66,9 @@ import {
   type WebAttendanceDecision,
 } from '../attendance-engine/attendance-web-attendance.service';
 import { AttendanceReconciliationQueueService } from '../attendance-engine/attendance-reconciliation-queue.service';
+import { AttendancePolicyResolverService } from '../attendance-engine/attendance-policy-resolver.service';
 import { AttendanceCorrectionActionDto } from './dto/attendance-correction-action.dto';
+import { AttendanceCorrectionCancelDto } from './dto/attendance-correction-cancel.dto';
 import { AttendanceCorrectionQueryDto } from './dto/attendance-correction-query.dto';
 import { AttendanceQueryDto } from './dto/attendance-query.dto';
 import { AttendanceSummaryQueryDto } from './dto/attendance-summary-query.dto';
@@ -241,6 +243,8 @@ export class AttendanceService {
     private readonly webAttendance: AttendanceWebAttendanceService,
     @Inject(forwardRef(() => AttendanceReconciliationQueueService))
     private readonly reconciliationQueue: AttendanceReconciliationQueueService,
+    @Inject(forwardRef(() => AttendancePolicyResolverService))
+    private readonly policyResolver: AttendancePolicyResolverService,
   ) {}
 
   async checkIn(currentUser: AuthenticatedUser, dto: CheckInDto) {
@@ -771,6 +775,35 @@ export class AttendanceService {
     };
   }
 
+  /**
+   * The current user's own authorised work sites, for the correction form's
+   * "Which work site?" selector.
+   *
+   * BUG-2508. The only pre-existing endpoint for this
+   * (`/integrations/attendance/employees/:employeeId/work-sites`) is gated on
+   * `attendanceDevices.read`, a device-management permission an ordinary
+   * employee does not and should not hold merely to fill in a dropdown. This
+   * is deliberately narrower: always the caller's own employee record, gated
+   * on the same permission set that already lets them create a correction —
+   * nothing new to grant, and nobody can read another employee's sites
+   * through it.
+   */
+  async listMyWorkSites(currentUser: AuthenticatedUser) {
+    if (!this.canCreateAttendanceCorrection(currentUser)) {
+      throw new ForbiddenException(
+        'You do not have permission to request attendance corrections.',
+      );
+    }
+
+    const employee = await this.getCurrentEmployee(currentUser);
+    const sites = await this.policyResolver.resolveAuthorizedWorkSiteOptions(
+      currentUser.tenantId,
+      employee.id,
+    );
+
+    return { items: sites };
+  }
+
   async createCorrectionRequest(
     currentUser: AuthenticatedUser,
     dto: CreateAttendanceCorrectionRequestDto,
@@ -923,6 +956,87 @@ export class AttendanceService {
     dto: AttendanceCorrectionActionDto,
   ) {
     return this.actionCorrectionRequest(currentUser, id, 'reject', dto);
+  }
+
+  /**
+   * Lets the person who filed a correction take it back.
+   *
+   * BUG-2573. Scoped deliberately narrow, per the record's own open decisions:
+   *
+   *   - who may cancel: the REQUESTER ONLY, not HR and not the assigned
+   *     approver — separation of duties runs both ways, and letting an
+   *     approver "cancel" what they cannot approve or reject would be the same
+   *     workaround `assertCanActionCorrection` exists to close.
+   *   - when: only while `PENDING_APPROVAL`. There is no partial-decision
+   *     state in this single-step approval, so that is also "before anyone has
+   *     acted on it".
+   *   - what happens to the approval record: closed alongside it. The generic
+   *     approval sync (`syncGenericAttendanceCorrectionApproval`) already maps
+   *     `CANCELLED` on every one of its three status enums — it was built
+   *     anticipating this path and never wired to a route.
+   *   - is the approver told: yes, the same way they are told about an
+   *     approval or a rejection.
+   */
+  async cancelCorrectionRequest(
+    currentUser: AuthenticatedUser,
+    id: string,
+    dto: AttendanceCorrectionCancelDto,
+  ) {
+    const request = await this.findCorrectionRequestForUser(currentUser, id);
+
+    if (request.requestedByUserId !== currentUser.userId) {
+      throw new ForbiddenException(
+        'Only the person who filed a correction request may withdraw it.',
+      );
+    }
+
+    if (request.status !== AttendanceCorrectionStatus.PENDING_APPROVAL) {
+      throw new ConflictException(
+        'Only a pending attendance correction request can be withdrawn.',
+      );
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await tx.attendanceCorrectionRequest.update({
+        where: { id: request.id },
+        data: {
+          status: AttendanceCorrectionStatus.CANCELLED,
+          actionedByUserId: currentUser.userId,
+          actionComment: dto.comment?.trim() || null,
+        },
+      });
+
+      return tx.attendanceCorrectionRequest.findFirstOrThrow({
+        where: { id: request.id, tenantId: currentUser.tenantId },
+        include: attendanceCorrectionInclude,
+      });
+    });
+
+    await this.syncGenericAttendanceCorrectionApproval(
+      updated,
+      currentUser,
+      ApprovalActionType.CANCELLED,
+      dto.comment,
+    );
+    await this.emitAttendanceCorrectionCancelled(updated, currentUser);
+
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action: 'attendance.correction.cancelled',
+      entityType: 'AttendanceCorrectionRequest',
+      entityId: updated.id,
+      beforeSnapshot: { status: request.status },
+      afterSnapshot: { status: updated.status },
+    });
+
+    // A cancelled request was never applied — `loadApprovedAdjustments` only
+    // ever reads `status: 'APPROVED'` — so there is nothing for reconciliation
+    // to undo. No queue write here, unlike approve/reject.
+
+    return {
+      item: await this.mapCorrectionRequest(currentUser, updated, true),
+    };
   }
 
   async listTeamAttendance(
@@ -1689,6 +1803,16 @@ export class AttendanceService {
       );
     }
 
+    /*
+     * BUG-2504. Resolved BEFORE any write, so a request this cannot honestly
+     * apply is refused rather than partially approved — the acceptance
+     * criterion is "updates the mode, or is refused with a stated reason",
+     * never "reports success and changes nothing".
+     */
+    const resolvedMode = resolveApprovedAttendanceMode(
+      request.requestedWorkMode,
+    );
+
     if (request.attendanceEntryId) {
       const existing = await tx.attendanceEntry.findFirst({
         where: {
@@ -1700,16 +1824,29 @@ export class AttendanceService {
         throw new NotFoundException('Attendance entry could not be found.');
       }
 
+      // Approved-but-unset falls back to what the record already had, on both
+      // fields — an OVERTIME_APPROVAL or a pure time correction carries
+      // neither `requestedWorkMode` nor `requestedWorkSiteId`, and must not
+      // clear a site or mode nobody asked to change.
+      const attendanceMode = resolvedMode ?? existing.attendanceMode;
+      const officeLocationId =
+        request.requestedWorkSiteId ?? existing.officeLocationId;
+
       await tx.attendanceEntry.update({
         where: { id: existing.id },
         data: {
           checkIn,
           checkOut,
+          attendanceMode,
+          officeLocationId,
+          // The mode as APPROVED, not the mode as it was: re-deriving status
+          // from `existing.attendanceMode` re-asked the question this
+          // approval was supposed to answer (BUG-2504).
           status: deriveManualStatus(
             checkIn ?? undefined,
             checkOut ?? undefined,
             existing.isLateCheckIn,
-            existing.attendanceMode,
+            attendanceMode,
           ),
           source: AttendanceEntrySource.MANUAL,
           notes: mergeNotes(
@@ -1738,6 +1875,8 @@ export class AttendanceService {
       );
     }
 
+    const attendanceMode = resolvedMode ?? AttendanceMode.MANUAL;
+
     await tx.attendanceEntry.create({
       data: {
         tenantId: currentUser.tenantId,
@@ -1745,12 +1884,13 @@ export class AttendanceService {
         date: attendanceDate,
         checkIn,
         checkOut,
-        attendanceMode: AttendanceMode.MANUAL,
+        attendanceMode,
+        officeLocationId: request.requestedWorkSiteId ?? null,
         status: deriveManualStatus(
           checkIn ?? undefined,
           checkOut ?? undefined,
           false,
-          AttendanceMode.MANUAL,
+          attendanceMode,
         ),
         source: AttendanceEntrySource.MANUAL,
         notes: `Correction ${request.requestNumber}: ${request.reason}`,
@@ -2207,6 +2347,38 @@ export class AttendanceService {
     });
   }
 
+  /**
+   * BUG-2573. The approver — the manager who would otherwise be left waiting
+   * on a request that will now never be actioned — is told it was withdrawn,
+   * the same way they would be told it was approved or rejected.
+   */
+  private emitAttendanceCorrectionCancelled(
+    request: AttendanceCorrectionWithRelations,
+    currentUser: AuthenticatedUser,
+  ) {
+    const approverUserId = request.employee.manager?.userId ?? null;
+    if (!approverUserId) return Promise.resolve();
+
+    return this.notificationsService.emit({
+      tenantId: currentUser.tenantId,
+      eventKey: 'attendance.correction.cancelled.approver',
+      moduleKey: 'attendance',
+      actorUserId: currentUser.userId,
+      relatedEntityType: 'attendanceCorrectionRequest',
+      relatedEntityId: request.id,
+      relatedRecordNumber: request.requestNumber,
+      metadata: {
+        employeeId: request.employeeId,
+        employeeName: formatEmployeeName(request.employee),
+        correctionRequestId: request.id,
+        correctionType: request.correctionType,
+        approvalAssigneeUserIds: [approverUserId],
+        eventAtUtc: new Date().toISOString(),
+        targetUrl: `/attendance/corrections/${request.id}`,
+      },
+    });
+  }
+
   private async mapCorrectionRequest(
     currentUser: AuthenticatedUser,
     request: AttendanceCorrectionWithRelations,
@@ -2274,8 +2446,31 @@ export class AttendanceService {
       request.status === AttendanceCorrectionStatus.PENDING_APPROVAL &&
       (await this.canCurrentUserActionCorrection(currentUser, request));
 
+    /*
+     * BUG-2508's second half. `requestedWorkSiteId` has no relation on the
+     * model — it is validated against `Location` at creation
+     * (createCorrectionRequest) and stored as a bare id — so the manager's
+     * "What changed" diff had a name for the entry's CURRENT site
+     * (`attendanceEntry.officeLocation`, already included) but only a raw
+     * UUID for the site being REQUESTED. Resolved here, once, rather than in
+     * the frontend, because the frontend has no route to look up a location
+     * by id outside this response.
+     */
+    const requestedWorkSiteName = request.requestedWorkSiteId
+      ? ((
+          await this.prisma.location.findFirst({
+            where: {
+              id: request.requestedWorkSiteId,
+              tenantId: currentUser.tenantId,
+            },
+            select: { name: true },
+          })
+        )?.name ?? null)
+      : null;
+
     return {
       ...request,
+      requestedWorkSiteName,
       employeeName: formatEmployeeName(request.employee),
       canEdit:
         canAct &&
@@ -2286,6 +2481,13 @@ export class AttendanceService {
       canReject:
         canAct &&
         this.canActionAttendanceCorrection(currentUser, request, 'reject'),
+      // BUG-2573. Deliberately independent of `canAct`: `canAct` answers
+      // "may this viewer approve or reject", which the requester must always
+      // fail (separation of duties). Withdrawing is the opposite party's
+      // action on the opposite condition — only the requester, only pending.
+      canCancel:
+        request.status === AttendanceCorrectionStatus.PENDING_APPROVAL &&
+        request.requestedByUserId === currentUser.userId,
       approval,
       relatedRecordUrl: `/attendance/corrections/${request.id}`,
     };
@@ -4543,6 +4745,55 @@ function firstFiniteNumber(...values: Array<number | undefined | null>) {
     (value): value is number =>
       typeof value === 'number' && Number.isFinite(value),
   );
+}
+
+/**
+ * Maps an approved correction's requested work mode onto the entry's
+ * `AttendanceMode` column, or refuses the approval outright.
+ *
+ * BUG-2504. `EmployeeWorkMode` (the request's type) and `AttendanceMode` (the
+ * entry's) are not the same enum: OFFICE, REMOTE and HYBRID name the same
+ * thing in both and map directly, but `EmployeeWorkMode.FIELD` has no
+ * `AttendanceMode` counterpart at all. Widening `AttendanceMode` to add one is
+ * a schema decision with its own migration and its own consumers (reporting,
+ * payroll inputs, the attendance list filter) — not something to decide inside
+ * this bug fix. Writing FIELD onto `derivedWorkMode` instead was considered and
+ * rejected: that column is owned by the reconciliation engine, and an approval
+ * writing it too would put two writers on one field.
+ *
+ * `null` means "the correction did not request a mode change" — the caller
+ * keeps whatever the entry already had. A thrown `UnprocessableEntityException`
+ * means "this correction asked for something the record cannot yet represent",
+ * which the acceptance criteria require to be a refusal, never a silent no-op.
+ */
+function resolveApprovedAttendanceMode(
+  requestedWorkMode: EmployeeWorkMode | null,
+): AttendanceMode | null {
+  switch (requestedWorkMode) {
+    case null:
+    case undefined:
+      return null;
+    case EmployeeWorkMode.OFFICE:
+      return AttendanceMode.OFFICE;
+    case EmployeeWorkMode.REMOTE:
+      return AttendanceMode.REMOTE;
+    case EmployeeWorkMode.HYBRID:
+      // Rejected at request creation (createCorrectionRequest) because HYBRID
+      // describes a whole day, not one correction. Handled here too, as a
+      // second line of defense rather than trusted to have been caught
+      // upstream of every possible caller.
+      return AttendanceMode.HYBRID;
+    case EmployeeWorkMode.FIELD:
+      throw new UnprocessableEntityException({
+        code: 'ATTENDANCE_MODE_NOT_SUPPORTED',
+        errorCode: 'ATTENDANCE_MODE_NOT_SUPPORTED',
+        severity: 'WARNING',
+        message:
+          'Field work has no attendance-mode equivalent on the record yet. Approve the site and time changes on their own, or raise a request to widen attendance mode support before approving this one.',
+      });
+    default:
+      return null;
+  }
 }
 
 function deriveManualStatus(

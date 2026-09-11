@@ -71,12 +71,7 @@ See [[dijipeople-platform-overview|DijiPeople Platform Overview]] for the full p
 Questions where the engineering is understood and the **product answer**
 **is not**. No agent may resolve one by implementing a side of it.
 
-- [[BUG-2509-platform-admin-remember-me-has-no-policy-able-to-refuse-it|BUG-2509]] — **Platform admin remember-me has no policy able to refuse it** (MEDIUM)
-- [[ITEM-0106-an-employee-cannot-use-self-service-until-their-manager-acti|ITEM-0106]] — **An employee cannot use self-service until their manager activates their own account** (MEDIUM)
-- [[ITEM-0115-provisioning-seeds-four-departments-with-no-business-unit-on|ITEM-0115]] — **Provisioning seeds four departments with no business unit on every tenant** (MEDIUM)
-- [[ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle|ITEM-0108]] — **Decide whether the roughly one-hour session lifetime is idle or absolute** (LOW)
-- [[BUG-2007-projects-and-customers-can-be-created-but-never-deleted|BUG-2007]] — **Projects and customers can be created but never deleted** (LOW)
-- [[ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-|ITEM-0114]] — **The workspace shell states the tenant's identity four times and its purpose twice** (unrated)
+- [[ITEM-0131-production-hr-and-payroll-data-has-no-backup-the-database-is|ITEM-0131]] — **Production HR and payroll data has no backup: the database is on the Neon free plan** (CRITICAL)
 
 ## Recent Product Changes
 
@@ -91,18 +86,26 @@ Questions where the engineering is understood and the **product answer**
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
+| [[BUG-3154-employee-bank-accounts-ibans-cnics-and-tax-identifiers-are-s|BUG-3154]] | Employee bank accounts, IBANs, CNICs and tax identifiers are stored in plaintext beside an unused AES-256-GCM service | DATA_INTEGRITY | CRITICAL | OPEN | api:employees, api:compensation | TRIAGE_REQUIRED |
 | [[BUG-1957-a-department-with-no-business-unit-cannot-be-listed-opened-e|BUG-1957]] | A department with no business unit cannot be listed, opened, edited or deleted, yet still holds its name | DATA_INTEGRITY | HIGH | FIXED | api:organization | DONE |
 | [[BUG-1966-a-failed-save-in-the-runtime-form-is-swallowed-with-no-messa|BUG-1966]] | A failed save in the runtime form is swallowed with no message, toast or inline error | UX | HIGH | FIXED | apps/web | DONE |
 | [[BUG-1986-tenant-settings-has-four-blocking-accessibility-violations-i|BUG-1986]] | Tenant settings has four blocking accessibility violations including buttons with no name | UX | HIGH | FIXED | apps/web | DONE |
 | [[BUG-2008-every-employee-is-counted-absent-on-a-non-working-day-and-ra|BUG-2008]] | Every employee is counted absent on a non-working day and raised as an exception | DATA_INTEGRITY | HIGH | FIXED | api:attendance, api:dashboard | DONE |
 | [[BUG-2044-no-employee-lifecycle-event-is-audited-including-employee-cr|BUG-2044]] | No employee lifecycle event is audited, including employee creation and reporting-manager assignment | DATA_INTEGRITY | HIGH | FIXED | api:employees, api:organization, api:leave | DONE |
-| [[BUG-2494-check-out-re-validates-check-in-preconditions-and-traps-the-|BUG-2494]] | Check-out re-validates check-in preconditions and traps the entry open for ever | STATE_MACHINE | HIGH | OPEN | api:attendance | TRIAGE_REQUIRED |
-| [[BUG-2504-approving-a-correction-never-applies-the-requested-work-mode|BUG-2504]] | Approving a correction never applies the requested work mode, work site or overtime | STATE_MACHINE | HIGH | OPEN | api:attendance | PLAN_REQUIRED |
-| [[BUG-2618-expired-subscription-orders-are-never-swept-abandonexpired-h|BUG-2618]] | Expired subscription orders are never swept: abandonExpired has no caller and the API has no scheduler | DATA_INTEGRITY | HIGH | OPEN | billing, super-admin | FIX_NOW |
+| [[BUG-2494-check-out-re-validates-check-in-preconditions-and-traps-the-|BUG-2494]] | Check-out re-validates check-in preconditions and traps the entry open for ever | STATE_MACHINE | HIGH | FIXED | api:attendance | DONE |
+| [[BUG-2504-approving-a-correction-never-applies-the-requested-work-mode|BUG-2504]] | Approving a correction never applies the requested work mode, work site or overtime | STATE_MACHINE | HIGH | FIXED | api:attendance | DONE |
+| [[BUG-2618-expired-subscription-orders-are-never-swept-abandonexpired-h|BUG-2618]] | Expired subscription orders are never swept: abandonExpired has no caller and the API has no scheduler | DATA_INTEGRITY | HIGH | FIXED | billing, super-admin | FIX_NOW |
 | [[BUG-2693-historical-headcount-reports-employee-days-instead-of-headco|BUG-2693]] | Historical headcount reports employee-days instead of headcount and grows with the length of the period | DATA_INTEGRITY | HIGH | FIXED | api:reporting | DONE |
 | [[BUG-2718-the-approvals-record-page-reads-the-detail-response-envelope|BUG-2718]] | The approvals record page reads the detail response envelope, so every field is blank | UX | HIGH | FIXED | approvals, leave, attendance | FIX_NOW |
 | [[BUG-2732-attendance-integration-cannot-be-activated-activation-requir|BUG-2732]] | Attendance integration cannot be activated: activation requires a verified device, but only an active integration is ever verified | STATE_MACHINE | HIGH | FIXED | api:attendance-integrations, gateway/src/DijiPeople.Gateway.Host | FIX_NOW |
-| [[BUG-3020-records-behind-these-numbers-shows-raw-guids-and-a-count-tha|BUG-3020]] | Records behind these numbers shows raw GUIDs and a count that does not match the metric | UX | HIGH | OPEN | apps/web, api:reporting | FIX_NOW |
+| [[BUG-3020-records-behind-these-numbers-shows-raw-guids-and-a-count-tha|BUG-3020]] | Records behind these numbers shows raw GUIDs and a count that does not match the metric | UX | HIGH | FIXED | apps/web, api:reporting | FIX_NOW |
+| [[BUG-3184-employee-termination-writes-no-audit-row-invisible-to-the-co|BUG-3184]] | Employee termination writes no audit row, invisible to the coverage spec designed to catch exactly this | DATA_INTEGRITY | HIGH | OPEN | api:employees | TRIAGE_REQUIRED |
+| [[BUG-3185-reading-or-downloading-a-document-is-recorded-nowhere|BUG-3185]] | Reading or downloading a document is recorded nowhere | DATA_INTEGRITY | HIGH | OPEN | api:documents | TRIAGE_REQUIRED |
+| [[BUG-3186-no-individual-erasure-or-anonymisation-path-exists-and-emplo|BUG-3186]] | No individual erasure or anonymisation path exists, and employee deletion is soft, so personal data survives deletion indefinitely | DATA_INTEGRITY | HIGH | OPEN | api:employees | TRIAGE_REQUIRED |
+| [[BUG-3196-payroll-calculation-runs-inline-on-the-http-request-per-empl|BUG-3196]] | Payroll calculation runs inline on the HTTP request, per employee, with no idempotency and no crash recovery | DATA_INTEGRITY | HIGH | OPEN | api:payroll | TRIAGE_REQUIRED |
+| [[BUG-3197-leave-balance-is-checked-at-submission-and-decremented-at-ap|BUG-3197]] | Leave balance is checked at submission and decremented at approval, so pending requests are invisible and the balance can be overdrawn | DATA_INTEGRITY | HIGH | OPEN | api:leave | TRIAGE_REQUIRED |
+| [[BUG-3201-the-p2002-recovery-pattern-used-inside-interactive-transacti|BUG-3201]] | The P2002 recovery pattern used inside interactive transactions cannot work on Postgres, and it is on the tenant-provisioning path | DATA_INTEGRITY | HIGH | OPEN | api:tenants | TRIAGE_REQUIRED |
+| [[BUG-3202-payroll-run-eligibility-never-checks-employee-isdeleted-an-a|BUG-3202]] | Payroll run eligibility never checks Employee.isDeleted; an archived employee with a stale employmentStatus is paid | DATA_INTEGRITY | HIGH | OPEN | api:payroll | TRIAGE_REQUIRED |
 | [[BUG-1668-tenant-workspace-pages-scroll-horizontally-at-mobile-width|BUG-1668]] | Tenant workspace pages scroll horizontally at mobile width | UX | MEDIUM | FIXED | views | DONE |
 | [[BUG-1950-every-tenant-workspace-screen-renders-the-same-h1-so-no-page|BUG-1950]] | Every tenant workspace screen renders the same h1, so no page announces what it is | UX | MEDIUM | FIXED | apps/web | DONE |
 | [[BUG-1951-most-tenant-workspace-pages-render-no-main-landmark-includin|BUG-1951]] | Most tenant workspace pages render no main landmark, including every settings category | UX | MEDIUM | FIXED | apps/web | DONE |
@@ -117,25 +120,30 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-2012-the-related-list-create-dialog-pre-fills-child-fields-with-t|BUG-2012]] | The related-list create dialog pre-fills child fields with the parent record values | DATA_INTEGRITY | MEDIUM | FIXED | apps/web | DONE |
 | [[BUG-2148-dashboard-widget-severity-is-conveyed-by-colour-alone-and-hi|BUG-2148]] | Dashboard widget severity is conveyed by colour alone, and hidden from assistive technology | UX | MEDIUM | FIXED | views, dashboard | DONE |
 | [[BUG-2413-allocate-id-plan-scans-only-docs-qa-test-plans-so-execplan-i|BUG-2413]] | allocate-id plan scans only docs qa test-plans so ExecPlan ids collide | DATA_INTEGRITY | MEDIUM | FIXED | scripts | DONE |
-| [[BUG-2495-the-under-investigation-tile-counts-incidents-nobody-is-inve|BUG-2495]] | The Under investigation tile counts incidents nobody is investigating | UX | MEDIUM | OPEN | admin:monitoring, api:platform-monitoring | TRIAGE_REQUIRED |
+| [[BUG-2495-the-under-investigation-tile-counts-incidents-nobody-is-inve|BUG-2495]] | The Under investigation tile counts incidents nobody is investigating | UX | MEDIUM | FIXED | admin:monitoring, api:platform-monitoring | DONE |
 | [[BUG-2507-the-manager-s-correction-screen-hides-four-of-the-eight-kind|BUG-2507]] | The manager's correction screen hides four of the eight kinds of change | UX | MEDIUM | FIXED | apps/web | DONE |
-| [[BUG-2573-a-correction-request-cannot-be-withdrawn-by-the-person-who-f|BUG-2573]] | A correction request cannot be withdrawn by the person who filed it | UX | MEDIUM | OPEN | api:attendance, apps/web | PLAN_REQUIRED |
+| [[BUG-2573-a-correction-request-cannot-be-withdrawn-by-the-person-who-f|BUG-2573]] | A correction request cannot be withdrawn by the person who filed it | UX | MEDIUM | FIXED | api:attendance, apps/web | DONE |
 | [[BUG-2647-reporting-record-tables-and-metric-tiles-format-without-the-|BUG-2647]] | Reporting record tables and metric tiles format without the tenant context, causing a hydration mismatch | UX | MEDIUM | FIXED | app:web, app:web | DONE |
 | [[BUG-2648-reports-pages-scroll-sideways-at-1440-because-grid-items-can|BUG-2648]] | Reports pages scroll sideways at 1440 because grid items cannot shrink below their content | UX | MEDIUM | FIXED | app:web | DONE |
 | [[BUG-2662-an-expired-refresh-token-puts-the-tenant-app-into-a-redirect|BUG-2662]] | An expired refresh token puts the tenant app into a redirect loop instead of the login page | UX | MEDIUM | FIXED | apps/web | DONE |
 | [[BUG-2822-a-business-refusal-is-rendered-as-a-fatal-error-dialog-with-|BUG-2822]] | A business refusal is rendered as a fatal error dialog with a reference id and a log download | UX | MEDIUM | FIXED | runtime, approvals, attendance | FIX_NOW |
-| [[ITEM-0068-legal-documents-have-no-operator-ui-so-publishing-is-a-scrip|ITEM-0068]] | Legal publication has an operator UI, but no diff before publishing | UX | MEDIUM | READY | legal, admin | FIX_NOW |
-| [[ITEM-0105-the-leave-entitlement-dialog-cannot-set-accrualtype-which-th|ITEM-0105]] | The leave entitlement dialog cannot set accrualType, which the API requires | UX | MEDIUM | READY | apps/web, api:leave | FIX_NOW |
+| [[BUG-3214-generic-entity-csv-export-silently-truncates-at-10-000-rows-|BUG-3214]] | Generic entity CSV export silently truncates at 10,000 rows with no signal to the caller | DATA_INTEGRITY | MEDIUM | OPEN | api:data | TRIAGE_REQUIRED |
+| [[BUG-3220-apps-admin-has-zero-loading-and-error-boundary-files-apps-we|BUG-3220]] | apps/admin has zero loading and error boundary files; apps/web has 22 genuinely uncovered pages including login | UX | MEDIUM | OPEN | apps/admin, apps/web | TRIAGE_REQUIRED |
+| [[BUG-3221-two-of-apps-web-four-error-boundaries-render-the-raw-error-m|BUG-3221]] | Two of apps/web four error boundaries render the raw Error.message directly with no classification | UX | MEDIUM | OPEN | apps/web | TRIAGE_REQUIRED |
+| [[BUG-3224-deleting-a-document-deletes-nothing-the-bytes-stay-in-storag|BUG-3224]] | Deleting a document deletes nothing; the bytes stay in storage forever | DATA_INTEGRITY | MEDIUM | OPEN | api:documents | TRIAGE_REQUIRED |
+| [[BUG-3225-tenant-erasure-sweeps-only-two-of-the-eight-models-that-hold|BUG-3225]] | Tenant erasure sweeps only two of the eight models that hold storage keys | DATA_INTEGRITY | MEDIUM | OPEN | api:tenants | TRIAGE_REQUIRED |
+| [[BUG-3230-platform-admin-and-tenant-admin-login-failures-are-not-audit|BUG-3230]] | Platform-admin and tenant-admin login failures are not audited; only tenant-user login failures are | DATA_INTEGRITY | MEDIUM | OPEN | api:platform-auth, api:auth | TRIAGE_REQUIRED |
+| [[BUG-3231-whole-modules-have-no-audit-trail-contracts-31-mutating-endp|BUG-3231]] | Whole modules have no audit trail: contracts (31 mutating endpoints), customization (33), users.update, role creation | DATA_INTEGRITY | MEDIUM | OPEN | api:contracts, api:customization | TRIAGE_REQUIRED |
+| [[BUG-3232-billing-plan-seat-cancellation-changes-are-unaudited-and-six|BUG-3232]] | Billing plan/seat/cancellation changes are unaudited, and six webhook paths write raw auditLog rows bypassing central redaction | DATA_INTEGRITY | MEDIUM | OPEN | api:billing | TRIAGE_REQUIRED |
+| [[BUG-3233-no-audit-row-carries-an-ip-address-user-agent-session-id-or-|BUG-3233]] | No audit row carries an IP address, user agent, session id or request id; the two indexed correlation columns are dead | DATA_INTEGRITY | MEDIUM | OPEN | api:audit | TRIAGE_REQUIRED |
+| [[BUG-3234-deleting-a-user-nulls-the-actor-on-every-audit-row-they-ever|BUG-3234]] | Deleting a user nulls the actor on every audit row they ever wrote | DATA_INTEGRITY | MEDIUM | OPEN | api:audit, api:users | TRIAGE_REQUIRED |
 | [[BUG-1964-record-headings-and-dialog-titles-are-singularised-by-stripp|BUG-1964]] | Record headings and dialog titles are singularised by stripping a trailing s | UX | LOW | FIXED | apps/web | DONE |
 | [[BUG-2010-the-dashboard-recent-changes-list-renders-unformatted-iso-86|BUG-2010]] | The dashboard Recent changes list renders unformatted ISO-8601 timestamps | UX | LOW | FIXED | apps/web | DONE |
 | [[BUG-2017-the-inbox-related-record-column-renders-a-bare-uuid-with-no-|BUG-2017]] | The inbox Related record column renders a bare UUID with no label and no link | UX | LOW | FIXED | apps/web | DONE |
 | [[BUG-2149-every-dashboard-metric-card-offers-a-link-named-only-open|BUG-2149]] | Every dashboard metric card offers a link named only Open | UX | LOW | FIXED | views, dashboard | DONE |
 | [[BUG-2384-tenant-record-shows-primary-tenant-owner-unassigned-while-it|BUG-2384]] | Tenant record shows Primary Tenant Owner Unassigned while its readiness check reports one active Tenant Owner | UX | LOW | FIXED | api:tenant-control-plane, apps/admin | DONE |
 | [[BUG-2657-analytics-caveat-panels-list-the-same-note-twice-in-differen|BUG-2657]] | Analytics caveat panels list the same note twice in different wording | UX | LOW | FIXED | api:reporting | DONE |
-| [[BUG-3021-workspace-switcher-in-the-avatar-menu-overflows-horizontally|BUG-3021]] | Workspace switcher in the avatar menu overflows horizontally and shows a scrollbar | UX | LOW | OPEN | apps/web | FIX_NOW |
-| [[ITEM-0109-the-disabled-check-in-button-explains-itself-only-in-a-title|ITEM-0109]] | The disabled Check In button explains itself only in a title tooltip | UX | LOW | READY | apps/web | FIX_NOW |
-| [[ITEM-0111-protected-route-prefixes-omits-twelve-authenticated-route-tr|ITEM-0111]] | PROTECTED_ROUTE_PREFIXES omits twelve authenticated route trees, so deep links to them are lost at sign-in | UX | LOW | READY | apps/web | FIX_NOW |
-| [[ITEM-0128-reports-and-analytics-two-explanatory-cards-nobody-reads-sit|ITEM-0128]] | Reports and Analytics: two explanatory cards nobody reads sit above the data | UX | — | READY | apps/web | FIX_NOW |
+| [[BUG-3021-workspace-switcher-in-the-avatar-menu-overflows-horizontally|BUG-3021]] | Workspace switcher in the avatar menu overflows horizontally and shows a scrollbar | UX | LOW | FIXED | apps/web | FIX_NOW |
 
 ## How to read this
 

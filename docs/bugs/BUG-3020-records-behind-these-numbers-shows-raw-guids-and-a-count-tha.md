@@ -2,7 +2,7 @@
 ID: BUG-3020
 aliases: [BUG-3020]
 Title: Records behind these numbers shows raw GUIDs and a count that does not match the metric
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: UX
@@ -13,13 +13,13 @@ AffectedModules: [apps/web, services/api/src/modules/reporting]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-399
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-09
-UpdatedAt: 2026-09-09
-ResolvedAt:
+UpdatedAt: 2026-09-11
+ResolvedAt: 2026-09-11
 ---
 
 # BUG-3020 — Records behind these numbers shows raw GUIDs and a count that does not match the metric
@@ -146,8 +146,8 @@ breakdown, and a decision about whether the parts are shown as summing to 100.
 
 ## Regression Coverage
 
-None yet. The UUID assertion above is the one that would have caught this, and
-it is cheap: a regex over the rendered cell values.
+See the `## Regression Coverage` section under Resolution below, added at
+fix closure (REG-399).
 
 ## Dependencies
 
@@ -162,11 +162,104 @@ None.
 
 ## Resolution
 
-Open. No fix has been written.
+Fixed on `agent/cs-s1-openbugs`, one fix per claim in this record, each
+verified against the current source before being touched.
+
+**The GUIDs (confirmed real).**
+`services/api/src/modules/reporting/semantic/data-sources/workforce-history.source.ts`'s
+own class comment already said why: "the label for each id is resolved
+through `labelLookup` against the lookup table instead" — because
+`workforce_history` stores denormalised foreign keys, not relations, so the
+five affected fields (`organization`, `business_unit`, `department`, `team`,
+`location`, plus `employee` and `manager`) have `path: <column>Id` and rely
+on `labelLookup` for a name. `buildBreakdown` already resolved that lookup
+for the chart; `records()` never did, and simply returned the raw scalar
+`readFieldValue` reads off the row.
+
+- `services/api/src/modules/reporting/engine/query-executor.ts` —
+  `resolveLabels` (the breakdown's own id->label batching) refactored to
+  share a new private `lookupLabels(lookup, ids)` with a new public
+  `resolveFieldLabels(field, rawValues)`, which does the same batched lookup
+  for a set of row values instead of a set of grouped buckets.
+- `services/api/src/modules/reporting/execution/analytics.service.ts` —
+  `records()` now collects every requested field with a `labelLookup`,
+  resolves each in one batch across the whole fetched page (never one query
+  per row), and replaces the raw value with the resolved label — falling
+  back to the id itself only when the lookup finds nothing (a referenced row
+  deleted since the snapshot), and to the field's `nullLabel` when the raw
+  value is null.
+
+**The count/unit mismatch (confirmed real).** "332 records behind these
+numbers" beside "Historical headcount 12" implied the 332 were the records
+*behind* the 12; they are daily snapshot rows across the period, an entirely
+different unit. Fixed by naming the actual unit instead of the generic word
+"records":
+`apps/web/app/(authenticated)/reports/_lib/report-format.ts` gained
+`pluralizeRecordNoun`, and
+`apps/web/app/(authenticated)/reports/_components/analytics-surface-view.tsx`'s
+row-count sentence now reads "332 daily snapshot rows behind these numbers"
+(or the equivalent for whichever source is active). `RECORD_NOUNS
+['workforce_history']` in
+`apps/web/app/(authenticated)/reports/analytics/[surface]/page.tsx` was
+itself wrong — "employee", not "daily snapshot row" — and is corrected in
+the same change; it had no other consumer (the source's rows carry no
+`recordHrefTemplate`, so the noun was never rendered in a link before now).
+
+**The rounding inconsistency — investigated, and only half of what was
+reported is real.** Reconstructing the exact split the record describes (a
+12-person headcount as 4/2/2/1/1/1/1) against `computeShares`
+(`apps/web/app/components/charts/chart-geometry.ts`) shows it already
+apportions `displayShare` correctly by largest remainder — 33.4/16.7/16.7/
+8.3/8.3/8.3/8.3, summing to exactly 100.0 — so the specific claim that this
+function produces an inconsistent 8.4/8.3/8.3/8.3 split summing to 99.6% did
+not reproduce, and `chart-geometry.spec.ts` already holds it to that
+standard. What *is* real, one step later: `formatShare` chooses its decimal
+count per value (0 for ≥10%, 1 below it), which independently re-rounds a
+value `computeShares` had already apportioned at one shared precision —
+formatting 33.4 with zero decimals while a sibling 8.3 keeps its one throws
+away part of that apportionment, and the printed column stops summing to
+100 even though the numbers behind it do. Reachable on any breakdown whose
+shares span the 10% line, which is most of them.
+
+- `apps/web/app/components/charts/chart-format.ts` — new `formatShares`,
+  choosing one decimal count for a whole set of shares (1 decimal whenever
+  any member of the set is under 10%) instead of letting each value pick its
+  own.
+- `apps/web/app/components/charts/horizontal-bar-list.tsx` and
+  `chart-frame.tsx` — both call sites that render a breakdown's percentage
+  column (the bar list and its table view) now call `formatShares` once over
+  the whole set rather than `formatShare` per row, so the two can no longer
+  disagree about the same breakdown on the same screen either.
+- `formatShare` itself is unchanged: it is still correct for a single
+  percentage shown alone (a funnel stage's conversion rate), which is most of
+  its other call sites.
+
+## Regression Coverage
+
+REG-399.
+
+- `services/api/src/modules/reporting/engine/query-executor.spec.ts` —
+  `resolveFieldLabels`: batches ids into one query, deduplicates, excludes
+  null/undefined, falls back correctly for a deleted lookup row and for a
+  field with no `labelLookup`. Mutation-tested: reverting `records()` to call
+  `readFieldValue` alone (no lookup resolution) is exactly the regression
+  this guards; the coverage spec's `stale`/`missing` cases fail if
+  `lookupLabels` stops excluding a `NULL_KEY`-equivalent or stops batching.
+- `apps/web/app/components/charts/chart-format.spec.ts` — `formatShares`:
+  asserts the exact 33.4/16.7/16.7/8.3×4 case sums to 100 and that calling
+  `formatShare` on the same values individually does not (33+17+17+8.3×4 =
+  100.2, proving the fix is not simply what the old function already did).
+- `apps/web/app/(authenticated)/reports/_lib/report-format.spec.ts` —
+  `pluralizeRecordNoun` over every noun currently in use.
 
 ## QA Retest
 
-Awaiting a fix.
+Not retested live — no access to a deployed environment or the production
+Starter demo tenant from this branch. The three fixes above and their
+automated coverage are the evidence available here; a live pass against
+`/reports/analytics/workforce` on the Starter demo tenant — confirming no
+uuid renders, the sentence names the unit, and the breakdown's bar list and
+table agree — is still owed, matching this record's own reproduction steps.
 
 ## History
 
@@ -174,11 +267,21 @@ Awaiting a fix.
   confirmed on the production Starter demo tenant. The user reported the GUIDs
   and the count; the rounding inconsistency was found while confirming them.
 - 2026-09-09 — triaged FIX_NOW by the Architect for SESSION-0095.
+- 2026-09-11 — fixed on `agent/cs-s1-openbugs`. The uuid leak and the
+  count/unit mismatch are both fixed as reported. The rounding claim was
+  investigated rather than blindly re-implemented: `computeShares` was
+  already correct, and the real defect was one layer later in `formatShare`;
+  the fix (`formatShares`) addresses that real defect rather than the
+  mechanism the record guessed at. `RegressionId` set to `REG-399` — not
+  centrally reserved; chosen as the next unused integer after `REG-398`,
+  following the precedent the three records before this one in the same
+  branch set for an unallocated regression id.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
 ## Related
 
 - Modules — [[tenant-application]], [[reporting]]
+- Regression — REG-399 (see the regression register)
 
 <!-- GRAPH:END -->

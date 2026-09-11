@@ -335,6 +335,59 @@ export class AttendancePolicyResolverService {
 
     return [...siteIds];
   }
+
+  /**
+   * The same authorised sites as {@link resolveAuthorizedWorkSites}, named
+   * rather than just identified.
+   *
+   * BUG-2508. The attendance correction form needs id AND name — a selector
+   * cannot render a UUID — and this is a self-service read, so it must not
+   * require `attendanceDevices.read` the way the device-management work-site
+   * endpoint does. A separate method rather than widening the existing one:
+   * every current caller of `resolveAuthorizedWorkSites` is engine-internal
+   * and wants ids only, and changing its return shape would ripple into the
+   * punch interpreter and the reconciliation service for no reason.
+   */
+  async resolveAuthorizedWorkSiteOptions(
+    tenantId: string,
+    employeeId: string,
+    at: Date = new Date(),
+  ): Promise<Array<{ id: string; name: string }>> {
+    const [assignments, employee] = await Promise.all([
+      this.prisma.employeeWorkSite.findMany({
+        where: {
+          tenantId,
+          employeeId,
+          status: 'ACTIVE',
+          AND: [
+            { OR: [{ validFrom: null }, { validFrom: { lte: at } }] },
+            { OR: [{ validTo: null }, { validTo: { gte: at } }] },
+          ],
+        },
+        select: {
+          location: { select: { id: true, name: true, isActive: true } },
+        },
+      }),
+      this.prisma.employee.findFirst({
+        where: { id: employeeId, tenantId },
+        select: {
+          location: { select: { id: true, name: true, isActive: true } },
+        },
+      }),
+    ]);
+
+    const sites = new Map<string, string>();
+    for (const assignment of assignments) {
+      if (assignment.location?.isActive) {
+        sites.set(assignment.location.id, assignment.location.name);
+      }
+    }
+    if (employee?.location?.isActive) {
+      sites.set(employee.location.id, employee.location.name);
+    }
+
+    return [...sites.entries()].map(([id, name]) => ({ id, name }));
+  }
 }
 
 /**

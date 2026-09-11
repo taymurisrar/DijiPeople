@@ -1,6 +1,6 @@
 # Deployment Architecture
 
-> Generated from repository evidence at `ad8f77f`.
+> Generated from repository evidence at `11afbd50`.
 
 ## Components and order
 
@@ -31,6 +31,73 @@ operations and table locks, determine rollback feasibility, confirm the backup
 path, and **verify `DATABASE_URL` points at the intended target**. If the target
 cannot be confirmed, stop. Migrating the wrong database is unrecoverable in the
 way that matters.
+
+### `render.yaml` describes intent, not the live service
+
+`render.yaml` is what the repository *asserts* the service is configured as.
+It is not what Render is actually running, and the two have drifted before
+without anything detecting it: the FILE-01/INF-05 remediation
+([[SESSION-0097]]) removed a persistent disk from `render.yaml` that had
+been declared there since an earlier task and had **never been applied to
+the live service** — the API container had no disk attached the entire time,
+so every file `StorageService` wrote to `FILE_STORAGE_DIR` was on the
+container's ephemeral filesystem and was destroyed on every deploy, restart
+and instance replacement. Nothing about the committed file was wrong-looking;
+it simply described a configuration step that was never carried out on the
+dashboard, and no check compares the two.
+
+**Verify the live service's actual configuration — env vars, disk, deploy
+command — against the Render API or dashboard directly before relying on
+what `render.yaml` says it should be**, especially before trusting that a
+migration will run automatically via `preDeployCommand`. When a schema change
+must land ahead of code that depends on it, keep it **expand-only** (additive
+columns/enums, no drops, no narrowing, no `NOT NULL` without a default) so it
+is safe to apply before the deploy and safe to leave in place if the deploy
+or the code rolls back — the object-storage metadata migration
+(`20260910121838_add_object_storage_metadata`) was built this way specifically
+so its timing relative to the code deploy did not matter.
+
+### Detecting the drift instead of only warning about it (ITEM-0084)
+
+`npm run check:render-config` (`scripts/check-render-config.mjs`) makes the
+paragraph above checkable rather than merely advisory. It reads `render.yaml`,
+calls the Render API **read-only** (`GET` only — it never writes to Render),
+and reports every field where the file and the live service disagree. It
+requires `RENDER_API_KEY`; without it, it — and the `RENDER_CONFIG_STATUS` line
+`npm run repo:health` prints — say **SKIPPED**, deliberately, rather than
+silently reporting nothing.
+
+Run at commit `f26357a8` (2026-09-11), it found real, current drift — not the
+already-fixed BUG-0767 shape, but the same structural cause producing a new
+instance of it:
+
+- **Scalar fields**: `name` (`dijipeople-api` in the file vs `DijiPeople` on
+  the live service), `plan` (`starter` vs `standard`), `buildCommand` (the file
+  omits `--include=dev`, which the live service's build actually uses),
+  `startCommand` (the file's is workspace-qualified, the live one is not — both
+  resolve to the same script but the strings differ), and `healthCheckPath`
+  (`/api` declared, **unset** on the live service — the health check running at
+  all currently depends on Render's default, not on this file).
+- **Env vars**: of the **51** keys `render.yaml` declares, **24** do not exist
+  on the live service at all — including the entire email-provider block
+  (`EMAIL_PROVIDER`, `EMAIL_SMTP_*`, `EMAIL_FROM*`), the seat-overage review
+  thresholds, `TENANT_RETENTION_DAYS`, and the bootstrap
+  `PLATFORM_SUPER_ADMIN_*` triple. This is a materially larger drift than the
+  "13 of 16" figure BUG-0767 was fixed against — declared keys have grown from
+  16 to 51 since, and the fraction missing has stayed almost exactly
+  proportional (roughly half), which is the drift-over-time this item
+  predicted, observed rather than assumed.
+- **Annotated, not counted as drift**: `preDeployCommand` differs only by a
+  `NODE_OPTIONS="--max-old-space-size=4096"` prefix on the live command — a
+  deliberate memory cap, not an accident. The script shows this under its own
+  heading instead of silently normalising it away.
+- **Not drift** (not declared in the file at all, so there is no expectation to
+  violate): `autoDeploy` (`yes`) and `branch` (`main`) on the live service.
+
+None of this was corrected as part of adding the check — see [[ITEM-0084]] for
+why: the item asked for detection, and the live service is production. Fixing
+it is a separate, deliberate change with its own review, not a side effect of
+writing a script.
 
 ## Rollback classes
 
@@ -77,7 +144,7 @@ about this repository rather than a gap.
 
 [[system-architecture]] · [[database-architecture]] ·
 [[tenant-workspace-routing]] · [[qa-and-ci-architecture]] ·
-[[integration-architecture]]
+[[integration-architecture]] · [[SESSION-0097]]
 
 Source: `.agent/context/deployment-runtime.md`,
 `.agent/agents/release-devops.md`, `docs/deployment/`,

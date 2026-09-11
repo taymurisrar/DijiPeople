@@ -51,6 +51,18 @@ plainly what an agent must or must not do as a result of this decision.
 | [ADR-0001](ADR-0001-ai-agent-workflow.md) | AI-assisted engineering workflow | Accepted |
 | [ADR-0002](ADR-0002-tenant-base-domain-single-source.md) | Configuration is the single source of the tenant base domain | Accepted |
 | [ADR-0003](ADR-0003-attendance-location-capture-is-mandatory.md) | Attendance location capture is a platform mandate | Accepted |
+| [ADR-0004](ADR-0004-recurring-background-jobs-in-the-api-process.md) | Recurring background jobs run in the API process | Accepted |
+| [ADR-0005](ADR-0005-settings-capability-attribution.md) | Which capability each settings page belongs to | Accepted |
+| [ADR-0006](ADR-0006-product-decisions-from-the-2026-09-11-backlog-review.md) | Seven product decisions from the 2026-09-11 backlog review | Accepted |
+| [ADR-0007](ADR-0007-remove-inert-apps-web-runtime-registries.md) | Remove the inert `apps/web` runtime registries rather than revive them | Accepted |
+| [ADR-0008](ADR-0008-unregistered-agent-branch-warns-not-blocks.md) | An `agent/*` branch with no registered session warns, it does not block | Accepted |
+
+> ADR-0008 was written as `ADR-0006` by a parallel stream on 2026-09-11 and
+> renumbered at integration, because a second `ADR-0006` already existed. The
+> collision was worse than a duplicate filename: records referred to bare
+> `ADR-0006`, and those references had begun to point at two different decisions.
+> ADR ids have no allocator, so this index is the only place the next number is
+> visible — read it before choosing one.
 
 ## Relationship to Obsidian
 

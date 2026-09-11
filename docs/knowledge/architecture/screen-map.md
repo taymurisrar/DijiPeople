@@ -14,13 +14,13 @@ A screen marked **bespoke** is a hand-written page whose API calls and underlyin
 
 **`apiPath` is called by the server, not the browser.** Loading `/leaves` on that tenant issued no client-side request to `/api/leave-requests`; the list arrives already rendered, and the only client calls were notifications and settings. Runtime list and record screens fetch through `apps/web/lib/server-api.ts` in a server component. Watching the browser network log to discover which endpoint a screen uses will therefore find nothing, and concluding the screen calls no API would be wrong.
 
-**361 screens** across 3 applications · 11 runtime modules declare an API path and entity
+**351 screens** across 3 applications · 11 runtime modules declare an API path and entity
 
 Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[known-gaps]]
 
 ## Tenant product — `apps/web` (port 3001)
 
-259 screens, 32 runtime-driven.
+249 screens, 32 runtime-driven.
 
 | Route | Source | API | Entity |
 |---|---|---|---|
@@ -166,10 +166,6 @@ Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[
 | `/settings/access/roles` | `apps/web/app/(authenticated)/settings/access/roles/page.tsx` | _bespoke_ | — |
 | `/settings/access/roles/[roleId]` | `apps/web/app/(authenticated)/settings/access/roles/[roleId]/page.tsx` | _bespoke_ | — |
 | `/settings/access/teams` | `apps/web/app/(authenticated)/settings/access/teams/page.tsx` | _bespoke_ | — |
-| `/settings/access/users` | `apps/web/app/(authenticated)/settings/access/users/page.tsx` | _bespoke_ | — |
-| `/settings/access/users/[userId]` | `apps/web/app/(authenticated)/settings/access/users/[userId]/page.tsx` | _bespoke_ | — |
-| `/settings/access/users/[userId]/edit` | `apps/web/app/(authenticated)/settings/access/users/[userId]/edit/page.tsx` | _bespoke_ | — |
-| `/settings/access/users/new` | `apps/web/app/(authenticated)/settings/access/users/new/page.tsx` | _bespoke_ | — |
 | `/settings/approval-matrices` | `apps/web/app/(authenticated)/settings/approval-matrices/page.tsx` | _bespoke_ | — |
 | `/settings/approval-matrices/[id]` | `apps/web/app/(authenticated)/settings/approval-matrices/[id]/page.tsx` | _bespoke_ | — |
 | `/settings/approval-matrices/[id]/edit` | `apps/web/app/(authenticated)/settings/approval-matrices/[id]/edit/page.tsx` | _bespoke_ | — |
@@ -254,10 +250,6 @@ Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[
 | `/settings/security-access/authorization/roles/[roleId]` | `apps/web/app/(authenticated)/settings/security-access/authorization/roles/[roleId]/page.tsx` | _bespoke_ | — |
 | `/settings/security-access/authorization/roles/[roleId]/edit` | `apps/web/app/(authenticated)/settings/security-access/authorization/roles/[roleId]/edit/page.tsx` | _bespoke_ | — |
 | `/settings/security-access/authorization/roles/new` | `apps/web/app/(authenticated)/settings/security-access/authorization/roles/new/page.tsx` | _bespoke_ | — |
-| `/settings/security-access/users` | `apps/web/app/(authenticated)/settings/security-access/users/page.tsx` | _bespoke_ | — |
-| `/settings/security-access/users/[userId]` | `apps/web/app/(authenticated)/settings/security-access/users/[userId]/page.tsx` | _bespoke_ | — |
-| `/settings/security-access/users/[userId]/edit` | `apps/web/app/(authenticated)/settings/security-access/users/[userId]/edit/page.tsx` | _bespoke_ | — |
-| `/settings/security-access/users/new` | `apps/web/app/(authenticated)/settings/security-access/users/new/page.tsx` | _bespoke_ | — |
 | `/settings/subscription` | `apps/web/app/(authenticated)/settings/subscription/page.tsx` | _bespoke_ | — |
 | `/settings/subscription/billing-history` | `apps/web/app/(authenticated)/settings/subscription/billing-history/page.tsx` | _bespoke_ | — |
 | `/settings/subscription/cancel` | `apps/web/app/(authenticated)/settings/subscription/cancel/page.tsx` | _bespoke_ | — |
@@ -275,8 +267,6 @@ Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[
 | `/timesheets/[timesheetId]/edit` | `apps/web/app/(authenticated)/timesheets/[timesheetId]/edit/page.tsx` | `/api/timesheets` | `timesheet` |
 | `/timesheets/approvals` | `apps/web/app/(authenticated)/timesheets/approvals/page.tsx` | `/api/timesheets` | `timesheet` |
 | `/timesheets/new` | `apps/web/app/(authenticated)/timesheets/new/page.tsx` | `/api/timesheets` | `timesheet` |
-| `/users` | `apps/web/app/(authenticated)/users/page.tsx` | _bespoke_ | — |
-| `/users/[userId]` | `apps/web/app/(authenticated)/users/[userId]/page.tsx` | _bespoke_ | — |
 | `/workspace/choose` | `apps/web/app/workspace/choose/page.tsx` | _bespoke_ | — |
 | `/workspace/not-found` | `apps/web/app/workspace/not-found/page.tsx` | _bespoke_ | — |
 | `/workspace/preparing` | `apps/web/app/workspace/preparing/page.tsx` | _bespoke_ | — |

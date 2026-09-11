@@ -4456,3 +4456,231 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Three things generalise. **A fix scoped by one structure's shape stops at that structure's edge**: gating by module directory is exactly right for route modules and structurally cannot reach a registry that has no directory, so "the gate is built" and "the surface is gated" are different claims. **An exemption that names its enforcer is a claim to verify, not a decision to trust** — the ungated register said branding was enforced where settings resolve, and reading the resolver would have shown in one minute that it was not. **Audit the built artifact, not the lookup table**: the first pass of the attribution map was written against `itemPlacement` and was wrong in both directions — it carried four keys naming pages that no longer exist and missed three pages that fall through to `defaultPlacement`, one of which was the tenant's own subscription screen sitting inside the payroll category. The coverage spec caught it because it compares against `settingsRuntimeItems`. |
 | **Fixed** | 2026-09-09, branch `agent/settings-plan-entitlements` |
 | **Active** | yes |
+
+### REG-397 — Projects and customers had no delete route at all
+
+| | |
+|---|---|
+| **Bug class** | `missing-delete-operation` |
+| **Module** | `services/api/src/modules/projects` |
+| **Bug record** | BUG-2007 |
+| **Root cause** | Neither `ProjectsController` nor `CustomersController` ever declared a `DELETE` route for the entity itself — `projects.controller.ts`'s only `DELETE` was `:projectId/assignments/:assignmentId`, and `customers.controller.ts` had none. The routes were never written, not broken; `DELETE /api/projects/:id` answered the framework's bare 405 and the customer route did not exist to be called. `customers.delete` already existed as a legacy permission key with no route, guard mapping or handler consuming it. |
+| **Regression test** | `services/api/src/modules/projects/projects.service.spec.ts` and `services/api/src/modules/projects/customers.service.spec.ts` — the `remove` describe blocks in each |
+| **Scenario** | A project or customer that is not found refuses with `NotFoundException`. One with dependent data (project assignments, timesheet entries or payroll cost-allocation lines for a project; any project for a customer) refuses with a catalog `AppError` (`PROJECT_DELETE_HAS_DEPENDENTS` / `CUSTOMER_DELETE_HAS_DEPENDENTS`, 409) naming the dependent counts, and neither the repository delete nor the audit log is called. One with nothing depending on it deletes (tenant-scoped `deleteMany`) and writes an audit row with a `beforeSnapshot` and a `null` `afterSnapshot`. |
+| **Proven to fail without the fix** | There was no `remove` method on either service before this change, so every assertion in both describe blocks fails on the method being undefined. The dependent-data case is the one worth re-running by hand after a schema change: it exists because `ProjectAssignment` cascades at the database level and `TimesheetEntry` / `PayrollCostAllocationLine` merely `SetNull` their `projectId`, so Postgres alone would either silently erase assignment history or silently orphan payroll cost lines rather than refuse. |
+| **Note** | The product decision (2026-09-11) was to add real delete rather than adopt retire-by-status, refusing with a reasoned catalog error when dependent data exists instead of cascading. `customers.delete` already existed as an unused legacy permission key — a permission key with no route and no guard mapping consuming it is itself worth checking for on a "why can't this be deleted" report, before assuming the key needs to be created. `Customer.projects` is `onDelete: Restrict` at the database level, so the dependent-data check on the customer side additionally turns what would have been a raw Postgres foreign-key violation into an actionable message. |
+| **Fixed** | 2026-09-11 |
+| **Active** | yes |
+
+### REG-398 — A second reporting registry gated by permission and never by entitlement
+
+| | |
+|---|---|
+| **Bug class** | `parallel-structure-missed-by-a-fix` |
+| **Module** | `services/api/src/modules/reporting`, `apps/web/app/(authenticated)/reports` |
+| **Bug record** | BUG-3007 |
+| **Root cause** | Same class as REG-396 (BUG-2958), a third time. `AnalyticsService.catalog()` filtered `listDataSources()` by `scope.hasAnyAccess` only; the tenant's plan was never an input. Two comments in `apps/web` asserted the catalog was "already permission- and entitlement-filtered by the API" — describing an enforcer that did not exist, the same failure `gate-scoped-to-one-structure` predicted. The gap was deeper than the reported symptom: `resolveSource()`, the choke point both `query()` and `records()` call to actually run a report, had the identical permission-only check, so a caller who already knew a source key could execute an unentitled report even though the catalog would not have offered it. |
+| **Regression test** | `services/api/src/modules/reporting/semantic/report-source-entitlements.spec.ts` |
+| **Scenario** | Resolve `isReportSourceEntitled` for every registered data source against the Starter plan's seven keys (`plans.catalog.ts`): the four recruitment sources and both desktop sources refuse, the rest grant. Resolve against every catalog key (Enterprise): everything grants. Resolve against an empty set: everything refuses. An unattributed source key refuses even against a full key set. A coverage test fails if any registered source lacks an attribution or any attribution names a source that no longer exists. |
+| **Proven to fail without the fix** | Mutation-tested by hand: forcing `isReportSourceEntitled` to return `true` unconditionally fails the Starter-refusal case (6 of 8 tests); deleting the `recruitment_openings` entry from `REPORT_SOURCE_ENTITLEMENTS` fails the coverage test instead of silently granting access to an unmapped source. |
+| **Note** | Third occurrence of the same generalisation REG-396 recorded: a fix scoped to one structure (BUG-1952's route-module gate) does not reach a second structure with its own registry (settings, then reporting), and a comment asserting an enforcer exists is a claim to verify, not a fact to trust. The new finding this instance adds: **the offer and the execution path can leak independently**. Gating only the catalog (the offer) would have left the execution choke point (`resolveSource`, shared by `query()` and `records()`) ungated, so the fix here closes both in the same choke point rather than only the listing. |
+| **Fixed** | 2026-09-11, branch `agent/cs-s1-openbugs` |
+| **Active** | yes |
+
+### REG-399 — A breakdown's chart and its own table disagreed on the same numbers
+
+| | |
+|---|---|
+| **Bug class** | `unresolved-lookup-and-independent-rounding` |
+| **Module** | `services/api/src/modules/reporting`, `apps/web/app/components/charts`, `apps/web/app/(authenticated)/reports` |
+| **Bug record** | BUG-3020 |
+| **Root cause** | Two unrelated defects on the same screen. (1) `workforce_history`'s organisational dimensions are denormalised foreign keys resolved to a label only via `labelLookup`; `buildBreakdown` used that lookup for the chart, and `AnalyticsService.records()` never did for the drill-down table, so the table printed the raw uuid the chart above it had already turned into a name. (2) `formatShare` picks its decimal count per value (0 for >=10%, 1 below), independently re-rounding a `displayShare` that `computeShares` had already apportioned by largest remainder to sum to exactly 100 at one shared precision — so a breakdown spanning the 10% line printed a column that no longer summed to 100, and the chart's inline percentages could disagree with the same breakdown's table view. |
+| **Regression test** | `services/api/src/modules/reporting/engine/query-executor.spec.ts`, `apps/web/app/components/charts/chart-format.spec.ts`, `apps/web/app/(authenticated)/reports/_lib/report-format.spec.ts` — the resolveFieldLabels, formatShares and pluralizeRecordNoun describe blocks respectively |
+| **Scenario** | A drill-down field with a `labelLookup` resolves its raw ids to labels in one batch query across the whole fetched page, excluding nulls, deduplicating, and falling back to the id for one the lookup no longer has. A breakdown of 4/2/2/1/1/1/1 (the record's own reproduction) apportions to 33.4/16.7/16.7/8.3/8.3/8.3/8.3 and prints at that one precision, summing to exactly 100 — printed independently per value with the old function, the same set sums to 100.2. The row-count sentence names the actual unit (`pluralizeRecordNoun`) instead of the generic word "records". |
+| **Proven to fail without the fix** | Reverting `records()` to `readFieldValue` alone (no lookup resolution) is exactly the shipped defect and fails the query-executor suite. Calling `formatShare` on the reconstructed 33.4/16.7/16.7/8.3×4 set instead of the new `formatShares` sums to 100.2, not 100 — asserted directly in `chart-format.spec.ts` as the "this is not simply what the old function did" case. |
+| **Note** | The rounding half of this record needed verification, not just a fix: hand-tracing `computeShares`' largest-remainder algorithm against the exact split the record reported showed it was already correct and already summed to 100 — the record's specific claim (8.4/8.3/8.3/8.3 summing to 99.6%) did not reproduce against `computeShares` itself. The real, reproducible defect was one layer downstream in `formatShare`. Fixing the mechanism a bug report guesses at, rather than the one that actually reproduces, would have shipped a change that fixed nothing — this is the case for tracing a claim to its source before writing the fix. |
+| **Fixed** | 2026-09-11, branch `agent/cs-s1-openbugs` |
+| **Active** | yes |
+
+### REG-400 — A grid item's default min-width defeated a truncate rule, and overflow-y-auto quietly enabled overflow-x
+
+| | |
+|---|---|
+| **Bug class** | `grid-item-min-width-defeats-truncate` |
+| **Module** | `apps/web/app/components/workspace-switcher.tsx` |
+| **Bug record** | BUG-3021 |
+| **Root cause** | The "Switch workspace" list is `display: grid`; a `<li>` grid item defaults to `min-width: auto`, which for grid track sizing means "at least the min-content width" — and a `truncate` span's `white-space: nowrap` makes its min-content width the entire unwrapped string. A 43-character hostname therefore widened the grid track to fit it regardless of the `truncate` class on the span inside. Separately, the list had `overflow-y-auto` and no `overflow-x` at all; per the CSS overflow spec a non-`visible` `overflow-y` with a `visible` `overflow-x` computes the x-axis to `auto` too, so the oversized row got its own independent horizontal scrollbar the dropdown's own `overflow-hidden` could not suppress. |
+| **Regression test** | `apps/web/app/components/workspace-switcher-overflow.spec.ts` |
+| **Scenario** | The `<li>` carries `min-w-0`; the list declares `overflow-x-hidden` alongside `overflow-y-auto`; the workspace name and hostname lines both still sit on a `min-w-0`/`truncate` element so the fix has something to clip against. Source-reading, like the existing `workspace-switcher-placement.spec.ts` beside it — `apps/web` has no jsdom or testing library, so a rendered-layout measurement is not available. |
+| **Proven to fail without the fix** | Removing either class from `workspace-switcher.tsx` fails the corresponding assertion: `min-w-0` alone without `overflow-x-hidden` leaves the underlying overflow-spec interaction able to reintroduce the scrollbar from a different source; `overflow-x-hidden` alone without `min-w-0` would hide the scrollbar while the row still visually overflowed the menu — both were needed and both are asserted separately. |
+| **Note** | The generalisable shape: a flex or grid *item* defaults to `min-width: auto`, and `truncate` (`overflow: hidden` + `white-space: nowrap`) computes its min-content width from the *unwrapped* text — so truncation inside a flex/grid item silently does nothing until the item itself is given `min-w-0`. This is a classic CSS gotcha and worth checking anywhere a `truncate` class sits inside a grid or flex container without an explicit `min-w-0` on the item boundary. |
+| **Fixed** | 2026-09-11, branch `agent/cs-s1-openbugs` |
+| **Active** | yes |
+
+### REG-401 — A sweep with a passing test and no caller in the running application
+
+| | |
+|---|---|
+| **Bug class** | `orphaned-scheduled-job` |
+| **Module** | `services/api/src/modules/billing` |
+| **Bug record** | BUG-2618 |
+| **Root cause** | `SubscriptionOrderService.abandonExpired` was written, commented and covered by an e2e test — and nothing in the running application ever called it, because the API registered no scheduler of any kind. `submissionHash` and `requestedSlug` are unique columns, so an unpaid order nobody ages out holds both forever: the workspace address becomes permanently unpurchasable and the buyer's own retry collides with their own dead order. The e2e test could not see the gap because it calls the function directly, which is the same blind spot BUG-2530 found in a guard that supplied its own input. |
+| **Regression test** | `services/api/src/modules/billing/services/subscription-order-sweeper.worker.spec.ts` |
+| **Scenario** | Boot `BillingModule` with `SUBSCRIPTION_ORDER_SWEEPER_ENABLED=true`: a `SubscriptionOrderSweeperWorker` provider starts an unref'd interval and its `tick()` calls `abandonExpired()` on its own, with no test invoking the service. With the flag unset or `false`, no timer starts. A tick that receives a rejected promise from `abandonExpired` logs and returns rather than throwing, so a transient database error cannot take the process down or stop the next tick. |
+| **Proven to fail without the fix** | The regression test exercises `SubscriptionOrderSweeperWorker.tick()`, not `SubscriptionOrderService.abandonExpired()` directly, so it fails if the call from `tick()` is removed even though `abandonExpired()` itself still passes its own e2e coverage. A second assertion reads `billing.module.ts` and fails if `SubscriptionOrderSweeperWorker` is removed from the `providers` array — the exact way this bug shipped originally: a fully-implemented, fully-tested method with nothing wiring it into the application. |
+| **Note** | A test that calls the function under test directly cannot prove the function is ever called in production — that is a statement about wiring, not about behaviour, and needs a wiring-shaped assertion (source inspection or a DI boot) rather than a deeper unit test. |
+| **Fixed** | 2026-09-11, branch `agent/cs-s1-openbugs` |
+| **Active** | yes |
+
+
+### REG-402 — A selector resolved from a client-supplied id instead of the caller
+
+| | |
+|---|---|
+| **Bug class** | `caller-supplied-scope` |
+| **Module** | `services/api/src/modules/attendance` |
+| **Bug record** | BUG-2508 |
+| **Root cause** | The correction work-site selector was never populated, because no endpoint returned the sites an employee is authorised to use. The fix adds `AttendanceService.listMyWorkSites`, and the risk it had to avoid is the one this class is named for: resolving the site list from an employee id the client supplies would let any caller enumerate another employee's authorised sites. It resolves from the authenticated caller instead. |
+| **Regression test** | `services/api/src/modules/attendance/attendance-correction-work-sites.spec.ts` |
+| **Scenario** | The endpoint returns the caller's own authorised sites; it resolves for the CALLER and never for an id the client could supply; a caller holding none of the correction or read permissions is refused; and the route deliberately does not require `attendanceDevices.read`, which would have gated an employee-facing selector behind a device-administration permission. A second block covers the correction read model resolving the requested site name tenant-scoped, and returning null when no site was requested. |
+| **Proven to fail without the fix** | `listMyWorkSites` did not exist before this change, so every assertion fails on an undefined method. The scope assertion is the one worth re-running after any change to how the caller is resolved: it fails if the implementation is refactored to accept an employee id argument, which is the shape the defect would take on reintroduction. |
+| **Note** | An employee-facing selector gated behind an administrative permission reads as a permissions bug and presents as an empty dropdown. Check which permission a selector's data route requires before concluding the data is missing. |
+| **Fixed** | 2026-09-11 |
+| **Active** | yes |
+
+### REG-403 — A withdraw path that trusted the wrong identity
+
+| | |
+|---|---|
+| **Bug class** | `missing-state-transition` |
+| **Module** | `services/api/src/modules/attendance` |
+| **Bug record** | BUG-2573 |
+| **Root cause** | A correction request could not be withdrawn by the person who filed it: no cancel transition existed at all, so a mistaken request sat pending until an approver disposed of it. Adding one introduces two distinct authorisation risks — letting somebody other than the requester withdraw, and letting a withdrawal serve as a back door around a decision that has already been made. |
+| **Regression test** | `services/api/src/modules/attendance/attendance-correction-cancel.spec.ts` |
+| **Scenario** | The requester may withdraw their own pending request. Anyone else is refused. The assigned approver is refused too — withdrawal is not a route around separation of duties, which is the assertion most likely to be lost in a later refactor that treats the approver as privileged. A request that has already been decided cannot be cancelled, and an already-cancelled one cannot be re-cancelled. |
+| **Proven to fail without the fix** | `cancelCorrectionRequest` did not exist before this change, so all five assertions fail on an undefined method. |
+| **Note** | When adding a withdraw or cancel transition, the approver is not automatically entitled to it. "Who may undo this" is a separate question from "who may decide it", and answering the second by default collapses separation of duties. |
+| **Fixed** | 2026-09-11 |
+| **Active** | yes |
+
+### REG-404 — An approval that recorded a decision and applied none of it
+
+| | |
+|---|---|
+| **Bug class** | `decision-not-applied` |
+| **Module** | `services/api/src/modules/attendance` |
+| **Bug record** | BUG-2504 |
+| **Root cause** | Approving an attendance correction wrote the approval and never applied what had been approved: the requested work mode, work site and overtime were recorded on the request and never copied onto the entry. The employee saw their correction approved and the entry unchanged, which is worse than a refusal because nothing indicates the change did not happen. The subtle half is status: an entry's status is derived from its mode, so applying an approved mode without re-deriving status leaves the entry internally inconsistent. |
+| **Regression test** | `services/api/src/modules/attendance/attendance-correction-apply.spec.ts` |
+| **Scenario** | An approved `requestedWorkSiteId` reaches `officeLocationId`; a correction requesting no site leaves the existing one alone. An approved REMOTE request maps onto the entry's `AttendanceMode`, and status is re-derived from the APPROVED mode rather than the mode as it was — the assertion that matters, because deriving from the stale mode is the natural way to reintroduce this. A correction requesting no mode leaves the mode untouched. A FIELD-mode approval is refused outright rather than silently doing nothing. A separate block covers the no-linked-entry path, where the entry is created for a wholly missing day and must still carry the approved mode and site. |
+| **Proven to fail without the fix** | Before the fix `applyApprovedCorrection` did not copy any requested value onto the entry, so every positive assertion fails. The re-derivation assertion fails on the intermediate implementation that applies the mode but derives status first, which is the state this fix passed through. |
+| **Note** | "Silently doing nothing" is the failure mode to test for on any approve/apply pair. A test that only asserts the approval row was written cannot see that the approval had no effect, and that is exactly the shape this defect shipped in. |
+| **Fixed** | 2026-09-11 |
+| **Active** | yes |
+
+### REG-405 — A webhook that answered a provider error with a retry it could never satisfy
+
+| | |
+|---|---|
+| **Bug class** | `unretryable-retry` |
+| **Module** | `services/api/src/modules/billing` |
+| **Bug record** | BUG-2462 |
+| **Root cause** | Stripe subscription webhooks failed when the Stripe customer could not be resolved to exactly one tenant, and the failure was returned to Stripe as a non-2xx. Stripe retries a non-2xx, and no retry can fix an unmappable customer, so the event was redelivered on Stripe's full backoff schedule and failed identically every time. The fix separates "we cannot map this, stop sending it" from "we failed, please retry", acknowledging the former with a 2xx while still recording it. |
+| **Regression test** | `services/api/src/modules/billing/controllers/stripe-webhook.controller.spec.ts` and `services/api/src/modules/billing/services/webhook-event-not-ready.spec.ts` |
+| **Scenario** | An unresolvable customer is acknowledged with 2xx; an ambiguous mapping to more than one tenant is treated the same way. A failure that is *not* the unmapped-tenant class is still rejected, and so is a generic `VALIDATION_FAILED` that is not tagged as unmapped — the two assertions that stop this fix widening into "acknowledge everything", which would silently swallow real processing failures. A successful call returns its shape untouched. |
+| **Proven to fail without the fix** | The two acknowledgement cases fail before the fix, because the controller rejected them. The two rejection cases are the ones to re-run after any change here: they fail if the acknowledgement is broadened past the unmapped-tenant class, which is the likely direction of a careless later edit. |
+| **Note** | Answering a provider webhook with a retryable error for a condition no retry can change converts one failure into an indefinite series of them. Deciding whether a failure is the caller's to retry is part of designing a webhook handler, not an afterthought. |
+| **Fixed** | 2026-09-11 |
+| **Active** | yes |
+
+### REG-406 — A second role-grant endpoint that never learned the first one's escalation rule
+
+| | |
+|---|---|
+| **Bug class** | `duplicated-authorization-logic` |
+| **Module** | `services/api/src/modules/users` |
+| **Bug record** | BUG-3152 |
+| **Root cause** | `PUT /users/:userId/roles` (`assignRoles`) and `POST /users/:userId/roles` (`addRole`) require the identical permission pair, so `PermissionsGuard` treats them as equally sensitive. Only `assignRoles` enforced the escalation rules that make that permission pair safe to grant to a delegated "assign roles" admin — no system role without owner/`SYSTEM_ADMIN` standing, no `GLOBAL_ADMIN` to a non-owner. `addRole` was added later against the same permission pair without factoring out or reusing that rule, so it granted any role, including `GLOBAL_ADMIN`, unconditionally, including self-grant. |
+| **Regression test** | `services/api/src/modules/users/users.service.spec.ts` |
+| **Scenario** | An actor with no owner/`SYSTEM_ADMIN` standing must be rejected granting `GLOBAL_ADMIN` to a non-owner target through *both* `addRole` and `assignRoles`. A spy on the shared `assertRoleGrantWithinActorAuthority` method asserts both call sites actually invoke it, not just that the outcome happens to be correct today. |
+| **Proven to fail without the fix** | Reverting `addRole` to call `usersRepository.addUserRole` directly (its pre-fix body) makes "addRole rejects a non-owner, non-system-admin actor granting GLOBAL_ADMIN to a non-owner target" fail immediately — the call succeeds instead of throwing. |
+| **Note** | Two routes requiring the identical permission decorators is not evidence they enforce the identical rule — `PermissionsGuard` only proves the *gate* is the same; nothing proves the *service* behind it is. The generalizable fix is structural, not a one-off patch: factor the rule into one method both call, so a future third route against this permission pair inherits the check by construction rather than by someone remembering to copy it. |
+| **Fixed** | 2026-09-11, branch `agent/cs-s5-security` |
+| **Active** | yes |
+
+### REG-407 — A rate limiter that trusted the one header a direct caller controls
+
+| | |
+|---|---|
+| **Bug class** | `client-supplied-trust-boundary` |
+| **Module** | `services/api/src/common/security/client-ip.ts`, `packages/config/client-ip.js` |
+| **Bug record** | BUG-3115 |
+| **Root cause** | `resolveClientIp` trusted forwarded headers as a boolean ("is any proxy in front at all") and, once trusted, always read the *leftmost* entry of `X-Forwarded-For` — correct only when nothing untrusted can ever write that position. The API is directly reachable, so an external caller writes it directly. The configured hop count (`resolveTrustProxySetting` already computed it) was discarded rather than used to index the one position a real trusted hop had actually appended to. |
+| **Regression test** | `services/api/src/common/security/client-ip.spec.ts`, `services/api/src/common/guards/public-rate-limit.guard.spec.ts`, `services/api/src/common/interceptors/authenticated-rate-limit.interceptor.spec.ts` |
+| **Scenario** | Two requests whose `X-Forwarded-For` differ only in the attacker-controlled prefix (`forged-identity-1, 203.0.113.7` vs `forged-identity-2, 203.0.113.7`) must resolve to the same client and share one rate-limit budget. A chain shorter than the configured trusted-hop count must resolve to neither the forged value nor the raw socket address. An authenticated user's write budget, once exhausted, must not throttle a different user or that same user's read budget. |
+| **Proven to fail without the fix** | Reverting `readForwardedForClientIp` to `raw.split(',')[0]` makes "is not moved by how many fake entries a caller prepends" and "does not let a caller mint a fresh identity by varying the untrusted prefix" fail immediately — both then observe a different identity per request, which is the exploit. |
+| **Note** | Closing this reopens BUG-0032's original coarseness for one specific, already-narrow scenario: visitors proxied through this product's own first-party Next.js apps behind Cloudflare can no longer be told apart per browser visitor, because Cloudflare/Render append the *relay's* address for that path too. Documented as an accepted, honest trade-off in BUG-3115 rather than hidden — the alternative was leaving a CONFIRMED forgery bypass live on a production payroll platform's login. |
+| **Fixed** | 2026-09-11, branch `agent/cs-s5-security` |
+| **Active** | yes |
+
+
+### REG-408 — Two endpoint pairs where only one side of each enforced the rule
+
+| | |
+|---|---|
+| **Bug class** | `duplicated-authorization-logic` |
+| **Module** | `services/api/src/modules/roles`, `services/api/src/modules/employees` |
+| **Bug record** | BUG-3241 |
+| **Root cause** | Two pairs of endpoints, each pair gated by identical permission decorators, where only one side made the authorization decision. `PUT /roles/:roleId/permissions` granted any legacy key existing in the tenant while its sibling `/matrix` route enforced "not beyond your own effective access"; the employee profile CSV export resolved the record tenant-scoped and skipped the `OWN`/`TEAM`/`BUSINESS_UNIT` row-scope its sibling read path applies. Identical decorators are what hid both: `PermissionsGuard` proves the gate matches, never that the service behind it does. |
+| **Regression test** | `services/api/src/modules/roles/roles.service.spec.ts` and `services/api/src/modules/employees/employees.service.spec.ts` |
+| **Scenario** | An actor not holding `payslips.read-all` is refused when granting it through `updatePermissions`, `update` and `create` alike. `update` is *not* blocked when it leaves `permissionIds` untouched, so renaming a broader role somebody else built still works — the check guards widening, not editing. A caller whose effective employee access is `SELF` or `TEAM` is refused the profile export for an id outside that scope, matching what the profile read already refuses. Spies assert each call site actually invokes the shared method. |
+| **Proven to fail without the fix** | Reverting `updatePermissions` to write the granted keys directly makes the escalation assertion pass the grant instead of throwing. Removing the `canViewEmployeeRecord` call from `exportProfile` returns the CSV for an out-of-scope id. |
+| **Note** | The spy assertions matter more than the outcome assertions here. This defect's shape is a call site drifting away from a shared rule while still returning the right answer for whichever cases a test happens to cover, so a test that only checks outcomes cannot see the drift arrive. Sibling endpoints sharing a permission pair should share one enforcement method, not two copies of one. |
+| **Fixed** | 2026-09-11 |
+| **Active** | yes |
+
+### REG-409 — A test one hop short, and the security boundary it made look wrong
+
+| | |
+|---|---|
+| **Bug class** | `test-setup-misread-as-code-defect` |
+| **Module** | `packages/config/client-ip.js`, `services/api/test/public-rate-limit.e2e-spec.ts` |
+| **Bug record** | BUG-3254 |
+| **Root cause** | `readForwardedForClientIp` accepts a forwarded chain only when it has strictly MORE entries than the trusted hop count, so every position it reads has a trusted hop's append to its right. The rate-limit e2e suite trusted one hop and sent a one-entry chain, which is correctly refused, so every caller resolved to the same fallback identity and the cross-address assertion failed. The guard was then misread as an off-by-one and relaxed — which reopens RATE-01, because the API is directly reachable (INF-06) and a caller bypassing Cloudflare produces a chain of exactly `hopCount` entries with their own value leftmost. |
+| **Regression test** | `packages/config/client-ip.test.js`, run by `npm run test:client-ip`; and `services/api/src/common/security/client-ip.spec.ts`, which already existed and is what caught the relaxation |
+| **Scenario** | A chain of exactly the hop count vouches for nothing — one entry at one hop, two at two — and neither the leftmost entry nor the socket address is substituted. A chain one longer resolves to the entry `hopCount` from the right, however much is prepended. Shorter chains, absent, blank and comma-only headers resolve to null. Array headers read the first value; IPv6 is unbracketed and de-ported; a missing, zero, negative or fractional hop count defaults to one, since zero would index past the end. |
+| **Proven to fail without the fix** | Relaxing the guard to `entries.length < hops` fails `a chain of exactly the hop count vouches for nothing` immediately, and fails two assertions in the pre-existing API spec. Reverting the e2e helper to a one-entry chain fails the cross-address assertion. The two halves fail in opposite directions, which is the property that makes them worth keeping together. |
+| **Note** | The transferable lesson is diagnostic, not technical: a red test was blamed on the code it exercises rather than on its own setup, and a security boundary was changed to make it pass. The boundary is only correct in light of a fact recorded elsewhere — that the service is reachable without its edge — and that fact was not consulted. When a guard looks like an off-by-one, the cheap check is whether a test is feeding it an unrealistic input. Note also that the library had no unit test of its own, so nothing stated the intent at the point of change; the module it sits beside had one that had never been wired into any script or job. |
+| **Fixed** | 2026-09-11 |
+| **Active** | yes |
+
+### REG-410 — A fixture that read the clock twice and asserted the difference
+
+| | |
+|---|---|
+| **Bug class** | `fixture-races-the-clock` |
+| **Module** | `services/api/test` |
+| **Bug record** | BUG-3263 |
+| **Root cause** | `provisioning-queue.e2e-spec.ts` built seeded timestamps with `const minutesAgo = (n) => new Date(Date.now() - n * 60_000)`, calling it once per timestamp. A run seeded as `startedAt: minutesAgo(2880)` and `completedAt: minutesAgo(2875)` is meant to have taken exactly five minutes, but the two calls straddle real time, so the stored interval was five minutes plus however far the clock moved between two adjacent statements. `expect(elapsedMs).toBe(300000)` then saw 300001. |
+| **Regression test** | `services/api/test/provisioning-queue.e2e-spec.ts` — structural rather than asserted: the fixture pins one base instant, so no path remains where a seeded interval can drift. Covered in practice by that suite’s existing elapsed-time assertions. |
+| **Scenario** | Every interval a fixture seeds is exactly the interval it names, on any run. Assertions about a *live* run's elapsed time still compare a seeded `startedAt` against the real clock, which is why the stuck-run case stays a lower bound (`toBeGreaterThan(80 * 60_000)`) rather than becoming exact. |
+| **Proven to fail without the fix** | Not deterministically — the window is one scheduler tick, which is what made it a flake rather than a failure. CI run `34550081262` hit it; three consecutive local runs did not. Restoring the per-call `Date.now()` restores the race. |
+| **Note** | Two patterns, both general. A fixture helper that reads the clock per call is safe for assertions about absolute age and unsound for assertions about the difference between two seeded values — and a suite mixing both hides the problem, because a lower bound cannot be broken by a millisecond. Separately: validating a CI job locally means running the whole job. Running single specs against a bare migrated database reported 66 failures in four suites that CI passes, because the job runs `verify-database`, `seed:demo` and `seed:admin` first. The reproduction includes the parts that are not tests. |
+| **Fixed** | 2026-09-11 |
+| **Active** | yes |
+
+### REG-411 — An externally hosted release could not carry the one digest its own update feed required
+
+| | |
+|---|---|
+| **Bug class** | `dto-shaped-around-one-of-two-paths` |
+| **Module** | `services/api/src/modules/app-releases` |
+| **Bug record** | BUG-2888 |
+| **Root cause** | `PublishReleaseDto` was shaped around the storage-upload path, where the server computes `checksumSha512` itself from bytes it just received (`release-publisher.service.ts`). `externalUrl` was added later as an alternative artefact source without extending the DTO to carry the metadata the server could no longer compute for itself — and `forbidNonWhitelisted` meant a caller sending the field outright got a 400 rather than a silent drop. `update-feed.service.ts` selects only `checksumSha512: { not: null }`, so a release published this way was accepted, listed and downloadable, and permanently and silently absent from the one thing releases exist to do: reach the fleet through auto-update. |
+| **Regression test** | `services/api/src/modules/app-releases/app-release.service.spec.ts` |
+| **QA scenario** | QA-DEPLOY-024 |
+| **Scenario** | Publish a STABLE AGENT_DESKTOP release with `externalUrl` and a valid `checksumSha512`: it must appear in `GET /app-releases/feed/AGENT_DESKTOP/latest.yml` with that digest. Publish the same shape with no `checksumSha512`: the publish route must refuse it (`RELEASE_SHA512_REQUIRED`) rather than accept a release the feed can never serve. A BETA release, or a release for a different app, needs no `checksumSha512`. A metadata-only republish of an existing release must not clobber its stored digest with `null`. |
+| **Proven to fail without the fix** | Before the fix there was no field to submit a checksumSha512 through — `class-validator`'s `forbidNonWhitelisted` rejected the request outright, so the failure was at the transport boundary, not inside business logic. Reproduced against production 2026-09-09: `AGENT_DESKTOP 1.0.0` published with `externalUrl` and a SHA-256; the catalogue and download both worked, `GET .../feed/AGENT_DESKTOP/latest.yml` returned 404. |
+| **Note** | Two things generalise. **A DTO is a claim about which paths exist, not just which fields are optional** — this one was complete for the path it was designed around and quietly excluded the one added afterwards, and `forbidNonWhitelisted` turned that omission into an immediate, visible 400 for the field itself while leaving the actual gap (an unreachable update feed) silent. **Silence in the direction that matters is worse than a loud failure in the direction that doesn't** — the release LOOKED fully functional (listed, downloadable) while being permanently broken in the one dimension nobody was watching, until a second version shipped and an operator went looking for why fleets did not move. |
+| **Fixed** | 2026-09-11, branch `agent/cs-s6-triaged` |
+| **Active** | yes |

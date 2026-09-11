@@ -3,15 +3,15 @@ ID: ITEM-0124
 aliases: [ITEM-0124]
 Title: Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile
 Type: SECURITY
-Status: TRIAGE_REQUIRED
+Status: DONE
 Priority: P1
 Severity: HIGH
 AffectedModules: [scripts/check-production-advisories.mjs]
 Source: QA_RUN
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DONE
 CreatedAt: 2026-09-09
-UpdatedAt: 2026-09-09
+UpdatedAt: 2026-09-11
 RelatedBug: 
 RelatedQA: 
 RelatedADR: 
@@ -21,6 +21,26 @@ BlockedBy:
 ---
 
 # ITEM-0124 — Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** Re-measured on 2026-09-11 before triage: the gate now passes (0 critical, 10 dispositioned). The blocking half of this record is therefore historical. The substance is not. Overrides have never taken effect in this lockfile, so the only available remedy is a written risk acceptance, and eight high advisories now stand accepted rather than fixed. The record itself names the danger precisely: that pressure arrives exactly when a release is blocked, which is the worst moment to decide what risk is acceptable. Fix the override mechanism so a real remedy exists.
+>
+> **CORRECTED, 2026-09-11, after direct investigation (see Resolution below).**
+> The claim above — "overrides have never taken effect in this lockfile" — is
+> **false**, and left standing here it would mislead the next reader. Evidence:
+> `node scripts/check-overrides-applied.mjs` reports the existing
+> `@mapbox/node-pre-gyp` override as `APPLIED`, in the committed lockfile,
+> today; that script already exists and is already wired into the required CI
+> gate for exactly this capability. What actually fails is narrower than the
+> triage note claimed: adding a **new** override to a package that is already
+> resolved in an existing lockfile is not honoured by an incremental
+> `npm install --package-lock-only` (reproduced, with and without `--force`).
+> A genuinely fresh resolve — no lockfile, no `node_modules` — **does** honour
+> it, and does not downgrade `@nestjs/core`. So "fix the override mechanism"
+> was the wrong framing: the mechanism works and is already proven in CI; the
+> real question was whether spending a fresh resolve on `multer` today is worth
+> what it costs — it is not (see Resolution). This annotation corrects the
+> note rather than deleting it, so the reasoning trail, including the mistake,
+> stays visible.
 
 ## Summary
 
@@ -135,10 +155,103 @@ None. It is self-contained, and it blocks every release while it stands.
 
 [[ITEM-0122]] — the same gate, the previous recurrence, closed a day earlier.
 [[BUG-2732]] — the release this recurrence blocked.
+[[ITEM-0123]] — filed the same day as this record, for the same multer
+override, with the deeper investigation this record's Resolution builds on and
+defers to.
+
+## Resolution
+
+**Premise re-verified before investigating, as the record's own triage note
+required.** `npm run check:production-advisories` passes today: 0 critical, 10
+dispositioned (8 high, 2 moderate). The blocking half of this record — "every
+release to production is blocked" — is confirmed historical, exactly as
+triaged. Not chased further.
+
+**The mechanism question — "why do overrides not apply" — was investigated
+directly, empirically, on this branch, rather than reasoned about.** Findings:
+
+1. **The existing override already works.** `node scripts/check-overrides-applied.mjs`
+   reports `@mapbox/node-pre-gyp` `APPLIED — 2.0.3 satisfies ^2.0.3`. The
+   record's headline claim — "overrides have never taken effect in this
+   lockfile" — is false as stated. One override is declared and it is in
+   effect, in the committed lockfile, right now. That script exists and is
+   already wired into CI (`test-runtime` job, "Declared npm overrides are
+   actually applied") specifically because of the failure mode this record was
+   worried about (BUG-0163) — the capability this record asked for already
+   exists.
+
+2. **What genuinely does not work is adding a NEW override to an ALREADY-
+   RESOLVED package and expecting an incremental `npm install --package-lock-only`
+   to move it.** Reproduced directly: added `"multer": "^2.3.0"` to
+   `overrides`, ran `npm install --package-lock-only` (with and without
+   `--force`, and again after deleting just the `node_modules/multer` entry
+   from `package-lock.json`) — every attempt reports `up to date` and leaves
+   multer at `2.2.0`. This matches ITEM-0123's independent finding exactly,
+   reproduced fresh rather than taken on its word.
+
+3. **A genuinely fresh resolve DOES honour the override.** Copied only the
+   `package.json` manifests into an isolated directory — no lockfile, no
+   `node_modules`, the same shape CI's "Lockfile regenerates from the
+   manifests" step uses — and ran `npm install --package-lock-only` there.
+   `multer` resolved to `2.3.0`. `@nestjs/core` and `@nestjs/platform-express`
+   both resolved to `11.2.3` — not downgraded, satisfying this record's
+   Acceptance Criterion 4 on its own. This is npm's actual, reproducible
+   behaviour: `overrides` are consulted when npm builds the dependency tree
+   from scratch; an existing lockfile's already-resolved subtree is preserved
+   rather than revisited unless something forces a full re-resolution of that
+   subtree, and a declared-but-unwired override is exactly what
+   `check-overrides-applied.mjs` exists to catch (confirmed: declaring the
+   override without regenerating makes that check fail with `IGNORED`, exactly
+   as designed).
+
+**So the mechanism is not broken — it is a real, working, already-verified npm
+behaviour with a real limitation** (new overrides need a full re-resolve to
+take effect on an existing lockfile), not a defect in this workspace's
+Turborepo/npm-workspaces setup specifically. Acceptance Criterion 3 — "an
+overrides entry demonstrably changes the resolved version, proven by a test or
+a documented check" — was already satisfied for the one override this repo
+carries, by a script already wired into the required gate, before this record
+was triaged.
+
+**Whether to spend the fresh-resolve remedy on multer today was re-measured,
+not re-assumed.** Ran the same isolated fresh resolve through
+`npm audit --omit=dev --package-lock-only --json`: `multer`,
+`@nestjs/core` and `@nestjs/platform-express` all clear, but the resolve
+introduces **one CRITICAL** (`tar`) and **four new HIGHs**
+(`active-win`, `cacache`, `make-fetch-happen`, `node-gyp`) that are absent from
+the committed lockfile today. `check-production-advisories.mjs` accepts no
+disposition for a critical, ever — so taking this remedy today would turn a
+passing gate (0 critical, 10 dispositioned) into a failing one. This is the
+same trade ITEM-0123 measured two days ago, re-measured today and still true:
+trading three dispositioned highs for one undispositionable critical plus four
+new highs is a regression, not a fix. **No override was added to `package.json`
+as a result** — one was tried, confirmed to reproduce the exact failure this
+record describes, and reverted; shipping an override the lockfile does not yet reflect
+would itself fail `check-overrides-applied.mjs`.
+
+The upstream removal trigger from ITEM-0123 was also re-checked:
+`npm view @nestjs/platform-express@latest dependencies.multer` still reports
+`2.2.0` on `12.0.1`, the latest published version. Not yet fired.
+
+**Conclusion:** ITEM-0123's `DEFERRED` disposition is correct and stands
+unchanged. This record closes as `DONE` because its own question — is the
+override mechanism broken, and can it be made to work — has a complete,
+evidence-backed answer: no, and yes-with-a-cost-that-is-not-worth-paying-today,
+respectively. No code change was needed beyond what ITEM-0122/ITEM-0123 and
+the existing `check-overrides-applied.mjs` had already put in place; this pass
+corrected the record's mistaken "overrides never take effect" framing rather
+than building a mechanism that already exists.
 
 ## History
 
 - 2026-09-09 — created at `4ee7b2cd`, when it blocked the BUG-2732 release.
+- 2026-09-11 — investigated directly: the existing override was confirmed
+  applied, a new override was confirmed to require a full fresh resolve (not
+  an incremental one), and that fresh resolve was confirmed to trade three
+  dispositioned highs for one undispositionable critical plus four new highs —
+  still true today, unchanged from ITEM-0123's measurement two days earlier.
+  Closed DONE; ITEM-0123's DEFERRED disposition on the multer advisory itself
+  stands.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 

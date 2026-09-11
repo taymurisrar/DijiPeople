@@ -1,7 +1,7 @@
 # Component Index
 
-> **Last verified:** 2026-09-09
-> **Verified against commit:** 1c047768
+> **Last verified:** 2026-09-11
+> **Verified against commit:** e6e62dee
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -16,8 +16,8 @@ question an agent can answer by retrieval rather than by reading a directory.
 comment beside it is the reasoning; this document is a route to both. Every row
 carries `file`:`line` for that reason — read the source before changing it.
 
-**An export missing from here is undocumented, not absent.** 817 of
-1036 exports across these kits carry no
+**An export missing from here is undocumented, not absent.** 797 of
+1018 exports across these kits carry no
 doc-comment and are omitted rather than listed as bare names. That ratio is
 itself worth knowing: it is where a UI/UX or Frontend agent is working without
 stated rationale, and where adding one is worth more than a new abstraction.
@@ -125,12 +125,12 @@ re-derived on each run.
 
 Metadata-driven UI is the default. New modules are declared through `lib/runtime/` and rendered by the standard runtime pages; a bespoke page needs a stated reason in the plan.
 
-148 documented export(s); 568 undocumented export(s) omitted.
+150 documented export(s); 548 undocumented export(s) omitted.
 
 | Export | Kind | Used by | Where | What it is |
 |---|---|---|---|---|
 | `ChartEmpty` | component | 7 | `apps/web/app/components/charts/chart-chrome.tsx`:364 | What a chart shows when it has nothing to show. |
-| `ConfirmDialog` | component | 7 | `apps/web/app/components/feedback/confirm-dialog.tsx`:41 | This handled Escape but declared neither `role="dialog"` nor `aria-modal`, so it was not announced as a dialog, and Tab walked out of it into the page behind. |
+| `ConfirmDialog` | component | 6 | `apps/web/app/components/feedback/confirm-dialog.tsx`:41 | This handled Escape but declared neither `role="dialog"` nor `aria-modal`, so it was not announced as a dialog, and Tab walked out of it into the page behind. |
 | `ChartSurface` | component | 4 | `apps/web/app/components/charts/chart-chrome.tsx`:146 | The SVG canvas. `role` is deliberately conditional. |
 | `ChartCategoryAxis` | component | 3 | `apps/web/app/components/charts/chart-chrome.tsx`:238 | Category labels along the bottom. |
 | `ChartValueGrid` | component | 3 | `apps/web/app/components/charts/chart-chrome.tsx`:182 | Horizontal gridlines and their value labels. |
@@ -150,17 +150,17 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `WorkspaceEnvironmentBanner` | component | 1 | `apps/web/app/components/workspace-environment-banner.tsx`:38 | A persistent marker on non-production workspaces. |
 | `WorkspaceContextLabel` | component | 0 | `apps/web/app/components/workspace-environment-banner.tsx`:66 | The workspace label for the app shell. |
 | `useFormattingContext` | function | 19 | `apps/web/app/components/filters/use-formatting-context.ts`:28 | The tenant's formatting context, safe to use during render. |
-| `useDialogBehavior` | function | 16 | `apps/web/app/components/ui/dialog.tsx`:130 | The behaviour half of {@link Dialog}, on its own. |
+| `useDialogBehavior` | function | 15 | `apps/web/app/components/ui/dialog.tsx`:130 | The behaviour half of {@link Dialog}, on its own. |
 | `formatChartValue` | function | 10 | `apps/web/app/components/charts/chart-format.ts`:47 | Render one measured number the way the tenant has asked for numbers to be rendered. |
 | `hasChartData` | function | 8 | `apps/web/app/components/charts/chart-types.ts`:97 | `true` when there is nothing to draw: no series, or every series empty. |
-| `pointAccessibleLabel` | function | 6 | `apps/web/app/components/charts/chart-format.ts`:128 | The accessible name for a single plotted point — the BUG-2148 countermeasure. |
+| `pointAccessibleLabel` | function | 6 | `apps/web/app/components/charts/chart-format.ts`:176 | The accessible name for a single plotted point — the BUG-2148 countermeasure. |
 | `seriesColor` | function | 6 | `apps/web/app/components/charts/chart-tokens.ts`:62 | Colour for the series (or slice) at `index`, wrapping when there are more series than colours. |
 | `activateOnKey` | function | 4 | `apps/web/app/components/charts/chart-chrome.tsx`:392 | Keyboard activation for a plotted point. |
 | `analyticsFilterHref` | function | 4 | `apps/web/app/components/filters/analytics-search-params.ts`:207 | Build an href, omitting the `?` when there is nothing to put after it — `/reports/attendance?` is an ugly URL that also breaks naive link equality checks in navigation highlighting. |
 | `applyAnalyticsFilters` | function | 4 | `apps/web/app/components/filters/analytics-search-params.ts`:149 | Apply changes to a query string, returning a new one. |
-| `formatShare` | function | 4 | `apps/web/app/components/charts/chart-format.ts`:98 | A proportion, rendered. |
+| `defaultPrimaryNameFieldForEntity` | function | 4 | `apps/web/lib/runtime/modules/entity-primary-name-field.ts`:18 | The primary display field for an entity a lookup can point at. |
 | `linearScale` | function | 4 | `apps/web/app/components/charts/chart-geometry.ts`:67 | A linear mapping from a data domain onto a pixel range. |
-| `pointActionAccessibleLabel` | function | 4 | `apps/web/app/components/charts/chart-format.ts`:164 | The accessible name for an interactive point. |
+| `pointActionAccessibleLabel` | function | 4 | `apps/web/app/components/charts/chart-format.ts`:212 | The accessible name for an interactive point. |
 | `readAnalyticsFilters` | function | 4 | `apps/web/app/components/filters/analytics-search-params.ts`:115 | Read the recognised filters out of a URL, ignoring everything else. |
 | `seriesExtent` | function | 4 | `apps/web/app/components/charts/chart-geometry.ts`:1197 | The `[min, max]` across every point of every series, always including zero. |
 | `buildLinePath` | function | 3 | `apps/web/app/components/charts/chart-geometry.ts`:552 | An SVG `d` for a polyline through `points`, in data space, mapped by the given scales. |
@@ -176,6 +176,8 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `buildApprovalRecord` | function | 2 | `apps/web/app/components/approvals/approval-record.ts`:15 | One approval, flattened into the shape the runtime record page reads. |
 | `buildAreaPath` | function | 2 | `apps/web/app/components/charts/chart-geometry.ts`:592 | The same shape, closed down to a baseline so it can be filled. |
 | `collapseToTopN` | function | 2 | `apps/web/app/components/charts/chart-geometry.ts`:791 | Sort descending and roll everything past the first `limit` into one bucket. |
+| `formatShare` | function | 2 | `apps/web/app/components/charts/chart-format.ts`:98 | A proportion, rendered. |
+| `formatShares` | function | 2 | `apps/web/app/components/charts/chart-format.ts`:140 | A whole breakdown's shares, rendered with one shared rounding rule. |
 | `periodLengthInDays` | function | 2 | `apps/web/app/components/filters/period.ts`:404 | Inclusive day count. A single-day period is 1, never 0. |
 | `activeAnalyticsFilterCount` | function | 1 | `apps/web/app/components/filters/analytics-search-params.ts`:196 | How many scope filters are narrowing the data. |
 | `buildQuickCreateValues` | function | 1 | `apps/web/lib/runtime/related-record-create-values.ts`:56 | The dialog's value map, in precedence order: declared inheritance from the parent, then the record being edited, then whatever the user has typed, then the parent foreign key — which is not the user's to change. |
@@ -198,14 +200,14 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `stackedExtent` | function | 1 | `apps/web/app/components/charts/chart-geometry.ts`:759 | The `[min, max]` a stacked chart's value axis must cover. |
 | `stackSeries` | function | 1 | `apps/web/app/components/charts/chart-geometry.ts`:686 | Turn parallel series into cumulative segments, one column per point key. |
 | `suggestedGranularity` | function | 1 | `apps/web/app/components/filters/period.ts`:489 | The bucket size a period should be charted at. |
-| `summarizeChartShape` | function | 1 | `apps/web/app/components/charts/chart-format.ts`:208 | A one-line summary of what a chart contains, for the caption beneath it. |
+| `summarizeChartShape` | function | 1 | `apps/web/app/components/charts/chart-format.ts`:256 | A one-line summary of what a chart contains, for the caption beneath it. |
 | `toLocalDateTimeInput` | function | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:399 | An ISO instant as a `datetime-local` input value, in the viewer's own zone. |
 | `validateDraft` | function | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:206 | Checks a draft before it is sent. |
 | `bucketByPeriod` | function | 0 | `apps/web/app/components/charts/chart-geometry.ts`:454 | Group dated measurements into calendar buckets, summing each bucket. |
 | `donutLegendItems` | function | 0 | `apps/web/app/components/charts/donut-chart.tsx`:185 | Legend entries for a donut, in the same order and with the same bucketing the chart used. |
 | `entryAttendanceDate` | function | 0 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:384 | The day the record belongs to, as YYYY-MM-DD. |
 | `fieldsFor` | function | 0 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:100 | The fields a given correction type actually uses. |
-| `formatTimeBucketLabel` | function | 0 | `apps/web/app/components/charts/chart-format.ts`:182 | A time bucket's axis label, in the tenant's date format where that is meaningful. |
+| `formatTimeBucketLabel` | function | 0 | `apps/web/app/components/charts/chart-format.ts`:230 | A time bucket's axis label, in the tenant's date format where that is meaningful. |
 | `formatValue` | function | 0 | `apps/web/app/components/dashboard/dashboard-widget-renderer.tsx`:540 | Exported only for `dashboard-widget-formatting.spec.ts` — `apps/web` has no jsdom, so this is the widest surface this app's jest can reach directly rather than reading the source for a string. |
 | `inferCorrectionType` | function | 0 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:435 | The correction this record most likely needs. |
 | `normalizeRange` | function | 0 | `apps/web/app/components/filters/period.ts`:298 | Put a pair of dates the right way round. |
@@ -221,13 +223,13 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `CHART_VIEWBOX_WIDTH` | constant | 3 | `apps/web/app/components/charts/chart-chrome.tsx`:39 | The nominal drawing width. |
 | `MAX_CHART_SLICES` | constant | 3 | `apps/web/app/components/charts/chart-tokens.ts`:157 | Beyond seven slices a ranked proportion chart stops ranking anything: the tail is a row of indistinguishable slivers and the legend is longer than the chart. |
 | `PERIOD_PRESET_OPTIONS` | constant | 3 | `apps/web/app/components/filters/period.ts`:90 | Labels for the preset dropdown. "This month", "This quarter" and "Year to date" are *to date* — they end today, not at the end of the calendar period. |
+| `MISSING_VALUE_TEXT` | constant | 2 | `apps/web/app/components/charts/chart-format.ts`:38 | What a missing or unmeasurable number reads as. |
 | `CHART_GRID_OPACITY` | constant | 1 | `apps/web/app/components/charts/chart-tokens.ts`:192 | Axis, gridline and baseline strokes. |
 | `CHART_PATTERN_OVERLAY` | constant | 1 | `apps/web/app/components/charts/chart-tokens.ts`:203 | The hatch drawn over a series colour to give it a shape as well as a hue. |
 | `COMMAND_ICON_CHOICES` | constant | 1 | `apps/web/lib/runtime/command-catalog.ts`:205 | Icons offered in the picker. |
 | `COMMAND_PLACEMENTS` | constant | 1 | `apps/web/lib/runtime/command-catalog.ts`:22 | Where an action bar shows up, in the words someone configuring it would use. "Scope" on its own told an administrator nothing about whether they were editing the toolbar above a list, the one on an open record, or the menu that appears once rows are ticked. |
 | `MAX_OVERTIME_MINUTES` | constant | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:297 | A day's worth. Beyond this the request is a data-entry error, not overtime. |
 | `MIN_VISIBLE_SHARE_PERCENT` | constant | 1 | `apps/web/app/components/charts/chart-tokens.ts`:183 | A slice worth 0.04% of the total is worth nothing at all on screen, but a zero-width bar reads as missing data rather than as a small value. |
-| `MISSING_VALUE_TEXT` | constant | 1 | `apps/web/app/components/charts/chart-format.ts`:38 | What a missing or unmeasurable number reads as. |
 | `OTHER_BUCKET_KEY` | constant | 1 | `apps/web/app/components/charts/chart-tokens.ts`:160 | Reserved key for the rolled-up tail. |
 | `REQUESTABLE_WORK_MODES` | constant | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:42 | Modes a single correction may request. |
 | `SCOPE_FILTER_PARAMS` | constant | 1 | `apps/web/app/components/filters/analytics-search-params.ts`:64 | The organisational narrowing parameters, as distinct from the period and the grouping. |
@@ -255,7 +257,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `ApprovalDecisionCapability` | type | 0 | `apps/web/app/components/approvals/approval-types.ts`:7 | What the caller may do with one approval, decided by the API from the module that raised it, the caller's permissions in that module, and whether the pending step is theirs. |
 | `AudienceOption` | type | 0 | `apps/web/app/components/runtime/visibility-rules-editor.tsx`:24 | One editor for audience rules, shared by every designer that gates a surface. |
 | `BaseChartProps` | type | 0 | `apps/web/app/components/charts/chart-types.ts`:63 | Props shared by every chart component in this directory. |
-| `ChartFrameProps` | type | 0 | `apps/web/app/components/charts/chart-frame.tsx`:35 | The wrapper that makes a chart a complete thing rather than a picture. |
+| `ChartFrameProps` | type | 0 | `apps/web/app/components/charts/chart-frame.tsx`:40 | The wrapper that makes a chart a complete thing rather than a picture. |
 | `CollapsedPoint` | type | 0 | `apps/web/app/components/charts/chart-geometry.ts`:773 | ------------------------------------------------------- ranked proportions |
 | `CommandContextSource` | type | 0 | `apps/web/lib/runtime/command-context-labels.ts`:14 | Labels for the context line a command surface shows above its form. |
 | `CommandFailureKind` | type | 0 | `apps/web/lib/runtime/command-failure-classification.ts`:23 | Whether a failed command is the product refusing, or the product breaking. |

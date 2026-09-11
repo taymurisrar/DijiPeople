@@ -7,17 +7,17 @@
 
 | | |
 |---|---|
-| Active sessions | **2** |
+| Active sessions | **0** |
 | Active parent tasks | 4 |
 | Active work packages | 4 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
-| Open CRITICAL | **0** |
-| Open HIGH | 36 |
-| Awaiting Architect triage | 5 |
-| Owner decisions pending | 6 |
+| Open CRITICAL | **6** |
+| Open HIGH | 88 |
+| Awaiting Architect triage | 116 |
+| Owner decisions pending | 1 |
 | QA coverage gaps | 142 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -30,12 +30,12 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 122 |
-| No next action | 122 |
-| Aging — 7d / 30d / 90d | 110 / 0 / 0 |
-| Architecture and technical debt | 9 |
-| Security gaps | 10 |
-| Database gaps | 9 |
+| No acceptance criteria | 233 |
+| No next action | 233 |
+| Aging — 7d / 30d / 90d | 101 / 0 / 0 |
+| Architecture and technical debt | 13 |
+| Security gaps | 58 |
+| Database gaps | 26 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -47,10 +47,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-| Session | Task | Title | Status | Branch | Target | Leases | Schema |
-|---|---|---|---|---|---|---|---|
-| [[SESSION-0097-durable-object-storage-move-persistent-files-to-cloudflare-r|SESSION-0097]] | — | Durable object storage: move persistent files to Cloudflare R2 (FILE-01/INF-05) | ACTIVE | `agent/r2-durable-storage` | `develop` | — | NO |
-| [[SESSION-0061-unblock-the-production-hosts-for-the-mcp-browser|SESSION-0061]] | — | Production admin E2E QA and invitation delivery visibility | ACTIVE | `agent/invitation-delivery-visibility` | `develop` | — | NO |
+_No session is currently registered as active._
 
 ## Active Tasks and Work Packages
 
@@ -101,19 +98,21 @@ what they own, and what the backlog and QA systems currently say.
 
 ## Open Critical
 
-_None. Nothing open at CRITICAL._
+| ID | Title | Type | Severity | Status | Affected | Architect |
+|---|---|---|---|---|---|---|
+| [[BUG-3110-a-live-production-database-password-sits-permanently-in-the-|BUG-3110]] | A live production database password sits permanently in the public git history | SECURITY | CRITICAL | OPEN | services/api | FIX_NOW |
+| [[BUG-3132-self-service-privilege-escalation-to-global-admin-via-post-u|BUG-3132]] | Self-service privilege escalation to GLOBAL_ADMIN via POST /users/:userId/roles | AUTHORIZATION | CRITICAL | OPEN | api:users | TRIAGE_REQUIRED |
+| [[BUG-3152-post-users-userid-roles-lets-a-delegated-role-assignment-adm|BUG-3152]] | POST /users/:userId/roles lets a delegated role-assignment admin self-grant GLOBAL_ADMIN | AUTHORIZATION | CRITICAL | FIXED | api:users/users.service.ts, api:users/users.controller.ts | DONE |
+| [[BUG-3153-production-had-no-persistent-disk-so-every-uploaded-hr-docum|BUG-3153]] | Production had no persistent disk, so every uploaded HR document was destroyed on the next deploy | INFRA | CRITICAL | OPEN | services/api/src/common, api:documents | TRIAGE_REQUIRED |
+| [[BUG-3154-employee-bank-accounts-ibans-cnics-and-tax-identifiers-are-s|BUG-3154]] | Employee bank accounts, IBANs, CNICs and tax identifiers are stored in plaintext beside an unused AES-256-GCM service | DATA_INTEGRITY | CRITICAL | OPEN | api:employees, api:compensation | TRIAGE_REQUIRED |
+| [[BUG-3155-fieldsecurityrule-masking-is-enforced-only-in-the-browser-th|BUG-3155]] | FieldSecurityRule masking is enforced only in the browser; the API sends the unmasked value | AUTHORIZATION | CRITICAL | OPEN | api:employees | TRIAGE_REQUIRED |
 
 ## Owner Decisions Pending
 
 Questions where the engineering is understood and the **product answer is**
 **not**. No agent may resolve one by implementing a side of it.
 
-- [[BUG-2509-platform-admin-remember-me-has-no-policy-able-to-refuse-it|BUG-2509]] — **Platform admin remember-me has no policy able to refuse it**
-- [[ITEM-0106-an-employee-cannot-use-self-service-until-their-manager-acti|ITEM-0106]] — **An employee cannot use self-service until their manager activates their own account**
-- [[ITEM-0115-provisioning-seeds-four-departments-with-no-business-unit-on|ITEM-0115]] — **Provisioning seeds four departments with no business unit on every tenant**
-- [[ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle|ITEM-0108]] — **Decide whether the roughly one-hour session lifetime is idle or absolute**
-- [[BUG-2007-projects-and-customers-can-be-created-but-never-deleted|BUG-2007]] — **Projects and customers can be created but never deleted**
-- [[ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-|ITEM-0114]] — **The workspace shell states the tenant's identity four times and its purpose twice**
+- [[ITEM-0131-production-hr-and-payroll-data-has-no-backup-the-database-is|ITEM-0131]] — **Production HR and payroll data has no backup: the database is on the Neon free plan**
 
 ## QA Coverage Gaps
 
@@ -269,11 +268,11 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 123 |
+| Open total | 233 |
 | Blocked | 2 |
 | Deferred | 29 |
-| Awaiting a product decision | 6 |
-| Awaiting Architect triage | 5 |
+| Awaiting a product decision | 1 |
+| Awaiting Architect triage | 116 |
 
 **A record nobody has triaged is work nobody has decided about.** No ordinary record may stay `TRIAGE_REQUIRED` at the end of a task.
 

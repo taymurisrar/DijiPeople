@@ -20,6 +20,7 @@ import { SeatUsageService } from './services/seat-usage.service';
 import { CustomerIdentityService } from './services/customer-identity.service';
 import { TaxBasisService } from './services/tax-basis.service';
 import { SubscriptionOrderService } from './services/subscription-order.service';
+import { SubscriptionOrderSweeperWorker } from './services/subscription-order-sweeper.worker';
 import { SeatChangeService } from './services/seat-change.service';
 import { PlanChangeService } from './services/plan-change.service';
 import { OrderActivationService } from './services/order-activation.service';
@@ -63,6 +64,9 @@ import { ReconciliationService } from './services/reconciliation.service';
     CustomerIdentityService,
     TaxBasisService,
     SubscriptionOrderService,
+    // BUG-2618: abandonExpired had no caller anywhere in the running
+    // application. This is the runner.
+    SubscriptionOrderSweeperWorker,
     OwnerEmailVerificationService,
     SeatChangeService,
     PlanChangeService,

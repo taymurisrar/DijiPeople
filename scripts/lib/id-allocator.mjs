@@ -28,6 +28,15 @@
  * merge conflict in a durable record, and then a renumber that invalidates
  * every link pointing at it.
  *
+ * A `--session` is validated against the durable session records the same way
+ * — before the reservation, not after — for the same reason: SESSION-0029 was
+ * accepted and stamped into a reservation an hour before the record naming it
+ * existed, which is how the ledger came to attribute REG-173 to a session that
+ * did not exist yet when the id was taken (ITEM-0074). A directory scan of the
+ * current worktree cannot see a session record committed only on another
+ * branch, so this reuses the same all-refs scan `namesInRefs` already performs
+ * for record ids, rather than adding a second, narrower notion of "exists".
+ *
  * No dependencies.
  */
 
@@ -195,6 +204,70 @@ function contentRevisions(root, path) {
   return bodies;
 }
 
+// ------------------------------------------------------------- session check
+
+/** Where durable session records live — see `scripts/lib/session-records.mjs`. */
+const SESSION_DIR = 'docs/sessions';
+const SESSION_GENERATED = new Set(['index.md', 'active.md', 'completed.md', 'README.md']);
+
+/**
+ * Whether a `SESSION-nnnn` id names a real durable session record, anywhere —
+ * the working tree or any ref, exactly like `namesInRefs` does for ordinary
+ * ids. Deliberately not imported from `session-records.mjs`: that module
+ * imports `allocateId` from this one to reserve session ids, and a session
+ * record's own filename (`SESSION-0029-<slug>.md`) is discovered by prefix
+ * rather than parsed, so this stays a plain filename check with no risk of a
+ * circular import or a dependency on the record's frontmatter shape.
+ */
+export function sessionRecordExists(root, sessionId) {
+  if (!sessionId) return true; // nothing to validate — allocateId treats '' as "no session".
+
+  const matchesId = (name) => name.startsWith(`${sessionId}-`) && !SESSION_GENERATED.has(name);
+
+  for (const name of namesInWorkingTree(root, SESSION_DIR)) {
+    if (matchesId(name)) return true;
+  }
+  for (const name of namesInRefs(root, [SESSION_DIR])) {
+    const base = name.replace(/\\/g, '/').split('/').pop() ?? '';
+    if (matchesId(base)) return true;
+  }
+  return false;
+}
+
+/**
+ * ITEM-0074, decision (2), recorded in ADR-0006: an `agent/*` branch with no
+ * registered session **warns**, it does not block. A quick fix on a branch is
+ * legitimate, and the id allocator is the first durable write the branch
+ * makes, so a warning here is the earliest point that could have caught
+ * SESSION-0029 — within seconds, not at close-out an hour later.
+ *
+ * Scans the current worktree only (not every ref): the branch's own session
+ * record, if it registered one, was written into this same worktree.
+ */
+function currentBranchHasNoSession(root) {
+  let branch = '';
+  try {
+    branch = git(root, ['rev-parse', '--abbrev-ref', 'HEAD']);
+  } catch {
+    return false; // no git, or detached — nothing to warn about.
+  }
+  if (!branch || !branch.startsWith('agent/')) return false;
+
+  for (const name of namesInWorkingTree(root, SESSION_DIR)) {
+    if (SESSION_GENERATED.has(name)) continue;
+    const full = join(root, SESSION_DIR, name);
+    let text = '';
+    try {
+      text = readFileSync(full, 'utf8');
+    } catch {
+      continue;
+    }
+    const match = text.match(/^TASK_BRANCH:\s*(.+?)\s*$/m);
+    if (match && match[1].trim() === branch) return false;
+  }
+  return true;
+}
+
 // ---------------------------------------------------------------- reservations
 
 export function readReservations(root) {
@@ -287,6 +360,20 @@ export function formatId(kind, number, { scope = '' } = {}) {
  */
 export function allocateId(root, kind, { scope = '', sessionId = '', note = '' } = {}) {
   if (!ID_KINDS[kind]) throw new Error(`unknown id kind: ${kind}`);
+  if (sessionId && !sessionRecordExists(root, sessionId)) {
+    throw new Error(
+      `--session ${sessionId} names no record under ${SESSION_DIR} — ` +
+        'register the session first (node scripts/session.mjs start …) or omit --session. ' +
+        'A reservation is never stamped with a session id nothing can later resolve.',
+    );
+  }
+  if (!sessionId && kind !== 'session' && currentBranchHasNoSession(root)) {
+    console.warn(
+      `warning: allocating a ${kind} id on an agent/* branch with no registered session ` +
+        '(ADR-0006 / ITEM-0074) — run node scripts/session.mjs start, or pass --session, ' +
+        'so leases and "session check --paths" can see this branch.',
+    );
+  }
 
   return withLock(
     root,

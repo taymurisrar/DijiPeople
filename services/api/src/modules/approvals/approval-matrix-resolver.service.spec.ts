@@ -361,6 +361,136 @@ describe('ApprovalMatrixResolverService', () => {
       expect(route[0].candidateUserIds).toEqual(['manager-user']);
     });
   });
+
+  /*
+   * ITEM-0106 - the product owner's decision on the onboarding block: accept
+   * an invited reporting manager as an approver, and fall back to the rest of
+   * the approval matrix when there is no active or invited manager to route
+   * to at all. BUG-1968's "refuse, but say what is missing" policy stays for
+   * a chain with nothing else to fall back on - dropping the manager step is
+   * only safe when something else in the chain can carry the request.
+   */
+  describe('ITEM-0106 - an invited or unassigned reporting manager does not block a chain with an alternative', () => {
+    it('accepts an invited reporting manager as an approver', async () => {
+      const repository = repositoryMock([
+        matrix({ sequence: 1, approverType: ApprovalActorType.LINE_MANAGER }),
+      ]);
+      const resolver = new ApprovalMatrixResolverService(repository as never);
+
+      const route = await resolver.resolveApprovalRoute({
+        tenantId: 'tenant-1',
+        moduleKey: ApprovalModuleKey.LEAVE_REQUEST,
+        recordType: 'leaveRequest',
+        requesterEmployee: {
+          id: 'employee-1',
+          manager: { id: 'manager-employee', userId: 'invited-manager' },
+        },
+        scopeContext: { employeeId: 'employee-1' },
+        conditionContext: {},
+      });
+
+      // The widened predicate, not the ACTIVE-only one, decides this step.
+      expect(repository.findApprovableManagerById).toHaveBeenCalledWith(
+        'tenant-1',
+        'invited-manager',
+      );
+      expect(repository.findUserById).not.toHaveBeenCalled();
+      expect(route[0]?.candidateUserIds).toEqual(['invited-manager']);
+    });
+
+    it('falls back to the rest of the chain when the employee has no manager assigned', async () => {
+      const repository = repositoryMock([
+        matrix({ sequence: 1, approverType: ApprovalActorType.LINE_MANAGER }),
+        matrix({
+          id: 'hr-step',
+          sequence: 2,
+          approverType: ApprovalActorType.ROLE,
+          approverRoleId: 'hr-role',
+        }),
+      ]);
+      repository.findActiveUsersByRoleId.mockResolvedValue([{ id: 'hr-1' }]);
+      const resolver = new ApprovalMatrixResolverService(repository as never);
+
+      const route = await resolver.resolveApprovalRoute({
+        tenantId: 'tenant-1',
+        moduleKey: ApprovalModuleKey.LEAVE_REQUEST,
+        recordType: 'leaveRequest',
+        requesterEmployee: { id: 'employee-1', manager: null },
+        scopeContext: { employeeId: 'employee-1' },
+        conditionContext: {},
+      });
+
+      // Only the HR step routes; the unassigned manager step is dropped, not
+      // refused, because the chain had somewhere else to send the request.
+      expect(route).toHaveLength(1);
+      expect(route[0]?.candidateUserIds).toEqual(['hr-1']);
+    });
+
+    it('falls back to the rest of the chain when the assigned manager is not active or invited', async () => {
+      const repository = repositoryMock([
+        matrix({ sequence: 1, approverType: ApprovalActorType.LINE_MANAGER }),
+        matrix({
+          id: 'hr-step',
+          sequence: 2,
+          approverType: ApprovalActorType.ROLE,
+          approverRoleId: 'hr-role',
+        }),
+      ]);
+      repository.findApprovableManagerById.mockResolvedValue(null);
+      repository.findActiveUsersByRoleId.mockResolvedValue([{ id: 'hr-1' }]);
+      const resolver = new ApprovalMatrixResolverService(repository as never);
+
+      const route = await resolver.resolveApprovalRoute({
+        tenantId: 'tenant-1',
+        moduleKey: ApprovalModuleKey.LEAVE_REQUEST,
+        recordType: 'leaveRequest',
+        requesterEmployee: {
+          id: 'employee-1',
+          manager: { id: 'manager-employee', userId: 'disabled-manager' },
+        },
+        scopeContext: { employeeId: 'employee-1' },
+        conditionContext: {},
+      });
+
+      expect(route).toHaveLength(1);
+      expect(route[0]?.candidateUserIds).toEqual(['hr-1']);
+    });
+
+    it('still refuses when no manager exists and nothing else in the chain resolves either', async () => {
+      const repository = repositoryMock([
+        matrix({ sequence: 1, approverType: ApprovalActorType.LINE_MANAGER }),
+        matrix({
+          id: 'hr-step',
+          sequence: 2,
+          approverType: ApprovalActorType.ROLE,
+          approverRoleId: 'hr-role',
+        }),
+      ]);
+      repository.findActiveUsersByRoleId.mockResolvedValue([]);
+      const resolver = new ApprovalMatrixResolverService(repository as never);
+
+      let response: { code: string; message: string } | undefined;
+      try {
+        await resolver.resolveApprovalRoute({
+          tenantId: 'tenant-1',
+          moduleKey: ApprovalModuleKey.LEAVE_REQUEST,
+          recordType: 'leaveRequest',
+          requesterEmployee: { id: 'employee-1', manager: null },
+          scopeContext: { employeeId: 'employee-1' },
+          conditionContext: {},
+        });
+      } catch (error) {
+        response = (
+          error as { getResponse: () => { code: string; message: string } }
+        ).getResponse();
+      }
+
+      expect(response?.code).toBe('APPROVAL_ROUTE_UNRESOLVED');
+      // Both steps failed and neither had an alternative, so both are named.
+      expect(response?.message).toContain('Step 1');
+      expect(response?.message).toContain('Step 2');
+    });
+  });
 });
 
 function matrix(overrides: Record<string, unknown> = {}) {
@@ -412,6 +542,11 @@ function repositoryMock(matrices: unknown[]) {
     findRoleByKey: jest.fn(),
     findActiveUsersByRoleId: jest.fn(),
     findUserById: jest
+      .fn()
+      .mockImplementation((_tenantId: string, userId: string) => ({
+        id: userId,
+      })),
+    findApprovableManagerById: jest
       .fn()
       .mockImplementation((_tenantId: string, userId: string) => ({
         id: userId,

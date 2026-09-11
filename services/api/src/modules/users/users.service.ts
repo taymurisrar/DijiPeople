@@ -305,30 +305,7 @@ export class UsersService {
       throw new BadRequestException('Inactive roles cannot be assigned.');
     }
 
-    const actor = await this.findByIdWithAccess(actorId);
-    const actorEffectiveRoleKeys = actor
-      ? this.resolveEffectiveRoles(actor).map((role) => role.key)
-      : [];
-
-    const canAssignPrivilegedRoles =
-      ownership.isActorOwner ||
-      actorEffectiveRoleKeys.includes(ROLE_KEYS.SYSTEM_ADMIN);
-
-    if (!canAssignPrivilegedRoles && roles.some((role) => role.isSystem)) {
-      throw new ForbiddenException(
-        'Only tenant owners and system administrators can assign system roles.',
-      );
-    }
-
-    const includesGlobalAdministrator = roles.some(
-      (role) => role.key === ROLE_KEYS.GLOBAL_ADMIN,
-    );
-
-    if (includesGlobalAdministrator && !ownership.isTargetOwner) {
-      throw new ForbiddenException(
-        'Global Administrator can only be assigned to the tenant owner.',
-      );
-    }
+    await this.assertRoleGrantWithinActorAuthority(actorId, ownership, roles);
 
     if (ownership.isTargetOwner) {
       const globalAdministrator = await this.rolesRepository.findByKeyAndTenant(
@@ -614,6 +591,18 @@ export class UsersService {
     if (!role[0].isActive) {
       throw new BadRequestException('Inactive roles cannot be assigned.');
     }
+    // AUTHZ-01: this endpoint used to grant any role, including
+    // GLOBAL_ADMIN, to any user in the tenant with no escalation check at
+    // all — the same permission pair the bulk `assignRoles` endpoint
+    // requires, but only `assignRoles` enforced who may hold that
+    // permission safely. Both now call the one shared guard so they cannot
+    // drift apart again.
+    const ownership = await this.getTenantOwnershipContext(
+      tenantId,
+      actorId,
+      userId,
+    );
+    await this.assertRoleGrantWithinActorAuthority(actorId, ownership, role);
     try {
       const row = await this.usersRepository.addUserRole(
         tenantId,
@@ -1156,6 +1145,59 @@ export class UsersService {
       isActorOwner: ownerUserId === actorUserId,
       isTargetOwner: ownerUserId === targetUserId,
     };
+  }
+
+  /**
+   * AUTHZ-01. The escalation rules that make `users.assign-roles` +
+   * `USERS:assign` safe to grant to a delegated "assign roles" admin, in one
+   * place both role-grant endpoints call.
+   *
+   * Before this, `PUT :userId/roles` (`assignRoles`, a full replace)
+   * enforced these rules and `POST :userId/roles` (`addRole`, granting one
+   * additional role) did not — despite requiring the identical permission
+   * pair, so `PermissionsGuard` treated them as equally sensitive while only
+   * one service actually was. That let any actor holding
+   * `users.assign-roles` grant themselves (or anyone) `GLOBAL_ADMIN`
+   * unconditionally through the endpoint nobody had guarded. A second,
+   * independent copy of this logic is exactly how the two drifted apart the
+   * first time — hence one method, called from both, and a spec
+   * (`users.service.spec.ts`) that fails if either path stops calling it.
+   *
+   * Deliberately does **not** cover the "tenant owner cannot be downgraded
+   * from Global Administrator" check in `assignRoles` — that check is about
+   * a full role-set *replacement* silently dropping a role the owner already
+   * holds, which has no equivalent when only adding one role, and stays
+   * local to `assignRoles`.
+   */
+  private async assertRoleGrantWithinActorAuthority(
+    actorId: string,
+    ownership: { isActorOwner: boolean; isTargetOwner: boolean },
+    roles: Array<{ isSystem: boolean; key: string }>,
+  ): Promise<void> {
+    const actor = await this.findByIdWithAccess(actorId);
+    const actorEffectiveRoleKeys = actor
+      ? this.resolveEffectiveRoles(actor).map((role) => role.key)
+      : [];
+
+    const canAssignPrivilegedRoles =
+      ownership.isActorOwner ||
+      actorEffectiveRoleKeys.includes(ROLE_KEYS.SYSTEM_ADMIN);
+
+    if (!canAssignPrivilegedRoles && roles.some((role) => role.isSystem)) {
+      throw new ForbiddenException(
+        'Only tenant owners and system administrators can assign system roles.',
+      );
+    }
+
+    const includesGlobalAdministrator = roles.some(
+      (role) => role.key === ROLE_KEYS.GLOBAL_ADMIN,
+    );
+
+    if (includesGlobalAdministrator && !ownership.isTargetOwner) {
+      throw new ForbiddenException(
+        'Global Administrator can only be assigned to the tenant owner.',
+      );
+    }
   }
 
   private assertUserAccessChangeAllowed(ownership: { isTargetOwner: boolean }) {

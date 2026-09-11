@@ -241,6 +241,8 @@ process* also drains the resulting queue.
 | `REPORTS_SCHEDULER_POLL_INTERVAL_MS` | optional | How often the scheduler looks for due schedules. Default 60000, minimum 15000. |
 | `REPORTS_WORKFORCE_SNAPSHOT_ENABLED` | optional | Runs the daily workforce snapshot, which is what makes headcount history true going forward. Default off. |
 | `REPORTS_ARTIFACT_RETENTION_DAYS` | optional | How long a generated report export stays downloadable before it is swept. Default 7. |
+| `SUBSCRIPTION_ORDER_SWEEPER_ENABLED` | API | no — defaults off | `true` starts the poll loop (BUG-2618) that ages `PENDING_PAYMENT` orders past their 24-hour TTL to `ABANDONED` and releases their `submissionHash`/`requestedSlug` holds. Off by default for the same reason `OUTBOX_WORKER_ENABLED` is. At least one deployed instance must set it, or an abandoned checkout's workspace address is unpurchasable forever. |
+| `SUBSCRIPTION_ORDER_SWEEPER_POLL_INTERVAL_MS` | API | optional | Poll interval. Defaults to 900000 (15 minutes), floored at 60000. |
 
 Running the worker on more than one instance is safe — claims use
 `FOR UPDATE SKIP LOCKED`, so each event goes to exactly one dispatcher — but

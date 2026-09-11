@@ -138,6 +138,25 @@ export class ApprovalMatrixRepository {
   }
 
   /**
+   * The reporting-manager predicate, widened to include `INVITED`.
+   *
+   * ITEM-0106: provisioning a manager's system access creates an `INVITED`
+   * user, and until that manager clicks their invitation link, `findUserById`'s
+   * `ACTIVE`-only filter blocked every one of their reports from submitting
+   * leave — a whole team stuck behind one unread email, which is exactly the
+   * window a new tenant's onboarding lives in. An invited account is real,
+   * belongs to this tenant, and names who will approve once they sign in; a
+   * `DISABLED` account was deliberately turned off and stays excluded. Used
+   * only for the reporting-manager approver type — every other approver type
+   * keeps the strict `ACTIVE` filter.
+   */
+  findApprovableManagerById(tenantId: string, id: string) {
+    return this.prisma.user.findFirst({
+      where: { tenantId, id, status: { in: ['ACTIVE', 'INVITED'] } },
+    });
+  }
+
+  /**
    * The same user, without the `ACTIVE` filter.
    *
    * `findUserById` answers "may this user be routed an approval right now",

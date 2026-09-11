@@ -131,8 +131,16 @@ services:
       # hostname arrives in X-Forwarded-Host. Only set this where a proxy is
       # genuinely in front: on a directly reachable API it would let any caller
       # name any workspace.
+      #
+      # SECURITY (RATE-01 / INF-06): the value is the real hop count, not a
+      # boolean. This deployment sits behind two real hops — Cloudflare, then
+      # Render's own edge — each of which appends to X-Forwarded-For. Code that
+      # reads that header (client-ip.ts) indexes from the right by exactly this
+      # many positions; "true" (1 hop) under-counts Cloudflare's append and lets
+      # an attacker's forged leftmost entry be believed as the client. Change
+      # this only together with a re-verification of the live header shape.
       - key: TRUST_PROXY_HEADERS
-        value: "true"
+        value: "2"
       # Required in production: SecretEncryptionService refuses to start
       # without it rather than storing integration credentials in plaintext.
       # Set the value in the Render dashboard; never commit it.
@@ -204,6 +212,15 @@ services:
       # forever; these do not.
       - key: REPORTS_ARTIFACT_RETENTION_DAYS
         value: "7"
+      # BUG-2618: an unpaid checkout order held its workspace address and its
+      # submission hash forever because nothing ever called abandonExpired.
+      # This ages PENDING_PAYMENT orders out and releases both once they pass
+      # their 24-hour TTL. Off by default like the other two workers above;
+      # exactly one deployed service should have it true.
+      - key: SUBSCRIPTION_ORDER_SWEEPER_ENABLED
+        value: "true"
+      - key: SUBSCRIPTION_ORDER_SWEEPER_POLL_INTERVAL_MS
+        value: "900000"
       # When exceeding purchased capacity is ordinary, warned, or stopped for a
       # human. The review thresholds exist for the import accident: 20 -> 22 is
       # hiring, 20 -> 900 overnight is a bad CSV, and billing the second one

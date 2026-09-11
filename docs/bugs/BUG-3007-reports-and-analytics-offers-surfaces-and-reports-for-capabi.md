@@ -2,7 +2,7 @@
 ID: BUG-3007
 aliases: [BUG-3007]
 Title: Reports and Analytics offers surfaces and reports for capabilities the plan does not include
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: AUTHORIZATION
@@ -13,13 +13,13 @@ AffectedModules: [apps/web, services/api/src/modules/reporting]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-398
 RelatedBacklogItem:
 RelatedDecision: ADR-0005
 RelatedImplementation:
 CreatedAt: 2026-09-09
-UpdatedAt: 2026-09-09
-ResolvedAt:
+UpdatedAt: 2026-09-11
+ResolvedAt: 2026-09-11
 ---
 
 # BUG-3007 — Reports and Analytics offers surfaces and reports for capabilities the plan does not include
@@ -169,11 +169,88 @@ None. The capability keys and the resolver both exist and are live in production
 
 ## Resolution
 
-Open. No fix has been written.
+Fixed on `agent/cs-s1-openbugs`, following BUG-2958's mechanism exactly, as
+directed: an explicit attribution from every item to one capability key, held
+apart from the item registry so a spec can compare the two structures.
+
+- `services/api/src/modules/reporting/semantic/report-source-entitlements.ts`
+  (new) — `REPORT_SOURCE_ENTITLEMENTS`, attributing each of the twelve
+  registered data sources to a `TenantFeatureKey` (`workforce` and
+  `workforce_history` to `employees`, `attendance` to `attendance`, the three
+  leave sources to `leave`, the four recruitment sources to `recruitment`, and
+  the two desktop sources to `desktop-agent`), plus `isReportSourceEntitled`,
+  the same shape as `isSettingsItemEntitled`.
+- `services/api/src/modules/reporting/execution/analytics.service.ts` —
+  `AnalyticsService` now injects `FeatureAccessService` (already exported by
+  `TenantSettingsModule`, which this module already imports) and resolves the
+  tenant's `enabledKeys` once per request. Two call sites changed:
+  - `catalog()` filters `listDataSources()` by `isReportSourceEntitled` in
+    addition to the existing `scope.hasAnyAccess` permission check. Every
+    consumer of `/reporting/catalog` inherits this for free — the layout's
+    section list, the overview, the report library (`ReportExecutionService
+    .library()` already filters standard and custom reports by the catalog's
+    reachable source keys) and the `analytics/[surface]` pages all read this
+    one response, exactly as the record's Proposed Resolution asked.
+  - `resolveSource()` — the choke point `query()` and `records()` both call
+    for real execution, previously permission-only — now also throws
+    `TENANT_FEATURE_NOT_ENTITLED` ("Not included in your plan", the same code
+    and copy `EntitlementGuard` uses for BUG-1952) when the source is not
+    entitled. This closes a gap the record's own Impact section had not
+    checked: before this change, a caller who already knew a source or
+    standard-report key could still execute it and receive real rows even
+    though the catalog would not have offered it — the record measured the
+    *offer* leaking, but the same missing check sat one layer below the
+    catalog too, on the only two methods that actually run a query.
+- The two comments the record quotes as "naming an enforcer that does not
+  exist" (`apps/web/.../reports/layout.tsx:17-19` and
+  `.../analytics-surfaces.ts:337-340`, plus a third at the top of the latter
+  file making the same claim) needed no correction: they describe the API
+  catalog as already permission- and entitlement-filtered, which is now true
+  rather than aspirational. Per AGENTS.md, a comment is corrected when it is
+  wrong; these became right.
+- No `apps/web` file changed. The web layer already resolves every surface,
+  section and library entry from `/reporting/catalog`'s reachable source
+  keys (confirmed by reading `reports/layout.tsx`, `analytics-surfaces.ts`'s
+  `resolveSurface`, and `report-execution.service.ts`'s `library()`), so
+  fixing the source once at the API removed the leak everywhere it was
+  reported without a second change.
+
+**Coverage.**
+`services/api/src/modules/reporting/semantic/report-source-entitlements.spec.ts`
+(new) asserts every registered source has an attribution and every
+attribution names a real source (the completeness half, mirroring
+`settings-entitlements.spec.ts`), and separately asserts `isReportSourceEntitled`
+against the Starter and Enterprise key sets from `plans.catalog.ts` — Starter
+holds `workforce`/`workforce_history`/`attendance`/the three leave sources and
+is refused all four recruitment sources and both desktop sources (the exact
+leak this record reported), Enterprise holds everything, and an empty
+entitlement set and an unattributed source key both deny. Mutation-tested by
+hand: forcing `isReportSourceEntitled` to return `true` unconditionally fails
+the Starter-refusal case; deleting the `recruitment_openings` entry from the
+map fails the coverage test rather than silently granting access.
+
+**What was not touched.** The `AccessDeniedState` copy an unentitled surface
+renders at `/reports/analytics/<surface>` ("None of the data behind {label}
+… is available to your role, or the modules it reports on are not enabled for
+this workspace") already existed and already covers this case in one sentence
+alongside the permission case; it was not replaced with a dedicated
+"not included in your plan" component the way BUG-2958 built
+`settings-plan-state.tsx`, because the record's acceptance criteria asks only
+that the two states be distinguishable, and a permission refusal and an
+entitlement refusal already render on different code paths with different
+copy. Building a second UI component for the same distinction settings
+already solved was judged out of the smallest correct scope for this fix;
+worth revisiting if product wants the two surfaces to look identical.
 
 ## QA Retest
 
-Awaiting a fix.
+Not retested live — no access to a deployed environment or the production
+Starter demo tenant from this branch. Automated coverage
+(`report-source-entitlements.spec.ts`, 8 cases) and the full reporting module
+suite (16 suites / 3936 tests, unchanged pass) are the evidence available
+here. A live pass against the Starter demo tenant — confirming `/reports`, the
+library and `/reports/analytics/recruitment` all now agree with the sidebar —
+is still owed, matching the reproduction steps in this record.
 
 ## History
 
@@ -183,11 +260,19 @@ Awaiting a fix.
 - 2026-09-09 — triaged FIX_NOW by the Architect for SESSION-0095. The decisions
   were all made in ADR-0005; this is the same gate applied to a third structure,
   and the third instance of a fix stopping at its own structure's edge.
+- 2026-09-11 — fixed on `agent/cs-s1-openbugs`: the reporting catalog and its
+  execution choke point (`resolveSource`) both now filter by
+  `REPORT_SOURCE_ENTITLEMENTS`, the same attribution-map-plus-coverage-spec
+  mechanism BUG-2958 used for settings. `RegressionId` set to `REG-398` — not
+  centrally reserved; chosen as the next unused integer after `REG-397`,
+  following the precedent BUG-1980 and BUG-2618 set for an unallocated
+  regression id.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
 ## Related
 
 - Modules — [[tenant-application]], [[reporting]]
+- Regression — REG-398 (see the regression register)
 
 <!-- GRAPH:END -->

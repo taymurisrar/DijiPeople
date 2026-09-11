@@ -11,7 +11,7 @@ Source: DEPLOYMENT
 OwnerAgent: release-devops
 ArchitectDisposition: PLAN_REQUIRED
 CreatedAt: 2026-08-15
-UpdatedAt: 2026-08-17
+UpdatedAt: 2026-09-11
 RelatedBug:
 RelatedQA:
 RelatedADR:
@@ -73,6 +73,18 @@ half is met; database reachability remains open.
 ## Dependencies
 
 None. [[ITEM-0010]] is complete, satisfying the explicit revisit trigger.
+
+## ExecPlan
+
+[`EXECPLAN-0032`](../../plans/EXECPLAN-0032-health-check-database-reachability.md)
+covers step 1 only (database reachability on the health check) — step 2
+(error aggregation) is out of scope for that plan and remains a separate,
+ADR-gated decision per this record's own Proposed Approach. Key finding while
+planning: the database probe must be wired into `main.ts`'s express bypass
+routes, not `AppService.getHealth()` — `AppController`/`AppService` are
+unreachable in production for `/`, `/api` and `/api/health` (BUG-0904), so a
+probe added to `AppService` alone would ship and do nothing, exactly as
+BUG-0904 did once already.
 
 ## Related Items
 

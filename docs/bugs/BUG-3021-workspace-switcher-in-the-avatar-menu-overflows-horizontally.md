@@ -2,7 +2,7 @@
 ID: BUG-3021
 aliases: [BUG-3021]
 Title: Workspace switcher in the avatar menu overflows horizontally and shows a scrollbar
-Status: OPEN
+Status: FIXED
 Severity: LOW
 Priority: P3
 Type: UX
@@ -13,13 +13,13 @@ AffectedModules: [apps/web]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-400
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-09
-UpdatedAt: 2026-09-09
-ResolvedAt:
+UpdatedAt: 2026-09-11
+ResolvedAt: 2026-09-11
 ---
 
 # BUG-3021 — Workspace switcher in the avatar menu overflows horizontally and shows a scrollbar
@@ -91,7 +91,15 @@ longer name for the same reason.
 
 ## Regression Coverage
 
-None yet.
+REG-400.
+`apps/web/app/components/workspace-switcher-overflow.spec.ts` — asserts the
+`<li>` grid item carries `min-w-0` and that the list declares
+`overflow-x-hidden` alongside its `overflow-y-auto`, plus that the name and
+hostname lines both still sit on a `min-w-0`/`truncate` element. A
+source-reading suite, matching the existing
+`workspace-switcher-placement.spec.ts` in the same directory — `apps/web` has
+no jsdom or testing library configured, so a rendered-layout measurement is
+not available here.
 
 ## Dependencies
 
@@ -104,16 +112,52 @@ None.
 
 ## Resolution
 
-Open. No fix has been written.
+Fixed on `agent/cs-s1-openbugs`. Root cause confirmed as the record guessed —
+"a truncation rule" and "the container permits horizontal overflow" — with
+the specific CSS mechanism identified:
+
+- `apps/web/app/components/workspace-switcher.tsx` — the "Switch workspace"
+  list is `display: grid`, and a `<li>` grid item defaults to
+  `min-width: auto`, which for grid track sizing means "at least the
+  min-content width". A `truncate` span forces `white-space: nowrap`, so its
+  min-content width is the *entire* unwrapped hostname — a 43-character one
+  (`qa-e2e-signup-b-20260826.ws.dijipeople.com`, the record's own repro)
+  widened the grid track to fit it, and the `truncate` ellipsis never had a
+  narrower box to clip against. Separately, the list declared
+  `overflow-y-auto` with no `overflow-x` at all; per the CSS overflow spec, a
+  non-`visible` `overflow-y` paired with a `visible` `overflow-x` computes the
+  x-axis to `auto` too, so the oversized row got its own independent
+  horizontal scrollbar that the dropdown's own `overflow-hidden` could not
+  suppress.
+- Fixed with `min-w-0` on each `<li>` (lets the grid track shrink to the
+  menu's actual width) and `overflow-x-hidden` added alongside the existing
+  `overflow-y-auto`. Both were needed together: `min-w-0` alone leaves the
+  scrollbar in place should another overflow source appear, and
+  `overflow-x-hidden` alone would have hidden the scrollbar while the row
+  still visually overflowed the menu.
+- "The tenant name above it" (the Proposed Resolution's second bullet) is
+  `workspace.name`, rendered directly above the hostname inside the same
+  `<li>`. It shares the identical grid-item ancestor, so the one fix covers
+  both lines — no second change was needed for it.
 
 ## QA Retest
 
-Awaiting a fix.
+Not retested live — no access to a deployed environment from this branch.
+The regression spec below is source-reading, by necessity (`apps/web` has no
+jsdom/testing-library); a live check with a hostname at least sixty
+characters long, as the record's own acceptance criteria asks for, is still
+owed.
 
 ## History
 
 - 2026-09-09 — reported by the user with a screenshot during the Reports &
   Analytics review.
+- 2026-09-11 — fixed on `agent/cs-s1-openbugs`: `min-w-0` on the list item and
+  `overflow-x-hidden` on the list, addressing both the grid-item sizing and
+  the CSS overflow-axis interaction that produced the scrollbar.
+  `RegressionId` set to `REG-400` — not centrally reserved; chosen as the
+  next unused integer after `REG-399`, following the same precedent the other
+  records in this branch used for an unallocated regression id.
 - 2026-09-09 — triaged FIX_NOW by the Architect for SESSION-0095: small, local,
   and on a control every user opens.
 
@@ -122,5 +166,6 @@ Awaiting a fix.
 ## Related
 
 - Modules — [[tenant-application]]
+- Regression — REG-400 (see the regression register)
 
 <!-- GRAPH:END -->

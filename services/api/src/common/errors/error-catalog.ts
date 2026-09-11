@@ -11,6 +11,7 @@ export type ErrorCategory =
   | 'user'
   | 'employee'
   | 'attendance'
+  | 'project'
   | 'validation'
   | 'database'
   | 'file'
@@ -337,6 +338,28 @@ export const ERROR_CATALOG = {
     'error',
     'employee',
   ),
+  /*
+   * BUG-2007 - projects and customers could be created but never deleted.
+   * The product decision was to add real delete rather than keep
+   * retire-by-status, refusing with a reasoned error instead of cascading
+   * away assignments, timesheet entries or cost allocations silently.
+   */
+  PROJECT_DELETE_HAS_DEPENDENTS: entry(
+    409,
+    'Project has dependent data',
+    'This project has assignments, timesheet entries or cost allocations tied to it and cannot be deleted. Remove or reassign those first, or cancel the project instead.',
+    'warning',
+    'project',
+    'Remove the assignments and other records linked to this project, or set its status to Cancelled instead of deleting it.',
+  ),
+  CUSTOMER_DELETE_HAS_DEPENDENTS: entry(
+    409,
+    'Customer has dependent projects',
+    'This customer has projects tied to it and cannot be deleted. Remove or reassign those projects first.',
+    'warning',
+    'project',
+    'Delete or reassign the projects linked to this customer before deleting it.',
+  ),
   VALIDATION_FAILED: entry(
     400,
     'Validation failed',
@@ -565,6 +588,28 @@ export const ERROR_CATALOG = {
     'No action needed — the provider will deliver it again.',
     true,
   ),
+  /*
+   * A Stripe customer or subscription that cannot be mapped to exactly one
+   * tenant (BUG-2462) — zero `CustomerAccount` matches, or more than one.
+   *
+   * Distinct from `VALIDATION_FAILED` for the same reason
+   * `INTEGRATION_EVENT_NOT_READY` is: redelivering this event can never
+   * resolve it, because nothing about Stripe retrying fixes an ambiguous or
+   * missing tenant mapping. `StripeWebhookController` matches on this code to
+   * acknowledge Stripe with `2xx` regardless, so the redelivery does not loop
+   * forever — the stored `StripeWebhookEvent` row is durable, `FAILED`, and
+   * queued for an operator instead. `retryable: false`: unlike the early-event
+   * race, an operator reconciling the customer is what fixes this, not time.
+   */
+  STRIPE_CUSTOMER_UNMAPPED: entry(
+    400,
+    'Stripe customer could not be mapped',
+    'This Stripe customer or subscription does not resolve to exactly one tenant.',
+    'error',
+    'integration',
+    'Reconcile the Stripe customer account, then retry the stored webhook event.',
+    false,
+  ),
   AGENT_HEARTBEAT_FAILED: entry(
     502,
     'Agent heartbeat failed',
@@ -749,6 +794,20 @@ export const ERROR_CATALOG = {
     'No published release matches the application, version, platform, architecture and channel given.',
     'error',
     'validation',
+  ),
+  // BUG-2888 — an externally hosted AGENT_DESKTOP release with no sha512 was
+  // accepted, listed and downloadable, and silently absent from the
+  // electron-updater feed for ever (`update-feed.service.ts` only ever
+  // advertises `checksumSha512: { not: null }`). Refusing at publish time turns
+  // that silent gap into an error the operator sees immediately, instead of one
+  // nobody notices until the second version ships.
+  RELEASE_SHA512_REQUIRED: entry(
+    400,
+    'Release cannot serve the update feed',
+    'AGENT_DESKTOP releases on the STABLE channel must carry a checksumSha512, or electron-updater will never see them — the update feed only advertises releases it can verify.',
+    'error',
+    'validation',
+    'Supply checksumSha512 (a 128-character hex SHA-512 digest) when publishing, or publish through the storage-backed CLI pipeline, which computes it automatically.',
   ),
   LEGAL_VERSION_NOT_FOUND: entry(
     404,

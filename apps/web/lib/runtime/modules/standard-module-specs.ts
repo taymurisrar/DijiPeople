@@ -230,6 +230,9 @@ export const customerRuntimeSpec: StandardModuleRuntimeSpec = {
     assign: PERMISSION_KEYS.CUSTOMERS_ASSIGN,
     share: PERMISSION_KEYS.CUSTOMERS_SHARE,
   },
+  // BUG-2007 - the delete permission existed with nothing to arm; the API now
+  // has a real DELETE route, refused when the customer still owns a project.
+  adapterCapabilities: { softDelete: true },
   lookupApiPaths: {
     countryId: "/api/lookups/countries",
     stateProvinceId: "/api/lookups/states",
@@ -446,7 +449,10 @@ export const projectRuntimeSpec: StandardModuleRuntimeSpec = {
     create: PERMISSION_KEYS.PROJECTS_CREATE,
     update: PERMISSION_KEYS.PROJECTS_UPDATE,
     assign: PERMISSION_KEYS.PROJECTS_ASSIGN,
+    // BUG-2007 - real delete, refused server-side when dependent data exists.
+    delete: PERMISSION_KEYS.PROJECTS_DELETE,
   },
+  adapterCapabilities: { softDelete: true },
   lookupApiPaths: {
     approvalManagerEmployeeId: "/api/employees",
     accountManagerEmployeeId: "/api/employees",

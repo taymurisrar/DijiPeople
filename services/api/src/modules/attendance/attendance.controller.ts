@@ -36,6 +36,7 @@ import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { AttendanceService } from './attendance.service';
 import { AuditService } from '../audit/audit.service';
 import { AttendanceCorrectionActionDto } from './dto/attendance-correction-action.dto';
+import { AttendanceCorrectionCancelDto } from './dto/attendance-correction-cancel.dto';
 import { AttendanceCorrectionQueryDto } from './dto/attendance-correction-query.dto';
 import { AttendanceQueryDto } from './dto/attendance-query.dto';
 import { AttendanceSummaryQueryDto } from './dto/attendance-summary-query.dto';
@@ -228,6 +229,16 @@ export class AttendanceController {
     return this.attendanceService.createCorrectionRequest(user, dto);
   }
 
+  // NOTE: declared before `correction-requests/:id` on purpose — Nest matches
+  // routes in declaration order, and `:id` carries a ParseUUIDPipe that would
+  // 400 on the literal segment "work-sites" if this came after it.
+  @Get('correction-requests/work-sites')
+  @Permissions('attendance.correction.create')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'create')
+  listMyCorrectionWorkSites(@CurrentUser() user: AuthenticatedUser) {
+    return this.attendanceService.listMyWorkSites(user);
+  }
+
   @Get('correction-requests/:id')
   @Permissions('dashboard.view')
   @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
@@ -258,6 +269,17 @@ export class AttendanceController {
     @Body() dto: AttendanceCorrectionActionDto,
   ) {
     return this.attendanceService.rejectCorrectionRequest(user, id, dto);
+  }
+
+  @Post('correction-requests/:id/cancel')
+  @Permissions('attendance.correction.create')
+  @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'create')
+  cancelCorrectionRequest(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: AttendanceCorrectionCancelDto,
+  ) {
+    return this.attendanceService.cancelCorrectionRequest(user, id, dto);
   }
 
   @Get('export')

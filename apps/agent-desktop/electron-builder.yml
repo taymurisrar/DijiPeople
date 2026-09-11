@@ -26,34 +26,41 @@ files:
   # anything active-win loads — verified by searching its index and lib for a
   # node-gyp reference and finding none.
   #
-  # tar is not excluded here. node-pre-gyp@1 depends on it, so removing it would
-  # break the require chain that finds the addon. Moving to node-pre-gyp@2 drops
-  # tar's whole chain and takes the critical with it; that upgrade is verified
-  # compatible and blocked by BUG-0163, not by this file.
-  # npmlog, gauge and are-we-there-yet are deliberately NOT excluded. They look
-  # like build tooling and arrive under node-gyp, but node-pre-gyp@1 declares
-  # npmlog as a hard dependency, so removing it makes
-  # `require('@mapbox/node-pre-gyp')` throw and the agent never finds its addon.
-  # The first version of this list did exclude them; a dependency-closure walk
-  # over the packaged archive caught it before the build shipped.
+  # tar ships and is required. BUG-0052's 2026-08-22 upgrade moved
+  # @mapbox/node-pre-gyp to 2.0.3, whose own nested tar (7.5.22, outside the
+  # advisory range) is what binary.find() actually loads at runtime. It is not
+  # excluded.
+  #
+  # node-gyp is build-only and excluded wholesale below. Under the old
+  # node-pre-gyp@1 / node-gyp@9 pairing, its chain (cacache, make-fetch-happen,
+  # @npmcli/*, @gar/*, @tootallnate/*, socks-proxy-agent, ssri, unique-filename,
+  # unique-slug, infer-owner, minipass-fetch/collect/flush/pipeline/sized) had to
+  # be listed one package at a time because some of it was hoisted to the top
+  # level. Under node-gyp@11.5.0 (this upgrade) every one of those now nests
+  # entirely inside node_modules/node-gyp/node_modules/, and @gar, @tootallnate
+  # and infer-owner are gone from the tree altogether — so
+  # `!node_modules/node-gyp/**` alone already removes all of it. The individual
+  # entries were verified to match nothing at the top level (ITEM-0077,
+  # 2026-09-11) and were removed rather than kept as decoration; re-check with a
+  # literal path search if node-gyp's dependency graph changes again.
+  #
+  # npmlog, gauge and are-we-there-yet were the historical trap: they look like
+  # build tooling and arrived under the old node-gyp, but node-pre-gyp@1 declared
+  # npmlog as a hard dependency, so excluding it made
+  # `require('@mapbox/node-pre-gyp')` throw and the agent never found its addon.
+  # A dependency-closure walk over the packaged archive caught it before the
+  # build shipped. node-pre-gyp@2 no longer depends on npmlog at all (it uses
+  # consola), so that specific trap is gone, but the lesson — exclude by
+  # verified closure, not by category — is why promise-retry/retry below were
+  # kept rather than dropped along with the rest.
+  #
+  # promise-retry and retry are still hoisted to the top level (they are a
+  # dependency of electron-builder's own @electron/notarize) and are not part of
+  # node-pre-gyp@2's runtime closure — confirmed absent from the extracted
+  # app.asar (ITEM-0077, 2026-09-11).
   - "!node_modules/node-gyp/**"
-  - "!node_modules/cacache/**"
-  - "!node_modules/make-fetch-happen/**"
-  - "!node_modules/@npmcli/**"
-  - "!node_modules/@gar/**"
-  - "!node_modules/socks-proxy-agent/**"
-  - "!node_modules/ssri/**"
-  - "!node_modules/unique-filename/**"
-  - "!node_modules/unique-slug/**"
-  - "!node_modules/infer-owner/**"
   - "!node_modules/promise-retry/**"
   - "!node_modules/retry/**"
-  - "!node_modules/minipass-fetch/**"
-  - "!node_modules/minipass-collect/**"
-  - "!node_modules/minipass-flush/**"
-  - "!node_modules/minipass-pipeline/**"
-  - "!node_modules/minipass-sized/**"
-  - "!node_modules/@tootallnate/**"
 
 extraResources:
   - from: .env

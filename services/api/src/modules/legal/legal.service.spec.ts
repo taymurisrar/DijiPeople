@@ -130,8 +130,19 @@ describe('LegalService', () => {
 
       await service.resolvePublished(LegalDocumentType.TERMS_OF_SERVICE, null);
 
-      const where =
-        prisma.legalDocument.findMany.mock.calls[0][0].select.versions.where;
+      const { where } = (
+        prisma.legalDocument.findMany.mock.calls[0][0] as {
+          select: {
+            versions: {
+              where: {
+                status: LegalDocumentVersionStatus;
+                effectiveFrom: unknown;
+                OR: unknown[];
+              };
+            };
+          };
+        }
+      ).select.versions;
       expect(where.status).toBe(LegalDocumentVersionStatus.PUBLISHED);
       expect(where.effectiveFrom).toHaveProperty('lte');
       expect(where.OR).toEqual([
@@ -186,6 +197,77 @@ describe('LegalService', () => {
     });
   });
 
+  describe('getVersionForAdministration', () => {
+    it('includes the currently published version for a draft, so the editor can diff', async () => {
+      prisma.legalDocumentVersion.findUnique.mockResolvedValue({
+        id: 'ver_draft',
+        version: 4,
+        status: LegalDocumentVersionStatus.DRAFT,
+        contentMarkdown: '# Privacy v4',
+        changeSummary: null,
+        effectiveFrom: null,
+        publishedAt: null,
+        document: { id: 'doc_1', slug: 'privacy', title: 'Privacy Policy' },
+      });
+      prisma.legalDocumentVersion.findFirst.mockResolvedValue({
+        version: 3,
+        contentMarkdown: '# Privacy v3',
+        publishedAt: new Date('2026-01-01'),
+      });
+
+      const result = await service.getVersionForAdministration('ver_draft');
+
+      expect(prisma.legalDocumentVersion.findFirst).toHaveBeenCalledWith({
+        where: {
+          legalDocumentId: 'doc_1',
+          status: LegalDocumentVersionStatus.PUBLISHED,
+        },
+        select: { version: true, contentMarkdown: true, publishedAt: true },
+      });
+      expect(result.previousPublished).toEqual({
+        version: 3,
+        contentMarkdown: '# Privacy v3',
+        publishedAt: new Date('2026-01-01'),
+      });
+    });
+
+    it('is null for a document that has never been published', async () => {
+      prisma.legalDocumentVersion.findUnique.mockResolvedValue({
+        id: 'ver_draft',
+        version: 1,
+        status: LegalDocumentVersionStatus.DRAFT,
+        contentMarkdown: '# Terms v1',
+        changeSummary: null,
+        effectiveFrom: null,
+        publishedAt: null,
+        document: { id: 'doc_2', slug: 'terms', title: 'Terms' },
+      });
+      prisma.legalDocumentVersion.findFirst.mockResolvedValue(null);
+
+      const result = await service.getVersionForAdministration('ver_draft');
+
+      expect(result.previousPublished).toBeNull();
+    });
+
+    it('never diffs a published version against itself', async () => {
+      prisma.legalDocumentVersion.findUnique.mockResolvedValue({
+        id: 'ver_pub',
+        version: 3,
+        status: LegalDocumentVersionStatus.PUBLISHED,
+        contentMarkdown: '# Privacy v3',
+        changeSummary: null,
+        effectiveFrom: new Date('2026-01-01'),
+        publishedAt: new Date('2026-01-01'),
+        document: { id: 'doc_1', slug: 'privacy', title: 'Privacy Policy' },
+      });
+
+      const result = await service.getVersionForAdministration('ver_pub');
+
+      expect(prisma.legalDocumentVersion.findFirst).not.toHaveBeenCalled();
+      expect(result.previousPublished).toBeNull();
+    });
+  });
+
   describe('publish', () => {
     it('archives the version in force and publishes the draft in one transaction', async () => {
       prisma.legalDocumentVersion.findUnique.mockResolvedValue({
@@ -204,7 +286,11 @@ describe('LegalService', () => {
 
       await service.publish('ver_new', 'platform_user_1');
 
-      const archive = prisma.legalDocumentVersion.updateMany.mock.calls[0][0];
+      const archive = prisma.legalDocumentVersion.updateMany.mock
+        .calls[0][0] as {
+        where: unknown;
+        data: { status: LegalDocumentVersionStatus };
+      };
       expect(archive.where).toMatchObject({
         legalDocumentId: 'doc_1',
         status: LegalDocumentVersionStatus.PUBLISHED,
@@ -213,7 +299,13 @@ describe('LegalService', () => {
       // Archived, never deleted — acknowledgements point at it.
       expect(archive.data.status).toBe(LegalDocumentVersionStatus.ARCHIVED);
 
-      const publish = prisma.legalDocumentVersion.update.mock.calls[0][0];
+      const publish = prisma.legalDocumentVersion.update.mock.calls[0][0] as {
+        data: {
+          status: LegalDocumentVersionStatus;
+          publishedByPlatformUser: string;
+          effectiveTo: Date | null;
+        };
+      };
       expect(publish.data.status).toBe(LegalDocumentVersionStatus.PUBLISHED);
       expect(publish.data.publishedByPlatformUser).toBe('platform_user_1');
       expect(publish.data.effectiveTo).toBeNull();
@@ -317,7 +409,10 @@ describe('LegalService', () => {
       expect(tx.legalDocumentAcknowledgement.create).toHaveBeenCalled();
       expect(prisma.legalDocumentAcknowledgement.create).not.toHaveBeenCalled();
 
-      const data = tx.legalDocumentAcknowledgement.create.mock.calls[0][0].data;
+      const { data } = tx.legalDocumentAcknowledgement.create.mock
+        .calls[0][0] as {
+        data: { subjectEmail: string };
+      };
       expect(data.subjectEmail).toBe('person@example.com');
     });
   });

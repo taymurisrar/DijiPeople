@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
@@ -90,5 +91,17 @@ export class CustomersController {
     @Body() dto: UpdateCustomerDto,
   ) {
     return this.customersService.update(user, customerId, dto);
+  }
+
+  // BUG-2007 - real delete, refused with a reasoned error when the customer
+  // still has projects tied to it.
+  @Delete(':customerId')
+  @Permissions('customers.delete')
+  @RequirePermission(ENTITY_KEYS.PROJECTS, 'delete')
+  remove(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('customerId', new ParseUUIDPipe()) customerId: string,
+  ) {
+    return this.customersService.remove(user, customerId);
   }
 }
