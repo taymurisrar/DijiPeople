@@ -9,7 +9,7 @@
 |---|---|
 | Open CRITICAL | **4** |
 | Open HIGH | **82** |
-| Open total | 167 |
+| Open total | 168 |
 | Blocked | 2 |
 | Awaiting a product decision | 7 |
 | Deferred | 92 |
@@ -574,6 +574,7 @@
 | [[BUG-3334-tenant-plan-listing-and-checkout-ignore-planprice-publicatio|BUG-3334]] | Tenant plan listing and checkout ignore PlanPrice publication status and market scoping | SECURITY | MEDIUM | OPEN | api:billing | FIX_NOW |
 | [[BUG-3335-subscription-plans-screen-overflows-horizontally-on-phones-a|BUG-3335]] | Subscription plans screen overflows horizontally on phones and loses its comparison layout below 1280px | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
 | [[BUG-3336-subscription-settings-has-no-loading-or-error-boundary-and-r|BUG-3336]] | Subscription settings has no loading or error boundary and renders a failed load as access denied | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
+| [[BUG-3345-subscription-screens-paint-every-primary-action-in-body-text|BUG-3345]] | Subscription screens paint every primary action in body-text black instead of the tenant brand colour | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -621,7 +622,7 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 426 |
+| Bug records | 427 |
 | Backlog items | 161 |
 | Known bug patterns | 34 |
 | QA runs | 32 |

@@ -115,6 +115,14 @@ The tenant billing surface, `services/api/src/modules/billing/controllers/billin
 `POST subscription/reconcile`. There is no plan-change or seat-change route, even
 though `plan-change.service.ts` and `seat-change.service.ts` exist in the module.
 
+Those two services are not merely unexposed — they are unreachable. Searching
+the whole API for `PlanChangeService` and `SeatChangeService` outside their own
+files returns only `billing.module.ts:24-25` and `:71-72`, where they are
+imported and registered as providers. No controller injects them and no other
+service does either. Two fully written services sit in the dependency graph with
+zero call sites, which is the clearest available statement that the capability
+was built and never wired up.
+
 Error banner placement and markup, same component, lines 238-241 — rendered above
 the tab nav, before the plans section, as a `div` with no `role`.
 
@@ -193,7 +201,7 @@ currently show the dead button.
 
 ## Related Items
 
-[[BUG-3330]], [[BUG-3332]], [[BUG-3333]], [[BUG-3334]], [[BUG-3335]], [[BUG-3336]]
+[[BUG-3330]], [[BUG-3332]], [[BUG-3333]], [[BUG-3334]], [[BUG-3335]], [[BUG-3336]], [[BUG-3345]]
 
 ## Resolution
 

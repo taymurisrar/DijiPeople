@@ -73,13 +73,17 @@ response type declared them optional, and the component kept compiling while
 quoting the old shape. **An optional field on a response type is where a
 presentation layer goes stale silently.**
 
-## Where billing meets provisioning
+The same screen is also the web app's largest design-system holdout. It imports
+nothing from `apps/web/app/components/ui/`, hand-rolls seven local copies of
+components that already exist there, and fills every primary action with
+`bg-foreground` — the tenant's *body text* colour — rather than `bg-accent`, the
+tenant's brand. Measured at `caad4a56`: 116 files import the shared kit, 120 use
+`bg-accent`, and 3 use `bg-foreground` as a fill, two of which are subscription
+screens. [[BUG-3345]].
 
-The `identities-and-billing` step of tenant provisioning creates the tenant's
-**subscription and first invoice** alongside its owner and service account. That
-bundling is why the step is non-retryable, and why a tenant that fails before it
-is currently unrecoverable:
-[[BUG-0015-a-tenant-that-fails-before-identities-and-billing-is-unrecoverable]].
+`PlanChangeService` and `SeatChangeService` are registered in `billing.module.ts`
+and injected nowhere. Before building a plan-change flow, read them — the
+capability may already be most of the way there.
 
 ## Where billing meets provisioning
 

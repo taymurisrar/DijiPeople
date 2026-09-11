@@ -110,6 +110,7 @@ markup twice.
 ## Related
 
 - Bug — [[BUG-3335]]
+- Referenced by — [[BUG-3345]]
 - Modules — [[tenant-application]]
 
 <!-- GRAPH:END -->

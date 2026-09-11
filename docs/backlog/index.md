@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**587 records** — 426 bugs under [`docs/bugs/`](../bugs/), 161 non-bug items under [`items/`](items/).
+**588 records** — 427 bugs under [`docs/bugs/`](../bugs/), 161 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,7 +13,7 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 167 |
+| Open (active work) | 168 |
 | Blocked | 2 |
 | Deferred | 92 |
 | Awaiting a product decision | 7 |
@@ -28,7 +28,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 4 |
 | HIGH | 82 |
-| MEDIUM | 68 |
+| MEDIUM | 69 |
 | LOW | 13 |
 
 ## Open by type
@@ -50,13 +50,13 @@ see [`README.md`](README.md) for why.
 | TECH_DEBT | 5 |
 | TENANT_ISOLATION | 2 |
 | TEST_GAP | 9 |
-| UX | 35 |
+| UX | 36 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 50 |
+| OPEN | 51 |
 | BLOCKED | 2 |
 | DEFERRED | 92 |
 | PRODUCT_DECISION | 7 |
@@ -490,6 +490,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3334](../../docs/bugs/BUG-3334-tenant-plan-listing-and-checkout-ignore-planprice-publicatio.md) | Tenant plan listing and checkout ignore PlanPrice publication status and market scoping | SECURITY | MEDIUM | P2 | OPEN | api:billing | FIX_NOW |
 | [BUG-3335](../../docs/bugs/BUG-3335-subscription-plans-screen-overflows-horizontally-on-phones-a.md) | Subscription plans screen overflows horizontally on phones and loses its comparison layout below 1280px | UX | MEDIUM | P2 | OPEN | apps/web | FIX_NOW |
 | [BUG-3336](../../docs/bugs/BUG-3336-subscription-settings-has-no-loading-or-error-boundary-and-r.md) | Subscription settings has no loading or error boundary and renders a failed load as access denied | UX | MEDIUM | P2 | OPEN | apps/web | FIX_NOW |
+| [BUG-3345](../../docs/bugs/BUG-3345-subscription-screens-paint-every-primary-action-in-body-text.md) | Subscription screens paint every primary action in body-text black instead of the tenant brand colour | UX | MEDIUM | P2 | OPEN | apps/web | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
