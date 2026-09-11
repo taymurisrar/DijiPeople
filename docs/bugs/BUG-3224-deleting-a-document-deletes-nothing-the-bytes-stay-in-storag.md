@@ -2,7 +2,7 @@
 ID: BUG-3224
 aliases: [BUG-3224]
 Title: Deleting a document deletes nothing; the bytes stay in storage forever
-Status: OPEN
+Status: DEFERRED
 Severity: MEDIUM
 Priority: P2
 Type: DATA_INTEGRITY
@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 08f388da
 AffectedModules: [services/api/src/modules/documents]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3224 — Deleting a document deletes nothing; the bytes stay in storage forever
+
+> **Architect triage, 2026-09-11 — `DEFER`.** Real and recorded, below the line for this cycle. Revisit at the next backlog review — the evidence is in the record, so nothing is lost by scheduling it later.
 
 ## Summary
 

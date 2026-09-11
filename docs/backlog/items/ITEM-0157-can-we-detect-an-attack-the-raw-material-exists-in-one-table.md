@@ -3,15 +3,15 @@ ID: ITEM-0157
 aliases: [ITEM-0157]
 Title: Can we detect an attack: the raw material exists in one table, but nothing looks at it
 Type: SECURITY
-Status: TRIAGE_REQUIRED
+Status: DEFERRED
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [services/api/src/modules/audit]
 Source: SECURITY_REVIEW
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 RelatedBug: 
 RelatedQA: 
 RelatedADR: 
@@ -21,6 +21,8 @@ BlockedBy:
 ---
 
 # ITEM-0157 — Can we detect an attack: the raw material exists in one table, but nothing looks at it
+
+> **Architect triage, 2026-09-11 — `DEFER`.** Real and recorded, below the line for this cycle. Revisit at the next backlog review — the evidence is in the record, so nothing is lost by scheduling it later.
 
 ## Summary
 

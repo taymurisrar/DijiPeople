@@ -12,6 +12,7 @@ import { SECRET_KEY_PATTERN } from './email-safety';
 import { NotificationsRepository } from '../notifications.repository';
 import { EmailProviderFactory } from './email-provider-factory.service';
 import { PlatformEmailProviderResolver } from './platform-email-provider.resolver';
+import { EffectiveEmailProviderService } from './effective-email-provider.service';
 import { isSinkProvider } from './providers';
 import {
   EmailTemplateRendererService,
@@ -119,6 +120,7 @@ export class EmailExecutionService {
     private readonly tenantSettingsResolver: TenantSettingsResolverService,
     private readonly secretEncryption: SecretEncryptionService,
     private readonly platformProvider: PlatformEmailProviderResolver,
+    private readonly effectiveProvider: EffectiveEmailProviderService,
   ) {}
 
   /**
@@ -173,21 +175,18 @@ export class EmailExecutionService {
     };
   }
 
+  /*
+   * ITEM-0129. The precedence itself now lives in
+   * `EffectiveEmailProviderService`, because the tenant settings screen has to
+   * describe the same answer this method applies. Two copies of "which provider
+   * carries this tenant's mail" is the BUG-3241 shape — one rule, two call
+   * sites, free to drift — and the drift here would be a settings page
+   * confidently naming a provider that is not the one sending.
+   */
   private async resolveProviderForOrigin(input: SendTemplateEmailInput) {
-    if (input.origin === 'PLATFORM') {
-      return (
-        (await this.platformProvider.resolve()) ??
-        (await this.providerFactory.resolveProvider(input.tenantId))
-      );
-    }
-
-    return (
-      (await this.providerFactory.resolveProvider(input.tenantId, {
-        tenantOnly: true,
-      })) ??
-      (await this.platformProvider.resolve()) ??
-      (await this.providerFactory.resolveProvider(input.tenantId))
-    );
+    return input.origin === 'PLATFORM'
+      ? this.effectiveProvider.resolveForPlatform(input.tenantId)
+      : this.effectiveProvider.resolveForTenant(input.tenantId);
   }
 
   /*

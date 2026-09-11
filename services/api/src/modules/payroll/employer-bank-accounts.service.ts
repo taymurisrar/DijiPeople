@@ -7,6 +7,11 @@ import {
 import { Prisma } from '@prisma/client';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { SecretEncryptionService } from '../../common/security/secret-encryption.service';
+import {
+  decryptEmployerBankAccountFields,
+  encryptEmployerBankAccountFields,
+} from '../../common/security/pii-field-codec';
 import { AuditService } from '../audit/audit.service';
 import { toDisplayString } from '../../common/utils/display-string';
 import {
@@ -19,6 +24,7 @@ export class EmployerBankAccountsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly secretEncryption: SecretEncryptionService,
   ) {}
 
   async list(
@@ -51,7 +57,9 @@ export class EmployerBankAccountsService {
       this.prisma.employerBankAccount.count({ where }),
     ]);
     return {
-      items: items.map(maskEmployerBankAccount),
+      items: items.map((row) =>
+        maskEmployerBankAccount(this.secretEncryption, row),
+      ),
       meta: {
         page,
         pageSize,
@@ -62,7 +70,10 @@ export class EmployerBankAccountsService {
   }
 
   async detail(user: AuthenticatedUser, id: string) {
-    return maskEmployerBankAccount(await this.find(user.tenantId, id));
+    return maskEmployerBankAccount(
+      this.secretEncryption,
+      await this.find(user.tenantId, id),
+    );
   }
 
   async create(user: AuthenticatedUser, dto: CreateEmployerBankAccountDto) {
@@ -78,7 +89,7 @@ export class EmployerBankAccountsService {
             accountName: dto.accountName.trim(),
             accountTitle: dto.accountTitle.trim(),
             currencyCode: dto.currencyCode.toUpperCase(),
-            ...data(dto),
+            ...data(this.secretEncryption, dto),
             createdById: user.userId,
             updatedById: user.userId,
           },
@@ -91,9 +102,9 @@ export class EmployerBankAccountsService {
         action: 'EMPLOYER_BANK_ACCOUNT_CREATED',
         entityType: 'EmployerBankAccount',
         entityId: created.id,
-        afterSnapshot: maskEmployerBankAccount(created),
+        afterSnapshot: maskEmployerBankAccount(this.secretEncryption, created),
       });
-      return maskEmployerBankAccount(created);
+      return maskEmployerBankAccount(this.secretEncryption, created);
     } catch (error) {
       handleWriteError(error);
     }
@@ -113,7 +124,10 @@ export class EmployerBankAccountsService {
         }
         return tx.employerBankAccount.update({
           where: { id },
-          data: { ...data(dto), updatedById: user.userId },
+          data: {
+            ...data(this.secretEncryption, dto),
+            updatedById: user.userId,
+          },
           include: { bank: true },
         });
       });
@@ -123,10 +137,13 @@ export class EmployerBankAccountsService {
         action: 'EMPLOYER_BANK_ACCOUNT_UPDATED',
         entityType: 'EmployerBankAccount',
         entityId: id,
-        beforeSnapshot: maskEmployerBankAccount(existing),
-        afterSnapshot: maskEmployerBankAccount(updated),
+        beforeSnapshot: maskEmployerBankAccount(
+          this.secretEncryption,
+          existing,
+        ),
+        afterSnapshot: maskEmployerBankAccount(this.secretEncryption, updated),
       });
-      return maskEmployerBankAccount(updated);
+      return maskEmployerBankAccount(this.secretEncryption, updated);
     } catch (error) {
       handleWriteError(error);
     }
@@ -149,10 +166,10 @@ export class EmployerBankAccountsService {
       action: 'EMPLOYER_BANK_ACCOUNT_DEACTIVATED',
       entityType: 'EmployerBankAccount',
       entityId: id,
-      beforeSnapshot: maskEmployerBankAccount(existing),
-      afterSnapshot: maskEmployerBankAccount(updated),
+      beforeSnapshot: maskEmployerBankAccount(this.secretEncryption, existing),
+      afterSnapshot: maskEmployerBankAccount(this.secretEncryption, updated),
     });
-    return maskEmployerBankAccount(updated);
+    return maskEmployerBankAccount(this.secretEncryption, updated);
   }
 
   async setDefaultPayrollAccount(user: AuthenticatedUser, id: string) {
@@ -180,18 +197,22 @@ export class EmployerBankAccountsService {
       action: 'EMPLOYER_BANK_ACCOUNT_SET_DEFAULT_PAYROLL',
       entityType: 'EmployerBankAccount',
       entityId: id,
-      beforeSnapshot: maskEmployerBankAccount(existing),
-      afterSnapshot: maskEmployerBankAccount(updated),
+      beforeSnapshot: maskEmployerBankAccount(this.secretEncryption, existing),
+      afterSnapshot: maskEmployerBankAccount(this.secretEncryption, updated),
     });
-    return maskEmployerBankAccount(updated);
+    return maskEmployerBankAccount(this.secretEncryption, updated);
   }
 
   async exportCsv(user: AuthenticatedUser) {
-    const rows = await this.prisma.employerBankAccount.findMany({
-      where: { tenantId: user.tenantId },
-      include: { bank: true },
-      orderBy: [{ currencyCode: 'asc' }, { accountName: 'asc' }],
-    });
+    const rows = (
+      await this.prisma.employerBankAccount.findMany({
+        where: { tenantId: user.tenantId },
+        include: { bank: true },
+        orderBy: [{ currencyCode: 'asc' }, { accountName: 'asc' }],
+      })
+    ).map((row) =>
+      decryptEmployerBankAccountFields(this.secretEncryption, row),
+    );
     const columns = [
       'accountName',
       'bankCode',
@@ -325,7 +346,18 @@ export class EmployerBankAccountsService {
   }
 }
 
-function data(dto: Partial<CreateEmployerBankAccountDto>) {
+function data(
+  codec: SecretEncryptionService,
+  dto: Partial<CreateEmployerBankAccountDto>,
+) {
+  const accountNumber =
+    dto.accountNumber !== undefined
+      ? clean(dto.accountNumber?.replace(/\s/g, ''))
+      : undefined;
+  const iban =
+    dto.iban !== undefined
+      ? clean(dto.iban?.replace(/\s/g, '').toUpperCase())
+      : undefined;
   return {
     ...(dto.accountName !== undefined
       ? { accountName: dto.accountName.trim() }
@@ -334,12 +366,9 @@ function data(dto: Partial<CreateEmployerBankAccountDto>) {
     ...(dto.accountTitle !== undefined
       ? { accountTitle: dto.accountTitle.trim() }
       : {}),
-    ...(dto.accountNumber !== undefined
-      ? { accountNumber: clean(dto.accountNumber?.replace(/\s/g, '')) }
-      : {}),
-    ...(dto.iban !== undefined
-      ? { iban: clean(dto.iban?.replace(/\s/g, '').toUpperCase()) }
-      : {}),
+    ...(accountNumber !== undefined ? { accountNumber } : {}),
+    ...(iban !== undefined ? { iban } : {}),
+    ...encryptEmployerBankAccountFields(codec, { accountNumber, iban }),
     ...(dto.branch !== undefined ? { branch: clean(dto.branch) } : {}),
     ...(dto.currencyCode !== undefined
       ? { currencyCode: dto.currencyCode.toUpperCase() }
@@ -389,13 +418,16 @@ function maskEmployerBankAccount<
     accountName: string;
     accountNumber: string | null;
     iban: string | null;
+    accountNumberEnc?: string | null;
+    ibanEnc?: string | null;
   },
->(row: T) {
+>(codec: SecretEncryptionService, row: T) {
+  const decrypted = decryptEmployerBankAccountFields(codec, row);
   return {
-    ...row,
-    name: row.accountName,
-    accountNumber: mask(row.accountNumber),
-    iban: mask(row.iban),
+    ...decrypted,
+    name: decrypted.accountName,
+    accountNumber: mask(decrypted.accountNumber),
+    iban: mask(decrypted.iban),
   };
 }
 

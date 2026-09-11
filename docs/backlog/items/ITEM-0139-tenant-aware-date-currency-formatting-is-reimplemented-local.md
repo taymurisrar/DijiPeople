@@ -3,15 +3,15 @@ ID: ITEM-0139
 aliases: [ITEM-0139]
 Title: Tenant-aware date/currency formatting is reimplemented locally in at least 21 files instead of the one documented entry point
 Type: TECH_DEBT
-Status: TRIAGE_REQUIRED
+Status: DEFERRED
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [apps/web, apps/admin]
 Source: REVIEWER
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 RelatedBug: 
 RelatedQA: 
 RelatedADR: 
@@ -21,6 +21,8 @@ BlockedBy:
 ---
 
 # ITEM-0139 — Tenant-aware date/currency formatting is reimplemented locally in at least 21 files instead of the one documented entry point
+
+> **Architect triage, 2026-09-11 — `DEFER`.** Real and recorded, below the line for this cycle. Revisit at the next backlog review — the evidence is in the record, so nothing is lost by scheduling it later.
 
 ## Summary
 

@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/documents]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3185 — Reading or downloading a document is recorded nowhere
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** Document reads unrecorded. For an HR product holding contracts and payslips, who opened what is the audit trail.
 
 ## Summary
 

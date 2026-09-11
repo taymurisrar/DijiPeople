@@ -2,7 +2,7 @@
 ID: BUG-3234
 aliases: [BUG-3234]
 Title: Deleting a user nulls the actor on every audit row they ever wrote
-Status: OPEN
+Status: DEFERRED
 Severity: MEDIUM
 Priority: P2
 Type: DATA_INTEGRITY
@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: f36749b3
 AffectedModules: [services/api/src/modules/audit, services/api/src/modules/users]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3234 — Deleting a user nulls the actor on every audit row they ever wrote
+
+> **Architect triage, 2026-09-11 — `DEFER`.** Real and recorded, below the line for this cycle. Revisit at the next backlog review — the evidence is in the record, so nothing is lost by scheduling it later.
 
 ## Summary
 

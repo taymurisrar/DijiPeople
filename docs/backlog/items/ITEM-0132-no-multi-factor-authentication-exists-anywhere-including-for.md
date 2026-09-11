@@ -3,15 +3,15 @@ ID: ITEM-0132
 aliases: [ITEM-0132]
 Title: No multi-factor authentication exists anywhere, including for platform super admins
 Type: SECURITY
-Status: TRIAGE_REQUIRED
+Status: PRODUCT_DECISION
 Priority: P2
 Severity: HIGH
 AffectedModules: [services/api/src/modules/auth]
 Source: SECURITY_REVIEW
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: PRODUCT_DECISION
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 RelatedBug: 
 RelatedQA: 
 RelatedADR: 
@@ -21,6 +21,8 @@ BlockedBy:
 ---
 
 # ITEM-0132 — No multi-factor authentication exists anywhere, including for platform super admins
+
+> **Architect triage, 2026-09-11 — `PRODUCT_DECISION`.** No MFA anywhere, including platform super admins. Significant product scope with a real user-experience cost, and not an agent's decision to schedule.
 
 ## Summary
 

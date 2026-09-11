@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [.github/workflows]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3166 — Production deploys before the deployed commit has a CI verdict
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** Deploying before the commit has a verdict makes the gate decorative. This release proves the point: four CI cycles, three red, and every one of them found something real.
 
 ## Summary
 

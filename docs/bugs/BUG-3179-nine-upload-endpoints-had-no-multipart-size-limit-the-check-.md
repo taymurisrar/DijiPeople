@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/common]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3179 — Nine upload endpoints had no multipart size limit; the check ran after the whole file was already in the heap
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** A size limit checked after the body is buffered is not a limit. Nine of ten upload endpoints; the fix is one place.
 
 ## Summary
 

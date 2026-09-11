@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/common]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3195 — The Postgres connection pool is entirely default and waits forever for a connection
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** An unbounded default pool that waits forever is a few lines of configuration and is the first thing that breaks under load. Cheapest high-value item in this list.
 
 ## Summary
 

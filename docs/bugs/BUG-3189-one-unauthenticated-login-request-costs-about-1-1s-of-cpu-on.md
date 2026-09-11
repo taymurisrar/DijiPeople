@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/auth]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: PLAN_REQUIRED
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3189 — One unauthenticated login request costs about 1.1s of CPU on a single-instance API
+
+> **Architect triage, 2026-09-11 — `PLAN_REQUIRED`.** 1.1 seconds of CPU per unauthenticated login on a single instance is a denial-of-service primitive. The fix is a cost parameter and a shape change, and getting it wrong locks everyone out.
 
 ## Summary
 

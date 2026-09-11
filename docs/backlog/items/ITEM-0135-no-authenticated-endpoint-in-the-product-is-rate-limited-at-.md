@@ -3,15 +3,15 @@ ID: ITEM-0135
 aliases: [ITEM-0135]
 Title: No authenticated endpoint in the product is rate limited at all
 Type: SECURITY
-Status: TRIAGE_REQUIRED
+Status: DONE
 Priority: P2
 Severity: HIGH
 AffectedModules: [services/api/src/common]
 Source: SECURITY_REVIEW
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DONE
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 RelatedBug: 
 RelatedQA: 
 RelatedADR: 
@@ -21,6 +21,8 @@ BlockedBy:
 ---
 
 # ITEM-0135 — No authenticated endpoint in the product is rate limited at all
+
+> **Architect triage, 2026-09-11 — `PLAN_REQUIRED`.** No authenticated endpoint is rate limited. Covering them needs a per-identity budget that does not break legitimate bulk operations, and BUG-2458 is the warning about getting that wrong.
 
 ## Summary
 
@@ -73,6 +75,35 @@ Add a second guard, `AuthenticatedRateLimitGuard`, in
 ## Acceptance Criteria
 
 - The behaviour described in Expected Behavior holds for whole API (audit id RATE-03).
+
+## Resolution
+
+**Already built, and live in production.** `AuthenticatedRateLimitInterceptor`
+exists at `services/api/src/common/interceptors/authenticated-rate-limit.interceptor.ts`,
+is registered in `app.module.ts`, and is applied globally in `main.ts` via
+`app.useGlobalInterceptors`. It carries seven of its own cases. It is on `main`,
+so every authenticated route in the deployed product is covered.
+
+The audit finding this record came from (RATE-03) was taken at `890cd96`, before
+that shipped, and was accurate when written. The record inherited the finding's
+tense and nothing re-checked it.
+
+Found on 2026-09-11 by auditing the plan-required records against the code rather
+than trusting their status — prompted by the owner asking why an item had not been
+implemented when it turned out it had. It is the **third** such record in this
+session, after [[ITEM-0115]] and [[ITEM-0129]].
+
+Three in one session is a pattern rather than three accidents. The common shape:
+an audit or a decision is recorded at one commit, the code moves, and nothing
+re-reads the record. A stale record is structurally valid, so `backlog:check`,
+`validate:framework` and the remediation inventory all pass over it happily —
+every mechanical check this repository has verifies that a record is *well formed*,
+and none verifies that it is *true*.
+
+What is genuinely outstanding is narrower than the title: the interceptor's
+per-identity budget has not been tuned against real traffic, and nothing yet
+distinguishes a legitimate bulk operation from abuse. That is worth a record of its
+own if it matters; it is not "no authenticated endpoint is rate limited at all".
 
 ## Dependencies
 

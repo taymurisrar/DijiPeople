@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/common]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3187 — The rate-limit invariant covers writes only; every unprotected public surface is a read
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** The invariant covers writes only, so every unprotected public read is invisible to the check that exists to find them. Widening the invariant is cheaper than auditing by hand, and it finds the next one too.
 
 ## Summary
 

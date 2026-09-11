@@ -12,6 +12,7 @@ import { BenefitsModule } from '../benefits/benefits.module';
 import { ApprovalsModule } from '../approvals/approvals.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { ExcelExportService } from '../../common/excel/excel-export.service';
+import { SecretEncryptionService } from '../../common/security/secret-encryption.service';
 import { PayrollController } from './payroll.controller';
 import { PayrollGlController } from './payroll-gl.controller';
 import { PayrollRunController } from './payroll-run.controller';
@@ -72,6 +73,7 @@ import {
     CsvPayrollExportProvider,
     ExcelPayrollExportProvider,
     GenericBankTransferExportProvider,
+    SecretEncryptionService,
     JwtAuthGuard,
     PermissionsGuard,
   ],

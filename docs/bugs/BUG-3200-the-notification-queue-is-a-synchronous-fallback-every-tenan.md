@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/notifications]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: PLAN_REQUIRED
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3200 — The notification queue is a synchronous fallback: every tenant email is sent on the HTTP request thread with no retry
+
+> **Architect triage, 2026-09-11 — `PLAN_REQUIRED`.** A synchronous "queue" means every tenant email blocks a request. Real async delivery is the fix and it is infrastructure-shaped — the outbox already exists to build on.
 
 ## Summary
 

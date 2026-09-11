@@ -2,7 +2,7 @@
 ID: BUG-3209
 aliases: [BUG-3209]
 Title: Authenticated document view and download responses set no Cache-Control at all
-Status: OPEN
+Status: DEFERRED
 Severity: MEDIUM
 Priority: P2
 Type: SECURITY
@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 4c86a29b
 AffectedModules: [services/api/src/modules/documents]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3209 — Authenticated document view and download responses set no Cache-Control at all
+
+> **Architect triage, 2026-09-11 — `DEFER`.** Real and recorded, below the line for this cycle. Revisit at the next backlog review — the evidence is in the record, so nothing is lost by scheduling it later.
 
 ## Summary
 

@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/audit]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3171 — The Audit Log filter-metadata query does an unbounded DISTINCT scan over the tenant's entire audit history on every page load
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** An unbounded DISTINCT scan for filter metadata is fixable with an index and a bounded query, without redesigning anything.
 
 ## Summary
 

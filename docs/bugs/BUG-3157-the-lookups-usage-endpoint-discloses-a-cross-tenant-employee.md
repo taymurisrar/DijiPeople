@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/lookups]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3157 — The lookups usage endpoint discloses a cross-tenant employee-count aggregate and lets one tenant block another tenant's delete
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** A cross-tenant aggregate is still cross-tenant. It discloses no records, which is why it is HIGH and not CRITICAL, but it must not answer for tenants the caller cannot see.
 
 ## Summary
 

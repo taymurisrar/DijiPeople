@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/platform-monitoring]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3183 — Platform-ops alerts for failed payments and provisioning are written to a log line that is never sent and is suppressed at the production log level
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** Platform alerts for failed payments written somewhere nobody reads is a routing fix, not a monitoring project. Send them where an operator already looks.
 
 ## Summary
 

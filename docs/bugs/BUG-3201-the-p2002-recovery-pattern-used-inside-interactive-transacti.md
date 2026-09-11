@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/tenants]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3201 — The P2002 recovery pattern used inside interactive transactions cannot work on Postgres, and it is on the tenant-provisioning path
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** A P2002 recovery that cannot work inside an interactive transaction silently fails to recover. The pattern is wrong wherever it appears, so fix the pattern.
 
 ## Summary
 

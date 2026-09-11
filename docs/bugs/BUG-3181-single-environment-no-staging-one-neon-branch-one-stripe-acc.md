@@ -2,7 +2,7 @@
 ID: BUG-3181
 aliases: [BUG-3181]
 Title: Single environment: no staging, one Neon branch, one Stripe account, one email sender, and demo data in production
-Status: OPEN
+Status: PRODUCT_DECISION
 Severity: HIGH
 Priority: P1
 Type: INFRA
@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [docs/deployment]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: PRODUCT_DECISION
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3181 — Single environment: no staging, one Neon branch, one Stripe account, one email sender, and demo data in production
+
+> **Architect triage, 2026-09-11 — `PRODUCT_DECISION`.** One environment, one Neon branch, one Stripe account, one sender. Every remedy costs money or people. The owner decides whether a staging environment is bought.
 
 ## Summary
 

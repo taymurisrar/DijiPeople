@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/timesheets]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3164 — The timesheet-restriction allowlist omits the /api prefix, so it never matches
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** An allowlist missing the /api prefix never matches, so the timesheet restriction it implements has never once applied. A one-line defect behind a control somebody believes is on.
 
 ## Summary
 

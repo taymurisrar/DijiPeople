@@ -2,7 +2,7 @@
 ID: BUG-3163
 aliases: [BUG-3163]
 Title: The rate-limit key trusts a client-supplied X-Forwarded-For because the API is directly reachable, bypassing Cloudflare
-Status: OPEN
+Status: DUPLICATE
 Severity: HIGH
 Priority: P1
 Type: SECURITY
@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/common]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DUPLICATE
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3163 — The rate-limit key trusts a client-supplied X-Forwarded-For because the API is directly reachable, bypassing Cloudflare
+
+> **Architect triage, 2026-09-11 — `DUPLICATE`.** Fixed in this session as BUG-3115, and the boundary is now pinned by packages/config/client-ip.test.js after BUG-3254 showed how easily it is misread.
 
 ## Summary
 

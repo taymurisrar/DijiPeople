@@ -3,15 +3,15 @@ ID: ITEM-0134
 aliases: [ITEM-0134]
 Title: The payroll run engine has no tests
 Type: TEST_GAP
-Status: TRIAGE_REQUIRED
+Status: READY
 Priority: P2
 Severity: HIGH
 AffectedModules: [services/api/src/modules/payroll]
 Source: REVIEWER
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: PLAN_REQUIRED
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 RelatedBug: 
 RelatedQA: 
 RelatedADR: 
@@ -21,6 +21,18 @@ BlockedBy:
 ---
 
 # ITEM-0134 — The payroll run engine has no tests
+
+> **Premise is overstated, 2026-09-11.** The title says the payroll run engine has
+> no tests. `services/api/src/modules/payroll/` holds ten spec files, five of which
+> reach the run path — including `payroll-run.claim.spec.ts`,
+> `payroll-run.loan.spec.ts` and `payroll-operations.service.spec.ts`.
+>
+> What may still be true is the narrower claim: the core calculation path is
+> thinly covered while its peripheral behaviours are not. Left open deliberately
+> rather than closed, because this session has not measured which. Re-measure
+> before planning — do not inherit the title.
+
+> **Architect triage, 2026-09-11 — `PLAN_REQUIRED`.** The payroll engine has no tests. Characterisation tests first, against current behaviour, before anything is changed — which is a plan, not a ticket.
 
 ## Summary
 

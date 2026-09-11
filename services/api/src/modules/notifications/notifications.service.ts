@@ -34,6 +34,7 @@ import {
   UpdateNotificationPreferencesDto,
 } from './dto';
 import { EmailService } from './email/email.service';
+import { EffectiveEmailProviderService } from './email/effective-email-provider.service';
 import {
   maskSensitiveConfiguration,
   mergeConfigurationPreservingMaskedSecrets,
@@ -69,6 +70,7 @@ export class NotificationsService {
     private readonly secretEncryption: SecretEncryptionService,
     @Inject(forwardRef(() => WorkflowRuntimeService))
     private readonly workflowRuntime: WorkflowRuntimeService,
+    private readonly effectiveProvider: EffectiveEmailProviderService,
   ) {}
 
   listEvents() {
@@ -379,6 +381,20 @@ export class NotificationsService {
       currentUser.tenantId,
     );
     return { items: providers.map(mapEmailProviderSetting) };
+  }
+
+  /**
+   * Which provider will actually carry this tenant's mail, and whether the
+   * tenant configured it or inherited it.
+   *
+   * ITEM-0129. `listProviderSettings` returns only the tenant's OWN rows, so a
+   * tenant relying on the platform relay sees an empty list and a screen that
+   * reads as broken — while its mail is in fact being delivered perfectly well.
+   * Inheriting and having nothing configured were indistinguishable. This
+   * answers the question the screen actually needs to ask.
+   */
+  describeEffectiveProvider(currentUser: AuthenticatedUser) {
+    return this.effectiveProvider.describeForTenant(currentUser.tenantId);
   }
 
   async getProvider(currentUser: AuthenticatedUser, providerId: string) {

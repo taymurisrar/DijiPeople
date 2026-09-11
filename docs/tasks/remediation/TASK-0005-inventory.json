@@ -15218,14 +15218,14 @@
       "title": "Self-service privilege escalation to GLOBAL_ADMIN via POST /users/:userId/roles",
       "severity": "CRITICAL",
       "priority": "P0",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DUPLICATE",
+      "architect_disposition": "DUPLICATE",
       "source": {
         "record_path": "docs/bugs/BUG-3132-self-service-privilege-escalation-to-global-admin-via-post-u.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "a800d8f2",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -15256,14 +15256,14 @@
       "title": "Legacy permission-assignment endpoint skips the cannot-exceed-own-access check its matrix sibling applies",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DUPLICATE",
+      "architect_disposition": "DUPLICATE",
       "source": {
         "record_path": "docs/bugs/BUG-3133-legacy-permission-assignment-endpoint-skips-the-cannot-excee.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "a800d8f2",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -15294,14 +15294,14 @@
       "title": "Employee export endpoint skips the row-level access scope its read sibling applies (BOLA)",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DUPLICATE",
+      "architect_disposition": "DUPLICATE",
       "source": {
         "record_path": "docs/bugs/BUG-3134-employee-export-endpoint-skips-the-row-level-access-scope-it.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "a800d8f2",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -15332,14 +15332,14 @@
       "title": "Project-allocations export has the same row-scope gap as the employee export, gated by a different permission",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3135-project-allocations-export-has-the-same-row-scope-gap-as-the.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "a800d8f2",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -15370,14 +15370,14 @@
       "title": "Five public read routes carry no PublicRateLimitGuard",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3136-five-public-read-routes-carry-no-publicratelimitguard.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "a800d8f2",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -15409,13 +15409,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3137-live-password-reset-links-and-invite-tokens-sit-in-the-tenan.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "a800d8f2",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -15447,13 +15447,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3138-password-reset-unconditionally-reactivates-a-disabled-accoun.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "a800d8f2",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -15485,13 +15485,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3139-tenant-password-reset-tokens-are-stateless-and-replayable-fo.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "a800d8f2",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -15523,13 +15523,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3140-client-supplied-startnewsession-flag-on-the-public-agent-ref.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "a800d8f2",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -15563,13 +15563,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3141-branding-svg-served-unauthenticated-and-inline-enabled-store.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "a800d8f2",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -15600,14 +15600,14 @@
       "title": "Desktop-agent login has no per-account lockout (recalibrated from an overstated unthrottled-oracle claim)",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3142-desktop-agent-login-has-no-per-account-lockout-recalibrated-.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "a800d8f2",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -15640,14 +15640,14 @@
       "title": "Session cookies scoped to Domain=.dijipeople.com transmit the platform-admin token to every tenant hostname",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3143-session-cookies-scoped-to-domain-dijipeople-com-transmit-the.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "a800d8f2",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -15678,14 +15678,14 @@
       "title": "Constant-time defence in verifyIdentityCredential is inert, leaving a 2700x timing oracle for email existence",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3144-constant-time-defence-in-verifyidentitycredential-is-inert-l.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "a800d8f2",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -15716,14 +15716,14 @@
       "title": "No refresh-token reuse detection anywhere; tokenFamilyId is written and never read",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3145-no-refresh-token-reuse-detection-anywhere-tokenfamilyid-is-w.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "a800d8f2",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -15754,14 +15754,14 @@
       "title": "Platform-admin login has no account lockout of any kind",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3146-platform-admin-login-has-no-account-lockout-of-any-kind.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "a800d8f2",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -15792,14 +15792,14 @@
       "title": "Placeholder and reset passwords are derived from Date.now()",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3147-placeholder-and-reset-passwords-are-derived-from-date-now.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "a800d8f2",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -15830,14 +15830,14 @@
       "title": "Web proxy rewrites auth cookies to SameSite=None in production with no CSRF token anywhere",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3148-web-proxy-rewrites-auth-cookies-to-samesite-none-in-producti.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "a800d8f2",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -15868,14 +15868,14 @@
       "title": "Account lockout has no per-IP dimension, so any known email can be locked out indefinitely",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3149-account-lockout-has-no-per-ip-dimension-so-any-known-email-c.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "a800d8f2",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -15906,14 +15906,14 @@
       "title": "A password reset does not revoke existing desktop-agent sessions",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3150-a-password-reset-does-not-revoke-existing-desktop-agent-sess.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "a800d8f2",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -15946,14 +15946,14 @@
       "title": "Agent device fingerprint is derived from hostname and username; enrolment silently reassigns an existing device",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3151-agent-device-fingerprint-is-derived-from-hostname-and-userna.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "a800d8f2",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -16028,14 +16028,14 @@
       "title": "Production had no persistent disk, so every uploaded HR document was destroyed on the next deploy",
       "severity": "CRITICAL",
       "priority": "P0",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DUPLICATE",
+      "architect_disposition": "DUPLICATE",
       "source": {
         "record_path": "docs/bugs/BUG-3153-production-had-no-persistent-disk-so-every-uploaded-hr-docum.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -16069,13 +16069,13 @@
       "severity": "CRITICAL",
       "priority": "P0",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "PLAN_REQUIRED",
       "source": {
         "record_path": "docs/bugs/BUG-3154-employee-bank-accounts-ibans-cnics-and-tax-identifiers-are-s.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -16109,13 +16109,13 @@
       "severity": "CRITICAL",
       "priority": "P0",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3155-fieldsecurityrule-masking-is-enforced-only-in-the-browser-th.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -16147,13 +16147,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3156-a-tenant-admin-can-create-rename-or-deactivate-the-platform-.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -16185,13 +16185,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3157-the-lookups-usage-endpoint-discloses-a-cross-tenant-employee.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -16223,13 +16223,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3162-public-tenant-resolve-cache-is-keyed-on-caller-supplied-sele.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -16260,14 +16260,14 @@
       "title": "The rate-limit key trusts a client-supplied X-Forwarded-For because the API is directly reachable, bypassing Cloudflare",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DUPLICATE",
+      "architect_disposition": "DUPLICATE",
       "source": {
         "record_path": "docs/bugs/BUG-3163-the-rate-limit-key-trusts-a-client-supplied-x-forwarded-for-.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -16299,13 +16299,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3164-the-timesheet-restriction-allowlist-omits-the-api-prefix-so-.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -16337,13 +16337,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "PLAN_REQUIRED",
       "source": {
         "record_path": "docs/bugs/BUG-3165-every-authenticated-request-costs-roughly-26-database-round-.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -16375,13 +16375,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3166-production-deploys-before-the-deployed-commit-has-a-ci-verdi.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -16413,13 +16413,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3167-the-required-browser-gate-executes-zero-tests-against-apps-w.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -16451,13 +16451,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3168-two-required-ci-gates-report-success-while-executing-nothing.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -16489,13 +16489,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "PLAN_REQUIRED",
       "source": {
         "record_path": "docs/bugs/BUG-3169-notification-fan-out-runs-o-rules-x-recipients-sequential-ro.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -16527,13 +16527,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "PLAN_REQUIRED",
       "source": {
         "record_path": "docs/bugs/BUG-3170-timesheet-bulk-import-confirmation-runs-an-unbounded-per-row.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -16565,13 +16565,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3171-the-audit-log-filter-metadata-query-does-an-unbounded-distin.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -16603,13 +16603,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3172-get-payslips-has-no-pagination-and-can-return-every-payslip-.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -16641,13 +16641,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "PLAN_REQUIRED",
       "source": {
         "record_path": "docs/bugs/BUG-3173-roughly-20-pages-redundantly-re-fetch-business-unit-access-a.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -16679,13 +16679,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "PLAN_REQUIRED",
       "source": {
         "record_path": "docs/bugs/BUG-3174-every-pagination-sort-or-filter-click-on-a-runtime-list-page.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -16719,13 +16719,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3175-nine-platform-admin-runtime-modules-fetch-entire-tables-into.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -16757,13 +16757,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3176-the-employees-list-search-box-and-every-server-mode-datatabl.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -16797,13 +16797,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3177-two-endpoints-accepted-a-caller-supplied-storagekey-and-read.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -16836,14 +16836,14 @@
       "title": "No malware scanning exists anywhere; the tenant setting that claims it does is inert",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
       "source": {
         "record_path": "docs/bugs/BUG-3178-no-malware-scanning-exists-anywhere-the-tenant-setting-that-.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -16875,13 +16875,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3179-nine-upload-endpoints-had-no-multipart-size-limit-the-check-.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -16912,14 +16912,14 @@
       "title": "The Render service cannot be rebuilt from the repository: seven boot-required env vars are absent from render.yaml",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
       "source": {
         "record_path": "docs/bugs/BUG-3180-the-render-service-cannot-be-rebuilt-from-the-repository-sev.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -16950,14 +16950,14 @@
       "title": "Single environment: no staging, one Neon branch, one Stripe account, one email sender, and demo data in production",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
       "source": {
         "record_path": "docs/bugs/BUG-3181-single-environment-no-staging-one-neon-branch-one-stripe-acc.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -16988,14 +16988,14 @@
       "title": "No per-tenant restore is possible: restoring one tenant means rolling back all of them",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
       "source": {
         "record_path": "docs/bugs/BUG-3182-no-per-tenant-restore-is-possible-restoring-one-tenant-means.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -17027,13 +17027,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3183-platform-ops-alerts-for-failed-payments-and-provisioning-are.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -17065,13 +17065,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3184-employee-termination-writes-no-audit-row-invisible-to-the-co.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -17103,13 +17103,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3185-reading-or-downloading-a-document-is-recorded-nowhere.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -17141,13 +17141,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "PLAN_REQUIRED",
       "source": {
         "record_path": "docs/bugs/BUG-3186-no-individual-erasure-or-anonymisation-path-exists-and-emplo.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -17179,13 +17179,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3187-the-rate-limit-invariant-covers-writes-only-every-unprotecte.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -17217,13 +17217,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3188-every-rejected-rate-limited-request-writes-a-database-row-so.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -17255,13 +17255,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "PLAN_REQUIRED",
       "source": {
         "record_path": "docs/bugs/BUG-3189-one-unauthenticated-login-request-costs-about-1-1s-of-cpu-on.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -17293,13 +17293,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3195-the-postgres-connection-pool-is-entirely-default-and-waits-f.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -17331,13 +17331,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "PLAN_REQUIRED",
       "source": {
         "record_path": "docs/bugs/BUG-3196-payroll-calculation-runs-inline-on-the-http-request-per-empl.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -17369,13 +17369,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3197-leave-balance-is-checked-at-submission-and-decremented-at-ap.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -17407,13 +17407,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3198-api-health-is-a-static-ok-payload-so-a-broken-deploy-and-a-d.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -17445,13 +17445,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3199-an-outbound-fetch-with-no-timeout-is-reachable-from-an-authe.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -17483,13 +17483,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "PLAN_REQUIRED",
       "source": {
         "record_path": "docs/bugs/BUG-3200-the-notification-queue-is-a-synchronous-fallback-every-tenan.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -17521,13 +17521,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3201-the-p2002-recovery-pattern-used-inside-interactive-transacti.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -17559,13 +17559,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3202-payroll-run-eligibility-never-checks-employee-isdeleted-an-a.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "23504f4b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -17596,14 +17596,14 @@
       "title": "The API origin sends no security response headers at all",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3203-the-api-origin-sends-no-security-response-headers-at-all.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "4c86a29b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -17634,14 +17634,14 @@
       "title": "Per-client JWT secrets are documented but not provisioned; client separation rests on an unsigned claim check",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3204-per-client-jwt-secrets-are-documented-but-not-provisioned-cl.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "4c86a29b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -17673,13 +17673,13 @@
       "severity": "HIGH",
       "priority": "P1",
       "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "architect_disposition": "PLAN_REQUIRED",
       "source": {
         "record_path": "docs/bugs/BUG-3205-tenant-deletion-cascades-through-the-entire-tenant-owned-sch.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "4c86a29b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -17710,14 +17710,14 @@
       "title": "35 mutating settings/lookup routes take Record<string, unknown> bodies, bypassing ValidationPipe whitelisting",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3206-35-mutating-settings-lookup-routes-take-record-string-unknow.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "4c86a29b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -17750,14 +17750,14 @@
       "title": "UpdateSupportCaseDto.tenantId is a client-settable field spread directly into the Prisma update",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3207-updatesupportcasedto-tenantid-is-a-client-settable-field-spr.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "4c86a29b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -17788,14 +17788,14 @@
       "title": "An unauthenticated caller can insert unbounded entries into a process-wide static Map",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3208-an-unauthenticated-caller-can-insert-unbounded-entries-into-.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "4c86a29b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -17826,14 +17826,14 @@
       "title": "Authenticated document view and download responses set no Cache-Control at all",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3209-authenticated-document-view-and-download-responses-set-no-ca.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "4c86a29b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -17864,14 +17864,14 @@
       "title": "Every server-side API call opts out of Next fetch deduplication; tenant-settings/resolved is fetched twice on nine pages",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3210-every-server-side-api-call-opts-out-of-next-fetch-deduplicat.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "4c86a29b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -17902,14 +17902,14 @@
       "title": "Roughly two dozen SQL statements run before any controller does, on every authenticated request",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3211-roughly-two-dozen-sql-statements-run-before-any-controller-d.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "4c86a29b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -17940,14 +17940,14 @@
       "title": "The onboarding list issues a tenant-wide employee.count() for every row on the page",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3212-the-onboarding-list-issues-a-tenant-wide-employee-count-for-.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "4c86a29b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -17978,14 +17978,14 @@
       "title": "bcrypt.hash runs synchronously inside open provisioning transactions, adding to the same 5-second budget as RES-09",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3213-bcrypt-hash-runs-synchronously-inside-open-provisioning-tran.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "4c86a29b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -18016,14 +18016,14 @@
       "title": "Generic entity CSV export silently truncates at 10,000 rows with no signal to the caller",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3214-generic-entity-csv-export-silently-truncates-at-10-000-rows-.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "4c86a29b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -18054,14 +18054,14 @@
       "title": "Independent backend calls are awaited sequentially instead of in parallel in at least two shared code paths",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3219-independent-backend-calls-are-awaited-sequentially-instead-o.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "4c86a29b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -18092,14 +18092,14 @@
       "title": "apps/admin has zero loading and error boundary files; apps/web has 22 genuinely uncovered pages including login",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3220-apps-admin-has-zero-loading-and-error-boundary-files-apps-we.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "4c86a29b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -18132,14 +18132,14 @@
       "title": "Two of apps/web four error boundaries render the raw Error.message directly with no classification",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3221-two-of-apps-web-four-error-boundaries-render-the-raw-error-m.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "4c86a29b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -18170,14 +18170,14 @@
       "title": "Declared content type is trusted; no upload path sniffs content, and MIME/extension checks are independent",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3222-declared-content-type-is-trusted-no-upload-path-sniffs-conte.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "08f388da",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -18208,14 +18208,14 @@
       "title": "GET /payslips/:id/download applies no row-level scope",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3223-get-payslips-id-download-applies-no-row-level-scope.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "08f388da",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -18246,14 +18246,14 @@
       "title": "Deleting a document deletes nothing; the bytes stay in storage forever",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3224-deleting-a-document-deletes-nothing-the-bytes-stay-in-storag.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "08f388da",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -18284,14 +18284,14 @@
       "title": "Tenant erasure sweeps only two of the eight models that hold storage keys",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3225-tenant-erasure-sweeps-only-two-of-the-eight-models-that-hold.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "08f388da",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -18322,14 +18322,14 @@
       "title": "Custom tenant domains can be registered but can never be verified or given a certificate; the feature is inert",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3226-custom-tenant-domains-can-be-registered-but-can-never-be-ver.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "bc3299f9",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -18360,14 +18360,14 @@
       "title": "No access log, and traceId never reaches an application log line: a successful request leaves no trace at all",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3227-no-access-log-and-traceid-never-reaches-an-application-log-l.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "f36749b3",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -18398,14 +18398,14 @@
       "title": "sanitizeForErrorLog and redactAuditSnapshot disagree on what to redact, and the weaker one covers persisted query strings and route params",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3228-sanitizeforerrorlog-and-redactauditsnapshot-disagree-on-what.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "f36749b3",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -18436,14 +18436,14 @@
       "title": "POST /api/error-logs/client accepts an unvalidated arbitrary JSON body, stores it verbatim, and has no rate limit",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3229-post-api-error-logs-client-accepts-an-unvalidated-arbitrary-.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "f36749b3",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -18474,14 +18474,14 @@
       "title": "Platform-admin and tenant-admin login failures are not audited; only tenant-user login failures are",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3230-platform-admin-and-tenant-admin-login-failures-are-not-audit.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "f36749b3",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -18514,14 +18514,14 @@
       "title": "Whole modules have no audit trail: contracts (31 mutating endpoints), customization (33), users.update, role creation",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3231-whole-modules-have-no-audit-trail-contracts-31-mutating-endp.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "f36749b3",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -18554,14 +18554,14 @@
       "title": "Billing plan/seat/cancellation changes are unaudited, and six webhook paths write raw auditLog rows bypassing central redaction",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3232-billing-plan-seat-cancellation-changes-are-unaudited-and-six.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "f36749b3",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -18592,14 +18592,14 @@
       "title": "No audit row carries an IP address, user agent, session id or request id; the two indexed correlation columns are dead",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3233-no-audit-row-carries-an-ip-address-user-agent-session-id-or-.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "f36749b3",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -18630,14 +18630,14 @@
       "title": "Deleting a user nulls the actor on every audit row they ever wrote",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3234-deleting-a-user-nulls-the-actor-on-every-audit-row-they-ever.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "f36749b3",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -18670,14 +18670,14 @@
       "title": "The audit IP address on authentication events is read from X-Forwarded-For without the codebase's own trust check",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/bugs/BUG-3235-the-audit-ip-address-on-authentication-events-is-read-from-x.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "f36749b3",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -23974,8 +23974,8 @@
       "title": "Provisioning seeds four departments with no business unit on every tenant",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0115-provisioning-seeds-four-departments-with-no-business-unit-on.md",
         "provenance": "ARCHITECT",
@@ -24512,14 +24512,14 @@
       "title": "Tenants should inherit the platform email provider by default, and may override it",
       "severity": "",
       "priority": "P1",
-      "current_status": "READY",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0129-tenants-should-inherit-the-platform-email-provider-by-defaul.md",
         "provenance": "USER_REPORT",
         "detected_in_sha": "",
         "created_at": "2026-09-09",
-        "updated_at": "2026-09-09",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -24630,14 +24630,14 @@
       "title": "No multi-factor authentication exists anywhere, including for platform super admins",
       "severity": "HIGH",
       "priority": "P2",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -24668,14 +24668,14 @@
       "title": "Tenant isolation is proven for one module; 60+ modules have no isolation test",
       "severity": "HIGH",
       "priority": "P2",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "READY",
+      "architect_disposition": "PLAN_REQUIRED",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -24706,14 +24706,14 @@
       "title": "The payroll run engine has no tests",
       "severity": "HIGH",
       "priority": "P2",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "READY",
+      "architect_disposition": "PLAN_REQUIRED",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0134-the-payroll-run-engine-has-no-tests.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -24744,14 +24744,14 @@
       "title": "No authenticated endpoint in the product is rate limited at all",
       "severity": "HIGH",
       "priority": "P2",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0135-no-authenticated-endpoint-in-the-product-is-rate-limited-at-.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -24782,14 +24782,14 @@
       "title": "electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major",
       "severity": "HIGH",
       "priority": "P2",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "READY",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -24820,14 +24820,14 @@
       "title": "The API is architecturally pinned to a single instance, and several correctness mechanisms depend on that without saying so",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0137-the-api-is-architecturally-pinned-to-a-single-instance-and-s.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -24858,14 +24858,14 @@
       "title": "The only automatic authorization-denial audit writer is dead code on the installed Prisma client",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0138-the-only-automatic-authorization-denial-audit-writer-is-dead.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -24896,14 +24896,14 @@
       "title": "Tenant-aware date/currency formatting is reimplemented locally in at least 21 files instead of the one documented entry point",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0139-tenant-aware-date-currency-formatting-is-reimplemented-local.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -24936,14 +24936,14 @@
       "title": "The API module boundary is nominal: 152 of 310 Prisma models are queried directly from more than one module",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0140-the-api-module-boundary-is-nominal-152-of-310-prisma-models-.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -24974,14 +24974,14 @@
       "title": "Circular module dependencies: 10 mutual pairs and one 18-module strongly-connected component",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0141-circular-module-dependencies-10-mutual-pairs-and-one-18-modu.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -25012,14 +25012,14 @@
       "title": "services/api is not in TypeScript strict mode",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0142-services-api-is-not-in-typescript-strict-mode.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -25050,14 +25050,14 @@
       "title": "24% of the API workspace is excluded from the typecheck CI runs",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0143-24-of-the-api-workspace-is-excluded-from-the-typecheck-ci-ru.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -25088,14 +25088,14 @@
       "title": "Nothing detects a destructive migration before it merges",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0144-nothing-detects-a-destructive-migration-before-it-merges.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -25126,14 +25126,14 @@
       "title": "A push to develop can publish a desktop-agent build with no CI dependency",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0145-a-push-to-develop-can-publish-a-desktop-agent-build-with-no-.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -25164,14 +25164,14 @@
       "title": "smoke:deployment exists and is wired to nothing",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0146-smoke-deployment-exists-and-is-wired-to-nothing.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -25202,14 +25202,14 @@
       "title": "Stripe webhook signature verification is asserted by reading source text, never by executing it",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0147-stripe-webhook-signature-verification-is-asserted-by-reading.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -25240,14 +25240,14 @@
       "title": "Notification delivery, employee termination, leave draw-down, refresh-token replay and the agent auth path are untested",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0148-notification-delivery-employee-termination-leave-draw-down-r.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -25278,14 +25278,14 @@
       "title": "48 files use contains + mode insensitive with no supporting trigram/GIN index anywhere in the schema",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0149-48-files-use-contains-mode-insensitive-with-no-supporting-tr.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -25316,14 +25316,14 @@
       "title": "Reports and exports share the single request-serving connection pool with no replica, queue isolation or timeout",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0150-reports-and-exports-share-the-single-request-serving-connect.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -25354,14 +25354,14 @@
       "title": "Two recruitment controllers never adopted the RBAC-matrix half of the dual permission system",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0151-two-recruitment-controllers-never-adopted-the-rbac-matrix-ha.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -25392,14 +25392,14 @@
       "title": "TipTap is statically imported into the shared RuntimeRecordPage/RuntimeForm shell instead of lazy-loaded",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0152-tiptap-is-statically-imported-into-the-shared-runtimerecordp.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -25430,14 +25430,14 @@
       "title": "packages/ui is unused scaffolding; web and admin each maintain their own separate component kits",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0153-packages-ui-is-unused-scaffolding-web-and-admin-each-maintai.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -25472,14 +25472,14 @@
       "title": "Scaling posture: no autoscaling, one instance, a Node heap ceiling that exceeds the declared plan memory",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0154-scaling-posture-no-autoscaling-one-instance-a-node-heap-ceil.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -25510,14 +25510,14 @@
       "title": "No key-rotation procedure exists for any secret, including the one whose loss is irreversible",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0155-no-key-rotation-procedure-exists-for-any-secret-including-th.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -25548,14 +25548,14 @@
       "title": "Production log level silently discards all 44 logger.log call sites, including the outbox drain counters",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0156-production-log-level-silently-discards-all-44-logger-log-cal.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -25586,14 +25586,14 @@
       "title": "Can we detect an attack: the raw material exists in one table, but nothing looks at it",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "TRIAGE_REQUIRED",
-      "architect_disposition": "TRIAGE_REQUIRED",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0157-can-we-detect-an-attack-the-raw-material-exists-in-one-table.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-10",
+        "updated_at": "2026-09-11",
         "resolved_at": ""
       },
       "affected_modules": [

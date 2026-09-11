@@ -2,7 +2,7 @@
 ID: BUG-3206
 aliases: [BUG-3206]
 Title: 35 mutating settings/lookup routes take Record<string, unknown> bodies, bypassing ValidationPipe whitelisting
-Status: OPEN
+Status: DEFERRED
 Severity: MEDIUM
 Priority: P2
 Type: BUG
@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 4c86a29b
 AffectedModules: [services/api/src/modules/settings-runtime, services/api/src/modules/lookups]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3206 — 35 mutating settings/lookup routes take Record<string, unknown> bodies, bypassing ValidationPipe whitelisting
+
+> **Architect triage, 2026-09-11 — `DEFER`.** Real and recorded, below the line for this cycle. Revisit at the next backlog review — the evidence is in the record, so nothing is lost by scheduling it later.
 
 ## Summary
 

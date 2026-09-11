@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/recruitment, services/api/src/modules/app-releases]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3177 — Two endpoints accepted a caller-supplied storageKey and read it back with no tenant-prefix check
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** Accepting a caller-supplied storageKey and reading it back is a path-traversal-shaped hole into object storage. Resolve the key server-side from the record.
 
 ## Summary
 

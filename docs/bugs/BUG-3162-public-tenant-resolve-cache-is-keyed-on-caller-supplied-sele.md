@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/tenants]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3162 — Public tenant-resolve cache is keyed on caller-supplied selectors instead of the resolved tenant (downgraded from CRITICAL to HIGH on reconciliation)
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** A cache keyed on caller-supplied selectors lets a caller poison what other visitors resolve to. Key it on what the server resolved, not what was asked for.
 
 ## Summary
 

@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { SecretEncryptionService } from '../../common/security/secret-encryption.service';
+import {
+  decryptEmployeeCompensationFields,
+  encryptEmployeeCompensationFields,
+} from '../../common/security/pii-field-codec';
 import { PayrollCycleQueryDto } from './dto/payroll-cycle-query.dto';
 
 type PrismaDb = PrismaService | Prisma.TransactionClient;
@@ -148,14 +153,40 @@ export type PayrollCycleWithRelations = Prisma.PayrollCycleGetPayload<{
   include: typeof payrollCycleInclude;
 }>;
 
-export type EmployeeCompensationWithRelations =
+/*
+ * What this repository actually hands out, which is not the raw row.
+ *
+ * OBS-24. Every compensation read here passes through
+ * `decryptEmployeeCompensationFields`, which returns the plaintext fields
+ * populated and the `*Enc` ciphertext columns **removed** — deliberately, so
+ * ciphertext cannot travel past this boundary into a service, a DTO or a response
+ * by accident.
+ *
+ * The exported type has to say so. Declared as the bare
+ * `EmployeeCompensationGetPayload` it described a shape no caller ever receives,
+ * and the moment the expand-phase migration added the `*Enc` columns to the
+ * schema, three call sites in `payroll.service.ts` stopped compiling: annotated
+ * with the raw payload while being handed the narrowed one.
+ *
+ * Omitting them here rather than widening each consumer keeps the invariant in one
+ * place. Past this repository, the ciphertext columns do not exist.
+ */
+export type EmployeeCompensationWithRelations = Omit<
   Prisma.EmployeeCompensationGetPayload<{
     include: typeof compensationInclude;
-  }>;
+  }>,
+  | 'bankAccountNumberEnc'
+  | 'bankIbanEnc'
+  | 'bankRoutingNumberEnc'
+  | 'taxIdentifierEnc'
+>;
 
 @Injectable()
 export class PayrollRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly secretEncryption: SecretEncryptionService,
+  ) {}
 
   async findCycles(
     tenantId: string,
@@ -212,33 +243,48 @@ export class PayrollRepository {
     });
   }
 
-  listCompensations(tenantId: string, db: PrismaDb = this.prisma) {
-    return db.employeeCompensation.findMany({
+  async listCompensations(tenantId: string, db: PrismaDb = this.prisma) {
+    const rows = await db.employeeCompensation.findMany({
       where: { tenantId },
       include: compensationInclude,
       orderBy: [{ effectiveDate: 'desc' }, { createdAt: 'desc' }],
     });
+    return rows.map((row) =>
+      decryptEmployeeCompensationFields(this.secretEncryption, row),
+    );
   }
 
-  findCompensationById(
+  async findCompensationById(
     tenantId: string,
     compensationId: string,
     db: PrismaDb = this.prisma,
   ) {
-    return db.employeeCompensation.findFirst({
+    const row = await db.employeeCompensation.findFirst({
       where: { tenantId, id: compensationId },
       include: compensationInclude,
     });
+    return row
+      ? decryptEmployeeCompensationFields(this.secretEncryption, row)
+      : row;
   }
 
-  createCompensation(
+  async createCompensation(
     data: Prisma.EmployeeCompensationUncheckedCreateInput,
     db: PrismaDb = this.prisma,
   ) {
-    return db.employeeCompensation.create({
-      data,
+    const created = await db.employeeCompensation.create({
+      data: {
+        ...data,
+        ...encryptEmployeeCompensationFields(this.secretEncryption, {
+          bankAccountNumber: data.bankAccountNumber,
+          bankIban: data.bankIban,
+          bankRoutingNumber: data.bankRoutingNumber,
+          taxIdentifier: data.taxIdentifier,
+        }),
+      },
       include: compensationInclude,
     });
+    return decryptEmployeeCompensationFields(this.secretEncryption, created);
   }
 
   updateCompensation(
@@ -249,7 +295,30 @@ export class PayrollRepository {
   ) {
     return db.employeeCompensation.updateMany({
       where: { tenantId, id: compensationId },
-      data,
+      data: {
+        ...data,
+        ...encryptEmployeeCompensationFields(this.secretEncryption, {
+          bankAccountNumber:
+            typeof data.bankAccountNumber === 'string' ||
+            data.bankAccountNumber === null
+              ? data.bankAccountNumber
+              : undefined,
+          bankIban:
+            typeof data.bankIban === 'string' || data.bankIban === null
+              ? data.bankIban
+              : undefined,
+          bankRoutingNumber:
+            typeof data.bankRoutingNumber === 'string' ||
+            data.bankRoutingNumber === null
+              ? data.bankRoutingNumber
+              : undefined,
+          taxIdentifier:
+            typeof data.taxIdentifier === 'string' ||
+            data.taxIdentifier === null
+              ? data.taxIdentifier
+              : undefined,
+        }),
+      },
     });
   }
 

@@ -2,7 +2,7 @@
 ID: BUG-3213
 aliases: [BUG-3213]
 Title: bcrypt.hash runs synchronously inside open provisioning transactions, adding to the same 5-second budget as RES-09
-Status: OPEN
+Status: DEFERRED
 Severity: MEDIUM
 Priority: P2
 Type: PERFORMANCE
@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 4c86a29b
 AffectedModules: [services/api/src/modules/tenants]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3213 — bcrypt.hash runs synchronously inside open provisioning transactions, adding to the same 5-second budget as RES-09
+
+> **Architect triage, 2026-09-11 — `DEFER`.** Real and recorded, below the line for this cycle. Revisit at the next backlog review — the evidence is in the record, so nothing is lost by scheduling it later.
 
 ## Summary
 

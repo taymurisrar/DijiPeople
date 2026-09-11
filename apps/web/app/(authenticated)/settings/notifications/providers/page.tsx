@@ -1,5 +1,6 @@
 import { apiRequestJson } from "@/lib/server-api";
 import type {
+  EffectiveEmailProvider,
   EmailProviderSetting,
   ProviderSchema,
 } from "@/lib/notifications-api";
@@ -12,12 +13,24 @@ import { EmailProvidersManager } from "../_components/email-providers-manager";
 
 export default async function EmailProvidersPage() {
   const user = await requireSettingsPermissions(["notification.providers.read"]);
-  const [response, schemas] = await Promise.all([
+  /*
+   * ITEM-0129. `effective` is fetched alongside the workspace's own providers
+   * because the two answer different questions: the list says what this
+   * workspace configured, and `effective` says what will actually carry its
+   * mail — which may be the DijiPeople platform relay it inherits.
+   *
+   * Fetched in parallel rather than one after another, which is BUG-3219's
+   * shape.
+   */
+  const [response, schemas, effective] = await Promise.all([
     apiRequestJson<{ items: EmailProviderSetting[] }>(
       "/notifications/email-providers",
     ),
     apiRequestJson<{ items: ProviderSchema[] }>(
       "/notifications/email-providers/field-schema",
+    ),
+    apiRequestJson<EffectiveEmailProvider>(
+      "/notifications/email-providers/effective",
     ),
   ]);
   const canManage = hasAnySettingsPermission(user, [
@@ -32,6 +45,7 @@ export default async function EmailProvidersPage() {
     >
       <EmailProvidersManager
         canManage={canManage}
+        effective={effective}
         providers={response.items ?? []}
         schemas={schemas.items ?? []}
       />

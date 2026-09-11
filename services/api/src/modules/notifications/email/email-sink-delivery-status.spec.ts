@@ -1,5 +1,6 @@
 import { EmailDeliveryStatus, EmailProviderType } from '@prisma/client';
 import { EmailExecutionService } from './email-execution.service';
+import { EffectiveEmailProviderService } from './effective-email-provider.service';
 
 /*
  * What the delivery log says after a send that reached a sink.
@@ -62,6 +63,27 @@ function buildService(providerType: EmailProviderType) {
     },
     platformProvider: { resolve: jest.fn(async () => null) },
     logger: { log: jest.fn(), warn: jest.fn(), error: jest.fn() },
+  });
+
+  /*
+   * ITEM-0129 moved the precedence into `EffectiveEmailProviderService`.
+   * Composed from the stubs assigned just above rather than stubbed in turn, so
+   * this suite still walks the real chain. Assigned in a second step because it
+   * reads those stubs back off the service.
+   */
+  const stubbed = service as unknown as {
+    providerFactory: ConstructorParameters<
+      typeof EffectiveEmailProviderService
+    >[0];
+    platformProvider: ConstructorParameters<
+      typeof EffectiveEmailProviderService
+    >[1];
+  };
+  Object.assign(service, {
+    effectiveProvider: new EffectiveEmailProviderService(
+      stubbed.providerFactory,
+      stubbed.platformProvider,
+    ),
   });
 
   // `checkAuthNotificationCooldown` reads state this test does not model, and

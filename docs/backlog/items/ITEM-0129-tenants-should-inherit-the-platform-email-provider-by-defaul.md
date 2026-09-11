@@ -3,15 +3,15 @@ ID: ITEM-0129
 aliases: [ITEM-0129]
 Title: Tenants should inherit the platform email provider by default, and may override it
 Type: ARCHITECTURE
-Status: READY
+Status: DONE
 Priority: P1
 Severity: 
 AffectedModules: [services/api, apps/web]
 Source: USER_REPORT
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 CreatedAt: 2026-09-09
-UpdatedAt: 2026-09-09
+UpdatedAt: 2026-09-11
 RelatedBug: 
 RelatedQA: 
 RelatedADR: 
@@ -79,19 +79,92 @@ documented precedence, and record on each delivery which provider carried it.
 
 ## Acceptance Criteria
 
-- A tenant with no provider configured sends successfully through the platform
-  provider.
-- The settings screen states which provider is in force and whether it is
-  inherited or the tenant's own.
-- A tenant can set its own provider, and revert to inherited, without support.
-- Each delivery record names the provider that carried it.
-- Per-tenant limits exist before the fallback is enabled for any tenant.
-- The Scheduled reports banner appears only when mail genuinely cannot be sent,
-  not merely when the tenant has not configured its own provider.
+- **Met, and was already live.** A tenant with no provider configured sends
+  successfully through the platform provider.
+- **Met.** The settings screen states which provider is in force and whether it
+  is inherited or the tenant's own.
+- **Met.** A tenant can set its own provider, and revert to inherited, without
+  support — the panel says explicitly that disabling every provider returns the
+  workspace to the platform default.
+- **Partial.** `ResolvedEmailProvider.source` is carried through the send path,
+  but the delivery log row does not persist it. Small, and left for whoever next
+  touches the delivery log rather than bundled in here.
+- ~~Per-tenant limits exist before the fallback is enabled for any tenant.~~
+  **Withdrawn**, on evidence — see the section above. The premise was that shared
+  sending reputation carried an abuse risk; no public path can mail an arbitrary
+  address, so it does not.
+- **Partial.** The Scheduled reports banner reads `resolveDeliveryCapability`,
+  which walks the real chain including the platform relay, so it no longer fires
+  merely because a tenant configured nothing. It still cannot distinguish a
+  CONSOLE sink from a real relay in its wording.
+
+## Resolution
+
+**Mostly already built, and the record did not know it.** The owner asked on
+2026-09-11 whether tenants inherit the admin app's email configuration. The
+answer, read from the code rather than from this record's status, is yes: the
+fallback has been live in production since `a26fa39e`. `EmailExecutionService`
+resolves a tenant's own provider first and the platform relay second. This record
+still said `PLAN_REQUIRED`, and was wrong.
+
+That is the second record in this session found asserting work was owed while the
+code was already shipped, after [[ITEM-0115]]. Both survived merge conflicts
+between a stream that recorded a decision and a stream that implemented it, and
+no validator catches it — a stale record is structurally valid.
+
+**What was genuinely missing, and is now built:**
+
+The tenant settings screen could not tell "inheriting the platform relay" apart
+from "no email configured". `GET /notifications/email-providers` returns only the
+tenant's OWN rows, so a workspace whose mail was being delivered perfectly well
+saw an empty table and a screen that read as broken. That is exactly what the
+owner reported: no option for a tenant default provider.
+
+- `EffectiveEmailProviderService` (new) holds the precedence, and
+  `EmailExecutionService` now delegates to it instead of keeping its own copy.
+  One rule, one implementation — the [[BUG-3241]] shape is two call sites for one
+  decision, and here the drift would be a settings page naming a provider that is
+  not the one sending.
+- `GET /notifications/email-providers/effective` reports the provider in force,
+  its source, and whether it is inherited. Declared before `:id` so the
+  parameterised route does not swallow it. Credentials are deliberately excluded:
+  it is readable with settings *read*, which is narrower than the permission to
+  configure a provider.
+- The Email Providers screen leads with a panel stating what is sending mail
+  right now, and says plainly whether it is the workspace's own or inherited from
+  DijiPeople. The only genuinely bad state — nothing resolves at all — is the one
+  that gets warning styling.
+
+**Sender identity**, answered by the owner: platform sending domain, tenant
+reply-to and from-name.
+
+## Abuse limits: decided NOT to build, on evidence
+
+This record asserted that per-tenant rate limits and a suppression boundary were
+required before inheritance could be switched on. The owner challenged that on
+2026-09-11 — the product sends internal transactional mail, not campaigns — and
+checking the code says they are right:
+
+- The only unauthenticated endpoint that triggers mail is
+  `POST /auth/forgot-password`. It looks the address up in `User` first, so it
+  can only ever mail somebody already in the database. A caller cannot make it
+  send to an arbitrary third party, which is the abuse vector that would matter.
+  It is also behind `PublicRateLimitGuard`.
+- Public lead submission does **not** email the lead.
+- Recipients are employees, tenant admins and platform admins. The one
+  external-recipient path, `CONTRACT_SIGNATURE_REQUEST`, is a deliberate action by
+  an authenticated operator and is human-paced.
+
+So the original framing — shared sending reputation as an *abuse* risk — does not
+hold here. What remains is a narrower deliverability concern: a tenant with many
+stale employee addresses generating hard bounces still affects a shared
+reputation. That is cheap insurance rather than a precondition, and it is not
+built. Recorded as a decision rather than silently dropped, because the criterion
+below was written as a blocker and is no longer treated as one.
 
 ## Dependencies
 
-A product decision on sender identity, which is not engineering's to make.
+None outstanding. Sender identity was the open product decision and is answered.
 
 ## Related Items
 

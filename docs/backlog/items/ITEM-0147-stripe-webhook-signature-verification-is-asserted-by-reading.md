@@ -3,15 +3,15 @@ ID: ITEM-0147
 aliases: [ITEM-0147]
 Title: Stripe webhook signature verification is asserted by reading source text, never by executing it
 Type: TEST_GAP
-Status: TRIAGE_REQUIRED
+Status: DEFERRED
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [services/api/src/modules/billing]
 Source: REVIEWER
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 RelatedBug: 
 RelatedQA: 
 RelatedADR: 
@@ -21,6 +21,8 @@ BlockedBy:
 ---
 
 # ITEM-0147 — Stripe webhook signature verification is asserted by reading source text, never by executing it
+
+> **Architect triage, 2026-09-11 — `DEFER`.** Real and recorded, below the line for this cycle. Revisit at the next backlog review — the evidence is in the record, so nothing is lost by scheduling it later.
 
 ## Summary
 

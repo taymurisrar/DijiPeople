@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/timesheets]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: PLAN_REQUIRED
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3170 — Timesheet bulk-import confirmation runs an unbounded per-row loop inside one transaction on the default 5-second timeout
+
+> **Architect triage, 2026-09-11 — `PLAN_REQUIRED`.** An unbounded per-row loop inside a transaction will exceed any statement timeout at scale. Needs chunking and a resumable import.
 
 ## Summary
 

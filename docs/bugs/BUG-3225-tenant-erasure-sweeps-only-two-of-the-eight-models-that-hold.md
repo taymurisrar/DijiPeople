@@ -2,7 +2,7 @@
 ID: BUG-3225
 aliases: [BUG-3225]
 Title: Tenant erasure sweeps only two of the eight models that hold storage keys
-Status: OPEN
+Status: DEFERRED
 Severity: MEDIUM
 Priority: P2
 Type: DATA_INTEGRITY
@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 08f388da
 AffectedModules: [services/api/src/modules/tenants]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3225 — Tenant erasure sweeps only two of the eight models that hold storage keys
+
+> **Architect triage, 2026-09-11 — `DEFER`.** Real and recorded, below the line for this cycle. Revisit at the next backlog review — the evidence is in the record, so nothing is lost by scheduling it later.
 
 ## Summary
 

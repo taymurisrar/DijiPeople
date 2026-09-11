@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/lookups]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3156 — A tenant admin can create, rename or deactivate the platform-wide shared geography reference data
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** A tenant admin mutating platform-wide shared reference data reaches outside their tenant. Integrity rather than disclosure, and the isolation invariant is the product's single most important one.
 
 ## Summary
 

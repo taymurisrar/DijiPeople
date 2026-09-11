@@ -9,6 +9,7 @@ import {
 import { Button } from "@/app/components/ui/button";
 import { EmptyState } from "@/app/components/ui/empty-state";
 import {
+  EffectiveEmailProvider,
   EmailProviderSetting,
   EmailProviderType,
   ProviderField,
@@ -66,12 +67,82 @@ const emptyProvider: ProviderForm = {
 const providerTypes =
   SUPPORTED_EMAIL_PROVIDER_TYPES as readonly EmailProviderType[];
 
+/**
+ * What is sending this workspace's mail right now.
+ *
+ * ITEM-0129. The list below shows the workspace's OWN providers, and a workspace
+ * that has configured none inherits the DijiPeople platform relay — its mail is
+ * delivered normally. Without this panel that state was indistinguishable from
+ * having no email at all: an empty table, and a screen that reads as broken.
+ *
+ * So the panel always states the provider in force, and says plainly whether it
+ * is this workspace's own or inherited. The only genuinely bad state — nothing
+ * resolves and nothing can be sent — is the one that gets the warning styling.
+ */
+function EffectiveProviderPanel({
+  effective,
+}: {
+  effective: EffectiveEmailProvider;
+}) {
+  if (!effective.canSend) {
+    return (
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <strong className="font-semibold">No email can be sent.</strong> This
+        workspace has no provider of its own and none is available to inherit, so
+        notifications, invitations and scheduled reports will not be delivered.
+        Add a provider below.
+      </div>
+    );
+  }
+
+  const sender = effective.fromName
+    ? `${effective.fromName} <${effective.fromEmail ?? "unknown"}>`
+    : (effective.fromEmail ?? "unknown");
+
+  return (
+    <div className="rounded-2xl border border-border bg-surface px-4 py-3 text-sm">
+      <div className="font-semibold">
+        {effective.inherited
+          ? "Email is sent by the DijiPeople platform provider"
+          : "Email is sent by this workspace's own provider"}
+      </div>
+      <div className="mt-1 text-muted">
+        {effective.inherited ? (
+          <>
+            This workspace has not configured its own provider, so it inherits
+            the platform default. Mail leaves as{" "}
+            <span className="font-medium">{sender}</span>
+            {effective.replyToEmail ? (
+              <>
+                , with replies going to{" "}
+                <span className="font-medium">{effective.replyToEmail}</span>
+              </>
+            ) : null}
+            . Adding a provider below and marking it Default overrides this.
+          </>
+        ) : (
+          <>
+            Mail leaves as <span className="font-medium">{sender}</span>
+            {effective.providerType ? (
+              <> over {effective.providerType}</>
+            ) : null}
+            . Disabling every provider below returns this workspace to the
+            platform default.
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function EmailProvidersManager({
   canManage,
+  effective,
   providers,
   schemas,
 }: {
   canManage: boolean;
+  effective: EffectiveEmailProvider;
   providers: EmailProviderSetting[];
   schemas: ProviderSchema[];
 }) {
@@ -207,6 +278,8 @@ export function EmailProvidersManager({
           {message}
         </div>
       ) : null}
+
+      <EffectiveProviderPanel effective={effective} />
 
       <SettingsPanel
         title={form.id ? "Edit Email Provider" : "Create Email Provider"}

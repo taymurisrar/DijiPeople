@@ -2,7 +2,7 @@
 ID: BUG-3231
 aliases: [BUG-3231]
 Title: Whole modules have no audit trail: contracts (31 mutating endpoints), customization (33), users.update, role creation
-Status: OPEN
+Status: DEFERRED
 Severity: MEDIUM
 Priority: P2
 Type: DATA_INTEGRITY
@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: f36749b3
 AffectedModules: [services/api/src/modules/contracts, services/api/src/modules/customization]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3231 — Whole modules have no audit trail: contracts (31 mutating endpoints), customization (33), users.update, role creation
+
+> **Architect triage, 2026-09-11 — `DEFER`.** Real and recorded, below the line for this cycle. Revisit at the next backlog review — the evidence is in the record, so nothing is lost by scheduling it later.
 
 ## Summary
 

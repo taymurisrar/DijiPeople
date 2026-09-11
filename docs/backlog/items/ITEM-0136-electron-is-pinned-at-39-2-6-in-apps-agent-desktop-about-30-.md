@@ -3,15 +3,15 @@ ID: ITEM-0136
 aliases: [ITEM-0136]
 Title: electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major
 Type: SECURITY
-Status: TRIAGE_REQUIRED
+Status: READY
 Priority: P2
 Severity: HIGH
 AffectedModules: [apps/agent-desktop]
 Source: SECURITY_REVIEW
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 RelatedBug: 
 RelatedQA: 
 RelatedADR: 
@@ -21,6 +21,8 @@ BlockedBy:
 ---
 
 # ITEM-0136 — electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** Electron roughly 30 CVEs behind on software installed on customer machines. Upgrading a pinned runtime is mechanical and testable, and the desktop agent has a CI job.
 
 ## Summary
 

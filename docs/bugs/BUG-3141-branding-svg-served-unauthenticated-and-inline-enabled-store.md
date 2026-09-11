@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: a800d8f2
 AffectedModules: [services/api/src/modules/customization]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3141 — Branding SVG served unauthenticated and inline enabled stored XSS on the API origin
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** Stored XSS through an unauthenticated inline SVG on a tenant-branded surface. Serve branding assets with a content type and disposition that cannot execute.
 
 ## Summary
 

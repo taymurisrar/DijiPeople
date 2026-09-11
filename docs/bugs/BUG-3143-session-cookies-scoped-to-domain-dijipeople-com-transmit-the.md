@@ -2,7 +2,7 @@
 ID: BUG-3143
 aliases: [BUG-3143]
 Title: Session cookies scoped to Domain=.dijipeople.com transmit the platform-admin token to every tenant hostname
-Status: OPEN
+Status: DEFERRED
 Severity: MEDIUM
 Priority: P2
 Type: SECURITY
@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: a800d8f2
 AffectedModules: [services/api/src/modules/auth]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3143 — Session cookies scoped to Domain=.dijipeople.com transmit the platform-admin token to every tenant hostname
+
+> **Architect triage, 2026-09-11 — `DEFER`.** Real and recorded, below the line for this cycle. Revisit at the next backlog review — the evidence is in the record, so nothing is lost by scheduling it later.
 
 ## Summary
 

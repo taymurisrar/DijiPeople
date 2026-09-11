@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: a800d8f2
 AffectedModules: [services/api/src/modules/auth]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3139 — Tenant password-reset tokens are stateless and replayable for 24 hours after use
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** A stateless reset token replayable for 24 hours is one interception away from an account. Single-use and server-tracked is the standard answer.
 
 ## Summary
 

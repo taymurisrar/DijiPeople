@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [apps/web]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: PLAN_REQUIRED
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3173 — Roughly 20 pages redundantly re-fetch business-unit access and current-employee context the shell layout already loaded
+
+> **Architect triage, 2026-09-11 — `PLAN_REQUIRED`.** Twenty pages re-fetching the same access context is the frontend half of BUG-3165 and should be solved with it, not separately.
 
 ## Summary
 

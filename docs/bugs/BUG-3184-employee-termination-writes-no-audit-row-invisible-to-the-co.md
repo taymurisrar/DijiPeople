@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/modules/employees]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3184 — Employee termination writes no audit row, invisible to the coverage spec designed to catch exactly this
+
+> **Architect triage, 2026-09-11 — `FIX_NOW`.** Employee termination unaudited, and invisible to the coverage spec that should have caught it. Termination is the single event an auditor asks about first.
 
 ## Summary
 

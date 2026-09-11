@@ -2,7 +2,7 @@
 ID: BUG-3180
 aliases: [BUG-3180]
 Title: The Render service cannot be rebuilt from the repository: seven boot-required env vars are absent from render.yaml
-Status: OPEN
+Status: PRODUCT_DECISION
 Severity: HIGH
 Priority: P1
 Type: INFRA
@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [render.yaml]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: PRODUCT_DECISION
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3180 — The Render service cannot be rebuilt from the repository: seven boot-required env vars are absent from render.yaml
+
+> **Architect triage, 2026-09-11 — `PRODUCT_DECISION`.** Seven boot-required variables exist only in the Render dashboard, so the service cannot be rebuilt from the repository. Fixing it properly means deciding where configuration lives and who may change it — related to the render.yaml drift ITEM-0084 now detects.
 
 ## Summary
 

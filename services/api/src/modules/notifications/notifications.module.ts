@@ -7,6 +7,7 @@ import { EmailDeliveryLogService } from './email/email-delivery-log.service';
 import { EmailExecutionService } from './email/email-execution.service';
 import { EmailProviderFactory } from './email/email-provider-factory.service';
 import { PlatformEmailProviderResolver } from './email/platform-email-provider.resolver';
+import { EffectiveEmailProviderService } from './email/effective-email-provider.service';
 import { EmailProviderService } from './email/email-provider.service';
 import { EmailService } from './email/email.service';
 import { EmailTemplateRendererService } from './email/email-template-renderer.service';
@@ -46,6 +47,7 @@ import { LifecycleNotificationHandler } from './lifecycle-notification.handler';
     NotificationsRepository,
     NotificationsService,
     PlatformEmailProviderResolver,
+    EffectiveEmailProviderService,
     SecretEncryptionService,
     SmtpEmailProvider,
     JwtAuthGuard,
@@ -56,6 +58,7 @@ import { LifecycleNotificationHandler } from './lifecycle-notification.handler';
     EmailExecutionService,
     EmailProviderFactory,
     PlatformEmailProviderResolver,
+    EffectiveEmailProviderService,
     EmailProviderService,
     EmailService,
     EmailTemplateRendererService,

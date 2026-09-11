@@ -195,6 +195,20 @@ export class NotificationsController {
     return this.notificationsService.listProviderSettings(user);
   }
 
+  /*
+   * ITEM-0129 — which provider will actually carry this tenant's mail.
+   *
+   * Declared BEFORE `email-providers/:id` on purpose. Nest matches in
+   * declaration order, so the parameterised route would otherwise swallow
+   * `effective` and try to load a provider whose id is the literal string.
+   */
+  @Get('email-providers/effective')
+  @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_PROVIDERS_READ)
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
+  getEffectiveProvider(@CurrentUser() user: AuthenticatedUser) {
+    return this.notificationsService.describeEffectiveProvider(user);
+  }
+
   @Get('email-providers/:id')
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_PROVIDERS_READ)
   @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')

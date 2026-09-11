@@ -11,18 +11,20 @@ DetectedDate: 2026-09-10
 DetectedInSha: 23504f4b
 AffectedModules: [services/api/src/common]
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: PLAN_REQUIRED
 QAReport: 
 RegressionId: 
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
-UpdatedAt: 2026-09-10
+UpdatedAt: 2026-09-11
 ResolvedAt:
 ---
 
 # BUG-3165 — Every authenticated request costs roughly 26 database round trips before the handler runs
+
+> **Architect triage, 2026-09-11 — `PLAN_REQUIRED`.** Twenty-six round trips per authenticated request is the audit's named scaling long-pole, and caching the auth context changes invalidation everywhere. Design first.
 
 ## Summary
 
