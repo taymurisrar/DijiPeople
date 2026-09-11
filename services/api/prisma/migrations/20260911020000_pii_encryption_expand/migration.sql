@@ -1,4 +1,4 @@
--- OBS-24 / EXECPLAN-0032 expand phase.
+-- OBS-24 / EXECPLAN-0036 expand phase.
 --
 -- Adds AES-256-GCM ciphertext columns (SecretEncryptionService, `enc:v1:...`)
 -- alongside every plaintext bank-account/IBAN/SWIFT/tax-id/CNIC column, plus a

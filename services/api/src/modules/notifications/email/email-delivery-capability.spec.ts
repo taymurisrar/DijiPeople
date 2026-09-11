@@ -1,5 +1,6 @@
 import { EmailProviderType } from '@prisma/client';
 import { EmailExecutionService } from './email-execution.service';
+import { EffectiveEmailProviderService } from './effective-email-provider.service';
 
 /*
  * "Can this workspace actually send email?"
@@ -29,9 +30,31 @@ function buildService(chain: {
       options.tenantOnly ? (chain.tenantOnly ?? null) : (chain.base ?? null),
   );
 
+  const providerFactory = { resolveProvider };
+  const platformProvider = {
+    resolve: jest.fn(async () => chain.platform ?? null),
+  };
+
+  /*
+   * ITEM-0129 moved the precedence itself into `EffectiveEmailProviderService`,
+   * so the real one is composed here from the same stubs rather than being
+   * stubbed in turn. That keeps this suite testing the chain it was written for:
+   * a stubbed delegate would assert only that delegation happens, and the
+   * ordering this file exists to pin would stop being covered anywhere.
+   */
+  const effectiveProvider = new EffectiveEmailProviderService(
+    providerFactory as unknown as ConstructorParameters<
+      typeof EffectiveEmailProviderService
+    >[0],
+    platformProvider as unknown as ConstructorParameters<
+      typeof EffectiveEmailProviderService
+    >[1],
+  );
+
   Object.assign(service, {
-    providerFactory: { resolveProvider },
-    platformProvider: { resolve: jest.fn(async () => chain.platform ?? null) },
+    providerFactory,
+    platformProvider,
+    effectiveProvider,
   });
 
   return { service, resolveProvider };

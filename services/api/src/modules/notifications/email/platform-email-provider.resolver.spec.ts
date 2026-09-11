@@ -1,5 +1,6 @@
 import { EmailProviderType } from '@prisma/client';
 import { EmailExecutionService } from './email-execution.service';
+import { EffectiveEmailProviderService } from './effective-email-provider.service';
 import { PlatformEmailProviderResolver } from './platform-email-provider.resolver';
 import type { ResolvedEmailProvider } from './email-provider-factory.service';
 
@@ -132,9 +133,25 @@ function buildExecution(options: {
     EmailExecutionService.prototype,
   ) as EmailExecutionService;
 
+  const providerFactory = { resolveProvider };
+  const platformProvider = { resolve };
+
+  /*
+   * ITEM-0129 moved the precedence into `EffectiveEmailProviderService`. The
+   * real one is composed from the same stubs rather than stubbed in turn, so
+   * this suite keeps asserting the ordering it was written for.
+   */
   Object.assign(service, {
-    providerFactory: { resolveProvider },
-    platformProvider: { resolve },
+    providerFactory,
+    platformProvider,
+    effectiveProvider: new EffectiveEmailProviderService(
+      providerFactory as unknown as ConstructorParameters<
+        typeof EffectiveEmailProviderService
+      >[0],
+      platformProvider as unknown as ConstructorParameters<
+        typeof EffectiveEmailProviderService
+      >[1],
+    ),
   });
 
   const call = (input: Record<string, unknown>) =>

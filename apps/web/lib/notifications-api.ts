@@ -319,6 +319,29 @@ export const getProviderFieldSchemas = () =>
   requestJson<{ items: ProviderSchema[] }>("/email-providers/field-schema");
 export const getEmailProviders = () =>
   requestJson<{ items: EmailProviderSetting[] }>("/email-providers");
+
+/**
+ * Which provider will actually carry this workspace's mail.
+ *
+ * ITEM-0129. `getEmailProviders` returns only the workspace's OWN providers, so
+ * a workspace inheriting the DijiPeople platform relay sees an empty list — which
+ * looks identical to having no email at all, while its mail is in fact being
+ * delivered perfectly well.
+ */
+export type EffectiveEmailProvider = {
+  canSend: boolean;
+  source: "tenant" | "platform" | "env" | "dev-fallback" | null;
+  inherited: boolean;
+  providerType: string | null;
+  providerSettingId: string | null;
+  fromEmail: string | null;
+  fromName: string | null;
+  replyToEmail: string | null;
+};
+
+export const getEffectiveEmailProvider = () =>
+  requestJson<EffectiveEmailProvider>("/email-providers/effective");
+
 export const createEmailProvider = (body: unknown) =>
   requestJson<EmailProviderSetting>("/email-providers", {
     method: "POST",

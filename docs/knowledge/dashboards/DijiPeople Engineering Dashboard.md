@@ -9,11 +9,11 @@
 |---|---|
 | Open CRITICAL | **4** |
 | Open HIGH | **80** |
-| Open total | 161 |
+| Open total | 160 |
 | Blocked | 2 |
 | Awaiting a product decision | 6 |
 | Deferred | 90 |
-| Completed | 317 |
+| Completed | 318 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -592,7 +592,6 @@
 | [[BUG-2657-analytics-caveat-panels-list-the-same-note-twice-in-differen|BUG-2657]] | Analytics caveat panels list the same note twice in different wording | UX | LOW | FIXED | api:reporting | DONE |
 | [[BUG-3021-workspace-switcher-in-the-avatar-menu-overflows-horizontally|BUG-3021]] | Workspace switcher in the avatar menu overflows horizontally and shows a scrollbar | UX | LOW | FIXED | apps/web | FIX_NOW |
 | [[ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by|ITEM-0080]] | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
-| [[ITEM-0129-tenants-should-inherit-the-platform-email-provider-by-defaul|ITEM-0129]] | Tenants should inherit the platform email provider by default, and may override it | ARCHITECTURE | — | READY | services/api, apps/web | PLAN_REQUIRED |
 
 ## Key Architecture Decisions
 
