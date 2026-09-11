@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 160 |
+| Open (active work) | 159 |
 | Blocked | 2 |
 | Deferred | 90 |
 | Awaiting a product decision | 6 |
-| Completed / closed | 318 |
+| Completed / closed | 319 |
 | **Open CRITICAL** | **4** |
-| **Open HIGH** | **80** |
+| **Open HIGH** | **79** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,7 +27,7 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 4 |
-| HIGH | 80 |
+| HIGH | 79 |
 | MEDIUM | 63 |
 | LOW | 13 |
 
@@ -45,7 +45,7 @@ see [`README.md`](README.md) for why.
 | INTEGRATION | 5 |
 | PERFORMANCE | 14 |
 | PRODUCT_DECISION | 1 |
-| SECURITY | 17 |
+| SECURITY | 16 |
 | STATE_MACHINE | 3 |
 | TECH_DEBT | 5 |
 | TENANT_ISOLATION | 2 |
@@ -64,8 +64,8 @@ see [`README.md`](README.md) for why.
 | VERIFIED | 218 |
 | DUPLICATE | 10 |
 | ACCEPTED_RISK | 3 |
-| READY | 20 |
-| DONE | 87 |
+| READY | 19 |
+| DONE | 88 |
 
 ## All records
 
@@ -301,7 +301,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0132](../../docs/backlog/items/ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for.md) | No multi-factor authentication exists anywhere, including for platform super admins | SECURITY | HIGH | P2 | PRODUCT_DECISION | api:auth | PRODUCT_DECISION |
 | [ITEM-0133](../../docs/backlog/items/ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no.md) | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | P2 | READY | services/api/test | PLAN_REQUIRED |
 | [ITEM-0134](../../docs/backlog/items/ITEM-0134-the-payroll-run-engine-has-no-tests.md) | The payroll run engine has no tests | TEST_GAP | HIGH | P2 | READY | api:payroll | PLAN_REQUIRED |
-| [ITEM-0135](../../docs/backlog/items/ITEM-0135-no-authenticated-endpoint-in-the-product-is-rate-limited-at-.md) | No authenticated endpoint in the product is rate limited at all | SECURITY | HIGH | P2 | READY | services/api/src/common | PLAN_REQUIRED |
+| [ITEM-0135](../../docs/backlog/items/ITEM-0135-no-authenticated-endpoint-in-the-product-is-rate-limited-at-.md) | No authenticated endpoint in the product is rate limited at all | SECURITY | HIGH | P2 | DONE | services/api/src/common | DONE |
 | [ITEM-0136](../../docs/backlog/items/ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-.md) | electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major | SECURITY | HIGH | P2 | READY | apps/agent-desktop | FIX_NOW |
 | [BUG-0051](../../docs/bugs/BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state.md) | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | P1 | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [ITEM-0018](../../docs/backlog/items/ITEM-0018-plans-and-prices-have-no-draft-publish-or-archive-lifecycle.md) | Plans and prices have no draft, publish or archive lifecycle | ARCHITECTURE | MEDIUM | P1 | DONE | services/api/prisma, api:super-admin, apps/admin, apps/landing | DONE |

@@ -8,12 +8,12 @@
 | | |
 |---|---|
 | Open CRITICAL | **4** |
-| Open HIGH | **80** |
-| Open total | 160 |
+| Open HIGH | **79** |
+| Open total | 159 |
 | Blocked | 2 |
 | Awaiting a product decision | 6 |
 | Deferred | 90 |
-| Completed | 318 |
+| Completed | 319 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -107,7 +107,6 @@
 | [[BUG-3241-legacy-role-permission-grant-and-employee-export-both-skip-t|BUG-3241]] | Legacy role-permission grant and employee export both skip the sibling endpoint's access check | AUTHORIZATION | HIGH | FIXED | api:roles/roles.service.ts, api:employees/employees.service.ts | DONE |
 | [[ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no|ITEM-0133]] | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | READY | services/api/test | PLAN_REQUIRED |
 | [[ITEM-0134-the-payroll-run-engine-has-no-tests|ITEM-0134]] | The payroll run engine has no tests | TEST_GAP | HIGH | READY | api:payroll | PLAN_REQUIRED |
-| [[ITEM-0135-no-authenticated-endpoint-in-the-product-is-rate-limited-at-|ITEM-0135]] | No authenticated endpoint in the product is rate limited at all | SECURITY | HIGH | READY | services/api/src/common | PLAN_REQUIRED |
 | [[ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-|ITEM-0136]] | electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major | SECURITY | HIGH | READY | apps/agent-desktop | FIX_NOW |
 
 ## Product Decisions Needed

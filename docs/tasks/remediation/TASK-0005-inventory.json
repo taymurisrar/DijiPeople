@@ -24744,8 +24744,8 @@
       "title": "No authenticated endpoint in the product is rate limited at all",
       "severity": "HIGH",
       "priority": "P2",
-      "current_status": "READY",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0135-no-authenticated-endpoint-in-the-product-is-rate-limited-at-.md",
         "provenance": "SECURITY_REVIEW",
