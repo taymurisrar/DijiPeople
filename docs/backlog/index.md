@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**577 records** — 419 bugs under [`docs/bugs/`](../bugs/), 158 non-bug items under [`items/`](items/).
+**587 records** — 426 bugs under [`docs/bugs/`](../bugs/), 161 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 160 |
+| Open (active work) | 167 |
 | Blocked | 2 |
-| Deferred | 90 |
-| Awaiting a product decision | 6 |
+| Deferred | 92 |
+| Awaiting a product decision | 7 |
 | Completed / closed | 319 |
 | **Open CRITICAL** | **4** |
-| **Open HIGH** | **79** |
+| **Open HIGH** | **82** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,8 +27,8 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 4 |
-| HIGH | 79 |
-| MEDIUM | 64 |
+| HIGH | 82 |
+| MEDIUM | 68 |
 | LOW | 13 |
 
 ## Open by type
@@ -45,26 +45,26 @@ see [`README.md`](README.md) for why.
 | INTEGRATION | 5 |
 | PERFORMANCE | 14 |
 | PRODUCT_DECISION | 1 |
-| SECURITY | 16 |
+| SECURITY | 17 |
 | STATE_MACHINE | 3 |
 | TECH_DEBT | 5 |
 | TENANT_ISOLATION | 2 |
 | TEST_GAP | 9 |
-| UX | 29 |
+| UX | 35 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 44 |
+| OPEN | 50 |
 | BLOCKED | 2 |
-| DEFERRED | 90 |
-| PRODUCT_DECISION | 6 |
+| DEFERRED | 92 |
+| PRODUCT_DECISION | 7 |
 | FIXED | 97 |
 | VERIFIED | 218 |
 | DUPLICATE | 10 |
 | ACCEPTED_RISK | 3 |
-| READY | 19 |
+| READY | 20 |
 | DONE | 88 |
 
 ## All records
@@ -283,6 +283,10 @@ see [`README.md`](README.md) for why.
 | [BUG-3202](../../docs/bugs/BUG-3202-payroll-run-eligibility-never-checks-employee-isdeleted-an-a.md) | Payroll run eligibility never checks Employee.isDeleted; an archived employee with a stale employmentStatus is paid | DATA_INTEGRITY | HIGH | P1 | OPEN | api:payroll | FIX_NOW |
 | [BUG-3205](../../docs/bugs/BUG-3205-tenant-deletion-cascades-through-the-entire-tenant-owned-sch.md) | Tenant deletion cascades through the entire tenant-owned schema, including every audit and payroll table, with no database-level barrier | DATABASE | HIGH | P1 | OPEN | services/api/prisma | PLAN_REQUIRED |
 | [BUG-3241](../../docs/bugs/BUG-3241-legacy-role-permission-grant-and-employee-export-both-skip-t.md) | Legacy role-permission grant and employee export both skip the sibling endpoint's access check | AUTHORIZATION | HIGH | P1 | FIXED | api:roles/roles.service.ts, api:employees/employees.service.ts | DONE |
+| [BUG-3330](../../docs/bugs/BUG-3330-plan-cards-quote-a-per-seat-price-as-the-whole-monthly-charg.md) | Plan cards quote a per-seat price as the whole monthly charge and ignore the seat count entirely | UX | HIGH | P1 | OPEN | apps/web, api:billing | FIX_NOW |
+| [BUG-3331](../../docs/bugs/BUG-3331-subscribe-is-enabled-for-a-tenant-that-already-has-an-active.md) | Subscribe is enabled for a tenant that already has an active subscription and can only ever return 409 | UX | HIGH | P1 | OPEN | apps/web, api:billing | PLAN_REQUIRED |
+| [BUG-3332](../../docs/bugs/BUG-3332-plan-cards-truncate-to-eight-features-so-growth-and-enterpri.md) | Plan cards truncate to eight features so Growth and Enterprise advertise identical capability | UX | HIGH | P1 | OPEN | apps/web, api:billing | FIX_NOW |
+| [BUG-3333](../../docs/bugs/BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-.md) | Tenant buyers choose their own currency and the three price schedules are not equivalent | DATA_INTEGRITY | HIGH | P1 | PRODUCT_DECISION | apps/web, api:billing | PRODUCT_DECISION |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -483,6 +487,9 @@ see [`README.md`](README.md) for why.
 | [BUG-3254](../../docs/bugs/BUG-3254-the-forwarded-for-hop-guard-rejected-every-honest-chain-coll.md) | The rate-limit e2e suite sent a forwarded chain one hop short, and the guard was misread as an off-by-one | TEST_GAP | MEDIUM | P2 | FIXED | pkg:config, services/api/src/common/security, services/api/test | DONE |
 | [BUG-3263](../../docs/bugs/BUG-3263-the-provisioning-queue-e2e-fixture-raced-the-clock-so-an-exa.md) | The provisioning queue e2e fixture raced the clock, so an exact five-minute interval came out 300001ms | TEST_GAP | MEDIUM | P2 | FIXED | services/api/test | DONE |
 | [BUG-3316](../../docs/bugs/BUG-3316-notification-settings-screens-hydrate-with-utc-timestamps-an.md) | Notification settings screens hydrate with UTC timestamps and crash the React tree | UX | MEDIUM | P2 | FIXED | apps/web | DONE |
+| [BUG-3334](../../docs/bugs/BUG-3334-tenant-plan-listing-and-checkout-ignore-planprice-publicatio.md) | Tenant plan listing and checkout ignore PlanPrice publication status and market scoping | SECURITY | MEDIUM | P2 | OPEN | api:billing | FIX_NOW |
+| [BUG-3335](../../docs/bugs/BUG-3335-subscription-plans-screen-overflows-horizontally-on-phones-a.md) | Subscription plans screen overflows horizontally on phones and loses its comparison layout below 1280px | UX | MEDIUM | P2 | OPEN | apps/web | FIX_NOW |
+| [BUG-3336](../../docs/bugs/BUG-3336-subscription-settings-has-no-loading-or-error-boundary-and-r.md) | Subscription settings has no loading or error boundary and renders a failed load as access denied | UX | MEDIUM | P2 | OPEN | apps/web | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -567,6 +574,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0156](../../docs/backlog/items/ITEM-0156-production-log-level-silently-discards-all-44-logger-log-cal.md) | Production log level silently discards all 44 logger.log call sites, including the outbox drain counters | INFRA | MEDIUM | P2 | DEFERRED | services/api/src/common | DEFER |
 | [ITEM-0157](../../docs/backlog/items/ITEM-0157-can-we-detect-an-attack-the-raw-material-exists-in-one-table.md) | Can we detect an attack: the raw material exists in one table, but nothing looks at it | SECURITY | MEDIUM | P2 | DEFERRED | api:audit | DEFER |
 | [ITEM-0158](../../docs/backlog/items/ITEM-0158-public-traffic-that-bypasses-cloudflare-shares-one-rate-limi.md) | Public traffic that bypasses Cloudflare shares one rate-limit bucket, by design and untested | INFRA | MEDIUM | P2 | READY | pkg:config, services/api/src/common/security | PLAN_REQUIRED |
+| [ITEM-0159](../../docs/backlog/items/ITEM-0159-plans-and-features-screen-fails-several-accessibility-basics.md) | Plans and Features screen fails several accessibility basics for a data-comparison surface | UX | MEDIUM | P2 | READY | apps/web | FIX_NOW |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |
@@ -635,6 +643,8 @@ see [`README.md`](README.md) for why.
 | [ITEM-0110](../../docs/backlog/items/ITEM-0110-attendance-entry-appears-to-create-timesheet-drafts-on-a-ten.md) | Attendance entry appears to create Timesheet drafts on a tenant without the Timesheets entitlement | PRODUCT_DECISION | LOW | P3 | DEFERRED | api:timesheets, api:attendance | DEFER |
 | [ITEM-0111](../../docs/backlog/items/ITEM-0111-protected-route-prefixes-omits-twelve-authenticated-route-tr.md) | PROTECTED_ROUTE_PREFIXES omits twelve authenticated route trees, so deep links to them are lost at sign-in | UX | LOW | P3 | DONE | apps/web | DONE |
 | [ITEM-0121](../../docs/backlog/items/ITEM-0121-the-approvals-capability-signal-does-not-model-each-module-s.md) | The approvals capability signal does not model each module's object-level rules, so a refused action can look available | UX | LOW | P3 | DEFERRED | approvals, attendance | DEFER |
+| [ITEM-0160](../../docs/backlog/items/ITEM-0160-feature-comparison-badges-assume-the-api-returns-plans-in-as.md) | Feature comparison badges assume the API returns plans in ascending tier order | TECH_DEBT | LOW | P3 | DEFERRED | apps/web, api:billing | DEFER |
+| [ITEM-0161](../../docs/backlog/items/ITEM-0161-subscription-plans-screen-content-and-interaction-polish.md) | Subscription plans screen content and interaction polish | UX | LOW | P3 | DEFERRED | apps/web | DEFER |
 | [ITEM-0126](../../docs/backlog/items/ITEM-0126-decide-which-of-the-41-always-visible-settings-pages-should-.md) | Decide which of the 41 always-visible settings pages should be sold | PRODUCT_DECISION | — | P1 | DONE | apps/web | DONE |
 | [ITEM-0129](../../docs/backlog/items/ITEM-0129-tenants-should-inherit-the-platform-email-provider-by-defaul.md) | Tenants should inherit the platform email provider by default, and may override it | ARCHITECTURE | — | P1 | DONE | services/api, apps/web | DONE |
 | [ITEM-0130](../../docs/backlog/items/ITEM-0130-review-process-missed-four-defects-on-screens-adjacent-to-th.md) | Review process missed four defects on screens adjacent to the change | TEST_GAP | — | P1 | DONE | apps/web, .agent | DONE |
