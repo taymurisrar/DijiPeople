@@ -114,10 +114,15 @@ here would be inference, so nothing is asserted.
 
 Not measured as of 2026-09-11, and worth measuring before the next commercial
 change: how many production `PlanPrice` rows are `DRAFT` or carry a null
-`marketId`, and whether the entitlement enforcement mode is still the
-`REPORT_ONLY` default. The second matters because the plan comparison table
-promises module exclusivity the platform only logs about until an owner switches
-that setting to `ENFORCE`.
+`marketId`, and how many live tenants are actively using modules their plan
+excludes.
+
+The second number is the one that gates a decision. The plan comparison table
+promises module exclusivity that the runtime currently only logs about:
+`EntitlementGuard` is wired across payroll, timesheets, projects, recruitment and
+onboarding, and the enforcement mode defaults to `REPORT_ONLY`. Verified on the
+Starter demo tenant on 2026-09-11 — `/payroll/cycles` and `/recruitment/jobs`
+both render in full while the Plans screen offers to sell them. [[BUG-3350]].
 
 ## Related
 

@@ -17,7 +17,7 @@
 | Open CRITICAL | **4** |
 | Open HIGH | 82 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 7 |
+| Owner decisions pending | 8 |
 | QA coverage gaps | 142 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -118,6 +118,7 @@ Questions where the engineering is understood and the **product answer is**
 - [[BUG-3181-single-environment-no-staging-one-neon-branch-one-stripe-acc|BUG-3181]] — **Single environment: no staging, one Neon branch, one Stripe account, one email sender, and demo data in production**
 - [[BUG-3182-no-per-tenant-restore-is-possible-restoring-one-tenant-means|BUG-3182]] — **No per-tenant restore is possible: restoring one tenant means rolling back all of them**
 - [[BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-|BUG-3333]] — **Tenant buyers choose their own currency and the three price schedules are not equivalent**
+- [[BUG-3350-the-plan-comparison-sells-module-exclusivity-the-platform-is|BUG-3350]] — **The plan comparison sells module exclusivity the platform is configured only to report on**
 - [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] — **No multi-factor authentication exists anywhere, including for platform super admins**
 
 ## QA Coverage Gaps
@@ -277,7 +278,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 | Open total | 168 |
 | Blocked | 2 |
 | Deferred | 92 |
-| Awaiting a product decision | 7 |
+| Awaiting a product decision | 8 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

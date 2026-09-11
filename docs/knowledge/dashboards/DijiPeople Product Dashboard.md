@@ -77,6 +77,7 @@ Questions where the engineering is understood and the **product answer**
 - [[BUG-3181-single-environment-no-staging-one-neon-branch-one-stripe-acc|BUG-3181]] — **Single environment: no staging, one Neon branch, one Stripe account, one email sender, and demo data in production** (HIGH)
 - [[BUG-3182-no-per-tenant-restore-is-possible-restoring-one-tenant-means|BUG-3182]] — **No per-tenant restore is possible: restoring one tenant means rolling back all of them** (HIGH)
 - [[BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-|BUG-3333]] — **Tenant buyers choose their own currency and the three price schedules are not equivalent** (HIGH)
+- [[BUG-3350-the-plan-comparison-sells-module-exclusivity-the-platform-is|BUG-3350]] — **The plan comparison sells module exclusivity the platform is configured only to report on** (HIGH)
 - [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] — **No multi-factor authentication exists anywhere, including for platform super admins** (HIGH)
 
 ## Recent Product Changes

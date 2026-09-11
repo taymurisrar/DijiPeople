@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**588 records** — 427 bugs under [`docs/bugs/`](../bugs/), 161 non-bug items under [`items/`](items/).
+**589 records** — 428 bugs under [`docs/bugs/`](../bugs/), 161 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -16,7 +16,7 @@ see [`README.md`](README.md) for why.
 | Open (active work) | 168 |
 | Blocked | 2 |
 | Deferred | 92 |
-| Awaiting a product decision | 7 |
+| Awaiting a product decision | 8 |
 | Completed / closed | 319 |
 | **Open CRITICAL** | **4** |
 | **Open HIGH** | **82** |
@@ -59,7 +59,7 @@ see [`README.md`](README.md) for why.
 | OPEN | 51 |
 | BLOCKED | 2 |
 | DEFERRED | 92 |
-| PRODUCT_DECISION | 7 |
+| PRODUCT_DECISION | 8 |
 | FIXED | 97 |
 | VERIFIED | 218 |
 | DUPLICATE | 10 |
@@ -287,6 +287,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3331](../../docs/bugs/BUG-3331-subscribe-is-enabled-for-a-tenant-that-already-has-an-active.md) | Subscribe is enabled for a tenant that already has an active subscription and can only ever return 409 | UX | HIGH | P1 | OPEN | apps/web, api:billing | PLAN_REQUIRED |
 | [BUG-3332](../../docs/bugs/BUG-3332-plan-cards-truncate-to-eight-features-so-growth-and-enterpri.md) | Plan cards truncate to eight features so Growth and Enterprise advertise identical capability | UX | HIGH | P1 | OPEN | apps/web, api:billing | FIX_NOW |
 | [BUG-3333](../../docs/bugs/BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-.md) | Tenant buyers choose their own currency and the three price schedules are not equivalent | DATA_INTEGRITY | HIGH | P1 | PRODUCT_DECISION | apps/web, api:billing | PRODUCT_DECISION |
+| [BUG-3350](../../docs/bugs/BUG-3350-the-plan-comparison-sells-module-exclusivity-the-platform-is.md) | The plan comparison sells module exclusivity the platform is configured only to report on | BUG | HIGH | P1 | PRODUCT_DECISION | apps/web, services/api/src/common/security | PRODUCT_DECISION |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |

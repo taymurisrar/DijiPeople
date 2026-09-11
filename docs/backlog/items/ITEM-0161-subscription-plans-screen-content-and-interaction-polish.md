@@ -78,6 +78,16 @@ they are most of what makes the screen feel unfinished.
   own page.
 - `const [plans] = useState(initialPlans)` — a setter that does not exist, so
   plans never refresh even when "Refresh status" is pressed on the Overview tab.
+- The API returns `availableBillingCyclesByCurrency`, saying exactly which
+  cycle and currency pairs have prices. The screen ignores it, so selecting a
+  pair with no prices shows three cards reading "Not available" with no hint
+  that another pair would work. See [[BUG-3333]] for what that costs.
+- `SafeExternalLink` validates no origin despite the name; it sets
+  `rel="noopener noreferrer"` and nothing more. `window.location.assign` is
+  likewise called on whatever URL the checkout and portal endpoints return.
+  Both URLs come from our own API today, so this is a naming and
+  defence-in-depth point rather than a live hole — but a component named Safe
+  should do the check its name claims.
 - `fetchJson` reads only `message` from the error body, discarding the
   `traceId`, `description` and `fieldErrors` that `HttpExceptionFilter` sends.
   A customer reporting a failed checkout has no trace id to quote.
@@ -134,7 +144,7 @@ semantics).
 ## Related Items
 
 [[BUG-3330]], [[BUG-3331]], [[BUG-3332]], [[BUG-3333]], [[BUG-3336]],
-[[ITEM-0159]], [[ITEM-0160]]
+[[ITEM-0159]], [[ITEM-0160]], [[BUG-3345]], [[BUG-3350]]
 
 ## History
 

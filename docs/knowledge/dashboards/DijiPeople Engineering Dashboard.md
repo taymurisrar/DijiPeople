@@ -11,7 +11,7 @@
 | Open HIGH | **82** |
 | Open total | 168 |
 | Blocked | 2 |
-| Awaiting a product decision | 7 |
+| Awaiting a product decision | 8 |
 | Deferred | 92 |
 | Completed | 319 |
 | Awaiting Architect triage | 0 |
@@ -122,6 +122,7 @@
 | [[BUG-3181-single-environment-no-staging-one-neon-branch-one-stripe-acc|BUG-3181]] | Single environment: no staging, one Neon branch, one Stripe account, one email sender, and demo data in production | INFRA | HIGH | PRODUCT_DECISION | docs/deployment | PRODUCT_DECISION |
 | [[BUG-3182-no-per-tenant-restore-is-possible-restoring-one-tenant-means|BUG-3182]] | No per-tenant restore is possible: restoring one tenant means rolling back all of them | INFRA | HIGH | PRODUCT_DECISION | api:tenants | PRODUCT_DECISION |
 | [[BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-|BUG-3333]] | Tenant buyers choose their own currency and the three price schedules are not equivalent | DATA_INTEGRITY | HIGH | PRODUCT_DECISION | apps/web, api:billing | PRODUCT_DECISION |
+| [[BUG-3350-the-plan-comparison-sells-module-exclusivity-the-platform-is|BUG-3350]] | The plan comparison sells module exclusivity the platform is configured only to report on | BUG | HIGH | PRODUCT_DECISION | apps/web, services/api/src/common/security | PRODUCT_DECISION |
 | [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] | No multi-factor authentication exists anywhere, including for platform super admins | SECURITY | HIGH | PRODUCT_DECISION | api:auth | PRODUCT_DECISION |
 
 ## Blocked Items
@@ -622,7 +623,7 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 427 |
+| Bug records | 428 |
 | Backlog items | 161 |
 | Known bug patterns | 34 |
 | QA runs | 32 |
