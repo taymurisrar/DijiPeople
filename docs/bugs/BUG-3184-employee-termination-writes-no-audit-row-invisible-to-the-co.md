@@ -1,0 +1,133 @@
+---
+ID: BUG-3184
+aliases: [BUG-3184]
+Title: Employee termination writes no audit row, invisible to the coverage spec designed to catch exactly this
+Status: OPEN
+Severity: HIGH
+Priority: P1
+Type: DATA_INTEGRITY
+Source: SECURITY_REVIEW
+DetectedDate: 2026-09-10
+DetectedInSha: 23504f4b
+AffectedModules: [services/api/src/modules/employees]
+OwnerAgent: architect
+ArchitectDisposition: TRIAGE_REQUIRED
+QAReport: 
+RegressionId: 
+RelatedBacklogItem:
+RelatedDecision:
+RelatedImplementation:
+CreatedAt: 2026-09-10
+UpdatedAt: 2026-09-10
+ResolvedAt:
+---
+
+# BUG-3184 — Employee termination writes no audit row, invisible to the coverage spec designed to catch exactly this
+
+## Summary
+
+Employee termination writes no audit row, invisible to the coverage spec designed to catch exactly this
+
+Identified by the 2026-09-10 full technical audit as OBS-15 (confidence: OBS-15=CONFIRMED).
+
+## Expected Behavior
+
+`EMPLOYEE_TERMINATED` with `beforeSnapshot` (`employmentStatus`, `terminationDate`) and `afterSnapshot`, per `AGENTS.md`'s "every state-changing operation that a tenant admin or auditor would need to see".
+
+## Actual Behavior
+
+An employee is terminated and the only durable evidence is `Employee.updatedById` / `terminationDate` on the row itself — which the next update overwrites.
+
+## Reproduction
+
+This is a code-review finding from a static technical audit, not a QA-run runtime reproduction. To confirm: open the file(s) cited in Evidence and trace the call path described in Actual Behavior.
+
+## Evidence
+
+**OBS-15** (services/api/src/modules/employees/employees.service.ts):
+
+`services/api/src/modules/employees/employees.service.ts:2045-2071` — the entire method:
+```ts
+async terminate(tenantId: string, employeeId: string, dto: TerminateEmployeeDto, actorId: string) {
+  const employee = await this.employeesRepository.findByIdAndTenant(tenantId, employeeId);
+  if (!employee) { throw new NotFoundException('Employee was not found for this tenant.'); }
+  const terminationDate = dto.terminationDate ? new Date(dto.terminationDate) : new Date();
+  await this.employeesRepository.update(tenantId, employeeId, {
+    employmentStatus: EmployeeEmploymentStatus.TERMINATED,
+    terminationDate,
+    updatedById: actorId,
+  });
+  return this.findById(tenantId, employeeId);
+}
+```
+No `auditService` call. `rg "EMPLOYEE_TERMINATED" services/api/src` → **zero hits**.
+The endpoint is live and separately permissioned — `modules/employees/employees.controller.ts:785-787`:
+```ts
+@Post(':employeeId/terminate')
+@Permissions('employees.terminate')
+@RequirePermission(ENTITY_KEYS.EMPLOYEES, 'delete')
+```
+The guard that exists to make missing audit calls visible structurally cannot see it — `modules/audit/lifecycle-audit-coverage.spec.ts:37-38`:
+```ts
+const WRITE_METHOD_PATTERN = /^(create|update|delete|assign|submit|cancel|archive|deactivate|provision|import|restore)/;
+```
+`terminate` matches none of these alternatives, so it is filtered out at `:129` (`.filter((name) => WRITE_METHOD_PATTERN.test(name))`) before the `unclassified` assertion at `:141-154` ever runs.
+
+---
+
+
+Full finding text: OBS-15 in `docs/engineering/audits/2026-09-10-full-technical-audit/raw/OBS.md`.
+
+## Root Cause
+
+Not established — the audit's analysis (see Evidence) identifies the mechanism but a full root-cause investigation has not been performed. See Actual Behavior for the closest available explanation.
+
+## Impact
+
+Termination is the most consequential and most litigated event in an HR system. In a wrongful-dismissal dispute the platform cannot say who terminated the employee, when the record was changed, or what the prior state was. The same gap makes a malicious termination unattributable.
+
+## Affected Areas
+
+services/api/src/modules/employees
+
+## Proposed Resolution
+
+Add an `AuditService.log` call in `EmployeesService.terminate` using `AUDIT_ACTIONS`; add `terminate|reinstate|offboard|promote|transfer` to `WRITE_METHOD_PATTERN` in `lifecycle-audit-coverage.spec.ts:37`; and extend that spec so a method listed as `audited` is verified to actually reach `AuditService` (today membership in the `audited` array is an unchecked string claim — `lifecycle-audit-coverage.spec.ts:49-124`).
+
+(Difficulty: LOW; Regression risk: LOW; Fix now: YES)
+
+## Acceptance Criteria
+
+- The behaviour described in Expected Behavior holds for services/api/src/modules/employees/employees.service.ts (audit id OBS-15).
+
+## Regression Coverage
+
+No automated test currently fails without this fix. Audit-assessed regression risk of the fix itself: OBS-15=LOW. Add a regression test alongside the fix; link its `REG-nnn` entry here once it exists.
+
+## Dependencies
+
+None identified beyond the fix itself.
+
+## Related Items
+
+- Audit finding `OBS-15` — `docs/engineering/audits/2026-09-10-full-technical-audit/raw/OBS.md`
+
+## Resolution
+
+Not yet resolved.
+
+## QA Retest
+
+Not yet retested.
+
+## History
+
+- 2026-09-10 — created from the 2026-09-10 full technical audit (OBS-15) at `23504f4b`.
+
+<!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
+
+## Related
+
+- Modules — [[employees]]
+
+<!-- GRAPH:END -->

@@ -14,9 +14,9 @@
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
-| Open CRITICAL | **2** |
-| Open HIGH | 37 |
-| Awaiting Architect triage | 0 |
+| Open CRITICAL | **6** |
+| Open HIGH | 88 |
+| Awaiting Architect triage | 116 |
 | Owner decisions pending | 1 |
 | QA coverage gaps | 142 |
 | Scenarios blocked by infrastructure | 0 |
@@ -30,12 +30,12 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 117 |
-| No next action | 117 |
+| No acceptance criteria | 233 |
+| No next action | 233 |
 | Aging — 7d / 30d / 90d | 101 / 0 / 0 |
-| Architecture and technical debt | 6 |
-| Security gaps | 14 |
-| Database gaps | 9 |
+| Architecture and technical debt | 13 |
+| Security gaps | 58 |
+| Database gaps | 26 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -101,7 +101,11 @@ what they own, and what the backlog and QA systems currently say.
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
 | [[BUG-3110-a-live-production-database-password-sits-permanently-in-the-|BUG-3110]] | A live production database password sits permanently in the public git history | SECURITY | CRITICAL | OPEN | services/api | FIX_NOW |
+| [[BUG-3132-self-service-privilege-escalation-to-global-admin-via-post-u|BUG-3132]] | Self-service privilege escalation to GLOBAL_ADMIN via POST /users/:userId/roles | AUTHORIZATION | CRITICAL | OPEN | api:users | TRIAGE_REQUIRED |
 | [[BUG-3152-post-users-userid-roles-lets-a-delegated-role-assignment-adm|BUG-3152]] | POST /users/:userId/roles lets a delegated role-assignment admin self-grant GLOBAL_ADMIN | AUTHORIZATION | CRITICAL | FIXED | api:users/users.service.ts, api:users/users.controller.ts | DONE |
+| [[BUG-3153-production-had-no-persistent-disk-so-every-uploaded-hr-docum|BUG-3153]] | Production had no persistent disk, so every uploaded HR document was destroyed on the next deploy | INFRA | CRITICAL | OPEN | services/api/src/common, api:documents | TRIAGE_REQUIRED |
+| [[BUG-3154-employee-bank-accounts-ibans-cnics-and-tax-identifiers-are-s|BUG-3154]] | Employee bank accounts, IBANs, CNICs and tax identifiers are stored in plaintext beside an unused AES-256-GCM service | DATA_INTEGRITY | CRITICAL | OPEN | api:employees, api:compensation | TRIAGE_REQUIRED |
+| [[BUG-3155-fieldsecurityrule-masking-is-enforced-only-in-the-browser-th|BUG-3155]] | FieldSecurityRule masking is enforced only in the browser; the API sends the unmasked value | AUTHORIZATION | CRITICAL | OPEN | api:employees | TRIAGE_REQUIRED |
 
 ## Owner Decisions Pending
 
@@ -264,13 +268,13 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 117 |
+| Open total | 233 |
 | Blocked | 2 |
 | Deferred | 29 |
 | Awaiting a product decision | 1 |
-| Awaiting Architect triage | 0 |
+| Awaiting Architect triage | 116 |
 
-Every ordinary record carries a disposition.
+**A record nobody has triaged is work nobody has decided about.** No ordinary record may stay `TRIAGE_REQUIRED` at the end of a task.
 
 ## Deployment
 
