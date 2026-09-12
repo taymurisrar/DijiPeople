@@ -56,6 +56,24 @@ export interface WidgetDataInput {
   readonly widget: WidgetMetadata;
 }
 
+/**
+ * A write a widget needs to perform against its own record — add/edit/remove
+ * a related row, promote something to primary, and so on. `action` is a
+ * widget-owned string (e.g. `"assign"`, `"setPrimary"`, `"remove"`); the
+ * shared widget-rendering code never needs to know what endpoint, if any, a
+ * given action calls, only that it can ask the record's own data adapter to
+ * run it. This is the write-side counterpart to `getWidgetData` — the same
+ * reason that method exists (a shared widget file must not hardcode a
+ * module's route) applies here.
+ */
+export interface WidgetActionInput {
+  readonly runtime: ModuleRuntimeContext;
+  readonly recordId: string;
+  readonly widget: WidgetMetadata;
+  readonly action: string;
+  readonly payload?: Readonly<Record<string, unknown>>;
+}
+
 export interface ModuleOwnerOption {
   readonly id: string;
   readonly name: string;
@@ -155,4 +173,5 @@ export interface ModuleDataAdapter<
     input: TimelineQueryInput,
   ) => Promise<readonly TimelineEntryMetadata[]>;
   readonly getWidgetData?: (input: WidgetDataInput) => Promise<unknown>;
+  readonly runWidgetAction?: (input: WidgetActionInput) => Promise<unknown>;
 }

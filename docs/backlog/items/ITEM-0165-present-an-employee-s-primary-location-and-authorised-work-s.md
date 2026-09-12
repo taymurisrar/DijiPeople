@@ -15,7 +15,7 @@ UpdatedAt: 2026-09-12
 RelatedBug: 
 RelatedQA: 
 RelatedADR: 
-RelatedImplementation: apps/web/lib/runtime/modules/employee-metadata.adapter.ts, apps/web/app/components/runtime/module-widget-renderer.tsx, apps/web/lib/runtime/modules/employee-data.adapter.ts, packages/config/system-widget-registry.js
+RelatedImplementation: apps/web/lib/runtime/modules/employee-metadata.adapter.ts, apps/web/app/components/runtime/module-widget-renderer.tsx, apps/web/lib/runtime/modules/employee-data.adapter.ts, apps/web/lib/runtime/module-data-adapter.types.ts, packages/config/system-widget-registry.js
 TargetMilestone: 
 BlockedBy: 
 ---
@@ -163,6 +163,26 @@ Empty state rewritten to state the operational consequence: "No work site
 assignments yet. Attendance at a site requires an assignment here — without
 one, this employee will be refused at check-in everywhere except their
 inherited primary site."
+
+**Post-merge correction:** the widget's add/edit-validity/remove/make-primary
+actions initially called `fetch()` against the literal
+`/api/integrations/attendance/employees/{id}/work-sites...` routes directly
+from inside `module-widget-renderer.tsx` — the *shared* widget-rendering
+engine every module's record page renders through. That broke the same
+invariant [[ITEM-0166]]'s DLP relocation broke, caught by the same spec
+(`package-layer-runtime.spec.ts`'s "keeps shared runtime components free of
+Module-specific names and routes"): a shared file must not hardcode one
+module's REST route, the same way it must not import from one module's
+folder. Fixed by adding a generic `runWidgetAction` method to
+`ModuleDataAdapter` (`module-data-adapter.types.ts`) — the write-side
+counterpart to the `getWidgetData` method this widget, Reporting Hierarchy
+and Timeline already used for reads. The widget now calls
+`dataAdapter.runWidgetAction({ action: "assign" | "setPrimary" | "remove",
+payload, ... })` with no route or module knowledge of its own; only
+`employee-data.adapter.ts` — an employees-owned file, not a shared one —
+knows this maps to the transactional endpoints named above. The endpoints,
+permissions and transactional behaviour are unchanged; only where the route
+string lives moved.
 
 ## History
 

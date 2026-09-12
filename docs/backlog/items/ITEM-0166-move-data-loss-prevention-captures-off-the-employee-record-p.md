@@ -15,7 +15,7 @@ UpdatedAt: 2026-09-12
 RelatedBug: 
 RelatedQA: 
 RelatedADR: 
-RelatedImplementation: apps/web/lib/runtime/modules/employee-metadata.adapter.ts, apps/web/app/components/runtime/module-widget-renderer.tsx
+RelatedImplementation: apps/web/lib/runtime/modules/employee-metadata.adapter.ts, apps/web/app/components/runtime/module-widget-renderer.tsx, apps/web/app/(authenticated)/_components/dlp/employee-dlp-captures.tsx
 TargetMilestone: 
 BlockedBy: 
 ---
@@ -113,10 +113,37 @@ Took option 1 (move into the existing Agent tab). A new section
 `employee-metadata.adapter.ts`, alongside the existing `agent-desktop`
 section, with a `dlp_captures` widget component. `module-widget-renderer.tsx`
 dispatches `dlp_captures` directly — the same way `agent_desktop` is
-dispatched — to the **existing, unmodified** `EmployeeDlpCaptures` component
-(`employees/_components/employee-dlp-captures.tsx`), reused rather than
-duplicated or reimplemented. `employees/[employeeId]/page.tsx` no longer
-mounts it as a page-level sibling.
+dispatched — to the **existing, unmodified** `EmployeeDlpCaptures` component,
+reused rather than duplicated or reimplemented. `employees/[employeeId]/page.tsx`
+no longer mounts it as a page-level sibling.
+
+**Post-merge correction:** the component initially stayed at its original
+path, `employees/_components/employee-dlp-captures.tsx`, and
+`module-widget-renderer.tsx` imported it from there. That broke an
+architectural invariant this record did not originally weigh:
+`services/api/src/modules/customization/package-layer-runtime.spec.ts`'s
+"keeps shared runtime components free of Module-specific names and routes"
+asserts that the *shared* widget-rendering file — the generic engine every
+module's record page renders through — never imports from a specific
+module's own folder, the same way it never hardcodes a module's REST route.
+Importing `EmployeeDlpCaptures` from `employees/_components/` gave the
+shared file an undeclared dependency on the employees module, growable by
+anyone who did the same for a different module next.
+
+Fixed by relocating the component — not copying it — to
+`apps/web/app/(authenticated)/_components/dlp/employee-dlp-captures.tsx`,
+the same shared, underscore-folder convention `DocumentList` and
+`DocumentUploadForm` already use for a widget several record types can host.
+`module-widget-renderer.tsx` now imports it from there, and the employee
+record's own usage (the only other reference in the app) points at the same
+file — there is still exactly one implementation, so the permission answer
+this record's Acceptance Criteria require (identical on every surface) still
+holds by the same construction as before: same component, same guard, now
+just reached from a shared path rather than the employees module's own path.
+A DLP component does not live with the employees module for the same
+architectural reason `DocumentList` does not — it is runtime-shared
+infrastructure, not employees-owned code, even though today it happens to be
+mounted only on the employee record.
 
 Because the component itself did not change, the permission answer is
 identical by construction on every surface that shows it: the Agent tab, the
