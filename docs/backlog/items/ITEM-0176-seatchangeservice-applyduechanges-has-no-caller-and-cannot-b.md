@@ -64,7 +64,7 @@ survives a long time before anyone reports it.
 
 ## Proposed Approach
 
-Needs an ExecPlan under [`PLANS.md`](../../PLANS.md): it moves money, and the
+Needs an ExecPlan under [`PLANS.md`](../../../PLANS.md): it moves money, and the
 safe order of operations is the whole question.
 
 The dependency comes first. A seat change must push the new quantity to the
