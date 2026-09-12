@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 352** · automated: 303 · manual: 24 · blocked by infrastructure: 0
+**Scenarios: 357** · automated: 307 · manual: 24 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -106,6 +106,11 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-BILLING-027](../../../docs/qa/scenarios/QA-BILLING-027-a-panel-that-denied-the-customer-s-own-data-existed.md) | A panel that denied the customer's own data existed | billing | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/tenant-control-plane/tenant-localization-panel.spec.ts` | BUG-1977 | REG-327 |
 | [QA-BILLING-028](../../../docs/qa/scenarios/QA-BILLING-028-expired-subscription-orders-are-swept-by-a-runner-that-is-ac.md) | Expired subscription orders are swept by a runner that is actually wired in | subscription-orders | UNIT | HIGH | AUTOMATED | `services/api/src/modules/billing/services/subscription-order-sweeper.worker.spec.ts` | BUG-2618 | REG-401 |
 | [QA-BILLING-029](../../../docs/qa/scenarios/QA-BILLING-029-an-unmappable-stripe-customer-is-acknowledged-not-retried-fo.md) | An unmappable Stripe customer is acknowledged, not retried for ever | billing | UNIT | HIGH | AUTOMATED | `services/api/src/modules/billing/controllers/stripe-webhook.controller.spec.ts` | BUG-2462 | REG-405 |
+| [QA-BILLING-030](../../../docs/qa/scenarios/QA-BILLING-030-a-per-seat-price-states-its-unit-and-totals-the-seats-entere.md) | A per-seat price states its unit and totals the seats entered | seat-billing | UNIT | HIGH | AUTOMATED | `apps/web/app/(authenticated)/settings/billing/_lib/seat-pricing.spec.ts` | BUG-3330 | REG-413 |
+| [QA-BILLING-031](../../../docs/qa/scenarios/QA-BILLING-031-two-plan-cards-with-different-feature-sets-never-render-the-.md) | Two plan cards with different feature sets never render the same bullets | billing | UNIT | MEDIUM | AUTOMATED | `apps/web/app/(authenticated)/settings/billing/_lib/plan-presentation.spec.ts` | BUG-3332 | REG-414 |
+| [QA-BILLING-032](../../../docs/qa/scenarios/QA-BILLING-032-the-plans-comparison-keeps-its-columns-aligned-and-stays-ins.md) | The plans comparison keeps its columns aligned and stays inside the viewport | billing | UNIT | MEDIUM | PARTIAL | `apps/web/app/(authenticated)/settings/billing/_components/billing-settings-client-containment.spec.ts` | BUG-3335 | REG-415 |
+| [QA-BILLING-033](../../../docs/qa/scenarios/QA-BILLING-033-subscription-primary-actions-follow-the-tenant-brand-colour.md) | Subscription primary actions follow the tenant brand colour | billing | UNIT | MEDIUM | AUTOMATED | `apps/web/app/(authenticated)/settings/billing/_components/billing-settings-client-brand-color.spec.ts` | BUG-3345 | REG-416 |
+| [QA-BILLING-034](../../../docs/qa/scenarios/QA-BILLING-034-a-failed-subscription-load-is-retryable-and-is-not-shown-as-.md) | A failed subscription load is retryable and is not shown as access denied | billing | UNIT | HIGH | AUTOMATED | `apps/web/app/(authenticated)/settings/subscription/_components/subscription-settings-page.spec.ts` | BUG-3336 | REG-417 |
 | [QA-CI-001](../../../docs/qa/scenarios/QA-CI-001-report-only-jobs-publish-an-explicit-pass-fail-verdict.md) | Report-only CI jobs publish an explicit PASS/FAIL verdict | deployment-release | DEPLOYMENT_SMOKE | HIGH | AUTOMATED | `scripts/validate-framework.mjs` | BUG-0049 | REG-047 |
 | [QA-CI-002](../../../docs/qa/scenarios/QA-CI-002-the-database-agent-verdict-cannot-report-pass-over-a-failing.md) | The Database Agent verdict cannot report PASS over a failing field | deployment-release | API | HIGH | AUTOMATED | `scripts/db-preflight.test.mjs` | BUG-0083, BUG-0060, BUG-0068 | REG-078 |
 | [QA-CI-003](../../../docs/qa/scenarios/QA-CI-003-declared-npm-overrides-are-reflected-in-the-lockfile.md) | Declared npm overrides are reflected in the lockfile | deployment-release | UNIT | HIGH | AUTOMATED | `scripts/check-overrides-applied.mjs` | BUG-0163 | REG-173 |
