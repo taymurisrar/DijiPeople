@@ -429,6 +429,13 @@ export const employeeModuleDataAdapter: ModuleDataAdapter<
       );
     }
 
+    if (
+      input.widget.logicalName === "employee.workSites" ||
+      input.widget.widgetType === "employee_work_sites"
+    ) {
+      return getEmployeeWorkSitesWidgetData(input.recordId);
+    }
+
     throw new Error(
       `${input.widget.displayName} is not supported by the Employee data adapter.`,
     );
@@ -498,6 +505,40 @@ async function preserveUnchangedEmployeeDependentLookups(
 function sameOptionalLookup(nextValue: unknown, currentValue: unknown) {
   const next = stringValue(nextValue);
   return !next || next === stringValue(currentValue);
+}
+
+/**
+ * ITEM-0165 — the combined Location + authorised-work-sites widget's data.
+ * Three independent reads: the work-site assignments (403s for a viewer
+ * without `attendanceDevices.read` — the same permission that gated the old
+ * page-level panel), the employee's `accessMode` (so the widget can apply the
+ * same "HR_MANAGE or ADMIN_MANAGE may manage" rule the record page already
+ * applies everywhere else, per `canManageEmployeeRecord`), and the active
+ * Location catalogue to offer as choices. None of these failing should break
+ * the other two, so each is read independently and defaulted on failure.
+ */
+async function getEmployeeWorkSitesWidgetData(recordId: string) {
+  const [workSites, employeeRecord, locationsRaw] = await Promise.all([
+    requestOptionalLookupJson(
+      `/api/integrations/attendance/employees/${encodeURIComponent(recordId)}/work-sites`,
+    ),
+    requestJson(`/api/employees/${encodeURIComponent(recordId)}`).catch(
+      () => null,
+    ),
+    requestOptionalLookupJson("/api/locations"),
+  ]);
+
+  return {
+    workSites: Array.isArray(workSites) ? null : workSites,
+    accessMode: isRecord(employeeRecord)
+      ? stringValue(employeeRecord.accessMode)
+      : null,
+    locations: Array.isArray(locationsRaw)
+      ? locationsRaw
+      : isRecord(locationsRaw) && Array.isArray(locationsRaw.items)
+        ? locationsRaw.items
+        : [],
+  };
 }
 
 function mapReportingHierarchy(data: unknown) {

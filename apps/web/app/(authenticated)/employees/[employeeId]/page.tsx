@@ -15,12 +15,8 @@ import {
   restrictRuntimePermissionKeysToReadOnly,
 } from "@/lib/runtime";
 import { ApiRequestError, apiRequestJson } from "@/lib/server-api";
-import { PERMISSION_KEYS } from "@/lib/security-keys";
 import type { FieldSecurityRule } from "@/lib/runtime/security-runtime.types";
 import { TenantResolvedSettingsResponse } from "../../settings/types";
-import type { EmployeeWorkSitesResponse } from "../../settings/integrations/attendance/_lib/types";
-import { EmployeeWorkSites } from "../_components/employee-work-sites";
-import { EmployeeDlpCaptures } from "../_components/employee-dlp-captures";
 import type { EmployeeProfile } from "../types";
 
 type EmployeeDetailPageProps = {
@@ -153,44 +149,16 @@ export default async function EmployeeDetailPage({
     await import("../_components/employee-runtime-form-wrapper");
 
   /*
-   * Authorised work sites are an attendance concern, not an employee field, so
-   * they hang off their own permissions and their own endpoint. A viewer
-   * without them simply does not see the panel; the employee record still
-   * renders in full.
+   * ITEM-0165 and ITEM-0166 — the "Authorised work sites" and "Data-loss
+   * prevention captures" panels used to be page-level siblings of the form
+   * below, rendered outside it with no relationship visible on screen to
+   * what they were attached to. Both are now declared through the form's own
+   * metadata (`employee-metadata.adapter.ts`) as widgets — work sites next to
+   * the Location field in the Organization section, DLP captures inside the
+   * Agent tab — and fetch their own data client-side the same way the
+   * Reporting Hierarchy and Timeline widgets already do. Nothing is fetched
+   * here for them any more.
    */
-  const canReadWorkSites = sessionUser.permissionKeys.includes(
-    PERMISSION_KEYS.ATTENDANCE_DEVICES_READ,
-  );
-  const canManageWorkSites =
-    canManageEmployeeRecord(employee.accessMode) &&
-    sessionUser.permissionKeys.includes(
-      PERMISSION_KEYS.ATTENDANCE_DEVICES_MANAGE,
-    );
-
-  const [workSites, locations] = canReadWorkSites
-    ? await Promise.all([
-        apiRequestJson<EmployeeWorkSitesResponse>(
-          `/integrations/attendance/employees/${employeeId}/work-sites`,
-        ).catch(() => null),
-        canManageWorkSites
-          ? apiRequestJson<
-              | {
-                  items?: Array<{
-                    id: string;
-                    name: string;
-                    isActive: boolean;
-                  }>;
-                }
-              | Array<{ id: string; name: string; isActive: boolean }>
-            >("/locations").catch(() => ({ items: [] }))
-          : Promise.resolve({ items: [] }),
-      ])
-    : [null, { items: [] }];
-
-  const locationOptions = Array.isArray(locations)
-    ? locations
-    : (locations.items ?? []);
-
   return (
     <div className="dp-theme-scope dp-employees-scope grid gap-6">
       <EmployeeRuntimeFormWrapper
@@ -214,22 +182,6 @@ export default async function EmployeeDetailPage({
         }
         runtime={employeeRuntimeContext}
       />
-
-      {workSites ? (
-        <EmployeeWorkSites
-          canManage={canManageWorkSites}
-          data={workSites}
-          employeeId={employee.id}
-          locations={locationOptions}
-        />
-      ) : null}
-
-      {/*
-       * DLP captures for this employee (TASK-0024). The panel gates itself on the
-       * server via `dlp.review` — it renders nothing for a viewer who lacks it,
-       * so it is safe to mount unconditionally here.
-       */}
-      <EmployeeDlpCaptures employeeId={employee.id} />
     </div>
   );
 }

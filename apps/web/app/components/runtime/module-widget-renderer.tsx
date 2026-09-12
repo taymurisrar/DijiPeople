@@ -34,7 +34,11 @@ import {
   TextAreaField,
   TextField,
 } from "@/app/components/ui/form-control";
-import { formatDateTime } from "@/lib/formatting-context";
+import { formatDate, formatDateTime } from "@/lib/formatting-context";
+import { canManageEmployeeRecord } from "@/lib/employee-profile-access";
+import { PERMISSION_KEYS } from "@/lib/security-keys";
+import { StatusPill } from "@/app/components/ui/status-pill";
+import { EmployeeDlpCaptures } from "@/app/(authenticated)/employees/_components/employee-dlp-captures";
 import { DataTable } from "@/app/components/data-table/data-table";
 import {
   RuntimeProfileImageCard,
@@ -70,6 +74,20 @@ export function ModuleWidgetRenderer({
         runtime={runtime}
       />
     );
+  }
+
+  if (component.widgetType === "dlp_captures") {
+    /*
+     * ITEM-0166 — deliberately bypasses the System Widget Registry, the same
+     * way `agent_desktop` above does. The component gates itself server-side
+     * (403 from `/api/agent/dlp/*` when the viewer lacks `dlp.review`) and
+     * renders nothing in that case, so there is no separate permission list
+     * to keep in sync here — the tab and the standalone `/dlp-review` page
+     * answer "who may see captures" from the exact same guard.
+     */
+    return runtime?.recordId ? (
+      <EmployeeDlpCaptures employeeId={runtime.recordId} />
+    ) : null;
   }
 
   if (
@@ -1825,6 +1843,7 @@ type WidgetRenderer = (props: {
 
 const BUILTIN_WIDGET_RENDERERS: Readonly<Record<string, WidgetRenderer>> = {
   "employee.profilePhoto": (props) => <EmployeeProfilePhotoWidget {...props} />,
+  "employee.workSites": (props) => <ModuleEmployeeWorkSitesWidget {...props} />,
   "system.timeline": (props) => <ModuleTimelineWidget {...props} />,
   "system.documents": (props) => <ModuleDocumentsWidget {...props} />,
   "system.reportingHierarchy": (props) => (
@@ -2041,6 +2060,534 @@ function EmployeeProfilePhotoWidget({
       recordId={recordId}
       resourcePath="employees"
     />
+  );
+}
+
+type EmployeeWorkSiteAssignment = {
+  readonly id: string;
+  readonly locationId: string;
+  readonly isPrimary: boolean;
+  readonly status: "ACTIVE" | "INACTIVE";
+  readonly validFrom: string | null;
+  readonly validTo: string | null;
+  readonly location: { id: string; name: string; isActive: boolean };
+};
+
+type EmployeeWorkSitesWidgetData = {
+  readonly workSites: {
+    readonly authorized: ReadonlyArray<{ derivedFromPrimaryLocation: boolean }>;
+    readonly assignments: readonly EmployeeWorkSiteAssignment[];
+  } | null;
+  readonly accessMode: string | null;
+  readonly locations: ReadonlyArray<{
+    readonly id: string;
+    readonly name: string;
+    readonly isActive: boolean;
+  }>;
+};
+
+/**
+ * ITEM-0165 — the primary Location and the authorised work sites brought
+ * together as one control, in the section the Location field already lives
+ * in, instead of a page-level "Authorised work sites" panel with no visible
+ * relationship to it. Mutations call the same transactional endpoints the
+ * old panel called (`assignWorkSite` / `setPrimaryWorkSite` / `removeWorkSite`
+ * in `attendance-operations.service.ts`), so `Employee.locationId` and the
+ * `EmployeeWorkSite` row still move together in one transaction — nothing
+ * about that mechanism changed, only where the control that drives it lives.
+ */
+function ModuleEmployeeWorkSitesWidget({
+  component,
+  dataAdapter,
+  definition,
+  runtime,
+}: {
+  readonly component: FormComponentMetadata;
+  readonly dataAdapter?: ModuleDataAdapter;
+  readonly definition: SystemWidgetDefinition;
+  readonly runtime?: ModuleRuntimeContext;
+}) {
+  const recordId = runtime?.recordId;
+  const [data, setData] = useState<EmployeeWorkSitesWidgetData | null>(null);
+  const [loading, setLoading] = useState(
+    Boolean(recordId && dataAdapter?.getWidgetData),
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
+
+  useEffect(() => {
+    if (!runtime || !recordId || !dataAdapter?.getWidgetData) return;
+    let active = true;
+    dataAdapter
+      .getWidgetData({
+        runtime,
+        recordId,
+        widget: systemWidgetMetadata(component, definition),
+      })
+      .then((result) => {
+        if (!active) return;
+        setData(isEmployeeWorkSitesWidgetData(result) ? result : null);
+        setError(null);
+      })
+      .catch((caught: unknown) => {
+        if (!active) return;
+        setError(
+          caught instanceof Error
+            ? caught.message
+            : "Unable to load work site assignments.",
+        );
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [component, dataAdapter, definition, recordId, reloadToken, runtime]);
+
+  if (loading) {
+    return (
+      <WidgetState
+        description="Loading work site assignments..."
+        title={component.label ?? definition.displayName}
+      />
+    );
+  }
+  if (error) {
+    return (
+      <WidgetState
+        description={error}
+        title={component.label ?? definition.displayName}
+        tone="warning"
+      />
+    );
+  }
+  if (!data?.workSites || !recordId) {
+    return (
+      <WidgetState
+        description={definition.emptyState}
+        title={component.label ?? definition.displayName}
+      />
+    );
+  }
+
+  const canManage =
+    canManageEmployeeRecord(data.accessMode) &&
+    Boolean(
+      runtime?.security.principal.permissionKeys.includes(
+        PERMISSION_KEYS.ATTENDANCE_DEVICES_MANAGE,
+      ),
+    );
+
+  return (
+    <EmployeeWorkSitesPanel
+      canManage={canManage}
+      data={data.workSites}
+      employeeId={recordId}
+      label={component.label ?? definition.displayName}
+      locations={data.locations}
+      onChanged={() => setReloadToken((token) => token + 1)}
+    />
+  );
+}
+
+function isEmployeeWorkSitesWidgetData(
+  value: unknown,
+): value is EmployeeWorkSitesWidgetData {
+  return (
+    isRecord(value) &&
+    ("workSites" in value ? true : false) &&
+    "locations" in value
+  );
+}
+
+function EmployeeWorkSitesPanel({
+  canManage,
+  data,
+  employeeId,
+  label,
+  locations,
+  onChanged,
+}: {
+  readonly canManage: boolean;
+  readonly data: {
+    readonly authorized: ReadonlyArray<{ derivedFromPrimaryLocation: boolean }>;
+    readonly assignments: readonly EmployeeWorkSiteAssignment[];
+  };
+  readonly employeeId: string;
+  readonly label: string;
+  readonly locations: ReadonlyArray<{
+    readonly id: string;
+    readonly name: string;
+    readonly isActive: boolean;
+  }>;
+  readonly onChanged: () => void;
+}) {
+  const [adding, setAdding] = useState(false);
+  const [locationId, setLocationId] = useState("");
+  const [validFrom, setValidFrom] = useState("");
+  const [validTo, setValidTo] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [editFrom, setEditFrom] = useState("");
+  const [editTo, setEditTo] = useState("");
+
+  const active = data.assignments.filter(
+    (assignment) => assignment.status === "ACTIVE",
+  );
+  const assignedIds = new Set(active.map((assignment) => assignment.locationId));
+  const inherited = data.authorized.some(
+    (site) => site.derivedFromPrimaryLocation,
+  );
+  const addable = locations.filter(
+    (location) => location.isActive && !assignedIds.has(location.id),
+  );
+
+  async function call(
+    path: string,
+    init: RequestInit,
+    failure: string,
+  ): Promise<boolean> {
+    setBusy(true);
+    setError(null);
+    try {
+      const response = await fetch(path, init);
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as {
+          message?: string;
+        } | null;
+        setError(body?.message ?? failure);
+        return false;
+      }
+      onChanged();
+      return true;
+    } catch {
+      setError(`${failure} Try again.`);
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function addWorkSite() {
+    const added = await call(
+      `/api/integrations/attendance/employees/${employeeId}/work-sites`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          locationId,
+          // Never sent as primary from here — promoting a site is a separate,
+          // deliberate action so it does not happen by accident while adding
+          // a second site.
+          isPrimary: false,
+          validFrom: validFrom || undefined,
+          validTo: validTo || undefined,
+        }),
+      },
+      "The work site could not be added.",
+    );
+    if (added) {
+      setAdding(false);
+      setLocationId("");
+      setValidFrom("");
+      setValidTo("");
+    }
+  }
+
+  async function saveValidity(targetLocationId: string) {
+    const saved = await call(
+      `/api/integrations/attendance/employees/${employeeId}/work-sites`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          locationId: targetLocationId,
+          validFrom: editFrom || undefined,
+          validTo: editTo || undefined,
+        }),
+      },
+      "The validity dates could not be saved.",
+    );
+    if (saved) setEditing(null);
+  }
+
+  function setPrimary(targetLocationId: string) {
+    return call(
+      `/api/integrations/attendance/employees/${employeeId}/work-sites/primary`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ locationId: targetLocationId }),
+      },
+      "The primary work site could not be changed.",
+    );
+  }
+
+  function removeWorkSite(targetLocationId: string) {
+    return call(
+      `/api/integrations/attendance/employees/${employeeId}/work-sites/${targetLocationId}`,
+      { method: "DELETE" },
+      "The work site could not be removed.",
+    );
+  }
+
+  return (
+    <div className="grid gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h4 className="text-sm font-semibold text-foreground">{label}</h4>
+          <p className="mt-1 text-sm text-muted">
+            Where this employee may record attendance. Attendance devices at
+            these sites will accept their punches.
+          </p>
+        </div>
+        {canManage && !adding ? (
+          <button
+            type="button"
+            className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-foreground transition hover:bg-surface-strong"
+            onClick={() => setAdding(true)}
+          >
+            Add work site
+          </button>
+        ) : null}
+      </div>
+
+      {inherited ? (
+        <p className="rounded-[18px] border border-sky-200 bg-sky-50 px-4 py-3 text-sm leading-6 text-sky-900">
+          This employee has no explicit work site assignment, so they are
+          authorised for their primary work site only. Adding an assignment
+          replaces that inherited access.
+        </p>
+      ) : null}
+
+      {active.length > 0 ? (
+        <ul className="divide-y divide-border">
+          {active.map((assignment) => (
+            <li
+              key={assignment.id}
+              className="flex flex-wrap items-center justify-between gap-3 py-3"
+            >
+              <div>
+                <p className="text-sm font-semibold text-foreground">
+                  {assignment.location.name}
+                </p>
+                <p className="mt-0.5 text-xs text-muted">
+                  {assignment.validFrom || assignment.validTo
+                    ? `${assignment.validFrom ? `From ${formatDate(assignment.validFrom)}` : "No start date"} · ${
+                        assignment.validTo
+                          ? `until ${formatDate(assignment.validTo)}`
+                          : "no end date"
+                      }`
+                    : "No date restriction"}
+                  {assignment.location.isActive ? "" : " · work site inactive"}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                {assignment.isPrimary ? (
+                  <StatusPill tone="good">Primary</StatusPill>
+                ) : null}
+                <StatusPill
+                  tone={assignment.status === "ACTIVE" ? "info" : "muted"}
+                >
+                  {assignment.status === "ACTIVE" ? "Active" : "Inactive"}
+                </StatusPill>
+                {canManage ? (
+                  <button
+                    type="button"
+                    className="rounded-2xl border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-surface-strong disabled:opacity-50"
+                    disabled={busy}
+                    onClick={() => {
+                      setEditing(assignment.locationId);
+                      setEditFrom(assignment.validFrom?.slice(0, 10) ?? "");
+                      setEditTo(assignment.validTo?.slice(0, 10) ?? "");
+                      setError(null);
+                    }}
+                  >
+                    Edit validity
+                  </button>
+                ) : null}
+                {canManage && !assignment.isPrimary ? (
+                  <button
+                    type="button"
+                    className="rounded-2xl border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-surface-strong disabled:opacity-50"
+                    disabled={busy}
+                    onClick={() => void setPrimary(assignment.locationId)}
+                  >
+                    Make primary
+                  </button>
+                ) : null}
+                {canManage ? (
+                  <button
+                    type="button"
+                    className="rounded-2xl border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-surface-strong disabled:opacity-50"
+                    disabled={busy}
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          assignment.isPrimary
+                            ? `Remove ${assignment.location.name}? It is this employee's primary work site, so another authorised site will become primary.`
+                            : `Remove ${assignment.location.name}? The employee will no longer be able to record attendance there.`,
+                        )
+                      ) {
+                        void removeWorkSite(assignment.locationId);
+                      }
+                    }}
+                  >
+                    Remove
+                  </button>
+                ) : null}
+              </div>
+              {editing === assignment.locationId ? (
+                <div className="grid w-full gap-4 rounded-[18px] border border-border bg-white/70 p-4 sm:grid-cols-3">
+                  <div>
+                    <label
+                      className="block text-sm font-medium text-foreground"
+                      htmlFor={`valid-from-${assignment.id}`}
+                    >
+                      Valid from
+                    </label>
+                    <input
+                      id={`valid-from-${assignment.id}`}
+                      type="date"
+                      className="mt-1 w-full rounded-2xl border border-border bg-white px-3 py-2 text-sm text-foreground"
+                      value={editFrom}
+                      onChange={(event) => setEditFrom(event.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label
+                      className="block text-sm font-medium text-foreground"
+                      htmlFor={`valid-to-${assignment.id}`}
+                    >
+                      Valid to
+                    </label>
+                    <input
+                      id={`valid-to-${assignment.id}`}
+                      type="date"
+                      className="mt-1 w-full rounded-2xl border border-border bg-white px-3 py-2 text-sm text-foreground"
+                      value={editTo}
+                      onChange={(event) => setEditTo(event.target.value)}
+                    />
+                  </div>
+                  <div className="flex items-end gap-3">
+                    <button
+                      type="button"
+                      className="rounded-2xl bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:opacity-50"
+                      disabled={busy}
+                      onClick={() => void saveValidity(assignment.locationId)}
+                    >
+                      {busy ? "Saving…" : "Save"}
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-foreground transition hover:bg-surface-strong"
+                      onClick={() => setEditing(null)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-muted">
+          No work site assignments yet. Attendance at a site requires an
+          assignment here — without one, this employee will be refused at
+          check-in everywhere except their inherited primary site.
+        </p>
+      )}
+
+      {error ? (
+        <p className="text-sm font-medium text-red-600" role="alert">
+          {error}
+        </p>
+      ) : null}
+
+      {canManage && adding ? (
+        <div className="grid gap-4 rounded-[18px] border border-border bg-white/70 p-4 sm:grid-cols-3">
+          <div>
+            <label
+              className="block text-sm font-medium text-foreground"
+              htmlFor="work-site-location"
+            >
+              Work site
+            </label>
+            <select
+              id="work-site-location"
+              className="mt-1 w-full rounded-2xl border border-border bg-white px-3 py-2 text-sm text-foreground"
+              value={locationId}
+              onChange={(event) => setLocationId(event.target.value)}
+            >
+              <option value="">Select…</option>
+              {addable.map((location) => (
+                <option key={location.id} value={location.id}>
+                  {location.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label
+              className="block text-sm font-medium text-foreground"
+              htmlFor="work-site-valid-from"
+            >
+              Valid from (optional)
+            </label>
+            <input
+              id="work-site-valid-from"
+              type="date"
+              className="mt-1 w-full rounded-2xl border border-border bg-white px-3 py-2 text-sm text-foreground"
+              value={validFrom}
+              onChange={(event) => setValidFrom(event.target.value)}
+            />
+          </div>
+          <div>
+            <label
+              className="block text-sm font-medium text-foreground"
+              htmlFor="work-site-valid-to"
+            >
+              Valid to (optional)
+            </label>
+            <input
+              id="work-site-valid-to"
+              type="date"
+              className="mt-1 w-full rounded-2xl border border-border bg-white px-3 py-2 text-sm text-foreground"
+              value={validTo}
+              onChange={(event) => setValidTo(event.target.value)}
+            />
+          </div>
+          <div className="flex gap-3 sm:col-span-3">
+            <button
+              type="button"
+              className="rounded-2xl bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:opacity-50"
+              disabled={busy || !locationId}
+              onClick={() => void addWorkSite()}
+            >
+              {busy ? "Adding…" : "Add work site"}
+            </button>
+            <button
+              type="button"
+              className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-foreground transition hover:bg-surface-strong"
+              onClick={() => {
+                setAdding(false);
+                setError(null);
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+          {addable.length === 0 ? (
+            <p className="text-sm text-muted sm:col-span-3">
+              Every active work site is already assigned to this employee.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
