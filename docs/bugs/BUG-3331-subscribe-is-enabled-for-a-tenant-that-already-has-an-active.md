@@ -13,7 +13,7 @@ AffectedModules: [apps/web, services/api/src/modules/billing]
 OwnerAgent: architect
 ArchitectDisposition: PLAN_REQUIRED
 QAReport:
-RegressionId:
+RegressionId: REG-425
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation: EXECPLAN-0037
@@ -248,7 +248,7 @@ done and reviewable independently.
   `checkout-sessions` once a subscription exists, which is the concurrent
   `apps/web` stream's work against this exact contract.
 
-**Residual finding, not fixed here**: `SeatChangeService.applyDueChanges()`
+**Residual finding, deliberately left alone here**: `SeatChangeService.applyDueChanges()`
 has the identical zero-caller defect and was deliberately **not** wired into
 the new sweeper, because doing so would activate a separate, pre-existing gap
 — a scheduled seat DECREASE reduces `Subscription.purchasedSeats` locally
@@ -289,5 +289,6 @@ placement, `role="alert"`) needs the `apps/web` half to land first.
 ## Related
 
 - Modules — [[tenant-application]], [[billing]]
+- Regression — REG-425 (see the regression register)
 
 <!-- GRAPH:END -->

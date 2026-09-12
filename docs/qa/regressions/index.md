@@ -4699,3 +4699,42 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Two lessons. First, an optional parameter that selects module-level state is a trap — omitting it is silent and looks correct, so the doc comment now says the parameter is optional only in signature. Second, the `useMemo` dependency mattered as much as the fix: the columns memo closes over `formatting`, so without adding it the correction would have applied on first paint and never again — a correct change that does nothing, which is worse than no change because it reads as done. |
 | **Fixed** | 2026-09-11 |
 | **Active** | yes |
+
+### REG-423 — Tenant plan listing and checkout ignored PlanPrice publication status and market
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` |
+| **Module** | `services/api/src/modules/billing` |
+| **Bug record** | BUG-3334, BUG-3333 |
+| **Root cause** | `resolveCommercialOffer` (used by `/public/commercial-config`) correctly gated a price on its own `publicationStatus` and `marketId`, but `BillingService.getPublicPlans` and every tenant checkout guard (`createCheckoutSession`, `startPublicOnboarding`, `createPublicSubscriptionCheckout`) tested only `plan.publicationStatus` — the plan's gate, never the price's own. A DRAFT or unscoped price on a PUBLISHED plan was listed and buyable, and a tenant could buy a price scoped to a market other than its own by posting the id directly, because nothing on the authenticated path compared the price's market to the tenant's at all. |
+| **Regression test** | `services/api/src/modules/billing/services/billing-price-market-scoping.spec.ts` |
+| **Scenario** | A DRAFT `PlanPrice` on a PUBLISHED plan never appears in `GET /billing/plans` (tenant or anonymous). `POST /billing/checkout-sessions` refuses a DRAFT price, an unscoped (`marketId: null`) price, and a price scoped to a market other than the tenant's own — all with the same `BILLING_PLAN_PRICE_UNAVAILABLE` code, never confirming which precondition failed. The same fixtures fed to `isPriceCurrentlySellable` and to `resolveCommercialOffer` agree on every case. |
+| **Fixed** | 2026-09-12, branch `agent/r-s2-billing-api` |
+| **Active** | yes |
+
+### REG-424 — An entitlement override could never grant a feature key missing from the plan's own rows
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` |
+| **Module** | `services/api/src/common/security` |
+| **Bug record** | BUG-3350 |
+| **Root cause** | `TenantEntitlementService.load()` (the request-path guard) built its `enabledKeys` set by iterating `subscription.plan.features` — the plan's own `PlanFeature` rows — while `FeatureAccessService.getResolvedTenantFeatures()` (the platform-admin screen) iterated the full `TENANT_FEATURE_DEFINITIONS` catalogue, defaulting a missing row to `isIncludedInPlan: false`. `commercial-bootstrap.ts`'s `reconcilePlanFeatures` never writes a disabled row for a feature a plan excludes, so a plan like Starter has no `payroll` row at all — meaning the guard's loop would never have considered `payroll` for a Starter tenant regardless of any override, silently defeating the BUG-3350 grandfathering mechanism before it could ever take effect. The two services had quietly diverged on "which keys to consider" the same way `divergent-duplicate-guard` describes for a rule's content. |
+| **Regression test** | `services/api/src/common/security/tenant-entitlement.service.spec.ts` |
+| **Scenario** | A tenant whose plan has no `PlanFeature` row at all for a given key (not merely a disabled one) still resolves that key from a `CUSTOM`-sourced `TenantFeature` override when one exists, and still resolves it as not entitled when none does — proving the guard now considers every catalogue key, not only the ones the plan happens to have a row for. |
+| **Fixed** | 2026-09-12, branch `agent/r-s2-billing-api` |
+| **Active** | yes |
+
+### REG-425 — `PlanChangeService.applyDueChanges` had no caller in the running application
+
+| | |
+|---|---|
+| **Bug class** | `orphaned-scheduled-job` |
+| **Module** | `services/api/src/modules/billing` |
+| **Bug record** | BUG-3331 |
+| **Root cause** | The exact BUG-2618 shape recurring in the same module: `applyDueChanges()` was written, exercised by an e2e test that calls it directly, and nothing in the running application ever invoked it — no scheduler, no worker, no cron. A scheduled DOWNGRADE (the entire point of the increase-is-immediate/decrease-waits-for-renewal asymmetry the service documents) would sit `SCHEDULED` in `PlanChangeRequest` forever, past its `effectiveAt`, never applied, and Stripe would keep charging the old price indefinitely. |
+| **Regression test** | `services/api/src/modules/billing/services/subscription-change-sweeper.worker.spec.ts` |
+| **Scenario** | Boot `BillingModule` with `SUBSCRIPTION_CHANGE_SWEEPER_ENABLED=true`: a `SubscriptionChangeSweeperWorker` provider starts an unref'd interval and its `tick()` calls `PlanChangeService.applyDueChanges()` on its own, with no test invoking the service directly. With the flag unset or `false`, no timer starts. A tick that receives a rejected promise logs and returns rather than throwing, so a transient database or Stripe fault cannot take the process down or stop the next tick. |
+| **Fixed** | 2026-09-12, branch `agent/r-s2-billing-api` |
+| **Active** | yes |

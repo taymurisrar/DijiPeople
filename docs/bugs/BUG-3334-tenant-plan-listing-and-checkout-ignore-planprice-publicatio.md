@@ -13,7 +13,7 @@ AffectedModules: [services/api/src/modules/billing]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport:
-RegressionId:
+RegressionId: REG-423
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
@@ -229,5 +229,6 @@ fixtures for.
 ## Related
 
 - Modules — [[billing]]
+- Regression — REG-423 (see the regression register)
 
 <!-- GRAPH:END -->

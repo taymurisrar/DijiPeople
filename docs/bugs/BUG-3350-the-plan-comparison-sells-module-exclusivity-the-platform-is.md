@@ -11,9 +11,9 @@ DetectedDate: 2026-09-11
 DetectedInSha: caad4a56
 AffectedModules: [apps/web, services/api/src/common/security]
 OwnerAgent: architect
-ArchitectDisposition: PRODUCT_DECISION
+ArchitectDisposition: FIX_NOW
 QAReport:
-RegressionId:
+RegressionId: REG-424
 RelatedBacklogItem:
 RelatedDecision: ADR-0009
 RelatedImplementation:
@@ -234,7 +234,7 @@ this section summarises what landed in code.
   database to `ENFORCE` is a separate, later, explicit operational step the
   ADR's Agent Rules restrict to a database an operator names directly.
 
-**Residual gap, not fixed here and called out in the ADR**: `desktop-agent`,
+**Residual gap, deliberately outside this change's scope and called out in the ADR**: `desktop-agent`,
 `compliance`, `data-management` and `attendance-integrations` carry no route
 guard at all (`ENTITLEMENT_UNGATED_FEATURE_KEYS`), each for a specific,
 already-considered reason. This cutover does not make the comparison table's
@@ -271,5 +271,6 @@ non-grandfathered one on the same plan is refused.
 ## Related
 
 - Modules — [[tenant-application]]
+- Regression — REG-424 (see the regression register)
 
 <!-- GRAPH:END -->
