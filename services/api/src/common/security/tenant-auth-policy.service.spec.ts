@@ -67,21 +67,30 @@ describe('TenantAuthPolicyService', () => {
   });
 
   /*
-   * ITEM-0162 — an explicitly configured AUTH_* environment variable becomes
-   * the *default* the policy falls back to for a tenant with no setting row,
-   * rather than being silently ignored on the tenant path.
+   * ITEM-0162 — deliberately NOT wired: production has
+   * `AUTH_IDLE_SESSION_TIMEOUT_SECONDS=30m` and
+   * `AUTH_ABSOLUTE_SESSION_TIMEOUT_SECONDS=8h` set, far below the hardcoded
+   * defaults every unconfigured tenant currently lives on (480 minutes, 30
+   * days). Making these variables the policy's fallback would silently drop
+   * every such tenant's absolute session lifetime from 30 days to 8 hours the
+   * moment this ships — a product decision, not a bug-fix side effect. This
+   * pins that an env var is currently inert on this path; wiring it in later
+   * should be a deliberate, visible change to this test, not an accidental
+   * regression of it.
    */
-  it('uses an explicit AUTH_IDLE_SESSION_TIMEOUT_SECONDS as the fallback default', async () => {
+  it('does not let an AUTH_* environment variable override the hardcoded default', async () => {
     const { service } = buildService([], {
       AUTH_IDLE_SESSION_TIMEOUT_SECONDS: '1800',
+      AUTH_ABSOLUTE_SESSION_TIMEOUT_SECONDS: '28800',
     });
 
-    const policy = await service.resolveEffectivePolicy('tenant-env-idle');
+    const policy = await service.resolveEffectivePolicy('tenant-env-set');
 
-    expect(policy.idleTimeoutMinutes).toBe(30);
+    expect(policy.idleTimeoutMinutes).toBe(480);
+    expect(policy.absoluteSessionLifetimeDays).toBe(30);
   });
 
-  it('still lets a tenant setting win over an explicit env var', async () => {
+  it('a tenant setting is still the only thing that can override the default', async () => {
     const { service } = buildService(
       [{ key: 'idleTimeoutMinutes', value: 60 }],
       { AUTH_IDLE_SESSION_TIMEOUT_SECONDS: '1800' },

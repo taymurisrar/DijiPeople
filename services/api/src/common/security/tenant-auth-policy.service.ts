@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
-import { parseDurationToMilliseconds } from '../config/auth.config';
 
 /**
  * The effective session policy for a tenant.
@@ -15,12 +14,21 @@ import { parseDurationToMilliseconds } from '../config/auth.config';
  * factor of sixteen (480 advertised, 30 enforced). One resolver, used by both,
  * removes the possibility of that drift by construction.
  *
- * BUG-3355 — `allowMultipleActiveSessions` used to be resolved by a private
- * method on `AuthService` alone (`allowsMultipleActiveSessions`), reading
- * `setting?.value === true` so an absent row meant "single session only". The
- * owner decided concurrent sessions are the default; an absent row now reads
- * as `true`. It is resolved here, alongside the rest of the policy, because a
- * session policy has one home.
+ * This resolver deliberately does **not** fall back to the `AUTH_*`
+ * environment variables ITEM-0162 also measured, even though the record's
+ * proposed approach suggested making them the policy's default. Production
+ * has all three set (`AUTH_ACCESS_TOKEN_TTL_SECONDS=15m`,
+ * `AUTH_IDLE_SESSION_TIMEOUT_SECONDS=30m`,
+ * `AUTH_ABSOLUTE_SESSION_TIMEOUT_SECONDS=8h`) to values far shorter than the
+ * hardcoded defaults every tenant with no `security` settings row is
+ * currently living on (480 minutes, 480 minutes, 30 days respectively).
+ * Wiring those variables in as the fallback the moment this ships would force
+ * every such tenant's absolute session lifetime from 30 days to 8 hours —
+ * full re-authentication, daily, for every user, with no settings change and
+ * no announcement. That is a product decision for the account owner, not
+ * something to flip silently in a bug-fix batch headed to production. See
+ * `docs/environment-variables.md` and `ITEM-0162`'s Resolution for the
+ * decision to defer this half.
  */
 export type TenantAuthPolicy = {
   allowRememberMe: boolean;
@@ -41,10 +49,11 @@ const SECURITY_SETTING_KEYS = [
 ] as const;
 
 /*
- * Hardcoded fallbacks, used only when BOTH the tenant has no setting row AND
- * no environment variable is explicitly configured. These match the values
- * this policy has always defaulted to, so a deployment that sets neither a
- * tenant setting nor an env var sees no behavioural change from this refactor.
+ * Hardcoded fallbacks, used when the tenant has no setting row. Unchanged
+ * from what `AuthService`'s own (now-removed) `resolveTenantAuthPolicy` and
+ * `JwtAuthGuard`'s own idle-timeout lookup each separately defaulted to
+ * before this consolidation, so a tenant that has never configured these
+ * values sees no behavioural change from the refactor itself.
  */
 const HARDCODED_DEFAULTS = {
   sessionTimeoutMinutes: 480,
@@ -53,45 +62,20 @@ const HARDCODED_DEFAULTS = {
   idleTimeoutMinutes: 480,
 } as const;
 
-/*
- * Environment-variable names that, when explicitly set, become the *default*
- * this policy falls back to for a tenant with no setting row — never a value
- * read instead of the tenant setting. Listed in the same precedence order the
- * corresponding `auth.config.ts` getter already uses, so wiring these in here
- * does not introduce a second, disagreeing precedence order (ITEM-0162, "two
- * same-purpose variables with different values").
- */
-const SESSION_TIMEOUT_MINUTES_ENV_KEYS = [
-  'AUTH_ACCESS_TOKEN_TTL_SECONDS',
-  'AUTH_ACCESS_TOKEN_TTL',
-  'JWT_ACCESS_TOKEN_TTL_SECONDS',
-  'JWT_ACCESS_TOKEN_TTL',
-  'JWT_ACCESS_TTL',
-];
-const REFRESH_TOKEN_EXPIRY_DAYS_ENV_KEYS = [
-  'AUTH_REFRESH_TOKEN_TTL_SECONDS',
-  'AUTH_REFRESH_TOKEN_TTL',
-  'JWT_REFRESH_TOKEN_TTL_SECONDS',
-  'JWT_REFRESH_TOKEN_TTL',
-  'JWT_REFRESH_TTL',
-];
-const ABSOLUTE_SESSION_LIFETIME_DAYS_ENV_KEYS = [
-  'AUTH_ABSOLUTE_SESSION_TIMEOUT_SECONDS',
-  'SESSION_ABSOLUTE_TIMEOUT_SECONDS',
-];
-const IDLE_TIMEOUT_MINUTES_ENV_KEYS = [
-  'AUTH_IDLE_SESSION_TIMEOUT_SECONDS',
-  'SESSION_IDLE_TIMEOUT_SECONDS',
-];
-
 @Injectable()
 export class TenantAuthPolicyService {
   constructor(
     private readonly prisma: PrismaService,
+    // Not read for defaults today — see the class doc comment. Kept as a
+    // constructor dependency because every enforcement point already
+    // resolves a `ConfigService` and a future, deliberate decision to wire
+    // environment defaults back in should not need to touch every call site
+    // that constructs this service.
     private readonly configService: ConfigService,
   ) {}
 
   async resolveEffectivePolicy(tenantId: string): Promise<TenantAuthPolicy> {
+    void this.configService;
     const rows = await this.prisma.tenantSetting.findMany({
       where: {
         tenantId,
@@ -106,37 +90,25 @@ export class TenantAuthPolicyService {
       allowRememberMe: readBooleanSetting(values.get('allowRememberMe'), true),
       sessionTimeoutMinutes: readNumberSetting(
         values.get('sessionTimeoutMinutes'),
-        this.defaultMinutesFromEnv(
-          SESSION_TIMEOUT_MINUTES_ENV_KEYS,
-          HARDCODED_DEFAULTS.sessionTimeoutMinutes,
-        ),
+        HARDCODED_DEFAULTS.sessionTimeoutMinutes,
         15,
         1440,
       ),
       refreshTokenExpiryDays: readNumberSetting(
         values.get('refreshTokenExpiryDays'),
-        this.defaultDaysFromEnv(
-          REFRESH_TOKEN_EXPIRY_DAYS_ENV_KEYS,
-          HARDCODED_DEFAULTS.refreshTokenExpiryDays,
-        ),
+        HARDCODED_DEFAULTS.refreshTokenExpiryDays,
         1,
         365,
       ),
       absoluteSessionLifetimeDays: readNumberSetting(
         values.get('absoluteSessionLifetimeDays'),
-        this.defaultDaysFromEnv(
-          ABSOLUTE_SESSION_LIFETIME_DAYS_ENV_KEYS,
-          HARDCODED_DEFAULTS.absoluteSessionLifetimeDays,
-        ),
+        HARDCODED_DEFAULTS.absoluteSessionLifetimeDays,
         1,
         365,
       ),
       idleTimeoutMinutes: readNumberSetting(
         values.get('idleTimeoutMinutes'),
-        this.defaultMinutesFromEnv(
-          IDLE_TIMEOUT_MINUTES_ENV_KEYS,
-          HARDCODED_DEFAULTS.idleTimeoutMinutes,
-        ),
+        HARDCODED_DEFAULTS.idleTimeoutMinutes,
         15,
         1440,
       ),
@@ -150,33 +122,6 @@ export class TenantAuthPolicyService {
         true,
       ),
     };
-  }
-
-  private defaultMinutesFromEnv(envKeys: string[], fallback: number): number {
-    const ms = this.readDurationEnv(envKeys);
-    return ms === null ? fallback : Math.max(1, Math.round(ms / 60_000));
-  }
-
-  private defaultDaysFromEnv(envKeys: string[], fallback: number): number {
-    const ms = this.readDurationEnv(envKeys);
-    return ms === null ? fallback : Math.max(1, Math.round(ms / 86_400_000));
-  }
-
-  private readDurationEnv(envKeys: string[]): number | null {
-    for (const key of envKeys) {
-      const raw = this.configService.get<string>(key);
-      if (raw?.trim()) {
-        try {
-          return parseDurationToMilliseconds(raw.trim());
-        } catch {
-          // An unparseable value is treated as "not set" rather than crashing
-          // policy resolution for every request; env validation at boot is
-          // what should have caught this.
-          continue;
-        }
-      }
-    }
-    return null;
   }
 }
 
