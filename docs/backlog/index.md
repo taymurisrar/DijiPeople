@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**613 records** — 442 bugs under [`docs/bugs/`](../bugs/), 171 non-bug items under [`items/`](items/).
+**614 records** — 442 bugs under [`docs/bugs/`](../bugs/), 172 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 191 |
+| Open (active work) | 192 |
 | Blocked | 2 |
 | Deferred | 92 |
 | Awaiting a product decision | 9 |
 | Completed / closed | 319 |
 | **Open CRITICAL** | **4** |
-| **Open HIGH** | **86** |
+| **Open HIGH** | **87** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,7 +27,7 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 4 |
-| HIGH | 86 |
+| HIGH | 87 |
 | MEDIUM | 80 |
 | LOW | 16 |
 
@@ -41,7 +41,7 @@ see [`README.md`](README.md) for why.
 | DATABASE | 1 |
 | DATA_INTEGRITY | 18 |
 | DOCUMENTATION | 1 |
-| FOLLOW_UP | 4 |
+| FOLLOW_UP | 5 |
 | INFRA | 6 |
 | INTEGRATION | 5 |
 | PERFORMANCE | 14 |
@@ -57,11 +57,12 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 64 |
+| OPEN | 62 |
+| IN_PROGRESS | 2 |
 | BLOCKED | 2 |
 | DEFERRED | 92 |
 | PRODUCT_DECISION | 9 |
-| FIXED | 97 |
+| FIXED | 98 |
 | VERIFIED | 218 |
 | DUPLICATE | 10 |
 | ACCEPTED_RISK | 3 |
@@ -293,7 +294,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3356](../../docs/bugs/BUG-3356-a-revoked-or-expired-session-is-reported-to-the-user-as-auth.md) | A revoked or expired session is reported to the user as AUTH_TOKEN_MISSING and is never logged | BUG | HIGH | P1 | OPEN | web:auth, api:auth | FIX_NOW |
 | [BUG-3374](../../docs/bugs/BUG-3374-settings-customization-and-its-twelve-child-routes-silently-.md) | Settings Customization and its twelve child routes silently redirect to Roles | AUTHORIZATION | HIGH | P1 | OPEN | apps/web, customization | FIX_NOW |
 | [BUG-3375](../../docs/bugs/BUG-3375-the-notification-rules-screen-edits-preferences-and-cannot-r.md) | The Notification Rules screen edits preferences and cannot reach NotificationRule at all | UX | HIGH | P1 | OPEN | notifications, apps/web | PLAN_REQUIRED |
-| [BUG-3376](../../docs/bugs/BUG-3376-runtime-lookups-fetch-one-unpaged-page-and-filter-it-in-the-.md) | Runtime lookups fetch one unpaged page and filter it in the browser, hiding every record past the server page size | DATA_INTEGRITY | HIGH | P1 | OPEN | apps/web, apps/admin | PLAN_REQUIRED |
+| [BUG-3376](../../docs/bugs/BUG-3376-runtime-lookups-fetch-one-unpaged-page-and-filter-it-in-the-.md) | Runtime lookups fetch one unpaged page and filter it in the browser, hiding every record past the server page size | DATA_INTEGRITY | HIGH | P1 | IN_PROGRESS | apps/web, apps/admin | PLAN_REQUIRED |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -307,6 +308,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0122](../../docs/backlog/items/ITEM-0122-fifteen-production-advisories-have-no-disposition-so-the-ci-.md) | Fifteen production advisories have no disposition, so the CI advisory gate fails on every branch including main | SECURITY | HIGH | P1 | DONE | ci, dependencies | DONE |
 | [ITEM-0123](../../docs/backlog/items/ITEM-0123-multer-carries-three-high-advisories-and-the-override-that-f.md) | multer carries three high advisories and the override that fixes it cannot be applied without a full re-resolve | SECURITY | HIGH | P1 | DEFERRED | dependencies, ci | DEFER |
 | [ITEM-0124](../../docs/backlog/items/ITEM-0124-production-advisory-gate-blocks-every-release-to-main-and-np.md) | Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile | SECURITY | HIGH | P1 | DONE | scripts/check-production-advisories.mjs | DONE |
+| [ITEM-0172](../../docs/backlog/items/ITEM-0172-wire-debounced-search-and-the-openable-label-into-the-metada.md) | Wire debounced search and the openable label into the metadata-driven record-form lookup call site | FOLLOW_UP | HIGH | P1 | READY | apps/web | FIX_NOW |
 | [ITEM-0048](../../docs/backlog/items/ITEM-0048-replace-or-contain-active-win-and-the-xlsx-export-path.md) | Replace or contain active-win and the xlsx export path | SECURITY | HIGH | P2 | BLOCKED | apps/agent-desktop, services/api/src/common/excel, package-lock.json | BLOCKED_EXTERNAL |
 | [ITEM-0086](../../docs/backlog/items/ITEM-0086-smoke-deployment-does-not-assert-that-a-launched-market-has-.md) | smoke:deployment does not assert that a launched market has a purchasable price or a running outbox worker | TEST_GAP | HIGH | P2 | DONE | scripts | DONE |
 | [ITEM-0132](../../docs/backlog/items/ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for.md) | No multi-factor authentication exists anywhere, including for platform super admins | SECURITY | HIGH | P2 | PRODUCT_DECISION | api:auth | PRODUCT_DECISION |
@@ -502,7 +504,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3358](../../docs/bugs/BUG-3358-a-server-component-render-rotates-the-refresh-token-and-cann.md) | A Server Component render rotates the refresh token and cannot persist it, orphaning the browser | BUG | MEDIUM | P2 | OPEN | web:auth, api:auth | FIX_NOW |
 | [BUG-3359](../../docs/bugs/BUG-3359-refresh-rotation-has-no-grace-window-and-the-web-middleware-.md) | Refresh rotation has no grace window and the web middleware has no concurrency control | BUG | MEDIUM | P2 | OPEN | api:auth, web:auth | PLAN_REQUIRED |
 | [BUG-3373](../../docs/bugs/BUG-3373-web-paints-the-operating-system-dark-theme-before-the-tenant.md) | Web paints the operating-system dark theme before the tenant Light default arrives | UX | MEDIUM | P2 | OPEN | apps/web | FIX_NOW |
-| [BUG-3377](../../docs/bugs/BUG-3377-admin-lookup-controls-still-carry-the-nested-interactive-lis.md) | Admin lookup controls still carry the nested-interactive listbox that BUG-1956 fixed only in web | UX | MEDIUM | P2 | OPEN | apps/admin | FIX_NOW |
+| [BUG-3377](../../docs/bugs/BUG-3377-admin-lookup-controls-still-carry-the-nested-interactive-lis.md) | Admin lookup controls still carry the nested-interactive listbox that BUG-1956 fixed only in web | UX | MEDIUM | P2 | FIXED | apps/admin | FIX_NOW |
 | [BUG-3378](../../docs/bugs/BUG-3378-the-responsive-runtime-tab-strip-hides-a-measurement-copy-fr.md) | The responsive runtime tab strip hides a measurement copy from screen readers while leaving thirteen buttons in the tab order | UX | MEDIUM | P2 | OPEN | apps/web | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
@@ -590,7 +592,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0158](../../docs/backlog/items/ITEM-0158-public-traffic-that-bypasses-cloudflare-shares-one-rate-limi.md) | Public traffic that bypasses Cloudflare shares one rate-limit bucket, by design and untested | INFRA | MEDIUM | P2 | READY | pkg:config, services/api/src/common/security | PLAN_REQUIRED |
 | [ITEM-0159](../../docs/backlog/items/ITEM-0159-plans-and-features-screen-fails-several-accessibility-basics.md) | Plans and Features screen fails several accessibility basics for a data-comparison surface | UX | MEDIUM | P2 | READY | apps/web | FIX_NOW |
 | [ITEM-0162](../../docs/backlog/items/ITEM-0162-session-timeout-configuration-lives-in-two-places-that-disag.md) | Session timeout configuration lives in two places that disagree, and most of the env values are inert | TECH_DEBT | MEDIUM | P2 | READY | api:auth, api:tenant-settings | FIX_NOW |
-| [ITEM-0163](../../docs/backlog/items/ITEM-0163-give-every-lookup-one-behaviour-an-openable-label-one-implem.md) | Give every lookup one behaviour: an openable label, one implementation, and a reference route that is not an allowlist | UX | MEDIUM | P2 | READY | apps/web, apps/admin | PLAN_REQUIRED |
+| [ITEM-0163](../../docs/backlog/items/ITEM-0163-give-every-lookup-one-behaviour-an-openable-label-one-implem.md) | Give every lookup one behaviour: an openable label, one implementation, and a reference route that is not an allowlist | UX | MEDIUM | P2 | IN_PROGRESS | apps/web, apps/admin | PLAN_REQUIRED |
 | [ITEM-0169](../../docs/backlog/items/ITEM-0169-notification-catalog-hygiene-dead-events-duplicate-leave-pai.md) | Notification catalog hygiene: dead events, duplicate leave pairs, two key conventions and placeholder copy | UX | MEDIUM | P2 | READY | notifications, apps/web | FIX_NOW |
 | [ITEM-0170](../../docs/backlog/items/ITEM-0170-eleven-tenant-modules-emit-no-notifications-at-all.md) | Eleven tenant modules emit no notifications at all | FOLLOW_UP | MEDIUM | P2 | READY | notifications, recruitment, documents, policies, contracts, support-cases, business-trips, benefits, compensation, projects, sla, legal, partners | PLAN_REQUIRED |
 | [ITEM-0171](../../docs/backlog/items/ITEM-0171-a-second-dispatch-path-sends-email-without-consulting-notifi.md) | A second dispatch path sends email without consulting NotificationRule | ARCHITECTURE | MEDIUM | P2 | READY | notifications, payroll, payslips, auth, reporting | PLAN_REQUIRED |

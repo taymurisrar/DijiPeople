@@ -2,7 +2,7 @@
 ID: BUG-3376
 aliases: [BUG-3376]
 Title: Runtime lookups fetch one unpaged page and filter it in the browser, hiding every record past the server page size
-Status: OPEN
+Status: IN_PROGRESS
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -14,11 +14,11 @@ OwnerAgent: architect
 ArchitectDisposition: PLAN_REQUIRED
 QAReport: 
 RegressionId: 
-RelatedBacklogItem: ITEM-0163
+RelatedBacklogItem: ITEM-0163, ITEM-0172
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-11
-UpdatedAt: 2026-09-11
+UpdatedAt: 2026-09-12
 ResolvedAt:
 ---
 
@@ -161,23 +161,100 @@ touch this data path.
 
 ## Resolution
 
-Not yet fixed.
+**Partially fixed 2026-09-12, in SESSION-0103, under EXECPLAN-0037.
+Complete for `apps/admin`. Not yet complete for `apps/web`'s named
+reproduction (a metadata-driven record-form lookup, e.g. Project → Project
+Manager) — see "What remains open" below before treating this as closed.**
+
+### `apps/admin` — complete
+
+- `apps/admin/lib/runtime/use-runtime-lookup-options.ts` now accepts and sends
+  a `search` parameter. The route
+  (`apps/admin/app/api/platform-runtime/lookups/route.ts`) and
+  `buildRuntimeLookupPath` (`apps/admin/lib/runtime/runtime-lookups.ts`)
+  already forwarded one; nothing ever called it with one.
+- `RuntimeLookup` (`apps/admin/app/_components/runtime/runtime-form.tsx`)
+  debounces the typed query (300ms, new
+  `apps/admin/lib/runtime/lookup-search.ts`) before feeding it to the hook.
+- `SearchableSelect` gained `onQueryChange`/`serverFiltered`/`loading`/
+  `resultsTruncated` so it stops re-filtering results the server already
+  filtered.
+- Admin's pin-on-hydrate story needed no change: `RuntimeLookup` already
+  derived the current option's label from the record's own denormalised field
+  (`resolveLookupLabel`) rather than from the options list, so a value outside
+  whatever page is currently loaded already displayed correctly before this
+  fix, and continues to under search.
+- Not attempted: an explicit page-size convention for admin's lookups. The
+  evidence for admin was specifically "search is never sent," not a
+  demonstrated page-size cap; inventing a `pageSize`/`limit` parameter the
+  underlying platform-runtime lookup endpoints were not confirmed to support
+  risked doing nothing silently, or erroring, for no evidenced benefit.
+
+### `apps/web` — adapter and control layer shipped, one integration point open
+
+- `standard-module-data.adapter.ts#getLookupOptions` now accepts an optional
+  search query (additive 4th argument) and sends an explicit page size
+  (`ENTITY_LOOKUP_PAGE_SIZE = 50`, `apps/web/lib/runtime/lookup-search.ts`)
+  for entity lookups — already a real improvement over the previous unbounded
+  default (20 for employees) even before any caller passes a search term.
+  Small, effectively-fixed reference sets (country, currency, timezone,
+  state/province, city — `isSmallReferenceLookupEntity`) keep the original
+  cheap one-shot prefetch, chosen by the field's target entity rather than by
+  which caller happened to omit a page size, per this record's Proposed
+  Resolution.
+- `LookupField` (`apps/web/app/components/ui/form-control.tsx`): `onSearch` is
+  now debounced (300ms) instead of firing per keystroke; the previously
+  resolved selected option is pinned across a narrower search result until
+  the value itself changes (`resolveVisibleSelectedOption`); a new
+  `resultsTruncated` prop renders a "showing first N — keep typing to narrow"
+  affordance; client-side substring filtering is skipped once a caller wires
+  `onSearch`, trusting the server's own matching instead.
+- New `apps/web/lib/runtime/lookup-search.ts` / `.spec.ts` cover the debounce
+  primitive, the pin rule and the truncation/small-reference-set logic in
+  isolation — `apps/web`'s jest config has no jsdom, so this is what the
+  component itself cannot be tested through.
+
+### What remains open
+
+**The acceptance criteria below are not yet demonstrable for `apps/web`'s
+named reproduction.** The one remaining call site,
+`apps/web/app/components/metadata/runtime-metadata-form-renderer.tsx:1222-1241`
+(the only place `<LookupField>` is constructed for a metadata-driven record
+form, and the only supplier of `selectedHref` anywhere in the app), was owned
+by a concurrent agent in this session and named as out of scope in this task's
+brief. Filed as [[ITEM-0172]] with the exact follow-up diff shape — everything
+it needs (debounce, pin, truncation prop, larger default page size) already
+shipped here, so that item is additive wiring, not new design.
+`docs/architecture/lookup-control-contract.md` records the same gap as the
+one place the contract is not yet fully conformed to.
+
+`apps/web/app/(authenticated)/recruitment/_components/employee-draft-form.tsx`'s
+"Reporting manager" `LookupField` (a bespoke page, not gated by the excluded
+file) has the same underlying defect — a plain array from a server component
+prop, filtered client-side — and was not touched here; it was not named in
+this bug's Evidence and fixing it was out of scope for this pass.
 
 ## QA Retest
 
-Pending.
+Pending. `apps/admin`'s fix can be exercised today (open a runtime form with a
+lookup reading from an endpoint with more than one page, type a query matching
+a record outside the first page). `apps/web`'s named reproduction (Project →
+Project Manager) cannot be meaningfully retested until [[ITEM-0172]] lands.
 
 ## History
 
 - 2026-09-11 — created at `cbd9b812`. Raised by a consistency audit and then
   re-verified independently against the adapter, the renderer and the employee
   query DTO before filing.
+- 2026-09-12 — `apps/admin` fixed and `apps/web`'s adapter/control layer
+  shipped in SESSION-0103, branch `agent/r-s6-lookups`, under EXECPLAN-0037.
+  Remaining `apps/web` integration filed as [[ITEM-0172]].
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
 ## Related
 
-- Backlog item — [[ITEM-0163]]
+- Referenced by — [[ITEM-0163]], [[ITEM-0172]]
 - Modules — [[tenant-application]], [[platform-admin]]
 
 <!-- GRAPH:END -->
