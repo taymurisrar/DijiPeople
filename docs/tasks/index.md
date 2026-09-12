@@ -58,4 +58,4 @@ Nothing ready.
 | [TASK-0026](TASK-0026-admin-releases-management-and-channel-promotion-ui.md) | Admin releases management and channel promotion UI | FEATURE | MEDIUM | P1 | COMPLETE | 1/1 | — |
 | [TASK-0027](TASK-0027-tenant-app-assignment-which-tenants-receive-a-release.md) | Tenant app assignment: which tenants receive a release | FEATURE | MEDIUM | P1 | COMPLETE | 1/1 | — |
 | [TASK-0028](TASK-0028-enterprise-reports-and-analytics-platform.md) | Enterprise Reports and Analytics platform | FEATURE | LARGE | P1 | IN_PROGRESS | 5/15 | WP-08 |
-| [TASK-0030](TASK-0030-implement-the-34-open-records-from-sessions-0099-0102.md) | Implement the 34 open records from sessions 0099-0102 | FEATURE | LARGE | P1 | IN_PROGRESS | 0/8 | WP-01 |
+| [TASK-0030](TASK-0030-implement-the-34-open-records-from-sessions-0099-0102.md) | Implement the 34 open records from sessions 0099-0102 | FEATURE | LARGE | P1 | IN_PROGRESS | 6/8 | WP-07 |

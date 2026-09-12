@@ -10,8 +10,8 @@ CREATED_AT: 2026-09-12
 AFFECTED_MODULES: [apps/web, apps/admin, auth, billing, notifications, customization, employees]
 AGENTS: [architect, backend-api, frontend, ui-ux, security, integration, qa, reviewer, integrator]
 DEPENDENCIES:
-CURRENT_PACKAGE: WP-01
-COMPLETED_PACKAGES: []
+CURRENT_PACKAGE: WP-07
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 4
 FINAL_STATUS:
@@ -37,13 +37,13 @@ they are.
 
 | WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | BUGS | CI_STATUS | MERGE_STATUS |
 |---|---|---|---|---|---|---|---|---|---|---|
-| WP-01 | Tenant plans and subscription screens | IN_PROGRESS | — | frontend, ui-ux | agent/r-s1-billing-web | — | — | BUG-3330, BUG-3332, BUG-3335, BUG-3336, BUG-3345, ITEM-0159 | — | — |
-| WP-02 | Billing price gating and entitlement enforcement | IN_PROGRESS | — | backend-api, security | agent/r-s2-billing-api | — | — | BUG-3334, BUG-3350, BUG-3331, BUG-3333 | — | — |
-| WP-03 | Session lifetime, rotation and attribution | IN_PROGRESS | — | security, backend-api, frontend | agent/r-s3-auth | — | — | BUG-3355, BUG-3356, BUG-3357, BUG-3358, BUG-3359, BUG-3360, ITEM-0162 | — | — |
-| WP-04 | Web shell theme, customization gate and runtime semantics | IN_PROGRESS | — | ui-ux, frontend | agent/r-s4-webux | — | — | BUG-3373, BUG-3374, BUG-3378, BUG-3412 | — | — |
-| WP-05 | Lookup convergence and server-side search | IN_PROGRESS | — | frontend, ui-ux | agent/r-s6-lookups | — | — | BUG-3376, BUG-3377, ITEM-0163 | — | — |
-| WP-06 | Notification model ownership, catalog and coverage | IN_PROGRESS | — | backend-api, architecture | agent/r-s7-notifications | — | — | BUG-3375, BUG-3379, ITEM-0168, ITEM-0169, ITEM-0170, ITEM-0171 | — | — |
-| WP-07 | Employee record shell and its panels | NOT_STARTED | WP-04 | frontend, ui-ux | agent/r-s8-employee | — | — | ITEM-0164, ITEM-0165, ITEM-0166, ITEM-0167 | — | — |
+| WP-01 | Tenant plans and subscription screens | DONE | — | frontend, ui-ux | agent/r-s1-billing-web | 0eee4dbb | QA-BILLING-030..034 | BUG-3330, BUG-3332, BUG-3335, BUG-3336, BUG-3345, ITEM-0159 | PENDING | MERGED |
+| WP-02 | Billing price gating and entitlement enforcement | DONE | — | backend-api, security | agent/r-s2-billing-api | 03664436 | QA-BILLING-035..037 | BUG-3334, BUG-3350, BUG-3331, BUG-3333 | PENDING | MERGED |
+| WP-03 | Session lifetime, rotation and attribution | DONE | — | security, backend-api, frontend | agent/r-s3-auth | 43721a67 | QA-AUTH-011..016 | BUG-3355, BUG-3356, BUG-3357, BUG-3358, BUG-3359, BUG-3360, ITEM-0162 | PENDING | MERGED |
+| WP-04 | Web shell theme, customization gate and runtime semantics | DONE | — | ui-ux, frontend | agent/r-s4-webux | 158af0e8 | QA-RUNTIME-010/042/043, QA-AUTHZ-016 | BUG-3373, BUG-3374, BUG-3378, BUG-3412 | PENDING | MERGED |
+| WP-05 | Lookup convergence and server-side search | DONE | — | frontend, ui-ux | agent/r-s6-lookups | b1a0c9be + 9be94ff0 | QA-UI-001, QA-RUNTIME-044 | BUG-3376, BUG-3377, ITEM-0163 | PENDING | MERGED |
+| WP-06 | Notification model ownership, catalog and coverage | DONE | — | backend-api, architecture | agent/r-s7-notifications | c0f58fd1 | QA-SETTINGS-018..020 | BUG-3375, BUG-3379, ITEM-0168, ITEM-0169, ITEM-0170, ITEM-0171 | PENDING | MERGED |
+| WP-07 | Employee record shell and its panels | IN_PROGRESS | WP-04 | frontend, ui-ux | agent/r-s8-employee | — | — | ITEM-0164, ITEM-0165, ITEM-0166, ITEM-0167 | — | — |
 | WP-08 | Integration, validation and finalization | NOT_STARTED | WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07 | integrator, qa, reviewer | agent/records-0099-0102 | — | — | — | — | — |
 
 WP-07 depends on WP-04 and not merely by convention. [[ITEM-0167]] propagates the
