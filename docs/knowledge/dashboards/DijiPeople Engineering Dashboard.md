@@ -9,7 +9,7 @@
 |---|---|
 | Open CRITICAL | **4** |
 | Open HIGH | **86** |
-| Open total | 190 |
+| Open total | 191 |
 | Blocked | 2 |
 | Awaiting a product decision | 9 |
 | Deferred | 92 |
@@ -620,6 +620,7 @@
 | [[BUG-3021-workspace-switcher-in-the-avatar-menu-overflows-horizontally|BUG-3021]] | Workspace switcher in the avatar menu overflows horizontally and shows a scrollbar | UX | LOW | FIXED | apps/web | FIX_NOW |
 | [[BUG-3360-every-session-row-records-the-user-agent-as-node-and-the-clo|BUG-3360]] | Every session row records the user agent as node and the Cloudflare edge IP | BUG | LOW | OPEN | api:auth, web:auth | FIX_NOW |
 | [[BUG-3379-a-delivery-log-row-says-not-delivered-and-carries-nothing-th|BUG-3379]] | A delivery log row says Not delivered and carries nothing that explains why | UX | LOW | OPEN | notifications, apps/web | FIX_NOW |
+| [[BUG-3412-every-widget-section-on-a-record-form-prints-its-title-twice|BUG-3412]] | Every widget section on a record form prints its title twice, and the profile section's two titles disagree | UX | LOW | OPEN | apps/web | FIX_NOW |
 | [[ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by|ITEM-0080]] | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
 | [[ITEM-0164-an-organization-hierarchy-viewer-reachable-from-the-employee|ITEM-0164]] | An organization hierarchy viewer reachable from the employee record | UX | — | READY | apps/web, employees, organization | PLAN_REQUIRED |
 | [[ITEM-0165-present-an-employee-s-primary-location-and-authorised-work-s|ITEM-0165]] | Present an employee's primary location and authorised work sites as one control | UX | — | READY | apps/web, employees, attendance | FIX_NOW |
@@ -646,7 +647,7 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 441 |
+| Bug records | 442 |
 | Backlog items | 171 |
 | Known bug patterns | 34 |
 | QA runs | 32 |

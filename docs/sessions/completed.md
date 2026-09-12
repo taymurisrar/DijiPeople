@@ -6,6 +6,7 @@ Sessions that reached a terminal state. Kept as history: the branch, the base it
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0102](../../docs/sessions/SESSION-0102-file-the-residual-observations-from-the-demo-walkthrough.md) | — | File the residual observations from the demo walkthrough | COMPLETE | `agent/ux-findings-sweep` | `develop` | — | 2026-09-12T11:36:01.647Z |
 | [SESSION-0101](../../docs/sessions/SESSION-0101-review-and-file-eight-ui-ux-and-settings-findings-from-demo-.md) | — | Review and file eight UI/UX and settings findings from demo walkthrough | COMPLETE | `agent/ux-findings-audit` | `develop` | — | 2026-09-11T23:28:39.815Z |
 | [SESSION-0100](../../docs/sessions/SESSION-0100-investigate-access-token-expiry-and-session-revocation-on-th.md) | — | Investigate access token expiry and session revocation on the tenant web app | COMPLETE | `agent/auth-session-revocation` | `develop` | — | 2026-09-11T21:49:42.277Z |
 | [SESSION-0098](../../docs/sessions/SESSION-0098-closeout-sweep-close-every-open-session-bug-and-backlog-item.md) | — | Closeout sweep: close every open session, bug and backlog item | COMPLETE | `agent/closeout-sweep` | `develop` | — | 2026-09-10T19:06:45.272Z |

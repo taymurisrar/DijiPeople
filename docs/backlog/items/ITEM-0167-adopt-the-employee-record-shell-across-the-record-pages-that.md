@@ -153,6 +153,7 @@ panel. [[ITEM-0166]] DLP panel. [[ITEM-0164]] hierarchy viewer.
 ## Related
 
 - Bug — [[BUG-3378]]
+- Referenced by — [[BUG-3412]]
 - Modules — [[tenant-application]]
 
 <!-- GRAPH:END -->

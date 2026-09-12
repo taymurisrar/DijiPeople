@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**612 records** — 441 bugs under [`docs/bugs/`](../bugs/), 171 non-bug items under [`items/`](items/).
+**613 records** — 442 bugs under [`docs/bugs/`](../bugs/), 171 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,7 +13,7 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 190 |
+| Open (active work) | 191 |
 | Blocked | 2 |
 | Deferred | 92 |
 | Awaiting a product decision | 9 |
@@ -29,7 +29,7 @@ see [`README.md`](README.md) for why.
 | CRITICAL | 4 |
 | HIGH | 86 |
 | MEDIUM | 80 |
-| LOW | 15 |
+| LOW | 16 |
 
 ## Open by type
 
@@ -51,13 +51,13 @@ see [`README.md`](README.md) for why.
 | TECH_DEBT | 6 |
 | TENANT_ISOLATION | 2 |
 | TEST_GAP | 9 |
-| UX | 46 |
+| UX | 47 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 63 |
+| OPEN | 64 |
 | BLOCKED | 2 |
 | DEFERRED | 92 |
 | PRODUCT_DECISION | 9 |
@@ -635,6 +635,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3021](../../docs/bugs/BUG-3021-workspace-switcher-in-the-avatar-menu-overflows-horizontally.md) | Workspace switcher in the avatar menu overflows horizontally and shows a scrollbar | UX | LOW | P3 | FIXED | apps/web | FIX_NOW |
 | [BUG-3360](../../docs/bugs/BUG-3360-every-session-row-records-the-user-agent-as-node-and-the-clo.md) | Every session row records the user agent as node and the Cloudflare edge IP | BUG | LOW | P3 | OPEN | api:auth, web:auth | FIX_NOW |
 | [BUG-3379](../../docs/bugs/BUG-3379-a-delivery-log-row-says-not-delivered-and-carries-nothing-th.md) | A delivery log row says Not delivered and carries nothing that explains why | UX | LOW | P3 | OPEN | notifications, apps/web | FIX_NOW |
+| [BUG-3412](../../docs/bugs/BUG-3412-every-widget-section-on-a-record-form-prints-its-title-twice.md) | Every widget section on a record form prints its title twice, and the profile section's two titles disagree | UX | LOW | P3 | OPEN | apps/web | FIX_NOW |
 | [ITEM-0007](../../docs/backlog/items/ITEM-0007-should-duplicate-website-leads-be-deduplicated.md) | Product decision — should duplicate website leads be deduplicated? | PRODUCT_DECISION | LOW | P3 | DONE | api:leads, apps/landing | DONE |
 | [ITEM-0008](../../docs/backlog/items/ITEM-0008-customeraccount-has-no-origin-channel.md) | Product decision — CustomerAccount carries no origin channel | PRODUCT_DECISION | LOW | P3 | DONE | services/api/prisma, api:super-admin | DONE |
 | [ITEM-0011](../../docs/backlog/items/ITEM-0011-framework-validation-should-catch-absence-claims.md) | Framework validation should catch false absence claims in context documents | TECH_DEBT | LOW | P3 | DONE | .agent/context, scripts | DONE |

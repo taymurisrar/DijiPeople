@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 612,
+    "total_records": 613,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -19714,7 +19714,7 @@
         "provenance": "USER_REPORT",
         "detected_in_sha": "cbd9b812",
         "created_at": "2026-09-11",
-        "updated_at": "2026-09-11",
+        "updated_at": "2026-09-12",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -19730,6 +19730,44 @@
           "apps/web"
         ],
         "verification_scope": "See docs/bugs/BUG-3379-a-delivery-log-row-says-not-delivered-and-carries-nothing-th.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3412",
+      "type": "UX",
+      "title": "Every widget section on a record form prints its title twice, and the profile section's two titles disagree",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3412-every-widget-section-on-a-record-form-prints-its-title-twice.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "06ed3592",
+        "created_at": "2026-09-12",
+        "updated_at": "2026-09-12",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3412-every-widget-section-on-a-record-form-prints-its-title-twice.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],
