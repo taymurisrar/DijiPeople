@@ -484,6 +484,27 @@ export const ERROR_CATALOG = {
     'Try again later.',
     true,
   ),
+  NOTIFICATION_RULE_NOT_FOUND: entry(
+    404,
+    'Notification rule not found',
+    'That notification rule does not exist for this workspace.',
+    'warning',
+    'notification',
+  ),
+  NOTIFICATION_EVENT_NOT_CONFIGURABLE: entry(
+    400,
+    'Notification event is not configurable',
+    'This notification is required or not yet available, and cannot be changed.',
+    'warning',
+    'notification',
+  ),
+  EMAIL_DELIVERY_LOG_NOT_RETRYABLE: entry(
+    400,
+    'Delivery cannot be retried',
+    'This delivery cannot be retried in its current state.',
+    'warning',
+    'notification',
+  ),
   FILE_UPLOAD_FAILED: entry(
     400,
     'File upload failed',

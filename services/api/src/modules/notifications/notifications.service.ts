@@ -9,6 +9,7 @@ import {
   NotImplementedException,
 } from '@nestjs/common';
 import {
+  EmailDeliveryStatus,
   EmailProviderSetting,
   EmailProviderType,
   EmailTemplate,
@@ -22,6 +23,8 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
+import { AppError } from '../../common/errors/app-error';
+import { AuditService } from '../audit/audit.service';
 import {
   CloneEmailTemplateDto,
   CreateEmailProviderDto,
@@ -32,9 +35,12 @@ import {
   UpdateEmailProviderDto,
   UpdateEmailTemplateDto,
   UpdateNotificationPreferencesDto,
+  UpdateNotificationRuleDto,
 } from './dto';
 import { EmailService } from './email/email.service';
 import { EffectiveEmailProviderService } from './email/effective-email-provider.service';
+import { isSinkProvider } from './email/providers';
+import { AUTH_NOTIFICATION_EVENTS } from './email/email-execution.service';
 import {
   maskSensitiveConfiguration,
   mergeConfigurationPreservingMaskedSecrets,
@@ -49,6 +55,11 @@ import {
   EmailTemplateScopeLevel,
   parseNotificationScopeKey,
 } from './notifications.constants';
+import {
+  isConfigurableEvent,
+  isRetiredEventCode,
+  NOTIFICATION_EVENT_CATALOG,
+} from './notification-events.catalog';
 import { SecretEncryptionService } from '../../common/security/secret-encryption.service';
 import { NotificationsRepository } from './notifications.repository';
 import { WorkflowRuntimeService } from '../workflows/workflow-runtime.service';
@@ -58,6 +69,10 @@ import type {
   EmailTemplateLookupInput,
   NotificationPreferenceLookupInput,
 } from './interfaces/notification-contracts.interface';
+
+const CATALOG_BY_CODE = new Map(
+  NOTIFICATION_EVENT_CATALOG.map((event) => [event.code, event]),
+);
 
 @Injectable()
 export class NotificationsService {
@@ -71,6 +86,7 @@ export class NotificationsService {
     @Inject(forwardRef(() => WorkflowRuntimeService))
     private readonly workflowRuntime: WorkflowRuntimeService,
     private readonly effectiveProvider: EffectiveEmailProviderService,
+    private readonly auditService: AuditService,
   ) {}
 
   listEvents() {
@@ -87,6 +103,15 @@ export class NotificationsService {
     return event;
   }
 
+  /*
+   * BUG-3375 / ITEM-0169. Retired catalog codes (see RETIRED_EVENT_ALIASES)
+   * are hidden here rather than in the catalog itself, because the catalog
+   * still has to keep them as real rows for historical delivery logs and
+   * templates to resolve against. `configurable` and `availability` come from
+   * the TypeScript catalog, not the database — `NotificationEvent` carries no
+   * such column — so a code the catalog no longer names falls back to the
+   * permissive defaults rather than failing.
+   */
   async listPreferences(currentUser: AuthenticatedUser) {
     const [events, preferences] = await Promise.all([
       this.notificationsRepository.listEvents(),
@@ -94,23 +119,35 @@ export class NotificationsService {
     ]);
 
     return {
-      sourceOfTruth:
-        'TenantSetting controls global lightweight notification toggles. NotificationPreference controls per-event channel enablement.',
-      items: events.flatMap((event) =>
-        event.supportedChannels.map((channel) => {
-          const preference = preferences.find(
-            (item) => item.eventCode === event.code && item.channel === channel,
-          );
+      items: events
+        .filter((event) => !isRetiredEventCode(event.code))
+        .flatMap((event) => {
+          const catalogEntry = CATALOG_BY_CODE.get(event.code);
+          const configurable = catalogEntry
+            ? isConfigurableEvent(catalogEntry)
+            : true;
+          const availability = catalogEntry?.availability ?? 'ACTIVE';
 
-          return {
-            eventCode: event.code,
-            channel,
-            enabled: preference?.enabled ?? event.enabledByDefault,
-            preferenceId: preference?.id ?? null,
-            metadata: preference?.metadata ?? null,
-          };
+          return event.supportedChannels.map((channel) => {
+            const preference = preferences.find(
+              (item) =>
+                item.eventCode === event.code && item.channel === channel,
+            );
+
+            return {
+              eventCode: event.code,
+              channel,
+              enabled:
+                availability !== 'ACTIVE'
+                  ? false
+                  : (preference?.enabled ?? event.enabledByDefault),
+              preferenceId: preference?.id ?? null,
+              metadata: preference?.metadata ?? null,
+              configurable,
+              availability,
+            };
+          });
         }),
-      ),
     };
   }
 
@@ -136,21 +173,289 @@ export class NotificationsService {
         );
       }
 
-      updated.push(
-        await this.notificationsRepository.upsertTenantPreference({
-          tenantId: currentUser.tenantId,
-          eventCode: preference.eventCode,
-          channel: preference.channel,
-          enabled: preference.enabled,
-          metadata:
-            preference.metadata === undefined || preference.metadata === null
-              ? Prisma.JsonNull
-              : (preference.metadata as Prisma.InputJsonValue),
-        }),
-      );
+      const catalogEntry = CATALOG_BY_CODE.get(preference.eventCode);
+      if (
+        isRetiredEventCode(preference.eventCode) ||
+        (catalogEntry &&
+          catalogEntry.availability !== undefined &&
+          catalogEntry.availability !== 'ACTIVE') ||
+        (catalogEntry && !isConfigurableEvent(catalogEntry))
+      ) {
+        throw new AppError('NOTIFICATION_EVENT_NOT_CONFIGURABLE', {
+          message: `${preference.eventCode} is required or not yet available and cannot be changed here.`,
+        });
+      }
+
+      const before = await this.notificationsRepository.findPreference({
+        tenantId: currentUser.tenantId,
+        eventCode: preference.eventCode,
+        channel: preference.channel,
+      });
+
+      const saved = await this.notificationsRepository.upsertTenantPreference({
+        tenantId: currentUser.tenantId,
+        eventCode: preference.eventCode,
+        channel: preference.channel,
+        enabled: preference.enabled,
+        metadata:
+          preference.metadata === undefined || preference.metadata === null
+            ? Prisma.JsonNull
+            : (preference.metadata as Prisma.InputJsonValue),
+      });
+      updated.push(saved);
+
+      await this.auditService.log({
+        tenantId: currentUser.tenantId,
+        actorUserId: currentUser.userId,
+        action: 'notification_preference.updated',
+        entityType: 'NotificationPreference',
+        entityId: saved.id,
+        beforeSnapshot: before,
+        afterSnapshot: {
+          eventCode: saved.eventCode,
+          channel: saved.channel,
+          enabled: saved.enabled,
+        },
+      });
     }
 
     return { items: updated };
+  }
+
+  /*
+   * BUG-3375. The screen an administrator actually needs: for every catalog
+   * event, does a NotificationRule exist for this tenant and is it enabled.
+   * `NOT_CONFIGURED` (no row at all) is the state BUG-3375 exists because
+   * nothing could previously show — `emit()` produces nothing for it, silently.
+   */
+  async listRules(currentUser: AuthenticatedUser) {
+    const [events, rules] = await Promise.all([
+      this.notificationsRepository.listEvents(),
+      this.notificationsRepository.listRulesForTenant(currentUser.tenantId),
+    ]);
+
+    const ruleByEventKey = new Map(rules.map((rule) => [rule.eventKey, rule]));
+
+    return {
+      items: events
+        .filter((event) => !isRetiredEventCode(event.code))
+        .map((event) => {
+          const catalogEntry = CATALOG_BY_CODE.get(event.code);
+          const configurable = catalogEntry
+            ? isConfigurableEvent(catalogEntry)
+            : true;
+          const availability = catalogEntry?.availability ?? 'ACTIVE';
+          const rule = ruleByEventKey.get(event.code);
+
+          const ruleStatus = !configurable
+            ? ('ALWAYS_ON' as const)
+            : availability !== 'ACTIVE'
+              ? ('NOT_YET_AVAILABLE' as const)
+              : !rule
+                ? ('NOT_CONFIGURED' as const)
+                : rule.enabled
+                  ? ('ENABLED' as const)
+                  : ('DISABLED' as const);
+
+          return {
+            eventCode: event.code,
+            name: event.name,
+            description: event.description,
+            category: event.category,
+            configurable,
+            availability,
+            ruleId: rule?.id ?? null,
+            ruleStatus,
+            moduleKey: rule?.moduleKey ?? null,
+            channels: rule?.channels ?? [],
+            priority: rule?.priority ?? null,
+            displayMode: rule?.displayMode ?? null,
+            requiresAction: rule?.requiresAction ?? null,
+            recipientResolverType: rule?.recipientResolverType ?? null,
+          };
+        }),
+    };
+  }
+
+  async updateRule(
+    currentUser: AuthenticatedUser,
+    ruleId: string,
+    dto: UpdateNotificationRuleDto,
+  ) {
+    const existing = await this.notificationsRepository.findRuleById(
+      currentUser.tenantId,
+      ruleId,
+    );
+    if (!existing) {
+      throw new AppError('NOTIFICATION_RULE_NOT_FOUND');
+    }
+
+    const beforeSnapshot = {
+      enabled: existing.enabled,
+      channels: existing.channels,
+      priority: existing.priority,
+      displayMode: existing.displayMode,
+      requiresAction: existing.requiresAction,
+    };
+
+    const updated = await this.notificationsRepository.updateRule(
+      currentUser.tenantId,
+      ruleId,
+      {
+        ...(dto.enabled !== undefined ? { enabled: dto.enabled } : {}),
+        ...(dto.channels !== undefined ? { channels: dto.channels } : {}),
+        ...(dto.priority !== undefined ? { priority: dto.priority } : {}),
+        ...(dto.displayMode !== undefined
+          ? { displayMode: dto.displayMode }
+          : {}),
+        ...(dto.requiresAction !== undefined
+          ? { requiresAction: dto.requiresAction }
+          : {}),
+      },
+    );
+
+    if (!updated) {
+      throw new AppError('NOTIFICATION_RULE_NOT_FOUND');
+    }
+
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action: 'notification_rule.updated',
+      entityType: 'NotificationRule',
+      entityId: ruleId,
+      beforeSnapshot,
+      afterSnapshot: {
+        enabled: updated.enabled,
+        channels: updated.channels,
+        priority: updated.priority,
+        displayMode: updated.displayMode,
+        requiresAction: updated.requiresAction,
+      },
+    });
+
+    return updated;
+  }
+
+  /*
+   * ITEM-0168. A manual, operator-initiated retry of one delivery log. Only
+   * a FAILED, retryable row is eligible — a NOT_DELIVERED row went through a
+   * sink provider on purpose (BUG-3379/BUG-2741) and retrying it would only
+   * produce a second identical NOT_DELIVERED row, so that case is refused with
+   * an explanation rather than attempted.
+   *
+   * Re-renders the template using the ORIGINAL variables captured on the log
+   * at send time (`metadata.originalVariables`, added alongside this feature)
+   * rather than re-sending a stored rendered body — `EmailDeliveryLog` never
+   * stored the rendered html/text, only the subject, so "resend exactly what
+   * was sent" is not something the schema can do without a migration. Using
+   * the captured variables gets the same effective content (the template
+   * itself may since have changed, which is a feature, not a bug: a retry
+   * after a broken template was fixed should use the fix). AUTH_* events
+   * never capture variables at all — see the note in
+   * EmailExecutionService.buildMetadata — so they are refused here rather
+   * than replayed with an empty variable set.
+   */
+  async retryDeliveryLog(
+    currentUser: AuthenticatedUser,
+    deliveryLogId: string,
+  ) {
+    const log = await this.notificationsRepository.findDeliveryLogById(
+      currentUser.tenantId,
+      deliveryLogId,
+    );
+    if (!log) {
+      throw new NotFoundException('Email delivery log was not found.');
+    }
+
+    if (log.channel !== NotificationChannel.EMAIL) {
+      throw new AppError('EMAIL_DELIVERY_LOG_NOT_RETRYABLE', {
+        message: 'Only email deliveries can be retried.',
+      });
+    }
+
+    if (AUTH_NOTIFICATION_EVENTS.has(log.eventCode)) {
+      throw new AppError('EMAIL_DELIVERY_LOG_NOT_RETRYABLE', {
+        message:
+          'Account activation and password reset links are not retried from the delivery log — they carry a one-time credential and expire. Re-trigger the original action (resend the invite, or request a new reset link) instead.',
+      });
+    }
+
+    const resolvedCapability = await this.effectiveProvider.describeForTenant(
+      currentUser.tenantId,
+    );
+    if (
+      resolvedCapability?.providerType &&
+      isSinkProvider(resolvedCapability.providerType)
+    ) {
+      throw new AppError('EMAIL_DELIVERY_LOG_NOT_RETRYABLE', {
+        message:
+          'This workspace currently sends through a Console/Dev sink provider, which accepts and discards mail. Retrying would only produce another undelivered row — configure a real provider first.',
+      });
+    }
+
+    if (!log.retryable || log.status !== EmailDeliveryStatus.FAILED) {
+      throw new AppError('EMAIL_DELIVERY_LOG_NOT_RETRYABLE', {
+        message:
+          'Only a failed, retryable delivery can be retried from its record.',
+      });
+    }
+
+    const metadata = (log.metadata ?? {}) as Record<string, unknown>;
+    const originalVariables = metadata.originalVariables;
+    if (
+      !originalVariables ||
+      typeof originalVariables !== 'object' ||
+      Array.isArray(originalVariables)
+    ) {
+      throw new AppError('EMAIL_DELIVERY_LOG_NOT_RETRYABLE', {
+        message:
+          'This delivery predates variable capture and cannot be replayed automatically. Re-trigger the original action instead.',
+      });
+    }
+
+    const beforeSnapshot = {
+      status: log.status,
+      retryCount: log.retryCount,
+      providerMessageId: log.providerMessageId,
+    };
+
+    const result = await this.emailService.sendTemplateEmail({
+      tenantId: currentUser.tenantId,
+      eventCode: log.eventCode,
+      templateId: log.templateId ?? undefined,
+      recipient: log.recipient,
+      cc: log.cc,
+      bcc: log.bcc,
+      variables: originalVariables as Record<string, unknown>,
+      requestedByUserId: currentUser.userId,
+      metadata: {
+        retryOfDeliveryLogId: log.id,
+        sourceModule: 'notifications.retry',
+      },
+    });
+
+    await this.notificationsRepository.updateDeliveryLogStatus(
+      currentUser.tenantId,
+      log.id,
+      { retryCount: { increment: 1 }, lastRetryAt: new Date() },
+    );
+
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action: 'notification_delivery_log.retried',
+      entityType: 'EmailDeliveryLog',
+      entityId: log.id,
+      beforeSnapshot,
+      afterSnapshot: {
+        status: result.status,
+        deliveryLogId: result.deliveryLogId,
+        providerMessageId: result.providerMessageId ?? null,
+      },
+    });
+
+    return this.getDeliveryLog(currentUser, deliveryLogId);
   }
 
   async listTemplates(currentUser: AuthenticatedUser) {

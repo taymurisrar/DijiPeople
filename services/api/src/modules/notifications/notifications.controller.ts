@@ -28,6 +28,7 @@ import {
   UpdateEmailProviderDto,
   UpdateEmailTemplateDto,
   UpdateNotificationPreferencesDto,
+  UpdateNotificationRuleDto,
 } from './dto';
 import { PROVIDER_SCHEMAS } from './email/provider-field-schema';
 import { InAppNotificationsService } from './in-app-notifications.service';
@@ -73,6 +74,31 @@ export class NotificationsController {
     @Body() dto: UpdateNotificationPreferencesDto,
   ) {
     return this.notificationsService.updatePreferences(user, dto);
+  }
+
+  /*
+   * BUG-3375. `NotificationRule` — the model that actually decides whether an
+   * event notifies anyone — had no controller at all before this. Registered
+   * before `email-templates/:id`-style routes are not at risk here since the
+   * path segment differs, but kept grouped with `preferences` because the two
+   * are shown on the same screen.
+   */
+  @Get('rules')
+  @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATIONS_READ)
+  @RequirePermission(ENTITY_KEYS.USER_PREFERENCES, 'read')
+  listRules(@CurrentUser() user: AuthenticatedUser) {
+    return this.notificationsService.listRules(user);
+  }
+
+  @Patch('rules/:id')
+  @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATIONS_MANAGE_RULES)
+  @RequirePermission(ENTITY_KEYS.USER_PREFERENCES, 'write')
+  updateRule(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') ruleId: string,
+    @Body() dto: UpdateNotificationRuleDto,
+  ) {
+    return this.notificationsService.updateRule(user, ruleId, dto);
   }
 
   @Get('email-templates')
@@ -288,6 +314,21 @@ export class NotificationsController {
     @Param('id') deliveryLogId: string,
   ) {
     return this.notificationsService.getDeliveryLog(user, deliveryLogId);
+  }
+
+  /*
+   * ITEM-0168. A distinct permission from NOTIFICATION_LOGS_READ on purpose —
+   * being able to read a log is not authority to make the system send mail
+   * again. Tenant-scoped inside the service via findFirst({ id, tenantId }).
+   */
+  @Post('email-delivery-logs/:id/retry')
+  @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_LOGS_RETRY)
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
+  retryDeliveryLog(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') deliveryLogId: string,
+  ) {
+    return this.notificationsService.retryDeliveryLog(user, deliveryLogId);
   }
 
   @Get('in-app')

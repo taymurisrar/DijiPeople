@@ -11,7 +11,10 @@ The Architect reads this before planning any substantial change —
 
 ## Awaiting Architect triage
 
-_None._
+| ID | Title | Type | Severity | Priority | Status | Affected | Architect |
+|---|---|---|---|---|---|---|---|
+| [ITEM-0173](../../docs/backlog/items/ITEM-0173-wire-notification-coverage-for-the-four-highest-value-remain.md) | Wire notification coverage for the four highest-value remaining silent modules | FOLLOW_UP | — | P2 | READY | documents, contracts, recruitment, business-trips | TRIAGE_REQUIRED |
+| [ITEM-0174](../../docs/backlog/items/ITEM-0174-unify-the-notification-catalog-on-one-key-convention-dotted-.md) | Unify the notification catalog on one key convention (dotted form) | TECH_DEBT | — | P3 | READY | notifications | TRIAGE_REQUIRED |
 
 ## CRITICAL
 
@@ -107,7 +110,7 @@ _None._
 | [BUG-3332](../../docs/bugs/BUG-3332-plan-cards-truncate-to-eight-features-so-growth-and-enterpri.md) | Plan cards truncate to eight features so Growth and Enterprise advertise identical capability | UX | HIGH | P1 | OPEN | apps/web, api:billing | FIX_NOW |
 | [BUG-3356](../../docs/bugs/BUG-3356-a-revoked-or-expired-session-is-reported-to-the-user-as-auth.md) | A revoked or expired session is reported to the user as AUTH_TOKEN_MISSING and is never logged | BUG | HIGH | P1 | OPEN | web:auth, api:auth | FIX_NOW |
 | [BUG-3374](../../docs/bugs/BUG-3374-settings-customization-and-its-twelve-child-routes-silently-.md) | Settings Customization and its twelve child routes silently redirect to Roles | AUTHORIZATION | HIGH | P1 | OPEN | apps/web, customization | FIX_NOW |
-| [BUG-3375](../../docs/bugs/BUG-3375-the-notification-rules-screen-edits-preferences-and-cannot-r.md) | The Notification Rules screen edits preferences and cannot reach NotificationRule at all | UX | HIGH | P1 | OPEN | notifications, apps/web | PLAN_REQUIRED |
+| [BUG-3375](../../docs/bugs/BUG-3375-the-notification-rules-screen-edits-preferences-and-cannot-r.md) | The Notification Rules screen edits preferences and cannot reach NotificationRule at all | UX | HIGH | P1 | FIXED | notifications, apps/web | PLAN_REQUIRED |
 | [BUG-3376](../../docs/bugs/BUG-3376-runtime-lookups-fetch-one-unpaged-page-and-filter-it-in-the-.md) | Runtime lookups fetch one unpaged page and filter it in the browser, hiding every record past the server page size | DATA_INTEGRITY | HIGH | P1 | OPEN | apps/web, apps/admin | PLAN_REQUIRED |
 | [ITEM-0133](../../docs/backlog/items/ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no.md) | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | P2 | READY | services/api/test | PLAN_REQUIRED |
 | [ITEM-0134](../../docs/backlog/items/ITEM-0134-the-payroll-run-engine-has-no-tests.md) | The payroll run engine has no tests | TEST_GAP | HIGH | P2 | READY | api:payroll | PLAN_REQUIRED |
@@ -194,9 +197,6 @@ _None._
 | [ITEM-0159](../../docs/backlog/items/ITEM-0159-plans-and-features-screen-fails-several-accessibility-basics.md) | Plans and Features screen fails several accessibility basics for a data-comparison surface | UX | MEDIUM | P2 | READY | apps/web | FIX_NOW |
 | [ITEM-0162](../../docs/backlog/items/ITEM-0162-session-timeout-configuration-lives-in-two-places-that-disag.md) | Session timeout configuration lives in two places that disagree, and most of the env values are inert | TECH_DEBT | MEDIUM | P2 | READY | api:auth, api:tenant-settings | FIX_NOW |
 | [ITEM-0163](../../docs/backlog/items/ITEM-0163-give-every-lookup-one-behaviour-an-openable-label-one-implem.md) | Give every lookup one behaviour: an openable label, one implementation, and a reference route that is not an allowlist | UX | MEDIUM | P2 | READY | apps/web, apps/admin | PLAN_REQUIRED |
-| [ITEM-0169](../../docs/backlog/items/ITEM-0169-notification-catalog-hygiene-dead-events-duplicate-leave-pai.md) | Notification catalog hygiene: dead events, duplicate leave pairs, two key conventions and placeholder copy | UX | MEDIUM | P2 | READY | notifications, apps/web | FIX_NOW |
-| [ITEM-0170](../../docs/backlog/items/ITEM-0170-eleven-tenant-modules-emit-no-notifications-at-all.md) | Eleven tenant modules emit no notifications at all | FOLLOW_UP | MEDIUM | P2 | READY | notifications, recruitment, documents, policies, contracts, support-cases, business-trips, benefits, compensation, projects, sla, legal, partners | PLAN_REQUIRED |
-| [ITEM-0171](../../docs/backlog/items/ITEM-0171-a-second-dispatch-path-sends-email-without-consulting-notifi.md) | A second dispatch path sends email without consulting NotificationRule | ARCHITECTURE | MEDIUM | P2 | READY | notifications, payroll, payslips, auth, reporting | PLAN_REQUIRED |
 
 ## LOW and unrated
 
@@ -215,7 +215,7 @@ _None._
 | [BUG-2657](../../docs/bugs/BUG-2657-analytics-caveat-panels-list-the-same-note-twice-in-differen.md) | Analytics caveat panels list the same note twice in different wording | UX | LOW | P3 | FIXED | api:reporting | DONE |
 | [BUG-3021](../../docs/bugs/BUG-3021-workspace-switcher-in-the-avatar-menu-overflows-horizontally.md) | Workspace switcher in the avatar menu overflows horizontally and shows a scrollbar | UX | LOW | P3 | FIXED | apps/web | FIX_NOW |
 | [BUG-3360](../../docs/bugs/BUG-3360-every-session-row-records-the-user-agent-as-node-and-the-clo.md) | Every session row records the user agent as node and the Cloudflare edge IP | BUG | LOW | P3 | OPEN | api:auth, web:auth | FIX_NOW |
-| [BUG-3379](../../docs/bugs/BUG-3379-a-delivery-log-row-says-not-delivered-and-carries-nothing-th.md) | A delivery log row says Not delivered and carries nothing that explains why | UX | LOW | P3 | OPEN | notifications, apps/web | FIX_NOW |
+| [BUG-3379](../../docs/bugs/BUG-3379-a-delivery-log-row-says-not-delivered-and-carries-nothing-th.md) | A delivery log row says Not delivered and carries nothing that explains why | UX | LOW | P3 | FIXED | notifications, apps/web | FIX_NOW |
 | [BUG-3412](../../docs/bugs/BUG-3412-every-widget-section-on-a-record-form-prints-its-title-twice.md) | Every widget section on a record form prints its title twice, and the profile section's two titles disagree | UX | LOW | P3 | OPEN | apps/web | FIX_NOW |
 | [ITEM-0080](../../docs/backlog/items/ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by.md) | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | P3 | READY | services/api | FIX_NOW |
 | [ITEM-0164](../../docs/backlog/items/ITEM-0164-an-organization-hierarchy-viewer-reachable-from-the-employee.md) | An organization hierarchy viewer reachable from the employee record | UX | — | P2 | READY | apps/web, employees, organization | PLAN_REQUIRED |
@@ -223,3 +223,5 @@ _None._
 | [ITEM-0166](../../docs/backlog/items/ITEM-0166-move-data-loss-prevention-captures-off-the-employee-record-p.md) | Move data-loss prevention captures off the employee record page into the Agent surface | UX | — | P2 | READY | apps/web, agent | FIX_NOW |
 | [ITEM-0167](../../docs/backlog/items/ITEM-0167-adopt-the-employee-record-shell-across-the-record-pages-that.md) | Adopt the employee record shell across the record pages that still hand-roll their own | ARCHITECTURE | — | P2 | READY | apps/web | PLAN_REQUIRED |
 | [ITEM-0168](../../docs/backlog/items/ITEM-0168-a-retry-action-on-an-email-delivery-log.md) | A retry action on an email delivery log | FOLLOW_UP | — | P2 | READY | notifications, apps/web | PLAN_REQUIRED |
+| [ITEM-0173](../../docs/backlog/items/ITEM-0173-wire-notification-coverage-for-the-four-highest-value-remain.md) | Wire notification coverage for the four highest-value remaining silent modules | FOLLOW_UP | — | P2 | READY | documents, contracts, recruitment, business-trips | TRIAGE_REQUIRED |
+| [ITEM-0174](../../docs/backlog/items/ITEM-0174-unify-the-notification-catalog-on-one-key-convention-dotted-.md) | Unify the notification catalog on one key convention (dotted form) | TECH_DEBT | — | P3 | READY | notifications | TRIAGE_REQUIRED |

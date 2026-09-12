@@ -233,6 +233,25 @@ await this.auditService.log({
   `notification-events.catalog.ts` → `NotificationOrchestratorService` → queue →
   processor. Domain services must not call the mailer directly; the mailer lives
   in `common/mailer/` and is the notification module's dependency.
+- **There are two dispatch paths inside that module, and they gate
+  differently (ITEM-0171).** `NotificationsService.emit()` — used by leave,
+  attendance, claims, loans and timesheets — creates in-app `Notification`
+  rows and consults `NotificationRule` (`moduleKey` + `eventKey`); it silently
+  produces nothing if no enabled rule matches. `NotificationOrchestratorService.dispatch()`
+  / `EmailService.sendTemplateEmail()` — used directly by payroll, payslips,
+  the report scheduler and both authentication emails — send through
+  `EmailExecutionService.execute()`, the one place every email send passes
+  through regardless of caller. As of BUG-3375/ITEM-0171, `execute()` also
+  consults `NotificationRule` (matched by `eventKey === eventCode`, ignoring
+  `moduleKey`) alongside the pre-existing `NotificationPreference` check, so an
+  administrator disabling an event's rule now stops its email too, not only
+  its in-app row. The one exception is `NotificationEventDefinition.configurable
+  === false` (`AUTH_ACCOUNT_ACTIVATION`, `AUTH_PASSWORD_RESET`): transactional
+  account-security mail that skips both gates on purpose — see the comment on
+  that field in `notification-events.catalog.ts`. When adding a new
+  domain-triggered event, prefer `emit()` plus a seeded `NotificationRule` over
+  a direct `sendTemplateEmail()` call, so the new event lands on the gated,
+  administrable path rather than reintroducing the fork.
 
 ---
 

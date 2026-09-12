@@ -4,3 +4,4 @@ export * from './email-provider.dto';
 export * from './email-template.dto';
 export * from './in-app-notification-query.dto';
 export * from './notification-preference.dto';
+export * from './notification-rule.dto';

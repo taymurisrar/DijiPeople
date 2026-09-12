@@ -14,6 +14,7 @@ import {
 import { PrismaService } from '../../common/prisma/prisma.service';
 import {
   NOTIFICATION_EVENT_CATALOG,
+  RETIRED_EVENT_ALIASES,
   SYSTEM_EMAIL_TEMPLATE_PLACEHOLDERS,
 } from './notification-events.catalog';
 import {
@@ -122,6 +123,95 @@ export class NotificationsRepository {
         metadata: input.metadata ?? Prisma.JsonNull,
       },
     });
+  }
+
+  /*
+   * ITEM-0169. Retiring a catalog code (see RETIRED_EVENT_ALIASES) must not
+   * orphan a tenant's existing choice. Runs once per (retired code, tenant
+   * scope) — after the first run there are no retired-code rows left, so it is
+   * a cheap no-op on every later boot. Idempotent: `upsertTenantPreference`'s
+   * unique constraint means re-running this can never duplicate a row.
+   */
+  async migrateRetiredEventPreferences(
+    aliases: Record<string, string>,
+    db: PrismaDb = this.prisma,
+  ) {
+    let migrated = 0;
+    for (const [retiredCode, canonicalCode] of Object.entries(aliases)) {
+      const retiredRows = await db.notificationPreference.findMany({
+        where: { eventCode: retiredCode },
+      });
+
+      for (const row of retiredRows) {
+        const canonicalExists = await db.notificationPreference.findUnique({
+          where: {
+            scopeKey_eventCode_channel: {
+              scopeKey: row.scopeKey,
+              eventCode: canonicalCode,
+              channel: row.channel,
+            },
+          },
+        });
+
+        if (!canonicalExists) {
+          await db.notificationPreference.create({
+            data: {
+              tenantId: row.tenantId,
+              userId: row.userId,
+              scopeKey: row.scopeKey,
+              eventCode: canonicalCode,
+              channel: row.channel,
+              enabled: row.enabled,
+              metadata: row.metadata ?? Prisma.JsonNull,
+            },
+          });
+          migrated += 1;
+        }
+
+        await db.notificationPreference.delete({ where: { id: row.id } });
+      }
+    }
+    return migrated;
+  }
+
+  listRulesForTenant(tenantId: string, db: PrismaDb = this.prisma) {
+    return db.notificationRule.findMany({
+      where: { tenantId },
+      orderBy: [{ moduleKey: 'asc' }, { eventKey: 'asc' }],
+    });
+  }
+
+  findRuleById(tenantId: string, id: string, db: PrismaDb = this.prisma) {
+    return db.notificationRule.findFirst({ where: { id, tenantId } });
+  }
+
+  /*
+   * ITEM-0171. The one place `EmailExecutionService` asks "does a rule govern
+   * this event, and is it enabled". Matched on eventKey alone: in every seeded
+   * rule today a given eventKey belongs to exactly one moduleKey, and email
+   * dispatch does not always know the moduleKey the way `emit()` does.
+   */
+  findRuleForEvent(
+    input: { tenantId: string; eventCode: string },
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.notificationRule.findFirst({
+      where: { tenantId: input.tenantId, eventKey: input.eventCode },
+      orderBy: [{ priority: 'asc' }, { createdAt: 'asc' }],
+    });
+  }
+
+  async updateRule(
+    tenantId: string,
+    id: string,
+    data: Prisma.NotificationRuleUpdateInput,
+    db: PrismaDb = this.prisma,
+  ) {
+    await db.notificationRule.updateMany({
+      where: { id, tenantId },
+      data,
+    });
+    return this.findRuleById(tenantId, id, db);
   }
 
   async findTemplateForEvent(
@@ -1188,5 +1278,9 @@ export class NotificationsRepository {
         },
       });
     }
+
+    // ITEM-0169. Runs after the catalog upsert above so both retired codes
+    // and their successors already exist as NotificationEvent rows.
+    await this.migrateRetiredEventPreferences(RETIRED_EVENT_ALIASES, db);
   }
 }

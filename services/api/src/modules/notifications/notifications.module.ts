@@ -1,6 +1,7 @@
 import { forwardRef, Module } from '@nestjs/common';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { AuditModule } from '../audit/audit.module';
 import { TenantSettingsModule } from '../tenant-settings/tenant-settings.module';
 import { WorkflowsModule } from '../workflows/workflows.module';
 import { EmailDeliveryLogService } from './email/email-delivery-log.service';
@@ -25,7 +26,11 @@ import { NotificationsService } from './notifications.service';
 import { LifecycleNotificationHandler } from './lifecycle-notification.handler';
 
 @Module({
-  imports: [TenantSettingsModule, forwardRef(() => WorkflowsModule)],
+  imports: [
+    TenantSettingsModule,
+    AuditModule,
+    forwardRef(() => WorkflowsModule),
+  ],
   controllers: [NotificationsController],
   providers: [
     // Registers itself with the outbox dispatcher on init. See the note in

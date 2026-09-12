@@ -40,6 +40,7 @@ function buildService(providerType: EmailProviderType) {
       findTemplateForEvent: jest.fn(async () => ({ id: 'template-1' })),
       findVisibleTemplateById: jest.fn(async () => ({ id: 'template-1' })),
       findPreference: jest.fn(async () => null),
+      findRuleForEvent: jest.fn(async () => null),
       createDeliveryLog: jest.fn(async () => ({ id: 'log-1' })),
       updateDeliveryLogStatus,
       findEmployeePlacement: jest.fn(async () => null),
@@ -121,6 +122,19 @@ describe('delivery status for a send that reached a sink', () => {
     expect(result.status).toBe(EmailDeliveryStatus.NOT_DELIVERED);
     expect(result.delivered).toBe(false);
     /*
+     * BUG-3379. A NOT_DELIVERED row used to store no reason at all — the
+     * operator reading the log had nothing beyond the status name. It now
+     * pays the same cost the FAILED path always has, and names the provider
+     * type so the reason is diagnosable without reading source code.
+     */
+    expect(updateDeliveryLogStatus).toHaveBeenCalledWith(
+      'tenant-demo',
+      'log-1',
+      expect.objectContaining({
+        errorMessage: expect.stringContaining('CONSOLE'),
+      }),
+    );
+    /*
      * `sent` deliberately stays true. It means "the provider accepted it
      * without throwing", which the orchestrator, the report scheduler,
      * password resets and invitations all count on. Flipping it would make
@@ -163,6 +177,12 @@ describe('delivery status for a send that reached a sink', () => {
     expect(result.status).toBe(EmailDeliveryStatus.SENT);
     expect(result.delivered).toBe(true);
     expect(result.sent).toBe(true);
+    // BUG-3379: a genuine send stores no reason — there is nothing to explain.
+    expect(updateDeliveryLogStatus).toHaveBeenCalledWith(
+      'tenant-demo',
+      'log-1',
+      expect.objectContaining({ errorMessage: null }),
+    );
   });
 
   it('warns rather than logs when nothing was delivered', async () => {

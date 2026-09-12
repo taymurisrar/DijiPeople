@@ -4699,3 +4699,35 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Two lessons. First, an optional parameter that selects module-level state is a trap — omitting it is silent and looks correct, so the doc comment now says the parameter is optional only in signature. Second, the `useMemo` dependency mattered as much as the fix: the columns memo closes over `formatting`, so without adding it the correction would have applied on first paint and never again — a correct change that does nothing, which is worse than no change because it reads as done. |
 | **Fixed** | 2026-09-11 |
 | **Active** | yes |
+
+### REG-413 — NotificationRule had no controller, and half of email dispatch never asked it
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-step` |
+| **Module** | `services/api/src/modules/notifications` |
+| **Bug record** | BUG-3375 |
+| **Root cause** | `NotificationRule` is the model `NotificationsService.emit()` actually gates in-app dispatch on, but no controller route ever read or wrote it — the only writer was a seed script. The screen named after it, `/settings/notifications/rules`, rendered `NotificationPreference` instead and reported every event `Enabled` regardless. Separately, `EmailExecutionService.execute()` — the single choke point every direct email send passes through — never consulted `NotificationRule` at all, so disabling an event's rule stopped its in-app row but not its email. |
+| **Regression test** | `services/api/src/modules/notifications/notification-rules.spec.ts` |
+| **QA scenario** | QA-NOTIF-001 |
+| **Scenario** | For a catalog event with no `NotificationRule` row, `GET /notifications/rules` reports `ruleStatus: NOT_CONFIGURED`, distinct from `ENABLED`/`DISABLED`. Disabling an event's rule (`PATCH /notifications/rules/:id`) stops both its in-app notification and its email; `AUTH_ACCOUNT_ACTIVATION`/`AUTH_PASSWORD_RESET` report `ALWAYS_ON` and cannot be disabled by any preference or rule write. Every rule and preference change writes an `AuditService.log()` entry. |
+| **Proven to fail without the fix** | Before the fix, no route existed to read or write `NotificationRule` at all — a request to a rules endpoint 404'd, and the rendered screen showed `NotificationPreference` data with every row `Enabled` regardless of whether a rule existed. |
+| **Note** | Two models existed for related but distinct reasons — `NotificationRule` for wiring (recipient resolution, template, priority) and `NotificationPreference` for the tenant-facing channel opt-in — and the fix keeps both rather than merging them, closing the gap by exposing the first and gating both dispatch paths on it, documented in `services/api/AGENTS.md` and ADR-0009. |
+| **Fixed** | 2026-09-12 |
+| **Active** | yes |
+
+### REG-414 — A NOT_DELIVERED row carried no reason, so a working sink read as an outage
+
+| | |
+|---|---|
+| **Bug class** | `silent-degradation` |
+| **Module** | `services/api/src/modules/notifications` |
+| **Bug record** | BUG-3379 |
+| **Root cause** | `EmailExecutionService.execute()` chose `NOT_DELIVERED` for a sink provider and stored it with `retryable: false` and no `errorMessage` at all — only the `FAILED` path stored a reason. The delivery log adapter also never selected the already-persisted `providerType` column, and the list rendered the raw enum member for status while the record form humanized it, and formatted `createdAt` as a date-only field on the list while the record form kept the time. |
+| **Regression test** | `services/api/src/modules/notifications/email/email-sink-delivery-status.spec.ts` |
+| **QA scenario** | QA-NOTIF-002 |
+| **Scenario** | A send through a CONSOLE or DEV provider records `NOT_DELIVERED` with a non-empty `errorMessage` naming the provider type and pointing at the Providers screen. The delivery log list shows the provider type as a column, renders `status` through the shared pill with a human label matching the record form, and formats `Created` with the same tenant timezone and time on both surfaces. |
+| **Proven to fail without the fix** | `updateDeliveryLogStatus` was called with no `errorMessage` key for the sink branch; asserting `errorMessage` was set on that call failed before this fix and passes after it. |
+| **Note** | The rows were never wrong — `NOT_DELIVERED` was working exactly as `BUG-2741` designed it. The defect was purely in observability: the explanation existed one screen away (Providers) and the delivery log gave no way to reach it. The list/record divergence for both `status` and `createdAt` traced to two shared runtime helpers (`module-data-table.tsx`'s `displayValue`/`formatDateValue`) that had not been updated to match `runtime-value-formatter.ts`'s humanize-and-keep-time behaviour — fixed at the shared helper, so every other "read-only" list in the settings runtime gets the same correction. |
+| **Fixed** | 2026-09-12 |
+| **Active** | yes |

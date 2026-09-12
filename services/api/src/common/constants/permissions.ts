@@ -211,6 +211,7 @@ export const PERMISSION_KEYS = {
   NOTIFICATION_PROVIDERS_READ: 'notification.providers.read',
   NOTIFICATION_PROVIDERS_MANAGE: 'notification.providers.manage',
   NOTIFICATION_LOGS_READ: 'notification.logs.read',
+  NOTIFICATION_LOGS_RETRY: 'notification.logs.retry',
   NOTIFICATION_DIAGNOSTICS_READ: 'notification.diagnostics.read',
   APPROVALS_READ: 'approvals.read',
   APPROVALS_READ_OWN: 'approvals.readOwn',
@@ -508,6 +509,12 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     name: 'Read notification logs',
     description:
       'View tenant email delivery logs and notification delivery outcomes.',
+  },
+  {
+    key: PERMISSION_KEYS.NOTIFICATION_LOGS_RETRY,
+    name: 'Retry notification delivery',
+    description:
+      'Retry a failed email delivery. Reading a log does not by itself allow re-sending mail.',
   },
   {
     key: PERMISSION_KEYS.NOTIFICATION_DIAGNOSTICS_READ,
