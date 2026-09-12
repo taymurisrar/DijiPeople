@@ -64,6 +64,29 @@ The same happens for all twelve routes beneath it.
 Reproduced on the live demo workspace at `cbd9b812`. The console is silent:
 zero errors and zero warnings across the whole sequence.
 
+Every route tested resolves to the same destination. Requested as the workspace
+owner, landing URL sampled after nine seconds:
+
+| Requested | Landed on |
+|---|---|
+| `/settings/customization` | `/settings/security-access/authorization/roles?viewId=1aa05caa-…` |
+| `/settings/customization/modules` | same |
+| `/settings/customization/packages` | same |
+| `/settings/customization/publish` | same |
+| `/settings/customization/publish-center` | same |
+| `/settings/customization/sidebar` | same |
+
+Three of them redirect quickly. `modules`, `packages` and `sidebar` sit on
+their own URL for several seconds first, in a loading state whose document
+title is the raw string
+`Loading https://dijipeople-demo.ws.dijipeople.com/settings/security-access/authorization/roles`
+— a destination URL leaking into the browser tab while the user waits to be
+sent somewhere they did not ask to go.
+
+**The Customization screens cannot be exercised at all.** A request to review
+and run scenarios against this section could not be carried out, because no
+route in it is reachable. That testing is blocked on this fix.
+
 ## Evidence
 
 Network trail captured during the redirect shows the Customization request
