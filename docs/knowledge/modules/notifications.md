@@ -48,6 +48,34 @@ different modules, and nothing forced them to agree, so the catalog of
 adding a provider, change both ends together or the tenant configures a channel
 that silently never sends.
 
+## Known trap — `NOT_DELIVERED` is a sink, not a failure
+
+`EmailDeliveryStatus.NOT_DELIVERED` reads like a delivery failure and is not
+one. `EmailExecutionService.execute` chooses it whenever the resolved provider
+is a sink — `isSinkProvider` is true for `CONSOLE` and `DEV` only — and writes
+the row with `retryable: false` and **no `errorMessage` at all**. A real
+failure is `FAILED`, and that is the only path storing a reason, a retry flag
+and a next-retry time.
+
+Two consequences worth carrying:
+
+- A workspace whose default provider is `CONSOLE` produces a delivery log full
+  of `NOT_DELIVERED` rows that are working exactly as designed. Check the
+  provider before opening a bug. [[BUG-2741]] introduced this status precisely
+  so a discarded message would stop reporting `SENT`, and the Providers screen
+  states the consequence plainly; the delivery log does not, which is
+  [[BUG-3379]].
+- A log row whose status changes without the code changing is a deployment
+  boundary, not a regression. The same provider message-id prefix on both sides
+  of the change is the tell.
+
+Two dispatch paths also exist and only one is gated. `NotificationsService.emit()`
+consults `NotificationRule` and produces nothing when no rule matches; payroll,
+payslips, the report scheduler and both auth emails call the orchestrator or the
+email service directly and send regardless. See [[ITEM-0171]], and [[BUG-3375]]
+for the screen that appears to configure that gate and cannot.
+
 ## Related
 
-[[audit-and-events]] · [[settings]] · [[BUG-0050]] · [[tenant-isolation]]
+[[audit-and-events]] · [[settings]] · [[BUG-0050]] · [[tenant-isolation]] ·
+[[BUG-2741]] · [[BUG-3379]] · [[BUG-3375]] · [[ITEM-0171]] · [[BUG-3200]]

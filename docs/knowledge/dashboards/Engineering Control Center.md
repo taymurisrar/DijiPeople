@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **2** |
+| Active sessions | **1** |
 | Active parent tasks | 4 |
 | Active work packages | 4 |
 | Blocked work packages | 0 |
@@ -49,7 +49,6 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
-| [[SESSION-0101-review-and-file-eight-ui-ux-and-settings-findings-from-demo-|SESSION-0101]] | — | Review and file eight UI/UX and settings findings from demo walkthrough | ACTIVE | `agent/ux-findings-audit` | `develop` | — | NO |
 | [[SESSION-0099-review-tenant-subscription-plans-features-screen|SESSION-0099]] | — | Review tenant subscription Plans & Features screen | ACTIVE | `agent/review-subscription-plans-screen` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
