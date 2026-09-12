@@ -16,7 +16,7 @@ QAReport:
 RegressionId: REG-444
 RelatedBacklogItem:
 RelatedDecision:
-RelatedImplementation: docs/plans/EXECPLAN-0037-refresh-rotation-grace-window-and-middleware-dedupe.md
+RelatedImplementation: docs/plans/EXECPLAN-0041-refresh-rotation-grace-window-and-middleware-dedupe.md
 CreatedAt: 2026-09-11
 UpdatedAt: 2026-09-12
 ResolvedAt: 2026-09-12
@@ -177,7 +177,7 @@ refresh was throttled by the credential rate limiter.
 
 ## Resolution
 
-Fixed 2026-09-12, per [[EXECPLAN-0037-refresh-rotation-grace-window-and-middleware-dedupe]].
+Fixed 2026-09-12, per [[EXECPLAN-0041-refresh-rotation-grace-window-and-middleware-dedupe]].
 No schema change — the grace window is resolved entirely from the existing
 `RefreshToken.tokenFamilyId` column, as the plan preferred.
 
@@ -245,7 +245,7 @@ been run.
 
 - 2026-09-11 — created during the investigation behind [[BUG-3355]], from
   reading the rotation path rather than from an observed race.
-- 2026-09-12 — fixed on `agent/r-s3-auth` per EXECPLAN-0037: a grace window on
+- 2026-09-12 — fixed on `agent/r-s3-auth` per EXECPLAN-0041: a grace window on
   rotation (no schema change), a reuse-detected audit event for genuine
   replay, and an in-flight dedupe plus single retry in the web middleware.
 
@@ -254,7 +254,7 @@ been run.
 ## Related
 
 - Modules — [[auth]]
-- Implementation — [[EXECPLAN-0037-refresh-rotation-grace-window-and-middleware-dedupe]]
+- Implementation — [[EXECPLAN-0041-refresh-rotation-grace-window-and-middleware-dedupe]]
 - Regression — REG-444 (see the regression register)
 
 <!-- GRAPH:END -->

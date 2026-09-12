@@ -1,12 +1,12 @@
 ---
-ID: ADR-0009
-aliases: [ADR-0009]
+ID: ADR-0010
+aliases: [ADR-0010]
 Title: Concurrent sessions are allowed by default; single-session is an explicit opt-in
 Status: ACCEPTED
 CreatedAt: 2026-09-12
 UpdatedAt: 2026-09-12
 ---
-# ADR-0009 — Concurrent sessions are allowed by default; single-session is an explicit opt-in
+# ADR-0010 — Concurrent sessions are allowed by default; single-session is an explicit opt-in
 
 ## Status
 

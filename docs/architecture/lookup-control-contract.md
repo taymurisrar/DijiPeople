@@ -92,7 +92,7 @@ bottom.
   `apps/web/app/components/metadata/runtime-metadata-form-renderer.tsx`) is
   still a hand-maintained map, including its two legacy entries (`roles`,
   `teams`) pointing at redirected paths. That file is owned by a concurrent
-  agent this session (see `EXECPLAN-0037`'s Dependencies) and was out of
+  agent this session (see `EXECPLAN-0040`'s Dependencies) and was out of
   scope here. Admin's equivalent, `resolveLookupRecordRoute` in
   `apps/admin/lib/runtime/lookup-record-href.ts`, derives a route from the
   lookup's own collection path per module rather than per field — closer to

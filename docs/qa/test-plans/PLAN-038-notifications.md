@@ -1,0 +1,130 @@
+---
+PLAN_ID: PLAN-038
+aliases: [PLAN-038]
+TITLE: Notifications: rules, preferences and delivery observability
+AREA: notifications
+STATUS: DRAFT
+MODULES: [notifications]
+RISK: HIGH
+COVERAGE_UNIT: GAP
+COVERAGE_API: PARTIAL
+COVERAGE_DATABASE: GAP
+COVERAGE_INTEGRATION: NOT_APPLICABLE
+COVERAGE_E2E: GAP
+COVERAGE_BROWSER: GAP
+COVERAGE_SECURITY: GAP
+COVERAGE_PERFORMANCE: NOT_APPLICABLE
+RELATED_BUGS: [BUG-3375, BUG-3379]
+RELATED_REGRESSIONS: [REG-460, REG-461]
+CREATED_AT: 2026-09-12
+UPDATED_AT: 2026-09-12
+VERIFIED_AGAINST_SHA: f5f43805
+---
+
+# PLAN-038 — Notifications: rules, preferences and delivery observability
+
+## Scope
+
+`services/api/src/modules/notifications/` end to end: the event catalog
+(`notification-events.catalog.ts`), `NotificationRule` administration
+(BUG-3375), `NotificationPreference` per-channel opt-in, the two dispatch
+paths (`NotificationsService.emit()` and `EmailExecutionService.execute()`,
+ITEM-0171), and the email delivery log read model (BUG-3379). The tenant-facing
+screens under `apps/web/app/(authenticated)/settings/notifications/`. Excludes
+the queue/worker layer (`BUG-3200`) and the in-app inbox rendering itself
+(covered by other areas).
+
+## Risks
+
+Ranked from the records this plan was written against:
+
+1. An event with no rule silently notifying nobody, with no screen showing
+   that (BUG-3375).
+2. The two dispatch paths disagreeing about whether an event is gated
+   (ITEM-0171) — disabling an event stops one channel but not the other.
+3. A transactional event (account activation, password reset) becoming
+   disableable by a tenant admin and locking users out.
+4. A delivery log status or timestamp that reads differently on the list than
+   on the record, misleading an operator (BUG-3379).
+5. A catalog key migration or duplicate collapse orphaning an existing
+   tenant's preference (ITEM-0169).
+
+## Preconditions
+
+A tenant seeded via `seed-config`/`seed-demo` (so `NotificationEvent`,
+`NotificationRule` and `NotificationPreference` rows exist). An administrator
+role holding `notifications.read`, `notifications.manageRules` and
+`notifications.manage`. For delivery-log scenarios, at least one tenant
+configured with a CONSOLE/DEV provider and, where possible, one with a real
+SMTP-backed provider for contrast.
+
+## Test Types
+
+UNIT and API are exercised today (`notification-rules.spec.ts`,
+`email-execution-rule-gate.spec.ts`, `email-sink-delivery-status.spec.ts`).
+BROWSER_E2E is not automated for this area — the delivery-log list/record
+formatting divergence (QA-SETTINGS-019) is manual/browser today. DATABASE and
+INTEGRATION are not exercised directly; the seed migration
+(`migrateRetiredEventPreferences`) has unit coverage only.
+
+## Data Requirements
+
+Tenant-scoped `NotificationEvent`, `NotificationRule`, `NotificationPreference`
+and `EmailDeliveryLog` rows from the standard seed. No production credential or
+real recipient address is ever used — sends in this area go through CONSOLE/DEV
+sinks or `dryRun`.
+
+## Security Cases
+
+Every rule and preference read/write is tenant-scoped
+(`findFirst({ id, tenantId })`); a cross-tenant `ruleId` on `PATCH
+/notifications/rules/:id` must 404, not leak or mutate another tenant's row.
+`notification.logs.retry` is a distinct permission from `notification.logs.read`
+— an operator with only read access must not be able to invoke retry (once its
+frontend surface ships; the backend guard already enforces this).
+
+## Negative Cases
+
+Disabling a `configurable: false` event (`PATCH /notifications/preferences`)
+must be rejected with `NOTIFICATION_EVENT_NOT_CONFIGURABLE`. Retrying a
+`NOT_DELIVERED` row, a non-retryable `FAILED` row, or an `AUTH_*` delivery must
+each be refused with a distinct, honest reason rather than silently producing
+a duplicate row.
+
+## State Transitions
+
+`NotificationRule`: NOT_CONFIGURED (no row) → ENABLED/DISABLED via
+`PATCH /notifications/rules/:id`; ALWAYS_ON and NOT_YET_AVAILABLE never accept
+a write. `EmailDeliveryLog.status`: REQUESTED → PENDING/DRY_RUN → PROCESSING →
+SENT/NOT_DELIVERED/FAILED; a FAILED, retryable row may move to a new row via
+retry, never back to PENDING in place.
+
+## Integration Cases
+
+Not applicable — this area has no external boundary of its own beyond the
+email provider, which is covered by the `email/` sub-module's own provider
+tests.
+
+## Browser Cases
+
+QA-SETTINGS-018 and QA-SETTINGS-019 are the browser-level checks for this
+area today: the former across the `/settings/notifications/rules` screen, the
+latter across the delivery-log list and record. Neither has an automated
+browser test; both are manual/API-assisted until one is written.
+
+## Regression Links
+
+REG-460 (`NotificationRule` had no controller, and half of email dispatch
+never asked it) — implemented by QA-SETTINGS-018. REG-461 (a NOT_DELIVERED row
+carried no reason) — implemented by QA-SETTINGS-019.
+
+<!-- GRAPH:BEGIN — generated by scripts/rebuild-qa.mjs; edit the frontmatter, not this block -->
+
+## Related
+
+- Scenarios — [[QA-SETTINGS-018]], [[QA-SETTINGS-019]]
+- Module — [[notifications]]
+- Bugs — [[BUG-3375]], [[BUG-3379]]
+- Regressions — REG-460, REG-461 (see the regression register)
+
+<!-- GRAPH:END -->

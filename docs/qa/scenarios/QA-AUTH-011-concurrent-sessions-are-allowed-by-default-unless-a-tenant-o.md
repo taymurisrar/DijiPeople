@@ -47,7 +47,7 @@ not only inside the private helper.
 
 ## Notes
 
-[[ADR-0009]] records the product decision this scenario pins: the owner chose
+[[ADR-0010]] records the product decision this scenario pins: the owner chose
 concurrent-sessions-by-default over documenting the old restrictive default,
 because the restrictive reading silently destroyed work in progress on a
 device the acting session could not see, rather than merely denying an

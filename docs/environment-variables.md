@@ -239,7 +239,7 @@ system with its own policy), not a gap to close. See [[BUG-3357]].
 
 **`allowMultipleActiveSessions`** has no environment-variable override; it is a
 per-tenant decision only, and an absent setting means concurrent sessions are
-**allowed** — see [[ADR-0009]] and [[BUG-3355]].
+**allowed** — see [[ADR-0010]] and [[BUG-3355]].
 
 ### Platform super admin bootstrap
 

@@ -57,7 +57,7 @@ session continuing itself.
 
 The grace window works from the existing `RefreshToken.tokenFamilyId` column
 with no schema change — see
-[[EXECPLAN-0037-refresh-rotation-grace-window-and-middleware-dedupe]]. It
+[[EXECPLAN-0041-refresh-rotation-grace-window-and-middleware-dedupe]]. It
 does not attempt literal token-for-token convergence (recreating the exact
 JWT bytes the winner received is not possible from a stored bcrypt hash);
 "converge on one session" is satisfied by both callers ending up with a

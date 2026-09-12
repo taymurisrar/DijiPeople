@@ -170,7 +170,7 @@ BUG-3376 both need.
 
 ## Resolution — 2026-09-12 (partial)
 
-Implemented in SESSION-0103 under EXECPLAN-0037, sequenced after [[BUG-3377]]
+Implemented in SESSION-0103 under EXECPLAN-0040, sequenced after [[BUG-3377]]
 as instructed. **Done for both apps' controls and documented as one contract.
 Not done: the allowlist replacement, and full conformance for `apps/web`'s
 metadata-driven record forms — both blocked by the same excluded file.**

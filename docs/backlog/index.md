@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**616 records** — 442 bugs under [`docs/bugs/`](../bugs/), 174 non-bug items under [`items/`](items/).
+**618 records** — 442 bugs under [`docs/bugs/`](../bugs/), 176 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,11 +13,11 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 194 |
+| Open (active work) | 191 |
 | Blocked | 2 |
-| Deferred | 91 |
+| Deferred | 93 |
 | Awaiting a product decision | 7 |
-| Completed / closed | 322 |
+| Completed / closed | 325 |
 | **Open CRITICAL** | **4** |
 | **Open HIGH** | **90** |
 | **Awaiting Architect triage** | **0** |
@@ -28,20 +28,20 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 4 |
 | HIGH | 90 |
-| MEDIUM | 79 |
+| MEDIUM | 76 |
 | LOW | 16 |
 
 ## Open by type
 
 | Type | Count |
 |---|---|
-| ARCHITECTURE | 2 |
+| ARCHITECTURE | 1 |
 | AUTHORIZATION | 10 |
 | BUG | 47 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 18 |
 | DOCUMENTATION | 1 |
-| FOLLOW_UP | 6 |
+| FOLLOW_UP | 5 |
 | INFRA | 6 |
 | INTEGRATION | 5 |
 | PERFORMANCE | 14 |
@@ -51,23 +51,23 @@ see [`README.md`](README.md) for why.
 | TECH_DEBT | 6 |
 | TENANT_ISOLATION | 2 |
 | TEST_GAP | 9 |
-| UX | 46 |
+| UX | 45 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 46 |
+| OPEN | 44 |
 | IN_PROGRESS | 2 |
 | BLOCKED | 2 |
-| DEFERRED | 91 |
+| DEFERRED | 93 |
 | PRODUCT_DECISION | 7 |
-| FIXED | 116 |
+| FIXED | 118 |
 | VERIFIED | 218 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
-| READY | 30 |
-| DONE | 90 |
+| READY | 27 |
+| DONE | 93 |
 
 ## All records
 
@@ -293,7 +293,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3355](../../docs/bugs/BUG-3355-a-second-sign-in-silently-destroys-the-first-session-and-the.md) | A second sign-in silently destroys the first session, and the displaced browser is never told | BUG | HIGH | P1 | FIXED | api:auth, web:auth | FIX_NOW |
 | [BUG-3356](../../docs/bugs/BUG-3356-a-revoked-or-expired-session-is-reported-to-the-user-as-auth.md) | A revoked or expired session is reported to the user as AUTH_TOKEN_MISSING and is never logged | BUG | HIGH | P1 | FIXED | web:auth, api:auth | FIX_NOW |
 | [BUG-3374](../../docs/bugs/BUG-3374-settings-customization-and-its-twelve-child-routes-silently-.md) | Settings Customization and its twelve child routes silently redirect to Roles | AUTHORIZATION | HIGH | P1 | FIXED | apps/web, customization | FIX_NOW |
-| [BUG-3375](../../docs/bugs/BUG-3375-the-notification-rules-screen-edits-preferences-and-cannot-r.md) | The Notification Rules screen edits preferences and cannot reach NotificationRule at all | UX | HIGH | P1 | OPEN | notifications, apps/web | PLAN_REQUIRED |
+| [BUG-3375](../../docs/bugs/BUG-3375-the-notification-rules-screen-edits-preferences-and-cannot-r.md) | The Notification Rules screen edits preferences and cannot reach NotificationRule at all | UX | HIGH | P1 | FIXED | notifications, apps/web | PLAN_REQUIRED |
 | [BUG-3376](../../docs/bugs/BUG-3376-runtime-lookups-fetch-one-unpaged-page-and-filter-it-in-the-.md) | Runtime lookups fetch one unpaged page and filter it in the browser, hiding every record past the server page size | DATA_INTEGRITY | HIGH | P1 | IN_PROGRESS | apps/web, apps/admin | PLAN_REQUIRED |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
@@ -594,9 +594,9 @@ see [`README.md`](README.md) for why.
 | [ITEM-0159](../../docs/backlog/items/ITEM-0159-plans-and-features-screen-fails-several-accessibility-basics.md) | Plans and Features screen fails several accessibility basics for a data-comparison surface | UX | MEDIUM | P2 | DONE | apps/web | DONE |
 | [ITEM-0162](../../docs/backlog/items/ITEM-0162-session-timeout-configuration-lives-in-two-places-that-disag.md) | Session timeout configuration lives in two places that disagree, and most of the env values are inert | TECH_DEBT | MEDIUM | P2 | DONE | api:auth, api:tenant-settings | DONE |
 | [ITEM-0163](../../docs/backlog/items/ITEM-0163-give-every-lookup-one-behaviour-an-openable-label-one-implem.md) | Give every lookup one behaviour: an openable label, one implementation, and a reference route that is not an allowlist | UX | MEDIUM | P2 | IN_PROGRESS | apps/web, apps/admin | PLAN_REQUIRED |
-| [ITEM-0169](../../docs/backlog/items/ITEM-0169-notification-catalog-hygiene-dead-events-duplicate-leave-pai.md) | Notification catalog hygiene: dead events, duplicate leave pairs, two key conventions and placeholder copy | UX | MEDIUM | P2 | READY | notifications, apps/web | FIX_NOW |
-| [ITEM-0170](../../docs/backlog/items/ITEM-0170-eleven-tenant-modules-emit-no-notifications-at-all.md) | Eleven tenant modules emit no notifications at all | FOLLOW_UP | MEDIUM | P2 | READY | notifications, recruitment, documents, policies, contracts, support-cases, business-trips, benefits, compensation, projects, sla, legal, partners | PLAN_REQUIRED |
-| [ITEM-0171](../../docs/backlog/items/ITEM-0171-a-second-dispatch-path-sends-email-without-consulting-notifi.md) | A second dispatch path sends email without consulting NotificationRule | ARCHITECTURE | MEDIUM | P2 | READY | notifications, payroll, payslips, auth, reporting | PLAN_REQUIRED |
+| [ITEM-0169](../../docs/backlog/items/ITEM-0169-notification-catalog-hygiene-dead-events-duplicate-leave-pai.md) | Notification catalog hygiene: dead events, duplicate leave pairs, two key conventions and placeholder copy | UX | MEDIUM | P2 | DONE | notifications, apps/web | DONE |
+| [ITEM-0170](../../docs/backlog/items/ITEM-0170-eleven-tenant-modules-emit-no-notifications-at-all.md) | Eleven tenant modules emit no notifications at all | FOLLOW_UP | MEDIUM | P2 | DONE | notifications, recruitment, documents, policies, contracts, support-cases, business-trips, benefits, compensation, projects, sla, legal, partners | DONE |
+| [ITEM-0171](../../docs/backlog/items/ITEM-0171-a-second-dispatch-path-sends-email-without-consulting-notifi.md) | A second dispatch path sends email without consulting NotificationRule | ARCHITECTURE | MEDIUM | P2 | DONE | notifications, payroll, payslips, auth, reporting | DONE |
 | [ITEM-0175](../../docs/backlog/items/ITEM-0175-wire-the-plans-screen-onto-the-seat-quote-and-plan-change-en.md) | Wire the plans screen onto the seat-quote and plan-change endpoints that now exist | FOLLOW_UP | MEDIUM | P2 | READY | apps/web, api:billing | FIX_NOW |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
@@ -638,7 +638,7 @@ see [`README.md`](README.md) for why.
 | [BUG-2657](../../docs/bugs/BUG-2657-analytics-caveat-panels-list-the-same-note-twice-in-differen.md) | Analytics caveat panels list the same note twice in different wording | UX | LOW | P3 | FIXED | api:reporting | DONE |
 | [BUG-3021](../../docs/bugs/BUG-3021-workspace-switcher-in-the-avatar-menu-overflows-horizontally.md) | Workspace switcher in the avatar menu overflows horizontally and shows a scrollbar | UX | LOW | P3 | FIXED | apps/web | FIX_NOW |
 | [BUG-3360](../../docs/bugs/BUG-3360-every-session-row-records-the-user-agent-as-node-and-the-clo.md) | Every session row records the user agent as node and the Cloudflare edge IP | BUG | LOW | P3 | FIXED | api:auth, web:auth | FIX_NOW |
-| [BUG-3379](../../docs/bugs/BUG-3379-a-delivery-log-row-says-not-delivered-and-carries-nothing-th.md) | A delivery log row says Not delivered and carries nothing that explains why | UX | LOW | P3 | OPEN | notifications, apps/web | FIX_NOW |
+| [BUG-3379](../../docs/bugs/BUG-3379-a-delivery-log-row-says-not-delivered-and-carries-nothing-th.md) | A delivery log row says Not delivered and carries nothing that explains why | UX | LOW | P3 | FIXED | notifications, apps/web | FIX_NOW |
 | [BUG-3412](../../docs/bugs/BUG-3412-every-widget-section-on-a-record-form-prints-its-title-twice.md) | Every widget section on a record form prints its title twice, and the profile section's two titles disagree | UX | LOW | P3 | FIXED | apps/web | FIX_NOW |
 | [ITEM-0007](../../docs/backlog/items/ITEM-0007-should-duplicate-website-leads-be-deduplicated.md) | Product decision — should duplicate website leads be deduplicated? | PRODUCT_DECISION | LOW | P3 | DONE | api:leads, apps/landing | DONE |
 | [ITEM-0008](../../docs/backlog/items/ITEM-0008-customeraccount-has-no-origin-channel.md) | Product decision — CustomerAccount carries no origin channel | PRODUCT_DECISION | LOW | P3 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -686,9 +686,11 @@ see [`README.md`](README.md) for why.
 | [ITEM-0166](../../docs/backlog/items/ITEM-0166-move-data-loss-prevention-captures-off-the-employee-record-p.md) | Move data-loss prevention captures off the employee record page into the Agent surface | UX | — | P2 | READY | apps/web, agent | FIX_NOW |
 | [ITEM-0167](../../docs/backlog/items/ITEM-0167-adopt-the-employee-record-shell-across-the-record-pages-that.md) | Adopt the employee record shell across the record pages that still hand-roll their own | ARCHITECTURE | — | P2 | READY | apps/web | PLAN_REQUIRED |
 | [ITEM-0168](../../docs/backlog/items/ITEM-0168-a-retry-action-on-an-email-delivery-log.md) | A retry action on an email delivery log | FOLLOW_UP | — | P2 | READY | notifications, apps/web | PLAN_REQUIRED |
+| [ITEM-0173](../../docs/backlog/items/ITEM-0173-wire-notification-coverage-for-the-four-highest-value-remain.md) | Wire notification coverage for the four highest-value remaining silent modules | FOLLOW_UP | — | P2 | DEFERRED | documents, contracts, recruitment, business-trips | DEFER |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |
 | [ITEM-0114](../../docs/backlog/items/ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-.md) | The workspace shell states the tenant's identity four times and its purpose twice | UX | — | P3 | DONE | views, apps/web | DONE |
+| [ITEM-0174](../../docs/backlog/items/ITEM-0174-unify-the-notification-catalog-on-one-key-convention-dotted-.md) | Unify the notification catalog on one key convention (dotted form) | TECH_DEBT | — | P3 | DEFERRED | notifications | DEFER |
 
 ## Views
 

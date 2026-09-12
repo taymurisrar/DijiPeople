@@ -14,7 +14,7 @@ CreatedAt: 2026-09-11
 UpdatedAt: 2026-09-12
 RelatedBug: BUG-3355
 RelatedQA:
-RelatedADR: ADR-0009
+RelatedADR: ADR-0010
 RelatedImplementation: services/api/src/common/security/tenant-auth-policy.service.ts
 TargetMilestone:
 BlockedBy:

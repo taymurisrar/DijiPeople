@@ -155,6 +155,17 @@ export type StandardModuleRuntimeSpec = {
     readonly assignOwner?: boolean;
     readonly disableCreate?: boolean;
     readonly disableEdit?: boolean;
+    /*
+     * BUG-3379. Distinct from `!softDelete`: `softDelete` is a per-module
+     * fact (has an isActive field to flip) that many "crud" modules simply
+     * have not opted into yet, and their Delete button staying visible-but-
+     * disabled is existing, unrelated behaviour this fix does not touch.
+     * `disableDelete` is a stronger, explicit "this module can never support
+     * delete" — set only where a screen is fundamentally immutable, like a
+     * delivery log — and removes the Delete command entirely rather than
+     * showing one that can never work.
+     */
+    readonly disableDelete?: boolean;
     readonly disableSave?: boolean;
     readonly import?: boolean;
     readonly export?: boolean;
@@ -789,16 +800,27 @@ function buildStandardCommands(
             },
           ),
         ]),
-    command("system.edit", "Edit", "detail-command-bar", 30, {
-      permission: permission(spec.permissions?.update, "update"),
-      isDisabled:
-        spec.recordNavigation === false ||
-        spec.adapterCapabilities?.disableEdit === true,
-      disabledReason:
-        spec.recordNavigation === false || spec.adapterCapabilities?.disableEdit
-          ? "Edit is not available for this module."
-          : undefined,
-    }),
+    /*
+     * BUG-3379. `disableEdit` means "this module structurally never supports
+     * edit" — every existing caller uses it that way, the same as
+     * `disableCreate` above. Showing a permanently-disabled Edit button for
+     * that case is what a delivery log record did; omitted entirely here for
+     * the same reason `system.new` already is. A record-level restriction
+     * (`recordNavigation === false`, which can vary per record type) still
+     * renders disabled with an explanation, since that one can change.
+     */
+    ...(spec.adapterCapabilities?.disableEdit === true
+      ? []
+      : [
+          command("system.edit", "Edit", "detail-command-bar", 30, {
+            permission: permission(spec.permissions?.update, "update"),
+            isDisabled: spec.recordNavigation === false,
+            disabledReason:
+              spec.recordNavigation === false
+                ? "Edit is not available for this module."
+                : undefined,
+          }),
+        ]),
     command("system.refresh", "Refresh", "list-command-bar", 40),
     ...(spec.adapterCapabilities?.export === false
       ? []
@@ -860,22 +882,34 @@ function buildStandardCommands(
             ? "Use the module-specific editor to save this record."
             : undefined,
     }),
-    command("system.delete", "Delete", "detail-command-bar", 90, {
-      isDestructive: true,
-      requiresConfirmation: true,
-      permission: permission(spec.permissions?.delete, "delete"),
-      confirmation: {
-        title: "Delete this record?",
-        description:
-          "This will remove the record from active use. Data may be retained according to module policy.",
-        confirmLabel: "Delete",
-        destructive: true,
-      },
-      isDisabled: !spec.adapterCapabilities?.softDelete,
-      disabledReason: spec.adapterCapabilities?.softDelete
-        ? undefined
-        : "Delete is not configured for this module.",
-    }),
+    /*
+     * BUG-3379. `disableDelete` is the explicit "never" — set only where a
+     * screen is immutable by design, like a delivery log — and removes the
+     * button rather than showing one permanently greyed out. `!softDelete`
+     * alone stays disabled-but-visible: most "crud" modules without an
+     * isActive field simply have not been given a delete story yet, which is
+     * pre-existing behaviour this fix does not change.
+     */
+    ...(spec.adapterCapabilities?.disableDelete === true
+      ? []
+      : [
+          command("system.delete", "Delete", "detail-command-bar", 90, {
+            isDestructive: true,
+            requiresConfirmation: true,
+            permission: permission(spec.permissions?.delete, "delete"),
+            confirmation: {
+              title: "Delete this record?",
+              description:
+                "This will remove the record from active use. Data may be retained according to module policy.",
+              confirmLabel: "Delete",
+              destructive: true,
+            },
+            isDisabled: !spec.adapterCapabilities?.softDelete,
+            disabledReason: spec.adapterCapabilities?.softDelete
+              ? undefined
+              : "Delete is not configured for this module.",
+          }),
+        ]),
     command("selection.delete", "Delete", "bulk-menu", 91, {
       isDestructive: true,
       requiresConfirmation: true,

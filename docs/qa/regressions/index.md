@@ -4905,7 +4905,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Regression test** | `services/api/src/modules/auth/auth-session-lifecycle.spec.ts` |
 | **Scenario** | A tenant with zero `security` settings rows signs in twice on `web`: the first session's refresh token is left live. The same tenant with `allowMultipleActiveSessions: false` set explicitly: the first session is revoked. Set to `true` explicitly: left live. |
 | **Proven to fail without the fix** | Reverting the default in `TenantAuthPolicyService.resolveEffectivePolicy` from `true` to `false` (matching `setting?.value === true`) fails the "no settings row" case in the regression test. |
-| **Note** | The owner's decision — concurrent sessions allowed by default — is recorded as [[ADR-0009]]. `setting?.value === true` was a reasonable default for a *permission* (absent means not granted) and the wrong one for a *session policy*, because the restrictive reading here silently destroyed work in progress on a device the acting session could not see, rather than merely denying an action. |
+| **Note** | The owner's decision — concurrent sessions allowed by default — is recorded as [[ADR-0010]]. `setting?.value === true` was a reasonable default for a *permission* (absent means not granted) and the wrong one for a *session policy*, because the restrictive reading here silently destroyed work in progress on a device the acting session could not see, rather than merely denying an action. |
 | **Fixed** | 2026-09-12, branch `agent/r-s3-auth` |
 | **Active** | yes |
 
@@ -4969,7 +4969,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Regression test** | `services/api/src/modules/auth/auth-session-lifecycle.spec.ts`, `apps/web/proxy.spec.ts` |
 | **Scenario** | A refresh token that matches a row revoked moments ago, whose family has a live successor, still resolves successfully rather than throwing `SESSION_REVOKED`. A token revoked five minutes ago is still refused, and the refusal is now recorded as `AUTH_REFRESH_TOKEN_REUSE_DETECTED`. Two concurrent `proxy.ts` refreshes of the same token produce one `fetch` call. A first `401` from the middleware's refresh is retried once before `redirectToLogout`. |
 | **Proven to fail without the fix** | Removing `wasRotatedWithinGraceWindow`'s call from `hasActiveRefreshToken` fails the "losing side of a race" test with `SESSION_REVOKED`. Removing the middleware retry fails the "retries before redirectToLogout" case in `apps/web/proxy.spec.ts`. |
-| **Note** | No schema change — the grace window is resolved entirely from the existing `RefreshToken.tokenFamilyId` column, populated since it was added. Full design in [[EXECPLAN-0037-refresh-rotation-grace-window-and-middleware-dedupe]]. A rotation must never run the revoke-other-sessions sweep ([[BUG-3355]]'s mechanism) against its own session's sibling row — that sweep is for a new sign-in, not a session continuing itself, and running it there is what let two racing rotations destroy each other's successor. |
+| **Note** | No schema change — the grace window is resolved entirely from the existing `RefreshToken.tokenFamilyId` column, populated since it was added. Full design in [[EXECPLAN-0041-refresh-rotation-grace-window-and-middleware-dedupe]]. A rotation must never run the revoke-other-sessions sweep ([[BUG-3355]]'s mechanism) against its own session's sibling row — that sweep is for a new sign-in, not a session continuing itself, and running it there is what let two racing rotations destroy each other's successor. |
 | **Fixed** | 2026-09-12, branch `agent/r-s3-auth` |
 | **Active** | yes |
 
@@ -4987,5 +4987,37 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Proven to fail without the fix** | Reverting `buildForwardedClientHeaders` to forward only `X-Forwarded-For` fails the "User-Agent relayed alongside the address" assertion. |
 | **Note** | Session attribution (`persistRefreshToken`) and audit attribution (`logTenantAuthEvent`) now resolve through the same helper, so the two rows for one sign-in cannot disagree the way they did in production (an audit row with the visitor's real address next to a session row with a Cloudflare edge address, for the same sign-in, same second). `PlatformRefreshToken` had the identical defect and was fixed the same way; `AgentRefreshToken` has neither column and reaches the API directly with no proxy hop in front of it, so it was left alone. |
 | **Fixed** | 2026-09-12, branch `agent/r-s3-auth` |
+| **Active** | yes |
+
+### REG-460 — NotificationRule had no controller, and half of email dispatch never asked it
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-step` |
+| **Module** | `services/api/src/modules/notifications` |
+| **Bug record** | BUG-3375 |
+| **Root cause** | `NotificationRule` is the model `NotificationsService.emit()` actually gates in-app dispatch on, but no controller route ever read or wrote it — the only writer was a seed script. The screen named after it, `/settings/notifications/rules`, rendered `NotificationPreference` instead and reported every event `Enabled` regardless. Separately, `EmailExecutionService.execute()` — the single choke point every direct email send passes through — never consulted `NotificationRule` at all, so disabling an event's rule stopped its in-app row but not its email. |
+| **Regression test** | `services/api/src/modules/notifications/notification-rules.spec.ts` |
+| **QA scenario** | QA-NOTIF-001 |
+| **Scenario** | For a catalog event with no `NotificationRule` row, `GET /notifications/rules` reports `ruleStatus: NOT_CONFIGURED`, distinct from `ENABLED`/`DISABLED`. Disabling an event's rule (`PATCH /notifications/rules/:id`) stops both its in-app notification and its email; `AUTH_ACCOUNT_ACTIVATION`/`AUTH_PASSWORD_RESET` report `ALWAYS_ON` and cannot be disabled by any preference or rule write. Every rule and preference change writes an `AuditService.log()` entry. |
+| **Proven to fail without the fix** | Before the fix, no route existed to read or write `NotificationRule` at all — a request to a rules endpoint 404'd, and the rendered screen showed `NotificationPreference` data with every row `Enabled` regardless of whether a rule existed. |
+| **Note** | Two models existed for related but distinct reasons — `NotificationRule` for wiring (recipient resolution, template, priority) and `NotificationPreference` for the tenant-facing channel opt-in — and the fix keeps both rather than merging them, closing the gap by exposing the first and gating both dispatch paths on it, documented in `services/api/AGENTS.md` and ADR-0011. |
+| **Fixed** | 2026-09-12 |
+| **Active** | yes |
+
+### REG-461 — A NOT_DELIVERED row carried no reason, so a working sink read as an outage
+
+| | |
+|---|---|
+| **Bug class** | `silent-degradation` |
+| **Module** | `services/api/src/modules/notifications` |
+| **Bug record** | BUG-3379 |
+| **Root cause** | `EmailExecutionService.execute()` chose `NOT_DELIVERED` for a sink provider and stored it with `retryable: false` and no `errorMessage` at all — only the `FAILED` path stored a reason. The delivery log adapter also never selected the already-persisted `providerType` column, and the list rendered the raw enum member for status while the record form humanized it, and formatted `createdAt` as a date-only field on the list while the record form kept the time. |
+| **Regression test** | `services/api/src/modules/notifications/email/email-sink-delivery-status.spec.ts` |
+| **QA scenario** | QA-NOTIF-002 |
+| **Scenario** | A send through a CONSOLE or DEV provider records `NOT_DELIVERED` with a non-empty `errorMessage` naming the provider type and pointing at the Providers screen. The delivery log list shows the provider type as a column, renders `status` through the shared pill with a human label matching the record form, and formats `Created` with the same tenant timezone and time on both surfaces. |
+| **Proven to fail without the fix** | `updateDeliveryLogStatus` was called with no `errorMessage` key for the sink branch; asserting `errorMessage` was set on that call failed before this fix and passes after it. |
+| **Note** | The rows were never wrong — `NOT_DELIVERED` was working exactly as `BUG-2741` designed it. The defect was purely in observability: the explanation existed one screen away (Providers) and the delivery log gave no way to reach it. The list/record divergence for both `status` and `createdAt` traced to two shared runtime helpers (`module-data-table.tsx`'s `displayValue`/`formatDateValue`) that had not been updated to match `runtime-value-formatter.ts`'s humanize-and-keep-time behaviour — fixed at the shared helper, so every other "read-only" list in the settings runtime gets the same correction. |
+| **Fixed** | 2026-09-12 |
 | **Active** | yes |
 

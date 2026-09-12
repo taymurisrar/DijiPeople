@@ -75,13 +75,13 @@ day that failure mode is live for every tenant above the default page size.
   both apps' controls implement, and what admin's equivalent wiring
   (`apps/admin/app/_components/runtime/runtime-form.tsx`'s `RuntimeLookup`)
   looks like end to end, as a worked example.
-- `docs/plans/EXECPLAN-0037-lookup-search-and-openable-label-consistency.md`
+- `docs/plans/EXECPLAN-0040-lookup-search-and-openable-label-consistency.md`
   — the plan this work was built under; its `## Rollback considerations`
   section names the exact shape of this diff.
 
 ## Proposed Approach
 
-No new ExecPlan needed — EXECPLAN-0037 already covers the requirements and
+No new ExecPlan needed — EXECPLAN-0040 already covers the requirements and
 risk; this item is that plan's final integration task, `INTEGRATION`-labelled
 there. At the named call site:
 
