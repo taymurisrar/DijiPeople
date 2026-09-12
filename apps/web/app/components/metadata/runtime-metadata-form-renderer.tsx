@@ -860,7 +860,15 @@ function RuntimeSection({
   if (customContent !== undefined) {
     return (
       <section className="grid gap-4">
-        {section.label ? (
+        {/*
+         * BUG-3412 — this guarded on `section.label` being present but never
+         * on `section.labelVisible`, so a section hosting a self-titling
+         * custom-rendered control still printed the section's own heading
+         * right above the control's. `labelVisible` is honoured here the same
+         * way the plain-fields branch below it now does, so there is one rule
+         * rather than a per-branch judgment call.
+         */}
+        {section.labelVisible !== false && section.label ? (
           <h4 className="text-base font-semibold text-foreground">
             {section.label}
           </h4>
@@ -879,9 +887,20 @@ function RuntimeSection({
 
   return (
     <section className="grid gap-4">
-      <h4 className="text-base font-semibold text-foreground">
-        {section.label}
-      </h4>
+      {/*
+       * BUG-3412 — this used to render unconditionally, which is why every
+       * section whose only content was a single self-titling widget
+       * (Timeline, Reporting Hierarchy, the profile photo) showed its name
+       * twice in a row: once here, once from the widget itself
+       * (`module-widget-renderer.tsx`). `labelVisible` is the flag the
+       * metadata already carries for exactly this; it is now honoured here
+       * too, not only in the custom-content branch above.
+       */}
+      {section.labelVisible !== false ? (
+        <h4 className="text-base font-semibold text-foreground">
+          {section.label}
+        </h4>
+      ) : null}
       <div className="rounded-2xl border border-border bg-white/80 p-4">
         <FormGrid columns={sectionColumns} kind="section">
           {visibleFields.map((formField) => {

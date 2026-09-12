@@ -767,7 +767,16 @@ function fallbackEmployeeForm(
       {
         id: "profile-image",
         tabKey: "summary",
-        label: "Profile Image",
+        // BUG-3412 — was "Profile Image" here and "Profile Photo" in the
+        // widget itself (`runtime-profile-image-card.tsx`), so the one
+        // control had two names. "Profile Photo" is what the widget already
+        // says in three separate places (loading, error and the visible
+        // heading); this section's own heading is suppressed below anyway, so
+        // the label's only remaining audience — the form designer, search —
+        // now agrees with what a reader actually sees.
+        label: "Profile Photo",
+        // The widget already draws its own heading; label is metadata only.
+        labelVisible: false,
         order: 10,
         layout: "single-column",
         columns: 1,
@@ -916,6 +925,8 @@ function fallbackEmployeeForm(
         id: "timeline",
         tabKey: "summary",
         label: "Timeline",
+        // BUG-3412 — `system.timeline` draws its own "Timeline" heading.
+        labelVisible: false,
         order: 120,
         layout: "single-column",
         columns: 1,
@@ -933,6 +944,8 @@ function fallbackEmployeeForm(
         id: "reporting-hierarchy",
         tabKey: "summary",
         label: "Reporting Hierarchy",
+        // BUG-3412 — `system.reportingHierarchy` draws its own heading.
+        labelVisible: false,
         order: 130,
         layout: "single-column",
         columns: 1,
@@ -951,6 +964,12 @@ function fallbackEmployeeForm(
         id: "agent-desktop",
         tabKey: "agent",
         label: "Agent Desktop",
+        // BUG-3412 — same self-titling-widget duplication as Timeline and
+        // Reporting Hierarchy above (`ModuleAgentDesktopWidget` draws its own
+        // "Agent Desktop" heading in every state). Not in that bug's original
+        // count because the Agent tab is not the default tab, but the same
+        // rule applies once you are looking at it.
+        labelVisible: false,
         order: 110,
         layout: "single-column",
         columns: 1,

@@ -213,6 +213,18 @@ export interface FormSectionMetadata {
   readonly tabKey?: string;
   readonly label: string;
   /*
+   * BUG-3412 — whether the renderer draws `label` as the section's own
+   * heading. Defaults to visible (`undefined`/`true`) so every existing
+   * section keeps behaving exactly as it did before this field existed.
+   * `false` is for a section whose only content is a single self-titling
+   * widget (`system.timeline`, `system.reportingHierarchy`,
+   * `employee.profilePhoto`, `system.agentDesktop`) — the widget already
+   * draws its own name, and without this the reader saw it twice in a row.
+   * `label` itself is kept either way: it is still the section's name for
+   * anything that is not the visible render (the form designer, search).
+   */
+  readonly labelVisible?: boolean;
+  /*
    * What the TAB should be called, when that differs from this section's own
    * heading. Tab labels are otherwise taken from the first section on the tab,
    * which breaks down for a tab that groups several unrelated sections: naming
