@@ -87,8 +87,32 @@ const GATED_FEATURE_KEYS = Array.from(
   new Set(Object.values(ENTITLEMENT_GATED_MODULES)),
 );
 
+/**
+ * The host and database name only — never the credentials — so whoever runs
+ * this with `--apply` sees which database they are about to write to before
+ * anything happens. `DATABASE_URL` is otherwise never logged anywhere in this
+ * repository, and that rule holds here too.
+ */
+function describeTargetDatabase(): string {
+  const raw = process.env.DATABASE_URL?.trim();
+  if (!raw) return '(DATABASE_URL not set)';
+  try {
+    const url = new URL(raw);
+    return `${url.hostname}${url.port ? `:${url.port}` : ''}${url.pathname}`;
+  } catch {
+    return '(DATABASE_URL could not be parsed)';
+  }
+}
+
 async function grandfatherEntitlementOverrides() {
   const apply = process.argv.includes('--apply');
+  const target = describeTargetDatabase();
+  console.log(`Target database: ${target}`);
+  if (apply) {
+    console.log(
+      'Running with --apply: TenantFeature rows WILL be written to the database above.',
+    );
+  }
   const prisma = createPrismaClient();
 
   try {

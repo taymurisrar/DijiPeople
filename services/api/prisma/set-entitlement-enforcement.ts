@@ -38,8 +38,25 @@ loadEnv();
  *   npm run entitlement:set-mode -- REPORT_ONLY   (the reversal)
  *   npm run entitlement:set-mode                  (reports the current mode)
  */
+/**
+ * Host and database name only, never credentials — the same rule
+ * `grandfather-entitlement-overrides.ts` follows, so whoever runs this with a
+ * mode argument sees which database is about to change before it does.
+ */
+function describeTargetDatabase(): string {
+  const raw = process.env.DATABASE_URL?.trim();
+  if (!raw) return '(DATABASE_URL not set)';
+  try {
+    const url = new URL(raw);
+    return `${url.hostname}${url.port ? `:${url.port}` : ''}${url.pathname}`;
+  } catch {
+    return '(DATABASE_URL could not be parsed)';
+  }
+}
+
 async function setEntitlementEnforcement() {
   const requested = process.argv[2]?.trim().toUpperCase();
+  console.log(`Target database: ${describeTargetDatabase()}`);
   const prisma = createPrismaClient();
 
   try {
