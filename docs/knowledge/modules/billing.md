@@ -124,6 +124,42 @@ onboarding, and the enforcement mode defaults to `REPORT_ONLY`. Verified on the
 Starter demo tenant on 2026-09-11 — `/payroll/cycles` and `/recruitment/jobs`
 both render in full while the Plans screen offers to sell them. [[BUG-3350]].
 
+### Measured 2026-09-12, and the answer was not what the paragraph above expects
+
+[[SESSION-0103]] ran the count. **A rendering screen is not a used module, and
+the difference decides who keeps access.**
+
+Three production subscriptions exist, all Starter, all `ACTIVE`. Grandfathering
+would grant exactly two overrides, both to the demo tenant: `projects` and
+`timesheets`. It would grant **neither Payroll nor Recruitment** — the two the
+paragraph above names as verified in use.
+
+Both observations are correct. The screens render; the tables are empty. There
+is no payroll cycle, no job opening and no onboarding case anywhere in that
+tenant. "Renders in full" was true of the shell and its empty state, and only a
+row count can tell that apart from use.
+
+The consequence is the durable lesson. Grandfathering can only protect what a
+tenant has actually *done*, so it cannot protect a module that has been demoed
+rather than used — which is precisely the set most likely to be demoed again.
+Enforcement would have removed Payroll, Recruitment and Onboarding from the demo
+tenant despite the grandfathering step having run, which inverts what running it
+was for.
+
+Two further things worth carrying:
+
+- Four feature keys the comparison table sells — desktop agent, compliance, data
+  management and attendance integrations — have **no route guard at all**.
+  Switching enforcement on cannot make the table's claims about those four true,
+  because nothing checks them.
+- Deploying does not switch enforcement on, and this is deliberate rather than
+  incidental. The default stays `REPORT_ONLY` and the setting is kept out of
+  `seed-config` on purpose: `seed:config` runs on every release, and a new field
+  in the shipped defaults goes live in every environment that never set it. A
+  cutover as a deploy side effect is the failure mode [[ADR-0009]] exists to
+  prevent. The mode is re-read on a short TTL, so flipping it is a deliberate act
+  that takes effect — and can be reversed — within a minute.
+
 ## Related
 
 [[tenant-provisioning]] · [[customers]] · [[settings]] ·
