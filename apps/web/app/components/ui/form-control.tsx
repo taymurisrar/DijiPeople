@@ -4,6 +4,12 @@ import {
   listboxOptionId,
   nextActiveIndex,
 } from "@/lib/a11y/listbox-navigation";
+import {
+  buildLookupTruncationMessage,
+  createDebouncedCallback,
+  LOOKUP_SEARCH_DEBOUNCE_MS,
+  resolveVisibleSelectedOption,
+} from "@/lib/runtime/lookup-search";
 import { createPortal } from "react-dom";
 import { Button } from "./button";
 
@@ -37,6 +43,14 @@ type BaseFieldProps = {
   dirty?: boolean;
   validationStatus?: "default" | "error" | "warning" | "success";
   className?: string;
+  /*
+   * ITEM-0163 — the selected record's name as a link, rendered in the label
+   * row rather than as a separate line under the control. A `label` element is
+   * not the combobox, so this is safe where BUG-1956 said a link *inside* the
+   * combobox trigger was not: the trigger keeps click-to-open as its only
+   * behaviour, which is what its ARIA contract promises.
+   */
+  labelLink?: { href: string; text: string };
 };
 
 function FieldShell({
@@ -44,6 +58,7 @@ function FieldShell({
   error,
   label,
   hint,
+  labelLink,
   required,
   touched,
   validationStatus,
@@ -68,11 +83,21 @@ function FieldShell({
         .filter(Boolean)
         .join(" ")}
     >
-      <span className="flex items-center gap-1.5 font-medium text-foreground">
+      <span className="flex min-w-0 items-center gap-1.5 font-medium text-foreground">
         <span>
           {label}
           {required ? <span className="ml-1 text-danger">*</span> : null}
         </span>
+
+        {labelLink ? (
+          <a
+            className="min-w-0 max-w-[12rem] truncate text-xs font-semibold text-accent underline-offset-4 hover:underline"
+            href={labelLink.href}
+            title={labelLink.text}
+          >
+            {labelLink.text}
+          </a>
+        ) : null}
 
         {hint ? (
           <span className="group relative inline-flex">
@@ -948,6 +973,7 @@ export function LookupField({
   dirty,
   validationStatus,
   selectedHref,
+  resultsTruncated,
 }: BaseFieldProps & {
   onChange: (value: string) => void;
   onSearch?: (query: string) => void;
@@ -957,6 +983,13 @@ export function LookupField({
   disabled?: boolean;
   noResultsText?: string;
   selectedHref?: string;
+  /*
+   * BUG-3376 — set by a caller whose `onSearch` fetch returned a page as long
+   * as it asked for, so more matches may exist than are on screen. The control
+   * never infers this itself: it only knows the `options` it was given, not
+   * how many records actually satisfy the query server-side.
+   */
+  resultsTruncated?: boolean;
 }) {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   // See SelectField: a combobox must name the popup it controls, and this one
@@ -988,14 +1021,63 @@ export function LookupField({
     [options],
   );
 
-  const selectedOption = React.useMemo(
+  const directSelectedOption = React.useMemo(
     () =>
       uniqueOptions.find((option) => lookupOptionMatchesValue(option, value)) ??
       null,
     [uniqueOptions, value],
   );
 
+  /*
+   * BUG-3376 — "keep the currently selected record pinned into the option
+   * list so an existing value never disappears while searching". A caller
+   * doing server-side search replaces `options` with whatever the query
+   * matched, which will not include the previously selected record once the
+   * user types something else. `previousSelectedRef` remembers the last
+   * option that *did* resolve for the current `value`, so the trigger keeps
+   * showing its label instead of quietly falling back to the placeholder —
+   * indistinguishable, to the user, from the field having been cleared. See
+   * `resolveVisibleSelectedOption` for the exact rule, including why it drops
+   * the memory the instant `value` itself changes.
+   */
+  const [previousSelected, setPreviousSelected] = React.useState<{
+    value: string;
+    option: LookupOption;
+  } | null>(null);
+  // Plain state rather than a ref: reading `.current` inside the render body
+  // to compute `selectedOption` is exactly the pattern
+  // `react-hooks/refs` exists to catch, because nothing then forces a
+  // re-render when the remembered option changes.
+  const selectedOption = resolveVisibleSelectedOption(
+    value,
+    directSelectedOption,
+    previousSelected,
+  );
+
+  React.useEffect(() => {
+    setPreviousSelected((current) => {
+      if (directSelectedOption) {
+        if (current?.value === value && current.option === directSelectedOption) {
+          return current;
+        }
+        return { value, option: directSelectedOption };
+      }
+      return current && current.value !== value ? null : current;
+    });
+  }, [value, directSelectedOption]);
+
+  /*
+   * BUG-3376 — once a caller wires `onSearch`, the request it issues already
+   * carries the typed query server-side, and re-filtering the response here
+   * with a plain substring match would only ever narrow it further (a server
+   * doing token or fuzzy matching can legitimately return a record this
+   * control's own substring check would reject). Without `onSearch`, nothing
+   * else filters the list, so the client-side behaviour every existing caller
+   * relies on today is unchanged.
+   */
   const filteredOptions = React.useMemo(() => {
+    if (onSearch) return uniqueOptions;
+
     const normalizedQuery = query.trim().toLowerCase();
 
     if (!normalizedQuery) {
@@ -1009,7 +1091,7 @@ export function LookupField({
 
       return haystack.includes(normalizedQuery);
     });
-  }, [uniqueOptions, query]);
+  }, [uniqueOptions, query, onSearch]);
 
   /*
    * Typing narrows the list under the highlight, so an index that named the
@@ -1027,8 +1109,31 @@ export function LookupField({
     onSearchRef.current = onSearch;
   }, [onSearch]);
 
+  /*
+   * BUG-3376 — "a debounced refetch that sends both a search term and an
+   * explicit page size". Firing on every keystroke (the previous behaviour)
+   * turned a five-character name into five requests; the caller only needs
+   * the last one.
+   *
+   * The debounced instance is built inside an effect — never in the render
+   * body — and only ever touched from inside effects afterwards, so reading
+   * `onSearchRef.current` when the timer eventually fires never happens
+   * during render (`react-hooks/refs`).
+   */
+  const debouncedSearchRef = React.useRef<ReturnType<
+    typeof createDebouncedCallback<[string]>
+  > | null>(null);
+
   React.useEffect(() => {
-    onSearchRef.current?.(query);
+    debouncedSearchRef.current = createDebouncedCallback<[string]>(
+      (nextQuery) => onSearchRef.current?.(nextQuery),
+      LOOKUP_SEARCH_DEBOUNCE_MS,
+    );
+    return () => debouncedSearchRef.current?.cancel();
+  }, []);
+
+  React.useEffect(() => {
+    debouncedSearchRef.current?.run(query);
   }, [query]);
 
   React.useEffect(() => {
@@ -1193,6 +1298,18 @@ export function LookupField({
               ) : null}
             </div>
 
+            {/*
+              BUG-3376 — a truncated page reads as "this record does not
+              exist" unless the control says otherwise. Only the caller knows
+              whether the page it fetched was cut short, so this is opt-in via
+              `resultsTruncated` rather than inferred from the option count.
+            */}
+            {resultsTruncated && filteredOptions.length ? (
+              <p className="mb-2 text-xs text-muted">
+                {buildLookupTruncationMessage(filteredOptions.length)}
+              </p>
+            ) : null}
+
             <div
               className="overflow-y-auto"
               style={{ maxHeight: Math.max(120, menuPosition.maxHeight - 92) }}
@@ -1271,6 +1388,11 @@ export function LookupField({
       className={className}
       hint={hint}
       label={label}
+      labelLink={
+        selectedOption && selectedHref
+          ? { href: selectedHref, text: lookupOptionDisplay(selectedOption).name }
+          : undefined
+      }
       required={required}
       error={error}
       warning={warning}
@@ -1349,88 +1471,20 @@ export function LookupField({
         </div>
 
         {/*
-          BUG-1956 - the link to the selected record used to sit inside the
-          combobox. A combobox is a leaf widget and may not own focusable
-          children, so an anchor in there was a `nested-interactive` violation
-          and, worse in practice, a Tab stop inside a control the user was
-          trying to open. It is a sibling now, and it names the record it opens
-          rather than relying on the reader to infer it from the row above.
+          ITEM-0163 — the link used to render here, as a sibling line below the
+          control (BUG-1956 moved it out of the combobox trigger for exactly
+          this reason: a combobox may not own focusable children). The product
+          owner then asked for the selected record's name to be the click
+          target next to the field's label instead of a separate line under
+          the control, so it is rendered by `FieldShell` now via `labelLink`
+          above — nothing renders here for that case any more.
+
+          The dead, unreachable `{false && isOpen ? ... : null}` popup that
+          used to sit below `lookupMenu` (a superseded copy of the same popup,
+          rendered as `button`s rather than an `aria-activedescendant`
+          listbox) is deleted rather than kept unreachable — ITEM-0163.
         */}
-        {selectedOption && selectedHref ? (
-          <a
-            className="mt-1 inline-block max-w-full truncate text-xs font-semibold text-accent underline-offset-4 hover:underline"
-            href={selectedHref}
-          >
-            Open {lookupOptionDisplay(selectedOption).name}
-          </a>
-        ) : null}
-
         {lookupMenu}
-        {false && isOpen ? (
-          <div className="absolute z-30 mt-2 w-full rounded-2xl border border-border bg-white p-3 shadow-xl">
-            <div className="mb-3 flex items-center gap-2">
-              <input
-                ref={inputRef}
-                className={baseInputClassName}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder={placeholder}
-                value={query}
-              />
-              {value ? (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleClear}
-                  type="button"
-                >
-                  Clear
-                </Button>
-              ) : null}
-            </div>
-
-            <div className="max-h-64 overflow-y-auto">
-              {filteredOptions.length ? (
-                <div className="space-y-1">
-                  {filteredOptions.map((option) => {
-                    const isSelected = option.id === value;
-                    const display = lookupOptionDisplay(option);
-
-                    return (
-                      <button
-                        key={option.id}
-                        onClick={(event) => handleSelect(option.id, event)}
-                        type="button"
-                        className={[
-                          "block w-full rounded-xl border px-4 py-3 text-left transition",
-                          isSelected
-                            ? "border-accent bg-accent/5"
-                            : "border-transparent hover:border-border hover:bg-slate-50",
-                        ].join(" ")}
-                      >
-                        <span className="block font-medium text-foreground">
-                          {display.name}
-                        </span>
-
-                        {false &&
-                        (option.code || option.key || option.subtitle) ? (
-                          <span className="block text-xs text-muted">
-                            {[option.code, option.key, option.subtitle]
-                              .filter(Boolean)
-                              .join(" • ")}
-                          </span>
-                        ) : null}
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="rounded-xl border border-dashed border-border px-3 py-6 text-center text-sm text-muted">
-                  {noResultsText}
-                </div>
-              )}
-            </div>
-          </div>
-        ) : null}
       </div>
     </FieldShell>
   );

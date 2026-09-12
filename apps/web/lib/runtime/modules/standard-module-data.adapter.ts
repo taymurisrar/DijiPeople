@@ -17,6 +17,10 @@ import {
   buildLocationPayload,
   captureAttendanceLocation,
 } from "@/lib/location/location-capture";
+import {
+  ENTITY_LOOKUP_PAGE_SIZE,
+  isSmallReferenceLookupEntity,
+} from "../lookup-search";
 
 type RuntimeRecord = Readonly<Record<string, unknown>>;
 
@@ -363,7 +367,7 @@ export function createStandardModuleDataAdapter(
 
     ...(spec.lookupApiPaths
       ? {
-          async getLookupOptions(_runtime, field, values) {
+          async getLookupOptions(_runtime, field, values, searchOptions) {
             const path = spec.lookupApiPaths?.[field.logicalName];
             if (!path) return [];
             const params = new URLSearchParams();
@@ -380,6 +384,24 @@ export function createStandardModuleDataAdapter(
             ) {
               params.set(field.dependencyFilterKey, String(dependencyValue));
             }
+
+            /*
+             * BUG-3376 — a bare request used to carry neither a search term nor
+             * a page size, so the server's own default page (20, for
+             * employees) was the entire selectable universe for every entity
+             * lookup. A small, effectively-fixed reference set (country,
+             * currency, timezone, ...) keeps the old cheap one-shot prefetch,
+             * chosen here by the field's target entity rather than by which
+             * caller happened to omit a page size. Everything else gets an
+             * explicit page size, and the typed query when the caller has one.
+             */
+            const targetEntity = field.lookupTargets?.[0]?.entityLogicalName;
+            const searchQuery = searchOptions?.search?.trim();
+            if (!isSmallReferenceLookupEntity(targetEntity)) {
+              params.set("pageSize", String(ENTITY_LOOKUP_PAGE_SIZE));
+              if (searchQuery) params.set("search", searchQuery);
+            }
+
             const requestPath = params.size
               ? `${path}${path.includes("?") ? "&" : "?"}${params.toString()}`
               : path;

@@ -112,10 +112,18 @@ export interface ModuleDataAdapter<
     runtime: ModuleRuntimeContext,
     search?: string,
   ) => Promise<readonly ModuleOwnerOption[]>;
+  /*
+   * BUG-3376 — `search` is optional and additive on purpose. A caller built
+   * before this existed still compiles and still gets the (now larger, see
+   * `ENTITY_LOOKUP_PAGE_SIZE`) default page; a caller that wires the field's
+   * `onSearch` can pass the typed query straight through instead of filtering
+   * whatever the first response happened to contain.
+   */
   readonly getLookupOptions?: (
     runtime: ModuleRuntimeContext,
     field: FieldMetadata,
     values: Readonly<Record<string, unknown>>,
+    options?: Readonly<{ search?: string }>,
   ) => Promise<readonly ModuleLookupOption[]>;
   readonly changeStatus: (
     runtime: ModuleRuntimeContext,

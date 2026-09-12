@@ -3,7 +3,7 @@ ID: ITEM-0163
 aliases: [ITEM-0163]
 Title: Give every lookup one behaviour: an openable label, one implementation, and a reference route that is not an allowlist
 Type: UX
-Status: READY
+Status: IN_PROGRESS
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [apps/web, apps/admin]
@@ -11,11 +11,11 @@ Source: USER_REPORT
 OwnerAgent: architect
 ArchitectDisposition: PLAN_REQUIRED
 CreatedAt: 2026-09-11
-UpdatedAt: 2026-09-11
+UpdatedAt: 2026-09-12
 RelatedBug: BUG-3376
-RelatedQA: 
+RelatedQA: docs/qa/scenarios/QA-UI-001-admin-lookup-controls-are-keyboard-operable-and-expose-no-ne.md
 RelatedADR: 
-RelatedImplementation:
+RelatedImplementation: docs/architecture/lookup-control-contract.md
 TargetMilestone: 
 BlockedBy: 
 ---
@@ -165,13 +165,80 @@ first, independently, rather than waiting for convergence.
 [[BUG-3376]] unpaged lookups hide records. [[BUG-3377]] admin lookup semantics.
 [[BUG-1956]] the fix this must not undo. [[BUG-1753]] label mangling.
 [[BUG-1578]] a lookup storing the wrong token. [[BUG-3374]] shares the legacy
-roles rewrite.
+roles rewrite. [[ITEM-0172]] the one remaining wiring step this item and
+BUG-3376 both need.
+
+## Resolution — 2026-09-12 (partial)
+
+Implemented in SESSION-0103 under EXECPLAN-0037, sequenced after [[BUG-3377]]
+as instructed. **Done for both apps' controls and documented as one contract.
+Not done: the allowlist replacement, and full conformance for `apps/web`'s
+metadata-driven record forms — both blocked by the same excluded file.**
+
+### The specific ask — done in both apps
+
+- `apps/web`: `LookupField`'s `FieldShell` now renders the selected record's
+  name as a link in the **label row** (`labelLink`), beside the field name.
+  The old sibling line below the control is gone. `selectedHref`'s existing
+  prop contract is unchanged, so the one caller that supplies it
+  (`runtime-metadata-form-renderer.tsx`, untouched — see below) needed no
+  edit for this half of the fix, only for the search half (BUG-3376).
+- `apps/admin`: `RuntimeFormField`'s label row now renders the same link for
+  an *editable* lookup that the read-only `FieldDisplay` already rendered —
+  reusing `resolveLookupLabel`/`resolveDisplayHref` rather than a second
+  resolution path, exactly as this record asked ("the template to
+  generalise").
+- Neither change reopens [[BUG-1956]]: a `<label>` is not the combobox in
+  either app, and both trigger elements keep click-to-open as their only
+  behaviour.
+
+### The general guarantee — partially done
+
+- **Six implementations found, matching this record's own count exactly.**
+  Two (`LookupField`, admin's `LookupControl`+`SearchableSelect`) now share
+  documented, tested behaviour for openable label, clear, keyboard/ARIA and
+  (where wired) server-side search. `module-owner-picker.tsx` already
+  implemented server-side search correctly and needed no change. The bespoke
+  native `<select>` in `contract-creation-launcher.tsx` was **not**
+  converged — retiring it is unscoped rework of a screen neither underlying
+  bug named, and is called out as a deliberate exclusion below rather than
+  silently dropped.
+- **One control per app, not one component across apps**, per this record's
+  own fallback ("if the two apps genuinely cannot share a component, share the
+  behaviour contract"): `apps/web` and `apps/admin` have no shared UI package
+  for this (`packages/` holds exactly four workspaces — root `AGENTS.md`), and
+  adding a fifth is an ADR this record does not make. The shared contract is
+  written down instead: `docs/architecture/lookup-control-contract.md`.
+- **Quick create: explicitly decided against, not silently dropped.** Recorded
+  in the contract doc as "not implemented" rather than left ambiguous.
+- **The dead `{false && isOpen ...}` block is deleted** from `form-control.tsx`
+  (`apps/web`), along with its nested dead `{false && ...}` subset.
+- **Not done: the allowlist.** `LOOKUP_REFERENCE_ROUTES` (including its two
+  legacy entries, `roles` and `teams`) is unchanged —
+  `runtime-metadata-form-renderer.tsx`, the file it lives in, was owned by a
+  concurrent agent in this session and named out of scope in this task's
+  brief. Filed as [[ITEM-0172]], alongside the matching BUG-3376 gap in the
+  same file.
+- **Not fully done: "one documented lookup contract, tested in both apps."**
+  The contract is written and both apps' *controls* are tested against the
+  parts that are theirs to keep (label link, clear, keyboard/ARIA, debounce,
+  pin, truncation). The one part of the contract `apps/web` does not yet
+  satisfy for a metadata-driven record-form lookup — server-side search
+  actually reaching that surface — is the same [[ITEM-0172]] gap.
+
+See BUG-3376's Resolution section for the parallel, more detailed accounting
+of the search-side work, since the two records share the same blocked
+integration point.
 
 ## History
 
 - 2026-09-11 — created at `cbd9b812` from a user report about the Default
   timezone and Default currency fields, widened into a consistency audit of
   every lookup in both frontends.
+- 2026-09-12 — the specific ask (openable label) shipped in both apps, the
+  dead block deleted, and the contract documented, in SESSION-0103, branch
+  `agent/r-s6-lookups`. The allowlist replacement and full `apps/web`
+  conformance remain, filed as [[ITEM-0172]].
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
@@ -180,5 +247,6 @@ roles rewrite.
 - Bug — [[BUG-3376]]
 - Referenced by — [[BUG-3377]]
 - Modules — [[tenant-application]], [[platform-admin]]
+- QA run — [[QA-UI-001-admin-lookup-controls-are-keyboard-operable-and-expose-no-ne]]
 
 <!-- GRAPH:END -->

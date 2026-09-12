@@ -4774,3 +4774,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | `hasSettingsPermission` is not full parity with the API's matrix privilege — no entity-key mirror for `TENANT_ADMINISTRATION` exists anywhere in `apps/web` yet, on this screen or any other — but it is the same gate every other settings screen in this app already uses, and it closes the specific gap this record measured (permission granted, elevated role absent) without inventing a new pattern for one screen. |
 | **Fixed** | 2026-09-12, branch `agent/r-s1-billing-web` |
 | **Active** | yes |
+
+### REG-418 — Admin console's two lookup controls carried BUG-1956's nested-interactive listbox
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-control` |
+| **Module** | `apps/admin` shared form controls, runtime form |
+| **Bug record** | BUG-3377 |
+| **Root cause** | BUG-1956 fixed `apps/web/app/components/ui/form-control.tsx`'s composite controls and never looked at `apps/admin`, which maintains its own copies. `LookupControl` (`app/_components/ui/form-control.tsx`) and `SearchableSelect` (`app/_components/runtime/runtime-form.tsx`) both rendered role="option" on focusable button elements inside a role="listbox" — the nested-interactive violation — and neither set aria-activedescendant. `LookupControl` additionally had zero key handlers of any kind, so it could be opened only with a pointer and its options could never be reached from the keyboard; its clear affordance was a span with role="button" and tabIndex={-1} nested inside the trigger button, both invalid HTML and permanently outside the tab order. |
+| **Regression test** | `apps/admin/lib/a11y/listbox-navigation.spec.ts`, `apps/admin/lib/runtime/lookup-listbox-semantics.spec.ts` |
+| **Scenario** | Movement is a pure function, mirroring apps/web's: arrows wrap, Home and End jump, a non-movement key yields nothing, an empty list yields no index, aria-activedescendant resolves to undefined rather than an id naming no element. Over the source, for both admin controls: a listbox for each combobox, an option role and a selected state for each with none of them a button, aria-activedescendant present, aria-controls only while the popup exists, movement routed through the shared resolver, Escape closes the popup. LookupControl additionally: no role="button" span and no tabIndex={-1} remain, and its trigger is no longer a button (so a real button clear control can sit inside it without producing invalid HTML). |
+| **Proven to fail without the fix** | Modelled directly on apps/web's BUG-1956 regression, which is mutation-tested; the admin listbox-semantics spec asserts the identical shape (no button inside role="listbox", aria-activedescendant present) against the post-fix source. |
+| **Note** | Two implementations, one fix, ported rather than reinvented: `apps/admin/lib/a11y/listbox-navigation.ts` is a duplicate of `apps/web/lib/a11y/listbox-navigation.ts` because the two apps share no UI package for this (root `AGENTS.md`: `packages/` holds exactly four workspaces). `LookupControl`'s trigger changed from a button to a `div role="combobox"` specifically so the clear control could become a real sibling button — a button may not contain another interactive element, which is why the old clear affordance was a non-button in the first place. `SearchableSelect`'s activeIndex clamp is derived during render rather than set in a `useEffect`, after `react-hooks/set-state-in-effect` flagged the direct-port version of the pattern already in `apps/web`'s (differently structured) equivalent. |
+| **Fixed** | 2026-09-12, branch `agent/r-s6-lookups` |
+| **Active** | yes |

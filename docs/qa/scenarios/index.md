@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 357** · automated: 307 · manual: 24 · blocked by infrastructure: 0
+**Scenarios: 358** · automated: 307 · manual: 25 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -371,3 +371,4 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-TENANT-063](../../../docs/qa/scenarios/QA-TENANT-063-the-workspace-switcher-truncates-rather-than-scrolling-horiz.md) | The workspace switcher truncates rather than scrolling horizontally | runtime-modules | UNIT | LOW | AUTOMATED | `apps/web/app/components/workspace-switcher-overflow.spec.ts` | BUG-3021 | REG-400 |
 | [QA-TENANT-064](../../../docs/qa/scenarios/QA-TENANT-064-a-seeded-provisioning-interval-is-exact-on-every-run.md) | A seeded provisioning interval is exact on every run | tenant-provisioning | DATABASE | LOW | AUTOMATED | `services/api/test/provisioning-queue.e2e-spec.ts` | BUG-3263 | REG-410 |
 | [QA-TENANT-065](../../../docs/qa/scenarios/QA-TENANT-065-notification-settings-timestamps-survive-hydration-in-a-non-.md) | Notification settings timestamps survive hydration in a non-UTC tenant | settings | MANUAL_VISUAL | MEDIUM | MANUAL | — | BUG-3316 | REG-412 |
+| [QA-UI-001](../../../docs/qa/scenarios/QA-UI-001-admin-lookup-controls-are-keyboard-operable-and-expose-no-ne.md) | Admin lookup controls are keyboard-operable and expose no nested-interactive listbox | platform-admin | MANUAL_VISUAL | MEDIUM | MANUAL | `apps/admin/lib/a11y/listbox-navigation.spec.ts` | BUG-3377 | REG-418 |
