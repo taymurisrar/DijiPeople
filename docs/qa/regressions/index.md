@@ -4905,7 +4905,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Regression test** | `services/api/src/modules/auth/auth-session-lifecycle.spec.ts` |
 | **Scenario** | A tenant with zero `security` settings rows signs in twice on `web`: the first session's refresh token is left live. The same tenant with `allowMultipleActiveSessions: false` set explicitly: the first session is revoked. Set to `true` explicitly: left live. |
 | **Proven to fail without the fix** | Reverting the default in `TenantAuthPolicyService.resolveEffectivePolicy` from `true` to `false` (matching `setting?.value === true`) fails the "no settings row" case in the regression test. |
-| **Note** | The owner's decision — concurrent sessions allowed by default — is recorded as [[ADR-0010]]. `setting?.value === true` was a reasonable default for a *permission* (absent means not granted) and the wrong one for a *session policy*, because the restrictive reading here silently destroyed work in progress on a device the acting session could not see, rather than merely denying an action. |
+| **Note** | The owner's decision — concurrent sessions allowed by default — is recorded as ADR-0010. `setting?.value === true` was a reasonable default for a *permission* (absent means not granted) and the wrong one for a *session policy*, because the restrictive reading here silently destroyed work in progress on a device the acting session could not see, rather than merely denying an action. |
 | **Fixed** | 2026-09-12, branch `agent/r-s3-auth` |
 | **Active** | yes |
 

@@ -198,3 +198,7 @@ it always did. No data to unwind — no template existed before.
 - [x] The four ranked-but-undone candidates and the six lower-ranked modules
       are named with reasons in ITEM-0170 and its follow-up item, not
       silently dropped.
+
+## Related
+
+[[BUG-3375]] · [[ITEM-0169]] · [[ITEM-0170]]

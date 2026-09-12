@@ -351,3 +351,7 @@ an existing prop, so that change is additive.
 - [x] BUG-3377 fixed and merged into the same branch first
 - [x] BUG-3376 and ITEM-0163 Resolution sections reflect exactly what shipped
       and what remains open, with file references
+
+## Related
+
+[[BUG-1956]] · [[BUG-3376]] · [[BUG-3377]] · [[ITEM-0163]] · [[SESSION-0103]]

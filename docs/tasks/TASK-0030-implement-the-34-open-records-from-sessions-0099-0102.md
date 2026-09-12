@@ -14,7 +14,7 @@ CURRENT_PACKAGE:
 COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 16
-FINAL_STATUS: COMPLETE — 34 records resolved: 22 of 23 bugs fixed, 11 of 11 items done, BUG-3333 left open by owner decision; integrated into develop at 413565f0 behind a green exact-SHA gate and released to production at df0f84f1 via PR #79 under SESSION-0104; visual verification not performed
+FINAL_STATUS: COMPLETE_WITH_DOCUMENTATION_WARNING — 34 records resolved: 22 of 23 bugs fixed, 11 of 11 items done, BUG-3333 left open by owner decision; integrated into develop at 413565f0 behind a green exact-SHA gate and released to production at df0f84f1 via PR #79 under SESSION-0104; Obsidian verify fails on 34 pre-existing problems only, every problem this task introduced having been fixed; visual verification not performed
 ---
 
 # TASK-0030 — Implement the 34 open records from sessions 0099-0102

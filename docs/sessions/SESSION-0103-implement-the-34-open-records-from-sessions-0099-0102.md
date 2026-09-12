@@ -85,7 +85,7 @@ of this section implied it would. The shipped default remains `REPORT_ONLY` and
 the setting is deliberately absent from `seed-config`, because `seed:config`
 runs on every release and a new field in the shipped defaults becomes live in
 every environment that never set it — a cutover as a deploy side effect is
-exactly what [[ADR-0009]] forbids. Turning it on is a separate, deliberate act
+exactly what ADR-0009 forbids. Turning it on is a separate, deliberate act
 against one environment, reversible inside a minute because the mode is re-read
 on a short TTL rather than at boot.
 
@@ -147,7 +147,7 @@ Live state: `node scripts/session.mjs list`.
 
 Engineering history for `agent/records-0099-0102`:
 
-[[2026-09-12-records-0099-0102-f36ec9a9]]
+[[2026-09-12-records-0099-0102-413565f0]]
 
 Records this session worked on, cited in its own body:
 

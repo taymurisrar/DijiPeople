@@ -84,4 +84,4 @@ construction, because ours is the side that has absorbed every merge so far.
 
 ## Related
 
-[[SESSION-0103]] · [[TASK-0030]] · [[ADR-0009]] · [[ADR-0010]] · [[ADR-0011]]
+[[SESSION-0103]] · [[TASK-0030]] · ADR-0009 · ADR-0010 · ADR-0011

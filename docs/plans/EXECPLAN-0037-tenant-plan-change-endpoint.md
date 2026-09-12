@@ -414,3 +414,7 @@ ENVIRONMENT_DEPENDENCIES: `SUBSCRIPTION_CHANGE_SWEEPER_ENABLED`,
   `SUBSCRIPTION_CHANGE_SWEEPER_POLL_INTERVAL_MS` — runtime configuration
   (read by the API process only, not a Next.js build input), registered in
   `docs/environment-variables.md`; no `turbo.json` `globalEnv` entry needed.
+
+## Related
+
+[[BUG-0027]] · [[BUG-2618]] · [[BUG-3331]] · [[SESSION-0103]]

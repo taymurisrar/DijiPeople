@@ -50,7 +50,7 @@ ENVIRONMENT_DEPENDENCIES: none
 Every record-detail page in `apps/web` either renders through
 `ModuleRecordPage` (directly, via `StandardModuleRecordPage`, or via a
 wrapper that calls it, per
-[[docs/architecture/record-page-layout-contract.md]]) or is a named,
+`docs/architecture/record-page-layout-contract.md`) or is a named,
 reasoned exception — verified by an automated conformance check rather than
 asserted from memory, and migrated in waves small enough that one reviewer
 can hold each wave's domain behaviour in mind.
@@ -75,7 +75,7 @@ to be brought in line.
   longer mounts page-level panels outside its form, so what a migrated page
   copies is the corrected article, not the one with the two defects
   ITEM-0167's own Evidence section measured.
-- [[docs/architecture/record-page-layout-contract.md]] exists, with a
+- `docs/architecture/record-page-layout-contract.md` exists, with a
   documented-exceptions table and MUST/MAY lists.
 - The conformance check
   (`apps/web/app/(authenticated)/_components/record-page-shell.conformance.spec.ts`)
@@ -155,7 +155,7 @@ filed as its own record ([[ITEM-0178]]) rather than folded in here.
 
 ## Dependencies
 
-[[BUG-3378]] (done). [[docs/architecture/record-page-layout-contract.md]]
+[[BUG-3378]] (done). `docs/architecture/record-page-layout-contract.md`
 (done). Not blocked by [[ITEM-0165]]/[[ITEM-0166]] but sequenced after them
 by ITEM-0167's own text, and both are done.
 

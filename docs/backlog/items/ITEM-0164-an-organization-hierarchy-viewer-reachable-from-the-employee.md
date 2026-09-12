@@ -124,7 +124,7 @@ in.
 
 ## Resolution
 
-Implemented per `EXECPLAN-0043` and [[ADR-0012]] (hand-rolled tree, no
+Implemented per `EXECPLAN-0043` and ADR-0012 (hand-rolled tree, no
 graph/tree library dependency — indent-and-rule connectors, chosen directly
 over drawn SVG lines once implemented, since it needs no DOM-position
 measurement code).

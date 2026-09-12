@@ -275,7 +275,7 @@ no matching quantity update at Stripe, so running it unattended would silently
 under-bill. Recorded in the sweeper's own comment, in the environment variable
 documentation, and as ITEM-0176.
 
-Design and reasoning: [[EXECPLAN-0037]].
+Design and reasoning: EXECPLAN-0037.
 
 Specs: `plan-change.service.spec.ts` (new — the service had none),
 `subscription-change-sweeper.worker.spec.ts` (new), and
@@ -302,7 +302,7 @@ sweeper against a downgrade scheduled in the past and confirm it applies.
 - 2026-09-12 — UI half (items 1-4) fixed in `apps/web` (SESSION-0103,
   `agent/r-s1-billing-web`). Not marked `FIXED`: items 5-6 (a real plan-change
   path) are unaddressed and are the API stream's ExecPlan.
-- 2026-09-12 — [[EXECPLAN-0037]] written and implemented: plan-change preview
+- 2026-09-12 — EXECPLAN-0037 written and implemented: plan-change preview
   and confirm endpoints, Stripe-facing sync on both the immediate and
   scheduled paths, the dead `applyDueChanges` sweeper, and same-plan cycle
   changes. UI half (items 1-4) remains open, owned by a concurrent stream.

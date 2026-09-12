@@ -530,7 +530,7 @@
 ## Recent Engineering History
 
 - [[2026-09-12-ux-findings-audit-d5388a4c|Engineering History — Ux findings audit]]
-- [[2026-09-12-records-0099-0102-f36ec9a9|Engineering History — Records 0099 0102]]
+- [[2026-09-12-records-0099-0102-413565f0|Engineering History — Implement the 34 records from sessions 0099–0102]]
 - [[2026-09-11-review-subscription-plans-screen-118d22ed|Engineering History — Review subscription plans screen]]
 - [[2026-09-11-closeout-sweep-658eb39c|Engineering History — Closeout sweep]]
 - [[2026-09-11-auth-session-revocation-690cacbc|Engineering History — Auth session revocation]]

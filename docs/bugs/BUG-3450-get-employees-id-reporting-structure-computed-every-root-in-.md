@@ -131,7 +131,7 @@ REG-480.
 
 ## Dependencies
 
-[[ITEM-0164]], [[ADR-0012]].
+[[ITEM-0164]], ADR-0012.
 
 ## Related Items
 

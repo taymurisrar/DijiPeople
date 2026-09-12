@@ -113,7 +113,7 @@ paper over** — see Risks.
 
 `OrganizationHierarchyWidget` (`module-widget-renderer.tsx:2200+`) is the only
 existing tree-shaped rendering in this app, as nested disclosure sections with
-no library — the precedent [[ADR-0012]] builds on.
+no library — the precedent ADR-0012 builds on.
 
 ## Existing architecture
 
@@ -129,7 +129,7 @@ no library — the precedent [[ADR-0012]] builds on.
   `ModuleReportingHierarchyWidget`, `HierarchyGroup`,
   `OrganizationHierarchyWidget` (the no-library precedent).
 - `apps/web/lib/runtime/security-runtime.resolver.ts` — `canReadField`.
-- [[ADR-0012]] — the rendering-approach decision this plan implements.
+- ADR-0012 — the rendering-approach decision this plan implements.
 
 ## Requirements
 
@@ -157,7 +157,7 @@ no library — the precedent [[ADR-0012]] builds on.
    path where the button exists but the viewer lacks the permission or the
    data has not arrived.
 5. The button opens a dialog rendering `tree` as nested branches (per
-   [[ADR-0012]]): one card per node, avatar + name only, with the current
+   ADR-0012): one card per node, avatar + name only, with the current
    employee visually distinguished (a highlighted border/ring).
 6. Hovering, focusing (keyboard `Tab`), or tapping (`onClick` toggles) a node
    reveals a popover with job title, department, and — **only if**
@@ -175,7 +175,7 @@ no library — the precedent [[ADR-0012]] builds on.
 
 ## Dependencies
 
-[[ADR-0012]] (dependency decision, resolved). No blocking records.
+ADR-0012 (dependency decision, resolved). No blocking records.
 
 ## Files / modules affected
 
@@ -225,7 +225,7 @@ route.
 ## Frontend impact
 
 `apps/web`, module runtime. The tree renders as nested `<ul>`/`<li>` lists
-with indent-and-rule connectors per [[ADR-0012]] — no new dependency, no
+with indent-and-rule connectors per ADR-0012 — no new dependency, no
 DOM-position measurement. `Dialog` (`apps/web/app/components/ui/dialog.tsx`)
 is reused rather than a bespoke modal, so focus containment, Escape-to-close,
 `role="dialog"`/`aria-modal`/`aria-labelledby`, and background-scroll lock
@@ -344,7 +344,7 @@ predictability, not because the reverse breaks anything.
    accepted; see the note on repeat-defect risk in the record itself.
 2. **Connector drawing at narrow widths.** Likelihood: medium (SVG lines
    between measured DOM positions are fiddly under reflow). Impact: cosmetic
-   only. Mitigation: [[ADR-0012]]'s stated fallback — indent-and-rule
+   only. Mitigation: ADR-0012's stated fallback — indent-and-rule
    connectors instead of drawn lines — if per-node measurement proves
    unreliable.
 3. **Depth/node caps hide part of a very large or deep org.** Likelihood: low

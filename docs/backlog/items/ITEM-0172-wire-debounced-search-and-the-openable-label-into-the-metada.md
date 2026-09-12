@@ -158,7 +158,7 @@ and a new colocated pure helper, `apps/web/app/components/metadata/lookup-refere
 4. **The allowlist.** `LOOKUP_REFERENCE_ROUTES` is replaced, not extended.
    `apps/web` has no live entity-to-route registry to delegate to —
    `module-registry.ts` and its siblings were removed as inert scaffolding
-   with zero callers ([[ADR-0007]]), and reviving one to answer this question
+   with zero callers (ADR-0007), and reviving one to answer this question
    would have contradicted that decision. Admin's equivalent
    (`resolveLookupRecordRoute`) derives a route from the lookup's own API
    collection path, which sidesteps spelling entirely — but `apps/web`'s
