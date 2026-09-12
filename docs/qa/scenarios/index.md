@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 374** · automated: 320 · manual: 25 · blocked by infrastructure: 0
+**Scenarios: 375** · automated: 321 · manual: 25 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -150,6 +150,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-DEPLOY-022](../../../docs/qa/scenarios/QA-DEPLOY-022-the-deployment-says-whether-it-is-draining-the-outbox.md) | The deployment says whether it is draining the outbox | outbox | DEPLOYMENT_SMOKE | HIGH | AUTOMATED | `services/api/src/app.service.spec.ts` | BUG-0904, BUG-0767 | REG-280 |
 | [QA-DEPLOY-023](../../../docs/qa/scenarios/QA-DEPLOY-023-every-app-serves-a-usable-content-security-policy.md) | Every app serves a usable content security policy | deployment-release | DEPLOYMENT_SMOKE | MEDIUM | AUTOMATED | `packages/config/security-headers.test.js` | BUG-1822, BUG-1424, BUG-0040 | REG-295 |
 | [QA-DEPLOY-024](../../../docs/qa/scenarios/QA-DEPLOY-024-an-externally-hosted-agent-desktop-release-serves-the-update.md) | An externally hosted AGENT_DESKTOP release serves the update feed | deployment-release | API | MEDIUM | AUTOMATED | `services/api/src/modules/app-releases/app-release.service.spec.ts` | BUG-2888 | REG-397 |
+| [QA-EMPLOYEE-001](../../../docs/qa/scenarios/QA-EMPLOYEE-001-employee-reporting-structure-tree-stays-scoped-and-bounded-t.md) | Employee reporting-structure tree stays scoped and bounded to the queried employee | employees | API | MEDIUM | AUTOMATED | `services/api/src/modules/employees/employees.service.spec.ts` | BUG-3450 | REG-480 |
 | [QA-FRAMEWORK-001](../../../docs/qa/scenarios/QA-FRAMEWORK-001-the-id-allocator-never-returns-a-plan-number-an-execplan-alr.md) | The id allocator never returns a PLAN number an ExecPlan already holds | framework | UNIT | MEDIUM | AUTOMATED | `scripts/id-allocator.test.mjs` | BUG-2413 | REG-365 |
 | [QA-INFRA-002](../../../docs/qa/scenarios/QA-INFRA-002-repo-health-attributes-main-changes-to-the-right-task.md) | repo-health attributes main changes to the right task | deployment-release | API | HIGH | AUTOMATED | `scripts/task-sha-ref.test.mjs` | BUG-1203 | REG-249 |
 | [QA-INFRA-003](../../../docs/qa/scenarios/QA-INFRA-003-the-component-index-drift-check-is-platform-independent.md) | the component index drift check is platform-independent | deployment-release | API | MEDIUM | AUTOMATED | `scripts/index-drift.test.mjs` | BUG-1208 | REG-250 |

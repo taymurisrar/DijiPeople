@@ -839,6 +839,24 @@ function fallbackEmployeeForm(
           { fieldLogicalName: "defaultWorkScheduleId", order: 60 },
           requiredFormField("reportingManagerEmployeeId", 70, requiredFields),
         ],
+        /*
+         * ITEM-0165 — the authorised work sites list rendered beneath the
+         * Location lookup above, in the same section, so the relationship
+         * between "where this person normally works" (locationId, a field)
+         * and "where they may record attendance" (the widget) is visible on
+         * screen instead of being two unrelated panels at different heading
+         * levels. The widget is the interactive surface (add / edit validity
+         * / remove / make primary); the Location field stays the plain,
+         * unrelated-to-this-widget primary-site value it already was.
+         */
+        components: [
+          createSystemWidgetComponent({
+            widgetKey: "employee.workSites",
+            idSeed: "employee.main.full.worksites",
+            order: 10,
+            columnSpan: 3,
+          }),
+        ],
       },
       {
         id: "contact-information",
@@ -981,6 +999,38 @@ function fallbackEmployeeForm(
             widgetId: "system.agentDesktop",
             widgetType: "agent_desktop",
             label: "Agent Desktop",
+            order: 10,
+            columnSpan: 3,
+            lifecycleState: "published",
+          },
+        ],
+      },
+      {
+        id: "agent-desktop-dlp-captures",
+        tabKey: "agent",
+        label: "Data-loss prevention captures",
+        // The widget draws its own heading, same as Agent Desktop above.
+        labelVisible: false,
+        order: 120,
+        layout: "single-column",
+        columns: 1,
+        fields: [],
+        /*
+         * ITEM-0166 — relocated off the default employee record view (it was
+         * a page-level sibling of the whole form) and into the Agent tab,
+         * where the desktop agent's other per-employee information already
+         * lives. The widget is unchanged: it still gates itself on `dlp.review`
+         * server-side and renders nothing for a viewer who lacks it, and
+         * viewing captured content is still audited by the same endpoints —
+         * only its position in the page moved, not its data or its gate.
+         */
+        components: [
+          {
+            id: "employee.dlpCaptures",
+            type: "widget",
+            widgetId: "employee.dlpCaptures",
+            widgetType: "dlp_captures",
+            label: "Data-loss prevention captures",
             order: 10,
             columnSpan: 3,
             lifecycleState: "published",

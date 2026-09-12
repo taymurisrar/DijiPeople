@@ -5053,3 +5053,17 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-09-12 |
 | **Active** | yes |
 
+### REG-480 — `getReportingStructure` computed every org root in the tenant to unbounded depth, unused
+
+| | |
+|---|---|
+| **Bug class** | `unbounded-response-payload` |
+| **Module** | `services/api/src/modules/employees` |
+| **Bug record** | BUG-3450 |
+| **Root cause** | `fullTree` was built from `childrenByManagerId.get(null)` — every employee with no manager, tenant-wide — independent of the queried `employeeId`, with no depth or node-count cap. It had zero consumers anywhere in the codebase (`grep -rn "fullTree" apps/web services/api/src` returned only the producing line), so this was pure wasted computation and payload on every employee record view, growing with tenant headcount and org depth. |
+| **Regression test** | `services/api/src/modules/employees/employees.service.spec.ts` |
+| **QA scenario** | QA-EMPLOYEE-001 |
+| **Scenario** | `GET /employees/{id}/reporting-structure` for an employee under org root A never includes org root B's branch (same tenant); a manager chain deeper than 8 levels sets `hierarchyTruncated: true` and returns at most 8 levels; a tree with more than 500 nodes is capped with the same flag. The `getReportingStructure (ITEM-0164)` describe block is where these cases live. |
+| **Fixed** | 2026-09-12, branch `agent/r-s8-employee`, found and fixed while implementing [[ITEM-0164]] |
+| **Active** | yes |
+

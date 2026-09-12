@@ -685,25 +685,57 @@ export class EmployeesService {
       ]);
     }
 
-    const buildTree = (
+    /*
+     * ITEM-0164 — the tree the hierarchy viewer draws. Rooted at the topmost
+     * ancestor of `employeeId` (the head of `reportingLine`, or `current`
+     * itself when there is no manager), not at every root in the tenant: the
+     * viewer draws one branch — this employee's own — not the whole
+     * tenant's org forest. Bounded on both depth and node count so a
+     * pathological org (a very deep chain, or one manager with hundreds of
+     * direct reports) cannot make this endpoint return an unbounded payload;
+     * `hierarchyTruncated` tells the caller when a cap was hit so the UI can
+     * say so rather than silently rendering an incomplete tree as complete.
+     */
+    let hierarchyNodeCount = 0;
+    let hierarchyTruncated = false;
+    const buildBoundedTree = (
       employee: (typeof employees)[number],
-      visited = new Set<string>(),
-    ): ReportingTreeNode => ({
-      ...mapReportingNode(employee),
-      children: visited.has(employee.id)
-        ? []
-        : (childrenByManagerId.get(employee.id) ?? []).map((child) =>
-            buildTree(child, new Set([...visited, employee.id])),
-          ),
-    });
+      depth: number,
+      visited: ReadonlySet<string>,
+    ): ReportingTreeNode => {
+      hierarchyNodeCount += 1;
+      const children = childrenByManagerId.get(employee.id) ?? [];
+      const atCap =
+        depth >= MAX_HIERARCHY_DEPTH ||
+        hierarchyNodeCount >= MAX_HIERARCHY_NODES;
+      if (atCap && children.length > 0) {
+        hierarchyTruncated = true;
+      }
+      return {
+        ...mapReportingNode(employee),
+        children:
+          atCap || visited.has(employee.id)
+            ? []
+            : children.map((child) =>
+                buildBoundedTree(
+                  child,
+                  depth + 1,
+                  new Set([...visited, employee.id]),
+                ),
+              ),
+      };
+    };
+    const hierarchyRoot = reportingLine[0]
+      ? (byId.get(reportingLine[0].employeeId) ?? current)
+      : current;
+    const tree = buildBoundedTree(hierarchyRoot, 0, new Set());
 
     return {
       currentEmployee: mapReportingNode(current),
       reportingLine,
       directReports,
-      fullTree: (childrenByManagerId.get(null) ?? []).map((employee) =>
-        buildTree(employee),
-      ),
+      tree,
+      hierarchyTruncated,
     };
   }
 
@@ -4020,6 +4052,16 @@ export class EmployeesService {
   }
 }
 
+/*
+ * ITEM-0164 — caps on the hierarchy tree `getReportingStructure` builds.
+ * Additional depth below the queried employee's own ancestor root, and a
+ * total node count across the whole tree, so a pathological org chart
+ * (a very deep chain, or one manager with hundreds of direct reports)
+ * cannot turn this endpoint into an unbounded response.
+ */
+const MAX_HIERARCHY_DEPTH = 8;
+const MAX_HIERARCHY_NODES = 500;
+
 const reportingNodeSelect = {
   id: true,
   firstName: true,
@@ -4029,6 +4071,18 @@ const reportingNodeSelect = {
   designation: { select: { name: true } },
   department: { select: { name: true } },
   profileImageDocumentId: true,
+  // ITEM-0164 — the hierarchy tree's hover detail. `email` is the Prisma
+  // column; the API's own DTO convention aliases it to `workEmail` on output
+  // (see `mapEmployee`'s `workEmail: employee.email` at :3637) and this
+  // mapping follows the same convention. Returned unconditionally here, same
+  // as the plain employee GET already returns it unconditionally; whether to
+  // *display* either field is a field-level-security decision the frontend
+  // already makes for every other field on this record (`canReadField` —
+  // see `security-runtime.resolver.ts`), and the tree viewer follows that
+  // same, existing pattern rather than inventing server-side masking as a
+  // one-off for this one endpoint.
+  email: true,
+  location: { select: { name: true } },
 } satisfies Prisma.EmployeeSelect;
 
 type ReportingTreeNode = ReturnType<typeof mapReportingNode> & {
@@ -4044,6 +4098,8 @@ function mapReportingNode(employee: {
   designation: { name: string } | null;
   department: { name: string } | null;
   profileImageDocumentId: string | null;
+  email?: string | null;
+  location?: { name: string } | null;
 }) {
   return {
     employeeId: employee.id,
@@ -4056,5 +4112,7 @@ function mapReportingNode(employee: {
       ? `/api/employees/${employee.id}/profile-image`
       : null,
     managerId: employee.managerEmployeeId,
+    workEmail: employee.email ?? null,
+    workSiteName: employee.location?.name ?? null,
   };
 }
