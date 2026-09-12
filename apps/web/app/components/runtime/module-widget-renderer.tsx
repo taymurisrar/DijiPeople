@@ -14,7 +14,7 @@ import {
   Timer,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import {
   resolveSystemWidgetAvailability,
   type SystemWidgetDefinition,
@@ -37,7 +37,9 @@ import {
 import { formatDate, formatDateTime } from "@/lib/formatting-context";
 import { canManageEmployeeRecord } from "@/lib/employee-profile-access";
 import { PERMISSION_KEYS } from "@/lib/security-keys";
+import { canReadField } from "@/lib/runtime/security-runtime.resolver";
 import { StatusPill } from "@/app/components/ui/status-pill";
+import { Dialog } from "@/app/components/ui/dialog";
 import { EmployeeDlpCaptures } from "@/app/(authenticated)/employees/_components/employee-dlp-captures";
 import { DataTable } from "@/app/components/data-table/data-table";
 import {
@@ -2605,6 +2607,7 @@ function ModuleReportingHierarchyWidget({
   const [data, setData] = useState<unknown>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [treeOpen, setTreeOpen] = useState(false);
   const recordId = runtime?.recordId;
 
   useEffect(() => {
@@ -2638,6 +2641,7 @@ function ModuleReportingHierarchyWidget({
   }, [component, dataAdapter, definition, recordId, runtime]);
 
   const hierarchy = readReportingHierarchy(data);
+
   if (loading) {
     return (
       <WidgetState
@@ -2664,11 +2668,32 @@ function ModuleReportingHierarchyWidget({
     );
   }
 
+  // ITEM-0164 — the same field-level-security check every other field on this
+  // form already goes through (`canReadField`), applied once here rather than
+  // assuming every viewer may see every employee's work email or work site.
+  const canReadWorkEmail = runtime
+    ? canReadField(runtime.security, "employee", "workEmail")
+    : false;
+  const canReadWorkSite = runtime
+    ? canReadField(runtime.security, "employee", "locationId")
+    : false;
+
   return (
     <section className="rounded-lg border border-border bg-surface p-4">
-      <h4 className="font-semibold text-foreground">
-        {component.label ?? definition.displayName}
-      </h4>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h4 className="font-semibold text-foreground">
+          {component.label ?? definition.displayName}
+        </h4>
+        {hierarchy.tree ? (
+          <button
+            className="rounded-2xl border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-surface-strong"
+            onClick={() => setTreeOpen(true)}
+            type="button"
+          >
+            View hierarchy
+          </button>
+        ) : null}
+      </div>
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <HierarchyGroup
           emptyText="No manager is recorded."
@@ -2686,7 +2711,177 @@ function ModuleReportingHierarchyWidget({
           nodes={hierarchy.directReports}
         />
       </div>
+
+      {hierarchy.tree ? (
+        <ReportingHierarchyTreeDialog
+          canReadWorkEmail={canReadWorkEmail}
+          canReadWorkSite={canReadWorkSite}
+          currentEmployeeId={hierarchy.currentEmployee?.id ?? null}
+          onClose={() => setTreeOpen(false)}
+          open={treeOpen}
+          root={hierarchy.tree}
+          truncated={hierarchy.hierarchyTruncated}
+        />
+      ) : null}
     </section>
+  );
+}
+
+/**
+ * ITEM-0164 — the reporting hierarchy tree dialog. Hand-rolled per
+ * ADR-0012: nested lists with indent-and-rule connectors (a `border-l` on
+ * each child list), not drawn SVG lines and not a graph library — the
+ * shape is a one-parent-per-node tree of bounded size, and this renders it
+ * correctly at every width without any DOM-position measurement code.
+ */
+function ReportingHierarchyTreeDialog({
+  canReadWorkEmail,
+  canReadWorkSite,
+  currentEmployeeId,
+  onClose,
+  open,
+  root,
+  truncated,
+}: {
+  readonly canReadWorkEmail: boolean;
+  readonly canReadWorkSite: boolean;
+  readonly currentEmployeeId: string | null;
+  readonly onClose: () => void;
+  readonly open: boolean;
+  readonly root: ReportingHierarchyTreeNode;
+  readonly truncated: boolean;
+}) {
+  return (
+    <Dialog
+      description="An avatar and a name at rest. Hover, focus, or tap a person for their role, department, work email, and work site."
+      onClose={onClose}
+      open={open}
+      size="xl"
+      title="Reporting hierarchy"
+    >
+      {truncated ? (
+        <p className="mb-3 rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-xs text-muted">
+          This branch is larger than the viewer can show at once — part of it
+          is not displayed.
+        </p>
+      ) : null}
+      <div className="overflow-auto" role="tree">
+        <ul className="flex flex-col gap-2">
+          <ReportingHierarchyTreeNodeItem
+            canReadWorkEmail={canReadWorkEmail}
+            canReadWorkSite={canReadWorkSite}
+            currentEmployeeId={currentEmployeeId}
+            node={root}
+          />
+        </ul>
+      </div>
+    </Dialog>
+  );
+}
+
+function ReportingHierarchyTreeNodeItem({
+  canReadWorkEmail,
+  canReadWorkSite,
+  currentEmployeeId,
+  node,
+}: {
+  readonly canReadWorkEmail: boolean;
+  readonly canReadWorkSite: boolean;
+  readonly currentEmployeeId: string | null;
+  readonly node: ReportingHierarchyTreeNode;
+}) {
+  const [detailOpen, setDetailOpen] = useState(false);
+  const popoverId = useId();
+  const isCurrent = node.id === currentEmployeeId;
+  const detailFields = [
+    node.jobTitle,
+    node.department,
+    canReadWorkEmail ? node.workEmail : null,
+    canReadWorkSite ? node.workSiteName : null,
+  ].filter((field): field is string => Boolean(field));
+
+  return (
+    <li aria-selected={isCurrent} className="list-none" role="treeitem">
+      <div className="relative inline-block">
+        <button
+          aria-describedby={detailFields.length ? popoverId : undefined}
+          className={`flex w-28 flex-col items-center gap-1 rounded-xl border p-2 text-center transition ${
+            isCurrent
+              ? "border-accent bg-accent/5 ring-2 ring-accent/40"
+              : "border-border bg-white hover:bg-surface-strong"
+          }`}
+          onBlur={() => setDetailOpen(false)}
+          onClick={() => setDetailOpen((value) => !value)}
+          onFocus={() => setDetailOpen(true)}
+          onMouseEnter={() => setDetailOpen(true)}
+          onMouseLeave={() => setDetailOpen(false)}
+          type="button"
+        >
+          <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-surface-strong text-xs font-semibold text-foreground">
+            {node.profilePhotoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- a small avatar from an internal, already-authorized document route, not a Next remote image source
+              <img
+                alt=""
+                className="h-full w-full object-cover"
+                src={node.profilePhotoUrl}
+              />
+            ) : (
+              initialsOf(node.displayName)
+            )}
+          </span>
+          <span className="w-full truncate text-xs font-medium text-foreground">
+            {node.displayName}
+          </span>
+        </button>
+
+        {detailOpen && detailFields.length > 0 ? (
+          <div
+            className="absolute left-1/2 top-full z-10 mt-1 w-56 -translate-x-1/2 rounded-lg border border-border bg-white p-3 text-left text-xs shadow-lg"
+            id={popoverId}
+            role="tooltip"
+          >
+            {node.jobTitle ? (
+              <p className="font-medium text-foreground">{node.jobTitle}</p>
+            ) : null}
+            {node.department ? (
+              <p className="text-muted">{node.department}</p>
+            ) : null}
+            {canReadWorkEmail && node.workEmail ? (
+              <p className="mt-1 truncate text-foreground">
+                {node.workEmail}
+              </p>
+            ) : null}
+            {canReadWorkSite && node.workSiteName ? (
+              <p className="text-muted">{node.workSiteName}</p>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+
+      {node.children.length > 0 ? (
+        <ul className="ml-5 mt-2 flex flex-col gap-2 border-l border-border pl-4">
+          {node.children.map((child) => (
+            <ReportingHierarchyTreeNodeItem
+              canReadWorkEmail={canReadWorkEmail}
+              canReadWorkSite={canReadWorkSite}
+              currentEmployeeId={currentEmployeeId}
+              key={child.id}
+              node={child}
+            />
+          ))}
+        </ul>
+      ) : null}
+    </li>
+  );
+}
+
+function initialsOf(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  return (
+    parts
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join("") || "?"
   );
 }
 
@@ -3280,10 +3475,66 @@ function readReportingHierarchy(value: unknown) {
   const currentEmployee = readHierarchyNode(value.currentEmployee);
   const reportingLine = readHierarchyNodes(value.reportingLine);
   const directReports = readHierarchyNodes(value.directReports);
-  if (!currentEmployee && !reportingLine.length && !directReports.length) {
+  const tree = readHierarchyTreeNode(value.tree);
+  if (
+    !currentEmployee &&
+    !reportingLine.length &&
+    !directReports.length &&
+    !tree
+  ) {
     return null;
   }
-  return { currentEmployee, reportingLine, directReports };
+  return {
+    currentEmployee,
+    reportingLine,
+    directReports,
+    tree,
+    hierarchyTruncated: value.hierarchyTruncated === true,
+  };
+}
+
+/*
+ * ITEM-0164 — the hierarchy viewer's tree, a richer node shape than the flat
+ * `ReportingHierarchyNode` cards above (which carry only id/name/subtitle):
+ * this one keeps job title, department and the hover-only fields (work email,
+ * work site) separate so the tree can gate the latter two on field-level
+ * security without touching the already-composed `subtitle` string the three
+ * flat cards use.
+ */
+type ReportingHierarchyTreeNode = {
+  readonly id: string;
+  readonly displayName: string;
+  readonly jobTitle: string | null;
+  readonly department: string | null;
+  readonly profilePhotoUrl: string | null;
+  readonly workEmail: string | null;
+  readonly workSiteName: string | null;
+  readonly children: readonly ReportingHierarchyTreeNode[];
+};
+
+function readHierarchyTreeNode(
+  value: unknown,
+): ReportingHierarchyTreeNode | null {
+  if (!isRecord(value)) return null;
+  const id = stringValue(value.id);
+  const displayName = stringValue(value.displayName);
+  if (!id || !displayName) return null;
+  return {
+    id,
+    displayName,
+    jobTitle: stringValue(value.jobTitle) || null,
+    department: stringValue(value.department) || null,
+    profilePhotoUrl: stringValue(value.profilePhotoUrl) || null,
+    workEmail: stringValue(value.workEmail) || null,
+    workSiteName: stringValue(value.workSiteName) || null,
+    children: Array.isArray(value.children)
+      ? value.children
+          .map(readHierarchyTreeNode)
+          .filter((child): child is ReportingHierarchyTreeNode =>
+            Boolean(child),
+          )
+      : [],
+  };
 }
 
 function readHierarchyNodes(value: unknown) {

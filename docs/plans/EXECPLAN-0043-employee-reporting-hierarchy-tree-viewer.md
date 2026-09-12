@@ -148,16 +148,20 @@ no library — the precedent [[ADR-0012]] builds on.
    unchanged in shape, so the three-card view keeps working with no frontend
    change required for them.
 4. A "View hierarchy" button appears on the Reporting Hierarchy section
-   (inside `ModuleReportingHierarchyWidget`), disabled with an explanatory
-   `title` when `hierarchy.read` was not returned as `available` by the
-   widget's own registry check (i.e. never rendered in a state the surrounding
-   widget already decided not to show).
+   (inside `ModuleReportingHierarchyWidget`) only once `tree` has loaded. This
+   makes an explicit disabled/title state unnecessary rather than skipping
+   one: the button lives inside the widget's own already-loaded content, and
+   the widget itself does not render past its `hierarchy.read`
+   permission/loading/error states (the System Widget Registry check already
+   in front of it — see Existing behavior) — so there is no reachable render
+   path where the button exists but the viewer lacks the permission or the
+   data has not arrived.
 5. The button opens a dialog rendering `tree` as nested branches (per
    [[ADR-0012]]): one card per node, avatar + name only, with the current
-   employee visually distinguished (e.g. a highlighted border/ring).
-6. Hovering, focusing (keyboard `Tab`, or arrow-key roving focus between
-   nodes — see Frontend impact), or tapping a node reveals a popover with job
-   title, department, and — **only if** `canReadField(runtime.security,
+   employee visually distinguished (a highlighted border/ring).
+6. Hovering, focusing (keyboard `Tab`), or tapping (`onClick` toggles) a node
+   reveals a popover with job title, department, and — **only if**
+   `canReadField(runtime.security,
    "employee", "workEmail")` / `"locationId"` are each `true` for the viewer —
    work email and work site. A node the viewer may not see either extra field
    for still shows job title and department; nothing is ever fully hidden
@@ -184,9 +188,11 @@ no library — the precedent [[ADR-0012]] builds on.
 - `apps/web/lib/runtime/modules/employee-data.adapter.ts` — `mapReportingHierarchy`
   to also map `tree` / `hierarchyTruncated`.
 - `apps/web/app/components/runtime/module-widget-renderer.tsx` —
-  `ModuleReportingHierarchyWidget` gets the button; new `ReportingHierarchyTreeDialog`
-  and `ReportingHierarchyTreeNode` components in the same file (consistent with
-  where every other widget in this file lives).
+  `ModuleReportingHierarchyWidget` gets the button; new
+  `ReportingHierarchyTreeDialog` and `ReportingHierarchyTreeNodeItem`
+  components, and a richer `ReportingHierarchyTreeNode` read-side type, all in
+  the same file (consistent with where every other widget in this file
+  lives).
 
 **Docs**
 - `docs/decisions/ADR-0012-...` (already written).
@@ -218,20 +224,28 @@ route.
 
 ## Frontend impact
 
-`apps/web`, module runtime. The tree renders as nested flex/grid rows with
-SVG connectors per [[ADR-0012]] — no new dependency. Loading / error / empty
-states: the dialog reuses the widget's own loading/error state (it cannot
-open until the widget's data has loaded, since the button lives inside the
-already-loaded widget) and shows `definition.emptyState` text if `tree` is
-absent. Keyboard: roving `tabIndex` between nodes (`0` on the focused node,
-`-1` on the rest) with arrow-key movement between parent/children/siblings,
-the same pattern `responsive-runtime-tabs.tsx` already established and
-`resolveNextTabIndex` demonstrates for this codebase — reused conceptually,
-not imported (a tree's adjacency is not a tab strip's linear order, so the
-exact function does not apply, but the roving-tabindex mechanism does).
-Responsive: the dialog's tree pane scrolls in both axes at 390px rather than
-forcing the page to scroll horizontally; nodes stack their connectors
-vertically below a configurable width rather than assuming desktop space.
+`apps/web`, module runtime. The tree renders as nested `<ul>`/`<li>` lists
+with indent-and-rule connectors per [[ADR-0012]] — no new dependency, no
+DOM-position measurement. `Dialog` (`apps/web/app/components/ui/dialog.tsx`)
+is reused rather than a bespoke modal, so focus containment, Escape-to-close,
+`role="dialog"`/`aria-modal`/`aria-labelledby`, and background-scroll lock
+are inherited rather than reimplemented. Loading / error / empty states: the
+dialog cannot open until the widget's own data has loaded, since the button
+lives inside the already-loaded widget content, and shows
+`definition.emptyState` text (via the surrounding widget) if `tree` is
+absent. Keyboard: every node is an ordinary focusable `<button>` in normal
+document (Tab) order — not a roving-tabindex/arrow-key tree navigation
+pattern. That is a deliberate scope reduction against this plan's original
+draft: the record's acceptance criterion is that hover detail has a keyboard
+and touch equivalent (satisfied — `onFocus`/`onBlur` mirror
+`onMouseEnter`/`onMouseLeave`, and `onClick` toggles for touch), not that the
+tree implements arrow-key roving navigation, and plain Tab order is
+sufficient, simpler, and has no custom focus-management code to get wrong.
+Touch: `onClick` toggles the popover open/closed, since touch has no hover.
+Responsive: the dialog's tree pane (`overflow: auto`) scrolls independently
+of the page at 390px; the nested-list layout reflows to narrow widths with
+no breakpoint-specific logic, since it is ordinary block layout rather than
+a fixed-width canvas.
 
 ## Permission / RBAC impact
 

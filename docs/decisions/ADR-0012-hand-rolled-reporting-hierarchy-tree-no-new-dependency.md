@@ -41,12 +41,19 @@ graph.
 
 ## Decision
 
-**Hand-rolled, no new dependency.** The tree renders as nested flex/CSS grid
-per depth level, with SVG connectors drawn between a parent and its children
-(absolutely positioned `<svg>` per row, or a single overlay `<svg>` sized to
-the container — implementation detail for `EXECPLAN-0043`, not this decision).
-Detail-on-interaction is a plain popover/tooltip component keyed off
-hover/focus/press state, not a library feature.
+**Hand-rolled, no new dependency.** The tree renders as nested `<ul>`/`<li>`
+lists, one per depth level, connected by an indent-and-rule pattern — a
+`border-l` on each child list plus left padding — rather than drawn SVG lines
+between measured DOM positions. Detail-on-interaction is a plain popover/
+tooltip component keyed off hover/focus/press state, not a library feature.
+
+(This is the fallback this ADR originally described alongside an SVG-drawn
+alternative; implementing it, indent-and-rule was simply the better default —
+it needs no DOM-position measurement code at all, degrades correctly under
+text reflow and narrow widths with zero extra logic, and is indistinguishable
+in effect from a drawn line for a tree this shape. SVG connectors remain an
+option if a future revision wants literal diagonal branch lines; nothing here
+forecloses it.)
 
 Reasons, weighed against a library (`reactflow` was the closest fit
 considered — auto-layout, pan/zoom, and a maintained React API):
@@ -94,15 +101,16 @@ adding one.
 ## Consequences
 
 - No new runtime dependency in `apps/web`'s `package.json`.
-- The tree component (`EmployeeHierarchyTreeDialog` /
-  `ReportingHierarchyTree`, see `EXECPLAN-0043`) is bespoke, hand-maintained
-  code rather than a library upgrade path — the team owns its bug fixes.
-- The connector-drawing code is the one part of this that is genuinely fiddly
-  (measuring DOM node positions to draw SVG lines between rows that can wrap
-  at narrow widths); `EXECPLAN-0043` calls this out as the primary
-  implementation risk and specifies a fallback (indent-and-rule connectors
-  instead of drawn lines) if per-node position measurement proves unreliable
-  at small screen widths.
+- The tree component (`ReportingHierarchyTreeDialog` /
+  `ReportingHierarchyTreeNodeItem` in
+  `apps/web/app/components/runtime/module-widget-renderer.tsx`, see
+  `EXECPLAN-0043`) is bespoke, hand-maintained code rather than a library
+  upgrade path — the team owns its bug fixes.
+- No DOM-position measurement code exists anywhere in the tree — the
+  indent-and-rule connectors are pure CSS on the nested list structure, so
+  there is nothing here that can go wrong under text reflow, a translated
+  label of different length, or a resize, the way measured SVG lines could
+  have.
 
 ## Related
 

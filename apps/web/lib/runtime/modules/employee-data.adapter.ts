@@ -547,6 +547,12 @@ function mapReportingHierarchy(data: unknown) {
     currentEmployee: mapReportingNode(data.currentEmployee),
     reportingLine: mapReportingNodes(data.reportingLine),
     directReports: mapReportingNodes(data.directReports),
+    // ITEM-0164 — the hierarchy viewer's tree. `tree` is scoped to this
+    // employee's own branch (ancestors to the root, then this employee's own
+    // descendants) and depth/node-bounded server-side; see
+    // `getReportingStructure` in `employees.service.ts`.
+    tree: mapReportingTreeNode(data.tree),
+    hierarchyTruncated: data.hierarchyTruncated === true,
   };
 }
 
@@ -555,8 +561,40 @@ function emptyReportingHierarchy() {
     currentEmployee: null,
     reportingLine: [],
     directReports: [],
+    tree: null,
+    hierarchyTruncated: false,
   };
 }
+
+function mapReportingTreeNode(value: unknown): ReportingTreeNode | null {
+  if (!isRecord(value)) return null;
+  const id = stringValue(value.employeeId);
+  const displayName = stringValue(value.displayName);
+  if (!id || !displayName) return null;
+  return {
+    id,
+    displayName,
+    jobTitle: stringValue(value.jobTitle) || null,
+    department: stringValue(value.department) || null,
+    profilePhotoUrl: stringValue(value.profilePhotoUrl) || null,
+    workEmail: stringValue(value.workEmail) || null,
+    workSiteName: stringValue(value.workSiteName) || null,
+    children: Array.isArray(value.children)
+      ? value.children.map(mapReportingTreeNode).filter((child) => child !== null)
+      : [],
+  };
+}
+
+export type ReportingTreeNode = {
+  readonly id: string;
+  readonly displayName: string;
+  readonly jobTitle: string | null;
+  readonly department: string | null;
+  readonly profilePhotoUrl: string | null;
+  readonly workEmail: string | null;
+  readonly workSiteName: string | null;
+  readonly children: readonly ReportingTreeNode[];
+};
 
 function mapReportingNodes(value: unknown) {
   return Array.isArray(value)
