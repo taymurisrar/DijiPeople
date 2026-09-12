@@ -3,19 +3,20 @@ ID: ITEM-0163
 aliases: [ITEM-0163]
 Title: Give every lookup one behaviour: an openable label, one implementation, and a reference route that is not an allowlist
 Type: UX
-Status: IN_PROGRESS
+Status: DONE
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [apps/web, apps/admin]
 Source: USER_REPORT
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 CreatedAt: 2026-09-11
 UpdatedAt: 2026-09-12
+ResolvedAt: 2026-09-12
 RelatedBug: BUG-3376
 RelatedQA: docs/qa/scenarios/QA-UI-001-admin-lookup-controls-are-keyboard-operable-and-expose-no-ne.md
-RelatedADR: 
-RelatedImplementation: docs/architecture/lookup-control-contract.md
+RelatedADR: ADR-0007
+RelatedImplementation: docs/architecture/lookup-control-contract.md, apps/web/app/components/metadata/lookup-reference-route.ts
 TargetMilestone: 
 BlockedBy: 
 ---
@@ -168,12 +169,12 @@ first, independently, rather than waiting for convergence.
 roles rewrite. [[ITEM-0172]] the one remaining wiring step this item and
 BUG-3376 both need.
 
-## Resolution — 2026-09-12 (partial)
+## Resolution — 2026-09-12
 
 Implemented in SESSION-0103 under EXECPLAN-0040, sequenced after [[BUG-3377]]
-as instructed. **Done for both apps' controls and documented as one contract.
-Not done: the allowlist replacement, and full conformance for `apps/web`'s
-metadata-driven record forms — both blocked by the same excluded file.**
+as instructed, and completed by [[ITEM-0172]] once the previously-excluded
+file was picked up. **Done for both apps' controls, documented as one
+contract, and the allowlist is replaced.**
 
 ### The specific ask — done in both apps
 
@@ -213,21 +214,45 @@ metadata-driven record forms — both blocked by the same excluded file.**
   in the contract doc as "not implemented" rather than left ambiguous.
 - **The dead `{false && isOpen ...}` block is deleted** from `form-control.tsx`
   (`apps/web`), along with its nested dead `{false && ...}` subset.
-- **Not done: the allowlist.** `LOOKUP_REFERENCE_ROUTES` (including its two
-  legacy entries, `roles` and `teams`) is unchanged —
-  `runtime-metadata-form-renderer.tsx`, the file it lives in, was owned by a
-  concurrent agent in this session and named out of scope in this task's
-  brief. Filed as [[ITEM-0172]], alongside the matching BUG-3376 gap in the
-  same file.
-- **Not fully done: "one documented lookup contract, tested in both apps."**
-  The contract is written and both apps' *controls* are tested against the
-  parts that are theirs to keep (label link, clear, keyboard/ARIA, debounce,
-  pin, truncation). The one part of the contract `apps/web` does not yet
-  satisfy for a metadata-driven record-form lookup — server-side search
-  actually reaching that surface — is the same [[ITEM-0172]] gap.
+- **The allowlist is replaced (closed by [[ITEM-0172]], 2026-09-12).**
+  `LOOKUP_REFERENCE_ROUTES` — the flat, hand-maintained,
+  exact-string-matched map, including its two entries this record called
+  legacy — is gone from `runtime-metadata-form-renderer.tsx`. In its place,
+  `apps/web/app/components/metadata/lookup-reference-route.ts` resolves a
+  route from a normalized (case-insensitive, singular/plural-aware) alias
+  table over the same destinations. `apps/web` has no live entity-to-route
+  registry to delegate to instead — the only candidates
+  (`module-registry.ts` and its siblings) were removed as inert scaffolding
+  with zero callers ([[ADR-0007]]), so reviving one would have contradicted
+  that decision; this table is closer in spirit to admin's own
+  `resolveLookupRecordRoute`, which derives a route from data the lookup
+  already carries rather than a hand-authored map, than to what it replaces.
+  Both flagged entries were re-verified rather than changed on the record's
+  say-so alone: `roles` genuinely was legacy (`/settings/access/roles` only
+  resolves via a `next.config.ts` redirect, confirmed still present) and now
+  points at the canonical destination directly; `teams` was investigated and
+  found NOT legacy — no such redirect exists, and
+  `settings-adapter-registry.ts`'s own `teams` key names this exact path as
+  its current, deliberate destination — so it is unchanged. The
+  *organizational* "Team" an Employee record assigns had no entry at all
+  under either name before this and now does, as its own destination
+  distinct from `teams`. See [[ITEM-0172]]'s Resolution for the full
+  accounting, including the other previously-silent omissions this same
+  normalization fixed (Department, Designation, Location, Organization,
+  Business Unit, Work Schedule, Employee Level, Owner, Country,
+  State/Province, City).
+- **"One documented lookup contract, tested in both apps" is now fully
+  satisfied for the parts this item and [[BUG-3376]] together specify.** The
+  contract is written and both apps' controls are tested against the parts
+  that are theirs to keep (label link, clear, keyboard/ARIA, debounce, pin,
+  truncation); `apps/web`'s metadata-driven record-form lookup now also
+  satisfies the server-side-search part of the contract, closed by
+  [[ITEM-0172]], and the allowlist-replacement's own correctness is covered
+  by `lookup-reference-route.spec.ts` (18 cases, including every previously
+  silently-broken bespoke-employee-domain spelling).
 
-See BUG-3376's Resolution section for the parallel, more detailed accounting
-of the search-side work, since the two records share the same blocked
+See [[BUG-3376]]'s Resolution section for the parallel, more detailed
+accounting of the search-side work, since the two records share the same
 integration point.
 
 ## History
@@ -239,6 +264,9 @@ integration point.
   dead block deleted, and the contract documented, in SESSION-0103, branch
   `agent/r-s6-lookups`. The allowlist replacement and full `apps/web`
   conformance remain, filed as [[ITEM-0172]].
+- 2026-09-12 — closed via [[ITEM-0172]], SESSION-0103, branch
+  `agent/r-s9-lookup-wiring`: the allowlist replaced and `apps/web`'s
+  metadata-driven record-form lookup brought to full contract conformance.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 

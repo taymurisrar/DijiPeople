@@ -5021,3 +5021,19 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-09-12 |
 | **Active** | yes |
 
+### REG-470 — A record-form entity lookup fetched one unpaged page and filtered it in the browser
+
+| | |
+|---|---|
+| **Bug class** | `single-page-fetch-filtered-client-side` |
+| **Module** | `apps/web` |
+| **Bug record** | BUG-3376 |
+| **QA scenario** | QA-RUNTIME-044 |
+| **Root cause** | `runtime-metadata-form-renderer.tsx`'s `<LookupField>` construction — the only call site for every metadata-driven record-form lookup (Project → Project Manager, Approval Manager, Account Manager, Delivery Manager, and every other entity lookup the standard module runtime renders) — read its options from a hydration effect that called `getLookupOptions` once, with no search term, and never again. The server's own default page (20 for employees) was therefore the entire selectable universe for every one of those fields; typing a name past that boundary produced "No matching records found," read by users as "this person does not exist." `standard-module-data.adapter.ts#getLookupOptions` and `LookupField`'s `onSearch`/debounce/pin/`resultsTruncated` machinery already existed (shipped earlier in the same session for `apps/admin` and for the adapter/control layer) — this was purely the one remaining caller never using them. |
+| **Regression test** | `apps/web/app/components/metadata/lookup-reference-route.spec.ts` |
+| **Scenario** | See QA-RUNTIME-044: on a tenant with more employees than `ENTITY_LOOKUP_PAGE_SIZE` (50), a Project's Project Manager lookup finds and selects an employee past that boundary, the request carries the typed `search` term, a full page states it may be truncated, and a genuinely empty search reads as an ordinary empty result rather than a field-level failure. |
+| **Proven to fail without the fix** | Reverting `EditableField`'s `<LookupField>` to `options={[...resolvedLookupOptions]}` with no `onSearch` reproduces the named repro exactly: typing past the hydration page's boundary shows no matches regardless of whether the record exists. |
+| **Note** | The same call site also supplied `selectedHref` through `LOOKUP_REFERENCE_ROUTES`, a flat, exact-string, hand-maintained allowlist of only nineteen entities (ITEM-0163) that compared a lookup's `entityLogicalName` with no case or singular/plural normalization at all — so most of an Employee record's own bespoke lookups (Team, Department, Designation, Location, Organization, Business Unit, Work Schedule, Employee Level, Owner, Country, State/Province, City) silently rendered no link, independent of this bug's search defect. Replaced in the same change by `lookup-reference-route.ts`, a normalized alias table over the same destinations (not a revived registry — `apps/web` has none live, per ADR-0007). Of the map's two entries flagged as legacy, only `roles` actually was (a `next.config.ts` redirect); `teams` was verified current and left unchanged, and the *organizational* "Team" an Employee record assigns — which had no entry under either name before — was added as its own destination. |
+| **Fixed** | 2026-09-12, branch `agent/r-s9-lookup-wiring` |
+| **Active** | yes |
+
