@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**618 records** — 442 bugs under [`docs/bugs/`](../bugs/), 176 non-bug items under [`items/`](items/).
+**619 records** — 443 bugs under [`docs/bugs/`](../bugs/), 176 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -17,7 +17,7 @@ see [`README.md`](README.md) for why.
 | Blocked | 2 |
 | Deferred | 93 |
 | Awaiting a product decision | 7 |
-| Completed / closed | 327 |
+| Completed / closed | 328 |
 | **Open CRITICAL** | **4** |
 | **Open HIGH** | **90** |
 | **Awaiting Architect triage** | **0** |
@@ -28,7 +28,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 4 |
 | HIGH | 90 |
-| MEDIUM | 76 |
+| MEDIUM | 77 |
 | LOW | 16 |
 
 ## Open by type
@@ -44,14 +44,14 @@ see [`README.md`](README.md) for why.
 | FOLLOW_UP | 5 |
 | INFRA | 6 |
 | INTEGRATION | 5 |
-| PERFORMANCE | 14 |
+| PERFORMANCE | 15 |
 | PRODUCT_DECISION | 1 |
 | SECURITY | 17 |
 | STATE_MACHINE | 3 |
 | TECH_DEBT | 6 |
 | TENANT_ISOLATION | 2 |
 | TEST_GAP | 9 |
-| UX | 43 |
+| UX | 42 |
 
 ## All records by status
 
@@ -62,12 +62,12 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 2 |
 | DEFERRED | 93 |
 | PRODUCT_DECISION | 7 |
-| FIXED | 118 |
+| FIXED | 119 |
 | VERIFIED | 218 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
-| READY | 25 |
-| DONE | 95 |
+| READY | 24 |
+| DONE | 96 |
 
 ## All records
 
@@ -507,6 +507,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3373](../../docs/bugs/BUG-3373-web-paints-the-operating-system-dark-theme-before-the-tenant.md) | Web paints the operating-system dark theme before the tenant Light default arrives | UX | MEDIUM | P2 | FIXED | apps/web | FIX_NOW |
 | [BUG-3377](../../docs/bugs/BUG-3377-admin-lookup-controls-still-carry-the-nested-interactive-lis.md) | Admin lookup controls still carry the nested-interactive listbox that BUG-1956 fixed only in web | UX | MEDIUM | P2 | FIXED | apps/admin | FIX_NOW |
 | [BUG-3378](../../docs/bugs/BUG-3378-the-responsive-runtime-tab-strip-hides-a-measurement-copy-fr.md) | The responsive runtime tab strip hides a measurement copy from screen readers while leaving thirteen buttons in the tab order | UX | MEDIUM | P2 | FIXED | apps/web | FIX_NOW |
+| [BUG-3450](../../docs/bugs/BUG-3450-get-employees-id-reporting-structure-computed-every-root-in-.md) | GET /employees/{id}/reporting-structure computed every root in the tenant to unbounded depth on every page view, unused | PERFORMANCE | MEDIUM | P2 | FIXED | api:employees | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -681,7 +682,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0102](../../docs/backlog/items/ITEM-0102-move-switch-workspace-into-the-avatar-menu.md) | Move Switch workspace into the avatar menu | UX | — | P2 | DONE | views | DONE |
 | [ITEM-0127](../../docs/backlog/items/ITEM-0127-settings-ia-21-of-41-groups-hold-a-single-item.md) | Settings IA: 21 of 41 groups hold a single item | UX | — | P2 | DEFERRED | apps/web | DEFER |
 | [ITEM-0128](../../docs/backlog/items/ITEM-0128-reports-and-analytics-two-explanatory-cards-nobody-reads-sit.md) | Reports and Analytics: two explanatory cards nobody reads sit above the data | UX | — | P2 | DONE | apps/web | DONE |
-| [ITEM-0164](../../docs/backlog/items/ITEM-0164-an-organization-hierarchy-viewer-reachable-from-the-employee.md) | An organization hierarchy viewer reachable from the employee record | UX | — | P2 | READY | apps/web, employees, organization | PLAN_REQUIRED |
+| [ITEM-0164](../../docs/backlog/items/ITEM-0164-an-organization-hierarchy-viewer-reachable-from-the-employee.md) | An organization hierarchy viewer reachable from the employee record | UX | — | P2 | DONE | apps/web, employees, organization | DONE |
 | [ITEM-0165](../../docs/backlog/items/ITEM-0165-present-an-employee-s-primary-location-and-authorised-work-s.md) | Present an employee's primary location and authorised work sites as one control | UX | — | P2 | DONE | apps/web, employees, attendance | DONE |
 | [ITEM-0166](../../docs/backlog/items/ITEM-0166-move-data-loss-prevention-captures-off-the-employee-record-p.md) | Move data-loss prevention captures off the employee record page into the Agent surface | UX | — | P2 | DONE | apps/web, agent | DONE |
 | [ITEM-0167](../../docs/backlog/items/ITEM-0167-adopt-the-employee-record-shell-across-the-record-pages-that.md) | Adopt the employee record shell across the record pages that still hand-roll their own | ARCHITECTURE | — | P2 | READY | apps/web | PLAN_REQUIRED |
