@@ -69,6 +69,40 @@ analysis establishes:
   database, per module. It must be run before enforcement is switched on that
   database, not merely to produce the count.
 
+**Measured against production on 2026-09-12, and it contradicts the first
+bullet above.** The dry run was executed, unapplied, by [[SESSION-0103]]. Three
+subscriptions exist, all Starter and all `ACTIVE`: `dijipeople-demo`, `nisaco`
+and `qa-e2e-signup-b-20260826`. Across seven gated feature keys it would grant
+exactly **two** overrides, both to `dijipeople-demo`: `projects` and
+`timesheets`.
+
+It would **not** grant Payroll or Recruitment to `dijipeople-demo`, which is
+exactly what the first bullet says is confirmed. Both readings are defensible
+and only one is useful. [[BUG-3350]] recorded that the payroll cycles route
+"renders with live data" and the recruitment jobs route "renders with a working
+New action", and both statements are true — the screens work. The script counts
+rows, and the tenant has none: no payroll cycle, no job opening, no onboarding
+case. A screen rendering its empty state is not a tenant using a module.
+
+The consequence matters more than the discrepancy. **Grandfathering does not
+protect the modules most likely to be demonstrated**, because grandfathering can
+only protect what a tenant has actually done. Enforcement would therefore remove
+Payroll, Recruitment and Onboarding from the demo tenant *despite* the
+grandfathering step, which is the opposite of what running that step was meant
+to guarantee.
+
+The owner's resolution on 2026-09-12 was to move `dijipeople-demo` to
+Enterprise, which includes every gated module, rather than grant it overrides it
+has not earned — so its entitlements come from a plan that genuinely contains
+them and the comparison table stays true for it. `nisaco` and the QA signup
+tenant are treated as disposable by the same decision: enforcement applies to
+them unmodified.
+
+One caveat survives all of the above. The script proves usage with one
+representative table per module, so a tenant that has touched a module only
+through some other table reads as unused and would not be grandfathered. These
+figures are a floor, not a census.
+
 ## Decision
 
 1. **Grandfather, then enforce** (route 2 of BUG-3350's Proposed Resolution).
