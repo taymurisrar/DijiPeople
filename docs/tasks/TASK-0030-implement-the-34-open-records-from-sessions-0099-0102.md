@@ -96,7 +96,18 @@ Two warnings were present before this task started and are not its to fix: three
 other worktrees are dirty with other sessions' live work, and `render.yaml`
 disagrees with the live Render service on 31 fields.
 
-POST_TASK_REPO_HEALTH — pending.
+POST_TASK_REPO_HEALTH = FAIL as `repo-health.mjs` reports it, for two reasons,
+both accounted for. `MAIN_SYNC_STATUS = SYNCED`. `MAIN_CHANGE_STATUS = UNTOUCHED`
+from the task branch; the production change belongs to SESSION-0104's release.
+`TASK_WORKTREE_STATUS = CLEAN`.
+
+- `PRIMARY_WORKTREE_STATUS` reads `DIRTY_UNEXPLAINED`, six screenshots. Another
+  interactive Claude session wrote them into the primary checkout during
+  closure, and the owner attested they are theirs, so in substance the status
+  is `DIRTY_USER_OWNED`. The baseline flag was not used to clear it, because
+  the files did not predate the task.
+- `DEVELOP_SYNC_STATUS = BEHIND` for the primary checkout's local `develop`,
+  left behind by owner decision because that session is working in it.
 
 ## History
 
