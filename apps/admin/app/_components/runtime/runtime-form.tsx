@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Check, ChevronDown, Search, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type {
   RuntimeFieldDefinition,
   RuntimeFormDefinition,
@@ -13,6 +13,15 @@ import { buildLookupRecordHref } from "@/lib/runtime/lookup-record-href";
 import { errorCountByTab } from "@/lib/runtime/blocked-save-feedback";
 import { humanizeLabel } from "@/lib/runtime/humanize-label";
 import { useRuntimeLookupOptions } from "@/lib/runtime/use-runtime-lookup-options";
+import {
+  createDebouncedCallback,
+  LOOKUP_SEARCH_DEBOUNCE_MS,
+} from "@/lib/runtime/lookup-search";
+import {
+  activeDescendantId,
+  listboxOptionId,
+  nextActiveIndex,
+} from "@/lib/a11y/listbox-navigation";
 
 type RuntimeValues = Record<string, unknown>;
 export function RuntimeForm({
@@ -261,17 +270,36 @@ function RuntimeField({
       data-field-key={field.key}
       className={`flex flex-col gap-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 ${span}`}
     >
-      <label htmlFor={controlId} id={`${controlId}-label`} className="block min-h-4">
-        {field.label}
-        {required ? (
-          <span className="ml-1 text-rose-600" aria-hidden="true">
-            *
-          </span>
+      <label
+        htmlFor={controlId}
+        id={`${controlId}-label`}
+        className="flex min-h-4 flex-wrap items-center gap-x-1.5 gap-y-0.5"
+      >
+        <span className="block">
+          {field.label}
+          {required ? (
+            <span className="ml-1 text-rose-600" aria-hidden="true">
+              *
+            </span>
+          ) : null}
+          {/* The asterisk is decorative; `required` on the control is what a
+              screen reader reads, and this says it in words for the cases
+              where the control cannot carry it. */}
+          {required ? <span className="sr-only"> (required)</span> : null}
+        </span>
+        {/*
+          ITEM-0163 — "the label of the selected record should be the thing
+          you click to open it, not a separate 'Open X' link". `FieldDisplay`
+          (below) already renders exactly this for a read-only field; this is
+          that same behaviour generalised to an editable one, so a lookup
+          reads the same way whether or not the record can change it right
+          now. A `<label>` is not the combobox `SearchableSelect` renders, so
+          this does not reopen BUG-3377/BUG-1956's `nested-interactive` fix —
+          the trigger's only behaviour is still opening the list.
+        */}
+        {!readOnly && isLookupField(field) ? (
+          <EditableLookupLabelLink field={field} value={value} values={values} />
         ) : null}
-        {/* The asterisk is decorative; `required` on the control is what a
-            screen reader reads, and this says it in words for the cases where
-            the control cannot carry it. */}
-        {required ? <span className="sr-only"> (required)</span> : null}
       </label>
       {/*
         A value nobody can change is not a form control. Rendering read-only
@@ -922,6 +950,44 @@ function RuntimeFileInput({
   );
 }
 
+/**
+ * ITEM-0163's specific ask, for a lookup that can still be edited.
+ *
+ * `FieldDisplay` resolves the exact same two things (`resolveLookupLabel`,
+ * `resolveDisplayHref`) for a read-only field; reusing them here means an
+ * editable lookup's link opens the same record a read-only rendering of the
+ * same field would, with no second resolution path to drift out of sync.
+ */
+function EditableLookupLabelLink({
+  field,
+  value,
+  values,
+}: {
+  field: RuntimeFieldDefinition;
+  value: unknown;
+  values: RuntimeValues;
+}) {
+  const label = resolveLookupLabel(field, value, values);
+  if (!label) return null;
+  const href = resolveDisplayHref(field, values, value);
+  if (!href) return null;
+
+  return (
+    <Link
+      href={href}
+      className="min-w-0 max-w-[10rem] truncate text-[10px] font-semibold normal-case tracking-normal text-[var(--admin-primary)] hover:underline"
+      title={label}
+      // The label wraps this control's `htmlFor` target; without stopping
+      // propagation a click here would also toggle focus onto that control,
+      // same as clicking blank label text does — harmless, but this link is
+      // meant to navigate, not to open the picker underneath it.
+      onClick={(event) => event.stopPropagation()}
+    >
+      {label}
+    </Link>
+  );
+}
+
 function RuntimeLookup({
   field,
   value,
@@ -942,7 +1008,31 @@ function RuntimeLookup({
   labelledBy?: string;
   describedBy?: string;
 }) {
-  const lookup = useRuntimeLookupOptions(field.lookupPath);
+  /*
+   * BUG-3376 — the lookup route already forwards a `search` parameter
+   * (`use-runtime-lookup-options.ts`); this is what actually sends one now.
+   * Debounced so a five-character name is one request, not five, and built in
+   * an effect rather than during render so nothing here reads a ref's
+   * `.current` synchronously in the render body (`react-hooks/refs`).
+   */
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const debouncedSearchRef = useRef<ReturnType<
+    typeof createDebouncedCallback<[string]>
+  > | null>(null);
+
+  useEffect(() => {
+    debouncedSearchRef.current = createDebouncedCallback<[string]>(
+      (nextQuery) => setDebouncedQuery(nextQuery),
+      LOOKUP_SEARCH_DEBOUNCE_MS,
+    );
+    return () => debouncedSearchRef.current?.cancel();
+  }, []);
+
+  function handleQueryChange(nextQuery: string) {
+    debouncedSearchRef.current?.run(nextQuery);
+  }
+
+  const lookup = useRuntimeLookupOptions(field.lookupPath, debouncedQuery);
   /*
    * A lookup-backed field takes its options from the endpoint; one that
    * declares a static list keeps that list. Memoised because it feeds the
@@ -1003,6 +1093,9 @@ function RuntimeLookup({
             : `Select ${field.label.toLowerCase()}`
         }
         onChange={(next) => onChange(next || (required ? "" : null))}
+        onQueryChange={field.lookupPath ? handleQueryChange : undefined}
+        serverFiltered={Boolean(field.lookupPath)}
+        loading={loading}
       />
       {lookupError ? (
         <p className="text-xs text-rose-700" role="alert">
@@ -1024,6 +1117,10 @@ export function SearchableSelect({
   required = false,
   multiple = false,
   onChange,
+  onQueryChange,
+  serverFiltered = false,
+  loading = false,
+  resultsTruncated = false,
 }: {
   ariaLabel: string;
   /*
@@ -1042,22 +1139,66 @@ export function SearchableSelect({
   required?: boolean;
   multiple?: boolean;
   onChange: (value: string | string[]) => void;
+  /*
+   * BUG-3376 — the raw, un-debounced text the operator has typed so far. A
+   * caller backing this control with a server-side lookup (see `RuntimeLookup`)
+   * debounces this itself before turning it into a request; this control does
+   * not assume anything about how its `options` are produced.
+   */
+  onQueryChange?: (query: string) => void;
+  /*
+   * When the caller already filtered `options` server-side, re-filtering them
+   * here with a plain substring match would only ever narrow the result
+   * further — a server doing token or fuzzy matching can legitimately return
+   * an option this control's own substring check would reject.
+   */
+  serverFiltered?: boolean;
+  loading?: boolean;
+  resultsTruncated?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const listboxId = useId();
+  /*
+   * BUG-3377 — which option the keyboard is on. The popup had none: it was a
+   * list of `button`s, so moving through it meant Tab, and this control never
+   * set `aria-activedescendant` because there was no descendant to name.
+   */
+  const [rawActiveIndex, setActiveIndex] = useState(-1);
   const selected = Array.isArray(value) ? value : value ? [value] : [];
   const selectedLabels = selected.map(
     (item) => options.find((option) => option.value === item)?.label ?? item,
   );
   const normalizedQuery = query.trim().toLocaleLowerCase();
-  const filtered = normalizedQuery
-    ? options.filter((option) =>
-        `${option.label} ${option.value}`
-          .toLocaleLowerCase()
-          .includes(normalizedQuery),
-      )
-    : options;
+  const filtered =
+    serverFiltered || !normalizedQuery
+      ? options
+      : options.filter((option) =>
+          `${option.label} ${option.value}`
+            .toLocaleLowerCase()
+            .includes(normalizedQuery),
+        );
+  /*
+   * The "No selection" row is a real choice (clearing the field), not
+   * decoration, so it is one of the keyboard-reachable entries rather than a
+   * `button` bolted on above the listbox — see `LookupControl` for what that
+   * pattern costs (BUG-3377).
+   */
+  const includeNoSelectionEntry = !required && !multiple;
+  const entries = includeNoSelectionEntry
+    ? [{ value: "", label: "No selection" }, ...filtered]
+    : filtered;
+  /*
+   * Typing narrows the list under the highlight, so an index that named the
+   * fourth match can outlive a list of two — and `aria-activedescendant` would
+   * then point at no element, which is the same class of defect as the one
+   * being fixed. Derived during render rather than clamped in an effect: an
+   * effect that calls `setActiveIndex` on every list change is an extra
+   * render for a value this component can just compute directly
+   * (`react-hooks/set-state-in-effect`).
+   */
+  const activeIndex = rawActiveIndex >= entries.length ? -1 : rawActiveIndex;
 
   useEffect(() => {
     if (!open) return;
@@ -1069,6 +1210,10 @@ export function SearchableSelect({
     document.addEventListener("pointerdown", close);
     return () => document.removeEventListener("pointerdown", close);
   }, [open]);
+
+  useEffect(() => {
+    onQueryChange?.(query);
+  }, [query, onQueryChange]);
 
   function choose(next: string) {
     if (multiple) {
@@ -1082,6 +1227,13 @@ export function SearchableSelect({
     onChange(next);
     setOpen(false);
     setQuery("");
+    setActiveIndex(-1);
+  }
+
+  function openList() {
+    if (disabled) return;
+    setOpen(true);
+    setActiveIndex(entries.findIndex((entry) => selected.includes(entry.value)));
   }
 
   return (
@@ -1096,10 +1248,25 @@ export function SearchableSelect({
         aria-label={labelledBy ? undefined : ariaLabel}
         aria-labelledby={labelledBy}
         aria-describedby={describedBy}
+        aria-activedescendant={activeDescendantId(
+          listboxId,
+          open,
+          activeIndex,
+          entries.length,
+        )}
+        aria-controls={open ? listboxId : undefined}
         aria-haspopup="listbox"
         aria-expanded={open}
+        role="combobox"
         disabled={disabled}
-        onClick={() => setOpen((current) => !current)}
+        onClick={() => (open ? setOpen(false) : openList())}
+        onKeyDown={(event) => {
+          if (disabled || open) return;
+          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            event.preventDefault();
+            openList();
+          }
+        }}
         className="flex min-h-10 w-full items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 text-left text-sm text-slate-900 outline-none transition focus:border-[var(--admin-primary)] focus:ring-2 focus:ring-[var(--admin-primary)]/10 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500"
       >
         <span
@@ -1118,13 +1285,45 @@ export function SearchableSelect({
             <input
               autoFocus
               type="search"
+              aria-activedescendant={activeDescendantId(
+                listboxId,
+                open,
+                activeIndex,
+                entries.length,
+              )}
+              aria-controls={entries.length ? listboxId : undefined}
+              aria-label={`Search ${ariaLabel.toLowerCase()}`}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               onKeyDown={(event) => {
-                if (event.key === "Escape") setOpen(false);
-                if (event.key === "Enter" && filtered[0]) {
+                /*
+                 * BUG-3377 — arrows, Enter, Escape, Home and End live on the
+                 * search input, because it is what actually holds focus while
+                 * the popup is open. The options themselves carry no key
+                 * handlers of their own (see the eslint-disable below).
+                 */
+                const moved = nextActiveIndex(
+                  event.key,
+                  activeIndex,
+                  entries.length,
+                );
+                if (moved !== null) {
                   event.preventDefault();
-                  choose(filtered[0].value);
+                  setActiveIndex(moved);
+                  return;
+                }
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  if (activeIndex >= 0 && activeIndex < entries.length) {
+                    choose(entries[activeIndex].value);
+                  }
+                  return;
+                }
+                if (event.key === "Escape") {
+                  event.preventDefault();
+                  setOpen(false);
+                  setQuery("");
+                  setActiveIndex(-1);
                 }
               }}
               placeholder={`Search ${ariaLabel.toLowerCase()}...`}
@@ -1141,42 +1340,61 @@ export function SearchableSelect({
               </button>
             ) : null}
           </div>
+          {loading ? (
+            <p className="px-1 pt-1.5 text-xs text-slate-500">Loading…</p>
+          ) : null}
+          {resultsTruncated && filtered.length ? (
+            <p className="px-1 pt-1.5 text-xs text-slate-500">
+              {buildTruncationMessage(filtered.length)}
+            </p>
+          ) : null}
+          {/*
+            BUG-3377 — `role="listbox"` owning focusable `button` children is
+            the `nested-interactive` violation this whole rewrite is about.
+            The options are `div`s, reached by `aria-activedescendant` from the
+            search input above, not by Tab.
+          */}
           <div
             role="listbox"
+            id={listboxId}
             aria-multiselectable={multiple || undefined}
             className="mt-1 max-h-64 overflow-y-auto"
           >
-            {!required && !multiple ? (
-              <button
-                type="button"
-                role="option"
-                aria-selected={!selected.length}
-                onClick={() => choose("")}
-                className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-slate-500 hover:bg-slate-50"
-              >
-                No selection
-                {!selected.length ? <Check className="h-4 w-4" /> : null}
-              </button>
-            ) : null}
-            {filtered.map((option) => {
-              const isSelected = selected.includes(option.value);
+            {entries.map((entry, index) => {
+              const isSelected = entry.value
+                ? selected.includes(entry.value)
+                : !selected.length;
+              const isActive = index === activeIndex;
+              const isNoSelection = includeNoSelectionEntry && index === 0;
+
               return (
-                <button
-                  type="button"
+                // See `apps/web/app/components/ui/form-control.tsx` for the
+                // fuller note: in an `aria-activedescendant` listbox the
+                // options are deliberately not focusable and carry no key
+                // handlers of their own — the search input owns the keyboard
+                // and points at the active option by id.
+                 
+                <div
                   role="option"
+                  id={listboxOptionId(listboxId, index)}
                   aria-selected={isSelected}
-                  key={option.value}
-                  onClick={() => choose(option.value)}
-                  className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                  key={entry.value || "__no-selection"}
+                  onClick={() => choose(entry.value)}
+                  onMouseEnter={() => setActiveIndex(index)}
+                  className={[
+                    "flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm transition",
+                    isNoSelection ? "text-slate-500" : "text-slate-700",
+                    isActive ? "bg-slate-50" : "hover:bg-slate-50",
+                  ].join(" ")}
                 >
-                  <span className="truncate">{option.label}</span>
+                  <span className="truncate">{entry.label}</span>
                   {isSelected ? (
                     <Check className="h-4 w-4 shrink-0 text-[var(--admin-primary)]" />
                   ) : null}
-                </button>
+                </div>
               );
             })}
-            {!filtered.length ? (
+            {!entries.length ? (
               <p className="px-3 py-4 text-center text-sm text-slate-500">
                 No matching options.
               </p>
@@ -1186,6 +1404,10 @@ export function SearchableSelect({
       ) : null}
     </div>
   );
+}
+
+function buildTruncationMessage(resultCount: number) {
+  return `Showing first ${resultCount} — keep typing to narrow.`;
 }
 
 
