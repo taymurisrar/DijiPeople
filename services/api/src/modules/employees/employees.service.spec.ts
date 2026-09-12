@@ -13,6 +13,7 @@ describe('EmployeesService', () => {
     stateProvince: { findFirst: jest.Mock };
     city: { findFirst: jest.Mock };
     relationType: { findFirst: jest.Mock };
+    employee: { findMany: jest.Mock };
   };
   let employeesRepository: {
     findByIdAndTenant: jest.Mock;
@@ -53,6 +54,7 @@ describe('EmployeesService', () => {
       stateProvince: { findFirst: jest.fn() },
       city: { findFirst: jest.fn() },
       relationType: { findFirst: jest.fn() },
+      employee: { findMany: jest.fn() },
     };
     employeesRepository = {
       findByIdAndTenant: jest.fn(),
@@ -393,6 +395,132 @@ describe('EmployeesService', () => {
 
       expect(result.filename).toContain('EMP-001');
       expect(result.buffer.toString('utf8')).toContain('Ada Lovelace');
+    });
+  });
+
+  /*
+   * ITEM-0164 — the hierarchy tree `getReportingStructure` now builds.
+   * Covers the three things EXECPLAN-0043's Definition of Done calls out:
+   * scoped to the queried employee's own branch (not every root in the
+   * tenant), bounded depth/node count with a truncation flag, and the
+   * tenant-scoped read the tree is built from.
+   */
+  describe('getReportingStructure (ITEM-0164)', () => {
+    function node(overrides: Record<string, unknown>) {
+      return {
+        firstName: 'First',
+        lastName: 'Last',
+        preferredName: null,
+        managerEmployeeId: null,
+        designation: null,
+        department: null,
+        profileImageDocumentId: null,
+        email: null,
+        location: null,
+        ...overrides,
+      };
+    }
+
+    it("scopes the tree to the queried employee's own branch, not every root in the tenant", async () => {
+      // Branch A: root -> manager -> current -> child (the branch under test).
+      // Branch B: an entirely unrelated second root and its own report, same
+      // tenant. Branch B must never appear in `tree`.
+      prisma.employee.findMany.mockResolvedValue([
+        node({ id: 'root-a', firstName: 'Root', lastName: 'A' }),
+        node({
+          id: 'manager-a',
+          firstName: 'Manager',
+          lastName: 'A',
+          managerEmployeeId: 'root-a',
+        }),
+        node({
+          id: 'current',
+          firstName: 'Current',
+          lastName: 'Employee',
+          managerEmployeeId: 'manager-a',
+          email: 'current@example.com',
+          location: { name: 'HQ' },
+        }),
+        node({
+          id: 'child',
+          firstName: 'Child',
+          lastName: 'A',
+          managerEmployeeId: 'current',
+        }),
+        node({ id: 'root-b', firstName: 'Root', lastName: 'B' }),
+        node({
+          id: 'report-b',
+          firstName: 'Report',
+          lastName: 'B',
+          managerEmployeeId: 'root-b',
+        }),
+      ]);
+
+      const result = await service.getReportingStructure('tenant-1', 'current');
+
+      function collectIds(n: {
+        employeeId: string;
+        children: unknown[];
+      }): string[] {
+        return [
+          n.employeeId,
+          ...(n.children as (typeof n)[]).flatMap(collectIds),
+        ];
+      }
+
+      expect(collectIds(result.tree)).toEqual([
+        'root-a',
+        'manager-a',
+        'current',
+        'child',
+      ]);
+      expect(result.hierarchyTruncated).toBe(false);
+      // The hover fields (ITEM-0164) surface on the current employee's node.
+      const currentNode = result.tree.children[0].children[0];
+      expect(currentNode.employeeId).toBe('current');
+      expect(currentNode.workEmail).toBe('current@example.com');
+      expect(currentNode.workSiteName).toBe('HQ');
+    });
+
+    it('caps depth and node count and reports hierarchyTruncated', async () => {
+      // A chain 12 levels deep from the root — exceeds MAX_HIERARCHY_DEPTH (8).
+      const chain = Array.from({ length: 12 }, (_, index) =>
+        node({
+          id: `emp-${index}`,
+          firstName: `Level`,
+          lastName: `${index}`,
+          managerEmployeeId: index === 0 ? null : `emp-${index - 1}`,
+        }),
+      );
+      prisma.employee.findMany.mockResolvedValue(chain);
+
+      const result = await service.getReportingStructure('tenant-1', 'emp-11');
+
+      expect(result.hierarchyTruncated).toBe(true);
+
+      function depthOf(n: { children: unknown[] }): number {
+        const kids = n.children as { children: unknown[] }[];
+        return kids.length === 0 ? 0 : 1 + Math.max(...kids.map(depthOf));
+      }
+      expect(depthOf(result.tree)).toBeLessThanOrEqual(8);
+    });
+
+    it("reads only the caller's tenant", async () => {
+      prisma.employee.findMany.mockResolvedValue([
+        node({ id: 'current', firstName: 'Current', lastName: 'Employee' }),
+      ]);
+
+      await service.getReportingStructure('tenant-1', 'current');
+
+      expect(prisma.employee.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            tenantId: 'tenant-1',
+            isDeleted: false,
+            deletedAt: null,
+          }) as unknown,
+        }),
+      );
     });
   });
 });

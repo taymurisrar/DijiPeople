@@ -138,6 +138,11 @@ None identified beyond the fix itself.
 ## Related Items
 
 - Audit finding `RES-06` — `docs/engineering/audits/2026-09-10-full-technical-audit/raw/RES.md`
+- [[ITEM-0168]] — the manual, operator-initiated delivery retry. Resolved
+  2026-09-12 independently of this bug (its own ExecPlan, EXECPLAN-0039); its
+  record explicitly leaves reviving `listRetryableDeliveryLogs` into a real
+  automatic/scheduled retry to this bug, since that depends on the outbox
+  work proposed here rather than on the current synchronous send path.
 
 ## Resolution
 
@@ -155,6 +160,7 @@ Not yet retested.
 
 ## Related
 
+- Referenced by — [[ITEM-0168]]
 - Modules — [[notifications]]
 
 <!-- GRAPH:END -->

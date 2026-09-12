@@ -5,6 +5,7 @@ const {
   readForwardedForClientIp,
   buildForwardedClientHeaders,
   FORWARDED_FOR_HEADER,
+  USER_AGENT_HEADER,
 } = require("./client-ip");
 
 /**
@@ -104,26 +105,87 @@ test("a missing or nonsense hop count defaults to one rather than zero", () => {
   assert.equal(readForwardedForClientIp(`${FORGED}, ${CLIENT}`, 1.5), CLIENT);
 });
 
+/**
+ * A `Headers`-like stub keyed by name, the way the real `fetch` `Headers` and
+ * Next's `Request.headers` behave. The single-value stub this file used to use
+ * — `{ get: () => value }` — returns the *same* value for every header name,
+ * which silently stopped being safe the moment `buildForwardedClientHeaders`
+ * started reading a second header (`user-agent`, BUG-3360): every assertion
+ * below would otherwise see its `X-Forwarded-For` value echoed back as the
+ * user agent too.
+ */
+function headers(values) {
+  return { get: (name) => values[name.toLowerCase()] ?? null };
+}
+
 test("relaying a chain is a shape check, not a trust decision", () => {
   // A first-party proxy relaying a single-entry chain is the normal case, so the
   // relay must not apply the API's hop arithmetic — it does not know how many
   // hops the next leg will trust. Asserted through the exported builder, since
   // the predicate itself is internal.
-  const headers = (value) => ({ get: () => value });
-
-  assert.deepEqual(buildForwardedClientHeaders(headers(CLIENT)), {
-    [FORWARDED_FOR_HEADER]: CLIENT,
-  });
   assert.deepEqual(
-    buildForwardedClientHeaders(headers(`${CLIENT}, ${CF_EDGE}`)),
+    buildForwardedClientHeaders(headers({ [FORWARDED_FOR_HEADER]: CLIENT })),
+    { [FORWARDED_FOR_HEADER]: CLIENT },
+  );
+  assert.deepEqual(
+    buildForwardedClientHeaders(
+      headers({ [FORWARDED_FOR_HEADER]: `${CLIENT}, ${CF_EDGE}` }),
+    ),
     { [FORWARDED_FOR_HEADER]: `${CLIENT}, ${CF_EDGE}` },
   );
 
   // Nothing worth relaying yields no header at all, rather than an empty one a
   // downstream reader would have to interpret.
-  assert.deepEqual(buildForwardedClientHeaders(headers("")), {});
-  assert.deepEqual(buildForwardedClientHeaders(headers("   ")), {});
-  assert.deepEqual(buildForwardedClientHeaders(headers(null)), {});
+  assert.deepEqual(
+    buildForwardedClientHeaders(headers({ [FORWARDED_FOR_HEADER]: "" })),
+    {},
+  );
+  assert.deepEqual(
+    buildForwardedClientHeaders(headers({ [FORWARDED_FOR_HEADER]: "   " })),
+    {},
+  );
+  assert.deepEqual(
+    buildForwardedClientHeaders(headers({ [FORWARDED_FOR_HEADER]: null })),
+    {},
+  );
   assert.deepEqual(buildForwardedClientHeaders(undefined), {});
   assert.deepEqual(buildForwardedClientHeaders({}), {});
+});
+
+test("BUG-3360 — the visitor's User-Agent is relayed alongside the address", () => {
+  assert.deepEqual(
+    buildForwardedClientHeaders(
+      headers({
+        [FORWARDED_FOR_HEADER]: CLIENT,
+        [USER_AGENT_HEADER]: "Mozilla/5.0 (Real Browser)",
+      }),
+    ),
+    {
+      [FORWARDED_FOR_HEADER]: CLIENT,
+      [USER_AGENT_HEADER]: "Mozilla/5.0 (Real Browser)",
+    },
+  );
+});
+
+test("BUG-3360 — an absent or blank User-Agent forwards nothing, not a placeholder", () => {
+  assert.deepEqual(
+    buildForwardedClientHeaders(headers({ [FORWARDED_FOR_HEADER]: CLIENT })),
+    { [FORWARDED_FOR_HEADER]: CLIENT },
+  );
+  assert.deepEqual(
+    buildForwardedClientHeaders(
+      headers({ [FORWARDED_FOR_HEADER]: CLIENT, [USER_AGENT_HEADER]: "   " }),
+    ),
+    { [FORWARDED_FOR_HEADER]: CLIENT },
+  );
+});
+
+test("BUG-3360 — a forwarded User-Agent is bounded, not trusted verbatim", () => {
+  const oversized = "A".repeat(600);
+  const result = buildForwardedClientHeaders(
+    headers({ [USER_AGENT_HEADER]: oversized }),
+  );
+
+  assert.equal(result[USER_AGENT_HEADER].length, 500);
+  assert.equal(result[USER_AGENT_HEADER], "A".repeat(500));
 });

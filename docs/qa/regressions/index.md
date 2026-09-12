@@ -4206,6 +4206,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The instructive part is that this was **tested and green while completely broken**. The test asked whether the form behaved as its author intended, never whether the request the form produces is one the server accepts. A form's field map and its endpoint's validation are two statements of one contract; when only one side is asserted, the assertion is worth nothing. The loop over every type is what makes a ninth type unable to reintroduce this. |
 | **Fixed** | 2026-08-30 |
 | **Active** | yes |
+
 ### REG-380 — Reporting endpoints returned tenant-wide aggregates to a scoped reader
 
 | | |
@@ -4235,6 +4236,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | This was found from a live API returning headcount `0`, not from a test — the DB-backed isolation suite missed it entirely because every fixture user was tenant-level, the one scope where the bug is invisible. A security test that only exercises the widest role proves the least. It is also a fail-closed bug that a fail-closed design produced: erring shut is right, but a sanitiser whose vocabulary disagrees with the generator's defaults turns "deny what I cannot verify" into "deny everything", and silently. |
 | **Fixed** | 2026-08-31, branch `agent/reports-analytics-platform` |
 | **Active** | yes |
+
 ### REG-382 — Reports headcount counted soft-deleted employees
 
 | | |
@@ -4249,6 +4251,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Soft delete is **not universal in this schema** — only a handful of models carry `isDeleted` — which is precisely why it gets forgotten. The durable fix is placing the predicate in the shared data source rather than in each metric, so the default is correct and opting out has to be deliberate and visible. |
 | **Fixed** | 2026-08-31, branch `agent/reports-analytics-platform` |
 | **Active** | yes |
+
 ### REG-383 — Reporting pages scrolled the whole document sideways
 
 | | |
@@ -4278,6 +4281,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The tempting fix is to make the module default available on the server. **Do not.** A module-level mutable default is shared between concurrent requests in one Node process, so on a multi-tenant server it can render one tenant's response with another tenant's formatting. Explicit threading is the architecture; the module default is a client-only convenience. Also instructive: this is the same defect class already fixed for eight components earlier in the same task, and it survived because that sweep fixed the components that formatted a date *directly* and never followed the value into the shared cell and chart formatters. Writing the test is what found the remaining five call sites — it failed on first run and named every one. |
 | **Fixed** | 2026-08-31, branch `agent/reports-analytics-platform-fixes` |
 | **Active** | yes |
+
 ### REG-385 — The caveat panel listed the same note twice in two wordings
 
 | | |
@@ -4292,6 +4296,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The first version of this test compared a normalised 60-character prefix and **passed on the broken tree** — the pair that shipped diverges at the fourth word, so any prefix long enough to avoid false positives is already past the divergence. It was only caught because the fix was deliberately reverted to check the test failed, which it did not. Word-set overlap is what matches the real shape: one sentence said twice with small edits. A near-duplicate test that compares prefixes is worth nothing; measure the whole string. |
 | **Fixed** | 2026-08-31, branch `agent/reports-analytics-platform-fixes` |
 | **Active** | yes |
+
 ### REG-386 — No scheduled report was ever delivered
 
 | | |
@@ -4336,6 +4341,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Two things generalise. First, a `next` or `reason` parameter is *evidence*: it means an earlier hop already decided the session failed, and trusting it over a cookie is what breaks the cycle. Second, the fix deliberately does **not** clear the cookies at that point — it is a plain GET, and signing someone out because one request returned 401 would be a worse failure than the one being fixed; clearing them belongs to the logout path that knows the refresh itself failed. The rule was extracted into a named function purely so it could be tested, because `apps/web` runs jest with no jsdom and the middleware cannot be booted there. |
 | **Fixed** | 2026-08-31, branch `agent/session-redirect-loop` |
 | **Active** | yes |
+
 ### REG-389 — Headcount counted employee-days and grew with the period
 
 | | |
@@ -4532,7 +4538,6 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-09-11, branch `agent/cs-s1-openbugs` |
 | **Active** | yes |
 
-
 ### REG-402 — A selector resolved from a client-supplied id instead of the caller
 
 | | |
@@ -4623,7 +4628,6 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-09-11, branch `agent/cs-s5-security` |
 | **Active** | yes |
 
-
 ### REG-408 — Two endpoint pairs where only one side of each enforced the rule
 
 | | |
@@ -4699,3 +4703,367 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Two lessons. First, an optional parameter that selects module-level state is a trap — omitting it is silent and looks correct, so the doc comment now says the parameter is optional only in signature. Second, the `useMemo` dependency mattered as much as the fix: the columns memo closes over `formatting`, so without adding it the correction would have applied on first paint and never again — a correct change that does nothing, which is worse than no change because it reads as done. |
 | **Fixed** | 2026-09-11 |
 | **Active** | yes |
+
+### REG-413 — A per-seat price rendered as the whole charge, with no total for the seat count entered
+
+| | |
+|---|---|
+| **Bug class** | `quoted-price-omits-quantity-multiplier` |
+| **Module** | `apps/web/app/(authenticated)/settings/billing` |
+| **Bug record** | BUG-3330 |
+| **Root cause** | The Plans screen rendered a `PER_SEAT` price's `unitAmount` with only a `/ month` or `/ year` suffix — no mention of "seat" — next to a "Seats to purchase" field that was read only at checkout submission, never in the card. A buyer reading "PKR 300.00 / month" and entering 25 seats was billed `300 x 25`, with nothing on screen ever showing that multiplication. Checkout also clamped an out-of-bounds seat count with `Math.max`/`Math.min` before submitting, so a rejected count was silently substituted rather than refused. |
+| **Regression test** | `apps/web/app/(authenticated)/settings/billing/_lib/seat-pricing.spec.ts` — mirrors the fixture values from the server's own `services/api/src/modules/billing/billing-seat-pricing.spec.ts` so both suites assert the same rule. |
+| **Scenario** | A `PER_SEAT` price at N seats renders the word "seat" in its interval suffix and shows an order summary whose total equals `unitAmount x resolveBillableSeats(price, seats)`. A seat count outside `minimumSeats`/`maximumSeats` is refused with the bound stated, not silently clamped and submitted. |
+| **Proven to fail without the fix** | Reverting `formatPriceQualifier` to the plain `/ month` suffix, or reverting `createCheckoutSession` to `Math.max`/`Math.min` clamping, restores the behaviour BUG-3330 measured live on `dijipeople-demo` (PKR 300.00/month rendered unchanged at 25 seats). |
+| **Note** | No seat-quote endpoint exists on the API yet (`calculateSeatPricing` is written and unit-tested server-side but not exposed over HTTP), so the frontend mirrors the rule rather than calling it — flagged with a `TODO(BUG-3330)` in `seat-pricing.ts` for the API stream, since this exact rule was already implemented twice on the server and the two copies disagreed once (see the comment above `resolveBillableSeats` there). |
+| **Fixed** | 2026-09-12, branch `agent/r-s1-billing-web` |
+| **Active** | yes |
+
+### REG-414 — Two plan cards with different feature counts rendered the same eight bullets
+
+| | |
+|---|---|
+| **Bug class** | `fixed-truncation-hides-the-differentiator` |
+| **Module** | `apps/web/app/(authenticated)/settings/billing` |
+| **Bug record** | BUG-3332 |
+| **Root cause** | Each plan card sorted its enabled features by catalog order and cut with `.slice(0, 8)`. The catalog orders Payroll & Finance last, so Payroll — the one feature that actually distinguishes Enterprise from Growth — was always the first thing cut. Growth (14 features) and Enterprise (16 features) shared their first eight in catalog order and rendered identical bullet lists at prices 64% apart. |
+| **Regression test** | `apps/web/app/(authenticated)/settings/billing/_lib/plan-presentation.spec.ts` |
+| **Scenario** | Given two plans whose feature sets differ, `rankPlanFeatures` ranks the features the cheaper adjacent plan lacks ahead of the ones it shares, so their top-N truncated lists are never identical. A truncated card shows a counted, clickable "and N more" linking to the full comparison. |
+| **Proven to fail without the fix** | Reverting to catalog-order `.slice(0, 8)` reproduces the original defect: `rankPlanFeatures`'s "two plans whose feature sets differ never rank to the same truncated list" test fails when the differentiator-first reordering is removed. |
+| **Note** | A fixed-height card design met a catalog that grew past it, and the truncation rule (position in a shared catalog order) had no relationship to what a comparison exists to show (what is different). Ranking by "not in the cheaper plan" rather than by catalog position is the general fix for any bounded list built from a superset catalog. |
+| **Fixed** | 2026-09-12, branch `agent/r-s1-billing-web` |
+| **Active** | yes |
+
+### REG-415 — A comparison table split into one `<table>` per category could not keep its columns aligned
+
+| | |
+|---|---|
+| **Bug class** | `grid-item-missing-min-width-zero` |
+| **Module** | `apps/web/app/(authenticated)/settings/billing` |
+| **Bug record** | BUG-3335 |
+| **Root cause** | Two independent defects on one screen. First, the plan card grid was `xl:grid-cols-3` with no `sm:`/`lg:` step, so it stacked to one column for the entire 640-1279px range. Second, the feature comparison was six independent `<table>` elements (one per category), each auto-sizing its own columns in its own `overflow-x-auto` wrapper — with nothing tying the column widths together, the same plan landed at a different horizontal offset in every category block. The page also overflowed horizontally at 390px: this component's top-level content `<div>` is a grid item of `SettingsLayout`'s `grid-cols-[minmax(0,1fr)]` track with no `min-w-0` of its own, and (per `settings-table-containment.spec.ts`'s own note on this exact pattern) a `minmax(0,1fr)` track does not by itself constrain a grid item that has no `min-w-0` — the item's automatic minimum size is still its content's size. |
+| **Regression test** | `apps/web/app/(authenticated)/settings/billing/_components/billing-settings-client-containment.spec.ts` |
+| **Scenario** | The plan card grid renders 2 columns from 640px and 3 from 1024px. The feature comparison is one table with one `colgroup`, so every plan's column has the same left offset in every category block, inside one scroller with a sticky header. |
+| **Proven to fail without the fix** | Reverting the grid class to `xl:grid-cols-3` or reverting the comparison to per-category tables fails the containment spec's structural assertions directly. |
+| **Note** | The test is source-level: it pins the sm and lg grid breakpoints, the root min-w-0, the single table, and the overflow wrapper. `apps/web` has no jsdom, so document.scrollWidth itself is not asserted — see the bug record's QA Retest note for what a live-browser pass still has to check. This is the same containment lesson as BUG-1960, recurring in a different screen: min-w-0 has to be applied at every layer between a wide child and the constrained grid track, not only on the child's own wrapper. Worth checking any new settings screen against that checklist before it ships, rather than after a phone-width report. |
+| **Fixed** | 2026-09-12, branch `agent/r-s1-billing-web` |
+| **Active** | yes |
+
+### REG-416 — Every primary action on the subscription screens painted the tenant's text colour instead of its brand colour
+
+| | |
+|---|---|
+| **Bug class** | `hardcoded-fill-ignores-theme-token` |
+| **Module** | `apps/web/app/(authenticated)/settings/billing`, `apps/web/app/(authenticated)/settings/subscription` |
+| **Bug record** | BUG-3345 |
+| **Root cause** | `BillingSettingsClient` filled five primary surfaces with `bg-foreground` — `--foreground` resolves to `--brand-text`, the tenant's body-copy colour, not `--accent` (`--brand-primary`, the tenant's actual brand colour). A sixth instance was found during the fix, outside the file the bug record named: `settings/subscription/cancel/page.tsx`'s "Back to plans" link. The component also hand-rolled `EmptyState`, `StatusChip`, `SegmentedControl` and `FeatureBadge` instead of using the shared UI kit already present at `apps/web/app/components/ui/`. |
+| **Regression test** | `apps/web/app/(authenticated)/settings/billing/_components/billing-settings-client-brand-color.spec.ts` |
+| **Scenario** | No subscription screen fills a primary action with `bg-foreground`. Changing a tenant's `--brand-primary` changes the colour of every primary action on `/settings/subscription/{overview,plans,billing-history,cancel}`. |
+| **Proven to fail without the fix** | Reintroducing any `bg-foreground` fill in either file fails the static check immediately; this is the same one-line-regex check the original bug record proposed and that would have caught the defect on its first commit. |
+| **Note** | The test is a cheap static check, as the bug record's own Regression Coverage section suggested: it asserts neither file contains the body-text fill class, and that the component imports the shared Button. It was mutation-tested at integration — reintroducing the fill in the cancel page turns it red, so it is not a negative assertion that passes vacuously. The record's own count (five) undercounted by one; a sixth instance existed in a file the count-by-inspection missed, found only once a second file on the same user flow was checked deliberately. When a defect is described as "N instances in file X", grep the surrounding flow's other files before treating N as complete. |
+| **Fixed** | 2026-09-12, branch `agent/r-s1-billing-web` |
+| **Active** | yes |
+
+### REG-417 — A failed data load was indistinguishable from a permissions refusal
+
+| | |
+|---|---|
+| **Bug class** | `wrong-failure-state-reused` |
+| **Module** | `apps/web/app/(authenticated)/settings/subscription` |
+| **Bug record** | BUG-3336 |
+| **Root cause** | Three compounding gaps on one route. First, neither `settings/subscription/` nor `settings/billing/` had a `loading.tsx` or `error.tsx`, so navigating there showed the previous screen, unchanged, until three server-side API calls all returned. Second, `SubscriptionSettingsPage` rendered `AccessDeniedState` — the same component used for a genuine role refusal — whenever `loadSubscriptionSettingsData` caught a request error, so a transient 500 or timeout looked identical to "you are not allowed here" and offered no retry. Third, the UI gate was `hasElevatedTenantRole(user?.roleKeys)`, a helper `AGENTS.md` names specifically as a guard bypass, while the API requires the `billing.view` permission plus a `TENANT_ADMINISTRATION:read` matrix privilege — so a user holding the permission but not an elevated role was refused by the UI although the API would have served them. |
+| **Regression test** | `apps/web/app/(authenticated)/settings/subscription/_components/subscription-settings-page.spec.ts` |
+| **Scenario** | `loading.tsx` and `error.tsx` exist at the subscription route segment. A failed data load (`subscriptionData.ok === false`) renders `LoadFailureState`, never `AccessDeniedState`; the permission refusal branch still renders `AccessDeniedState`. The page gate calls `hasSettingsPermission` with `PERMISSION_KEYS.BILLING_VIEW`, not the elevated-role helper. `/billing/invoices` is requested only when `activeView === "billing-history"`. |
+| **Proven to fail without the fix** | Reverting the `!subscriptionData.ok` branch to `AccessDeniedState`, or reverting the gate to the elevated-role helper, fails this spec's assertions directly; there was no executable check for either before this record. |
+| **Note** | `hasSettingsPermission` is not full parity with the API's matrix privilege — no entity-key mirror for `TENANT_ADMINISTRATION` exists anywhere in `apps/web` yet, on this screen or any other — but it is the same gate every other settings screen in this app already uses, and it closes the specific gap this record measured (permission granted, elevated role absent) without inventing a new pattern for one screen. |
+| **Fixed** | 2026-09-12, branch `agent/r-s1-billing-web` |
+| **Active** | yes |
+
+### REG-418 — Admin console's two lookup controls carried BUG-1956's nested-interactive listbox
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-control` |
+| **Module** | `apps/admin` shared form controls, runtime form |
+| **Bug record** | BUG-3377 |
+| **Root cause** | BUG-1956 fixed `apps/web/app/components/ui/form-control.tsx`'s composite controls and never looked at `apps/admin`, which maintains its own copies. `LookupControl` (`app/_components/ui/form-control.tsx`) and `SearchableSelect` (`app/_components/runtime/runtime-form.tsx`) both rendered role="option" on focusable button elements inside a role="listbox" — the nested-interactive violation — and neither set aria-activedescendant. `LookupControl` additionally had zero key handlers of any kind, so it could be opened only with a pointer and its options could never be reached from the keyboard; its clear affordance was a span with role="button" and tabIndex={-1} nested inside the trigger button, both invalid HTML and permanently outside the tab order. |
+| **Regression test** | `apps/admin/lib/a11y/listbox-navigation.spec.ts`, `apps/admin/lib/runtime/lookup-listbox-semantics.spec.ts` |
+| **Scenario** | Movement is a pure function, mirroring apps/web's: arrows wrap, Home and End jump, a non-movement key yields nothing, an empty list yields no index, aria-activedescendant resolves to undefined rather than an id naming no element. Over the source, for both admin controls: a listbox for each combobox, an option role and a selected state for each with none of them a button, aria-activedescendant present, aria-controls only while the popup exists, movement routed through the shared resolver, Escape closes the popup. LookupControl additionally: no role="button" span and no tabIndex={-1} remain, and its trigger is no longer a button (so a real button clear control can sit inside it without producing invalid HTML). |
+| **Proven to fail without the fix** | Modelled directly on apps/web's BUG-1956 regression, which is mutation-tested; the admin listbox-semantics spec asserts the identical shape (no button inside role="listbox", aria-activedescendant present) against the post-fix source. |
+| **Note** | Two implementations, one fix, ported rather than reinvented: `apps/admin/lib/a11y/listbox-navigation.ts` is a duplicate of `apps/web/lib/a11y/listbox-navigation.ts` because the two apps share no UI package for this (root `AGENTS.md`: `packages/` holds exactly four workspaces). `LookupControl`'s trigger changed from a button to a `div role="combobox"` specifically so the clear control could become a real sibling button — a button may not contain another interactive element, which is why the old clear affordance was a non-button in the first place. `SearchableSelect`'s activeIndex clamp is derived during render rather than set in a `useEffect`, after `react-hooks/set-state-in-effect` flagged the direct-port version of the pattern already in `apps/web`'s (differently structured) equivalent. |
+| **Fixed** | 2026-09-12, branch `agent/r-s6-lookups` |
+| **Active** | yes |
+
+### REG-419 — A tenant's Light default was never in reach of the frame that needed it
+
+| | |
+|---|---|
+| **Bug class** | `assertion-without-a-check` |
+| **Module** | `apps/web` |
+| **Bug record** | BUG-3373 |
+| **Root cause** | The pre-paint bootstrap script in `apps/web/app/layout.tsx` resolved the theme from `localStorage` and `matchMedia` only — a static string with no interpolation, so no tenant value could ever reach it. The tenant default was fetched server-side in the same layout, and used only to build CSS colour variables, never to decide `data-theme`. Two mechanisms decided the same attribute from disjoint inputs, and disagreed on every dark-preferring machine visiting a Light tenant. `apps/admin` had already closed this exact gap for its own (user-scoped, not tenant-scoped) preference under REG-198/REG-251; this is the tenant-product instance of the same class. |
+| **Regression test** | `apps/web/lib/theme-precedence.spec.ts` |
+| **Scenario** | With `prefers-color-scheme: dark`, no stored theme choice, and a tenant default of Light, `data-theme` is `light` in the server-rendered HTML and at every sample point during load — never `dark`, even for one frame. An explicit in-app choice of Dark, mirrored into the `dp-web-theme` cookie by `storeThemeChoice`, still produces `data-theme="dark"` in the first painted frame. A tenant default of System still follows the OS, resolved by the bootstrap script's `matchMedia` call, seeded from the `data-tenant-theme` attribute the layout now stamps server-side rather than from a bare guess. |
+| **Proven to fail without the fix** | `resolveThemePrecedence(null, "light")` was unreachable from the server before this change — there was no code path that called it with a server-known tenant default, so `apps/web/app/layout.tsx` had no way to stamp anything but the operating system's guess for a first-time visitor. |
+| **Note** | The cookie is a rendering hint, not a decision — precedence is still resolved by `resolveThemePrecedence` (explicit choice → tenant default → device), pulled out as one pure function so the client's DOM-based `effectiveThemeChoice()` and the server's cookie-based resolution cannot drift into two answers. The bootstrap script also migrates a pre-fix, cookie-less `localStorage` choice into the cookie on first run, so a user who chose Dark before this shipped is not silently reset to the tenant default until they happen to reopen the toggle. |
+| **Fixed** | 2026-09-12 |
+| **Active** | yes |
+
+### REG-420 — Two authorization models for one settings section, and a redirect where a refusal belonged
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` |
+| **Module** | `apps/web` settings, `customization` |
+| **Bug record** | BUG-3374 |
+| **Root cause** | `requireCustomizationAccess` in the Customization section's layout gated on role membership (`GLOBAL_ADMIN`/`SYSTEM_CUSTOMIZER` only), while the navigation catalog and every page beneath the layout gated on the `customization.read` permission through `requireSettingsPermissions`/`hasAnySettingsPermission` (which also accepts `SYSTEM_ADMIN` and any user holding the permission outright). The layout ran first, so its stricter, disagreeing rule denied a user every page underneath it would have allowed — reproduced against the workspace owner, who held the permission but neither role. The layout's response to a denial was `redirect()` to a hardcoded legacy `/settings/access/roles` path, which a `next.config.ts` rewrite then forwarded to the real Roles URL, where Roles resolved and appended its own default `?viewId=` — three unrelated mechanisms composing into one baffling, silent destination. |
+| **Regression test** | `apps/web/app/(authenticated)/settings/_lib/require-settings-permission.spec.ts` |
+| **Scenario** | A user holding `customization.read` but neither administrator role — the workspace-owner case as reproduced live — reaches `/settings/customization` and its twelve child routes without redirection. A user holding neither the permission nor either role sees `AccessDeniedState` rendered in place at the URL they requested, not a redirect to Roles. `GLOBAL_ADMIN`, `SYSTEM_CUSTOMIZER` and `SYSTEM_ADMIN` are all still admitted with no explicit permission grant, matching what every page under the section already assumed. |
+| **Proven to fail without the fix** | The old `hasCustomizationAdministratorRole(user) && hasAnyPermission(...)` gate denied a `customization.read`-only user outright; the new `requireCustomizationAccess` (`hasAnySettingsPermission` — the same function `requireSettingsPermissions` already used) admits the identical fixture. |
+| **Note** | **Pick one authorization model, not a matching pair.** The fix folds the layout's gate into the exact function the pages already called through, rather than tuning the layout's own role set until it happened to agree — a second, hand-synchronised copy of the same rule is the shape of the defect this class is named for, and would drift again the next time either side's permission set changed alone. The redirect fallback (`fallbackHref`) and the dependence on `next.config.ts`'s legacy `/settings/access/roles` rewrite were removed from this call path entirely, rather than pointed somewhere less wrong — that rewrite still exists for its other, legitimate callers. |
+| **Fixed** | 2026-09-12 |
+| **Active** | yes |
+
+### REG-421 — A measurement copy that was invisible and still tabbable, and a tab strip with no tab semantics
+
+| | |
+|---|---|
+| **Bug class** | `aria-hidden-still-focusable` |
+| **Module** | `apps/web` runtime record pages |
+| **Bug record** | BUG-3378 |
+| **Root cause** | `responsive-runtime-tabs.tsx` renders an off-screen, zero-opacity copy of every tab purely to measure its width before deciding how many fit. That copy was marked `aria-hidden="true"`, which tells assistive technology to skip it but does nothing to the tab order — its buttons stayed thirteen live, invisible keyboard stops. Separately, the *visible* strip was built from plain `button`s with no `role="tab"`, `role="tablist"` or `role="tabpanel"` anywhere, so a screen reader had no way to announce it as a tab widget at all. |
+| **Regression test** | `apps/web/app/components/runtime/responsive-runtime-tabs.spec.ts` |
+| **Scenario** | The measurement copy contains no focusable element (`inert` removes it from focus the same way `aria-hidden` already removed it from the accessibility tree). The visible strip exposes one `tablist`, one `tab` per visible tab with `aria-selected` and `aria-controls`, and a `tabpanel` with `aria-labelledby` pointing at the selected tab — ids shared between `responsive-runtime-tabs.tsx` and `runtime-metadata-form-renderer.tsx` via `getResponsiveTabId`/`getResponsiveTabPanelId` rather than reconstructed on each side. Roving `tabindex` makes only the selected tab a page-level Tab stop; `ArrowLeft`/`ArrowRight`/`Home`/`End` move and reselect between the others, skipping disabled tabs, with the movement math (`resolveNextTabIndex`) exercised directly since `apps/web`'s jest has no jsdom to render against. The More menu is unaffected and stays reachable by ordinary Tab order after the strip. |
+| **Proven to fail without the fix** | `apps/admin`'s equivalent structural check (`console-theme.spec.ts`) established the pattern of reading source directly for what a jsdom-less suite otherwise could not catch; the same technique here asserts `inert` is present on the measurement block and that the visible strip's roles are exactly the ones the fix adds, so reverting either half fails the corresponding assertion by name. |
+| **Note** | This shell is what [[ITEM-0167]] proposes propagating to every other record page, so the fix had to be complete rather than merely quieter: **`inert`, not only `tabIndex={-1}` on each child**, because a future control added to the measurement copy without remembering the individual override would silently reopen the same defect, and `inert` cannot be forgotten one field at a time. |
+| **Fixed** | 2026-09-12 |
+| **Active** | yes |
+
+### REG-422 — A section and its self-titling widget both insisted on naming the same control
+
+| | |
+|---|---|
+| **Bug class** | `flag-honoured-in-one-branch` |
+| **Module** | `apps/web` runtime record pages |
+| **Bug record** | BUG-3412 |
+| **Root cause** | `section.labelVisible` exists on `FormSectionMetadata` for exactly one reason — suppressing a section's own heading when its only content already draws one — and `runtime-metadata-form-renderer.tsx` honoured it in exactly one of the three branches that render a section heading (`CustomizationFormRenderer`'s, which serves a different, unrelated form type). The two branches that actually serve entity record pages either ignored it outright or guarded only on `section.label` being present. The employee record's Profile, Timeline and Reporting Hierarchy sections all have `fields: []` and a single self-titling system widget as their only content, so all three printed their name twice; the profile pair used two different words for it ("Profile Image" from the section, "Profile Photo" — rendered uppercase — from the widget). |
+| **Regression test** | `apps/web/app/components/metadata/runtime-metadata-form-renderer.labelvisible.spec.ts`, `apps/web/lib/runtime/modules/employee-metadata.adapter.labelvisible.spec.ts` |
+| **Scenario** | `section.labelVisible !== false` is honoured in all three heading-rendering branches (asserted by counting occurrences in source, since `apps/web`'s jest cannot render the component). The four employee sections whose only content is a self-titling system widget (`profile-image`, `timeline`, `reporting-hierarchy`, and `agent-desktop` — found while applying the same rule, though outside the bug's original count since the Agent tab is not the default tab) all carry `labelVisible: false`. The profile control has one name, "Profile Photo", used by both the section metadata and the widget (`runtime-profile-image-card.tsx`). A section with no self-titling widget (`basic-information`) is untouched. |
+| **Proven to fail without the fix** | Before this change, `mapEmployeeForms([])`'s `profile-image` section carried `label: "Profile Image"` with no `labelVisible` field at all — `FormSectionMetadata` did not declare one — so the flag this bug's fix depends on could not have existed on the object being rendered. |
+| **Note** | **One rule, not a per-section patch.** The fix is the general mechanism (honour the flag everywhere a heading is drawn) plus data (set the flag on the sections that need it) — a per-section conditional inside the renderer would have fixed exactly the three sections named in the bug report and nothing found afterward, which is how `agent-desktop` would have stayed broken. This repo's own knowledge base separately flags a `replace(..., 1)`-style edit landing on the wrong one of two near-identical lines as a known failure mode for exactly this kind of change; the regression test asserts an occurrence *count* across the file rather than trusting a single substring match to have landed in the right branch. |
+| **Fixed** | 2026-09-12 |
+| **Active** | yes |
+
+### REG-423 — Tenant plan listing and checkout ignored PlanPrice publication status and market
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` |
+| **Module** | `services/api/src/modules/billing` |
+| **Bug record** | BUG-3334, BUG-3333 |
+| **Root cause** | `resolveCommercialOffer` (used by `/public/commercial-config`) correctly gated a price on its own `publicationStatus` and `marketId`, but `BillingService.getPublicPlans` and every tenant checkout guard (`createCheckoutSession`, `startPublicOnboarding`, `createPublicSubscriptionCheckout`) tested only `plan.publicationStatus` — the plan's gate, never the price's own. A DRAFT or unscoped price on a PUBLISHED plan was listed and buyable, and a tenant could buy a price scoped to a market other than its own by posting the id directly, because nothing on the authenticated path compared the price's market to the tenant's at all. |
+| **Regression test** | `services/api/src/modules/billing/services/billing-price-market-scoping.spec.ts` |
+| **Scenario** | A DRAFT `PlanPrice` on a PUBLISHED plan never appears in `GET /billing/plans` (tenant or anonymous). `POST /billing/checkout-sessions` refuses a DRAFT price, an unscoped (`marketId: null`) price, and a price scoped to a market other than the tenant's own — all with the same `BILLING_PLAN_PRICE_UNAVAILABLE` code, never confirming which precondition failed. The same fixtures fed to `isPriceCurrentlySellable` and to `resolveCommercialOffer` agree on every case. |
+| **Fixed** | 2026-09-12, branch `agent/r-s2-billing-api` |
+| **Active** | yes |
+
+### REG-424 — An entitlement override could never grant a feature key missing from the plan's own rows
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` |
+| **Module** | `services/api/src/common/security` |
+| **Bug record** | BUG-3350 |
+| **Root cause** | `TenantEntitlementService.load()` (the request-path guard) built its `enabledKeys` set by iterating `subscription.plan.features` — the plan's own `PlanFeature` rows — while `FeatureAccessService.getResolvedTenantFeatures()` (the platform-admin screen) iterated the full `TENANT_FEATURE_DEFINITIONS` catalogue, defaulting a missing row to `isIncludedInPlan: false`. `commercial-bootstrap.ts`'s `reconcilePlanFeatures` never writes a disabled row for a feature a plan excludes, so a plan like Starter has no `payroll` row at all — meaning the guard's loop would never have considered `payroll` for a Starter tenant regardless of any override, silently defeating the BUG-3350 grandfathering mechanism before it could ever take effect. The two services had quietly diverged on "which keys to consider" the same way `divergent-duplicate-guard` describes for a rule's content. |
+| **Regression test** | `services/api/src/common/security/tenant-entitlement.service.spec.ts` |
+| **Scenario** | A tenant whose plan has no `PlanFeature` row at all for a given key (not merely a disabled one) still resolves that key from a `CUSTOM`-sourced `TenantFeature` override when one exists, and still resolves it as not entitled when none does — proving the guard now considers every catalogue key, not only the ones the plan happens to have a row for. |
+| **Fixed** | 2026-09-12, branch `agent/r-s2-billing-api` |
+| **Active** | yes |
+
+### REG-425 — `PlanChangeService.applyDueChanges` had no caller in the running application
+
+| | |
+|---|---|
+| **Bug class** | `orphaned-scheduled-job` |
+| **Module** | `services/api/src/modules/billing` |
+| **Bug record** | BUG-3331 |
+| **Root cause** | The exact BUG-2618 shape recurring in the same module: `applyDueChanges()` was written, exercised by an e2e test that calls it directly, and nothing in the running application ever invoked it — no scheduler, no worker, no cron. A scheduled DOWNGRADE (the entire point of the increase-is-immediate/decrease-waits-for-renewal asymmetry the service documents) would sit `SCHEDULED` in `PlanChangeRequest` forever, past its `effectiveAt`, never applied, and Stripe would keep charging the old price indefinitely. |
+| **Regression test** | `services/api/src/modules/billing/services/subscription-change-sweeper.worker.spec.ts` |
+| **Scenario** | Boot `BillingModule` with `SUBSCRIPTION_CHANGE_SWEEPER_ENABLED=true`: a `SubscriptionChangeSweeperWorker` provider starts an unref'd interval and its `tick()` calls `PlanChangeService.applyDueChanges()` on its own, with no test invoking the service directly. With the flag unset or `false`, no timer starts. A tick that receives a rejected promise logs and returns rather than throwing, so a transient database or Stripe fault cannot take the process down or stop the next tick. |
+| **Fixed** | 2026-09-12, branch `agent/r-s2-billing-api` |
+| **Active** | yes |
+
+### REG-440 — A tenant with no security settings row got the most restrictive session policy by accident
+
+| | |
+|---|---|
+| **Bug class** | `absent-config-defaults-to-most-restrictive` |
+| **Module** | `services/api/src/modules/auth`, `services/api/src/common/security` |
+| **Bug record** | BUG-3355 |
+| **QA scenario** | QA-AUTH-011 |
+| **Root cause** | `persistRefreshToken` read `setting?.value === true` for `allowMultipleActiveSessions`, so an absent `TenantSetting` row — every tenant that had never visited Security & Access — meant "single session only". Signing in on a second device silently revoked the first session's refresh token, and the displaced browser was never told why. |
+| **Regression test** | `services/api/src/modules/auth/auth-session-lifecycle.spec.ts` |
+| **Scenario** | A tenant with zero `security` settings rows signs in twice on `web`: the first session's refresh token is left live. The same tenant with `allowMultipleActiveSessions: false` set explicitly: the first session is revoked. Set to `true` explicitly: left live. |
+| **Proven to fail without the fix** | Reverting the default in `TenantAuthPolicyService.resolveEffectivePolicy` from `true` to `false` (matching `setting?.value === true`) fails the "no settings row" case in the regression test. |
+| **Note** | The owner's decision — concurrent sessions allowed by default — is recorded as [[ADR-0010]]. `setting?.value === true` was a reasonable default for a *permission* (absent means not granted) and the wrong one for a *session policy*, because the restrictive reading here silently destroyed work in progress on a device the acting session could not see, rather than merely denying an action. |
+| **Fixed** | 2026-09-12, branch `agent/r-s3-auth` |
+| **Active** | yes |
+
+### REG-441 — A revoked session was reported to the user as a missing access token, with no server-side record
+
+| | |
+|---|---|
+| **Bug class** | `discarded-failure-reason` |
+| **Module** | `apps/web/lib` |
+| **Bug record** | BUG-3356 |
+| **QA scenario** | QA-AUTH-012 |
+| **Root cause** | `apiRequest` looked for the access cookie; if absent, it attempted a refresh, and — whether that refresh succeeded or failed — fell through to `fetch` the originally requested path regardless, with no Authorization header when the refresh had failed. The API answered correctly with `401 AUTH_TOKEN_MISSING`, a code deliberately kept off the incident queue for genuinely anonymous callers, so a session that had actually been revoked or expired produced a misleading message and no record an operator could find under the reference id the user was shown. |
+| **Regression test** | `apps/web/lib/server-api.spec.ts` |
+| **Scenario** | `apiRequest` with no access cookie and a refresh call that fails with `401 SESSION_REVOKED`: the originally requested path is never fetched, and the returned response carries `SESSION_REVOKED` (and the refresh call's own `traceId`), not `AUTH_TOKEN_MISSING`. With no refresh token at all: still no fetch to the target path. With `includeAuth: false`: the anonymous request proceeds exactly as before. |
+| **Proven to fail without the fix** | Removing the pre-flight check in `apiRequest` (restoring the fall-through to `fetch` regardless of whether a token was obtained) fails every case in the regression test except the `includeAuth: false` one. |
+| **Note** | The client already knew the request could not be authenticated; sending it anyway asked the API to explain a problem the client had already diagnosed, and downgraded every session failure into the one code the platform had agreed to treat as routine ([[BUG-2465]]). This was also a dependency of [[BUG-3355]]'s third acceptance criterion — the displaced browser had to be told a session ended, not fail blankly. |
+| **Fixed** | 2026-09-12, branch `agent/r-s3-auth` |
+| **Active** | yes |
+
+### REG-442 — A remembered session was shortened to fifteen minutes on the first middleware refresh
+
+| | |
+|---|---|
+| **Bug class** | `duplicated-policy-logic` |
+| **Module** | `apps/web` |
+| **Bug record** | BUG-3357 |
+| **QA scenario** | QA-AUTH-013 |
+| **Root cause** | Three places wrote the access/refresh/session cookies. The sign-in route and `lib/server-api.ts` both read the lifetimes (`rememberMe`, `accessTokenExpiresIn`, `refreshTokenExpiresIn`) the API actually returned; `proxy.ts`'s `continueWithRefreshedTokens` used a hardcoded `maxAge: 15 * 60` for the access cookie and an independently-resolved environment variable for the refresh cookie, neither tied to the session in hand or to Remember me. |
+| **Regression test** | `apps/web/lib/auth-session-cookies.spec.ts`, `apps/web/proxy.spec.ts` |
+| **Scenario** | A remembered refresh response with distinct `accessTokenExpiresIn`/`refreshTokenExpiresIn` produces cookies whose `maxAge` match those values through all three writers. A non-remembered response produces cookies with no `maxAge` (a browser-session cookie) through all three. |
+| **Proven to fail without the fix** | Restoring the literal `maxAge: 15 * 60` in `proxy.ts` fails the `apps/web/proxy.spec.ts` assertion that a 30-minute remembered access cookie is not 900 seconds. |
+| **Note** | `apps/web/lib/auth-session-cookies.ts`'s `buildAuthSessionCookies` is now the one function all three writers call, so a fourth cookie-writing call site cannot reintroduce this by construction — it would have to skip the shared helper outright, which is visible in review rather than a one-line literal buried in options. |
+| **Fixed** | 2026-09-12, branch `agent/r-s3-auth` |
+| **Active** | yes |
+
+### REG-443 — A Server Component render could revoke its own refresh token and never persist the successor
+
+| | |
+|---|---|
+| **Bug class** | `unrecoverable-side-effect-before-capability-check` |
+| **Module** | `apps/web/lib` |
+| **Bug record** | BUG-3358 |
+| **QA scenario** | QA-AUTH-014 |
+| **Root cause** | `apiRequest` refreshed whenever the access cookie was missing, then called `persistRefreshedAuthCookies`, whose `try/catch` silently discarded the failure when cookies could not be written — the case for every Server Component render. With refresh-token rotation enabled (the default and the production setting), the refresh had already revoked the presented token before the write was attempted, so the render succeeded while the session died with nothing recording it. |
+| **Regression test** | `apps/web/lib/server-api.spec.ts` |
+| **Scenario** | `apiRequest` with a `next/headers` cookie store whose `.set()` throws (the Server Component shape): zero `fetch` calls, not even to `/auth/refresh`. The same call with a cookie store that can write: the refresh proceeds normally. |
+| **Proven to fail without the fix** | Removing the `canPersistCookies()` pre-check (restoring refresh-then-catch) fails the "zero fetch calls" assertion — the refresh call happens regardless of writability. |
+| **Note** | The order of operations was the defect: detecting an unwritable context *after* consuming a single-use credential cannot undo the consumption. `persistRefreshedAuthCookies` also stopped swallowing its own failure silently, per the bug's explicit ask. |
+| **Fixed** | 2026-09-12, branch `agent/r-s3-auth` |
+| **Active** | yes |
+
+### REG-444 — A rotation race could sign a user out of a session that was, in fact, still live
+
+| | |
+|---|---|
+| **Bug class** | `single-use-credential-no-reuse-window` |
+| **Module** | `services/api/src/modules/auth`, `apps/web` |
+| **Bug record** | BUG-3359 |
+| **QA scenario** | QA-AUTH-015 |
+| **Root cause** | `rotateRefreshToken` revoked the presented refresh token the instant it issued a successor, with no reuse window, so two legitimate concurrent requests carrying the same token could not both succeed — the loser's presented token was already revoked by the time it was checked. `apps/web/proxy.ts` had no in-flight de-duplication for its own refresh calls (unlike `lib/server-api.ts`) and treated a single `401`/`403` as proof the session was gone. |
+| **Regression test** | `services/api/src/modules/auth/auth-session-lifecycle.spec.ts`, `apps/web/proxy.spec.ts` |
+| **Scenario** | A refresh token that matches a row revoked moments ago, whose family has a live successor, still resolves successfully rather than throwing `SESSION_REVOKED`. A token revoked five minutes ago is still refused, and the refusal is now recorded as `AUTH_REFRESH_TOKEN_REUSE_DETECTED`. Two concurrent `proxy.ts` refreshes of the same token produce one `fetch` call. A first `401` from the middleware's refresh is retried once before `redirectToLogout`. |
+| **Proven to fail without the fix** | Removing `wasRotatedWithinGraceWindow`'s call from `hasActiveRefreshToken` fails the "losing side of a race" test with `SESSION_REVOKED`. Removing the middleware retry fails the "retries before redirectToLogout" case in `apps/web/proxy.spec.ts`. |
+| **Note** | No schema change — the grace window is resolved entirely from the existing `RefreshToken.tokenFamilyId` column, populated since it was added. Full design in [[EXECPLAN-0041-refresh-rotation-grace-window-and-middleware-dedupe]]. A rotation must never run the revoke-other-sessions sweep ([[BUG-3355]]'s mechanism) against its own session's sibling row — that sweep is for a new sign-in, not a session continuing itself, and running it there is what let two racing rotations destroy each other's successor. |
+| **Fixed** | 2026-09-12, branch `agent/r-s3-auth` |
+| **Active** | yes |
+
+### REG-445 — Every session row recorded the proxy's identity instead of the visitor's
+
+| | |
+|---|---|
+| **Bug class** | `raw-request-read-behind-a-proxy-hop` |
+| **Module** | `services/api/src/modules/auth`, `packages/config`, `apps/web/lib` |
+| **Bug record** | BUG-3360 |
+| **QA scenario** | QA-AUTH-016 |
+| **Root cause** | The browser's `User-Agent` was never forwarded across the web app's server-side proxy hop, so `persistRefreshToken` — reading `req.headers['user-agent']` and `req.ip` directly rather than through the forwarded-aware `getAuthRequestInfo` resolver the audit log already used — wrote `"node"` and a Cloudflare edge address into every `RefreshToken` row. |
+| **Regression test** | `packages/config/client-ip.test.js`, `apps/web/lib/forwarded-headers.invariant.spec.ts` |
+| **Scenario** | `buildForwardedClientHeaders` forwards a real `User-Agent` alongside `X-Forwarded-For`, forwards nothing when the header is absent or blank (never a placeholder), and truncates a forwarded value to 500 characters — the same bound `getAuthRequestInfo` applies at the write. |
+| **Proven to fail without the fix** | Reverting `buildForwardedClientHeaders` to forward only `X-Forwarded-For` fails the "User-Agent relayed alongside the address" assertion. |
+| **Note** | Session attribution (`persistRefreshToken`) and audit attribution (`logTenantAuthEvent`) now resolve through the same helper, so the two rows for one sign-in cannot disagree the way they did in production (an audit row with the visitor's real address next to a session row with a Cloudflare edge address, for the same sign-in, same second). `PlatformRefreshToken` had the identical defect and was fixed the same way; `AgentRefreshToken` has neither column and reaches the API directly with no proxy hop in front of it, so it was left alone. |
+| **Fixed** | 2026-09-12, branch `agent/r-s3-auth` |
+| **Active** | yes |
+
+### REG-460 — NotificationRule had no controller, and half of email dispatch never asked it
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-step` |
+| **Module** | `services/api/src/modules/notifications` |
+| **Bug record** | BUG-3375 |
+| **Root cause** | `NotificationRule` is the model `NotificationsService.emit()` actually gates in-app dispatch on, but no controller route ever read or wrote it — the only writer was a seed script. The screen named after it, `/settings/notifications/rules`, rendered `NotificationPreference` instead and reported every event `Enabled` regardless. Separately, `EmailExecutionService.execute()` — the single choke point every direct email send passes through — never consulted `NotificationRule` at all, so disabling an event's rule stopped its in-app row but not its email. |
+| **Regression test** | `services/api/src/modules/notifications/notification-rules.spec.ts` |
+| **QA scenario** | QA-SETTINGS-018 |
+| **Scenario** | For a catalog event with no `NotificationRule` row, `GET /notifications/rules` reports `ruleStatus: NOT_CONFIGURED`, distinct from `ENABLED`/`DISABLED`. Disabling an event's rule (`PATCH /notifications/rules/:id`) stops both its in-app notification and its email; `AUTH_ACCOUNT_ACTIVATION`/`AUTH_PASSWORD_RESET` report `ALWAYS_ON` and cannot be disabled by any preference or rule write. Every rule and preference change writes an `AuditService.log()` entry. |
+| **Proven to fail without the fix** | Before the fix, no route existed to read or write `NotificationRule` at all — a request to a rules endpoint 404'd, and the rendered screen showed `NotificationPreference` data with every row `Enabled` regardless of whether a rule existed. |
+| **Note** | Two models existed for related but distinct reasons — `NotificationRule` for wiring (recipient resolution, template, priority) and `NotificationPreference` for the tenant-facing channel opt-in — and the fix keeps both rather than merging them, closing the gap by exposing the first and gating both dispatch paths on it, documented in `services/api/AGENTS.md` and ADR-0011. |
+| **Fixed** | 2026-09-12 |
+| **Active** | yes |
+
+### REG-461 — A NOT_DELIVERED row carried no reason, so a working sink read as an outage
+
+| | |
+|---|---|
+| **Bug class** | `silent-degradation` |
+| **Module** | `services/api/src/modules/notifications` |
+| **Bug record** | BUG-3379 |
+| **Root cause** | `EmailExecutionService.execute()` chose `NOT_DELIVERED` for a sink provider and stored it with `retryable: false` and no `errorMessage` at all — only the `FAILED` path stored a reason. The delivery log adapter also never selected the already-persisted `providerType` column, and the list rendered the raw enum member for status while the record form humanized it, and formatted `createdAt` as a date-only field on the list while the record form kept the time. |
+| **Regression test** | `services/api/src/modules/notifications/email/email-sink-delivery-status.spec.ts` |
+| **QA scenario** | QA-SETTINGS-019 |
+| **Scenario** | A send through a CONSOLE or DEV provider records `NOT_DELIVERED` with a non-empty `errorMessage` naming the provider type and pointing at the Providers screen. The delivery log list shows the provider type as a column, renders `status` through the shared pill with a human label matching the record form, and formats `Created` with the same tenant timezone and time on both surfaces. |
+| **Proven to fail without the fix** | `updateDeliveryLogStatus` was called with no `errorMessage` key for the sink branch; asserting `errorMessage` was set on that call failed before this fix and passes after it. |
+| **Note** | The rows were never wrong — `NOT_DELIVERED` was working exactly as `BUG-2741` designed it. The defect was purely in observability: the explanation existed one screen away (Providers) and the delivery log gave no way to reach it. The list/record divergence for both `status` and `createdAt` traced to two shared runtime helpers (`module-data-table.tsx`'s `displayValue`/`formatDateValue`) that had not been updated to match `runtime-value-formatter.ts`'s humanize-and-keep-time behaviour — fixed at the shared helper, so every other "read-only" list in the settings runtime gets the same correction. |
+| **Fixed** | 2026-09-12 |
+| **Active** | yes |
+
+### REG-470 — A record-form entity lookup fetched one unpaged page and filtered it in the browser
+
+| | |
+|---|---|
+| **Bug class** | `single-page-fetch-filtered-client-side` |
+| **Module** | `apps/web` |
+| **Bug record** | BUG-3376 |
+| **QA scenario** | QA-RUNTIME-044 |
+| **Root cause** | `runtime-metadata-form-renderer.tsx`'s `<LookupField>` construction — the only call site for every metadata-driven record-form lookup (Project → Project Manager, Approval Manager, Account Manager, Delivery Manager, and every other entity lookup the standard module runtime renders) — read its options from a hydration effect that called `getLookupOptions` once, with no search term, and never again. The server's own default page (20 for employees) was therefore the entire selectable universe for every one of those fields; typing a name past that boundary produced "No matching records found," read by users as "this person does not exist." `standard-module-data.adapter.ts#getLookupOptions` and `LookupField`'s `onSearch`/debounce/pin/`resultsTruncated` machinery already existed (shipped earlier in the same session for `apps/admin` and for the adapter/control layer) — this was purely the one remaining caller never using them. |
+| **Regression test** | `apps/web/app/components/metadata/lookup-reference-route.spec.ts` |
+| **Scenario** | See QA-RUNTIME-044: on a tenant with more employees than `ENTITY_LOOKUP_PAGE_SIZE` (50), a Project's Project Manager lookup finds and selects an employee past that boundary, the request carries the typed `search` term, a full page states it may be truncated, and a genuinely empty search reads as an ordinary empty result rather than a field-level failure. |
+| **Proven to fail without the fix** | Reverting `EditableField`'s `<LookupField>` to `options={[...resolvedLookupOptions]}` with no `onSearch` reproduces the named repro exactly: typing past the hydration page's boundary shows no matches regardless of whether the record exists. |
+| **Note** | The same call site also supplied `selectedHref` through `LOOKUP_REFERENCE_ROUTES`, a flat, exact-string, hand-maintained allowlist of only nineteen entities (ITEM-0163) that compared a lookup's `entityLogicalName` with no case or singular/plural normalization at all — so most of an Employee record's own bespoke lookups (Team, Department, Designation, Location, Organization, Business Unit, Work Schedule, Employee Level, Owner, Country, State/Province, City) silently rendered no link, independent of this bug's search defect. Replaced in the same change by `lookup-reference-route.ts`, a normalized alias table over the same destinations (not a revived registry — `apps/web` has none live, per ADR-0007). Of the map's two entries flagged as legacy, only `roles` actually was (a `next.config.ts` redirect); `teams` was verified current and left unchanged, and the *organizational* "Team" an Employee record assigns — which had no entry under either name before — was added as its own destination. |
+| **Fixed** | 2026-09-12, branch `agent/r-s9-lookup-wiring` |
+| **Active** | yes |
+
+### REG-490 — A working retry endpoint had no control that could reach it
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-step` |
+| **Module** | `services/api/src/modules/notifications`, `apps/web` |
+| **Bug record** | ITEM-0168 |
+| **Root cause** | `POST /notifications/email-delivery-logs/:id/retry` shipped with full eligibility guards, audit coverage and a permission distinct from read — but the settings-runtime adapter for the delivery-log screen (`notification-email-logs`, `mode: "read-only"`) has no non-CRUD command extension point, so nothing on the record page could call it. An endpoint an operator cannot reach is not a retry action, whatever the server enforces. |
+| **Regression test** | `services/api/src/modules/notifications/notification-retry.spec.ts` |
+| **QA scenario** | QA-SETTINGS-020 |
+| **Scenario** | An operator holding `notification.logs.retry` sees a Retry control on a `FAILED`, `retryable` delivery's record and, on use, an inline panel shows the new delivery's outcome (status, provider type, reason if any) without a second navigation. An operator holding only `notification.logs.read` never receives the control at all — confirmed by what the server sends, not merely by what renders — and a direct `POST` from that operator still 403s. A row that is not retryable never shows the control regardless of permission. Retrying an `AUTH_*` event or a workspace on a sink provider is refused with a full, legible sentence in the panel, not attempted. |
+| **Proven to fail without the fix** | Before this pass, the record page rendered only Back/Edit(disabled)/Share/Export/Delete(disabled) — no code path on the client ever called the retry endpoint, so the feature was unreachable regardless of server behaviour. |
+| **Note** | Resolved by wrapping the same generic `StandardModuleRecordPage` every read-only settings record uses and adding one panel above it (`notification-email-log-record-page.tsx`), the same extension pattern `WorkSiteRecordPage` already established for a different adapter — rather than switching the adapter to `mode: "specialized"`, which would have discarded the list-view fixes BUG-3379 made to the shared `module-data-table.tsx` for this same screen. The retry endpoint's response shape changed in the same pass, before any caller existed, to return both the retried row and the new delivery it produced — the original alone (unavoidably still `FAILED`) could not have shown an operator whether the retry worked. |
+| **Fixed** | 2026-09-12 |
+| **Active** | yes |
+
+### REG-480 — `getReportingStructure` computed every org root in the tenant to unbounded depth, unused
+
+| | |
+|---|---|
+| **Bug class** | `unbounded-response-payload` |
+| **Module** | `services/api/src/modules/employees` |
+| **Bug record** | BUG-3450 |
+| **Root cause** | `fullTree` was built from `childrenByManagerId.get(null)` — every employee with no manager, tenant-wide — independent of the queried `employeeId`, with no depth or node-count cap. It had zero consumers anywhere in the codebase (`grep -rn "fullTree" apps/web services/api/src` returned only the producing line), so this was pure wasted computation and payload on every employee record view, growing with tenant headcount and org depth. |
+| **Regression test** | `services/api/src/modules/employees/employees.service.spec.ts` |
+| **QA scenario** | QA-EMPLOYEE-001 |
+| **Scenario** | `GET /employees/{id}/reporting-structure` for an employee under org root A never includes org root B's branch (same tenant); a manager chain deeper than 8 levels sets `hierarchyTruncated: true` and returns at most 8 levels; a tree with more than 500 nodes is capped with the same flag. The `getReportingStructure (ITEM-0164)` describe block is where these cases live. |
+| **Fixed** | 2026-09-12, branch `agent/r-s8-employee`, found and fixed while implementing [[ITEM-0164]] |
+| **Active** | yes |
+

@@ -1,10 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { TenantFeatureSource } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   isSubscriptionLive,
   resolveTenantFeatureState,
 } from './tenant-entitlement.rule';
-import type { TenantFeatureKey } from '../constants/tenant-features';
+import {
+  TENANT_FEATURE_KEY_LIST,
+  type TenantFeatureKey,
+} from '../constants/tenant-features';
 
 /**
  * How hard the platform enforces plan entitlements.
@@ -245,23 +249,42 @@ export class TenantEntitlementService {
       }),
       this.prisma.tenantFeature.findMany({
         where: { tenantId },
-        select: { key: true, isEnabled: true },
+        select: { key: true, isEnabled: true, source: true },
       }),
     ]);
 
     const subscriptionLive = isSubscriptionLive(subscription?.status);
+    const planFeatureByKey = new Map(
+      (subscription?.plan?.features ?? []).map((feature) => [
+        feature.featureKey,
+        feature.isEnabled,
+      ]),
+    );
     const overrideByKey = new Map(
-      overrides.map((override) => [override.key, override.isEnabled]),
+      overrides.map((override) => [override.key, override]),
     );
 
     const enabledKeys = new Set<string>();
     if (subscriptionLive) {
-      for (const feature of subscription?.plan?.features ?? []) {
+      /*
+       * Every catalog key, not only the ones the plan has a `PlanFeature` row
+       * for. `reconcilePlanFeatures` (commercial-bootstrap.ts) never writes a
+       * disabled row for a feature a plan excludes — Starter simply has no
+       * `payroll` row at all. Iterating the plan's own rows alone would mean a
+       * CUSTOM override could never grant a feature the plan never mentions,
+       * which is exactly the BUG-3350 grandfathering path this exists for.
+       * Absence of a row is "not included", the same as an explicit
+       * `isEnabled: false` one.
+       */
+      for (const key of TENANT_FEATURE_KEY_LIST) {
+        const isIncludedInPlan = planFeatureByKey.get(key) ?? false;
+        const override = overrideByKey.get(key);
         const isEnabled = resolveTenantFeatureState({
-          isIncludedInPlan: feature.isEnabled,
-          tenantOverride: overrideByKey.get(feature.featureKey),
+          isIncludedInPlan,
+          tenantOverride: override?.isEnabled,
+          overrideIsPlanCapped: override?.source !== TenantFeatureSource.CUSTOM,
         });
-        if (isEnabled) enabledKeys.add(feature.featureKey);
+        if (isEnabled) enabledKeys.add(key);
       }
     }
 

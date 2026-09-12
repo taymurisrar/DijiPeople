@@ -22,6 +22,7 @@ import {
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { AuthAccessService } from '../../modules/auth/auth-access.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { TenantAuthPolicyService } from '../security/tenant-auth-policy.service';
 import {
   AuthenticatedRequest,
   AuthTokenPayload,
@@ -39,6 +40,7 @@ export class JwtAuthGuard implements CanActivate {
     private readonly configService: ConfigService,
     private readonly authAccessService: AuthAccessService,
     private readonly prisma: PrismaService,
+    private readonly tenantAuthPolicyService: TenantAuthPolicyService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -345,6 +347,15 @@ export class JwtAuthGuard implements CanActivate {
     }
   }
 
+  /*
+   * ITEM-0162 — this used to run its own tenant-setting lookup with its own
+   * hardcoded fallback, independent of the one `AuthService.buildAuthResponse`
+   * used to compute the `idleTimeoutMinutes` a login response advertises to
+   * the client. The two disagreed in production (480 advertised, 30 enforced)
+   * because they were, in every sense that mattered, two different policies
+   * that happened to share a name. `TenantAuthPolicyService` is now the one
+   * place either question is answered.
+   */
   private async resolveIdleTimeoutMs(
     payload: AuthTokenPayload,
     clientId: AuthClientId,
@@ -358,17 +369,10 @@ export class JwtAuthGuard implements CanActivate {
       return fallback;
     }
 
-    const setting = await this.prisma.tenantSetting.findFirst({
-      where: {
-        tenantId: payload.tenantId,
-        category: 'security',
-        key: 'idleTimeoutMinutes',
-      },
-      select: { value: true },
-    });
-    const minutes = numericSetting(setting?.value);
-    if (minutes === null) return fallback;
-    return Math.min(1440, Math.max(15, minutes)) * 60_000;
+    const policy = await this.tenantAuthPolicyService.resolveEffectivePolicy(
+      payload.tenantId,
+    );
+    return policy.idleTimeoutMinutes * 60_000;
   }
 
   private async assertAgentSessionIsActive(payload: AuthTokenPayload) {
@@ -418,16 +422,6 @@ export class JwtAuthGuard implements CanActivate {
       });
     }
   }
-}
-
-function numericSetting(value: unknown) {
-  const numeric =
-    typeof value === 'number'
-      ? value
-      : typeof value === 'string' && value.trim()
-        ? Number(value)
-        : Number.NaN;
-  return Number.isFinite(numeric) ? numeric : null;
 }
 
 function isDatabaseUnavailableError(error: unknown) {

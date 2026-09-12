@@ -289,7 +289,7 @@ jobs:
       # figure. The five-warning margin is for environment drift in
       # typescript-eslint's inference between a developer's tree and this
       # runner — not headroom to spend. It was 805/800 on 2026-08-22, and
-      # 975/971 before ITEM-0042's first pass.
+      # 975/971 before ITEM-0042's first pass. Lowered again to 787/782 below.
       #
       # 800 -> 784 was not a sweep. Annotating one bound test helper in
       # checkout-customer-record.spec.ts took that file from 27 warnings to 1:
@@ -297,6 +297,31 @@ jobs:
       # warnings, one for destructuring the helper and one for calling it.
       # Lowered here in the same change that earned it, because a 21-warning
       # gap is how a ratchet stops being one.
+      #
+      # 787 against 782 actual: SESSION-0103 (the four-record-type work, ITEM
+      # 0099-0102/0162/0168) landed at 795 on this runner — 13 real warnings,
+      # all `expect.objectContaining(...)`/`expect.stringContaining(...)`
+      # assigned straight into a typed object literal, the same `any`-widening
+      # family as the `.bind()` case above, just from Jest's matcher helpers
+      # instead of a test double. `as unknown` / `as string` on the matcher
+      # call — not a disable, not a cast on the value it is matching — took
+      # every one of the 13 back to zero. Develop was 782 immediately before
+      # this branch (confirmed from the two prior runs that actually executed
+      # this step rather than reusing exact-SHA evidence), so 782 is the
+      # expected post-fix figure, not yet a runner-confirmed one — this commit
+      # was not re-run through CI before the ceiling was lowered, only
+      # calculated from its own diff against that baseline. If the next real
+      # run disagrees, trust the run.
+      #
+      # A worktree can read well above either number: 26 of the local
+      # warnings on this branch are `no-unsafe-*` messages that say "on a type
+      # that cannot be resolved" rather than "on an `any` value", concentrated
+      # in 7 files including r2-object-storage.provider.ts — the same
+      # @aws-sdk resolution gap `check-types` already tolerates as 2
+      # pre-existing errors. That is a local dependency-resolution artifact,
+      # not a real warning: it was present before SESSION-0103 touched
+      # anything, it is not part of either the 782 or the 795 above, and nothing
+      # here should be changed to chase it.
       #
       # When this fails, the fix is to reduce warnings, not to raise the number.
       # Lower it whenever the real count drops.
@@ -318,7 +343,7 @@ jobs:
       # including a .filter(Boolean) that never narrowed.
       - name: ESLint — services/api
         working-directory: services/api
-        run: npx eslint "{src,test}/**/*.ts" --max-warnings=789
+        run: npx eslint "{src,test}/**/*.ts" --max-warnings=787
       - name: Fail if lint modified the checkout
         # Defence in depth: if any lint step ever regains --fix, this catches it
         # rather than letting CI silently "pass" against rewritten files.

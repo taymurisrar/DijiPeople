@@ -13,6 +13,27 @@ export type NotificationEventDefinition = {
   defaultChannels: NotificationChannel[];
   enabledByDefault: boolean;
   systemTemplateKey?: string;
+  /*
+   * ITEM-0171 / BUG-3375. Whether a tenant administrator may switch this event
+   * off at all. Defaults to true. AUTH_ACCOUNT_ACTIVATION and
+   * AUTH_PASSWORD_RESET are the only `false` entries today: they are
+   * transactional account-security mail, and letting a tenant admin disable
+   * them would lock people out of their own accounts. `false` is enforced in
+   * two places — `EmailExecutionService.execute()` skips both the
+   * `NotificationRule` gate and the `NotificationPreference` opt-in for these
+   * events — and is surfaced to the read model so the UI can show "Required —
+   * always on" instead of an editable toggle.
+   */
+  configurable?: boolean;
+  /*
+   * ITEM-0169. Most catalog entries are ACTIVE: they have a real trigger
+   * somewhere in the codebase and can actually fire. A handful were declared
+   * with no trigger anywhere — dead configuration that showed as "Enabled"
+   * with nothing behind it. Those are NOT_YET_AVAILABLE: the read model
+   * reports them distinctly and refuses to let a preference or rule enable
+   * them, so the screen stops implying they work. Defaults to ACTIVE.
+   */
+  availability?: 'ACTIVE' | 'NOT_YET_AVAILABLE';
 };
 
 export type SystemEmailTemplateSeed = {
@@ -35,29 +56,34 @@ export const NOTIFICATION_EVENT_CATALOG: NotificationEventDefinition[] = [
     code: 'AUTH_ACCOUNT_ACTIVATION',
     name: 'Account activation',
     description:
-      'Sent when a tenant user is invited and must activate their account.',
+      'Sent immediately when a tenant user is invited, carrying the link they need to set a password and sign in for the first time.',
     category: NotificationEventCategory.AUTH,
     defaultChannels: [NotificationChannel.EMAIL],
     enabledByDefault: true,
     systemTemplateKey: 'AUTH_ACCOUNT_ACTIVATION',
+    configurable: false,
   },
   {
     code: 'AUTH_PASSWORD_RESET',
     name: 'Password reset',
-    description: 'Sent when an administrator requests a password reset link.',
+    description:
+      'Sent immediately when an administrator or user requests a password reset link, carrying the link and its expiry.',
     category: NotificationEventCategory.AUTH,
     defaultChannels: [NotificationChannel.EMAIL],
     enabledByDefault: true,
     systemTemplateKey: 'AUTH_PASSWORD_RESET',
+    configurable: false,
   },
   {
     code: 'AUTH_OTP',
     name: 'Authentication OTP',
-    description: 'Reserved for future one-time passcode authentication flows.',
+    description:
+      'Not yet available. Reserved for a future one-time passcode sign-in step; nothing in the product triggers it today.',
     category: NotificationEventCategory.AUTH,
     defaultChannels: [NotificationChannel.EMAIL],
-    enabledByDefault: true,
+    enabledByDefault: false,
     systemTemplateKey: 'auth.otp',
+    availability: 'NOT_YET_AVAILABLE',
   },
   {
     code: 'BILLING_INVOICE_ISSUED',
@@ -79,64 +105,103 @@ export const NOTIFICATION_EVENT_CATALOG: NotificationEventDefinition[] = [
     systemTemplateKey: 'PAYSLIP_AVAILABLE',
   },
   {
+    /*
+     * ITEM-0169. Retired: nothing in the codebase ever triggered this code —
+     * `leave.request.submitted.approver` is the event that actually fires
+     * when a leave request needs an approver (`leave.service.ts:771`). Kept in
+     * the catalog rather than deleted, because `EmailDeliveryLog.eventCode`
+     * has an `onDelete: Restrict` relation to `NotificationEvent` and a
+     * deleted-but-referenced row would break history; RETIRED_EVENT_ALIASES
+     * below points any preference still stored against this code at its
+     * working successor and the read model hides retired codes from the
+     * catalog screen.
+     */
     code: 'LEAVE_APPROVAL_REQUEST',
     name: 'Leave approval request',
-    description: 'Sent to approvers when a leave request requires action.',
+    description:
+      'Retired — replaced by "Leave request submitted for approver". Kept only so historical delivery logs and preferences still resolve.',
     category: NotificationEventCategory.LEAVE,
     defaultChannels: [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
-    enabledByDefault: true,
+    enabledByDefault: false,
     systemTemplateKey: 'leave.approval-request',
+    availability: 'NOT_YET_AVAILABLE',
   },
   {
+    // ITEM-0169. Retired in favour of `leave.request.approved.employee`, the
+    // code `leave.service.ts:1851` actually emits. See the note above.
     code: 'LEAVE_APPROVED',
     name: 'Leave approved',
-    description: 'Sent when a submitted leave request is approved.',
+    description:
+      'Retired — replaced by "Leave request approved for employee". Kept only so historical delivery logs and preferences still resolve.',
     category: NotificationEventCategory.LEAVE,
     defaultChannels: [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
-    enabledByDefault: true,
+    enabledByDefault: false,
     systemTemplateKey: 'leave.approved',
+    availability: 'NOT_YET_AVAILABLE',
   },
   {
     code: 'leave.request.submitted.approver',
     name: 'Leave request submitted for approver',
     description:
-      'Created when a leave request is submitted and awaits approval.',
+      'Sent to the next pending approver as soon as an employee submits a leave request.',
     category: NotificationEventCategory.LEAVE,
-    defaultChannels: [NotificationChannel.IN_APP],
+    // Union of this event's own IN_APP default with the retired
+    // LEAVE_APPROVAL_REQUEST entry's EMAIL default (ITEM-0169 collapse).
+    defaultChannels: [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
     enabledByDefault: true,
   },
   {
     code: 'leave.request.approved.employee',
     name: 'Leave request approved for employee',
-    description: 'Created when an employee leave request is approved.',
+    description:
+      'Sent to the employee as soon as their leave request completes approval.',
     category: NotificationEventCategory.LEAVE,
-    defaultChannels: [NotificationChannel.IN_APP],
+    // Union of this event's own IN_APP default with the retired LEAVE_APPROVED
+    // entry's EMAIL default (ITEM-0169 collapse).
+    defaultChannels: [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
     enabledByDefault: true,
   },
   {
     code: 'leave.request.rejected.employee',
     name: 'Leave request rejected for employee',
-    description: 'Created when an employee leave request is rejected.',
+    description:
+      'Sent to the employee as soon as their leave request is rejected.',
     category: NotificationEventCategory.LEAVE,
     defaultChannels: [NotificationChannel.IN_APP],
     enabledByDefault: true,
   },
   {
+    /*
+     * ITEM-0169. No trigger anywhere in the codebase — `leave.service.ts` only
+     * ever emits 'approved' or 'rejected' for an outcome (see the ternary at
+     * leave.service.ts:1851). "Returned" is not a leave-request outcome this
+     * product implements yet.
+     */
     code: 'leave.request.returned.employee',
     name: 'Leave request returned for employee',
-    description: 'Created when an employee leave request is returned.',
+    description:
+      'Not yet available. Would notify an employee if their leave request were sent back for changes; the product has no "returned" outcome today.',
     category: NotificationEventCategory.LEAVE,
     defaultChannels: [NotificationChannel.IN_APP],
-    enabledByDefault: true,
+    enabledByDefault: false,
+    availability: 'NOT_YET_AVAILABLE',
   },
   {
+    /*
+     * ITEM-0169. No trigger anywhere in the codebase — there is no SLA
+     * escalation job for leave requests. Also normalises the category
+     * spelling: this was the only catalog entry using APPROVALS instead of
+     * APPROVAL, and retiring it removes the second spelling instead of
+     * leaving it to collide with a future entry.
+     */
     code: 'leave.request.escalated',
     name: 'Leave request escalated',
     description:
-      'Created when SLA escalation is triggered for a leave request.',
-    category: NotificationEventCategory.APPROVALS,
+      'Not yet available. Would notify an approver if a leave request breached its SLA; no escalation job exists for leave today.',
+    category: NotificationEventCategory.APPROVAL,
     defaultChannels: [NotificationChannel.IN_APP],
-    enabledByDefault: true,
+    enabledByDefault: false,
+    availability: 'NOT_YET_AVAILABLE',
   },
   {
     code: 'attendance.correction.submitted.approver',
@@ -206,12 +271,16 @@ export const NOTIFICATION_EVENT_CATALOG: NotificationEventDefinition[] = [
     enabledByDefault: true,
   },
   {
+    // ITEM-0169. No trigger anywhere in the codebase — there is no
+    // profile-change-approval workflow for HR to review today.
     code: 'employee.profile.change.submitted.hr',
     name: 'Employee profile change submitted',
-    description: 'Created when a profile change needs HR review.',
+    description:
+      'Not yet available. Would notify HR when an employee submits a self-service profile change for review; no such review workflow exists today.',
     category: NotificationEventCategory.EMPLOYEE,
     defaultChannels: [NotificationChannel.IN_APP],
-    enabledByDefault: true,
+    enabledByDefault: false,
+    availability: 'NOT_YET_AVAILABLE',
   },
   {
     code: 'employee.onboarding.task.assigned',
@@ -231,20 +300,54 @@ export const NOTIFICATION_EVENT_CATALOG: NotificationEventDefinition[] = [
     systemTemplateKey: 'timesheet.approval-request',
   },
   ...[
-    ['TIMESHEET_SUBMISSION_REMINDER', 'Timesheet submission reminder'],
-    ['TIMESHEET_APPROVAL_ESCALATION', 'Timesheet approval escalation'],
-    ['TIMESHEET_REJECTED', 'Timesheet rejected'],
-    ['TIMESHEET_REOPENED', 'Timesheet reopened'],
-    ['TIMESHEET_OVERDUE', 'Timesheet overdue'],
-    ['TIMESHEET_PAYROLL_EXPORTED', 'Timesheet exported to payroll'],
-  ].map(([code, name]) => ({
+    [
+      'TIMESHEET_SUBMISSION_REMINDER',
+      'Timesheet submission reminder',
+      'Sent to an employee who has not submitted their timesheet as the period deadline approaches.',
+    ],
+    [
+      'TIMESHEET_APPROVAL_ESCALATION',
+      'Timesheet approval escalation',
+      'Sent when a submitted timesheet has sat pending with an approver past the escalation window.',
+    ],
+    [
+      'TIMESHEET_REJECTED',
+      'Timesheet rejected',
+      'Sent to an employee as soon as their submitted timesheet is rejected.',
+    ],
+    [
+      'TIMESHEET_REOPENED',
+      'Timesheet reopened',
+      'Sent to an employee when a previously approved timesheet is reopened for correction.',
+    ],
+    [
+      'TIMESHEET_PAYROLL_EXPORTED',
+      'Timesheet exported to payroll',
+      'Sent when an approved timesheet has been exported into a payroll run.',
+    ],
+  ].map(([code, name, description]) => ({
     code,
     name,
-    description: `${name} workflow notification.`,
+    description,
     category: NotificationEventCategory.TIMESHEET,
     defaultChannels: [NotificationChannel.IN_APP],
     enabledByDefault: true,
   })),
+  {
+    /*
+     * ITEM-0169. No trigger anywhere in the codebase — `timesheet-jobs.service.ts`
+     * runs a submission reminder and an approval escalation, but nothing
+     * marks a timesheet itself "overdue". Kept for the day that job exists.
+     */
+    code: 'TIMESHEET_OVERDUE',
+    name: 'Timesheet overdue',
+    description:
+      'Not yet available. Would notify an employee whose timesheet is past due with no submission; no such job runs today.',
+    category: NotificationEventCategory.TIMESHEET,
+    defaultChannels: [NotificationChannel.IN_APP],
+    enabledByDefault: false,
+    availability: 'NOT_YET_AVAILABLE',
+  },
   {
     code: 'PAYROLL_PROCESSED',
     name: 'Payroll processed',
@@ -255,29 +358,90 @@ export const NOTIFICATION_EVENT_CATALOG: NotificationEventDefinition[] = [
     systemTemplateKey: 'payroll.processed',
   },
   ...[
-    ['PAYROLL_CALCULATION_COMPLETED', 'Payroll calculation completed'],
-    ['PAYROLL_CALCULATION_FAILED', 'Payroll calculation failed'],
-    ['PAYROLL_BLOCKERS_FOUND', 'Payroll blockers found'],
-    ['PAYROLL_READY_FOR_REVIEW', 'Payroll ready for review'],
+    [
+      'PAYROLL_CALCULATION_COMPLETED',
+      'Payroll calculation completed',
+      'Sent to payroll staff when a run finishes calculating with no blockers.',
+    ],
+    [
+      'PAYROLL_CALCULATION_FAILED',
+      'Payroll calculation failed',
+      'Sent to payroll staff when a run fails to calculate and needs attention.',
+    ],
+    [
+      'PAYROLL_BLOCKERS_FOUND',
+      'Payroll blockers found',
+      'Sent to payroll staff when a run calculates but surfaces blocking issues to resolve before approval.',
+    ],
+    [
+      'PAYROLL_READY_FOR_REVIEW',
+      'Payroll ready for review',
+      'Sent to the approver when a payroll run is calculated and awaiting their review.',
+    ],
     [
       'PAYROLL_RETURNED_FOR_RECALCULATION',
       'Payroll returned for recalculation',
+      'Sent to payroll staff when a reviewer sends a run back for recalculation.',
     ],
-    ['PAYROLL_APPROVAL_REQUIRED', 'Payroll approval required'],
-    ['PAYROLL_APPROVED', 'Payroll approved'],
-    ['PAYMENT_BATCH_SUBMITTED', 'Payment batch submitted'],
-    ['PAYMENT_BATCH_PARTIALLY_FAILED', 'Payment batch partially failed'],
-    ['PAYMENT_BATCH_FAILED', 'Payment batch failed'],
-    ['PAYROLL_PAID', 'Payroll paid'],
-    ['PAYSLIP_PUBLISHED', 'Payslip published'],
-    ['PAYSLIP_EMAIL_FAILED', 'Payslip email failed'],
-    ['JOURNAL_GENERATION_FAILED', 'Journal generation failed'],
-    ['JOURNAL_POSTED', 'Journal posted'],
-    ['JOURNAL_REVERSED', 'Journal reversed'],
-  ].map(([code, name]) => ({
+    [
+      'PAYROLL_APPROVAL_REQUIRED',
+      'Payroll approval required',
+      'Sent to the approver when a payroll run reaches the point it requires sign-off.',
+    ],
+    [
+      'PAYROLL_APPROVED',
+      'Payroll approved',
+      'Sent to payroll staff when a run is approved and ready to move to payment.',
+    ],
+    [
+      'PAYMENT_BATCH_SUBMITTED',
+      'Payment batch submitted',
+      'Sent to payroll staff when a payment batch is submitted to the payment provider or bank file.',
+    ],
+    [
+      'PAYMENT_BATCH_PARTIALLY_FAILED',
+      'Payment batch partially failed',
+      'Sent to payroll staff when some payments in a batch fail while others succeed.',
+    ],
+    [
+      'PAYMENT_BATCH_FAILED',
+      'Payment batch failed',
+      'Sent to payroll staff when an entire payment batch fails to process.',
+    ],
+    [
+      'PAYROLL_PAID',
+      'Payroll paid',
+      'Sent to payroll staff when a run’s payments have all completed successfully.',
+    ],
+    [
+      'PAYSLIP_PUBLISHED',
+      'Payslip published',
+      'Sent to payroll staff when payslips for a run are published to employee self-service.',
+    ],
+    [
+      'PAYSLIP_EMAIL_FAILED',
+      'Payslip email failed',
+      'Sent to payroll staff when a published payslip could not be emailed to an employee.',
+    ],
+    [
+      'JOURNAL_GENERATION_FAILED',
+      'Journal generation failed',
+      'Sent to payroll staff when the GL journal for a run fails to generate.',
+    ],
+    [
+      'JOURNAL_POSTED',
+      'Journal posted',
+      'Sent to payroll staff when a run’s GL journal is posted to the ledger.',
+    ],
+    [
+      'JOURNAL_REVERSED',
+      'Journal reversed',
+      'Sent to payroll staff when a previously posted GL journal is reversed.',
+    ],
+  ].map(([code, name, description]) => ({
     code,
     name,
-    description: `${name} payroll notification.`,
+    description,
     category: NotificationEventCategory.PAYROLL,
     defaultChannels: [NotificationChannel.IN_APP],
     enabledByDefault: true,
@@ -341,7 +505,51 @@ export const NOTIFICATION_EVENT_CATALOG: NotificationEventDefinition[] = [
     enabledByDefault: true,
     systemTemplateKey: 'REPORT_SCHEDULE_DELIVERY',
   },
+  {
+    /*
+     * ITEM-0170. `SupportCasesService.sendCommunication` has called
+     * `EmailService.sendTemplateEmail({ eventCode: 'SUPPORT_CASE_UPDATE', ... })`
+     * since the module was written, but nothing ever seeded a matching
+     * NotificationEvent or EmailTemplate — `findTemplateForEvent` returns
+     * nothing for an eventCode with no catalog or template row, so every send
+     * threw `No active email template is configured for event
+     * SUPPORT_CASE_UPDATE`. This entry and its template are what make the
+     * feature that already exists actually work, rather than new wiring.
+     */
+    code: 'SUPPORT_CASE_UPDATE',
+    name: 'Support case updated',
+    description:
+      'Sent to the requester when an agent posts an update on their support case.',
+    category: NotificationEventCategory.SYSTEM,
+    defaultChannels: [NotificationChannel.EMAIL],
+    enabledByDefault: true,
+    systemTemplateKey: 'SUPPORT_CASE_UPDATE',
+  },
 ];
+
+/*
+ * ITEM-0169. Maps a retired catalog code onto the working code it was
+ * collapsed into. `NotificationsRepository.migrateRetiredEventPreferences()`
+ * uses this once, idempotently, to move any `NotificationPreference` row still
+ * stored against a retired code onto its successor rather than orphaning it —
+ * the same channel keeps whatever enabled/disabled value the tenant set.
+ */
+export const RETIRED_EVENT_ALIASES: Record<string, string> = {
+  LEAVE_APPROVAL_REQUEST: 'leave.request.submitted.approver',
+  LEAVE_APPROVED: 'leave.request.approved.employee',
+};
+
+export function isRetiredEventCode(code: string) {
+  return code in RETIRED_EVENT_ALIASES;
+}
+
+export function isConfigurableEvent(event: NotificationEventDefinition) {
+  return event.configurable !== false;
+}
+
+export function isAvailableEvent(event: NotificationEventDefinition) {
+  return (event.availability ?? 'ACTIVE') === 'ACTIVE';
+}
 
 export const SYSTEM_EMAIL_TEMPLATE_PLACEHOLDERS: SystemEmailTemplateSeed[] =
   NOTIFICATION_EVENT_CATALOG.filter((event) => event.systemTemplateKey).map(
@@ -482,6 +690,46 @@ function createSystemTemplateSeed(
         format: 'Export format (CSV, XLSX or PDF)',
         rowCount: 'Rows in the attached file',
         fileName: 'Attached file name',
+      },
+      status: EmailTemplateStatus.ACTIVE,
+      version: 1,
+      isSystem: true,
+    };
+  }
+
+  if (event.code === 'SUPPORT_CASE_UPDATE') {
+    /*
+     * ITEM-0170. Written out because the generic placeholder below only
+     * knows `tenantName`/`recipientName`/`actionUrl` — none of which
+     * `SupportCasesService.sendCommunication` actually supplies. Using only
+     * the variables that call site passes (`caseNumber`, `caseTitle`,
+     * `customerName`, `updateBody`) is what makes this template render a real
+     * message rather than blank fields.
+     */
+    return {
+      scopeKey: NOTIFICATION_SYSTEM_SCOPE_KEY,
+      eventCode: event.code,
+      templateKey: 'SUPPORT_CASE_UPDATE',
+      name: 'Support case update email',
+      description: 'System template for a support agent update to a customer.',
+      subjectTemplate: 'Update on your support case {{caseNumber}}',
+      htmlTemplate: [
+        '<div style="font-family:Inter,Arial,sans-serif;line-height:1.6;color:#0f172a">',
+        '<p>Hello {{customerName}},</p>',
+        '<p>There is a new update on your support case.</p>',
+        '<table style="border-collapse:collapse;margin:16px 0">',
+        '<tr><td style="padding:6px 16px 6px 0;color:#64748b">Case</td><td style="padding:6px 0;font-weight:700">{{caseNumber}} — {{caseTitle}}</td></tr>',
+        '</table>',
+        '<p style="white-space:pre-wrap">{{updateBody}}</p>',
+        '</div>',
+      ].join(''),
+      textTemplate:
+        'Hello {{customerName}},\n\nThere is a new update on your support case.\n\nCase: {{caseNumber}} - {{caseTitle}}\n\n{{updateBody}}',
+      availableVariables: {
+        customerName: 'Requester or customer account display name',
+        caseNumber: 'Support case number',
+        caseTitle: 'Support case title',
+        updateBody: 'The update text the agent wrote',
       },
       status: EmailTemplateStatus.ACTIVE,
       version: 1,

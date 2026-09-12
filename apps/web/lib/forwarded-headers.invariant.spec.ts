@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { forwardedClientHeaders } from "./forwarded-headers";
 
 /**
  * Every route handler that calls the API directly must carry the visitor's
@@ -73,4 +74,46 @@ describe("client address forwarding across the proxy hop", () => {
       expect(source).toContain("forwardedClientHeaders(request)");
     },
   );
+});
+
+/*
+ * BUG-3360 — a browser sign-in used to produce a `RefreshToken` row whose
+ * `userAgent` was always `"node"`, because this app's server-side fetch never
+ * carried the visitor's own `User-Agent` across the proxy hop. Every route
+ * handler above forwards through `forwardedClientHeaders`, so this is what
+ * actually pins the fix: the header this wrapper produces now carries the
+ * visitor's `User-Agent`, not only the address.
+ */
+describe("forwardedClientHeaders carries the visitor's User-Agent too", () => {
+  /*
+   * `user-agent` is a forbidden header per the Fetch spec, so Node's real
+   * `Request`/`Headers` constructors silently drop it when it is supplied as
+   * an *incoming* header this way — proven the hard way when this test first
+   * asserted against a real `new Request(...)` and the header vanished. A
+   * `Request`-shaped stub is what `forwardedClientHeaders` actually needs: it
+   * only ever calls `.headers.get(name)`.
+   */
+  function incomingRequest(headers: Record<string, string>): Request {
+    return {
+      headers: { get: (name: string) => headers[name.toLowerCase()] ?? null },
+    } as unknown as Request;
+  }
+
+  it("forwards a real browser User-Agent alongside the forwarded address", () => {
+    const request = incomingRequest({
+      "x-forwarded-for": "203.0.113.7",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    });
+
+    expect(forwardedClientHeaders(request)).toMatchObject({
+      "x-forwarded-for": "203.0.113.7",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+    });
+  });
+
+  it("forwards nothing for a header that was never sent", () => {
+    const request = incomingRequest({});
+
+    expect(forwardedClientHeaders(request)).toEqual({});
+  });
 });

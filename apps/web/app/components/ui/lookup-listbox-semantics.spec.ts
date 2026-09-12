@@ -76,7 +76,39 @@ describe("BUG-1956 — the options are not focusable children of a widget", () =
     expect(SOURCE).not.toContain(
       'className="block truncate font-semibold text-accent underline-offset-4 hover:underline"',
     );
-    expect(SOURCE).toContain("Open {lookupOptionDisplay(selectedOption).name}");
+  });
+});
+
+describe("ITEM-0163 — the openable label lives in the label row, not below the control", () => {
+  /*
+   * The link used to be a sibling line under the trigger (BUG-1956 moved it
+   * there from inside the combobox). The product owner then asked for the
+   * selected record's name to be the click target beside the field's label
+   * instead — still not inside the combobox trigger, so BUG-1956 stays fixed,
+   * but no longer a separate line under the control either.
+   */
+  it("no longer renders the old sibling 'Open <name>' line under the control", () => {
+    expect(SOURCE).not.toContain("Open {lookupOptionDisplay(selectedOption).name}");
+  });
+
+  it("passes the selected record's link to FieldShell's label row instead", () => {
+    expect(SOURCE).toContain("labelLink={");
+    expect(SOURCE).toContain(
+      "{ href: selectedHref, text: lookupOptionDisplay(selectedOption).name }",
+    );
+    // FieldShell renders it as an anchor inside the label span, beside the
+    // field name — not inside anything carrying role="combobox".
+    expect(SOURCE).toContain("{labelLink ? (");
+    expect(SOURCE).toContain("href={labelLink.href}");
+  });
+
+  it("leaves no unreachable superseded popup behind", () => {
+    // A second, dead copy of the popup (rendered as `button`s, the very
+    // pattern BUG-1956 fixed) used to sit here as `{false && isOpen ? ... :
+    // null}` — unreachable, but still a second implementation for the next
+    // person to find and trust.
+    expect(SOURCE).not.toContain("{false && isOpen");
+    expect(SOURCE).not.toContain("{false &&");
   });
 });
 

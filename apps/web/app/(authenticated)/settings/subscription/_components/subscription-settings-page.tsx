@@ -1,11 +1,14 @@
 import { AccessDeniedState } from "../../../_components/access-denied-state";
 import { getSessionUser } from "@/lib/auth";
-import { hasElevatedTenantRole } from "@/lib/elevated-roles";
+import { hasSettingsPermission } from "../../_lib/require-settings-permission";
+import { PERMISSION_KEYS } from "@/lib/security-keys";
 import { SettingsShell } from "../../_components/settings-shell";
 import { BillingSettingsClient } from "../../billing/_components/billing-settings-client";
-import { loadSubscriptionSettingsData } from "../_lib/load-subscription-settings";
-
-type SubscriptionView = "overview" | "plans" | "billing-history";
+import {
+  loadSubscriptionSettingsData,
+  type SubscriptionView,
+} from "../_lib/load-subscription-settings";
+import { LoadFailureState } from "./load-failure-state";
 
 const viewCopy: Record<
   SubscriptionView,
@@ -34,7 +37,23 @@ export async function SubscriptionSettingsPage({
   activeView: SubscriptionView;
 }) {
   const user = await getSessionUser();
-  const canViewSubscription = hasElevatedTenantRole(user?.roleKeys);
+  /*
+   * BUG-3336 — this used to gate on the elevated-role helper
+   * (`hasElevatedTenantRole`, called with the user's role keys), which
+   * `AGENTS.md` names specifically as a guard bypass and which does not match
+   * what the API actually requires (`billing.view` +
+   * `TENANT_ADMINISTRATION:read`). `hasSettingsPermission` is the same gate
+   * every other settings screen in this app uses: an elevated settings admin
+   * role, or the specific permission key. Full parity with the API's matrix
+   * privilege would need an entity-key mirror in apps/web that does not exist
+   * for any screen yet — this closes the gap the record measured (a user
+   * holding `billing.view` but not an elevated role was refused by the UI
+   * although the API would have served them) without inventing a new pattern.
+   */
+  const canViewSubscription = hasSettingsPermission(
+    user,
+    PERMISSION_KEYS.BILLING_VIEW,
+  );
   const copy = viewCopy[activeView];
 
   if (!canViewSubscription) {
@@ -42,7 +61,7 @@ export async function SubscriptionSettingsPage({
       <SettingsShell title={copy.title} description={copy.description}>
         <AccessDeniedState
           title="Subscription access is restricted"
-          description="Only Global Administrators and System Administrators can access subscription settings."
+          description="Only Global Administrators, System Administrators, and users holding the billing.view permission can access subscription settings."
           actionHref="/settings"
           actionLabel="Back to settings"
         />
@@ -50,13 +69,18 @@ export async function SubscriptionSettingsPage({
     );
   }
 
-  const subscriptionData = await loadSubscriptionSettingsData();
+  const subscriptionData = await loadSubscriptionSettingsData(activeView);
 
   if (!subscriptionData.ok) {
     return (
       <SettingsShell title={copy.title} description={copy.description}>
-        <AccessDeniedState
-          title="Unable to load subscription"
+        {/*
+          BUG-3336 — a failed load used to render `AccessDeniedState`, the
+          same component shown for a genuine permissions refusal. This is a
+          distinct, retryable state so a transient API failure does not read
+          as "you are not allowed here".
+        */}
+        <LoadFailureState
           description={subscriptionData.message}
           traceId={subscriptionData.traceId}
           actionHref="/settings"
@@ -73,6 +97,7 @@ export async function SubscriptionSettingsPage({
         initialPlans={subscriptionData.plans}
         initialSubscription={subscriptionData.subscription}
         initialInvoices={subscriptionData.invoices}
+        availableCurrencies={subscriptionData.availableCurrencies}
         presentation={subscriptionData.presentation}
       />
     </SettingsShell>

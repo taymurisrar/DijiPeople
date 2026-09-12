@@ -17,18 +17,6 @@ export function hasSettingsAdministratorRole(user: SessionUser | null) {
   );
 }
 
-export function hasCustomizationAdministratorRole(
-  user: SessionUser | null,
-) {
-  if (!user) return false;
-
-  return (user.roleKeys ?? []).some(
-    (roleKey) =>
-      roleKey === ROLE_KEYS.GLOBAL_ADMIN ||
-      roleKey === ROLE_KEYS.SYSTEM_CUSTOMIZER,
-  );
-}
-
 export function hasSettingsPermission(
   user: SessionUser | null,
   permissionKey: string,
@@ -81,27 +69,36 @@ export async function requireSettingsPermissions(
   return user;
 }
 
+export type CustomizationAccessCheck = {
+  user: SessionUser | null;
+  allowed: boolean;
+};
+
+/*
+ * BUG-3374 — this used to gate on role membership only
+ * (`GLOBAL_ADMIN`/`SYSTEM_CUSTOMIZER`) and redirect to a hardcoded legacy
+ * Roles URL on denial, while the settings navigation catalog and every page
+ * under `/settings/customization/*` gate on the `customization.read`
+ * permission through `hasAnySettingsPermission` (see
+ * `requireSettingsPermissions` above). When the two disagreed — as for the
+ * workspace owner, who holds the permission but not either role — the layout
+ * won and silently threw the user onto Roles before its own page-level check
+ * ever ran.
+ *
+ * This now shares the exact model `requireSettingsPermissions` uses, so
+ * there is one authorization decision for this section, not two. It also no
+ * longer redirects: the caller (the customization layout) renders
+ * `AccessDeniedState` in place when `allowed` is false, so a denial lands on
+ * the route the user asked for with the URL unchanged, instead of teleporting
+ * them to an unrelated screen.
+ */
 export async function requireCustomizationAccess(
   permissionKeys: readonly string[] = ["customization.read"],
-  fallbackHref = "/settings/access/roles",
-) {
+): Promise<CustomizationAccessCheck> {
   const user = await getSessionUser();
 
-  if (!user) {
-    redirect(fallbackHref);
-  }
-
-  if (!hasCustomizationAdministratorRole(user)) {
-    redirect(fallbackHref);
-  }
-
-  const allowed =
-    permissionKeys.length === 0 ||
-    hasAnyPermission(user.permissionKeys, permissionKeys);
-
-  if (!allowed) {
-    redirect(fallbackHref);
-  }
-
-  return user;
+  return {
+    user,
+    allowed: !!user && hasAnySettingsPermission(user, permissionKeys),
+  };
 }

@@ -8,12 +8,12 @@
 | | |
 |---|---|
 | Open CRITICAL | **4** |
-| Open HIGH | **79** |
-| Open total | 160 |
+| Open HIGH | **89** |
+| Open total | 186 |
 | Blocked | 2 |
-| Awaiting a product decision | 6 |
-| Deferred | 90 |
-| Completed | 319 |
+| Awaiting a product decision | 7 |
+| Deferred | 94 |
+| Completed | 332 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -105,9 +105,19 @@
 | [[BUG-3202-payroll-run-eligibility-never-checks-employee-isdeleted-an-a|BUG-3202]] | Payroll run eligibility never checks Employee.isDeleted; an archived employee with a stale employmentStatus is paid | DATA_INTEGRITY | HIGH | OPEN | api:payroll | FIX_NOW |
 | [[BUG-3205-tenant-deletion-cascades-through-the-entire-tenant-owned-sch|BUG-3205]] | Tenant deletion cascades through the entire tenant-owned schema, including every audit and payroll table, with no database-level barrier | DATABASE | HIGH | OPEN | services/api/prisma | PLAN_REQUIRED |
 | [[BUG-3241-legacy-role-permission-grant-and-employee-export-both-skip-t|BUG-3241]] | Legacy role-permission grant and employee export both skip the sibling endpoint's access check | AUTHORIZATION | HIGH | FIXED | api:roles/roles.service.ts, api:employees/employees.service.ts | DONE |
+| [[BUG-3330-plan-cards-quote-a-per-seat-price-as-the-whole-monthly-charg|BUG-3330]] | Plan cards quote a per-seat price as the whole monthly charge and ignore the seat count entirely | UX | HIGH | FIXED | apps/web, api:billing | FIX_NOW |
+| [[BUG-3331-subscribe-is-enabled-for-a-tenant-that-already-has-an-active|BUG-3331]] | Subscribe is enabled for a tenant that already has an active subscription and can only ever return 409 | UX | HIGH | FIXED | apps/web, api:billing | PLAN_REQUIRED |
+| [[BUG-3332-plan-cards-truncate-to-eight-features-so-growth-and-enterpri|BUG-3332]] | Plan cards truncate to eight features so Growth and Enterprise advertise identical capability | UX | HIGH | FIXED | apps/web, api:billing | FIX_NOW |
+| [[BUG-3350-the-plan-comparison-sells-module-exclusivity-the-platform-is|BUG-3350]] | The plan comparison sells module exclusivity the platform is configured only to report on | BUG | HIGH | FIXED | apps/web, services/api/src/common/security | FIX_NOW |
+| [[BUG-3355-a-second-sign-in-silently-destroys-the-first-session-and-the|BUG-3355]] | A second sign-in silently destroys the first session, and the displaced browser is never told | BUG | HIGH | FIXED | api:auth, web:auth | FIX_NOW |
+| [[BUG-3356-a-revoked-or-expired-session-is-reported-to-the-user-as-auth|BUG-3356]] | A revoked or expired session is reported to the user as AUTH_TOKEN_MISSING and is never logged | BUG | HIGH | FIXED | web:auth, api:auth | FIX_NOW |
+| [[BUG-3374-settings-customization-and-its-twelve-child-routes-silently-|BUG-3374]] | Settings Customization and its twelve child routes silently redirect to Roles | AUTHORIZATION | HIGH | FIXED | apps/web, customization | FIX_NOW |
+| [[BUG-3375-the-notification-rules-screen-edits-preferences-and-cannot-r|BUG-3375]] | The Notification Rules screen edits preferences and cannot reach NotificationRule at all | UX | HIGH | FIXED | notifications, apps/web | PLAN_REQUIRED |
+| [[BUG-3376-runtime-lookups-fetch-one-unpaged-page-and-filter-it-in-the-|BUG-3376]] | Runtime lookups fetch one unpaged page and filter it in the browser, hiding every record past the server page size | DATA_INTEGRITY | HIGH | FIXED | apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no|ITEM-0133]] | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | READY | services/api/test | PLAN_REQUIRED |
 | [[ITEM-0134-the-payroll-run-engine-has-no-tests|ITEM-0134]] | The payroll run engine has no tests | TEST_GAP | HIGH | READY | api:payroll | PLAN_REQUIRED |
 | [[ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-|ITEM-0136]] | electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major | SECURITY | HIGH | READY | apps/agent-desktop | FIX_NOW |
+| [[ITEM-0176-seatchangeservice-applyduechanges-has-no-caller-and-cannot-b|ITEM-0176]] | SeatChangeService.applyDueChanges has no caller and cannot be wired without under-billing | TECH_DEBT | HIGH | READY | api:billing | PLAN_REQUIRED |
 
 ## Product Decisions Needed
 
@@ -118,6 +128,7 @@
 | [[BUG-3180-the-render-service-cannot-be-rebuilt-from-the-repository-sev|BUG-3180]] | The Render service cannot be rebuilt from the repository: seven boot-required env vars are absent from render.yaml | INFRA | HIGH | PRODUCT_DECISION | render.yaml | PRODUCT_DECISION |
 | [[BUG-3181-single-environment-no-staging-one-neon-branch-one-stripe-acc|BUG-3181]] | Single environment: no staging, one Neon branch, one Stripe account, one email sender, and demo data in production | INFRA | HIGH | PRODUCT_DECISION | docs/deployment | PRODUCT_DECISION |
 | [[BUG-3182-no-per-tenant-restore-is-possible-restoring-one-tenant-means|BUG-3182]] | No per-tenant restore is possible: restoring one tenant means rolling back all of them | INFRA | HIGH | PRODUCT_DECISION | api:tenants | PRODUCT_DECISION |
+| [[BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-|BUG-3333]] | Tenant buyers choose their own currency and the three price schedules are not equivalent | DATA_INTEGRITY | HIGH | PRODUCT_DECISION | apps/web, api:billing | PRODUCT_DECISION |
 | [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] | No multi-factor authentication exists anywhere, including for platform super admins | SECURITY | HIGH | PRODUCT_DECISION | api:auth | PRODUCT_DECISION |
 
 ## Blocked Items
@@ -313,6 +324,15 @@
 | [[BUG-3020-records-behind-these-numbers-shows-raw-guids-and-a-count-tha|BUG-3020]] | Records behind these numbers shows raw GUIDs and a count that does not match the metric | UX | HIGH | FIXED | apps/web, api:reporting | FIX_NOW |
 | [[BUG-3115-rate-limiter-trusts-a-forged-x-forwarded-for-and-covers-no-a|BUG-3115]] | Rate limiter trusts a forged X-Forwarded-For and covers no authenticated endpoint | SECURITY | HIGH | FIXED | services/api/src/common/security/client-ip.ts, services/api/src/common/guards/public-rate-limit.guard.ts, services/api/src/common/interceptors/authenticated-rate-limit.interceptor.ts | DONE |
 | [[BUG-3241-legacy-role-permission-grant-and-employee-export-both-skip-t|BUG-3241]] | Legacy role-permission grant and employee export both skip the sibling endpoint's access check | AUTHORIZATION | HIGH | FIXED | api:roles/roles.service.ts, api:employees/employees.service.ts | DONE |
+| [[BUG-3330-plan-cards-quote-a-per-seat-price-as-the-whole-monthly-charg|BUG-3330]] | Plan cards quote a per-seat price as the whole monthly charge and ignore the seat count entirely | UX | HIGH | FIXED | apps/web, api:billing | FIX_NOW |
+| [[BUG-3331-subscribe-is-enabled-for-a-tenant-that-already-has-an-active|BUG-3331]] | Subscribe is enabled for a tenant that already has an active subscription and can only ever return 409 | UX | HIGH | FIXED | apps/web, api:billing | PLAN_REQUIRED |
+| [[BUG-3332-plan-cards-truncate-to-eight-features-so-growth-and-enterpri|BUG-3332]] | Plan cards truncate to eight features so Growth and Enterprise advertise identical capability | UX | HIGH | FIXED | apps/web, api:billing | FIX_NOW |
+| [[BUG-3350-the-plan-comparison-sells-module-exclusivity-the-platform-is|BUG-3350]] | The plan comparison sells module exclusivity the platform is configured only to report on | BUG | HIGH | FIXED | apps/web, services/api/src/common/security | FIX_NOW |
+| [[BUG-3355-a-second-sign-in-silently-destroys-the-first-session-and-the|BUG-3355]] | A second sign-in silently destroys the first session, and the displaced browser is never told | BUG | HIGH | FIXED | api:auth, web:auth | FIX_NOW |
+| [[BUG-3356-a-revoked-or-expired-session-is-reported-to-the-user-as-auth|BUG-3356]] | A revoked or expired session is reported to the user as AUTH_TOKEN_MISSING and is never logged | BUG | HIGH | FIXED | web:auth, api:auth | FIX_NOW |
+| [[BUG-3374-settings-customization-and-its-twelve-child-routes-silently-|BUG-3374]] | Settings Customization and its twelve child routes silently redirect to Roles | AUTHORIZATION | HIGH | FIXED | apps/web, customization | FIX_NOW |
+| [[BUG-3375-the-notification-rules-screen-edits-preferences-and-cannot-r|BUG-3375]] | The Notification Rules screen edits preferences and cannot reach NotificationRule at all | UX | HIGH | FIXED | notifications, apps/web | PLAN_REQUIRED |
+| [[BUG-3376-runtime-lookups-fetch-one-unpaged-page-and-filter-it-in-the-|BUG-3376]] | Runtime lookups fetch one unpaged page and filter it in the browser, hiding every record past the server page size | DATA_INTEGRITY | HIGH | FIXED | apps/web, apps/admin | PLAN_REQUIRED |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | VERIFIED | app:admin | DONE |
@@ -444,6 +464,17 @@
 | [[BUG-3254-the-forwarded-for-hop-guard-rejected-every-honest-chain-coll|BUG-3254]] | The rate-limit e2e suite sent a forwarded chain one hop short, and the guard was misread as an off-by-one | TEST_GAP | MEDIUM | FIXED | pkg:config, services/api/src/common/security, services/api/test | DONE |
 | [[BUG-3263-the-provisioning-queue-e2e-fixture-raced-the-clock-so-an-exa|BUG-3263]] | The provisioning queue e2e fixture raced the clock, so an exact five-minute interval came out 300001ms | TEST_GAP | MEDIUM | FIXED | services/api/test | DONE |
 | [[BUG-3316-notification-settings-screens-hydrate-with-utc-timestamps-an|BUG-3316]] | Notification settings screens hydrate with UTC timestamps and crash the React tree | UX | MEDIUM | FIXED | apps/web | DONE |
+| [[BUG-3334-tenant-plan-listing-and-checkout-ignore-planprice-publicatio|BUG-3334]] | Tenant plan listing and checkout ignore PlanPrice publication status and market scoping | SECURITY | MEDIUM | FIXED | api:billing | FIX_NOW |
+| [[BUG-3335-subscription-plans-screen-overflows-horizontally-on-phones-a|BUG-3335]] | Subscription plans screen overflows horizontally on phones and loses its comparison layout below 1280px | UX | MEDIUM | FIXED | apps/web | FIX_NOW |
+| [[BUG-3336-subscription-settings-has-no-loading-or-error-boundary-and-r|BUG-3336]] | Subscription settings has no loading or error boundary and renders a failed load as access denied | UX | MEDIUM | FIXED | apps/web | FIX_NOW |
+| [[BUG-3345-subscription-screens-paint-every-primary-action-in-body-text|BUG-3345]] | Subscription screens paint every primary action in body-text black instead of the tenant brand colour | UX | MEDIUM | FIXED | apps/web | FIX_NOW |
+| [[BUG-3357-remember-me-is-overridden-by-the-web-middleware-which-pins-t|BUG-3357]] | Remember me is overridden by the web middleware, which pins the cookies to 15 minutes and 1 hour | BUG | MEDIUM | FIXED | web:auth, api:auth | FIX_NOW |
+| [[BUG-3358-a-server-component-render-rotates-the-refresh-token-and-cann|BUG-3358]] | A Server Component render rotates the refresh token and cannot persist it, orphaning the browser | BUG | MEDIUM | FIXED | web:auth, api:auth | FIX_NOW |
+| [[BUG-3359-refresh-rotation-has-no-grace-window-and-the-web-middleware-|BUG-3359]] | Refresh rotation has no grace window and the web middleware has no concurrency control | BUG | MEDIUM | FIXED | api:auth, web:auth | FIX_NOW |
+| [[BUG-3373-web-paints-the-operating-system-dark-theme-before-the-tenant|BUG-3373]] | Web paints the operating-system dark theme before the tenant Light default arrives | UX | MEDIUM | FIXED | apps/web | FIX_NOW |
+| [[BUG-3377-admin-lookup-controls-still-carry-the-nested-interactive-lis|BUG-3377]] | Admin lookup controls still carry the nested-interactive listbox that BUG-1956 fixed only in web | UX | MEDIUM | FIXED | apps/admin | FIX_NOW |
+| [[BUG-3378-the-responsive-runtime-tab-strip-hides-a-measurement-copy-fr|BUG-3378]] | The responsive runtime tab strip hides a measurement copy from screen readers while leaving thirteen buttons in the tab order | UX | MEDIUM | FIXED | apps/web | FIX_NOW |
+| [[BUG-3450-get-employees-id-reporting-structure-computed-every-root-in-|BUG-3450]] | GET /employees/{id}/reporting-structure computed every root in the tenant to unbounded depth on every page view, unused | PERFORMANCE | MEDIUM | FIXED | api:employees | FIX_NOW |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -471,6 +502,9 @@
 | [[BUG-2461-get-employees-me-direct-reports-is-shadowed-by-the-employeei|BUG-2461]] | GET employees me direct-reports is shadowed by the employeeId route and returns 400 | BUG | LOW | FIXED | api:employees | FIX_NOW |
 | [[BUG-2657-analytics-caveat-panels-list-the-same-note-twice-in-differen|BUG-2657]] | Analytics caveat panels list the same note twice in different wording | UX | LOW | FIXED | api:reporting | DONE |
 | [[BUG-3021-workspace-switcher-in-the-avatar-menu-overflows-horizontally|BUG-3021]] | Workspace switcher in the avatar menu overflows horizontally and shows a scrollbar | UX | LOW | FIXED | apps/web | FIX_NOW |
+| [[BUG-3360-every-session-row-records-the-user-agent-as-node-and-the-clo|BUG-3360]] | Every session row records the user agent as node and the Cloudflare edge IP | BUG | LOW | FIXED | api:auth, web:auth | FIX_NOW |
+| [[BUG-3379-a-delivery-log-row-says-not-delivered-and-carries-nothing-th|BUG-3379]] | A delivery log row says Not delivered and carries nothing that explains why | UX | LOW | FIXED | notifications, apps/web | FIX_NOW |
+| [[BUG-3412-every-widget-section-on-a-record-form-prints-its-title-twice|BUG-3412]] | Every widget section on a record form prints its title twice, and the profile section's two titles disagree | UX | LOW | FIXED | apps/web | FIX_NOW |
 
 ## Recent QA Runs
 
@@ -495,14 +529,14 @@
 
 ## Recent Engineering History
 
+- [[2026-09-12-ux-findings-audit-d5388a4c|Engineering History — Ux findings audit]]
 - [[2026-09-11-closeout-sweep-658eb39c|Engineering History — Closeout sweep]]
+- [[2026-09-11-auth-session-revocation-690cacbc|Engineering History — Auth session revocation]]
 - [[2026-09-10-release-settings-entitlements-254e8d2b|Engineering History — Release settings entitlements]]
 - [[2026-09-10-r2-durable-object-storage-11afbd50|Engineering History — Durable object storage on Cloudflare R2 (FILE-01/INF-05)]]
 - [[2026-09-09-settings-plan-entitlements-c3627cad|Engineering History — Settings plan entitlements]]
 - [[2026-08-31-session-redirect-loop-77abf947|Engineering History — Session redirect loop]]
 - [[2026-08-31-reports-analytics-platform-d833e694|Engineering History — Reports analytics platform]]
-- [[2026-08-31-email-sink-visibility-1b60690f|Engineering History — Email sink visibility]]
-- [[2026-08-31-approvals-inbox-decisions-d084dd7b|Engineering History — Approvals inbox decisions]]
 
 ## Recent Releases
 
@@ -567,6 +601,17 @@
 | [[BUG-3254-the-forwarded-for-hop-guard-rejected-every-honest-chain-coll|BUG-3254]] | The rate-limit e2e suite sent a forwarded chain one hop short, and the guard was misread as an off-by-one | TEST_GAP | MEDIUM | FIXED | pkg:config, services/api/src/common/security, services/api/test | DONE |
 | [[BUG-3263-the-provisioning-queue-e2e-fixture-raced-the-clock-so-an-exa|BUG-3263]] | The provisioning queue e2e fixture raced the clock, so an exact five-minute interval came out 300001ms | TEST_GAP | MEDIUM | FIXED | services/api/test | DONE |
 | [[BUG-3316-notification-settings-screens-hydrate-with-utc-timestamps-an|BUG-3316]] | Notification settings screens hydrate with UTC timestamps and crash the React tree | UX | MEDIUM | FIXED | apps/web | DONE |
+| [[BUG-3334-tenant-plan-listing-and-checkout-ignore-planprice-publicatio|BUG-3334]] | Tenant plan listing and checkout ignore PlanPrice publication status and market scoping | SECURITY | MEDIUM | FIXED | api:billing | FIX_NOW |
+| [[BUG-3335-subscription-plans-screen-overflows-horizontally-on-phones-a|BUG-3335]] | Subscription plans screen overflows horizontally on phones and loses its comparison layout below 1280px | UX | MEDIUM | FIXED | apps/web | FIX_NOW |
+| [[BUG-3336-subscription-settings-has-no-loading-or-error-boundary-and-r|BUG-3336]] | Subscription settings has no loading or error boundary and renders a failed load as access denied | UX | MEDIUM | FIXED | apps/web | FIX_NOW |
+| [[BUG-3345-subscription-screens-paint-every-primary-action-in-body-text|BUG-3345]] | Subscription screens paint every primary action in body-text black instead of the tenant brand colour | UX | MEDIUM | FIXED | apps/web | FIX_NOW |
+| [[BUG-3357-remember-me-is-overridden-by-the-web-middleware-which-pins-t|BUG-3357]] | Remember me is overridden by the web middleware, which pins the cookies to 15 minutes and 1 hour | BUG | MEDIUM | FIXED | web:auth, api:auth | FIX_NOW |
+| [[BUG-3358-a-server-component-render-rotates-the-refresh-token-and-cann|BUG-3358]] | A Server Component render rotates the refresh token and cannot persist it, orphaning the browser | BUG | MEDIUM | FIXED | web:auth, api:auth | FIX_NOW |
+| [[BUG-3359-refresh-rotation-has-no-grace-window-and-the-web-middleware-|BUG-3359]] | Refresh rotation has no grace window and the web middleware has no concurrency control | BUG | MEDIUM | FIXED | api:auth, web:auth | FIX_NOW |
+| [[BUG-3373-web-paints-the-operating-system-dark-theme-before-the-tenant|BUG-3373]] | Web paints the operating-system dark theme before the tenant Light default arrives | UX | MEDIUM | FIXED | apps/web | FIX_NOW |
+| [[BUG-3377-admin-lookup-controls-still-carry-the-nested-interactive-lis|BUG-3377]] | Admin lookup controls still carry the nested-interactive listbox that BUG-1956 fixed only in web | UX | MEDIUM | FIXED | apps/admin | FIX_NOW |
+| [[BUG-3378-the-responsive-runtime-tab-strip-hides-a-measurement-copy-fr|BUG-3378]] | The responsive runtime tab strip hides a measurement copy from screen readers while leaving thirteen buttons in the tab order | UX | MEDIUM | FIXED | apps/web | FIX_NOW |
+| [[BUG-3450-get-employees-id-reporting-structure-computed-every-root-in-|BUG-3450]] | GET /employees/{id}/reporting-structure computed every root in the tenant to unbounded depth on every page view, unused | PERFORMANCE | MEDIUM | FIXED | api:employees | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -580,6 +625,8 @@
 | [[ITEM-0116-53-bug-fixes-are-regression-covered-but-have-never-been-qa-r|ITEM-0116]] | 53 bug fixes are regression-covered but have never been QA-retested | TEST_GAP | MEDIUM | READY | — | FIX_NOW |
 | [[ITEM-0119-stop-writing-a-placeholder-e-mail-into-an-identity-column-wh|ITEM-0119]] | Stop writing a placeholder e-mail into an identity column when the wizard opens a draft | TECH_DEBT | MEDIUM | READY | billing, landing, super-admin | PLAN_REQUIRED |
 | [[ITEM-0158-public-traffic-that-bypasses-cloudflare-shares-one-rate-limi|ITEM-0158]] | Public traffic that bypasses Cloudflare shares one rate-limit bucket, by design and untested | INFRA | MEDIUM | READY | pkg:config, services/api/src/common/security | PLAN_REQUIRED |
+| [[ITEM-0175-wire-the-plans-screen-onto-the-seat-quote-and-plan-change-en|ITEM-0175]] | Wire the plans screen onto the seat-quote and plan-change endpoints that now exist | FOLLOW_UP | MEDIUM | READY | apps/web, api:billing | FIX_NOW |
+| [[ITEM-0177-the-recruitment-draft-form-s-reporting-manager-lookup-still-|ITEM-0177]] | The recruitment draft form's Reporting manager lookup still filters one page in the browser | TECH_DEBT | MEDIUM | READY | apps/web | FIX_NOW |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [[ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle|ITEM-0108]] | Decide whether the roughly one-hour session lifetime is idle or absolute | PRODUCT_DECISION | LOW | READY | api:auth | PLAN_REQUIRED |
 | [[BUG-1964-record-headings-and-dialog-titles-are-singularised-by-stripp|BUG-1964]] | Record headings and dialog titles are singularised by stripping a trailing s | UX | LOW | FIXED | apps/web | DONE |
@@ -592,6 +639,9 @@
 | [[BUG-2461-get-employees-me-direct-reports-is-shadowed-by-the-employeei|BUG-2461]] | GET employees me direct-reports is shadowed by the employeeId route and returns 400 | BUG | LOW | FIXED | api:employees | FIX_NOW |
 | [[BUG-2657-analytics-caveat-panels-list-the-same-note-twice-in-differen|BUG-2657]] | Analytics caveat panels list the same note twice in different wording | UX | LOW | FIXED | api:reporting | DONE |
 | [[BUG-3021-workspace-switcher-in-the-avatar-menu-overflows-horizontally|BUG-3021]] | Workspace switcher in the avatar menu overflows horizontally and shows a scrollbar | UX | LOW | FIXED | apps/web | FIX_NOW |
+| [[BUG-3360-every-session-row-records-the-user-agent-as-node-and-the-clo|BUG-3360]] | Every session row records the user agent as node and the Cloudflare edge IP | BUG | LOW | FIXED | api:auth, web:auth | FIX_NOW |
+| [[BUG-3379-a-delivery-log-row-says-not-delivered-and-carries-nothing-th|BUG-3379]] | A delivery log row says Not delivered and carries nothing that explains why | UX | LOW | FIXED | notifications, apps/web | FIX_NOW |
+| [[BUG-3412-every-widget-section-on-a-record-form-prints-its-title-twice|BUG-3412]] | Every widget section on a record form prints its title twice, and the profile section's two titles disagree | UX | LOW | FIXED | apps/web | FIX_NOW |
 | [[ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by|ITEM-0080]] | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
 
 ## Key Architecture Decisions
@@ -604,6 +654,10 @@
 - [[ADR-0006-product-decisions-from-the-2026-09-11-backlog-review|ADR-0006 — Seven product decisions from the 2026-09-11 backlog review]]
 - [[ADR-0007-remove-inert-apps-web-runtime-registries|ADR-0007 — Remove the inert `apps/web` runtime registries rather than revive them]]
 - [[ADR-0008-unregistered-agent-branch-warns-not-blocks|ADR-0008 — An `agent/*` branch with no registered session warns, it does not block]]
+- [[ADR-0009-entitlement-enforcement-cutover|ADR-0009 — Entitlement enforcement moves from REPORT_ONLY to ENFORCE, via grandfathering]]
+- [[ADR-0010-concurrent-sessions-are-allowed-by-default|ADR-0010 — Concurrent sessions are allowed by default; single-session is an explicit opt-in]]
+- [[ADR-0011-notification-rule-and-preference-are-two-gates-not-one|ADR-0011 — `NotificationRule` and `NotificationPreference` both stay, as two gates on one dispatch path]]
+- [[ADR-0012-hand-rolled-reporting-hierarchy-tree-no-new-dependency|ADR-0012 — Render the reporting hierarchy tree by hand, no graph/tree library dependency]]
 - [[decision-a-bug-record-is-its-own-backlog-item|Decision — A bug record **is** its own backlog item]]
 - [[decision-ci-verdict-gates-shared-merges|Decision — A shared-target merge requires a read CI verdict on the exact SHA]]
 - [[decision-platform-admin-is-a-separate-identity|Decision — Platform admin is a separate identity, not an elevated tenant user]]
@@ -613,15 +667,15 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 419 |
-| Backlog items | 158 |
+| Bug records | 443 |
+| Backlog items | 178 |
 | Known bug patterns | 34 |
 | QA runs | 32 |
-| Engineering history records | 77 |
+| Engineering history records | 79 |
 | Release records | 10 |
 | Module notes | 30 |
 | Architecture notes | 22 |
-| Decision notes (ADR + generated) | 12 |
+| Decision notes (ADR + generated) | 16 |
 | Implementation records | 7 |
 
 **Awaiting Architect triage: 0.** A record nobody has

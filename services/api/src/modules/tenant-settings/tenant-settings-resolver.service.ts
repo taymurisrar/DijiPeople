@@ -419,6 +419,16 @@ export type SecuritySettingsResolved = {
   absoluteSessionLifetimeDays: number;
   idleTimeoutMinutes: number;
   /*
+   * BUG-3355 — whether a user may hold more than one live session per client
+   * at once. An absent setting means `true`: this is a decision (ADR-0009),
+   * not a technical default chosen for convenience. `AuthService` and
+   * `JwtAuthGuard` read the same value through `TenantAuthPolicyService`
+   * (`common/security/tenant-auth-policy.service.ts`) rather than through
+   * this resolver, so this field exists to make the value visible and
+   * editable on the Security & Access screen, not to be the source of truth.
+   */
+  allowMultipleActiveSessions: boolean;
+  /*
    * Password rules a tenant configures on the Password & Login Policies screen.
    * The minimum is floored at 8 so a tenant can be stricter than the platform
    * but never looser.
@@ -1465,6 +1475,10 @@ export class TenantSettingsResolverService {
         480,
         15,
         1440,
+      ),
+      allowMultipleActiveSessions: booleanValue(
+        category.allowMultipleActiveSessions,
+        true,
       ),
       minimumPasswordLength: numberValue(
         category.minimumPasswordLength,

@@ -1,7 +1,7 @@
 # Component Index
 
-> **Last verified:** 2026-09-11
-> **Verified against commit:** 06a8c4d8
+> **Last verified:** 2026-09-12
+> **Verified against commit:** c7a2a984
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -16,8 +16,8 @@ question an agent can answer by retrieval rather than by reading a directory.
 comment beside it is the reasoning; this document is a route to both. Every row
 carries `file`:`line` for that reason — read the source before changing it.
 
-**An export missing from here is undocumented, not absent.** 797 of
-1018 exports across these kits carry no
+**An export missing from here is undocumented, not absent.** 803 of
+1037 exports across these kits carry no
 doc-comment and are omitted rather than listed as bare names. That ratio is
 itself worth knowing: it is where a UI/UX or Frontend agent is working without
 stated rationale, and where adding one is worth more than a new abstraction.
@@ -45,7 +45,7 @@ re-derived on each run.
 
 `ProDataTable` (`crm/data-table.tsx`) is the required table for every production admin screen. A hand-rolled table here is a review failure.
 
-71 documented export(s); 246 undocumented export(s) omitted.
+72 documented export(s); 247 undocumented export(s) omitted.
 
 | Export | Kind | Used by | Where | What it is |
 |---|---|---|---|---|
@@ -86,7 +86,7 @@ re-derived on each run.
 | `humanizeLabel` | function | 2 | `apps/admin/lib/runtime/humanize-label.ts`:89 | Display text for a stored enum value, lookup key or similar. |
 | `recordDisplayName` | function | 2 | `apps/admin/lib/runtime/destructive-confirm.ts`:95 | The best display name for a record, from whatever the row happens to carry. |
 | `useConfirmAction` | function | 2 | `apps/admin/app/_components/runtime/use-confirm-action.tsx`:50 | Confirmation for an irreversible, billable create (BUG-0022). |
-| `useRuntimeLookupOptions` | function | 2 | `apps/admin/lib/runtime/use-runtime-lookup-options.ts`:20 | Read an allowlisted runtime lookup. |
+| `useRuntimeLookupOptions` | function | 2 | `apps/admin/lib/runtime/use-runtime-lookup-options.ts`:31 | Read an allowlisted runtime lookup. |
 | `buildLookupRecordHref` | function | 1 | `apps/admin/lib/runtime/lookup-record-href.ts`:64 | The link for a resolved lookup value. |
 | `buildWritePayload` | function | 1 | `apps/admin/lib/runtime/runtime-write-payload.ts`:73 | The values a create or update request should actually carry. |
 | `describeBlockedSave` | function | 1 | `apps/admin/lib/runtime/blocked-save-feedback.ts`:52 | The summary message. Names the fields so it stands on its own even when the tab strip has scrolled out of view — the message was previously the only feedback available and said nothing. |
@@ -110,6 +110,7 @@ re-derived on each run.
 | `resolveLookupRecordRoute` | function | 0 | `apps/admin/lib/runtime/lookup-record-href.ts`:44 | The module a lookup reads from, if Platform Admin can show that record. |
 | `standardRecordActions` | function | 0 | `apps/admin/lib/runtime/standard-record-commands.ts`:56 | The registry's command bar for a module, with the page's own commands merged in on top — same rule the registry itself uses, so a bespoke page can override a default's label or states without losing the rest. |
 | `ConsolePreferencesApplier` | value | 1 | `apps/admin/app/_components/console-preferences-applier.tsx`:23 | Apply the operator's preferences to every page, not just the one that sets them. |
+| `LOOKUP_SEARCH_DEBOUNCE_MS` | constant | 2 | `apps/admin/lib/runtime/lookup-search.ts`:14 | How long to wait after the last keystroke before issuing a search request. |
 | `NOTIFICATIONS_ENDPOINT` | constant | 2 | `apps/admin/app/_components/notifications/notification-model.ts`:37 | The read endpoint, and the one that clears the unread mark. |
 | `NOTIFICATIONS_READ_EVENT` | constant | 2 | `apps/admin/app/_components/notifications/notification-model.ts`:47 | The badge and the page read the same count from the same endpoint, so clearing it in one place has to reach the other. |
 | `SEVERITY` | constant | 2 | `apps/admin/app/_components/notifications/notification-model.ts`:57 | Severity as it is drawn. |
@@ -125,7 +126,7 @@ re-derived on each run.
 
 Metadata-driven UI is the default. New modules are declared through `lib/runtime/` and rendered by the standard runtime pages; a bespoke page needs a stated reason in the plan.
 
-150 documented export(s); 548 undocumented export(s) omitted.
+162 documented export(s); 553 undocumented export(s) omitted.
 
 | Export | Kind | Used by | Where | What it is |
 |---|---|---|---|---|
@@ -176,6 +177,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `buildApprovalRecord` | function | 2 | `apps/web/app/components/approvals/approval-record.ts`:15 | One approval, flattened into the shape the runtime record page reads. |
 | `buildAreaPath` | function | 2 | `apps/web/app/components/charts/chart-geometry.ts`:592 | The same shape, closed down to a baseline so it can be filled. |
 | `collapseToTopN` | function | 2 | `apps/web/app/components/charts/chart-geometry.ts`:791 | Sort descending and roll everything past the first `limit` into one bucket. |
+| `createDebouncedCallback` | function | 2 | `apps/web/lib/runtime/lookup-search.ts`:64 | A debounced wrapper around a callback that takes a single string. |
 | `formatShare` | function | 2 | `apps/web/app/components/charts/chart-format.ts`:98 | A proportion, rendered. |
 | `formatShares` | function | 2 | `apps/web/app/components/charts/chart-format.ts`:140 | A whole breakdown's shares, rendered with one shared rounding rule. |
 | `periodLengthInDays` | function | 2 | `apps/web/app/components/filters/period.ts`:404 | Inclusive day count. A single-day period is 1, never 0. |
@@ -191,11 +193,16 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `fieldValidationErrorsAreVisible` | function | 1 | `apps/web/lib/runtime/command-failure-visibility.ts`:20 | Whether a failed command's field errors will actually appear somewhere the user can see them. |
 | `filterToFormFields` | function | 1 | `apps/web/lib/runtime/related-record-create-values.ts`:76 | Drop anything the child form does not declare, which is what gets posted. |
 | `funnelStages` | function | 1 | `apps/web/app/components/charts/chart-geometry.ts`:980 | Per-stage width and step-to-step conversion for a funnel. |
+| `getResponsiveTabId` | function | 1 | `apps/web/app/components/runtime/responsive-runtime-tabs.tsx`:27 | BUG-3378 — id contract with the panel this strip controls. |
 | `hasRequestedChange` | function | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:478 | Whether a seeded draft actually asks for anything. |
+| `isLookupResultTruncated` | function | 1 | `apps/web/lib/runtime/lookup-search.ts`:129 | Whether a lookup's result list should say it is incomplete. |
+| `isReadOnlyLookupReferenceModule` | function | 1 | `apps/web/app/components/metadata/lookup-reference-route.ts`:54 | A destination whose selected value is rendered as `?reference=<value>` rather than `/<basePath>/<recordId>` — these settings screens navigate by the value itself (an ISO code, an IANA name), not a database id. |
 | `otherBucketLabel` | function | 1 | `apps/web/app/components/charts/chart-tokens.ts`:166 | The bucket's label carries the count, because "Other" alone hides whether the reader is looking at two rolled-up rows or two hundred. |
 | `resolveAnalyticsPeriod` | function | 1 | `apps/web/app/components/filters/analytics-search-params.ts`:236 | The single interpretation of a URL's period, used by both the filter bar and whatever loads the data. |
 | `resolveCommandFailureMessage` | function | 1 | `apps/web/lib/runtime/command-failure-message.ts`:63 | The one line a user reads when a runtime command fails. |
 | `resolveInheritedParentValues` | function | 1 | `apps/web/lib/runtime/related-record-create-values.ts`:35 | The subset of a parent record a subgrid has declared its children inherit. |
+| `resolveLookupReferenceRoute` | function | 1 | `apps/web/app/components/metadata/lookup-reference-route.ts`:31 | ITEM-0163 / ITEM-0172 — replaces `LOOKUP_REFERENCE_ROUTES`, a flat, exact-string, hand-maintained allowlist that silently produced no link at all for anything it did not name. |
+| `resolveVisibleSelectedOption` | function | 1 | `apps/web/lib/runtime/lookup-search.ts`:107 | Which option should render as "selected" this render. |
 | `seedDraftFromEntry` | function | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:454 | A draft that opens showing what the record already says. |
 | `stackedExtent` | function | 1 | `apps/web/app/components/charts/chart-geometry.ts`:759 | The `[min, max]` a stacked chart's value axis must cover. |
 | `stackSeries` | function | 1 | `apps/web/app/components/charts/chart-geometry.ts`:686 | Turn parallel series into cumulative segments, one column per point key. |
@@ -213,6 +220,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `normalizeRange` | function | 0 | `apps/web/app/components/filters/period.ts`:298 | Put a pair of dates the right way round. |
 | `polarToCartesian` | function | 0 | `apps/web/app/components/charts/chart-geometry.ts`:1046 | Polar to Cartesian in SVG's coordinate space: `y` grows downward, so a clockwise sweep from twelve o'clock is `(cx + r·sin a, cy − r·cos a)`. |
 | `readFieldErrorNames` | function | 0 | `apps/web/lib/runtime/command-failure-visibility.ts`:39 | Field names from either supported error shape, at the root or under `details`. |
+| `resolveNextTabIndex` | function | 0 | `apps/web/app/components/runtime/responsive-runtime-tabs.tsx`:44 | The roving-tabindex arrow-key math, pulled out as a pure function so the wrap-around and Home/End cases have a regression test that does not need a rendered DOM (`apps/web`'s jest has no jsdom — see `jest.config.js`). |
 | `resolveVisibleByRules` | function | 0 | `apps/web/lib/runtime/visibility.resolver.ts`:84 | Filters any list of rule-carrying items. |
 | `sparklineAriaLabel` | function | 0 | `apps/web/app/components/charts/sparkline.tsx`:169 | A ready-made `ariaLabel` for the common case: a metric over a period. |
 | `startOfWeek` | function | 0 | `apps/web/app/components/filters/period.ts`:468 | Start of the week containing `date`. |
@@ -223,6 +231,8 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `CHART_VIEWBOX_WIDTH` | constant | 3 | `apps/web/app/components/charts/chart-chrome.tsx`:39 | The nominal drawing width. |
 | `MAX_CHART_SLICES` | constant | 3 | `apps/web/app/components/charts/chart-tokens.ts`:157 | Beyond seven slices a ranked proportion chart stops ranking anything: the tail is a row of indistinguishable slivers and the legend is longer than the chart. |
 | `PERIOD_PRESET_OPTIONS` | constant | 3 | `apps/web/app/components/filters/period.ts`:90 | Labels for the preset dropdown. "This month", "This quarter" and "Year to date" are *to date* — they end today, not at the end of the calendar period. |
+| `ENTITY_LOOKUP_PAGE_SIZE` | constant | 2 | `apps/web/lib/runtime/lookup-search.ts`:21 | The page size sent for an entity-backed lookup once a search or an explicit fetch is issued. |
+| `LOOKUP_SEARCH_DEBOUNCE_MS` | constant | 2 | `apps/web/lib/runtime/lookup-search.ts`:13 | How long to wait after the last keystroke before issuing a search request. |
 | `MISSING_VALUE_TEXT` | constant | 2 | `apps/web/app/components/charts/chart-format.ts`:38 | What a missing or unmeasurable number reads as. |
 | `CHART_GRID_OPACITY` | constant | 1 | `apps/web/app/components/charts/chart-tokens.ts`:192 | Axis, gridline and baseline strokes. |
 | `CHART_PATTERN_OVERLAY` | constant | 1 | `apps/web/app/components/charts/chart-tokens.ts`:203 | The hatch drawn over a series colour to give it a shape as well as a hue. |
@@ -242,6 +252,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `DEFAULT_WEEK_STARTS_ON` | constant | 0 | `apps/web/app/components/charts/chart-geometry.ts`:345 | `weekStartsOn` is a parameter and not a constant on purpose. |
 | `DEFAULT_WEEK_STARTS_ON` | constant | 0 | `apps/web/app/components/filters/period.ts`:130 | Sunday. This product's default weekend is **Friday/Saturday**, so the working week begins on Sunday and not on Monday. |
 | `LINE_CHART_MARGINS` | constant | 0 | `apps/web/app/components/charts/line-chart.tsx`:36 | A trend over time. A thin renderer: every number on screen was computed by `chart-geometry.ts` and every string was formatted by `chart-format.ts`, both of which are covered by specs. |
+| `SMALL_REFERENCE_LOOKUP_ENTITIES` | constant | 0 | `apps/web/lib/runtime/lookup-search.ts`:32 | Small, effectively-fixed reference sets that already fit inside one unfiltered page today (BUG-3376's "Small reference sets should keep the cheap prefetch path, chosen by the spec rather than by accident"). |
 | `VisibilityRule` | type | 5 | `apps/web/lib/runtime/visibility.resolver.ts`:27 | One place to ask "should this person see this". |
 | `ChartValueFormat` | type | 3 | `apps/web/app/components/charts/chart-types.ts`:50 | How a raw number should read once it reaches a person. |
 | `ApprovalDetailResponse` | type | 2 | `apps/web/app/components/approvals/approval-types.ts`:78 | `GET /approvals/:id` wraps its payload in `item`; `GET /approvals` does not wrap its list. |
@@ -275,10 +286,12 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `HorizontalBarListProps` | type | 0 | `apps/web/app/components/charts/horizontal-bar-list.tsx`:43 | Ranked proportions: "how is this split up, and what is at the top". |
 | `Point2D` | type | 0 | `apps/web/app/components/charts/chart-geometry.ts`:33 | Every calculation a chart in this directory performs, with no React in sight. |
 | `QuickCreateSubmission` | type | 0 | `apps/web/lib/runtime/quick-create-metadata.ts`:130 | Whether a quick-create dialog may submit, and what to say when it may not. |
-| `RuntimeTabContentContext` | type | 0 | `apps/web/app/components/metadata/runtime-metadata-form-renderer.tsx`:65 | What a purpose-built tab body gets to work with. |
+| `RuntimeTabContentContext` | type | 0 | `apps/web/app/components/metadata/runtime-metadata-form-renderer.tsx`:85 | What a purpose-built tab body gets to work with. |
+| `SegmentedControlOption` | type | 0 | `apps/web/app/components/ui/segmented-control.tsx`:17 | Extracted from the subscription Plans screen (BUG-3345) where it was a local, hand-rolled control painted in `bg-foreground` — the body-text colour — instead of the tenant brand accent. |
 | `SparklineProps` | type | 0 | `apps/web/app/components/charts/sparkline.tsx`:31 | A trend at the size of a word. |
 | `StackedSegment` | type | 0 | `apps/web/app/components/charts/chart-geometry.ts`:650 | ------------------------------------------------------------------ stacks |
 | `TimeSeriesPoint` | type | 0 | `apps/web/app/components/charts/chart-geometry.ts`:247 | ------------------------------------------------------------ time buckets |
+| `WidgetActionInput` | type | 0 | `apps/web/lib/runtime/module-data-adapter.types.ts`:69 | A write a widget needs to perform against its own record — add/edit/remove a related row, promote something to primary, and so on. |
 
 ### Shared package — NOT the design system — `packages/ui`
 

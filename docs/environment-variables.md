@@ -175,6 +175,72 @@ AUTH_AGENT_IDLE_SESSION_TIMEOUT_SECONDS=30d
 AUTH_AGENT_ABSOLUTE_SESSION_TIMEOUT_SECONDS=30d
 ```
 
+### Tenant session policy: who actually owns it (ITEM-0162)
+
+**The tenant's `security` settings own tenant session lifetime. These
+`AUTH_*` environment variables have no effect on it, on purpose, for now.** A
+tenant user's session length is decided by
+`TenantAuthPolicyService.resolveEffectivePolicy()`
+(`services/api/src/common/security/tenant-auth-policy.service.ts`), which both
+`AuthService` (login/refresh) and `JwtAuthGuard` (enforcement) now call — one
+resolver, so the two cannot disagree about the effective policy the way they
+did in production (a login response advertised an 8-hour idle timeout while
+the guard enforced 30 minutes).
+
+For each of `sessionTimeoutMinutes` (access token TTL), `idleTimeoutMinutes`,
+`absoluteSessionLifetimeDays` and `refreshTokenExpiryDays`, the precedence is:
+
+1. **The tenant's own `TenantSetting` row** (category `security`), set from
+   **Settings → Security & Access → Security Governance → Password & Login
+   Policies**. Wins when present.
+2. **A hardcoded default** (480 minutes for the two minute-denominated values,
+   30 days for the two day-denominated ones) — unchanged from what this
+   codebase has always defaulted to — for a tenant with no row.
+
+The `AUTH_*` variables below are **not** consulted as a third fallback, even
+though ITEM-0162's original proposal suggested making them one. Production has
+all three set — `AUTH_ACCESS_TOKEN_TTL_SECONDS=15m`,
+`AUTH_IDLE_SESSION_TIMEOUT_SECONDS=30m`,
+`AUTH_ABSOLUTE_SESSION_TIMEOUT_SECONDS=8h` — to values far shorter than the
+hardcoded defaults every tenant with no `security` settings row is currently
+living on. Wiring them in as the fallback would silently drop such a tenant's
+absolute session lifetime from 30 days to 8 hours — full re-authentication,
+daily, for every user, the moment this deploys, with no settings change and no
+announcement. That is a product decision for the account owner to make
+explicitly, not something to flip as a side effect of a bug-fix batch. See
+[[ITEM-0162]]'s Resolution for the record of this being deferred rather than
+forgotten.
+
+```env
+AUTH_ACCESS_TOKEN_TTL_SECONDS=15m        # platform-admin and agent-desktop only — see below
+AUTH_IDLE_SESSION_TIMEOUT_SECONDS=1h     # platform-admin and agent-desktop only
+AUTH_ABSOLUTE_SESSION_TIMEOUT_SECONDS=8h # platform-admin and agent-desktop only
+AUTH_REFRESH_TOKEN_TTL_SECONDS=1h        # platform-admin and agent-desktop only
+```
+
+These four **do** govern the platform-admin and `agent-desktop` clients
+(`getClientAccessTokenTtl`/`getClientIdleTimeoutMs`/etc. in
+`services/api/src/common/config/auth.config.ts`, which `JwtAuthGuard` still
+falls back to for those two client ids) — only the tenant (`web`) path ignores
+them today.
+
+**`SESSION_IDLE_TIMEOUT_SECONDS` and `SESSION_ABSOLUTE_TIMEOUT_SECONDS`
+(without the `AUTH_` prefix) are legacy fallbacks, read only when the `AUTH_*`
+name above is absent**, for those same non-tenant paths — see
+`getSessionIdleTimeoutMs`/`getSessionAbsoluteTimeoutMs` in
+`services/api/src/common/config/auth.config.ts`. Set the `AUTH_*` name; the
+unprefixed pair exists for backward compatibility with deployments that
+predate it, not as an independent second setting.
+
+**`JWT_ACCESS_TTL_REMEMBER_ME` and `JWT_REFRESH_TTL_REMEMBER_ME` apply only to
+the platform-admin login path** (`buildPlatformAuthResponse`). No tenant
+sign-in reads them — this is by design (platform admin is a separate identity
+system with its own policy), not a gap to close. See [[BUG-3357]].
+
+**`allowMultipleActiveSessions`** has no environment-variable override; it is a
+per-tenant decision only, and an absent setting means concurrent sessions are
+**allowed** — see [[ADR-0010]] and [[BUG-3355]].
+
 ### Platform super admin bootstrap
 
 `seed:admin` runs inside `npm run release`, which is `render.yaml`'s
@@ -243,6 +309,8 @@ process* also drains the resulting queue.
 | `REPORTS_ARTIFACT_RETENTION_DAYS` | optional | How long a generated report export stays downloadable before it is swept. Default 7. |
 | `SUBSCRIPTION_ORDER_SWEEPER_ENABLED` | API | no — defaults off | `true` starts the poll loop (BUG-2618) that ages `PENDING_PAYMENT` orders past their 24-hour TTL to `ABANDONED` and releases their `submissionHash`/`requestedSlug` holds. Off by default for the same reason `OUTBOX_WORKER_ENABLED` is. At least one deployed instance must set it, or an abandoned checkout's workspace address is unpurchasable forever. |
 | `SUBSCRIPTION_ORDER_SWEEPER_POLL_INTERVAL_MS` | API | optional | Poll interval. Defaults to 900000 (15 minutes), floored at 60000. |
+| `SUBSCRIPTION_CHANGE_SWEEPER_ENABLED` | API | no — defaults off | `true` starts the poll loop (BUG-3331, EXECPLAN-0037) that applies `PlanChangeRequest` rows scheduled for a past `effectiveAt` — the scheduled-downgrade half of a plan change, which otherwise never runs (`PlanChangeService.applyDueChanges()` had no caller). Deliberately does not also call `SeatChangeService.applyDueChanges()`: that method reduces `purchasedSeats` locally with no matching Stripe quantity update, so wiring it here would start under-billing a tenant whose seat count was scheduled to decrease — a separate, pre-existing gap this plan does not fix. At least one deployed instance must set this, or a scheduled plan downgrade never takes effect at renewal. |
+| `SUBSCRIPTION_CHANGE_SWEEPER_POLL_INTERVAL_MS` | API | optional | Poll interval. Defaults to 900000 (15 minutes), floored at 60000. |
 
 Running the worker on more than one instance is safe — claims use
 `FOR UPDATE SKIP LOCKED`, so each event goes to exactly one dispatcher — but

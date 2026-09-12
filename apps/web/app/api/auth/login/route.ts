@@ -1,17 +1,7 @@
 import { NextResponse } from "next/server";
-import {
-  ACCESS_TOKEN_COOKIE,
-  AUTH_APP_CLIENT_ID,
-  REFRESH_TOKEN_COOKIE,
-  SESSION_COOKIE,
-  TENANT_SLUG_COOKIE,
-} from "@/lib/auth-config";
-import {
-  ACCESS_TOKEN_MAX_AGE_SECONDS,
-  getAuthCookieOptions,
-  parseDurationToMilliseconds,
-  REFRESH_TOKEN_MAX_AGE_SECONDS,
-} from "@/lib/auth-cookies";
+import { AUTH_APP_CLIENT_ID, TENANT_SLUG_COOKIE } from "@/lib/auth-config";
+import { getAuthCookieOptions } from "@/lib/auth-cookies";
+import { buildAuthSessionCookies } from "@/lib/auth-session-cookies";
 import { getApiBaseUrl } from "@/lib/auth";
 import { forwardedClientHeaders } from "@/lib/forwarded-headers";
 
@@ -81,43 +71,37 @@ export async function POST(request: Request) {
     const requestedRememberMe =
       isRecord(body) && body.rememberMe === true;
     const persistSession = data.tokens.rememberMe ?? requestedRememberMe;
-    const accessMaxAge = persistSession
-      ? durationSeconds(
-          data.tokens.accessTokenExpiresIn,
-          ACCESS_TOKEN_MAX_AGE_SECONDS,
-        )
-      : undefined;
-    const refreshMaxAge = persistSession
-      ? durationSeconds(
-          data.tokens.refreshTokenExpiresIn,
-          REFRESH_TOKEN_MAX_AGE_SECONDS,
-        )
-      : undefined;
+    const cookies = buildAuthSessionCookies({
+      ...data.tokens,
+      rememberMe: persistSession,
+    });
 
     nextResponse.cookies.set(
-      ACCESS_TOKEN_COOKIE,
-      data.tokens.accessToken,
-      getAuthCookieOptions(accessMaxAge),
+      cookies.access.name,
+      cookies.access.value,
+      cookies.access.options,
     );
-
     nextResponse.cookies.set(
-      REFRESH_TOKEN_COOKIE,
-      data.tokens.refreshToken,
-      getAuthCookieOptions(refreshMaxAge),
+      cookies.refresh.name,
+      cookies.refresh.value,
+      cookies.refresh.options,
     );
-    if (data.tokens.sessionId) {
+    if (cookies.session) {
       nextResponse.cookies.set(
-        SESSION_COOKIE,
-        data.tokens.sessionId,
-        getAuthCookieOptions(refreshMaxAge),
+        cookies.session.name,
+        cookies.session.value,
+        cookies.session.options,
       );
     }
+
     const tenantSlug = readTenantSlug(data.tenant);
     if (tenantSlug) {
+      // Not one of the three session-lifetime cookies `buildAuthSessionCookies`
+      // owns, but it should still live as long as the session it identifies.
       nextResponse.cookies.set(
         TENANT_SLUG_COOKIE,
         tenantSlug,
-        getAuthCookieOptions(refreshMaxAge),
+        getAuthCookieOptions(cookies.refresh.options.maxAge),
       );
     }
 
@@ -199,13 +183,4 @@ function isLoginSuccessResponse(
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
-}
-
-function durationSeconds(value: string | undefined, fallback: number) {
-  if (!value) return fallback;
-  try {
-    return Math.floor(parseDurationToMilliseconds(value) / 1000);
-  } catch {
-    return fallback;
-  }
 }

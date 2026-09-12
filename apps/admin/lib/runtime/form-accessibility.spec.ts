@@ -25,7 +25,12 @@ describe("BUG-1423 — runtime form controls are labelled", () => {
 
   it("renders a real label bound to a real id", () => {
     expect(source).toContain("const controlId = `field-${field.key}`");
-    expect(source).toContain("<label htmlFor={controlId}");
+    // Two separate checks rather than one contiguous string: ITEM-0163 added
+    // an openable-label link between `<label` and `htmlFor`'s neighbouring
+    // attributes, which prettier then wraps across lines — the association
+    // itself, not its exact on-disk formatting, is what BUG-1423 is about.
+    expect(source).toContain("<label");
+    expect(source).toContain("htmlFor={controlId}");
     // The label carries an id of its own so composite controls can point back
     // at it with aria-labelledby.
     expect(source).toContain("id={`${controlId}-label`}");

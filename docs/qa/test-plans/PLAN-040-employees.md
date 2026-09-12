@@ -1,0 +1,131 @@
+---
+PLAN_ID: PLAN-040
+aliases: [PLAN-040]
+TITLE: Employee records and reporting hierarchy
+AREA: employees
+STATUS: DRAFT
+MODULES: [services/api/src/modules/employees, apps/web/lib/runtime/modules/employee-metadata.adapter.ts]
+RISK: MEDIUM
+COVERAGE_UNIT: GAP
+COVERAGE_API: PARTIAL
+COVERAGE_DATABASE: GAP
+COVERAGE_INTEGRATION: GAP
+COVERAGE_E2E: GAP
+COVERAGE_BROWSER: GAP
+COVERAGE_SECURITY: GAP
+COVERAGE_PERFORMANCE: GAP
+RELATED_BUGS: [BUG-3450]
+RELATED_REGRESSIONS: [REG-480]
+CREATED_AT: 2026-09-12
+UPDATED_AT: 2026-09-12
+VERIFIED_AGAINST_SHA: c8d97a3d
+---
+
+# PLAN-040 — Employee records and reporting hierarchy
+
+## Scope
+
+The `employees` API module (`services/api/src/modules/employees/`) and the
+tenant-product employee record surface it backs
+(`apps/web/lib/runtime/modules/employee-metadata.adapter.ts`,
+`apps/web/app/(authenticated)/employees/`). This plan was opened narrowly,
+for the reporting-hierarchy endpoint and its tree viewer (ITEM-0164,
+BUG-3450, REG-480) — it deliberately does not yet claim coverage of employee
+CRUD, onboarding, compensation, document links, or the account-action
+commands (reset password, resend invite), which have their own existing test
+files (`employees.service.spec.ts`'s other describe blocks,
+`employee-compensation-access.spec.ts`, `employee-lifecycle-audit.spec.ts`)
+but no consolidated plan of their own yet. `COVERAGE_*` below is marked `GAP`
+everywhere except what this record actually exercises, rather than claimed
+from what the module *should* have.
+
+## Risks
+
+- Cross-tenant leakage through a hierarchy/tree-shaped query that forgets to
+  scope by `tenantId` before traversing — this is exactly what REG-480 guards
+  (a second org root in the same tenant, not a second tenant, but the same
+  class of "traversal reaches further than the query implies" mistake).
+- Unbounded response payload from a recursive tree builder with no depth or
+  count cap (REG-480's actual root cause, `BUG-3450`).
+- Sensitive-field exposure on a hover/preview surface: work email and work
+  site are shown in the hierarchy tree's popover and must respect
+  `canReadField` the same way the rest of the employee form does — a general
+  risk this codebase already accepts is enforced client-side only (see
+  `EXECPLAN-0043`'s Risks section), not something this plan can retest as a
+  hard server-side boundary today.
+
+## Preconditions
+
+A tenant with more than one org root (more than one employee with no
+manager) and at least one manager chain several levels deep, for the
+scoping and depth-cap cases. `hierarchy.read` for the calling role.
+
+## Test Types
+
+- **UNIT** — `employees.service.spec.ts`'s `getReportingStructure
+  (ITEM-0164)` block: scoping, depth/node capping, tenant-scoped read.
+  AUTOMATED.
+- **API** — not yet re-run against a live server in this session; QA-EMPLOYEE-001
+  names the manual/integration steps (including the 500-node cap, impractical
+  as a unit fixture).
+- **BROWSER_E2E** — the tree dialog's rendering, hover/focus/tap interaction
+  and field-security gating have not been exercised in a real browser in this
+  session (no browser automation was available) — BLOCKED_INFRASTRUCTURE for
+  now, tracked as a follow-up QA pass before this ships to `main`.
+- Everything else in the employees module (CRUD, onboarding, compensation,
+  documents) is out of this plan's current scope — GAP, not asserted absent.
+
+## Data Requirements
+
+Two or more employees with no `managerEmployeeId` in the same tenant (two org
+roots); a manager chain of 8+ levels for the depth cap; no real PII needed —
+synthetic names and emails are sufficient. No credentials.
+
+## Security Cases
+
+- A second org root's branch never appears in the `tree` field for an
+  employee under the first root (REG-480 / QA-EMPLOYEE-001).
+- A second tenant's employees never appear in the tree even under a
+  `managerEmployeeId` collision (covered by the "reads only the caller's
+  tenant" unit case).
+- Work email / work site in the hierarchy popover are absent when
+  `canReadField` denies them — not yet retested live; see Risks.
+
+## Negative Cases
+
+- Querying `reporting-structure` for an id not in the tenant → `NotFoundException`
+  (existing behaviour, unchanged by this plan's work — not re-verified here).
+
+## State Transitions
+
+Not applicable — this plan's current scope is read-only (`GET
+reporting-structure`).
+
+## Integration Cases
+
+None in scope yet.
+
+## Browser Cases
+
+Not run in this session — no browser automation tool was available
+(Playwright MCP failed to connect). A future QA pass should open an employee
+record with a multi-level seeded hierarchy, click "View hierarchy", and
+verify: the dialog traps focus and closes on Escape, every node is reachable
+by Tab, hover/focus/tap each reveal the same popover, and an automated
+accessibility scan reports no violation on the dialog.
+
+## Regression Links
+
+REG-480 — `getReportingStructure` tree scoping and bounding — implemented by
+QA-EMPLOYEE-001.
+
+<!-- GRAPH:BEGIN — generated by scripts/rebuild-qa.mjs; edit the frontmatter, not this block -->
+
+## Related
+
+- Scenarios — [[QA-EMPLOYEE-001]]
+- Module — [[employees]]
+- Bugs — [[BUG-3450]]
+- Regressions — REG-480 (see the regression register)
+
+<!-- GRAPH:END -->

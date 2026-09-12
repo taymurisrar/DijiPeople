@@ -12,9 +12,9 @@ only scenarios that cannot run here, fails `node scripts/rebuild-qa.mjs`.
 **part of that task's scope** — or, when that is too large, a `TEST_GAP` backlog
 item. See [`README.md`](README.md).
 
-**Areas: 27** · scenarios: 352 · automated: 303 · blocked by infrastructure: 0
+**Areas: 30** · scenarios: 375 · automated: 321 · blocked by infrastructure: 0
 
-**Open gaps: 142** · partial: 28
+**Open gaps: 161** · partial: 30
 
 | Area | UNIT | API | DATABASE | INTEGRATION | E2E | BROWSER | SECURITY | PERFORMANCE |
 |---|---|---|---|---|---|---|---|---|
@@ -26,12 +26,15 @@ item. See [`README.md`](README.md).
 | [billing](../../docs/qa/test-plans/PLAN-020-billing.md) | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** |
 | [commercial-onboarding](../../docs/qa/test-plans/PLAN-004-commercial-onboarding.md) | **GAP** | PARTIAL | **GAP** | **GAP** | PARTIAL | PARTIAL | **GAP** | n/a |
 | [deployment-release](../../docs/qa/test-plans/PLAN-012-deployment-release.md) | GOOD | **GAP** | PARTIAL | **GAP** | **GAP** | **GAP** | **GAP** | n/a |
+| [employees](../../docs/qa/test-plans/PLAN-040-employees.md) | **GAP** | PARTIAL | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** |
+| [entitlement-enforcement](../../docs/qa/test-plans/PLAN-039-entitlement-enforcement.md) | GOOD | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** |
 | [framework](../../docs/qa/test-plans/PLAN-029-framework.md) | PARTIAL | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 | [landing](../../docs/qa/test-plans/PLAN-013-landing.md) | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | GOOD | **GAP** | **GAP** |
 | [lead-management](../../docs/qa/test-plans/PLAN-005-lead-management.md) | GOOD | GOOD | **GAP** | **GAP** | **GAP** | **GAP** | GOOD | n/a |
 | [leave](../../docs/qa/test-plans/PLAN-023-leave.md) | PARTIAL | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** |
 | [legal](../../docs/qa/test-plans/PLAN-015-legal.md) | **GAP** | **GAP** | GOOD | n/a | **GAP** | **GAP** | **GAP** | n/a |
 | [monitoring](../../docs/qa/test-plans/PLAN-030-monitoring.md) | GOOD | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** |
+| [notifications](../../docs/qa/test-plans/PLAN-038-notifications.md) | **GAP** | PARTIAL | **GAP** | n/a | **GAP** | **GAP** | **GAP** | n/a |
 | [outbox](../../docs/qa/test-plans/PLAN-014-outbox.md) | **GAP** | n/a | GOOD | **GAP** | **GAP** | n/a | n/a | **GAP** |
 | [partner-lifecycle](../../docs/qa/test-plans/PLAN-006-partner-lifecycle.md) | **GAP** | GOOD | **GAP** | **GAP** | **GAP** | PARTIAL | **GAP** | n/a |
 | [payroll](../../docs/qa/test-plans/PLAN-010-payroll.md) | GOOD | **GAP** | **GAP** | **GAP** | **GAP** | **GAP** | PARTIAL | **GAP** |

@@ -10,7 +10,11 @@ import type {
   DataTableFilterState,
 } from "@/app/components/data-table/types";
 import { StatusPill } from "@/app/components/ui/status-pill";
-import { formatDateWithTenantSettings } from "@/lib/date-format";
+import {
+  formatDateTimeWithTenantSettings,
+  formatDateWithTenantSettings,
+} from "@/lib/date-format";
+import { humanizeEnumValue } from "@/lib/text/inflection";
 import type {
   FieldMetadata,
   ViewMetadata,
@@ -255,7 +259,11 @@ function RuntimeCell({
   }
 
   if (field?.dataType === "date" || field?.dataType === "datetime") {
-    return formatDateValue(record[fieldLogicalName], formatting);
+    return formatDateValue(
+      record[fieldLogicalName],
+      formatting,
+      field?.dataType === "datetime",
+    );
   }
 
   if (field?.dataType === "url" && typeof record[fieldLogicalName] === "string") {
@@ -286,9 +294,19 @@ function displayValue(
 
   if (field?.dataType === "optionset") {
     const value = String(record[fieldLogicalName] ?? "");
+    if (!value) return "";
+    /*
+     * BUG-3379. A declared option label always wins; when nothing declared
+     * one (a raw enum member with no options list, like an EmailDeliveryLog
+     * status) this used to print the stored value verbatim — `NOT_DELIVERED`
+     * on the list next to "Not delivered" on the record form, which reads
+     * `formatRuntimeFieldValue` and already humanizes as its own floor
+     * (BUG-2009). Matching that floor here is what makes the two surfaces
+     * agree.
+     */
     return (
       field.options?.find((option) => option.value === value)?.label ??
-      (value || "")
+      humanizeEnumValue(value)
     );
   }
 
@@ -435,10 +453,24 @@ function formatDateValue(
     readonly locale: string;
     readonly timezone: string;
   },
+  includeTime = false,
 ) {
   if (!value) return "";
-  if (!formatting) return String(value).slice(0, 10);
-  return formatDateWithTenantSettings(String(value), formatting);
+  if (!formatting) {
+    return includeTime ? String(value) : String(value).slice(0, 10);
+  }
+  /*
+   * BUG-3379. Both branches used to call the date-only formatter, so a
+   * "datetime" field lost its time on the list even though the record form
+   * (which goes through `formatRuntimeFieldValue`) kept it — the delivery log
+   * Created column read `09/12/2026` next to the record's
+   * `2026-09-11, 12:00 PM`. Dispatching on `includeTime` is what makes the
+   * two surfaces agree, for every module that declares a "datetime" field,
+   * not only this one.
+   */
+  return includeTime
+    ? formatDateTimeWithTenantSettings(String(value), formatting)
+    : formatDateWithTenantSettings(String(value), formatting);
 }
 
 function filterTypeForField(field: FieldMetadata | undefined) {

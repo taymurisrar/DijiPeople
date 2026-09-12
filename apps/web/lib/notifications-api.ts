@@ -18,7 +18,8 @@ export type EmailDeliveryStatus =
   | "DELIVERED"
   | "FAILED"
   | "SKIPPED"
-  | "DRY_RUN";
+  | "DRY_RUN"
+  | "NOT_DELIVERED";
 
 export type NotificationEvent = {
   id: string;
@@ -31,12 +32,54 @@ export type NotificationEvent = {
   systemDefined: boolean;
 };
 
+/*
+ * BUG-3375 / ITEM-0169. `configurable: false` marks a transactional event
+ * (account activation, password reset) that must never be switchable off by
+ * a tenant admin. `availability !== "ACTIVE"` marks a catalog entry with no
+ * trigger anywhere in the product — it cannot fire no matter what the toggle
+ * says, so the UI must not offer it as an ordinary Enabled/Disabled choice.
+ */
+export type NotificationEventAvailability = "ACTIVE" | "NOT_YET_AVAILABLE";
+
 export type NotificationPreferenceItem = {
   eventCode: string;
   channel: NotificationChannel;
   enabled: boolean;
   preferenceId: string | null;
   metadata: unknown;
+  configurable: boolean;
+  availability: NotificationEventAvailability;
+};
+
+/*
+ * BUG-3375. `NotificationRule` is the model that actually decides whether an
+ * event can notify anyone at all (in-app always, email since ITEM-0171).
+ * `NOT_CONFIGURED` is the state this screen exists to surface: no rule row
+ * means the event silently produces nothing, and nothing previously showed
+ * that.
+ */
+export type NotificationRuleStatus =
+  | "NOT_CONFIGURED"
+  | "ENABLED"
+  | "DISABLED"
+  | "ALWAYS_ON"
+  | "NOT_YET_AVAILABLE";
+
+export type NotificationRuleItem = {
+  eventCode: string;
+  name: string;
+  description: string | null;
+  category: string;
+  configurable: boolean;
+  availability: NotificationEventAvailability;
+  ruleId: string | null;
+  ruleStatus: NotificationRuleStatus;
+  moduleKey: string | null;
+  channels: NotificationChannel[];
+  priority: number | null;
+  displayMode: string | null;
+  requiresAction: boolean | null;
+  recipientResolverType: string | null;
 };
 
 /*
@@ -110,7 +153,13 @@ export type EmailDeliveryLog = {
   status: EmailDeliveryStatus;
   errorMessage: string | null;
   providerMessageId: string | null;
+  retryable: boolean;
   metadata: unknown;
+};
+
+export type RetryDeliveryLogResult = {
+  retriedLog: EmailDeliveryLog;
+  newDeliveryLog: EmailDeliveryLog;
 };
 
 export type SendTemplateEmailResult = {
@@ -237,9 +286,7 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
 export const getNotificationEvents = () =>
   requestJson<NotificationEvent[]>("/events");
 export const getNotificationPreferences = () =>
-  requestJson<{ items: NotificationPreferenceItem[]; sourceOfTruth: string }>(
-    "/preferences",
-  );
+  requestJson<{ items: NotificationPreferenceItem[] }>("/preferences");
 export const updateNotificationPreferences = (
   preferences: Array<{
     eventCode: string;
@@ -250,6 +297,23 @@ export const updateNotificationPreferences = (
   requestJson("/preferences", {
     method: "PATCH",
     body: JSON.stringify({ preferences }),
+  });
+
+export const getNotificationRules = () =>
+  requestJson<{ items: NotificationRuleItem[] }>("/rules");
+export const updateNotificationRule = (
+  ruleId: string,
+  body: {
+    enabled?: boolean;
+    channels?: NotificationChannel[];
+    priority?: number;
+    displayMode?: string;
+    requiresAction?: boolean;
+  },
+) =>
+  requestJson<NotificationRuleItem>(`/rules/${ruleId}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
   });
 
 export const getEmailTemplates = () =>
@@ -378,6 +442,11 @@ export const getEmailDeliveryLogs = (query = "") =>
   }>(`/email-delivery-logs${query ? `?${query}` : ""}`);
 export const getEmailDeliveryLog = (id: string) =>
   requestJson<EmailDeliveryLog>(`/email-delivery-logs/${id}`);
+export const retryEmailDeliveryLog = (id: string) =>
+  requestJson<RetryDeliveryLogResult>(`/email-delivery-logs/${id}/retry`, {
+    method: "POST",
+    body: "{}",
+  });
 
 export const getInAppNotifications = (query = "") =>
   requestJson<{ items: InAppNotificationItem[] }>(

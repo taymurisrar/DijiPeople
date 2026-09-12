@@ -56,6 +56,9 @@ plainly what an agent must or must not do as a result of this decision.
 | [ADR-0006](ADR-0006-product-decisions-from-the-2026-09-11-backlog-review.md) | Seven product decisions from the 2026-09-11 backlog review | Accepted |
 | [ADR-0007](ADR-0007-remove-inert-apps-web-runtime-registries.md) | Remove the inert `apps/web` runtime registries rather than revive them | Accepted |
 | [ADR-0008](ADR-0008-unregistered-agent-branch-warns-not-blocks.md) | An `agent/*` branch with no registered session warns, it does not block | Accepted |
+| [ADR-0009](ADR-0009-entitlement-enforcement-cutover.md) | Entitlement enforcement moves from REPORT_ONLY to ENFORCE, via grandfathering | Accepted |
+| [ADR-0010](ADR-0010-concurrent-sessions-are-allowed-by-default.md) | Concurrent sessions are allowed by default; single-session is opt-in | Accepted |
+| [ADR-0011](ADR-0011-notification-rule-and-preference-are-two-gates-not-one.md) | `NotificationRule` and `NotificationPreference` both stay, answering different questions | Accepted |
 
 > ADR-0008 was written as `ADR-0006` by a parallel stream on 2026-09-11 and
 > renumbered at integration, because a second `ADR-0006` already existed. The
@@ -63,6 +66,19 @@ plainly what an agent must or must not do as a result of this decision.
 > `ADR-0006`, and those references had begun to point at two different decisions.
 > ADR ids have no allocator, so this index is the only place the next number is
 > visible — read it before choosing one.
+>
+> It happened again on 2026-09-12, three ways at once: three streams of one task
+> each wrote an `ADR-0009`, and four each wrote an `EXECPLAN-0037`. Reading this
+> index does not help when the streams are concurrent — none of them had merged,
+> so the next number looked free to all of them. ADR-0010 and ADR-0011 are the
+> renumbered two, and 47 references across 21 files had to be repointed by
+> ownership afterwards, because a bare `ADR-0009` in a record is not
+> self-describing about which decision it meant.
+>
+> The durable fix is an allocator that reserves before the file exists, as
+> `scripts/allocate-id.mjs` already does for bugs and items. Until that exists,
+> a task running parallel streams should hand each stream a reserved range up
+> front rather than letting each pick "the next one".
 
 ## Relationship to Obsidian
 

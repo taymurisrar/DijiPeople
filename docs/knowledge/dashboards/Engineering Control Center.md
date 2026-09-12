@@ -7,18 +7,18 @@
 
 | | |
 |---|---|
-| Active sessions | **0** |
-| Active parent tasks | 4 |
-| Active work packages | 4 |
+| Active sessions | **2** |
+| Active parent tasks | 5 |
+| Active work packages | 5 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **4** |
-| Open HIGH | 79 |
+| Open HIGH | 89 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 6 |
-| QA coverage gaps | 142 |
+| Owner decisions pending | 7 |
+| QA coverage gaps | 161 |
 | Scenarios blocked by infrastructure | 0 |
 
 ## Backlog health
@@ -30,12 +30,12 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 160 |
-| No next action | 160 |
+| No acceptance criteria | 186 |
+| No next action | 186 |
 | Aging — 7d / 30d / 90d | 100 / 0 / 0 |
-| Architecture and technical debt | 5 |
-| Security gaps | 27 |
-| Database gaps | 18 |
+| Architecture and technical debt | 7 |
+| Security gaps | 29 |
+| Database gaps | 19 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -47,7 +47,10 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-_No session is currently registered as active._
+| Session | Task | Title | Status | Branch | Target | Leases | Schema |
+|---|---|---|---|---|---|---|---|
+| [[SESSION-0103-implement-the-34-open-records-from-sessions-0099-0102|SESSION-0103]] | TASK-0030 | Implement the 34 open records from sessions 0099-0102 | ACTIVE | `agent/records-0099-0102` | `develop` | permissions, runtime-registries, record-indexes | NO |
+| [[SESSION-0099-review-tenant-subscription-plans-features-screen|SESSION-0099]] | — | Review tenant subscription Plans & Features screen | ACTIVE | `agent/review-subscription-plans-screen` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
 
@@ -57,6 +60,7 @@ _No session is currently registered as active._
 | [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 16/16 | — | — | — |
 | [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 11/11 | — | — | — |
 | [[TASK-0028-enterprise-reports-and-analytics-platform|TASK-0028]] | Enterprise Reports and Analytics platform | FEATURE | LARGE | 5/15 | WP-08 | — | — |
+| [[TASK-0030-implement-the-34-open-records-from-sessions-0099-0102|TASK-0030]] | Implement the 34 open records from sessions 0099-0102 | FEATURE | LARGE | 6/8 | WP-07 | — | — |
 
 ## Branch model
 
@@ -115,6 +119,7 @@ Questions where the engineering is understood and the **product answer is**
 - [[BUG-3180-the-render-service-cannot-be-rebuilt-from-the-repository-sev|BUG-3180]] — **The Render service cannot be rebuilt from the repository: seven boot-required env vars are absent from render.yaml**
 - [[BUG-3181-single-environment-no-staging-one-neon-branch-one-stripe-acc|BUG-3181]] — **Single environment: no staging, one Neon branch, one Stripe account, one email sender, and demo data in production**
 - [[BUG-3182-no-per-tenant-restore-is-possible-restoring-one-tenant-means|BUG-3182]] — **No per-tenant restore is possible: restoring one tenant means rolling back all of them**
+- [[BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-|BUG-3333]] — **Tenant buyers choose their own currency and the three price schedules are not equivalent**
 - [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] — **No multi-factor authentication exists anywhere, including for platform super admins**
 
 ## QA Coverage Gaps
@@ -266,15 +271,34 @@ gap into scope — or files a `TEST_GAP` item and says so.
 | [[PLAN-034-reports|reports]] | BROWSER |
 | [[PLAN-034-reports|reports]] | SECURITY |
 | [[PLAN-034-reports|reports]] | PERFORMANCE |
+| [[PLAN-038-notifications|notifications]] | UNIT |
+| [[PLAN-038-notifications|notifications]] | DATABASE |
+| [[PLAN-038-notifications|notifications]] | E2E |
+| [[PLAN-038-notifications|notifications]] | BROWSER |
+| [[PLAN-038-notifications|notifications]] | SECURITY |
+| [[PLAN-039-entitlement-enforcement|entitlement-enforcement]] | API |
+| [[PLAN-039-entitlement-enforcement|entitlement-enforcement]] | DATABASE |
+| [[PLAN-039-entitlement-enforcement|entitlement-enforcement]] | INTEGRATION |
+| [[PLAN-039-entitlement-enforcement|entitlement-enforcement]] | E2E |
+| [[PLAN-039-entitlement-enforcement|entitlement-enforcement]] | BROWSER |
+| [[PLAN-039-entitlement-enforcement|entitlement-enforcement]] | SECURITY |
+| [[PLAN-039-entitlement-enforcement|entitlement-enforcement]] | PERFORMANCE |
+| [[PLAN-040-employees|employees]] | UNIT |
+| [[PLAN-040-employees|employees]] | DATABASE |
+| [[PLAN-040-employees|employees]] | INTEGRATION |
+| [[PLAN-040-employees|employees]] | E2E |
+| [[PLAN-040-employees|employees]] | BROWSER |
+| [[PLAN-040-employees|employees]] | SECURITY |
+| [[PLAN-040-employees|employees]] | PERFORMANCE |
 
 ## Backlog Health
 
 | | |
 |---|---|
-| Open total | 160 |
+| Open total | 186 |
 | Blocked | 2 |
-| Deferred | 90 |
-| Awaiting a product decision | 6 |
+| Deferred | 94 |
+| Awaiting a product decision | 7 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

@@ -82,4 +82,50 @@ describe('BillingController capability authorization', () => {
       ),
     ).toBe(true);
   });
+
+  /*
+   * BUG-3330's seat quote and EXECPLAN-0037's plan-change endpoints are new
+   * reads/writes on the same tenant billing surface, gated the same way as
+   * every other row in this table.
+   */
+  it.each(['getSeatQuote' as const, 'previewPlanChange' as const])(
+    'allows %s read only with billing view and matrix read',
+    (handler) => {
+      expect(
+        guard.canActivate(
+          context(
+            handler,
+            user([MISC_PERMISSION_KEYS.BILLING_VIEW], SecurityPrivilege.READ),
+          ),
+        ),
+      ).toBe(true);
+      expect(() =>
+        guard.canActivate(
+          context(handler, user([MISC_PERMISSION_KEYS.BILLING_VIEW])),
+        ),
+      ).toThrow(ForbiddenException);
+    },
+  );
+
+  it('does not let billing view authorize a plan-change request', () => {
+    expect(() =>
+      guard.canActivate(
+        context(
+          'requestPlanChange',
+          user([MISC_PERMISSION_KEYS.BILLING_VIEW], SecurityPrivilege.READ),
+        ),
+      ),
+    ).toThrow(ForbiddenException);
+  });
+
+  it('allows a billing manager to request a plan change', () => {
+    expect(
+      guard.canActivate(
+        context(
+          'requestPlanChange',
+          user([MISC_PERMISSION_KEYS.BILLING_MANAGE], SecurityPrivilege.MANAGE),
+        ),
+      ),
+    ).toBe(true);
+  });
 });

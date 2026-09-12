@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 577,
+    "total_records": 621,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -10809,7 +10809,9 @@
       "qa_scenarios": [
         "QA-BILLING-026"
       ],
-      "test_plan": [],
+      "test_plan": [
+        "PLAN-039"
+      ],
       "current_evidence": {
         "paths": [
           "services/api/src/modules/tenant-settings",
@@ -18876,6 +18878,1052 @@
       "verification_result": "NOT_VERIFIED"
     },
     {
+      "record_id": "BUG-3330",
+      "type": "UX",
+      "title": "Plan cards quote a per-seat price as the whole monthly charge and ignore the seat count entirely",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3330-plan-cards-quote-a-per-seat-price-as-the-whole-monthly-charg.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "caad4a56",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-12",
+        "resolved_at": "2026-09-12"
+      },
+      "affected_modules": [
+        "apps/web",
+        "services/api/src/modules/billing"
+      ],
+      "regressions": [
+        "REG-413"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-030"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "services/api/src/modules/billing"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3330-plan-cards-quote-a-per-seat-price-as-the-whole-monthly-charg.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3331",
+      "type": "UX",
+      "title": "Subscribe is enabled for a tenant that already has an active subscription and can only ever return 409",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3331-subscribe-is-enabled-for-a-tenant-that-already-has-an-active.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "caad4a56",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-12",
+        "resolved_at": "2026-09-12"
+      },
+      "affected_modules": [
+        "apps/web",
+        "services/api/src/modules/billing"
+      ],
+      "regressions": [
+        "REG-425"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-037"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "services/api/src/modules/billing"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3331-subscribe-is-enabled-for-a-tenant-that-already-has-an-active.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3332",
+      "type": "UX",
+      "title": "Plan cards truncate to eight features so Growth and Enterprise advertise identical capability",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3332-plan-cards-truncate-to-eight-features-so-growth-and-enterpri.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "caad4a56",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-12",
+        "resolved_at": "2026-09-12"
+      },
+      "affected_modules": [
+        "apps/web",
+        "services/api/src/modules/billing"
+      ],
+      "regressions": [
+        "REG-414"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-031"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "services/api/src/modules/billing"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3332-plan-cards-truncate-to-eight-features-so-growth-and-enterpri.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3333",
+      "type": "DATA_INTEGRITY",
+      "title": "Tenant buyers choose their own currency and the three price schedules are not equivalent",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
+      "source": {
+        "record_path": "docs/bugs/BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "caad4a56",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-12",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "services/api/src/modules/billing"
+      ],
+      "regressions": [
+        "REG-423"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-035"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "services/api/src/modules/billing"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3334",
+      "type": "SECURITY",
+      "title": "Tenant plan listing and checkout ignore PlanPrice publication status and market scoping",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3334-tenant-plan-listing-and-checkout-ignore-planprice-publicatio.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "caad4a56",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-12",
+        "resolved_at": "2026-09-12"
+      },
+      "affected_modules": [
+        "services/api/src/modules/billing"
+      ],
+      "regressions": [
+        "REG-423"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-035"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/billing"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3334-tenant-plan-listing-and-checkout-ignore-planprice-publicatio.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3335",
+      "type": "UX",
+      "title": "Subscription plans screen overflows horizontally on phones and loses its comparison layout below 1280px",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3335-subscription-plans-screen-overflows-horizontally-on-phones-a.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "caad4a56",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-12",
+        "resolved_at": "2026-09-12"
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [
+        "REG-415"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-032"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3335-subscription-plans-screen-overflows-horizontally-on-phones-a.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3336",
+      "type": "UX",
+      "title": "Subscription settings has no loading or error boundary and renders a failed load as access denied",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3336-subscription-settings-has-no-loading-or-error-boundary-and-r.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "caad4a56",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-12",
+        "resolved_at": "2026-09-12"
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [
+        "REG-417"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-034"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3336-subscription-settings-has-no-loading-or-error-boundary-and-r.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3345",
+      "type": "UX",
+      "title": "Subscription screens paint every primary action in body-text black instead of the tenant brand colour",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3345-subscription-screens-paint-every-primary-action-in-body-text.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "caad4a56",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-12",
+        "resolved_at": "2026-09-12"
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [
+        "REG-416"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-033"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3345-subscription-screens-paint-every-primary-action-in-body-text.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3350",
+      "type": "BUG",
+      "title": "The plan comparison sells module exclusivity the platform is configured only to report on",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3350-the-plan-comparison-sells-module-exclusivity-the-platform-is.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "caad4a56",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-12",
+        "resolved_at": "2026-09-12"
+      },
+      "affected_modules": [
+        "apps/web",
+        "services/api/src/common/security"
+      ],
+      "regressions": [
+        "REG-424"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-036"
+      ],
+      "test_plan": [
+        "PLAN-039"
+      ],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "services/api/src/common/security"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3350-the-plan-comparison-sells-module-exclusivity-the-platform-is.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3355",
+      "type": "BUG",
+      "title": "A second sign-in silently destroys the first session, and the displaced browser is never told",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3355-a-second-sign-in-silently-destroys-the-first-session-and-the.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "118d22ed",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-12",
+        "resolved_at": "2026-09-12"
+      },
+      "affected_modules": [
+        "api:auth",
+        "web:auth"
+      ],
+      "regressions": [
+        "REG-440"
+      ],
+      "qa_scenarios": [
+        "QA-AUTH-011"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "api:auth",
+          "web:auth"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3355-a-second-sign-in-silently-destroys-the-first-session-and-the.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3356",
+      "type": "BUG",
+      "title": "A revoked or expired session is reported to the user as AUTH_TOKEN_MISSING and is never logged",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3356-a-revoked-or-expired-session-is-reported-to-the-user-as-auth.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "118d22ed",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-12",
+        "resolved_at": "2026-09-12"
+      },
+      "affected_modules": [
+        "web:auth",
+        "api:auth"
+      ],
+      "regressions": [
+        "REG-441"
+      ],
+      "qa_scenarios": [
+        "QA-AUTH-012"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "web:auth",
+          "api:auth"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3356-a-revoked-or-expired-session-is-reported-to-the-user-as-auth.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3357",
+      "type": "BUG",
+      "title": "Remember me is overridden by the web middleware, which pins the cookies to 15 minutes and 1 hour",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3357-remember-me-is-overridden-by-the-web-middleware-which-pins-t.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "118d22ed",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-12",
+        "resolved_at": "2026-09-12"
+      },
+      "affected_modules": [
+        "web:auth",
+        "api:auth"
+      ],
+      "regressions": [
+        "REG-442"
+      ],
+      "qa_scenarios": [
+        "QA-AUTH-013"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "web:auth",
+          "api:auth"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3357-remember-me-is-overridden-by-the-web-middleware-which-pins-t.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3358",
+      "type": "BUG",
+      "title": "A Server Component render rotates the refresh token and cannot persist it, orphaning the browser",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3358-a-server-component-render-rotates-the-refresh-token-and-cann.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "118d22ed",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-12",
+        "resolved_at": "2026-09-12"
+      },
+      "affected_modules": [
+        "web:auth",
+        "api:auth"
+      ],
+      "regressions": [
+        "REG-443"
+      ],
+      "qa_scenarios": [
+        "QA-AUTH-014"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "web:auth",
+          "api:auth"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3358-a-server-component-render-rotates-the-refresh-token-and-cann.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3359",
+      "type": "BUG",
+      "title": "Refresh rotation has no grace window and the web middleware has no concurrency control",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3359-refresh-rotation-has-no-grace-window-and-the-web-middleware-.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "118d22ed",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-12",
+        "resolved_at": "2026-09-12"
+      },
+      "affected_modules": [
+        "api:auth",
+        "web:auth"
+      ],
+      "regressions": [
+        "REG-444"
+      ],
+      "qa_scenarios": [
+        "QA-AUTH-015"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "api:auth",
+          "web:auth"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3359-refresh-rotation-has-no-grace-window-and-the-web-middleware-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3360",
+      "type": "BUG",
+      "title": "Every session row records the user agent as node and the Cloudflare edge IP",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3360-every-session-row-records-the-user-agent-as-node-and-the-clo.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "118d22ed",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-12",
+        "resolved_at": "2026-09-12"
+      },
+      "affected_modules": [
+        "api:auth",
+        "web:auth"
+      ],
+      "regressions": [
+        "REG-445"
+      ],
+      "qa_scenarios": [
+        "QA-AUTH-016"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "api:auth",
+          "web:auth"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3360-every-session-row-records-the-user-agent-as-node-and-the-clo.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3373",
+      "type": "UX",
+      "title": "Web paints the operating-system dark theme before the tenant Light default arrives",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3373-web-paints-the-operating-system-dark-theme-before-the-tenant.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "cbd9b812",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-12",
+        "resolved_at": "2026-09-12"
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [
+        "REG-419"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-010"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3373-web-paints-the-operating-system-dark-theme-before-the-tenant.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3374",
+      "type": "AUTHORIZATION",
+      "title": "Settings Customization and its twelve child routes silently redirect to Roles",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3374-settings-customization-and-its-twelve-child-routes-silently-.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "cbd9b812",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-12",
+        "resolved_at": "2026-09-12"
+      },
+      "affected_modules": [
+        "apps/web",
+        "customization"
+      ],
+      "regressions": [
+        "REG-420"
+      ],
+      "qa_scenarios": [
+        "QA-AUTHZ-016"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "customization"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3374-settings-customization-and-its-twelve-child-routes-silently-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3375",
+      "type": "UX",
+      "title": "The Notification Rules screen edits preferences and cannot reach NotificationRule at all",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3375-the-notification-rules-screen-edits-preferences-and-cannot-r.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "cbd9b812",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-12",
+        "resolved_at": "2026-09-12"
+      },
+      "affected_modules": [
+        "notifications",
+        "apps/web"
+      ],
+      "regressions": [
+        "REG-460"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-018"
+      ],
+      "test_plan": [
+        "PLAN-038"
+      ],
+      "current_evidence": {
+        "paths": [
+          "notifications",
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3375-the-notification-rules-screen-edits-preferences-and-cannot-r.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3376",
+      "type": "DATA_INTEGRITY",
+      "title": "Runtime lookups fetch one unpaged page and filter it in the browser, hiding every record past the server page size",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3376-runtime-lookups-fetch-one-unpaged-page-and-filter-it-in-the-.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "cbd9b812",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-12",
+        "resolved_at": "2026-09-12"
+      },
+      "affected_modules": [
+        "apps/web",
+        "apps/admin"
+      ],
+      "regressions": [
+        "REG-470"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-044"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3376-runtime-lookups-fetch-one-unpaged-page-and-filter-it-in-the-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3377",
+      "type": "UX",
+      "title": "Admin lookup controls still carry the nested-interactive listbox that BUG-1956 fixed only in web",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3377-admin-lookup-controls-still-carry-the-nested-interactive-lis.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "cbd9b812",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-12",
+        "resolved_at": "2026-09-12"
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "regressions": [
+        "REG-418"
+      ],
+      "qa_scenarios": [
+        "QA-UI-001"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3377-admin-lookup-controls-still-carry-the-nested-interactive-lis.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3378",
+      "type": "UX",
+      "title": "The responsive runtime tab strip hides a measurement copy from screen readers while leaving thirteen buttons in the tab order",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3378-the-responsive-runtime-tab-strip-hides-a-measurement-copy-fr.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "cbd9b812",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-12",
+        "resolved_at": "2026-09-12"
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [
+        "REG-421"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-042"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3378-the-responsive-runtime-tab-strip-hides-a-measurement-copy-fr.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3379",
+      "type": "UX",
+      "title": "A delivery log row says Not delivered and carries nothing that explains why",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3379-a-delivery-log-row-says-not-delivered-and-carries-nothing-th.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "cbd9b812",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-12",
+        "resolved_at": "2026-09-12"
+      },
+      "affected_modules": [
+        "notifications",
+        "apps/web"
+      ],
+      "regressions": [
+        "REG-461"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-019"
+      ],
+      "test_plan": [
+        "PLAN-038"
+      ],
+      "current_evidence": {
+        "paths": [
+          "notifications",
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3379-a-delivery-log-row-says-not-delivered-and-carries-nothing-th.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3412",
+      "type": "UX",
+      "title": "Every widget section on a record form prints its title twice, and the profile section's two titles disagree",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3412-every-widget-section-on-a-record-form-prints-its-title-twice.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "06ed3592",
+        "created_at": "2026-09-12",
+        "updated_at": "2026-09-12",
+        "resolved_at": "2026-09-12"
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [
+        "REG-422"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-043"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3412-every-widget-section-on-a-record-form-prints-its-title-twice.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3450",
+      "type": "PERFORMANCE",
+      "title": "GET /employees/{id}/reporting-structure computed every root in the tenant to unbounded depth on every page view, unused",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3450-get-employees-id-reporting-structure-computed-every-root-in-.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "c8d97a3d",
+        "created_at": "2026-09-12",
+        "updated_at": "2026-09-12",
+        "resolved_at": "2026-09-12"
+      },
+      "affected_modules": [
+        "services/api/src/modules/employees"
+      ],
+      "regressions": [
+        "REG-480"
+      ],
+      "qa_scenarios": [
+        "QA-EMPLOYEE-001"
+      ],
+      "test_plan": [
+        "PLAN-040"
+      ],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/employees"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3450-get-employees-id-reporting-structure-computed-every-root-in-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
       "record_id": "ITEM-0001",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md",
@@ -23582,14 +24630,14 @@
       "title": "The customization settings category renders no leaf pages in server HTML",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "DUPLICATE",
+      "architect_disposition": "DUPLICATE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0104-the-customization-settings-category-renders-no-leaf-pages-in.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-29",
-        "updated_at": "2026-08-29",
+        "updated_at": "2026-09-12",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -25689,6 +26737,830 @@
           "services/api/src/common/security"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0158-public-traffic-that-bypasses-cloudflare-shares-one-rate-limi.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0159",
+      "type": "UX",
+      "title": "Plans and Features screen fails several accessibility basics for a data-comparison surface",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0159-plans-and-features-screen-fails-several-accessibility-basics.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-12",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0159-plans-and-features-screen-fails-several-accessibility-basics.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0160",
+      "type": "TECH_DEBT",
+      "title": "Feature comparison badges assume the API returns plans in ascending tier order",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0160-feature-comparison-badges-assume-the-api-returns-plans-in-as.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-11",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "services/api/src/modules/billing"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "services/api/src/modules/billing"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0160-feature-comparison-badges-assume-the-api-returns-plans-in-as.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0161",
+      "type": "UX",
+      "title": "Subscription plans screen content and interaction polish",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0161-subscription-plans-screen-content-and-interaction-polish.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-11",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0161-subscription-plans-screen-content-and-interaction-polish.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0162",
+      "type": "TECH_DEBT",
+      "title": "Session timeout configuration lives in two places that disagree, and most of the env values are inert",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0162-session-timeout-configuration-lives-in-two-places-that-disag.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-12",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "api:auth",
+        "api:tenant-settings"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "api:auth",
+          "api:tenant-settings"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0162-session-timeout-configuration-lives-in-two-places-that-disag.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0163",
+      "type": "UX",
+      "title": "Give every lookup one behaviour: an openable label, one implementation, and a reference route that is not an allowlist",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0163-give-every-lookup-one-behaviour-an-openable-label-one-implem.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-12",
+        "resolved_at": "2026-09-12"
+      },
+      "affected_modules": [
+        "apps/web",
+        "apps/admin"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0163-give-every-lookup-one-behaviour-an-openable-label-one-implem.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0164",
+      "type": "UX",
+      "title": "An organization hierarchy viewer reachable from the employee record",
+      "severity": "",
+      "priority": "P2",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0164-an-organization-hierarchy-viewer-reachable-from-the-employee.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-12",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "employees",
+        "organization"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "employees",
+          "organization"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0164-an-organization-hierarchy-viewer-reachable-from-the-employee.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0165",
+      "type": "UX",
+      "title": "Present an employee's primary location and authorised work sites as one control",
+      "severity": "",
+      "priority": "P2",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0165-present-an-employee-s-primary-location-and-authorised-work-s.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-12",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "employees",
+        "attendance"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "employees",
+          "attendance"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0165-present-an-employee-s-primary-location-and-authorised-work-s.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0166",
+      "type": "UX",
+      "title": "Move data-loss prevention captures off the employee record page into the Agent surface",
+      "severity": "",
+      "priority": "P2",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0166-move-data-loss-prevention-captures-off-the-employee-record-p.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-12",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "agent"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "agent"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0166-move-data-loss-prevention-captures-off-the-employee-record-p.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0167",
+      "type": "ARCHITECTURE",
+      "title": "Adopt the employee record shell across the record pages that still hand-roll their own",
+      "severity": "",
+      "priority": "P2",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0167-adopt-the-employee-record-shell-across-the-record-pages-that.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-12",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0167-adopt-the-employee-record-shell-across-the-record-pages-that.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0168",
+      "type": "FOLLOW_UP",
+      "title": "A retry action on an email delivery log",
+      "severity": "",
+      "priority": "P2",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0168-a-retry-action-on-an-email-delivery-log.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-12",
+        "resolved_at": "2026-09-12"
+      },
+      "affected_modules": [
+        "notifications",
+        "apps/web"
+      ],
+      "regressions": [
+        "REG-490"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-020"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "notifications",
+          "apps/web"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0168-a-retry-action-on-an-email-delivery-log.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0169",
+      "type": "UX",
+      "title": "Notification catalog hygiene: dead events, duplicate leave pairs, two key conventions and placeholder copy",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0169-notification-catalog-hygiene-dead-events-duplicate-leave-pai.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-12",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "notifications",
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "notifications",
+          "apps/web"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0169-notification-catalog-hygiene-dead-events-duplicate-leave-pai.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0170",
+      "type": "FOLLOW_UP",
+      "title": "Eleven tenant modules emit no notifications at all",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0170-eleven-tenant-modules-emit-no-notifications-at-all.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-12",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "notifications",
+        "recruitment",
+        "documents",
+        "policies",
+        "contracts",
+        "support-cases",
+        "business-trips",
+        "benefits",
+        "compensation",
+        "projects",
+        "sla",
+        "legal",
+        "partners"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "notifications",
+          "recruitment",
+          "documents",
+          "policies",
+          "contracts",
+          "support-cases",
+          "business-trips",
+          "benefits",
+          "compensation",
+          "projects",
+          "sla",
+          "legal",
+          "partners"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0170-eleven-tenant-modules-emit-no-notifications-at-all.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0171",
+      "type": "ARCHITECTURE",
+      "title": "A second dispatch path sends email without consulting NotificationRule",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0171-a-second-dispatch-path-sends-email-without-consulting-notifi.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-11",
+        "updated_at": "2026-09-12",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "notifications",
+        "payroll",
+        "payslips",
+        "auth",
+        "reporting"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "notifications",
+          "payroll",
+          "payslips",
+          "auth",
+          "reporting"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0171-a-second-dispatch-path-sends-email-without-consulting-notifi.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0172",
+      "type": "FOLLOW_UP",
+      "title": "Wire debounced search and the openable label into the metadata-driven record-form lookup call site",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0172-wire-debounced-search-and-the-openable-label-into-the-metada.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-12",
+        "updated_at": "2026-09-12",
+        "resolved_at": "2026-09-12"
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0172-wire-debounced-search-and-the-openable-label-into-the-metada.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0173",
+      "type": "FOLLOW_UP",
+      "title": "Wire notification coverage for the four highest-value remaining silent modules",
+      "severity": "",
+      "priority": "P2",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0173-wire-notification-coverage-for-the-four-highest-value-remain.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-12",
+        "updated_at": "2026-09-12",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "documents",
+        "contracts",
+        "recruitment",
+        "business-trips"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "documents",
+          "contracts",
+          "recruitment",
+          "business-trips"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0173-wire-notification-coverage-for-the-four-highest-value-remain.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0174",
+      "type": "TECH_DEBT",
+      "title": "Unify the notification catalog on one key convention (dotted form)",
+      "severity": "",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0174-unify-the-notification-catalog-on-one-key-convention-dotted-.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-12",
+        "updated_at": "2026-09-12",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "notifications"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "notifications"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0174-unify-the-notification-catalog-on-one-key-convention-dotted-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0175",
+      "type": "FOLLOW_UP",
+      "title": "Wire the plans screen onto the seat-quote and plan-change endpoints that now exist",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "READY",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0175-wire-the-plans-screen-onto-the-seat-quote-and-plan-change-en.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-12",
+        "updated_at": "2026-09-12",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "services/api/src/modules/billing"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "services/api/src/modules/billing"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0175-wire-the-plans-screen-onto-the-seat-quote-and-plan-change-en.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0176",
+      "type": "TECH_DEBT",
+      "title": "SeatChangeService.applyDueChanges has no caller and cannot be wired without under-billing",
+      "severity": "HIGH",
+      "priority": "P2",
+      "current_status": "READY",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0176-seatchangeservice-applyduechanges-has-no-caller-and-cannot-b.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-12",
+        "updated_at": "2026-09-12",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/billing"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/billing"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0176-seatchangeservice-applyduechanges-has-no-caller-and-cannot-b.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0177",
+      "type": "TECH_DEBT",
+      "title": "The recruitment draft form's Reporting manager lookup still filters one page in the browser",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "READY",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0177-the-recruitment-draft-form-s-reporting-manager-lookup-still-.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-12",
+        "updated_at": "2026-09-12",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0177-the-recruitment-draft-form-s-reporting-manager-lookup-still-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0178",
+      "type": "ARCHITECTURE",
+      "title": "Recruitment job opening edit page is bespoke while its detail page already uses the shared record shell",
+      "severity": "",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0178-recruitment-job-opening-edit-page-is-bespoke-while-its-detai.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-12",
+        "updated_at": "2026-09-12",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web/app/(authenticated)/recruitment"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web/app/(authenticated)/recruitment"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0178-recruitment-job-opening-edit-page-is-bespoke-while-its-detai.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

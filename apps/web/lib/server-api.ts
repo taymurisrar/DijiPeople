@@ -4,16 +4,14 @@ import {
   ACCESS_TOKEN_COOKIE,
   AUTH_APP_CLIENT_ID,
   REFRESH_TOKEN_COOKIE,
-  SESSION_COOKIE,
 } from "@/lib/auth-config";
 import { getApiBaseUrl } from "@/lib/auth";
 import { normalizeApiError } from "@/lib/api-error";
+import { getClearAuthCookieOptions } from "@/lib/auth-cookies";
 import {
-  ACCESS_TOKEN_MAX_AGE_SECONDS,
-  getAuthCookieOptions,
-  parseDurationToMilliseconds,
-  REFRESH_TOKEN_MAX_AGE_SECONDS,
-} from "@/lib/auth-cookies";
+  buildAuthSessionCookies,
+  type RefreshedSessionTokens,
+} from "@/lib/auth-session-cookies";
 
 type JsonPrimitive = string | number | boolean | null;
 
@@ -39,14 +37,29 @@ const JSON_CONTENT_TYPES = [
   "application/vnd.api+json",
 ];
 
-type RefreshedAuthTokens = {
-  accessToken: string;
-  refreshToken: string;
-  sessionId?: string;
-  accessTokenExpiresIn?: string;
-  refreshTokenExpiresIn?: string;
-  rememberMe?: boolean;
+/**
+ * BUG-3356 — why a refresh could fail, preserved rather than discarded.
+ *
+ * `performRefresh` used to collapse every non-success outcome — revoked,
+ * expired, a network hiccup — into a bare `null`, which is why the caller had
+ * nothing left to tell the user except "no token", and why that came out as
+ * `AUTH_TOKEN_MISSING` once the request went out anyway. `status` and `code`
+ * are the same fields the API's `/auth/refresh` response already carries; this
+ * type just keeps them attached to the failure instead of throwing them away
+ * at the point they were most informative.
+ */
+type RefreshFailure = {
+  status: number;
+  code?: string;
+  message?: string;
+  description?: string;
+  traceId?: string;
+  isNetworkError?: boolean;
 };
+
+type RefreshOutcome =
+  | { tokens: RefreshedSessionTokens; failure?: undefined }
+  | { tokens?: undefined; failure: RefreshFailure };
 
 export class ApiRequestError extends Error {
   status: number;
@@ -108,18 +121,57 @@ export async function apiRequest(
 
   const method = (init.method ?? "GET").toUpperCase();
   const includeAuth = init.includeAuth !== false;
+  const authRequired = includeAuth && shouldAttemptServerRefresh(path);
+  let refreshFailure: RefreshFailure | undefined;
 
-  if (
-    includeAuth &&
-    !accessToken &&
-    refreshToken &&
-    shouldAttemptServerRefresh(path)
-  ) {
-    const refreshed = await refreshServerAuthTokens(baseUrl, refreshToken);
-    if (refreshed) {
-      accessToken = refreshed.accessToken;
-      await persistRefreshedAuthCookies(refreshed);
+  if (authRequired && !accessToken && refreshToken) {
+    /*
+     * BUG-3358 — detect an unwritable cookie store BEFORE spending the
+     * refresh token, not after. With rotation enabled (the default and the
+     * production setting) a refresh irreversibly revokes the token the
+     * browser holds the moment it succeeds; a Server Component render cannot
+     * persist the successor, so refreshing there destroys the session for a
+     * result nobody keeps. Skipping the refresh entirely leaves the browser
+     * holding a working refresh token, which the middleware or a route
+     * handler — both of which CAN persist — will use next.
+     */
+    if (await canPersistCookies()) {
+      const outcome = await refreshServerAuthTokens(baseUrl, refreshToken);
+      if (outcome.tokens) {
+        accessToken = outcome.tokens.accessToken;
+        const persisted = await persistRefreshedAuthCookies(outcome.tokens);
+        if (!persisted) {
+          // Tokens were issued but the write failed anyway (BUG-3358's
+          // `persistRefreshedAuthCookies` now reports this rather than
+          // swallowing it) — the browser will never see the new refresh
+          // token, so the request must not proceed as if it had.
+          accessToken = undefined;
+          refreshFailure = {
+            status: 500,
+            code: "AUTH_COOKIE_WRITE_FAILED",
+            message: "The refreshed session could not be saved.",
+          };
+        }
+      } else {
+        refreshFailure = outcome.failure;
+      }
     }
+  }
+
+  if (authRequired && !accessToken) {
+    /*
+     * BUG-3356 — never send a request that is known to be unauthenticatable.
+     * This used to fall through to `fetch` with no Authorization header,
+     * which the API answered correctly and unhelpfully with
+     * `401 AUTH_TOKEN_MISSING` — discarding the real reason (computed one
+     * line above, in `refreshFailure`) and, because that code is on the
+     * expected-protocol-outcome allowlist, leaving no record an operator
+     * could find. Returning a synthetic response here — rather than
+     * throwing — keeps `apiRequest`'s contract intact: every caller,
+     * `apiRequestJson` and every route handler that proxies the raw
+     * `Response` through, already knows how to present a non-ok response.
+     */
+    return buildSessionEndedResponse(refreshFailure, path, method);
   }
 
   const timeoutMs =
@@ -142,20 +194,27 @@ export async function apiRequest(
 
     if (
       response.status === 401 &&
-      includeAuth &&
+      authRequired &&
       refreshToken &&
-      shouldAttemptServerRefresh(path)
+      // BUG-3358 — same reasoning as the pre-emptive refresh above: a
+      // presented access token that the API just rejected is refreshed only
+      // where the result can be written back. An unwritable store leaves the
+      // caller with the original, genuine 401 from the API, which is
+      // informative on its own and was never sent without a header.
+      (await canPersistCookies())
     ) {
-      const refreshed = await refreshServerAuthTokens(baseUrl, refreshToken);
-      if (refreshed) {
-        await persistRefreshedAuthCookies(refreshed);
-        response = await fetch(url, {
-          ...init,
-          method,
-          headers: buildRequestHeaders(init, refreshed.accessToken, true),
-          signal: mergeAbortSignals(init.signal, controller.signal),
-          cache: init.cache ?? "no-store",
-        });
+      const outcome = await refreshServerAuthTokens(baseUrl, refreshToken);
+      if (outcome.tokens) {
+        const persisted = await persistRefreshedAuthCookies(outcome.tokens);
+        if (persisted) {
+          response = await fetch(url, {
+            ...init,
+            method,
+            headers: buildRequestHeaders(init, outcome.tokens.accessToken, true),
+            signal: mergeAbortSignals(init.signal, controller.signal),
+            cache: init.cache ?? "no-store",
+          });
+        }
       }
     }
 
@@ -213,6 +272,91 @@ function buildRequestHeaders(
 }
 
 /*
+ * BUG-3358 — a probe cookie name, distinct from any cookie either the API or
+ * this app reads. Its value never matters and it is written with `maxAge: 0`
+ * (delete semantics), so a context that CAN write cookies is left exactly as
+ * it was found.
+ */
+const COOKIE_WRITE_PROBE_NAME = "__dp_cookie_write_probe";
+
+/**
+ * Whether the current request context can persist a cookie right now.
+ *
+ * A Server Component render cannot — `cookies().set(...)` throws
+ * synchronously — while a Route Handler or Server Action can. Next.js does
+ * not expose this as a flag to check ahead of time, so it is checked the only
+ * way available: attempt a real, harmless write and see whether it throws.
+ * The point of doing this *before* refreshing rather than in a `catch` around
+ * the refresh itself (the previous shape, in `persistRefreshedAuthCookies`) is
+ * that a refresh is not harmless: with rotation enabled it revokes the
+ * presented refresh token the instant it succeeds. Probing first means an
+ * unwritable context never spends that single-use credential at all.
+ */
+async function canPersistCookies(): Promise<boolean> {
+  try {
+    const cookieStore = await cookies();
+    cookieStore.set(
+      COOKIE_WRITE_PROBE_NAME,
+      "",
+      getClearAuthCookieOptions(),
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The response `apiRequest` returns when it refuses to send a request it
+ * knows the API cannot authenticate (BUG-3356), built to match the standard
+ * error contract (`services/api/src/common/errors/error-catalog.ts`) so every
+ * existing consumer — `apiRequestJson`'s `buildApiRequestError`, a route
+ * handler's `proxyApiJsonResponse`, the browser's `normalizeApiError` — reads
+ * it exactly like a response the API sent itself. `status` and `code` are
+ * `refreshFailure`'s when a refresh was attempted and failed — the same
+ * status/code the API already returned (and logged, under this same
+ * `traceId`) for `POST /auth/refresh` — so the durable record this failure
+ * corresponds to is the refresh's own, findable by the reference id the user
+ * is shown. There is no such call to point to when no refresh was possible at
+ * all (no refresh token present), so that case gets a local id instead.
+ */
+function buildSessionEndedResponse(
+  failure: RefreshFailure | undefined,
+  path: string,
+  method: string,
+): Response {
+  const status = failure?.status ?? 401;
+  const errorCode = failure?.code ?? "AUTH_SESSION_MISSING";
+  const traceId = failure?.traceId ?? createRequestId();
+  const message =
+    failure?.message ?? "Your session has ended. Sign in again to continue.";
+  const description =
+    failure?.description ??
+    "No active session could be found for this request.";
+
+  const body = {
+    success: false as const,
+    traceId,
+    timestamp: new Date().toISOString(),
+    statusCode: status,
+    errorCode,
+    message,
+    description,
+    path,
+    method,
+  };
+
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+      "X-Trace-Id": traceId,
+      "X-Request-Id": traceId,
+    },
+  });
+}
+
+/*
  * Refreshing is de-duplicated and short-circuited.
  *
  * Every server-side fetch that saw a 401 used to fire its own POST /auth/refresh,
@@ -223,7 +367,7 @@ function buildRequestHeaders(
  * Both maps are keyed by the refresh token, so one user's dead session can never
  * suppress another's refresh.
  */
-const inFlightRefreshes = new Map<string, Promise<RefreshedAuthTokens | null>>();
+const inFlightRefreshes = new Map<string, Promise<RefreshOutcome>>();
 const deadRefreshTokens = new Map<string, number>();
 
 /*
@@ -264,18 +408,22 @@ async function performRefresh(
   baseUrl: string,
   refreshToken: string,
   key: string,
-): Promise<RefreshedAuthTokens | null> {
+): Promise<RefreshOutcome> {
+  const traceId = createRequestId();
   try {
     const response = await fetch(`${baseUrl}/auth/refresh`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-DijiPeople-App": AUTH_APP_CLIENT_ID,
-        "X-Request-Id": createRequestId(),
+        "X-Request-Id": traceId,
+        "X-Trace-Id": traceId,
       },
       body: JSON.stringify({ refreshToken }),
       cache: "no-store",
     });
+
+    const data = await response.json().catch(() => null);
 
     if (!response.ok) {
       /*
@@ -286,30 +434,80 @@ async function performRefresh(
       if (response.status === 401 || response.status === 403) {
         markRefreshTokenDead(key);
       }
-      return null;
+      // This request already carried `traceId` as both `X-Request-Id` and
+      // `X-Trace-Id`, so the API's own error log recorded this exact failure
+      // under this exact id (`RequestIdMiddleware` prefers the trace header,
+      // falls back to the request id, either way it is this value) — the
+      // "exactly one durable record" BUG-3356 asks for already exists by the
+      // time this line runs; it is not something this function creates.
+      return { failure: readRefreshFailure(data, response, traceId) };
     }
 
-    const data = await response.json();
     const tokens = readRefreshedAuthTokens(data);
-    if (!tokens) return null;
+    if (!tokens) {
+      return {
+        failure: {
+          status: response.status,
+          code: "AUTH_REFRESH_RESPONSE_INVALID",
+          message: "The refresh response was malformed.",
+          traceId,
+        },
+      };
+    }
 
     // The old token is spent; forget any negative marker against it.
     deadRefreshTokens.delete(key);
-    return tokens;
-  } catch {
-    // A network failure is transient; do not poison the token.
-    return null;
+    return { tokens };
+  } catch (error) {
+    // A network failure is transient; do not poison the token, but the
+    // caller still must not proceed as if it had a session.
+    return {
+      failure: {
+        status: 503,
+        code: "NETWORK_ERROR",
+        message: extractFetchErrorMessage(error, `${baseUrl}/auth/refresh`, "POST"),
+        traceId,
+        isNetworkError: true,
+      },
+    };
   }
+}
+
+function readRefreshFailure(
+  data: unknown,
+  response: Response,
+  fallbackTraceId: string,
+): RefreshFailure {
+  const body = isJsonObject(data) ? data : {};
+  const traceId =
+    (typeof body.traceId === "string" && body.traceId) ||
+    response.headers.get("x-trace-id") ||
+    fallbackTraceId;
+
+  return {
+    status: response.status,
+    code: typeof body.errorCode === "string" ? body.errorCode : undefined,
+    message: typeof body.message === "string" ? body.message : undefined,
+    description:
+      typeof body.description === "string" ? body.description : undefined,
+    traceId,
+  };
 }
 
 async function refreshServerAuthTokens(
   baseUrl: string,
   refreshToken: string,
-): Promise<RefreshedAuthTokens | null> {
+): Promise<RefreshOutcome> {
   const key = refreshTokenKey(refreshToken);
 
   if (isRefreshTokenKnownDead(key)) {
-    return null;
+    return {
+      failure: {
+        status: 401,
+        code: "SESSION_REVOKED",
+        message: "This session is no longer active. Please sign in again.",
+      },
+    };
   }
 
   const existing = inFlightRefreshes.get(key);
@@ -326,47 +524,60 @@ async function refreshServerAuthTokens(
   return pending;
 }
 
-async function persistRefreshedAuthCookies(tokens: RefreshedAuthTokens) {
+/**
+ * Write the refreshed auth cookies back, and say so if it did not work.
+ *
+ * BUG-3358 — this used to swallow every failure silently, on the reasoning
+ * that a Server Component render can still finish with the in-memory access
+ * token even though the cookie write is impossible there. That reasoning
+ * held only while refresh tokens were reusable; with rotation on, the write
+ * *is* the durable half of a refresh; a caller that cannot tell it failed has
+ * no way to avoid treating a doomed request as a successful one. Returning
+ * `false` — rather than throwing — is deliberate: `apiRequest` now checks
+ * this and decides what "the write failed" means for its own caller, and
+ * `canPersistCookies()` above is what should stop this from being called at
+ * all in a context that cannot write, so a `false` here is itself worth
+ * knowing about.
+ */
+async function persistRefreshedAuthCookies(
+  tokens: RefreshedSessionTokens,
+): Promise<boolean> {
   try {
     const cookieStore = await cookies();
-    const accessMaxAge = tokens.rememberMe
-      ? durationSeconds(
-          tokens.accessTokenExpiresIn,
-          ACCESS_TOKEN_MAX_AGE_SECONDS,
-        )
-      : undefined;
-    const refreshMaxAge = tokens.rememberMe
-      ? durationSeconds(
-          tokens.refreshTokenExpiresIn,
-          REFRESH_TOKEN_MAX_AGE_SECONDS,
-        )
-      : undefined;
+    const cookieValues = buildAuthSessionCookies(tokens);
 
     cookieStore.set(
-      ACCESS_TOKEN_COOKIE,
-      tokens.accessToken,
-      getAuthCookieOptions(accessMaxAge),
+      cookieValues.access.name,
+      cookieValues.access.value,
+      cookieValues.access.options,
     );
     cookieStore.set(
-      REFRESH_TOKEN_COOKIE,
-      tokens.refreshToken,
-      getAuthCookieOptions(refreshMaxAge),
+      cookieValues.refresh.name,
+      cookieValues.refresh.value,
+      cookieValues.refresh.options,
     );
 
-    if (tokens.sessionId) {
+    if (cookieValues.session) {
       cookieStore.set(
-        SESSION_COOKIE,
-        tokens.sessionId,
-        getAuthCookieOptions(refreshMaxAge),
+        cookieValues.session.name,
+        cookieValues.session.value,
+        cookieValues.session.options,
       );
     }
-  } catch {
-    // Server Components cannot mutate cookies; route handlers can. In either
-    // case the current request can continue with the refreshed access token.
+
+    return true;
+  } catch (error) {
+    // BUG-3358 — reported, not swallowed. There is no server-side logger in
+    // this app; `console.error` is the report this fix asks for.
+    console.error(
+      "[server-api] failed to persist refreshed auth cookies:",
+      error instanceof Error ? error.message : String(error),
+    );
+    return false;
   }
 }
 
-function readRefreshedAuthTokens(data: unknown): RefreshedAuthTokens | null {
+function readRefreshedAuthTokens(data: unknown): RefreshedSessionTokens | null {
   if (!isJsonObject(data)) {
     return null;
   }
@@ -398,15 +609,6 @@ function readRefreshedAuthTokens(data: unknown): RefreshedAuthTokens | null {
         : undefined,
     rememberMe: tokens.rememberMe === true,
   };
-}
-
-function durationSeconds(value: string | undefined, fallback: number) {
-  if (!value) return fallback;
-  try {
-    return Math.floor(parseDurationToMilliseconds(value) / 1000);
-  } catch {
-    return fallback;
-  }
 }
 
 function shouldAttemptServerRefresh(path: string) {

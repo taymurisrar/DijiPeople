@@ -49,7 +49,7 @@ a review failure.
 |---|---|
 | Table | `app/components/data-table/` (`data-table.tsx`, `data-table-toolbar.tsx`, `data-table-pagination.tsx`) or `app/components/runtime/module-data-table.tsx` inside the runtime |
 | List page | `app/components/runtime/standard-module-list-page.tsx`, `module-list-page.tsx`, `module-list-shell.tsx` |
-| Record page | `app/components/runtime/standard-module-record-page.tsx`, `module-record-page.tsx`, `module-detail-shell.tsx`, `module-record-header.tsx` |
+| Record page | `app/components/runtime/standard-module-record-page.tsx`, `module-record-page.tsx`, `module-detail-shell.tsx`, `module-record-header.tsx` — contract: [`docs/architecture/record-page-layout-contract.md`](../../docs/architecture/record-page-layout-contract.md) |
 | Form fields | `app/components/metadata/runtime-metadata-form-renderer.tsx`, `form-layout-grid.tsx`, `app/components/ui/form-control.tsx` |
 | Buttons / cards / status / empty | `app/components/ui/` — `button.tsx`, `section-card.tsx`, `status-pill.tsx`, `empty-state.tsx`; runtime variant `module-empty-state.tsx` |
 | Commands / action bar | `app/components/runtime/module-command-bar.tsx`, `module-command-action-dialog.tsx`, `lib/runtime/command-registry.ts` |
@@ -117,6 +117,17 @@ requirement, and state that explicitly in the plan. Do not create a second CRUD
 data path alongside the runtime — that is the specific failure mode
 [`docs/architecture/module-runtime-overhaul.md`](../../docs/architecture/module-runtime-overhaul.md)
 exists to prevent.
+
+**A record page has a written layout contract**, not just a reference example
+to imitate:
+[`docs/architecture/record-page-layout-contract.md`](../../docs/architecture/record-page-layout-contract.md)
+(ITEM-0167) — what a record page must have (shared shell, status header,
+action bar, tab strip when there is more than one section), what it may vary,
+and the documented, reasoned exceptions (a payroll run, a payslip, a
+single-decision approval screen). A new bespoke record page is checked
+against it by
+`apps/web/app/(authenticated)/_components/record-page-shell.conformance.spec.ts`,
+the same way a hand-rolled table or form control already fails review.
 
 ---
 

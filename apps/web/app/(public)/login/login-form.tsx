@@ -301,6 +301,14 @@ export function LoginForm({
           <CheckboxField
             checked={form.rememberMe}
             label="Remember me"
+            /*
+             * BUG-3357 — settled: Remember me keeps this browser signed in
+             * across restarts by lengthening the refresh token's lifetime; it
+             * does not lengthen how long an individual access token is valid
+             * for. The copy says that explicitly rather than implying a
+             * longer active session than the tenant's session policy grants.
+             */
+            hint="Keeps you signed in on this browser across restarts. It does not change how long an individual sign-in stays active."
             onChange={(checked) => updateField("rememberMe", checked)}
           />
         </div>

@@ -469,6 +469,11 @@ function adapter(input: {
       softDelete,
       disableCreate: mode === "record" || mode === "read-only",
       disableEdit: mode === "read-only",
+      // BUG-3379. A read-only adapter (a log, a diagnostic view) is
+      // immutable by design — Delete should not appear at all, not appear
+      // disabled. `record`-mode adapters (a single editable settings record,
+      // never a list of many) keep their existing !softDelete behaviour.
+      disableDelete: mode === "read-only",
       import: transfer.import,
       export: transfer.export,
       exportTemplate: transfer.exportTemplate,
@@ -6628,6 +6633,15 @@ const adapters: readonly SettingsRuntimeAdapter[] = [
     supportsServerPagination: true,
     mode: "read-only",
     primaryName: "subject",
+    /*
+     * BUG-3379. `providerType` was always persisted (EmailDeliveryLog has the
+     * column) but never selected here, so a NOT_DELIVERED row gave no way to
+     * tell it apart from a real outage. `errorMessage` now carries a reason
+     * for NOT_DELIVERED too — see EmailExecutionService — not only FAILED, and
+     * is relabelled "Reason" because "Error Message" reads wrong on a row that
+     * did not fail.
+     */
+    columns: ["subject", "recipient", "status", "providerType", "createdAt"],
     fields: [
       field("subject", "Subject", "string", {
         isPrimaryName: true,
@@ -6638,7 +6652,14 @@ const adapters: readonly SettingsRuntimeAdapter[] = [
         isReadOnly: true,
         isStatus: true,
       }),
+      field("providerType", "Provider Type", "optionset", {
+        isReadOnly: true,
+      }),
+      field("errorMessage", "Reason", "string", { isReadOnly: true }),
       field("providerMessageId", "Provider ID", "string", { isReadOnly: true }),
+      // ITEM-0168. Read here so the record page can decide whether to offer
+      // Retry at all — a row is only ever retryable while this is true.
+      field("retryable", "Retryable", "boolean", { isReadOnly: true }),
       field("createdAt", "Created", "datetime", { isReadOnly: true }),
     ],
     permissions: { read: "notification.logs.read" },

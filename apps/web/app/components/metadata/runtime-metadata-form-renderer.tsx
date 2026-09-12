@@ -1,7 +1,23 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import type { RuntimeCustomizationForm } from "@/lib/customization-forms";
+import {
+  ENTITY_LOOKUP_PAGE_SIZE,
+  isLookupResultTruncated,
+  isSmallReferenceLookupEntity,
+} from "@/lib/runtime/lookup-search";
+import {
+  isReadOnlyLookupReferenceModule,
+  resolveLookupReferenceRoute,
+} from "./lookup-reference-route";
 import type {
   EntityMetadata,
   FieldMetadata,
@@ -27,7 +43,11 @@ import {
 } from "@/app/components/ui/form-control";
 import { ModuleRelatedSubgrid } from "@/app/components/runtime/module-related-subgrid";
 import { ModuleWidgetRenderer } from "@/app/components/runtime/module-widget-renderer";
-import { ResponsiveRuntimeTabs } from "@/app/components/runtime/responsive-runtime-tabs";
+import {
+  getResponsiveTabId,
+  getResponsiveTabPanelId,
+  ResponsiveRuntimeTabs,
+} from "@/app/components/runtime/responsive-runtime-tabs";
 import { resolveSafeFieldMetadata } from "@/lib/runtime/security-runtime.resolver";
 import {
   isVisibleByRules,
@@ -278,6 +298,12 @@ function RuntimeFormMetadataRenderer({
 
   const tabs = resolveFormTabs(form, visibilityContext);
   const [activeTabKey, setActiveTabKey] = useState(tabs[0]?.tabKey ?? "");
+  // BUG-3378 — shared with `ResponsiveRuntimeTabs` so each tab button and the
+  // one panel it controls agree on ids without either side reconstructing the
+  // other's. `useId` rather than a module-level counter because two of these
+  // forms can be mounted on the same page (a subgrid's quick-create dialog
+  // over its parent record, for example).
+  const tabsIdPrefix = useId();
   const [dynamicLookupOptions, setDynamicLookupOptions] = useState<
     Record<string, readonly LookupOption[]>
   >({});
@@ -301,19 +327,35 @@ function RuntimeFormMetadataRenderer({
     tabs[0] ??
     null;
   const visibleSections = resolveTabSections(form, activeTab, visibilityContext);
+  // A single (or absent) tab renders as a plain panel, not a tab UI — there is
+  // nothing to switch between, so `ResponsiveRuntimeTabs` is not mounted and
+  // the panel below must not claim `tabpanel`/`aria-labelledby` roles that
+  // point at a tablist that does not exist.
+  const hasTabStrip = tabs.length > 1;
   return (
     <article className="w-full min-w-0 overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
-      {tabs.length > 1 ? (
+      {hasTabStrip ? (
         <div className="min-w-0 overflow-hidden border-b border-border px-4 pt-4">
           <ResponsiveRuntimeTabs
             activeTabKey={activeTab?.tabKey ?? ""}
+            idPrefix={tabsIdPrefix}
             onTabChange={setActiveTabKey}
             tabs={tabs}
           />
         </div>
       ) : null}
 
-      <div className="min-w-0 p-5">
+      <div
+        aria-labelledby={
+          hasTabStrip && activeTab
+            ? getResponsiveTabId(tabsIdPrefix, activeTab.tabKey)
+            : undefined
+        }
+        className="min-w-0 p-5"
+        id={hasTabStrip ? getResponsiveTabPanelId(tabsIdPrefix) : undefined}
+        role={hasTabStrip ? "tabpanel" : undefined}
+        tabIndex={hasTabStrip ? 0 : undefined}
+      >
         {activeTab && tabContent?.[activeTab.tabKey] ? (
           renderTabContent(tabContent[activeTab.tabKey], {
             values,
@@ -834,7 +876,15 @@ function RuntimeSection({
   if (customContent !== undefined) {
     return (
       <section className="grid gap-4">
-        {section.label ? (
+        {/*
+         * BUG-3412 — this guarded on `section.label` being present but never
+         * on `section.labelVisible`, so a section hosting a self-titling
+         * custom-rendered control still printed the section's own heading
+         * right above the control's. `labelVisible` is honoured here the same
+         * way the plain-fields branch below it now does, so there is one rule
+         * rather than a per-branch judgment call.
+         */}
+        {section.labelVisible !== false && section.label ? (
           <h4 className="text-base font-semibold text-foreground">
             {section.label}
           </h4>
@@ -853,9 +903,20 @@ function RuntimeSection({
 
   return (
     <section className="grid gap-4">
-      <h4 className="text-base font-semibold text-foreground">
-        {section.label}
-      </h4>
+      {/*
+       * BUG-3412 — this used to render unconditionally, which is why every
+       * section whose only content was a single self-titling widget
+       * (Timeline, Reporting Hierarchy, the profile photo) showed its name
+       * twice in a row: once here, once from the widget itself
+       * (`module-widget-renderer.tsx`). `labelVisible` is the flag the
+       * metadata already carries for exactly this; it is now honoured here
+       * too, not only in the custom-content branch above.
+       */}
+      {section.labelVisible !== false ? (
+        <h4 className="text-base font-semibold text-foreground">
+          {section.label}
+        </h4>
+      ) : null}
       <div className="rounded-2xl border border-border bg-white/80 p-4">
         <FormGrid columns={sectionColumns} kind="section">
           {visibleFields.map((formField) => {
@@ -1142,6 +1203,136 @@ function RuntimeComponent({
   return null;
 }
 
+/*
+ * BUG-3376 / ITEM-0172 — this is the follow-up EXECPLAN-0040 left ready to
+ * wire in: the hydration effect above populates `baseOptions` once, from the
+ * server's first page, and until now that page was the field's entire
+ * selectable universe. `standard-module-data.adapter.ts#getLookupOptions`
+ * already accepts a `search` term and already sends an explicit page size
+ * for anything that is not a small, effectively-fixed reference set
+ * (`isSmallReferenceLookupEntity`) — this hook is the one remaining piece
+ * that calls it with the text the user actually typed.
+ *
+ * `LookupField` already debounces `onSearch` and keeps the previously
+ * resolved selection visible across a narrower result
+ * (`resolveVisibleSelectedOption`), so this hook owns only the fetch, the
+ * fallback to `baseOptions` once the query is cleared, and the truncation
+ * signal — not the pinning, which is already handled where the option list
+ * is consumed.
+ */
+function useLookupFieldSearch({
+  baseOptions,
+  dataAdapter,
+  field,
+  runtime,
+  values,
+}: {
+  readonly baseOptions: readonly LookupOption[];
+  readonly dataAdapter?: ModuleDataAdapter;
+  readonly field: FieldMetadata;
+  readonly runtime?: ModuleRuntimeContext;
+  readonly values: FieldValueMap;
+}): {
+  readonly options: readonly LookupOption[];
+  readonly onSearch?: (query: string) => void;
+  readonly resultsTruncated: boolean;
+} {
+  const dependencyValue = field.dependsOnFieldId
+    ? values[field.dependsOnFieldId]
+    : undefined;
+  const resetKey = `${field.logicalName}:${String(dependencyValue ?? "")}`;
+
+  const [searchState, setSearchState] = useState<{
+    readonly resetKey: string;
+    readonly result: {
+      readonly query: string;
+      readonly options: readonly LookupOption[];
+    } | null;
+  }>(() => ({ resetKey, result: null }));
+
+  /*
+   * The field's dependency changed (or the field itself did) under the user:
+   * the previous search's results describe a lookup universe that no longer
+   * applies, so a stale one must not linger and be mistaken for a match in
+   * the new one. This is React's documented "adjust state during rendering"
+   * pattern — comparing state to state, never touching a ref — so the reset
+   * is visible in the very render that changed `resetKey`, not one frame
+   * later the way a `useEffect` would apply it.
+   */
+  if (searchState.resetKey !== resetKey) {
+    setSearchState({ resetKey, result: null });
+  }
+  const searchResult =
+    searchState.resetKey === resetKey ? searchState.result : null;
+
+  // Orders responses against the request that produced them so a slower
+  // earlier search (or one issued for a field/dependency context that has
+  // since moved on) can never overwrite fresher results. Mutated only from
+  // `onSearch` and its async continuation below — never during render.
+  const requestTokenRef = useRef(0);
+
+  const targetEntity = field.lookupTargets?.[0]?.entityLogicalName;
+  const getLookupOptions = dataAdapter?.getLookupOptions;
+  const searchable =
+    field.dataType === "lookup" &&
+    Boolean(getLookupOptions) &&
+    Boolean(runtime) &&
+    !isSmallReferenceLookupEntity(targetEntity);
+
+  if (!searchable || !getLookupOptions || !runtime) {
+    return { options: baseOptions, onSearch: undefined, resultsTruncated: false };
+  }
+  // Narrowed to non-optional `const`s so the closure below keeps the
+  // narrowing TypeScript already proved above — a captured parameter is not
+  // otherwise re-checked at the point the closure actually runs.
+  const currentRuntime = runtime;
+  const loadLookupOptions = getLookupOptions;
+  const issuedForResetKey = resetKey;
+
+  const options = searchResult ? searchResult.options : baseOptions;
+  const resultsTruncated = isLookupResultTruncated(
+    options.length,
+    ENTITY_LOOKUP_PAGE_SIZE,
+  );
+
+  function onSearch(query: string) {
+    const trimmed = query.trim();
+    if (!trimmed) {
+      requestTokenRef.current += 1;
+      setSearchState({ resetKey: issuedForResetKey, result: null });
+      return;
+    }
+    const token = ++requestTokenRef.current;
+    void loadLookupOptions(currentRuntime, field, values, { search: trimmed })
+      .then((results) => {
+        if (requestTokenRef.current !== token) return;
+        setSearchState({
+          resetKey: issuedForResetKey,
+          result: {
+            query: trimmed,
+            options: results.map((option) => ({
+              id: option.id,
+              name: option.name,
+              key: option.key,
+              code: option.code,
+              employeeLevelId: option.employeeLevelId,
+              subtitle: option.subtitle,
+            })),
+          },
+        });
+      })
+      .catch((error) => {
+        if (requestTokenRef.current !== token) return;
+        console.error("Runtime lookup search failed", {
+          field: field.logicalName,
+          message: error instanceof Error ? error.message : String(error),
+        });
+      });
+  }
+
+  return { options, onSearch, resultsTruncated };
+}
+
 function EditableField({
   dataAdapter,
   field,
@@ -1186,6 +1377,16 @@ function EditableField({
     value,
     values,
   });
+  /*
+   * BUG-3376 / ITEM-0172 — `lookupOptionsMissing` (and the message it drives)
+   * is deliberately read from `resolvedLookupOptions`, the hydration-derived
+   * base list, and never from the search-narrowed list `useLookupFieldSearch`
+   * returns below. A server search that genuinely matches nothing is an
+   * ordinary, per-keystroke empty result (`LookupField`'s own default
+   * "No matching records found."); this message means something stronger —
+   * the field has no options at all, independent of anything the user typed —
+   * and must not fire just because a search happened to match zero records.
+   */
   const lookupOptionsMissing =
     field.dataType === "lookup" &&
     lookupOptionsHydrated &&
@@ -1195,6 +1396,13 @@ function EditableField({
       ? unavailableLookupOptionsMessage(label)
       : emptyLookupOptionsMessage(label)
     : undefined;
+  const lookupSearch = useLookupFieldSearch({
+    baseOptions: resolvedLookupOptions,
+    dataAdapter,
+    field,
+    runtime,
+    values,
+  });
 
   return (
     <div>
@@ -1227,9 +1435,11 @@ function EditableField({
               onValueChange?.(nextValue);
             }}
             noResultsText={lookupEmptyMessage}
-            options={[...resolvedLookupOptions]}
+            onSearch={lookupSearch.onSearch}
+            options={[...lookupSearch.options]}
             placeholder="Select record"
             required={required}
+            resultsTruncated={lookupSearch.resultsTruncated}
             selectedHref={lookupReferenceHref(
               field,
               fieldValue,
@@ -2399,7 +2609,7 @@ function lookupReferenceHref(
   const target = field.lookupTargets?.[0]?.entityLogicalName;
   if (!target) return undefined;
 
-  const route = lookupReferenceRoute(target);
+  const route = resolveLookupReferenceRoute(target);
   if (!route) return undefined;
 
   const selected = lookupOptions.find((option) =>
@@ -2408,56 +2618,12 @@ function lookupReferenceHref(
   const recordId = selected?.key || value;
   const encodedRecordId = encodeURIComponent(recordId);
 
-  if (READ_ONLY_REFERENCE_MODULES.has(route.moduleKey)) {
+  if (isReadOnlyLookupReferenceModule(route.moduleKey)) {
     return `${route.basePath}?reference=${encodeURIComponent(value)}`;
   }
 
   return `${route.basePath}/${encodedRecordId}`;
 }
-
-function lookupReferenceRoute(entityLogicalName: string) {
-  const normalized = entityLogicalName
-    .replace(/^settings_/, "")
-    .replaceAll("_", "-");
-
-  const route = LOOKUP_REFERENCE_ROUTES[normalized];
-  return route
-    ? {
-        basePath: route,
-        moduleKey: normalized,
-      }
-    : null;
-}
-
-const LOOKUP_REFERENCE_ROUTES: Readonly<Record<string, string>> = {
-  countries: "/settings/regional/geography/countries",
-  stateprovinces: "/settings/regional/geography/states",
-  "state-provinces": "/settings/regional/geography/states",
-  cities: "/settings/regional/geography/cities",
-  currencies: "/settings/regional/currency/currencies",
-  timezones: "/settings/regional/localization/timezones",
-  departments: "/settings/general-setup/organization/departments",
-  designations: "/settings/people/workforce/designations",
-  "employee-levels": "/settings/people/workforce/employee-levels",
-  locations: "/settings/people/work-management/locations",
-  "work-calendars": "/settings/people/work-management/work-calendars",
-  "holiday-calendars": "/settings/people/work-management/holiday-calendars",
-  shifts: "/settings/people/work-management/shifts",
-  "work-schedules": "/settings/people/work-management/work-schedules",
-  // ITEM-0107 — points at the canonical Users screen directly; the old path
-  // still redirects here, but this map should not be a fifth place naming the
-  // old one.
-  users: "/settings/security-access/identities/users",
-  roles: "/settings/access/roles",
-  teams: "/settings/access/teams",
-  employees: "/employees",
-};
-
-const READ_ONLY_REFERENCE_MODULES = new Set([
-  "countries",
-  "currencies",
-  "timezones",
-]);
 
 function formatValue(value: FieldValueMap[string]) {
   if (Array.isArray(value)) {

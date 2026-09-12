@@ -202,6 +202,22 @@ export const ERROR_CATALOG = {
     'tenant',
   ),
   /*
+   * BUG-3334 — one code for "this price cannot be bought", whatever the reason:
+   * unknown id, inactive, DRAFT, unscoped, or scoped to a market other than the
+   * caller's. Deliberately one message for all of them, matching the existing
+   * `NotFoundException('Plan price not found.')` this replaces: a distinct
+   * message per reason would tell a caller which precondition failed, and on
+   * the anonymous write paths that is an enumeration oracle over a value they
+   * supplied.
+   */
+  BILLING_PLAN_PRICE_UNAVAILABLE: entry(
+    404,
+    'Plan price not found',
+    'This plan price is not available for purchase.',
+    'warning',
+    'tenant',
+  ),
+  /*
    * Distinct from ACCESS_DENIED on purpose (BUG-1952). A commercial boundary and
    * an authorization boundary produce the same 403 status, and a client that
    * cannot tell them apart shows "you do not have permission" to a tenant
@@ -483,6 +499,27 @@ export const ERROR_CATALOG = {
     'notification',
     'Try again later.',
     true,
+  ),
+  NOTIFICATION_RULE_NOT_FOUND: entry(
+    404,
+    'Notification rule not found',
+    'That notification rule does not exist for this workspace.',
+    'warning',
+    'notification',
+  ),
+  NOTIFICATION_EVENT_NOT_CONFIGURABLE: entry(
+    400,
+    'Notification event is not configurable',
+    'This notification is required or not yet available, and cannot be changed.',
+    'warning',
+    'notification',
+  ),
+  EMAIL_DELIVERY_LOG_NOT_RETRYABLE: entry(
+    400,
+    'Delivery cannot be retried',
+    'This delivery cannot be retried in its current state.',
+    'warning',
+    'notification',
   ),
   FILE_UPLOAD_FAILED: entry(
     400,

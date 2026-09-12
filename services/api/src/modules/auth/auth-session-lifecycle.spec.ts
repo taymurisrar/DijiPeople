@@ -1,7 +1,9 @@
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcryptjs';
 import type { Request, Response } from 'express';
 import { getAuthCookieNames } from '../../common/config/auth.config';
+import { TenantAuthPolicyService } from '../../common/security/tenant-auth-policy.service';
 import { AuthService } from './auth.service';
 
 /**
@@ -39,6 +41,7 @@ describe('auth session lifecycle', () => {
   const tokenStore = () => ({
     findMany: jest.fn().mockResolvedValue([]),
     findFirst: jest.fn().mockResolvedValue(null),
+    create: jest.fn().mockResolvedValue({}),
     update: jest.fn().mockResolvedValue({}),
     updateMany: jest.fn().mockResolvedValue({ count: 1 }),
   });
@@ -48,6 +51,7 @@ describe('auth session lifecycle', () => {
     platformRefreshToken: ReturnType<typeof tokenStore>;
     tenantSetting: { findMany: jest.Mock };
   };
+  let auditService: { log: jest.Mock };
   let service: AuthService;
 
   /**
@@ -75,6 +79,7 @@ describe('auth session lifecycle', () => {
       platformRefreshToken: tokenStore(),
       tenantSetting: { findMany: jest.fn().mockResolvedValue([]) },
     };
+    auditService = { log: jest.fn().mockResolvedValue(undefined) };
 
     service = new AuthService(
       prisma as never,
@@ -95,13 +100,27 @@ describe('auth session lifecycle', () => {
       {} as never,
       {} as never,
       { sendEmail: jest.fn() } as never,
-      { log: jest.fn() } as never,
+      auditService as never,
       { assertPasswordMeetsPolicy: jest.fn() } as never,
       {
         isLocked: jest.fn().mockReturnValue(false),
         registerFailure: jest.fn(),
         registerSuccess: jest.fn(),
       } as never,
+      {} as never,
+      /*
+       * A real `TenantAuthPolicyService`, wired to this suite's own `prisma`
+       * and `configService` mocks, rather than a hand-rolled stub. This is
+       * what lets `withPolicy()` below keep driving `buildAuthResponse`
+       * through `prisma.tenantSetting.findMany` exactly as it did before
+       * ITEM-0162 moved that lookup out of `AuthService` and into one shared
+       * resolver — the resolver is the thing under test elsewhere
+       * (`tenant-auth-policy.service.spec.ts`); here it is just plumbing.
+       */
+      new TenantAuthPolicyService(
+        prisma as never,
+        configService as unknown as ConfigService,
+      ),
     );
   });
 
@@ -436,6 +455,220 @@ describe('auth session lifecycle', () => {
       expect(remembered.tokens.accessTokenExpiresIn).toBe('30m');
       expect(ordinary.tokens.refreshTokenExpiresIn).not.toBe('30d');
       expect(ordinary.tokens.accessTokenExpiresIn).not.toBe('30m');
+    });
+  });
+
+  describe('concurrent sessions are allowed unless a tenant opts out', () => {
+    /*
+     * BUG-3355 — `persistRefreshToken` used to revoke every other live
+     * refresh token for the user on this client unless the tenant had
+     * explicitly stored `allowMultipleActiveSessions: true`; an absent
+     * settings row read as "single session only" and silently signed out
+     * anyone who opened a second tab. The owner decided the default should be
+     * the other way round: an absent row now means concurrent sessions are
+     * permitted, and only an explicit `false` turns single-session back on.
+     */
+    const persist = (
+      session: AuthService,
+      overrides: { sessionId?: string } = {},
+    ) =>
+      (
+        session as unknown as {
+          persistRefreshToken: (
+            userId: string,
+            tenantId: string,
+            sessionId: string,
+            clientId: 'web',
+            refreshToken: string,
+            refreshTokenTtl: string,
+          ) => Promise<void>;
+        }
+      ).persistRefreshToken(
+        'user-1',
+        'tenant-1',
+        overrides.sessionId ?? 'session-new',
+        'web',
+        'a-refresh-token',
+        '8h',
+      );
+
+    it('does not revoke other sessions for a tenant with no security settings row', async () => {
+      prisma.tenantSetting.findMany.mockResolvedValue([]);
+
+      await persist(service);
+
+      expect(prisma.refreshToken.updateMany).not.toHaveBeenCalled();
+      expect(prisma.refreshToken.create).toHaveBeenCalled();
+    });
+
+    it('still revokes other sessions when a tenant explicitly opts out', async () => {
+      prisma.tenantSetting.findMany.mockResolvedValue([
+        { key: 'allowMultipleActiveSessions', value: false },
+      ]);
+
+      await persist(service);
+
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalled();
+    });
+
+    it('does not revoke other sessions when a tenant explicitly opts in', async () => {
+      prisma.tenantSetting.findMany.mockResolvedValue([
+        { key: 'allowMultipleActiveSessions', value: true },
+      ]);
+
+      await persist(service);
+
+      expect(prisma.refreshToken.updateMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('refresh rotation grace window (BUG-3359, EXECPLAN-0037)', () => {
+    const tenantUser = {
+      id: 'user-1',
+      status: 'ACTIVE',
+      tenantId: 'tenant-1',
+      email: 'employee@example.test',
+      firstName: 'Ada',
+      lastName: 'Employee',
+      userRoles: [],
+      teamMemberships: [],
+      userPermissions: [],
+      tenant: {
+        id: 'tenant-1',
+        name: 'Example',
+        slug: 'example',
+        status: 'ACTIVE',
+        ownerUserId: 'someone-else',
+      },
+    };
+
+    const payload = {
+      sub: 'user-1',
+      tenantId: 'tenant-1',
+      sessionId: 'session-1',
+      appClientId: 'web',
+      aud: 'web',
+      tokenUse: 'refresh',
+      type: 'refresh',
+      tokenVersion: 0,
+      rememberMe: false,
+    };
+
+    const wiring = () =>
+      service as unknown as {
+        jwtService: { verifyAsync: jest.Mock };
+        usersService: { findByIdWithAccess: jest.Mock };
+      };
+
+    beforeEach(() => {
+      wiring().jwtService.verifyAsync.mockResolvedValue(payload);
+      wiring().usersService.findByIdWithAccess.mockResolvedValue(tenantUser);
+    });
+
+    it('lets the losing side of a rotation race succeed instead of revoking the session', async () => {
+      const staleToken = 'stale-refresh-token';
+      const staleHash = await bcrypt.hash(staleToken, 4);
+      const recentlyRevokedRow = {
+        id: 'row-superseded',
+        tokenHash: staleHash,
+        revokedAt: new Date(), // just now — well within the grace window
+      };
+
+      prisma.refreshToken.findMany
+        // hasActiveRefreshToken: nothing live matches the stale token.
+        .mockResolvedValueOnce([])
+        // wasRotatedWithinGraceWindow: the stale token matches a row the
+        // winning request's rotation revoked moments ago.
+        .mockResolvedValueOnce([recentlyRevokedRow])
+        // rotateRefreshToken: still nothing live matches (it was the winner's
+        // rotation that revoked it, not this request).
+        .mockResolvedValueOnce([]);
+
+      prisma.refreshToken.findFirst
+        // wasRotatedWithinGraceWindow: the family has a live successor.
+        .mockResolvedValueOnce({ id: 'live-successor' })
+        // rotateRefreshToken: the successor's absolute expiry to inherit.
+        .mockResolvedValueOnce({ absoluteExpiresAt: new Date('2027-01-01') });
+
+      await expect(service.refresh(staleToken)).resolves.toMatchObject({
+        tokens: expect.objectContaining({
+          accessToken: expect.any(String) as unknown,
+        }) as unknown,
+      });
+
+      // The losing request must not itself trigger a revoke-all-other-sessions
+      // sweep — it is continuing an existing session, not starting a new one.
+      expect(prisma.refreshToken.updateMany).not.toHaveBeenCalled();
+      // And it must not have logged a reuse event — this was a race, not abuse.
+      expect(auditService.log).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'AUTH_REFRESH_TOKEN_REUSE_DETECTED',
+        }),
+      );
+    });
+
+    it('still refuses a token reused well after it was superseded, and records it', async () => {
+      const staleToken = 'long-dead-refresh-token';
+      const staleHash = await bcrypt.hash(staleToken, 4);
+      const longAgo = new Date(Date.now() - 5 * 60_000); // 5 minutes ago
+      const recentlyRevokedRow = {
+        id: 'row-long-superseded',
+        tokenHash: staleHash,
+        revokedAt: longAgo,
+      };
+
+      prisma.refreshToken.findMany
+        .mockResolvedValueOnce([]) // hasActiveRefreshToken: no live match
+        .mockResolvedValueOnce([recentlyRevokedRow]); // outside the window
+
+      await expect(service.refresh(staleToken)).rejects.toMatchObject({
+        status: 401,
+      });
+
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'AUTH_REFRESH_TOKEN_REUSE_DETECTED',
+          tenantId: 'tenant-1',
+          actorUserId: 'user-1',
+        }),
+      );
+      // A refused reuse must never be treated as a session to continue.
+      expect(prisma.refreshToken.create).not.toHaveBeenCalled();
+    });
+
+    it('an ordinary successful rotation never revokes other sessions, even for a single-session tenant', async () => {
+      prisma.tenantSetting.findMany.mockResolvedValue([
+        { key: 'allowMultipleActiveSessions', value: false },
+      ]);
+
+      const liveToken = 'currently-live-refresh-token';
+      const liveHash = await bcrypt.hash(liveToken, 4);
+      const liveRow = {
+        id: 'row-live',
+        tokenHash: liveHash,
+        absoluteExpiresAt: new Date('2027-01-01'),
+        expiresAt: new Date(Date.now() + 3_600_000),
+        lastActivityAt: new Date(),
+      };
+
+      prisma.refreshToken.findMany
+        .mockResolvedValueOnce([liveRow]) // hasActiveRefreshToken: live match
+        .mockResolvedValueOnce([liveRow]); // rotateRefreshToken: activeTokens
+
+      await expect(service.refresh(liveToken)).resolves.toBeDefined();
+
+      /*
+       * BUG-3359 requirement 4 — a rotation must never run the
+       * revoke-other-sessions sweep, regardless of the tenant's
+       * `allowMultipleActiveSessions` setting. That sweep exists for a new
+       * sign-in (`login()`), not for a session continuing itself; running it
+       * here is exactly what let two racing rotations destroy each other's
+       * successor before this fix.
+       */
+      expect(prisma.refreshToken.updateMany).not.toHaveBeenCalled();
+      expect(prisma.refreshToken.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'row-live' } }),
+      );
     });
   });
 });

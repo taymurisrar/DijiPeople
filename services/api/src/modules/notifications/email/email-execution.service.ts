@@ -19,6 +19,11 @@ import {
   EmailTemplateRenderResult,
 } from './email-template-renderer.service';
 import type { EmailAttachment } from '../interfaces/email-provider.interface';
+import { NOTIFICATION_EVENT_CATALOG } from '../notification-events.catalog';
+
+const CATALOG_BY_CODE = new Map(
+  NOTIFICATION_EVENT_CATALOG.map((event) => [event.code, event]),
+);
 
 export type SendTemplateEmailInput = {
   tenantId: string;
@@ -103,7 +108,7 @@ export type SendTemplateEmailResult = {
   rendered: EmailTemplateRenderResult;
 };
 
-const AUTH_NOTIFICATION_EVENTS = new Set([
+export const AUTH_NOTIFICATION_EVENTS = new Set([
   'AUTH_ACCOUNT_ACTIVATION',
   'AUTH_PASSWORD_RESET',
   'AUTH_OTP',
@@ -280,20 +285,49 @@ export class EmailExecutionService {
       variables: input.variables,
     });
 
-    const [settings, preference] = await Promise.all([
+    const catalogEntry = CATALOG_BY_CODE.get(input.eventCode);
+    const isConfigurable = catalogEntry
+      ? catalogEntry.configurable !== false
+      : true;
+
+    const [settings, preference, rule] = await Promise.all([
       this.tenantSettingsResolver.getNotificationSettings(input.tenantId),
-      this.repository.findPreference({
-        tenantId: input.tenantId,
-        eventCode: input.eventCode,
-        channel: NotificationChannel.EMAIL,
-      }),
+      isConfigurable
+        ? this.repository.findPreference({
+            tenantId: input.tenantId,
+            eventCode: input.eventCode,
+            channel: NotificationChannel.EMAIL,
+          })
+        : Promise.resolve(null),
+      /*
+       * ITEM-0171. `NotificationRule` used to gate only the in-app path
+       * (`NotificationsService.emit()`); every direct email send — payroll,
+       * payslips, scheduled reports, and this path in general — ignored it
+       * entirely, which is the second, undocumented dispatch path the item
+       * exists to close. Consulted here, the single choke point every email
+       * send already passes through, so no individual caller needed to
+       * change. A configurable:false event (transactional auth mail) never
+       * consults the gate — see the note on NotificationEventDefinition.
+       */
+      isConfigurable
+        ? this.repository.findRuleForEvent({
+            tenantId: input.tenantId,
+            eventCode: input.eventCode,
+          })
+        : Promise.resolve(undefined),
     ]);
 
     const baseMetadata = this.buildMetadata(input, {
       templateResolutionDurationMs,
     });
 
-    if (!settings.emailEnabled || preference?.enabled === false) {
+    const eventDisabledByRule = isConfigurable && rule && !rule.enabled;
+
+    if (
+      !settings.emailEnabled ||
+      preference?.enabled === false ||
+      eventDisabledByRule
+    ) {
       const log = await this.repository.createDeliveryLog({
         tenantId: input.tenantId,
         eventCode: input.eventCode,
@@ -310,7 +344,9 @@ export class EmailExecutionService {
           ...baseMetadata,
           skipReason: !settings.emailEnabled
             ? 'TENANT_EMAIL_DISABLED'
-            : 'EVENT_EMAIL_DISABLED',
+            : preference?.enabled === false
+              ? 'EVENT_EMAIL_DISABLED'
+              : 'EVENT_RULE_DISABLED',
           executionDurationMs: Math.round(performance.now() - startedAt),
         },
         requestedAt: new Date(),
@@ -477,11 +513,22 @@ export class EmailExecutionService {
       const deliveryStatus = delivered
         ? EmailDeliveryStatus.SENT
         : EmailDeliveryStatus.NOT_DELIVERED;
+      /*
+       * BUG-3379. NOT_DELIVERED used to store no reason at all — the FAILED
+       * path a few lines down always has stored one, at the same cost, since
+       * the day it was written. An operator reading the log with no other
+       * context (the Providers screen's explanation is one screen away) had
+       * nothing to go on but the status name.
+       */
+      const notDeliveredReason = delivered
+        ? null
+        : `Accepted by a ${resolvedProvider.providerType} provider, which logs and discards mail rather than delivering it. Configure a real provider on the Notification Providers screen to send this message.`;
 
       await this.repository.updateDeliveryLogStatus(input.tenantId, log.id, {
         status: deliveryStatus,
         deliveredAt: new Date(),
         providerMessageId: sendResult.providerMessageId ?? null,
+        errorMessage: notDeliveredReason,
         retryable: false,
         metadata: {
           ...providerMetadata,
@@ -591,6 +638,20 @@ export class EmailExecutionService {
           ? input.metadata.correlationId
           : null,
       dryRun: Boolean(input.dryRun),
+      /*
+       * ITEM-0168. Nothing else this row keeps captures what was actually
+       * substituted into the template, so a retry with no capture can only
+       * re-render blank. Deliberately not captured for the auth events: an
+       * activation or reset link is a bearer credential, and a delivery log
+       * an operator can merely READ should not become a second place that
+       * credential sits. Those events are excluded from retry eligibility in
+       * NotificationsService.retryDeliveryLog for the same reason — reissuing
+       * one means going back through auth.service.ts for a fresh token, not
+       * replaying an old email.
+       */
+      originalVariables: AUTH_NOTIFICATION_EVENTS.has(input.eventCode)
+        ? null
+        : (input.variables ?? {}),
       ...diagnostics,
     };
   }

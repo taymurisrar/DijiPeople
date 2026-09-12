@@ -429,11 +429,74 @@ export const employeeModuleDataAdapter: ModuleDataAdapter<
       );
     }
 
+    if (
+      input.widget.logicalName === "employee.workSites" ||
+      input.widget.widgetType === "employee_work_sites"
+    ) {
+      return getEmployeeWorkSitesWidgetData(input.recordId);
+    }
+
     throw new Error(
       `${input.widget.displayName} is not supported by the Employee data adapter.`,
     );
   },
+
+  /*
+   * ITEM-0165 / the ITEM-0167 architectural invariant — the work-site
+   * mutations (add, edit validity, remove, make primary) used to be spelled
+   * out as literal `/api/integrations/attendance/employees/...` routes
+   * inside the SHARED `module-widget-renderer.tsx`, which is exactly what
+   * `package-layer-runtime.spec.ts` exists to catch: a generic runtime file
+   * that every module renders through must not hardcode one module's route.
+   * The widget now calls `dataAdapter.runWidgetAction(...)` generically; only
+   * this employee-owned adapter knows the actual endpoint shape.
+   */
+  async runWidgetAction(input) {
+    if (
+      input.widget.logicalName === "employee.workSites" ||
+      input.widget.widgetType === "employee_work_sites"
+    ) {
+      return runEmployeeWorkSiteAction(
+        input.recordId,
+        input.action,
+        input.payload,
+      );
+    }
+
+    throw new Error(
+      `${input.widget.displayName} does not support this action.`,
+    );
+  },
 };
+
+async function runEmployeeWorkSiteAction(
+  employeeId: string,
+  action: string,
+  payload: Readonly<Record<string, unknown>> | undefined,
+) {
+  const basePath = `/api/integrations/attendance/employees/${encodeURIComponent(employeeId)}/work-sites`;
+
+  switch (action) {
+    case "assign":
+      return requestJson(basePath, {
+        method: "POST",
+        body: JSON.stringify(payload ?? {}),
+      });
+    case "setPrimary":
+      return requestJson(`${basePath}/primary`, {
+        method: "POST",
+        body: JSON.stringify(payload ?? {}),
+      });
+    case "remove": {
+      const locationId = stringValue(payload?.locationId);
+      return requestJson(`${basePath}/${encodeURIComponent(locationId)}`, {
+        method: "DELETE",
+      });
+    }
+    default:
+      throw new Error(`Unsupported work site action: "${action}".`);
+  }
+}
 
 function mapFormValues(values: RuntimeRecord) {
   const payload = mapEmployeeRuntimeValuesToUpdatePayload(
@@ -500,12 +563,52 @@ function sameOptionalLookup(nextValue: unknown, currentValue: unknown) {
   return !next || next === stringValue(currentValue);
 }
 
+/**
+ * ITEM-0165 — the combined Location + authorised-work-sites widget's data.
+ * Three independent reads: the work-site assignments (403s for a viewer
+ * without `attendanceDevices.read` — the same permission that gated the old
+ * page-level panel), the employee's `accessMode` (so the widget can apply the
+ * same "HR_MANAGE or ADMIN_MANAGE may manage" rule the record page already
+ * applies everywhere else, per `canManageEmployeeRecord`), and the active
+ * Location catalogue to offer as choices. None of these failing should break
+ * the other two, so each is read independently and defaulted on failure.
+ */
+async function getEmployeeWorkSitesWidgetData(recordId: string) {
+  const [workSites, employeeRecord, locationsRaw] = await Promise.all([
+    requestOptionalLookupJson(
+      `/api/integrations/attendance/employees/${encodeURIComponent(recordId)}/work-sites`,
+    ),
+    requestJson(`/api/employees/${encodeURIComponent(recordId)}`).catch(
+      () => null,
+    ),
+    requestOptionalLookupJson("/api/locations"),
+  ]);
+
+  return {
+    workSites: Array.isArray(workSites) ? null : workSites,
+    accessMode: isRecord(employeeRecord)
+      ? stringValue(employeeRecord.accessMode)
+      : null,
+    locations: Array.isArray(locationsRaw)
+      ? locationsRaw
+      : isRecord(locationsRaw) && Array.isArray(locationsRaw.items)
+        ? locationsRaw.items
+        : [],
+  };
+}
+
 function mapReportingHierarchy(data: unknown) {
   if (!isRecord(data)) return emptyReportingHierarchy();
   return {
     currentEmployee: mapReportingNode(data.currentEmployee),
     reportingLine: mapReportingNodes(data.reportingLine),
     directReports: mapReportingNodes(data.directReports),
+    // ITEM-0164 — the hierarchy viewer's tree. `tree` is scoped to this
+    // employee's own branch (ancestors to the root, then this employee's own
+    // descendants) and depth/node-bounded server-side; see
+    // `getReportingStructure` in `employees.service.ts`.
+    tree: mapReportingTreeNode(data.tree),
+    hierarchyTruncated: data.hierarchyTruncated === true,
   };
 }
 
@@ -514,8 +617,40 @@ function emptyReportingHierarchy() {
     currentEmployee: null,
     reportingLine: [],
     directReports: [],
+    tree: null,
+    hierarchyTruncated: false,
   };
 }
+
+function mapReportingTreeNode(value: unknown): ReportingTreeNode | null {
+  if (!isRecord(value)) return null;
+  const id = stringValue(value.employeeId);
+  const displayName = stringValue(value.displayName);
+  if (!id || !displayName) return null;
+  return {
+    id,
+    displayName,
+    jobTitle: stringValue(value.jobTitle) || null,
+    department: stringValue(value.department) || null,
+    profilePhotoUrl: stringValue(value.profilePhotoUrl) || null,
+    workEmail: stringValue(value.workEmail) || null,
+    workSiteName: stringValue(value.workSiteName) || null,
+    children: Array.isArray(value.children)
+      ? value.children.map(mapReportingTreeNode).filter((child) => child !== null)
+      : [],
+  };
+}
+
+export type ReportingTreeNode = {
+  readonly id: string;
+  readonly displayName: string;
+  readonly jobTitle: string | null;
+  readonly department: string | null;
+  readonly profilePhotoUrl: string | null;
+  readonly workEmail: string | null;
+  readonly workSiteName: string | null;
+  readonly children: readonly ReportingTreeNode[];
+};
 
 function mapReportingNodes(value: unknown) {
   return Array.isArray(value)

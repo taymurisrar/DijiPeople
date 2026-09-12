@@ -6,16 +6,22 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 0** · completed: 95
+**Active: 2** · completed: 98
 
 ## Active
 
-_None. No session is currently running._
+| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
+|---|---|---|---|---|---|---|---|
+| [SESSION-0103](../../docs/sessions/SESSION-0103-implement-the-34-open-records-from-sessions-0099-0102.md) | TASK-0030 | Implement the 34 open records from sessions 0099-0102 | ACTIVE | `agent/records-0099-0102` | `develop` | permissions, runtime-registries, record-indexes | 2026-09-12T12:38:09.669Z |
+| [SESSION-0099](../../docs/sessions/SESSION-0099-review-tenant-subscription-plans-features-screen.md) | — | Review tenant subscription Plans & Features screen | ACTIVE | `agent/review-subscription-plans-screen` | `develop` | — | 2026-09-11T20:30:13.810Z |
 
 ## Completed
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0102](../../docs/sessions/SESSION-0102-file-the-residual-observations-from-the-demo-walkthrough.md) | — | File the residual observations from the demo walkthrough | COMPLETE | `agent/ux-findings-sweep` | `develop` | — | 2026-09-12T11:36:01.647Z |
+| [SESSION-0101](../../docs/sessions/SESSION-0101-review-and-file-eight-ui-ux-and-settings-findings-from-demo-.md) | — | Review and file eight UI/UX and settings findings from demo walkthrough | COMPLETE | `agent/ux-findings-audit` | `develop` | — | 2026-09-11T23:28:39.815Z |
+| [SESSION-0100](../../docs/sessions/SESSION-0100-investigate-access-token-expiry-and-session-revocation-on-th.md) | — | Investigate access token expiry and session revocation on the tenant web app | COMPLETE | `agent/auth-session-revocation` | `develop` | — | 2026-09-11T21:49:42.277Z |
 | [SESSION-0098](../../docs/sessions/SESSION-0098-closeout-sweep-close-every-open-session-bug-and-backlog-item.md) | — | Closeout sweep: close every open session, bug and backlog item | COMPLETE | `agent/closeout-sweep` | `develop` | — | 2026-09-10T19:06:45.272Z |
 | [SESSION-0097](../../docs/sessions/SESSION-0097-durable-object-storage-move-persistent-files-to-cloudflare-r.md) | — | Durable object storage: move persistent files to Cloudflare R2 (FILE-01/INF-05) | COMPLETE | `agent/r2-durable-storage` | `develop` | — | 2026-09-10T18:33:18.243Z |
 | [SESSION-0096](../../docs/sessions/SESSION-0096-full-technical-health-audit-of-dijipeople.md) | — | Full technical health audit of DijiPeople | COMPLETE | `agent/full-technical-audit` | `develop` | — | 2026-09-10T07:40:10.716Z |

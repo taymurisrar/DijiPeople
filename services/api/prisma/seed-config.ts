@@ -18,6 +18,7 @@ import { bootstrapCommercialDefaults } from '../src/modules/super-admin/commerci
 import { PermissionBootstrapService } from '../src/modules/permissions/permission-bootstrap.service';
 import { DEFAULT_APPROVAL_MATRICES } from '../src/modules/approvals/default-approval-matrices';
 import { NOTIFICATION_EVENT_CATALOG } from '../src/modules/notifications/notification-events.catalog';
+import { RETIRED_EVENT_ALIASES } from '../src/modules/notifications/notification-events.catalog';
 import { SYSTEM_EMAIL_TEMPLATE_PLACEHOLDERS } from '../src/modules/notifications/notification-events.catalog';
 import { buildTenantNotificationScopeKey } from '../src/modules/notifications/notifications.constants';
 import {
@@ -503,6 +504,10 @@ export async function runSeedConfig() {
     tenants,
   );
   const settingCount = await seedTenantNotificationSettings(prisma, tenants);
+  const sessionPolicyCount = await seedTenantSessionPolicyDefaults(
+    prisma,
+    tenants,
+  );
   const inAppTemplateCount = await seedTenantInAppNotificationTemplates(
     prisma,
     tenants,
@@ -536,6 +541,7 @@ export async function runSeedConfig() {
   console.log(`Email templates created/updated: ${templateCount}`);
   console.log(`Notification preferences created/updated: ${preferenceCount}`);
   console.log(`Notification settings created/updated: ${settingCount}`);
+  console.log(`Session policy defaults created/updated: ${sessionPolicyCount}`);
   console.log(
     `In-app notification templates created/updated: ${inAppTemplateCount}`,
   );
@@ -1873,6 +1879,59 @@ export async function seedNotificationConfig(client: PrismaClient) {
   console.log(
     `Notification events created/updated: ${NOTIFICATION_EVENT_CATALOG.length}`,
   );
+
+  /*
+   * ITEM-0169. Retiring LEAVE_APPROVAL_REQUEST/LEAVE_APPROVED in favour of
+   * their dotted-form successors must not orphan a tenant's existing
+   * preference. Mirrors NotificationsRepository.migrateRetiredEventPreferences
+   * — duplicated rather than imported because this script runs outside the
+   * Nest DI graph against a plain PrismaClient. Idempotent: after the first
+   * deploy that runs this, no retired-code rows remain, so every later deploy
+   * finds nothing to migrate.
+   */
+  let migratedPreferences = 0;
+  for (const [retiredCode, canonicalCode] of Object.entries(
+    RETIRED_EVENT_ALIASES,
+  )) {
+    const retiredRows = await client.notificationPreference.findMany({
+      where: { eventCode: retiredCode },
+    });
+
+    for (const row of retiredRows) {
+      const canonicalExists = await client.notificationPreference.findUnique({
+        where: {
+          scopeKey_eventCode_channel: {
+            scopeKey: row.scopeKey,
+            eventCode: canonicalCode,
+            channel: row.channel,
+          },
+        },
+      });
+
+      if (!canonicalExists) {
+        await client.notificationPreference.create({
+          data: {
+            tenantId: row.tenantId,
+            userId: row.userId,
+            scopeKey: row.scopeKey,
+            eventCode: canonicalCode,
+            channel: row.channel,
+            enabled: row.enabled,
+            metadata: row.metadata ?? Prisma.JsonNull,
+          },
+        });
+        migratedPreferences += 1;
+      }
+
+      await client.notificationPreference.delete({ where: { id: row.id } });
+    }
+  }
+
+  if (migratedPreferences > 0) {
+    console.log(
+      `Notification preferences migrated off retired event codes: ${migratedPreferences}`,
+    );
+  }
 }
 
 export async function seedTenantLeaveTypes(
@@ -2224,6 +2283,50 @@ export async function seedTenantNotificationSettings(
       update: {
         value: true,
       },
+    });
+    count += 1;
+  }
+
+  return count;
+}
+
+/**
+ * BUG-3355 — the owner decided concurrent sessions are allowed by default.
+ * `TenantAuthPolicyService` already reads an absent `allowMultipleActiveSessions`
+ * row as `true`, so this seed is not load-bearing for correctness. It exists so
+ * every tenant carries an explicit, inspectable record of the decision rather
+ * than an absence a future reader could mistake for "nobody decided" — the
+ * exact ambiguity this bug was about. Idempotent: safe to re-run against
+ * tenants that already have the row.
+ */
+export async function seedTenantSessionPolicyDefaults(
+  client: PrismaClient,
+  tenants: TenantSeedTarget[],
+) {
+  let count = 0;
+
+  for (const tenant of tenants) {
+    await client.tenantSetting.upsert({
+      where: {
+        tenantId_category_key: {
+          tenantId: tenant.id,
+          category: 'security',
+          key: 'allowMultipleActiveSessions',
+        },
+      },
+      create: {
+        tenantId: tenant.id,
+        category: 'security',
+        key: 'allowMultipleActiveSessions',
+        value: true,
+      },
+      /*
+       * Never overwrite a tenant that already decided this — `update: {}`
+       * would be a no-op write; an explicit skip makes that intent readable.
+       * A tenant that has explicitly set this to `false` keeps that choice
+       * across re-seeds.
+       */
+      update: {},
     });
     count += 1;
   }

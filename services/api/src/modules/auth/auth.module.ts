@@ -10,6 +10,7 @@ import {
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { MailerModule } from '../../common/mailer/mailer.module';
+import { TenantAuthPolicyService } from '../../common/security/tenant-auth-policy.service';
 import { AuditModule } from '../audit/audit.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { PermissionsModule } from '../permissions/permissions.module';
@@ -55,6 +56,7 @@ import { PlatformCommunicationsModule } from '../platform-communications/platfor
     LoginLockoutService,
     PasswordPolicyService,
     UserInvitationsService,
+    TenantAuthPolicyService,
     JwtAuthGuard,
     PermissionsGuard,
   ],
@@ -64,6 +66,7 @@ import { PlatformCommunicationsModule } from '../platform-communications/platfor
     LoginLockoutService,
     PasswordPolicyService,
     UserInvitationsService,
+    TenantAuthPolicyService,
 
     JwtModule,
     ConfigModule,

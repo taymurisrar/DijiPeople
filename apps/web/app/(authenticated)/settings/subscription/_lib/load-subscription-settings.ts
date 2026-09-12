@@ -15,12 +15,18 @@ type BillingPresentation = ComponentProps<
   typeof BillingSettingsClient
 >["presentation"];
 
-export async function loadSubscriptionSettingsData() {
+export type SubscriptionView = "overview" | "plans" | "billing-history";
+
+export async function loadSubscriptionSettingsData(activeView: SubscriptionView) {
   try {
+    // BUG-3336 — `/billing/invoices` was fetched on every view, including
+    // Plans and Overview, neither of which reads it.
     const [plansResponse, subscription, invoicesResponse] = await Promise.all([
       apiRequestJson<unknown>("/billing/plans"),
       apiRequestJson<BillingSubscription>("/billing/subscription"),
-      apiRequestJson<unknown>("/billing/invoices"),
+      activeView === "billing-history"
+        ? apiRequestJson<unknown>("/billing/invoices")
+        : Promise.resolve<unknown>({ invoices: [] as BillingInvoice[] }),
     ]);
 
     const plans = readArrayPayload<BillingPlan>(plansResponse, "plans");
@@ -32,6 +38,14 @@ export async function loadSubscriptionSettingsData() {
       plansResponse,
       "presentation",
     );
+    // Optional and read defensively (unlike `plans`/`invoices`, which throw
+    // on a malformed shape): older or test payloads may not carry this field,
+    // and its absence should degrade to the client's own derivation
+    // (BUG-3333) rather than fail the whole page load.
+    const availableCurrencies = readOptionalArrayPayload<string>(
+      plansResponse,
+      "availableCurrencies",
+    );
 
     return {
       ok: true as const,
@@ -39,6 +53,7 @@ export async function loadSubscriptionSettingsData() {
       subscription,
       invoices,
       presentation,
+      availableCurrencies,
     };
   } catch (error) {
     return {
@@ -61,6 +76,15 @@ function readArrayPayload<T>(payload: unknown, key: string): T[] {
   }
 
   throw new Error(`Subscription ${key} response has an unexpected format.`);
+}
+
+function readOptionalArrayPayload<T>(payload: unknown, key: string): T[] {
+  if (payload && typeof payload === "object" && key in payload) {
+    const nested = (payload as Record<string, unknown>)[key];
+    if (Array.isArray(nested)) return nested as T[];
+  }
+
+  return [];
 }
 
 function readObjectPayload<T>(payload: unknown, key: string): T | undefined {

@@ -17,6 +17,14 @@
  */
 
 const FORWARDED_FOR_HEADER = "x-forwarded-for";
+const USER_AGENT_HEADER = "user-agent";
+/*
+ * BUG-3360 — matches the bound `AuthService`/`getAuthRequestInfo` already
+ * apply when a `RefreshToken` row is written, so a value long enough to be
+ * truncated there is not silently different at the two ends of the same
+ * forwarded value.
+ */
+const MAX_FORWARDED_USER_AGENT_LENGTH = 500;
 
 /**
  * The client-closest address in an `X-Forwarded-For` chain.
@@ -118,22 +126,44 @@ function hasForwardableClientValue(chain) {
  * a direct call in local development — nothing is sent, and the API falls back
  * to the socket address, which is then genuinely the client.
  *
+ * BUG-3360 — the visitor's `User-Agent` is forwarded alongside the address for
+ * the same reason: a Next route handler runs server-side, so without this the
+ * API sees the fetch client's own user agent ("node") for every visitor, on
+ * every proxied call — including the sign-in and refresh calls that write it
+ * into `RefreshToken.userAgent`. It is untrusted display data, exactly like the
+ * forwarded address, so it is bounded rather than trusted verbatim; the same
+ * bound is applied again where it is written (`getAuthRequestInfo` in
+ * `auth.service.ts`), so the two cannot silently disagree.
+ *
  * @param {Headers | { get(name: string): string | null }} incomingHeaders
  * @returns {Record<string, string>} headers to spread into the proxied request
  */
 function buildForwardedClientHeaders(incomingHeaders) {
-  const chain =
+  const getHeader = (name) =>
     typeof incomingHeaders?.get === "function"
-      ? incomingHeaders.get(FORWARDED_FOR_HEADER)
+      ? incomingHeaders.get(name)
       : null;
 
-  if (!hasForwardableClientValue(chain)) return {};
+  const headers = {};
 
-  return { [FORWARDED_FOR_HEADER]: chain };
+  const chain = getHeader(FORWARDED_FOR_HEADER);
+  if (hasForwardableClientValue(chain)) {
+    headers[FORWARDED_FOR_HEADER] = chain;
+  }
+
+  const userAgent = getHeader(USER_AGENT_HEADER);
+  if (typeof userAgent === "string" && userAgent.trim()) {
+    headers[USER_AGENT_HEADER] = userAgent
+      .trim()
+      .slice(0, MAX_FORWARDED_USER_AGENT_LENGTH);
+  }
+
+  return headers;
 }
 
 module.exports = {
   FORWARDED_FOR_HEADER,
+  USER_AGENT_HEADER,
   readForwardedForClientIp,
   buildForwardedClientHeaders,
 };

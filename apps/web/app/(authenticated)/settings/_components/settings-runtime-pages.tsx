@@ -33,6 +33,9 @@ import {
 import { TimesheetPolicyManager } from "./timesheet-policy-manager";
 import { WorkSiteRecordPage } from "./work-site/work-site-record-page";
 import type { WorkSiteReadinessPayload } from "../_lib/work-site-configuration";
+import { NotificationEmailLogRecordPage } from "./notification-email-log-record-page";
+import { hasAnySettingsPermission } from "../_lib/require-settings-permission";
+import { PERMISSION_KEYS } from "@/lib/security-keys";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -282,6 +285,34 @@ export async function SettingsRuntimeRecord({
           mode={mode}
           readiness={readiness?.payload ?? null}
           readinessError={readiness?.error ?? null}
+          record={record}
+          recordId={recordId}
+          runtime={runtime}
+          spec={spec}
+          title={title}
+        />
+      </SettingsShell>
+    );
+  }
+
+  /*
+   * ITEM-0168. The one adapter that carries a retry action. `canRetry` is
+   * computed server-side from the session, exactly like `canEditTenantSlug`
+   * above — the control is never sent to the client for a user who lacks
+   * `notification.logs.retry`, rather than merely disabled in place. The
+   * server endpoint enforces this independently regardless
+   * (`NotificationsController.retryDeliveryLog`), so a user who somehow
+   * reached the action anyway would still be refused.
+   */
+  if (adapter.key === "notification-email-logs") {
+    return (
+      <SettingsShell title={title} description={item.description}>
+        <NotificationEmailLogRecordPage
+          activeForm={activeForm}
+          canRetry={hasAnySettingsPermission(sessionUser, [
+            PERMISSION_KEYS.NOTIFICATION_LOGS_RETRY,
+          ])}
+          mode={mode}
           record={record}
           recordId={recordId}
           runtime={runtime}

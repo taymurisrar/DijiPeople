@@ -327,7 +327,7 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `NotificationEvent` | no | `notifications` | — |
 | `NotificationPreference` | yes | `notifications` | — |
 | `NotificationRecipient` | yes | `notifications` | — |
-| `NotificationRule` | yes | **none** | — |
+| `NotificationRule` | yes | `notifications` | — |
 | `NotificationTemplate` | yes | **none** | — |
 
 ## Platform ops — 37 models

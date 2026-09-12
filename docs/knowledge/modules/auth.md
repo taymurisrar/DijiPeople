@@ -69,6 +69,39 @@ Three things about that filter, each of which is a decision:
 - **`updateMany`, not read-then-write** — the filter is already exact, and a
   token rotated between the read and the write would otherwise survive.
 
+## Signing in ends your other session, by default, everywhere
+
+`persistRefreshToken` runs on every login **and** every rotation, and it opens by
+revoking every other live refresh token for that user on that client — unless the
+tenant has stored `allowMultipleActiveSessions: true`. The read is
+`setting?.value === true`, so a tenant that has never configured security is
+single-session. Most tenants have never configured security: the demo tenant has
+**zero** rows in `TenantSetting` for category `security`, which means every value
+in `resolveTenantAuthPolicy` is a hardcoded default rather than anything anyone
+chose.
+
+Nothing tells the browser that lost. It keeps its cookies and carries on until
+its next authenticated call fails, which can be hours later and on an unrelated
+screen. Diagnosing that from the outside is impossible — the symptom is identical
+to expiry, and the message the user is shown says the access token is *missing*.
+Three hours of a user's confusion in [[BUG-3355]] came from exactly this.
+
+**The tell is in the database, not the logs.** Two rows whose `revokedAt` and
+`createdAt` agree to the millisecond are a sign-in displacing its predecessor.
+The `AuditLog` `AUTH_LOGIN_SUCCEEDED` row beside it names the session that did
+it. No error log row exists for the victim, by design — see [[BUG-3356]].
+
+## Remember me is about the refresh token, and three things outrank it
+
+For a tenant user, `rememberMe` changes exactly one value: the refresh token's
+TTL. It never touches the access token, whose lifetime is the tenant's
+`sessionTimeoutMinutes`. It cannot survive a revocation. And the web middleware
+rewrites both cookies with lifetimes of its own on every refresh, discarding it
+([[BUG-3357]]).
+
+So "why did my remembered session end" has never had a single answer here, and
+the honest one usually is not expiry.
+
 ## Two lessons worth more than the fix
 
 **A mock can prove a request was sent. It can never prove anything was revoked.**
@@ -96,9 +129,16 @@ or the structure of the schema will quietly answer for the code.
   DB-backed tests over real HTTP
 - `apps/admin/app/api/auth/logout/route.ts` — forwards all three cookies, which
   is what made the fix possible without a contract change
+- `services/api/src/modules/auth/auth.service.ts` — `persistRefreshToken`,
+  `allowsMultipleActiveSessions`, `resolveTenantAuthPolicy`, `buildAuthResponse`
+- `apps/web/proxy.ts` — `continueWithRefreshedTokens`, the third writer of the
+  auth cookies and the one that ignores `rememberMe`
+- `apps/web/lib/server-api.ts` — `persistRefreshedAuthCookies`, and the
+  fall-through that sends an unauthenticatable request anyway
 
 ## Related
 
 Modules [[platform-auth]], [[tenant-isolation]] · bugs [[BUG-0009]],
-[[BUG-0010]], [[BUG-0627]] · backlog [[ITEM-0002]] · pattern
-[[assertion-without-a-check]].
+[[BUG-0010]], [[BUG-0627]], [[BUG-3355]], [[BUG-3356]], [[BUG-3357]],
+[[BUG-3358]], [[BUG-3359]], [[BUG-3360]] · backlog [[ITEM-0002]],
+[[ITEM-0162]] · pattern [[assertion-without-a-check]].
