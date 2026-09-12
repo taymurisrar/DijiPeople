@@ -154,9 +154,6 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-3021-workspace-switcher-in-the-avatar-menu-overflows-horizontally|BUG-3021]] | Workspace switcher in the avatar menu overflows horizontally and shows a scrollbar | UX | LOW | FIXED | apps/web | FIX_NOW |
 | [[BUG-3379-a-delivery-log-row-says-not-delivered-and-carries-nothing-th|BUG-3379]] | A delivery log row says Not delivered and carries nothing that explains why | UX | LOW | FIXED | notifications, apps/web | FIX_NOW |
 | [[BUG-3412-every-widget-section-on-a-record-form-prints-its-title-twice|BUG-3412]] | Every widget section on a record form prints its title twice, and the profile section's two titles disagree | UX | LOW | FIXED | apps/web | FIX_NOW |
-| [[ITEM-0164-an-organization-hierarchy-viewer-reachable-from-the-employee|ITEM-0164]] | An organization hierarchy viewer reachable from the employee record | UX | — | READY | apps/web, employees, organization | PLAN_REQUIRED |
-| [[ITEM-0165-present-an-employee-s-primary-location-and-authorised-work-s|ITEM-0165]] | Present an employee's primary location and authorised work sites as one control | UX | — | READY | apps/web, employees, attendance | FIX_NOW |
-| [[ITEM-0166-move-data-loss-prevention-captures-off-the-employee-record-p|ITEM-0166]] | Move data-loss prevention captures off the employee record page into the Agent surface | UX | — | READY | apps/web, agent | FIX_NOW |
 
 ## How to read this
 

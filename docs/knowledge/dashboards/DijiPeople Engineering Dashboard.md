@@ -9,11 +9,11 @@
 |---|---|
 | Open CRITICAL | **4** |
 | Open HIGH | **89** |
-| Open total | 190 |
+| Open total | 186 |
 | Blocked | 2 |
 | Awaiting a product decision | 7 |
-| Deferred | 93 |
-| Completed | 327 |
+| Deferred | 94 |
+| Completed | 332 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -474,6 +474,7 @@
 | [[BUG-3373-web-paints-the-operating-system-dark-theme-before-the-tenant|BUG-3373]] | Web paints the operating-system dark theme before the tenant Light default arrives | UX | MEDIUM | FIXED | apps/web | FIX_NOW |
 | [[BUG-3377-admin-lookup-controls-still-carry-the-nested-interactive-lis|BUG-3377]] | Admin lookup controls still carry the nested-interactive listbox that BUG-1956 fixed only in web | UX | MEDIUM | FIXED | apps/admin | FIX_NOW |
 | [[BUG-3378-the-responsive-runtime-tab-strip-hides-a-measurement-copy-fr|BUG-3378]] | The responsive runtime tab strip hides a measurement copy from screen readers while leaving thirteen buttons in the tab order | UX | MEDIUM | FIXED | apps/web | FIX_NOW |
+| [[BUG-3450-get-employees-id-reporting-structure-computed-every-root-in-|BUG-3450]] | GET /employees/{id}/reporting-structure computed every root in the tenant to unbounded depth on every page view, unused | PERFORMANCE | MEDIUM | FIXED | api:employees | FIX_NOW |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -610,6 +611,7 @@
 | [[BUG-3373-web-paints-the-operating-system-dark-theme-before-the-tenant|BUG-3373]] | Web paints the operating-system dark theme before the tenant Light default arrives | UX | MEDIUM | FIXED | apps/web | FIX_NOW |
 | [[BUG-3377-admin-lookup-controls-still-carry-the-nested-interactive-lis|BUG-3377]] | Admin lookup controls still carry the nested-interactive listbox that BUG-1956 fixed only in web | UX | MEDIUM | FIXED | apps/admin | FIX_NOW |
 | [[BUG-3378-the-responsive-runtime-tab-strip-hides-a-measurement-copy-fr|BUG-3378]] | The responsive runtime tab strip hides a measurement copy from screen readers while leaving thirteen buttons in the tab order | UX | MEDIUM | FIXED | apps/web | FIX_NOW |
+| [[BUG-3450-get-employees-id-reporting-structure-computed-every-root-in-|BUG-3450]] | GET /employees/{id}/reporting-structure computed every root in the tenant to unbounded depth on every page view, unused | PERFORMANCE | MEDIUM | FIXED | api:employees | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -641,11 +643,6 @@
 | [[BUG-3379-a-delivery-log-row-says-not-delivered-and-carries-nothing-th|BUG-3379]] | A delivery log row says Not delivered and carries nothing that explains why | UX | LOW | FIXED | notifications, apps/web | FIX_NOW |
 | [[BUG-3412-every-widget-section-on-a-record-form-prints-its-title-twice|BUG-3412]] | Every widget section on a record form prints its title twice, and the profile section's two titles disagree | UX | LOW | FIXED | apps/web | FIX_NOW |
 | [[ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by|ITEM-0080]] | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
-| [[ITEM-0164-an-organization-hierarchy-viewer-reachable-from-the-employee|ITEM-0164]] | An organization hierarchy viewer reachable from the employee record | UX | — | READY | apps/web, employees, organization | PLAN_REQUIRED |
-| [[ITEM-0165-present-an-employee-s-primary-location-and-authorised-work-s|ITEM-0165]] | Present an employee's primary location and authorised work sites as one control | UX | — | READY | apps/web, employees, attendance | FIX_NOW |
-| [[ITEM-0166-move-data-loss-prevention-captures-off-the-employee-record-p|ITEM-0166]] | Move data-loss prevention captures off the employee record page into the Agent surface | UX | — | READY | apps/web, agent | FIX_NOW |
-| [[ITEM-0167-adopt-the-employee-record-shell-across-the-record-pages-that|ITEM-0167]] | Adopt the employee record shell across the record pages that still hand-roll their own | ARCHITECTURE | — | READY | apps/web | PLAN_REQUIRED |
-| [[ITEM-0168-a-retry-action-on-an-email-delivery-log|ITEM-0168]] | A retry action on an email delivery log | FOLLOW_UP | — | READY | notifications, apps/web | PLAN_REQUIRED |
 
 ## Key Architecture Decisions
 
@@ -660,6 +657,7 @@
 - [[ADR-0009-entitlement-enforcement-cutover|ADR-0009 — Entitlement enforcement moves from REPORT_ONLY to ENFORCE, via grandfathering]]
 - [[ADR-0010-concurrent-sessions-are-allowed-by-default|ADR-0010 — Concurrent sessions are allowed by default; single-session is an explicit opt-in]]
 - [[ADR-0011-notification-rule-and-preference-are-two-gates-not-one|ADR-0011 — `NotificationRule` and `NotificationPreference` both stay, as two gates on one dispatch path]]
+- [[ADR-0012-hand-rolled-reporting-hierarchy-tree-no-new-dependency|ADR-0012 — Render the reporting hierarchy tree by hand, no graph/tree library dependency]]
 - [[decision-a-bug-record-is-its-own-backlog-item|Decision — A bug record **is** its own backlog item]]
 - [[decision-ci-verdict-gates-shared-merges|Decision — A shared-target merge requires a read CI verdict on the exact SHA]]
 - [[decision-platform-admin-is-a-separate-identity|Decision — Platform admin is a separate identity, not an elevated tenant user]]
@@ -669,15 +667,15 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 442 |
-| Backlog items | 177 |
+| Bug records | 443 |
+| Backlog items | 178 |
 | Known bug patterns | 34 |
 | QA runs | 32 |
 | Engineering history records | 79 |
 | Release records | 10 |
 | Module notes | 30 |
 | Architecture notes | 22 |
-| Decision notes (ADR + generated) | 15 |
+| Decision notes (ADR + generated) | 16 |
 | Implementation records | 7 |
 
 **Awaiting Architect triage: 0.** A record nobody has
