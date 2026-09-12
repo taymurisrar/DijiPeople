@@ -674,7 +674,17 @@ export const DEFAULT_TENANT_SETTINGS: TenantSettingDefaults = {
     lockDurationMinutes: 30,
     allowRememberMe: true,
     requireEmailVerification: true,
-    allowMultipleActiveSessions: false,
+    /*
+     * BUG-3355 — the owner decided concurrent sessions are allowed by
+     * default. Signing in on a second device used to silently end the first
+     * session for every tenant that had never visited this screen, because
+     * the enforcement code read an absent setting as "single session only".
+     * See ADR-0009 and `TenantAuthPolicyService`
+     * (`common/security/tenant-auth-policy.service.ts`), which is what
+     * actually enforces this value — this catalog entry exists so the value
+     * is visible and editable, not because it is read directly.
+     */
+    allowMultipleActiveSessions: true,
     sessionTimeoutMinutes: 480,
     refreshTokenExpiryDays: 30,
     absoluteSessionLifetimeDays: 30,

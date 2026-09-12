@@ -63,6 +63,7 @@ import { AdminLoginDto } from './dto/admin-login.dto';
 import { PlatformCommunicationsService } from '../platform-communications/platform-communications.service';
 import { TenantDomainService } from '../tenant-domains/tenant-domain.service';
 import { buildDirectPermissionPrivileges } from './direct-permission-privileges';
+import { TenantAuthPolicyService } from '../../common/security/tenant-auth-policy.service';
 
 type UserWithAccess = Prisma.UserGetPayload<{
   include: {
@@ -127,6 +128,15 @@ const ADMIN_AUTH_ROLE_KEYS = new Set<string>([
   ROLE_KEYS.SYSTEM_CUSTOMIZER,
 ]);
 
+/*
+ * BUG-3359 / EXECPLAN-0037 — how long a just-rotated refresh token is still
+ * tolerated from a second, racing request for the same session. Long enough
+ * to cover an ordinary network race between two concurrent requests, short
+ * enough that a token reused well after this is treated as suspicious rather
+ * than routine.
+ */
+const ROTATION_GRACE_WINDOW_MS = 30_000;
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -147,6 +157,7 @@ export class AuthService {
     private readonly passwordPolicyService: PasswordPolicyService,
     private readonly loginLockoutService: LoginLockoutService,
     private readonly tenantDomains: TenantDomainService,
+    private readonly tenantAuthPolicyService: TenantAuthPolicyService,
   ) {}
 
   /**
@@ -1674,13 +1685,27 @@ export class AuthService {
     refreshTokenTtl: string,
     req?: Request,
     absoluteExpiresAt?: Date | null,
+    options?: { revokeOtherSessions?: boolean },
   ) {
     const tokenHash = await bcrypt.hash(refreshToken, 10);
     const now = Date.now();
-    const allowMultipleSessions =
-      await this.allowsMultipleActiveSessions(tenantId);
+    const authPolicy =
+      await this.tenantAuthPolicyService.resolveEffectivePolicy(tenantId);
+    /*
+     * BUG-3359 — `rotateRefreshToken` calls this with `revokeOtherSessions:
+     * false`. A rotation continues a session that already exists; it is not
+     * a new sign-in, so it must never run the "revoke every other live
+     * token" branch below. Two requests racing to refresh the *same* session
+     * each write a successor row moments apart, and without this flag each
+     * successor would match the other's `updateMany` and revoke it — the
+     * exact "two successors destroy each other" failure BUG-3359 reports,
+     * layered on top of BUG-3355's revoke-all behaviour. `login()` (a
+     * genuine new sign-in) does not pass this option, so it keeps today's
+     * behaviour unchanged.
+     */
+    const revokeOtherSessions = options?.revokeOtherSessions ?? true;
 
-    if (!allowMultipleSessions) {
+    if (revokeOtherSessions && !authPolicy.allowMultipleActiveSessions) {
       await this.prisma.refreshToken.updateMany({
         where: {
           tenantId,
@@ -1695,6 +1720,18 @@ export class AuthService {
         },
       });
     }
+
+    /*
+     * BUG-3360 — this used to read `req?.headers['user-agent']` and `req?.ip`
+     * directly, which is the raw request seen by this process: behind the web
+     * app's proxy hop and Cloudflare, that is the fetch client's user agent
+     * ("node") and an edge IP, never the visitor's. `getAuthRequestInfo` is the
+     * same resolver `logTenantAuthEvent` already uses for the audit row, so the
+     * two records for one sign-in cannot disagree. It already bounds the user
+     * agent to 500 characters and returns `null` rather than a server identity
+     * when nothing forwardable is present.
+     */
+    const requestInfo = getAuthRequestInfo(req);
 
     await this.prisma.refreshToken.create({
       data: {
@@ -1711,25 +1748,10 @@ export class AuthService {
             now + getClientAbsoluteTimeoutMs(this.configService, clientId),
           ),
         lastActivityAt: new Date(now),
-        userAgent: req?.headers['user-agent']?.slice(0, 500),
-        ipAddress: req?.ip,
+        userAgent: requestInfo.userAgent,
+        ipAddress: requestInfo.ipAddress,
       },
     });
-  }
-
-  private async allowsMultipleActiveSessions(tenantId: string) {
-    const setting = await this.prisma.tenantSetting.findUnique({
-      where: {
-        tenantId_category_key: {
-          tenantId,
-          category: 'security',
-          key: 'allowMultipleActiveSessions',
-        },
-      },
-      select: { value: true },
-    });
-
-    return setting?.value === true;
   }
 
   private async logTenantAuthEvent(input: {
@@ -1801,7 +1823,8 @@ export class AuthService {
       const matches = await bcrypt.compare(refreshToken, tokenRecord.tokenHash);
 
       if (matches) {
-        const authPolicy = await this.resolveTenantAuthPolicy(tenantId);
+        const authPolicy =
+          await this.tenantAuthPolicyService.resolveEffectivePolicy(tenantId);
         this.assertSessionNotExpired(
           tokenRecord,
           clientId,
@@ -1811,7 +1834,134 @@ export class AuthService {
       }
     }
 
+    /*
+     * BUG-3359 — nothing live matched. Before refusing outright, ask whether
+     * this is the losing side of an ordinary rotation race rather than a
+     * genuinely dead or reused token.
+     */
+    return this.wasRotatedWithinGraceWindow(
+      userId,
+      tenantId,
+      sessionId,
+      clientId,
+      refreshToken,
+    );
+  }
+
+  /**
+   * Whether `refreshToken` is a predecessor this same session's own rotation
+   * superseded moments ago, rather than a stale or reused credential.
+   *
+   * `rotateRefreshToken` revokes the presented token the instant it issues a
+   * successor, with no reuse window at all — which is correct for a genuine
+   * reuse attempt and wrong for two requests that legitimately raced on the
+   * same token, because the loser's presented token is, by the time it is
+   * checked, already revoked by the winner. The signal that tells the two
+   * apart without a new column: a rotation always leaves a **live successor
+   * in the same `tokenFamilyId`**, created after the revocation; a logout or
+   * a second-sign-in revocation never does (logout creates no new row at
+   * all; a second sign-in creates one in a *different* family, since
+   * `persistRefreshToken` mints a new `sessionId` per login). So "revoked
+   * recently, same family, live sibling exists" is specifically the shape a
+   * rotation race leaves behind.
+   *
+   * A match against a token revoked **outside** the window is recorded as a
+   * security event and refused — this is what requirement 3 of
+   * `EXECPLAN-0037` calls reuse "well outside the window", which stays a
+   * revocation.
+   */
+  private async wasRotatedWithinGraceWindow(
+    userId: string,
+    tenantId: string,
+    sessionId: string,
+    clientId: AuthClientId,
+    refreshToken: string,
+  ): Promise<boolean> {
+    const graceWindowStart = new Date(Date.now() - ROTATION_GRACE_WINDOW_MS);
+    const recentlyRevoked = await this.prisma.refreshToken.findMany({
+      where: {
+        userId,
+        tenantId,
+        sessionId,
+        appClientId: clientId,
+        tokenFamilyId: sessionId,
+        revokedAt: { not: null },
+      },
+      orderBy: { revokedAt: 'desc' },
+      // A race produces at most a handful of superseded rows; this bounds a
+      // pathological case without changing the answer for the ordinary one.
+      take: 20,
+    });
+
+    for (const tokenRecord of recentlyRevoked) {
+      const matches = await bcrypt.compare(refreshToken, tokenRecord.tokenHash);
+      if (!matches) continue;
+
+      const revokedAt = tokenRecord.revokedAt as Date;
+      const hasLiveSuccessor = await this.prisma.refreshToken.findFirst({
+        where: {
+          userId,
+          tenantId,
+          sessionId,
+          appClientId: clientId,
+          tokenFamilyId: sessionId,
+          revokedAt: null,
+          expiresAt: { gt: new Date() },
+          createdAt: { gte: revokedAt },
+        },
+        select: { id: true },
+      });
+
+      if (hasLiveSuccessor && revokedAt >= graceWindowStart) {
+        return true;
+      }
+
+      if (revokedAt < graceWindowStart) {
+        await this.logRefreshTokenReuseDetected(
+          userId,
+          tenantId,
+          sessionId,
+          clientId,
+        );
+      }
+
+      // Either outside the window, or within it but with no live successor
+      // (an ordinary logout moments ago) — neither is a race to rescue.
+      return false;
+    }
+
     return false;
+  }
+
+  private async logRefreshTokenReuseDetected(
+    userId: string,
+    tenantId: string,
+    sessionId: string,
+    clientId: AuthClientId,
+  ) {
+    try {
+      await this.auditService.log({
+        tenantId,
+        actorUserId: userId,
+        action: AUDIT_ACTIONS.AUTH_REFRESH_TOKEN_REUSE_DETECTED,
+        entityType: 'RefreshToken',
+        entityId: sessionId,
+        sourceModule: 'auth',
+        afterSnapshot: {
+          appClientId: clientId,
+          detectedAt: new Date().toISOString(),
+        },
+      });
+    } catch (error) {
+      this.logger.warn(
+        JSON.stringify({
+          event: 'auth.audit.failed',
+          action: 'AUTH_REFRESH_TOKEN_REUSE_DETECTED',
+          tenantId,
+          reason: error instanceof Error ? error.message : String(error),
+        }),
+      );
+    }
   }
 
   private async rotateRefreshToken(
@@ -1835,6 +1985,7 @@ export class AuthService {
     });
 
     let absoluteExpiresAt: Date | null = null;
+    let matchedLiveToken = false;
 
     for (const tokenRecord of activeTokens) {
       const matches = await bcrypt.compare(
@@ -1843,6 +1994,7 @@ export class AuthService {
       );
 
       if (matches) {
+        matchedLiveToken = true;
         absoluteExpiresAt = tokenRecord.absoluteExpiresAt;
         await this.prisma.refreshToken.update({
           where: {
@@ -1856,6 +2008,32 @@ export class AuthService {
       }
     }
 
+    if (!matchedLiveToken) {
+      /*
+       * BUG-3359 — `refresh()` only reaches this point when
+       * `hasActiveRefreshToken` already established that `previousRefreshToken`
+       * is the losing side of a rotation race: a predecessor this same
+       * session rotated away within the grace window, with a live successor
+       * already in place. Inherit that successor's absolute expiry rather
+       * than computing a fresh one, so a run of races cannot extend the
+       * session's absolute lifetime indefinitely.
+       */
+      const currentSuccessor = await this.prisma.refreshToken.findFirst({
+        where: {
+          userId,
+          tenantId,
+          sessionId,
+          appClientId: clientId,
+          tokenFamilyId: sessionId,
+          revokedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+        orderBy: { createdAt: 'desc' },
+        select: { absoluteExpiresAt: true },
+      });
+      absoluteExpiresAt = currentSuccessor?.absoluteExpiresAt ?? null;
+    }
+
     await this.persistRefreshToken(
       userId,
       tenantId,
@@ -1865,6 +2043,10 @@ export class AuthService {
       nextRefreshTokenTtl,
       req,
       absoluteExpiresAt,
+      // BUG-3359 — a rotation continues an existing session; it must never
+      // revoke the session's own just-written sibling. See the comment on
+      // `persistRefreshToken`.
+      { revokeOtherSessions: false },
     );
   }
 
@@ -1963,6 +2145,11 @@ export class AuthService {
   ) {
     const tokenHash = await bcrypt.hash(refreshToken, 10);
     const now = Date.now();
+    // BUG-3360 — the platform-admin store had the identical defect: written
+    // from the raw request rather than the forwarded-aware resolver the audit
+    // path uses, so it recorded the fetch client's own identity behind the
+    // web app's proxy hop.
+    const requestInfo = getAuthRequestInfo(req);
 
     await this.prisma.platformRefreshToken.create({
       data: {
@@ -1978,8 +2165,8 @@ export class AuthService {
             now + getClientAbsoluteTimeoutMs(this.configService, clientId),
           ),
         lastActivityAt: new Date(now),
-        userAgent: req?.headers['user-agent']?.slice(0, 500),
-        ipAddress: req?.ip,
+        userAgent: requestInfo.userAgent,
+        ipAddress: requestInfo.ipAddress,
       },
     });
   }
@@ -2088,7 +2275,8 @@ export class AuthService {
     } = {},
   ) {
     const clientId = options.clientId ?? 'web';
-    const authPolicy = await this.resolveTenantAuthPolicy(user.tenantId);
+    const authPolicy =
+      await this.tenantAuthPolicyService.resolveEffectivePolicy(user.tenantId);
     rememberMe = rememberMe && authPolicy.allowRememberMe;
     const sessionId = options.sessionId ?? randomUUID();
     const tokenVersion = 0;
@@ -2155,53 +2343,6 @@ export class AuthService {
         absoluteSessionLifetimeDays: authPolicy.absoluteSessionLifetimeDays,
         idleTimeoutMinutes: authPolicy.idleTimeoutMinutes,
       },
-    };
-  }
-
-  private async resolveTenantAuthPolicy(tenantId: string) {
-    const rows = await this.prisma.tenantSetting.findMany({
-      where: {
-        tenantId,
-        category: 'security',
-        key: {
-          in: [
-            'allowRememberMe',
-            'sessionTimeoutMinutes',
-            'refreshTokenExpiryDays',
-            'absoluteSessionLifetimeDays',
-            'idleTimeoutMinutes',
-          ],
-        },
-      },
-      select: { key: true, value: true },
-    });
-    const values = new Map(rows.map((row) => [row.key, row.value]));
-    return {
-      allowRememberMe: readBooleanSetting(values.get('allowRememberMe'), true),
-      sessionTimeoutMinutes: readNumberSetting(
-        values.get('sessionTimeoutMinutes'),
-        480,
-        15,
-        1440,
-      ),
-      refreshTokenExpiryDays: readNumberSetting(
-        values.get('refreshTokenExpiryDays'),
-        30,
-        1,
-        365,
-      ),
-      absoluteSessionLifetimeDays: readNumberSetting(
-        values.get('absoluteSessionLifetimeDays'),
-        30,
-        1,
-        365,
-      ),
-      idleTimeoutMinutes: readNumberSetting(
-        values.get('idleTimeoutMinutes'),
-        480,
-        15,
-        1440,
-      ),
     };
   }
 
@@ -2453,22 +2594,6 @@ export class AuthService {
       ? getAuthClientIdFromHeaders(req.headers)
       : normalizeAuthClientId(undefined);
   }
-}
-
-function readBooleanSetting(value: unknown, fallback: boolean) {
-  return typeof value === 'boolean' ? value : fallback;
-}
-
-function readNumberSetting(
-  value: unknown,
-  fallback: number,
-  minimum: number,
-  maximum: number,
-) {
-  const numeric = Number(value);
-  return Number.isFinite(numeric)
-    ? Math.min(maximum, Math.max(minimum, Math.trunc(numeric)))
-    : fallback;
 }
 
 function toCookieLog(options: {

@@ -4699,3 +4699,100 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Two lessons. First, an optional parameter that selects module-level state is a trap — omitting it is silent and looks correct, so the doc comment now says the parameter is optional only in signature. Second, the `useMemo` dependency mattered as much as the fix: the columns memo closes over `formatting`, so without adding it the correction would have applied on first paint and never again — a correct change that does nothing, which is worse than no change because it reads as done. |
 | **Fixed** | 2026-09-11 |
 | **Active** | yes |
+
+### REG-413 — A tenant with no security settings row got the most restrictive session policy by accident
+
+| | |
+|---|---|
+| **Bug class** | `absent-config-defaults-to-most-restrictive` |
+| **Module** | `services/api/src/modules/auth`, `services/api/src/common/security` |
+| **Bug record** | BUG-3355 |
+| **QA scenario** | QA-AUTH-011 |
+| **Root cause** | `persistRefreshToken` read `setting?.value === true` for `allowMultipleActiveSessions`, so an absent `TenantSetting` row — every tenant that had never visited Security & Access — meant "single session only". Signing in on a second device silently revoked the first session's refresh token, and the displaced browser was never told why. |
+| **Regression test** | `services/api/src/modules/auth/auth-session-lifecycle.spec.ts` |
+| **Scenario** | A tenant with zero `security` settings rows signs in twice on `web`: the first session's refresh token is left live. The same tenant with `allowMultipleActiveSessions: false` set explicitly: the first session is revoked. Set to `true` explicitly: left live. |
+| **Proven to fail without the fix** | Reverting the default in `TenantAuthPolicyService.resolveEffectivePolicy` from `true` to `false` (matching `setting?.value === true`) fails the "no settings row" case in the regression test. |
+| **Note** | The owner's decision — concurrent sessions allowed by default — is recorded as [[ADR-0009]]. `setting?.value === true` was a reasonable default for a *permission* (absent means not granted) and the wrong one for a *session policy*, because the restrictive reading here silently destroyed work in progress on a device the acting session could not see, rather than merely denying an action. |
+| **Fixed** | 2026-09-12, branch `agent/r-s3-auth` |
+| **Active** | yes |
+
+### REG-414 — A revoked session was reported to the user as a missing access token, with no server-side record
+
+| | |
+|---|---|
+| **Bug class** | `discarded-failure-reason` |
+| **Module** | `apps/web/lib` |
+| **Bug record** | BUG-3356 |
+| **QA scenario** | QA-AUTH-012 |
+| **Root cause** | `apiRequest` looked for the access cookie; if absent, it attempted a refresh, and — whether that refresh succeeded or failed — fell through to `fetch` the originally requested path regardless, with no Authorization header when the refresh had failed. The API answered correctly with `401 AUTH_TOKEN_MISSING`, a code deliberately kept off the incident queue for genuinely anonymous callers, so a session that had actually been revoked or expired produced a misleading message and no record an operator could find under the reference id the user was shown. |
+| **Regression test** | `apps/web/lib/server-api.spec.ts` |
+| **Scenario** | `apiRequest` with no access cookie and a refresh call that fails with `401 SESSION_REVOKED`: the originally requested path is never fetched, and the returned response carries `SESSION_REVOKED` (and the refresh call's own `traceId`), not `AUTH_TOKEN_MISSING`. With no refresh token at all: still no fetch to the target path. With `includeAuth: false`: the anonymous request proceeds exactly as before. |
+| **Proven to fail without the fix** | Removing the pre-flight check in `apiRequest` (restoring the fall-through to `fetch` regardless of whether a token was obtained) fails every case in the regression test except the `includeAuth: false` one. |
+| **Note** | The client already knew the request could not be authenticated; sending it anyway asked the API to explain a problem the client had already diagnosed, and downgraded every session failure into the one code the platform had agreed to treat as routine ([[BUG-2465]]). This was also a dependency of [[BUG-3355]]'s third acceptance criterion — the displaced browser had to be told a session ended, not fail blankly. |
+| **Fixed** | 2026-09-12, branch `agent/r-s3-auth` |
+| **Active** | yes |
+
+### REG-415 — A remembered session was shortened to fifteen minutes on the first middleware refresh
+
+| | |
+|---|---|
+| **Bug class** | `duplicated-policy-logic` |
+| **Module** | `apps/web` |
+| **Bug record** | BUG-3357 |
+| **QA scenario** | QA-AUTH-013 |
+| **Root cause** | Three places wrote the access/refresh/session cookies. The sign-in route and `lib/server-api.ts` both read the lifetimes (`rememberMe`, `accessTokenExpiresIn`, `refreshTokenExpiresIn`) the API actually returned; `proxy.ts`'s `continueWithRefreshedTokens` used a hardcoded `maxAge: 15 * 60` for the access cookie and an independently-resolved environment variable for the refresh cookie, neither tied to the session in hand or to Remember me. |
+| **Regression test** | `apps/web/lib/auth-session-cookies.spec.ts`, `apps/web/proxy.spec.ts` |
+| **Scenario** | A remembered refresh response with distinct `accessTokenExpiresIn`/`refreshTokenExpiresIn` produces cookies whose `maxAge` match those values through all three writers. A non-remembered response produces cookies with no `maxAge` (a browser-session cookie) through all three. |
+| **Proven to fail without the fix** | Restoring the literal `maxAge: 15 * 60` in `proxy.ts` fails the `apps/web/proxy.spec.ts` assertion that a 30-minute remembered access cookie is not 900 seconds. |
+| **Note** | `apps/web/lib/auth-session-cookies.ts`'s `buildAuthSessionCookies` is now the one function all three writers call, so a fourth cookie-writing call site cannot reintroduce this by construction — it would have to skip the shared helper outright, which is visible in review rather than a one-line literal buried in options. |
+| **Fixed** | 2026-09-12, branch `agent/r-s3-auth` |
+| **Active** | yes |
+
+### REG-416 — A Server Component render could revoke its own refresh token and never persist the successor
+
+| | |
+|---|---|
+| **Bug class** | `unrecoverable-side-effect-before-capability-check` |
+| **Module** | `apps/web/lib` |
+| **Bug record** | BUG-3358 |
+| **QA scenario** | QA-AUTH-014 |
+| **Root cause** | `apiRequest` refreshed whenever the access cookie was missing, then called `persistRefreshedAuthCookies`, whose `try/catch` silently discarded the failure when cookies could not be written — the case for every Server Component render. With refresh-token rotation enabled (the default and the production setting), the refresh had already revoked the presented token before the write was attempted, so the render succeeded while the session died with nothing recording it. |
+| **Regression test** | `apps/web/lib/server-api.spec.ts` |
+| **Scenario** | `apiRequest` with a `next/headers` cookie store whose `.set()` throws (the Server Component shape): zero `fetch` calls, not even to `/auth/refresh`. The same call with a cookie store that can write: the refresh proceeds normally. |
+| **Proven to fail without the fix** | Removing the `canPersistCookies()` pre-check (restoring refresh-then-catch) fails the "zero fetch calls" assertion — the refresh call happens regardless of writability. |
+| **Note** | The order of operations was the defect: detecting an unwritable context *after* consuming a single-use credential cannot undo the consumption. `persistRefreshedAuthCookies` also stopped swallowing its own failure silently, per the bug's explicit ask. |
+| **Fixed** | 2026-09-12, branch `agent/r-s3-auth` |
+| **Active** | yes |
+
+### REG-417 — A rotation race could sign a user out of a session that was, in fact, still live
+
+| | |
+|---|---|
+| **Bug class** | `single-use-credential-no-reuse-window` |
+| **Module** | `services/api/src/modules/auth`, `apps/web` |
+| **Bug record** | BUG-3359 |
+| **QA scenario** | QA-AUTH-015 |
+| **Root cause** | `rotateRefreshToken` revoked the presented refresh token the instant it issued a successor, with no reuse window, so two legitimate concurrent requests carrying the same token could not both succeed — the loser's presented token was already revoked by the time it was checked. `apps/web/proxy.ts` had no in-flight de-duplication for its own refresh calls (unlike `lib/server-api.ts`) and treated a single `401`/`403` as proof the session was gone. |
+| **Regression test** | `services/api/src/modules/auth/auth-session-lifecycle.spec.ts`, `apps/web/proxy.spec.ts` |
+| **Scenario** | A refresh token that matches a row revoked moments ago, whose family has a live successor, still resolves successfully rather than throwing `SESSION_REVOKED`. A token revoked five minutes ago is still refused, and the refusal is now recorded as `AUTH_REFRESH_TOKEN_REUSE_DETECTED`. Two concurrent `proxy.ts` refreshes of the same token produce one `fetch` call. A first `401` from the middleware's refresh is retried once before `redirectToLogout`. |
+| **Proven to fail without the fix** | Removing `wasRotatedWithinGraceWindow`'s call from `hasActiveRefreshToken` fails the "losing side of a race" test with `SESSION_REVOKED`. Removing the middleware retry fails the "retries before redirectToLogout" case in `apps/web/proxy.spec.ts`. |
+| **Note** | No schema change — the grace window is resolved entirely from the existing `RefreshToken.tokenFamilyId` column, populated since it was added. Full design in [[EXECPLAN-0037-refresh-rotation-grace-window-and-middleware-dedupe]]. A rotation must never run the revoke-other-sessions sweep ([[BUG-3355]]'s mechanism) against its own session's sibling row — that sweep is for a new sign-in, not a session continuing itself, and running it there is what let two racing rotations destroy each other's successor. |
+| **Fixed** | 2026-09-12, branch `agent/r-s3-auth` |
+| **Active** | yes |
+
+### REG-418 — Every session row recorded the proxy's identity instead of the visitor's
+
+| | |
+|---|---|
+| **Bug class** | `raw-request-read-behind-a-proxy-hop` |
+| **Module** | `services/api/src/modules/auth`, `packages/config`, `apps/web/lib` |
+| **Bug record** | BUG-3360 |
+| **QA scenario** | QA-AUTH-016 |
+| **Root cause** | The browser's `User-Agent` was never forwarded across the web app's server-side proxy hop, so `persistRefreshToken` — reading `req.headers['user-agent']` and `req.ip` directly rather than through the forwarded-aware `getAuthRequestInfo` resolver the audit log already used — wrote `"node"` and a Cloudflare edge address into every `RefreshToken` row. |
+| **Regression test** | `packages/config/client-ip.test.js`, `apps/web/lib/forwarded-headers.invariant.spec.ts` |
+| **Scenario** | `buildForwardedClientHeaders` forwards a real `User-Agent` alongside `X-Forwarded-For`, forwards nothing when the header is absent or blank (never a placeholder), and truncates a forwarded value to 500 characters — the same bound `getAuthRequestInfo` applies at the write. |
+| **Proven to fail without the fix** | Reverting `buildForwardedClientHeaders` to forward only `X-Forwarded-For` fails the "User-Agent relayed alongside the address" assertion. |
+| **Note** | Session attribution (`persistRefreshToken`) and audit attribution (`logTenantAuthEvent`) now resolve through the same helper, so the two rows for one sign-in cannot disagree the way they did in production (an audit row with the visitor's real address next to a session row with a Cloudflare edge address, for the same sign-in, same second). `PlatformRefreshToken` had the identical defect and was fixed the same way; `AgentRefreshToken` has neither column and reaches the API directly with no proxy hop in front of it, so it was left alone. |
+| **Fixed** | 2026-09-12, branch `agent/r-s3-auth` |
+| **Active** | yes |
+| **Active** | yes |

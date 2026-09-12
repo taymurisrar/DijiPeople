@@ -503,6 +503,10 @@ export async function runSeedConfig() {
     tenants,
   );
   const settingCount = await seedTenantNotificationSettings(prisma, tenants);
+  const sessionPolicyCount = await seedTenantSessionPolicyDefaults(
+    prisma,
+    tenants,
+  );
   const inAppTemplateCount = await seedTenantInAppNotificationTemplates(
     prisma,
     tenants,
@@ -536,6 +540,7 @@ export async function runSeedConfig() {
   console.log(`Email templates created/updated: ${templateCount}`);
   console.log(`Notification preferences created/updated: ${preferenceCount}`);
   console.log(`Notification settings created/updated: ${settingCount}`);
+  console.log(`Session policy defaults created/updated: ${sessionPolicyCount}`);
   console.log(
     `In-app notification templates created/updated: ${inAppTemplateCount}`,
   );
@@ -2224,6 +2229,50 @@ export async function seedTenantNotificationSettings(
       update: {
         value: true,
       },
+    });
+    count += 1;
+  }
+
+  return count;
+}
+
+/**
+ * BUG-3355 — the owner decided concurrent sessions are allowed by default.
+ * `TenantAuthPolicyService` already reads an absent `allowMultipleActiveSessions`
+ * row as `true`, so this seed is not load-bearing for correctness. It exists so
+ * every tenant carries an explicit, inspectable record of the decision rather
+ * than an absence a future reader could mistake for "nobody decided" — the
+ * exact ambiguity this bug was about. Idempotent: safe to re-run against
+ * tenants that already have the row.
+ */
+export async function seedTenantSessionPolicyDefaults(
+  client: PrismaClient,
+  tenants: TenantSeedTarget[],
+) {
+  let count = 0;
+
+  for (const tenant of tenants) {
+    await client.tenantSetting.upsert({
+      where: {
+        tenantId_category_key: {
+          tenantId: tenant.id,
+          category: 'security',
+          key: 'allowMultipleActiveSessions',
+        },
+      },
+      create: {
+        tenantId: tenant.id,
+        category: 'security',
+        key: 'allowMultipleActiveSessions',
+        value: true,
+      },
+      /*
+       * Never overwrite a tenant that already decided this — `update: {}`
+       * would be a no-op write; an explicit skip makes that intent readable.
+       * A tenant that has explicitly set this to `false` keeps that choice
+       * across re-seeds.
+       */
+      update: {},
     });
     count += 1;
   }

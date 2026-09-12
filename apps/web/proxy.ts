@@ -9,10 +9,10 @@ import {
   AUTH_APP_CLIENT_ID,
   LOGIN_ROUTE,
   REFRESH_TOKEN_COOKIE,
-  SESSION_COOKIE,
   TENANT_SLUG_COOKIE,
   isProtectedRoute,
 } from "@/lib/auth-config";
+import { buildAuthSessionCookies } from "@/lib/auth-session-cookies";
 import { sanitizeLocalNextPath, toCanonicalPath } from "@/lib/routes";
 import { getTenantHintFromRequest } from "@/lib/tenant-resolution";
 import { buildTenantLoginUrl } from "@/lib/tenant-url";
@@ -36,6 +36,10 @@ type RefreshResponse = {
   tokens?: {
     accessToken?: unknown;
     refreshToken?: unknown;
+    sessionId?: unknown;
+    rememberMe?: unknown;
+    accessTokenExpiresIn?: unknown;
+    refreshTokenExpiresIn?: unknown;
   };
 };
 
@@ -44,6 +48,10 @@ type RefreshSessionResult =
       ok: true;
       accessToken: string;
       refreshToken: string;
+      sessionId?: string;
+      rememberMe?: boolean;
+      accessTokenExpiresIn?: string;
+      refreshTokenExpiresIn?: string;
     }
   | {
       ok: false;
@@ -126,7 +134,22 @@ export async function proxy(request: NextRequest) {
     refreshToken &&
     shouldRefreshAccessToken(accessToken)
   ) {
-    const refreshResult = await refreshSessionTokens(refreshToken);
+    let refreshResult = await refreshSessionTokens(refreshToken);
+
+    /*
+     * BUG-3359 — a 401/403 here is not proof the session is gone. Rotation
+     * has no reuse window on the API side beyond a short grace period, so two
+     * navigations racing on the same refresh cookie can see the loser told
+     * "revoked" for the instant before the grace window recognises the race.
+     * One retry against the same cookie is what turns that into a success
+     * instead of a sign-out; only a retry that still fails proceeds to
+     * `redirectToLogout`. The in-flight map above already collapsed any
+     * truly simultaneous call into one request, so this retry is a genuinely
+     * new attempt, not a duplicate of the first.
+     */
+    if (!refreshResult.ok && refreshResult.shouldLogout) {
+      refreshResult = await refreshSessionTokens(refreshToken);
+    }
 
     if (!refreshResult.ok && refreshResult.shouldLogout) {
       return redirectToLogout(request);
@@ -363,7 +386,43 @@ function shouldRefreshAccessToken(accessToken: string | undefined) {
   return expiresAtSeconds - nowSeconds <= ACCESS_TOKEN_REFRESH_BUFFER_SECONDS;
 }
 
-async function refreshSessionTokens(
+/*
+ * BUG-3359 — de-duplicated, the same way `apps/web/lib/server-api.ts` already
+ * de-duplicates its own refreshes ("eight parallel loads produced eight
+ * refresh calls" — see that file). The middleware had no equivalent, so it
+ * was the one caller left making its own independent `/auth/refresh` call for
+ * every concurrent navigation carrying the same refresh cookie. Keyed by a
+ * suffix of the refresh token so one user's dead session can never suppress
+ * another's refresh.
+ */
+const inFlightMiddlewareRefreshes = new Map<
+  string,
+  Promise<RefreshSessionResult>
+>();
+
+function refreshTokenKey(refreshToken: string) {
+  return refreshToken.slice(-24);
+}
+
+/** Exported for `proxy.spec.ts` — the dedupe map and the retry it enables. */
+export async function refreshSessionTokens(
+  refreshToken: string,
+): Promise<RefreshSessionResult> {
+  const key = refreshTokenKey(refreshToken);
+  const existing = inFlightMiddlewareRefreshes.get(key);
+  if (existing) {
+    return existing;
+  }
+
+  const pending = performMiddlewareRefresh(refreshToken).finally(() => {
+    inFlightMiddlewareRefreshes.delete(key);
+  });
+
+  inFlightMiddlewareRefreshes.set(key, pending);
+  return pending;
+}
+
+async function performMiddlewareRefresh(
   refreshToken: string,
 ): Promise<RefreshSessionResult> {
   try {
@@ -404,6 +463,23 @@ async function refreshSessionTokens(
       ok: true,
       accessToken,
       refreshToken: nextRefreshToken,
+      sessionId:
+        typeof data?.tokens?.sessionId === "string"
+          ? data.tokens.sessionId
+          : undefined,
+      // BUG-3357 — these three are what `continueWithRefreshedTokens` was
+      // missing entirely: the response already carries them, and not reading
+      // them is why the middleware's own cookie writes had no way to honour
+      // Remember me.
+      rememberMe: data?.tokens?.rememberMe === true,
+      accessTokenExpiresIn:
+        typeof data?.tokens?.accessTokenExpiresIn === "string"
+          ? data.tokens.accessTokenExpiresIn
+          : undefined,
+      refreshTokenExpiresIn:
+        typeof data?.tokens?.refreshTokenExpiresIn === "string"
+          ? data.tokens.refreshTokenExpiresIn
+          : undefined,
     };
   } catch {
     return {
@@ -413,7 +489,17 @@ async function refreshSessionTokens(
   }
 }
 
-function continueWithRefreshedTokens(
+/**
+ * BUG-3357 — the middleware used to write these cookies with a hardcoded
+ * `maxAge: 15 * 60` for the access cookie and an independently-resolved env
+ * var for the refresh cookie, neither of which had anything to do with
+ * Remember me or the lifetimes the refresh response actually carried. A
+ * thirty-day remembered session became a fifteen-minute one on the very first
+ * middleware refresh. `buildAuthSessionCookies` is the single helper all
+ * three cookie writers in this app now share — see
+ * `apps/web/lib/auth-session-cookies.ts`.
+ */
+export function continueWithRefreshedTokens(
   request: NextRequest,
   tokens: Extract<RefreshSessionResult, { ok: true }>,
 ) {
@@ -433,34 +519,31 @@ function continueWithRefreshedTokens(
     },
   });
 
-  response.cookies.set(ACCESS_TOKEN_COOKIE, tokens.accessToken, {
-    httpOnly: true,
-    sameSite: isProduction() ? "none" : "lax",
-    secure: isProduction(),
-    path: "/",
-    maxAge: 15 * 60,
-    ...getCookieDomainOption(),
+  const cookieValues = buildAuthSessionCookies({
+    accessToken: tokens.accessToken,
+    refreshToken: tokens.refreshToken,
+    sessionId: tokens.sessionId ?? readJwtSessionId(tokens.accessToken) ?? undefined,
+    rememberMe: tokens.rememberMe,
+    accessTokenExpiresIn: tokens.accessTokenExpiresIn,
+    refreshTokenExpiresIn: tokens.refreshTokenExpiresIn,
   });
 
-  response.cookies.set(REFRESH_TOKEN_COOKIE, tokens.refreshToken, {
-    httpOnly: true,
-    sameSite: isProduction() ? "none" : "lax",
-    secure: isProduction(),
-    path: "/",
-    maxAge: getRefreshMaxAgeSeconds(),
-    ...getCookieDomainOption(),
-  });
-
-  const sessionId = readJwtSessionId(tokens.accessToken);
-  if (sessionId) {
-    response.cookies.set(SESSION_COOKIE, sessionId, {
-      httpOnly: true,
-      sameSite: isProduction() ? "none" : "lax",
-      secure: isProduction(),
-      path: "/",
-      maxAge: getRefreshMaxAgeSeconds(),
-      ...getCookieDomainOption(),
-    });
+  response.cookies.set(
+    cookieValues.access.name,
+    cookieValues.access.value,
+    cookieValues.access.options,
+  );
+  response.cookies.set(
+    cookieValues.refresh.name,
+    cookieValues.refresh.value,
+    cookieValues.refresh.options,
+  );
+  if (cookieValues.session) {
+    response.cookies.set(
+      cookieValues.session.name,
+      cookieValues.session.value,
+      cookieValues.session.options,
+    );
   }
 
   return response;
@@ -633,37 +716,3 @@ function getApiBaseUrl() {
   return value.replace(/\/+$/, "");
 }
 
-function getCookieDomainOption() {
-  const domain = isProduction() ? process.env.AUTH_COOKIE_DOMAIN : undefined;
-
-  return domain ? { domain } : {};
-}
-
-function isProduction() {
-  return process.env.NODE_ENV === "production";
-}
-
-function getRefreshMaxAgeSeconds() {
-  return Math.floor(
-    parseDurationToMilliseconds(
-      process.env.AUTH_REFRESH_TOKEN_TTL_SECONDS ??
-        process.env.JWT_REFRESH_TOKEN_TTL ??
-        "8h",
-    ) / 1000,
-  );
-}
-
-function parseDurationToMilliseconds(value: string) {
-  const match = value.trim().match(/^(\d+)(ms|s|m|h|d)?$/i);
-  if (!match) return 3_600_000;
-  const amount = Number.parseInt(match[1] ?? "1", 10);
-  const unit = (match[2] ?? "s").toLowerCase();
-  const multipliers: Record<string, number> = {
-    ms: 1,
-    s: 1000,
-    m: 60_000,
-    h: 3_600_000,
-    d: 86_400_000,
-  };
-  return amount * multipliers[unit];
-}
