@@ -67,6 +67,17 @@ describe('AuthService', () => {
         registerFailure: jest.fn().mockResolvedValue({ locked: false }),
         registerSuccess: jest.fn().mockResolvedValue(undefined),
       } as never,
+      {} as never,
+      {
+        resolveEffectivePolicy: jest.fn().mockResolvedValue({
+          allowRememberMe: true,
+          sessionTimeoutMinutes: 480,
+          refreshTokenExpiryDays: 30,
+          absoluteSessionLifetimeDays: 30,
+          idleTimeoutMinutes: 480,
+          allowMultipleActiveSessions: true,
+        }),
+      } as never,
     );
   });
 

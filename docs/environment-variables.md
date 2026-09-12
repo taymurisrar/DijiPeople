@@ -175,6 +175,72 @@ AUTH_AGENT_IDLE_SESSION_TIMEOUT_SECONDS=30d
 AUTH_AGENT_ABSOLUTE_SESSION_TIMEOUT_SECONDS=30d
 ```
 
+### Tenant session policy: who actually owns it (ITEM-0162)
+
+**The tenant's `security` settings own tenant session lifetime. These
+`AUTH_*` environment variables have no effect on it, on purpose, for now.** A
+tenant user's session length is decided by
+`TenantAuthPolicyService.resolveEffectivePolicy()`
+(`services/api/src/common/security/tenant-auth-policy.service.ts`), which both
+`AuthService` (login/refresh) and `JwtAuthGuard` (enforcement) now call — one
+resolver, so the two cannot disagree about the effective policy the way they
+did in production (a login response advertised an 8-hour idle timeout while
+the guard enforced 30 minutes).
+
+For each of `sessionTimeoutMinutes` (access token TTL), `idleTimeoutMinutes`,
+`absoluteSessionLifetimeDays` and `refreshTokenExpiryDays`, the precedence is:
+
+1. **The tenant's own `TenantSetting` row** (category `security`), set from
+   **Settings → Security & Access → Security Governance → Password & Login
+   Policies**. Wins when present.
+2. **A hardcoded default** (480 minutes for the two minute-denominated values,
+   30 days for the two day-denominated ones) — unchanged from what this
+   codebase has always defaulted to — for a tenant with no row.
+
+The `AUTH_*` variables below are **not** consulted as a third fallback, even
+though ITEM-0162's original proposal suggested making them one. Production has
+all three set — `AUTH_ACCESS_TOKEN_TTL_SECONDS=15m`,
+`AUTH_IDLE_SESSION_TIMEOUT_SECONDS=30m`,
+`AUTH_ABSOLUTE_SESSION_TIMEOUT_SECONDS=8h` — to values far shorter than the
+hardcoded defaults every tenant with no `security` settings row is currently
+living on. Wiring them in as the fallback would silently drop such a tenant's
+absolute session lifetime from 30 days to 8 hours — full re-authentication,
+daily, for every user, the moment this deploys, with no settings change and no
+announcement. That is a product decision for the account owner to make
+explicitly, not something to flip as a side effect of a bug-fix batch. See
+[[ITEM-0162]]'s Resolution for the record of this being deferred rather than
+forgotten.
+
+```env
+AUTH_ACCESS_TOKEN_TTL_SECONDS=15m        # platform-admin and agent-desktop only — see below
+AUTH_IDLE_SESSION_TIMEOUT_SECONDS=1h     # platform-admin and agent-desktop only
+AUTH_ABSOLUTE_SESSION_TIMEOUT_SECONDS=8h # platform-admin and agent-desktop only
+AUTH_REFRESH_TOKEN_TTL_SECONDS=1h        # platform-admin and agent-desktop only
+```
+
+These four **do** govern the platform-admin and `agent-desktop` clients
+(`getClientAccessTokenTtl`/`getClientIdleTimeoutMs`/etc. in
+`services/api/src/common/config/auth.config.ts`, which `JwtAuthGuard` still
+falls back to for those two client ids) — only the tenant (`web`) path ignores
+them today.
+
+**`SESSION_IDLE_TIMEOUT_SECONDS` and `SESSION_ABSOLUTE_TIMEOUT_SECONDS`
+(without the `AUTH_` prefix) are legacy fallbacks, read only when the `AUTH_*`
+name above is absent**, for those same non-tenant paths — see
+`getSessionIdleTimeoutMs`/`getSessionAbsoluteTimeoutMs` in
+`services/api/src/common/config/auth.config.ts`. Set the `AUTH_*` name; the
+unprefixed pair exists for backward compatibility with deployments that
+predate it, not as an independent second setting.
+
+**`JWT_ACCESS_TTL_REMEMBER_ME` and `JWT_REFRESH_TTL_REMEMBER_ME` apply only to
+the platform-admin login path** (`buildPlatformAuthResponse`). No tenant
+sign-in reads them — this is by design (platform admin is a separate identity
+system with its own policy), not a gap to close. See [[BUG-3357]].
+
+**`allowMultipleActiveSessions`** has no environment-variable override; it is a
+per-tenant decision only, and an absent setting means concurrent sessions are
+**allowed** — see [[ADR-0009]] and [[BUG-3355]].
+
 ### Platform super admin bootstrap
 
 `seed:admin` runs inside `npm run release`, which is `render.yaml`'s

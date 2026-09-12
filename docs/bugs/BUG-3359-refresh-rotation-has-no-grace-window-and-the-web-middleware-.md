@@ -2,7 +2,7 @@
 ID: BUG-3359
 aliases: [BUG-3359]
 Title: Refresh rotation has no grace window and the web middleware has no concurrency control
-Status: OPEN
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: BUG
@@ -11,15 +11,15 @@ DetectedDate: 2026-09-11
 DetectedInSha: 118d22ed
 AffectedModules: [api:auth, web:auth]
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport:
-RegressionId:
+RegressionId: REG-444
 RelatedBacklogItem:
 RelatedDecision:
-RelatedImplementation:
+RelatedImplementation: docs/plans/EXECPLAN-0037-refresh-rotation-grace-window-and-middleware-dedupe.md
 CreatedAt: 2026-09-11
-UpdatedAt: 2026-09-11
-ResolvedAt:
+UpdatedAt: 2026-09-12
+ResolvedAt: 2026-09-12
 ---
 
 # BUG-3359 — Refresh rotation has no grace window and the web middleware has no concurrency control
@@ -152,9 +152,16 @@ as a security event rather than silently.
 
 ## Regression Coverage
 
-A spec that fires two refreshes with the same token and asserts both callers end
-up authenticated, plus one that asserts reuse after the window is refused.
-Registered as a regression entry once written.
+`services/api/src/modules/auth/auth-session-lifecycle.spec.ts` (describe block
+`refresh rotation grace window`) drives `AuthService.refresh()` with a token
+matching a row revoked moments ago whose family has a live successor (resolves
+successfully, no revoke-other-sessions sweep, no reuse audit event); with a
+token revoked five minutes ago (refused, `AUTH_REFRESH_TOKEN_REUSE_DETECTED`
+logged); and an ordinary successful rotation for a single-session tenant
+(still never runs the revoke-all sweep). `apps/web/proxy.spec.ts` asserts two
+concurrent `refreshSessionTokens` calls collapse into one `fetch`, and that
+the middleware retries once before `redirectToLogout`. Registered as REG-444
+with QA scenario [[QA-AUTH-015]].
 
 ## Dependencies
 
@@ -170,21 +177,84 @@ refresh was throttled by the credential rate limiter.
 
 ## Resolution
 
-Not yet fixed.
+Fixed 2026-09-12, per [[EXECPLAN-0037-refresh-rotation-grace-window-and-middleware-dedupe]].
+No schema change — the grace window is resolved entirely from the existing
+`RefreshToken.tokenFamilyId` column, as the plan preferred.
+
+**API side** (`services/api/src/modules/auth/auth.service.ts`):
+
+- `hasActiveRefreshToken` no longer refuses immediately when no live token
+  matches. It now calls the new `wasRotatedWithinGraceWindow`, which checks
+  whether the presented token matches a row revoked within
+  `ROTATION_GRACE_WINDOW_MS` (30 seconds) **and** whose family
+  (`tokenFamilyId`) has a live successor created after that revocation — the
+  shape a legitimate rotation race leaves behind, as opposed to a logout
+  (leaves no successor) or a second sign-in (creates one in a different
+  family). Only in that shape does the presented token count as active.
+- A match against a token revoked **outside** the window still refuses
+  (`SESSION_REVOKED`) and now additionally calls the new
+  `logRefreshTokenReuseDetected`, recording an
+  `AUTH_REFRESH_TOKEN_REUSE_DETECTED` audit event
+  (`common/constants/audit-actions.ts`) — the security-event trail the bug's
+  proposed resolution asked for.
+- `rotateRefreshToken` was changed so that when the presented token does not
+  match any currently-live row (the losing side of a race, already verified
+  above), it inherits the family's current live successor's
+  `absoluteExpiresAt` instead of computing a fresh one — otherwise a run of
+  races could extend a session's absolute lifetime indefinitely.
+- `persistRefreshToken` gained a `revokeOtherSessions` option, defaulting to
+  today's behaviour. `rotateRefreshToken` now always calls it with
+  `revokeOtherSessions: false`: a rotation continues an existing session and
+  must never run the "revoke every other live session" sweep BUG-3355 added —
+  that sweep is for a new sign-in. This is what stopped two racing rotations
+  from revoking each other's successor.
+- This does **not** attempt literal token-for-token convergence — the winning
+  request's raw JWT cannot be recovered from its stored bcrypt hash. Both
+  callers instead end up with a valid, current pair for the same continuing
+  session, which is what the acceptance criteria's "converge on one token
+  pair" is read to require: nobody is signed out.
+
+**Web side** (`apps/web/proxy.ts`):
+
+- `refreshSessionTokens` gained an in-flight de-duplication map
+  (`inFlightMiddlewareRefreshes`), the same pattern `lib/server-api.ts`
+  already used, so two concurrent middleware invocations for one browser
+  share one `/auth/refresh` call.
+- `proxy()`'s refresh branch retries once when the first attempt reports
+  `shouldLogout`, before calling `redirectToLogout` — converting the grace
+  window's tolerance into an actual second chance rather than an immediate
+  sign-out.
+- `refreshSessionTokens`/`performMiddlewareRefresh` now also read `rememberMe`
+  /`accessTokenExpiresIn`/`refreshTokenExpiresIn` from the refresh response,
+  which [[BUG-3357]]'s fix needed from the same call site.
+
+**Platform-admin rotation (`rotatePlatformRefreshToken`) was deliberately not
+changed**, per the plan's Requirement 7 — no reported race on that path, and
+extending the grace window there is a reasonable follow-up rather than a
+silent gap.
 
 ## QA Retest
 
-Pending.
+Pending — automated regression coverage exists (REG-444, [[QA-AUTH-015]]) but
+this has not yet had a live QA pass against a deployed environment, and this
+is a session-lifecycle change headed to production: a live concurrency test
+(two genuinely simultaneous browser tabs against a real deployment) has not
+been run.
 
 ## History
 
 - 2026-09-11 — created during the investigation behind [[BUG-3355]], from
   reading the rotation path rather than from an observed race.
+- 2026-09-12 — fixed on `agent/r-s3-auth` per EXECPLAN-0037: a grace window on
+  rotation (no schema change), a reuse-detected audit event for genuine
+  replay, and an in-flight dedupe plus single retry in the web middleware.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
 ## Related
 
 - Modules — [[auth]]
+- Implementation — [[EXECPLAN-0037-refresh-rotation-grace-window-and-middleware-dedupe]]
+- Regression — REG-444 (see the regression register)
 
 <!-- GRAPH:END -->

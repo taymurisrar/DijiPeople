@@ -99,6 +99,14 @@ export const AUDIT_ACTIONS = {
   CUSTOMER_DELETED: 'CUSTOMER_DELETED',
   AUTH_LOGIN_SUCCEEDED: 'AUTH_LOGIN_SUCCEEDED',
   AUTH_LOGIN_FAILED: 'AUTH_LOGIN_FAILED',
+  /*
+   * BUG-3359 — a refresh token presented well after it was superseded by a
+   * rotation (outside the grace window `EXECPLAN-0037` added). Not the same
+   * event as an ordinary revoked-session refusal: this is what a stolen or
+   * replayed refresh token looks like, so it stays a security event rather
+   * than a routine `SESSION_REVOKED` response.
+   */
+  AUTH_REFRESH_TOKEN_REUSE_DETECTED: 'AUTH_REFRESH_TOKEN_REUSE_DETECTED',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];

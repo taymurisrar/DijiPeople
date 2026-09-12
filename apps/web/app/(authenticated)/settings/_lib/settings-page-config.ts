@@ -2169,6 +2169,8 @@ export const passwordLoginSettingsSections: SettingsSectionConfig[] = [
         category: "security",
         key: "allowMultipleActiveSessions",
         label: "Allow multiple active sessions",
+        description:
+          "When on, a user can stay signed in on more than one device or browser at the same time. When off, signing in again ends the user's other active sessions immediately and without warning them first. On by default for every tenant.",
         type: "checkbox",
       },
       {
