@@ -4699,3 +4699,78 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Two lessons. First, an optional parameter that selects module-level state is a trap — omitting it is silent and looks correct, so the doc comment now says the parameter is optional only in signature. Second, the `useMemo` dependency mattered as much as the fix: the columns memo closes over `formatting`, so without adding it the correction would have applied on first paint and never again — a correct change that does nothing, which is worse than no change because it reads as done. |
 | **Fixed** | 2026-09-11 |
 | **Active** | yes |
+
+### REG-413 — A per-seat price rendered as the whole charge, with no total for the seat count entered
+
+| | |
+|---|---|
+| **Bug class** | `quoted-price-omits-quantity-multiplier` |
+| **Module** | `apps/web/app/(authenticated)/settings/billing` |
+| **Bug record** | BUG-3330 |
+| **Root cause** | The Plans screen rendered a `PER_SEAT` price's `unitAmount` with only a `/ month` or `/ year` suffix — no mention of "seat" — next to a "Seats to purchase" field that was read only at checkout submission, never in the card. A buyer reading "PKR 300.00 / month" and entering 25 seats was billed `300 x 25`, with nothing on screen ever showing that multiplication. Checkout also clamped an out-of-bounds seat count with `Math.max`/`Math.min` before submitting, so a rejected count was silently substituted rather than refused. |
+| **Regression test** | `apps/web/app/(authenticated)/settings/billing/_lib/seat-pricing.spec.ts` — mirrors the fixture values from the server's own `services/api/src/modules/billing/billing-seat-pricing.spec.ts` so both suites assert the same rule. |
+| **Scenario** | A `PER_SEAT` price at N seats renders the word "seat" in its interval suffix and shows an order summary whose total equals `unitAmount x resolveBillableSeats(price, seats)`. A seat count outside `minimumSeats`/`maximumSeats` is refused with the bound stated, not silently clamped and submitted. |
+| **Proven to fail without the fix** | Reverting `formatPriceQualifier` to the plain `/ month` suffix, or reverting `createCheckoutSession` to `Math.max`/`Math.min` clamping, restores the behaviour BUG-3330 measured live on `dijipeople-demo` (PKR 300.00/month rendered unchanged at 25 seats). |
+| **Note** | No seat-quote endpoint exists on the API yet (`calculateSeatPricing` is written and unit-tested server-side but not exposed over HTTP), so the frontend mirrors the rule rather than calling it — flagged with a `TODO(BUG-3330)` in `seat-pricing.ts` for the API stream, since this exact rule was already implemented twice on the server and the two copies disagreed once (see the comment above `resolveBillableSeats` there). |
+| **Fixed** | 2026-09-12, branch `agent/r-s1-billing-web` |
+| **Active** | yes |
+
+### REG-414 — Two plan cards with different feature counts rendered the same eight bullets
+
+| | |
+|---|---|
+| **Bug class** | `fixed-truncation-hides-the-differentiator` |
+| **Module** | `apps/web/app/(authenticated)/settings/billing` |
+| **Bug record** | BUG-3332 |
+| **Root cause** | Each plan card sorted its enabled features by catalog order and cut with `.slice(0, 8)`. The catalog orders Payroll & Finance last, so Payroll — the one feature that actually distinguishes Enterprise from Growth — was always the first thing cut. Growth (14 features) and Enterprise (16 features) shared their first eight in catalog order and rendered identical bullet lists at prices 64% apart. |
+| **Regression test** | `apps/web/app/(authenticated)/settings/billing/_lib/plan-presentation.spec.ts` |
+| **Scenario** | Given two plans whose feature sets differ, `rankPlanFeatures` ranks the features the cheaper adjacent plan lacks ahead of the ones it shares, so their top-N truncated lists are never identical. A truncated card shows a counted, clickable "and N more" linking to the full comparison. |
+| **Proven to fail without the fix** | Reverting to catalog-order `.slice(0, 8)` reproduces the original defect: `rankPlanFeatures`'s "two plans whose feature sets differ never rank to the same truncated list" test fails when the differentiator-first reordering is removed. |
+| **Note** | A fixed-height card design met a catalog that grew past it, and the truncation rule (position in a shared catalog order) had no relationship to what a comparison exists to show (what is different). Ranking by "not in the cheaper plan" rather than by catalog position is the general fix for any bounded list built from a superset catalog. |
+| **Fixed** | 2026-09-12, branch `agent/r-s1-billing-web` |
+| **Active** | yes |
+
+### REG-415 — A comparison table split into one `<table>` per category could not keep its columns aligned
+
+| | |
+|---|---|
+| **Bug class** | `grid-item-missing-min-width-zero` |
+| **Module** | `apps/web/app/(authenticated)/settings/billing` |
+| **Bug record** | BUG-3335 |
+| **Root cause** | Two independent defects on one screen. First, the plan card grid was `xl:grid-cols-3` with no `sm:`/`lg:` step, so it stacked to one column for the entire 640-1279px range. Second, the feature comparison was six independent `<table>` elements (one per category), each auto-sizing its own columns in its own `overflow-x-auto` wrapper — with nothing tying the column widths together, the same plan landed at a different horizontal offset in every category block. The page also overflowed horizontally at 390px: this component's top-level content `<div>` is a grid item of `SettingsLayout`'s `grid-cols-[minmax(0,1fr)]` track with no `min-w-0` of its own, and (per `settings-table-containment.spec.ts`'s own note on this exact pattern) a `minmax(0,1fr)` track does not by itself constrain a grid item that has no `min-w-0` — the item's automatic minimum size is still its content's size. |
+| **Regression test** | `apps/web/app/(authenticated)/settings/billing/_components/billing-settings-client-containment.spec.ts` — source-level: pins the `sm:grid-cols-2 lg:grid-cols-3` breakpoints, the root `min-w-0`, the single `<table>`, and the `w-full min-w-0 overflow-auto` wrapper. `apps/web` has no jsdom, so `document.scrollWidth` itself is not asserted here — see the bug record's QA Retest note for what a live-browser pass still needs to check. |
+| **Scenario** | The plan card grid renders 2 columns from 640px and 3 from 1024px. The feature comparison is one table with one `colgroup`, so every plan's column has the same left offset in every category block, inside one scroller with a sticky header. |
+| **Proven to fail without the fix** | Reverting the grid class to `xl:grid-cols-3` or reverting the comparison to per-category tables fails the containment spec's structural assertions directly. |
+| **Note** | This is the same containment lesson as BUG-1960 (`settings-table-containment.spec.ts`), recurring in a different screen: `min-w-0` has to be applied at every layer between a wide child and the constrained grid track, not only on the child's own wrapper. Worth checking any new settings screen against that checklist before it ships, rather than after a phone-width report. |
+| **Fixed** | 2026-09-12, branch `agent/r-s1-billing-web` |
+| **Active** | yes |
+
+### REG-416 — Every primary action on the subscription screens painted the tenant's text colour instead of its brand colour
+
+| | |
+|---|---|
+| **Bug class** | `hardcoded-fill-ignores-theme-token` |
+| **Module** | `apps/web/app/(authenticated)/settings/billing`, `apps/web/app/(authenticated)/settings/subscription` |
+| **Bug record** | BUG-3345 |
+| **Root cause** | `BillingSettingsClient` filled five primary surfaces with `bg-foreground` — `--foreground` resolves to `--brand-text`, the tenant's body-copy colour, not `--accent` (`--brand-primary`, the tenant's actual brand colour). A sixth instance was found during the fix, outside the file the bug record named: `settings/subscription/cancel/page.tsx`'s "Back to plans" link. The component also hand-rolled `EmptyState`, `StatusChip`, `SegmentedControl` and `FeatureBadge` instead of using the shared UI kit already present at `apps/web/app/components/ui/`. |
+| **Regression test** | `apps/web/app/(authenticated)/settings/billing/_components/billing-settings-client-brand-color.spec.ts` — a cheap static check, as this bug record's own Regression Coverage section suggested: asserts neither file contains `bg-foreground`, and that the component imports the shared `Button`. |
+| **Scenario** | No subscription screen fills a primary action with `bg-foreground`. Changing a tenant's `--brand-primary` changes the colour of every primary action on `/settings/subscription/{overview,plans,billing-history,cancel}`. |
+| **Proven to fail without the fix** | Reintroducing any `bg-foreground` fill in either file fails the static check immediately; this is the same one-line-regex check the original bug record proposed and that would have caught the defect on its first commit. |
+| **Note** | The record's own count (five) undercounted by one — a sixth instance existed in a file the count-by-inspection missed, found only once a second file (`cancel/page.tsx`) touching the same user flow was checked deliberately. When a defect is described as "N instances in file X", grep the surrounding flow's other files before treating N as complete. |
+| **Fixed** | 2026-09-12, branch `agent/r-s1-billing-web` |
+| **Active** | yes |
+
+### REG-417 — A failed data load was indistinguishable from a permissions refusal
+
+| | |
+|---|---|
+| **Bug class** | `wrong-failure-state-reused` |
+| **Module** | `apps/web/app/(authenticated)/settings/subscription` |
+| **Bug record** | BUG-3336 |
+| **Root cause** | Three compounding gaps on one route. First, neither `settings/subscription/` nor `settings/billing/` had a `loading.tsx` or `error.tsx`, so navigating there showed the previous screen, unchanged, until three server-side API calls all returned. Second, `SubscriptionSettingsPage` rendered `AccessDeniedState` — the same component used for a genuine role refusal — whenever `loadSubscriptionSettingsData` caught a request error, so a transient 500 or timeout looked identical to "you are not allowed here" and offered no retry. Third, the UI gate was `hasElevatedTenantRole(user?.roleKeys)`, a helper `AGENTS.md` names specifically as a guard bypass, while the API requires the `billing.view` permission plus a `TENANT_ADMINISTRATION:read` matrix privilege — so a user holding the permission but not an elevated role was refused by the UI although the API would have served them. |
+| **Regression test** | `apps/web/app/(authenticated)/settings/subscription/_components/subscription-settings-page.spec.ts` |
+| **Scenario** | `loading.tsx` and `error.tsx` exist at the subscription route segment. A failed data load (`subscriptionData.ok === false`) renders `LoadFailureState`, never `AccessDeniedState`; the permission refusal branch still renders `AccessDeniedState`. The page gate calls `hasSettingsPermission` with `PERMISSION_KEYS.BILLING_VIEW`, not the elevated-role helper. `/billing/invoices` is requested only when `activeView === "billing-history"`. |
+| **Proven to fail without the fix** | Reverting the `!subscriptionData.ok` branch to `AccessDeniedState`, or reverting the gate to the elevated-role helper, fails this spec's assertions directly; there was no executable check for either before this record. |
+| **Note** | `hasSettingsPermission` is not full parity with the API's matrix privilege — no entity-key mirror for `TENANT_ADMINISTRATION` exists anywhere in `apps/web` yet, on this screen or any other — but it is the same gate every other settings screen in this app already uses, and it closes the specific gap this record measured (permission granted, elevated role absent) without inventing a new pattern for one screen. |
+| **Fixed** | 2026-09-12, branch `agent/r-s1-billing-web` |
+| **Active** | yes |

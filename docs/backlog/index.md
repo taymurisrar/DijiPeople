@@ -13,11 +13,11 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 191 |
+| Open (active work) | 190 |
 | Blocked | 2 |
 | Deferred | 92 |
 | Awaiting a product decision | 9 |
-| Completed / closed | 319 |
+| Completed / closed | 320 |
 | **Open CRITICAL** | **4** |
 | **Open HIGH** | **86** |
 | **Awaiting Architect triage** | **0** |
@@ -28,7 +28,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 4 |
 | HIGH | 86 |
-| MEDIUM | 80 |
+| MEDIUM | 79 |
 | LOW | 16 |
 
 ## Open by type
@@ -51,22 +51,22 @@ see [`README.md`](README.md) for why.
 | TECH_DEBT | 6 |
 | TENANT_ISOLATION | 2 |
 | TEST_GAP | 9 |
-| UX | 47 |
+| UX | 46 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 64 |
+| OPEN | 59 |
 | BLOCKED | 2 |
 | DEFERRED | 92 |
 | PRODUCT_DECISION | 9 |
-| FIXED | 97 |
+| FIXED | 102 |
 | VERIFIED | 218 |
 | DUPLICATE | 10 |
 | ACCEPTED_RISK | 3 |
-| READY | 30 |
-| DONE | 88 |
+| READY | 29 |
+| DONE | 89 |
 
 ## All records
 
@@ -284,9 +284,9 @@ see [`README.md`](README.md) for why.
 | [BUG-3202](../../docs/bugs/BUG-3202-payroll-run-eligibility-never-checks-employee-isdeleted-an-a.md) | Payroll run eligibility never checks Employee.isDeleted; an archived employee with a stale employmentStatus is paid | DATA_INTEGRITY | HIGH | P1 | OPEN | api:payroll | FIX_NOW |
 | [BUG-3205](../../docs/bugs/BUG-3205-tenant-deletion-cascades-through-the-entire-tenant-owned-sch.md) | Tenant deletion cascades through the entire tenant-owned schema, including every audit and payroll table, with no database-level barrier | DATABASE | HIGH | P1 | OPEN | services/api/prisma | PLAN_REQUIRED |
 | [BUG-3241](../../docs/bugs/BUG-3241-legacy-role-permission-grant-and-employee-export-both-skip-t.md) | Legacy role-permission grant and employee export both skip the sibling endpoint's access check | AUTHORIZATION | HIGH | P1 | FIXED | api:roles/roles.service.ts, api:employees/employees.service.ts | DONE |
-| [BUG-3330](../../docs/bugs/BUG-3330-plan-cards-quote-a-per-seat-price-as-the-whole-monthly-charg.md) | Plan cards quote a per-seat price as the whole monthly charge and ignore the seat count entirely | UX | HIGH | P1 | OPEN | apps/web, api:billing | FIX_NOW |
+| [BUG-3330](../../docs/bugs/BUG-3330-plan-cards-quote-a-per-seat-price-as-the-whole-monthly-charg.md) | Plan cards quote a per-seat price as the whole monthly charge and ignore the seat count entirely | UX | HIGH | P1 | FIXED | apps/web, api:billing | FIX_NOW |
 | [BUG-3331](../../docs/bugs/BUG-3331-subscribe-is-enabled-for-a-tenant-that-already-has-an-active.md) | Subscribe is enabled for a tenant that already has an active subscription and can only ever return 409 | UX | HIGH | P1 | OPEN | apps/web, api:billing | PLAN_REQUIRED |
-| [BUG-3332](../../docs/bugs/BUG-3332-plan-cards-truncate-to-eight-features-so-growth-and-enterpri.md) | Plan cards truncate to eight features so Growth and Enterprise advertise identical capability | UX | HIGH | P1 | OPEN | apps/web, api:billing | FIX_NOW |
+| [BUG-3332](../../docs/bugs/BUG-3332-plan-cards-truncate-to-eight-features-so-growth-and-enterpri.md) | Plan cards truncate to eight features so Growth and Enterprise advertise identical capability | UX | HIGH | P1 | FIXED | apps/web, api:billing | FIX_NOW |
 | [BUG-3333](../../docs/bugs/BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-.md) | Tenant buyers choose their own currency and the three price schedules are not equivalent | DATA_INTEGRITY | HIGH | P1 | PRODUCT_DECISION | apps/web, api:billing | PRODUCT_DECISION |
 | [BUG-3350](../../docs/bugs/BUG-3350-the-plan-comparison-sells-module-exclusivity-the-platform-is.md) | The plan comparison sells module exclusivity the platform is configured only to report on | BUG | HIGH | P1 | PRODUCT_DECISION | apps/web, services/api/src/common/security | PRODUCT_DECISION |
 | [BUG-3355](../../docs/bugs/BUG-3355-a-second-sign-in-silently-destroys-the-first-session-and-the.md) | A second sign-in silently destroys the first session, and the displaced browser is never told | BUG | HIGH | P1 | PRODUCT_DECISION | api:auth, web:auth | PRODUCT_DECISION |
@@ -495,9 +495,9 @@ see [`README.md`](README.md) for why.
 | [BUG-3263](../../docs/bugs/BUG-3263-the-provisioning-queue-e2e-fixture-raced-the-clock-so-an-exa.md) | The provisioning queue e2e fixture raced the clock, so an exact five-minute interval came out 300001ms | TEST_GAP | MEDIUM | P2 | FIXED | services/api/test | DONE |
 | [BUG-3316](../../docs/bugs/BUG-3316-notification-settings-screens-hydrate-with-utc-timestamps-an.md) | Notification settings screens hydrate with UTC timestamps and crash the React tree | UX | MEDIUM | P2 | FIXED | apps/web | DONE |
 | [BUG-3334](../../docs/bugs/BUG-3334-tenant-plan-listing-and-checkout-ignore-planprice-publicatio.md) | Tenant plan listing and checkout ignore PlanPrice publication status and market scoping | SECURITY | MEDIUM | P2 | OPEN | api:billing | FIX_NOW |
-| [BUG-3335](../../docs/bugs/BUG-3335-subscription-plans-screen-overflows-horizontally-on-phones-a.md) | Subscription plans screen overflows horizontally on phones and loses its comparison layout below 1280px | UX | MEDIUM | P2 | OPEN | apps/web | FIX_NOW |
-| [BUG-3336](../../docs/bugs/BUG-3336-subscription-settings-has-no-loading-or-error-boundary-and-r.md) | Subscription settings has no loading or error boundary and renders a failed load as access denied | UX | MEDIUM | P2 | OPEN | apps/web | FIX_NOW |
-| [BUG-3345](../../docs/bugs/BUG-3345-subscription-screens-paint-every-primary-action-in-body-text.md) | Subscription screens paint every primary action in body-text black instead of the tenant brand colour | UX | MEDIUM | P2 | OPEN | apps/web | FIX_NOW |
+| [BUG-3335](../../docs/bugs/BUG-3335-subscription-plans-screen-overflows-horizontally-on-phones-a.md) | Subscription plans screen overflows horizontally on phones and loses its comparison layout below 1280px | UX | MEDIUM | P2 | FIXED | apps/web | FIX_NOW |
+| [BUG-3336](../../docs/bugs/BUG-3336-subscription-settings-has-no-loading-or-error-boundary-and-r.md) | Subscription settings has no loading or error boundary and renders a failed load as access denied | UX | MEDIUM | P2 | FIXED | apps/web | FIX_NOW |
+| [BUG-3345](../../docs/bugs/BUG-3345-subscription-screens-paint-every-primary-action-in-body-text.md) | Subscription screens paint every primary action in body-text black instead of the tenant brand colour | UX | MEDIUM | P2 | FIXED | apps/web | FIX_NOW |
 | [BUG-3357](../../docs/bugs/BUG-3357-remember-me-is-overridden-by-the-web-middleware-which-pins-t.md) | Remember me is overridden by the web middleware, which pins the cookies to 15 minutes and 1 hour | BUG | MEDIUM | P2 | OPEN | web:auth, api:auth | FIX_NOW |
 | [BUG-3358](../../docs/bugs/BUG-3358-a-server-component-render-rotates-the-refresh-token-and-cann.md) | A Server Component render rotates the refresh token and cannot persist it, orphaning the browser | BUG | MEDIUM | P2 | OPEN | web:auth, api:auth | FIX_NOW |
 | [BUG-3359](../../docs/bugs/BUG-3359-refresh-rotation-has-no-grace-window-and-the-web-middleware-.md) | Refresh rotation has no grace window and the web middleware has no concurrency control | BUG | MEDIUM | P2 | OPEN | api:auth, web:auth | PLAN_REQUIRED |
@@ -588,7 +588,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0156](../../docs/backlog/items/ITEM-0156-production-log-level-silently-discards-all-44-logger-log-cal.md) | Production log level silently discards all 44 logger.log call sites, including the outbox drain counters | INFRA | MEDIUM | P2 | DEFERRED | services/api/src/common | DEFER |
 | [ITEM-0157](../../docs/backlog/items/ITEM-0157-can-we-detect-an-attack-the-raw-material-exists-in-one-table.md) | Can we detect an attack: the raw material exists in one table, but nothing looks at it | SECURITY | MEDIUM | P2 | DEFERRED | api:audit | DEFER |
 | [ITEM-0158](../../docs/backlog/items/ITEM-0158-public-traffic-that-bypasses-cloudflare-shares-one-rate-limi.md) | Public traffic that bypasses Cloudflare shares one rate-limit bucket, by design and untested | INFRA | MEDIUM | P2 | READY | pkg:config, services/api/src/common/security | PLAN_REQUIRED |
-| [ITEM-0159](../../docs/backlog/items/ITEM-0159-plans-and-features-screen-fails-several-accessibility-basics.md) | Plans and Features screen fails several accessibility basics for a data-comparison surface | UX | MEDIUM | P2 | READY | apps/web | FIX_NOW |
+| [ITEM-0159](../../docs/backlog/items/ITEM-0159-plans-and-features-screen-fails-several-accessibility-basics.md) | Plans and Features screen fails several accessibility basics for a data-comparison surface | UX | MEDIUM | P2 | DONE | apps/web | DONE |
 | [ITEM-0162](../../docs/backlog/items/ITEM-0162-session-timeout-configuration-lives-in-two-places-that-disag.md) | Session timeout configuration lives in two places that disagree, and most of the env values are inert | TECH_DEBT | MEDIUM | P2 | READY | api:auth, api:tenant-settings | FIX_NOW |
 | [ITEM-0163](../../docs/backlog/items/ITEM-0163-give-every-lookup-one-behaviour-an-openable-label-one-implem.md) | Give every lookup one behaviour: an openable label, one implementation, and a reference route that is not an allowlist | UX | MEDIUM | P2 | READY | apps/web, apps/admin | PLAN_REQUIRED |
 | [ITEM-0169](../../docs/backlog/items/ITEM-0169-notification-catalog-hygiene-dead-events-duplicate-leave-pai.md) | Notification catalog hygiene: dead events, duplicate leave pairs, two key conventions and placeholder copy | UX | MEDIUM | P2 | READY | notifications, apps/web | FIX_NOW |
