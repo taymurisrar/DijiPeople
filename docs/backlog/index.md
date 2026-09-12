@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**619 records** — 443 bugs under [`docs/bugs/`](../bugs/), 176 non-bug items under [`items/`](items/).
+**620 records** — 443 bugs under [`docs/bugs/`](../bugs/), 177 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,11 +13,11 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 189 |
+| Open (active work) | 188 |
 | Blocked | 2 |
-| Deferred | 93 |
+| Deferred | 94 |
 | Awaiting a product decision | 7 |
-| Completed / closed | 328 |
+| Completed / closed | 329 |
 | **Open CRITICAL** | **4** |
 | **Open HIGH** | **90** |
 | **Awaiting Architect triage** | **0** |
@@ -35,7 +35,6 @@ see [`README.md`](README.md) for why.
 
 | Type | Count |
 |---|---|
-| ARCHITECTURE | 1 |
 | AUTHORIZATION | 10 |
 | BUG | 47 |
 | DATABASE | 1 |
@@ -60,14 +59,14 @@ see [`README.md`](README.md) for why.
 | OPEN | 44 |
 | IN_PROGRESS | 2 |
 | BLOCKED | 2 |
-| DEFERRED | 93 |
+| DEFERRED | 94 |
 | PRODUCT_DECISION | 7 |
 | FIXED | 119 |
 | VERIFIED | 218 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
-| READY | 24 |
-| DONE | 96 |
+| READY | 23 |
+| DONE | 97 |
 
 ## All records
 
@@ -685,13 +684,14 @@ see [`README.md`](README.md) for why.
 | [ITEM-0164](../../docs/backlog/items/ITEM-0164-an-organization-hierarchy-viewer-reachable-from-the-employee.md) | An organization hierarchy viewer reachable from the employee record | UX | — | P2 | DONE | apps/web, employees, organization | DONE |
 | [ITEM-0165](../../docs/backlog/items/ITEM-0165-present-an-employee-s-primary-location-and-authorised-work-s.md) | Present an employee's primary location and authorised work sites as one control | UX | — | P2 | DONE | apps/web, employees, attendance | DONE |
 | [ITEM-0166](../../docs/backlog/items/ITEM-0166-move-data-loss-prevention-captures-off-the-employee-record-p.md) | Move data-loss prevention captures off the employee record page into the Agent surface | UX | — | P2 | DONE | apps/web, agent | DONE |
-| [ITEM-0167](../../docs/backlog/items/ITEM-0167-adopt-the-employee-record-shell-across-the-record-pages-that.md) | Adopt the employee record shell across the record pages that still hand-roll their own | ARCHITECTURE | — | P2 | READY | apps/web | PLAN_REQUIRED |
+| [ITEM-0167](../../docs/backlog/items/ITEM-0167-adopt-the-employee-record-shell-across-the-record-pages-that.md) | Adopt the employee record shell across the record pages that still hand-roll their own | ARCHITECTURE | — | P2 | DONE | apps/web | DONE |
 | [ITEM-0168](../../docs/backlog/items/ITEM-0168-a-retry-action-on-an-email-delivery-log.md) | A retry action on an email delivery log | FOLLOW_UP | — | P2 | READY | notifications, apps/web | PLAN_REQUIRED |
 | [ITEM-0173](../../docs/backlog/items/ITEM-0173-wire-notification-coverage-for-the-four-highest-value-remain.md) | Wire notification coverage for the four highest-value remaining silent modules | FOLLOW_UP | — | P2 | DEFERRED | documents, contracts, recruitment, business-trips | DEFER |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |
 | [ITEM-0114](../../docs/backlog/items/ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-.md) | The workspace shell states the tenant's identity four times and its purpose twice | UX | — | P3 | DONE | views, apps/web | DONE |
 | [ITEM-0174](../../docs/backlog/items/ITEM-0174-unify-the-notification-catalog-on-one-key-convention-dotted-.md) | Unify the notification catalog on one key convention (dotted form) | TECH_DEBT | — | P3 | DEFERRED | notifications | DEFER |
+| [ITEM-0178](../../docs/backlog/items/ITEM-0178-recruitment-job-opening-edit-page-is-bespoke-while-its-detai.md) | Recruitment job opening edit page is bespoke while its detail page already uses the shared record shell | ARCHITECTURE | — | P3 | DEFERRED | app:web | DEFER |
 
 ## Views
 

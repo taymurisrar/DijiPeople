@@ -326,6 +326,7 @@ the same defect again.
 | [ITEM-0164](../../docs/backlog/items/ITEM-0164-an-organization-hierarchy-viewer-reachable-from-the-employee.md) | An organization hierarchy viewer reachable from the employee record | UX | — | P2 | DONE | apps/web, employees, organization | DONE |
 | [ITEM-0165](../../docs/backlog/items/ITEM-0165-present-an-employee-s-primary-location-and-authorised-work-s.md) | Present an employee's primary location and authorised work sites as one control | UX | — | P2 | DONE | apps/web, employees, attendance | DONE |
 | [ITEM-0166](../../docs/backlog/items/ITEM-0166-move-data-loss-prevention-captures-off-the-employee-record-p.md) | Move data-loss prevention captures off the employee record page into the Agent surface | UX | — | P2 | DONE | apps/web, agent | DONE |
+| [ITEM-0167](../../docs/backlog/items/ITEM-0167-adopt-the-employee-record-shell-across-the-record-pages-that.md) | Adopt the employee record shell across the record pages that still hand-roll their own | ARCHITECTURE | — | P2 | DONE | apps/web | DONE |
 | [ITEM-0114](../../docs/backlog/items/ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-.md) | The workspace shell states the tenant's identity four times and its purpose twice | UX | — | P3 | DONE | views, apps/web | DONE |
 
 ## Accepted risk
