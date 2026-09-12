@@ -8,11 +8,29 @@ import {
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { OutboxService } from '../../outbox/outbox.service';
 import { buildIdempotencyKey } from '../../outbox/outbox.types';
+import { StripeBillingService } from './stripe-billing.service';
+import { resolveBillableSeats } from '../billing-seat-pricing';
+import { AuditService } from '../../audit/audit.service';
 
 export type EntitlementImpact = {
   gained: string[];
   lost: string[];
   retained: string[];
+};
+
+/**
+ * The money half of a preview — EXECPLAN-0037/BUG-3331. `prorationNow` is
+ * what Stripe would actually charge today for an immediate (UPGRADE) change;
+ * always 0 for a DOWNGRADE, which is scheduled at renewal and charges
+ * nothing now. `estimated: true` marks a quote computed locally rather than
+ * asked of Stripe — only for a subscription with no `stripeSubscriptionId`
+ * (a demo/test tenant), never for a live one.
+ */
+export type PlanChangeQuote = {
+  currency: string;
+  prorationNow: number;
+  newRecurringAmount: number;
+  estimated: boolean;
 };
 
 export type PlanChangePreview = {
@@ -26,6 +44,7 @@ export type PlanChangePreview = {
    * because the answer must never quietly become "yes".
    */
   dataRetained: true;
+  quote: PlanChangeQuote;
 };
 
 /**
@@ -50,6 +69,8 @@ export class PlanChangeService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly outbox: OutboxService,
+    private readonly stripeBillingService: StripeBillingService,
+    private readonly auditService: AuditService,
   ) {}
 
   /**
@@ -61,18 +82,27 @@ export class PlanChangeService {
   async preview(
     tenantId: string,
     toPlanId: string,
+    toPlanPriceId?: string | null,
   ): Promise<PlanChangePreview> {
     const { subscription, fromPlan, toPlan } = await this.load(
       tenantId,
       toPlanId,
+      toPlanPriceId,
     );
 
-    const { direction } = await this.resolveDirection(
-      subscription.planPriceId,
-      fromPlan.id,
-      toPlan.id,
-    );
+    const { direction, toPlanPriceId: resolvedTargetPriceId } =
+      await this.resolveDirection(
+        subscription.planPriceId,
+        fromPlan.id,
+        toPlan.id,
+        toPlanPriceId,
+      );
     const impact = await this.computeImpact(fromPlan.id, toPlan.id);
+    const quote = await this.previewProration(
+      subscription,
+      direction,
+      resolvedTargetPriceId,
+    );
 
     return {
       direction,
@@ -81,6 +111,7 @@ export class PlanChangeService {
       effectiveAt: this.resolveEffectiveAt(direction, subscription),
       impact,
       dataRetained: true,
+      quote,
     };
   }
 
@@ -94,17 +125,19 @@ export class PlanChangeService {
     const { subscription, fromPlan, toPlan } = await this.load(
       input.tenantId,
       input.toPlanId,
+      input.toPlanPriceId,
     );
 
     const { direction, toPlanPriceId } = await this.resolveDirection(
       subscription.planPriceId,
       fromPlan.id,
       toPlan.id,
+      input.toPlanPriceId,
     );
     const impact = await this.computeImpact(fromPlan.id, toPlan.id);
     const effectiveAt = this.resolveEffectiveAt(direction, subscription);
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       // A second pending change would make the outcome depend on which one the
       // scheduler happened to process first.
       await tx.planChangeRequest.updateMany({
@@ -171,6 +204,30 @@ export class PlanChangeService {
         },
       });
 
+      await this.auditService.log(
+        {
+          tenantId: input.tenantId,
+          actorUserId: input.requestedByUserId ?? null,
+          action: 'TENANT_PLAN_CHANGE_REQUESTED',
+          entityType: 'Subscription',
+          entityId: subscription.id,
+          sourceModule: 'billing',
+          beforeSnapshot: {
+            planId: fromPlan.id,
+            planPriceId: subscription.planPriceId,
+          },
+          afterSnapshot: {
+            planId: toPlan.id,
+            planPriceId: input.toPlanPriceId ?? toPlanPriceId,
+            direction,
+            status,
+            effectiveAt: effectiveAt.toISOString(),
+            reason: input.reason ?? null,
+          },
+        },
+        tx,
+      );
+
       return {
         requestId: request.id,
         direction,
@@ -178,8 +235,232 @@ export class PlanChangeService {
         effectiveAt,
         impact,
         dataRetained: true as const,
+        targetPlanPriceId: input.toPlanPriceId ?? toPlanPriceId,
       };
     });
+
+    /*
+     * The Stripe call happens AFTER the transaction commits, deliberately.
+     * `Subscription.planId`/`planPriceId` is the record of what was agreed;
+     * whether Stripe could be reached to enact it is a second, independent
+     * fact. Rolling the local write back because Stripe timed out would leave
+     * the customer's confirmed choice undone with no record it was ever
+     * requested — worse than a state that needs reconciling.
+     *
+     * A DOWNGRADE never reaches here: it is scheduled, not applied, and the
+     * Stripe call for it happens in `applyDueChanges()` at the renewal
+     * boundary instead — see that method.
+     */
+    let stripeSyncPending = false;
+    if (result.direction === PlanChangeDirection.UPGRADE) {
+      stripeSyncPending = !(await this.tryApplyToStripe({
+        stripeSubscriptionId: subscription.stripeSubscriptionId,
+        stripeSubscriptionItemId: subscription.stripeSubscriptionItemId,
+        purchasedSeats: subscription.purchasedSeats,
+        targetPlanPriceId: result.targetPlanPriceId,
+        prorationBehavior: 'create_prorations',
+        context: `plan change request ${result.requestId}`,
+      }));
+    }
+
+    const quote = await this.previewProration(
+      subscription,
+      direction,
+      result.targetPlanPriceId,
+    );
+
+    return {
+      requestId: result.requestId,
+      direction: result.direction,
+      status: result.status,
+      effectiveAt: result.effectiveAt,
+      impact: result.impact,
+      dataRetained: result.dataRetained,
+      quote,
+      stripeSyncPending,
+    };
+  }
+
+  /**
+   * Push a resolved target price to Stripe for a subscription that has one.
+   *
+   * Returns whether it succeeded (or was correctly skipped because the
+   * subscription is not Stripe-backed — a demo/test tenant, which is not a
+   * failure). Never throws: a Stripe fault here is reported to the caller as
+   * `stripeSyncPending`, not surfaced as a 500 for a request whose local
+   * write already committed.
+   */
+  private async tryApplyToStripe(input: {
+    stripeSubscriptionId: string | null;
+    stripeSubscriptionItemId: string | null;
+    purchasedSeats: number;
+    targetPlanPriceId: string | null;
+    prorationBehavior: 'create_prorations' | 'none';
+    context: string;
+  }): Promise<boolean> {
+    if (!input.stripeSubscriptionId || !input.stripeSubscriptionItemId) {
+      // No live Stripe object to update — a demo/test tenant. The local
+      // change stands on its own; there is nothing to reconcile.
+      return true;
+    }
+    if (!input.targetPlanPriceId) {
+      this.logger.error(
+        `Cannot sync ${input.context} to Stripe: no resolved target PlanPrice.`,
+      );
+      return false;
+    }
+
+    const targetPrice = await this.prisma.planPrice.findUnique({
+      where: { id: input.targetPlanPriceId },
+      select: { stripePriceId: true },
+    });
+    if (!targetPrice?.stripePriceId) {
+      this.logger.error(
+        `Cannot sync ${input.context} to Stripe: target PlanPrice has no stripePriceId.`,
+      );
+      return false;
+    }
+
+    try {
+      await this.stripeBillingService.client.subscriptions.update(
+        input.stripeSubscriptionId,
+        {
+          items: [
+            {
+              id: input.stripeSubscriptionItemId,
+              price: targetPrice.stripePriceId,
+              quantity: input.purchasedSeats,
+            },
+          ],
+          proration_behavior: input.prorationBehavior,
+        },
+      );
+      return true;
+    } catch (error) {
+      this.logger.error(
+        `Stripe subscription update failed for ${input.context}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      return false;
+    }
+  }
+
+  /**
+   * A non-mutating money quote — EXECPLAN-0037. Stripe's own preview endpoint
+   * for a Stripe-backed subscription; a locally computed estimate,
+   * unambiguously labelled, for one that is not. Never a second proration
+   * formula pretending to be Stripe's.
+   */
+  private async previewProration(
+    subscription: {
+      stripeSubscriptionId: string | null;
+      stripeSubscriptionItemId: string | null;
+      purchasedSeats: number;
+      currency: string;
+      finalPrice: Prisma.Decimal | number;
+    },
+    direction: PlanChangeDirection,
+    targetPlanPriceId: string | null,
+  ): Promise<PlanChangeQuote> {
+    const currency = subscription.currency;
+
+    if (!targetPlanPriceId) {
+      return {
+        currency,
+        prorationNow: 0,
+        newRecurringAmount: Number(subscription.finalPrice),
+        estimated: true,
+      };
+    }
+
+    const targetPrice = await this.prisma.planPrice.findUniqueOrThrow({
+      where: { id: targetPlanPriceId },
+      select: {
+        unitAmount: true,
+        billingModel: true,
+        includedSeats: true,
+        stripePriceId: true,
+      },
+    });
+    const billableSeats = resolveBillableSeats(
+      targetPrice,
+      subscription.purchasedSeats,
+    );
+    const newRecurringAmount = roundCurrency(
+      Number(targetPrice.unitAmount) * billableSeats,
+    );
+
+    if (direction !== PlanChangeDirection.UPGRADE) {
+      // Scheduled at renewal — nothing is charged today regardless of
+      // whether this is Stripe-backed.
+      return {
+        currency,
+        prorationNow: 0,
+        newRecurringAmount,
+        estimated: false,
+      };
+    }
+
+    if (
+      !subscription.stripeSubscriptionId ||
+      !subscription.stripeSubscriptionItemId ||
+      !targetPrice.stripePriceId
+    ) {
+      /*
+       * No live Stripe object (or no Stripe price on the target row) to ask —
+       * a demo/test tenant, or a target price never synced. Estimated from
+       * the current recurring amount rather than left blank: a customer
+       * deciding whether to confirm still needs a number, and this is exactly
+       * the `resolveBillableSeats` rule Stripe itself would apply, minus the
+       * exact tax and existing-discount adjustments only Stripe knows.
+       */
+      return {
+        currency,
+        prorationNow: roundCurrency(
+          newRecurringAmount - Number(subscription.finalPrice),
+        ),
+        newRecurringAmount,
+        estimated: true,
+      };
+    }
+
+    try {
+      const preview =
+        await this.stripeBillingService.client.invoices.createPreview({
+          subscription: subscription.stripeSubscriptionId,
+          subscription_details: {
+            items: [
+              {
+                id: subscription.stripeSubscriptionItemId,
+                price: targetPrice.stripePriceId,
+                quantity: subscription.purchasedSeats,
+              },
+            ],
+            proration_behavior: 'create_prorations',
+          },
+        });
+      return {
+        currency,
+        prorationNow: minorToMajor(preview.amount_due ?? preview.total ?? 0),
+        newRecurringAmount,
+        estimated: false,
+      };
+    } catch (error) {
+      this.logger.warn(
+        `Stripe proration preview failed, falling back to an estimate: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      return {
+        currency,
+        prorationNow: roundCurrency(
+          newRecurringAmount - Number(subscription.finalPrice),
+        ),
+        newRecurringAmount,
+        estimated: true,
+      };
+    }
   }
 
   /** Apply downgrades whose effective date has arrived. */
@@ -200,6 +481,13 @@ export class PlanChangeService {
         toPlanPriceId: true,
         fromPlanId: true,
         direction: true,
+        subscription: {
+          select: {
+            stripeSubscriptionId: true,
+            stripeSubscriptionItemId: true,
+            purchasedSeats: true,
+          },
+        },
       },
     });
 
@@ -239,6 +527,24 @@ export class PlanChangeService {
             },
           });
         });
+
+        /*
+         * Outside the transaction, same reasoning as `requestChange()`: the
+         * local record of "this downgrade is applied" must not depend on
+         * Stripe being reachable at this exact moment. `proration_behavior:
+         * 'none'` because this fires exactly at the renewal boundary the
+         * customer already paid through — nothing should be prorated.
+         */
+        await this.tryApplyToStripe({
+          stripeSubscriptionId: request.subscription.stripeSubscriptionId,
+          stripeSubscriptionItemId:
+            request.subscription.stripeSubscriptionItemId,
+          purchasedSeats: request.subscription.purchasedSeats,
+          targetPlanPriceId: request.toPlanPriceId,
+          prorationBehavior: 'none',
+          context: `scheduled plan change ${request.id}`,
+        });
+
         applied += 1;
       } catch (error) {
         failed += 1;
@@ -303,6 +609,7 @@ export class PlanChangeService {
     subscriptionPriceId: string | null,
     fromPlanId: string,
     toPlanId: string,
+    explicitToPlanPriceId?: string | null,
   ): Promise<{ direction: PlanChangeDirection; toPlanPriceId: string | null }> {
     const current = subscriptionPriceId
       ? await this.prisma.planPrice.findUnique({
@@ -333,6 +640,38 @@ export class PlanChangeService {
       throw new BadRequestException(
         'This subscription has no published price, so a plan change cannot be priced.',
       );
+    }
+
+    /*
+     * A named target price — the only way to express "same plan, different
+     * billing cycle" (BUG-3331 requirement 6), since the auto-resolution below
+     * deliberately matches the CURRENT cycle and would otherwise make a cycle
+     * change unreachable. Still verified against `toPlanId`, `isActive` and
+     * the tenant's market: a caller may not point this at another plan's
+     * price, an inactive one, or one scoped to a different market by naming
+     * an id directly — the same rule BUG-3334 applies to checkout.
+     */
+    if (explicitToPlanPriceId) {
+      const named = await this.prisma.planPrice.findFirst({
+        where: {
+          id: explicitToPlanPriceId,
+          planId: toPlanId,
+          isActive: true,
+          marketId: baseline.marketId,
+        },
+        select: { id: true, unitAmount: true },
+      });
+      if (!named) {
+        throw new BadRequestException(
+          'That price does not belong to the target plan, is not active, or is not in your market.',
+        );
+      }
+      return {
+        direction: named.unitAmount.greaterThanOrEqualTo(baseline.unitAmount)
+          ? PlanChangeDirection.UPGRADE
+          : PlanChangeDirection.DOWNGRADE,
+        toPlanPriceId: named.id,
+      };
     }
 
     const target = await this.prisma.planPrice.findFirst({
@@ -373,7 +712,11 @@ export class PlanChangeService {
     );
   }
 
-  private async load(tenantId: string, toPlanId: string) {
+  private async load(
+    tenantId: string,
+    toPlanId: string,
+    toPlanPriceId?: string | null,
+  ) {
     const subscription = await this.prisma.subscription.findFirst({
       where: { tenantId },
       select: {
@@ -382,6 +725,11 @@ export class PlanChangeService {
         planPriceId: true,
         renewalDate: true,
         currentPeriodEnd: true,
+        stripeSubscriptionId: true,
+        stripeSubscriptionItemId: true,
+        purchasedSeats: true,
+        currency: true,
+        finalPrice: true,
       },
     });
 
@@ -406,7 +754,17 @@ export class PlanChangeService {
       throw new BadRequestException('That plan is not available.');
     }
 
-    if (toPlan.id === fromPlan.id) {
+    /*
+     * Same plan is only a no-op when the price is unnamed or identical too —
+     * BUG-3331 requirement 6. A tenant on Monthly reaching Annual for the
+     * SAME plan names `toPlanId === fromPlan.id` with a `toPlanPriceId` for
+     * the annual price, and that must proceed, not be refused as "already on
+     * this plan".
+     */
+    if (
+      toPlan.id === fromPlan.id &&
+      (!toPlanPriceId || toPlanPriceId === subscription.planPriceId)
+    ) {
       throw new BadRequestException(
         `This workspace is already on ${fromPlan.name}.`,
       );
@@ -414,4 +772,13 @@ export class PlanChangeService {
 
     return { subscription, fromPlan, toPlan };
   }
+}
+
+function roundCurrency(value: number) {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+/** Stripe amounts are in the currency's minor unit; DijiPeople stores major. */
+function minorToMajor(amount: number) {
+  return roundCurrency(amount / 100);
 }

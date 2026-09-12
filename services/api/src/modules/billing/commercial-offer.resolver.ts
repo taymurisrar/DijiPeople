@@ -459,7 +459,10 @@ export function resolveCommercialOffer(
  * caller (a visitor is channel-narrowed, a tenant is market-matched) and belong
  * to the call site, not to this gate.
  */
-export type SellabilityGatePlan = Pick<ResolvablePlan, 'isActive' | 'publicationStatus'>;
+export type SellabilityGatePlan = Pick<
+  ResolvablePlan,
+  'isActive' | 'publicationStatus'
+>;
 export type SellabilityGatePrice = Pick<
   ResolvablePrice,
   'isActive' | 'publicationStatus' | 'marketId'

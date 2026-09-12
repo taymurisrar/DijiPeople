@@ -48,6 +48,11 @@ describeWithDatabase()('Seat and plan changes (DB-backed)', () => {
   const planChanges = new PlanChangeService(
     prisma as unknown as PrismaService,
     outbox,
+    // No `stripeSubscriptionId` is ever set on this suite's fixtures, so
+    // `PlanChangeService` never reaches into this — see `tryApplyToStripe`
+    // and `previewProration`'s no-live-Stripe-object branch.
+    {} as never,
+    { log: async () => undefined } as never,
   );
 
   let tenant: Awaited<ReturnType<DbFixtures['createTenant']>>;

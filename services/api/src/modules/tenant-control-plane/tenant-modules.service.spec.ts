@@ -159,9 +159,9 @@ describe('TenantModulesService', () => {
 
     const view = await service.list(platformUser, 'tenant-1');
 
-    expect(
-      view.modules.find((item) => item.key === 'timesheets')!.state,
-    ).toBe('ENABLED_BY_CUSTOM_GRANT');
+    expect(view.modules.find((item) => item.key === 'timesheets')!.state).toBe(
+      'ENABLED_BY_CUSTOM_GRANT',
+    );
     expect(view.modules.find((item) => item.key === 'projects')!.state).toBe(
       'BLOCKED_BY_PLAN',
     );

@@ -2,7 +2,7 @@
 ID: BUG-3331
 aliases: [BUG-3331]
 Title: Subscribe is enabled for a tenant that already has an active subscription and can only ever return 409
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: UX
@@ -16,10 +16,10 @@ QAReport:
 RegressionId:
 RelatedBacklogItem:
 RelatedDecision:
-RelatedImplementation:
+RelatedImplementation: EXECPLAN-0037
 CreatedAt: 2026-09-11
-UpdatedAt: 2026-09-11
-ResolvedAt:
+UpdatedAt: 2026-09-12
+ResolvedAt: 2026-09-12
 ---
 
 # BUG-3331 — Subscribe is enabled for a tenant that already has an active subscription and can only ever return 409
@@ -205,16 +205,84 @@ currently show the dead button.
 
 ## Resolution
 
-Not yet fixed.
+**API half fixed, per [[EXECPLAN-0037]]. The UI half (items 1-4: button
+state, banner placement, current-plan-vs-cycle comparison) is `apps/web` and
+out of this record's scope — owned by a concurrent stream.** This record
+cannot be closed as fully `FIXED` in the product sense until that lands; the
+status here reflects that the substantive, money-moving work (item 5) is
+done and reviewable independently.
+
+`services/api` now exposes the plan-change path item 5 asked for:
+
+- `GET /billing/plan-changes/preview?toPlanId=&toPlanPriceId=` — the
+  consequences screen's data, including a real money quote (`quote.prorationNow`,
+  `quote.newRecurringAmount`, `quote.currency`, `quote.estimated`) computed via
+  Stripe's own `invoices.createPreview` for a Stripe-backed subscription, or a
+  clearly-labelled (`estimated: true`) local estimate for one that is not
+  (e.g. a demo tenant). Never a second proration formula pretending to be
+  Stripe's.
+- `POST /billing/plan-changes` — `PlanChangeService.requestChange()`, now
+  actually reachable, and now actually pushing the change to Stripe
+  (`stripe.subscriptions.update` with the new price and
+  `proration_behavior: 'create_prorations'`) for an immediate UPGRADE. A
+  Stripe failure after the local write commits is reported as
+  `stripeSyncPending: true` rather than thrown, since rolling back a
+  confirmed, recorded change because Stripe was briefly unreachable would be
+  worse than a reconcilable gap.
+- `PlanChangeService.applyDueChanges()` — which had **zero callers anywhere
+  in the running application**, the same shape of defect as BUG-2618 — is now
+  run by a new `SubscriptionChangeSweeperWorker`
+  (`SUBSCRIPTION_CHANGE_SWEEPER_ENABLED`, off by default), which also pushes
+  the scheduled DOWNGRADE to Stripe (`proration_behavior: 'none'`) at the
+  renewal boundary it fires on.
+- Same-plan, different-cycle changes (item 6, "a tenant on Monthly can reach
+  Annual billing for the same plan") now resolve: `load()`'s same-plan
+  refusal only fires when the named price is also unchanged, and
+  `resolveDirection()` accepts an explicit `toPlanPriceId` naming a price on
+  the target plan, verified against the tenant's own market the same way
+  `createCheckoutSession` is (BUG-3334).
+- `createCheckoutSession`'s 409 for an existing subscription is **unchanged
+  and correct** — it is not this record's defect. The record's acceptance
+  criterion ("no control... can produce a 409") is a frontend routing
+  question: the plans screen must call the new endpoints instead of
+  `checkout-sessions` once a subscription exists, which is the concurrent
+  `apps/web` stream's work against this exact contract.
+
+**Residual finding, not fixed here**: `SeatChangeService.applyDueChanges()`
+has the identical zero-caller defect and was deliberately **not** wired into
+the new sweeper, because doing so would activate a separate, pre-existing gap
+— a scheduled seat DECREASE reduces `Subscription.purchasedSeats` locally
+with no matching Stripe quantity update, so running it unattended would start
+silently under-billing a tenant. Documented in
+`docs/environment-variables.md`'s `SUBSCRIPTION_CHANGE_SWEEPER_ENABLED` entry
+and in the sweeper worker's own comment. Worth its own backlog item.
+
+Full design and reasoning: [[EXECPLAN-0037]],
+`docs/plans/EXECPLAN-0037-tenant-plan-change-endpoint.md`.
+
+Specs: `services/api/src/modules/billing/services/plan-change.service.spec.ts`
+(new — this service had none before), `subscription-change-sweeper.worker.spec.ts`
+(new, modelled on `subscription-order-sweeper.worker.spec.ts`), and
+`billing-authorization.spec.ts` (extended for the two new endpoints).
 
 ## QA Retest
 
-Pending.
+Pending — needs a QA pass against a Stripe test-mode tenant: request an
+UPGRADE and confirm the Stripe subscription's price actually changed in the
+Stripe dashboard; request a same-plan cycle change and confirm it is treated
+as UPGRADE/DOWNGRADE correctly by amount; enable the sweeper against a
+DOWNGRADE scheduled in the past and confirm it applies. The full UI
+acceptance criteria (no 409 reachable from the plans screen, banner
+placement, `role="alert"`) needs the `apps/web` half to land first.
 
 ## History
 
 - 2026-09-11 — created from reviewer at `caad4a56`.
 - 2026-09-11 — Architect triage: `PLAN_REQUIRED`.
+- 2026-09-12 — [[EXECPLAN-0037]] written and implemented: plan-change preview
+  and confirm endpoints, Stripe-facing sync on both the immediate and
+  scheduled paths, the dead `applyDueChanges` sweeper, and same-plan cycle
+  changes. UI half (items 1-4) remains open, owned by a concurrent stream.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 

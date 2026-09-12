@@ -346,7 +346,10 @@ describe('EntitlementGuard + TenantEntitlementService — the ENFORCE cutover', 
     const entitlements = new TenantEntitlementService(prisma as never);
     const guard = new EntitlementGuard(new Reflector(), entitlements);
     jest
-      .spyOn((guard as unknown as { logger: { warn: jest.Mock } }).logger, 'warn')
+      .spyOn(
+        (guard as unknown as { logger: { warn: jest.Mock } }).logger,
+        'warn',
+      )
       .mockImplementation(() => undefined);
     return guard;
   }

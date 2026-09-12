@@ -165,9 +165,11 @@ function buildService(options: {
   };
 
   const commercialConfigService = {
-    resolveMarketForTenant: jest.fn().mockResolvedValue(
-      options.tenantMarketId ? { id: options.tenantMarketId } : null,
-    ),
+    resolveMarketForTenant: jest
+      .fn()
+      .mockResolvedValue(
+        options.tenantMarketId ? { id: options.tenantMarketId } : null,
+      ),
   } as unknown as CommercialConfigService;
 
   const service = new BillingService(
@@ -209,8 +211,11 @@ describe('BillingService.getPublicPlans — tenant market scoping (BUG-3334)', (
     };
   }
 
-  it('lists only the price scoped to the tenant\'s own market', async () => {
-    const ownMarketPrice = priceFixture({ id: 'price-own', marketId: MARKET_A.id });
+  it("lists only the price scoped to the tenant's own market", async () => {
+    const ownMarketPrice = priceFixture({
+      id: 'price-own',
+      marketId: MARKET_A.id,
+    });
     const foreignMarketPrice = priceFixture({
       id: 'price-foreign',
       marketId: MARKET_B.id,
@@ -348,7 +353,7 @@ describe('BillingService.createCheckoutSession — price and market gates (BUG-3
     ).rejects.toBeInstanceOf(AppError);
   });
 
-  it('succeeds for a published price scoped to the tenant\'s own market', async () => {
+  it("succeeds for a published price scoped to the tenant's own market", async () => {
     const { service, sessionsCreate } = buildService({
       planPrice: basePlanPrice(),
       tenantMarketId: MARKET_A.id,

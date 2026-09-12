@@ -243,6 +243,8 @@ process* also drains the resulting queue.
 | `REPORTS_ARTIFACT_RETENTION_DAYS` | optional | How long a generated report export stays downloadable before it is swept. Default 7. |
 | `SUBSCRIPTION_ORDER_SWEEPER_ENABLED` | API | no — defaults off | `true` starts the poll loop (BUG-2618) that ages `PENDING_PAYMENT` orders past their 24-hour TTL to `ABANDONED` and releases their `submissionHash`/`requestedSlug` holds. Off by default for the same reason `OUTBOX_WORKER_ENABLED` is. At least one deployed instance must set it, or an abandoned checkout's workspace address is unpurchasable forever. |
 | `SUBSCRIPTION_ORDER_SWEEPER_POLL_INTERVAL_MS` | API | optional | Poll interval. Defaults to 900000 (15 minutes), floored at 60000. |
+| `SUBSCRIPTION_CHANGE_SWEEPER_ENABLED` | API | no — defaults off | `true` starts the poll loop (BUG-3331, EXECPLAN-0037) that applies `PlanChangeRequest` rows scheduled for a past `effectiveAt` — the scheduled-downgrade half of a plan change, which otherwise never runs (`PlanChangeService.applyDueChanges()` had no caller). Deliberately does not also call `SeatChangeService.applyDueChanges()`: that method reduces `purchasedSeats` locally with no matching Stripe quantity update, so wiring it here would start under-billing a tenant whose seat count was scheduled to decrease — a separate, pre-existing gap this plan does not fix. At least one deployed instance must set this, or a scheduled plan downgrade never takes effect at renewal. |
+| `SUBSCRIPTION_CHANGE_SWEEPER_POLL_INTERVAL_MS` | API | optional | Poll interval. Defaults to 900000 (15 minutes), floored at 60000. |
 
 Running the worker on more than one instance is safe — claims use
 `FOR UPDATE SKIP LOCKED`, so each event goes to exactly one dispatcher — but

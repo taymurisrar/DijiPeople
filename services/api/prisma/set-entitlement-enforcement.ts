@@ -57,9 +57,7 @@ async function setEntitlementEnforcement() {
     }
 
     if (
-      !(ENTITLEMENT_ENFORCEMENT_MODES as readonly string[]).includes(
-        requested,
-      )
+      !(ENTITLEMENT_ENFORCEMENT_MODES as readonly string[]).includes(requested)
     ) {
       throw new Error(
         `Unknown mode "${requested}". Valid modes: ${ENTITLEMENT_ENFORCEMENT_MODES.join(', ')}`,

@@ -67,14 +67,17 @@ type UsageProbe = (
  * needs.
  */
 const USAGE_PROBES: Partial<Record<TenantFeatureKey, UsageProbe>> = {
-  payroll: (prisma, tenantId) => prisma.payrollCycle.count({ where: { tenantId } }),
-  timesheets: (prisma, tenantId) => prisma.timesheet.count({ where: { tenantId } }),
+  payroll: (prisma, tenantId) =>
+    prisma.payrollCycle.count({ where: { tenantId } }),
+  timesheets: (prisma, tenantId) =>
+    prisma.timesheet.count({ where: { tenantId } }),
   projects: (prisma, tenantId) => prisma.project.count({ where: { tenantId } }),
   recruitment: (prisma, tenantId) =>
     prisma.jobOpening.count({ where: { tenantId } }),
   onboarding: (prisma, tenantId) =>
     prisma.employeeOnboarding.count({ where: { tenantId } }),
-  leave: (prisma, tenantId) => prisma.leaveRequest.count({ where: { tenantId } }),
+  leave: (prisma, tenantId) =>
+    prisma.leaveRequest.count({ where: { tenantId } }),
   attendance: (prisma, tenantId) =>
     prisma.attendanceEntry.count({ where: { tenantId } }),
 };
@@ -147,7 +150,10 @@ async function grandfatherEntitlementOverrides() {
           usageCount,
         };
 
-        if (existing?.source === TenantFeatureSource.CUSTOM && existing.isEnabled) {
+        if (
+          existing?.source === TenantFeatureSource.CUSTOM &&
+          existing.isEnabled
+        ) {
           alreadyGranted.push(entry);
         } else if (existing && existing.source !== TenantFeatureSource.CUSTOM) {
           /*
@@ -177,9 +183,7 @@ async function grandfatherEntitlementOverrides() {
         `  = tenant=${entry.tenantId} (${entry.tenantSlug}) plan=${entry.planKey} key=${entry.key} usage=${entry.usageCount}`,
       );
     }
-    console.log(
-      `${apply ? 'Granting' : 'Would grant'}: ${toGrant.length}`,
-    );
+    console.log(`${apply ? 'Granting' : 'Would grant'}: ${toGrant.length}`);
     for (const entry of toGrant) {
       console.log(
         `  + tenant=${entry.tenantId} (${entry.tenantSlug}) plan=${entry.planKey} key=${entry.key} usage=${entry.usageCount}`,

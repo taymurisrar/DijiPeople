@@ -1028,9 +1028,8 @@ export class BillingService {
      * falling through to "every market", which is what let a tenant buy a
      * foreign-market price by posting its id directly.
      */
-    const tenantMarket = await this.commercialConfigService.resolveMarketForTenant(
-      input.tenantId,
-    );
+    const tenantMarket =
+      await this.commercialConfigService.resolveMarketForTenant(input.tenantId);
     if (!priceBelongsToMarket(planPrice, tenantMarket?.id ?? null)) {
       throw new AppError('BILLING_PLAN_PRICE_UNAVAILABLE');
     }
@@ -1254,6 +1253,73 @@ export class BillingService {
     }
 
     return mapTenantInvoice(invoice);
+  }
+
+  /**
+   * The seat total the browser must not compute a second time — BUG-3330.
+   *
+   * `calculateSeatPricing`/`resolveBillableSeats` already had to be
+   * de-duplicated once after two copies of this rule disagreed
+   * (`billing-seat-pricing.ts`'s own docstring). This exposes that single
+   * implementation over the wire instead of growing a third copy in the
+   * browser.
+   *
+   * Tenant-scoped and gated exactly like every other billing read: the price
+   * must be currently sellable and must belong to the tenant's own market —
+   * the same two checks `createCheckoutSession` applies (BUG-3334/BUG-3333) —
+   * so this cannot be used to price a foreign-market or unpublished row
+   * either.
+   */
+  async getSeatQuote(tenantId: string, planPriceId: string, seats: number) {
+    const planPrice = await this.prisma.planPrice.findFirst({
+      where: { id: planPriceId },
+      include: { plan: true },
+    });
+
+    if (!planPrice) {
+      throw new AppError('BILLING_PLAN_PRICE_UNAVAILABLE');
+    }
+    this.assertPlanPriceCurrentlySellable(planPrice);
+
+    const tenantMarket =
+      await this.commercialConfigService.resolveMarketForTenant(tenantId);
+    if (!priceBelongsToMarket(planPrice, tenantMarket?.id ?? null)) {
+      throw new AppError('BILLING_PLAN_PRICE_UNAVAILABLE');
+    }
+
+    let normalizedSeats: number;
+    try {
+      normalizedSeats = normalizePurchasedSeats(seats, planPrice);
+    } catch (error) {
+      throw new BadRequestException(
+        error instanceof Error ? error.message : 'Invalid seat quantity.',
+      );
+    }
+
+    const pricing = calculateSeatPricing(
+      mapSeatPriceContract(planPrice),
+      normalizedSeats,
+    );
+    const unitAmount = Number(planPrice.unitAmount);
+
+    return {
+      planPriceId: planPrice.id,
+      planId: planPrice.planId,
+      billingModel: planPrice.billingModel,
+      billingInterval: planPrice.billingInterval,
+      currency: pricing.currency,
+      seats: pricing.purchasedSeats,
+      minimumSeats: planPrice.minimumSeats,
+      maximumSeats: planPrice.maximumSeats,
+      includedSeats: pricing.includedSeats,
+      billableSeats: pricing.billableSeats,
+      unitPrice: unitAmount,
+      // `unitAmount * billableSeats` regardless of billing interval — unlike
+      // `calculateSeatPricing`'s own `estimatedMonthlyCharge`, which is null
+      // for an annual price. This is the number the confirm button needs
+      // whichever interval was selected.
+      total: roundCurrencyAmount(unitAmount * pricing.billableSeats),
+    };
   }
 
   verifyWebhookSignature(payload: Buffer, signature: string) {
@@ -1692,4 +1758,8 @@ function mapSeatPriceContract(price: {
     maximumSeats: price.maximumSeats,
     includedSeats: price.includedSeats,
   };
+}
+
+function roundCurrencyAmount(value: number) {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
 }
