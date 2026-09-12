@@ -4759,3 +4759,18 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The record's own count (five) undercounted by one — a sixth instance existed in a file the count-by-inspection missed, found only once a second file (`cancel/page.tsx`) touching the same user flow was checked deliberately. When a defect is described as "N instances in file X", grep the surrounding flow's other files before treating N as complete. |
 | **Fixed** | 2026-09-12, branch `agent/r-s1-billing-web` |
 | **Active** | yes |
+
+### REG-417 — A failed data load was indistinguishable from a permissions refusal
+
+| | |
+|---|---|
+| **Bug class** | `wrong-failure-state-reused` |
+| **Module** | `apps/web/app/(authenticated)/settings/subscription` |
+| **Bug record** | BUG-3336 |
+| **Root cause** | Three compounding gaps on one route. First, neither `settings/subscription/` nor `settings/billing/` had a `loading.tsx` or `error.tsx`, so navigating there showed the previous screen, unchanged, until three server-side API calls all returned. Second, `SubscriptionSettingsPage` rendered `AccessDeniedState` — the same component used for a genuine role refusal — whenever `loadSubscriptionSettingsData` caught a request error, so a transient 500 or timeout looked identical to "you are not allowed here" and offered no retry. Third, the UI gate was `hasElevatedTenantRole(user?.roleKeys)`, a helper `AGENTS.md` names specifically as a guard bypass, while the API requires the `billing.view` permission plus a `TENANT_ADMINISTRATION:read` matrix privilege — so a user holding the permission but not an elevated role was refused by the UI although the API would have served them. |
+| **Regression test** | `apps/web/app/(authenticated)/settings/subscription/_components/subscription-settings-page.spec.ts` |
+| **Scenario** | `loading.tsx` and `error.tsx` exist at the subscription route segment. A failed data load (`subscriptionData.ok === false`) renders `LoadFailureState`, never `AccessDeniedState`; the permission refusal branch still renders `AccessDeniedState`. The page gate calls `hasSettingsPermission` with `PERMISSION_KEYS.BILLING_VIEW`, not the elevated-role helper. `/billing/invoices` is requested only when `activeView === "billing-history"`. |
+| **Proven to fail without the fix** | Reverting the `!subscriptionData.ok` branch to `AccessDeniedState`, or reverting the gate to the elevated-role helper, fails this spec's assertions directly; there was no executable check for either before this record. |
+| **Note** | `hasSettingsPermission` is not full parity with the API's matrix privilege — no entity-key mirror for `TENANT_ADMINISTRATION` exists anywhere in `apps/web` yet, on this screen or any other — but it is the same gate every other settings screen in this app already uses, and it closes the specific gap this record measured (permission granted, elevated role absent) without inventing a new pattern for one screen. |
+| **Fixed** | 2026-09-12, branch `agent/r-s1-billing-web` |
+| **Active** | yes |
