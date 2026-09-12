@@ -11,6 +11,17 @@
 
 export const THEME_STORAGE_KEY = "dijipeople:theme";
 
+/**
+ * BUG-3373 — mirrors the in-app choice so the *next* full page load can be
+ * resolved server-side, before first paint. `localStorage` cannot cross that
+ * boundary: `apps/web/app/layout.tsx` renders on the server, and the server
+ * has no access to the browser's storage, only to what the request carries.
+ * A cookie does. One year, matching the pattern `apps/admin` already uses for
+ * the same defect class (`ADMIN_THEME_COOKIE`) — a preference that expires is
+ * a flash that comes back.
+ */
+export const THEME_COOKIE = "dp-web-theme";
+
 export type ThemeChoice = "light" | "dark" | "system";
 
 export function systemPrefersDark(): boolean {
@@ -20,13 +31,19 @@ export function systemPrefersDark(): boolean {
   );
 }
 
+/** Narrows an arbitrary stored/cookie/attribute string to a real choice. */
+export function parseThemeChoice(
+  value: string | null | undefined,
+): ThemeChoice | null {
+  return value === "light" || value === "dark" || value === "system"
+    ? value
+    : null;
+}
+
 export function readStoredThemeChoice(): ThemeChoice | null {
   if (typeof window === "undefined") return null;
   try {
-    const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
-    return stored === "light" || stored === "dark" || stored === "system"
-      ? stored
-      : null;
+    return parseThemeChoice(window.localStorage.getItem(THEME_STORAGE_KEY));
   } catch {
     /* Storage can be blocked; that is not a reason to fail. */
     return null;
@@ -39,11 +56,30 @@ export function storeThemeChoice(choice: ThemeChoice): void {
   } catch {
     /* A blocked storage API must not stop the theme from changing. */
   }
+  try {
+    document.cookie = `${THEME_COOKIE}=${choice}; path=/; max-age=31536000; samesite=lax`;
+  } catch {
+    /* Same: a blocked cookie API leaves this load correct and only costs the
+     * next full page load its head start. */
+  }
 }
 
 export function resolveTheme(choice: ThemeChoice): "light" | "dark" {
   if (choice === "system") return systemPrefersDark() ? "dark" : "light";
   return choice;
+}
+
+/**
+ * The one precedence order, as a pure function: **explicit choice → tenant
+ * default → device.** Shared by `effectiveThemeChoice()` (DOM-based, client
+ * only) and the root layout's server-side resolution, so there is exactly one
+ * place that encodes the order rather than two copies that can disagree.
+ */
+export function resolveThemePrecedence(
+  storedChoice: ThemeChoice | null,
+  tenantDefault: ThemeChoice | null,
+): ThemeChoice {
+  return storedChoice ?? tenantDefault ?? "system";
 }
 
 /**
@@ -58,10 +94,9 @@ export const TENANT_THEME_ATTRIBUTE = "data-tenant-theme";
 
 export function readTenantThemeDefault(): ThemeChoice | null {
   if (typeof document === "undefined") return null;
-  const value = document.documentElement.getAttribute(TENANT_THEME_ATTRIBUTE);
-  return value === "light" || value === "dark" || value === "system"
-    ? value
-    : null;
+  return parseThemeChoice(
+    document.documentElement.getAttribute(TENANT_THEME_ATTRIBUTE),
+  );
 }
 
 /**
@@ -80,7 +115,10 @@ export function readTenantThemeDefault(): ThemeChoice | null {
  * `data-theme="system"`.
  */
 export function effectiveThemeChoice(): ThemeChoice {
-  return readStoredThemeChoice() ?? readTenantThemeDefault() ?? "system";
+  return resolveThemePrecedence(
+    readStoredThemeChoice(),
+    readTenantThemeDefault(),
+  );
 }
 
 /**

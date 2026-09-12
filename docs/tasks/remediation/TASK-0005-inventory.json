@@ -19493,21 +19493,25 @@
       "title": "Web paints the operating-system dark theme before the tenant Light default arrives",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3373-web-paints-the-operating-system-dark-theme-before-the-tenant.md",
         "provenance": "USER_REPORT",
         "detected_in_sha": "cbd9b812",
         "created_at": "2026-09-11",
-        "updated_at": "2026-09-11",
-        "resolved_at": ""
+        "updated_at": "2026-09-12",
+        "resolved_at": "2026-09-12"
       },
       "affected_modules": [
         "apps/web"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-419"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-010"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -19531,22 +19535,26 @@
       "title": "Settings Customization and its twelve child routes silently redirect to Roles",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3374-settings-customization-and-its-twelve-child-routes-silently-.md",
         "provenance": "USER_REPORT",
         "detected_in_sha": "cbd9b812",
         "created_at": "2026-09-11",
-        "updated_at": "2026-09-11",
-        "resolved_at": ""
+        "updated_at": "2026-09-12",
+        "resolved_at": "2026-09-12"
       },
       "affected_modules": [
         "apps/web",
         "customization"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-420"
+      ],
+      "qa_scenarios": [
+        "QA-AUTHZ-016"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -19693,21 +19701,25 @@
       "title": "The responsive runtime tab strip hides a measurement copy from screen readers while leaving thirteen buttons in the tab order",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3378-the-responsive-runtime-tab-strip-hides-a-measurement-copy-fr.md",
         "provenance": "USER_REPORT",
         "detected_in_sha": "cbd9b812",
         "created_at": "2026-09-11",
-        "updated_at": "2026-09-11",
-        "resolved_at": ""
+        "updated_at": "2026-09-12",
+        "resolved_at": "2026-09-12"
       },
       "affected_modules": [
         "apps/web"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-421"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-042"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -19771,7 +19783,7 @@
       "title": "Every widget section on a record form prints its title twice, and the profile section's two titles disagree",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3412-every-widget-section-on-a-record-form-prints-its-title-twice.md",
@@ -19779,13 +19791,17 @@
         "detected_in_sha": "06ed3592",
         "created_at": "2026-09-12",
         "updated_at": "2026-09-12",
-        "resolved_at": ""
+        "resolved_at": "2026-09-12"
       },
       "affected_modules": [
         "apps/web"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-422"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-043"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -24510,14 +24526,14 @@
       "title": "The customization settings category renders no leaf pages in server HTML",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "DUPLICATE",
+      "architect_disposition": "DUPLICATE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0104-the-customization-settings-category-renders-no-leaf-pages-in.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-08-29",
-        "updated_at": "2026-08-29",
+        "updated_at": "2026-09-12",
         "resolved_at": ""
       },
       "affected_modules": [

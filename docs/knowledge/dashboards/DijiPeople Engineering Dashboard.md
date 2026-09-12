@@ -12,8 +12,8 @@
 | Open total | 191 |
 | Blocked | 2 |
 | Awaiting a product decision | 9 |
-| Deferred | 92 |
-| Completed | 319 |
+| Deferred | 91 |
+| Completed | 320 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -109,7 +109,7 @@
 | [[BUG-3331-subscribe-is-enabled-for-a-tenant-that-already-has-an-active|BUG-3331]] | Subscribe is enabled for a tenant that already has an active subscription and can only ever return 409 | UX | HIGH | OPEN | apps/web, api:billing | PLAN_REQUIRED |
 | [[BUG-3332-plan-cards-truncate-to-eight-features-so-growth-and-enterpri|BUG-3332]] | Plan cards truncate to eight features so Growth and Enterprise advertise identical capability | UX | HIGH | OPEN | apps/web, api:billing | FIX_NOW |
 | [[BUG-3356-a-revoked-or-expired-session-is-reported-to-the-user-as-auth|BUG-3356]] | A revoked or expired session is reported to the user as AUTH_TOKEN_MISSING and is never logged | BUG | HIGH | OPEN | web:auth, api:auth | FIX_NOW |
-| [[BUG-3374-settings-customization-and-its-twelve-child-routes-silently-|BUG-3374]] | Settings Customization and its twelve child routes silently redirect to Roles | AUTHORIZATION | HIGH | OPEN | apps/web, customization | FIX_NOW |
+| [[BUG-3374-settings-customization-and-its-twelve-child-routes-silently-|BUG-3374]] | Settings Customization and its twelve child routes silently redirect to Roles | AUTHORIZATION | HIGH | FIXED | apps/web, customization | FIX_NOW |
 | [[BUG-3375-the-notification-rules-screen-edits-preferences-and-cannot-r|BUG-3375]] | The Notification Rules screen edits preferences and cannot reach NotificationRule at all | UX | HIGH | OPEN | notifications, apps/web | PLAN_REQUIRED |
 | [[BUG-3376-runtime-lookups-fetch-one-unpaged-page-and-filter-it-in-the-|BUG-3376]] | Runtime lookups fetch one unpaged page and filter it in the browser, hiding every record past the server page size | DATA_INTEGRITY | HIGH | OPEN | apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no|ITEM-0133]] | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | READY | services/api/test | PLAN_REQUIRED |
@@ -323,6 +323,7 @@
 | [[BUG-3020-records-behind-these-numbers-shows-raw-guids-and-a-count-tha|BUG-3020]] | Records behind these numbers shows raw GUIDs and a count that does not match the metric | UX | HIGH | FIXED | apps/web, api:reporting | FIX_NOW |
 | [[BUG-3115-rate-limiter-trusts-a-forged-x-forwarded-for-and-covers-no-a|BUG-3115]] | Rate limiter trusts a forged X-Forwarded-For and covers no authenticated endpoint | SECURITY | HIGH | FIXED | services/api/src/common/security/client-ip.ts, services/api/src/common/guards/public-rate-limit.guard.ts, services/api/src/common/interceptors/authenticated-rate-limit.interceptor.ts | DONE |
 | [[BUG-3241-legacy-role-permission-grant-and-employee-export-both-skip-t|BUG-3241]] | Legacy role-permission grant and employee export both skip the sibling endpoint's access check | AUTHORIZATION | HIGH | FIXED | api:roles/roles.service.ts, api:employees/employees.service.ts | DONE |
+| [[BUG-3374-settings-customization-and-its-twelve-child-routes-silently-|BUG-3374]] | Settings Customization and its twelve child routes silently redirect to Roles | AUTHORIZATION | HIGH | FIXED | apps/web, customization | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | VERIFIED | app:admin | DONE |
@@ -454,6 +455,8 @@
 | [[BUG-3254-the-forwarded-for-hop-guard-rejected-every-honest-chain-coll|BUG-3254]] | The rate-limit e2e suite sent a forwarded chain one hop short, and the guard was misread as an off-by-one | TEST_GAP | MEDIUM | FIXED | pkg:config, services/api/src/common/security, services/api/test | DONE |
 | [[BUG-3263-the-provisioning-queue-e2e-fixture-raced-the-clock-so-an-exa|BUG-3263]] | The provisioning queue e2e fixture raced the clock, so an exact five-minute interval came out 300001ms | TEST_GAP | MEDIUM | FIXED | services/api/test | DONE |
 | [[BUG-3316-notification-settings-screens-hydrate-with-utc-timestamps-an|BUG-3316]] | Notification settings screens hydrate with UTC timestamps and crash the React tree | UX | MEDIUM | FIXED | apps/web | DONE |
+| [[BUG-3373-web-paints-the-operating-system-dark-theme-before-the-tenant|BUG-3373]] | Web paints the operating-system dark theme before the tenant Light default arrives | UX | MEDIUM | FIXED | apps/web | FIX_NOW |
+| [[BUG-3378-the-responsive-runtime-tab-strip-hides-a-measurement-copy-fr|BUG-3378]] | The responsive runtime tab strip hides a measurement copy from screen readers while leaving thirteen buttons in the tab order | UX | MEDIUM | FIXED | apps/web | FIX_NOW |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -481,6 +484,7 @@
 | [[BUG-2461-get-employees-me-direct-reports-is-shadowed-by-the-employeei|BUG-2461]] | GET employees me direct-reports is shadowed by the employeeId route and returns 400 | BUG | LOW | FIXED | api:employees | FIX_NOW |
 | [[BUG-2657-analytics-caveat-panels-list-the-same-note-twice-in-differen|BUG-2657]] | Analytics caveat panels list the same note twice in different wording | UX | LOW | FIXED | api:reporting | DONE |
 | [[BUG-3021-workspace-switcher-in-the-avatar-menu-overflows-horizontally|BUG-3021]] | Workspace switcher in the avatar menu overflows horizontally and shows a scrollbar | UX | LOW | FIXED | apps/web | FIX_NOW |
+| [[BUG-3412-every-widget-section-on-a-record-form-prints-its-title-twice|BUG-3412]] | Every widget section on a record form prints its title twice, and the profile section's two titles disagree | UX | LOW | FIXED | apps/web | FIX_NOW |
 
 ## Recent QA Runs
 
@@ -584,9 +588,9 @@
 | [[BUG-3357-remember-me-is-overridden-by-the-web-middleware-which-pins-t|BUG-3357]] | Remember me is overridden by the web middleware, which pins the cookies to 15 minutes and 1 hour | BUG | MEDIUM | OPEN | web:auth, api:auth | FIX_NOW |
 | [[BUG-3358-a-server-component-render-rotates-the-refresh-token-and-cann|BUG-3358]] | A Server Component render rotates the refresh token and cannot persist it, orphaning the browser | BUG | MEDIUM | OPEN | web:auth, api:auth | FIX_NOW |
 | [[BUG-3359-refresh-rotation-has-no-grace-window-and-the-web-middleware-|BUG-3359]] | Refresh rotation has no grace window and the web middleware has no concurrency control | BUG | MEDIUM | OPEN | api:auth, web:auth | PLAN_REQUIRED |
-| [[BUG-3373-web-paints-the-operating-system-dark-theme-before-the-tenant|BUG-3373]] | Web paints the operating-system dark theme before the tenant Light default arrives | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
+| [[BUG-3373-web-paints-the-operating-system-dark-theme-before-the-tenant|BUG-3373]] | Web paints the operating-system dark theme before the tenant Light default arrives | UX | MEDIUM | FIXED | apps/web | FIX_NOW |
 | [[BUG-3377-admin-lookup-controls-still-carry-the-nested-interactive-lis|BUG-3377]] | Admin lookup controls still carry the nested-interactive listbox that BUG-1956 fixed only in web | UX | MEDIUM | OPEN | apps/admin | FIX_NOW |
-| [[BUG-3378-the-responsive-runtime-tab-strip-hides-a-measurement-copy-fr|BUG-3378]] | The responsive runtime tab strip hides a measurement copy from screen readers while leaving thirteen buttons in the tab order | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
+| [[BUG-3378-the-responsive-runtime-tab-strip-hides-a-measurement-copy-fr|BUG-3378]] | The responsive runtime tab strip hides a measurement copy from screen readers while leaving thirteen buttons in the tab order | UX | MEDIUM | FIXED | apps/web | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -620,7 +624,7 @@
 | [[BUG-3021-workspace-switcher-in-the-avatar-menu-overflows-horizontally|BUG-3021]] | Workspace switcher in the avatar menu overflows horizontally and shows a scrollbar | UX | LOW | FIXED | apps/web | FIX_NOW |
 | [[BUG-3360-every-session-row-records-the-user-agent-as-node-and-the-clo|BUG-3360]] | Every session row records the user agent as node and the Cloudflare edge IP | BUG | LOW | OPEN | api:auth, web:auth | FIX_NOW |
 | [[BUG-3379-a-delivery-log-row-says-not-delivered-and-carries-nothing-th|BUG-3379]] | A delivery log row says Not delivered and carries nothing that explains why | UX | LOW | OPEN | notifications, apps/web | FIX_NOW |
-| [[BUG-3412-every-widget-section-on-a-record-form-prints-its-title-twice|BUG-3412]] | Every widget section on a record form prints its title twice, and the profile section's two titles disagree | UX | LOW | OPEN | apps/web | FIX_NOW |
+| [[BUG-3412-every-widget-section-on-a-record-form-prints-its-title-twice|BUG-3412]] | Every widget section on a record form prints its title twice, and the profile section's two titles disagree | UX | LOW | FIXED | apps/web | FIX_NOW |
 | [[ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by|ITEM-0080]] | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
 | [[ITEM-0164-an-organization-hierarchy-viewer-reachable-from-the-employee|ITEM-0164]] | An organization hierarchy viewer reachable from the employee record | UX | — | READY | apps/web, employees, organization | PLAN_REQUIRED |
 | [[ITEM-0165-present-an-employee-s-primary-location-and-authorised-work-s|ITEM-0165]] | Present an employee's primary location and authorised work sites as one control | UX | — | READY | apps/web, employees, attendance | FIX_NOW |

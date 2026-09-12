@@ -4789,3 +4789,63 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Two implementations, one fix, ported rather than reinvented: `apps/admin/lib/a11y/listbox-navigation.ts` is a duplicate of `apps/web/lib/a11y/listbox-navigation.ts` because the two apps share no UI package for this (root `AGENTS.md`: `packages/` holds exactly four workspaces). `LookupControl`'s trigger changed from a button to a `div role="combobox"` specifically so the clear control could become a real sibling button — a button may not contain another interactive element, which is why the old clear affordance was a non-button in the first place. `SearchableSelect`'s activeIndex clamp is derived during render rather than set in a `useEffect`, after `react-hooks/set-state-in-effect` flagged the direct-port version of the pattern already in `apps/web`'s (differently structured) equivalent. |
 | **Fixed** | 2026-09-12, branch `agent/r-s6-lookups` |
 | **Active** | yes |
+
+### REG-419 — A tenant's Light default was never in reach of the frame that needed it
+
+| | |
+|---|---|
+| **Bug class** | `assertion-without-a-check` |
+| **Module** | `apps/web` |
+| **Bug record** | BUG-3373 |
+| **Root cause** | The pre-paint bootstrap script in `apps/web/app/layout.tsx` resolved the theme from `localStorage` and `matchMedia` only — a static string with no interpolation, so no tenant value could ever reach it. The tenant default was fetched server-side in the same layout, and used only to build CSS colour variables, never to decide `data-theme`. Two mechanisms decided the same attribute from disjoint inputs, and disagreed on every dark-preferring machine visiting a Light tenant. `apps/admin` had already closed this exact gap for its own (user-scoped, not tenant-scoped) preference under REG-198/REG-251; this is the tenant-product instance of the same class. |
+| **Regression test** | `apps/web/lib/theme-precedence.spec.ts` |
+| **Scenario** | With `prefers-color-scheme: dark`, no stored theme choice, and a tenant default of Light, `data-theme` is `light` in the server-rendered HTML and at every sample point during load — never `dark`, even for one frame. An explicit in-app choice of Dark, mirrored into the `dp-web-theme` cookie by `storeThemeChoice`, still produces `data-theme="dark"` in the first painted frame. A tenant default of System still follows the OS, resolved by the bootstrap script's `matchMedia` call, seeded from the `data-tenant-theme` attribute the layout now stamps server-side rather than from a bare guess. |
+| **Proven to fail without the fix** | `resolveThemePrecedence(null, "light")` was unreachable from the server before this change — there was no code path that called it with a server-known tenant default, so `apps/web/app/layout.tsx` had no way to stamp anything but the operating system's guess for a first-time visitor. |
+| **Note** | The cookie is a rendering hint, not a decision — precedence is still resolved by `resolveThemePrecedence` (explicit choice → tenant default → device), pulled out as one pure function so the client's DOM-based `effectiveThemeChoice()` and the server's cookie-based resolution cannot drift into two answers. The bootstrap script also migrates a pre-fix, cookie-less `localStorage` choice into the cookie on first run, so a user who chose Dark before this shipped is not silently reset to the tenant default until they happen to reopen the toggle. |
+| **Fixed** | 2026-09-12 |
+| **Active** | yes |
+
+### REG-420 — Two authorization models for one settings section, and a redirect where a refusal belonged
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` |
+| **Module** | `apps/web` settings, `customization` |
+| **Bug record** | BUG-3374 |
+| **Root cause** | `requireCustomizationAccess` in the Customization section's layout gated on role membership (`GLOBAL_ADMIN`/`SYSTEM_CUSTOMIZER` only), while the navigation catalog and every page beneath the layout gated on the `customization.read` permission through `requireSettingsPermissions`/`hasAnySettingsPermission` (which also accepts `SYSTEM_ADMIN` and any user holding the permission outright). The layout ran first, so its stricter, disagreeing rule denied a user every page underneath it would have allowed — reproduced against the workspace owner, who held the permission but neither role. The layout's response to a denial was `redirect()` to a hardcoded legacy `/settings/access/roles` path, which a `next.config.ts` rewrite then forwarded to the real Roles URL, where Roles resolved and appended its own default `?viewId=` — three unrelated mechanisms composing into one baffling, silent destination. |
+| **Regression test** | `apps/web/app/(authenticated)/settings/_lib/require-settings-permission.spec.ts` |
+| **Scenario** | A user holding `customization.read` but neither administrator role — the workspace-owner case as reproduced live — reaches `/settings/customization` and its twelve child routes without redirection. A user holding neither the permission nor either role sees `AccessDeniedState` rendered in place at the URL they requested, not a redirect to Roles. `GLOBAL_ADMIN`, `SYSTEM_CUSTOMIZER` and `SYSTEM_ADMIN` are all still admitted with no explicit permission grant, matching what every page under the section already assumed. |
+| **Proven to fail without the fix** | The old `hasCustomizationAdministratorRole(user) && hasAnyPermission(...)` gate denied a `customization.read`-only user outright; the new `requireCustomizationAccess` (`hasAnySettingsPermission` — the same function `requireSettingsPermissions` already used) admits the identical fixture. |
+| **Note** | **Pick one authorization model, not a matching pair.** The fix folds the layout's gate into the exact function the pages already called through, rather than tuning the layout's own role set until it happened to agree — a second, hand-synchronised copy of the same rule is the shape of the defect this class is named for, and would drift again the next time either side's permission set changed alone. The redirect fallback (`fallbackHref`) and the dependence on `next.config.ts`'s legacy `/settings/access/roles` rewrite were removed from this call path entirely, rather than pointed somewhere less wrong — that rewrite still exists for its other, legitimate callers. |
+| **Fixed** | 2026-09-12 |
+| **Active** | yes |
+
+### REG-421 — A measurement copy that was invisible and still tabbable, and a tab strip with no tab semantics
+
+| | |
+|---|---|
+| **Bug class** | `aria-hidden-still-focusable` |
+| **Module** | `apps/web` runtime record pages |
+| **Bug record** | BUG-3378 |
+| **Root cause** | `responsive-runtime-tabs.tsx` renders an off-screen, zero-opacity copy of every tab purely to measure its width before deciding how many fit. That copy was marked `aria-hidden="true"`, which tells assistive technology to skip it but does nothing to the tab order — its buttons stayed thirteen live, invisible keyboard stops. Separately, the *visible* strip was built from plain `button`s with no `role="tab"`, `role="tablist"` or `role="tabpanel"` anywhere, so a screen reader had no way to announce it as a tab widget at all. |
+| **Regression test** | `apps/web/app/components/runtime/responsive-runtime-tabs.spec.ts` |
+| **Scenario** | The measurement copy contains no focusable element (`inert` removes it from focus the same way `aria-hidden` already removed it from the accessibility tree). The visible strip exposes one `tablist`, one `tab` per visible tab with `aria-selected` and `aria-controls`, and a `tabpanel` with `aria-labelledby` pointing at the selected tab — ids shared between `responsive-runtime-tabs.tsx` and `runtime-metadata-form-renderer.tsx` via `getResponsiveTabId`/`getResponsiveTabPanelId` rather than reconstructed on each side. Roving `tabindex` makes only the selected tab a page-level Tab stop; `ArrowLeft`/`ArrowRight`/`Home`/`End` move and reselect between the others, skipping disabled tabs, with the movement math (`resolveNextTabIndex`) exercised directly since `apps/web`'s jest has no jsdom to render against. The More menu is unaffected and stays reachable by ordinary Tab order after the strip. |
+| **Proven to fail without the fix** | `apps/admin`'s equivalent structural check (`console-theme.spec.ts`) established the pattern of reading source directly for what a jsdom-less suite otherwise could not catch; the same technique here asserts `inert` is present on the measurement block and that the visible strip's roles are exactly the ones the fix adds, so reverting either half fails the corresponding assertion by name. |
+| **Note** | This shell is what [[ITEM-0167]] proposes propagating to every other record page, so the fix had to be complete rather than merely quieter: **`inert`, not only `tabIndex={-1}` on each child**, because a future control added to the measurement copy without remembering the individual override would silently reopen the same defect, and `inert` cannot be forgotten one field at a time. |
+| **Fixed** | 2026-09-12 |
+| **Active** | yes |
+
+### REG-422 — A section and its self-titling widget both insisted on naming the same control
+
+| | |
+|---|---|
+| **Bug class** | `flag-honoured-in-one-branch` |
+| **Module** | `apps/web` runtime record pages |
+| **Bug record** | BUG-3412 |
+| **Root cause** | `section.labelVisible` exists on `FormSectionMetadata` for exactly one reason — suppressing a section's own heading when its only content already draws one — and `runtime-metadata-form-renderer.tsx` honoured it in exactly one of the three branches that render a section heading (`CustomizationFormRenderer`'s, which serves a different, unrelated form type). The two branches that actually serve entity record pages either ignored it outright or guarded only on `section.label` being present. The employee record's Profile, Timeline and Reporting Hierarchy sections all have `fields: []` and a single self-titling system widget as their only content, so all three printed their name twice; the profile pair used two different words for it ("Profile Image" from the section, "Profile Photo" — rendered uppercase — from the widget). |
+| **Regression test** | `apps/web/app/components/metadata/runtime-metadata-form-renderer.labelvisible.spec.ts`, `apps/web/lib/runtime/modules/employee-metadata.adapter.labelvisible.spec.ts` |
+| **Scenario** | `section.labelVisible !== false` is honoured in all three heading-rendering branches (asserted by counting occurrences in source, since `apps/web`'s jest cannot render the component). The four employee sections whose only content is a self-titling system widget (`profile-image`, `timeline`, `reporting-hierarchy`, and `agent-desktop` — found while applying the same rule, though outside the bug's original count since the Agent tab is not the default tab) all carry `labelVisible: false`. The profile control has one name, "Profile Photo", used by both the section metadata and the widget (`runtime-profile-image-card.tsx`). A section with no self-titling widget (`basic-information`) is untouched. |
+| **Proven to fail without the fix** | Before this change, `mapEmployeeForms([])`'s `profile-image` section carried `label: "Profile Image"` with no `labelVisible` field at all — `FormSectionMetadata` did not declare one — so the flag this bug's fix depends on could not have existed on the object being rendered. |
+| **Note** | **One rule, not a per-section patch.** The fix is the general mechanism (honour the flag everywhere a heading is drawn) plus data (set the flag on the sections that need it) — a per-section conditional inside the renderer would have fixed exactly the three sections named in the bug report and nothing found afterward, which is how `agent-desktop` would have stayed broken. This repo's own knowledge base separately flags a `replace(..., 1)`-style edit landing on the wrong one of two near-identical lines as a known failure mode for exactly this kind of change; the regression test asserts an occurrence *count* across the file rather than trusting a single substring match to have landed in the right branch. |
+| **Fixed** | 2026-09-12 |
+| **Active** | yes |
