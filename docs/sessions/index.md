@@ -6,12 +6,13 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 1** · completed: 98
+**Active: 2** · completed: 98
 
 ## Active
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0103](../../docs/sessions/SESSION-0103-implement-the-34-open-records-from-sessions-0099-0102.md) | TASK-0030 | Implement the 34 open records from sessions 0099-0102 | ACTIVE | `agent/records-0099-0102` | `develop` | permissions, runtime-registries, record-indexes | 2026-09-12T12:38:09.669Z |
 | [SESSION-0099](../../docs/sessions/SESSION-0099-review-tenant-subscription-plans-features-screen.md) | — | Review tenant subscription Plans & Features screen | ACTIVE | `agent/review-subscription-plans-screen` | `develop` | — | 2026-09-11T20:30:13.810Z |
 
 ## Completed
