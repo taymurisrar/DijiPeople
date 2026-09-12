@@ -440,7 +440,63 @@ export const employeeModuleDataAdapter: ModuleDataAdapter<
       `${input.widget.displayName} is not supported by the Employee data adapter.`,
     );
   },
+
+  /*
+   * ITEM-0165 / the ITEM-0167 architectural invariant — the work-site
+   * mutations (add, edit validity, remove, make primary) used to be spelled
+   * out as literal `/api/integrations/attendance/employees/...` routes
+   * inside the SHARED `module-widget-renderer.tsx`, which is exactly what
+   * `package-layer-runtime.spec.ts` exists to catch: a generic runtime file
+   * that every module renders through must not hardcode one module's route.
+   * The widget now calls `dataAdapter.runWidgetAction(...)` generically; only
+   * this employee-owned adapter knows the actual endpoint shape.
+   */
+  async runWidgetAction(input) {
+    if (
+      input.widget.logicalName === "employee.workSites" ||
+      input.widget.widgetType === "employee_work_sites"
+    ) {
+      return runEmployeeWorkSiteAction(
+        input.recordId,
+        input.action,
+        input.payload,
+      );
+    }
+
+    throw new Error(
+      `${input.widget.displayName} does not support this action.`,
+    );
+  },
 };
+
+async function runEmployeeWorkSiteAction(
+  employeeId: string,
+  action: string,
+  payload: Readonly<Record<string, unknown>> | undefined,
+) {
+  const basePath = `/api/integrations/attendance/employees/${encodeURIComponent(employeeId)}/work-sites`;
+
+  switch (action) {
+    case "assign":
+      return requestJson(basePath, {
+        method: "POST",
+        body: JSON.stringify(payload ?? {}),
+      });
+    case "setPrimary":
+      return requestJson(`${basePath}/primary`, {
+        method: "POST",
+        body: JSON.stringify(payload ?? {}),
+      });
+    case "remove": {
+      const locationId = stringValue(payload?.locationId);
+      return requestJson(`${basePath}/${encodeURIComponent(locationId)}`, {
+        method: "DELETE",
+      });
+    }
+    default:
+      throw new Error(`Unsupported work site action: "${action}".`);
+  }
+}
 
 function mapFormValues(values: RuntimeRecord) {
   const payload = mapEmployeeRuntimeValuesToUpdatePayload(

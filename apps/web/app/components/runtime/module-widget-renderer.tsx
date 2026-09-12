@@ -40,7 +40,7 @@ import { PERMISSION_KEYS } from "@/lib/security-keys";
 import { canReadField } from "@/lib/runtime/security-runtime.resolver";
 import { StatusPill } from "@/app/components/ui/status-pill";
 import { Dialog } from "@/app/components/ui/dialog";
-import { EmployeeDlpCaptures } from "@/app/(authenticated)/employees/_components/employee-dlp-captures";
+import { EmployeeDlpCaptures } from "@/app/(authenticated)/_components/dlp/employee-dlp-captures";
 import { DataTable } from "@/app/components/data-table/data-table";
 import {
   RuntimeProfileImageCard,
@@ -2181,13 +2181,44 @@ function ModuleEmployeeWorkSitesWidget({
       ),
     );
 
+  /*
+   * The write side of the same rule `getWidgetData` already follows: this
+   * shared file must not know the shape of a module-specific endpoint.
+   * `action` is an opaque, widget-owned string — only the record's own data
+   * adapter (for this widget, the employees module's adapter) knows what
+   * request it actually maps to.
+   */
+  async function runAction(
+    action: string,
+    payload?: Readonly<Record<string, unknown>>,
+  ): Promise<{ readonly ok: boolean; readonly message?: string }> {
+    if (!runtime || !recordId || !dataAdapter?.runWidgetAction) {
+      return { ok: false, message: "This action is not available." };
+    }
+    try {
+      await dataAdapter.runWidgetAction({
+        runtime,
+        recordId,
+        widget: systemWidgetMetadata(component, definition),
+        action,
+        payload,
+      });
+      return { ok: true };
+    } catch (caught) {
+      return {
+        ok: false,
+        message: caught instanceof Error ? caught.message : undefined,
+      };
+    }
+  }
+
   return (
     <EmployeeWorkSitesPanel
       canManage={canManage}
       data={data.workSites}
-      employeeId={recordId}
       label={component.label ?? definition.displayName}
       locations={data.locations}
+      onAction={runAction}
       onChanged={() => setReloadToken((token) => token + 1)}
     />
   );
@@ -2206,9 +2237,9 @@ function isEmployeeWorkSitesWidgetData(
 function EmployeeWorkSitesPanel({
   canManage,
   data,
-  employeeId,
   label,
   locations,
+  onAction,
   onChanged,
 }: {
   readonly canManage: boolean;
@@ -2216,13 +2247,16 @@ function EmployeeWorkSitesPanel({
     readonly authorized: ReadonlyArray<{ derivedFromPrimaryLocation: boolean }>;
     readonly assignments: readonly EmployeeWorkSiteAssignment[];
   };
-  readonly employeeId: string;
   readonly label: string;
   readonly locations: ReadonlyArray<{
     readonly id: string;
     readonly name: string;
     readonly isActive: boolean;
   }>;
+  readonly onAction: (
+    action: string,
+    payload?: Readonly<Record<string, unknown>>,
+  ) => Promise<{ readonly ok: boolean; readonly message?: string }>;
   readonly onChanged: () => void;
 }) {
   const [adding, setAdding] = useState(false);
@@ -2247,19 +2281,16 @@ function EmployeeWorkSitesPanel({
   );
 
   async function call(
-    path: string,
-    init: RequestInit,
+    action: string,
+    payload: Readonly<Record<string, unknown>> | undefined,
     failure: string,
   ): Promise<boolean> {
     setBusy(true);
     setError(null);
     try {
-      const response = await fetch(path, init);
-      if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as {
-          message?: string;
-        } | null;
-        setError(body?.message ?? failure);
+      const result = await onAction(action, payload);
+      if (!result.ok) {
+        setError(result.message ?? failure);
         return false;
       }
       onChanged();
@@ -2274,19 +2305,15 @@ function EmployeeWorkSitesPanel({
 
   async function addWorkSite() {
     const added = await call(
-      `/api/integrations/attendance/employees/${employeeId}/work-sites`,
+      "assign",
       {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          locationId,
-          // Never sent as primary from here — promoting a site is a separate,
-          // deliberate action so it does not happen by accident while adding
-          // a second site.
-          isPrimary: false,
-          validFrom: validFrom || undefined,
-          validTo: validTo || undefined,
-        }),
+        locationId,
+        // Never sent as primary from here — promoting a site is a separate,
+        // deliberate action so it does not happen by accident while adding
+        // a second site.
+        isPrimary: false,
+        validFrom: validFrom || undefined,
+        validTo: validTo || undefined,
       },
       "The work site could not be added.",
     );
@@ -2300,15 +2327,11 @@ function EmployeeWorkSitesPanel({
 
   async function saveValidity(targetLocationId: string) {
     const saved = await call(
-      `/api/integrations/attendance/employees/${employeeId}/work-sites`,
+      "assign",
       {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          locationId: targetLocationId,
-          validFrom: editFrom || undefined,
-          validTo: editTo || undefined,
-        }),
+        locationId: targetLocationId,
+        validFrom: editFrom || undefined,
+        validTo: editTo || undefined,
       },
       "The validity dates could not be saved.",
     );
@@ -2317,20 +2340,16 @@ function EmployeeWorkSitesPanel({
 
   function setPrimary(targetLocationId: string) {
     return call(
-      `/api/integrations/attendance/employees/${employeeId}/work-sites/primary`,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ locationId: targetLocationId }),
-      },
+      "setPrimary",
+      { locationId: targetLocationId },
       "The primary work site could not be changed.",
     );
   }
 
   function removeWorkSite(targetLocationId: string) {
     return call(
-      `/api/integrations/attendance/employees/${employeeId}/work-sites/${targetLocationId}`,
-      { method: "DELETE" },
+      "remove",
+      { locationId: targetLocationId },
       "The work site could not be removed.",
     );
   }
