@@ -7,15 +7,15 @@
 
 | | |
 |---|---|
-| Active sessions | **0** |
-| Active parent tasks | 4 |
-| Active work packages | 4 |
+| Active sessions | **1** |
+| Active parent tasks | 5 |
+| Active work packages | 11 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **4** |
-| Open HIGH | 89 |
+| Open HIGH | 94 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 7 |
 | QA coverage gaps | 161 |
@@ -30,11 +30,11 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 186 |
-| No next action | 186 |
+| No acceptance criteria | 203 |
+| No next action | 203 |
 | Aging — 7d / 30d / 90d | 100 / 0 / 0 |
 | Architecture and technical debt | 7 |
-| Security gaps | 29 |
+| Security gaps | 30 |
 | Database gaps | 19 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
@@ -47,7 +47,9 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-_No session is currently registered as active._
+| Session | Task | Title | Status | Branch | Target | Leases | Schema |
+|---|---|---|---|---|---|---|---|
+| [[SESSION-0105-demo-walkthrough-2-hierarchy-work-site-customization-notific|SESSION-0105]] | — | Demo walkthrough 2 - hierarchy, work site, customization, notifications findings | ACTIVE | `agent/demo-walkthrough-2-records` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
 
@@ -57,6 +59,7 @@ _No session is currently registered as active._
 | [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 16/16 | — | — | — |
 | [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 11/11 | — | — | — |
 | [[TASK-0028-enterprise-reports-and-analytics-platform|TASK-0028]] | Enterprise Reports and Analytics platform | FEATURE | LARGE | 5/15 | WP-08 | — | — |
+| [[TASK-0031-demo-walkthrough-2-remediation-hierarchy-work-sites-customiz|TASK-0031]] | Demo walkthrough 2 remediation - hierarchy, work sites, customization, notifications | FEATURE | PROGRAM | 0/9 | WP-00 | WP-01, WP-02, WP-03, WP-04, WP-05, WP-06 | — |
 
 ## Branch model
 
@@ -291,7 +294,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 186 |
+| Open total | 203 |
 | Blocked | 2 |
 | Deferred | 94 |
 | Awaiting a product decision | 7 |

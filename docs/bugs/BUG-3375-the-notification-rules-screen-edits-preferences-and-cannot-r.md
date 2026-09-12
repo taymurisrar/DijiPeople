@@ -237,7 +237,7 @@ and passes (see the task's final validation report).
 ## Related
 
 - Backlog item — [[ITEM-0169]]
-- Referenced by — [[ITEM-0170]], [[ITEM-0171]]
+- Referenced by — [[ITEM-0170]], [[ITEM-0171]], [[ITEM-0180]]
 - Modules — [[notifications]], [[tenant-application]]
 - Regression — REG-460 (see the regression register)
 

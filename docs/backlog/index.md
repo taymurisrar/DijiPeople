@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**621 records** — 443 bugs under [`docs/bugs/`](../bugs/), 178 non-bug items under [`items/`](items/).
+**638 records** — 454 bugs under [`docs/bugs/`](../bugs/), 184 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 186 |
+| Open (active work) | 203 |
 | Blocked | 2 |
 | Deferred | 94 |
 | Awaiting a product decision | 7 |
 | Completed / closed | 332 |
 | **Open CRITICAL** | **4** |
-| **Open HIGH** | **89** |
+| **Open HIGH** | **94** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,16 +27,16 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 4 |
-| HIGH | 89 |
-| MEDIUM | 77 |
-| LOW | 16 |
+| HIGH | 94 |
+| MEDIUM | 88 |
+| LOW | 17 |
 
 ## Open by type
 
 | Type | Count |
 |---|---|
-| AUTHORIZATION | 10 |
-| BUG | 47 |
+| AUTHORIZATION | 11 |
+| BUG | 55 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 18 |
 | DOCUMENTATION | 1 |
@@ -50,13 +50,13 @@ see [`README.md`](README.md) for why.
 | TECH_DEBT | 7 |
 | TENANT_ISOLATION | 2 |
 | TEST_GAP | 9 |
-| UX | 41 |
+| UX | 49 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 44 |
+| OPEN | 55 |
 | BLOCKED | 2 |
 | DEFERRED | 94 |
 | PRODUCT_DECISION | 7 |
@@ -64,7 +64,7 @@ see [`README.md`](README.md) for why.
 | VERIFIED | 218 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
-| READY | 22 |
+| READY | 28 |
 | DONE | 100 |
 
 ## All records
@@ -293,6 +293,11 @@ see [`README.md`](README.md) for why.
 | [BUG-3374](../../docs/bugs/BUG-3374-settings-customization-and-its-twelve-child-routes-silently-.md) | Settings Customization and its twelve child routes silently redirect to Roles | AUTHORIZATION | HIGH | P1 | FIXED | apps/web, customization | FIX_NOW |
 | [BUG-3375](../../docs/bugs/BUG-3375-the-notification-rules-screen-edits-preferences-and-cannot-r.md) | The Notification Rules screen edits preferences and cannot reach NotificationRule at all | UX | HIGH | P1 | FIXED | notifications, apps/web | PLAN_REQUIRED |
 | [BUG-3376](../../docs/bugs/BUG-3376-runtime-lookups-fetch-one-unpaged-page-and-filter-it-in-the-.md) | Runtime lookups fetch one unpaged page and filter it in the browser, hiding every record past the server page size | DATA_INTEGRITY | HIGH | P1 | FIXED | apps/web, apps/admin | PLAN_REQUIRED |
+| [BUG-3491](../../docs/bugs/BUG-3491-customization-pages-crash-for-a-user-who-holds-customization.md) | Customization pages crash for a user who holds customization permissions but no customizer role | AUTHORIZATION | HIGH | P1 | OPEN | apps/web, customization | FIX_NOW |
+| [BUG-3492](../../docs/bugs/BUG-3492-every-custom-field-type-without-a-length-is-rejected-with-ma.md) | Every custom field type without a length is rejected with Maximum length must be at least 1 | BUG | HIGH | P1 | OPEN | apps/web, customization | FIX_NOW |
+| [BUG-3493](../../docs/bugs/BUG-3493-publishing-customizations-dead-ends-because-new-drafts-land-.md) | Publishing customizations dead-ends because new drafts land in a package that cannot be published | BUG | HIGH | P1 | OPEN | apps/web, customization | FIX_NOW |
+| [BUG-3494](../../docs/bugs/BUG-3494-a-published-custom-module-has-no-sidebar-entry-and-no-list-f.md) | A published custom module has no sidebar entry and no list, form or record screen | BUG | HIGH | P1 | OPEN | apps/web, customization, data | PLAN_REQUIRED |
+| [BUG-3500](../../docs/bugs/BUG-3500-every-seeded-email-template-is-active-with-placeholder-body-.md) | Every seeded email template is active with placeholder body text | BUG | HIGH | P1 | OPEN | notifications, apps/web | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -316,8 +321,10 @@ see [`README.md`](README.md) for why.
 | [ITEM-0136](../../docs/backlog/items/ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-.md) | electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major | SECURITY | HIGH | P2 | READY | apps/agent-desktop | FIX_NOW |
 | [ITEM-0176](../../docs/backlog/items/ITEM-0176-seatchangeservice-applyduechanges-has-no-caller-and-cannot-b.md) | SeatChangeService.applyDueChanges has no caller and cannot be wired without under-billing | TECH_DEBT | HIGH | P2 | READY | api:billing | PLAN_REQUIRED |
 | [BUG-0051](../../docs/bugs/BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state.md) | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | P1 | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
+| [BUG-3501](../../docs/bugs/BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver.md) | The email provider screen presents a console sink as delivery and offers sink providers in production | UX | MEDIUM | P1 | OPEN | notifications, apps/web | PLAN_REQUIRED |
 | [ITEM-0018](../../docs/backlog/items/ITEM-0018-plans-and-prices-have-no-draft-publish-or-archive-lifecycle.md) | Plans and prices have no draft, publish or archive lifecycle | ARCHITECTURE | MEDIUM | P1 | DONE | services/api/prisma, api:super-admin, apps/admin, apps/landing | DONE |
 | [ITEM-0044](../../docs/backlog/items/ITEM-0044-validate-forwarded-host-before-tenant-web-workspace-resoluti.md) | Validate forwarded host before tenant web workspace resolution | SECURITY | MEDIUM | P1 | DONE | apps/web | DONE |
+| [ITEM-0180](../../docs/backlog/items/ITEM-0180-one-plain-notification-events-page-replacing-rules-and-chann.md) | One plain notification events page replacing Rules and Channel Preferences | UX | MEDIUM | P1 | READY | apps/web, notifications | PLAN_REQUIRED |
 | [BUG-0009](../../docs/bugs/BUG-0009-session-revocation-depended-on-the-refresh-cookie.md) | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | P2 | VERIFIED | app:admin, api:auth | DONE |
 | [BUG-0010](../../docs/bugs/BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500.md) | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | P2 | VERIFIED | app:admin | DONE |
 | [BUG-0013](../../docs/bugs/BUG-0013-public-lead-endpoint-had-no-rate-limiting.md) | The public lead endpoint had no rate limiting | SECURITY | MEDIUM | P2 | VERIFIED | api:leads | DONE |
@@ -506,6 +513,11 @@ see [`README.md`](README.md) for why.
 | [BUG-3377](../../docs/bugs/BUG-3377-admin-lookup-controls-still-carry-the-nested-interactive-lis.md) | Admin lookup controls still carry the nested-interactive listbox that BUG-1956 fixed only in web | UX | MEDIUM | P2 | FIXED | apps/admin | FIX_NOW |
 | [BUG-3378](../../docs/bugs/BUG-3378-the-responsive-runtime-tab-strip-hides-a-measurement-copy-fr.md) | The responsive runtime tab strip hides a measurement copy from screen readers while leaving thirteen buttons in the tab order | UX | MEDIUM | P2 | FIXED | apps/web | FIX_NOW |
 | [BUG-3450](../../docs/bugs/BUG-3450-get-employees-id-reporting-structure-computed-every-root-in-.md) | GET /employees/{id}/reporting-structure computed every root in the tenant to unbounded depth on every page view, unused | PERFORMANCE | MEDIUM | P2 | FIXED | api:employees | FIX_NOW |
+| [BUG-3495](../../docs/bugs/BUG-3495-customization-editors-accept-invalid-metadata-and-silently-r.md) | Customization editors accept invalid metadata and silently rewrite what the administrator typed | BUG | MEDIUM | P2 | OPEN | apps/web, customization | FIX_NOW |
+| [BUG-3496](../../docs/bugs/BUG-3496-a-hydration-mismatch-on-customization-pages-opens-a-blocking.md) | A hydration mismatch on Customization pages opens a blocking raw React error modal and logs a 500 | BUG | MEDIUM | P2 | OPEN | apps/web, error-logs | FIX_NOW |
+| [BUG-3497](../../docs/bugs/BUG-3497-employee-reset-password-sends-without-confirmation-is-offere.md) | Employee Reset Password sends without confirmation, is offered with no linked user and fails silently | BUG | MEDIUM | P2 | OPEN | apps/web, employees, error-logs | FIX_NOW |
+| [BUG-3498](../../docs/bugs/BUG-3498-the-employee-record-export-writes-lookup-fields-as-raw-ids.md) | The employee record export writes lookup fields as raw ids | BUG | MEDIUM | P2 | OPEN | apps/web, employees | FIX_NOW |
+| [BUG-3499](../../docs/bugs/BUG-3499-the-reporting-hierarchy-dialog-pins-a-clipped-detail-card-ha.md) | The reporting hierarchy dialog pins a clipped detail card, has no close control and cannot open a record | UX | MEDIUM | P2 | OPEN | apps/web, employees | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -598,6 +610,10 @@ see [`README.md`](README.md) for why.
 | [ITEM-0171](../../docs/backlog/items/ITEM-0171-a-second-dispatch-path-sends-email-without-consulting-notifi.md) | A second dispatch path sends email without consulting NotificationRule | ARCHITECTURE | MEDIUM | P2 | DONE | notifications, payroll, payslips, auth, reporting | DONE |
 | [ITEM-0175](../../docs/backlog/items/ITEM-0175-wire-the-plans-screen-onto-the-seat-quote-and-plan-change-en.md) | Wire the plans screen onto the seat-quote and plan-change endpoints that now exist | FOLLOW_UP | MEDIUM | P2 | READY | apps/web, api:billing | FIX_NOW |
 | [ITEM-0177](../../docs/backlog/items/ITEM-0177-the-recruitment-draft-form-s-reporting-manager-lookup-still-.md) | The recruitment draft form's Reporting manager lookup still filters one page in the browser | TECH_DEBT | MEDIUM | P2 | READY | apps/web | FIX_NOW |
+| [ITEM-0179](../../docs/backlog/items/ITEM-0179-manage-employee-work-sites-in-a-related-records-tab-with-a-t.md) | Manage employee work sites in a related-records tab with a transactional Make primary action | UX | MEDIUM | P2 | READY | apps/web, employees, attendance | PLAN_REQUIRED |
+| [ITEM-0181](../../docs/backlog/items/ITEM-0181-a-visual-email-template-editor-with-a-variable-picker-and-re.md) | A visual email template editor with a variable picker and read-only system templates | UX | MEDIUM | P2 | READY | apps/web, notifications | PLAN_REQUIRED |
+| [ITEM-0182](../../docs/backlog/items/ITEM-0182-delivery-logs-that-cover-in-app-notifications-and-state-why-.md) | Delivery logs that cover in-app notifications and state why a message was not delivered | UX | MEDIUM | P2 | READY | apps/web, notifications | FIX_NOW |
+| [ITEM-0183](../../docs/backlog/items/ITEM-0183-remove-agent-added-explanatory-helper-text-from-tenant-scree.md) | Remove agent-added explanatory helper text from tenant screens | UX | MEDIUM | P2 | READY | apps/web | FIX_NOW |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |
@@ -671,6 +687,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0121](../../docs/backlog/items/ITEM-0121-the-approvals-capability-signal-does-not-model-each-module-s.md) | The approvals capability signal does not model each module's object-level rules, so a refused action can look available | UX | LOW | P3 | DEFERRED | approvals, attendance | DEFER |
 | [ITEM-0160](../../docs/backlog/items/ITEM-0160-feature-comparison-badges-assume-the-api-returns-plans-in-as.md) | Feature comparison badges assume the API returns plans in ascending tier order | TECH_DEBT | LOW | P3 | DEFERRED | apps/web, api:billing | DEFER |
 | [ITEM-0161](../../docs/backlog/items/ITEM-0161-subscription-plans-screen-content-and-interaction-polish.md) | Subscription plans screen content and interaction polish | UX | LOW | P3 | DEFERRED | apps/web | DEFER |
+| [ITEM-0184](../../docs/backlog/items/ITEM-0184-employee-record-and-customization-usability-defects-found-in.md) | Employee record and customization usability defects found in the second demo walkthrough | UX | LOW | P3 | READY | apps/web, employees, customization, users | FIX_NOW |
 | [ITEM-0126](../../docs/backlog/items/ITEM-0126-decide-which-of-the-41-always-visible-settings-pages-should-.md) | Decide which of the 41 always-visible settings pages should be sold | PRODUCT_DECISION | — | P1 | DONE | apps/web | DONE |
 | [ITEM-0129](../../docs/backlog/items/ITEM-0129-tenants-should-inherit-the-platform-email-provider-by-defaul.md) | Tenants should inherit the platform email provider by default, and may override it | ARCHITECTURE | — | P1 | DONE | services/api, apps/web | DONE |
 | [ITEM-0130](../../docs/backlog/items/ITEM-0130-review-process-missed-four-defects-on-screens-adjacent-to-th.md) | Review process missed four defects on screens adjacent to the change | TEST_GAP | — | P1 | DONE | apps/web, .agent | DONE |
