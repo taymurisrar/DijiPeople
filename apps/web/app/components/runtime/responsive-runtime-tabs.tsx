@@ -14,16 +14,60 @@ import type { FormTabMetadata } from "@/lib/runtime/metadata-runtime.types";
 const TAB_GAP = 8;
 const MORE_RESERVE = 104;
 
+/**
+ * BUG-3378 — id contract with the panel this strip controls.
+ *
+ * The panel that swaps content per tab is rendered by the caller
+ * (`runtime-metadata-form-renderer.tsx`), not by this component, so the two
+ * sides need one shared way to derive the same ids rather than each
+ * reconstructing them and risking drift. `idPrefix` is the caller's own
+ * `useId()` value — stable across renders and unique per mounted form, so two
+ * forms on the same page never collide.
+ */
+export function getResponsiveTabId(idPrefix: string, tabKey: string): string {
+  return `${idPrefix}-tab-${tabKey}`;
+}
+
+export function getResponsiveTabPanelId(idPrefix: string): string {
+  return `${idPrefix}-tabpanel`;
+}
+
+/**
+ * The roving-tabindex arrow-key math, pulled out as a pure function so the
+ * wrap-around and Home/End cases have a regression test that does not need a
+ * rendered DOM (`apps/web`'s jest has no jsdom — see `jest.config.js`).
+ *
+ * `currentIndex` of `-1` (the active tab is not among the selectable ones —
+ * disabled, or mid-collapse into the overflow menu) is treated as "before the
+ * first", so `ArrowRight` still lands somewhere rather than doing nothing.
+ */
+export function resolveNextTabIndex(
+  key: "ArrowRight" | "ArrowLeft" | "Home" | "End",
+  currentIndex: number,
+  count: number,
+): number {
+  if (count <= 0) return -1;
+  if (key === "Home") return 0;
+  if (key === "End") return count - 1;
+
+  const delta = key === "ArrowRight" ? 1 : -1;
+  const from = currentIndex === -1 ? 0 : currentIndex;
+  return (from + delta + count) % count;
+}
+
 export function ResponsiveRuntimeTabs({
   activeTabKey,
+  idPrefix,
   onTabChange,
   tabs,
 }: {
   readonly activeTabKey: string;
+  readonly idPrefix: string;
   readonly onTabChange: (tabKey: string) => void;
   readonly tabs: readonly FormTabMetadata[];
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const tablistRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
   const moreButtonRef = useRef<HTMLButtonElement>(null);
   const [visibleCount, setVisibleCount] = useState(tabs.length);
@@ -158,11 +202,63 @@ export function ResponsiveRuntimeTabs({
     items[(currentIndex + delta + items.length) % items.length]?.focus();
   }
 
+  /*
+   * BUG-3378 — roving tabindex per the WAI-ARIA tabs pattern: only the
+   * selected tab is a Tab stop (`tabIndex=0` below), so arrow keys are what
+   * move between tabs while the strip itself remains a single stop in the
+   * page's Tab order. Disabled tabs are skipped, matching the same skip the
+   * overflow menu already applies to its own items just above.
+   *
+   * Selection moves with focus (WAI-ARIA's "automatic activation") rather
+   * than requiring a separate Enter/Space, which matches how these tabs
+   * already behaved on click before this fix.
+   */
+  function handleTabListKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (
+      event.key !== "ArrowRight" &&
+      event.key !== "ArrowLeft" &&
+      event.key !== "Home" &&
+      event.key !== "End"
+    ) {
+      return;
+    }
+
+    const selectable = visibleTabs.filter((tab) => !tab.isDisabled);
+    if (selectable.length === 0) return;
+    event.preventDefault();
+
+    const currentIndex = selectable.findIndex(
+      (tab) => tab.tabKey === activeTabKey,
+    );
+    const nextIndex = resolveNextTabIndex(
+      event.key,
+      currentIndex,
+      selectable.length,
+    );
+
+    const next = selectable[nextIndex];
+    if (!next) return;
+
+    setMoreOpen(false);
+    onTabChange(next.tabKey);
+    tablistRef.current
+      ?.querySelector<HTMLButtonElement>(`[data-tab-key="${next.tabKey}"]`)
+      ?.focus();
+  }
+
   return (
     <div className="relative w-full min-w-0 overflow-hidden" ref={containerRef}>
       <div
         aria-hidden="true"
         className="pointer-events-none fixed left-0 top-0 -z-10 flex h-0 gap-2 overflow-hidden opacity-0"
+        /*
+         * BUG-3378 — `aria-hidden` only tells assistive technology to skip
+         * this subtree; it does nothing to the tab order, so its buttons were
+         * still thirteen live keyboard stops for a purely visual measurement
+         * copy. `inert` removes it from focus and interaction the same way it
+         * is already removed from the accessibility tree.
+         */
+        inert
         ref={measureRef}
       >
         {tabs.map((tab) => (
@@ -174,18 +270,36 @@ export function ResponsiveRuntimeTabs({
           />
         ))}
       </div>
-      <div className="flex w-full min-w-0 max-w-full flex-nowrap items-center gap-2 overflow-hidden">
-        {visibleTabs.map((tab) => (
-          <TabButton
-            active={tab.tabKey === activeTabKey}
-            key={tab.tabKey}
-            onClick={() => {
-              setMoreOpen(false);
-              onTabChange(tab.tabKey);
-            }}
-            tab={tab}
-          />
-        ))}
+      <div
+        aria-label="Record sections"
+        className="flex w-full min-w-0 max-w-full flex-nowrap items-center gap-2 overflow-hidden"
+        onKeyDown={handleTabListKeyDown}
+        ref={tablistRef}
+        role="tablist"
+        // The tablist itself is not a Tab stop under the roving-tabindex
+        // pattern — focus lives on the selected tab (tabIndex 0 there) — but
+        // it does own the arrow-key handling above, and eslint-plugin-jsx-a11y
+        // requires an element carrying keyboard handlers to declare a
+        // tabIndex. -1 keeps it reachable by script without adding a second
+        // Tab stop next to the tab it already delegates to.
+        tabIndex={-1}
+      >
+        {visibleTabs.map((tab) => {
+          const active = tab.tabKey === activeTabKey;
+          return (
+            <TabButton
+              active={active}
+              id={getResponsiveTabId(idPrefix, tab.tabKey)}
+              key={tab.tabKey}
+              onClick={() => {
+                setMoreOpen(false);
+                onTabChange(tab.tabKey);
+              }}
+              panelId={getResponsiveTabPanelId(idPrefix)}
+              tab={tab}
+            />
+          );
+        })}
         {overflowTabs.length ? (
           <div className="relative shrink-0">
             <button
@@ -209,23 +323,38 @@ export function ResponsiveRuntimeTabs({
 
 function TabButton({
   active,
+  id,
   onClick,
+  panelId,
   tab,
 }: {
   readonly active: boolean;
+  readonly id?: string;
   readonly onClick: () => void;
+  readonly panelId?: string;
   readonly tab: FormTabMetadata;
 }) {
+  // `role="tab"` only when this copy is wired to a real panel (the visible
+  // strip) — the hidden measurement copy renders the same button shape purely
+  // to get its width, and giving it tab semantics too would double every
+  // announced tab count.
+  const isRealTab = id !== undefined && panelId !== undefined;
+
   return (
     <button
-      aria-pressed={active}
+      aria-controls={isRealTab ? panelId : undefined}
+      aria-selected={isRealTab ? active : undefined}
       className={`shrink-0 whitespace-nowrap rounded-md border px-3 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${
         active
           ? "border-accent bg-accent text-white"
           : "border-border bg-white text-foreground hover:border-accent"
       }`}
+      data-tab-key={isRealTab ? tab.tabKey : undefined}
       disabled={tab.isDisabled}
+      id={id}
       onClick={onClick}
+      role={isRealTab ? "tab" : undefined}
+      tabIndex={isRealTab ? (active ? 0 : -1) : undefined}
       title={tab.disabledReason}
       type="button"
     >

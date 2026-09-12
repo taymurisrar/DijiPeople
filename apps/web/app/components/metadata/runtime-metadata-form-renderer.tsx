@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import type { RuntimeCustomizationForm } from "@/lib/customization-forms";
 import type {
   EntityMetadata,
@@ -27,7 +27,11 @@ import {
 } from "@/app/components/ui/form-control";
 import { ModuleRelatedSubgrid } from "@/app/components/runtime/module-related-subgrid";
 import { ModuleWidgetRenderer } from "@/app/components/runtime/module-widget-renderer";
-import { ResponsiveRuntimeTabs } from "@/app/components/runtime/responsive-runtime-tabs";
+import {
+  getResponsiveTabId,
+  getResponsiveTabPanelId,
+  ResponsiveRuntimeTabs,
+} from "@/app/components/runtime/responsive-runtime-tabs";
 import { resolveSafeFieldMetadata } from "@/lib/runtime/security-runtime.resolver";
 import {
   isVisibleByRules,
@@ -278,6 +282,12 @@ function RuntimeFormMetadataRenderer({
 
   const tabs = resolveFormTabs(form, visibilityContext);
   const [activeTabKey, setActiveTabKey] = useState(tabs[0]?.tabKey ?? "");
+  // BUG-3378 — shared with `ResponsiveRuntimeTabs` so each tab button and the
+  // one panel it controls agree on ids without either side reconstructing the
+  // other's. `useId` rather than a module-level counter because two of these
+  // forms can be mounted on the same page (a subgrid's quick-create dialog
+  // over its parent record, for example).
+  const tabsIdPrefix = useId();
   const [dynamicLookupOptions, setDynamicLookupOptions] = useState<
     Record<string, readonly LookupOption[]>
   >({});
@@ -301,19 +311,35 @@ function RuntimeFormMetadataRenderer({
     tabs[0] ??
     null;
   const visibleSections = resolveTabSections(form, activeTab, visibilityContext);
+  // A single (or absent) tab renders as a plain panel, not a tab UI — there is
+  // nothing to switch between, so `ResponsiveRuntimeTabs` is not mounted and
+  // the panel below must not claim `tabpanel`/`aria-labelledby` roles that
+  // point at a tablist that does not exist.
+  const hasTabStrip = tabs.length > 1;
   return (
     <article className="w-full min-w-0 overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
-      {tabs.length > 1 ? (
+      {hasTabStrip ? (
         <div className="min-w-0 overflow-hidden border-b border-border px-4 pt-4">
           <ResponsiveRuntimeTabs
             activeTabKey={activeTab?.tabKey ?? ""}
+            idPrefix={tabsIdPrefix}
             onTabChange={setActiveTabKey}
             tabs={tabs}
           />
         </div>
       ) : null}
 
-      <div className="min-w-0 p-5">
+      <div
+        aria-labelledby={
+          hasTabStrip && activeTab
+            ? getResponsiveTabId(tabsIdPrefix, activeTab.tabKey)
+            : undefined
+        }
+        className="min-w-0 p-5"
+        id={hasTabStrip ? getResponsiveTabPanelId(tabsIdPrefix) : undefined}
+        role={hasTabStrip ? "tabpanel" : undefined}
+        tabIndex={hasTabStrip ? 0 : undefined}
+      >
         {activeTab && tabContent?.[activeTab.tabKey] ? (
           renderTabContent(tabContent[activeTab.tabKey], {
             values,
