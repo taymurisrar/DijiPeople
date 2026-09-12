@@ -2,7 +2,7 @@
 ID: BUG-3376
 aliases: [BUG-3376]
 Title: Runtime lookups fetch one unpaged page and filter it in the browser, hiding every record past the server page size
-Status: IN_PROGRESS
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: DATA_INTEGRITY
@@ -13,13 +13,13 @@ AffectedModules: [apps/web, apps/admin]
 OwnerAgent: architect
 ArchitectDisposition: PLAN_REQUIRED
 QAReport: 
-RegressionId: 
+RegressionId: REG-470
 RelatedBacklogItem: ITEM-0163, ITEM-0172
 RelatedDecision:
-RelatedImplementation:
+RelatedImplementation: apps/web/app/components/metadata/runtime-metadata-form-renderer.tsx
 CreatedAt: 2026-09-11
 UpdatedAt: 2026-09-12
-ResolvedAt:
+ResolvedAt: 2026-09-12
 ---
 
 # BUG-3376 — Runtime lookups fetch one unpaged page and filter it in the browser, hiding every record past the server page size
@@ -161,10 +161,12 @@ touch this data path.
 
 ## Resolution
 
-**Partially fixed 2026-09-12, in SESSION-0103, under EXECPLAN-0040.
-Complete for `apps/admin`. Not yet complete for `apps/web`'s named
-reproduction (a metadata-driven record-form lookup, e.g. Project → Project
-Manager) — see "What remains open" below before treating this as closed.**
+**Fixed 2026-09-12, in SESSION-0103, under EXECPLAN-0040. Complete for both
+`apps/admin` and `apps/web`, including the named reproduction (a
+metadata-driven record-form lookup, e.g. Project → Project Manager) — see
+"apps/web's named reproduction — now closed" below, which supersedes the
+"What remains open" section this record previously ended on (kept below for
+the audit trail).**
 
 ### `apps/admin` — complete
 
@@ -214,7 +216,7 @@ Manager) — see "What remains open" below before treating this as closed.**
   isolation — `apps/web`'s jest config has no jsdom, so this is what the
   component itself cannot be tested through.
 
-### What remains open
+### What remains open (superseded — kept for the audit trail)
 
 **The acceptance criteria below are not yet demonstrable for `apps/web`'s
 named reproduction.** The one remaining call site,
@@ -232,14 +234,44 @@ one place the contract is not yet fully conformed to.
 "Reporting manager" `LookupField` (a bespoke page, not gated by the excluded
 file) has the same underlying defect — a plain array from a server component
 prop, filtered client-side — and was not touched here; it was not named in
-this bug's Evidence and fixing it was out of scope for this pass.
+this bug's Evidence and fixing it was out of scope for this pass. **Still
+true after [[ITEM-0172]]** — that item's scope was
+`runtime-metadata-form-renderer.tsx` only, and this bespoke recruitment form
+was explicitly out of scope for it too. Tracked as a known remaining gap, not
+silently dropped: this record's own reproduction (Project → Project Manager)
+does not go through this file, so fixing it is not required to close this bug.
+
+### `apps/web`'s named reproduction — now closed (ITEM-0172, 2026-09-12)
+
+`runtime-metadata-form-renderer.tsx`'s `<LookupField>` construction now uses
+`useLookupFieldSearch`, which calls the already-shipped
+`getLookupOptions(..., { search })` on a debounced query and swaps the result
+in, computing `resultsTruncated` against `ENTITY_LOOKUP_PAGE_SIZE`. This is
+exactly the follow-up diff this record's own "What remains open" section
+predicted, landed in SESSION-0103 on branch `agent/r-s9-lookup-wiring`. Full
+accounting, including what was and was not changed in the reference-route
+allowlist alongside it, is in [[ITEM-0172]]'s Resolution.
+
+All four acceptance criteria below are now demonstrable for `apps/web`:
+finding and selecting an employee past the 20th record, the request carrying
+the typed search term, a truncated result set saying so, and a value outside
+the first page still displaying its label (via `ensureSelectedLookupOption`'s
+existing pin, unchanged by this fix, plus `LookupField`'s own
+`resolveVisibleSelectedOption` across a narrower search result).
+
+The recruitment draft form gap above remains open and is not part of this
+bug's named reproduction.
 
 ## QA Retest
 
-Pending. `apps/admin`'s fix can be exercised today (open a runtime form with a
+`apps/admin`'s fix can be exercised today (open a runtime form with a
 lookup reading from an endpoint with more than one page, type a query matching
 a record outside the first page). `apps/web`'s named reproduction (Project →
-Project Manager) cannot be meaningfully retested until [[ITEM-0172]] lands.
+Project Manager) can now be retested the same way, against any standard
+module runtime record form with an entity lookup, on a tenant with more than
+`ENTITY_LOOKUP_PAGE_SIZE` (50) records for that lookup's target entity — QA
+scenario and regression register entry REG-470 filed alongside this
+resolution.
 
 ## History
 
@@ -249,6 +281,11 @@ Project Manager) cannot be meaningfully retested until [[ITEM-0172]] lands.
 - 2026-09-12 — `apps/admin` fixed and `apps/web`'s adapter/control layer
   shipped in SESSION-0103, branch `agent/r-s6-lookups`, under EXECPLAN-0040.
   Remaining `apps/web` integration filed as [[ITEM-0172]].
+- 2026-09-12 — `apps/web`'s remaining integration point landed under
+  [[ITEM-0172]], SESSION-0103, branch `agent/r-s9-lookup-wiring`. Both
+  frontends now satisfy every acceptance criterion for their named
+  reproductions; the bespoke recruitment draft form is a separate, still-open
+  gap, not part of this bug's reproduction.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
@@ -256,5 +293,6 @@ Project Manager) cannot be meaningfully retested until [[ITEM-0172]] lands.
 
 - Referenced by — [[ITEM-0163]], [[ITEM-0172]]
 - Modules — [[tenant-application]], [[platform-admin]]
+- Regression — REG-470 (see the regression register)
 
 <!-- GRAPH:END -->

@@ -38,10 +38,17 @@ bottom.
    overloading it with navigation is what [[BUG-1956]] had to undo once
    already.
    - `apps/web`: `LookupField`'s `FieldShell` renders `labelLink` in the label
-     row (`form-control.tsx`).
+     row (`form-control.tsx`), given an href from
+     `runtime-metadata-form-renderer.tsx`'s `lookupReferenceHref`, which
+     resolves a destination via
+     `apps/web/app/components/metadata/lookup-reference-route.ts` — a
+     normalized alias table (ITEM-0172), not the hand-maintained
+     `LOOKUP_REFERENCE_ROUTES` map this document originally described here.
    - `apps/admin`: `RuntimeFormField`'s label row renders the same link for an
      editable lookup that `FieldDisplay` already rendered for a read-only one
-     (`runtime-form.tsx`).
+     (`runtime-form.tsx`), given an href from `resolveLookupRecordRoute` in
+     `apps/admin/lib/runtime/lookup-record-href.ts`, which derives a route
+     from the lookup's own collection path per module rather than per field.
 2. **Clear is a real, focusable, separate control.** Never a focusable element
    nested inside another focusable element (the `nested-interactive`
    violation), never `tabIndex={-1}`.
@@ -88,17 +95,6 @@ bottom.
 
 ## What this record deliberately did not converge
 
-- **The reference-route allowlist** (`LOOKUP_REFERENCE_ROUTES` in
-  `apps/web/app/components/metadata/runtime-metadata-form-renderer.tsx`) is
-  still a hand-maintained map, including its two legacy entries (`roles`,
-  `teams`) pointing at redirected paths. That file is owned by a concurrent
-  agent this session (see `EXECPLAN-0040`'s Dependencies) and was out of
-  scope here. Admin's equivalent, `resolveLookupRecordRoute` in
-  `apps/admin/lib/runtime/lookup-record-href.ts`, derives a route from the
-  lookup's own collection path per module rather than per field — closer to
-  "the module registry already knows where that entity lives," and not
-  evidenced as broken by any of BUG-3376 / BUG-3377 / ITEM-0163, so it was
-  left as-is.
 - **The bespoke native `<select>`** in
   `apps/admin/app/_components/documents/contract-creation-launcher.tsx` still
   exists. Retiring it onto `SearchableSelect` is unscoped rework of a screen
@@ -112,6 +108,10 @@ bottom.
   ITEM-0163 (web `LookupField`).
 - `apps/web/lib/runtime/lookup-search.spec.ts` — debounce, selection pinning,
   truncation, small-reference-set classification (web).
+- `apps/web/app/components/metadata/lookup-reference-route.spec.ts` — the
+  reference-route alias resolution (ITEM-0172), including every previously
+  silently-broken bespoke-employee-domain spelling and the verified
+  roles/teams destinations.
 - `apps/admin/lib/runtime/lookup-listbox-semantics.spec.ts` — BUG-3377 (admin
   `LookupControl` and `SearchableSelect`).
 - `apps/admin/lib/a11y/listbox-navigation.spec.ts` — the ported keyboard

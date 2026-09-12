@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 372** · automated: 320 · manual: 25 · blocked by infrastructure: 0
+**Scenarios: 373** · automated: 320 · manual: 25 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -298,6 +298,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-RUNTIME-041](../../../docs/qa/scenarios/QA-RUNTIME-041-deleting-a-project-or-customer-refuses-when-dependent-data-e.md) | Deleting a project or customer refuses when dependent data exists, succeeds when it does not | runtime-modules | UNIT | MEDIUM | AUTOMATED | `services/api/src/modules/projects/projects.service.spec.ts` | BUG-2007 | REG-397 |
 | [QA-RUNTIME-042](../../../docs/qa/scenarios/QA-RUNTIME-042-the-responsive-record-tab-strip-exposes-tab-semantics-and-it.md) | The responsive record tab strip exposes tab semantics and its measurement copy is not tabbable | runtime-modules | UNIT | MEDIUM | AUTOMATED | `apps/web/app/components/runtime/responsive-runtime-tabs.spec.ts` | BUG-3378 | REG-421 |
 | [QA-RUNTIME-043](../../../docs/qa/scenarios/QA-RUNTIME-043-a-section-hosting-a-self-titling-widget-shows-its-name-once.md) | A section hosting a self-titling widget shows its name once | runtime-modules | UNIT | LOW | AUTOMATED | `apps/web/app/components/metadata/runtime-metadata-form-renderer.labelvisible.spec.ts` | BUG-3412 | REG-422 |
+| [QA-RUNTIME-044](../../../docs/qa/scenarios/QA-RUNTIME-044-a-record-form-entity-lookup-finds-and-selects-a-record-past-.md) | A record-form entity lookup finds and selects a record past the server's default page | runtime-modules | MANUAL_VISUAL | HIGH | PARTIAL | `apps/web/app/components/metadata/lookup-reference-route.spec.ts` | BUG-3376 | REG-470 |
 | [QA-SECURITY-001](../../../docs/qa/scenarios/QA-SECURITY-001-a-refused-cors-origin-returns-a-normal-status-and-no-allow-o.md) | A refused CORS origin returns a normal status and no allow-origin header | authorization | SECURITY | HIGH | AUTOMATED | `services/api/src/config/cors-options.spec.ts` | BUG-0976 | REG-240 |
 | [QA-SECURITY-002](../../../docs/qa/scenarios/QA-SECURITY-002-the-rate-limiter-does-not-trust-a-client-supplied-x-forwarde.md) | The rate limiter does not trust a client-supplied X-Forwarded-For | authorization | UNIT | HIGH | AUTOMATED | `services/api/src/common/security/client-ip.spec.ts` | BUG-3115 | REG-407 |
 | [QA-SECURITY-003](../../../docs/qa/scenarios/QA-SECURITY-003-the-forwarded-for-hop-arithmetic-resolves-the-visitor-not-nu.md) | The forwarded-for hop arithmetic resolves the visitor, not null and not a forged entry | authorization | UNIT | HIGH | AUTOMATED | `packages/config/client-ip.test.js` | BUG-3254 | REG-409 |

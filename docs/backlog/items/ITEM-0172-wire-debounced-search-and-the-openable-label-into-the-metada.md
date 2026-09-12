@@ -3,19 +3,20 @@ ID: ITEM-0172
 aliases: [ITEM-0172]
 Title: Wire debounced search and the openable label into the metadata-driven record-form lookup call site
 Type: FOLLOW_UP
-Status: READY
+Status: DONE
 Priority: P1
 Severity: HIGH
 AffectedModules: [apps/web]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 CreatedAt: 2026-09-12
 UpdatedAt: 2026-09-12
+ResolvedAt: 2026-09-12
 RelatedBug: BUG-3376
 RelatedQA: 
-RelatedADR: 
-RelatedImplementation:
+RelatedADR: ADR-0007
+RelatedImplementation: apps/web/app/components/metadata/runtime-metadata-form-renderer.tsx, apps/web/app/components/metadata/lookup-reference-route.ts
 TargetMilestone: 
 BlockedBy: 
 ---
@@ -123,6 +124,82 @@ wider lookup-consistency item this also finishes (the allowlist replacement).
 work. `docs/architecture/lookup-control-contract.md` the contract this
 completes conformance with.
 
+## Resolution — 2026-09-12
+
+Done. Landed in `apps/web/app/components/metadata/runtime-metadata-form-renderer.tsx`
+and a new colocated pure helper, `apps/web/app/components/metadata/lookup-reference-route.ts`.
+
+1. **Search wiring.** A new hook, `useLookupFieldSearch` (defined in the
+   renderer, called from `EditableField`), replaces the static
+   `options={[...resolvedLookupOptions]}` wiring. While the user has not
+   typed, it shows the hydration-derived, pin-safe base list
+   (`ensureSelectedLookupOption`'s output, unchanged); once `LookupField`'s
+   debounced `onSearch` fires, it calls `dataAdapter.getLookupOptions(runtime,
+   field, values, { search })` and swaps in the server's result. A monotonic
+   request token discards a response that resolves after a newer one (or
+   after the field/its dependency changed), and a field/dependency change
+   resets search state during render — a state-vs-state comparison, not a
+   ref, to satisfy this repo's `react-hooks/refs` lint, which is stricter
+   than the vanilla React docs' ref-based version of the same "adjust state
+   during render" pattern. Small reference sets
+   (`isSmallReferenceLookupEntity`) are left on the original cheap prefetch —
+   `searchable` is false for them, so no `onSearch` is even passed.
+2. **`resultsTruncated`** is computed from the currently-displayed option
+   count against `ENTITY_LOOKUP_PAGE_SIZE`, for both the base list and a
+   search result — matching that the adapter now sends an explicit page size
+   unconditionally, not only when a search term is present.
+3. **The empty-options message stayed keyed to the base list, deliberately.**
+   `lookupOptionsMissing`/`lookupEmptyMessage` (the "this field has no valid
+   options" / "options unavailable" strings) still read from
+   `resolvedLookupOptions`, never from the search-narrowed list — an ordinary
+   zero-match search result must fall through to `LookupField`'s own default
+   "No matching records found.", not the stronger message meant for a field
+   with no options at all independent of what was typed.
+4. **The allowlist.** `LOOKUP_REFERENCE_ROUTES` is replaced, not extended.
+   `apps/web` has no live entity-to-route registry to delegate to —
+   `module-registry.ts` and its siblings were removed as inert scaffolding
+   with zero callers ([[ADR-0007]]), and reviving one to answer this question
+   would have contradicted that decision. Admin's equivalent
+   (`resolveLookupRecordRoute`) derives a route from the lookup's own API
+   collection path, which sidesteps spelling entirely — but `apps/web`'s
+   `FieldMetadata` never carries that path, only
+   `lookupTargets[0].entityLogicalName`, spelled inconsistently by design
+   (plural/lowercase for a settings-runtime field, singular/camelCase for the
+   bespoke employee domain). The old map compared the raw string with no
+   normalization, so most of an Employee record's own lookups — Team,
+   Department, Designation, Location, Organization, Business Unit, Work
+   Schedule, Employee Level, Owner, Country, State/Province, City — silently
+   resolved to no link at all despite every one of those settings screens
+   existing. The replacement, `lookup-reference-route.ts`, is a static
+   (lowercase, singular/plural-aware) alias table over the same destinations
+   plus three verified additions (`team` distinct from `teams`,
+   `organizations`, `business-units`); the acceptance criterion is satisfied
+   in the sense that fixing a spelling mismatch no longer requires a new
+   per-field map entry, though a genuinely new destination still does — the
+   same shape admin's own path-keyed table has.
+5. **The two "legacy" entries.** `roles` now points directly at
+   `/settings/security-access/authorization/roles` (verified: the old
+   `/settings/access/roles` path is redirected there by `next.config.ts`,
+   confirmed still present at the cited lines). `teams` was investigated and
+   found NOT to be legacy — no `next.config.ts` redirect exists for
+   `/settings/access/teams`, and `settings-adapter-registry.ts`'s own `teams`
+   key (`mode: "specialized"`) declares that exact path as its current,
+   deliberate destination ("Access Teams", the RBAC concept). It is left
+   unchanged. What the old map never had at all was a route for the
+   *organizational* "Team" an Employee record assigns
+   (`lookupEntity: "team"`, singular) — added as its own destination,
+   `/settings/general-setup/organization/teams`, distinct from `teams`.
+
+Not attempted: replacing the two-step normalize-then-alias resolver with a
+literal registry, and re-auditing every one of the 19 original destination
+URLs for drift (only `roles` had verified evidence of being wrong; the others
+were left as-is rather than guessed at).
+
+Validation: `npm --workspace web run check-types` (pass), `npm --workspace web
+run test` (93 suites / 1837 tests pass, including a new
+`lookup-reference-route.spec.ts`), `eslint --fix` on all three changed files
+(clean).
+
 ## History
 
 - 2026-09-12 — created at `833d4d23`, filed while implementing BUG-3376 /
@@ -130,6 +207,9 @@ completes conformance with.
   `runtime-metadata-form-renderer.tsx` because a concurrent agent owned it,
   so the adapter- and control-layer fix shipped without its one remaining
   integration point. This is that point.
+- 2026-09-12 — closed in SESSION-0103, branch `agent/r-s9-lookup-wiring`: the
+  search wiring and the allowlist replacement both landed at the named call
+  site. See Resolution above.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
