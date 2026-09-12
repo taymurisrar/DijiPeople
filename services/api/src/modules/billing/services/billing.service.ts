@@ -17,6 +17,7 @@ import {
   UserStatus,
 } from '@prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { AppError } from '../../../common/errors/app-error';
 import { TENANT_FEATURE_DEFINITIONS } from '../../tenant-settings/tenant-settings.catalog';
 import {
   assertValidTenantSlug,
@@ -25,7 +26,12 @@ import {
 import { StripeBillingService } from './stripe-billing.service';
 // The one channel rule, shared with `/public/commercial-config` rather than
 // restated here — see the filter in `getPublicPlans`.
-import { narrowestSalesModel } from '../commercial-offer.resolver';
+import {
+  isPriceCurrentlySellable,
+  narrowestSalesModel,
+  priceBelongsToMarket,
+} from '../commercial-offer.resolver';
+import { CommercialConfigService } from './commercial-config.service';
 import { LegalService } from '../../legal/legal.service';
 import { OwnerEmailVerificationService } from './owner-email-verification.service';
 import { SubscriptionOrderService } from './subscription-order.service';
@@ -48,7 +54,27 @@ export class BillingService {
     private readonly subscriptionOrders: SubscriptionOrderService,
     private readonly ownerEmailVerification: OwnerEmailVerificationService,
     private readonly legalService: LegalService,
+    private readonly commercialConfigService: CommercialConfigService,
   ) {}
+
+  /**
+   * The one place a plan price's sellability is asserted from a stored row —
+   * BUG-3334. Every caller that already has `!planPrice` covered separately
+   * calls this next; it throws the same `NotFoundException`-shaped error
+   * whether the id was unknown, the row is a DRAFT, or it was never scoped to
+   * a market, so an unentitled caller learns nothing about which precondition
+   * failed.
+   */
+  private assertPlanPriceCurrentlySellable(planPrice: {
+    isActive: boolean;
+    publicationStatus: CommercialPublicationStatus;
+    marketId: string | null;
+    plan: { isActive: boolean; publicationStatus: CommercialPublicationStatus };
+  }) {
+    if (!isPriceCurrentlySellable(planPrice.plan, planPrice)) {
+      throw new AppError('BILLING_PLAN_PRICE_UNAVAILABLE');
+    }
+  }
 
   /**
    * Refuse a price an anonymous visitor is not entitled to buy — BUG-1378.
@@ -90,7 +116,22 @@ export class BillingService {
     }
   }
 
-  async getPublicPlans() {
+  /**
+   * @param context.tenantId Present only on the authenticated tenant path
+   * (`GET /billing/plans`). When set, prices are additionally scoped to the
+   * tenant's own market — BUG-3334/BUG-3333. Absent on the anonymous
+   * `GET /public/plans`, whose behaviour is otherwise unchanged: it still
+   * lists across every market, same as before this fix, because there is no
+   * tenant to scope to and no country signal is read on this endpoint (that is
+   * `/public/commercial-config`'s job).
+   */
+  async getPublicPlans(context: { tenantId?: string } = {}) {
+    const tenantMarket = context.tenantId
+      ? await this.commercialConfigService.resolveMarketForTenant(
+          context.tenantId,
+        )
+      : null;
+
     const featureCatalog = TENANT_FEATURE_DEFINITIONS.map((feature, index) => ({
       key: feature.key,
       label: feature.label,
@@ -117,7 +158,13 @@ export class BillingService {
           orderBy: { featureKey: 'asc' },
         },
         prices: {
-          where: { isActive: true },
+          // BUG-3334 item 1 — the price's own gate, not only the plan's. A
+          // DRAFT price previously reached this list as long as the plan it
+          // hung off was PUBLISHED.
+          where: {
+            isActive: true,
+            publicationStatus: CommercialPublicationStatus.PUBLISHED,
+          },
           orderBy: [{ currency: 'asc' }, { billingCycle: 'asc' }],
         },
       },
@@ -153,11 +200,25 @@ export class BillingService {
        * narrows the price's and never widens it, so a `CUSTOM_ONLY` plan is
        * excluded even where a price row says `SELF_SERVICE`.
        */
-      const sellablePrices = plan.prices.filter(
-        (price) =>
-          narrowestSalesModel(plan.salesModel, price.salesModel) ===
-          CommercialSalesModel.SELF_SERVICE,
-      );
+      const sellablePrices = plan.prices.filter((price) => {
+        // BUG-3334 item 1/3 — the price's own publication gate, an unscoped
+        // (`marketId: null`) price failing closed, and — on the tenant path
+        // only — scoped to the caller's own market. `getPublicPlans` also
+        // backs the anonymous `/public/plans`, which has no tenant to scope
+        // to; the query filter above already excludes DRAFT and unscoped rows
+        // for both callers, so only the market MATCH is conditional here.
+        if (!isPriceCurrentlySellable(plan, price)) return false;
+        if (
+          narrowestSalesModel(plan.salesModel, price.salesModel) !==
+          CommercialSalesModel.SELF_SERVICE
+        ) {
+          return false;
+        }
+        if (context.tenantId) {
+          return priceBelongsToMarket(price, tenantMarket?.id ?? null);
+        }
+        return true;
+      });
 
       for (const price of sellablePrices) {
         const currency = price.currency.toUpperCase();
@@ -331,6 +392,9 @@ export class BillingService {
     ) {
       throw new NotFoundException('Plan price not found.');
     }
+    // BUG-3334 — the price's own gate, never checked here before: a DRAFT or
+    // unscoped price reached this point as long as the plan was PUBLISHED.
+    this.assertPlanPriceCurrentlySellable(planPrice);
 
     this.assertSellableToAnonymousVisitor(planPrice);
 
@@ -417,6 +481,9 @@ export class BillingService {
     ) {
       throw new NotFoundException('Plan price not found.');
     }
+    // BUG-3334 — the price's own gate, never checked here before: a DRAFT or
+    // unscoped price reached this point as long as the plan was PUBLISHED.
+    this.assertPlanPriceCurrentlySellable(planPrice);
 
     this.assertSellableToAnonymousVisitor(planPrice);
 
@@ -947,6 +1014,25 @@ export class BillingService {
       planPrice.plan.publicationStatus !== CommercialPublicationStatus.PUBLISHED
     ) {
       throw new NotFoundException('Plan price not found.');
+    }
+    // BUG-3334 — the price's own gate: never checked here before, so a DRAFT
+    // or unscoped price on a PUBLISHED plan was buyable by a tenant who knew
+    // its id.
+    this.assertPlanPriceCurrentlySellable(planPrice);
+
+    /*
+     * BUG-3333 item 2 / BUG-3334 item 3 — a tenant may only buy a price scoped
+     * to its own market. Resolved the same way a visitor's market is
+     * (`resolveMarketForTenant` mirrors `resolveMarketForCountry` /
+     * `resolveDefaultMarket`); an unresolved market refuses rather than
+     * falling through to "every market", which is what let a tenant buy a
+     * foreign-market price by posting its id directly.
+     */
+    const tenantMarket = await this.commercialConfigService.resolveMarketForTenant(
+      input.tenantId,
+    );
+    if (!priceBelongsToMarket(planPrice, tenantMarket?.id ?? null)) {
+      throw new AppError('BILLING_PLAN_PRICE_UNAVAILABLE');
     }
 
     const purchasedSeats = normalizePurchasedSeats(

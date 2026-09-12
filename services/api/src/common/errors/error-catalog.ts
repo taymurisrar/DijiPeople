@@ -202,6 +202,22 @@ export const ERROR_CATALOG = {
     'tenant',
   ),
   /*
+   * BUG-3334 — one code for "this price cannot be bought", whatever the reason:
+   * unknown id, inactive, DRAFT, unscoped, or scoped to a market other than the
+   * caller's. Deliberately one message for all of them, matching the existing
+   * `NotFoundException('Plan price not found.')` this replaces: a distinct
+   * message per reason would tell a caller which precondition failed, and on
+   * the anonymous write paths that is an enumeration oracle over a value they
+   * supplied.
+   */
+  BILLING_PLAN_PRICE_UNAVAILABLE: entry(
+    404,
+    'Plan price not found',
+    'This plan price is not available for purchase.',
+    'warning',
+    'tenant',
+  ),
+  /*
    * Distinct from ACCESS_DENIED on purpose (BUG-1952). A commercial boundary and
    * an authorization boundary produce the same 403 status, and a client that
    * cannot tell them apart shows "you do not have permission" to a tenant

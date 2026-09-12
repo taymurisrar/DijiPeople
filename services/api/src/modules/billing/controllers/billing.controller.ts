@@ -22,8 +22,10 @@ export class BillingController {
   @Get('plans')
   @Permissions(MISC_PERMISSION_KEYS.BILLING_VIEW)
   @RequirePermission(ENTITY_KEYS.TENANT_ADMINISTRATION, 'read')
-  getPlans() {
-    return this.billingService.getPublicPlans();
+  getPlans(@CurrentUser() user: AuthenticatedUser) {
+    // BUG-3334/BUG-3333 — scoped to the tenant's own market, unlike the
+    // anonymous `/public/plans`, which has no tenant to scope to.
+    return this.billingService.getPublicPlans({ tenantId: user.tenantId });
   }
 
   @Get('health')

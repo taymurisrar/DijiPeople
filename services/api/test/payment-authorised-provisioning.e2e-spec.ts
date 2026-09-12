@@ -159,6 +159,11 @@ describeWithDatabase()('Payment-authorised provisioning (DB-backed)', () => {
     config,
     orders,
     verification,
+    { acknowledgeMany: async () => undefined } as never,
+    // Never called on this path: `createPublicSubscriptionCheckout` does not
+    // resolve a tenant market (there is no tenant yet). Present only so the
+    // constructor is satisfied.
+    { resolveMarketForTenant: async () => null } as never,
   );
 
   const runId = `pap-${Date.now()}`;
@@ -177,9 +182,19 @@ describeWithDatabase()('Payment-authorised provisioning (DB-backed)', () => {
      * spec that reads it.
      */
     const plan = await prisma.plan.findFirstOrThrow({ select: { id: true } });
+    // BUG-3334 — a price now also needs its own PUBLISHED status and a market,
+    // or `assertPlanPriceCurrentlySellable` refuses it before Stripe is ever
+    // reached. Any published, selling market does: this path never resolves a
+    // tenant market (there is no tenant yet), it just needs the row to pass
+    // the price-level gate.
+    const market = await prisma.market.findFirstOrThrow({
+      where: { publicationStatus: 'PUBLISHED', isEnabled: true },
+      select: { id: true },
+    });
     const planPrice = await prisma.planPrice.create({
       data: {
         planId: plan.id,
+        marketId: market.id,
         billingCycle: 'MONTHLY',
         billingInterval: 'MONTH',
         currency: 'QAR',
@@ -187,6 +202,7 @@ describeWithDatabase()('Payment-authorised provisioning (DB-backed)', () => {
         minimumSeats: 1,
         includedSeats: 0,
         isActive: true,
+        publicationStatus: 'PUBLISHED',
         stripePriceId: `price_double_${runId}`,
         stripeProductId: `prod_double_${runId}`,
       },

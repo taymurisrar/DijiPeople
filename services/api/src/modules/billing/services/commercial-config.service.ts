@@ -134,6 +134,53 @@ export class CommercialConfigService {
   }
 
   /**
+   * The market an existing tenant belongs to — the authenticated-tenant
+   * counterpart of `resolveMarketForCountry`/`resolveDefaultMarket`, which
+   * resolve a visitor's. BUG-3334/BUG-3333.
+   *
+   * There is no `Tenant.marketId` column: markets were retrofitted after
+   * tenants existed (see the `PlanPrice.marketId` schema comment), so this
+   * walks the same evidence a human would, most authoritative first:
+   *
+   *   1. The market of the price the tenant is CURRENTLY subscribed to — what
+   *      they are actually being charged under today.
+   *   2. The market recorded on the `SubscriptionOrder` that provisioned this
+   *      tenant, for a tenant between subscriptions (e.g. mid-plan-change).
+   *   3. The same default a visitor with no resolvable country gets.
+   *
+   * Never null in practice — (3) always resolves to something if any market is
+   * published and selling — but callers must still treat a null result as
+   * "nothing is sellable" rather than "every market is", per
+   * `isPriceCurrentlySellable`.
+   */
+  async resolveMarketForTenant(tenantId: string) {
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { tenantId },
+      select: { planPrice: { select: { marketId: true } } },
+    });
+    if (subscription?.planPrice?.marketId) {
+      const market = await this.prisma.market.findUnique({
+        where: { id: subscription.planPrice.marketId },
+      });
+      if (market) return market;
+    }
+
+    const order = await this.prisma.subscriptionOrder.findFirst({
+      where: { tenantId, marketId: { not: null } },
+      orderBy: { createdAt: 'desc' },
+      select: { marketId: true },
+    });
+    if (order?.marketId) {
+      const market = await this.prisma.market.findUnique({
+        where: { id: order.marketId },
+      });
+      if (market) return market;
+    }
+
+    return this.resolveDefaultMarket();
+  }
+
+  /**
    * The public commercial catalogue for one market.
    *
    * Only published, market-scoped, in-force prices appear. Unpublished
