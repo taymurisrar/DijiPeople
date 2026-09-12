@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 373** · automated: 320 · manual: 25 · blocked by infrastructure: 0
+**Scenarios: 374** · automated: 320 · manual: 25 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -321,6 +321,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-SETTINGS-017](../../../docs/qa/scenarios/QA-SETTINGS-017-settings-visibility-follows-the-tenant-s-plan-entitlements.md) | Settings visibility follows the tenant's plan entitlements | settings | BROWSER_E2E | HIGH | PARTIAL | `apps/web/app/(authenticated)/settings/_lib/settings-entitlements.spec.ts` | BUG-2958 | REG-396 |
 | [QA-SETTINGS-018](../../../docs/qa/scenarios/QA-SETTINGS-018-an-event-with-no-notification-rule-reports-not-configured-no.md) | An event with no notification rule reports Not configured, not Enabled | notifications | API | HIGH | AUTOMATED | `services/api/src/modules/notifications/notification-rules.spec.ts` | BUG-3375 | REG-460 |
 | [QA-SETTINGS-019](../../../docs/qa/scenarios/QA-SETTINGS-019-a-not-delivered-row-names-its-provider-and-reason-and-create.md) | A NOT_DELIVERED row names its provider and reason, and Created keeps its time | notifications | API | MEDIUM | PARTIAL | `services/api/src/modules/notifications/email/email-sink-delivery-status.spec.ts` | BUG-3379 | REG-461 |
+| [QA-SETTINGS-020](../../../docs/qa/scenarios/QA-SETTINGS-020-an-operator-with-the-retry-permission-can-retry-a-failed-del.md) | An operator with the retry permission can retry a failed delivery, and the outcome shows on the record | notifications | API | HIGH | PARTIAL | `services/api/src/modules/notifications/notification-retry.spec.ts` | ITEM-0168 | REG-490 |
 | [QA-TENANT-001](../../../docs/qa/scenarios/QA-TENANT-001-the-two-tenant-isolation-pattern-scoped-read-and-scoped-writ.md) | The two-tenant isolation pattern: scoped read and scoped write | tenant-isolation | SECURITY | CRITICAL | AUTOMATED | `services/api/test/tenant-isolation-pattern.e2e-spec.ts` | — | — |
 | [QA-TENANT-002](../../../docs/qa/scenarios/QA-TENANT-002-a-support-role-cannot-read-another-tenant-s-error-logs.md) | A support role cannot read another tenant's error logs | tenant-isolation | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/error-logs/error-logs.service.spec.ts` | BUG-0005 | REG-005 |
 | [QA-TENANT-003](../../../docs/qa/scenarios/QA-TENANT-003-attendance-integration-credentials-never-cross-a-tenant-boun.md) | Attendance-integration credentials never cross a tenant boundary | tenant-isolation | E2E | CRITICAL | AUTOMATED | `services/api/test/attendance-integrations-isolation.e2e-spec.ts` | — | — |

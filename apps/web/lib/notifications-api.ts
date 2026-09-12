@@ -153,7 +153,13 @@ export type EmailDeliveryLog = {
   status: EmailDeliveryStatus;
   errorMessage: string | null;
   providerMessageId: string | null;
+  retryable: boolean;
   metadata: unknown;
+};
+
+export type RetryDeliveryLogResult = {
+  retriedLog: EmailDeliveryLog;
+  newDeliveryLog: EmailDeliveryLog;
 };
 
 export type SendTemplateEmailResult = {
@@ -437,7 +443,7 @@ export const getEmailDeliveryLogs = (query = "") =>
 export const getEmailDeliveryLog = (id: string) =>
   requestJson<EmailDeliveryLog>(`/email-delivery-logs/${id}`);
 export const retryEmailDeliveryLog = (id: string) =>
-  requestJson<EmailDeliveryLog>(`/email-delivery-logs/${id}/retry`, {
+  requestJson<RetryDeliveryLogResult>(`/email-delivery-logs/${id}/retry`, {
     method: "POST",
     body: "{}",
   });

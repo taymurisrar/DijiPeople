@@ -3,17 +3,18 @@ ID: ITEM-0168
 aliases: [ITEM-0168]
 Title: A retry action on an email delivery log
 Type: FOLLOW_UP
-Status: READY
+Status: DONE
 Priority: P2
 Severity: 
 AffectedModules: [notifications, apps/web]
 Source: USER_REPORT
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 CreatedAt: 2026-09-11
 UpdatedAt: 2026-09-12
+ResolvedAt: 2026-09-12
 RelatedBug: BUG-3200
-RelatedQA: 
+RelatedQA: QA-SETTINGS-020
 RelatedADR: 
 RelatedImplementation: EXECPLAN-0039
 TargetMilestone: 
@@ -134,28 +135,97 @@ cheaper; it should land first.
 [[BUG-3200]] the synchronous notification queue. [[BUG-3379]] the undiagnosable
 delivery row. [[BUG-2741]] introduced the sink status these rules turn on.
 
+## Resolution
+
+The backend landed first (below), and the item was deliberately left `READY`
+rather than `DONE` for it alone — the product owner asked for a retry
+**button**, and a working endpoint with no way to reach it does not answer
+that ask, whatever the audit trail behind it looks like. This pass adds the
+control.
+
+**Backend** (`POST /notifications/email-delivery-logs/:id/retry`,
+`NotificationsController`): tenant-scoped via `findFirst({ id, tenantId })`;
+gated by a new permission, `notification.logs.retry`, distinct from
+`notification.logs.read` in both permission systems; refuses — before
+attempting anything — a non-EMAIL channel, an `AUTH_*` event (a one-time
+credential should not be replayed from a log; re-trigger the original action
+instead), a workspace whose effective provider is currently a sink (would
+only reproduce the same `NOT_DELIVERED` row), a row that is not
+`retryable && status === FAILED`, and a row that predates variable capture
+(`EmailDeliveryLog.metadata.originalVariables`, added alongside this
+feature — nothing before it could be replayed at all). Every refusal is an
+`AppError` with a full sentence, which the global `HttpExceptionFilter`
+places on the response's `message` field — confirmed by reading
+`http-exception.filter.ts`, not assumed. Every attempt, successful or not,
+is audited (`notification_delivery_log.retried`). Pinned by
+`services/api/src/modules/notifications/notification-retry.spec.ts` (6
+cases: the four refusals, the sink-provider refusal, and the happy path).
+The endpoint now returns **both** the retried row and the new delivery it
+produced (`{ retriedLog, newDeliveryLog }`) — a retry always lands on a new
+`EmailDeliveryLog` row rather than mutating the original in place, so
+returning only the stale original would leave the caller with no way to
+show what the retry actually did. This is a same-session, pre-frontend
+change to the response shape; nothing else had started consuming it yet.
+
+**Frontend**: `apps/web/app/(authenticated)/settings/_components/notification-email-log-record-page.tsx`
+(new). The settings-runtime adapter for this screen (`notification-email-logs`)
+stays `mode: "read-only"` — switching it to `"specialized"` would have
+replaced the whole screen, including the list-view fixes BUG-3379 made to the
+shared `module-data-table.tsx` — so this wraps the same generic
+`StandardModuleRecordPage` every read-only record uses (the pattern
+`WorkSiteRecordPage` already established for a different reason) and adds one
+panel above it. `SettingsRuntimeRecord` in `settings-runtime-pages.tsx` special-cases
+`adapter.key === "notification-email-logs"` to compute `canRetry`
+server-side from the session (`hasAnySettingsPermission`, the same helper
+`canEditTenantSlug` already uses) and pass it down — a user without
+`notification.logs.retry` never receives the control in the payload, the
+same way `canEditTenantSlug` is withheld today; the server endpoint enforces
+the permission independently regardless, so a user who reached the control
+some other way would still be refused. The panel itself renders only when
+`record.status === "FAILED" && record.retryable === true` **and** `canRetry`
+— both conditions, not either — so a non-retryable row never shows it
+regardless of permission. `retryable` is now a declared, read-only field on
+the adapter (`EmailDeliveryLog.retryable` was already persisted and
+returned by the API; it was simply never selected by this adapter before).
+On success the outcome renders inline — the new delivery's status through
+the shared `StatusPill` with a human label, its provider type, and its
+reason if one exists — so "the outcome is visible on the row" does not
+require a second navigation to the new record. On refusal, `err.message`
+(the full sentence from the `AppError`, unwrapped by
+`NotificationRequestError` in `notifications-api.ts`) renders directly in an
+inline error banner, not a raw error code.
+
+**Verified, not assumed, before closing:**
+- Permission gating is genuinely server-enforced: `retryDeliveryLog` carries
+  both `@Permissions(NOTIFICATION_LOGS_RETRY)` and
+  `@RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')`, guarded the same
+  way every other mutating route in this controller is — a user without the
+  legacy key or the matrix privilege 403s before the service method runs,
+  independent of whatever the UI shows or hides.
+- `npm --workspace web run check-types`, `npm --workspace api run check-types`
+  (only the 2 pre-existing, unrelated `@aws-sdk` errors), `npm --workspace api
+  run test` (all notifications suites, including the new
+  `notification-retry.spec.ts`), `npm --workspace web run test` (93/93
+  suites), `eslint` on every changed file (0 errors, 0 warnings on the new
+  files) — all run this session with real, current results.
+
+Reviving `listRetryableDeliveryLogs` into an automatic, scheduled retry
+remains out of scope, confirmed to be [[BUG-3200]]'s work (its own record is
+untouched by this resolution beyond a cross-reference).
+
 ## History
 
 - 2026-09-11 — created at `cbd9b812` from a user request for a retry button;
   the absence of any existing retry, and the dead `listRetryableDeliveryLogs`
   helper, confirmed by code search before filing.
 - 2026-09-12 — backend implemented in SESSION-0103, per
-  `EXECPLAN-0039`; **frontend deliberately not shipped, so this item stays
-  READY rather than DONE.** `POST /notifications/email-delivery-logs/:id/retry`
-  exists with both permission decorators (new `notification.logs.retry` key,
-  distinct from read), tenant scoping, an eligibility guard (refuses a sink
-  send, a non-retryable/non-FAILED row, and — a decision made in this
-  pass — any `AUTH_*` event, since those carry a one-time credential that
-  should not be re-sent from a log), an audit entry, and a payload-capture
-  decision (re-render using variables captured at original send time, stored
-  in the existing `EmailDeliveryLog.metadata` column — no schema change).
-  `listRetryableDeliveryLogs` remains dead code; reviving it into an
-  automatic retry is confirmed to be BUG-3200's work, not this item's. No
-  frontend control was added — the settings-runtime adapter for this screen
-  has no non-CRUD command extension point today, and building one safely was
-  judged out of this session's remaining budget; see EXECPLAN-0039's Frontend
-  impact section for the full reasoning. The literal ask ("a retry button")
-  is therefore not yet delivered end-to-end, hence `Status: READY`.
+  `EXECPLAN-0039`. Left `Status: READY` deliberately: the endpoint existed
+  with no way to reach it, and marking the item DONE would have misdescribed
+  what an operator could actually do.
+- 2026-09-12 — frontend control added in the same session, reopened by the
+  coordinator specifically to close this gap before release. See Resolution
+  above. QA-SETTINGS-020 is the reusable scenario; REG-490 is the regression
+  entry.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
