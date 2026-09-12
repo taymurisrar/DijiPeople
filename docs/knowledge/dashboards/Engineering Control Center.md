@@ -7,9 +7,9 @@
 
 | | |
 |---|---|
-| Active sessions | **2** |
-| Active parent tasks | 5 |
-| Active work packages | 5 |
+| Active sessions | **1** |
+| Active parent tasks | 4 |
+| Active work packages | 4 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
@@ -49,7 +49,6 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
-| [[SESSION-0103-implement-the-34-open-records-from-sessions-0099-0102|SESSION-0103]] | TASK-0030 | Implement the 34 open records from sessions 0099-0102 | ACTIVE | `agent/records-0099-0102` | `develop` | permissions, runtime-registries, record-indexes | NO |
 | [[SESSION-0099-review-tenant-subscription-plans-features-screen|SESSION-0099]] | — | Review tenant subscription Plans & Features screen | ACTIVE | `agent/review-subscription-plans-screen` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
@@ -60,7 +59,6 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 | [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 16/16 | — | — | — |
 | [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 11/11 | — | — | — |
 | [[TASK-0028-enterprise-reports-and-analytics-platform|TASK-0028]] | Enterprise Reports and Analytics platform | FEATURE | LARGE | 5/15 | WP-08 | — | — |
-| [[TASK-0030-implement-the-34-open-records-from-sessions-0099-0102|TASK-0030]] | Implement the 34 open records from sessions 0099-0102 | FEATURE | LARGE | 6/8 | WP-07 | — | — |
 
 ## Branch model
 

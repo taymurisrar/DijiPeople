@@ -30,3 +30,4 @@ Parent tasks that reached a terminal state. `FINAL_STATUS` records how.
 | [TASK-0025](TASK-0025-agent-app-distribution-and-auto-release-pipeline.md) | Agent app distribution and auto-release pipeline | FEATURE | LARGE | P1 | COMPLETE | 6/6 | WP-06 |
 | [TASK-0026](TASK-0026-admin-releases-management-and-channel-promotion-ui.md) | Admin releases management and channel promotion UI | FEATURE | MEDIUM | P1 | COMPLETE | 1/1 | — |
 | [TASK-0027](TASK-0027-tenant-app-assignment-which-tenants-receive-a-release.md) | Tenant app assignment: which tenants receive a release | FEATURE | MEDIUM | P1 | COMPLETE | 1/1 | — |
+| [TASK-0030](TASK-0030-implement-the-34-open-records-from-sessions-0099-0102.md) | Implement the 34 open records from sessions 0099-0102 | FEATURE | LARGE | P1 | COMPLETE | 8/8 | — |

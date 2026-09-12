@@ -8,9 +8,9 @@ graph and the block reasons. See
 
 | Bucket | Count |
 |---|---|
-| [Active](active.md) | 5 |
+| [Active](active.md) | 4 |
 | [Blocked](blocked.md) | 0 |
-| [Completed](completed.md) | 24 |
+| [Completed](completed.md) | 25 |
 
 ## Next ready work package
 
@@ -24,7 +24,7 @@ Nothing ready.
 - [TASK-0022](TASK-0022-agent-ui-perception-browser-control-component-knowledge-ui-r.md) — 1 owner decision(s) outstanding
 - [TASK-0025](TASK-0025-agent-app-distribution-and-auto-release-pipeline.md) — 4 owner decision(s) outstanding
 - [TASK-0028](TASK-0028-enterprise-reports-and-analytics-platform.md) — 4 owner decision(s) outstanding
-- [TASK-0030](TASK-0030-implement-the-34-open-records-from-sessions-0099-0102.md) — 4 owner decision(s) outstanding
+- [TASK-0030](TASK-0030-implement-the-34-open-records-from-sessions-0099-0102.md) — 16 owner decision(s) outstanding
 
 ## All tasks
 
@@ -58,4 +58,4 @@ Nothing ready.
 | [TASK-0026](TASK-0026-admin-releases-management-and-channel-promotion-ui.md) | Admin releases management and channel promotion UI | FEATURE | MEDIUM | P1 | COMPLETE | 1/1 | — |
 | [TASK-0027](TASK-0027-tenant-app-assignment-which-tenants-receive-a-release.md) | Tenant app assignment: which tenants receive a release | FEATURE | MEDIUM | P1 | COMPLETE | 1/1 | — |
 | [TASK-0028](TASK-0028-enterprise-reports-and-analytics-platform.md) | Enterprise Reports and Analytics platform | FEATURE | LARGE | P1 | IN_PROGRESS | 5/15 | WP-08 |
-| [TASK-0030](TASK-0030-implement-the-34-open-records-from-sessions-0099-0102.md) | Implement the 34 open records from sessions 0099-0102 | FEATURE | LARGE | P1 | IN_PROGRESS | 6/8 | WP-07 |
+| [TASK-0030](TASK-0030-implement-the-34-open-records-from-sessions-0099-0102.md) | Implement the 34 open records from sessions 0099-0102 | FEATURE | LARGE | P1 | COMPLETE | 8/8 | — |
