@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **1** |
+| Active sessions | **2** |
 | Active parent tasks | 4 |
 | Active work packages | 4 |
 | Blocked work packages | 0 |
@@ -49,6 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
+| [[SESSION-0103-implement-the-34-open-records-from-sessions-0099-0102|SESSION-0103]] | — | Implement the 34 open records from sessions 0099-0102 | ACTIVE | `agent/records-0099-0102` | `develop` | — | NO |
 | [[SESSION-0099-review-tenant-subscription-plans-features-screen|SESSION-0099]] | — | Review tenant subscription Plans & Features screen | ACTIVE | `agent/review-subscription-plans-screen` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
@@ -278,7 +279,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 |---|---|
 | Open total | 191 |
 | Blocked | 2 |
-| Deferred | 92 |
+| Deferred | 91 |
 | Awaiting a product decision | 9 |
 | Awaiting Architect triage | 0 |
 
