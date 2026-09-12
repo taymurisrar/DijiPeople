@@ -455,7 +455,20 @@ export class NotificationsService {
       },
     });
 
-    return this.getDeliveryLog(currentUser, deliveryLogId);
+    /*
+     * ITEM-0168. The retry lands on a NEW row — `sendTemplateEmail` always
+     * creates one, by design (a retry adds to history rather than overwriting
+     * it). Returning only the original (still FAILED, with an incremented
+     * retryCount) would leave the caller unable to show the one fact a retry
+     * exists to answer: did it work this time. Both are returned so the
+     * record page can show the outcome inline without a second navigation.
+     */
+    const [retriedLog, newDeliveryLog] = await Promise.all([
+      this.getDeliveryLog(currentUser, deliveryLogId),
+      this.getDeliveryLog(currentUser, result.deliveryLogId),
+    ]);
+
+    return { retriedLog, newDeliveryLog };
   }
 
   async listTemplates(currentUser: AuthenticatedUser) {

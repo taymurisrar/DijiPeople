@@ -6657,6 +6657,9 @@ const adapters: readonly SettingsRuntimeAdapter[] = [
       }),
       field("errorMessage", "Reason", "string", { isReadOnly: true }),
       field("providerMessageId", "Provider ID", "string", { isReadOnly: true }),
+      // ITEM-0168. Read here so the record page can decide whether to offer
+      // Retry at all — a row is only ever retryable while this is true.
+      field("retryable", "Retryable", "boolean", { isReadOnly: true }),
       field("createdAt", "Created", "datetime", { isReadOnly: true }),
     ],
     permissions: { read: "notification.logs.read" },

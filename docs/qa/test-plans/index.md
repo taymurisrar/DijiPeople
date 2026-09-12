@@ -6,7 +6,7 @@ One evergreen plan per product area: scope, risks, the cases that must always
 be covered, and the declared coverage per dimension. QA loads the plan for
 every area a change touches **before** designing anything new.
 
-**Plans: 29** · scenarios across them: 373
+**Plans: 29** · scenarios across them: 374
 
 | Plan | Area | Risk | Status | Scenarios | Related bugs | Verified against |
 |---|---|---|---|---|---|---|
@@ -25,7 +25,7 @@ every area a change touches **before** designing anything new.
 | [PLAN-023](../../../docs/qa/test-plans/PLAN-023-leave.md) | leave | HIGH | CURRENT | 3 | BUG-1967, BUG-1966, BUG-1962, BUG-1970 | `9def9971` |
 | [PLAN-015](../../../docs/qa/test-plans/PLAN-015-legal.md) | legal | HIGH | CURRENT | 5 | — | `bd0fb36` |
 | [PLAN-030](../../../docs/qa/test-plans/PLAN-030-monitoring.md) | monitoring | HIGH | CURRENT | 4 | BUG-2459, BUG-2460, BUG-2465, BUG-1754, BUG-1750, BUG-1420, BUG-1419 | `39d8ddc4` |
-| [PLAN-038](../../../docs/qa/test-plans/PLAN-038-notifications.md) | notifications | HIGH | DRAFT | 2 | BUG-3375, BUG-3379 | `f5f43805` |
+| [PLAN-038](../../../docs/qa/test-plans/PLAN-038-notifications.md) | notifications | HIGH | DRAFT | 3 | BUG-3375, BUG-3379 | `f5f43805` |
 | [PLAN-014](../../../docs/qa/test-plans/PLAN-014-outbox.md) | outbox | HIGH | CURRENT | 2 | BUG-0070 | `bd0fb36` |
 | [PLAN-006](../../../docs/qa/test-plans/PLAN-006-partner-lifecycle.md) | partner-lifecycle | HIGH | CURRENT | 6 | BUG-0016, BUG-0019, BUG-0025, BUG-0048 | `287612d` |
 | [PLAN-010](../../../docs/qa/test-plans/PLAN-010-payroll.md) | payroll | CRITICAL | CURRENT | 7 | BUG-0001, BUG-0039 | `287612d` |

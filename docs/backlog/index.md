@@ -13,11 +13,11 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 190 |
+| Open (active work) | 189 |
 | Blocked | 2 |
 | Deferred | 93 |
 | Awaiting a product decision | 7 |
-| Completed / closed | 327 |
+| Completed / closed | 328 |
 | **Open CRITICAL** | **4** |
 | **Open HIGH** | **89** |
 | **Awaiting Architect triage** | **0** |
@@ -41,7 +41,7 @@ see [`README.md`](README.md) for why.
 | DATABASE | 1 |
 | DATA_INTEGRITY | 18 |
 | DOCUMENTATION | 1 |
-| FOLLOW_UP | 4 |
+| FOLLOW_UP | 3 |
 | INFRA | 6 |
 | INTEGRATION | 5 |
 | PERFORMANCE | 14 |
@@ -65,8 +65,8 @@ see [`README.md`](README.md) for why.
 | VERIFIED | 218 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
-| READY | 27 |
-| DONE | 95 |
+| READY | 26 |
+| DONE | 96 |
 
 ## All records
 
@@ -685,7 +685,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0165](../../docs/backlog/items/ITEM-0165-present-an-employee-s-primary-location-and-authorised-work-s.md) | Present an employee's primary location and authorised work sites as one control | UX | — | P2 | READY | apps/web, employees, attendance | FIX_NOW |
 | [ITEM-0166](../../docs/backlog/items/ITEM-0166-move-data-loss-prevention-captures-off-the-employee-record-p.md) | Move data-loss prevention captures off the employee record page into the Agent surface | UX | — | P2 | READY | apps/web, agent | FIX_NOW |
 | [ITEM-0167](../../docs/backlog/items/ITEM-0167-adopt-the-employee-record-shell-across-the-record-pages-that.md) | Adopt the employee record shell across the record pages that still hand-roll their own | ARCHITECTURE | — | P2 | READY | apps/web | PLAN_REQUIRED |
-| [ITEM-0168](../../docs/backlog/items/ITEM-0168-a-retry-action-on-an-email-delivery-log.md) | A retry action on an email delivery log | FOLLOW_UP | — | P2 | READY | notifications, apps/web | PLAN_REQUIRED |
+| [ITEM-0168](../../docs/backlog/items/ITEM-0168-a-retry-action-on-an-email-delivery-log.md) | A retry action on an email delivery log | FOLLOW_UP | — | P2 | DONE | notifications, apps/web | DONE |
 | [ITEM-0173](../../docs/backlog/items/ITEM-0173-wire-notification-coverage-for-the-four-highest-value-remain.md) | Wire notification coverage for the four highest-value remaining silent modules | FOLLOW_UP | — | P2 | DEFERRED | documents, contracts, recruitment, business-trips | DEFER |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |

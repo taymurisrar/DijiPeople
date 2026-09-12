@@ -325,6 +325,7 @@ the same defect again.
 | [ITEM-0100](../../docs/backlog/items/ITEM-0100-apps-landing-env-examples-omit-next-public-web-root-domain-a.md) | apps/landing env examples omit NEXT_PUBLIC_WEB_ROOT_DOMAIN and no parity test guards them | INFRA | — | P2 | DONE | apps/landing, pkg:config | DONE |
 | [ITEM-0102](../../docs/backlog/items/ITEM-0102-move-switch-workspace-into-the-avatar-menu.md) | Move Switch workspace into the avatar menu | UX | — | P2 | DONE | views | DONE |
 | [ITEM-0128](../../docs/backlog/items/ITEM-0128-reports-and-analytics-two-explanatory-cards-nobody-reads-sit.md) | Reports and Analytics: two explanatory cards nobody reads sit above the data | UX | — | P2 | DONE | apps/web | DONE |
+| [ITEM-0168](../../docs/backlog/items/ITEM-0168-a-retry-action-on-an-email-delivery-log.md) | A retry action on an email delivery log | FOLLOW_UP | — | P2 | DONE | notifications, apps/web | DONE |
 | [ITEM-0114](../../docs/backlog/items/ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-.md) | The workspace shell states the tenant's identity four times and its purpose twice | UX | — | P3 | DONE | views, apps/web | DONE |
 
 ## Accepted risk
