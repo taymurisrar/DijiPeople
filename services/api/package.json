@@ -40,6 +40,8 @@
     "repair:market-countries": "ts-node prisma/repair-market-countries.ts",
     "repair:plan-capabilities": "ts-node prisma/repair-plan-capabilities.ts",
     "repair:routine-incidents": "ts-node prisma/repair-routine-incidents.ts",
+    "entitlement:set-mode": "ts-node prisma/set-entitlement-enforcement.ts",
+    "entitlement:grandfather": "ts-node prisma/grandfather-entitlement-overrides.ts",
     "seed:config": "ts-node prisma/seed-config.ts",
     "seed:demo": "ts-node prisma/seed-demo.ts",
     "seed:demo:reseed": "npm run seed:demo:reset && npm run seed:demo",

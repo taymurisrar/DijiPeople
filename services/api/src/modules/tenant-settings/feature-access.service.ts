@@ -19,7 +19,7 @@ export class FeatureAccessService {
     ]);
 
     const tenantOverrideMap = new Map(
-      tenantOverrides.map((feature) => [feature.key, feature.isEnabled]),
+      tenantOverrides.map((feature) => [feature.key, feature]),
     );
     /*
      * The subscription-live test and the plan/override combination both moved
@@ -39,10 +39,16 @@ export class FeatureAccessService {
 
     const items = TENANT_FEATURE_DEFINITIONS.map((definition) => {
       const isIncludedInPlan = planFeatureMap.get(definition.key) ?? false;
-      const tenantOverride = tenantOverrideMap.get(definition.key);
+      const override = tenantOverrideMap.get(definition.key);
       const isEnabled = resolveTenantFeatureState({
         isIncludedInPlan,
-        tenantOverride,
+        tenantOverride: override?.isEnabled,
+        // BUG-3350 — a CUSTOM override (written only by the grandfather
+        // migration script) is authoritative in both directions, same as the
+        // enforcement guard resolves it. Keeping this screen and the guard on
+        // one rule is the whole reason `resolveTenantFeatureState` lives in
+        // `common/security` rather than being reimplemented here.
+        overrideIsPlanCapped: override?.source !== 'CUSTOM',
       });
 
       return {
@@ -51,7 +57,8 @@ export class FeatureAccessService {
         description: definition.description,
         isIncludedInPlan,
         isEnabled,
-        tenantOverrideEnabled: tenantOverride ?? null,
+        tenantOverrideEnabled: override?.isEnabled ?? null,
+        tenantOverrideSource: override?.source ?? null,
       };
     });
 

@@ -101,14 +101,65 @@ describe('TenantEntitlementService.decide', () => {
     expect(decision.outcome).toBe('NOT_ENTITLED');
   });
 
-  it('does not let a tenant override grant a module the plan excludes', async () => {
+  it('does not let a MANUAL tenant override grant a module the plan excludes', async () => {
     const prisma = buildPrisma();
     prisma.tenantFeature.findMany.mockResolvedValue([
-      { key: 'payroll', isEnabled: true },
+      { key: 'payroll', isEnabled: true, source: 'MANUAL' },
     ]);
     const service = buildService(prisma);
 
     const decision = await service.decide('tenant-1', ['payroll']);
+
+    expect(decision.allowed).toBe(false);
+  });
+
+  it('does not let a module the plan excludes through when the tenant has no override row for it at all', async () => {
+    // `payroll` never appears in the mocked plan's `features` array at all
+    // (Starter genuinely has no `PlanFeature` row for it — see
+    // `commercial-bootstrap.ts`'s `reconcilePlanFeatures`, which never writes
+    // a disabled row for an excluded feature). The BUG-3350 fix iterates the
+    // full feature catalog rather than only the plan's own rows; this pins
+    // that the change does not accidentally widen anything for a key with no
+    // plan row and no override.
+    const prisma = buildPrisma();
+    const service = buildService(prisma);
+
+    const decision = await service.decide('tenant-1', ['timesheets']);
+
+    expect(decision.allowed).toBe(false);
+    expect(decision.outcome).toBe('NOT_ENTITLED');
+  });
+
+  /*
+   * BUG-3350 — the grandfathering path. Switching enforcement to `ENFORCE`
+   * must not cut off a tenant already using a module its plan does not sell.
+   * `source: CUSTOM` is written only by the grandfather migration script
+   * (`prisma/grandfather-entitlement-overrides.ts`), never by
+   * `TenantModulesService.update` (the ordinary settings-admin path, which
+   * still refuses to write an override the plan cannot back — see the test
+   * above). Only a CUSTOM override may grant beyond the plan.
+   */
+  it('lets a CUSTOM tenant override grant a module the plan excludes', async () => {
+    const prisma = buildPrisma();
+    prisma.tenantFeature.findMany.mockResolvedValue([
+      { key: 'payroll', isEnabled: true, source: 'CUSTOM' },
+    ]);
+    const service = buildService(prisma);
+
+    const decision = await service.decide('tenant-1', ['payroll']);
+
+    expect(decision.allowed).toBe(true);
+    expect(decision.outcome).toBe('ENTITLED');
+  });
+
+  it('a CUSTOM override can still restrict, same as MANUAL', async () => {
+    const prisma = buildPrisma();
+    prisma.tenantFeature.findMany.mockResolvedValue([
+      { key: 'leave', isEnabled: false, source: 'CUSTOM' },
+    ]);
+    const service = buildService(prisma);
+
+    const decision = await service.decide('tenant-1', ['leave']);
 
     expect(decision.allowed).toBe(false);
   });
