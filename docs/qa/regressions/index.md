@@ -4700,7 +4700,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-09-11 |
 | **Active** | yes |
 
-### REG-413 — NotificationRule had no controller, and half of email dispatch never asked it
+### REG-460 — NotificationRule had no controller, and half of email dispatch never asked it
 
 | | |
 |---|---|
@@ -4716,7 +4716,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-09-12 |
 | **Active** | yes |
 
-### REG-414 — A NOT_DELIVERED row carried no reason, so a working sink read as an outage
+### REG-461 — A NOT_DELIVERED row carried no reason, so a working sink read as an outage
 
 | | |
 |---|---|

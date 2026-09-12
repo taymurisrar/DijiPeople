@@ -9,7 +9,7 @@ RISK: HIGH
 AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: services/api/src/modules/notifications/notification-rules.spec.ts
 RELATED_BUGS: [BUG-3375]
-RELATED_REGRESSIONS: [REG-413]
+RELATED_REGRESSIONS: [REG-460]
 LAST_RUN: 
 LAST_RESULT: NOT_RUN
 CREATED_AT: 2026-09-12
@@ -68,6 +68,6 @@ both dispatch mechanisms that no single unit test spans.
 - Test plan — [[PLAN-038]]
 - Module — [[notifications]]
 - Bugs — [[BUG-3375]]
-- Regressions — REG-413 (see the regression register)
+- Regressions — REG-460 (see the regression register)
 
 <!-- GRAPH:END -->

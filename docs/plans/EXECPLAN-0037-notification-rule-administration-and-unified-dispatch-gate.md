@@ -21,7 +21,7 @@ KNOWN_BUG_PATTERNS_IN_SCOPE:
   - docs/qa/known-bug-patterns/silent-degradation.md
 
 REGRESSION_ENTRIES_IN_SCOPE:
-  - REG-413 — NotificationRule had no controller, and half of email dispatch never asked it
+  - REG-460 — NotificationRule had no controller, and half of email dispatch never asked it
 
 TARGET_BRANCH:            develop
 TARGET_ENVIRONMENT:       LOCAL

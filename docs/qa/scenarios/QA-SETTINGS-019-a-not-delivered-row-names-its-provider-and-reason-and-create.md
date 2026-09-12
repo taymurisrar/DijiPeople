@@ -9,7 +9,7 @@ RISK: MEDIUM
 AUTOMATION_STATUS: PARTIAL
 TEST_REFERENCE: services/api/src/modules/notifications/email/email-sink-delivery-status.spec.ts
 RELATED_BUGS: [BUG-3379]
-RELATED_REGRESSIONS: [REG-414]
+RELATED_REGRESSIONS: [REG-461]
 LAST_RUN: 
 LAST_RESULT: NOT_RUN
 CREATED_AT: 2026-09-12
@@ -64,6 +64,6 @@ that half until one is added.
 - Test plan — [[PLAN-038]]
 - Module — [[notifications]]
 - Bugs — [[BUG-3379]]
-- Regressions — REG-414 (see the regression register)
+- Regressions — REG-461 (see the regression register)
 
 <!-- GRAPH:END -->
