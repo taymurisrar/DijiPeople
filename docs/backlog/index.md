@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**618 records** — 442 bugs under [`docs/bugs/`](../bugs/), 176 non-bug items under [`items/`](items/).
+**619 records** — 442 bugs under [`docs/bugs/`](../bugs/), 177 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,7 +13,7 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 189 |
+| Open (active work) | 190 |
 | Blocked | 2 |
 | Deferred | 93 |
 | Awaiting a product decision | 7 |
@@ -28,7 +28,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 4 |
 | HIGH | 89 |
-| MEDIUM | 75 |
+| MEDIUM | 76 |
 | LOW | 16 |
 
 ## Open by type
@@ -48,7 +48,7 @@ see [`README.md`](README.md) for why.
 | PRODUCT_DECISION | 1 |
 | SECURITY | 17 |
 | STATE_MACHINE | 3 |
-| TECH_DEBT | 6 |
+| TECH_DEBT | 7 |
 | TENANT_ISOLATION | 2 |
 | TEST_GAP | 9 |
 | UX | 44 |
@@ -65,7 +65,7 @@ see [`README.md`](README.md) for why.
 | VERIFIED | 218 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
-| READY | 26 |
+| READY | 27 |
 | DONE | 95 |
 
 ## All records
@@ -597,6 +597,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0170](../../docs/backlog/items/ITEM-0170-eleven-tenant-modules-emit-no-notifications-at-all.md) | Eleven tenant modules emit no notifications at all | FOLLOW_UP | MEDIUM | P2 | DONE | notifications, recruitment, documents, policies, contracts, support-cases, business-trips, benefits, compensation, projects, sla, legal, partners | DONE |
 | [ITEM-0171](../../docs/backlog/items/ITEM-0171-a-second-dispatch-path-sends-email-without-consulting-notifi.md) | A second dispatch path sends email without consulting NotificationRule | ARCHITECTURE | MEDIUM | P2 | DONE | notifications, payroll, payslips, auth, reporting | DONE |
 | [ITEM-0175](../../docs/backlog/items/ITEM-0175-wire-the-plans-screen-onto-the-seat-quote-and-plan-change-en.md) | Wire the plans screen onto the seat-quote and plan-change endpoints that now exist | FOLLOW_UP | MEDIUM | P2 | READY | apps/web, api:billing | FIX_NOW |
+| [ITEM-0177](../../docs/backlog/items/ITEM-0177-the-recruitment-draft-form-s-reporting-manager-lookup-still-.md) | The recruitment draft form's Reporting manager lookup still filters one page in the browser | TECH_DEBT | MEDIUM | P2 | READY | apps/web | FIX_NOW |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |

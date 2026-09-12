@@ -195,6 +195,7 @@ _None._
 | [ITEM-0119](../../docs/backlog/items/ITEM-0119-stop-writing-a-placeholder-e-mail-into-an-identity-column-wh.md) | Stop writing a placeholder e-mail into an identity column when the wizard opens a draft | TECH_DEBT | MEDIUM | P2 | READY | billing, landing, super-admin | PLAN_REQUIRED |
 | [ITEM-0158](../../docs/backlog/items/ITEM-0158-public-traffic-that-bypasses-cloudflare-shares-one-rate-limi.md) | Public traffic that bypasses Cloudflare shares one rate-limit bucket, by design and untested | INFRA | MEDIUM | P2 | READY | pkg:config, services/api/src/common/security | PLAN_REQUIRED |
 | [ITEM-0175](../../docs/backlog/items/ITEM-0175-wire-the-plans-screen-onto-the-seat-quote-and-plan-change-en.md) | Wire the plans screen onto the seat-quote and plan-change endpoints that now exist | FOLLOW_UP | MEDIUM | P2 | READY | apps/web, api:billing | FIX_NOW |
+| [ITEM-0177](../../docs/backlog/items/ITEM-0177-the-recruitment-draft-form-s-reporting-manager-lookup-still-.md) | The recruitment draft form's Reporting manager lookup still filters one page in the browser | TECH_DEBT | MEDIUM | P2 | READY | apps/web | FIX_NOW |
 
 ## LOW and unrated
 

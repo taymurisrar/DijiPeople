@@ -237,8 +237,8 @@ prop, filtered client-side — and was not touched here; it was not named in
 this bug's Evidence and fixing it was out of scope for this pass. **Still
 true after [[ITEM-0172]]** — that item's scope was
 `runtime-metadata-form-renderer.tsx` only, and this bespoke recruitment form
-was explicitly out of scope for it too. Tracked as a known remaining gap, not
-silently dropped: this record's own reproduction (Project → Project Manager)
+was explicitly out of scope for it too. Now carried by [[ITEM-0177]] rather than living only in this
+record, which is where a known gap goes to be forgotten: this record's own reproduction (Project → Project Manager)
 does not go through this file, so fixing it is not required to close this bug.
 
 ### `apps/web`'s named reproduction — now closed (ITEM-0172, 2026-09-12)
@@ -291,7 +291,7 @@ resolution.
 
 ## Related
 
-- Referenced by — [[ITEM-0163]], [[ITEM-0172]]
+- Referenced by — [[ITEM-0163]], [[ITEM-0172]], [[ITEM-0177]]
 - Modules — [[tenant-application]], [[platform-admin]]
 - Regression — REG-470 (see the regression register)
 
