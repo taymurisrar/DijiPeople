@@ -518,7 +518,7 @@ describe('EmployeesService', () => {
             tenantId: 'tenant-1',
             isDeleted: false,
             deletedAt: null,
-          }),
+          }) as unknown,
         }),
       );
     });

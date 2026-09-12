@@ -131,7 +131,7 @@ describe('delivery status for a send that reached a sink', () => {
       'tenant-demo',
       'log-1',
       expect.objectContaining({
-        errorMessage: expect.stringContaining('CONSOLE'),
+        errorMessage: expect.stringContaining('CONSOLE') as string,
       }),
     );
     /*

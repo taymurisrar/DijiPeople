@@ -132,7 +132,7 @@ describe('NotificationsService.retryDeliveryLog', () => {
     await expect(
       service.retryDeliveryLog(CURRENT_USER, 'log-1'),
     ).rejects.toMatchObject({
-      message: expect.stringContaining('one-time credential'),
+      message: expect.stringContaining('one-time credential') as string,
     });
     expect(sendTemplateEmail).not.toHaveBeenCalled();
   });
@@ -146,7 +146,7 @@ describe('NotificationsService.retryDeliveryLog', () => {
     await expect(
       service.retryDeliveryLog(CURRENT_USER, 'log-1'),
     ).rejects.toMatchObject({
-      message: expect.stringContaining('sink provider'),
+      message: expect.stringContaining('sink provider') as string,
     });
     expect(sendTemplateEmail).not.toHaveBeenCalled();
   });
@@ -159,7 +159,7 @@ describe('NotificationsService.retryDeliveryLog', () => {
     await expect(
       service.retryDeliveryLog(CURRENT_USER, 'log-1'),
     ).rejects.toMatchObject({
-      message: expect.stringContaining('failed, retryable delivery'),
+      message: expect.stringContaining('failed, retryable delivery') as string,
     });
     expect(sendTemplateEmail).not.toHaveBeenCalled();
   });
@@ -172,7 +172,7 @@ describe('NotificationsService.retryDeliveryLog', () => {
     await expect(
       service.retryDeliveryLog(CURRENT_USER, 'log-1'),
     ).rejects.toMatchObject({
-      message: expect.stringContaining('failed, retryable delivery'),
+      message: expect.stringContaining('failed, retryable delivery') as string,
     });
     expect(sendTemplateEmail).not.toHaveBeenCalled();
   });
@@ -185,7 +185,7 @@ describe('NotificationsService.retryDeliveryLog', () => {
     await expect(
       service.retryDeliveryLog(CURRENT_USER, 'log-1'),
     ).rejects.toMatchObject({
-      message: expect.stringContaining('predates variable capture'),
+      message: expect.stringContaining('predates variable capture') as string,
     });
     expect(sendTemplateEmail).not.toHaveBeenCalled();
   });

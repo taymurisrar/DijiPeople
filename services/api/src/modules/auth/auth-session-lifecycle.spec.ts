@@ -591,7 +591,9 @@ describe('auth session lifecycle', () => {
         .mockResolvedValueOnce({ absoluteExpiresAt: new Date('2027-01-01') });
 
       await expect(service.refresh(staleToken)).resolves.toMatchObject({
-        tokens: expect.objectContaining({ accessToken: expect.any(String) }),
+        tokens: expect.objectContaining({
+          accessToken: expect.any(String) as unknown,
+        }) as unknown,
       });
 
       // The losing request must not itself trigger a revoke-all-other-sessions

@@ -43,7 +43,9 @@ describe('JwtAuthGuard tenant session policy', () => {
       where: {
         tenantId: 'tenant-1',
         category: 'security',
-        key: { in: expect.arrayContaining(['idleTimeoutMinutes']) },
+        key: {
+          in: expect.arrayContaining(['idleTimeoutMinutes']) as string[],
+        },
       },
       select: { key: true, value: true },
     });

@@ -193,8 +193,8 @@ describe('NotificationsService.updateRule', () => {
         action: 'notification_rule.updated',
         entityType: 'NotificationRule',
         entityId: 'rule-1',
-        beforeSnapshot: expect.objectContaining({ enabled: true }),
-        afterSnapshot: expect.objectContaining({ enabled: false }),
+        beforeSnapshot: expect.objectContaining({ enabled: true }) as unknown,
+        afterSnapshot: expect.objectContaining({ enabled: false }) as unknown,
       }),
     );
   });

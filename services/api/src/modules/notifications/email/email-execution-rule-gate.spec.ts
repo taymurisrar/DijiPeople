@@ -106,7 +106,7 @@ describe('EmailExecutionService rule gate (ITEM-0171)', () => {
         status: EmailDeliveryStatus.SKIPPED,
         metadata: expect.objectContaining({
           skipReason: 'EVENT_RULE_DISABLED',
-        }),
+        }) as unknown,
       }),
     );
     expect(result.status).toBe(EmailDeliveryStatus.SKIPPED);
