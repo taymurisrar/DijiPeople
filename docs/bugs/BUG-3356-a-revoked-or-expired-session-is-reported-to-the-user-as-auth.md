@@ -13,7 +13,7 @@ AffectedModules: [web:auth, api:auth]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport:
-RegressionId: REG-414
+RegressionId: REG-441
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
@@ -171,7 +171,7 @@ monitoring queue gains the signal without regaining the noise that
 a mocked refresh that returns `401 SESSION_REVOKED`, and asserts no fetch is
 made to the originally requested path and that the returned response carries
 the revoked reason and its `traceId`, plus the no-refresh-token and
-`includeAuth: false` cases. Registered as REG-414 with QA scenario
+`includeAuth: false` cases. Registered as REG-441 with QA scenario
 [[QA-AUTH-012]].
 
 ## Dependencies
@@ -213,7 +213,7 @@ both fixed in the same session.
 
 ## QA Retest
 
-Pending — automated regression coverage exists (REG-414, [[QA-AUTH-012]]) but
+Pending — automated regression coverage exists (REG-441, [[QA-AUTH-012]]) but
 this has not yet had a live QA pass against a deployed environment.
 
 ## History
@@ -229,5 +229,6 @@ this has not yet had a live QA pass against a deployed environment.
 ## Related
 
 - Modules — [[auth]]
+- Regression — REG-441 (see the regression register)
 
 <!-- GRAPH:END -->

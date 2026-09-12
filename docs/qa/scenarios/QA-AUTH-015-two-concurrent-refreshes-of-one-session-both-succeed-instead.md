@@ -9,7 +9,7 @@ RISK: MEDIUM
 AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: services/api/src/modules/auth/auth-session-lifecycle.spec.ts apps/web/proxy.spec.ts
 RELATED_BUGS: [BUG-3359]
-RELATED_REGRESSIONS: [REG-417]
+RELATED_REGRESSIONS: [REG-444]
 LAST_RUN: 2026-09-12
 LAST_RESULT: PASS
 CREATED_AT: 2026-09-12
@@ -73,6 +73,6 @@ Created 2026-09-12 at `f5f43805`.
 
 - Test plan — [[PLAN-001]]
 - Bugs — [[BUG-3359]]
-- Regressions — REG-417 (see the regression register)
+- Regressions — REG-444 (see the regression register)
 
 <!-- GRAPH:END -->

@@ -4700,7 +4700,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-09-11 |
 | **Active** | yes |
 
-### REG-413 — A tenant with no security settings row got the most restrictive session policy by accident
+### REG-440 — A tenant with no security settings row got the most restrictive session policy by accident
 
 | | |
 |---|---|
@@ -4716,7 +4716,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-09-12, branch `agent/r-s3-auth` |
 | **Active** | yes |
 
-### REG-414 — A revoked session was reported to the user as a missing access token, with no server-side record
+### REG-441 — A revoked session was reported to the user as a missing access token, with no server-side record
 
 | | |
 |---|---|
@@ -4732,7 +4732,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-09-12, branch `agent/r-s3-auth` |
 | **Active** | yes |
 
-### REG-415 — A remembered session was shortened to fifteen minutes on the first middleware refresh
+### REG-442 — A remembered session was shortened to fifteen minutes on the first middleware refresh
 
 | | |
 |---|---|
@@ -4748,7 +4748,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-09-12, branch `agent/r-s3-auth` |
 | **Active** | yes |
 
-### REG-416 — A Server Component render could revoke its own refresh token and never persist the successor
+### REG-443 — A Server Component render could revoke its own refresh token and never persist the successor
 
 | | |
 |---|---|
@@ -4764,7 +4764,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-09-12, branch `agent/r-s3-auth` |
 | **Active** | yes |
 
-### REG-417 — A rotation race could sign a user out of a session that was, in fact, still live
+### REG-444 — A rotation race could sign a user out of a session that was, in fact, still live
 
 | | |
 |---|---|
@@ -4780,7 +4780,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-09-12, branch `agent/r-s3-auth` |
 | **Active** | yes |
 
-### REG-418 — Every session row recorded the proxy's identity instead of the visitor's
+### REG-445 — Every session row recorded the proxy's identity instead of the visitor's
 
 | | |
 |---|---|

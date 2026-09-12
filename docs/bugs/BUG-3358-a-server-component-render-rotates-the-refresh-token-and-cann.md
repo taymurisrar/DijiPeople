@@ -13,7 +13,7 @@ AffectedModules: [web:auth, api:auth]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport:
-RegressionId: REG-416
+RegressionId: REG-443
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
@@ -160,7 +160,7 @@ silently. It should report it.
 cookie store whose `.set()` throws (the Server Component shape) and asserts
 zero `fetch` calls — not even to `/auth/refresh` — alongside the existing
 cases proving a writable store still refreshes normally. Registered as
-REG-416 with QA scenario [[QA-AUTH-014]].
+REG-443 with QA scenario [[QA-AUTH-014]].
 
 ## Dependencies
 
@@ -201,7 +201,7 @@ mechanism serves both.
 
 ## QA Retest
 
-Pending — automated regression coverage exists (REG-416, [[QA-AUTH-014]]) but
+Pending — automated regression coverage exists (REG-443, [[QA-AUTH-014]]) but
 this has not yet had a live QA pass against a deployed environment.
 
 ## History
@@ -217,5 +217,6 @@ this has not yet had a live QA pass against a deployed environment.
 ## Related
 
 - Modules — [[auth]]
+- Regression — REG-443 (see the regression register)
 
 <!-- GRAPH:END -->

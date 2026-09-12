@@ -13,7 +13,7 @@ AffectedModules: [api:auth, web:auth]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport:
-RegressionId: REG-413
+RegressionId: REG-440
 RelatedBacklogItem: ITEM-0162
 RelatedDecision: ADR-0009
 RelatedImplementation:
@@ -179,7 +179,7 @@ Three separable pieces; no ExecPlan needed for the first two.
 block `concurrent sessions are allowed unless a tenant opts out`) drives
 `persistRefreshToken` directly for a tenant with no `security` settings row,
 with `allowMultipleActiveSessions: false`, and with it `true`. Registered as
-REG-413 with QA scenario [[QA-AUTH-011]].
+REG-440 with QA scenario [[QA-AUTH-011]].
 
 ## Dependencies
 
@@ -229,7 +229,7 @@ assessment.
 
 ## QA Retest
 
-Pending — this fix has automated regression coverage (REG-413,
+Pending — this fix has automated regression coverage (REG-440,
 [[QA-AUTH-011]]) but has not yet had a live QA pass against a deployed
 environment.
 
@@ -247,7 +247,8 @@ environment.
 
 ## Related
 
-- Referenced by — [[ITEM-0162]]
+- Backlog item — [[ITEM-0162]]
 - Modules — [[auth]]
+- Regression — REG-440 (see the regression register)
 
 <!-- GRAPH:END -->

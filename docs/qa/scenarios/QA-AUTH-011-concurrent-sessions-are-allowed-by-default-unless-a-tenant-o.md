@@ -9,7 +9,7 @@ RISK: HIGH
 AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: services/api/src/modules/auth/auth-session-lifecycle.spec.ts
 RELATED_BUGS: [BUG-3355]
-RELATED_REGRESSIONS: [REG-413]
+RELATED_REGRESSIONS: [REG-440]
 LAST_RUN: 2026-09-12
 LAST_RESULT: PASS
 CREATED_AT: 2026-09-12
@@ -63,6 +63,6 @@ Created 2026-09-12 at `f5f43805`.
 
 - Test plan — [[PLAN-001]]
 - Bugs — [[BUG-3355]]
-- Regressions — REG-413 (see the regression register)
+- Regressions — REG-440 (see the regression register)
 
 <!-- GRAPH:END -->

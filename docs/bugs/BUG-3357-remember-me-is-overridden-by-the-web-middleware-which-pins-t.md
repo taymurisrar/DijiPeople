@@ -13,7 +13,7 @@ AffectedModules: [web:auth, api:auth]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport:
-RegressionId: REG-415
+RegressionId: REG-442
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
@@ -168,7 +168,7 @@ two different remembered expiries producing two different `maxAge`s).
 `apps/web/proxy.spec.ts` runs the proxy's refresh branch with a remembered and
 a non-remembered mocked `/auth/refresh` response and asserts the resulting
 cookie `maxAge`s, including the specific assertion that a 30-minute remembered
-access cookie is not the old literal `900` seconds. Registered as REG-415 with
+access cookie is not the old literal `900` seconds. Registered as REG-442 with
 QA scenario [[QA-AUTH-013]].
 
 ## Dependencies
@@ -215,7 +215,7 @@ sign-in screen's own help text (`apps/web/app/(public)/login/login-form.tsx`).
 
 ## QA Retest
 
-Pending — automated regression coverage exists (REG-415, [[QA-AUTH-013]]) but
+Pending — automated regression coverage exists (REG-442, [[QA-AUTH-013]]) but
 this has not yet had a live QA pass against a deployed environment.
 
 ## History
@@ -231,5 +231,6 @@ this has not yet had a live QA pass against a deployed environment.
 ## Related
 
 - Modules — [[auth]]
+- Regression — REG-442 (see the regression register)
 
 <!-- GRAPH:END -->

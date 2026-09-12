@@ -9,7 +9,7 @@ RISK: MEDIUM
 AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: apps/web/lib/auth-session-cookies.spec.ts apps/web/proxy.spec.ts
 RELATED_BUGS: [BUG-3357]
-RELATED_REGRESSIONS: [REG-415]
+RELATED_REGRESSIONS: [REG-442]
 LAST_RUN: 2026-09-12
 LAST_RESULT: PASS
 CREATED_AT: 2026-09-12
@@ -65,6 +65,6 @@ Created 2026-09-12 at `f5f43805`.
 
 - Test plan — [[PLAN-001]]
 - Bugs — [[BUG-3357]]
-- Regressions — REG-415 (see the regression register)
+- Regressions — REG-442 (see the regression register)
 
 <!-- GRAPH:END -->

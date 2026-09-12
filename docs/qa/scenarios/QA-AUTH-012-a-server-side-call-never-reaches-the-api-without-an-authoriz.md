@@ -9,7 +9,7 @@ RISK: HIGH
 AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: apps/web/lib/server-api.spec.ts
 RELATED_BUGS: [BUG-3356]
-RELATED_REGRESSIONS: [REG-414]
+RELATED_REGRESSIONS: [REG-441]
 LAST_RUN: 2026-09-12
 LAST_RESULT: PASS
 CREATED_AT: 2026-09-12
@@ -63,6 +63,6 @@ Created 2026-09-12 at `f5f43805`.
 
 - Test plan — [[PLAN-001]]
 - Bugs — [[BUG-3356]]
-- Regressions — REG-414 (see the regression register)
+- Regressions — REG-441 (see the regression register)
 
 <!-- GRAPH:END -->

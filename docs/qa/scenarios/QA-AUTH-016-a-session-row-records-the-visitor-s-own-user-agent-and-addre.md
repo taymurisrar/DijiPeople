@@ -9,7 +9,7 @@ RISK: LOW
 AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: packages/config/client-ip.test.js apps/web/lib/forwarded-headers.invariant.spec.ts
 RELATED_BUGS: [BUG-3360]
-RELATED_REGRESSIONS: [REG-418]
+RELATED_REGRESSIONS: [REG-445]
 LAST_RUN: 2026-09-12
 LAST_RESULT: PASS
 CREATED_AT: 2026-09-12
@@ -68,6 +68,6 @@ Created 2026-09-12 at `f5f43805`.
 
 - Test plan — [[PLAN-001]]
 - Bugs — [[BUG-3360]]
-- Regressions — REG-418 (see the regression register)
+- Regressions — REG-445 (see the regression register)
 
 <!-- GRAPH:END -->
