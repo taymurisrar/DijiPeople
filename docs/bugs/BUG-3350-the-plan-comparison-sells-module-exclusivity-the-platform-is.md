@@ -2,7 +2,7 @@
 ID: BUG-3350
 aliases: [BUG-3350]
 Title: The plan comparison sells module exclusivity the platform is configured only to report on
-Status: PRODUCT_DECISION
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -11,15 +11,15 @@ DetectedDate: 2026-09-11
 DetectedInSha: caad4a56
 AffectedModules: [apps/web, services/api/src/common/security]
 OwnerAgent: architect
-ArchitectDisposition: PRODUCT_DECISION
+ArchitectDisposition: FIX_NOW
 QAReport:
-RegressionId:
+RegressionId: REG-424
 RelatedBacklogItem:
-RelatedDecision:
+RelatedDecision: ADR-0009
 RelatedImplementation:
 CreatedAt: 2026-09-11
-UpdatedAt: 2026-09-11
-ResolvedAt:
+UpdatedAt: 2026-09-12
+ResolvedAt: 2026-09-12
 ---
 
 # BUG-3350 — The plan comparison sells module exclusivity the platform is configured only to report on
@@ -189,22 +189,88 @@ valuable until it is answered.
 
 ## Resolution
 
-Not yet decided.
+Decided and implemented: route 2, grandfather then enforce. Recorded in full
+as [[ADR-0009]] — read that for the reasoning, alternatives and agent rules;
+this section summarises what landed in code.
+
+- **Impact measurement (a).** No live-database query was run against
+  production — the record and this task both asked for a measurement from
+  code and seed data, not a production sweep. Structurally: Starter excludes
+  five of the seven route-guarded feature keys (`onboarding`, `payroll`,
+  `projects`, `recruitment`, `timesheets`); Growth excludes one (`payroll`);
+  Enterprise/Enterprise+ exclude none. `dijipeople-demo` (Starter/Active) is
+  the one tenant this record's own evidence already confirms is using
+  `payroll` and `recruitment` beyond its plan.
+  `prisma/grandfather-entitlement-overrides.ts` run in dry-run mode against
+  any target database **is** the tenant-impact count for that database — it
+  was not run against any real database as part of this change.
+- **Reversible platform setting, not a constant (b).**
+  `prisma/set-entitlement-enforcement.ts` writes the `entitlementEnforcement`
+  field of the `module-settings` `PlatformSetting` row directly.
+  `DEFAULT_ENTITLEMENT_ENFORCEMENT_MODE` in code is untouched (`REPORT_ONLY`),
+  and `prisma/seed-config.ts`'s shipped defaults are untouched too — see the
+  ADR's Alternatives Considered for why seeding the field would have silently
+  flipped production on the next unrelated deploy.
+- **Grandfathering (c).** `prisma/grandfather-entitlement-overrides.ts` — idempotent,
+  dry-run by default, requires `--apply` to write. It writes a `TenantFeature`
+  row with `source: CUSTOM` for each (tenant, module) pair where the tenant's
+  plan excludes the module but the tenant has at least one row of that
+  module's data. `resolveTenantFeatureState()`
+  (`common/security/tenant-entitlement.rule.ts`) now treats only a `CUSTOM`
+  override as able to grant beyond the plan; `TenantModulesService.update()`
+  (the ordinary settings-admin path, `source: MANUAL`) is unchanged and still
+  refuses to. `TenantEntitlementService.load()` was also changed to iterate
+  the full feature catalog rather than only the plan's own `PlanFeature` rows
+  — a precondition for the grant to be visible at all, since a plan that
+  excludes a feature has no row for it (`commercial-bootstrap.ts`), not a
+  disabled one. Not executed against any database.
+- **Starter's actual grants (d).** `employees`, `organization`, `leave`,
+  `attendance`, `documents`, `notifications`, `branding` — read from
+  `services/api/src/modules/super-admin/plans.catalog.ts`. Everything else in
+  the catalog, Starter excludes.
+- **ADR (e).** [[ADR-0009]], `docs/decisions/ADR-0009-entitlement-enforcement-cutover.md`.
+- **Not deployed (f).** Neither script is wired into `seed:all`, `release:api`
+  or any CI job. This change lands on `develop` only; actually switching a
+  database to `ENFORCE` is a separate, later, explicit operational step the
+  ADR's Agent Rules restrict to a database an operator names directly.
+
+**Residual gap, deliberately outside this change's scope and called out in the ADR**: `desktop-agent`,
+`compliance`, `data-management` and `attendance-integrations` carry no route
+guard at all (`ENTITLEMENT_UNGATED_FEATURE_KEYS`), each for a specific,
+already-considered reason. This cutover does not make the comparison table's
+claims about those four true. Worth its own backlog item if the owner wants
+the table fully honest rather than five-sevenths honest.
+
+Specs: `common/security/tenant-entitlement.service.spec.ts` (CUSTOM grants,
+MANUAL still capped, catalog-wide iteration is behaviour-preserving for the
+no-override case), `common/guards/entitlement.guard.spec.ts` (end-to-end
+through the real service: ENFORCE denies with no override, allows with a
+CUSTOM override, a MANUAL override does not substitute), and
+`tenant-control-plane/tenant-modules.service.spec.ts` (the admin screen labels
+a CUSTOM grant distinctly from a stale `BLOCKED_BY_PLAN` override).
 
 ## QA Retest
 
-Pending.
+Pending — needs a QA pass on a database where
+`entitlement:grandfather -- --apply` and `entitlement:set-mode -- ENFORCE`
+have actually been run, confirming a grandfathered tenant keeps access and a
+non-grandfathered one on the same plan is refused.
 
 ## History
 
 - 2026-09-11 — found while reviewing the tenant Plans screen; verified against
   the live demo tenant at `caad4a56`.
 - 2026-09-11 — Architect triage: `PRODUCT_DECISION`.
+- 2026-09-12 — Owner decided route 2 (grandfather, then enforce). Implemented:
+  `CUSTOM`-sourced grandfather overrides, catalog-wide entitlement resolution,
+  a platform-setting enforcement toggle, and [[ADR-0009]]. Not applied to any
+  database as part of this change.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
 ## Related
 
 - Modules — [[tenant-application]]
+- Regression — REG-424 (see the regression register)
 
 <!-- GRAPH:END -->

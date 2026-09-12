@@ -65,6 +65,11 @@ function sellablePlanPrice() {
   return {
     id: PLAN_PRICE_ID,
     planId: 'plan-1',
+    // BUG-3334 — the price's own gate, checked alongside the plan's since this
+    // fix. A fixture missing either would make this test pass for the wrong
+    // reason, same as every other field here.
+    marketId: 'market-1',
+    publicationStatus: CommercialPublicationStatus.PUBLISHED,
     currency: 'QAR',
     unitAmount: new Prisma.Decimal(50),
     billingModel: BillingModel.PER_SEAT,
@@ -143,6 +148,7 @@ function buildService() {
     { openOrder } as never,
     ownerEmailVerification as never,
     { acknowledgeMany: jest.fn() } as never,
+    { resolveMarketForTenant: jest.fn() } as never,
   );
 
   return { service, openOrder, prisma, ownerEmailVerification };

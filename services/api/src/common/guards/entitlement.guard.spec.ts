@@ -5,7 +5,10 @@ import { RequireEntitlement } from '../decorators/require-entitlement.decorator'
 import { TENANT_FEATURE_KEYS } from '../constants/tenant-features';
 import { ELEVATED_TENANT_ROLE_KEYS } from '../security/elevated-tenant-roles';
 import { AppError } from '../errors/app-error';
-import type { EntitlementDecision } from '../security/tenant-entitlement.service';
+import {
+  TenantEntitlementService,
+  type EntitlementDecision,
+} from '../security/tenant-entitlement.service';
 
 /*
  * BUG-1952. The gate the product never had: plan entitlements were a
@@ -312,5 +315,70 @@ describe('EntitlementGuard enforcement modes', () => {
     const line = logger.warn.mock.calls[0][0];
     expect(line).toContain('/api/payroll/cycles');
     expect(line).not.toContain('?');
+  });
+});
+
+/**
+ * BUG-3350 — end to end through the real `TenantEntitlementService`, not the
+ * mocked `decide()` used above. This is the pipeline the cutover actually
+ * depends on: ENFORCE denies a module the plan excludes, and the
+ * grandfather-script's CUSTOM override is what stops that denial from
+ * reaching a tenant who was already using it.
+ */
+describe('EntitlementGuard + TenantEntitlementService — the ENFORCE cutover', () => {
+  function buildRealPipeline(overrides: Array<Record<string, unknown>>) {
+    const prisma = {
+      subscription: {
+        findUnique: jest.fn().mockResolvedValue({
+          status: 'ACTIVE',
+          plan: {
+            features: [{ featureKey: 'leave', isEnabled: true }],
+          },
+        }),
+      },
+      tenantFeature: { findMany: jest.fn().mockResolvedValue(overrides) },
+      platformSetting: {
+        findUnique: jest
+          .fn()
+          .mockResolvedValue({ value: { entitlementEnforcement: 'ENFORCE' } }),
+      },
+    };
+    const entitlements = new TenantEntitlementService(prisma as never);
+    const guard = new EntitlementGuard(new Reflector(), entitlements);
+    jest
+      .spyOn(
+        (guard as unknown as { logger: { warn: jest.Mock } }).logger,
+        'warn',
+      )
+      .mockImplementation(() => undefined);
+    return guard;
+  }
+
+  it('denies under ENFORCE when the module is outside the plan and there is no override', async () => {
+    const guard = buildRealPipeline([]);
+
+    await expect(
+      guard.canActivate(buildContext(tenantUser)),
+    ).rejects.toMatchObject({ errorCode: 'TENANT_FEATURE_NOT_ENTITLED' });
+  });
+
+  it('allows under ENFORCE when a CUSTOM grandfather override exists for the module', async () => {
+    const guard = buildRealPipeline([
+      { key: 'payroll', isEnabled: true, source: 'CUSTOM' },
+    ]);
+
+    await expect(guard.canActivate(buildContext(tenantUser))).resolves.toBe(
+      true,
+    );
+  });
+
+  it('a MANUAL override cannot substitute for the grandfather grant', async () => {
+    const guard = buildRealPipeline([
+      { key: 'payroll', isEnabled: true, source: 'MANUAL' },
+    ]);
+
+    await expect(
+      guard.canActivate(buildContext(tenantUser)),
+    ).rejects.toMatchObject({ errorCode: 'TENANT_FEATURE_NOT_ENTITLED' });
   });
 });

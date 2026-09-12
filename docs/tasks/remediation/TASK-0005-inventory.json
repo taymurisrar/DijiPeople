@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 614,
+    "total_records": 616,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -10809,7 +10809,9 @@
       "qa_scenarios": [
         "QA-BILLING-026"
       ],
-      "test_plan": [],
+      "test_plan": [
+        "PLAN-039"
+      ],
       "current_evidence": {
         "paths": [
           "services/api/src/modules/tenant-settings",
@@ -18925,7 +18927,7 @@
       "title": "Subscribe is enabled for a tenant that already has an active subscription and can only ever return 409",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "architect_disposition": "PLAN_REQUIRED",
       "source": {
         "record_path": "docs/bugs/BUG-3331-subscribe-is-enabled-for-a-tenant-that-already-has-an-active.md",
@@ -18933,14 +18935,18 @@
         "detected_in_sha": "caad4a56",
         "created_at": "2026-09-11",
         "updated_at": "2026-09-12",
-        "resolved_at": ""
+        "resolved_at": "2026-09-12"
       },
       "affected_modules": [
         "apps/web",
         "services/api/src/modules/billing"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-425"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-037"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -19023,8 +19029,12 @@
         "apps/web",
         "services/api/src/modules/billing"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-423"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-035"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -19049,21 +19059,25 @@
       "title": "Tenant plan listing and checkout ignore PlanPrice publication status and market scoping",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
+      "current_status": "FIXED",
       "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3334-tenant-plan-listing-and-checkout-ignore-planprice-publicatio.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "caad4a56",
         "created_at": "2026-09-11",
-        "updated_at": "2026-09-11",
-        "resolved_at": ""
+        "updated_at": "2026-09-12",
+        "resolved_at": "2026-09-12"
       },
       "affected_modules": [
         "services/api/src/modules/billing"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-423"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-035"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -19213,23 +19227,29 @@
       "title": "The plan comparison sells module exclusivity the platform is configured only to report on",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "PRODUCT_DECISION",
-      "architect_disposition": "PRODUCT_DECISION",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3350-the-plan-comparison-sells-module-exclusivity-the-platform-is.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "caad4a56",
         "created_at": "2026-09-11",
-        "updated_at": "2026-09-11",
-        "resolved_at": ""
+        "updated_at": "2026-09-12",
+        "resolved_at": "2026-09-12"
       },
       "affected_modules": [
         "apps/web",
         "services/api/src/common/security"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
-      "test_plan": [],
+      "regressions": [
+        "REG-424"
+      ],
+      "qa_scenarios": [
+        "QA-BILLING-036"
+      ],
+      "test_plan": [
+        "PLAN-039"
+      ],
       "current_evidence": {
         "paths": [
           "apps/web",
@@ -27217,6 +27237,84 @@
           "apps/web"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0172-wire-debounced-search-and-the-openable-label-into-the-metada.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0175",
+      "type": "FOLLOW_UP",
+      "title": "Wire the plans screen onto the seat-quote and plan-change endpoints that now exist",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "READY",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0175-wire-the-plans-screen-onto-the-seat-quote-and-plan-change-en.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-12",
+        "updated_at": "2026-09-12",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "services/api/src/modules/billing"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "services/api/src/modules/billing"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0175-wire-the-plans-screen-onto-the-seat-quote-and-plan-change-en.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0176",
+      "type": "TECH_DEBT",
+      "title": "SeatChangeService.applyDueChanges has no caller and cannot be wired without under-billing",
+      "severity": "HIGH",
+      "priority": "P2",
+      "current_status": "READY",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0176-seatchangeservice-applyduechanges-has-no-caller-and-cannot-b.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-12",
+        "updated_at": "2026-09-12",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/billing"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/billing"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0176-seatchangeservice-applyduechanges-has-no-caller-and-cannot-b.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

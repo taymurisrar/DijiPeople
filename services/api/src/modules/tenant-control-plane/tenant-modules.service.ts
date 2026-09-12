@@ -32,7 +32,16 @@ export type TenantModuleState =
   | 'DISABLED_BY_PLAN'
   | 'ENABLED_BY_OVERRIDE'
   | 'DISABLED_BY_OVERRIDE'
-  | 'BLOCKED_BY_PLAN';
+  | 'BLOCKED_BY_PLAN'
+  /**
+   * BUG-3350 — a `source: CUSTOM` override granting a module the plan does not
+   * sell. Written only by `prisma/grandfather-entitlement-overrides.ts` as
+   * part of the entitlement-enforcement cutover, never by `update()` below
+   * (which still refuses to write an override beyond the plan). Distinct from
+   * `BLOCKED_BY_PLAN` — that state is a stale override left over from a
+   * downgrade and is NOT in effect; this one is a deliberate grant and IS.
+   */
+  | 'ENABLED_BY_CUSTOM_GRANT';
 
 @Injectable()
 export class TenantModulesService {
@@ -219,6 +228,7 @@ export class TenantModulesService {
         icon: definition?.icon ?? null,
         isIncludedInPlan: item.isIncludedInPlan,
         tenantOverride: item.tenantOverrideEnabled,
+        tenantOverrideSource: item.tenantOverrideSource,
         effectiveEnabled: item.isEnabled,
         state: resolveState(item),
         /*
@@ -262,12 +272,20 @@ function resolveState(item: {
   isIncludedInPlan: boolean;
   isEnabled: boolean;
   tenantOverrideEnabled: boolean | null;
+  tenantOverrideSource?: string | null;
 }): TenantModuleState {
   if (item.tenantOverrideEnabled === null) {
     return item.isIncludedInPlan ? 'ENABLED_BY_PLAN' : 'DISABLED_BY_PLAN';
   }
-  if (item.tenantOverrideEnabled && !item.isIncludedInPlan)
-    return 'BLOCKED_BY_PLAN';
+  if (item.tenantOverrideEnabled && !item.isIncludedInPlan) {
+    // A CUSTOM override is a deliberate grant beyond the plan (BUG-3350's
+    // grandfathering script) and IS in effect — `item.isEnabled` already says
+    // so. Every other override shape that reaches here is a MANUAL row left
+    // over from a plan downgrade, which the plan does block.
+    return item.tenantOverrideSource === 'CUSTOM'
+      ? 'ENABLED_BY_CUSTOM_GRANT'
+      : 'BLOCKED_BY_PLAN';
+  }
   return item.tenantOverrideEnabled
     ? 'ENABLED_BY_OVERRIDE'
     : 'DISABLED_BY_OVERRIDE';

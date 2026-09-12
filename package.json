@@ -55,6 +55,8 @@
     "repair:market-countries": "npm --workspace api run repair:market-countries",
     "repair:plan-capabilities": "npm --workspace api run repair:plan-capabilities",
     "repair:routine-incidents": "npm --workspace api run repair:routine-incidents",
+    "entitlement:set-mode": "npm --workspace api run entitlement:set-mode",
+    "entitlement:grandfather": "npm --workspace api run entitlement:grandfather",
     "report:commercial": "npm --workspace api run report:commercial",
     "storage:reconcile": "node scripts/storage-reconcile.mjs",
     "stripe:sync-prices": "node scripts/sync-stripe-prices.mjs",

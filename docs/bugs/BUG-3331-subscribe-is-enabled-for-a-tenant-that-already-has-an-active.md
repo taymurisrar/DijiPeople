@@ -2,7 +2,7 @@
 ID: BUG-3331
 aliases: [BUG-3331]
 Title: Subscribe is enabled for a tenant that already has an active subscription and can only ever return 409
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: UX
@@ -13,13 +13,13 @@ AffectedModules: [apps/web, services/api/src/modules/billing]
 OwnerAgent: architect
 ArchitectDisposition: PLAN_REQUIRED
 QAReport:
-RegressionId:
+RegressionId: REG-425
 RelatedBacklogItem:
 RelatedDecision:
-RelatedImplementation:
+RelatedImplementation: EXECPLAN-0037
 CreatedAt: 2026-09-11
 UpdatedAt: 2026-09-12
-ResolvedAt:
+ResolvedAt: 2026-09-12
 ---
 
 # BUG-3331 — Subscribe is enabled for a tenant that already has an active subscription and can only ever return 409
@@ -205,48 +205,95 @@ currently show the dead button.
 
 ## Resolution
 
-**Partially fixed — UI half only (Proposed Resolution items 1-4).** The
-substantive half (items 5-6: a real tenant plan-change/seat-change endpoint,
-or a portal link if plan changes stay in Stripe) is explicitly out of scope
-for this pass and belongs to the API stream's ExecPlan, per this task's
-instructions — no plan-change endpoint was built here.
+Fixed in both halves, which were built in parallel by two streams that could
+not see each other. Each wrote a Resolution saying the other was still
+missing; both were right at the time and neither is now.
 
-Fixed in `apps/web/app/(authenticated)/settings/billing/_components/billing-settings-client.tsx`:
+### The screen
 
-1. Button state now depends on whether the action can succeed, not on plan
-   identity alone: a new `hasLiveSubscriptionBlock` (true for `ACTIVE`,
-   `TRIALING`, `PAST_DUE`, `UNPAID`) suppresses "Subscribe" on **every** plan
-   card, not only the current plan's, while that block is true. The blocked
-   cards render "You already have a subscription. Manage or change your plan
-   from the billing portal on the Overview tab." instead of an enabled button
-   that could only 409.
-2. The current-plan comparison (`isCurrentPlanExact`) now includes
-   `billingCycle` and `currency`, not plan id alone, so the Annual view of a
-   Monthly subscription — or a different currency — is no longer labelled
-   "Current plan".
-3. The current-plan branch is tested before the checkout-readiness /
-   live-subscription branches in the render order, so the tenant's actual
-   current plan can never simultaneously show the "Current" chip and an
-   unavailable-for-checkout message (the `USD` + `Annual` inconsistency this
-   record measured).
-4. The error banner moved from a single global position above the tab nav
-   (roughly 1,400-4,000px from the button that produced it) to inside each
-   view, immediately below the tab nav and above the controls that can raise
-   it, and now carries `role="alert"`.
+`billing-settings-client.tsx`:
 
-**Not done, and not expected of this pass:** a working plan-change/seat-change
-path (items 5-6), and therefore the record's own Acceptance Criteria are only
-partly met — "no control produces a 409" is now true for the *live-subscription*
-case (Subscribe is no longer offered at all in that state) but there is still
-no way for a Monthly subscriber to reach Annual billing for the same plan from
-this screen, because no cycle-change endpoint exists. That remainder is with
-the API stream.
+1. Button state follows whether the action can succeed rather than plan
+   identity. A live subscription — `ACTIVE`, `TRIALING`, `PAST_DUE` or
+   `UNPAID` — suppresses Subscribe on **every** card, not only the current
+   plan's, so the screen no longer offers an action that could only ever
+   return 409.
+2. The current-plan comparison includes billing cycle and currency, not plan
+   id alone, so the Annual view of a Monthly subscription is no longer
+   labelled "Current plan".
+3. The current-plan branch is evaluated before the checkout-readiness branch,
+   so a tenant's own plan can never be chipped "Current" and shown as
+   unavailable at the same time.
+4. The error banner moved from a global position above the tab navigation —
+   between 1,400 and 4,000 pixels from the control that raised it — to
+   directly above the controls that can raise it, and carries `role="alert"`.
+
+### The server
+
+`services/api` now exposes the plan-change path the record asked for:
+
+- `GET /billing/plan-changes/preview` quotes the money before confirmation,
+  using Stripe's own preview for a Stripe-backed subscription and a clearly
+  labelled local estimate otherwise. Never a second proration formula
+  impersonating Stripe's.
+- `POST /billing/plan-changes` makes `PlanChangeService.requestChange()`
+  reachable and pushes the change to Stripe. A Stripe failure after the local
+  write commits reports as pending rather than throwing, because rolling back
+  a confirmed, recorded change over a brief outage is worse than a
+  reconcilable gap.
+- `PlanChangeService.applyDueChanges()` had **no caller anywhere in the
+  running application** — the same shape of defect as BUG-2618 — and is now
+  run by a sweeper worker, off by default.
+- Same-plan, different-cycle changes resolve, so Monthly to Annual on one plan
+  is expressible.
+
+The 409 from `createCheckoutSession` is unchanged and remains correct. It was
+never this record's defect.
+
+### Why this closes, and what it leaves
+
+The record offered two acceptable routes: expose a plan-change endpoint, or
+keep plan changes in the payment portal and say so on the card. The screen
+takes the second — a tenant with a live subscription is told, on every card,
+to manage or change the plan from the portal. No control on the screen can
+produce a 409 under any combination of plan, cycle and currency, and a
+Monthly subscriber can reach Annual through the portal. The acceptance
+criteria are met.
+
+The first route is now also built and is not yet called by the screen. That is
+a genuine improvement left on the table rather than a defect: the endpoints
+landed in the same task as the screen, hours apart, on branches that could not
+reference each other. Wiring the screen onto them — alongside the seat quote
+BUG-3330 leaves in the same state — is carried by ITEM-0175.
+
+### A residual found while here, deliberately not fixed
+
+`SeatChangeService.applyDueChanges()` has the identical zero-caller defect and
+was **not** wired into the new sweeper. Doing so would activate a separate
+pre-existing gap: a scheduled seat decrease reduces the local seat count with
+no matching quantity update at Stripe, so running it unattended would silently
+under-bill. Recorded in the sweeper's own comment, in the environment variable
+documentation, and as ITEM-0176.
+
+Design and reasoning: [[EXECPLAN-0037]].
+
+Specs: `plan-change.service.spec.ts` (new — the service had none),
+`subscription-change-sweeper.worker.spec.ts` (new), and
+`billing-authorization.spec.ts` extended for the two new endpoints.
 
 ## QA Retest
 
-Pending — needs confirmation that no card offers an enabled "Subscribe" while
-the tenant has a live subscription in any state, and that the current-plan
-chip and checkout-unavailable message never both render for the same card.
+Pending, and it needs both a browser and a Stripe test-mode tenant.
+
+On the screen: confirm no card offers an enabled Subscribe while the tenant
+has a live subscription in any state, that the current-plan chip and the
+checkout-unavailable message never render together for one card, and that an
+error appears next to the control that raised it.
+
+Against Stripe: request an upgrade and confirm the subscription's price
+actually changed in the Stripe dashboard; request a same-plan cycle change and
+confirm it is classified by amount rather than by plan identity; enable the
+sweeper against a downgrade scheduled in the past and confirm it applies.
 
 ## History
 
@@ -255,11 +302,17 @@ chip and checkout-unavailable message never both render for the same card.
 - 2026-09-12 — UI half (items 1-4) fixed in `apps/web` (SESSION-0103,
   `agent/r-s1-billing-web`). Not marked `FIXED`: items 5-6 (a real plan-change
   path) are unaddressed and are the API stream's ExecPlan.
+- 2026-09-12 — [[EXECPLAN-0037]] written and implemented: plan-change preview
+  and confirm endpoints, Stripe-facing sync on both the immediate and
+  scheduled paths, the dead `applyDueChanges` sweeper, and same-plan cycle
+  changes. UI half (items 1-4) remains open, owned by a concurrent stream.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
 ## Related
 
+- Referenced by — [[ITEM-0176]]
 - Modules — [[tenant-application]], [[billing]]
+- Regression — REG-425 (see the regression register)
 
 <!-- GRAPH:END -->

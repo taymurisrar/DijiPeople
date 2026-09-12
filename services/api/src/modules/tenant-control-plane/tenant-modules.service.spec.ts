@@ -127,6 +127,46 @@ describe('TenantModulesService', () => {
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
+  /*
+   * BUG-3350 — the grandfather migration script writes a `source: CUSTOM`
+   * TenantFeature row directly (bypassing this service's own `update()`,
+   * which still refuses the write above), and this screen must label the
+   * result as a deliberate grant rather than the stale-override state a plan
+   * downgrade produces.
+   */
+  it('labels a CUSTOM grandfather grant distinctly from a stale blocked override', async () => {
+    const { service } = build([
+      ...resolved,
+      {
+        key: 'timesheets',
+        label: 'Timesheets',
+        description: 'Timesheets',
+        isIncludedInPlan: false,
+        isEnabled: true,
+        tenantOverrideEnabled: true,
+        tenantOverrideSource: 'CUSTOM',
+      },
+      {
+        key: 'projects',
+        label: 'Projects',
+        description: 'Projects',
+        isIncludedInPlan: false,
+        isEnabled: false,
+        tenantOverrideEnabled: true,
+        tenantOverrideSource: 'MANUAL',
+      },
+    ]);
+
+    const view = await service.list(platformUser, 'tenant-1');
+
+    expect(view.modules.find((item) => item.key === 'timesheets')!.state).toBe(
+      'ENABLED_BY_CUSTOM_GRANT',
+    );
+    expect(view.modules.find((item) => item.key === 'projects')!.state).toBe(
+      'BLOCKED_BY_PLAN',
+    );
+  });
+
   it('rejects an unknown module key before touching the database', async () => {
     const { service, prisma } = build(resolved);
 

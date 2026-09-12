@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 361** · automated: 310 · manual: 25 · blocked by infrastructure: 0
+**Scenarios: 364** · automated: 313 · manual: 25 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -112,6 +112,9 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-BILLING-032](../../../docs/qa/scenarios/QA-BILLING-032-the-plans-comparison-keeps-its-columns-aligned-and-stays-ins.md) | The plans comparison keeps its columns aligned and stays inside the viewport | billing | UNIT | MEDIUM | PARTIAL | `apps/web/app/(authenticated)/settings/billing/_components/billing-settings-client-containment.spec.ts` | BUG-3335 | REG-415 |
 | [QA-BILLING-033](../../../docs/qa/scenarios/QA-BILLING-033-subscription-primary-actions-follow-the-tenant-brand-colour.md) | Subscription primary actions follow the tenant brand colour | billing | UNIT | MEDIUM | AUTOMATED | `apps/web/app/(authenticated)/settings/billing/_components/billing-settings-client-brand-color.spec.ts` | BUG-3345 | REG-416 |
 | [QA-BILLING-034](../../../docs/qa/scenarios/QA-BILLING-034-a-failed-subscription-load-is-retryable-and-is-not-shown-as-.md) | A failed subscription load is retryable and is not shown as access denied | billing | UNIT | HIGH | AUTOMATED | `apps/web/app/(authenticated)/settings/subscription/_components/subscription-settings-page.spec.ts` | BUG-3336 | REG-417 |
+| [QA-BILLING-035](../../../docs/qa/scenarios/QA-BILLING-035-tenant-plan-listing-and-checkout-honour-planprice-publicatio.md) | Tenant plan listing and checkout honour PlanPrice publication and market scope | billing | UNIT | HIGH | AUTOMATED | `services/api/src/modules/billing/services/billing-price-market-scoping.spec.ts` | BUG-3334, BUG-3333 | REG-423 |
+| [QA-BILLING-036](../../../docs/qa/scenarios/QA-BILLING-036-entitlement-resolution-considers-every-catalogue-key-not-onl.md) | Entitlement resolution considers every catalogue key, not only the plan's own rows | entitlement-enforcement | UNIT | HIGH | AUTOMATED | `services/api/src/common/security/tenant-entitlement.service.spec.ts` | BUG-3350 | REG-424 |
+| [QA-BILLING-037](../../../docs/qa/scenarios/QA-BILLING-037-scheduled-plan-change-downgrades-are-applied-by-a-runner-tha.md) | Scheduled plan-change downgrades are applied by a runner that is actually wired in | subscription-changes | UNIT | HIGH | AUTOMATED | `services/api/src/modules/billing/services/subscription-change-sweeper.worker.spec.ts` | BUG-3331 | REG-425 |
 | [QA-CI-001](../../../docs/qa/scenarios/QA-CI-001-report-only-jobs-publish-an-explicit-pass-fail-verdict.md) | Report-only CI jobs publish an explicit PASS/FAIL verdict | deployment-release | DEPLOYMENT_SMOKE | HIGH | AUTOMATED | `scripts/validate-framework.mjs` | BUG-0049 | REG-047 |
 | [QA-CI-002](../../../docs/qa/scenarios/QA-CI-002-the-database-agent-verdict-cannot-report-pass-over-a-failing.md) | The Database Agent verdict cannot report PASS over a failing field | deployment-release | API | HIGH | AUTOMATED | `scripts/db-preflight.test.mjs` | BUG-0083, BUG-0060, BUG-0068 | REG-078 |
 | [QA-CI-003](../../../docs/qa/scenarios/QA-CI-003-declared-npm-overrides-are-reflected-in-the-lockfile.md) | Declared npm overrides are reflected in the lockfile | deployment-release | UNIT | HIGH | AUTOMATED | `scripts/check-overrides-applied.mjs` | BUG-0163 | REG-173 |

@@ -56,6 +56,7 @@ plainly what an agent must or must not do as a result of this decision.
 | [ADR-0006](ADR-0006-product-decisions-from-the-2026-09-11-backlog-review.md) | Seven product decisions from the 2026-09-11 backlog review | Accepted |
 | [ADR-0007](ADR-0007-remove-inert-apps-web-runtime-registries.md) | Remove the inert `apps/web` runtime registries rather than revive them | Accepted |
 | [ADR-0008](ADR-0008-unregistered-agent-branch-warns-not-blocks.md) | An `agent/*` branch with no registered session warns, it does not block | Accepted |
+| [ADR-0009](ADR-0009-entitlement-enforcement-cutover.md) | Entitlement enforcement moves from REPORT_ONLY to ENFORCE, via grandfathering | Accepted |
 
 > ADR-0008 was written as `ADR-0006` by a parallel stream on 2026-09-11 and
 > renumbered at integration, because a second `ADR-0006` already existed. The

@@ -4206,6 +4206,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The instructive part is that this was **tested and green while completely broken**. The test asked whether the form behaved as its author intended, never whether the request the form produces is one the server accepts. A form's field map and its endpoint's validation are two statements of one contract; when only one side is asserted, the assertion is worth nothing. The loop over every type is what makes a ninth type unable to reintroduce this. |
 | **Fixed** | 2026-08-30 |
 | **Active** | yes |
+
 ### REG-380 — Reporting endpoints returned tenant-wide aggregates to a scoped reader
 
 | | |
@@ -4235,6 +4236,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | This was found from a live API returning headcount `0`, not from a test — the DB-backed isolation suite missed it entirely because every fixture user was tenant-level, the one scope where the bug is invisible. A security test that only exercises the widest role proves the least. It is also a fail-closed bug that a fail-closed design produced: erring shut is right, but a sanitiser whose vocabulary disagrees with the generator's defaults turns "deny what I cannot verify" into "deny everything", and silently. |
 | **Fixed** | 2026-08-31, branch `agent/reports-analytics-platform` |
 | **Active** | yes |
+
 ### REG-382 — Reports headcount counted soft-deleted employees
 
 | | |
@@ -4249,6 +4251,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Soft delete is **not universal in this schema** — only a handful of models carry `isDeleted` — which is precisely why it gets forgotten. The durable fix is placing the predicate in the shared data source rather than in each metric, so the default is correct and opting out has to be deliberate and visible. |
 | **Fixed** | 2026-08-31, branch `agent/reports-analytics-platform` |
 | **Active** | yes |
+
 ### REG-383 — Reporting pages scrolled the whole document sideways
 
 | | |
@@ -4278,6 +4281,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The tempting fix is to make the module default available on the server. **Do not.** A module-level mutable default is shared between concurrent requests in one Node process, so on a multi-tenant server it can render one tenant's response with another tenant's formatting. Explicit threading is the architecture; the module default is a client-only convenience. Also instructive: this is the same defect class already fixed for eight components earlier in the same task, and it survived because that sweep fixed the components that formatted a date *directly* and never followed the value into the shared cell and chart formatters. Writing the test is what found the remaining five call sites — it failed on first run and named every one. |
 | **Fixed** | 2026-08-31, branch `agent/reports-analytics-platform-fixes` |
 | **Active** | yes |
+
 ### REG-385 — The caveat panel listed the same note twice in two wordings
 
 | | |
@@ -4292,6 +4296,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | The first version of this test compared a normalised 60-character prefix and **passed on the broken tree** — the pair that shipped diverges at the fourth word, so any prefix long enough to avoid false positives is already past the divergence. It was only caught because the fix was deliberately reverted to check the test failed, which it did not. Word-set overlap is what matches the real shape: one sentence said twice with small edits. A near-duplicate test that compares prefixes is worth nothing; measure the whole string. |
 | **Fixed** | 2026-08-31, branch `agent/reports-analytics-platform-fixes` |
 | **Active** | yes |
+
 ### REG-386 — No scheduled report was ever delivered
 
 | | |
@@ -4336,6 +4341,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Two things generalise. First, a `next` or `reason` parameter is *evidence*: it means an earlier hop already decided the session failed, and trusting it over a cookie is what breaks the cycle. Second, the fix deliberately does **not** clear the cookies at that point — it is a plain GET, and signing someone out because one request returned 401 would be a worse failure than the one being fixed; clearing them belongs to the logout path that knows the refresh itself failed. The rule was extracted into a named function purely so it could be tested, because `apps/web` runs jest with no jsdom and the middleware cannot be booted there. |
 | **Fixed** | 2026-08-31, branch `agent/session-redirect-loop` |
 | **Active** | yes |
+
 ### REG-389 — Headcount counted employee-days and grew with the period
 
 | | |
@@ -4532,7 +4538,6 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-09-11, branch `agent/cs-s1-openbugs` |
 | **Active** | yes |
 
-
 ### REG-402 — A selector resolved from a client-supplied id instead of the caller
 
 | | |
@@ -4622,7 +4627,6 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | Closing this reopens BUG-0032's original coarseness for one specific, already-narrow scenario: visitors proxied through this product's own first-party Next.js apps behind Cloudflare can no longer be told apart per browser visitor, because Cloudflare/Render append the *relay's* address for that path too. Documented as an accepted, honest trade-off in BUG-3115 rather than hidden — the alternative was leaving a CONFIRMED forgery bypass live on a production payroll platform's login. |
 | **Fixed** | 2026-09-11, branch `agent/cs-s5-security` |
 | **Active** | yes |
-
 
 ### REG-408 — Two endpoint pairs where only one side of each enforced the rule
 
@@ -4849,3 +4853,43 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Note** | **One rule, not a per-section patch.** The fix is the general mechanism (honour the flag everywhere a heading is drawn) plus data (set the flag on the sections that need it) — a per-section conditional inside the renderer would have fixed exactly the three sections named in the bug report and nothing found afterward, which is how `agent-desktop` would have stayed broken. This repo's own knowledge base separately flags a `replace(..., 1)`-style edit landing on the wrong one of two near-identical lines as a known failure mode for exactly this kind of change; the regression test asserts an occurrence *count* across the file rather than trusting a single substring match to have landed in the right branch. |
 | **Fixed** | 2026-09-12 |
 | **Active** | yes |
+
+### REG-423 — Tenant plan listing and checkout ignored PlanPrice publication status and market
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` |
+| **Module** | `services/api/src/modules/billing` |
+| **Bug record** | BUG-3334, BUG-3333 |
+| **Root cause** | `resolveCommercialOffer` (used by `/public/commercial-config`) correctly gated a price on its own `publicationStatus` and `marketId`, but `BillingService.getPublicPlans` and every tenant checkout guard (`createCheckoutSession`, `startPublicOnboarding`, `createPublicSubscriptionCheckout`) tested only `plan.publicationStatus` — the plan's gate, never the price's own. A DRAFT or unscoped price on a PUBLISHED plan was listed and buyable, and a tenant could buy a price scoped to a market other than its own by posting the id directly, because nothing on the authenticated path compared the price's market to the tenant's at all. |
+| **Regression test** | `services/api/src/modules/billing/services/billing-price-market-scoping.spec.ts` |
+| **Scenario** | A DRAFT `PlanPrice` on a PUBLISHED plan never appears in `GET /billing/plans` (tenant or anonymous). `POST /billing/checkout-sessions` refuses a DRAFT price, an unscoped (`marketId: null`) price, and a price scoped to a market other than the tenant's own — all with the same `BILLING_PLAN_PRICE_UNAVAILABLE` code, never confirming which precondition failed. The same fixtures fed to `isPriceCurrentlySellable` and to `resolveCommercialOffer` agree on every case. |
+| **Fixed** | 2026-09-12, branch `agent/r-s2-billing-api` |
+| **Active** | yes |
+
+### REG-424 — An entitlement override could never grant a feature key missing from the plan's own rows
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` |
+| **Module** | `services/api/src/common/security` |
+| **Bug record** | BUG-3350 |
+| **Root cause** | `TenantEntitlementService.load()` (the request-path guard) built its `enabledKeys` set by iterating `subscription.plan.features` — the plan's own `PlanFeature` rows — while `FeatureAccessService.getResolvedTenantFeatures()` (the platform-admin screen) iterated the full `TENANT_FEATURE_DEFINITIONS` catalogue, defaulting a missing row to `isIncludedInPlan: false`. `commercial-bootstrap.ts`'s `reconcilePlanFeatures` never writes a disabled row for a feature a plan excludes, so a plan like Starter has no `payroll` row at all — meaning the guard's loop would never have considered `payroll` for a Starter tenant regardless of any override, silently defeating the BUG-3350 grandfathering mechanism before it could ever take effect. The two services had quietly diverged on "which keys to consider" the same way `divergent-duplicate-guard` describes for a rule's content. |
+| **Regression test** | `services/api/src/common/security/tenant-entitlement.service.spec.ts` |
+| **Scenario** | A tenant whose plan has no `PlanFeature` row at all for a given key (not merely a disabled one) still resolves that key from a `CUSTOM`-sourced `TenantFeature` override when one exists, and still resolves it as not entitled when none does — proving the guard now considers every catalogue key, not only the ones the plan happens to have a row for. |
+| **Fixed** | 2026-09-12, branch `agent/r-s2-billing-api` |
+| **Active** | yes |
+
+### REG-425 — `PlanChangeService.applyDueChanges` had no caller in the running application
+
+| | |
+|---|---|
+| **Bug class** | `orphaned-scheduled-job` |
+| **Module** | `services/api/src/modules/billing` |
+| **Bug record** | BUG-3331 |
+| **Root cause** | The exact BUG-2618 shape recurring in the same module: `applyDueChanges()` was written, exercised by an e2e test that calls it directly, and nothing in the running application ever invoked it — no scheduler, no worker, no cron. A scheduled DOWNGRADE (the entire point of the increase-is-immediate/decrease-waits-for-renewal asymmetry the service documents) would sit `SCHEDULED` in `PlanChangeRequest` forever, past its `effectiveAt`, never applied, and Stripe would keep charging the old price indefinitely. |
+| **Regression test** | `services/api/src/modules/billing/services/subscription-change-sweeper.worker.spec.ts` |
+| **Scenario** | Boot `BillingModule` with `SUBSCRIPTION_CHANGE_SWEEPER_ENABLED=true`: a `SubscriptionChangeSweeperWorker` provider starts an unref'd interval and its `tick()` calls `PlanChangeService.applyDueChanges()` on its own, with no test invoking the service directly. With the flag unset or `false`, no timer starts. A tick that receives a rejected promise logs and returns rather than throwing, so a transient database or Stripe fault cannot take the process down or stop the next tick. |
+| **Fixed** | 2026-09-12, branch `agent/r-s2-billing-api` |
+| **Active** | yes |
+

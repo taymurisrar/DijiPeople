@@ -21,6 +21,7 @@ import { CustomerIdentityService } from './services/customer-identity.service';
 import { TaxBasisService } from './services/tax-basis.service';
 import { SubscriptionOrderService } from './services/subscription-order.service';
 import { SubscriptionOrderSweeperWorker } from './services/subscription-order-sweeper.worker';
+import { SubscriptionChangeSweeperWorker } from './services/subscription-change-sweeper.worker';
 import { SeatChangeService } from './services/seat-change.service';
 import { PlanChangeService } from './services/plan-change.service';
 import { OrderActivationService } from './services/order-activation.service';
@@ -67,6 +68,9 @@ import { ReconciliationService } from './services/reconciliation.service';
     // BUG-2618: abandonExpired had no caller anywhere in the running
     // application. This is the runner.
     SubscriptionOrderSweeperWorker,
+    // BUG-3331 / EXECPLAN-0037: PlanChangeService.applyDueChanges had the
+    // same shape of defect. This is that runner.
+    SubscriptionChangeSweeperWorker,
     OwnerEmailVerificationService,
     SeatChangeService,
     PlanChangeService,

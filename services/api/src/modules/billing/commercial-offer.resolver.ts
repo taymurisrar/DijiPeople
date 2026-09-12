@@ -444,6 +444,58 @@ export function resolveCommercialOffer(
   };
 }
 
+/**
+ * The price-level half of "may this be sold at all" — BUG-3334.
+ *
+ * `getPublicPlans` and every tenant checkout guard tested only
+ * `plan.publicationStatus`, never the price's own `publicationStatus`, and never
+ * whether the price carries a market at all. `resolveCommercialOffer` (used by
+ * `/public/commercial-config`) already enforced both, in `selectEffectivePrice`
+ * above. This is the one predicate the other call sites now share instead of
+ * restating the rule a fourth time — which is exactly how it went behind in the
+ * first place.
+ *
+ * Deliberately silent on channel, sales model and market MATCH: those differ by
+ * caller (a visitor is channel-narrowed, a tenant is market-matched) and belong
+ * to the call site, not to this gate.
+ */
+export type SellabilityGatePlan = Pick<
+  ResolvablePlan,
+  'isActive' | 'publicationStatus'
+>;
+export type SellabilityGatePrice = Pick<
+  ResolvablePrice,
+  'isActive' | 'publicationStatus' | 'marketId'
+>;
+
+export function isPriceCurrentlySellable(
+  plan: SellabilityGatePlan,
+  price: SellabilityGatePrice,
+): boolean {
+  return (
+    plan.isActive &&
+    plan.publicationStatus === CommercialPublicationStatus.PUBLISHED &&
+    price.isActive &&
+    price.publicationStatus === CommercialPublicationStatus.PUBLISHED &&
+    // "Nullable because the expand phase must not invalidate prices that
+    // existed before markets did — a null market means 'not yet scoped', and
+    // resolution treats it as unavailable for self-service rather than as a
+    // wildcard." — schema.prisma, PlanPrice.marketId. Fail closed here too.
+    price.marketId !== null
+  );
+}
+
+/**
+ * Whether an already-sellable price belongs to a specific market. `null` never
+ * matches — an unresolved market is "unavailable", not "everything".
+ */
+export function priceBelongsToMarket(
+  price: Pick<ResolvablePrice, 'marketId'>,
+  marketId: string | null,
+): boolean {
+  return marketId !== null && price.marketId === marketId;
+}
+
 /** CUSTOM_ONLY is narrower than SALES_ASSISTED, which is narrower than SELF_SERVICE. */
 export function narrowestSalesModel(
   a: CommercialSalesModel,
