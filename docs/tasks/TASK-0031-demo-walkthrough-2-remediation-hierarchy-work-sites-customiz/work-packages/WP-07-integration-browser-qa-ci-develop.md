@@ -2,10 +2,10 @@
 WP_ID: WP-07
 TASK_ID: TASK-0031
 TITLE: Integration, browser QA on a throwaway database, review, CI, develop
-STATUS: IN_PROGRESS
+STATUS: DONE
 OWNER_AGENT: Integrator
 DEPENDENCIES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06]
-LAST_VERIFIED_SHA: 58e4c32a
+LAST_VERIFIED_SHA: f865ac5e
 KNOWLEDGE_IMPACT: [REGRESSION, QA_SCENARIO]
 OBSIDIAN_IMPACT: UPDATE_NODE
 ---
@@ -28,13 +28,13 @@ REQUIRED:
 - `docs/tasks/TASK-0031-streams/` — the six stream reports
 
 OPTIONAL:
-- `.github/workflows/ci.yml` — the Database e2e job's seed steps
+- `.github/workflows/ci.yml` — the Database e2e job's seed steps and the API lint ratchet
 
 DO_NOT_LOAD:
 - the populated local `dijipeople` database — only the throwaway `_test` database is used
 - production data beyond the read-only checks already recorded in TASK-0031
 
-LAST_VERIFIED_SHA: 58e4c32a — re-read any summarised source that changed since.
+LAST_VERIFIED_SHA: f865ac5e — re-read any summarised source that changed since.
 
 ## Relevant Files
 
@@ -46,14 +46,14 @@ LAST_VERIFIED_SHA: 58e4c32a — re-read any summarised source that changed since
 
 | ASSUMPTION_ID | STATEMENT | STATE | EVIDENCE |
 |---|---|---|---|
-| A-01 | Ref-pushing the integration branch keeps `develop` identical to the CI-verified SHA | VERIFIED | Established practice in this repository |
+| A-01 | Ref-pushing the integration branch keeps `develop` identical to the CI-verified SHA | VERIFIED | `develop` moved `c494311d..f865ac5e` by ref-push, the SHA CI verified |
 
 ## Implementation State
 
-In progress. All six streams and the records branch are merged. Integration
-fixes so far: `dba1605d`, `4d249b40`, `23044aed`, `89bc55a6`, `2a8f811a`,
-`cff72bbe` and `22511c32`; records merged at `58e4c32a`. Remaining: push, green
-gate, ref-push to `develop`.
+Done. All six streams and the records branch are merged. Integration fixes:
+`dba1605d`, `4d249b40`, `23044aed`, `89bc55a6`, `2a8f811a`, `cff72bbe`,
+`22511c32` and `f865ac5e`; records merged at `58e4c32a`. `develop` was
+ref-pushed to `f865ac5e`.
 
 Browser QA also surfaced one pre-existing defect outside this program's scope:
 the page header of a custom module shows its table key rather than its name,
@@ -62,14 +62,16 @@ rather than changed here.
 
 ## Validation State
 
-Locally: data unit specs 87/87, custom-module e2e 8/8, framework validation
-passes. The first CI run failed on a stale component index and two custom-module
-e2e cases; each is fixed above. No green gate yet.
+Locally: data unit specs 87/87, custom-module e2e 8/8, custom-module web specs
+29/29, API lint at the 787-warning ceiling, framework validation 5741 checks.
+CI green on `f865ac5e`.
 
 ## Evidence
 
-- CI run 34729157744 — failed; causes fixed in `89bc55a6`, `2a8f811a` and `cff72bbe`.
-- Local browser QA batches 1–5 on the throwaway database — results recorded in WP-01..WP-06.
+- CI runs 34732185363, 34732682935 and 34732697734 — PASS on `f865ac5e`.
+- CI run 34729157744 on `23044aed` — failed; causes fixed in `89bc55a6`, `2a8f811a` and `cff72bbe`.
+- CI run 34731422731 on `a42741a0` — failed only the API lint ratchet (789/787); fixed in `f865ac5e`.
+- `docs/qa/runs/2026-09-13-task-0031-demo-walkthrough-2-local-browser-qa-e253306.md` — 20 browser scenarios, verdict PASS WITH RISKS.
 
 ## Questions
 
@@ -80,4 +82,4 @@ None open.
 KNOWLEDGE_IMPACT: REGRESSION, QA_SCENARIO — REG entries and scenarios filed by the records update.
 OBSIDIAN_IMPACT: UPDATE_NODE.
 
-Next: push once, await the gate, ref-push to `develop`, then start WP-08.
+WP-08 released `develop` to production.

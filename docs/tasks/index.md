@@ -8,9 +8,9 @@ graph and the block reasons. See
 
 | Bucket | Count |
 |---|---|
-| [Active](active.md) | 5 |
+| [Active](active.md) | 4 |
 | [Blocked](blocked.md) | 0 |
-| [Completed](completed.md) | 25 |
+| [Completed](completed.md) | 26 |
 
 ## Next ready work package
 
@@ -60,4 +60,4 @@ Nothing ready.
 | [TASK-0027](TASK-0027-tenant-app-assignment-which-tenants-receive-a-release.md) | Tenant app assignment: which tenants receive a release | FEATURE | MEDIUM | P1 | COMPLETE | 1/1 | — |
 | [TASK-0028](TASK-0028-enterprise-reports-and-analytics-platform.md) | Enterprise Reports and Analytics platform | FEATURE | LARGE | P1 | IN_PROGRESS | 5/15 | WP-08 |
 | [TASK-0030](TASK-0030-implement-the-34-open-records-from-sessions-0099-0102.md) | Implement the 34 open records from sessions 0099-0102 | FEATURE | LARGE | P1 | COMPLETE | 8/8 | — |
-| [TASK-0031](TASK-0031-demo-walkthrough-2-remediation-hierarchy-work-sites-customiz.md) | Demo walkthrough 2 remediation - hierarchy, work sites, customization, notifications | FEATURE | PROGRAM | P1 | IN_PROGRESS | 7/9 | WP-07 |
+| [TASK-0031](TASK-0031-demo-walkthrough-2-remediation-hierarchy-work-sites-customiz.md) | Demo walkthrough 2 remediation - hierarchy, work sites, customization, notifications | FEATURE | PROGRAM | P1 | COMPLETE | 9/9 | — |

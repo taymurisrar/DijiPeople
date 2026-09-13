@@ -6,18 +6,17 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 1** · completed: 101
+**Active: 0** · completed: 102
 
 ## Active
 
-| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
-|---|---|---|---|---|---|---|---|
-| [SESSION-0105](../../docs/sessions/SESSION-0105-demo-walkthrough-2-hierarchy-work-site-customization-notific.md) | — | Demo walkthrough 2 - hierarchy, work site, customization, notifications findings | ACTIVE | `agent/demo-walkthrough-2-records` | `develop` | — | 2026-09-12T23:13:41.157Z |
+_None. No session is currently running._
 
 ## Completed
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0105](../../docs/sessions/SESSION-0105-demo-walkthrough-2-hierarchy-work-site-customization-notific.md) | TASK-0031 | Demo walkthrough 2 - hierarchy, work site, customization, notifications findings | COMPLETE | `agent/demo-walkthrough-2-records` | `develop` | — | 2026-09-13T02:04:45.716Z |
 | [SESSION-0104](../../docs/sessions/SESSION-0104-release-promote-the-session-0103-records-to-production.md) | TASK-0030 | Release: promote the SESSION-0103 records to production | COMPLETE | `develop` | `main` | — | 2026-09-12T22:06:44.814Z |
 | [SESSION-0103](../../docs/sessions/SESSION-0103-implement-the-34-open-records-from-sessions-0099-0102.md) | TASK-0030 | Implement the 34 open records from sessions 0099-0102 | COMPLETE | `agent/records-0099-0102` | `develop` | permissions, runtime-registries, record-indexes | 2026-09-12T12:38:09.669Z |
 | [SESSION-0102](../../docs/sessions/SESSION-0102-file-the-residual-observations-from-the-demo-walkthrough.md) | — | File the residual observations from the demo walkthrough | COMPLETE | `agent/ux-findings-sweep` | `develop` | — | 2026-09-12T11:36:01.647Z |

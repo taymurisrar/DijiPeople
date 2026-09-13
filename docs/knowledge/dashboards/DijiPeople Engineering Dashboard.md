@@ -526,6 +526,7 @@
 
 ## Recent QA Runs
 
+- [[2026-09-13-task-0031-demo-walkthrough-2-local-browser-qa-e253306|QA Run — task-0031-demo-walkthrough-2-local-browser-qa]]
 - [[2026-08-31-reports-analytics-platform-96ff155|QA Run — reports-analytics-platform]]
 - [[2026-08-29-starter-plan-e2e-pass-2-8ab1cbf|QA Run — starter-plan-e2e-pass-2]]
 - [[2026-08-29-starter-plan-e2e-eb457d9|QA Run — starter-plan-e2e]]
@@ -533,7 +534,6 @@
 - [[2026-08-28-admin-console-e2e-912f4e6|QA Run — Admin console end-to-end, browser-driven]]
 - [[2026-08-26-admin-prod-e2e-8d6be21|QA Run — admin-prod-e2e]]
 - [[2026-08-25-landing-fixes-verification|QA Run — landing-fixes-verification]]
-- [[2026-08-25-landing-e2e-local-and-prod-42435d5|QA Run — landing-e2e-local-and-prod]]
 
 ## Recent Implementations
 
@@ -547,6 +547,7 @@
 
 ## Recent Engineering History
 
+- [[2026-09-13-task-0031-demo-walkthrough-2-remediation-e253306a|Engineering History — Task 0031 demo walkthrough 2 remediation]]
 - [[2026-09-12-ux-findings-audit-d5388a4c|Engineering History — Ux findings audit]]
 - [[2026-09-12-records-0099-0102-413565f0|Engineering History — Implement the 34 records from sessions 0099–0102]]
 - [[2026-09-11-review-subscription-plans-screen-118d22ed|Engineering History — Review subscription plans screen]]
@@ -554,7 +555,6 @@
 - [[2026-09-11-auth-session-revocation-690cacbc|Engineering History — Auth session revocation]]
 - [[2026-09-10-release-settings-entitlements-254e8d2b|Engineering History — Release settings entitlements]]
 - [[2026-09-10-r2-durable-object-storage-11afbd50|Engineering History — Durable object storage on Cloudflare R2 (FILE-01/INF-05)]]
-- [[2026-09-09-settings-plan-entitlements-c3627cad|Engineering History — Settings plan entitlements]]
 
 ## Recent Releases
 
@@ -698,9 +698,9 @@
 |---|---|
 | Bug records | 456 |
 | Backlog items | 196 |
-| Known bug patterns | 34 |
-| QA runs | 32 |
-| Engineering history records | 81 |
+| Known bug patterns | 35 |
+| QA runs | 33 |
+| Engineering history records | 82 |
 | Release records | 10 |
 | Module notes | 30 |
 | Architecture notes | 22 |

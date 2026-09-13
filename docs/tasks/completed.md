@@ -31,3 +31,4 @@ Parent tasks that reached a terminal state. `FINAL_STATUS` records how.
 | [TASK-0026](TASK-0026-admin-releases-management-and-channel-promotion-ui.md) | Admin releases management and channel promotion UI | FEATURE | MEDIUM | P1 | COMPLETE | 1/1 | — |
 | [TASK-0027](TASK-0027-tenant-app-assignment-which-tenants-receive-a-release.md) | Tenant app assignment: which tenants receive a release | FEATURE | MEDIUM | P1 | COMPLETE | 1/1 | — |
 | [TASK-0030](TASK-0030-implement-the-34-open-records-from-sessions-0099-0102.md) | Implement the 34 open records from sessions 0099-0102 | FEATURE | LARGE | P1 | COMPLETE | 8/8 | — |
+| [TASK-0031](TASK-0031-demo-walkthrough-2-remediation-hierarchy-work-sites-customiz.md) | Demo walkthrough 2 remediation - hierarchy, work sites, customization, notifications | FEATURE | PROGRAM | P1 | COMPLETE | 9/9 | — |
