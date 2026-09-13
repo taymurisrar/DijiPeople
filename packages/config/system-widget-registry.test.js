@@ -199,11 +199,7 @@ test("covers target Module widget capability matrix", () => {
 test("filters the Form Designer palette by Module capability", () => {
   assert.deepEqual(
     listSupportedSystemWidgets("employees").map((widget) => widget.widgetKey),
-    [
-      "system.timeline",
-      "system.reportingHierarchy",
-      "employee.profilePhoto",
-    ],
+    ["system.timeline", "system.reportingHierarchy", "employee.profilePhoto"],
   );
   assert.deepEqual(
     listSupportedSystemWidgets("leaves").map((widget) => widget.widgetKey),
