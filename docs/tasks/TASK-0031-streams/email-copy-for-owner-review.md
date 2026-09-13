@@ -1,5 +1,7 @@
 # TASK-0031 WP-04 — default email copy for owner review
 
+Owner review copy for [[TASK-0031]].
+
 Drafted by the Architect under ADR-0015 and shipped with the release; this is
 the copy the owner reviews afterwards. It is generated from
 `services/api/src/modules/notifications/system-email-templates.copy.ts`, which

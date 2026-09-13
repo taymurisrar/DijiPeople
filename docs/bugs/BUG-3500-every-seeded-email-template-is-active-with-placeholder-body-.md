@@ -186,7 +186,7 @@ merged into `agent/walkthrough2-integration`; plan EXECPLAN-0048), shipping with
   (new) holds subject, inline-styled HTML, plain text and labelled variables with
   sample values for all 11 templates. Each template's variables are the
   intersection of what its emitters pass. The owner review copy,
-  `docs/tasks/TASK-0031-streams/WP-04-email-copy-for-owner-review.md`, is
+  `docs/tasks/TASK-0031-streams/email-copy-for-owner-review.md`, is
   generated from it.
 - **No fallback.** `notification-events.catalog.ts` builds the system templates
   only from authored copy and throws at module load when an event names a

@@ -5423,7 +5423,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **QA scenario** | QA-SETTINGS-027 |
 | **Scenario** | No system email template field contains placeholder wording. The catalog refuses to load when an event names a system template with no authored copy. A template is ACTIVE only for events something sends by email today. `seed:config` fails if an ACTIVE system template in the database contains placeholder wording. |
 | **Proven to fail without the fix** | Mutation: re-inserting the placeholder sentence into the payslip copy fails the spec (1 failed / 42 passed). |
-| **Note** | Copy lives in `system-email-templates.copy.ts`, the single source; `docs/tasks/TASK-0031-streams/WP-04-email-copy-for-owner-review.md` is generated from it for the owner's review (ADR-0015). |
+| **Note** | Copy lives in `system-email-templates.copy.ts`, the single source; `docs/tasks/TASK-0031-streams/email-copy-for-owner-review.md` is generated from it for the owner's review (ADR-0015). |
 | **Fixed** | 2026-09-13, commit b0d8278d on branch `agent/walkthrough2-email-templates`, merged into `agent/walkthrough2-integration` |
 | **Active** | yes |
 

@@ -1,5 +1,7 @@
 # TASK-0031 — WP-03 stream report: employee record
 
+Stream report of [[TASK-0031]].
+
 Branch `agent/walkthrough2-employee-record` (base `origin/develop` 88f33c6e).
 Plan: `docs/plans/EXECPLAN-0047-employee-record-walkthrough-two-remediation.md`.
 Reserved regression ids: REG-495 … REG-504 (all used below). No record, index or

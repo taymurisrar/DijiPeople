@@ -25,7 +25,7 @@
  *    clients and the tenant editor's sanitiser unchanged.
  *
  * The owner reviews this copy after release (ADR-0015 decision 3); the
- * reviewable list is docs/tasks/TASK-0031-streams/WP-04-email-copy-for-owner-review.md.
+ * reviewable list is docs/tasks/TASK-0031-streams/email-copy-for-owner-review.md.
  */
 
 export type EmailTemplateVariableDefinition = {

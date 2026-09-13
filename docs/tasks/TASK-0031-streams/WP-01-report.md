@@ -1,5 +1,7 @@
 # TASK-0031 — WP-01 stream report: Customization works end to end for permission holders
 
+Stream report of [[TASK-0031]].
+
 - Branch: `agent/walkthrough2-customization` (from `origin/develop` 88f33c6e)
 - ExecPlan: `docs/plans/EXECPLAN-0045-customization-end-to-end-for-permission-holders.md`
 - Binding: ADR-0013 (customization access is granted by permission), owner decision D3 (keep the package / prefix / layer model)
