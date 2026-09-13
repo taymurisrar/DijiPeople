@@ -188,10 +188,15 @@ describe('CustomDataService related CRUD', () => {
 
     expect(tx.customDataRecord.create).toHaveBeenCalledWith(
       expect.objectContaining({
+        // `as unknown` on the matcher, not the value: a nested Jest matcher is
+        // `any` and costs a no-unsafe-assignment warning against the lint
+        // ratchet in ci.yml (the SESSION-0103 fix for the same family).
         data: expect.objectContaining({
           tenantId: 'tenant-1',
-          values: expect.objectContaining({ pub_name: 'Standalone' }),
-        }),
+          values: expect.objectContaining({
+            pub_name: 'Standalone',
+          }) as unknown,
+        }) as unknown,
       }),
     );
   });
