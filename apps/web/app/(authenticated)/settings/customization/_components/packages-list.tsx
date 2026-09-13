@@ -16,9 +16,14 @@ import { DataTable } from "@/app/components/data-table/data-table";
 import type { DataTableColumn } from "@/app/components/data-table/types";
 import { ConfirmDialog } from "@/app/components/feedback/confirm-dialog";
 import { TopAlert } from "@/app/components/notifications/top-alert";
+import { useFormattingContext } from "@/app/components/filters/use-formatting-context";
 import { Button } from "@/app/components/ui/button";
 import { EmptyState } from "@/app/components/ui/empty-state";
 import { TextAreaField, TextField } from "@/app/components/ui/form-control";
+import {
+  formatDateTime,
+  type ResolvedFormattingContext,
+} from "@/lib/formatting-context";
 import { StatusPill } from "@/app/components/ui/status-pill";
 import { PermissionGate } from "@/app/(authenticated)/_components/permission-gate";
 import type { CustomizationPackage } from "../types";
@@ -42,6 +47,7 @@ type PackageFormState = {
 
 export function PackagesList({ initialMessage, packages }: PackagesListProps) {
   const router = useRouter();
+  const formattingContext = useFormattingContext();
   const [form, setForm] = useState<PackageFormState | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CustomizationPackage | null>(
     null,
@@ -150,7 +156,7 @@ export function PackagesList({ initialMessage, packages }: PackagesListProps) {
         header: "Modified on",
         sortable: true,
         sortAccessor: (row) => row.updatedAt ?? "",
-        render: (row) => formatDate(row.updatedAt),
+        render: (row) => formatDate(row.updatedAt, formattingContext),
       },
       {
         key: "actions",
@@ -207,7 +213,7 @@ export function PackagesList({ initialMessage, packages }: PackagesListProps) {
         ),
       },
     ],
-    [],
+    [formattingContext],
   );
 
   function openCreate() {
@@ -513,15 +519,9 @@ export function PackagesList({ initialMessage, packages }: PackagesListProps) {
             className="grid max-h-[92vh] w-full max-w-2xl gap-5 overflow-y-auto rounded-[20px] border border-border bg-white p-6 shadow-xl"
             onSubmit={submitPackage}
           >
-            <div>
-              <h3 className="text-lg font-semibold text-foreground" id={formDialog.titleId}>
-                {form.mode === "create" ? "New Package" : "Edit Package"}
-              </h3>
-              <p className="mt-1 text-sm text-muted">
-                Custom Package publisher is required. Prefix is generated from
-                the publisher name and locked after the first custom component.
-              </p>
-            </div>
+            <h3 className="text-lg font-semibold text-foreground" id={formDialog.titleId}>
+              {form.mode === "create" ? "New package" : "Edit package"}
+            </h3>
             <div className="grid gap-4 md:grid-cols-2">
               <TextField
                 label="Package name"
@@ -592,8 +592,12 @@ export function PackagesList({ initialMessage, packages }: PackagesListProps) {
               >
                 Cancel
               </Button>
-              <Button loading={isSaving} loadingText="Saving..." type="submit">
-                Save Package
+              <Button
+                loading={isSaving}
+                loadingText={form.mode === "create" ? "Creating..." : "Saving..."}
+                type="submit"
+              >
+                {form.mode === "create" ? "Create" : "Save"}
               </Button>
             </div>
           </form>
@@ -713,12 +717,17 @@ function stateLabel(value: CustomizationPackage["state"]) {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-function formatDate(value: string | null | undefined) {
+/*
+ * BUG-3496 — formatted with the tenant's context, passed explicitly. The
+ * previous `Intl.DateTimeFormat(undefined, …)` used the server's locale during
+ * SSR and the browser's after hydration, so the text differed (React #418).
+ */
+function formatDate(
+  value: string | null | undefined,
+  context: ResolvedFormattingContext | null,
+) {
   if (!value) return "Not set";
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
+  return formatDateTime(value, context) || "Not set";
 }
 
 function downloadJson(value: unknown, fileName: string) {

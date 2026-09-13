@@ -145,8 +145,7 @@ describe('CustomizationAccessGuard', () => {
       roleKeys: [],
       permissionKeys: [],
     });
-    (context.switchToHttp().getRequest() as { user?: unknown }).user =
-      undefined;
+    context.switchToHttp().getRequest().user = undefined;
 
     expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
   });

@@ -158,10 +158,7 @@ export function SidebarDesigner({
 
   return (
     <div className="grid gap-4">
-      <SectionCard
-        description="Changes apply to every user in this tenant. Hiding an entry only removes the link — the permissions behind that page still apply, so it is a tidying tool, not a security control."
-        title="Sidebar layout"
-      >
+      <SectionCard title="Sidebar layout">
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <Button
             disabled={!isDirty || isSaving}

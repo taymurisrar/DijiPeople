@@ -97,9 +97,11 @@ describe('Add field dialog payload → DTO → createColumn', () => {
     const prisma = { customizationColumn: { create } };
     service = new CustomizationService(prisma as unknown as PrismaService);
     const internals = service as unknown as Internals;
-    jest
-      .spyOn(internals, 'resolveLayerPackage')
-      .mockResolvedValue({ id: 'package-1', isDefault: false, isSystem: false });
+    jest.spyOn(internals, 'resolveLayerPackage').mockResolvedValue({
+      id: 'package-1',
+      isDefault: false,
+      isSystem: false,
+    });
     jest
       .spyOn(internals, 'ensureCustomizationTable')
       .mockResolvedValue({ id: 'table-1', tableKey: 'qaAsset' });

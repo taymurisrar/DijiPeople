@@ -470,6 +470,28 @@ export class CustomizationService {
 
   async listPackages(currentUser: AuthenticatedUser) {
     await this.syncDefaultSolution(currentUser);
+    /*
+     * BUG-3493 — a tenant whose drafts are still in the legacy holding package
+     * gets its own Custom Package here, so Publish Center has somewhere to move
+     * them. Without this the move target read "No writable Custom Packages" and
+     * nothing on the page led anywhere else. Idempotent, and only when there is
+     * something to move.
+     */
+    const unassignedPackage =
+      await this.findUnassignedDraftPackage(currentUser);
+    if (unassignedPackage) {
+      const pendingDrafts =
+        await this.prisma.customizationSolutionComponent.count({
+          where: {
+            tenantId: currentUser.tenantId,
+            solutionId: unassignedPackage.id,
+            lifecycleState: 'draft',
+          },
+        });
+      if (pendingDrafts > 0) {
+        await this.getOrCreateTenantCustomPackage(currentUser);
+      }
+    }
     const packages = await this.prisma.customizationSolution.findMany({
       where: { tenantId: currentUser.tenantId },
       include: { components: { select: { lifecycleState: true } } },
@@ -1577,15 +1599,17 @@ export class CustomizationService {
     if (!publisherName) {
       throw new BadRequestException('Custom Package publisher is required.');
     }
-    const prefix = await this.uniquePublisherPrefix(currentUser, publisherName);
-    const packageKey = await this.uniquePackageKey(
-      currentUser,
-      `${prefix}${camelize(dto.displayName)}`,
-    );
+    /*
+     * BUG-3495 — the typed key is stored as typed. This used to derive a key
+     * from the publisher prefix and display name and store that instead, so an
+     * administrator who typed `qw_walkthrough` got `qw_qaWalkthroughPackage` with
+     * no indication. The DTO has already refused a key of the wrong shape, and
+     * the conflict check above has refused a key already in use.
+     */
     const record = await this.prisma.customizationSolution.create({
       data: {
         tenantId: currentUser.tenantId,
-        solutionKey: packageKey,
+        solutionKey: dto.packageKey,
         displayName: dto.displayName.trim(),
         description: dto.description?.trim(),
         scope: 'tenant',
@@ -2463,7 +2487,53 @@ export class CustomizationService {
       },
       orderBy: [{ sortOrder: 'asc' }, { columnKey: 'asc' }],
     });
-    return rows;
+    if (rows.length === 0) return rows;
+
+    /*
+     * ITEM-0184 / BUG-3495 — each field's lifecycle and owning package, from its
+     * own layers. The Fields tab used to print "Draft" for every custom field and
+     * "Custom Package" as a literal, so a published field still read Draft and
+     * one module showed three package names.
+     */
+    const components =
+      await this.prisma.customizationSolutionComponent.findMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          componentType: 'column',
+          objectId: { in: rows.map((row) => row.id) },
+        },
+        select: {
+          objectId: true,
+          lifecycleState: true,
+          solution: { select: { displayName: true, isDefault: true } },
+        },
+        orderBy: { updatedAt: 'desc' },
+      });
+    const stateByColumnId = new Map<
+      string,
+      { lifecycleState: 'draft' | 'published'; packageName: string | null }
+    >();
+    for (const component of components) {
+      const current = stateByColumnId.get(component.objectId);
+      stateByColumnId.set(component.objectId, {
+        lifecycleState:
+          current?.lifecycleState === 'draft' ||
+          component.lifecycleState === 'draft'
+            ? 'draft'
+            : 'published',
+        packageName:
+          current?.packageName ??
+          (component.solution.isDefault
+            ? null
+            : component.solution.displayName),
+      });
+    }
+
+    return rows.map((row) => ({
+      ...row,
+      lifecycleState: stateByColumnId.get(row.id)?.lifecycleState ?? null,
+      packageName: stateByColumnId.get(row.id)?.packageName ?? null,
+    }));
   }
 
   async createColumn(
@@ -3966,9 +4036,57 @@ export class CustomizationService {
       }
     }
 
+    /*
+     * BUG-3495 / ITEM-0184 — a custom module reported lifecycle "published" and
+     * no package, whatever its own component said, so the module list read
+     * "published" beside fields, forms and views that all read "Draft", and the
+     * package column fell back to "Default Package". Both now come from the
+     * module's own table component.
+     */
+    const tableComponents =
+      await this.prisma.customizationSolutionComponent.findMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          componentType: 'table',
+          tableId: { in: tableIds },
+        },
+        select: {
+          tableId: true,
+          lifecycleState: true,
+          updatedAt: true,
+          solution: { select: { displayName: true, isDefault: true } },
+        },
+        orderBy: { updatedAt: 'desc' },
+      });
+    const tableStateById = new Map<
+      string,
+      { lifecycleState: 'draft' | 'published'; packageName: string | null }
+    >();
+    for (const component of tableComponents) {
+      if (!component.tableId) continue;
+      const current = tableStateById.get(component.tableId);
+      const isDraft = component.lifecycleState === 'draft';
+      tableStateById.set(component.tableId, {
+        lifecycleState:
+          current?.lifecycleState === 'draft' || isDraft
+            ? 'draft'
+            : 'published',
+        packageName:
+          current?.packageName ??
+          (component.solution.isDefault
+            ? null
+            : component.solution.displayName),
+      });
+    }
+
     return rows
       .map((row) =>
-        this.toTableResponse(null, row, countsByTableId.get(row.id)),
+        this.toTableResponse(
+          null,
+          row,
+          countsByTableId.get(row.id),
+          tableStateById.get(row.id),
+        ),
       )
       .sort((a, b) => a.displayName.localeCompare(b.displayName));
   }
@@ -5526,6 +5644,10 @@ export class CustomizationService {
       relationships: Set<string>;
       views: Set<string>;
     },
+    tableState?: {
+      lifecycleState: 'draft' | 'published';
+      packageName: string | null;
+    },
   ) {
     if (!definition && !row) {
       throw new NotFoundException('Customization table was not found.');
@@ -5577,8 +5699,11 @@ export class CustomizationService {
       actionBarsCount: effectiveCounts?.actionBars.size ?? 0,
       source: (row?.isSystem ?? Boolean(definition)) ? 'System' : 'Custom',
       packageName:
-        (row?.isSystem ?? Boolean(definition)) ? 'Default Package' : null,
-      lifecycleState: 'published',
+        tableState?.packageName ??
+        ((row?.isSystem ?? Boolean(definition)) ? 'Default Package' : null),
+      lifecycleState:
+        tableState?.lifecycleState ??
+        ((row?.isSystem ?? Boolean(definition)) ? 'published' : 'draft'),
       createdAt: row?.createdAt ?? null,
       updatedAt: row?.updatedAt ?? null,
     };
@@ -5925,22 +6050,6 @@ function publisherPrefix(value: string) {
 function extractPackagePrefix(value: string) {
   const match = value.match(/^([a-z][a-z0-9]*_)/);
   return match?.[1] ?? '';
-}
-
-function camelize(value: string) {
-  const words = value
-    .trim()
-    .replace(/[^a-zA-Z0-9]+/g, ' ')
-    .split(' ')
-    .filter(Boolean);
-  return words
-    .map((word, index) => {
-      const lower = word.toLowerCase();
-      return index === 0
-        ? lower
-        : `${lower[0]?.toUpperCase() ?? ''}${lower.slice(1)}`;
-    })
-    .join('');
 }
 
 function findDuplicates(values: readonly string[]) {

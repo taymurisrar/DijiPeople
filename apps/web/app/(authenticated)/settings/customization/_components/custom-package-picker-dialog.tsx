@@ -60,13 +60,13 @@ export function CustomPackagePickerDialog({
             Select Custom Package
           </h3>
           <p className="mt-1 text-sm leading-6 text-muted">{message}</p>
-          <p className="mt-2 text-sm leading-6 text-muted">
-            Leave package blank to use Unassigned Draft Customizations. This
-            creates a draft customization layer that stays unpublished until you
-            publish it.
-          </p>
         </div>
 
+        {/*
+          ITEM-0183 / BUG-3493 — the explanatory paragraphs about "Unassigned
+          Draft Customizations" are gone along with that default: a blank choice
+          now lands in the tenant's own Custom Package, which is publishable.
+        */}
         {customPackages.length > 0 ? (
           <SelectField
             label="Custom Package"
@@ -75,15 +75,10 @@ export function CustomPackagePickerDialog({
               label: item.displayName,
               value: item.id,
             }))}
-            placeholder="Use Unassigned Draft Customizations"
+            placeholder="Default custom package"
             value={selectedPackageId}
           />
-        ) : (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            No exportable Custom Packages exist yet. Continuing will save this
-            change under Unassigned Draft Customizations.
-          </div>
-        )}
+        ) : null}
 
         <div className="flex justify-end gap-3">
           <Button onClick={onClose} type="button" variant="secondary">

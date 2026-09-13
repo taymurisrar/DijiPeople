@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { DataTable } from "@/app/components/data-table/data-table";
 import type { DataTableColumn } from "@/app/components/data-table/types";
+import { useSideToast } from "@/app/components/notifications/use-side-toast";
 import { Button } from "@/app/components/ui/button";
 import { EmptyState } from "@/app/components/ui/empty-state";
 import {
@@ -12,10 +13,17 @@ import {
   SelectField,
   TextAreaField,
   TextField,
+  useListboxEscape,
 } from "@/app/components/ui/form-control";
 import { SectionCard } from "@/app/components/ui/section-card";
 import { StatusPill } from "@/app/components/ui/status-pill";
-import { CustomizationPackage, CustomizationTable } from "../types";
+import { PermissionGate } from "@/app/(authenticated)/_components/permission-gate";
+import {
+  CustomizationColumn,
+  CustomizationPackage,
+  CustomizationTable,
+} from "../types";
+import { customizationComponentWriteKey } from "../_lib/customization-keys";
 import {
   COMMAND_ICON_CHOICES,
   COMMAND_PLACEMENTS,
@@ -96,53 +104,52 @@ type EditorState = {
   notes: string;
 };
 
+/* The legacy holding package is never offered (BUG-3493). */
+const UNASSIGNED_PACKAGE_KEY = "unassigned-draft-customizations";
 
 const componentConfig: Record<
   MetadataComponentType,
   {
     title: string;
-    description: string;
     apiType: string;
     addLabel: string;
     emptyTitle: string;
+    itemLabel: string;
   }
 > = {
   choiceList: {
     title: "Choice Lists",
-    description:
-      "Configure package-backed Choice List metadata for fields, status, and dependent sub-status values.",
     apiType: "choiceList",
     addLabel: "Add choice list",
     emptyTitle: "No choice lists",
+    itemLabel: "Choice list",
   },
   relationship: {
     title: "Relationships",
-    description:
-      "Configure package-backed Relationship metadata used by references and Related Lists.",
     apiType: "relationship",
     addLabel: "Add relationship",
     emptyTitle: "No relationships",
+    itemLabel: "Relationship",
   },
   actionBar: {
     title: "Action Bars",
-    description:
-      "Configure package-backed Action Bar metadata for list, record, and Related List command surfaces.",
     apiType: "actionBar",
     addLabel: "Add action bar",
     emptyTitle: "No action bars",
+    itemLabel: "Action bar",
   },
   widget: {
     title: "Widgets",
-    description:
-      "Review executable system Widgets registered for this module, including type, permissions, supported form surfaces, and data-adapter requirements.",
     apiType: "widget",
     addLabel: "Add widget",
-    emptyTitle: "No registered widgets",
+    emptyTitle: "No widgets",
+    itemLabel: "Widget",
   },
 };
 
 export function MetadataComponentsManagement({
   audiences = EMPTY_AUDIENCE_OPTIONS,
+  columns = [],
   componentType,
   lookupTables,
   onCountChange,
@@ -152,6 +159,8 @@ export function MetadataComponentsManagement({
 }: {
   /* Dimensions an action's visibility rules can be written against. */
   audiences?: AudienceOptions;
+  /* This module's fields; a relationship's reference field is picked from them. */
+  columns?: CustomizationColumn[];
   componentType: MetadataComponentType;
   lookupTables: CustomizationTable[];
   onCountChange?: (count: number) => void;
@@ -191,17 +200,30 @@ export function MetadataComponentsManagement({
     };
   }, []);
   const config = componentConfig[componentType];
+  const writeKey =
+    componentType === "widget"
+      ? null
+      : customizationComponentWriteKey(componentType);
   const router = useRouter();
+  const { notifySuccess, toast } = useSideToast();
   const [rows, setRows] = useState<MetadataComponentRow[]>([]);
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
+  /*
+   * BUG-3493 — every writable Custom Package, and never the legacy holding
+   * package. A blank choice is allowed: the API places the draft in the
+   * tenant's own Custom Package, so creating no longer depends on a package
+   * existing first.
+   */
   const editablePackages = packages.filter(
-    (item) => !item.isDefault && !item.isReadOnly,
+    (item) =>
+      !item.isDefault &&
+      !item.isReadOnly &&
+      item.packageKey !== UNASSIGNED_PACKAGE_KEY,
   );
-  const defaultPackageId = editablePackages[0]?.id ?? "";
   const prefix = packagePrefix(
     editablePackages.find((item) => item.id === editor?.packageId) ??
       editablePackages[0],
@@ -246,7 +268,7 @@ export function MetadataComponentsManagement({
       mode: "create",
       displayName: "",
       logicalName: "",
-      packageId: defaultPackageId,
+      packageId: editablePackages[0]?.id ?? "",
       isActive: true,
       choiceType: "global",
       options: [],
@@ -269,7 +291,7 @@ export function MetadataComponentsManagement({
       original: row,
       displayName: row.displayName,
       logicalName: row.logicalName,
-      packageId: row.packageId || defaultPackageId,
+      packageId: row.packageId,
       isActive: row.isActive,
       choiceType: stringValue(metadata.type, "global"),
       options: optionRows(metadata.options),
@@ -331,13 +353,19 @@ export function MetadataComponentsManagement({
       }),
     });
     const data = (await response.json().catch(() => ({}))) as {
-      message?: string;
+      message?: string | string[];
     };
     setIsSaving(false);
     if (!response.ok) {
-      setError(data.message ?? `Unable to save ${config.title.toLowerCase()}.`);
+      setError(
+        (Array.isArray(data.message) ? data.message.join(" ") : data.message) ??
+          `Unable to save the ${config.itemLabel.toLowerCase()}.`,
+      );
       return;
     }
+    notifySuccess(
+      `${editor.displayName.trim()} ${editor.mode === "create" ? "created" : "saved"}`,
+    );
     setEditor(null);
     await loadRows();
     router.refresh();
@@ -345,9 +373,7 @@ export function MetadataComponentsManagement({
 
   async function deactivateRow(row: MetadataComponentRow) {
     if (row.isSystem) {
-      setError(
-        "System metadata cannot be deleted. Create a draft customization layer to deactivate it.",
-      );
+      setError("System components cannot be deleted.");
       return;
     }
     setIsSaving(true);
@@ -370,9 +396,10 @@ export function MetadataComponentsManagement({
     };
     setIsSaving(false);
     if (!response.ok) {
-      setError(data.message ?? "Unable to deactivate metadata component.");
+      setError(data.message ?? "Unable to deactivate this component.");
       return;
     }
+    notifySuccess(`${row.displayName} deactivated`);
     await loadRows();
     router.refresh();
   }
@@ -385,12 +412,27 @@ export function MetadataComponentsManagement({
     onClose: () => setEditor(null),
   });
 
+  const addButton = (variant: "primary" | "secondary") =>
+    !readOnly && writeKey ? (
+      <PermissionGate anyOf={[writeKey]}>
+        <Button
+          leftIcon={variant === "primary" ? <Plus className="h-4 w-4" /> : undefined}
+          onClick={openCreate}
+          size="sm"
+          type="button"
+          variant={variant}
+        >
+          {config.addLabel}
+        </Button>
+      </PermissionGate>
+    ) : null;
+
   return (
-    <SectionCard description={config.description} title={config.title}>
+    <SectionCard title={config.title}>
+      {toast}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted">
-          {rows.length} {config.title.toLowerCase()} configured for{" "}
-          {table.pluralDisplayName}.
+          {rows.length} {config.title.toLowerCase()}
         </p>
         <div className="flex flex-wrap gap-2">
           <Button
@@ -402,27 +444,15 @@ export function MetadataComponentsManagement({
           >
             Refresh
           </Button>
-          {!readOnly ? (
-            <Button
-              disabled={!editablePackages.length}
-              leftIcon={<Plus className="h-4 w-4" />}
-              onClick={openCreate}
-              size="sm"
-              title={
-                editablePackages.length
-                  ? undefined
-                  : "Create or select a custom package before adding metadata."
-              }
-              type="button"
-            >
-              {config.addLabel}
-            </Button>
-          ) : null}
+          {addButton("primary")}
         </div>
       </div>
 
-      {error ? (
-        <div className="mb-4 rounded-lg border border-danger/20 bg-danger/5 px-3 py-2 text-sm text-danger">
+      {error && !editor ? (
+        <div
+          className="mb-4 rounded-lg border border-danger/20 bg-danger/5 px-3 py-2 text-sm text-danger"
+          role="alert"
+        >
           {error}
         </div>
       ) : null}
@@ -432,24 +462,11 @@ export function MetadataComponentsManagement({
         columns={tableColumns}
         emptyState={
           <EmptyState
-            action={
-              !readOnly ? (
-                <Button
-                  disabled={!editablePackages.length}
-                  onClick={openCreate}
-                  type="button"
-                  variant="secondary"
-                >
-                  {config.addLabel}
-                </Button>
-              ) : undefined
-            }
+            action={addButton("secondary")}
             description={
               isLoading
-                ? "Loading metadata components..."
-                : readOnly
-                  ? "No executable system widgets are registered for this module."
-                  : "Create a draft layer in a custom package to configure this metadata type."
+                ? "Loading..."
+                : `This module has no ${config.title.toLowerCase()} yet.`
             }
             title={config.emptyTitle}
           />
@@ -459,7 +476,7 @@ export function MetadataComponentsManagement({
         pagination={{ page: 1, pageSize: 10, total: rows.length }}
         rows={rows}
         searchPlaceholder={`Search ${config.title.toLowerCase()}`}
-        tableClassName="min-w-[1040px] divide-y divide-border text-xs"
+        tableClassName="min-w-[820px] divide-y divide-border text-xs"
       />
 
       {editor ? (
@@ -472,16 +489,21 @@ export function MetadataComponentsManagement({
             className="grid max-h-[92vh] w-full max-w-4xl gap-4 overflow-y-auto rounded-lg border border-border bg-white p-5 shadow-xl"
             onSubmit={handleSubmit}
           >
-            <div>
-              <h3 className="text-base font-semibold text-foreground" id={editorDialog.titleId}>
-                {editor.mode === "create" ? config.addLabel : "Edit metadata"}
-              </h3>
-              <p className="mt-1 text-sm text-muted">
-                Saves as draft package metadata. Published runtime metadata is
-                unchanged until publish.
-              </p>
-            </div>
+            <h3
+              className="text-base font-semibold text-foreground"
+              id={editorDialog.titleId}
+            >
+              {editor.mode === "create"
+                ? config.addLabel
+                : `Edit ${config.itemLabel.toLowerCase()}`}
+            </h3>
 
+            {/*
+              ITEM-0183 / BUG-3495 — the logical name's hint ("Generated with
+              publisher prefix dd__. Locked after creation.") rendered twice and
+              doubled the underscore; the dialog's own paragraph explained draft
+              publishing. Both are gone.
+            */}
             <div className="grid gap-3 md:grid-cols-2">
               <TextField
                 label="Display name"
@@ -491,22 +513,24 @@ export function MetadataComponentsManagement({
               />
               <TextField
                 disabled={editor.mode === "edit"}
-                hint={`Generated with publisher prefix ${prefix}_. Locked after creation.`}
                 label="Logical name"
                 onChange={(logicalName) => updateEditor({ logicalName })}
                 required
                 value={editor.logicalName}
               />
-              <SelectField
-                disabled={editor.mode === "edit"}
-                label="Package"
-                onChange={(packageId) => updateEditor({ packageId })}
-                options={editablePackages.map((item) => ({
-                  label: item.displayName,
-                  value: item.id,
-                }))}
-                value={editor.packageId}
-              />
+              {editablePackages.length > 0 ? (
+                <SelectField
+                  disabled={editor.mode === "edit"}
+                  label="Package"
+                  onChange={(packageId) => updateEditor({ packageId })}
+                  options={editablePackages.map((item) => ({
+                    label: item.displayName,
+                    value: item.id,
+                  }))}
+                  placeholder="Default custom package"
+                  value={editor.packageId}
+                />
+              ) : null}
               <CheckboxField
                 checked={editor.isActive}
                 label="Active"
@@ -519,6 +543,7 @@ export function MetadataComponentsManagement({
             ) : null}
             {componentType === "relationship" ? (
               <RelationshipEditor
+                columns={columns}
                 editor={editor}
                 lookupTables={lookupTables}
                 table={table}
@@ -540,7 +565,11 @@ export function MetadataComponentsManagement({
               value={editor.notes}
             />
 
-            {error ? <p className="text-sm text-danger">{error}</p> : null}
+            {error ? (
+              <p className="text-sm text-danger" role="alert">
+                {error}
+              </p>
+            ) : null}
 
             <div className="flex flex-wrap justify-end gap-2">
               <Button
@@ -553,8 +582,14 @@ export function MetadataComponentsManagement({
               >
                 Cancel
               </Button>
-              <Button loading={isSaving} loadingText="Saving..." type="submit">
-                Save draft metadata
+              <Button
+                loading={isSaving}
+                loadingText={
+                  editor.mode === "create" ? "Creating..." : "Saving..."
+                }
+                type="submit"
+              >
+                {editor.mode === "create" ? "Create" : "Save"}
               </Button>
             </div>
           </form>
@@ -606,25 +641,12 @@ function buildColumns(
         : componentType === "widget"
           ? {
               key: "widgetType",
-              header: "Widget / Requirements",
-              render: (row) => (
-                <div>
-                  <p>{stringValue(row.metadataJson.widgetType, "System")}</p>
-                  <p className="text-xs text-muted">
-                    {arrayValue(row.metadataJson.requiredPermissions).length}{" "}
-                    permissions ·{" "}
-                    {
-                      arrayValue(row.metadataJson.requiredDataAdapterMethods)
-                        .length
-                    }{" "}
-                    adapter methods
-                  </p>
-                </div>
-              ),
+              header: "Widget",
+              render: (row) => stringValue(row.metadataJson.widgetType, "System"),
             }
           : {
               key: "actionScope",
-              header: "Scope / Actions",
+              header: "Placement / Actions",
               render: (row) => (
                 <div>
                   <p>
@@ -710,25 +732,21 @@ function buildColumns(
         ) : (
           <div className="flex items-center gap-1">
             <Button
-              aria-label="Edit component"
+              aria-label={`Edit ${row.displayName}`}
               leftIcon={<Edit3 className="h-4 w-4" />}
               onClick={() => openEdit(row)}
               size="icon-sm"
-              title="Edit component"
+              title="Edit"
               type="button"
               variant="secondary"
             />
             <Button
-              aria-label="Deactivate component"
+              aria-label={`Deactivate ${row.displayName}`}
               disabled={row.isSystem || !row.isActive}
               leftIcon={<Trash2 className="h-4 w-4" />}
               onClick={() => deactivateRow(row)}
               size="icon-sm"
-              title={
-                row.isSystem
-                  ? "System metadata cannot be deleted."
-                  : "Deactivate this draft metadata component."
-              }
+              title="Deactivate"
               type="button"
               variant="danger"
             />
@@ -761,7 +779,7 @@ function ChoiceListEditor({
   return (
     <div className="grid gap-3 rounded-lg border border-border bg-slate-50 p-3">
       <SelectField
-        label="Choice List type"
+        label="Choice list type"
         onChange={(choiceType) => updateEditor({ choiceType })}
         options={[
           { value: "global", label: "Global" },
@@ -808,7 +826,7 @@ function ChoiceListEditor({
               value={row.label}
             />
             <TextField
-              label="Value/key"
+              label="Value"
               onChange={(value) => updateOption(row.id, { value })}
               value={row.value}
             />
@@ -822,14 +840,17 @@ function ChoiceListEditor({
               onChange={(color) => updateOption(row.id, { color })}
               value={row.color}
             />
-            <TextField
-              disabled={editor.choiceType !== "subStatus"}
-              label="Parent Status"
-              onChange={(parentStatus) =>
-                updateOption(row.id, { parentStatus })
-              }
-              value={row.parentStatus}
-            />
+            {editor.choiceType === "subStatus" ? (
+              <TextField
+                label="Parent status"
+                onChange={(parentStatus) =>
+                  updateOption(row.id, { parentStatus })
+                }
+                value={row.parentStatus}
+              />
+            ) : (
+              <span />
+            )}
             <Button
               onClick={() =>
                 updateEditor({
@@ -850,31 +871,60 @@ function ChoiceListEditor({
 }
 
 function RelationshipEditor({
+  columns,
   editor,
   lookupTables,
   table,
   updateEditor,
 }: {
+  columns: CustomizationColumn[];
   editor: EditorState;
   lookupTables: CustomizationTable[];
   table: CustomizationTable;
   updateEditor: (patch: Partial<EditorState>) => void;
 }) {
+  /*
+   * BUG-3495 — the reference field is picked from this module's real reference
+   * fields. It was free text, so a relationship could name a field that did not
+   * exist and save without complaint; the API now refuses that as well.
+   */
+  const referenceColumns = columns.filter(
+    (column) =>
+      (column.fieldType === "lookup" || column.dataType === "lookup") &&
+      (!editor.targetModuleKey ||
+        !column.lookupTargetTableKey ||
+        column.lookupTargetTableKey === editor.targetModuleKey),
+  );
+  const referenceOptions = referenceColumns.map((column) => ({
+    value: column.columnKey,
+    label: column.displayName,
+  }));
+  if (
+    editor.referenceField &&
+    !referenceOptions.some((option) => option.value === editor.referenceField)
+  ) {
+    referenceOptions.push({
+      value: editor.referenceField,
+      label: editor.referenceField,
+    });
+  }
+
   return (
     <div className="grid gap-3 rounded-lg border border-border bg-slate-50 p-3 md:grid-cols-2">
       <TextField
         disabled
-        label="Source Module"
+        label="Source module"
         onChange={() => undefined}
         value={table.displayName}
       />
       <SelectField
-        label="Target Module"
+        label="Target module"
         onChange={(targetModuleKey) => updateEditor({ targetModuleKey })}
         options={lookupTables.map((item) => ({
           label: item.pluralDisplayName,
           value: item.tableKey,
         }))}
+        required
         value={editor.targetModuleKey}
       />
       <SelectField
@@ -883,28 +933,33 @@ function RelationshipEditor({
         options={[
           { value: "oneToMany", label: "One-to-many" },
           { value: "manyToOne", label: "Many-to-one" },
-          { value: "manyToMany", label: "Many-to-many metadata-ready" },
+          { value: "manyToMany", label: "Many-to-many" },
         ]}
         value={editor.relationshipType}
       />
-      <TextField
+      <SelectField
         label="Reference field"
         onChange={(referenceField) => updateEditor({ referenceField })}
+        options={referenceOptions}
+        placeholder={
+          referenceOptions.length ? "Select a field" : "No reference fields"
+        }
+        required
         value={editor.referenceField}
       />
       <SelectField
-        label="Cascade behavior"
+        label="When a record is deleted"
         onChange={(cascadeBehavior) => updateEditor({ cascadeBehavior })}
         options={[
-          { value: "none", label: "None" },
-          { value: "restrict", label: "Restrict" },
-          { value: "cascade", label: "Cascade metadata-ready" },
+          { value: "none", label: "Do nothing" },
+          { value: "restrict", label: "Prevent deletion" },
+          { value: "cascade", label: "Delete related records" },
         ]}
         value={editor.cascadeBehavior}
       />
       <CheckboxField
         checked={editor.generateRelatedList}
-        label="Generate Related List"
+        label="Show related list"
         onChange={(generateRelatedList) =>
           updateEditor({ generateRelatedList })
         }
@@ -946,7 +1001,7 @@ function ActionBarEditor({
       ? [
           {
             value: editor.actionScope,
-            label: `${editor.actionScope} (existing value)`,
+            label: actionScopeLabel(editor.actionScope),
           },
         ]
       : []),
@@ -970,31 +1025,15 @@ function ActionBarEditor({
 
   return (
     <div className="grid gap-3 rounded-lg border border-border bg-slate-50 p-3">
-      <div>
-        <SelectField
-          label="Where this bar appears"
-          onChange={(actionScope) => updateEditor({ actionScope })}
-          options={placementOptions}
-          value={editor.actionScope}
-        />
-        {/*
-         * "Scope: recordRead" told an administrator nothing about whether they
-         * were editing the toolbar above a list, the one on an open record, or
-         * the menu that appears once rows are ticked.
-         */}
-        <p className="mt-1 text-xs text-muted">
-          {placement?.description ??
-            "This bar uses a scope set outside the designer. Pick a placement above to describe where it appears, or leave it as it is."}
-        </p>
-      </div>
+      <SelectField
+        label="Placement"
+        onChange={(actionScope) => updateEditor({ actionScope })}
+        options={placementOptions}
+        value={editor.actionScope}
+      />
 
       <div className="flex items-center justify-between gap-2">
-        <div>
-          <p className="text-sm font-semibold text-foreground">Actions</p>
-          <p className="text-xs text-muted">
-            Drag to reorder — the order here is the order on screen.
-          </p>
-        </div>
+        <p className="text-sm font-semibold text-foreground">Actions</p>
         <Button
           onClick={() =>
             updateEditor({
@@ -1020,7 +1059,7 @@ function ActionBarEditor({
         </Button>
       </div>
 
-      <div className="grid gap-2">
+      <div className="grid gap-2" role="list">
         {editor.actions.map((row, index) => {
           const catalogEntry = findCommand(row.command);
           const isUnknown = Boolean(row.command) && !catalogEntry;
@@ -1049,14 +1088,18 @@ function ActionBarEditor({
                 setDragIndex(null);
               }}
             >
-              <div className="flex items-center gap-2">
-                <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-muted" />
+              <div className="flex flex-wrap items-center gap-2">
+                <GripVertical
+                  aria-hidden
+                  className="h-4 w-4 shrink-0 cursor-grab text-muted"
+                />
                 <span className="w-5 shrink-0 text-xs text-muted">
                   {index + 1}
                 </span>
 
                 <SearchableSelect
-                  ariaLabel="Command"
+                  ariaLabel={`Action ${index + 1} command`}
+                  invalid={!row.command}
                   onChange={(command) => {
                     const entry = findCommand(command);
                     updateAction(row.id, {
@@ -1076,7 +1119,7 @@ function ActionBarEditor({
                 />
 
                 <input
-                  aria-label="Button label"
+                  aria-label={`Action ${index + 1} label`}
                   className="w-36 rounded-md border border-border px-2 py-1 text-xs"
                   onChange={(event) =>
                     updateAction(row.id, { label: event.target.value })
@@ -1086,7 +1129,7 @@ function ActionBarEditor({
                 />
 
                 <button
-                  aria-label="Remove action"
+                  aria-label={`Remove action ${index + 1}`}
                   className="ml-auto shrink-0 rounded p-1 text-muted transition hover:bg-danger/10 hover:text-danger"
                   onClick={() =>
                     updateEditor({
@@ -1097,20 +1140,19 @@ function ActionBarEditor({
                   }
                   type="button"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <Trash2 aria-hidden className="h-3.5 w-3.5" />
                 </button>
               </div>
 
               {isUnknown ? (
                 <p className="rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-xs text-amber-900">
-                  <code>{row.command}</code> is not a command the runtime
-                  registers — this button would render and do nothing.
+                  Unknown command <code>{row.command}</code>.
                 </p>
               ) : null}
 
               <div className="flex flex-wrap items-center gap-2 pl-6">
                 <SearchableSelect
-                  ariaLabel="Icon"
+                  ariaLabel={`Action ${index + 1} icon`}
                   onChange={(icon) => updateAction(row.id, { icon })}
                   options={COMMAND_ICON_CHOICES.map((name) => ({
                     value: name,
@@ -1120,7 +1162,7 @@ function ActionBarEditor({
                   value={row.icon}
                 />
                 <SearchableSelect
-                  ariaLabel="Permission"
+                  ariaLabel={`Action ${index + 1} permission`}
                   onChange={(permissionKey) =>
                     updateAction(row.id, { permissionKey })
                   }
@@ -1128,11 +1170,11 @@ function ActionBarEditor({
                     value: key,
                     label: key,
                   }))}
-                  placeholder="Permission (optional)"
+                  placeholder="Permission"
                   value={row.permissionKey}
                 />
                 <input
-                  aria-label="Group"
+                  aria-label={`Action ${index + 1} group`}
                   className="w-28 rounded-md border border-border px-2 py-1 text-xs"
                   onChange={(event) =>
                     updateAction(row.id, { group: event.target.value })
@@ -1169,12 +1211,14 @@ function ActionBarEditor({
  */
 function SearchableSelect({
   ariaLabel,
+  invalid = false,
   onChange,
   options,
   placeholder,
   value,
 }: {
   ariaLabel: string;
+  invalid?: boolean;
   onChange: (value: string) => void;
   options: ReadonlyArray<{ value: string; label: string; hint?: string }>;
   placeholder: string;
@@ -1182,6 +1226,8 @@ function SearchableSelect({
 }) {
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  /* BUG-3495 — Escape closes this list, not the dialog it sits in. */
+  useListboxEscape(isOpen, () => setIsOpen(false));
 
   const trimmed = query.trim().toLowerCase();
   const visible = trimmed
@@ -1197,8 +1243,12 @@ function SearchableSelect({
   return (
     <div className="relative">
       <button
-        aria-label={ariaLabel}
-        className="w-44 truncate rounded-md border border-border bg-white px-2 py-1 text-left text-xs"
+        aria-expanded={isOpen}
+        aria-label={invalid ? `${ariaLabel}, not chosen` : ariaLabel}
+        className={[
+          "w-44 truncate rounded-md border bg-white px-2 py-1 text-left text-xs",
+          invalid ? "border-danger" : "border-border",
+        ].join(" ")}
         onClick={() => setIsOpen((current) => !current)}
         type="button"
       >
@@ -1212,7 +1262,7 @@ function SearchableSelect({
             autoFocus
             className="w-full border-b border-border px-2 py-1.5 text-xs outline-none"
             onChange={(event) => setQuery(event.target.value)}
-            placeholder={"Search " + ariaLabel.toLowerCase()}
+            placeholder="Search"
             value={query}
           />
           <div className="max-h-52 overflow-y-auto p-1">
@@ -1263,6 +1313,7 @@ function SearchableSelect({
     </div>
   );
 }
+
 function buildMetadata(
   editor: EditorState,
   componentType: MetadataComponentType,
@@ -1301,23 +1352,29 @@ function buildMetadata(
       cascadeBehavior: editor.cascadeBehavior,
     };
   }
+  /*
+   * BUG-3495 — rows are no longer filtered here. A row with no command used to
+   * be dropped silently on save; validation now refuses it by position, so what
+   * is saved is exactly what the administrator saw.
+   */
   return {
     ...base,
     scope: editor.actionScope,
-    actions: editor.actions
-      .filter((row) => row.label.trim() && row.command.trim())
-      .map((row, index) => ({
-        label: row.label.trim(),
-        command: row.command.trim(),
-        group: row.group.trim() || undefined,
-        icon: row.icon.trim() || undefined,
-        permissionKey: row.permissionKey.trim() || undefined,
-        /* Position is the order; dragging a row is what changes it. */
-        order: index * 10,
-        visibilityRules: row.visibilityRules.length
-          ? row.visibilityRules
-          : undefined,
-      })),
+    actions: editor.actions.map((row, index) => ({
+      label:
+        row.label.trim() ||
+        findCommand(row.command)?.label ||
+        commandLabel(row.command),
+      command: row.command.trim(),
+      group: row.group.trim() || undefined,
+      icon: row.icon.trim() || undefined,
+      permissionKey: row.permissionKey.trim() || undefined,
+      /* Position is the order; dragging a row is what changes it. */
+      order: index * 10,
+      visibilityRules: row.visibilityRules.length
+        ? row.visibilityRules
+        : undefined,
+    })),
   };
 }
 
@@ -1326,15 +1383,15 @@ function validateEditor(
   rows: MetadataComponentRow[],
   componentType: MetadataComponentType,
 ) {
-  if (!editor.displayName.trim()) return "Display name is required.";
+  if (!editor.displayName.trim()) return "Enter a display name.";
   if (!/^([a-z]{2,8})_[a-z][a-zA-Z0-9]*$/.test(editor.logicalName)) {
-    return "Logical name must use a publisher prefix and camelCase, for example dp_passportExpiryDate.";
+    return "Use the publisher prefix followed by a name, for example dp_passportExpiry.";
   }
   if (
     editor.mode === "create" &&
     rows.some((row) => row.logicalName === editor.logicalName)
   ) {
-    return "A metadata component with this logical name already exists.";
+    return "A component with this logical name already exists.";
   }
   if (componentType === "choiceList") {
     const activeOptions = editor.options.filter(
@@ -1343,14 +1400,15 @@ function validateEditor(
     if (activeOptions.length === 0) return "Add at least one active option.";
   }
   if (componentType === "relationship") {
-    if (!editor.targetModuleKey) return "Target Module is required.";
-    if (!editor.referenceField.trim()) return "Reference field is required.";
+    if (!editor.targetModuleKey) return "Choose the target module.";
+    if (!editor.referenceField.trim()) return "Choose the reference field.";
   }
   if (componentType === "actionBar") {
-    const actions = editor.actions.filter(
-      (row) => row.label.trim() && row.command.trim(),
-    );
-    if (actions.length === 0) return "Add at least one action.";
+    if (editor.actions.length === 0) return "Add at least one action.";
+    const missing = editor.actions.findIndex((row) => !row.command.trim());
+    if (missing >= 0) {
+      return `Action ${missing + 1} needs a command. Choose one or remove the action.`;
+    }
   }
   return null;
 }
@@ -1428,9 +1486,13 @@ function defaultActionRows(componentType: MetadataComponentType): ActionRow[] {
    * register, so every seeded button was inert.
    */
   return COMMAND_CATALOG.filter((entry) =>
-    ["system.new", "system.edit", "system.delete", "system.refresh", "system.export"].includes(
-      entry.key,
-    ),
+    [
+      "system.new",
+      "system.edit",
+      "system.delete",
+      "system.refresh",
+      "system.export",
+    ].includes(entry.key),
   ).map((entry) => ({
     id: crypto.randomUUID(),
     label: entry.label,
@@ -1511,10 +1573,11 @@ function relationshipTypeLabel(value: string) {
 function actionScopeLabel(value: string) {
   const labels: Record<string, string> = {
     list: "List",
-    recordRead: "Record Read",
-    recordEdit: "Record Edit",
-    recordCreate: "Record Create",
-    relatedList: "Related List",
+    module: "Module",
+    recordRead: "Record",
+    recordEdit: "Record edit",
+    recordCreate: "New record",
+    relatedList: "Related list",
   };
   return labels[value] ?? value;
 }

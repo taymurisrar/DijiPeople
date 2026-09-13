@@ -97,7 +97,7 @@ export function ErrorProvider({
       window.removeEventListener("error", handleRuntimeError);
       window.removeEventListener("unhandledrejection", handleRejectedPromise);
     };
-  }, [showError]);
+  }, [showRuntimeError]);
 
   const value = useMemo(() => ({ error, showError, clearError }), [clearError, error, showError]);
 
