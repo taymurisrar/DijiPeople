@@ -93,7 +93,12 @@ const VEHICLE: CustomModuleDefinition = {
   pluralDisplayName: "Vehicles",
   primaryNameField: "pl_plate",
   fields: [
-    { logicalName: "pl_plate", displayName: "Plate", dataType: "text", required: true },
+    {
+      logicalName: "pl_plate",
+      displayName: "Plate",
+      dataType: "text",
+      required: true,
+    },
     { logicalName: "pl_notes", displayName: "Notes", dataType: "textarea" },
     { logicalName: "pl_seats", displayName: "Seats", dataType: "number" },
     {
@@ -105,7 +110,12 @@ const VEHICLE: CustomModuleDefinition = {
         { value: "diesel", label: "Diesel" },
       ],
     },
-    { logicalName: "pl_active", displayName: "Active", dataType: "boolean", readOnly: true },
+    {
+      logicalName: "pl_active",
+      displayName: "Active",
+      dataType: "boolean",
+      readOnly: true,
+    },
   ],
   forms: [],
   views: [],
@@ -254,8 +264,20 @@ describe("buildCustomModuleForms and the route runtime", () => {
     const forms = buildCustomModuleForms({
       ...QA_ASSET,
       forms: [
-        { id: "card", formKey: "card", name: "Card", type: "card", layoutJson: QA_ASSET.forms[0]?.layoutJson },
-        { id: "broken", formKey: "broken", name: "Broken", type: "main", layoutJson: { tabs: "no" } },
+        {
+          id: "card",
+          formKey: "card",
+          name: "Card",
+          type: "card",
+          layoutJson: QA_ASSET.forms[0]?.layoutJson,
+        },
+        {
+          id: "broken",
+          formKey: "broken",
+          name: "Broken",
+          type: "main",
+          layoutJson: { tabs: "no" },
+        },
       ],
     });
     expect(forms).toEqual([]);
@@ -270,9 +292,9 @@ describe("buildCustomModuleForms and the route runtime", () => {
     });
     expect(runtime.module.routeBase).toBe(spec.routeBase);
     expect(runtime.metadata.entity.logicalName).toBe("qaAsset");
-    expect(
-      resolveStandardActiveForm(runtime.metadata.forms, "")?.id,
-    ).toBe("form-main");
+    expect(resolveStandardActiveForm(runtime.metadata.forms, "")?.id).toBe(
+      "form-main",
+    );
     expect(runtime.metadata.views.map((view) => view.viewId)).toEqual([
       "view-active",
       "view-all",
@@ -292,6 +314,76 @@ describe("buildCustomModuleForms and the route runtime", () => {
         section.fields.map((field) => field.fieldLogicalName),
       ),
     ).toEqual(expect.arrayContaining(["pl_plate", "pl_fuel"]));
+  });
+
+  it("ignores a published form with no placed fields and keeps the generated one", () => {
+    // The main form a new table is saved with, before any column exists.
+    const emptyMain = {
+      id: "form-empty",
+      formKey: "main",
+      name: "QA Asset Main Form",
+      type: "main",
+      isDefault: true,
+      layoutJson: {
+        tabs: [
+          {
+            id: "summary",
+            label: "Summary",
+            sections: [{ id: "general", label: "General", fields: [] }],
+          },
+        ],
+      },
+    };
+    const definition = { ...QA_ASSET, forms: [emptyMain] };
+    expect(buildCustomModuleForms(definition)).toEqual([]);
+
+    const { runtime } = buildCustomModuleRuntime({
+      definition,
+      pageKind: "create",
+      sessionUser: null,
+    });
+    const active = resolveStandardActiveForm(runtime.metadata.forms, "");
+    expect(
+      active?.sections.flatMap((section) =>
+        section.fields.map((field) => field.fieldLogicalName),
+      ),
+    ).toContain("dd_serialNumber");
+  });
+
+  it("drops a section whose only placements are columns not in the definition", () => {
+    const [form] = buildCustomModuleForms({
+      ...QA_ASSET,
+      forms: [
+        {
+          id: "form-main",
+          formKey: "main",
+          name: "Main",
+          type: "main",
+          isDefault: true,
+          layoutJson: {
+            tabs: [
+              {
+                id: "general",
+                label: "General",
+                sections: [
+                  {
+                    id: "details",
+                    label: "Details",
+                    fields: [{ columnKey: "dd_serialNumber" }],
+                  },
+                  {
+                    id: "drafts",
+                    label: "Drafts",
+                    fields: [{ columnKey: "dd_draftColumn" }],
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      ],
+    });
+    expect(form?.sections.map((section) => section.fields.length)).toEqual([1]);
   });
 
   it("titles a record by its primary name field, falling back to the module name", () => {

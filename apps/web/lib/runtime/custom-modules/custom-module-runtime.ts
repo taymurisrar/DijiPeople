@@ -41,7 +41,10 @@ export type CustomModuleFieldDefinition = {
   readonly isPrimaryName?: boolean;
   readonly maxLength?: number | null;
   readonly lookupTargetTableKey?: string | null;
-  readonly options?: ReadonlyArray<{ readonly value: string; readonly label: string }>;
+  readonly options?: ReadonlyArray<{
+    readonly value: string;
+    readonly label: string;
+  }>;
 };
 
 export type CustomModuleFormDefinition = {
@@ -249,18 +252,24 @@ export function buildCustomModuleForms(
       layoutJson: layout,
     };
     const mapped = mapPublishedForm(runtimeForm, definition.moduleKey);
+    const sections = mapped.sections
+      .map((section) => ({
+        ...section,
+        fields: section.fields.filter((field) =>
+          known.has(field.fieldLogicalName),
+        ),
+      }))
+      .filter((section) => section.fields.length > 0);
 
-    return [
-      {
-        ...mapped,
-        sections: mapped.sections.map((section) => ({
-          ...section,
-          fields: section.fields.filter((field) =>
-            known.has(field.fieldLogicalName),
-          ),
-        })),
-      },
-    ];
+    /*
+     * A form with nothing left to render is not a usable form. Creating a
+     * table saves its main form before any column exists (`fields: []`), and
+     * columns added afterwards are not placed on it, so a module built in the
+     * documented order — table, fields, publish — published a form that drew
+     * a blank create screen with a Save button. Skipping it lets the runtime
+     * keep the generated form of the published fields instead.
+     */
+    return sections.length > 0 ? [{ ...mapped, sections }] : [];
   });
 }
 
