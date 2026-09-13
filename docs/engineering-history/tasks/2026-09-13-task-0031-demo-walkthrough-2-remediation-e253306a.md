@@ -563,8 +563,32 @@ event's last channel stops its workflow email.
 
 ## Obsidian Sync
 
-TODO — whether `node scripts/sync-obsidian.mjs` ran, and which `Generated/`
-folders changed.
+`node scripts/sync-obsidian.mjs` ran three times from the committed tree, against
+the vault configured in the primary checkout (`DijiPeople-Vault`), each followed
+by `npm run knowledge:verify`:
+
+| Pass | Tree | Written | Verify |
+|---|---|---|---|
+| 1 | `255dc400` | 83 created, 45 updated (1469 current) | 40 problems — 6 introduced by this task: five stream reports under `Generated/Tasks/TASK-0031-streams/` with no wikilink, and the owner email copy review sharing the `WP-04` source id with `WP-04-report.md` |
+| 2 | `adbefc73` | 1 created, 9 updated | 37 — the stale vault copy of the renamed note, and WP-05/WP-06 reports now unreachable |
+| 3 | `819208d9` | 2 updated | 34 — none attributable to this task |
+
+Fixes: each stream report links TASK-0031; the review note was renamed to
+`email-copy-for-owner-review.md` with every reference updated; this task's own
+stale vault copy (`source_path` the old name, `source_commit 37a982b7`) was
+deleted from the vault. `OBSIDIAN_SYNC_STATUS` stays FAILED on the 34 problems
+that predate this task — the same count TASK-0030 closed with — which this
+task did not touch.
+
+Notes written on the first pass, by source folder: `docs/qa/scenarios` 26,
+`docs/backlog/items` 23, `docs/bugs` 16, the TASK-0031 work packages 9, the
+TASK-0031 stream reports 7, `docs/sessions` 7, `docs/plans` 6,
+`docs/decisions` 6, `docs/tasks` 6, `docs/backlog` 5, `docs/qa/test-plans` 5,
+`docs/knowledge/dashboards` 3, `docs/engineering-history/tasks` 3,
+`docs/qa/known-bug-patterns` 2, and one each from `docs/questions`,
+`docs/qa/runs`, `docs/qa/regressions` and six `docs/knowledge/` folders. In the
+vault's `00 - Home/Generated/` tree that is `Tasks`, `Backlog` and `Sessions`;
+the other sources publish into their own mapped folders.
 
 ## Cleanup
 
