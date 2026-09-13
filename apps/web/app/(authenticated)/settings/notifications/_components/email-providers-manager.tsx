@@ -2,12 +2,12 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  SUPPORTED_EMAIL_PROVIDER_TYPES,
-  isSupportedEmailProviderType,
-} from "@repo/config";
+import { DataTable } from "@/app/components/data-table/data-table";
+import type { DataTableColumn } from "@/app/components/data-table/types";
+import { ConfirmDialog } from "@/app/components/feedback/confirm-dialog";
 import { useFormattingContext } from "@/app/components/filters/use-formatting-context";
 import { Button } from "@/app/components/ui/button";
+import { Dialog } from "@/app/components/ui/dialog";
 import { EmptyState } from "@/app/components/ui/empty-state";
 import {
   EffectiveEmailProvider,
@@ -22,6 +22,15 @@ import {
   validateEmailProvider,
 } from "@/lib/notifications-api";
 import {
+  defaultProviderType,
+  describeEmailDelivery,
+  isSinkProviderType,
+  providerStateLabel,
+  providerTypeLabel,
+  providerTypeOptions,
+  selectableProviderTypes,
+} from "./email-delivery-path";
+import {
   ErrorBanner,
   Field,
   formatDateTime,
@@ -31,6 +40,8 @@ import {
 
 type ProviderForm = {
   id?: string;
+  /* The type the saved row had, so an unavailable one stays visible. */
+  storedProviderType: EmailProviderType | null;
   providerType: EmailProviderType;
   providerName: string;
   enabled: boolean;
@@ -42,96 +53,57 @@ type ProviderForm = {
   configuration: Record<string, string>;
 };
 
-const emptyProvider: ProviderForm = {
-  providerType: "CONSOLE",
-  providerName: "",
-  enabled: true,
-  isDefault: false,
-  fromEmail: "",
-  fromName: "",
-  replyToEmail: "",
-  configuration: {},
-};
+const PROVIDER_FORM_ID = "email-provider-form";
 
-/*
- * BUG-0050 — this list used to enumerate the whole Prisma enum, including five
- * providers the backend maps to a placeholder that throws on send and on
- * connection test. A tenant administrator could configure SES, mark it default,
- * and silently receive no mail.
- *
- * It now comes from `@repo/config`, which is the same list the API factory is
- * checked against, so the offer cannot drift ahead of the implementation again.
- * An existing row may still reference an unimplemented provider — the enum keeps
- * every historical value — so `providerTypeOptions` below re-adds whatever the
- * saved setting already uses, marked unavailable rather than hidden.
- */
-const providerTypes =
-  SUPPORTED_EMAIL_PROVIDER_TYPES as readonly EmailProviderType[];
+function newProviderForm(providerType: EmailProviderType): ProviderForm {
+  return {
+    storedProviderType: null,
+    providerType,
+    providerName: "",
+    enabled: true,
+    isDefault: false,
+    fromEmail: "",
+    fromName: "",
+    replyToEmail: "",
+    configuration: {},
+  };
+}
 
 /**
- * What is sending this workspace's mail right now.
+ * What happens to this workspace's mail right now (BUG-3501, ITEM-0129).
  *
- * ITEM-0129. The list below shows the workspace's OWN providers, and a workspace
- * that has configured none inherits the DijiPeople platform relay — its mail is
- * delivered normally. Without this panel that state was indistinguishable from
- * having no email at all: an empty table, and a screen that reads as broken.
- *
- * So the panel always states the provider in force, and says plainly whether it
- * is this workspace's own or inherited. The only genuinely bad state — nothing
- * resolves and nothing can be sent — is the one that gets the warning styling.
+ * It states the delivery path — this workspace's provider, the platform relay,
+ * or not delivered — rather than whether some provider resolved, because a
+ * Console provider resolves and delivers nothing. The wording lives in
+ * `email-delivery-path.ts`, where it is tested.
  */
 function EffectiveProviderPanel({
   effective,
+  schemas,
 }: {
   effective: EffectiveEmailProvider;
+  schemas: readonly ProviderSchema[];
 }) {
-  if (!effective.canSend) {
-    return (
-      <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-        <strong className="font-semibold">No email can be sent.</strong> This
-        workspace has no provider of its own and none is available to inherit, so
-        notifications, invitations and scheduled reports will not be delivered.
-        Add a provider below.
-      </div>
-    );
-  }
-
-  const sender = effective.fromName
-    ? `${effective.fromName} <${effective.fromEmail ?? "unknown"}>`
-    : (effective.fromEmail ?? "unknown");
+  const summary = describeEmailDelivery(effective, schemas);
 
   return (
-    <div className="rounded-2xl border border-border bg-surface px-4 py-3 text-sm">
-      <div className="font-semibold">
-        {effective.inherited
-          ? "Email is sent by the DijiPeople platform provider"
-          : "Email is sent by this workspace's own provider"}
-      </div>
-      <div className="mt-1 text-muted">
-        {effective.inherited ? (
-          <>
-            This workspace has not configured its own provider, so it inherits
-            the platform default. Mail leaves as{" "}
-            <span className="font-medium">{sender}</span>
-            {effective.replyToEmail ? (
-              <>
-                , with replies going to{" "}
-                <span className="font-medium">{effective.replyToEmail}</span>
-              </>
-            ) : null}
-            . Adding a provider below and marking it Default overrides this.
-          </>
-        ) : (
-          <>
-            Mail leaves as <span className="font-medium">{sender}</span>
-            {effective.providerType ? (
-              <> over {effective.providerType}</>
-            ) : null}
-            . Disabling every provider below returns this workspace to the
-            platform default.
-          </>
-        )}
-      </div>
+    <div
+      className={
+        summary.tone === "warning"
+          ? "min-w-0 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+          : "min-w-0 rounded-2xl border border-border bg-surface px-4 py-3 text-sm"
+      }
+    >
+      <div className="font-semibold">{summary.title}</div>
+      {summary.detail ? (
+        <div
+          className={`mt-1 break-words ${
+            summary.tone === "warning" ? "" : "text-muted"
+          }`}
+        >
+          {summary.detail}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -141,11 +113,13 @@ export function EmailProvidersManager({
   effective,
   providers,
   schemas,
+  selectableProviderTypes: selectableFromServer,
 }: {
   canManage: boolean;
   effective: EffectiveEmailProvider;
   providers: EmailProviderSetting[];
   schemas: ProviderSchema[];
+  selectableProviderTypes?: readonly string[];
 }) {
   const router = useRouter();
   /*
@@ -154,45 +128,50 @@ export function EmailProvidersManager({
    * during server rendering. See formatDateTime in notification-ui.
    */
   const formatting = useFormattingContext();
-  const [form, setForm] = useState<ProviderForm>(emptyProvider);
   /*
-   * Offer only what can actually send, plus whatever this record already uses.
-   *
-   * A tenant configured before BUG-0050 may hold SES. Dropping that value from
-   * the list would make the select fall back to its first option, so opening the
-   * row and saving anything would silently rewrite the provider type. Keeping it
-   * visible-but-disabled shows the administrator what is stored and why it is
-   * not working, and still refuses to let anyone newly choose it.
+   * BUG-3501. The choosable types come from the API, which knows whether this
+   * is production; the browser does not. Production leaves out Console and Dev.
    */
-  const providerTypeOptions = useMemo(() => {
-    const stored = form.providerType;
-    return providerTypes.includes(stored)
-      ? providerTypes
-      : [...providerTypes, stored];
-  }, [form.providerType]);
-  /*
-   * The server describes what each provider type needs, so the form follows it
-   * rather than asking a user to hand-write configuration JSON.
-   */
-  const activeSchema = useMemo(
-    () =>
+  const selectable = useMemo(
+    () => selectableProviderTypes(selectableFromServer),
+    [selectableFromServer],
+  );
+  const sinkProvidersRetired = Boolean(effective.sinkProvidersRetired);
+  /* `null` means the dialog is closed; the form is not on the page until asked for. */
+  const [form, setForm] = useState<ProviderForm | null>(null);
+  const [disableTarget, setDisableTarget] =
+    useState<EmailProviderSetting | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const activeSchema = useMemo<ProviderSchema | null>(() => {
+    if (!form) return null;
+    return (
       schemas.find((schema) => schema.providerType === form.providerType) ?? {
         providerType: form.providerType,
         label: form.providerType,
         description: "",
         fields: [],
-      },
-    [form.providerType, schemas],
-  );
-  const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+      }
+    );
+  }, [form, schemas]);
 
-  function edit(provider: EmailProviderSetting) {
+  function openCreate() {
     setError(null);
     setMessage(null);
+    setFormError(null);
+    setForm(newProviderForm(defaultProviderType(selectable)));
+  }
+
+  function openEdit(provider: EmailProviderSetting) {
+    setError(null);
+    setMessage(null);
+    setFormError(null);
     setForm({
       id: provider.id,
+      storedProviderType: provider.providerType,
       providerType: provider.providerType,
       providerName: provider.providerName,
       enabled: provider.enabled,
@@ -204,12 +183,27 @@ export function EmailProvidersManager({
     });
   }
 
+  function closeForm() {
+    if (busy === "save") return;
+    setForm(null);
+    setFormError(null);
+  }
+
+  function updateForm(patch: Partial<ProviderForm>) {
+    setForm((current) => (current ? { ...current, ...patch } : current));
+  }
+
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError(null);
+    if (!form || !activeSchema) return;
+    setFormError(null);
     setMessage(null);
-    if (!form.providerName.trim() || !form.fromEmail.trim() || !form.fromName.trim()) {
-      setError("Provider name, from email, and from name are required.");
+    if (
+      !form.providerName.trim() ||
+      !form.fromEmail.trim() ||
+      !form.fromName.trim()
+    ) {
+      setFormError("Provider name, from email, and from name are required.");
       return;
     }
     const missing = activeSchema.fields
@@ -223,13 +217,18 @@ export function EmailProvidersManager({
       .map((field) => field.label);
 
     if (missing.length) {
-      setError(`${missing.join(", ")} ${missing.length === 1 ? "is" : "are"} required for ${activeSchema.label}.`);
+      setFormError(
+        `${missing.join(", ")} ${missing.length === 1 ? "is" : "are"} required for ${activeSchema.label}.`,
+      );
       return;
     }
 
     setBusy("save");
     try {
-      const configuration = buildConfiguration(activeSchema, form.configuration);
+      const configuration = buildConfiguration(
+        activeSchema,
+        form.configuration,
+      );
       const body = {
         providerType: form.providerType,
         providerName: form.providerName,
@@ -243,10 +242,12 @@ export function EmailProvidersManager({
       if (form.id) await updateEmailProvider(form.id, body);
       else await createEmailProvider(body);
       setMessage("Provider saved.");
-      setForm(emptyProvider);
+      setForm(null);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to save provider.");
+      setFormError(
+        err instanceof Error ? err.message : "Unable to save provider.",
+      );
     } finally {
       setBusy(null);
     }
@@ -256,7 +257,6 @@ export function EmailProvidersManager({
     provider: EmailProviderSetting,
     action: "default" | "disable" | "validate",
   ) {
-    if (action === "disable" && !confirm("Disable this email provider?")) return;
     setError(null);
     setMessage(null);
     setBusy(`${action}:${provider.id}`);
@@ -274,11 +274,114 @@ export function EmailProvidersManager({
       setError(err instanceof Error ? err.message : "Provider action failed.");
     } finally {
       setBusy(null);
+      setDisableTarget(null);
     }
   }
 
+  const columns: DataTableColumn<EmailProviderSetting>[] = [
+    {
+      key: "provider",
+      header: "Provider",
+      render: (provider) => (
+        <div className="min-w-0">
+          <div className="break-words font-semibold text-foreground">
+            {provider.providerName}
+          </div>
+          <div className="mt-1 text-xs text-muted">
+            {providerTypeLabel(provider.providerType, schemas)}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "sender",
+      header: "Sender",
+      render: (provider) => (
+        <div className="min-w-0">
+          <div className="break-words">{provider.fromName}</div>
+          <div className="break-all text-xs text-muted">
+            {provider.fromEmail}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "state",
+      header: "State",
+      render: (provider) =>
+        providerStateLabel(provider, sinkProvidersRetired),
+    },
+    {
+      key: "updatedAt",
+      header: "Updated",
+      render: (provider) => formatDateTime(provider.updatedAt, formatting),
+    },
+    ...(canManage
+      ? [
+          {
+            key: "actions",
+            header: "Actions",
+            render: (provider: EmailProviderSetting) => {
+              /*
+               * Set default also enables the row, which production refuses for
+               * a sink (ADR-0015) — so it is not offered there at all.
+               */
+              const canSetDefault =
+                !provider.isDefault &&
+                !(
+                  sinkProvidersRetired &&
+                  isSinkProviderType(provider.providerType)
+                );
+              return (
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    onClick={() => openEdit(provider)}
+                    size="sm"
+                    variant="secondary"
+                  >
+                    Edit
+                  </Button>
+                  {canSetDefault ? (
+                    <Button
+                      loading={busy === `default:${provider.id}`}
+                      onClick={() => providerAction(provider, "default")}
+                      size="sm"
+                      variant="secondary"
+                    >
+                      Set Default
+                    </Button>
+                  ) : null}
+                  <Button
+                    loading={busy === `validate:${provider.id}`}
+                    onClick={() => providerAction(provider, "validate")}
+                    size="sm"
+                    variant="secondary"
+                  >
+                    Validate
+                  </Button>
+                  {provider.enabled ? (
+                    <Button
+                      onClick={() => setDisableTarget(provider)}
+                      size="sm"
+                      variant="danger"
+                    >
+                      Disable
+                    </Button>
+                  ) : null}
+                </div>
+              );
+            },
+          } satisfies DataTableColumn<EmailProviderSetting>,
+        ]
+      : []),
+  ];
+
+  const typeOptions = form
+    ? providerTypeOptions(selectable, form.storedProviderType, schemas)
+    : [];
+
   return (
-    <div className="grid gap-6">
+    <div className="grid min-w-0 gap-6">
       <ErrorBanner message={error} />
       {message ? (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
@@ -286,272 +389,191 @@ export function EmailProvidersManager({
         </div>
       ) : null}
 
-      <EffectiveProviderPanel effective={effective} />
+      <EffectiveProviderPanel effective={effective} schemas={schemas} />
 
-      <SettingsPanel
-        title={form.id ? "Edit Email Provider" : "Create Email Provider"}
-        description="Configuration JSON is sent to the backend as-is. Masked secrets remain protected by backend merge rules."
-      >
-        <form className="grid gap-4" onSubmit={save}>
-          {form.providerType === "CONSOLE" ? (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              Console provider does not send real emails. Rendered emails are written to server logs. Use only for development, staging, or temporary production bootstrap.
+      <div className="min-w-0">
+        <SettingsPanel title="Configured Providers">
+          {canManage ? (
+            <div className="mb-4 flex justify-end">
+              <Button onClick={openCreate}>Add provider</Button>
             </div>
           ) : null}
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Provider type" required>
-              <select
-                className={inputClassName}
-                disabled={!canManage}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    providerType: event.target.value as EmailProviderType,
-                  }))
-                }
-                value={form.providerType}
-              >
-                {providerTypeOptions.map((type) => (
-                  <option
-                    key={type}
-                    value={type}
-                    disabled={!isSupportedEmailProviderType(type)}
-                  >
-                    {isSupportedEmailProviderType(type)
-                      ? type
-                      : `${type} — not available`}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Provider name" required>
-              <input
-                className={inputClassName}
-                disabled={!canManage}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    providerName: event.target.value,
-                  }))
-                }
-                value={form.providerName}
-              />
-            </Field>
-            <Field label="From email" required>
-              <input
-                className={inputClassName}
-                disabled={!canManage}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    fromEmail: event.target.value,
-                  }))
-                }
-                type="email"
-                value={form.fromEmail}
-              />
-            </Field>
-            <Field label="From name" required>
-              <input
-                className={inputClassName}
-                disabled={!canManage}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    fromName: event.target.value,
-                  }))
-                }
-                value={form.fromName}
-              />
-            </Field>
-            <Field label="Reply-to email">
-              <input
-                className={inputClassName}
-                disabled={!canManage}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    replyToEmail: event.target.value,
-                  }))
-                }
-                type="email"
-                value={form.replyToEmail}
-              />
-            </Field>
-            <div className="flex items-center gap-5 pt-8 text-sm font-medium text-foreground">
-              <label className="flex items-center gap-2">
-                <input
-                  checked={form.enabled}
-                  className="h-4 w-4 rounded border-border"
-                  disabled={!canManage}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      enabled: event.target.checked,
-                    }))
-                  }
-                  type="checkbox"
-                />
-                Enabled
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  checked={form.isDefault}
-                  className="h-4 w-4 rounded border-border"
-                  disabled={!canManage}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      isDefault: event.target.checked,
-                    }))
-                  }
-                  type="checkbox"
-                />
-                Default
-              </label>
-            </div>
+          <div className="min-w-0">
+            <DataTable
+              columns={columns}
+              emptyState={
+                <EmptyState description="" title="No email providers configured" />
+              }
+              enableSearch={false}
+              entityLogicalName="notification_email_providers"
+              getRowKey={(provider) => provider.id}
+              rows={[...providers]}
+            />
           </div>
-          {activeSchema.fields.length ? (
-            <div className="rounded-2xl border border-border bg-surface-muted/40 p-4">
-              <div className="mb-1 text-sm font-semibold text-foreground">
-                {activeSchema.label} settings
-              </div>
-              {activeSchema.description ? (
-                <p className="mb-4 text-xs text-muted">
-                  {activeSchema.description}
-                </p>
-              ) : null}
+        </SettingsPanel>
+      </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
+      <Dialog
+        busy={busy === "save"}
+        footer={
+          <>
+            <Button
+              disabled={busy === "save"}
+              onClick={closeForm}
+              type="button"
+              variant="secondary"
+            >
+              Cancel
+            </Button>
+            <Button
+              form={PROVIDER_FORM_ID}
+              loading={busy === "save"}
+              type="submit"
+            >
+              Save Provider
+            </Button>
+          </>
+        }
+        onClose={closeForm}
+        open={form !== null}
+        size="lg"
+        title={form?.id ? "Edit provider" : "Add provider"}
+      >
+        {form && activeSchema ? (
+          <form className="grid gap-4" id={PROVIDER_FORM_ID} onSubmit={save}>
+            <ErrorBanner message={formError} />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Provider type" required>
+                <select
+                  className={inputClassName}
+                  onChange={(event) =>
+                    updateForm({
+                      providerType: event.target.value as EmailProviderType,
+                    })
+                  }
+                  value={form.providerType}
+                >
+                  {typeOptions.map((option) => (
+                    <option
+                      disabled={option.disabled}
+                      key={option.value}
+                      value={option.value}
+                    >
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Provider name" required>
+                <input
+                  className={inputClassName}
+                  onChange={(event) =>
+                    updateForm({ providerName: event.target.value })
+                  }
+                  value={form.providerName}
+                />
+              </Field>
+              <Field label="From email" required>
+                <input
+                  className={inputClassName}
+                  onChange={(event) =>
+                    updateForm({ fromEmail: event.target.value })
+                  }
+                  type="email"
+                  value={form.fromEmail}
+                />
+              </Field>
+              <Field label="From name" required>
+                <input
+                  className={inputClassName}
+                  onChange={(event) =>
+                    updateForm({ fromName: event.target.value })
+                  }
+                  value={form.fromName}
+                />
+              </Field>
+              <Field label="Reply-to email">
+                <input
+                  className={inputClassName}
+                  onChange={(event) =>
+                    updateForm({ replyToEmail: event.target.value })
+                  }
+                  type="email"
+                  value={form.replyToEmail}
+                />
+              </Field>
+              <div className="flex items-center gap-5 text-sm font-medium text-foreground sm:pt-8">
+                <label className="flex items-center gap-2">
+                  <input
+                    checked={form.enabled}
+                    className="h-4 w-4 rounded border-border"
+                    onChange={(event) =>
+                      updateForm({ enabled: event.target.checked })
+                    }
+                    type="checkbox"
+                  />
+                  Enabled
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    checked={form.isDefault}
+                    className="h-4 w-4 rounded border-border"
+                    onChange={(event) =>
+                      updateForm({ isDefault: event.target.checked })
+                    }
+                    type="checkbox"
+                  />
+                  Default
+                </label>
+              </div>
+            </div>
+            {activeSchema.fields.length ? (
+              <fieldset className="grid gap-4 rounded-2xl border border-border bg-surface-muted/40 p-4 sm:grid-cols-2">
+                <legend className="px-1 text-sm font-semibold text-foreground">
+                  {activeSchema.label} settings
+                </legend>
                 {activeSchema.fields.map((field) => (
                   <ProviderFieldInput
-                    disabled={!canManage}
                     field={field}
                     isExisting={Boolean(form.id)}
                     key={field.key}
-                    value={form.configuration[field.key] ?? ""}
                     onChange={(value) =>
-                      setForm((current) => ({
-                        ...current,
+                      updateForm({
                         configuration: {
-                          ...current.configuration,
+                          ...form.configuration,
                           [field.key]: value,
                         },
-                      }))
+                      })
                     }
+                    value={form.configuration[field.key] ?? ""}
                   />
                 ))}
-              </div>
-            </div>
-          ) : (
-            <p className="rounded-2xl border border-border bg-surface-muted/40 px-4 py-3 text-sm text-muted">
-              {activeSchema.description ||
-                "This provider needs no extra configuration."}
-            </p>
-          )}
-          <div className="flex flex-wrap gap-3">
-            <Button disabled={!canManage} loading={busy === "save"} type="submit">
-              Save Provider
-            </Button>
-            {form.id ? (
-              <Button
-                onClick={() => setForm(emptyProvider)}
-                type="button"
-                variant="secondary"
-              >
-                New Provider
-              </Button>
+              </fieldset>
             ) : null}
-          </div>
-        </form>
-      </SettingsPanel>
+          </form>
+        ) : null}
+      </Dialog>
 
-      <SettingsPanel title="Configured Providers">
-        {providers.length ? (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] border-separate border-spacing-0 text-sm">
-              <thead>
-                <tr className="text-left text-xs uppercase tracking-[0.16em] text-muted">
-                  <th className="border-b border-border px-3 py-3">Provider</th>
-                  <th className="border-b border-border px-3 py-3">Sender</th>
-                  <th className="border-b border-border px-3 py-3">State</th>
-                  <th className="border-b border-border px-3 py-3">Updated</th>
-                  <th className="border-b border-border px-3 py-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {providers.map((provider) => (
-                  <tr key={provider.id}>
-                    <td className="border-b border-border px-3 py-4">
-                      <div className="font-semibold text-foreground">
-                        {provider.providerName}
-                      </div>
-                      <div className="mt-1 font-mono text-xs text-muted">
-                        {provider.providerType}
-                      </div>
-                    </td>
-                    <td className="border-b border-border px-3 py-4">
-                      <div>{provider.fromName}</div>
-                      <div className="text-xs text-muted">{provider.fromEmail}</div>
-                    </td>
-                    <td className="border-b border-border px-3 py-4">
-                      {provider.enabled ? "Enabled" : "Disabled"}
-                      {provider.isDefault ? " / Default" : ""}
-                    </td>
-                    <td className="border-b border-border px-3 py-4">
-                      {formatDateTime(provider.updatedAt, formatting)}
-                    </td>
-                    <td className="border-b border-border px-3 py-4">
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          disabled={!canManage}
-                          onClick={() => edit(provider)}
-                          size="sm"
-                          variant="secondary"
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          disabled={!canManage || provider.isDefault}
-                          loading={busy === `default:${provider.id}`}
-                          onClick={() => providerAction(provider, "default")}
-                          size="sm"
-                          variant="secondary"
-                        >
-                          Set Default
-                        </Button>
-                        <Button
-                          disabled={!canManage}
-                          loading={busy === `validate:${provider.id}`}
-                          onClick={() => providerAction(provider, "validate")}
-                          size="sm"
-                          variant="secondary"
-                        >
-                          Validate
-                        </Button>
-                        <Button
-                          disabled={!canManage || !provider.enabled}
-                          loading={busy === `disable:${provider.id}`}
-                          onClick={() => providerAction(provider, "disable")}
-                          size="sm"
-                          variant="danger"
-                        >
-                          Disable
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <EmptyState
-            description="Create a tenant provider or rely on backend environment fallback in non-production."
-            title="No email providers configured"
-          />
+      <ConfirmDialog
+        confirmAction={{
+          label: "Disable provider",
+          onClick: () =>
+            disableTarget
+              ? providerAction(disableTarget, "disable")
+              : undefined,
+          variant: "danger",
+        }}
+        isLoading={Boolean(
+          disableTarget && busy === `disable:${disableTarget.id}`,
         )}
-      </SettingsPanel>
+        onClose={() => setDisableTarget(null)}
+        open={disableTarget !== null}
+        title={
+          disableTarget
+            ? `Disable ${disableTarget.providerName}?`
+            : "Disable provider?"
+        }
+      />
     </div>
   );
 }
@@ -603,13 +625,11 @@ function buildConfiguration(
 }
 
 function ProviderFieldInput({
-  disabled,
   field,
   isExisting,
   value,
   onChange,
 }: {
-  disabled: boolean;
   field: ProviderField;
   isExisting: boolean;
   value: string;
@@ -617,22 +637,14 @@ function ProviderFieldInput({
 }) {
   if (field.type === "boolean") {
     return (
-      <label className="flex items-start gap-3 pt-6 text-sm text-foreground">
+      <label className="flex items-center gap-3 text-sm font-medium text-foreground sm:pt-8">
         <input
           checked={value === "true"}
-          className="mt-0.5 h-4 w-4 rounded border-border"
-          disabled={disabled}
+          className="h-4 w-4 rounded border-border"
           onChange={(event) => onChange(String(event.target.checked))}
           type="checkbox"
         />
-        <span>
-          <span className="block font-medium">{field.label}</span>
-          {field.helpText ? (
-            <span className="mt-0.5 block text-xs text-muted">
-              {field.helpText}
-            </span>
-          ) : null}
-        </span>
+        {field.label}
       </label>
     );
   }
@@ -642,7 +654,6 @@ function ProviderFieldInput({
       <input
         autoComplete={field.secret ? "new-password" : "off"}
         className={inputClassName}
-        disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
         placeholder={
           field.secret && isExisting
@@ -658,9 +669,6 @@ function ProviderFieldInput({
         }
         value={value}
       />
-      {field.helpText ? (
-        <span className="mt-1 block text-xs text-muted">{field.helpText}</span>
-      ) : null}
     </Field>
   );
 }

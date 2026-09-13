@@ -20,6 +20,7 @@ export type StandardModuleListActionBarContext = {
 export function StandardModuleListPage({
   activeView,
   dataAdapter,
+  enableSelection = true,
   formatting,
   initialFilters = [],
   pagination,
@@ -33,6 +34,12 @@ export function StandardModuleListPage({
 }: {
   readonly activeView?: ViewMetadata | null;
   readonly dataAdapter?: ModuleDataAdapter;
+  /*
+   * Row checkboxes, on by default as before. A list with no command that acts
+   * on a selection (a delivery log, ITEM-0182) turns them off rather than
+   * offering a choice that leads nowhere.
+   */
+  readonly enableSelection?: boolean;
   readonly formatting?: {
     readonly dateFormat: string;
     readonly locale: string;
@@ -124,7 +131,7 @@ export function StandardModuleListPage({
       selectedRecordIds={selectedRecordIds}
       tableSlot={
         <ModuleDataTable
-          enableSelection
+          enableSelection={enableSelection}
           formatting={formatting}
           initialFilters={[...initialFilters]}
           onSelectedRecordIdsChange={setSelectedRecordIds}

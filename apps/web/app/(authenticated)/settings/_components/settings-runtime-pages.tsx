@@ -34,6 +34,12 @@ import { TimesheetPolicyManager } from "./timesheet-policy-manager";
 import { WorkSiteRecordPage } from "./work-site/work-site-record-page";
 import type { WorkSiteReadinessPayload } from "../_lib/work-site-configuration";
 import { NotificationEmailLogRecordPage } from "./notification-email-log-record-page";
+import { DeliveryLogChannelSwitch } from "./delivery-log-channel-switch";
+import {
+  DELIVERY_LOG_ITEM_KEY,
+  deliveryLogAdapterKey,
+  resolveDeliveryLogChannel,
+} from "../_lib/delivery-log-channel";
 import { hasAnySettingsPermission } from "../_lib/require-settings-permission";
 import { PERMISSION_KEYS } from "@/lib/security-keys";
 
@@ -46,7 +52,17 @@ export async function SettingsRuntimeList({
   item: SettingsRuntimeItem;
   searchParams: SearchParams;
 }) {
-  const adapter = getSettingsAdapter(item.key);
+  /*
+   * ITEM-0182. The Delivery Logs item serves two channels from one URL; the
+   * in-app channel is a second read-only adapter selected by `?channel=in-app`.
+   */
+  const deliveryLogChannel =
+    item.key === DELIVERY_LOG_ITEM_KEY
+      ? resolveDeliveryLogChannel((await searchParams).channel)
+      : null;
+  const adapter = getSettingsAdapter(
+    deliveryLogChannel ? deliveryLogAdapterKey(deliveryLogChannel) : item.key,
+  );
   if (!adapter) notFound();
   if (adapter.mode === "specialized") {
     if (adapter.specializedHref) redirect(adapter.specializedHref);
@@ -149,28 +165,47 @@ export async function SettingsRuntimeList({
     runtime.metadata.views[0] ??
     null;
 
+  const listPage = (
+    <StandardModuleListPage
+      activeView={activeView}
+      /*
+       * ITEM-0182. Delivery log rows had a selection checkbox each and no bulk
+       * action to use them for. Retry (ITEM-0168) lives on the record page.
+       */
+      enableSelection={!deliveryLogChannel}
+      formatting={{
+        dateFormat: "MM/dd/yyyy",
+        locale: "en-US",
+        timezone: "UTC",
+      }}
+      pagination={{
+        page: serverPagination?.page ?? page,
+        pageSize: serverPagination?.pageSize ?? pageSize,
+        totalItems: serverPagination?.total ?? records.length,
+        pathname: item.route,
+        searchParams: {
+          viewId: activeView?.viewId ?? activeView?.id,
+          channel: deliveryLogChannel === "in-app" ? "in-app" : undefined,
+        },
+      }}
+      paginationMode={serverPagination ? "server" : "client"}
+      records={records}
+      runtime={runtime}
+      spec={spec}
+      title={item.label}
+    />
+  );
+
   return (
     <SettingsShell title={item.label} description={item.description}>
-      <StandardModuleListPage
-        activeView={activeView}
-        formatting={{
-          dateFormat: "MM/dd/yyyy",
-          locale: "en-US",
-          timezone: "UTC",
-        }}
-        pagination={{
-          page: serverPagination?.page ?? page,
-          pageSize: serverPagination?.pageSize ?? pageSize,
-          totalItems: serverPagination?.total ?? records.length,
-          pathname: item.route,
-          searchParams: { viewId: activeView?.viewId ?? activeView?.id },
-        }}
-        paginationMode={serverPagination ? "server" : "client"}
-        records={records}
-        runtime={runtime}
-        spec={spec}
-        title={item.label}
-      />
+      {deliveryLogChannel ? (
+        <div className="grid min-w-0 gap-4">
+          <DeliveryLogChannelSwitch value={deliveryLogChannel} />
+          {listPage}
+        </div>
+      ) : (
+        listPage
+      )}
     </SettingsShell>
   );
 }

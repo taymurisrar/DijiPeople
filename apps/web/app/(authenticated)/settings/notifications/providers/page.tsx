@@ -2,7 +2,7 @@ import { apiRequestJson } from "@/lib/server-api";
 import type {
   EffectiveEmailProvider,
   EmailProviderSetting,
-  ProviderSchema,
+  ProviderFieldSchemaResponse,
 } from "@/lib/notifications-api";
 import { SettingsShell } from "../../_components/settings-shell";
 import {
@@ -26,7 +26,7 @@ export default async function EmailProvidersPage() {
     apiRequestJson<{ items: EmailProviderSetting[] }>(
       "/notifications/email-providers",
     ),
-    apiRequestJson<{ items: ProviderSchema[] }>(
+    apiRequestJson<ProviderFieldSchemaResponse>(
       "/notifications/email-providers/field-schema",
     ),
     apiRequestJson<EffectiveEmailProvider>(
@@ -38,16 +38,13 @@ export default async function EmailProvidersPage() {
   ]);
 
   return (
-    <SettingsShell
-      description="Configure who email comes from and how it is sent. The fields below change with the provider you choose, and credentials are stored encrypted."
-      eyebrow="Notifications"
-      title="Email Providers"
-    >
+    <SettingsShell description="" eyebrow="Notifications" title="Email Providers">
       <EmailProvidersManager
         canManage={canManage}
         effective={effective}
         providers={response.items ?? []}
         schemas={schemas.items ?? []}
+        selectableProviderTypes={schemas.selectableProviderTypes}
       />
     </SettingsShell>
   );

@@ -85,10 +85,9 @@ function buildEffective(
   platform: ResolvedEmailProvider | null,
 ) {
   const factory = buildFactory(env, rows);
-  return new EffectiveEmailProviderService(
-    factory,
-    { resolve: jest.fn(async () => platform) } as never,
-  );
+  return new EffectiveEmailProviderService(factory, {
+    resolve: jest.fn(async () => platform),
+  } as never);
 }
 
 describe('the sink catalog agrees with the API predicate', () => {
@@ -136,7 +135,10 @@ describe('EmailProviderFactory in production', () => {
   });
 
   it('ignores EMAIL_PROVIDER=CONSOLE and never falls back to the dev console', async () => {
-    const factory = buildFactory({ ...PRODUCTION, EMAIL_PROVIDER: 'CONSOLE' }, []);
+    const factory = buildFactory(
+      { ...PRODUCTION, EMAIL_PROVIDER: 'CONSOLE' },
+      [],
+    );
 
     await expect(factory.resolveProvider('tenant-1')).resolves.toBeNull();
   });
@@ -162,18 +164,22 @@ describe('EmailProviderFactory in production', () => {
 
 describe('EffectiveEmailProviderService in production', () => {
   it('sends a sink-only tenant through the platform relay', async () => {
-    const effective = buildEffective(PRODUCTION, [providerRow()], PLATFORM_SMTP);
+    const effective = buildEffective(
+      PRODUCTION,
+      [providerRow()],
+      PLATFORM_SMTP,
+    );
 
     await expect(effective.resolveForTenant('tenant-1')).resolves.toMatchObject(
       { source: 'platform', providerType: EmailProviderType.SMTP },
     );
-    await expect(effective.describeForTenant('tenant-1')).resolves.toMatchObject(
-      {
-        deliveryPath: 'PLATFORM_RELAY',
-        notDeliveredReason: null,
-        sinkProvidersRetired: true,
-      },
-    );
+    await expect(
+      effective.describeForTenant('tenant-1'),
+    ).resolves.toMatchObject({
+      deliveryPath: 'PLATFORM_RELAY',
+      notDeliveredReason: null,
+      sinkProvidersRetired: true,
+    });
   });
 
   it('does not let a platform relay stored as a sink carry mail', async () => {
@@ -184,23 +190,26 @@ describe('EffectiveEmailProviderService in production', () => {
     const effective = buildEffective(PRODUCTION, [], consoleRelay);
 
     await expect(effective.resolveForPlatform('tenant-1')).resolves.toBeNull();
-    await expect(effective.describeForTenant('tenant-1')).resolves.toMatchObject(
-      { deliveryPath: 'NOT_DELIVERED', notDeliveredReason: 'NO_PROVIDER' },
-    );
+    await expect(
+      effective.describeForTenant('tenant-1'),
+    ).resolves.toMatchObject({
+      deliveryPath: 'NOT_DELIVERED',
+      notDeliveredReason: 'NO_PROVIDER',
+    });
   });
 
   it('describes a development sink as not delivered, never as sending', async () => {
     const effective = buildEffective(DEVELOPMENT, [providerRow()], null);
 
-    await expect(effective.describeForTenant('tenant-1')).resolves.toMatchObject(
-      {
-        canSend: true,
-        providerType: EmailProviderType.CONSOLE,
-        deliveryPath: 'NOT_DELIVERED',
-        notDeliveredReason: 'SINK_PROVIDER',
-        sinkProvidersRetired: false,
-      },
-    );
+    await expect(
+      effective.describeForTenant('tenant-1'),
+    ).resolves.toMatchObject({
+      canSend: true,
+      providerType: EmailProviderType.CONSOLE,
+      deliveryPath: 'NOT_DELIVERED',
+      notDeliveredReason: 'SINK_PROVIDER',
+      sinkProvidersRetired: false,
+    });
   });
 
   it("describes a tenant's own SMTP provider as its delivery path", async () => {
@@ -216,9 +225,12 @@ describe('EffectiveEmailProviderService in production', () => {
       PLATFORM_SMTP,
     );
 
-    await expect(effective.describeForTenant('tenant-1')).resolves.toMatchObject(
-      { deliveryPath: 'TENANT_PROVIDER', inherited: false },
-    );
+    await expect(
+      effective.describeForTenant('tenant-1'),
+    ).resolves.toMatchObject({
+      deliveryPath: 'TENANT_PROVIDER',
+      inherited: false,
+    });
   });
 });
 
@@ -298,9 +310,9 @@ describe('NotificationsService provider writes in production', () => {
     const attempt = service.createProvider(USER, dto);
     await expect(attempt).rejects.toBeInstanceOf(BadRequestException);
     await expect(
-      service.createProvider(USER, dto).catch((error: BadRequestException) =>
-        error.getResponse(),
-      ),
+      service
+        .createProvider(USER, dto)
+        .catch((error: BadRequestException) => error.getResponse()),
     ).resolves.toMatchObject({ code: 'EMAIL_PROVIDER_TYPE_NOT_ALLOWED' });
     expect(createProvider).not.toHaveBeenCalled();
     expect(log).not.toHaveBeenCalled();
@@ -463,7 +475,9 @@ describe('seedTenantConsoleProviders', () => {
     const count = jest.fn(async () => 0);
     const upsert = jest.fn(async () => ({}));
     return {
-      client: { emailProviderSetting: { count, upsert } } as unknown as PrismaClient,
+      client: {
+        emailProviderSetting: { count, upsert },
+      } as unknown as PrismaClient,
       count,
       upsert,
     };

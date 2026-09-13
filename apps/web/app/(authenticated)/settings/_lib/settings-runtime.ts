@@ -205,7 +205,8 @@ const itemPlacement: Record<
   notifications: ["notifications", "rules", "Notification Rules"],
   "notification-email-templates": ["notifications", "templates", "Templates"],
   "notification-email-providers": ["notifications", "providers", "Providers"],
-  "notification-email-logs": ["notifications", "delivery", "Delivery History"],
+  // ITEM-0182: one name for the logs screen — see settings-navigation.ts.
+  "notification-email-logs": ["notifications", "delivery", "Delivery Logs"],
   branding: ["appearance", "branding", "Branding & Theme"],
   "system-preferences": ["appearance", "experience", "Workspace Experience"],
   "audit-logs": ["audit-compliance", "history", "Audit History"],

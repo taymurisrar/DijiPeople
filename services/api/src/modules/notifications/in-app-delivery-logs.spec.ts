@@ -37,7 +37,11 @@ function buildRepository() {
       readAt: new Date('2026-09-10T09:00:00Z'),
       createdAt: new Date('2026-09-10T08:00:00Z'),
       notification: { title: 'Leave approved', eventCode: 'LEAVE_APPROVED' },
-      user: { firstName: 'Rania', lastName: 'Haddad', email: 'rania@acme.test' },
+      user: {
+        firstName: 'Rania',
+        lastName: 'Haddad',
+        email: 'rania@acme.test',
+      },
     },
   ]);
   const count = jest.fn(async () => 1);
@@ -78,9 +82,9 @@ describe('tenant in-app delivery log query', () => {
       { select: typeof inAppDeliveryLogSelect },
     ];
     expect(args.select).toBe(inAppDeliveryLogSelect);
-    expect(Object.keys(inAppDeliveryLogSelect.notification.select).sort()).toEqual(
-      ['eventCode', 'title'],
-    );
+    expect(
+      Object.keys(inAppDeliveryLogSelect.notification.select).sort(),
+    ).toEqual(['eventCode', 'title']);
     expect(Object.keys(inAppDeliveryLogSelect.user.select).sort()).toEqual([
       'email',
       'firstName',

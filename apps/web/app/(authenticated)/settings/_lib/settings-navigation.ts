@@ -486,7 +486,13 @@ export const settingsNavGroups = [
       {
         key: "notifications",
         href: "/settings/notifications",
-        label: "Notifications",
+        /*
+         * ITEM-0182. The card said "Notifications" and opened a page titled
+         * "Notification Rules" — the name its adapter, its settings group and
+         * the page itself already use. One name, pinned by
+         * delivery-log-channel.spec.ts; a rename must change all of them.
+         */
+        label: "Notification Rules",
         description:
           "Configure notification channels, templates, alert rules, and communication defaults.",
         icon: "bell",
@@ -526,12 +532,24 @@ export const settingsNavGroups = [
       {
         key: "notification-email-logs",
         href: "/settings/notifications/logs",
-        label: "Email Delivery Logs",
-        shortLabel: "Email Logs",
+        /*
+         * ITEM-0182. This screen was "Email Delivery Logs" here, "Email Logs"
+         * as the short label, "Delivery Logs" as the page title and "Delivery
+         * History" as its group — four names for one page, and "Email" stopped
+         * being true once the in-app channel was added. The key stays, because
+         * routes and entitlements are keyed on it.
+         */
+        label: "Delivery Logs",
         description:
-          "Review email delivery attempts, statuses, provider IDs, and failure diagnostics.",
+          "Review email and in-app delivery, status, and failure reasons.",
         icon: "list-checks",
-        keywords: ["email logs", "delivery logs", "notifications", "status"],
+        keywords: [
+          "delivery logs",
+          "email logs",
+          "in-app",
+          "notifications",
+          "status",
+        ],
         requiredAnyPermissions: [NAV_PERMISSION_KEYS.NOTIFICATION_LOGS_READ],
       },
     ],
