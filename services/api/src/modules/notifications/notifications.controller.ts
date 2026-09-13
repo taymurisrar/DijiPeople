@@ -22,6 +22,7 @@ import {
   CreateEmailProviderDto,
   CreateEmailTemplateDto,
   EmailDeliveryLogQueryDto,
+  InAppDeliveryLogQueryDto,
   InAppNotificationQueryDto,
   PreviewEmailTemplateDto,
   TestSendEmailTemplateDto,
@@ -30,7 +31,6 @@ import {
   UpdateNotificationPreferencesDto,
   UpdateNotificationRuleDto,
 } from './dto';
-import { PROVIDER_SCHEMAS } from './email/provider-field-schema';
 import { InAppNotificationsService } from './in-app-notifications.service';
 import { NotificationDiagnosticsService } from './notification-diagnostics.service';
 import { NOTIFICATION_PERMISSION_KEYS } from './notifications.constants';
@@ -211,7 +211,7 @@ export class NotificationsController {
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_PROVIDERS_READ)
   @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   listProviderFieldSchema() {
-    return { items: PROVIDER_SCHEMAS };
+    return this.notificationsService.listProviderFieldSchema();
   }
 
   @Get('email-providers')
@@ -314,6 +314,21 @@ export class NotificationsController {
     @Param('id') deliveryLogId: string,
   ) {
     return this.notificationsService.getDeliveryLog(user, deliveryLogId);
+  }
+
+  /*
+   * ITEM-0182 — in-app deliveries across the tenant, for the Delivery Logs
+   * screen. Guarded exactly as the email log is: the same screen, the same
+   * reader. The per-user `in-app` routes below stay the inbox.
+   */
+  @Get('in-app-delivery-logs')
+  @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_LOGS_READ)
+  @RequirePermission(ENTITY_KEYS.REPORTS, 'read')
+  listInAppDeliveryLogs(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: InAppDeliveryLogQueryDto,
+  ) {
+    return this.notificationsService.listInAppDeliveryLogs(user, query);
   }
 
   /*

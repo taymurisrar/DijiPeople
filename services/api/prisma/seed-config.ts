@@ -13,6 +13,10 @@ import {
   type CustomizationSolutionComponentType,
 } from '@prisma/client';
 import type { ApprovalActorType, ApprovalModuleKey } from '@prisma/client';
+import {
+  sinkEmailProvidersRetired,
+  type EmailProviderEnvironment,
+} from '@repo/config';
 import { createPrismaClient } from './create-prisma-client';
 import { bootstrapCommercialDefaults } from '../src/modules/super-admin/commercial-bootstrap';
 import { PermissionBootstrapService } from '../src/modules/permissions/permission-bootstrap.service';
@@ -2435,7 +2439,20 @@ export async function seedTenantNotificationRules(
 export async function seedTenantConsoleProviders(
   client: PrismaClient,
   tenants: TenantSeedTarget[],
+  env: EmailProviderEnvironment = process.env,
 ) {
+  /*
+   * BUG-3501 / ADR-0015. Render's pre-deploy step runs `seed:config` on every
+   * deploy, and this used to give every tenant without an enabled provider an
+   * enabled, default Console provider — so production quietly re-created the
+   * sink the demo tenant's mail disappeared into, on each release. Production
+   * resolution now ignores sink rows anyway; not creating them keeps the
+   * Providers screen from listing a provider nobody chose.
+   */
+  if (sinkEmailProvidersRetired(env)) {
+    return 0;
+  }
+
   let count = 0;
 
   for (const tenant of tenants) {

@@ -4,6 +4,7 @@ import {
   type ResolvedEmailProvider,
 } from './email-provider-factory.service';
 import { PlatformEmailProviderResolver } from './platform-email-provider.resolver';
+import { isSinkProvider } from './providers';
 
 /**
  * Which provider will actually carry a tenant's mail, and where it came from.
@@ -45,7 +46,7 @@ export class EffectiveEmailProviderService {
       (await this.providerFactory.resolveProvider(tenantId, {
         tenantOnly: true,
       })) ??
-      (await this.platformProvider.resolve()) ??
+      this.deliverablePlatformProvider(await this.platformProvider.resolve()) ??
       (await this.providerFactory.resolveProvider(tenantId))
     );
   }
@@ -59,9 +60,14 @@ export class EffectiveEmailProviderService {
     tenantId: string,
   ): Promise<ResolvedEmailProvider | null> {
     return (
-      (await this.platformProvider.resolve()) ??
+      this.deliverablePlatformProvider(await this.platformProvider.resolve()) ??
       (await this.providerFactory.resolveProvider(tenantId))
     );
+  }
+
+  /** ADR-0015 — see `EmailProviderFactory.sinkProvidersRetired`. */
+  sinkProvidersRetired(): boolean {
+    return this.providerFactory.sinkProvidersRetired();
   }
 
   /**
@@ -73,6 +79,7 @@ export class EffectiveEmailProviderService {
    */
   async describeForTenant(tenantId: string): Promise<EffectiveProviderSummary> {
     const resolved = await this.resolveForTenant(tenantId);
+    const sinkProvidersRetired = this.sinkProvidersRetired();
 
     if (!resolved) {
       return {
@@ -84,8 +91,20 @@ export class EffectiveEmailProviderService {
         fromEmail: null,
         fromName: null,
         replyToEmail: null,
+        deliveryPath: 'NOT_DELIVERED',
+        notDeliveredReason: 'NO_PROVIDER',
+        sinkProvidersRetired,
       };
     }
+
+    /*
+     * BUG-3501. `canSend` only ever meant "something resolved", so a CONSOLE
+     * provider was described exactly like SMTP — "Email is sent by this
+     * workspace's own provider … over CONSOLE". `deliveryPath` is the answer
+     * the screen actually needs: does mail reach a person, and through whom.
+     * A sink is never a delivery path, whatever its source.
+     */
+    const sink = isSinkProvider(resolved.providerType);
 
     return {
       canSend: true,
@@ -102,9 +121,43 @@ export class EffectiveEmailProviderService {
       fromEmail: resolved.fromEmail,
       fromName: resolved.fromName,
       replyToEmail: resolved.replyToEmail,
+      deliveryPath: sink
+        ? 'NOT_DELIVERED'
+        : resolved.source === 'tenant'
+          ? 'TENANT_PROVIDER'
+          : 'PLATFORM_RELAY',
+      notDeliveredReason: sink ? 'SINK_PROVIDER' : null,
+      sinkProvidersRetired,
     };
   }
+
+  /*
+   * The platform relay is stored by the admin Settings → Email screen, and any
+   * stored type other than SMTP resolves to the console sink
+   * (`PlatformEmailProviderResolver.resolve`). In production that must not
+   * carry tenant mail any more than a tenant's own Console row may (ADR-0015),
+   * so a sink relay is treated as no relay and the chain continues.
+   */
+  private deliverablePlatformProvider(
+    resolved: ResolvedEmailProvider | null,
+  ): ResolvedEmailProvider | null {
+    if (
+      resolved &&
+      isSinkProvider(resolved.providerType) &&
+      this.providerFactory.sinkProvidersRetired()
+    ) {
+      return null;
+    }
+    return resolved;
+  }
 }
+
+export type EmailDeliveryPath =
+  | 'TENANT_PROVIDER'
+  | 'PLATFORM_RELAY'
+  | 'NOT_DELIVERED';
+
+export type EmailNotDeliveredReason = 'NO_PROVIDER' | 'SINK_PROVIDER';
 
 export type EffectiveProviderSummary = {
   /** False only when no provider resolves at all — then nothing can be sent. */
@@ -117,4 +170,10 @@ export type EffectiveProviderSummary = {
   fromEmail: string | null;
   fromName: string | null;
   replyToEmail: string | null;
+  /** Whether mail reaches a person, and through whose provider (BUG-3501). */
+  deliveryPath: EmailDeliveryPath;
+  /** Why not, when `deliveryPath` is NOT_DELIVERED; otherwise null. */
+  notDeliveredReason: EmailNotDeliveredReason | null;
+  /** True in production, where CONSOLE/DEV rows are ignored (ADR-0015). */
+  sinkProvidersRetired: boolean;
 };

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EmailProviderSetting, EmailProviderType } from '@prisma/client';
+import { sinkEmailProvidersRetired } from '@repo/config';
 import { NotificationsRepository } from '../notifications.repository';
 import {
   ApiPlaceholderEmailProvider,
@@ -42,8 +43,19 @@ export class EmailProviderFactory {
     tenantId: string,
     options: { tenantOnly?: boolean } = {},
   ): Promise<ResolvedEmailProvider | null> {
-    const enabledTenantProviders =
-      await this.repository.listEnabledProviders(tenantId);
+    const sinksRetired = this.sinkProvidersRetired();
+    /*
+     * BUG-3501 / ADR-0015. In production a CONSOLE or DEV row is ignored, not
+     * merely deprioritised. Leaving it resolvable meant the demo tenant's
+     * enabled, default Console provider "sent" every activation and approval
+     * email to a log. Filtering here (rather than deleting rows) keeps the
+     * change code-only: the rows stay, and a revert restores the old answer.
+     */
+    const enabledTenantProviders = (
+      await this.repository.listEnabledProviders(tenantId)
+    ).filter(
+      (provider) => !(sinksRetired && isSinkProvider(provider.providerType)),
+    );
     const tenantProvider =
       enabledTenantProviders.find((provider) => provider.isDefault) ??
       enabledTenantProviders.find(
@@ -66,7 +78,12 @@ export class EmailProviderFactory {
       return envProvider;
     }
 
-    if (this.configService.get('NODE_ENV') !== 'production') {
+    /*
+     * Gated on the same predicate as everything above rather than on NODE_ENV
+     * alone, so `APP_ENV=production` with a development NODE_ENV cannot bring
+     * the console fallback back.
+     */
+    if (!sinksRetired) {
       return {
         provider: this.consoleProvider,
         providerType: EmailProviderType.CONSOLE,
@@ -80,6 +97,20 @@ export class EmailProviderFactory {
     }
 
     return null;
+  }
+
+  /**
+   * Whether CONSOLE and DEV providers are retired here (ADR-0015).
+   *
+   * The one API-side reading of the environment for this rule. Resolution,
+   * provider validation and the settings screen's selectable list all ask this,
+   * so they cannot disagree about which environment is production.
+   */
+  sinkProvidersRetired(): boolean {
+    return sinkEmailProvidersRetired({
+      NODE_ENV: this.configService.get<string>('NODE_ENV'),
+      APP_ENV: this.configService.get<string>('APP_ENV'),
+    });
   }
 
   /*
@@ -133,6 +164,12 @@ export class EmailProviderFactory {
 
     const providerType = normalizeProviderType(providerTypeValue);
     if (!providerType) {
+      return null;
+    }
+
+    // ADR-0015: an `EMAIL_PROVIDER=CONSOLE` left in a production environment
+    // must not become the sender any more than a tenant row may.
+    if (isSinkProvider(providerType) && this.sinkProvidersRetired()) {
       return null;
     }
 
