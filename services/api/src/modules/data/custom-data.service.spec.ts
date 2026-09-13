@@ -176,7 +176,9 @@ describe('CustomDataService related CRUD', () => {
     const topLevelTable = {
       ...table,
       columns: table.columns.map((item) =>
-        item.columnKey === 'pub_employee' ? { ...item, isRequired: false } : item,
+        item.columnKey === 'pub_employee'
+          ? { ...item, isRequired: false }
+          : item,
       ),
     };
     prisma.customizationTable.findFirst.mockResolvedValue(topLevelTable);

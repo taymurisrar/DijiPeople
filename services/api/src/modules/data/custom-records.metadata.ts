@@ -30,6 +30,15 @@ export const CUSTOM_RECORDS_METADATA: EntityMetadata = {
     businessUnitIdField: 'businessUnitId',
     organizationIdField: 'organizationId',
     ownerUserIdField: 'ownerUserId',
+    /*
+     * BUG-3494 — `buildScopedAccessWhere` always adds a `userId` clause for
+     * SELF/USER access and defaults the column name to `userId`, which
+     * `CustomDataRecord` does not have. A SELF-scoped reader opening a custom
+     * module's list therefore got a PrismaClientValidationError (500) instead
+     * of an empty list. Pointing it at `ownerUserId` keeps the owner rule
+     * identical — the duplicated clause matches the same column.
+     */
+    userIdField: 'ownerUserId',
     ownerTeamIdField: 'ownerTeamId',
     createdByIdField: 'createdById',
   },
