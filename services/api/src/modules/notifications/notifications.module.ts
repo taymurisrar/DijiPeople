@@ -11,6 +11,7 @@ import { PlatformEmailProviderResolver } from './email/platform-email-provider.r
 import { EffectiveEmailProviderService } from './email/effective-email-provider.service';
 import { EmailProviderService } from './email/email-provider.service';
 import { EmailService } from './email/email.service';
+import { EmailTemplateAuthoringService } from './email/email-template-authoring.service';
 import { EmailTemplateRendererService } from './email/email-template-renderer.service';
 import { EmailTemplateService } from './email/email-template.service';
 import { ConsoleEmailProvider, SmtpEmailProvider } from './email/providers';
@@ -42,6 +43,7 @@ import { LifecycleNotificationHandler } from './lifecycle-notification.handler';
     EmailProviderFactory,
     EmailProviderService,
     EmailService,
+    EmailTemplateAuthoringService,
     EmailTemplateRendererService,
     EmailTemplateService,
     EmailNotificationProcessor,

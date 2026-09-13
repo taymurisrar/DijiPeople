@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ForbiddenException,
   forwardRef,
   Inject,
   Injectable,
@@ -12,8 +11,6 @@ import {
   EmailDeliveryStatus,
   EmailProviderSetting,
   EmailProviderType,
-  EmailTemplate,
-  EmailTemplateStatus,
   NotificationChannel,
   NotificationDisplayMode,
   NotificationEventCategory,
@@ -26,14 +23,9 @@ import type { AuthenticatedUser } from '../../common/interfaces/authenticated-re
 import { AppError } from '../../common/errors/app-error';
 import { AuditService } from '../audit/audit.service';
 import {
-  CloneEmailTemplateDto,
   CreateEmailProviderDto,
-  CreateEmailTemplateDto,
   EmailDeliveryLogQueryDto,
-  PreviewEmailTemplateDto,
-  TestSendEmailTemplateDto,
   UpdateEmailProviderDto,
-  UpdateEmailTemplateDto,
   UpdateNotificationPreferencesDto,
   UpdateNotificationRuleDto,
 } from './dto';
@@ -44,17 +36,9 @@ import { AUTH_NOTIFICATION_EVENTS } from './email/email-execution.service';
 import {
   maskSensitiveConfiguration,
   mergeConfigurationPreservingMaskedSecrets,
-  sanitizeHtmlTemplate,
   SECRET_KEY_PATTERN,
 } from './email/email-safety';
-import { TENANT_MODULES } from '../../common/constants/tenant-modules';
-import {
-  buildNotificationScopeKey,
-  EMAIL_TEMPLATE_SCOPE_LEVELS,
-  buildTenantNotificationScopeKey,
-  EmailTemplateScopeLevel,
-  parseNotificationScopeKey,
-} from './notifications.constants';
+import {} from './notifications.constants';
 import {
   isConfigurableEvent,
   isRetiredEventCode,
@@ -471,229 +455,6 @@ export class NotificationsService {
     return { retriedLog, newDeliveryLog };
   }
 
-  async listTemplates(currentUser: AuthenticatedUser) {
-    const templates = await this.notificationsRepository.listTemplates(
-      currentUser.tenantId,
-    );
-    return { items: templates.map(mapEmailTemplate) };
-  }
-
-  async getTemplate(currentUser: AuthenticatedUser, templateId: string) {
-    const template = await this.notificationsRepository.findVisibleTemplateById(
-      currentUser.tenantId,
-      templateId,
-    );
-    if (!template) {
-      throw new NotFoundException('Email template was not found.');
-    }
-    return mapEmailTemplate(template);
-  }
-
-  /*
-   * Everything the authoring screen needs to offer a placement: the tenant's
-   * own organizations, business units, departments and teams, plus the module
-   * catalogue. Reading it requires the same permission as reading a template.
-   */
-  async listTemplateScopeOptions(currentUser: AuthenticatedUser) {
-    const targets = await this.notificationsRepository.listScopeTargets(
-      currentUser.tenantId,
-    );
-
-    return {
-      levels: EMAIL_TEMPLATE_SCOPE_LEVELS.map((level) => ({
-        value: level,
-        label: SCOPE_LEVEL_LABELS[level],
-      })),
-      ...targets,
-      modules: TENANT_MODULES.map((module) => ({
-        value: module.key,
-        label: module.label,
-      })),
-    };
-  }
-
-  async createTemplate(
-    currentUser: AuthenticatedUser,
-    dto: CreateEmailTemplateDto,
-  ) {
-    await this.assertEventExists(dto.eventCode);
-    this.validateTemplateContent(dto.subjectTemplate, dto.htmlTemplate);
-
-    const scopeKey = await this.resolveTemplateScopeKey(
-      currentUser.tenantId,
-      dto.scopeLevel,
-      dto.scopeId,
-    );
-
-    const template = await this.notificationsRepository.createTenantTemplate({
-      tenantId: currentUser.tenantId,
-      scopeKey,
-      moduleKey: dto.moduleKey?.trim() || null,
-      eventCode: dto.eventCode.trim(),
-      templateKey: dto.templateKey.trim(),
-      name: dto.name.trim(),
-      description: dto.description?.trim() || null,
-      subjectTemplate: dto.subjectTemplate.trim(),
-      htmlTemplate: sanitizeHtmlTemplate(dto.htmlTemplate),
-      textTemplate: dto.textTemplate?.trim() || null,
-      availableVariables: dto.availableVariables as Prisma.InputJsonValue,
-      status: dto.status ?? EmailTemplateStatus.DRAFT,
-      actorUserId: currentUser.userId,
-    });
-
-    return mapEmailTemplate(template);
-  }
-
-  async updateTemplate(
-    currentUser: AuthenticatedUser,
-    templateId: string,
-    dto: UpdateEmailTemplateDto,
-  ) {
-    const existing = await this.assertTenantTemplate(
-      currentUser.tenantId,
-      templateId,
-    );
-
-    if (dto.subjectTemplate !== undefined || dto.htmlTemplate !== undefined) {
-      this.validateTemplateContent(
-        dto.subjectTemplate ?? existing.subjectTemplate,
-        dto.htmlTemplate ?? existing.htmlTemplate,
-      );
-    }
-
-    /*
-     * Re-placing a template moves it to a different scope key. The unique
-     * constraint on (scopeKey, templateKey) means the target may already be
-     * taken, which is reported plainly rather than surfacing a database error.
-     */
-    const scopeKey =
-      dto.scopeLevel !== undefined || dto.scopeId !== undefined
-        ? await this.resolveTemplateScopeKey(
-            currentUser.tenantId,
-            dto.scopeLevel,
-            dto.scopeId,
-          )
-        : null;
-
-    if (scopeKey && scopeKey !== existing.scopeKey) {
-      const clash =
-        await this.notificationsRepository.findTemplateByScopeAndKey(
-          scopeKey,
-          existing.templateKey,
-        );
-      if (clash) {
-        throw new BadRequestException(
-          'Another template with this key already exists at the selected scope.',
-        );
-      }
-    }
-
-    const activateAfterUpdate = dto.status === EmailTemplateStatus.ACTIVE;
-    const data: Prisma.EmailTemplateUpdateInput = {
-      ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
-      ...(dto.description !== undefined
-        ? { description: dto.description?.trim() || null }
-        : {}),
-      ...(dto.subjectTemplate !== undefined
-        ? { subjectTemplate: dto.subjectTemplate.trim() }
-        : {}),
-      ...(dto.htmlTemplate !== undefined
-        ? { htmlTemplate: sanitizeHtmlTemplate(dto.htmlTemplate) }
-        : {}),
-      ...(dto.textTemplate !== undefined
-        ? { textTemplate: dto.textTemplate?.trim() || null }
-        : {}),
-      ...(dto.availableVariables !== undefined
-        ? {
-            availableVariables: dto.availableVariables as Prisma.InputJsonValue,
-          }
-        : {}),
-      ...(dto.moduleKey !== undefined
-        ? { moduleKey: dto.moduleKey?.trim() || null }
-        : {}),
-      ...(scopeKey && scopeKey !== existing.scopeKey ? { scopeKey } : {}),
-      ...(dto.status !== undefined && !activateAfterUpdate
-        ? { status: dto.status }
-        : {}),
-    };
-
-    let template = await this.notificationsRepository.updateTenantTemplate(
-      currentUser.tenantId,
-      templateId,
-      data,
-      currentUser.userId,
-    );
-
-    if (activateAfterUpdate) {
-      const activatedTemplate =
-        await this.notificationsRepository.activateTenantTemplate(
-          currentUser.tenantId,
-          templateId,
-        );
-      if (!activatedTemplate) {
-        throw new NotFoundException('Email template was not found.');
-      }
-      template = activatedTemplate;
-    }
-
-    return mapEmailTemplate(template);
-  }
-
-  async cloneTemplate(
-    currentUser: AuthenticatedUser,
-    templateId: string,
-    dto: CloneEmailTemplateDto = {},
-  ) {
-    const source = await this.notificationsRepository.findVisibleTemplateById(
-      currentUser.tenantId,
-      templateId,
-    );
-    if (!source) {
-      throw new NotFoundException('Email template was not found.');
-    }
-
-    const templateKey =
-      dto.templateKey?.trim() ||
-      (source.isSystem ? source.templateKey : `${source.templateKey}-copy`);
-
-    const template = await this.notificationsRepository.createTenantTemplate({
-      tenantId: currentUser.tenantId,
-      eventCode: source.eventCode,
-      templateKey,
-      name: dto.name?.trim() || `${source.name} copy`,
-      description: source.description,
-      subjectTemplate: source.subjectTemplate,
-      htmlTemplate: source.htmlTemplate,
-      textTemplate: source.textTemplate,
-      availableVariables: source.availableVariables as Prisma.InputJsonValue,
-      status: EmailTemplateStatus.DRAFT,
-      actorUserId: currentUser.userId,
-    });
-
-    return mapEmailTemplate(template);
-  }
-
-  async activateTemplate(currentUser: AuthenticatedUser, templateId: string) {
-    await this.assertTenantTemplate(currentUser.tenantId, templateId);
-    const template = await this.notificationsRepository.activateTenantTemplate(
-      currentUser.tenantId,
-      templateId,
-    );
-    if (!template) {
-      throw new NotFoundException('Email template was not found.');
-    }
-    return mapEmailTemplate(template);
-  }
-
-  async archiveTemplate(currentUser: AuthenticatedUser, templateId: string) {
-    await this.assertTenantTemplate(currentUser.tenantId, templateId);
-    await this.notificationsRepository.archiveTenantTemplate(
-      currentUser.tenantId,
-      templateId,
-    );
-    return { archived: true };
-  }
-
   async listProviderSettings(currentUser: AuthenticatedUser) {
     const providers = await this.notificationsRepository.listProviderSettings(
       currentUser.tenantId,
@@ -869,46 +630,6 @@ export class NotificationsService {
       throw new NotFoundException('Email delivery log was not found.');
     }
     return log;
-  }
-
-  async previewTemplate(
-    currentUser: AuthenticatedUser,
-    templateId: string,
-    dto: PreviewEmailTemplateDto,
-  ) {
-    await this.getTemplate(currentUser, templateId);
-    return this.emailService.previewTemplate({
-      tenantId: currentUser.tenantId,
-      templateId,
-      variables: dto.variables,
-    });
-  }
-
-  async testSendTemplate(
-    currentUser: AuthenticatedUser,
-    templateId: string,
-    dto: TestSendEmailTemplateDto,
-  ) {
-    const template = await this.notificationsRepository.findVisibleTemplateById(
-      currentUser.tenantId,
-      templateId,
-    );
-    if (!template) {
-      throw new NotFoundException('Email template was not found.');
-    }
-
-    return this.emailService.sendTemplateEmail({
-      tenantId: currentUser.tenantId,
-      eventCode: template.eventCode,
-      templateId,
-      recipient: dto.recipient.trim().toLowerCase(),
-      cc: dto.cc?.trim() || null,
-      bcc: dto.bcc?.trim() || null,
-      variables: dto.variables,
-      metadata: dto.metadata,
-      requestedByUserId: currentUser.userId,
-      dryRun: dto.dryRun ?? false,
-    });
   }
 
   findTemplateForEvent(input: EmailTemplateLookupInput) {
@@ -1137,41 +858,6 @@ export class NotificationsService {
   }
 
   /*
-   * Turns an authored placement into a scope key. Every level below tenant is
-   * checked against the tenant first: without that, a user could point a
-   * template at another tenant's business unit and have it resolve for them.
-   */
-  private async resolveTemplateScopeKey(
-    tenantId: string,
-    level: EmailTemplateScopeLevel | undefined,
-    scopeId: string | null | undefined,
-  ) {
-    if (!level || level === 'TENANT') {
-      return buildTenantNotificationScopeKey(tenantId);
-    }
-
-    if (!scopeId) {
-      throw new BadRequestException(
-        `A ${SCOPE_LABELS[level]} must be selected for this scope.`,
-      );
-    }
-
-    const exists = await this.notificationsRepository.scopeTargetExists({
-      tenantId,
-      level,
-      scopeId,
-    });
-
-    if (!exists) {
-      throw new BadRequestException(
-        `The selected ${SCOPE_LABELS[level]} was not found in this tenant.`,
-      );
-    }
-
-    return buildNotificationScopeKey(level, scopeId);
-  }
-
-  /*
    * Credentials are encrypted before they reach the database. Masking hid them
    * from API responses but left them readable in the database, a backup or a
    * replica.
@@ -1180,47 +866,6 @@ export class NotificationsService {
     return this.secretEncryption.encryptSecrets(configuration, (key) =>
       SECRET_KEY_PATTERN.test(key),
     ) as Prisma.InputJsonValue;
-  }
-
-  private async assertEventExists(eventCode: string) {
-    const event = await this.notificationsRepository.findEventByCode(
-      eventCode.trim(),
-    );
-    if (!event) {
-      throw new BadRequestException(
-        `Unsupported notification event: ${eventCode}.`,
-      );
-    }
-    return event;
-  }
-
-  private async assertTenantTemplate(tenantId: string, templateId: string) {
-    const template = await this.notificationsRepository.findVisibleTemplateById(
-      tenantId,
-      templateId,
-    );
-    if (!template) {
-      throw new NotFoundException('Email template was not found.');
-    }
-    if (template.isSystem || !template.tenantId) {
-      throw new ForbiddenException(
-        'System email templates cannot be modified by tenant users. Clone the template first.',
-      );
-    }
-    if (template.tenantId !== tenantId) {
-      throw new NotFoundException('Email template was not found.');
-    }
-    return template;
-  }
-
-  private validateTemplateContent(
-    subjectTemplate: string,
-    htmlTemplate: string,
-  ) {
-    if (!subjectTemplate.trim()) {
-      throw new BadRequestException('Email subject template cannot be empty.');
-    }
-    sanitizeHtmlTemplate(htmlTemplate);
   }
 
   private buildDedupeKey(input: {
@@ -1611,48 +1256,6 @@ function validateProviderConfiguration(
       );
     }
   }
-}
-
-const SCOPE_LABELS: Record<EmailTemplateScopeLevel, string> = {
-  TENANT: 'tenant',
-  ORGANIZATION: 'organization',
-  BUSINESS_UNIT: 'business unit',
-  DEPARTMENT: 'department',
-  TEAM: 'team',
-};
-
-const SCOPE_LEVEL_LABELS: Record<EmailTemplateScopeLevel, string> = {
-  TENANT: 'Whole tenant',
-  ORGANIZATION: 'Organization',
-  BUSINESS_UNIT: 'Business unit',
-  DEPARTMENT: 'Department',
-  TEAM: 'Team',
-};
-
-function mapEmailTemplate(template: EmailTemplate) {
-  return {
-    id: template.id,
-    tenantId: template.tenantId,
-    eventCode: template.eventCode,
-    templateKey: template.templateKey,
-    name: template.name,
-    description: template.description,
-    subjectTemplate: template.subjectTemplate,
-    htmlTemplate: template.htmlTemplate,
-    textTemplate: template.textTemplate,
-    availableVariables: template.availableVariables,
-    moduleKey: template.moduleKey,
-    scopeKey: template.scopeKey,
-    scopeLevel: parseNotificationScopeKey(template.scopeKey).level,
-    scopeId: parseNotificationScopeKey(template.scopeKey).id,
-    status: template.status,
-    version: template.version,
-    isSystem: template.isSystem,
-    createdBy: template.createdBy,
-    updatedBy: template.updatedBy,
-    createdAt: template.createdAt,
-    updatedAt: template.updatedAt,
-  };
 }
 
 function mapEmailProviderSetting(provider: EmailProviderSetting) {
