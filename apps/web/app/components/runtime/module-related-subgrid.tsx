@@ -3,6 +3,13 @@
 import { Download, Edit, Eye, Link2Off, Plus, RefreshCw, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
+import { ConfirmDialog } from "@/app/components/feedback/confirm-dialog";
+import { useSideToast } from "@/app/components/notifications/use-side-toast";
+import {
+  timestampFieldFor,
+  visibleRowActions,
+} from "@/lib/runtime/related-subgrid-rows";
 import { DocumentUploadForm } from "@/app/(authenticated)/_components/documents/document-upload-form";
 import type { SharedLookupOption } from "@/app/(authenticated)/_components/documents/types";
 import { DataTable } from "@/app/components/data-table/data-table";
@@ -82,6 +89,8 @@ export function ModuleRelatedSubgrid({
   >([...selectedRecordIds]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [rowActionBusyId, setRowActionBusyId] = useState<string | null>(null);
+  const [removeConfirmOpen, setRemoveConfirmOpen] = useState(false);
+  const { notifySuccess, toast: successToast } = useSideToast();
   const [documentUploadOpen, setDocumentUploadOpen] = useState(false);
   const [documentEditRecord, setDocumentEditRecord] =
     useState<RuntimeRecordData | null>(null);
@@ -201,6 +210,55 @@ export function ModuleRelatedSubgrid({
     [refreshRelatedRecords],
   );
 
+  /*
+   * ITEM-0179 — a module-declared row action (Make primary), run by the
+   * module's own data adapter so this shared file never names its route.
+   * The parent record is refreshed as well: Make primary changes the
+   * employee's Location, which the form above this tab displays.
+   */
+  const runRowAction = useCallback(
+    async (actionKey: string, row: RuntimeRecordData) => {
+      const id = String(row.id ?? "");
+      if (
+        !id ||
+        !runtime ||
+        !parentBinding ||
+        !dataAdapter?.runRelatedRowAction
+      ) {
+        return;
+      }
+      setRowActionBusyId(id);
+      setLoadError(null);
+      try {
+        await dataAdapter.runRelatedRowAction({
+          action: actionKey,
+          parentLookupField: parentBinding.fieldLogicalName,
+          parentRecordId: parentBinding.recordId,
+          recordId: id,
+          runtime,
+          subgrid,
+        });
+        await refreshRelatedRecords();
+        router.refresh();
+      } catch (error) {
+        setLoadError(
+          error instanceof Error
+            ? error.message
+            : "The action could not be completed.",
+        );
+      } finally {
+        setRowActionBusyId(null);
+      }
+    },
+    [dataAdapter, parentBinding, refreshRelatedRecords, router, runtime, subgrid],
+  );
+  const canRunRowActions = Boolean(
+    subgrid.rowActions?.length &&
+      runtime &&
+      parentBinding &&
+      dataAdapter?.runRelatedRowAction,
+  );
+
   const deleteEmployeeDocument = useCallback(
     async (row: RuntimeRecordData) => {
       const id = String(row.id ?? "");
@@ -272,7 +330,12 @@ export function ModuleRelatedSubgrid({
             humanizeFieldKey(column.fieldLogicalName),
           render: (row: RuntimeRecordData) =>
             formatRuntimeFieldValue({
-              field,
+              field:
+                field ??
+                timestampFieldFor(
+                  column.fieldLogicalName,
+                  row[column.fieldLogicalName],
+                ),
               fieldLogicalName: column.fieldLogicalName,
               lookupDisplayValue: resolveRelatedLookupDisplayValue(
                 field,
@@ -290,7 +353,8 @@ export function ModuleRelatedSubgrid({
       !canOpenRecord &&
       !canVerifyBankAccounts &&
       !canDownloadPayslips &&
-      !canManageEmployeeDocuments
+      !canManageEmployeeDocuments &&
+      !canRunRowActions
     ) {
       return dataColumns;
     }
@@ -313,8 +377,28 @@ export function ModuleRelatedSubgrid({
             typeof row.downloadPath === "string"
               ? row.downloadPath
               : undefined;
+          const rowActions =
+            canRunRowActions && id
+              ? visibleRowActions(subgrid.rowActions, row, (permissions) =>
+                  hasRelatedPermission(runtime, permissions),
+                )
+              : [];
           return (
             <div className="flex justify-end gap-2">
+              {rowActions.map((action) => (
+                <button
+                  className="rounded-xl border border-border px-3 py-1.5 text-xs font-semibold text-foreground hover:border-accent/30 hover:text-accent disabled:opacity-60"
+                  disabled={rowActionBusyId === id}
+                  key={action.key}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    void runRowAction(action.key, row);
+                  }}
+                  type="button"
+                >
+                  {action.label}
+                </button>
+              ))}
               {canManageEmployeeDocuments && viewPath ? (
                 <a
                   aria-label="View document"
@@ -409,19 +493,23 @@ export function ModuleRelatedSubgrid({
     canOpenRecord,
     canDownloadPayslips,
     canManageEmployeeDocuments,
+    canRunRowActions,
     canVerifyBankAccounts,
     deleteEmployeeDocument,
     effectiveRelatedEntity?.fields,
     openRecord,
     ownPayslipDownloadOnly,
     rowActionBusyId,
+    runRowAction,
     runtime,
     subgrid.columns,
+    subgrid.rowActions,
     verifyBankAccount,
   ]);
   const canCreate =
     (subgrid.api
-      ? Boolean(subgrid.api.createPath)
+      ? Boolean(subgrid.api.createPath) &&
+        hasRelatedPermission(runtime, subgrid.api.permissions?.create)
       : genericMetadata?.capabilities.create === true) ||
     canUploadEmployeeDocuments;
   const canUpdate =
@@ -521,9 +609,8 @@ export function ModuleRelatedSubgrid({
     (runtime && parentBinding && dataAdapter?.getRelatedRecords
       ? refreshRelatedRecords
       : undefined);
-  const resolvedOnDelete =
-    onDeleteSelected ??
-    (runtime && parentBinding && dataAdapter?.deleteRelatedRecord && canDelete
+  const deleteSelectedRecords =
+    runtime && parentBinding && dataAdapter?.deleteRelatedRecord && canDelete
       ? async () => {
           if (!currentSelectedRecordIds.length) return;
           try {
@@ -555,7 +642,12 @@ export function ModuleRelatedSubgrid({
             );
           }
         }
-      : undefined);
+      : undefined;
+  const resolvedOnDelete =
+    onDeleteSelected ??
+    (deleteSelectedRecords && subgrid.removeConfirmation
+      ? () => setRemoveConfirmOpen(true)
+      : deleteSelectedRecords);
   const actionItems: CommandBarItem[] = [
     ...(resolvedOnNew
       ? [
@@ -735,6 +827,8 @@ export function ModuleRelatedSubgrid({
       await refreshRelatedRecords();
       setAssignmentSelectedValues([]);
       if (closeAfterSave) setAssignmentOpen(false);
+      // ITEM-0184 (C4) — assigning closed the panel or cleared it and said nothing.
+      notifySuccess("Assigned.");
     } catch (error) {
       setAssignmentError(
         error instanceof Error ? error.message : "Unable to assign records.",
@@ -928,6 +1022,22 @@ export function ModuleRelatedSubgrid({
           subgrid={subgrid}
         />
       ) : null}
+      {subgrid.removeConfirmation && deleteSelectedRecords ? (
+        <ConfirmDialog
+          confirmAction={{
+            label: subgrid.removeConfirmation.confirmLabel ?? removeActionLabel,
+            onClick: async () => {
+              setRemoveConfirmOpen(false);
+              await deleteSelectedRecords();
+            },
+            variant: "danger",
+          }}
+          onClose={() => setRemoveConfirmOpen(false)}
+          open={removeConfirmOpen}
+          title={subgrid.removeConfirmation.title}
+        />
+      ) : null}
+      {successToast}
     </>
   );
 }
@@ -992,7 +1102,7 @@ function AssignmentPanel({
   // early return: hooks run in the same order on every render, closed or open.
   const dialog = useDialogBehavior({ open, onClose });
 
-  if (!open || !assignment) return null;
+  if (!open || !assignment || typeof document === "undefined") return null;
 
   const selectedSet = new Set(selectedValues);
   const allSelected =
@@ -1015,9 +1125,15 @@ function AssignmentPanel({
     onSelectedValuesChange(options.map((option) => option.value));
   }
 
-  return (
+  /*
+   * ITEM-0184 (C4) — rendered into the body at the shared dialog layer
+   * (`z-[110]`, `ui/dialog.tsx`). As a `fixed z-50` element inside the tab it
+   * shared its ancestors' stacking context, and the record action bar was
+   * drawn over the panel.
+   */
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex justify-end bg-black/35"
+      className="fixed inset-0 z-[110] flex justify-end bg-black/35"
       {...dialog.backdropProps}
     >
       <div
@@ -1032,10 +1148,6 @@ function AssignmentPanel({
             >
               {assignment.title ?? `Assign ${subgrid.title}`}
             </h2>
-            <p className="mt-1 text-sm text-muted">
-              Select one or more employees and apply the same allocation,
-              billing, and approval details in one go.
-            </p>
           </div>
           <button
             aria-label="Close"
@@ -1087,6 +1199,7 @@ function AssignmentPanel({
             <div className="flex items-center justify-between border-b border-border bg-surface-strong px-4 py-3">
               <label className="flex items-center gap-3 text-sm font-medium text-foreground">
                 <input
+                  aria-label="Select all available records"
                   checked={allSelected}
                   className="h-4 w-4 rounded border-border"
                   disabled={!options.length || loading}
@@ -1114,6 +1227,7 @@ function AssignmentPanel({
                       key={option.value}
                     >
                       <input
+                        aria-label={option.label}
                         checked={checked}
                         className="mt-1 h-4 w-4 rounded border-border"
                         onChange={() => toggleValue(option.value)}
@@ -1174,7 +1288,8 @@ function AssignmentPanel({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

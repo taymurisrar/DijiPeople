@@ -59,6 +59,59 @@ export function readCommandFailureContract(
   };
 }
 
+/**
+ * An adapter's failed request, carrying the response it failed with.
+ *
+ * BUG-3497 — an employee account action threw `new Error(message)` on a
+ * non-OK response. `executeInjectedHandler` reads `error.data` for the failure
+ * contract, a bare `Error` has none, and `readCommandFailureContract` then
+ * defaults the status to 500. So the API's deliberate 400 ("a password reset
+ * link can only be sent to an employee with a linked user account") was shown
+ * as nothing and written to the production client error log as
+ * `SYSTEM_UNEXPECTED_ERROR`.
+ *
+ * `data.response` is the shape `readCommandFailureContract` already unwraps,
+ * so the real status, `errorCode` and messages reach `classifyCommandFailure`
+ * and a 4xx is answered in place while a 5xx still goes to the technical path.
+ */
+export class CommandRequestError extends Error {
+  readonly data: { readonly response: Readonly<Record<string, unknown>> };
+
+  constructor(
+    message: string,
+    data: { readonly response: Readonly<Record<string, unknown>> },
+  ) {
+    super(message);
+    this.name = "CommandRequestError";
+    this.data = data;
+  }
+}
+
+export function buildCommandRequestError(
+  status: number,
+  payload: unknown,
+): CommandRequestError {
+  const body = asRecord(payload) ?? {};
+  const serverMessage = Array.isArray(body.message)
+    ? body.message.filter((item) => typeof item === "string").join(", ")
+    : stringValue(body.message);
+
+  /*
+   * No sentence from the server means this is not the API's envelope — an
+   * HTML error page from a proxy, or an empty body. "Command failed" is the
+   * sentinel `classifyCommandFailure` refuses to treat as a business answer,
+   * so such a failure stays loud instead of becoming a calm toast.
+   */
+  return new CommandRequestError(serverMessage || "Command failed", {
+    response: {
+      ...body,
+      ...(serverMessage ? { message: serverMessage } : {}),
+      status,
+      statusCode: numberValue(body.statusCode) ?? status,
+    },
+  });
+}
+
 /** The one line a user reads when a runtime command fails. */
 export function resolveCommandFailureMessage(
   data: unknown,

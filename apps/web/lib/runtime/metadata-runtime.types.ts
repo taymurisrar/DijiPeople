@@ -396,6 +396,23 @@ export interface RelatedSubgridMetadata {
       readonly options?: readonly OptionSetValueMetadata[];
     }[];
   };
+  /*
+   * ITEM-0179 — row actions beyond open/edit/remove, declared by the module and
+   * run by its data adapter's `runRelatedRowAction`, so a shared subgrid can
+   * offer a transactional operation (Make primary) without knowing its route.
+   */
+  readonly rowActions?: readonly {
+    readonly key: string;
+    readonly label: string;
+    /* Not offered on a row whose value for this field is `true`. */
+    readonly hiddenWhenFieldTrue?: string;
+    readonly permissions?: string | readonly string[];
+  }[];
+  /* Remove asks first when this is set, through the shared ConfirmDialog. */
+  readonly removeConfirmation?: {
+    readonly title: string;
+    readonly confirmLabel?: string;
+  };
   /** Metadata-owned transport contract. Tokens: {parentId}, {recordId}. */
   readonly api?: {
     readonly listPath: string;
