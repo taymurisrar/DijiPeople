@@ -54,28 +54,9 @@ const SYSTEM_WIDGET_REGISTRY = Object.freeze({
     missingAdapterDiagnostic:
       "Profile Photo is supported by Employees, but its data adapter does not implement getWidgetData.",
   }),
-  "employee.workSites": Object.freeze({
-    widgetKey: "employee.workSites",
-    aliases: Object.freeze(["employee_work_sites"]),
-    displayName: "Work Site",
-    widgetType: "system",
-    supportedModules: Object.freeze(["employees"]),
-    supportedModuleCapabilities: Object.freeze([]),
-    supportedFormComponentTypes: Object.freeze(["widget"]),
-    requiredDataAdapterMethods: Object.freeze(["getWidgetData"]),
-    // ITEM-0165 — the same permission that gated the free-floating "Authorised
-    // work sites" panel before this widget existed, so nobody gains or loses
-    // visibility by the panel moving inside the form.
-    requiredPermissions: Object.freeze(["attendanceDevices.read"]),
-    allowedRoles: Object.freeze([]),
-    savedRecordRequired: true,
-    emptyState:
-      "This employee has no authorised work sites yet. Attendance cannot be recorded at a site until one is assigned here.",
-    unsavedRecordMessage:
-      "Work Site assignment will be available after this Employee is saved.",
-    missingAdapterDiagnostic:
-      "Work Site is supported by Employees, but its data adapter does not implement getWidgetData.",
-  }),
+  // ADR-0014 / ITEM-0179 — `employee.workSites` is deliberately absent. Work
+  // sites are a related-records tab on the employee record, so the Form
+  // Designer must not offer the retired in-form widget again.
   "system.approvalTracker": Object.freeze({
     widgetKey: "system.approvalTracker",
     aliases: Object.freeze(["approval_tracker"]),

@@ -171,6 +171,62 @@ describe('EmployeesService', () => {
     );
   });
 
+  it('refuses a record update that changes the primary work site (ADR-0014)', async () => {
+    employeesRepository.findByIdAndTenant.mockResolvedValue({
+      id: 'employee-1',
+      tenantId: 'tenant-1',
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      employeeCode: 'EMP-001',
+      email: 'ada@example.com',
+      phone: '1234567890',
+      employmentStatus: 'ACTIVE',
+      locationId: 'location-old',
+      manager: null,
+      user: null,
+      profileImageDocument: null,
+      department: null,
+      designation: null,
+      location: null,
+      _count: {
+        directReports: 0,
+        educationRecords: 0,
+        historyRecords: 0,
+        documentLinks: 0,
+        emergencyContacts: 0,
+        documentReferences: 0,
+      },
+    });
+
+    await expect(
+      service.update(
+        {
+          tenantId: 'tenant-1',
+          userId: 'actor-1',
+          email: 'hr@example.com',
+          firstName: 'HR',
+          lastName: 'Admin',
+          roleIds: ['role-1'],
+          roleKeys: ['system-admin'],
+          permissionKeys: ['employees.update'],
+        },
+        'employee-1',
+        { locationId: '0f1d2c3b-4a59-4687-9796-a5b4c3d2e1f0' },
+      ),
+    ).rejects.toMatchObject({
+      errorCode: 'VALIDATION_FAILED',
+      details: {
+        fieldErrors: [
+          {
+            field: 'locationId',
+            message: 'Change the primary work site from the Work Sites tab.',
+          },
+        ],
+      },
+    });
+    expect(employeesRepository.update).not.toHaveBeenCalled();
+  });
+
   it('returns field errors when tenant settings require emergency contact details', async () => {
     tenantSettingsResolverService.getEmployeeSettings.mockResolvedValue({
       ...DEFAULT_TENANT_SETTINGS.employees,
