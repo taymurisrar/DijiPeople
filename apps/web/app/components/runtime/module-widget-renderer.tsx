@@ -14,7 +14,18 @@ import {
   Timer,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { createPortal } from "react-dom";
 import {
   resolveSystemWidgetAvailability,
   type SystemWidgetDefinition,
@@ -34,12 +45,17 @@ import {
   TextAreaField,
   TextField,
 } from "@/app/components/ui/form-control";
-import { formatDate, formatDateTime } from "@/lib/formatting-context";
-import { canManageEmployeeRecord } from "@/lib/employee-profile-access";
-import { PERMISSION_KEYS } from "@/lib/security-keys";
+import { formatDateTime } from "@/lib/formatting-context";
 import { canReadField } from "@/lib/runtime/security-runtime.resolver";
-import { StatusPill } from "@/app/components/ui/status-pill";
-import { Dialog } from "@/app/components/ui/dialog";
+import { Dialog, DialogCloseButton } from "@/app/components/ui/dialog";
+import {
+  employeeRecordHref,
+  INITIAL_HIERARCHY_CARD_STATE,
+  reduceHierarchyCard,
+  resolveHierarchyCardPosition,
+  resolveHierarchyTapIntent,
+  type HierarchyCardEvent,
+} from "@/lib/runtime/modules/employee-hierarchy-tree";
 import { EmployeeDlpCaptures } from "@/app/(authenticated)/_components/dlp/employee-dlp-captures";
 import { DataTable } from "@/app/components/data-table/data-table";
 import {
@@ -1845,7 +1861,6 @@ type WidgetRenderer = (props: {
 
 const BUILTIN_WIDGET_RENDERERS: Readonly<Record<string, WidgetRenderer>> = {
   "employee.profilePhoto": (props) => <EmployeeProfilePhotoWidget {...props} />,
-  "employee.workSites": (props) => <ModuleEmployeeWorkSitesWidget {...props} />,
   "system.timeline": (props) => <ModuleTimelineWidget {...props} />,
   "system.documents": (props) => <ModuleDocumentsWidget {...props} />,
   "system.reportingHierarchy": (props) => (
@@ -2065,553 +2080,6 @@ function EmployeeProfilePhotoWidget({
   );
 }
 
-type EmployeeWorkSiteAssignment = {
-  readonly id: string;
-  readonly locationId: string;
-  readonly isPrimary: boolean;
-  readonly status: "ACTIVE" | "INACTIVE";
-  readonly validFrom: string | null;
-  readonly validTo: string | null;
-  readonly location: { id: string; name: string; isActive: boolean };
-};
-
-type EmployeeWorkSitesWidgetData = {
-  readonly workSites: {
-    readonly authorized: ReadonlyArray<{ derivedFromPrimaryLocation: boolean }>;
-    readonly assignments: readonly EmployeeWorkSiteAssignment[];
-  } | null;
-  readonly accessMode: string | null;
-  readonly locations: ReadonlyArray<{
-    readonly id: string;
-    readonly name: string;
-    readonly isActive: boolean;
-  }>;
-};
-
-/**
- * ITEM-0165 — the primary Location and the authorised work sites brought
- * together as one control, in the section the Location field already lives
- * in, instead of a page-level "Authorised work sites" panel with no visible
- * relationship to it. Mutations call the same transactional endpoints the
- * old panel called (`assignWorkSite` / `setPrimaryWorkSite` / `removeWorkSite`
- * in `attendance-operations.service.ts`), so `Employee.locationId` and the
- * `EmployeeWorkSite` row still move together in one transaction — nothing
- * about that mechanism changed, only where the control that drives it lives.
- */
-function ModuleEmployeeWorkSitesWidget({
-  component,
-  dataAdapter,
-  definition,
-  runtime,
-}: {
-  readonly component: FormComponentMetadata;
-  readonly dataAdapter?: ModuleDataAdapter;
-  readonly definition: SystemWidgetDefinition;
-  readonly runtime?: ModuleRuntimeContext;
-}) {
-  const recordId = runtime?.recordId;
-  const [data, setData] = useState<EmployeeWorkSitesWidgetData | null>(null);
-  const [loading, setLoading] = useState(
-    Boolean(recordId && dataAdapter?.getWidgetData),
-  );
-  const [error, setError] = useState<string | null>(null);
-  const [reloadToken, setReloadToken] = useState(0);
-
-  useEffect(() => {
-    if (!runtime || !recordId || !dataAdapter?.getWidgetData) return;
-    let active = true;
-    dataAdapter
-      .getWidgetData({
-        runtime,
-        recordId,
-        widget: systemWidgetMetadata(component, definition),
-      })
-      .then((result) => {
-        if (!active) return;
-        setData(isEmployeeWorkSitesWidgetData(result) ? result : null);
-        setError(null);
-      })
-      .catch((caught: unknown) => {
-        if (!active) return;
-        setError(
-          caught instanceof Error
-            ? caught.message
-            : "Unable to load work site assignments.",
-        );
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [component, dataAdapter, definition, recordId, reloadToken, runtime]);
-
-  if (loading) {
-    return (
-      <WidgetState
-        description="Loading work site assignments..."
-        title={component.label ?? definition.displayName}
-      />
-    );
-  }
-  if (error) {
-    return (
-      <WidgetState
-        description={error}
-        title={component.label ?? definition.displayName}
-        tone="warning"
-      />
-    );
-  }
-  if (!data?.workSites || !recordId) {
-    return (
-      <WidgetState
-        description={definition.emptyState}
-        title={component.label ?? definition.displayName}
-      />
-    );
-  }
-
-  const canManage =
-    canManageEmployeeRecord(data.accessMode) &&
-    Boolean(
-      runtime?.security.principal.permissionKeys.includes(
-        PERMISSION_KEYS.ATTENDANCE_DEVICES_MANAGE,
-      ),
-    );
-
-  /*
-   * The write side of the same rule `getWidgetData` already follows: this
-   * shared file must not know the shape of a module-specific endpoint.
-   * `action` is an opaque, widget-owned string — only the record's own data
-   * adapter (for this widget, the employees module's adapter) knows what
-   * request it actually maps to.
-   */
-  async function runAction(
-    action: string,
-    payload?: Readonly<Record<string, unknown>>,
-  ): Promise<{ readonly ok: boolean; readonly message?: string }> {
-    if (!runtime || !recordId || !dataAdapter?.runWidgetAction) {
-      return { ok: false, message: "This action is not available." };
-    }
-    try {
-      await dataAdapter.runWidgetAction({
-        runtime,
-        recordId,
-        widget: systemWidgetMetadata(component, definition),
-        action,
-        payload,
-      });
-      return { ok: true };
-    } catch (caught) {
-      return {
-        ok: false,
-        message: caught instanceof Error ? caught.message : undefined,
-      };
-    }
-  }
-
-  return (
-    <EmployeeWorkSitesPanel
-      canManage={canManage}
-      data={data.workSites}
-      label={component.label ?? definition.displayName}
-      locations={data.locations}
-      onAction={runAction}
-      onChanged={() => setReloadToken((token) => token + 1)}
-    />
-  );
-}
-
-function isEmployeeWorkSitesWidgetData(
-  value: unknown,
-): value is EmployeeWorkSitesWidgetData {
-  return (
-    isRecord(value) &&
-    ("workSites" in value ? true : false) &&
-    "locations" in value
-  );
-}
-
-function EmployeeWorkSitesPanel({
-  canManage,
-  data,
-  label,
-  locations,
-  onAction,
-  onChanged,
-}: {
-  readonly canManage: boolean;
-  readonly data: {
-    readonly authorized: ReadonlyArray<{ derivedFromPrimaryLocation: boolean }>;
-    readonly assignments: readonly EmployeeWorkSiteAssignment[];
-  };
-  readonly label: string;
-  readonly locations: ReadonlyArray<{
-    readonly id: string;
-    readonly name: string;
-    readonly isActive: boolean;
-  }>;
-  readonly onAction: (
-    action: string,
-    payload?: Readonly<Record<string, unknown>>,
-  ) => Promise<{ readonly ok: boolean; readonly message?: string }>;
-  readonly onChanged: () => void;
-}) {
-  const [adding, setAdding] = useState(false);
-  const [locationId, setLocationId] = useState("");
-  const [validFrom, setValidFrom] = useState("");
-  const [validTo, setValidTo] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [editing, setEditing] = useState<string | null>(null);
-  const [editFrom, setEditFrom] = useState("");
-  const [editTo, setEditTo] = useState("");
-
-  const active = data.assignments.filter(
-    (assignment) => assignment.status === "ACTIVE",
-  );
-  const assignedIds = new Set(active.map((assignment) => assignment.locationId));
-  const inherited = data.authorized.some(
-    (site) => site.derivedFromPrimaryLocation,
-  );
-  const addable = locations.filter(
-    (location) => location.isActive && !assignedIds.has(location.id),
-  );
-
-  async function call(
-    action: string,
-    payload: Readonly<Record<string, unknown>> | undefined,
-    failure: string,
-  ): Promise<boolean> {
-    setBusy(true);
-    setError(null);
-    try {
-      const result = await onAction(action, payload);
-      if (!result.ok) {
-        setError(result.message ?? failure);
-        return false;
-      }
-      onChanged();
-      return true;
-    } catch {
-      setError(`${failure} Try again.`);
-      return false;
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function addWorkSite() {
-    const added = await call(
-      "assign",
-      {
-        locationId,
-        // Never sent as primary from here — promoting a site is a separate,
-        // deliberate action so it does not happen by accident while adding
-        // a second site.
-        isPrimary: false,
-        validFrom: validFrom || undefined,
-        validTo: validTo || undefined,
-      },
-      "The work site could not be added.",
-    );
-    if (added) {
-      setAdding(false);
-      setLocationId("");
-      setValidFrom("");
-      setValidTo("");
-    }
-  }
-
-  async function saveValidity(targetLocationId: string) {
-    const saved = await call(
-      "assign",
-      {
-        locationId: targetLocationId,
-        validFrom: editFrom || undefined,
-        validTo: editTo || undefined,
-      },
-      "The validity dates could not be saved.",
-    );
-    if (saved) setEditing(null);
-  }
-
-  function setPrimary(targetLocationId: string) {
-    return call(
-      "setPrimary",
-      { locationId: targetLocationId },
-      "The primary work site could not be changed.",
-    );
-  }
-
-  function removeWorkSite(targetLocationId: string) {
-    return call(
-      "remove",
-      { locationId: targetLocationId },
-      "The work site could not be removed.",
-    );
-  }
-
-  return (
-    <div className="grid gap-3">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h4 className="text-sm font-semibold text-foreground">{label}</h4>
-          <p className="mt-1 text-sm text-muted">
-            Where this employee may record attendance. Attendance devices at
-            these sites will accept their punches.
-          </p>
-        </div>
-        {canManage && !adding ? (
-          <button
-            type="button"
-            className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-foreground transition hover:bg-surface-strong"
-            onClick={() => setAdding(true)}
-          >
-            Add work site
-          </button>
-        ) : null}
-      </div>
-
-      {inherited ? (
-        <p className="rounded-[18px] border border-sky-200 bg-sky-50 px-4 py-3 text-sm leading-6 text-sky-900">
-          This employee has no explicit work site assignment, so they are
-          authorised for their primary work site only. Adding an assignment
-          replaces that inherited access.
-        </p>
-      ) : null}
-
-      {active.length > 0 ? (
-        <ul className="divide-y divide-border">
-          {active.map((assignment) => (
-            <li
-              key={assignment.id}
-              className="flex flex-wrap items-center justify-between gap-3 py-3"
-            >
-              <div>
-                <p className="text-sm font-semibold text-foreground">
-                  {assignment.location.name}
-                </p>
-                <p className="mt-0.5 text-xs text-muted">
-                  {assignment.validFrom || assignment.validTo
-                    ? `${assignment.validFrom ? `From ${formatDate(assignment.validFrom)}` : "No start date"} · ${
-                        assignment.validTo
-                          ? `until ${formatDate(assignment.validTo)}`
-                          : "no end date"
-                      }`
-                    : "No date restriction"}
-                  {assignment.location.isActive ? "" : " · work site inactive"}
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                {assignment.isPrimary ? (
-                  <StatusPill tone="good">Primary</StatusPill>
-                ) : null}
-                <StatusPill
-                  tone={assignment.status === "ACTIVE" ? "info" : "muted"}
-                >
-                  {assignment.status === "ACTIVE" ? "Active" : "Inactive"}
-                </StatusPill>
-                {canManage ? (
-                  <button
-                    type="button"
-                    className="rounded-2xl border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-surface-strong disabled:opacity-50"
-                    disabled={busy}
-                    onClick={() => {
-                      setEditing(assignment.locationId);
-                      setEditFrom(assignment.validFrom?.slice(0, 10) ?? "");
-                      setEditTo(assignment.validTo?.slice(0, 10) ?? "");
-                      setError(null);
-                    }}
-                  >
-                    Edit validity
-                  </button>
-                ) : null}
-                {canManage && !assignment.isPrimary ? (
-                  <button
-                    type="button"
-                    className="rounded-2xl border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-surface-strong disabled:opacity-50"
-                    disabled={busy}
-                    onClick={() => void setPrimary(assignment.locationId)}
-                  >
-                    Make primary
-                  </button>
-                ) : null}
-                {canManage ? (
-                  <button
-                    type="button"
-                    className="rounded-2xl border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition hover:bg-surface-strong disabled:opacity-50"
-                    disabled={busy}
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          assignment.isPrimary
-                            ? `Remove ${assignment.location.name}? It is this employee's primary work site, so another authorised site will become primary.`
-                            : `Remove ${assignment.location.name}? The employee will no longer be able to record attendance there.`,
-                        )
-                      ) {
-                        void removeWorkSite(assignment.locationId);
-                      }
-                    }}
-                  >
-                    Remove
-                  </button>
-                ) : null}
-              </div>
-              {editing === assignment.locationId ? (
-                <div className="grid w-full gap-4 rounded-[18px] border border-border bg-white/70 p-4 sm:grid-cols-3">
-                  <div>
-                    <label
-                      className="block text-sm font-medium text-foreground"
-                      htmlFor={`valid-from-${assignment.id}`}
-                    >
-                      Valid from
-                    </label>
-                    <input
-                      id={`valid-from-${assignment.id}`}
-                      type="date"
-                      className="mt-1 w-full rounded-2xl border border-border bg-white px-3 py-2 text-sm text-foreground"
-                      value={editFrom}
-                      onChange={(event) => setEditFrom(event.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label
-                      className="block text-sm font-medium text-foreground"
-                      htmlFor={`valid-to-${assignment.id}`}
-                    >
-                      Valid to
-                    </label>
-                    <input
-                      id={`valid-to-${assignment.id}`}
-                      type="date"
-                      className="mt-1 w-full rounded-2xl border border-border bg-white px-3 py-2 text-sm text-foreground"
-                      value={editTo}
-                      onChange={(event) => setEditTo(event.target.value)}
-                    />
-                  </div>
-                  <div className="flex items-end gap-3">
-                    <button
-                      type="button"
-                      className="rounded-2xl bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:opacity-50"
-                      disabled={busy}
-                      onClick={() => void saveValidity(assignment.locationId)}
-                    >
-                      {busy ? "Saving…" : "Save"}
-                    </button>
-                    <button
-                      type="button"
-                      className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-foreground transition hover:bg-surface-strong"
-                      onClick={() => setEditing(null)}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : null}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-sm text-muted">
-          No work site assignments yet. Attendance at a site requires an
-          assignment here — without one, this employee will be refused at
-          check-in everywhere except their inherited primary site.
-        </p>
-      )}
-
-      {error ? (
-        <p className="text-sm font-medium text-red-600" role="alert">
-          {error}
-        </p>
-      ) : null}
-
-      {canManage && adding ? (
-        <div className="grid gap-4 rounded-[18px] border border-border bg-white/70 p-4 sm:grid-cols-3">
-          <div>
-            <label
-              className="block text-sm font-medium text-foreground"
-              htmlFor="work-site-location"
-            >
-              Work site
-            </label>
-            <select
-              id="work-site-location"
-              className="mt-1 w-full rounded-2xl border border-border bg-white px-3 py-2 text-sm text-foreground"
-              value={locationId}
-              onChange={(event) => setLocationId(event.target.value)}
-            >
-              <option value="">Select…</option>
-              {addable.map((location) => (
-                <option key={location.id} value={location.id}>
-                  {location.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label
-              className="block text-sm font-medium text-foreground"
-              htmlFor="work-site-valid-from"
-            >
-              Valid from (optional)
-            </label>
-            <input
-              id="work-site-valid-from"
-              type="date"
-              className="mt-1 w-full rounded-2xl border border-border bg-white px-3 py-2 text-sm text-foreground"
-              value={validFrom}
-              onChange={(event) => setValidFrom(event.target.value)}
-            />
-          </div>
-          <div>
-            <label
-              className="block text-sm font-medium text-foreground"
-              htmlFor="work-site-valid-to"
-            >
-              Valid to (optional)
-            </label>
-            <input
-              id="work-site-valid-to"
-              type="date"
-              className="mt-1 w-full rounded-2xl border border-border bg-white px-3 py-2 text-sm text-foreground"
-              value={validTo}
-              onChange={(event) => setValidTo(event.target.value)}
-            />
-          </div>
-          <div className="flex gap-3 sm:col-span-3">
-            <button
-              type="button"
-              className="rounded-2xl bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:opacity-50"
-              disabled={busy || !locationId}
-              onClick={() => void addWorkSite()}
-            >
-              {busy ? "Adding…" : "Add work site"}
-            </button>
-            <button
-              type="button"
-              className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-foreground transition hover:bg-surface-strong"
-              onClick={() => {
-                setAdding(false);
-                setError(null);
-              }}
-            >
-              Cancel
-            </button>
-          </div>
-          {addable.length === 0 ? (
-            <p className="text-sm text-muted sm:col-span-3">
-              Every active work site is already assigned to this employee.
-            </p>
-          ) : null}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 function ModuleReportingHierarchyWidget({
   component,
   dataAdapter,
@@ -2747,11 +2215,18 @@ function ModuleReportingHierarchyWidget({
 }
 
 /**
- * ITEM-0164 — the reporting hierarchy tree dialog. Hand-rolled per
- * ADR-0012: nested lists with indent-and-rule connectors (a `border-l` on
- * each child list), not drawn SVG lines and not a graph library — the
- * shape is a one-parent-per-node tree of bounded size, and this renders it
- * correctly at every width without any DOM-position measurement code.
+ * ITEM-0164 / BUG-3499 — the reporting hierarchy tree dialog.
+ *
+ * Still hand-rolled and still scoped to this employee's chain (ADR-0012,
+ * ADR-0017), but drawn as a real branching tree: each manager's reports sit
+ * side by side beneath them, joined by CSS connector lines on the list items,
+ * and the tree scrolls horizontally inside the dialog when it is wider than
+ * the dialog. Nothing is measured to draw the connectors; the only measurement
+ * is placing the detail card, which renders in a portal so no scroll container
+ * can clip it.
+ *
+ * Interaction rules live in `lib/runtime/modules/employee-hierarchy-tree.ts`,
+ * which says what was wrong with the first version and tests each rule.
  */
 function ReportingHierarchyTreeDialog({
   canReadWorkEmail,
@@ -2770,128 +2245,328 @@ function ReportingHierarchyTreeDialog({
   readonly root: ReportingHierarchyTreeNode;
   readonly truncated: boolean;
 }) {
+  const [card, dispatchCard] = useReducer(
+    reduceHierarchyCard,
+    INITIAL_HIERARCHY_CARD_STATE,
+  );
+  const anchorsRef = useRef(new Map<string, HTMLElement>());
+  const cardId = useId();
+  const nodesById = useMemo(() => indexHierarchyNodes(root), [root]);
+  const activeNode = card.activeNodeId
+    ? (nodesById.get(card.activeNodeId) ?? null)
+    : null;
+
+  const registerAnchor = useCallback(
+    (nodeId: string, element: HTMLElement | null) => {
+      if (element) anchorsRef.current.set(nodeId, element);
+      else anchorsRef.current.delete(nodeId);
+    },
+    [],
+  );
+  const getAnchor = useCallback(
+    (nodeId: string) => anchorsRef.current.get(nodeId) ?? null,
+    [],
+  );
+
+  function handleClose() {
+    dispatchCard({ type: "dismiss" });
+    onClose();
+  }
+
   return (
     <Dialog
-      description="An avatar and a name at rest. Hover, focus, or tap a person for their role, department, work email, and work site."
-      onClose={onClose}
+      className="relative"
+      onClose={handleClose}
       open={open}
       size="xl"
       title="Reporting hierarchy"
     >
+      {/*
+       * First in the body on purpose: the dialog focuses its first focusable
+       * element on open, and that used to be the root node, whose focus opened
+       * its card before the user had done anything. Positioned against the
+       * panel, so it sits beside the title and does not scroll away.
+       */}
+      <div className="absolute right-5 top-5">
+        <DialogCloseButton onClick={handleClose} />
+      </div>
       {truncated ? (
         <p className="mb-3 rounded-lg border border-warning/40 bg-warning/5 px-3 py-2 text-xs text-muted">
           This branch is larger than the viewer can show at once — part of it
           is not displayed.
         </p>
       ) : null}
-      <div className="overflow-auto" role="tree">
-        <ul className="flex flex-col gap-2">
-          <ReportingHierarchyTreeNodeItem
-            canReadWorkEmail={canReadWorkEmail}
-            canReadWorkSite={canReadWorkSite}
+      <div className="-mx-6 overflow-x-auto px-6 pb-2">
+        <ul
+          aria-label="Reporting hierarchy"
+          className="mx-auto flex w-max min-w-full justify-center"
+        >
+          <ReportingHierarchyBranch
+            activeNodeId={card.activeNodeId}
+            cardId={cardId}
             currentEmployeeId={currentEmployeeId}
             node={root}
+            onCardEvent={dispatchCard}
+            registerAnchor={registerAnchor}
           />
         </ul>
       </div>
+      {open && activeNode ? (
+        <ReportingHierarchyDetailCard
+          canReadWorkEmail={canReadWorkEmail}
+          canReadWorkSite={canReadWorkSite}
+          cardId={cardId}
+          getAnchor={getAnchor}
+          node={activeNode}
+        />
+      ) : null}
     </Dialog>
   );
 }
 
-function ReportingHierarchyTreeNodeItem({
-  canReadWorkEmail,
-  canReadWorkSite,
+/*
+ * Org-chart connectors from list-item pseudo-elements. Each item draws the
+ * horizontal sibling line in two halves (`before` left of centre, `after`
+ * right of centre) and a short vertical drop to its own node; the outermost
+ * siblings keep only their inward half, and an only child hangs straight from
+ * the vertical its parent list draws.
+ */
+const HIERARCHY_BRANCH_CLASS = [
+  "relative flex flex-col items-center px-2 pt-6",
+  "before:absolute before:right-1/2 before:top-0 before:h-6 before:w-1/2 before:border-t before:border-border",
+  "after:absolute after:left-1/2 after:top-0 after:h-6 after:w-1/2 after:border-l after:border-t after:border-border",
+  "first:before:border-t-0 last:after:border-0 last:before:border-r last:before:rounded-tr-lg first:after:rounded-tl-lg",
+  "only:pt-0 only:before:hidden only:after:hidden",
+].join(" ");
+
+const HIERARCHY_CHILDREN_CLASS =
+  "relative flex pt-6 before:absolute before:left-1/2 before:top-0 before:h-6 before:border-l before:border-border";
+
+function ReportingHierarchyBranch({
+  activeNodeId,
+  cardId,
   currentEmployeeId,
   node,
+  onCardEvent,
+  registerAnchor,
 }: {
-  readonly canReadWorkEmail: boolean;
-  readonly canReadWorkSite: boolean;
+  readonly activeNodeId: string | null;
+  readonly cardId: string;
   readonly currentEmployeeId: string | null;
   readonly node: ReportingHierarchyTreeNode;
+  readonly onCardEvent: (event: HierarchyCardEvent) => void;
+  readonly registerAnchor: (nodeId: string, element: HTMLElement | null) => void;
 }) {
-  const [detailOpen, setDetailOpen] = useState(false);
-  const popoverId = useId();
-  const isCurrent = node.id === currentEmployeeId;
-  const detailFields = [
-    node.jobTitle,
-    node.department,
-    canReadWorkEmail ? node.workEmail : null,
-    canReadWorkSite ? node.workSiteName : null,
-  ].filter((field): field is string => Boolean(field));
-
   return (
-    <li aria-selected={isCurrent} className="list-none" role="treeitem">
-      <div className="relative inline-block">
-        <button
-          aria-describedby={detailFields.length ? popoverId : undefined}
-          className={`flex w-28 flex-col items-center gap-1 rounded-xl border p-2 text-center transition ${
-            isCurrent
-              ? "border-accent bg-accent/5 ring-2 ring-accent/40"
-              : "border-border bg-white hover:bg-surface-strong"
-          }`}
-          onBlur={() => setDetailOpen(false)}
-          onClick={() => setDetailOpen((value) => !value)}
-          onFocus={() => setDetailOpen(true)}
-          onMouseEnter={() => setDetailOpen(true)}
-          onMouseLeave={() => setDetailOpen(false)}
-          type="button"
-        >
-          <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-surface-strong text-xs font-semibold text-foreground">
-            {node.profilePhotoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element -- a small avatar from an internal, already-authorized document route, not a Next remote image source
-              <img
-                alt=""
-                className="h-full w-full object-cover"
-                src={node.profilePhotoUrl}
-              />
-            ) : (
-              initialsOf(node.displayName)
-            )}
-          </span>
-          <span className="w-full truncate text-xs font-medium text-foreground">
-            {node.displayName}
-          </span>
-        </button>
-
-        {detailOpen && detailFields.length > 0 ? (
-          <div
-            className="absolute left-1/2 top-full z-10 mt-1 w-56 -translate-x-1/2 rounded-lg border border-border bg-white p-3 text-left text-xs shadow-lg"
-            id={popoverId}
-            role="tooltip"
-          >
-            {node.jobTitle ? (
-              <p className="font-medium text-foreground">{node.jobTitle}</p>
-            ) : null}
-            {node.department ? (
-              <p className="text-muted">{node.department}</p>
-            ) : null}
-            {canReadWorkEmail && node.workEmail ? (
-              <p className="mt-1 truncate text-foreground">
-                {node.workEmail}
-              </p>
-            ) : null}
-            {canReadWorkSite && node.workSiteName ? (
-              <p className="text-muted">{node.workSiteName}</p>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
-
+    <li className={HIERARCHY_BRANCH_CLASS}>
+      <ReportingHierarchyNodeLink
+        cardId={cardId}
+        isActive={activeNodeId === node.id}
+        isCurrent={node.id === currentEmployeeId}
+        node={node}
+        onCardEvent={onCardEvent}
+        registerAnchor={registerAnchor}
+      />
       {node.children.length > 0 ? (
-        <ul className="ml-5 mt-2 flex flex-col gap-2 border-l border-border pl-4">
+        <ul className={HIERARCHY_CHILDREN_CLASS}>
           {node.children.map((child) => (
-            <ReportingHierarchyTreeNodeItem
-              canReadWorkEmail={canReadWorkEmail}
-              canReadWorkSite={canReadWorkSite}
+            <ReportingHierarchyBranch
+              activeNodeId={activeNodeId}
+              cardId={cardId}
               currentEmployeeId={currentEmployeeId}
               key={child.id}
               node={child}
+              onCardEvent={onCardEvent}
+              registerAnchor={registerAnchor}
             />
           ))}
         </ul>
       ) : null}
     </li>
   );
+}
+
+function ReportingHierarchyNodeLink({
+  cardId,
+  isActive,
+  isCurrent,
+  node,
+  onCardEvent,
+  registerAnchor,
+}: {
+  readonly cardId: string;
+  readonly isActive: boolean;
+  readonly isCurrent: boolean;
+  readonly node: ReportingHierarchyTreeNode;
+  readonly onCardEvent: (event: HierarchyCardEvent) => void;
+  readonly registerAnchor: (nodeId: string, element: HTMLElement | null) => void;
+}) {
+  // What the pointer was, and whether this card was already up, when the
+  // press began — read by the click that follows it.
+  const pressRef = useRef<{
+    readonly pointerType: string | null;
+    readonly wasActive: boolean;
+  }>({ pointerType: null, wasActive: false });
+
+  return (
+    <Link
+      aria-current={isCurrent ? "true" : undefined}
+      aria-describedby={isActive ? cardId : undefined}
+      className={`relative z-[1] flex w-28 flex-col items-center gap-1 rounded-xl border p-2 text-center transition focus:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+        isCurrent
+          ? "border-accent bg-accent/5 ring-2 ring-accent/40"
+          : "border-border bg-white hover:bg-surface-strong"
+      }`}
+      href={employeeRecordHref(node.id)}
+      onBlur={() => onCardEvent({ type: "blur", nodeId: node.id })}
+      onClick={(event) => {
+        const press = pressRef.current;
+        pressRef.current = { pointerType: null, wasActive: false };
+        if (
+          resolveHierarchyTapIntent({
+            pointerType: press.pointerType,
+            wasActiveAtPointerDown: press.wasActive,
+          }) === "show-card"
+        ) {
+          event.preventDefault();
+          onCardEvent({
+            type: "tap",
+            nodeId: node.id,
+            wasActiveAtPointerDown: false,
+          });
+        }
+      }}
+      onFocus={() => onCardEvent({ type: "focus", nodeId: node.id })}
+      onPointerDown={(event) => {
+        pressRef.current = {
+          pointerType: event.pointerType,
+          wasActive: isActive,
+        };
+      }}
+      onPointerEnter={(event) => {
+        if (event.pointerType !== "touch") {
+          onCardEvent({ type: "pointer-enter", nodeId: node.id });
+        }
+      }}
+      onPointerLeave={(event) => {
+        if (event.pointerType !== "touch") {
+          onCardEvent({ type: "pointer-leave", nodeId: node.id });
+        }
+      }}
+      ref={(element) => registerAnchor(node.id, element)}
+    >
+      <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-surface-strong text-xs font-semibold text-foreground">
+        {node.profilePhotoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- a small avatar from an internal, already-authorized document route, not a Next remote image source
+          <img
+            alt=""
+            className="h-full w-full object-cover"
+            src={node.profilePhotoUrl}
+          />
+        ) : (
+          initialsOf(node.displayName)
+        )}
+      </span>
+      <span className="w-full truncate text-xs font-medium text-foreground">
+        {node.displayName}
+      </span>
+    </Link>
+  );
+}
+
+function ReportingHierarchyDetailCard({
+  canReadWorkEmail,
+  canReadWorkSite,
+  cardId,
+  getAnchor,
+  node,
+}: {
+  readonly canReadWorkEmail: boolean;
+  readonly canReadWorkSite: boolean;
+  readonly cardId: string;
+  readonly getAnchor: (nodeId: string) => HTMLElement | null;
+  readonly node: ReportingHierarchyTreeNode;
+}) {
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const cardElement = cardRef.current;
+    if (!cardElement) return;
+
+    // Written straight to the element rather than through state: this runs on
+    // every scroll of the tree or the dialog body, and it only moves a box.
+    const place = () => {
+      const anchor = getAnchor(node.id);
+      if (!anchor) {
+        cardElement.style.visibility = "hidden";
+        return;
+      }
+      const rect = anchor.getBoundingClientRect();
+      const position = resolveHierarchyCardPosition({
+        anchor: {
+          top: rect.top,
+          left: rect.left,
+          width: rect.width,
+          height: rect.height,
+        },
+        card: {
+          width: cardElement.offsetWidth,
+          height: cardElement.offsetHeight,
+        },
+        viewport: { width: window.innerWidth, height: window.innerHeight },
+      });
+      cardElement.style.top = `${position.top}px`;
+      cardElement.style.left = `${position.left}px`;
+      cardElement.style.visibility = "visible";
+    };
+
+    place();
+    window.addEventListener("scroll", place, true);
+    window.addEventListener("resize", place);
+    return () => {
+      window.removeEventListener("scroll", place, true);
+      window.removeEventListener("resize", place);
+    };
+  }, [getAnchor, node.id]);
+
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+      // Above the dialog (z-[110]); never takes the pointer, so it cannot sit
+      // between the user and the next node they reach for.
+      className="pointer-events-none fixed left-0 top-0 z-[120] w-56 rounded-lg border border-border bg-white p-3 text-left text-xs shadow-lg"
+      id={cardId}
+      ref={cardRef}
+      role="tooltip"
+      style={{ visibility: "hidden" }}
+    >
+      <p className="font-semibold text-foreground">{node.displayName}</p>
+      {node.jobTitle ? (
+        <p className="mt-1 font-medium text-foreground">{node.jobTitle}</p>
+      ) : null}
+      {node.department ? <p className="text-muted">{node.department}</p> : null}
+      {canReadWorkEmail && node.workEmail ? (
+        <p className="mt-1 break-all text-foreground">{node.workEmail}</p>
+      ) : null}
+      {canReadWorkSite && node.workSiteName ? (
+        <p className="text-muted">{node.workSiteName}</p>
+      ) : null}
+    </div>,
+    document.body,
+  );
+}
+
+function indexHierarchyNodes(root: ReportingHierarchyTreeNode) {
+  const byId = new Map<string, ReportingHierarchyTreeNode>();
+  const pending = [root];
+  while (pending.length) {
+    const node = pending.pop();
+    if (!node || byId.has(node.id)) continue;
+    byId.set(node.id, node);
+    pending.push(...node.children);
+  }
+  return byId;
 }
 
 function initialsOf(name: string) {

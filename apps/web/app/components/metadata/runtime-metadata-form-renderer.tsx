@@ -60,6 +60,7 @@ import {
   FormGridItem,
   normalizeFormGridColumnCount,
 } from "./form-layout-grid";
+import { resolveSectionColumnClass } from "@/lib/runtime/form-layout-grid";
 
 export type FieldValueMap = Record<
   string,
@@ -541,9 +542,7 @@ function shortestSectionBucketIndex(buckets: readonly FormSectionMetadata[][]) {
 }
 
 function runtimeSectionColumnClass(columnCount: 1 | 2 | 3) {
-  if (columnCount === 3) return "md:grid-cols-3";
-  if (columnCount === 2) return "md:grid-cols-2";
-  return "grid-cols-1";
+  return resolveSectionColumnClass(columnCount);
 }
 
 function warnInvalidLayoutConfiguration(

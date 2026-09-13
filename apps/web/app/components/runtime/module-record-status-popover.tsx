@@ -93,7 +93,9 @@ export function ModuleRecordStatusPopover({
       ) : null}
       <StatusSelect
         disabled={disabled || !config.statusField || statusReadonly}
-        label="Status"
+        // ITEM-0184 (H4) — named after the field the module uses as its status
+        // (an employee's is Employment Status), not a generic "Status".
+        label={config.statusField?.displayName ?? "Status"}
         onChange={(value) => {
           config.onValueChange?.(config.statusFieldLogicalName, value);
           if (config.subStatusFieldLogicalName) {

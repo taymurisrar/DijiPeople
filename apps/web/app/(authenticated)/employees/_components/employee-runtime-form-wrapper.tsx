@@ -7,8 +7,15 @@ import type { CommandDefinition } from "@/lib/runtime/command-runtime.types";
 import type { FormMetadata } from "@/lib/runtime/metadata-runtime.types";
 import type { ModuleDataAdapter } from "@/lib/runtime/module-data-adapter.types";
 import type { ModuleRuntimeContext } from "@/lib/runtime/module-runtime.types";
-import type { EmployeeRuntimeFormValues } from "@/lib/runtime/modules/employee-metadata.adapter";
+import {
+  withoutCreateOnlyEmployeeFields,
+  type EmployeeRuntimeFormValues,
+} from "@/lib/runtime/modules/employee-metadata.adapter";
 import { employeeModuleDataAdapter } from "@/lib/runtime/modules/employee-data.adapter";
+import {
+  employeeAccountActionCommands,
+  postEmployeeAction,
+} from "@/lib/runtime/modules/employee-account-actions";
 import { canManageEmployeeAccountActions } from "@/lib/employee-account-actions";
 import type { LookupOption } from "@/app/components/ui/form-control";
 import { useEmployeeLookups } from "./use-employee-lookups";
@@ -90,10 +97,18 @@ export function EmployeeRuntimeFormWrapper({
       [employeeLookups, lookupOptions],
     );
   const runtimeWithEmployeeCommands = useEmployeeAccountActionRuntime(runtime);
+  // ITEM-0184 (H9) — create-time instructions are not fields of a saved record.
+  const displayedForm = useMemo(
+    () =>
+      activeForm && mode !== "new"
+        ? withoutCreateOnlyEmployeeFields(activeForm)
+        : activeForm,
+    [activeForm, mode],
+  );
 
   return (
     <ModuleRecordPage
-      activeForm={activeForm}
+      activeForm={displayedForm}
       dataAdapter={employeeAccountActionAdapter}
       lookupDisplayValues={lookupDisplayValues}
       lookupOptions={resolvedLookupOptions}
@@ -112,6 +127,15 @@ export function EmployeeRuntimeFormWrapper({
         })
       }
       resolveFieldEditable={({ defaultEditable, field, values }) => {
+        /*
+         * ITEM-0179 / ADR-0014 — Location mirrors the primary work site and
+         * changes only through Make primary on the Work Sites tab, which
+         * moves `EmployeeWorkSite` with it. It stays editable when creating,
+         * where it is how a required work location is given.
+         */
+        if (field.logicalName === "locationId") {
+          return defaultEditable && mode === "new";
+        }
         if (field.logicalName !== "employeeLevelId") {
           return defaultEditable;
         }
@@ -166,38 +190,6 @@ function designationHasEmployeeLevel(
       ?.employeeLevelId,
   );
 }
-
-const employeeAccountActionCommands: readonly CommandDefinition[] = [
-  {
-    key: "employees.resetPassword",
-    label: "Reset Password",
-    description: "Send a reset password link to this employee's work email.",
-    scope: "record",
-    placement: "detail-command-bar",
-    executionMode: "client",
-    handlerKey: "employees.resetPassword",
-    order: 32,
-  },
-  {
-    key: "employees.sendInvitation",
-    label: "Send Invitation",
-    description:
-      "Send an activation invitation to a new employee who has not logged in yet.",
-    scope: "record",
-    placement: "detail-command-bar",
-    executionMode: "client",
-    handlerKey: "employees.sendInvitation",
-    order: 33,
-    /*
-     * Only offered to someone who has a login and has never used it. Once they
-     * have signed in the invitation is meaningless, and "Reset Password" is the
-     * action that actually helps.
-     */
-    visibilityRules: [
-      { operator: "field-equals", fieldLogicalName: "hasNeverLoggedIn", expectedValue: true },
-    ],
-  },
-];
 
 const employeeAccountActionAdapter: ModuleDataAdapter = {
   ...employeeModuleDataAdapter,
@@ -280,26 +272,6 @@ function mergeCommands(
     commands.set(command.key, command);
   }
   return [...commands.values()];
-}
-
-async function postEmployeeAction(employeeId: string, action: string) {
-  const response = await fetch(
-    `/api/employees/${encodeURIComponent(employeeId)}/${action}`,
-    { method: "POST" },
-  );
-  const payload = (await response.json().catch(() => null)) as unknown;
-
-  if (!response.ok) {
-    throw new Error(
-      readString(
-        payload && typeof payload === "object"
-          ? (payload as Record<string, unknown>).message
-          : null,
-      ) || "Employee account action failed.",
-    );
-  }
-
-  return payload;
 }
 
 function readString(value: unknown) {

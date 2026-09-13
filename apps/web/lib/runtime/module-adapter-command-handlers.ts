@@ -20,6 +20,12 @@ export interface AdapterCommandHandlerInput {
   readonly downloadFile?: (file: Blob | string, filename: string) => void;
   readonly navigate?: (href: string) => void;
   readonly refresh?: () => void;
+  /*
+   * BUG-3498 — the names the record page already shows for its lookup fields,
+   * keyed by field logical name. The record export needs the same text; the
+   * record itself only carries the referenced ids.
+   */
+  readonly lookupDisplayValues?: Readonly<Record<string, string>>;
 }
 
 export function buildAdapterCommandHandlers({
@@ -27,6 +33,7 @@ export function buildAdapterCommandHandlers({
   downloadFile,
   form,
   listRecords = [],
+  lookupDisplayValues,
   navigate,
   refresh,
   view,
@@ -407,6 +414,7 @@ export function buildAdapterCommandHandlers({
         exportRecordFormCsv({
           downloadFile,
           form: activeForm,
+          lookupDisplayValues,
           record: context.record,
           runtime: context.runtime,
         });
@@ -560,16 +568,24 @@ function exportClientCsv({
 function exportRecordFormCsv({
   downloadFile,
   form,
-  record,
+  lookupDisplayValues,
+  record: storedRecord,
   runtime,
 }: {
   readonly downloadFile?: (file: Blob | string, filename: string) => void;
   readonly form: FormMetadata;
+  readonly lookupDisplayValues?: Readonly<Record<string, string>>;
   readonly record: Readonly<Record<string, unknown>>;
   readonly runtime: ModuleRuntimeContext;
 }) {
   const fieldsByName = new Map(
     runtime.metadata.entity.fields.map((field) => [field.logicalName, field]),
+  );
+  // Every row below reads `record`, so the names are substituted once, here.
+  const record = withLookupDisplayNames(
+    storedRecord,
+    runtime.metadata.entity.fields,
+    lookupDisplayValues,
   );
   const rows: Array<readonly [string, string, string]> = [];
   const seen = new Set<string>();
@@ -697,10 +713,49 @@ function addRecordExportRow(
   ]);
 }
 
+/*
+ * BUG-3498 — a lookup's stored value is the referenced record's id. The record
+ * page names it through `lookupDisplayValues`; `exportRecordFormCsv` substitutes
+ * those names before rows are built. What reaches here as a lookup is either
+ * that name, an embedded object, or — when no name is known — the id, which is
+ * written as an empty cell: a UUID in a spreadsheet is not information a
+ * reader can use, and it is the tenant's internal key.
+ */
+const EXPORT_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function withLookupDisplayNames(
+  record: Readonly<Record<string, unknown>>,
+  fields: readonly FieldMetadata[],
+  lookupDisplayValues: Readonly<Record<string, string>> | undefined,
+) {
+  if (!lookupDisplayValues) return record;
+  const named: Record<string, unknown> = { ...record };
+  for (const field of fields) {
+    if (field.dataType !== "lookup") continue;
+    const name = lookupDisplayValues[field.logicalName]?.trim();
+    if (name) named[field.logicalName] = name;
+  }
+  return named;
+}
+
+function displayExportLookupValue(value: unknown) {
+  if (typeof value === "object" && value !== null) {
+    const record = value as Record<string, unknown>;
+    for (const key of ["name", "fullName", "displayName", "label", "email"]) {
+      if (typeof record[key] === "string") return record[key];
+    }
+    return "";
+  }
+  const text = String(value).trim();
+  return EXPORT_ID_PATTERN.test(text) ? "" : text;
+}
+
 function displayExportValue(value: unknown, field?: FieldMetadata) {
   if (Array.isArray(value)) return value.map(String).join("; ");
   if (value === null || value === undefined) return "";
   if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (field?.dataType === "lookup") return displayExportLookupValue(value);
   if (field?.options?.length && typeof value === "string") {
     return (
       field.options.find((option) => option.value === value)?.label ?? value

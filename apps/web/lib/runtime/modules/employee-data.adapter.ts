@@ -5,6 +5,14 @@ import type {
 import { relatedRecordPaths } from "../related-record-api";
 import { debugRuntime } from "../runtime-debug";
 import {
+  buildWorkSiteAssignPayload,
+  EMPLOYEE_WORK_SITE_SET_PRIMARY_ACTION,
+  EMPLOYEE_WORK_SITES_PATH,
+  EMPLOYEE_WORK_SITES_RELATIONSHIP,
+  mapEmployeeWorkSiteRows,
+  omitPrimaryLocationFromEmployeeUpdate,
+} from "./employee-work-sites";
+import {
   type EmployeeRuntimeFormValues,
   mapEmployeeRuntimeValuesToUpdatePayload,
 } from "./employee-metadata.adapter";
@@ -58,9 +66,13 @@ export const employeeModuleDataAdapter: ModuleDataAdapter<
   },
 
   async update(_runtime, recordId, values) {
-    const rawPayload = stripGeneratedLockedValues(
-      mapEmployeeRuntimeValuesToUpdatePayload(
-        values as EmployeeRuntimeFormValues,
+    // ADR-0014 — the primary site changes only through Make primary on the
+    // Work Sites tab, never through the employee update.
+    const rawPayload = omitPrimaryLocationFromEmployeeUpdate(
+      stripGeneratedLockedValues(
+        mapEmployeeRuntimeValuesToUpdatePayload(
+          values as EmployeeRuntimeFormValues,
+        ),
       ),
     );
     const payload = await preserveUnchangedEmployeeDependentLookups(
@@ -242,6 +254,14 @@ export const employeeModuleDataAdapter: ModuleDataAdapter<
   },
 
   async getRelatedRecords(input) {
+    if (input.subgrid.relationshipName === EMPLOYEE_WORK_SITES_RELATIONSHIP) {
+      // 403 without attendanceDevices.read reads as no rows, not a broken tab.
+      const rows = mapEmployeeWorkSiteRows(
+        await requestOptionalLookupJson(workSitesPath(input.parentRecordId)),
+      );
+      return { records: rows, totalRecords: rows.length };
+    }
+
     const endpoint = relatedRecordPaths(input);
     if (!endpoint?.list) {
       throw new Error(
@@ -263,6 +283,14 @@ export const employeeModuleDataAdapter: ModuleDataAdapter<
   },
 
   async createRelatedRecord(input) {
+    if (input.subgrid.relationshipName === EMPLOYEE_WORK_SITES_RELATIONSHIP) {
+      await requestJson(workSitesPath(input.parentRecordId), {
+        body: JSON.stringify(buildWorkSiteAssignPayload(input.values)),
+        method: "POST",
+      });
+      return input.values;
+    }
+
     const endpoint = relatedRecordPaths(input);
     if (!endpoint.create) {
       throw new Error(
@@ -291,6 +319,25 @@ export const employeeModuleDataAdapter: ModuleDataAdapter<
   },
 
   async updateRelatedRecord(input) {
+    if (input.subgrid.relationshipName === EMPLOYEE_WORK_SITES_RELATIONSHIP) {
+      const locationId = input.recordId ?? "";
+      // Read the row as the server has it, so a derived primary row is kept
+      // primary and an explicit one is left alone (see buildWorkSiteAssignPayload).
+      const existing = mapEmployeeWorkSiteRows(
+        await requestJson(workSitesPath(input.parentRecordId)),
+      ).find((row) => row.locationId === locationId);
+      if (!existing) {
+        throw new Error("This work site is no longer assigned to the employee.");
+      }
+      await requestJson(workSitesPath(input.parentRecordId), {
+        body: JSON.stringify(
+          buildWorkSiteAssignPayload(input.values, { locationId, existing }),
+        ),
+        method: "POST",
+      });
+      return { ...existing, ...input.values };
+    }
+
     const endpoint = relatedRecordPaths(input);
     const recordPath = input.recordId
       ? endpoint.record(input.recordId, "update")
@@ -429,73 +476,38 @@ export const employeeModuleDataAdapter: ModuleDataAdapter<
       );
     }
 
-    if (
-      input.widget.logicalName === "employee.workSites" ||
-      input.widget.widgetType === "employee_work_sites"
-    ) {
-      return getEmployeeWorkSitesWidgetData(input.recordId);
-    }
-
     throw new Error(
       `${input.widget.displayName} is not supported by the Employee data adapter.`,
     );
   },
 
   /*
-   * ITEM-0165 / the ITEM-0167 architectural invariant — the work-site
-   * mutations (add, edit validity, remove, make primary) used to be spelled
-   * out as literal `/api/integrations/attendance/employees/...` routes
-   * inside the SHARED `module-widget-renderer.tsx`, which is exactly what
-   * `package-layer-runtime.spec.ts` exists to catch: a generic runtime file
-   * that every module renders through must not hardcode one module's route.
-   * The widget now calls `dataAdapter.runWidgetAction(...)` generically; only
-   * this employee-owned adapter knows the actual endpoint shape.
+   * ITEM-0179 — Make primary, the Work Sites tab's row action. It calls
+   * `setPrimaryWorkSite`, which moves the old primary row, the new primary
+   * row and `Employee.locationId` in one transaction. Owned here, not in the
+   * shared subgrid, for the same reason `getWidgetData` is: a runtime file
+   * every module renders through must not know one module's routes.
    */
-  async runWidgetAction(input) {
+  async runRelatedRowAction(input) {
     if (
-      input.widget.logicalName === "employee.workSites" ||
-      input.widget.widgetType === "employee_work_sites"
+      input.subgrid.relationshipName === EMPLOYEE_WORK_SITES_RELATIONSHIP &&
+      input.action === EMPLOYEE_WORK_SITE_SET_PRIMARY_ACTION
     ) {
-      return runEmployeeWorkSiteAction(
-        input.recordId,
-        input.action,
-        input.payload,
-      );
+      return requestJson(`${workSitesPath(input.parentRecordId)}/primary`, {
+        body: JSON.stringify({ locationId: input.recordId }),
+        method: "POST",
+      });
     }
 
-    throw new Error(
-      `${input.widget.displayName} does not support this action.`,
-    );
+    throw new Error(`${input.subgrid.title} does not support this action.`);
   },
 };
 
-async function runEmployeeWorkSiteAction(
-  employeeId: string,
-  action: string,
-  payload: Readonly<Record<string, unknown>> | undefined,
-) {
-  const basePath = `/api/integrations/attendance/employees/${encodeURIComponent(employeeId)}/work-sites`;
-
-  switch (action) {
-    case "assign":
-      return requestJson(basePath, {
-        method: "POST",
-        body: JSON.stringify(payload ?? {}),
-      });
-    case "setPrimary":
-      return requestJson(`${basePath}/primary`, {
-        method: "POST",
-        body: JSON.stringify(payload ?? {}),
-      });
-    case "remove": {
-      const locationId = stringValue(payload?.locationId);
-      return requestJson(`${basePath}/${encodeURIComponent(locationId)}`, {
-        method: "DELETE",
-      });
-    }
-    default:
-      throw new Error(`Unsupported work site action: "${action}".`);
-  }
+function workSitesPath(employeeId: string) {
+  return EMPLOYEE_WORK_SITES_PATH.replace(
+    "{parentId}",
+    encodeURIComponent(employeeId),
+  );
 }
 
 function mapFormValues(values: RuntimeRecord) {
@@ -561,40 +573,6 @@ async function preserveUnchangedEmployeeDependentLookups(
 function sameOptionalLookup(nextValue: unknown, currentValue: unknown) {
   const next = stringValue(nextValue);
   return !next || next === stringValue(currentValue);
-}
-
-/**
- * ITEM-0165 — the combined Location + authorised-work-sites widget's data.
- * Three independent reads: the work-site assignments (403s for a viewer
- * without `attendanceDevices.read` — the same permission that gated the old
- * page-level panel), the employee's `accessMode` (so the widget can apply the
- * same "HR_MANAGE or ADMIN_MANAGE may manage" rule the record page already
- * applies everywhere else, per `canManageEmployeeRecord`), and the active
- * Location catalogue to offer as choices. None of these failing should break
- * the other two, so each is read independently and defaulted on failure.
- */
-async function getEmployeeWorkSitesWidgetData(recordId: string) {
-  const [workSites, employeeRecord, locationsRaw] = await Promise.all([
-    requestOptionalLookupJson(
-      `/api/integrations/attendance/employees/${encodeURIComponent(recordId)}/work-sites`,
-    ),
-    requestJson(`/api/employees/${encodeURIComponent(recordId)}`).catch(
-      () => null,
-    ),
-    requestOptionalLookupJson("/api/locations"),
-  ]);
-
-  return {
-    workSites: Array.isArray(workSites) ? null : workSites,
-    accessMode: isRecord(employeeRecord)
-      ? stringValue(employeeRecord.accessMode)
-      : null,
-    locations: Array.isArray(locationsRaw)
-      ? locationsRaw
-      : isRecord(locationsRaw) && Array.isArray(locationsRaw.items)
-        ? locationsRaw.items
-        : [],
-  };
 }
 
 function mapReportingHierarchy(data: unknown) {

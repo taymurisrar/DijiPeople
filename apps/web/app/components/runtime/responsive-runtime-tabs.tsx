@@ -70,6 +70,7 @@ export function ResponsiveRuntimeTabs({
   const tablistRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
   const moreButtonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const [visibleCount, setVisibleCount] = useState(tabs.length);
   const [moreOpen, setMoreOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState<{
@@ -84,6 +85,7 @@ export function ResponsiveRuntimeTabs({
           <div
             className="fixed z-50 min-w-max max-w-[min(28rem,calc(100vw-2rem))] rounded-lg border border-border bg-white p-1 shadow-xl"
             onKeyDown={handleMenuKeyDown}
+            ref={menuRef}
             role="menu"
             // A `menu` handles its own arrow-key navigation, so it must be able
             // to receive focus to hear those keys at all. -1 keeps it out of the
@@ -118,6 +120,45 @@ export function ResponsiveRuntimeTabs({
           document.body,
         )
       : null;
+
+  /*
+   * ITEM-0184 (H7) — the menu only heard Escape through its own `onKeyDown`,
+   * but focus stays on the More button when it opens, so Escape did nothing;
+   * and nothing closed it when a dialog opened over the record. Listening on
+   * the document covers Escape from anywhere, a press outside, and focus
+   * moving elsewhere — which is what every dialog in this app does as it
+   * opens (`useDialogBehavior` moves focus into the dialog).
+   */
+  useEffect(() => {
+    if (!moreOpen) return;
+
+    const isWithinMenu = (target: EventTarget | null) =>
+      target instanceof Node &&
+      Boolean(
+        menuRef.current?.contains(target) ||
+          moreButtonRef.current?.contains(target),
+      );
+    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setMoreOpen(false);
+      moreButtonRef.current?.focus();
+    };
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!isWithinMenu(event.target)) setMoreOpen(false);
+    };
+    const handleFocusIn = (event: FocusEvent) => {
+      if (!isWithinMenu(event.target)) setMoreOpen(false);
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("focusin", handleFocusIn);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("focusin", handleFocusIn);
+    };
+  }, [moreOpen]);
 
   useEffect(() => {
     if (!moreOpen) return;

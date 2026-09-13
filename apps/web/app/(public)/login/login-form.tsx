@@ -296,25 +296,24 @@ export function LoginForm({
         ) : null}
       </div>
 
+      {/*
+       * ITEM-0183 — the Remember me hint is gone by owner decision (no
+       * explanatory copy on screens). BUG-3357's settled meaning is unchanged:
+       * it lengthens the refresh token's lifetime on this browser, not how long
+       * an access token is valid. The hint was also what pushed "Activate
+       * account" onto a second line; neither side of this row may wrap now.
+       */}
       <div className="flex items-center justify-between gap-3">
-        <div className="max-w-max">
+        <div className="shrink-0">
           <CheckboxField
             checked={form.rememberMe}
             label="Remember me"
-            /*
-             * BUG-3357 — settled: Remember me keeps this browser signed in
-             * across restarts by lengthening the refresh token's lifetime; it
-             * does not lengthen how long an individual access token is valid
-             * for. The copy says that explicitly rather than implying a
-             * longer active session than the tenant's session policy grants.
-             */
-            hint="Keeps you signed in on this browser across restarts. It does not change how long an individual sign-in stays active."
             onChange={(checked) => updateField("rememberMe", checked)}
           />
         </div>
 
         <Link
-          className="text-sm text-muted transition hover:text-foreground"
+          className="shrink-0 whitespace-nowrap text-sm text-muted transition hover:text-foreground"
           href="/activate-account"
         >
           Activate account
