@@ -487,7 +487,10 @@ const {
   SUPPORTED_EMAIL_PROVIDER_TYPES,
   UNIMPLEMENTED_EMAIL_PROVIDER_TYPES,
   ALL_EMAIL_PROVIDER_TYPES,
+  SINK_EMAIL_PROVIDER_TYPES,
   isSupportedEmailProviderType,
+  sinkEmailProvidersRetired,
+  selectableEmailProviderTypes,
 } = require("./email-providers");
 
 const {
@@ -518,7 +521,10 @@ module.exports = {
   SUPPORTED_EMAIL_PROVIDER_TYPES,
   UNIMPLEMENTED_EMAIL_PROVIDER_TYPES,
   ALL_EMAIL_PROVIDER_TYPES,
+  SINK_EMAIL_PROVIDER_TYPES,
   isSupportedEmailProviderType,
+  sinkEmailProvidersRetired,
+  selectableEmailProviderTypes,
   DEFAULT_LOCAL_PORTS,
   PRODUCTION_APP_URLS,
   LOOPBACK_HOSTNAMES,

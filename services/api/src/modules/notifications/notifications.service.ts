@@ -30,6 +30,7 @@ import {
   CreateEmailProviderDto,
   CreateEmailTemplateDto,
   EmailDeliveryLogQueryDto,
+  InAppDeliveryLogQueryDto,
   PreviewEmailTemplateDto,
   TestSendEmailTemplateDto,
   UpdateEmailProviderDto,
@@ -37,8 +38,10 @@ import {
   UpdateNotificationPreferencesDto,
   UpdateNotificationRuleDto,
 } from './dto';
+import { SUPPORTED_EMAIL_PROVIDER_TYPES } from '@repo/config';
 import { EmailService } from './email/email.service';
 import { EffectiveEmailProviderService } from './email/effective-email-provider.service';
+import { PROVIDER_SCHEMAS } from './email/provider-field-schema';
 import { isSinkProvider } from './email/providers';
 import { AUTH_NOTIFICATION_EVENTS } from './email/email-execution.service';
 import {
@@ -726,10 +729,32 @@ export class NotificationsService {
     return mapEmailProviderSetting(provider);
   }
 
+  /**
+   * What each provider type needs configured, and which types an administrator
+   * may choose here.
+   *
+   * BUG-3501. The settings screen used to offer `SUPPORTED_EMAIL_PROVIDER_TYPES`
+   * straight from `@repo/config`, so production offered CONSOLE and DEV. The
+   * web app cannot tell production from a preview build on its own, so the API
+   * — which is the authority that refuses them — publishes the list instead.
+   * `items` is unchanged, so an older screen keeps working.
+   */
+  listProviderFieldSchema() {
+    const sinksRetired = this.effectiveProvider.sinkProvidersRetired();
+    return {
+      items: PROVIDER_SCHEMAS,
+      selectableProviderTypes: SUPPORTED_EMAIL_PROVIDER_TYPES.filter(
+        (providerType) =>
+          !(sinksRetired && isSinkProvider(providerType as EmailProviderType)),
+      ),
+    };
+  }
+
   async createProvider(
     currentUser: AuthenticatedUser,
     dto: CreateEmailProviderDto,
   ) {
+    this.assertProviderTypeAllowed(dto.providerType);
     const configuration = normalizeConfiguration(dto.configuration);
     validateProviderConfiguration(dto.providerType, configuration);
 
@@ -745,6 +770,12 @@ export class NotificationsService {
       fromName: dto.fromName.trim(),
       replyToEmail: dto.replyToEmail?.trim().toLowerCase() || null,
       configuration: this.protectConfiguration(configuration),
+    });
+
+    await this.auditProviderChange(currentUser, 'email_provider.created', {
+      entityId: provider.id,
+      before: null,
+      after: provider,
     });
 
     return mapEmailProviderSetting(provider);
@@ -764,6 +795,19 @@ export class NotificationsService {
     }
 
     const providerType = dto.providerType ?? existing.providerType;
+    const enabled = dto.enabled ?? existing.enabled;
+    /*
+     * An existing Console row may still be disabled, renamed while disabled, or
+     * switched to SMTP — that is how an administrator cleans it up. What
+     * production refuses is a row that ends up a sink AND is either enabled or
+     * newly switched into a sink type.
+     */
+    if (
+      isSinkProvider(providerType) &&
+      (enabled || providerType !== existing.providerType)
+    ) {
+      this.assertProviderTypeAllowed(providerType);
+    }
     const configuration =
       dto.configuration !== undefined
         ? mergeConfigurationPreservingMaskedSecrets(
@@ -773,7 +817,6 @@ export class NotificationsService {
         : (existing.configuration as Record<string, unknown>);
     validateProviderConfiguration(providerType, configuration);
 
-    const enabled = dto.enabled ?? existing.enabled;
     const isDefault = enabled ? (dto.isDefault ?? existing.isDefault) : false;
 
     const provider = await this.notificationsRepository.updateProvider(
@@ -803,6 +846,12 @@ export class NotificationsService {
       },
     );
 
+    await this.auditProviderChange(currentUser, 'email_provider.updated', {
+      entityId: provider.id,
+      before: existing,
+      after: provider,
+    });
+
     return mapEmailProviderSetting(provider);
   }
 
@@ -829,6 +878,17 @@ export class NotificationsService {
   }
 
   async setDefaultProvider(currentUser: AuthenticatedUser, providerId: string) {
+    const existing = await this.notificationsRepository.findProviderById(
+      currentUser.tenantId,
+      providerId,
+    );
+    if (!existing) {
+      throw new NotFoundException('Email provider setting was not found.');
+    }
+    // Set-default also enables the row (NotificationsRepository.setDefaultProvider),
+    // so it is refused for a sink on the same terms as enabling one.
+    this.assertProviderTypeAllowed(existing.providerType);
+
     const provider = await this.notificationsRepository.setDefaultProvider(
       currentUser.tenantId,
       providerId,
@@ -836,18 +896,81 @@ export class NotificationsService {
     if (!provider) {
       throw new NotFoundException('Email provider setting was not found.');
     }
+
+    await this.auditProviderChange(currentUser, 'email_provider.default_set', {
+      entityId: provider.id,
+      before: existing,
+      after: provider,
+    });
+
     return mapEmailProviderSetting(provider);
   }
 
   async disableProvider(currentUser: AuthenticatedUser, providerId: string) {
+    const existing = await this.notificationsRepository.findProviderById(
+      currentUser.tenantId,
+      providerId,
+    );
     const result = await this.notificationsRepository.disableProvider(
       currentUser.tenantId,
       providerId,
     );
-    if (result.count === 0) {
+    if (!existing || result.count === 0) {
       throw new NotFoundException('Email provider setting was not found.');
     }
+
+    await this.auditProviderChange(currentUser, 'email_provider.disabled', {
+      entityId: existing.id,
+      before: existing,
+      after: { ...existing, enabled: false, isDefault: false },
+    });
+
     return { disabled: true };
+  }
+
+  /**
+   * ADR-0015 — production refuses CONSOLE and DEV providers.
+   *
+   * Server-side on purpose: the settings screen stops offering them too, but a
+   * hidden option is not a control, and a stale browser tab or a direct API
+   * call would otherwise recreate the sink this decision retires.
+   */
+  private assertProviderTypeAllowed(providerType: EmailProviderType) {
+    if (
+      isSinkProvider(providerType) &&
+      this.effectiveProvider.sinkProvidersRetired()
+    ) {
+      throw new BadRequestException({
+        code: 'EMAIL_PROVIDER_TYPE_NOT_ALLOWED',
+        message:
+          'Console and Dev email providers cannot be used in production. Choose SMTP.',
+      });
+    }
+  }
+
+  /*
+   * Provider changes decide where a tenant's mail goes, so every write is
+   * audited. The snapshot deliberately omits `configuration`: even masked it
+   * describes credentials, and nothing an auditor needs is in it.
+   */
+  private async auditProviderChange(
+    currentUser: AuthenticatedUser,
+    action: string,
+    input: {
+      entityId: string;
+      before: EmailProviderSetting | null;
+      after: EmailProviderSetting;
+    },
+  ) {
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action,
+      entityType: 'EmailProviderSetting',
+      entityId: input.entityId,
+      beforeSnapshot: input.before ? providerAuditSnapshot(input.before) : null,
+      afterSnapshot: providerAuditSnapshot(input.after),
+    });
   }
 
   listDeliveryLogs(
@@ -858,6 +981,41 @@ export class NotificationsService {
       currentUser.tenantId,
       query,
     );
+  }
+
+  /**
+   * ITEM-0182 — in-app deliveries across the tenant.
+   *
+   * Flattened to the row a log table shows. The recipient is identified by
+   * name and work email only; what the notification said stays out of the
+   * log (see `listTenantInAppDeliveryLogs`).
+   */
+  async listInAppDeliveryLogs(
+    currentUser: AuthenticatedUser,
+    query: InAppDeliveryLogQueryDto,
+  ) {
+    const result =
+      await this.notificationsRepository.listTenantInAppDeliveryLogs(
+        currentUser.tenantId,
+        query,
+      );
+
+    return {
+      ...result,
+      items: result.items.map((row) => ({
+        id: row.id,
+        title: row.notification.title,
+        eventCode: row.notification.eventCode,
+        recipient: row.user.email,
+        recipientName: [row.user.firstName, row.user.lastName]
+          .filter(Boolean)
+          .join(' '),
+        status: row.status,
+        deliveredAt: row.deliveredAt,
+        readAt: row.readAt,
+        createdAt: row.createdAt,
+      })),
+    };
   }
 
   async getDeliveryLog(currentUser: AuthenticatedUser, deliveryLogId: string) {
@@ -1652,6 +1810,18 @@ function mapEmailTemplate(template: EmailTemplate) {
     updatedBy: template.updatedBy,
     createdAt: template.createdAt,
     updatedAt: template.updatedAt,
+  };
+}
+
+function providerAuditSnapshot(provider: EmailProviderSetting) {
+  return {
+    providerType: provider.providerType,
+    providerName: provider.providerName,
+    enabled: provider.enabled,
+    isDefault: provider.isDefault,
+    fromEmail: provider.fromEmail,
+    fromName: provider.fromName,
+    replyToEmail: provider.replyToEmail,
   };
 }
 

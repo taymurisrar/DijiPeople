@@ -34,6 +34,21 @@ import type { EmailDeliveryLogQueryDto } from './dto/email-delivery-log-query.dt
 
 type PrismaDb = PrismaService | Prisma.TransactionClient;
 
+/*
+ * ITEM-0182. What a tenant delivery log may show about an in-app notification:
+ * that it reached a person, when, and whether it was read. Declared once so the
+ * query and its spec agree on it.
+ */
+export const inAppDeliveryLogSelect = {
+  id: true,
+  status: true,
+  deliveredAt: true,
+  readAt: true,
+  createdAt: true,
+  notification: { select: { title: true, eventCode: true } },
+  user: { select: { firstName: true, lastName: true, email: true } },
+} satisfies Prisma.NotificationRecipientSelect;
+
 export type TenantEmailTemplateWriteInput = {
   tenantId: string;
   /* Defaults to the tenant scope when the caller does not place the template. */
@@ -874,6 +889,65 @@ export class NotificationsRepository {
       skip: (page - 1) * pageSize,
       take: pageSize,
     });
+  }
+
+  /**
+   * ITEM-0182 — every in-app delivery in the tenant, for the Delivery Logs
+   * screen, not only the caller's own inbox.
+   *
+   * The `select` is explicit on purpose. A notification's `body`, `payload` and
+   * `metadata` can carry links and record details addressed to one person
+   * (BUG-3137 is the email-log version of that leak); an administrator reading
+   * a delivery log needs to know that it reached someone, not what it said.
+   */
+  async listTenantInAppDeliveryLogs(
+    tenantId: string,
+    query: { search?: string; page?: number; pageSize?: number },
+    db: PrismaDb = this.prisma,
+  ) {
+    const page = Math.max(1, Number(query.page ?? 1));
+    const pageSize = Math.min(100, Math.max(1, Number(query.pageSize ?? 25)));
+    const search = query.search?.trim();
+    const where: Prisma.NotificationRecipientWhereInput = {
+      tenantId,
+      ...(search
+        ? {
+            OR: [
+              {
+                notification: {
+                  title: { contains: search, mode: 'insensitive' },
+                },
+              },
+              { user: { email: { contains: search, mode: 'insensitive' } } },
+              {
+                user: { firstName: { contains: search, mode: 'insensitive' } },
+              },
+              {
+                user: { lastName: { contains: search, mode: 'insensitive' } },
+              },
+            ],
+          }
+        : {}),
+    };
+
+    const [items, total] = await Promise.all([
+      db.notificationRecipient.findMany({
+        where,
+        select: inAppDeliveryLogSelect,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      db.notificationRecipient.count({ where }),
+    ]);
+
+    return {
+      items,
+      page,
+      pageSize,
+      total,
+      totalPages: Math.ceil(total / pageSize),
+    };
   }
 
   countUnreadInAppNotifications(
