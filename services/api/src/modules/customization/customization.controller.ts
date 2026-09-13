@@ -114,9 +114,16 @@ export class CustomizationController {
     return this.customizationService.listPublishDraftComponents(user);
   }
 
+  /*
+   * ADR-0013 — a draft layer is a write, not a publish. The key that authorizes
+   * it depends on the component type in the body (a choice list, a relationship,
+   * an action bar), which a decorator cannot see, so the service asserts that
+   * type's own manage key before writing. `customization.read` here is only the
+   * floor every customization route shares.
+   */
   @Post('layers/ensure')
-  @Permissions('customization.publish')
-  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'configure')
+  @Permissions('customization.read')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'write')
   ensureCustomizationLayer(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: EnsureCustomizationLayerDto,
@@ -172,7 +179,7 @@ export class CustomizationController {
   }
 
   @Post('packages')
-  @Permissions('customization.publish')
+  @Permissions('customization.packages.manage')
   @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'configure')
   createPackage(
     @CurrentUser() user: AuthenticatedUser,
@@ -194,7 +201,7 @@ export class CustomizationController {
   }
 
   @Post('packages/import/preview')
-  @Permissions('customization.publish')
+  @Permissions('customization.import.preview')
   @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'configure')
   previewPackageImport(@Body() dto: PreviewCustomizationPackageImportDto) {
     return this.customizationService.previewPackageImport(dto);
@@ -211,7 +218,7 @@ export class CustomizationController {
   }
 
   @Patch('packages/:packageId')
-  @Permissions('customization.publish')
+  @Permissions('customization.packages.manage')
   @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'configure')
   updatePackage(
     @CurrentUser() user: AuthenticatedUser,
@@ -222,7 +229,7 @@ export class CustomizationController {
   }
 
   @Delete('packages/:packageId')
-  @Permissions('customization.publish')
+  @Permissions('customization.packages.manage')
   @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'configure')
   deletePackage(
     @CurrentUser() user: AuthenticatedUser,
@@ -248,7 +255,7 @@ export class CustomizationController {
   }
 
   @Post('packages/:packageId/components')
-  @Permissions('customization.publish')
+  @Permissions('customization.packages.manage')
   @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'configure')
   addExistingComponentsToPackage(
     @CurrentUser() user: AuthenticatedUser,
@@ -283,7 +290,7 @@ export class CustomizationController {
   }
 
   @Delete('packages/:packageId/components/:componentId')
-  @Permissions('customization.publish')
+  @Permissions('customization.packages.manage')
   @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'configure')
   removeComponentFromPackage(
     @CurrentUser() user: AuthenticatedUser,
@@ -298,7 +305,7 @@ export class CustomizationController {
   }
 
   @Delete('packages/:packageId/components/:componentId/metadata')
-  @Permissions('customization.publish')
+  @Permissions('customization.packages.manage')
   @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'configure')
   deletePackageComponentMetadata(
     @CurrentUser() user: AuthenticatedUser,

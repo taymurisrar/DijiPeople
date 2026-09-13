@@ -1,6 +1,10 @@
 import { apiRequestJson } from "@/lib/server-api";
 import { SettingsShell } from "../../../_components/settings-shell";
-import { requireSettingsPermissions } from "../../../_lib/require-settings-permission";
+import {
+  isAccessDeniedError,
+  requireCustomizationPage,
+} from "../../_lib/customization-access";
+import { CustomizationAccessDenied } from "../../_components/customization-access-denied";
 import { PackageDetailShell } from "../../_components/package-detail-shell";
 import type {
   CustomizationPackageDetail,
@@ -15,17 +19,26 @@ export default async function CustomizationPackageDetailPage({
   params,
 }: PackageDetailPageProps) {
   const { packageId } = await params;
-  await requireSettingsPermissions(["customization.read"]);
-  const [packageDetail, modules] = await Promise.all([
-    apiRequestJson<CustomizationPackageDetail>(
-      `/customization/packages/${packageId}`,
-    ),
-    apiRequestJson<CustomizationTable[]>("/customization/tables"),
-  ]);
+  const { allowed } = await requireCustomizationPage("packageDetail");
+  if (!allowed) return <CustomizationAccessDenied />;
+
+  let packageDetail: CustomizationPackageDetail;
+  let modules: CustomizationTable[];
+  try {
+    [packageDetail, modules] = await Promise.all([
+      apiRequestJson<CustomizationPackageDetail>(
+        `/customization/packages/${packageId}`,
+      ),
+      apiRequestJson<CustomizationTable[]>("/customization/tables"),
+    ]);
+  } catch (error) {
+    if (isAccessDeniedError(error)) return <CustomizationAccessDenied />;
+    throw error;
+  }
 
   return (
     <SettingsShell
-      description="Review Package metadata grouped by Module and component type."
+      description=""
       eyebrow="Package"
       title={packageDetail.displayName}
     >

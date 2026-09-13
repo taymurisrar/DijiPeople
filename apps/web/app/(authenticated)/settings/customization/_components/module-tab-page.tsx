@@ -1,39 +1,39 @@
 import { apiRequestJson } from "@/lib/server-api";
-import { getAudienceOptions } from "@/lib/runtime/audience-options.server";
-import { SettingsShell } from "../../../_components/settings-shell";
+import { SettingsShell } from "../../_components/settings-shell";
 import {
   isAccessDeniedError,
   requireCustomizationPage,
-} from "../../_lib/customization-access";
-import { CustomizationAccessDenied } from "../../_components/customization-access-denied";
+} from "../_lib/customization-access";
 import {
-  TableDetailShell,
-  type TabKey,
-} from "../../_components/table-detail-shell";
-import {
+  mergeRuntimeForms,
+  mergeRuntimeViews,
+} from "../_lib/runtime-customization-metadata";
+import type {
   CustomizationColumn,
   CustomizationForm,
   CustomizationPackage,
   CustomizationTable,
   CustomizationView,
-} from "../../types";
-import {
-  mergeRuntimeForms,
-  mergeRuntimeViews,
-} from "../../_lib/runtime-customization-metadata";
+} from "../types";
+import { CustomizationAccessDenied } from "./customization-access-denied";
+import { TableDetailShell } from "./table-detail-shell";
 
-type TableDetailPageProps = {
-  params: Promise<{ tableKey: string }>;
-  searchParams: Promise<{ tab?: string | string[] }>;
-};
+const TAB_TITLES = {
+  columns: "fields",
+  forms: "forms",
+  views: "views",
+} as const;
 
-export default async function CustomizationTableDetailPage({
-  params,
-  searchParams,
-}: TableDetailPageProps) {
-  const { tableKey } = await params;
-  const query = await searchParams;
-  const initialTab = resolveTab(query.tab);
+/*
+ * The Fields, Forms and Views routes were three copies of one page that loaded
+ * the same six resources and each gated on a different subset of the keys those
+ * loads need — so a user one key short passed the gate and crashed on the load.
+ * One loader, gated on the module detail page's full key set (ADR-0013).
+ */
+export async function renderModuleTab(
+  tableKey: string,
+  tab: keyof typeof TAB_TITLES,
+) {
   const { allowed } = await requireCustomizationPage("moduleDetail");
   if (!allowed) return <CustomizationAccessDenied />;
 
@@ -44,7 +44,6 @@ export default async function CustomizationTableDetailPage({
     CustomizationForm[],
     CustomizationTable[],
     CustomizationPackage[],
-    Awaited<ReturnType<typeof getAudienceOptions>>,
   ];
   try {
     loaded = await Promise.all([
@@ -60,49 +59,28 @@ export default async function CustomizationTableDetailPage({
       ),
       apiRequestJson<CustomizationTable[]>("/customization/tables"),
       apiRequestJson<CustomizationPackage[]>("/customization/packages"),
-      getAudienceOptions(),
     ]);
   } catch (error) {
     if (isAccessDeniedError(error)) return <CustomizationAccessDenied />;
     throw error;
   }
-  const [table, columns, views, forms, lookupTables, packages, audiences] =
-    loaded;
+  const [table, columns, views, forms, lookupTables, packages] = loaded;
 
   return (
     <SettingsShell
       description=""
       eyebrow="Customization"
-      title={table.displayName}
+      title={`${table.displayName} ${TAB_TITLES[tab]}`}
     >
       <TableDetailShell
-        audiences={audiences}
         columns={columns}
         forms={mergeRuntimeForms(tableKey, forms)}
+        initialTab={tab}
         lookupTables={lookupTables}
         packages={packages}
-        initialTab={initialTab}
         table={table}
         views={mergeRuntimeViews(tableKey, views)}
       />
     </SettingsShell>
   );
-}
-
-const supportedTabs = new Set<TabKey>([
-  "columns",
-  "forms",
-  "views",
-  "choiceLists",
-  "relationships",
-  "actionBars",
-  "widgets",
-  "settings",
-]);
-
-function resolveTab(value: string | string[] | undefined): TabKey {
-  const candidate = Array.isArray(value) ? value[0] : value;
-  return candidate && supportedTabs.has(candidate as TabKey)
-    ? (candidate as TabKey)
-    : "columns";
 }

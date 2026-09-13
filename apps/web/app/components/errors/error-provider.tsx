@@ -17,6 +17,7 @@ import {
   persistClientError,
   shouldReportClientError,
 } from "./client-error-log";
+import { classifyRuntimeError } from "./runtime-error-classification";
 
 export type ErrorLogUser = {
   roleKeys?: string[];
@@ -55,15 +56,39 @@ export function ErrorProvider({
     return () => window.removeEventListener(apiErrorEventName(), handler);
   }, [showError]);
 
+  /*
+   * BUG-3496 — errors the browser raised itself go through
+   * `classifyRuntimeError` first. A recoverable hydration mismatch used to open
+   * this modal with the raw minified React text and log a 500 on every load of
+   * a working page; it is now neither shown nor logged. Any other minified React
+   * error is still shown and logged, with a message a user can act on in place
+   * of React's.
+   */
+  const showRuntimeError = useCallback(
+    (error: unknown) => {
+      const disposition = classifyRuntimeError(error);
+      if (disposition.kind === "ignore") return;
+      if (disposition.userMessage && error instanceof Error) {
+        const replaced = new Error(disposition.userMessage);
+        replaced.stack = error.stack;
+        showError(replaced);
+        return;
+      }
+      showError(error);
+    },
+    [showError],
+  );
+
   useEffect(() => {
     const handleRuntimeError = (event: ErrorEvent) => {
-      if (event.message?.includes("ResizeObserver loop")) return;
-      showError(event.error ?? new Error(event.message || "Browser runtime error"));
+      showRuntimeError(
+        event.error ?? new Error(event.message || "Browser runtime error"),
+      );
     };
     const handleRejectedPromise = (event: PromiseRejectionEvent) => {
-      const reason = event.reason;
-      if (reason instanceof DOMException && reason.name === "AbortError") return;
-      showError(reason ?? new Error("Unhandled browser promise rejection"));
+      showRuntimeError(
+        event.reason ?? new Error("Unhandled browser promise rejection"),
+      );
     };
 
     window.addEventListener("error", handleRuntimeError);

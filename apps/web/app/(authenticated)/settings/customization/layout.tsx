@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { requireCustomizationAccess } from "../_lib/require-settings-permission";
-import { AccessDeniedState } from "../../_components/access-denied-state";
+import { requireCustomizationPage } from "./_lib/customization-access";
+import { CustomizationAccessDenied } from "./_components/customization-access-denied";
 
 export default async function CustomizationLayout({
   children,
@@ -8,31 +8,16 @@ export default async function CustomizationLayout({
   children: ReactNode;
 }) {
   /*
-   * BUG-3374 — this used to redirect a denied user to a hardcoded legacy
-   * `/settings/access/roles` path (which `next.config.ts` then rewrote to
-   * Roles' real URL, where Roles resolved its own default view and appended
-   * `?viewId=`), so a permission failure here read as a broken link to an
-   * unrelated screen rather than a refusal. It also disagreed with every page
-   * beneath this layout about what "permitted" means. `requireCustomizationAccess`
-   * now uses the same authorization model those pages already assume, and a
-   * denial renders in place — no redirect, no dependence on the legacy
-   * rewrite, and the URL the user asked for stays in the address bar.
+   * ADR-0013 — the section gate is the `customization.read` key and nothing
+   * else: no role, no redirect. BUG-3374 removed the redirect to Roles; BUG-3491
+   * removed the role bypass that let this layout admit users the API then
+   * refused. Each page beneath adds the keys its own API calls need, from the
+   * same map (`_lib/customization-page-permissions.json`).
    */
-  const { allowed } = await requireCustomizationAccess([
-    "customization.read",
-  ]);
+  const { allowed } = await requireCustomizationPage("section");
 
   if (!allowed) {
-    return (
-      <div className="min-h-screen bg-background px-2 py-4 sm:px-4 lg:px-6">
-        <div className="mx-auto w-full max-w-7xl">
-          <AccessDeniedState
-            title="Access denied"
-            description="You do not have access to Customization settings."
-          />
-        </div>
-      </div>
-    );
+    return <CustomizationAccessDenied />;
   }
 
   return children;

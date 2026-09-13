@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
@@ -57,8 +58,39 @@ import {
   resolveEffectivePackageComponents,
 } from './package-layer-runtime';
 
+/*
+ * The legacy holding package. New drafts no longer land here (BUG-3493); it is
+ * kept so drafts already in it are still listed, reported by validation, and
+ * movable to a real Custom Package.
+ */
 const UNASSIGNED_DRAFT_PACKAGE_KEY = 'unassigned-draft-customizations';
-const UNASSIGNED_DRAFT_PACKAGE_NAME = 'Unassigned Draft Customizations';
+
+/*
+ * BUG-3493 — the tenant's own writable Custom Package, where a draft created
+ * without an explicit package lands. It is an ordinary Custom Package in every
+ * respect: listed as a move target, validated, publishable and exportable.
+ * Found by this key suffix rather than by a full key, because the key's prefix
+ * is derived from the tenant name when the package is first created and a later
+ * rename must not create a second one.
+ */
+const TENANT_CUSTOM_PACKAGE_KEY_SUFFIX = '_tenantCustomizations';
+
+/*
+ * ADR-0013 — the permission that authorizes writing each metadata component
+ * type through `POST /customization/layers/ensure`. The route's decorator cannot
+ * see the component type in the body, so the service asserts it. The web pages
+ * gate their Add buttons on the same keys; the seam spec keeps the two equal.
+ */
+export const CUSTOMIZATION_COMPONENT_WRITE_KEYS: Readonly<
+  Record<string, string>
+> = {
+  choiceList: 'customization.choice-lists.manage',
+  relationship: 'customization.relationships.manage',
+  actionBar: 'customization.action-bars.manage',
+};
+
+/* Any other layer type written through that route is a publishing operation. */
+const DEFAULT_COMPONENT_WRITE_KEY = 'customization.publish';
 
 @Injectable()
 export class CustomizationService {
@@ -540,6 +572,46 @@ export class CustomizationService {
         (item) => `${item.packageId}:${item.componentType}:${item.objectId}`,
       ),
     );
+    /*
+     * BUG-3493 — a warning about deactivating a default component belongs to a
+     * genuine system default. This used to pass every form and view draft,
+     * so a view the administrator had just created was reported as "a default
+     * component".
+     */
+    const formIds = scopedRows
+      .filter((item) => item.componentType === 'form')
+      .map((item) => item.objectId);
+    const viewIds = scopedRows
+      .filter((item) => item.componentType === 'view')
+      .map((item) => item.objectId);
+    const [defaultForms, defaultViews, unassignedPackage] = await Promise.all([
+      formIds.length
+        ? this.prisma.customizationForm.findMany({
+            where: {
+              tenantId: currentUser.tenantId,
+              id: { in: formIds },
+              isDefault: true,
+              isSystem: true,
+            },
+            select: { id: true },
+          })
+        : Promise.resolve([] as Array<{ id: string }>),
+      viewIds.length
+        ? this.prisma.customizationView.findMany({
+            where: {
+              tenantId: currentUser.tenantId,
+              id: { in: viewIds },
+              isDefault: true,
+              isSystem: true,
+            },
+            select: { id: true },
+          })
+        : Promise.resolve([] as Array<{ id: string }>),
+      this.findUnassignedDraftPackage(currentUser),
+    ]);
+    const defaultObjectIds = new Set(
+      [...defaultForms, ...defaultViews].map((item) => item.id),
+    );
     const issues = validatePackageComponentDependencies({
       components: scopedRows.map((item) => ({
         id: item.id,
@@ -561,12 +633,28 @@ export class CustomizationService {
         .filter((item) => item.componentType === 'column')
         .map((item) => item.componentName),
       defaultComponentKeys: scopedDrafts
-        .filter(
-          (item) =>
-            item.componentType === 'form' || item.componentType === 'view',
-        )
+        .filter((item) => defaultObjectIds.has(item.objectId))
         .map((item) => item.componentName),
     });
+
+    /*
+     * BUG-3493 — validation reports every reason publish refuses. Drafts in the
+     * legacy holding package were passed here as valid and then refused by
+     * publish with a different message, so "Validate" said yes and "Publish" said
+     * no. The rule lives here now and nowhere else; publish runs this validation.
+     */
+    if (unassignedPackage) {
+      for (const draft of scopedDrafts) {
+        if (draft.packageId !== unassignedPackage.id) continue;
+        issues.push({
+          severity: 'error',
+          componentId: draft.id,
+          componentType: draft.componentType,
+          message: `${draft.componentName} is in ${unassignedPackage.displayName}. Move it to a Custom Package, then publish.`,
+          blocking: true,
+        });
+      }
+    }
 
     return {
       valid: !issues.some((issue) => issue.blocking),
@@ -574,30 +662,149 @@ export class CustomizationService {
     };
   }
 
+  /*
+   * ADR-0013 — `layers/ensure` writes every metadata component type through one
+   * route, so the route's decorator can only require the shared floor. The key
+   * for the type actually being written is checked here, before anything is
+   * created.
+   */
+  private assertComponentWritePermission(
+    currentUser: AuthenticatedUser,
+    componentType: string,
+  ) {
+    const aliases: Record<string, string> = {
+      optionSet: 'choiceList',
+      lookup: 'relationship',
+    };
+    const normalized = aliases[componentType] ?? componentType;
+    const requiredKey =
+      CUSTOMIZATION_COMPONENT_WRITE_KEYS[normalized] ??
+      DEFAULT_COMPONENT_WRITE_KEY;
+    if ((currentUser.permissionKeys ?? []).includes(requiredKey)) return;
+
+    throw new ForbiddenException({
+      code:
+        requiredKey === DEFAULT_COMPONENT_WRITE_KEY
+          ? 'CUSTOMIZATION_PUBLISH_PERMISSION_REQUIRED'
+          : 'CUSTOMIZATION_PERMISSION_REQUIRED',
+      message: `Customization requires the ${requiredKey} permission.`,
+    });
+  }
+
+  /*
+   * BUG-3495 — metadata that cannot work is refused before it is stored.
+   *
+   * An action bar row with no command rendered a button bound to nothing, and a
+   * relationship could name a reference field that did not exist on its module;
+   * both saved without complaint and failed only at runtime. A deactivation
+   * (`isActive: false`) is exempt, so a component saved before these rules
+   * existed can still be switched off.
+   */
+  private async validateLayerMetadata(
+    currentUser: AuthenticatedUser,
+    table: CustomizationTable,
+    componentType: CustomizationSolutionComponentType,
+    metadataJson: Record<string, unknown> | undefined,
+  ) {
+    if (!metadataJson || metadataJson.isActive === false) return;
+
+    if (componentType === 'actionBar' && metadataJson.actions !== undefined) {
+      if (!Array.isArray(metadataJson.actions)) {
+        throw new BadRequestException('Action bar actions must be a list.');
+      }
+      metadataJson.actions.forEach((action: unknown, index: number) => {
+        const command =
+          typeof action === 'string'
+            ? action
+            : action && typeof action === 'object' && !Array.isArray(action)
+              ? (action as { command?: unknown }).command
+              : undefined;
+        if (typeof command !== 'string' || !command.trim()) {
+          throw new BadRequestException(
+            `Action ${index + 1} has no command. Choose a command or remove the action.`,
+          );
+        }
+      });
+    }
+
+    if (componentType === 'lookup') {
+      const referenceField =
+        typeof metadataJson.referenceField === 'string'
+          ? metadataJson.referenceField.trim()
+          : '';
+      if (!referenceField) {
+        throw new BadRequestException(
+          'Choose the reference field this relationship uses.',
+        );
+      }
+      const exists = await this.isReferenceColumnOfTable(
+        currentUser.tenantId,
+        table,
+        referenceField,
+      );
+      if (!exists) {
+        throw new BadRequestException(
+          `${referenceField} is not a reference field on ${table.displayName}.`,
+        );
+      }
+    }
+  }
+
+  private async isReferenceColumnOfTable(
+    tenantId: string,
+    table: CustomizationTable,
+    columnKey: string,
+  ) {
+    const systemColumn = findSystemCustomizationTable(
+      table.tableKey,
+    )?.columns.find((column) => column.columnKey === columnKey);
+    if (systemColumn) return systemColumn.dataType === 'lookup';
+
+    const column = await this.prisma.customizationColumn.findFirst({
+      where: {
+        tenantId,
+        tableId: table.id,
+        columnKey,
+        isActive: true,
+        OR: [{ dataType: 'lookup' }, { fieldType: 'lookup' }],
+      },
+      select: { id: true },
+    });
+    return Boolean(column);
+  }
+
   async ensureCustomizationLayer(
     currentUser: AuthenticatedUser,
     dto: EnsureCustomizationLayerDto,
   ) {
-    await this.syncDefaultSolution(currentUser);
-    const packageRecord = dto.packageId
-      ? await this.findPackageOrThrow(currentUser, dto.packageId)
-      : await this.getOrCreateUnassignedDraftPackage(currentUser);
-    if (packageRecord.isDefault || packageRecord.isSystem) {
-      throw new BadRequestException(
-        'Default Package cannot contain customization layers.',
-      );
-    }
-
+    this.assertComponentWritePermission(currentUser, dto.componentType);
     const componentType = toSolutionComponentType(dto.componentType);
     if (!componentType) {
       throw new BadRequestException(
         'This component type is not backed by metadata storage yet.',
       );
     }
+
+    await this.syncDefaultSolution(currentUser);
     const table = await this.ensureCustomizationTable(
       currentUser.tenantId,
       dto.moduleKey,
     );
+    await this.validateLayerMetadata(
+      currentUser,
+      table,
+      componentType,
+      dto.metadataJson,
+    );
+
+    const packageRecord = dto.packageId
+      ? await this.findPackageOrThrow(currentUser, dto.packageId)
+      : await this.getOrCreateTenantCustomPackage(currentUser);
+    if (packageRecord.isDefault || packageRecord.isSystem) {
+      throw new BadRequestException(
+        'Default Package cannot contain customization layers.',
+      );
+    }
     const objectKey = dto.componentKey.includes('.')
       ? dto.componentKey
       : `${table.tableKey}.${dto.componentKey}`;
@@ -833,16 +1040,8 @@ export class CustomizationService {
         'One or more selected components are no longer draft components.',
       );
     }
-    if (
-      drafts.some(
-        (component) =>
-          component.solution.solutionKey === UNASSIGNED_DRAFT_PACKAGE_KEY,
-      )
-    ) {
-      throw new BadRequestException(
-        'Move unassigned draft customizations to a Custom Package before publishing.',
-      );
-    }
+    // The unassigned-package refusal that used to sit here is reported by
+    // `validatePublishDrafts` above (BUG-3493), so the two cannot disagree.
 
     const publishedAt = new Date();
     await Promise.all(
@@ -1204,11 +1403,8 @@ export class CustomizationService {
         'Managed packages cannot be published from this editor.',
       );
     }
-    if (record.solutionKey === UNASSIGNED_DRAFT_PACKAGE_KEY) {
-      throw new BadRequestException(
-        'Move unassigned draft customizations to a Custom Package before publishing.',
-      );
-    }
+    // Drafts in the legacy holding package are refused by the draft validation
+    // `publishComponents` runs below (BUG-3493) — one rule, one place.
     const validation = await this.validatePackage(currentUser, record.id);
     if (!validation.valid) {
       throw new BadRequestException({
@@ -2289,7 +2485,7 @@ export class CustomizationService {
       currentUser.tenantId,
       dto.lookupTargetTableKey,
     );
-    this.validateValueRules(dto);
+    this.validateValueRules(dto, dto.fieldType ?? dto.dataType);
 
     const table = await this.ensureCustomizationTable(
       currentUser.tenantId,
@@ -2370,7 +2566,7 @@ export class CustomizationService {
       currentUser.tenantId,
       dto.lookupTargetTableKey,
     );
-    this.validateValueRules(dto);
+    this.validateValueRules(dto, dto.fieldType ?? existing?.fieldType ?? null);
     await this.assertPrimaryNameIsUsable(dto, existing, systemColumn);
 
     /*
@@ -3993,7 +4189,7 @@ export class CustomizationService {
   ) {
     const record = packageId
       ? await this.findPackageOrThrow(currentUser, packageId)
-      : await this.getOrCreateUnassignedDraftPackage(currentUser);
+      : await this.getOrCreateTenantCustomPackage(currentUser);
     if (record.isDefault || record.isSystem) {
       throw new BadRequestException(
         'Default Package cannot contain customization layers.',
@@ -4036,22 +4232,48 @@ export class CustomizationService {
     return { component, packageRecord };
   }
 
-  private async getOrCreateUnassignedDraftPackage(
-    currentUser: AuthenticatedUser,
-  ) {
+  /**
+   * The Custom Package a draft lands in when no package was chosen.
+   *
+   * BUG-3493 — drafts used to default into "Unassigned Draft Customizations", a
+   * package that validation passed and publish refused, and that Publish Center
+   * filtered out of its move targets. Following the screen as designed, nothing
+   * could be published. The default destination is now a real, writable Custom
+   * Package belonging to the tenant, so the default path is publishable with no
+   * hidden prerequisite.
+   *
+   * Its key prefix is the one `getPackagePublisher` already derived from the
+   * tenant name for the holding package, so the logical names generated for
+   * drafts before and after this change share one prefix.
+   */
+  private async getOrCreateTenantCustomPackage(currentUser: AuthenticatedUser) {
+    const existing = await this.prisma.customizationSolution.findFirst({
+      where: {
+        tenantId: currentUser.tenantId,
+        isDefault: false,
+        isSystem: false,
+        isManaged: false,
+        solutionKey: { endsWith: TENANT_CUSTOM_PACKAGE_KEY_SUFFIX },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    if (existing) return existing;
+
+    const tenantName = currentUser.tenantName?.trim() || 'Tenant';
+    const prefix = publisherPrefix(tenantName).replace(/_$/, '');
+    const solutionKey = `${prefix}${TENANT_CUSTOM_PACKAGE_KEY_SUFFIX}`;
+
     return this.prisma.customizationSolution.upsert({
       where: {
         tenantId_solutionKey: {
           tenantId: currentUser.tenantId,
-          solutionKey: UNASSIGNED_DRAFT_PACKAGE_KEY,
+          solutionKey,
         },
       },
       create: {
         tenantId: currentUser.tenantId,
-        solutionKey: UNASSIGNED_DRAFT_PACKAGE_KEY,
-        displayName: UNASSIGNED_DRAFT_PACKAGE_NAME,
-        description:
-          'Internal holding area for draft customizations not assigned to an exportable Custom Package.',
+        solutionKey,
+        displayName: `${tenantName} Customizations`,
         scope: 'tenant',
         isDefault: false,
         isSystem: false,
@@ -4060,12 +4282,18 @@ export class CustomizationService {
         createdByUserId: currentUser.userId,
         updatedByUserId: currentUser.userId,
       },
-      update: {
-        displayName: UNASSIGNED_DRAFT_PACKAGE_NAME,
-        isDefault: false,
-        isSystem: false,
-        isActive: true,
-        updatedByUserId: currentUser.userId,
+      update: {},
+    });
+  }
+
+  /* The legacy holding package, if this tenant ever had one. Never created. */
+  private findUnassignedDraftPackage(currentUser: AuthenticatedUser) {
+    return this.prisma.customizationSolution.findUnique({
+      where: {
+        tenantId_solutionKey: {
+          tenantId: currentUser.tenantId,
+          solutionKey: UNASSIGNED_DRAFT_PACKAGE_KEY,
+        },
       },
     });
   }
@@ -5044,6 +5272,7 @@ export class CustomizationService {
       CreateCustomizationColumnDto,
       'maxLength' | 'minValue' | 'maxValue' | 'optionSetJson'
     >,
+    fieldType?: CustomizationFieldDataType | null,
   ) {
     if (
       dto.minValue !== undefined &&
@@ -5055,7 +5284,22 @@ export class CustomizationService {
       );
     }
 
-    if (dto.maxLength !== undefined && dto.maxLength < 1) {
+    /*
+     * BUG-3492 — `null` is "no length", exactly like absent. This compared
+     * `dto.maxLength !== undefined && dto.maxLength < 1`, and in JavaScript
+     * `null < 1` is true, so every choice, lookup, number, date and boolean
+     * field — which the dialog sends with `maxLength: null` — was refused with
+     * a message about a control the dialog had disabled. A length on a type
+     * that has none is ignored rather than refused; `buildColumnData` stores
+     * `null` for it.
+     */
+    const appliesToType = !fieldType || supportsMaxLength(fieldType);
+    if (
+      appliesToType &&
+      dto.maxLength !== undefined &&
+      dto.maxLength !== null &&
+      dto.maxLength < 1
+    ) {
       throw new BadRequestException('Maximum length must be at least 1.');
     }
 
@@ -5257,7 +5501,10 @@ export class CustomizationService {
       isValidForFormDesigner: dto.isVisible ?? true,
       isValidForViewDesigner: dto.isVisible ?? true,
       isReadOnly: dto.isReadOnly ?? false,
-      maxLength: dto.maxLength,
+      // BUG-3492 — a type without a length stores none, whatever was sent.
+      maxLength: supportsMaxLength(dto.fieldType ?? dto.dataType)
+        ? (dto.maxLength ?? null)
+        : null,
       minValue: dto.minValue,
       maxValue: dto.maxValue,
       defaultValue: dto.defaultValue,
@@ -5778,6 +6025,19 @@ function systemWidgetPackageMetadata(
 
 function localComponentName(value: string) {
   return value.split('.').pop() || value;
+}
+
+/* Field types that carry a maximum length. Every other type stores none. */
+const LENGTH_FIELD_TYPES = new Set<CustomizationFieldDataType>([
+  'text',
+  'textarea',
+  'email',
+  'phone',
+  'url',
+]);
+
+function supportsMaxLength(fieldType: CustomizationFieldDataType) {
+  return LENGTH_FIELD_TYPES.has(fieldType);
 }
 
 function jsonReferencesAny(value: unknown, references: readonly string[]) {

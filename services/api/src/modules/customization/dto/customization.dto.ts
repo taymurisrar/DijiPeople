@@ -167,10 +167,15 @@ export class CreateCustomizationColumnDto {
   @IsBoolean()
   isReadOnly?: boolean;
 
+  /*
+   * `null` and absent both mean "no length". `@IsOptional` skips the checks
+   * below for either, and the service treats both as unset (BUG-3492); a
+   * present value must still be a whole number of at least 1.
+   */
   @IsOptional()
   @IsInt()
   @Min(1)
-  maxLength?: number;
+  maxLength?: number | null;
 
   @IsOptional()
   @IsNumber()
@@ -266,10 +271,15 @@ export class UpdateCustomizationColumnDto {
   @IsBoolean()
   isReadOnly?: boolean;
 
+  /*
+   * `null` and absent both mean "no length". `@IsOptional` skips the checks
+   * below for either, and the service treats both as unset (BUG-3492); a
+   * present value must still be a whole number of at least 1.
+   */
   @IsOptional()
   @IsInt()
   @Min(1)
-  maxLength?: number;
+  maxLength?: number | null;
 
   @IsOptional()
   @IsNumber()

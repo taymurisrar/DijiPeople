@@ -309,6 +309,8 @@ export type CustomizationColumn = {
   isPrimaryName?: boolean;
   isReadOnly: boolean;
   lifecycleState?: "draft" | "published" | "deprecated" | "archived";
+  /* The package that owns this field's latest layer; null for untouched system fields. */
+  packageName?: string | null;
   maxLength: number | null;
   minValue?: number | string | null;
   maxValue?: number | string | null;
