@@ -200,7 +200,7 @@ None to the schema. Data (seed): system template copy and status converge on the
 
 ## Audit / event / logging impact
 
-- `AuditService.log` with `entityType: 'EmailTemplate'`, `sourceModule: 'notifications'`: `email_template.created` (after), `email_template.updated` (before/after of name, subject, status, scope, version), `email_template.customized` (source id, after), `email_template.activated`, `email_template.archived` (before/after status).
+- `AuditService.log` with `entityType: 'EmailTemplate'`, `sourceModule: 'notifications'`: `EMAIL_TEMPLATE_CREATED` (after), `EMAIL_TEMPLATE_UPDATED` (before/after of name, subject, status, scope, version), `EMAIL_TEMPLATE_CUSTOMIZED` and `EMAIL_TEMPLATE_CLONED` (source id, after), `EMAIL_TEMPLATE_ACTIVATED`, `EMAIL_TEMPLATE_ARCHIVED` (before/after status). Canonical SCREAMING_SNAKE names per `common/constants/audit-actions.ts` (BUG-2046); written as literals, not added to that shared catalog.
 - Snapshots exclude bodies, to keep audit rows small. The subject is included.
 - Test send is logged by the existing delivery log. Never logged: rendered bodies, recipient lists beyond the existing delivery log.
 
