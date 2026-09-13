@@ -9,7 +9,7 @@
 |---|---|
 | Active sessions | **1** |
 | Active parent tasks | 5 |
-| Active work packages | 11 |
+| Active work packages | 5 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
@@ -17,7 +17,7 @@
 | Open CRITICAL | **4** |
 | Open HIGH | 94 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 7 |
+| Owner decisions pending | 9 |
 | QA coverage gaps | 161 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -30,8 +30,8 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 203 |
-| No next action | 203 |
+| No acceptance criteria | 197 |
+| No next action | 197 |
 | Aging — 7d / 30d / 90d | 100 / 0 / 0 |
 | Architecture and technical debt | 7 |
 | Security gaps | 30 |
@@ -59,7 +59,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 | [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 16/16 | — | — | — |
 | [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 11/11 | — | — | — |
 | [[TASK-0028-enterprise-reports-and-analytics-platform|TASK-0028]] | Enterprise Reports and Analytics platform | FEATURE | LARGE | 5/15 | WP-08 | — | — |
-| [[TASK-0031-demo-walkthrough-2-remediation-hierarchy-work-sites-customiz|TASK-0031]] | Demo walkthrough 2 remediation - hierarchy, work sites, customization, notifications | FEATURE | PROGRAM | 0/9 | WP-00 | WP-01, WP-02, WP-03, WP-04, WP-05, WP-06 | — |
+| [[TASK-0031-demo-walkthrough-2-remediation-hierarchy-work-sites-customiz|TASK-0031]] | Demo walkthrough 2 remediation - hierarchy, work sites, customization, notifications | FEATURE | PROGRAM | 7/9 | WP-07 | — | — |
 
 ## Branch model
 
@@ -120,6 +120,8 @@ Questions where the engineering is understood and the **product answer is**
 - [[BUG-3182-no-per-tenant-restore-is-possible-restoring-one-tenant-means|BUG-3182]] — **No per-tenant restore is possible: restoring one tenant means rolling back all of them**
 - [[BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-|BUG-3333]] — **Tenant buyers choose their own currency and the three price schedules are not equivalent**
 - [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] — **No multi-factor authentication exists anywhere, including for platform super admins**
+- [[ITEM-0193-decide-whether-the-hr-role-may-manage-notification-events|ITEM-0193]] — **Decide whether the hr role may manage notification events**
+- [[ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins|ITEM-0191]] — **Decide whether custom modules need their own access keys instead of the shared custom-records privilege**
 
 ## QA Coverage Gaps
 
@@ -294,10 +296,10 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 203 |
+| Open total | 197 |
 | Blocked | 2 |
-| Deferred | 94 |
-| Awaiting a product decision | 7 |
+| Deferred | 104 |
+| Awaiting a product decision | 9 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

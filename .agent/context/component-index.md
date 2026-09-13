@@ -1,7 +1,7 @@
 # Component Index
 
 > **Last verified:** 2026-09-13
-> **Verified against commit:** f36ec9a9
+> **Verified against commit:** 4d249b40
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -16,8 +16,8 @@ question an agent can answer by retrieval rather than by reading a directory.
 comment beside it is the reasoning; this document is a route to both. Every row
 carries `file`:`line` for that reason — read the source before changing it.
 
-**An export missing from here is undocumented, not absent.** 803 of
-1037 exports across these kits carry no
+**An export missing from here is undocumented, not absent.** 833 of
+1089 exports across these kits carry no
 doc-comment and are omitted rather than listed as bare names. That ratio is
 itself worth knowing: it is where a UI/UX or Frontend agent is working without
 stated rationale, and where adding one is worth more than a new abstraction.
@@ -126,22 +126,22 @@ re-derived on each run.
 
 Metadata-driven UI is the default. New modules are declared through `lib/runtime/` and rendered by the standard runtime pages; a bespoke page needs a stated reason in the plan.
 
-162 documented export(s); 553 undocumented export(s) omitted.
+184 documented export(s); 583 undocumented export(s) omitted.
 
 | Export | Kind | Used by | Where | What it is |
 |---|---|---|---|---|
+| `ConfirmDialog` | component | 9 | `apps/web/app/components/feedback/confirm-dialog.tsx`:41 | This handled Escape but declared neither `role="dialog"` nor `aria-modal`, so it was not announced as a dialog, and Tab walked out of it into the page behind. |
 | `ChartEmpty` | component | 7 | `apps/web/app/components/charts/chart-chrome.tsx`:364 | What a chart shows when it has nothing to show. |
-| `ConfirmDialog` | component | 6 | `apps/web/app/components/feedback/confirm-dialog.tsx`:41 | This handled Escape but declared neither `role="dialog"` nor `aria-modal`, so it was not announced as a dialog, and Tab walked out of it into the page behind. |
 | `ChartSurface` | component | 4 | `apps/web/app/components/charts/chart-chrome.tsx`:146 | The SVG canvas. `role` is deliberately conditional. |
 | `ChartCategoryAxis` | component | 3 | `apps/web/app/components/charts/chart-chrome.tsx`:238 | Category labels along the bottom. |
 | `ChartValueGrid` | component | 3 | `apps/web/app/components/charts/chart-chrome.tsx`:182 | Horizontal gridlines and their value labels. |
 | `AttendanceCorrectionForm` | component | 2 | `apps/web/app/components/attendance-corrections/attendance-correction-form.tsx`:38 | The employee's correction request form. |
 | `ChartPatternDefs` | component | 2 | `apps/web/app/components/charts/chart-chrome.tsx`:69 | One `<pattern>` per series: the series colour, overlaid with a hatch whose geometry differs per index. |
+| `DialogCloseButton` | component | 2 | `apps/web/app/components/ui/dialog.tsx`:374 | The close affordance most dialogs want in their footer or header. |
 | `ApprovalChain` | component | 1 | `apps/web/app/components/approvals/approval-chain.tsx`:20 | The approval chain and its history. |
 | `AttendanceActionFeedback` | component | 1 | `apps/web/app/components/runtime/attendance-action-feedback.tsx`:15 | The contextual answer to an attendance attempt. |
 | `AttendanceCorrectionPanel` | component | 1 | `apps/web/app/components/attendance-corrections/attendance-correction-panel.tsx`:29 | Raising a correction against the record the employee is already reading. |
 | `ChartLegend` | component | 1 | `apps/web/app/components/charts/chart-chrome.tsx`:301 | The legend. A list, not a row of divs, because it is a list — and because that is what lets a screen reader announce how many series there are before reading them. |
-| `DialogCloseButton` | component | 1 | `apps/web/app/components/ui/dialog.tsx`:374 | The close affordance most dialogs want in their footer or header. |
 | `GeofenceMap` | component | 1 | `apps/web/app/components/location/geofence-map.tsx`:37 | A minimal slippy map: raster tiles, one pin, one radius circle. |
 | `InheritedOptionChoices` | component | 1 | `apps/web/app/components/runtime/inherited-setting-control.tsx`:132 | The radio group an overridden value itself is chosen with. |
 | `InheritedSettingControl` | component | 1 | `apps/web/app/components/runtime/inherited-setting-control.tsx`:18 | "Use the inherited value" versus "Override here", made explicit. |
@@ -149,9 +149,11 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `ModuleShareDialog` | component | 1 | `apps/web/app/components/runtime/module-share-dialog.tsx`:12 | Escape did nothing here and `aria-labelledby` named nothing; the read-only link input carried no accessible name at all. |
 | `SessionExpiredDialog` | component | 1 | `apps/web/app/components/feedback/session-expired-dialog.tsx`:16 | This had no dialog semantics, no focus containment and no Escape at all — which for this one is partly deliberate: there is nothing behind it the user can usefully do. |
 | `WorkspaceEnvironmentBanner` | component | 1 | `apps/web/app/components/workspace-environment-banner.tsx`:38 | A persistent marker on non-production workspaces. |
+| `CommandRequestError` | component | 0 | `apps/web/lib/runtime/command-failure-message.ts`:77 | An adapter's failed request, carrying the response it failed with. |
 | `WorkspaceContextLabel` | component | 0 | `apps/web/app/components/workspace-environment-banner.tsx`:66 | The workspace label for the app shell. |
-| `useFormattingContext` | function | 21 | `apps/web/app/components/filters/use-formatting-context.ts`:28 | The tenant's formatting context, safe to use during render. |
+| `useFormattingContext` | function | 25 | `apps/web/app/components/filters/use-formatting-context.ts`:28 | The tenant's formatting context, safe to use during render. |
 | `useDialogBehavior` | function | 15 | `apps/web/app/components/ui/dialog.tsx`:130 | The behaviour half of {@link Dialog}, on its own. |
+| `useSideToast` | function | 11 | `apps/web/app/components/notifications/use-side-toast.tsx`:19 | Local toast state plus the element that renders it. |
 | `formatChartValue` | function | 10 | `apps/web/app/components/charts/chart-format.ts`:47 | Render one measured number the way the tenant has asked for numbers to be rendered. |
 | `hasChartData` | function | 8 | `apps/web/app/components/charts/chart-types.ts`:97 | `true` when there is nothing to draw: no series, or every series empty. |
 | `pointAccessibleLabel` | function | 6 | `apps/web/app/components/charts/chart-format.ts`:176 | The accessible name for a single plotted point — the BUG-2148 countermeasure. |
@@ -159,6 +161,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `activateOnKey` | function | 4 | `apps/web/app/components/charts/chart-chrome.tsx`:392 | Keyboard activation for a plotted point. |
 | `analyticsFilterHref` | function | 4 | `apps/web/app/components/filters/analytics-search-params.ts`:207 | Build an href, omitting the `?` when there is nothing to put after it — `/reports/attendance?` is an ugly URL that also breaks naive link equality checks in navigation highlighting. |
 | `applyAnalyticsFilters` | function | 4 | `apps/web/app/components/filters/analytics-search-params.ts`:149 | Apply changes to a query string, returning a new one. |
+| `buildCustomModuleRuntime` | function | 4 | `apps/web/lib/runtime/custom-modules/custom-module-runtime.ts`:273 | The runtime context a custom-module route renders with. |
 | `defaultPrimaryNameFieldForEntity` | function | 4 | `apps/web/lib/runtime/modules/entity-primary-name-field.ts`:18 | The primary display field for an entity a lookup can point at. |
 | `linearScale` | function | 4 | `apps/web/app/components/charts/chart-geometry.ts`:67 | A linear mapping from a data domain onto a pixel range. |
 | `pointActionAccessibleLabel` | function | 4 | `apps/web/app/components/charts/chart-format.ts`:212 | The accessible name for an interactive point. |
@@ -173,7 +176,6 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `resolvePeriod` | function | 3 | `apps/web/app/components/filters/period.ts`:329 | Turn a preset into a concrete inclusive date range. |
 | `resolvePlotArea` | function | 3 | `apps/web/app/components/charts/chart-geometry.ts`:229 | The drawable rectangle inside a viewBox once axis gutters are removed. |
 | `useChartIdPrefix` | function | 3 | `apps/web/app/components/charts/chart-chrome.tsx`:51 | A stable, per-instance id prefix for SVG defs. |
-| `useSideToast` | function | 3 | `apps/web/app/components/notifications/use-side-toast.tsx`:19 | Local toast state plus the element that renders it. |
 | `buildApprovalRecord` | function | 2 | `apps/web/app/components/approvals/approval-record.ts`:15 | One approval, flattened into the shape the runtime record page reads. |
 | `buildAreaPath` | function | 2 | `apps/web/app/components/charts/chart-geometry.ts`:592 | The same shape, closed down to a baseline so it can be filled. |
 | `collapseToTopN` | function | 2 | `apps/web/app/components/charts/chart-geometry.ts`:791 | Sort descending and roll everything past the first `limit` into one bucket. |
@@ -184,9 +186,11 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `activeAnalyticsFilterCount` | function | 1 | `apps/web/app/components/filters/analytics-search-params.ts`:196 | How many scope filters are narrowing the data. |
 | `buildQuickCreateValues` | function | 1 | `apps/web/lib/runtime/related-record-create-values.ts`:56 | The dialog's value map, in precedence order: declared inheritance from the parent, then the record being edited, then whatever the user has typed, then the parent foreign key — which is not the user's to change. |
 | `buildSubgridQuickCreate` | function | 1 | `apps/web/lib/runtime/quick-create-metadata.ts`:23 | Quick-create metadata and the gate in front of it. |
+| `buildWorkSiteAssignPayload` | function | 1 | `apps/web/lib/runtime/modules/employee-work-sites.ts`:112 | Body for `POST …/work-sites` (`AssignWorkSiteDto`). |
 | `clearAnalyticsFilters` | function | 1 | `apps/web/app/components/filters/analytics-search-params.ts`:175 | Drop every filter this module owns, keeping anything it does not. |
 | `commandContextSubtitle` | function | 1 | `apps/web/lib/runtime/command-context-labels.ts`:25 | A shift is only ever called a shift, and a work site only ever a work site. |
 | `commandsForPlacement` | function | 1 | `apps/web/lib/runtime/command-catalog.ts`:191 | Commands that make sense on a given bar, for filtering the picker. |
+| `composeDashboardNavItems` | function | 1 | `apps/web/lib/runtime/custom-modules/custom-module-navigation.ts`:72 | The full sidebar catalog: the fixed list with custom entries placed just before Settings (the administrative tail), or appended when there is no Settings entry. |
 | `correctionChanges` | function | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:530 | What a correction request is asking to change, and only that. |
 | `donutArcs` | function | 1 | `apps/web/app/components/charts/chart-geometry.ts`:1119 | Arc paths for a donut, in input order. |
 | `emptyStateMessage` | function | 1 | `apps/web/app/components/data-table/utils.ts`:274 | Which empty state is true. |
@@ -197,20 +201,31 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `hasRequestedChange` | function | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:478 | Whether a seeded draft actually asks for anything. |
 | `isLookupResultTruncated` | function | 1 | `apps/web/lib/runtime/lookup-search.ts`:129 | Whether a lookup's result list should say it is incomplete. |
 | `isReadOnlyLookupReferenceModule` | function | 1 | `apps/web/app/components/metadata/lookup-reference-route.ts`:54 | A destination whose selected value is rendered as `?reference=<value>` rather than `/<basePath>/<recordId>` — these settings screens navigate by the value itself (an ISO code, an IANA name), not a database id. |
+| `mapEmployeeWorkSiteRows` | function | 1 | `apps/web/lib/runtime/modules/employee-work-sites.ts`:40 | Maps `GET …/work-sites` (`listEmployeeWorkSites`) to subgrid rows. |
+| `mapPublishedForm` | function | 1 | `apps/web/lib/runtime/modules/standard-module-route-helpers.ts`:129 | Exported so the custom-module runtime (BUG-3494) turns a published form layout into FormMetadata through this one mapping rather than a second copy that would drift from what system modules render. |
+| `omitPrimaryLocationFromEmployeeUpdate` | function | 1 | `apps/web/lib/runtime/modules/employee-work-sites.ts`:130 | ADR-0014 — the employee update request never carries `locationId`: the primary site changes only through Make primary. |
 | `otherBucketLabel` | function | 1 | `apps/web/app/components/charts/chart-tokens.ts`:166 | The bucket's label carries the count, because "Other" alone hides whether the reader is looking at two rolled-up rows or two hundred. |
+| `postEmployeeAction` | function | 1 | `apps/web/lib/runtime/modules/employee-account-actions.ts`:79 | POSTs an employee account action and throws a failure that keeps the response's status and envelope (see `CommandRequestError`), so an expected refusal is classified as one. |
 | `resolveAnalyticsPeriod` | function | 1 | `apps/web/app/components/filters/analytics-search-params.ts`:236 | The single interpretation of a URL's period, used by both the filter bar and whatever loads the data. |
-| `resolveCommandFailureMessage` | function | 1 | `apps/web/lib/runtime/command-failure-message.ts`:63 | The one line a user reads when a runtime command fails. |
+| `resolveCommandFailureMessage` | function | 1 | `apps/web/lib/runtime/command-failure-message.ts`:116 | The one line a user reads when a runtime command fails. |
+| `resolveHierarchyCardPosition` | function | 1 | `apps/web/lib/runtime/modules/employee-hierarchy-tree.ts`:97 | Where the card goes, in viewport coordinates, so no scroll container can clip it: below the node when it fits, above when it does not, and always clamped inside the viewport's margins. |
+| `resolveHierarchyTapIntent` | function | 1 | `apps/web/lib/runtime/modules/employee-hierarchy-tree.ts`:77 | What activating a node does. |
 | `resolveInheritedParentValues` | function | 1 | `apps/web/lib/runtime/related-record-create-values.ts`:35 | The subset of a parent record a subgrid has declared its children inherit. |
 | `resolveLookupReferenceRoute` | function | 1 | `apps/web/app/components/metadata/lookup-reference-route.ts`:31 | ITEM-0163 / ITEM-0172 — replaces `LOOKUP_REFERENCE_ROUTES`, a flat, exact-string, hand-maintained allowlist that silently produced no link at all for anything it did not name. |
+| `resolveSectionColumnClass` | function | 1 | `apps/web/lib/runtime/form-layout-grid.ts`:58 | ITEM-0184 (H10) — how many columns a record's sections sit in, per breakpoint. |
 | `resolveVisibleSelectedOption` | function | 1 | `apps/web/lib/runtime/lookup-search.ts`:107 | Which option should render as "selected" this render. |
 | `seedDraftFromEntry` | function | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:454 | A draft that opens showing what the record already says. |
 | `stackedExtent` | function | 1 | `apps/web/app/components/charts/chart-geometry.ts`:759 | The `[min, max]` a stacked chart's value axis must cover. |
 | `stackSeries` | function | 1 | `apps/web/app/components/charts/chart-geometry.ts`:686 | Turn parallel series into cumulative segments, one column per point key. |
 | `suggestedGranularity` | function | 1 | `apps/web/app/components/filters/period.ts`:489 | The bucket size a period should be charted at. |
 | `summarizeChartShape` | function | 1 | `apps/web/app/components/charts/chart-format.ts`:256 | A one-line summary of what a chart contains, for the caption beneath it. |
+| `timestampFieldFor` | function | 1 | `apps/web/lib/runtime/related-subgrid-rows.ts`:40 | ITEM-0184 (C4) — a column with no field metadata printed its raw value, so the Assign Roles tab's "Assigned On" read `2026-09-12T22:36:04.512Z`. |
 | `toLocalDateTimeInput` | function | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:399 | An ISO instant as a `datetime-local` input value, in the viewer's own zone. |
 | `validateDraft` | function | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:206 | Checks a draft before it is sent. |
+| `visibleRowActions` | function | 1 | `apps/web/lib/runtime/related-subgrid-rows.ts`:19 | ITEM-0179 — the declared row actions this viewer may run on this row. |
 | `bucketByPeriod` | function | 0 | `apps/web/app/components/charts/chart-geometry.ts`:454 | Group dated measurements into calendar buckets, summing each bucket. |
+| `buildCustomModuleForms` | function | 0 | `apps/web/lib/runtime/custom-modules/custom-module-runtime.ts`:231 | The module's published forms as FormMetadata, through the same mapping system modules use. |
+| `closeListboxOnEscape` | function | 0 | `apps/web/app/components/ui/form-control.tsx`:194 | BUG-3495 — Escape inside an open listbox closes the listbox, not the dialog around it. |
 | `donutLegendItems` | function | 0 | `apps/web/app/components/charts/donut-chart.tsx`:185 | Legend entries for a donut, in the same order and with the same bucketing the chart used. |
 | `entryAttendanceDate` | function | 0 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:384 | The day the record belongs to, as YYYY-MM-DD. |
 | `fieldsFor` | function | 0 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:100 | The fields a given correction type actually uses. |
@@ -226,11 +241,14 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `startOfWeek` | function | 0 | `apps/web/app/components/filters/period.ts`:468 | Start of the week containing `date`. |
 | `tenantToday` | function | 0 | `apps/web/app/components/filters/period.ts`:237 | The calendar date it is *right now, where the tenant is*. |
 | `truncateLabel` | function | 0 | `apps/web/app/components/charts/chart-chrome.tsx`:276 | SVG has no text overflow, so a long department name runs off the canvas and over the next chart. |
+| `employeeAccountActionCommands` | value | 1 | `apps/web/lib/runtime/modules/employee-account-actions.ts`:11 | The employee record's account actions — Reset Password and Send Invitation. |
 | `ThemeApplier` | value | 1 | `apps/web/app/components/theme/theme-applier.tsx`:18 | Re-asserts the user's theme after hydration, everywhere in the app. |
 | `CHART_FOCUSABLE_CLASS` | constant | 4 | `apps/web/app/components/charts/chart-chrome.tsx`:408 | The focus ring for an in-SVG target. |
 | `CHART_VIEWBOX_WIDTH` | constant | 3 | `apps/web/app/components/charts/chart-chrome.tsx`:39 | The nominal drawing width. |
 | `MAX_CHART_SLICES` | constant | 3 | `apps/web/app/components/charts/chart-tokens.ts`:157 | Beyond seven slices a ranked proportion chart stops ranking anything: the tail is a row of indistinguishable slivers and the legend is longer than the chart. |
 | `PERIOD_PRESET_OPTIONS` | constant | 3 | `apps/web/app/components/filters/period.ts`:90 | Labels for the preset dropdown. "This month", "This quarter" and "Year to date" are *to date* — they end today, not at the end of the calendar period. |
+| `CUSTOM_RECORDS_READ_PERMISSION` | constant | 2 | `apps/web/lib/runtime/custom-modules/custom-module-navigation.ts`:26 | Derived, not catalogued: the API builds this key from the `custom-records` READ matrix privilege (`auth-access.service.ts`). |
+| `EMPLOYEE_WORK_SITES_RELATIONSHIP` | constant | 2 | `apps/web/lib/runtime/modules/employee-work-sites.ts`:14 | ITEM-0179 / ADR-0014 — an employee's authorised work sites as rows of the standard related-records subgrid, on a Work Sites tab. |
 | `ENTITY_LOOKUP_PAGE_SIZE` | constant | 2 | `apps/web/lib/runtime/lookup-search.ts`:21 | The page size sent for an entity-backed lookup once a search or an explicit fetch is issued. |
 | `LOOKUP_SEARCH_DEBOUNCE_MS` | constant | 2 | `apps/web/lib/runtime/lookup-search.ts`:13 | How long to wait after the last keystroke before issuing a search request. |
 | `MISSING_VALUE_TEXT` | constant | 2 | `apps/web/app/components/charts/chart-format.ts`:38 | What a missing or unmeasurable number reads as. |
@@ -249,6 +267,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `BAR_CHART_MARGINS` | constant | 0 | `apps/web/app/components/charts/bar-chart.tsx`:46 | Vertical bars, grouped or stacked. |
 | `CHART_PATTERN_GEOMETRIES` | constant | 0 | `apps/web/app/components/charts/chart-tokens.ts`:93 | BUG-2148 — severity was conveyed by colour alone and hidden from assistive technology. |
 | `CHART_SERIES_COLORS` | constant | 0 | `apps/web/app/components/charts/chart-tokens.ts`:44 | The one palette every chart in the Reports & Analytics workspace draws from. |
+| `CUSTOM_MODULE_ROUTE_BASE` | constant | 0 | `apps/web/lib/runtime/custom-modules/custom-module-navigation.ts`:19 | Sidebar entries for published custom modules (BUG-3494 / ADR-0016). |
 | `DEFAULT_WEEK_STARTS_ON` | constant | 0 | `apps/web/app/components/charts/chart-geometry.ts`:345 | `weekStartsOn` is a parameter and not a constant on purpose. |
 | `DEFAULT_WEEK_STARTS_ON` | constant | 0 | `apps/web/app/components/filters/period.ts`:130 | Sunday. This product's default weekend is **Friday/Saturday**, so the working week begins on Sunday and not on Monday. |
 | `LINE_CHART_MARGINS` | constant | 0 | `apps/web/app/components/charts/line-chart.tsx`:36 | A trend over time. A thin renderer: every number on screen was computed by `chart-geometry.ts` and every string was formatted by `chart-format.ts`, both of which are covered by specs. |
@@ -276,6 +295,8 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `ComparisonSelectorProps` | type | 0 | `apps/web/app/components/filters/comparison-selector.tsx`:31 | What the current period is measured against. |
 | `CorrectionOriginals` | type | 0 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:361 | The values the record already holds, as the correction form's own vocabulary. |
 | `CorrectionType` | type | 0 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:15 | Which fields a correction type needs, and what makes a request valid. |
+| `CustomModuleFieldDefinition` | type | 0 | `apps/web/lib/runtime/custom-modules/custom-module-runtime.ts`:35 | Turns a published custom module definition (`GET /metadata/custom-modules/:key`) into the same `StandardModuleRuntimeSpec` system modules declare by hand, so its screens are the standard runtime list and record pages and its writes go through the standard data adapter to `/api/data/<key>`. |
+| `CustomModuleLoad` | type | 0 | `apps/web/lib/runtime/custom-modules/custom-module-api.ts`:15 | Server-side loaders for the custom-module routes (BUG-3494). |
 | `DateRange` | type | 0 | `apps/web/app/components/filters/period.ts`:38 | Inclusive, `yyyy-MM-dd` at both ends. |
 | `DateRangeFilterValue` | type | 0 | `apps/web/app/components/filters/date-range-filter.tsx`:32 | Preset first, custom dates second. |
 | `DonutArc` | type | 0 | `apps/web/app/components/charts/chart-geometry.ts`:1029 | ------------------------------------------------------------------- donut |
@@ -283,15 +304,16 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `FunnelChartProps` | type | 0 | `apps/web/app/components/charts/funnel-chart.tsx`:26 | A pipeline, stage by stage. |
 | `FunnelStage` | type | 0 | `apps/web/app/components/charts/chart-geometry.ts`:954 | ------------------------------------------------------------------ funnel |
 | `GovernedInputRequest` | type | 0 | `apps/web/app/components/feedback/use-governed-input.tsx`:37 | Collect a governed value through the design system, instead of `window.prompt`. |
+| `HierarchyCardState` | type | 0 | `apps/web/lib/runtime/modules/employee-hierarchy-tree.ts`:21 | BUG-3499 — the reporting hierarchy dialog's interaction rules, as pure functions so they can be tested without a DOM (`apps/web` jest has none). |
 | `HorizontalBarListProps` | type | 0 | `apps/web/app/components/charts/horizontal-bar-list.tsx`:43 | Ranked proportions: "how is this split up, and what is at the top". |
 | `Point2D` | type | 0 | `apps/web/app/components/charts/chart-geometry.ts`:33 | Every calculation a chart in this directory performs, with no React in sight. |
 | `QuickCreateSubmission` | type | 0 | `apps/web/lib/runtime/quick-create-metadata.ts`:130 | Whether a quick-create dialog may submit, and what to say when it may not. |
-| `RuntimeTabContentContext` | type | 0 | `apps/web/app/components/metadata/runtime-metadata-form-renderer.tsx`:85 | What a purpose-built tab body gets to work with. |
+| `RuntimeErrorDisposition` | type | 0 | `apps/web/app/components/errors/runtime-error-classification.ts`:16 | How the global client error handler treats an error the browser raised on its own (a window `error` event or an unhandled rejection), as opposed to a failed API call. |
+| `RuntimeTabContentContext` | type | 0 | `apps/web/app/components/metadata/runtime-metadata-form-renderer.tsx`:86 | What a purpose-built tab body gets to work with. |
 | `SegmentedControlOption` | type | 0 | `apps/web/app/components/ui/segmented-control.tsx`:17 | Extracted from the subscription Plans screen (BUG-3345) where it was a local, hand-rolled control painted in `bg-foreground` — the body-text colour — instead of the tenant brand accent. |
 | `SparklineProps` | type | 0 | `apps/web/app/components/charts/sparkline.tsx`:31 | A trend at the size of a word. |
 | `StackedSegment` | type | 0 | `apps/web/app/components/charts/chart-geometry.ts`:650 | ------------------------------------------------------------------ stacks |
 | `TimeSeriesPoint` | type | 0 | `apps/web/app/components/charts/chart-geometry.ts`:247 | ------------------------------------------------------------ time buckets |
-| `WidgetActionInput` | type | 0 | `apps/web/lib/runtime/module-data-adapter.types.ts`:69 | A write a widget needs to perform against its own record — add/edit/remove a related row, promote something to primary, and so on. |
 
 ### Shared package — NOT the design system — `packages/ui`
 
