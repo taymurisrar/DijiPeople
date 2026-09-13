@@ -1,5 +1,7 @@
 # TASK-0031 — WP-05 stream report: one notification events page
 
+Stream report of [[TASK-0031]].
+
 - **Branch:** `agent/walkthrough2-notification-events` (base `origin/develop` 88f33c6e)
 - **ExecPlan:** `docs/plans/EXECPLAN-0049-one-notification-events-page.md`
 - **Records:** ITEM-0180. It also supersedes the screen-level part of BUG-3375, per ITEM-0180's Dependencies section.

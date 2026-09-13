@@ -1,5 +1,7 @@
 # TASK-0031 · WP-06 stream report — sink email providers and delivery logs
 
+Stream report of [[TASK-0031]].
+
 Branch `agent/walkthrough2-providers-logs` (based on `origin/develop` 88f33c6e).
 ExecPlan: [`docs/plans/EXECPLAN-0050-production-retires-sink-email-providers-and-honest-delivery-logs.md`](../../plans/EXECPLAN-0050-production-retires-sink-email-providers-and-honest-delivery-logs.md).
 Binding decision: ADR-0015. Reserved regression ids REG-515 … REG-519.
