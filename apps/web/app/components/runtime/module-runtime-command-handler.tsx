@@ -60,6 +60,7 @@ export function ModuleRuntimeCommandHandler({
   children,
   dataAdapter,
   listRecords = [],
+  lookupDisplayValues,
   navigationCommands,
   onResult,
   runtime,
@@ -73,6 +74,8 @@ export function ModuleRuntimeCommandHandler({
   }) => ReactNode;
   readonly dataAdapter?: ModuleDataAdapter;
   readonly listRecords?: readonly RuntimeRecordData[];
+  /* BUG-3498 — lookup names for the record export; see buildAdapterCommandHandlers. */
+  readonly lookupDisplayValues?: Readonly<Record<string, string>>;
   readonly navigationCommands?: Record<
     string,
     {
@@ -267,6 +270,7 @@ export function ModuleRuntimeCommandHandler({
           downloadFile,
           form: activeForm,
           listRecords,
+          lookupDisplayValues,
           navigate: (href) => {
             if (isSafeModuleHref(href, runtime.module.routeBase)) {
               router.push(href);

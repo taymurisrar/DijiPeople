@@ -22,15 +22,18 @@ import {
   CreateEmailProviderDto,
   CreateEmailTemplateDto,
   EmailDeliveryLogQueryDto,
+  InAppDeliveryLogQueryDto,
   InAppNotificationQueryDto,
+  PreviewDraftEmailTemplateDto,
   PreviewEmailTemplateDto,
   TestSendEmailTemplateDto,
   UpdateEmailProviderDto,
   UpdateEmailTemplateDto,
+  UpdateNotificationEventChannelDto,
   UpdateNotificationPreferencesDto,
   UpdateNotificationRuleDto,
 } from './dto';
-import { PROVIDER_SCHEMAS } from './email/provider-field-schema';
+import { EmailTemplateAuthoringService } from './email/email-template-authoring.service';
 import { InAppNotificationsService } from './in-app-notifications.service';
 import { NotificationDiagnosticsService } from './notification-diagnostics.service';
 import { NOTIFICATION_PERMISSION_KEYS } from './notifications.constants';
@@ -43,6 +46,7 @@ export class NotificationsController {
     private readonly notificationsService: NotificationsService,
     private readonly inAppNotificationsService: InAppNotificationsService,
     private readonly diagnosticsService: NotificationDiagnosticsService,
+    private readonly templateAuthoring: EmailTemplateAuthoringService,
   ) {}
 
   @Get('events')
@@ -101,11 +105,43 @@ export class NotificationsController {
     return this.notificationsService.updateRule(user, ruleId, dto);
   }
 
+  /*
+   * ITEM-0180 — the notification events page. `event-settings` rather than a
+   * sub-path of `events/:code`, so it cannot collide with that parameterised
+   * route.
+   *
+   * The write declares BOTH legacy keys because it writes both models: the
+   * channel preference (`notifications.manage`) and, when the first channel
+   * comes back on or the last one goes off, the event's rule
+   * (`notifications.manageRules`). PermissionsGuard requires every declared
+   * legacy key, so holding only one of them is not enough to change either.
+   */
+  @Get('event-settings')
+  @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATIONS_READ)
+  @RequirePermission(ENTITY_KEYS.USER_PREFERENCES, 'read')
+  listEventSettings(@CurrentUser() user: AuthenticatedUser) {
+    return this.notificationsService.listEventSettings(user);
+  }
+
+  @Patch('event-settings/:code')
+  @Permissions(
+    NOTIFICATION_PERMISSION_KEYS.NOTIFICATIONS_MANAGE,
+    NOTIFICATION_PERMISSION_KEYS.NOTIFICATIONS_MANAGE_RULES,
+  )
+  @RequirePermission(ENTITY_KEYS.USER_PREFERENCES, 'write')
+  updateEventChannel(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('code') eventCode: string,
+    @Body() dto: UpdateNotificationEventChannelDto,
+  ) {
+    return this.notificationsService.updateEventChannel(user, eventCode, dto);
+  }
+
   @Get('email-templates')
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_TEMPLATES_READ)
   @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   listTemplates(@CurrentUser() user: AuthenticatedUser) {
-    return this.notificationsService.listTemplates(user);
+    return this.templateAuthoring.listTemplates(user);
   }
 
   /*
@@ -116,7 +152,29 @@ export class NotificationsController {
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_TEMPLATES_READ)
   @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   listScopeOptions(@CurrentUser() user: AuthenticatedUser) {
-    return this.notificationsService.listTemplateScopeOptions(user);
+    return this.templateAuthoring.listTemplateScopeOptions(user);
+  }
+
+  /*
+   * ITEM-0181. The events a template can be written for, with the variables
+   * each supplies. Also registered before :id.
+   */
+  @Get('email-templates/authoring-events')
+  @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_TEMPLATES_READ)
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
+  listAuthoringEvents(@CurrentUser() user: AuthenticatedUser) {
+    return this.templateAuthoring.listAuthoringEvents(user);
+  }
+
+  /* ITEM-0181. Preview of a template that has not been saved yet. */
+  @Post('email-templates/preview')
+  @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_TEMPLATES_READ)
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
+  previewDraftTemplate(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: PreviewDraftEmailTemplateDto,
+  ) {
+    return this.templateAuthoring.previewDraftTemplate(user, dto);
   }
 
   @Get('email-templates/:id')
@@ -126,7 +184,7 @@ export class NotificationsController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') templateId: string,
   ) {
-    return this.notificationsService.getTemplate(user, templateId);
+    return this.templateAuthoring.getTemplate(user, templateId);
   }
 
   @Post('email-templates')
@@ -136,7 +194,7 @@ export class NotificationsController {
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateEmailTemplateDto,
   ) {
-    return this.notificationsService.createTemplate(user, dto);
+    return this.templateAuthoring.createTemplate(user, dto);
   }
 
   @Patch('email-templates/:id')
@@ -147,7 +205,7 @@ export class NotificationsController {
     @Param('id') templateId: string,
     @Body() dto: UpdateEmailTemplateDto,
   ) {
-    return this.notificationsService.updateTemplate(user, templateId, dto);
+    return this.templateAuthoring.updateTemplate(user, templateId, dto);
   }
 
   @Post('email-templates/:id/clone')
@@ -158,7 +216,7 @@ export class NotificationsController {
     @Param('id') templateId: string,
     @Body() dto: CloneEmailTemplateDto,
   ) {
-    return this.notificationsService.cloneTemplate(user, templateId, dto);
+    return this.templateAuthoring.cloneTemplate(user, templateId, dto);
   }
 
   @Post('email-templates/:id/activate')
@@ -168,7 +226,7 @@ export class NotificationsController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') templateId: string,
   ) {
-    return this.notificationsService.activateTemplate(user, templateId);
+    return this.templateAuthoring.activateTemplate(user, templateId);
   }
 
   @Post('email-templates/:id/archive')
@@ -178,7 +236,7 @@ export class NotificationsController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') templateId: string,
   ) {
-    return this.notificationsService.archiveTemplate(user, templateId);
+    return this.templateAuthoring.archiveTemplate(user, templateId);
   }
 
   @Post('email-templates/:id/preview')
@@ -189,7 +247,7 @@ export class NotificationsController {
     @Param('id') templateId: string,
     @Body() dto: PreviewEmailTemplateDto,
   ) {
-    return this.notificationsService.previewTemplate(user, templateId, dto);
+    return this.templateAuthoring.previewTemplate(user, templateId, dto);
   }
 
   @Post('email-templates/:id/test-send')
@@ -200,7 +258,7 @@ export class NotificationsController {
     @Param('id') templateId: string,
     @Body() dto: TestSendEmailTemplateDto,
   ) {
-    return this.notificationsService.testSendTemplate(user, templateId, dto);
+    return this.templateAuthoring.testSendTemplate(user, templateId, dto);
   }
 
   /*
@@ -211,7 +269,7 @@ export class NotificationsController {
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_PROVIDERS_READ)
   @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   listProviderFieldSchema() {
-    return { items: PROVIDER_SCHEMAS };
+    return this.notificationsService.listProviderFieldSchema();
   }
 
   @Get('email-providers')
@@ -314,6 +372,21 @@ export class NotificationsController {
     @Param('id') deliveryLogId: string,
   ) {
     return this.notificationsService.getDeliveryLog(user, deliveryLogId);
+  }
+
+  /*
+   * ITEM-0182 — in-app deliveries across the tenant, for the Delivery Logs
+   * screen. Guarded exactly as the email log is: the same screen, the same
+   * reader. The per-user `in-app` routes below stay the inbox.
+   */
+  @Get('in-app-delivery-logs')
+  @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_LOGS_READ)
+  @RequirePermission(ENTITY_KEYS.REPORTS, 'read')
+  listInAppDeliveryLogs(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: InAppDeliveryLogQueryDto,
+  ) {
+    return this.notificationsService.listInAppDeliveryLogs(user, query);
   }
 
   /*

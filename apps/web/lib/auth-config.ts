@@ -54,6 +54,7 @@ export const PROTECTED_ROUTE_PREFIXES = [
   "/claims",
   "/business-trips",
   "/customization",
+  "/custom-modules",
   "/access-denied",
   "/approvals",
   "/benefits",

@@ -1,0 +1,36 @@
+{
+  "create": {
+    "name": "Payslip available",
+    "eventCode": "PAYSLIP_AVAILABLE",
+    "subjectTemplate": "Your payslip for {{payrollPeriod}} is available",
+    "htmlTemplate": "<p>Hello {{recipientName}},</p><p>Your payslip for <strong>{{payrollPeriod}}</strong> is ready.</p>",
+    "textTemplate": "Hello {{recipientName}},\n\nYour payslip for {{payrollPeriod}} is ready.",
+    "status": "DRAFT",
+    "scopeLevel": "TENANT",
+    "scopeId": null,
+    "moduleKey": null
+  },
+  "update": {
+    "name": "Payslip available",
+    "subjectTemplate": "Your payslip for {{payrollPeriod}} is available",
+    "htmlTemplate": "<p>Hello {{recipientName}},</p><p>Your payslip for <strong>{{payrollPeriod}}</strong> is ready.</p>",
+    "textTemplate": "Hello {{recipientName}},\n\nYour payslip for {{payrollPeriod}} is ready.",
+    "scopeLevel": "TENANT",
+    "scopeId": null,
+    "moduleKey": null
+  },
+  "previewSaved": {
+    "subjectTemplate": "Your payslip for {{payrollPeriod}} is available",
+    "htmlTemplate": "<p>Hello {{recipientName}},</p><p>Your payslip for <strong>{{payrollPeriod}}</strong> is ready.</p>",
+    "textTemplate": "Hello {{recipientName}},\n\nYour payslip for {{payrollPeriod}} is ready."
+  },
+  "previewDraft": {
+    "eventCode": "PAYSLIP_AVAILABLE",
+    "subjectTemplate": "Your payslip for {{payrollPeriod}} is available",
+    "htmlTemplate": "<p>Hello {{recipientName}},</p><p>Your payslip for <strong>{{payrollPeriod}}</strong> is ready.</p>",
+    "textTemplate": "Hello {{recipientName}},\n\nYour payslip for {{payrollPeriod}} is ready."
+  },
+  "testSend": {
+    "recipient": "person@example.com"
+  }
+}

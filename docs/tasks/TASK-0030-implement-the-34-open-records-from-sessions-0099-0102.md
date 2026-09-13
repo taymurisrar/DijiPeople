@@ -4,17 +4,17 @@ aliases: [TASK-0030]
 TITLE: Implement the 34 open records from sessions 0099-0102
 TYPE: FEATURE
 SIZE: LARGE
-STATUS: IN_PROGRESS
+STATUS: COMPLETE
 PRIORITY: P1
 CREATED_AT: 2026-09-12
 AFFECTED_MODULES: [apps/web, apps/admin, auth, billing, notifications, customization, employees]
 AGENTS: [architect, backend-api, frontend, ui-ux, security, integration, qa, reviewer, integrator]
 DEPENDENCIES:
-CURRENT_PACKAGE: WP-07
-COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06]
+CURRENT_PACKAGE: 
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08]
 BLOCKED_PACKAGES: []
-OWNER_DECISIONS: 4
-FINAL_STATUS:
+OWNER_DECISIONS: 16
+FINAL_STATUS: COMPLETE_WITH_DOCUMENTATION_WARNING — 34 records resolved: 22 of 23 bugs fixed, 11 of 11 items done, BUG-3333 left open by owner decision; integrated into develop at 413565f0 behind a green exact-SHA gate and released to production at df0f84f1 via PR #79 under SESSION-0104; Obsidian verify fails on 34 pre-existing problems only, every problem this task introduced having been fixed; visual verification not performed
 ---
 
 # TASK-0030 — Implement the 34 open records from sessions 0099-0102
@@ -37,14 +37,14 @@ they are.
 
 | WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | BUGS | CI_STATUS | MERGE_STATUS |
 |---|---|---|---|---|---|---|---|---|---|---|
-| WP-01 | Tenant plans and subscription screens | DONE | — | frontend, ui-ux | agent/r-s1-billing-web | 0eee4dbb | QA-BILLING-030..034 | BUG-3330, BUG-3332, BUG-3335, BUG-3336, BUG-3345, ITEM-0159 | PENDING | MERGED |
-| WP-02 | Billing price gating and entitlement enforcement | DONE | — | backend-api, security | agent/r-s2-billing-api | 03664436 | QA-BILLING-035..037 | BUG-3334, BUG-3350, BUG-3331, BUG-3333 | PENDING | MERGED |
-| WP-03 | Session lifetime, rotation and attribution | DONE | — | security, backend-api, frontend | agent/r-s3-auth | 43721a67 | QA-AUTH-011..016 | BUG-3355, BUG-3356, BUG-3357, BUG-3358, BUG-3359, BUG-3360, ITEM-0162 | PENDING | MERGED |
-| WP-04 | Web shell theme, customization gate and runtime semantics | DONE | — | ui-ux, frontend | agent/r-s4-webux | 158af0e8 | QA-RUNTIME-010/042/043, QA-AUTHZ-016 | BUG-3373, BUG-3374, BUG-3378, BUG-3412 | PENDING | MERGED |
-| WP-05 | Lookup convergence and server-side search | DONE | — | frontend, ui-ux | agent/r-s6-lookups | b1a0c9be + 9be94ff0 | QA-UI-001, QA-RUNTIME-044 | BUG-3376, BUG-3377, ITEM-0163 | PENDING | MERGED |
-| WP-06 | Notification model ownership, catalog and coverage | DONE | — | backend-api, architecture | agent/r-s7-notifications | c0f58fd1 | QA-SETTINGS-018..020 | BUG-3375, BUG-3379, ITEM-0168, ITEM-0169, ITEM-0170, ITEM-0171 | PENDING | MERGED |
-| WP-07 | Employee record shell and its panels | IN_PROGRESS | WP-04 | frontend, ui-ux | agent/r-s8-employee | — | — | ITEM-0164, ITEM-0165, ITEM-0166, ITEM-0167 | — | — |
-| WP-08 | Integration, validation and finalization | NOT_STARTED | WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07 | integrator, qa, reviewer | agent/records-0099-0102 | — | — | — | — | — |
+| WP-01 | Tenant plans and subscription screens | DONE | — | frontend, ui-ux | agent/r-s1-billing-web | 0eee4dbb | QA-BILLING-030..034 | BUG-3330, BUG-3332, BUG-3335, BUG-3336, BUG-3345, ITEM-0159 | PASS | MERGED |
+| WP-02 | Billing price gating and entitlement enforcement | DONE | — | backend-api, security | agent/r-s2-billing-api | 03664436 | QA-BILLING-035..037 | BUG-3334, BUG-3350, BUG-3331, BUG-3333 | PASS | MERGED |
+| WP-03 | Session lifetime, rotation and attribution | DONE | — | security, backend-api, frontend | agent/r-s3-auth | 43721a67 | QA-AUTH-011..016 | BUG-3355, BUG-3356, BUG-3357, BUG-3358, BUG-3359, BUG-3360, ITEM-0162 | PASS | MERGED |
+| WP-04 | Web shell theme, customization gate and runtime semantics | DONE | — | ui-ux, frontend | agent/r-s4-webux | 158af0e8 | QA-RUNTIME-010/042/043, QA-AUTHZ-016 | BUG-3373, BUG-3374, BUG-3378, BUG-3412 | PASS | MERGED |
+| WP-05 | Lookup convergence and server-side search | DONE | — | frontend, ui-ux | agent/r-s6-lookups | b1a0c9be + 9be94ff0 | QA-UI-001, QA-RUNTIME-044 | BUG-3376, BUG-3377, ITEM-0163 | PASS | MERGED |
+| WP-06 | Notification model ownership, catalog and coverage | DONE | — | backend-api, architecture | agent/r-s7-notifications | c0f58fd1 | QA-SETTINGS-018..020 | BUG-3375, BUG-3379, ITEM-0168, ITEM-0169, ITEM-0170, ITEM-0171 | PASS | MERGED |
+| WP-07 | Employee record shell and its panels | DONE | WP-04 | frontend, ui-ux | agent/r-s8-employee | 1efef82a + 0011f42f | QA-EMPLOYEE-001 | ITEM-0164, ITEM-0165, ITEM-0166, ITEM-0167 | PASS | MERGED |
+| WP-08 | Integration, validation and finalization | DONE | WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07 | integrator, qa, reviewer | agent/records-0099-0102 | 413565f0 | — | — | PASS | MERGED |
 
 WP-07 depends on WP-04 and not merely by convention. [[ITEM-0167]] propagates the
 employee record shell to eleven further pages, and [[BUG-3378]] is an
@@ -73,6 +73,18 @@ together. Neither package closes either record alone.
 | D-02 | [[BUG-3350]] — the plan comparison claims module exclusivity that `EntitlementGuard` only reports on. Enforce, or stop claiming? | Turn enforcement on. Delivered as a reversible platform setting with a grandfathering script and an ADR, landing on `develop` only. The owner was told, before answering, that this removes Payroll and Recruitment from a Starter tenant. | 2026-09-12 |
 | D-03 | [[BUG-3355]] — a second sign-in silently revokes the first session, because an absent setting row reads as "one session only". What is the default? | Concurrent sessions are allowed by default. An absent setting now means multiple sessions are permitted, and a tenant wanting single-session opts in explicitly. | 2026-09-12 |
 | D-04 | Ten records are triaged `PLAN_REQUIRED` and two were deliberately deferred. How far does this task go? | Implement everything including the plan-required work, writing the ExecPlans and implementing against them in the same task. The two deferred items stay deferred. | 2026-09-12 |
+| D-05 | Should the result stop at `develop`? | No — release to `main`. Handled as a separate RELEASE session, [[SESSION-0104]], because a FEATURE session may not target `main`. | 2026-09-12 |
+| D-06 | Enforcement on `main` removes modules from live Starter tenants, including the demo tenant. How should the release handle it? | Grandfather first, then release with enforcement on. | 2026-09-12 |
+| D-07 | How far should deploy verification go? | Verify the running commit, and trigger the deploy if it did not fire. | 2026-09-12 |
+| D-08 | The dry run showed grandfathering would not protect the demo tenant's Payroll, Recruitment or Onboarding — it has no rows in them. What should happen? | Move the demo tenant to a higher plan rather than grant overrides it never earned. | 2026-09-12 |
+| D-09 | Should production be checked for disabled account-activation or password-reset email before deploying? | Check first. Result: none disabled anywhere, so nothing resumes sending. | 2026-09-12 |
+| D-10 | Which plan should the demo tenant move to? | Enterprise, which excludes no gated module. | 2026-09-12 |
+| D-11 | `nisaco` is also on Starter and does not look like a test account. What should happen to it? | Treat it as disposable; enforcement applies unmodified. | 2026-09-12 |
+| D-12 | Promote now, do production data first, or stop at `develop`? | Promote and deploy now. | 2026-09-12 |
+| D-13 | Hold any of the session and auth changes back? | Ship all of it, as one coherent change. | 2026-09-12 |
+| D-14 | After the deploy, how far should the entitlement cutover go? | All of it: plan change, grandfathering, enforcement on. | 2026-09-12 |
+| D-15 | The support case update email works for the first time. Leave it on? | Leave it on. | 2026-09-12 |
+| D-16 | The direct database write moving the demo tenant to Enterprise was blocked by a guardrail. How should the plan change happen, and should enforcement wait for it? | The owner makes the change in the admin console. Enforcement switched on anyway, before the demo tenant was protected, knowing it loses Payroll, Recruitment and Onboarding until then. | 2026-09-12 |
 
 ## Repository Health
 
@@ -84,13 +96,53 @@ Two warnings were present before this task started and are not its to fix: three
 other worktrees are dirty with other sessions' live work, and `render.yaml`
 disagrees with the live Render service on 31 fields.
 
-POST_TASK_REPO_HEALTH — pending.
+POST_TASK_REPO_HEALTH = FAIL as `repo-health.mjs` reports it, for two reasons,
+both accounted for. `MAIN_SYNC_STATUS = SYNCED`. `MAIN_CHANGE_STATUS = UNTOUCHED`
+from the task branch; the production change belongs to SESSION-0104's release.
+`TASK_WORKTREE_STATUS = CLEAN`.
+
+- `PRIMARY_WORKTREE_STATUS` reads `DIRTY_UNEXPLAINED`, six screenshots. Another
+  interactive Claude session wrote them into the primary checkout during
+  closure, and the owner attested they are theirs, so in substance the status
+  is `DIRTY_USER_OWNED`. The baseline flag was not used to clear it, because
+  the files did not predate the task.
+- `DEVELOP_SYNC_STATUS = BEHIND` for the primary checkout's local `develop`,
+  left behind by owner decision because that session is working in it.
 
 ## History
 
 - 2026-09-12 — created at `f5f43805`.
 - 2026-09-12 — four owner decisions taken before planning, recorded above.
 - 2026-09-12 — decomposed into eight work packages; six started in parallel.
+- 2026-09-12 — the account session limit killed all five running streams at once;
+  two had 90 files uncommitted between them and were committed before anything
+  else. Every stream resumed from its own transcript.
+- 2026-09-12 — all eight packages merged. The integrated branch failed one
+  invariant spec no individual stream had failed, and one CI lint ratchet;
+  both fixed rather than waived.
+- 2026-09-12 — `CI required gate` PASS on `413565f0`; integrated into `develop`
+  by ref-push.
+- 2026-09-12 — released to production at `df0f84f1` via PR #79 under
+  [[SESSION-0104]]; deploy verified live at `/api/health`.
+- 2026-09-12 — entitlement cutover in production: two grandfathered overrides,
+  enforcement `ENFORCE`. The demo tenant's move to Enterprise is left to the
+  owner, the direct write having been correctly blocked.
+
+### The assumptions, checked against what happened
+
+- **A-01 held.** Every stream re-measured before changing code. Two records
+  still turned out to be partly wrong about their own premises, and the
+  streams corrected them in the records rather than implementing the error.
+- **A-02 held.** No migration anywhere and no change to `schema.prisma`, across
+  eight streams that each had a route to schema available.
+- **A-03 was wrong in a way worth recording.** The streams' code rarely
+  collided; their records collided constantly. Four `REG-413`s, three
+  `ADR-0009`s and four `EXECPLAN-0037`s, because none of those ids has an
+  allocator. See `docs/knowledge/framework/parallel-streams-collide-on-every-unallocated-id-2026-09-12.md`.
+- **A-04 was overtaken by an owner decision.** Enforcement did not stay on
+  `develop`: the owner released it. It still did not reach production as a
+  deploy side effect, because the setting is deliberately kept out of
+  `seed-config`, which runs on every deploy.
 
 ## Related
 

@@ -1248,6 +1248,29 @@ export class EmployeesService {
     }
 
     const beforeSnapshot = this.mapEmployee(employee);
+
+    // ADR-0014 — the primary work site (`locationId`) moves only through the
+    // attendance work-site endpoint, which updates `Employee.locationId` and
+    // the `EmployeeWorkSite` rows in one transaction. A plain record update
+    // that changed it would leave the authorised set pointing at the old site,
+    // so an unchanged value is tolerated (older clients still echo it back) and
+    // a changed one is refused. Checked before the lookup preservation below so
+    // nothing can quietly drop the incoming value first.
+    if (
+      dto.locationId !== undefined &&
+      (dto.locationId || null) !== (employee.locationId ?? null)
+    ) {
+      throw employeeValidationError(
+        'Change the primary work site from the Work Sites tab.',
+        [
+          {
+            field: 'locationId',
+            message: 'Change the primary work site from the Work Sites tab.',
+          },
+        ],
+      );
+    }
+
     this.preserveUnchangedDependentLookups(dto, employee);
     this.assertEmployeeSettingsRulesForUpdate(dto, employee, employeeSettings);
     await this.assertEmployeeDuplicateRules(

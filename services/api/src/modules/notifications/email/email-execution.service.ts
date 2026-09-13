@@ -522,7 +522,7 @@ export class EmailExecutionService {
        */
       const notDeliveredReason = delivered
         ? null
-        : `Accepted by a ${resolvedProvider.providerType} provider, which logs and discards mail rather than delivering it. Configure a real provider on the Notification Providers screen to send this message.`;
+        : `Accepted by a ${resolvedProvider.providerType} provider, which logs and discards mail rather than delivering it. Configure a real provider on the Email Providers screen to send this message.`;
 
       await this.repository.updateDeliveryLogStatus(input.tenantId, log.id, {
         status: deliveryStatus,

@@ -30,7 +30,15 @@ function buildService(chain: {
       options.tenantOnly ? (chain.tenantOnly ?? null) : (chain.base ?? null),
   );
 
-  const providerFactory = { resolveProvider };
+  /*
+   * `sinkProvidersRetired: false` — these cases pin the development chain,
+   * where a sink still resolves. Production retirement (ADR-0015) has its own
+   * suite in production-sink-retirement.spec.ts.
+   */
+  const providerFactory = {
+    resolveProvider,
+    sinkProvidersRetired: () => false,
+  };
   const platformProvider = {
     resolve: jest.fn(async () => chain.platform ?? null),
   };

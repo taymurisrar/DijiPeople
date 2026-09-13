@@ -8,12 +8,12 @@
 | | |
 |---|---|
 | Open CRITICAL | **4** |
-| Open HIGH | **89** |
-| Open total | 186 |
+| Open HIGH | **94** |
+| Open total | 197 |
 | Blocked | 2 |
-| Awaiting a product decision | 7 |
-| Deferred | 94 |
-| Completed | 332 |
+| Awaiting a product decision | 9 |
+| Deferred | 105 |
+| Completed | 339 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -114,6 +114,11 @@
 | [[BUG-3374-settings-customization-and-its-twelve-child-routes-silently-|BUG-3374]] | Settings Customization and its twelve child routes silently redirect to Roles | AUTHORIZATION | HIGH | FIXED | apps/web, customization | FIX_NOW |
 | [[BUG-3375-the-notification-rules-screen-edits-preferences-and-cannot-r|BUG-3375]] | The Notification Rules screen edits preferences and cannot reach NotificationRule at all | UX | HIGH | FIXED | notifications, apps/web | PLAN_REQUIRED |
 | [[BUG-3376-runtime-lookups-fetch-one-unpaged-page-and-filter-it-in-the-|BUG-3376]] | Runtime lookups fetch one unpaged page and filter it in the browser, hiding every record past the server page size | DATA_INTEGRITY | HIGH | FIXED | apps/web, apps/admin | PLAN_REQUIRED |
+| [[BUG-3491-customization-pages-crash-for-a-user-who-holds-customization|BUG-3491]] | Customization pages crash for a user who holds customization permissions but no customizer role | AUTHORIZATION | HIGH | FIXED | apps/web, customization | FIX_NOW |
+| [[BUG-3492-every-custom-field-type-without-a-length-is-rejected-with-ma|BUG-3492]] | Every custom field type without a length is rejected with Maximum length must be at least 1 | BUG | HIGH | FIXED | apps/web, customization | FIX_NOW |
+| [[BUG-3493-publishing-customizations-dead-ends-because-new-drafts-land-|BUG-3493]] | Publishing customizations dead-ends because new drafts land in a package that cannot be published | BUG | HIGH | FIXED | apps/web, customization | FIX_NOW |
+| [[BUG-3494-a-published-custom-module-has-no-sidebar-entry-and-no-list-f|BUG-3494]] | A published custom module has no sidebar entry and no list, form or record screen | BUG | HIGH | FIXED | apps/web, customization, data | PLAN_REQUIRED |
+| [[BUG-3500-every-seeded-email-template-is-active-with-placeholder-body-|BUG-3500]] | Every seeded email template is active with placeholder body text | BUG | HIGH | FIXED | notifications, apps/web | FIX_NOW |
 | [[ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no|ITEM-0133]] | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | READY | services/api/test | PLAN_REQUIRED |
 | [[ITEM-0134-the-payroll-run-engine-has-no-tests|ITEM-0134]] | The payroll run engine has no tests | TEST_GAP | HIGH | READY | api:payroll | PLAN_REQUIRED |
 | [[ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-|ITEM-0136]] | electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major | SECURITY | HIGH | READY | apps/agent-desktop | FIX_NOW |
@@ -130,6 +135,8 @@
 | [[BUG-3182-no-per-tenant-restore-is-possible-restoring-one-tenant-means|BUG-3182]] | No per-tenant restore is possible: restoring one tenant means rolling back all of them | INFRA | HIGH | PRODUCT_DECISION | api:tenants | PRODUCT_DECISION |
 | [[BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-|BUG-3333]] | Tenant buyers choose their own currency and the three price schedules are not equivalent | DATA_INTEGRITY | HIGH | PRODUCT_DECISION | apps/web, api:billing | PRODUCT_DECISION |
 | [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] | No multi-factor authentication exists anywhere, including for platform super admins | SECURITY | HIGH | PRODUCT_DECISION | api:auth | PRODUCT_DECISION |
+| [[ITEM-0193-decide-whether-the-hr-role-may-manage-notification-events|ITEM-0193]] | Decide whether the hr role may manage notification events | PRODUCT_DECISION | — | PRODUCT_DECISION | notifications, permissions | PRODUCT_DECISION |
+| [[ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins|ITEM-0191]] | Decide whether custom modules need their own access keys instead of the shared custom-records privilege | PRODUCT_DECISION | — | PRODUCT_DECISION | data, permissions | PRODUCT_DECISION |
 
 ## Blocked Items
 
@@ -333,7 +340,13 @@
 | [[BUG-3374-settings-customization-and-its-twelve-child-routes-silently-|BUG-3374]] | Settings Customization and its twelve child routes silently redirect to Roles | AUTHORIZATION | HIGH | FIXED | apps/web, customization | FIX_NOW |
 | [[BUG-3375-the-notification-rules-screen-edits-preferences-and-cannot-r|BUG-3375]] | The Notification Rules screen edits preferences and cannot reach NotificationRule at all | UX | HIGH | FIXED | notifications, apps/web | PLAN_REQUIRED |
 | [[BUG-3376-runtime-lookups-fetch-one-unpaged-page-and-filter-it-in-the-|BUG-3376]] | Runtime lookups fetch one unpaged page and filter it in the browser, hiding every record past the server page size | DATA_INTEGRITY | HIGH | FIXED | apps/web, apps/admin | PLAN_REQUIRED |
+| [[BUG-3491-customization-pages-crash-for-a-user-who-holds-customization|BUG-3491]] | Customization pages crash for a user who holds customization permissions but no customizer role | AUTHORIZATION | HIGH | FIXED | apps/web, customization | FIX_NOW |
+| [[BUG-3492-every-custom-field-type-without-a-length-is-rejected-with-ma|BUG-3492]] | Every custom field type without a length is rejected with Maximum length must be at least 1 | BUG | HIGH | FIXED | apps/web, customization | FIX_NOW |
+| [[BUG-3493-publishing-customizations-dead-ends-because-new-drafts-land-|BUG-3493]] | Publishing customizations dead-ends because new drafts land in a package that cannot be published | BUG | HIGH | FIXED | apps/web, customization | FIX_NOW |
+| [[BUG-3494-a-published-custom-module-has-no-sidebar-entry-and-no-list-f|BUG-3494]] | A published custom module has no sidebar entry and no list, form or record screen | BUG | HIGH | FIXED | apps/web, customization, data | PLAN_REQUIRED |
+| [[BUG-3500-every-seeded-email-template-is-active-with-placeholder-body-|BUG-3500]] | Every seeded email template is active with placeholder body text | BUG | HIGH | FIXED | notifications, apps/web | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
+| [[BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver|BUG-3501]] | The email provider screen presents a console sink as delivery and offers sink providers in production | UX | MEDIUM | FIXED | notifications, apps/web | PLAN_REQUIRED |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
 | [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | VERIFIED | app:admin | DONE |
 | [[BUG-0013-public-lead-endpoint-had-no-rate-limiting|BUG-0013]] | The public lead endpoint had no rate limiting | SECURITY | MEDIUM | VERIFIED | api:leads | DONE |
@@ -475,6 +488,11 @@
 | [[BUG-3377-admin-lookup-controls-still-carry-the-nested-interactive-lis|BUG-3377]] | Admin lookup controls still carry the nested-interactive listbox that BUG-1956 fixed only in web | UX | MEDIUM | FIXED | apps/admin | FIX_NOW |
 | [[BUG-3378-the-responsive-runtime-tab-strip-hides-a-measurement-copy-fr|BUG-3378]] | The responsive runtime tab strip hides a measurement copy from screen readers while leaving thirteen buttons in the tab order | UX | MEDIUM | FIXED | apps/web | FIX_NOW |
 | [[BUG-3450-get-employees-id-reporting-structure-computed-every-root-in-|BUG-3450]] | GET /employees/{id}/reporting-structure computed every root in the tenant to unbounded depth on every page view, unused | PERFORMANCE | MEDIUM | FIXED | api:employees | FIX_NOW |
+| [[BUG-3495-customization-editors-accept-invalid-metadata-and-silently-r|BUG-3495]] | Customization editors accept invalid metadata and silently rewrite what the administrator typed | BUG | MEDIUM | FIXED | apps/web, customization | FIX_NOW |
+| [[BUG-3496-a-hydration-mismatch-on-customization-pages-opens-a-blocking|BUG-3496]] | A hydration mismatch on Customization pages opens a blocking raw React error modal and logs a 500 | BUG | MEDIUM | FIXED | apps/web, error-logs | FIX_NOW |
+| [[BUG-3497-employee-reset-password-sends-without-confirmation-is-offere|BUG-3497]] | Employee Reset Password sends without confirmation, is offered with no linked user and fails silently | BUG | MEDIUM | FIXED | apps/web, employees, error-logs | FIX_NOW |
+| [[BUG-3498-the-employee-record-export-writes-lookup-fields-as-raw-ids|BUG-3498]] | The employee record export writes lookup fields as raw ids | BUG | MEDIUM | FIXED | apps/web, employees | FIX_NOW |
+| [[BUG-3499-the-reporting-hierarchy-dialog-pins-a-clipped-detail-card-ha|BUG-3499]] | The reporting hierarchy dialog pins a clipped detail card, has no close control and cannot open a record | UX | MEDIUM | FIXED | apps/web, employees | FIX_NOW |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -530,13 +548,13 @@
 ## Recent Engineering History
 
 - [[2026-09-12-ux-findings-audit-d5388a4c|Engineering History — Ux findings audit]]
+- [[2026-09-12-records-0099-0102-413565f0|Engineering History — Implement the 34 records from sessions 0099–0102]]
+- [[2026-09-11-review-subscription-plans-screen-118d22ed|Engineering History — Review subscription plans screen]]
 - [[2026-09-11-closeout-sweep-658eb39c|Engineering History — Closeout sweep]]
 - [[2026-09-11-auth-session-revocation-690cacbc|Engineering History — Auth session revocation]]
 - [[2026-09-10-release-settings-entitlements-254e8d2b|Engineering History — Release settings entitlements]]
 - [[2026-09-10-r2-durable-object-storage-11afbd50|Engineering History — Durable object storage on Cloudflare R2 (FILE-01/INF-05)]]
 - [[2026-09-09-settings-plan-entitlements-c3627cad|Engineering History — Settings plan entitlements]]
-- [[2026-08-31-session-redirect-loop-77abf947|Engineering History — Session redirect loop]]
-- [[2026-08-31-reports-analytics-platform-d833e694|Engineering History — Reports analytics platform]]
 
 ## Recent Releases
 
@@ -550,6 +568,7 @@
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
+| [[BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver|BUG-3501]] | The email provider screen presents a console sink as delivery and offers sink providers in production | UX | MEDIUM | FIXED | notifications, apps/web | PLAN_REQUIRED |
 | [[BUG-1548-customer-onboarding-validate-accepts-payloads-that-create-re|BUG-1548]] | Customer onboarding validate accepts payloads that create rejects | BUG | MEDIUM | FIXED | onboarding | DONE |
 | [[BUG-1551-desktop-agent-auto-update-manifest-returns-404|BUG-1551]] | Desktop agent auto-update manifest returns 404 | INTEGRATION | MEDIUM | FIXED | agent, app-releases | DONE |
 | [[BUG-1668-tenant-workspace-pages-scroll-horizontally-at-mobile-width|BUG-1668]] | Tenant workspace pages scroll horizontally at mobile width | UX | MEDIUM | FIXED | views | DONE |
@@ -612,6 +631,11 @@
 | [[BUG-3377-admin-lookup-controls-still-carry-the-nested-interactive-lis|BUG-3377]] | Admin lookup controls still carry the nested-interactive listbox that BUG-1956 fixed only in web | UX | MEDIUM | FIXED | apps/admin | FIX_NOW |
 | [[BUG-3378-the-responsive-runtime-tab-strip-hides-a-measurement-copy-fr|BUG-3378]] | The responsive runtime tab strip hides a measurement copy from screen readers while leaving thirteen buttons in the tab order | UX | MEDIUM | FIXED | apps/web | FIX_NOW |
 | [[BUG-3450-get-employees-id-reporting-structure-computed-every-root-in-|BUG-3450]] | GET /employees/{id}/reporting-structure computed every root in the tenant to unbounded depth on every page view, unused | PERFORMANCE | MEDIUM | FIXED | api:employees | FIX_NOW |
+| [[BUG-3495-customization-editors-accept-invalid-metadata-and-silently-r|BUG-3495]] | Customization editors accept invalid metadata and silently rewrite what the administrator typed | BUG | MEDIUM | FIXED | apps/web, customization | FIX_NOW |
+| [[BUG-3496-a-hydration-mismatch-on-customization-pages-opens-a-blocking|BUG-3496]] | A hydration mismatch on Customization pages opens a blocking raw React error modal and logs a 500 | BUG | MEDIUM | FIXED | apps/web, error-logs | FIX_NOW |
+| [[BUG-3497-employee-reset-password-sends-without-confirmation-is-offere|BUG-3497]] | Employee Reset Password sends without confirmation, is offered with no linked user and fails silently | BUG | MEDIUM | FIXED | apps/web, employees, error-logs | FIX_NOW |
+| [[BUG-3498-the-employee-record-export-writes-lookup-fields-as-raw-ids|BUG-3498]] | The employee record export writes lookup fields as raw ids | BUG | MEDIUM | FIXED | apps/web, employees | FIX_NOW |
+| [[BUG-3499-the-reporting-hierarchy-dialog-pins-a-clipped-detail-card-ha|BUG-3499]] | The reporting hierarchy dialog pins a clipped detail card, has no close control and cannot open a record | UX | MEDIUM | FIXED | apps/web, employees | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -658,6 +682,11 @@
 - [[ADR-0010-concurrent-sessions-are-allowed-by-default|ADR-0010 — Concurrent sessions are allowed by default; single-session is an explicit opt-in]]
 - [[ADR-0011-notification-rule-and-preference-are-two-gates-not-one|ADR-0011 — `NotificationRule` and `NotificationPreference` both stay, as two gates on one dispatch path]]
 - [[ADR-0012-hand-rolled-reporting-hierarchy-tree-no-new-dependency|ADR-0012 — Render the reporting hierarchy tree by hand, no graph/tree library dependency]]
+- [[ADR-0013-customization-access-is-granted-by-permission|ADR-0013 — Customization access is granted by customization permissions, not by role membership]]
+- [[ADR-0014-employee-work-sites-are-a-related-records-tab|ADR-0014 — Employee work sites are managed in a related-records tab with a transactional Make primary action]]
+- [[ADR-0015-production-retires-sink-email-providers|ADR-0015 — Production retires sink email providers, tenants fall back to the platform relay, and default templates ship with real copy]]
+- [[ADR-0016-published-custom-modules-render-in-the-tenant-runtime|ADR-0016 — A published custom module renders in the tenant runtime with a sidebar entry and standard list, form and record screens]]
+- [[ADR-0017-the-hierarchy-viewer-stays-a-chain-scoped-dialog|ADR-0017 — The reporting hierarchy viewer stays a chain-scoped dialog, drawn as a real branching tree]]
 - [[decision-a-bug-record-is-its-own-backlog-item|Decision — A bug record **is** its own backlog item]]
 - [[decision-ci-verdict-gates-shared-merges|Decision — A shared-target merge requires a read CI verdict on the exact SHA]]
 - [[decision-platform-admin-is-a-separate-identity|Decision — Platform admin is a separate identity, not an elevated tenant user]]
@@ -667,15 +696,15 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 443 |
-| Backlog items | 178 |
+| Bug records | 456 |
+| Backlog items | 196 |
 | Known bug patterns | 34 |
 | QA runs | 32 |
-| Engineering history records | 79 |
+| Engineering history records | 81 |
 | Release records | 10 |
 | Module notes | 30 |
 | Architecture notes | 22 |
-| Decision notes (ADR + generated) | 16 |
+| Decision notes (ADR + generated) | 21 |
 | Implementation records | 7 |
 
 **Awaiting Architect triage: 0.** A record nobody has

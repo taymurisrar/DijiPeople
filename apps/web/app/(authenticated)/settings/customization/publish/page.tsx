@@ -1,6 +1,10 @@
 import { apiRequestJson } from "@/lib/server-api";
 import { SettingsShell } from "../../_components/settings-shell";
-import { requireSettingsPermissions } from "../../_lib/require-settings-permission";
+import {
+  isAccessDeniedError,
+  requireCustomizationPage,
+} from "../_lib/customization-access";
+import { CustomizationAccessDenied } from "../_components/customization-access-denied";
 import { PublishCenter } from "../_components/publish-center";
 import type {
   CustomizationPackage,
@@ -8,20 +12,25 @@ import type {
 } from "../types";
 
 export default async function CustomizationPublishPage() {
-  await requireSettingsPermissions(["customization.read"]);
-  const [drafts, packages] = await Promise.all([
-    apiRequestJson<CustomizationPublishDraftComponent[]>(
-      "/customization/publish/drafts",
-    ),
-    apiRequestJson<CustomizationPackage[]>("/customization/packages"),
-  ]);
+  const { allowed } = await requireCustomizationPage("publishCenter");
+  if (!allowed) return <CustomizationAccessDenied />;
+
+  let drafts: CustomizationPublishDraftComponent[];
+  let packages: CustomizationPackage[];
+  try {
+    [drafts, packages] = await Promise.all([
+      apiRequestJson<CustomizationPublishDraftComponent[]>(
+        "/customization/publish/drafts",
+      ),
+      apiRequestJson<CustomizationPackage[]>("/customization/packages"),
+    ]);
+  } catch (error) {
+    if (isAccessDeniedError(error)) return <CustomizationAccessDenied />;
+    throw error;
+  }
 
   return (
-    <SettingsShell
-      description="Validate draft package metadata before publishing. Runtime uses published metadata only."
-      eyebrow="Customization"
-      title="Publish Center"
-    >
+    <SettingsShell description="" eyebrow="Customization" title="Publish Center">
       <PublishCenter drafts={drafts} packages={packages} />
     </SettingsShell>
   );

@@ -13,13 +13,22 @@ import {
   type CustomizationSolutionComponentType,
 } from '@prisma/client';
 import type { ApprovalActorType, ApprovalModuleKey } from '@prisma/client';
+import {
+  sinkEmailProvidersRetired,
+  type EmailProviderEnvironment,
+} from '@repo/config';
 import { createPrismaClient } from './create-prisma-client';
 import { bootstrapCommercialDefaults } from '../src/modules/super-admin/commercial-bootstrap';
 import { PermissionBootstrapService } from '../src/modules/permissions/permission-bootstrap.service';
 import { DEFAULT_APPROVAL_MATRICES } from '../src/modules/approvals/default-approval-matrices';
 import { NOTIFICATION_EVENT_CATALOG } from '../src/modules/notifications/notification-events.catalog';
 import { RETIRED_EVENT_ALIASES } from '../src/modules/notifications/notification-events.catalog';
-import { SYSTEM_EMAIL_TEMPLATE_PLACEHOLDERS } from '../src/modules/notifications/notification-events.catalog';
+import {
+  containsPlaceholderCopy,
+  planSystemTemplateWrite,
+  RETIRED_TENANT_DEFAULT_TEMPLATE_SUFFIX,
+  SYSTEM_EMAIL_TEMPLATES,
+} from '../src/modules/notifications/notification-events.catalog';
 import { buildTenantNotificationScopeKey } from '../src/modules/notifications/notifications.constants';
 import {
   isDesignerColumn,
@@ -85,116 +94,7 @@ const DEFAULT_EMPLOYEE_LEVELS = [
   { code: 'ASSOC', name: 'Associate', rank: 40 },
 ] as const;
 
-type AuthEventCode = (typeof AUTH_EVENT_CODES)[number];
 type TenantSeedTarget = { id: string; name: string };
-
-type AuthTemplateSeed = {
-  eventCode: AuthEventCode;
-  templateKey: string;
-  name: string;
-  description: string;
-  subjectTemplate: string;
-  htmlTemplate: string;
-  textTemplate: string;
-  availableVariables: Record<string, string>;
-};
-
-const AUTH_TEMPLATE_SEEDS: AuthTemplateSeed[] = [
-  {
-    eventCode: 'AUTH_ACCOUNT_ACTIVATION',
-    templateKey: 'AUTH_ACCOUNT_ACTIVATION',
-    name: 'Account activation email',
-    description: 'Default production template for account activation emails.',
-    subjectTemplate: 'Activate your account for {{tenantName}}',
-    htmlTemplate: buildActionEmailHtml({
-      heading: 'Activate your account',
-      lead: 'An account has been created for you. Use the secure link below to finish setup and sign in.',
-      buttonLabel: 'Activate account',
-      actionUrlVariable: 'activationUrl',
-      fallbackLine:
-        'If the button does not work, copy and paste this activation link into your browser:',
-    }),
-    textTemplate: [
-      'Hello,',
-      '',
-      'An account has been created for you at {{tenantName}}.',
-      'Use this secure link to finish setup and sign in: {{activationUrl}}',
-      '',
-      'This link expires in {{expiresIn}}.',
-      '',
-      'If you were not expecting this email, you can ignore it or contact {{supportEmail}}.',
-    ].join('\n'),
-    availableVariables: {
-      firstName: 'Recipient first name',
-      name: 'Recipient full name',
-      email: 'Recipient email address',
-      activationUrl: 'Secure account activation URL',
-      tenantName: 'Tenant display name',
-      supportEmail: 'Support email address',
-      expiresIn: 'Human-readable expiry window',
-    },
-  },
-  {
-    eventCode: 'AUTH_PASSWORD_RESET',
-    templateKey: 'AUTH_PASSWORD_RESET',
-    name: 'Password reset email',
-    description: 'Default production template for password reset emails.',
-    subjectTemplate: 'Reset your password for {{tenantName}}',
-    htmlTemplate: buildActionEmailHtml({
-      heading: 'Reset your password',
-      lead: 'A password reset was requested for your account. Use the secure link below if this was you.',
-      buttonLabel: 'Reset password',
-      actionUrlVariable: 'resetUrl',
-      fallbackLine:
-        'If the button does not work, copy and paste this reset link into your browser:',
-    }),
-    textTemplate: [
-      'Hello,',
-      '',
-      'A password reset was requested for your account at {{tenantName}}.',
-      'Use this secure link to continue: {{resetUrl}}',
-      '',
-      'This link expires in {{expiresIn}}.',
-      '',
-      'If you did not request this change, you can ignore this email or contact {{supportEmail}}.',
-    ].join('\n'),
-    availableVariables: {
-      firstName: 'Recipient first name',
-      name: 'Recipient full name',
-      email: 'Recipient email address',
-      resetUrl: 'Secure password reset URL',
-      tenantName: 'Tenant display name',
-      supportEmail: 'Support email address',
-      expiresIn: 'Human-readable expiry window',
-    },
-  },
-  {
-    eventCode: 'AUTH_OTP',
-    templateKey: 'AUTH_OTP',
-    name: 'Authentication OTP email',
-    description: 'Default production template for one-time passcode emails.',
-    subjectTemplate: 'Your verification code for {{tenantName}}',
-    htmlTemplate: buildOtpEmailHtml(),
-    textTemplate: [
-      'Hello,',
-      '',
-      'Use this verification code for {{tenantName}}: {{otp}}',
-      '',
-      'This code expires in {{expiresIn}}.',
-      '',
-      'If you did not request this code, you can ignore this email or contact {{supportEmail}}.',
-    ].join('\n'),
-    availableVariables: {
-      firstName: 'Recipient first name',
-      name: 'Recipient full name',
-      email: 'Recipient email address',
-      otp: 'One-time passcode',
-      tenantName: 'Tenant display name',
-      supportEmail: 'Support email address',
-      expiresIn: 'Human-readable expiry window',
-    },
-  },
-];
 
 const DEFAULT_NOTIFICATION_TEMPLATES = [
   [
@@ -872,44 +772,118 @@ async function seedPlatformContractTemplates(client: PrismaClient) {
   }
 }
 
+/*
+ * BUG-3500 / ADR-0015. System email templates, refreshed on every deploy.
+ *
+ * This used to be a plain upsert whose update branch rewrote body and status on
+ * every run, which is how placeholder copy kept coming back ACTIVE however
+ * often a row was corrected by hand. It now writes only what
+ * `planSystemTemplateWrite` allows: a missing row is created, and an existing
+ * row is refreshed only while it is still an untouched system default. Tenant
+ * templates live at the tenant's own scope key and are never read here.
+ */
 async function seedSystemEmailTemplates(client: PrismaClient) {
-  for (const template of SYSTEM_EMAIL_TEMPLATE_PLACEHOLDERS) {
-    await client.emailTemplate.upsert({
-      where: {
-        scopeKey_templateKey: {
+  let created = 0;
+  let refreshed = 0;
+  let untouched = 0;
+
+  for (const template of SYSTEM_EMAIL_TEMPLATES) {
+    const where = {
+      scopeKey_templateKey: {
+        scopeKey: template.scopeKey,
+        templateKey: template.templateKey,
+      },
+    };
+    const existing = await client.emailTemplate.findUnique({
+      where,
+      select: { tenantId: true, isSystem: true, updatedBy: true },
+    });
+    const content = {
+      eventCode: template.eventCode,
+      name: template.name,
+      description: template.description,
+      subjectTemplate: template.subjectTemplate,
+      htmlTemplate: template.htmlTemplate,
+      textTemplate: template.textTemplate,
+      availableVariables:
+        template.availableVariables as unknown as Prisma.InputJsonValue,
+      status: template.status,
+      isSystem: true,
+    };
+
+    const plan = planSystemTemplateWrite(existing);
+    if (plan === 'create') {
+      await client.emailTemplate.create({
+        data: {
+          tenantId: null,
           scopeKey: template.scopeKey,
           templateKey: template.templateKey,
+          version: template.version,
+          ...content,
         },
-      },
-      create: {
-        tenantId: null,
-        scopeKey: template.scopeKey,
-        eventCode: template.eventCode,
-        templateKey: template.templateKey,
-        name: template.name,
-        description: template.description,
-        subjectTemplate: template.subjectTemplate,
-        htmlTemplate: template.htmlTemplate,
-        textTemplate: template.textTemplate,
-        availableVariables:
-          template.availableVariables as unknown as Prisma.InputJsonValue,
-        status: template.status,
-        version: template.version,
-        isSystem: template.isSystem,
-      },
-      update: {
-        eventCode: template.eventCode,
-        name: template.name,
-        description: template.description,
-        subjectTemplate: template.subjectTemplate,
-        htmlTemplate: template.htmlTemplate,
-        textTemplate: template.textTemplate,
-        availableVariables:
-          template.availableVariables as unknown as Prisma.InputJsonValue,
-        status: template.status,
-        isSystem: template.isSystem,
-      },
-    });
+      });
+      created += 1;
+    } else if (plan === 'update') {
+      await client.emailTemplate.update({ where, data: content });
+      refreshed += 1;
+    } else {
+      untouched += 1;
+      console.warn(
+        `System email template ${template.templateKey} was left unchanged: the row is not an untouched system default.`,
+      );
+    }
+  }
+
+  console.log(
+    `System email templates: ${created} created, ${refreshed} refreshed, ${untouched} left unchanged.`,
+  );
+
+  await verifySystemEmailTemplates(client);
+}
+
+/*
+ * ADR-0015 agent rule: never ship an ACTIVE template whose body is placeholder
+ * text, and a seed check must fail on it. A system row fails the deploy. A
+ * tenant's own template is reported but never fails it or gets changed: a tenant
+ * that cloned the old placeholder owns that copy, and blocking every release on
+ * one tenant's content would be worse than the warning.
+ */
+async function verifySystemEmailTemplates(client: PrismaClient) {
+  const activeTemplates = await client.emailTemplate.findMany({
+    where: { status: EmailTemplateStatus.ACTIVE },
+    select: {
+      tenantId: true,
+      scopeKey: true,
+      templateKey: true,
+      description: true,
+      subjectTemplate: true,
+      htmlTemplate: true,
+      textTemplate: true,
+    },
+  });
+
+  const withPlaceholderCopy = activeTemplates.filter((row) =>
+    [
+      row.description,
+      row.subjectTemplate,
+      row.htmlTemplate,
+      row.textTemplate,
+    ].some((value) => containsPlaceholderCopy(value)),
+  );
+
+  for (const row of withPlaceholderCopy.filter((item) => item.tenantId)) {
+    console.warn(
+      `Tenant email template ${row.templateKey} (${row.scopeKey}) is ACTIVE with placeholder wording. It belongs to the tenant and was not changed.`,
+    );
+  }
+
+  const systemRows = withPlaceholderCopy.filter((item) => !item.tenantId);
+  if (systemRows.length > 0) {
+    throw new Error(
+      `Seed verification failed: ACTIVE system email templates contain placeholder wording: ${systemRows
+        .map((row) => row.templateKey)
+        .join(', ')}.`,
+    );
   }
 }
 
@@ -2166,58 +2140,55 @@ export async function verifyRequiredSeedData(
   console.log('Seed reference data verification passed.');
 }
 
+/*
+ * BUG-3500. Retires the per-tenant auth templates this function used to write.
+ *
+ * It used to upsert an ACTIVE `isSystem` copy of the activation, password reset
+ * and OTP templates into every tenant's own scope, rewriting them on every run.
+ * Tenant scope is tried before SYSTEM, so those hidden rows, not the system
+ * templates, were what auth emails used. They were not listed on any screen, and
+ * they held the exact key a tenant's Customize needs, so customizing an auth
+ * template failed on the unique constraint.
+ *
+ * Each such row is re-keyed and archived. It is not deleted, so delivery history
+ * keeps its template and the step can be reversed. Only rows that are still
+ * seed-owned (`isSystem`, the tenant's own scope, never saved by a person) are
+ * touched. Idempotent: once re-keyed, a row no longer matches the filter.
+ *
+ * Kept under its original name because `seed-demo.ts` calls it.
+ */
 export async function seedTenantEmailTemplates(
   client: PrismaClient,
   tenants: TenantSeedTarget[],
 ) {
-  let count = 0;
+  let retired = 0;
 
   for (const tenant of tenants) {
     const scopeKey = buildTenantNotificationScopeKey(tenant.id);
+    const legacyRows = await client.emailTemplate.findMany({
+      where: {
+        tenantId: tenant.id,
+        scopeKey,
+        isSystem: true,
+        updatedBy: null,
+        templateKey: { in: [...AUTH_EVENT_CODES] },
+      },
+      select: { id: true, templateKey: true },
+    });
 
-    for (const template of AUTH_TEMPLATE_SEEDS) {
-      await client.emailTemplate.upsert({
-        where: {
-          scopeKey_templateKey: {
-            scopeKey,
-            templateKey: template.templateKey,
-          },
-        },
-        create: {
-          tenantId: tenant.id,
-          scopeKey,
-          eventCode: template.eventCode,
-          templateKey: template.templateKey,
-          name: template.name,
-          description: template.description,
-          subjectTemplate: template.subjectTemplate,
-          htmlTemplate: template.htmlTemplate,
-          textTemplate: template.textTemplate,
-          availableVariables:
-            template.availableVariables as unknown as Prisma.InputJsonValue,
-          status: EmailTemplateStatus.ACTIVE,
-          version: 1,
-          isSystem: true,
-        },
-        update: {
-          tenantId: tenant.id,
-          eventCode: template.eventCode,
-          name: template.name,
-          description: template.description,
-          subjectTemplate: template.subjectTemplate,
-          htmlTemplate: template.htmlTemplate,
-          textTemplate: template.textTemplate,
-          availableVariables:
-            template.availableVariables as unknown as Prisma.InputJsonValue,
-          status: EmailTemplateStatus.ACTIVE,
-          isSystem: true,
+    for (const row of legacyRows) {
+      await client.emailTemplate.updateMany({
+        where: { id: row.id, tenantId: tenant.id, isSystem: true },
+        data: {
+          templateKey: `${row.templateKey}${RETIRED_TENANT_DEFAULT_TEMPLATE_SUFFIX}`,
+          status: EmailTemplateStatus.ARCHIVED,
         },
       });
-      count += 1;
+      retired += 1;
     }
   }
 
-  return count;
+  return retired;
 }
 
 export async function seedTenantNotificationPreferences(
@@ -2435,7 +2406,20 @@ export async function seedTenantNotificationRules(
 export async function seedTenantConsoleProviders(
   client: PrismaClient,
   tenants: TenantSeedTarget[],
+  env: EmailProviderEnvironment = process.env,
 ) {
+  /*
+   * BUG-3501 / ADR-0015. Render's pre-deploy step runs `seed:config` on every
+   * deploy, and this used to give every tenant without an enabled provider an
+   * enabled, default Console provider — so production quietly re-created the
+   * sink the demo tenant's mail disappeared into, on each release. Production
+   * resolution now ignores sink rows anyway; not creating them keeps the
+   * Providers screen from listing a provider nobody chose.
+   */
+  if (sinkEmailProvidersRetired(env)) {
+    return 0;
+  }
+
   let count = 0;
 
   for (const tenant of tenants) {
@@ -2482,88 +2466,6 @@ export async function seedTenantConsoleProviders(
   }
 
   return count;
-}
-
-function buildActionEmailHtml(input: {
-  heading: string;
-  lead: string;
-  buttonLabel: string;
-  actionUrlVariable: 'activationUrl' | 'resetUrl';
-  fallbackLine: string;
-}) {
-  const actionUrl = `{{${input.actionUrlVariable}}}`;
-
-  return `
-<div style="margin:0;padding:0;background:#f6f7fb;font-family:Arial,Helvetica,sans-serif;color:#172033;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;background:#f6f7fb;margin:0;padding:32px 16px;">
-    <tr>
-      <td align="center">
-        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="width:100%;max-width:600px;background:#ffffff;border:1px solid #e6e8ef;border-radius:12px;overflow:hidden;">
-          <tr>
-            <td style="padding:28px 32px 16px 32px;">
-              <h1 style="margin:0;font-size:24px;line-height:32px;color:#172033;">${input.heading}</h1>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:0 32px 28px 32px;">
-              <p style="margin:0 0 16px 0;font-size:15px;line-height:24px;color:#3b4559;">Hello,</p>
-              <p style="margin:0 0 24px 0;font-size:15px;line-height:24px;color:#3b4559;">${input.lead}</p>
-              <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 0 24px 0;">
-                <tr>
-                  <td style="border-radius:8px;background:#0f766e;">
-                    <a href="${actionUrl}" style="display:inline-block;padding:12px 20px;font-size:14px;line-height:20px;color:#ffffff;text-decoration:none;font-weight:700;border-radius:8px;">${input.buttonLabel}</a>
-                  </td>
-                </tr>
-              </table>
-              <p style="margin:0 0 12px 0;font-size:13px;line-height:20px;color:#5f6b7a;">This secure link expires in {{expiresIn}}.</p>
-              <p style="margin:0 0 12px 0;font-size:13px;line-height:20px;color:#5f6b7a;">${input.fallbackLine}</p>
-              <p style="margin:0 0 24px 0;font-size:12px;line-height:18px;word-break:break-all;color:#2563eb;">${actionUrl}</p>
-              <p style="margin:0;font-size:13px;line-height:20px;color:#5f6b7a;">If you were not expecting this email, you can ignore it or contact {{supportEmail}}.</p>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:20px 32px 24px 32px;border-top:1px solid #eef0f5;">
-              <p style="margin:0;font-size:12px;line-height:18px;color:#7b8494;">{{tenantName}}</p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</div>`.trim();
-}
-
-function buildOtpEmailHtml() {
-  return `
-<div style="margin:0;padding:0;background:#f6f7fb;font-family:Arial,Helvetica,sans-serif;color:#172033;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;background:#f6f7fb;margin:0;padding:32px 16px;">
-    <tr>
-      <td align="center">
-        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="width:100%;max-width:600px;background:#ffffff;border:1px solid #e6e8ef;border-radius:12px;overflow:hidden;">
-          <tr>
-            <td style="padding:28px 32px 16px 32px;">
-              <h1 style="margin:0;font-size:24px;line-height:32px;color:#172033;">Your verification code</h1>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:0 32px 28px 32px;">
-              <p style="margin:0 0 16px 0;font-size:15px;line-height:24px;color:#3b4559;">Hello,</p>
-              <p style="margin:0 0 20px 0;font-size:15px;line-height:24px;color:#3b4559;">Use this code to continue with {{tenantName}}:</p>
-              <p style="margin:0 0 20px 0;font-size:32px;line-height:40px;font-weight:700;letter-spacing:4px;color:#0f766e;">{{otp}}</p>
-              <p style="margin:0 0 20px 0;font-size:13px;line-height:20px;color:#5f6b7a;">This code expires in {{expiresIn}}.</p>
-              <p style="margin:0;font-size:13px;line-height:20px;color:#5f6b7a;">If you did not request this code, you can ignore this email or contact {{supportEmail}}.</p>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:20px 32px 24px 32px;border-top:1px solid #eef0f5;">
-              <p style="margin:0;font-size:12px;line-height:18px;color:#7b8494;">{{tenantName}}</p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</div>`.trim();
 }
 
 if (require.main === module) {

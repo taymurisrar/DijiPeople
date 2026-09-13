@@ -122,7 +122,7 @@ carried no reason) — implemented by QA-SETTINGS-019.
 
 ## Related
 
-- Scenarios — [[QA-SETTINGS-018]], [[QA-SETTINGS-019]], [[QA-SETTINGS-020]]
+- Scenarios — [[QA-SETTINGS-018]], [[QA-SETTINGS-019]], [[QA-SETTINGS-020]], [[QA-SETTINGS-027]], [[QA-SETTINGS-028]], [[QA-SETTINGS-029]], [[QA-SETTINGS-030]], [[QA-SETTINGS-031]], [[QA-SETTINGS-032]]
 - Module — [[notifications]]
 - Bugs — [[BUG-3375]], [[BUG-3379]]
 - Regressions — REG-460, REG-461 (see the regression register)

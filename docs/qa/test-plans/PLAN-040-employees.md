@@ -123,7 +123,7 @@ QA-EMPLOYEE-001.
 
 ## Related
 
-- Scenarios — [[QA-EMPLOYEE-001]]
+- Scenarios — [[QA-EMPLOYEE-001]], [[QA-EMPLOYEE-002]], [[QA-EMPLOYEE-003]], [[QA-EMPLOYEE-004]], [[QA-EMPLOYEE-005]], [[QA-EMPLOYEE-006]], [[QA-EMPLOYEE-007]]
 - Module — [[employees]]
 - Bugs — [[BUG-3450]]
 - Regressions — REG-480 (see the regression register)

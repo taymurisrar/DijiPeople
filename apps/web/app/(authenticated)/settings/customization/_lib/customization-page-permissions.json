@@ -1,0 +1,85 @@
+{
+  "about": "ADR-0013. The one map of what each Customization page requires. Pages gate on `requires` (all of them); `calls` lists the API routes the page loads, relative to /api/customization. services/api/src/modules/customization/customization-web-gate.seam.spec.ts fails when a page's keys stop covering the keys its API calls declare, or when componentWriteKeys disagrees with the service.",
+  "pages": {
+    "section": {
+      "requires": ["customization.read"],
+      "calls": []
+    },
+    "modules": {
+      "requires": ["customization.read", "customization.tables.read"],
+      "calls": [["GET", "tables"]]
+    },
+    "moduleDetail": {
+      "requires": [
+        "customization.read",
+        "customization.tables.read",
+        "customization.columns.read",
+        "customization.views.read",
+        "customization.forms.read"
+      ],
+      "calls": [
+        ["GET", "tables/:tableKey"],
+        ["GET", "tables/:tableKey/columns"],
+        ["GET", "tables/:tableKey/views"],
+        ["GET", "tables/:tableKey/forms"],
+        ["GET", "tables/:tableKey/metadata-components"],
+        ["GET", "tables"],
+        ["GET", "packages"]
+      ]
+    },
+    "formDesigner": {
+      "requires": [
+        "customization.read",
+        "customization.tables.read",
+        "customization.columns.read",
+        "customization.forms.read"
+      ],
+      "calls": [
+        ["GET", "tables/:tableKey"],
+        ["GET", "tables/:tableKey/columns"],
+        ["GET", "tables/:tableKey/forms"],
+        ["GET", "packages"]
+      ]
+    },
+    "viewDesigner": {
+      "requires": [
+        "customization.read",
+        "customization.tables.read",
+        "customization.columns.read",
+        "customization.views.read"
+      ],
+      "calls": [
+        ["GET", "tables/:tableKey"],
+        ["GET", "tables/:tableKey/columns"],
+        ["GET", "tables/:tableKey/views"]
+      ]
+    },
+    "packages": {
+      "requires": ["customization.read"],
+      "calls": [["GET", "packages"]]
+    },
+    "packageDetail": {
+      "requires": ["customization.read", "customization.tables.read"],
+      "calls": [
+        ["GET", "packages/:packageId"],
+        ["GET", "tables"]
+      ]
+    },
+    "publishCenter": {
+      "requires": ["customization.read"],
+      "calls": [
+        ["GET", "publish/drafts"],
+        ["GET", "packages"]
+      ]
+    },
+    "sidebar": {
+      "requires": ["customization.read", "customization.modules.manage"],
+      "calls": []
+    }
+  },
+  "componentWriteKeys": {
+    "choiceList": "customization.choice-lists.manage",
+    "relationship": "customization.relationships.manage",
+    "actionBar": "customization.action-bars.manage"
+  }
+}

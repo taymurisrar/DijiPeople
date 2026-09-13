@@ -14,13 +14,13 @@ A screen marked **bespoke** is a hand-written page whose API calls and underlyin
 
 **`apiPath` is called by the server, not the browser.** Loading `/leaves` on that tenant issued no client-side request to `/api/leave-requests`; the list arrives already rendered, and the only client calls were notifications and settings. Runtime list and record screens fetch through `apps/web/lib/server-api.ts` in a server component. Watching the browser network log to discover which endpoint a screen uses will therefore find nothing, and concluding the screen calls no API would be wrong.
 
-**351 screens** across 3 applications · 11 runtime modules declare an API path and entity
+**355 screens** across 3 applications · 11 runtime modules declare an API path and entity
 
 Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[known-gaps]]
 
 ## Tenant product — `apps/web` (port 3001)
 
-249 screens, 32 runtime-driven.
+253 screens, 32 runtime-driven.
 
 | Route | Source | API | Entity |
 |---|---|---|---|
@@ -48,6 +48,10 @@ Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[
 | `/business-trips/[tripId]` | `apps/web/app/(authenticated)/business-trips/[tripId]/page.tsx` | _bespoke_ | — |
 | `/claims` | `apps/web/app/(authenticated)/claims/page.tsx` | _bespoke_ | — |
 | `/claims/[claimId]` | `apps/web/app/(authenticated)/claims/[claimId]/page.tsx` | _bespoke_ | — |
+| `/custom-modules/[moduleKey]` | `apps/web/app/(authenticated)/custom-modules/[moduleKey]/page.tsx` | _bespoke_ | — |
+| `/custom-modules/[moduleKey]/[recordId]` | `apps/web/app/(authenticated)/custom-modules/[moduleKey]/[recordId]/page.tsx` | _bespoke_ | — |
+| `/custom-modules/[moduleKey]/[recordId]/edit` | `apps/web/app/(authenticated)/custom-modules/[moduleKey]/[recordId]/edit/page.tsx` | _bespoke_ | — |
+| `/custom-modules/[moduleKey]/new` | `apps/web/app/(authenticated)/custom-modules/[moduleKey]/new/page.tsx` | _bespoke_ | — |
 | `/customers` | `apps/web/app/(authenticated)/customers/page.tsx` | `/api/customers` | `customer` |
 | `/customers/[customerId]` | `apps/web/app/(authenticated)/customers/[customerId]/page.tsx` | `/api/customers` | `customer` |
 | `/customers/[customerId]/edit` | `apps/web/app/(authenticated)/customers/[customerId]/edit/page.tsx` | `/api/customers` | `customer` |

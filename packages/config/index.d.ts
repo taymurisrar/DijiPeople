@@ -274,6 +274,28 @@ export declare function isSupportedEmailProviderType(
 ): boolean;
 
 /**
+ * Provider types that discard mail instead of delivering it (CONSOLE, DEV).
+ * ADR-0015 retires them in production.
+ */
+export declare const SINK_EMAIL_PROVIDER_TYPES: readonly string[];
+
+/** Environment variables the email provider rules read. */
+export type EmailProviderEnvironment = {
+  readonly NODE_ENV?: string | null;
+  readonly APP_ENV?: string | null;
+};
+
+/** True when NODE_ENV or APP_ENV names production (BUG-3501, ADR-0015). */
+export declare function sinkEmailProvidersRetired(
+  env: EmailProviderEnvironment | null | undefined,
+): boolean;
+
+/** Supported provider types an administrator may choose in this environment. */
+export declare function selectableEmailProviderTypes(
+  env: EmailProviderEnvironment | null | undefined,
+): string[];
+
+/**
  * Postgres connection selection (BUG-0086).
  *
  * `DATABASE_URL` is the runtime connection and may be pooled. Prisma migrations

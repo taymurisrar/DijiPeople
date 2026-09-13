@@ -6,6 +6,7 @@ import { FormEvent, useMemo, useState } from "react";
 import { DataTable } from "@/app/components/data-table/data-table";
 import { DataTableColumn } from "@/app/components/data-table/types";
 import { ConfirmDialog } from "@/app/components/feedback/confirm-dialog";
+import { useSideToast } from "@/app/components/notifications/use-side-toast";
 import { Button } from "@/app/components/ui/button";
 import { EmptyState } from "@/app/components/ui/empty-state";
 import {
@@ -53,6 +54,8 @@ export function ViewsManagement({
   views: CustomizationView[];
 }) {
   const router = useRouter();
+  // ITEM-0184 — create and save gave no feedback.
+  const { notifySuccess, toast } = useSideToast();
   const [form, setForm] = useState<ViewFormState | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CustomizationView | null>(
     null,
@@ -352,6 +355,9 @@ export function ViewsManagement({
       return;
     }
 
+    notifySuccess(
+      `${form.name.trim()} ${form.mode === "create" ? "created" : "saved"}`,
+    );
     setForm(null);
     router.refresh();
   }
@@ -495,10 +501,8 @@ export function ViewsManagement({
   });
 
   return (
-    <SectionCard
-      description="Views define runtime list fields, default filters, sorting, and visibility scope for this module."
-      title="Views"
-    >
+    <SectionCard title="Views">
+      {toast}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted">
           {views.length} view{views.length === 1 ? "" : "s"} configured for{" "}
@@ -554,38 +558,32 @@ export function ViewsManagement({
             className="grid max-h-[92vh] w-full max-w-3xl gap-5 overflow-y-auto rounded-[24px] border border-border bg-white p-6 shadow-xl"
             onSubmit={handleSubmit}
           >
-            <div>
-              <h3 className="text-lg font-semibold text-foreground" id={formDialog.titleId}>
-                {form.mode === "create" ? "Create view" : "Edit view"}
-              </h3>
-              <p className="mt-1 text-sm leading-6 text-muted">
-                Configure the fields, default filters, and sorting applied by
-                runtime list pages that consume published customization.
-              </p>
-            </div>
-
-            {form.original?.type === "system" ? (
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                This is a system view. It can be renamed/customized through a
-                layer or deactivated when default rules allow, but it cannot be
-                deleted.
-              </div>
-            ) : null}
+            <h3 className="text-lg font-semibold text-foreground" id={formDialog.titleId}>
+              {form.mode === "create" ? "Create view" : "Edit view"}
+            </h3>
 
             <div className="grid gap-4 md:grid-cols-2">
               <TextField
-                disabled={form.mode === "edit"}
-                hint="Use camelCase. This key cannot be changed after creation."
-                label="View logical name"
-                onChange={(viewKey) => updateForm({ viewKey })}
-                required
-                value={form.viewKey}
-              />
-              <TextField
                 label="Name"
-                onChange={(name) => updateForm({ name })}
+                onChange={(name) =>
+                  updateForm(
+                    form.mode === "create"
+                      ? { name, viewKey: toViewKey(name) }
+                      : { name },
+                  )
+                }
                 required
                 value={form.name}
+              />
+              {/*
+                ITEM-0184 — the logical name is derived from the name and shown
+                read-only; it was a camelCase input with an explanatory hint.
+              */}
+              <TextField
+                disabled
+                label="Logical name"
+                onChange={() => undefined}
+                value={form.viewKey}
               />
               <SelectField
                 disabled={form.original?.type === "system"}
@@ -645,15 +643,18 @@ export function ViewsManagement({
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
+              {/*
+                ITEM-0183 — the hints here quoted Employee columns
+                (`employmentStatus`, `hireDate`) on every module's dialog.
+                The view designer edits filters and sorting with real controls.
+              */}
               <TextAreaField
-                hint='Optional JSON, e.g. [{"columnKey":"employmentStatus","operator":"equals","value":"ACTIVE"}]'
                 label="Filters JSON"
                 onChange={(filtersText) => updateForm({ filtersText })}
                 rows={6}
                 value={form.filtersText}
               />
               <TextAreaField
-                hint='Optional JSON, e.g. [{"columnKey":"hireDate","direction":"desc"}]'
                 label="Sorting JSON"
                 onChange={(sortingText) => updateForm({ sortingText })}
                 rows={6}
@@ -674,8 +675,12 @@ export function ViewsManagement({
               >
                 Cancel
               </Button>
-              <Button loading={isSaving} loadingText="Saving..." type="submit">
-                Save view
+              <Button
+                loading={isSaving}
+                loadingText={form.mode === "create" ? "Creating..." : "Saving..."}
+                type="submit"
+              >
+                {form.mode === "create" ? "Create" : "Save"}
               </Button>
             </div>
           </form>
@@ -834,6 +839,27 @@ function viewTypeLabel(view: CustomizationView) {
 
 function stateLabel(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+/*
+ * ITEM-0184 — a view's logical name, derived from its name. The API key must
+ * start with a lowercase letter and contain only letters and digits.
+ */
+function toViewKey(name: string) {
+  const words = name
+    .trim()
+    .replace(/[^a-zA-Z0-9]+/g, " ")
+    .split(" ")
+    .filter(Boolean);
+  const camel = words
+    .map((word, index) => {
+      const lower = word.toLowerCase();
+      return index === 0
+        ? lower
+        : `${lower[0]?.toUpperCase() ?? ""}${lower.slice(1)}`;
+    })
+    .join("");
+  return /^[a-z]/.test(camel) ? camel : camel ? `v${camel}` : "";
 }
 
 function canToggleView(

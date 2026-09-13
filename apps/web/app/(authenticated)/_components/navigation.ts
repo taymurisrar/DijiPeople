@@ -4,6 +4,11 @@ import {
   type VisibilityRule,
 } from "@/lib/runtime/visibility.resolver";
 import type { VisibilityPlacement } from "@/lib/runtime/visibility-placement";
+import {
+  buildCustomModuleNavItems,
+  composeDashboardNavItems,
+  type CustomModuleSummary,
+} from "@/lib/runtime/custom-modules/custom-module-navigation";
 import { BusinessUnitAccessSummary } from "../_lib/business-unit-access";
 
 export type DashboardNavItem = {
@@ -191,7 +196,27 @@ type ResolveVisibleDashboardNavItemsInput = {
    * the viewer is".
    */
   placement?: VisibilityPlacement | null;
+  /*
+   * Published custom modules the API resolved for this user (BUG-3494). They
+   * join the catalog before overrides, so the Sidebar Designer governs them the
+   * same way it governs product entries.
+   */
+  customModules?: readonly CustomModuleSummary[] | null;
 };
+
+/**
+ * Every entry a tenant's sidebar can contain before overrides: the product list
+ * plus published custom modules. The Sidebar Designer lists this same catalog,
+ * so an entry it can order or hide is exactly an entry the sidebar can show.
+ */
+export function resolveDashboardNavCatalog(
+  customModules?: readonly CustomModuleSummary[] | null,
+): DashboardNavItem[] {
+  return composeDashboardNavItems(
+    dashboardNavItems,
+    buildCustomModuleNavItems(customModules),
+  );
+}
 
 /**
  * Lays a tenant's overrides over the code-defined list.
@@ -273,7 +298,10 @@ export function resolveVisibleDashboardNavItems(
     },
   };
 
-  const items = applyDashboardNavOverrides(dashboardNavItems, input.overrides);
+  const items = applyDashboardNavOverrides(
+    resolveDashboardNavCatalog(input.customModules),
+    input.overrides,
+  );
 
   return items.flatMap((item) => {
     /*

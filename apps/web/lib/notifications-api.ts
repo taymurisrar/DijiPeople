@@ -316,6 +316,38 @@ export const updateNotificationRule = (
     body: JSON.stringify(body),
   });
 
+/*
+ * ITEM-0180. The notification events page. Each item is an event some code
+ * path can actually deliver to this workspace; `channels` holds only the
+ * channels it can arrive on, each `enabled` computed the way dispatch decides
+ * it. Events with no emitter, and channels nothing sends, are not returned.
+ */
+export type NotificationEventSettingChannel = "IN_APP" | "EMAIL";
+
+export type NotificationEventSetting = {
+  eventCode: string;
+  name: string;
+  moduleKey: string;
+  moduleLabel: string;
+  required: boolean;
+  channels: Array<{ channel: NotificationEventSettingChannel; enabled: boolean }>;
+};
+
+export const getNotificationEventSettings = () =>
+  requestJson<{ items: NotificationEventSetting[] }>("/event-settings");
+
+export const updateNotificationEventChannel = (
+  eventCode: string,
+  payload: { channel: NotificationEventSettingChannel; enabled: boolean },
+) =>
+  requestJson<NotificationEventSetting>(
+    `/event-settings/${encodeURIComponent(eventCode)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    },
+  );
+
 export const getEmailTemplates = () =>
   requestJson<{ items: EmailTemplate[] }>("/email-templates");
 export const getEmailTemplate = (id: string) =>
@@ -379,8 +411,18 @@ export type ProviderSchema = {
   fields: ProviderField[];
 };
 
+/**
+ * BUG-3501. `selectableProviderTypes` is what an administrator may choose in
+ * this environment — production leaves out CONSOLE and DEV. Optional, because
+ * an API from before the change does not send it.
+ */
+export type ProviderFieldSchemaResponse = {
+  items: ProviderSchema[];
+  selectableProviderTypes?: string[];
+};
+
 export const getProviderFieldSchemas = () =>
-  requestJson<{ items: ProviderSchema[] }>("/email-providers/field-schema");
+  requestJson<ProviderFieldSchemaResponse>("/email-providers/field-schema");
 export const getEmailProviders = () =>
   requestJson<{ items: EmailProviderSetting[] }>("/email-providers");
 
@@ -401,7 +443,22 @@ export type EffectiveEmailProvider = {
   fromEmail: string | null;
   fromName: string | null;
   replyToEmail: string | null;
+  /*
+   * BUG-3501. Whether mail reaches anyone, and through whom — `canSend` is true
+   * for a Console sink. Optional only for an API that predates the field.
+   */
+  deliveryPath?: EmailDeliveryPath;
+  notDeliveredReason?: EmailNotDeliveredReason | null;
+  /** True in production, where Console and Dev rows are ignored (ADR-0015). */
+  sinkProvidersRetired?: boolean;
 };
+
+export type EmailDeliveryPath =
+  | "TENANT_PROVIDER"
+  | "PLATFORM_RELAY"
+  | "NOT_DELIVERED";
+
+export type EmailNotDeliveredReason = "NO_PROVIDER" | "SINK_PROVIDER";
 
 export const getEffectiveEmailProvider = () =>
   requestJson<EffectiveEmailProvider>("/email-providers/effective");

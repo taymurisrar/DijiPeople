@@ -223,7 +223,7 @@ contract, and the allowlist is replaced.**
   table over the same destinations. `apps/web` has no live entity-to-route
   registry to delegate to instead — the only candidates
   (`module-registry.ts` and its siblings) were removed as inert scaffolding
-  with zero callers ([[ADR-0007]]), so reviving one would have contradicted
+  with zero callers (ADR-0007), so reviving one would have contradicted
   that decision; this table is closer in spirit to admin's own
   `resolveLookupRecordRoute`, which derives a route from data the lookup
   already carries rather than a hand-authored map, than to what it replaces.

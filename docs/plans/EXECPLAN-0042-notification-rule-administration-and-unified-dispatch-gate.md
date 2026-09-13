@@ -261,3 +261,7 @@ mid-rollout state (API deployed, web not yet) leaves the old screen calling
 - [x] Tenant scoping verified by inspection of every new/changed query.
 - [x] `services/api/AGENTS.md` updated with the two-dispatch-path note.
 - [x] No unrelated file changes in the diff.
+
+## Related
+
+[[BUG-3375]] · [[ITEM-0168]] · [[ITEM-0169]] · [[ITEM-0170]] · [[ITEM-0171]]

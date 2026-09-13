@@ -382,6 +382,7 @@ export function ModuleRecordPage({
         <ModuleRuntimeCommandHandler
           activeForm={activeForm}
           dataAdapter={dataAdapter}
+          lookupDisplayValues={lookupDisplayValues}
           onResult={(result) => {
             if (isEmployeeAccountAction(result.command?.key)) {
               setActionNotice({

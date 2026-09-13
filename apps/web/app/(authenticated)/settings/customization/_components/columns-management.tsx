@@ -6,6 +6,7 @@ import { FormEvent, useMemo, useState } from "react";
 import { DataTable } from "@/app/components/data-table/data-table";
 import { DataTableColumn } from "@/app/components/data-table/types";
 import { ConfirmDialog } from "@/app/components/feedback/confirm-dialog";
+import { useSideToast } from "@/app/components/notifications/use-side-toast";
 import { Button } from "@/app/components/ui/button";
 import { EmptyState } from "@/app/components/ui/empty-state";
 import {
@@ -22,21 +23,62 @@ import {
   CustomizationPackage,
   CustomizationTable,
 } from "../types";
+import {
+  apiFieldType,
+  buildColumnPayload,
+  supportsMaxLength,
+} from "../_lib/column-payload";
 import { CustomPackagePickerDialog } from "./custom-package-picker-dialog";
 import { useDialogBehavior } from "@/app/components/ui/dialog";
 
-const fieldTypeOptions = [
-  "text",
-  "number",
-  "date",
-  "datetime",
-  "boolean",
-  "email",
-  "phone",
-  "reference",
-  "choice",
-  "multilineText",
-].map((value) => ({ value, label: fieldTypeLabel(value) }));
+/*
+ * The dialog's own type vocabulary. ITEM-0184 — these were shown as the raw
+ * values ("datetime", "multiline text"); the labels are what an administrator
+ * reads, the values are what the payload builder maps to the API's types.
+ */
+const FIELD_TYPE_LABELS: Record<string, string> = {
+  text: "Text",
+  number: "Number",
+  date: "Date",
+  datetime: "Date and time",
+  boolean: "Yes/No",
+  email: "Email",
+  phone: "Phone",
+  reference: "Reference",
+  choice: "Choice",
+  multilineText: "Multiline text",
+};
+
+const fieldTypeOptions = Object.entries(FIELD_TYPE_LABELS).map(
+  ([value, label]) => ({ value, label }),
+);
+
+/* The API stores some types under other names; the list reads those back. */
+const API_TYPE_LABELS: Record<string, string> = {
+  text: "Text",
+  textarea: "Multiline text",
+  number: "Number",
+  decimal: "Decimal",
+  date: "Date",
+  datetime: "Date and time",
+  boolean: "Yes/No",
+  select: "Choice",
+  multiselect: "Multiple choice",
+  lookup: "Reference",
+  email: "Email",
+  phone: "Phone",
+  url: "URL",
+  currency: "Currency",
+};
+
+function uiFieldType(apiType: string) {
+  const map: Record<string, string> = {
+    lookup: "reference",
+    select: "choice",
+    textarea: "multilineText",
+  };
+  return map[apiType] ?? apiType;
+}
 
 type ChoiceOptionRow = {
   id: string;
@@ -63,6 +105,13 @@ type ColumnFormState = {
   sortOrder: number | null;
 };
 
+type FieldErrors = Partial<
+  Record<
+    "columnKey" | "displayName" | "maxLength" | "lookupTargetTableKey" | "form",
+    string
+  >
+>;
+
 export function ColumnsManagement({
   columns,
   lookupTables,
@@ -75,11 +124,13 @@ export function ColumnsManagement({
   table: CustomizationTable;
 }) {
   const router = useRouter();
+  const { notifySuccess, toast } = useSideToast();
   const [form, setForm] = useState<ColumnFormState | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CustomizationColumn | null>(
     null,
   );
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [isSaving, setIsSaving] = useState(false);
   const [selectedPackageId, setSelectedPackageId] = useState(
     packages.find((item) => item.type === "custom" && !item.isReadOnly)?.id ??
@@ -96,169 +147,138 @@ export function ColumnsManagement({
   const publisherPrefix = packagePrefix(selectedPackage);
 
   const tableColumns: DataTableColumn<CustomizationColumn>[] = [
-      {
-        key: "displayName",
-        header: "Display name",
-        sortable: true,
-        sortAccessor: (row) => row.displayName,
-        render: (row) => (
-          <div>
-            <p className="flex items-center gap-1.5 font-semibold text-foreground">
-              {row.displayName}
-              {row.isPrimaryName ? (
-                <span
-                  className="inline-flex items-center gap-1 rounded-full border border-accent/20 bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold text-accent"
-                  title="Lookups to this module display this column's value."
-                >
-                  <KeyRound className="h-3 w-3" />
-                  Primary name
-                </span>
-              ) : null}
-            </p>
-            <p className="mt-1 text-xs text-muted">{row.columnKey}</p>
-          </div>
-        ),
-      },
-      {
-        key: "logicalName",
-        header: "Logical name",
-        searchable: true,
-        sortable: true,
-        sortAccessor: (row) => row.columnKey,
-        render: (row) => (
-          <code className="rounded-md bg-slate-100 px-2 py-1 text-xs">
-            {row.columnKey}
-          </code>
-        ),
-      },
-      {
-        key: "type",
-        header: "Type",
-        sortable: true,
-        sortAccessor: (row) => row.fieldType,
-        render: (row) => (
-          <div>
-            <p className="text-sm text-foreground">{row.fieldType}</p>
-            <p className="mt-1 text-xs text-muted">Data: {row.dataType}</p>
-          </div>
-        ),
-      },
-      {
-        key: "required",
-        header: "Required",
-        filterable: true,
-        filterType: "select",
-        filterAccessor: (row) => (row.isRequired ? "Yes" : "No"),
-        filterOptions: [
-          { label: "Required", value: "Yes" },
-          { label: "Optional", value: "No" },
-        ],
-        render: (row) => (row.isRequired ? "Yes" : "No"),
-      },
-      {
-        key: "capabilities",
-        header: "Search / filter / sort",
-        render: (row) => (
-          <div className="space-y-1 text-xs text-muted">
-            <p>Searchable: {yesNo(row.isSearchable)}</p>
-            <p>Filterable: {yesNo(row.isFilterable)}</p>
-            <p>Sortable: {yesNo(row.isSortable)}</p>
-          </div>
-        ),
-      },
-      {
-        key: "source",
-        header: "Source",
-        filterable: true,
-        filterType: "select",
-        filterAccessor: (row) => (row.isSystem ? "System" : "Custom"),
-        filterOptions: [
-          { label: "System", value: "System" },
-          { label: "Custom", value: "Custom" },
-        ],
-        render: (row) => (
-          <StatusPill tone={row.isSystem ? "muted" : "neutral"}>
-            {row.isSystem ? "System" : "Custom"}
+    {
+      key: "displayName",
+      header: "Display name",
+      sortable: true,
+      sortAccessor: (row) => row.displayName,
+      render: (row) => (
+        <p className="flex items-center gap-1.5 font-semibold text-foreground">
+          {row.displayName}
+          {row.isPrimaryName ? (
+            <span className="inline-flex items-center gap-1 rounded-full border border-accent/20 bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold text-accent">
+              <KeyRound aria-hidden className="h-3 w-3" />
+              Primary name
+            </span>
+          ) : null}
+        </p>
+      ),
+    },
+    {
+      key: "logicalName",
+      header: "Logical name",
+      searchable: true,
+      sortable: true,
+      sortAccessor: (row) => row.columnKey,
+      render: (row) => (
+        <code className="rounded-md bg-slate-100 px-2 py-1 text-xs">
+          {row.columnKey}
+        </code>
+      ),
+    },
+    {
+      key: "type",
+      header: "Type",
+      sortable: true,
+      sortAccessor: (row) => row.fieldType,
+      render: (row) => API_TYPE_LABELS[row.fieldType] ?? row.fieldType,
+    },
+    {
+      key: "required",
+      header: "Required",
+      filterable: true,
+      filterType: "select",
+      filterAccessor: (row) => (row.isRequired ? "Yes" : "No"),
+      filterOptions: [
+        { label: "Required", value: "Yes" },
+        { label: "Optional", value: "No" },
+      ],
+      render: (row) => (row.isRequired ? "Yes" : "No"),
+    },
+    {
+      key: "source",
+      header: "Source",
+      filterable: true,
+      filterType: "select",
+      filterAccessor: (row) => (row.isSystem ? "System" : "Custom"),
+      filterOptions: [
+        { label: "System", value: "System" },
+        { label: "Custom", value: "Custom" },
+      ],
+      render: (row) => (
+        <StatusPill tone={row.isSystem ? "muted" : "neutral"}>
+          {row.isSystem ? "System" : "Custom"}
+        </StatusPill>
+      ),
+    },
+    {
+      key: "package",
+      header: "Package",
+      /*
+       * ITEM-0184 / BUG-3495 — this read "Default Package" or "Custom Package"
+       * from `isSystem` alone, so one module showed three package names at
+       * once. It is the owning package's real name now.
+       */
+      render: (row) =>
+        row.packageName ?? (row.isSystem ? "Default Package" : "Not set"),
+    },
+    {
+      key: "lifecycle",
+      header: "Lifecycle",
+      render: (row) => {
+        const state =
+          row.lifecycleState ?? (row.isSystem ? "published" : "draft");
+        return (
+          <StatusPill tone={state === "published" ? "good" : "muted"}>
+            {stateLabel(state)}
           </StatusPill>
-        ),
+        );
       },
-      {
-        key: "package",
-        header: "Package",
-        render: (row) => (row.isSystem ? "Default Package" : "Custom Package"),
-      },
-      {
-        key: "lifecycle",
-        header: "Lifecycle",
-        render: (row) => (
-          <StatusPill tone={row.isSystem ? "good" : "muted"}>
-            {stateLabel(
-              row.lifecycleState ?? (row.isSystem ? "published" : "draft"),
-            )}
-          </StatusPill>
-        ),
-      },
-      {
-        key: "status",
-        header: "Status",
-        filterable: true,
-        filterType: "select",
-        filterAccessor: (row) =>
-          row.isActive === false ? "Inactive" : "Active",
-        filterOptions: [
-          { label: "Active", value: "Active" },
-          { label: "Inactive", value: "Inactive" },
-        ],
-        render: (row) => (
-          <StatusPill tone={row.isActive === false ? "muted" : "good"}>
-            {row.isActive === false ? "Inactive" : "Active"}
-          </StatusPill>
-        ),
-      },
-      {
-        key: "actions",
-        header: "Actions",
-        render: (row) => (
-          <div className="flex items-center gap-1">
-            <PermissionGate anyOf={["customization.columns.update"]}>
-              {!row.isPrimaryName && canBePrimaryName(row) ? (
-                <Button
-                  aria-label="Set as primary name"
-                  leftIcon={<KeyRound className="h-4 w-4" />}
-                  onClick={() => setPrimaryName(row)}
-                  size="icon-sm"
-                  title="Set as the primary name — lookups to this module will display this column"
-                  type="button"
-                  variant="ghost"
-                />
-              ) : null}
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      render: (row) => (
+        <div className="flex items-center gap-1">
+          <PermissionGate anyOf={["customization.columns.update"]}>
+            {!row.isPrimaryName && canBePrimaryName(row) ? (
               <Button
-                aria-label="Edit or rename field"
-                leftIcon={<Edit3 className="h-4 w-4" />}
-                onClick={() => openEdit(row)}
+                aria-label="Set as primary name"
+                leftIcon={<KeyRound className="h-4 w-4" />}
+                onClick={() => setPrimaryName(row)}
                 size="icon-sm"
-                title="Edit or rename field"
+                title="Set as primary name"
                 type="button"
-                variant="secondary"
+                variant="ghost"
+              />
+            ) : null}
+            <Button
+              aria-label="Edit field"
+              leftIcon={<Edit3 className="h-4 w-4" />}
+              onClick={() => openEdit(row)}
+              size="icon-sm"
+              title="Edit field"
+              type="button"
+              variant="secondary"
+            />
+          </PermissionGate>
+          {!row.isSystem ? (
+            <PermissionGate anyOf={["customization.columns.delete"]}>
+              <Button
+                aria-label="Delete field"
+                leftIcon={<Trash2 className="h-4 w-4" />}
+                onClick={() => setDeleteTarget(row)}
+                size="icon-sm"
+                title="Delete field"
+                type="button"
+                variant="danger"
               />
             </PermissionGate>
-            {!row.isSystem ? (
-              <PermissionGate anyOf={["customization.columns.delete"]}>
-                <Button
-                  aria-label="Delete field"
-                  leftIcon={<Trash2 className="h-4 w-4" />}
-                  onClick={() => setDeleteTarget(row)}
-                  size="icon-sm"
-                  title="Delete field"
-                  type="button"
-                  variant="danger"
-                />
-              </PermissionGate>
-            ) : null}
-          </div>
-        ),
-      },
-    ];
+          ) : null}
+        </div>
+      ),
+    },
+  ];
 
   /*
    * Only a column that can actually render a readable label is offered. The
@@ -291,11 +311,13 @@ export function ColumnsManagement({
       setError(payload.message ?? "Unable to set the primary name column.");
       return;
     }
+    notifySuccess(`${column.displayName} is now the primary name`);
     router.refresh();
   }
 
   function openCreate() {
     setError(null);
+    setFieldErrors({});
     setForm({
       mode: "create",
       columnKey: "",
@@ -316,6 +338,7 @@ export function ColumnsManagement({
 
   function openEdit(column: CustomizationColumn) {
     setError(null);
+    setFieldErrors({});
     if (column.isSystem) {
       setPendingSystemColumn(column);
       return;
@@ -329,7 +352,7 @@ export function ColumnsManagement({
       original: column,
       columnKey: column.columnKey,
       displayName: column.displayName,
-      fieldType: column.fieldType,
+      fieldType: uiFieldType(column.fieldType),
       isRequired: column.isRequired,
       isVisible: column.isVisible,
       isSearchable: column.isSearchable,
@@ -357,7 +380,8 @@ export function ColumnsManagement({
         displayName,
         columnKey:
           current.columnKey &&
-          current.columnKey !== generatedFieldKey(current.displayName, publisherPrefix)
+          current.columnKey !==
+            generatedFieldKey(current.displayName, publisherPrefix)
             ? current.columnKey
             : generatedFieldKey(displayName, publisherPrefix),
       };
@@ -368,16 +392,19 @@ export function ColumnsManagement({
     event.preventDefault();
     if (!form) return;
 
-    const validationError = validateForm(form, columns);
-    if (validationError) {
-      setError(validationError);
+    const validation = validateForm(form, columns);
+    setFieldErrors(validation);
+    if (Object.keys(validation).length > 0) {
       return;
     }
 
     setIsSaving(true);
     setError(null);
 
-    const body = buildPayload(form);
+    const body = buildColumnPayload({
+      ...form,
+      options: activeOptionRows(form.optionRows),
+    });
     if (form.mode === "edit" && form.original?.isSystem) {
       body.packageId = selectedPackageId;
     }
@@ -392,15 +419,25 @@ export function ColumnsManagement({
       },
     );
     const data = (await response.json().catch(() => ({}))) as {
-      message?: string;
+      message?: string | string[];
     };
 
     setIsSaving(false);
     if (!response.ok) {
-      setError(data.message ?? "Unable to save field metadata.");
+      const message = Array.isArray(data.message)
+        ? data.message.join(" ")
+        : data.message;
+      setFieldErrors(
+        placeServerError(message ?? "Unable to save the field."),
+      );
       return;
     }
 
+    notifySuccess(
+      form.mode === "create"
+        ? `${form.displayName.trim()} created`
+        : `${form.displayName.trim()} saved`,
+    );
     setForm(null);
     router.refresh();
   }
@@ -427,6 +464,7 @@ export function ColumnsManagement({
       return;
     }
 
+    notifySuccess(`${deleteTarget.displayName} deleted`);
     setDeleteTarget(null);
     router.refresh();
   }
@@ -440,14 +478,11 @@ export function ColumnsManagement({
   });
 
   return (
-    <SectionCard
-      description="System fields can be relabeled and adjusted only where safe. Custom fields are package-owned metadata components on this module."
-      title="Fields"
-    >
+    <SectionCard title="Fields">
+      {toast}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted">
-          {columns.length} field{columns.length === 1 ? "" : "s"} configured for{" "}
-          {table.pluralDisplayName}.
+          {columns.length} field{columns.length === 1 ? "" : "s"}
         </p>
         <PermissionGate anyOf={["customization.columns.create"]}>
           <Button
@@ -455,13 +490,16 @@ export function ColumnsManagement({
             onClick={openCreate}
             type="button"
           >
-            Add custom field
+            Add field
           </Button>
         </PermissionGate>
       </div>
 
       {error && !form ? (
-        <div className="mb-4 rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
+        <div
+          className="mb-4 rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger"
+          role="alert"
+        >
           {error}
         </div>
       ) : null}
@@ -474,11 +512,11 @@ export function ColumnsManagement({
             action={
               <PermissionGate anyOf={["customization.columns.create"]}>
                 <Button onClick={openCreate} type="button" variant="secondary">
-                  Add custom field
+                  Add field
                 </Button>
               </PermissionGate>
             }
-            description="This module has no registered fields yet."
+            description="This module has no fields yet."
             title="No fields"
           />
         }
@@ -487,7 +525,7 @@ export function ColumnsManagement({
         pagination={{ page: 1, pageSize: 10, total: columns.length }}
         rows={columns}
         searchPlaceholder="Search fields"
-        tableClassName="min-w-[1060px] divide-y divide-border text-xs"
+        tableClassName="min-w-[760px] divide-y divide-border text-xs"
       />
 
       {form ? (
@@ -500,82 +538,73 @@ export function ColumnsManagement({
             className="grid max-h-[92vh] w-full max-w-3xl gap-5 overflow-y-auto rounded-[24px] border border-border bg-white p-6 shadow-xl"
             onSubmit={handleSubmit}
           >
-            <div>
-              <h3 className="text-lg font-semibold text-foreground" id={formDialog.titleId}>
-                {form.mode === "create" ? "Add custom field" : "Edit field"}
-              </h3>
-              <p className="mt-1 text-sm leading-6 text-muted">
-                {form.original?.isSystem
-                  ? "This is a system field. Core type and identity changes are protected."
-                  : "Configure metadata for a tenant-managed custom field."}
-              </p>
-            </div>
-
-            {form.original?.isSystem ? (
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                Required system fields cannot be made optional, and system field
-                types cannot be changed.
-              </div>
-            ) : null}
+            <h3
+              className="text-lg font-semibold text-foreground"
+              id={formDialog.titleId}
+            >
+              {form.mode === "create" ? "Add field" : "Edit field"}
+            </h3>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <TextField
-                disabled={form.mode === "edit"}
-                hint={`Generated from display name with publisher prefix ${publisherPrefix}. This logical name is locked after creation.`}
-                label="Field logical name"
-                onChange={(columnKey) => updateForm({ columnKey })}
-                required
-                value={form.columnKey}
-              />
               <TextField
                 label="Display name"
                 onChange={updateDisplayName}
                 required
                 value={form.displayName}
+                error={fieldErrors.displayName}
+              />
+              <TextField
+                disabled={form.mode === "edit"}
+                label="Logical name"
+                onChange={(columnKey) => updateForm({ columnKey })}
+                required
+                value={form.columnKey}
+                error={fieldErrors.columnKey}
               />
               <SelectField
                 disabled={form.mode === "edit"}
-                hint={
-                  form.mode === "edit"
-                    ? "Field data type is locked after creation."
-                    : "Choose the storage and editor data type."
-                }
                 label="Field type"
                 onChange={(fieldType) => updateForm({ fieldType })}
                 options={fieldTypeOptions}
                 required
                 value={form.fieldType}
               />
-              <TextField
-                disabled={!supportsMaxLength(form.fieldType)}
-                label="Max length"
-                onChange={(maxLength) =>
-                  updateForm({
-                    maxLength: maxLength ? Number(maxLength) : null,
-                  })
-                }
-                type="text"
-                value={form.maxLength == null ? "" : String(form.maxLength)}
-              />
+              {supportsMaxLength(form.fieldType) ? (
+                <TextField
+                  label="Maximum length"
+                  onChange={(maxLength) =>
+                    updateForm({
+                      maxLength:
+                        maxLength.trim() === "" ? null : Number(maxLength),
+                    })
+                  }
+                  type="text"
+                  value={form.maxLength == null ? "" : String(form.maxLength)}
+                  error={fieldErrors.maxLength}
+                />
+              ) : null}
+              {form.fieldType === "reference" ? (
+                <SelectField
+                  label="Reference target"
+                  onChange={(lookupTargetTableKey) =>
+                    updateForm({ lookupTargetTableKey })
+                  }
+                  options={lookupTables.map((lookupTable) => ({
+                    value: lookupTable.tableKey,
+                    label: lookupTable.pluralDisplayName,
+                  }))}
+                  placeholder="Select a module"
+                  required
+                  value={form.lookupTargetTableKey}
+                  error={fieldErrors.lookupTargetTableKey}
+                />
+              ) : null}
               <TextField
                 label="Default value"
                 onChange={(defaultValue) => updateForm({ defaultValue })}
                 value={form.defaultValue}
               />
-              <SelectField
-                disabled={form.fieldType !== "reference"}
-                label="Reference target"
-                onChange={(lookupTargetTableKey) =>
-                  updateForm({ lookupTargetTableKey })
-                }
-                options={lookupTables.map((lookupTable) => ({
-                  value: lookupTable.tableKey,
-                  label: lookupTable.pluralDisplayName,
-                }))}
-                placeholder="Select lookup target"
-                value={form.lookupTargetTableKey}
-              />
-              <div className="grid gap-3 md:grid-cols-2">
+              <div className="grid gap-3 md:col-span-2 md:grid-cols-3">
                 <CheckboxField
                   checked={form.isRequired}
                   label="Required"
@@ -610,21 +639,29 @@ export function ColumnsManagement({
               ) : null}
             </div>
 
-            {error ? <p className="text-sm text-danger">{error}</p> : null}
+            {fieldErrors.form ? (
+              <p className="text-sm text-danger" role="alert">
+                {fieldErrors.form}
+              </p>
+            ) : null}
 
             <div className="flex flex-wrap justify-end gap-3">
               <Button
                 onClick={() => {
                   setForm(null);
-                  setError(null);
+                  setFieldErrors({});
                 }}
                 type="button"
                 variant="secondary"
               >
                 Cancel
               </Button>
-              <Button loading={isSaving} loadingText="Saving..." type="submit">
-                Save field
+              <Button
+                loading={isSaving}
+                loadingText={form.mode === "create" ? "Creating..." : "Saving..."}
+                type="submit"
+              >
+                {form.mode === "create" ? "Create" : "Save"}
               </Button>
             </div>
           </form>
@@ -638,13 +675,11 @@ export function ColumnsManagement({
           variant: "danger",
         }}
         description={
-          deleteTarget
-            ? `Delete ${deleteTarget.displayName}? System fields cannot be deleted, and custom fields with dependencies are blocked by the server.`
-            : undefined
+          deleteTarget ? `Delete ${deleteTarget.displayName}?` : undefined
         }
         onClose={() => setDeleteTarget(null)}
         open={Boolean(deleteTarget)}
-        title="Delete custom field"
+        title="Delete field"
       />
       <CustomPackagePickerDialog
         message={SYSTEM_COMPONENT_CUSTOMIZATION_MESSAGE}
@@ -659,74 +694,66 @@ export function ColumnsManagement({
   );
 }
 
-function validateForm(form: ColumnFormState, columns: CustomizationColumn[]) {
+/*
+ * Errors are placed on the field they concern (ITEM-0184 — the maximum length
+ * error used to appear at the bottom of the dialog, under a disabled control).
+ */
+function validateForm(
+  form: ColumnFormState,
+  columns: CustomizationColumn[],
+): FieldErrors {
+  const errors: FieldErrors = {};
+  if (!form.displayName.trim()) {
+    errors.displayName = "Enter a display name.";
+  }
   if (
     form.mode === "create" &&
     !/^[a-z][a-z0-9]*_[a-z][a-zA-Z0-9]*$/.test(form.columnKey)
   ) {
-    return "Field logical name must use the publisher prefix and camelCase, for example mt_passportExpiryDate.";
-  }
-  if (!form.displayName.trim()) {
-    return "Display name is required.";
-  }
-  if (
+    errors.columnKey = "Use the publisher prefix followed by a name, for example mt_passportExpiry.";
+  } else if (
     form.mode === "create" &&
     columns.some((column) => column.columnKey === form.columnKey)
   ) {
-    return "A field with this logical name already exists.";
+    errors.columnKey = "A field with this logical name already exists.";
   }
-  if (form.original?.isSystem && form.fieldType !== form.original.fieldType) {
-    return "System field types cannot be changed.";
-  }
-  if (form.original?.isSystem && form.original.isRequired && !form.isRequired) {
-    return "Required system fields cannot be made optional.";
+  if (
+    supportsMaxLength(form.fieldType) &&
+    form.maxLength !== null &&
+    (!Number.isInteger(form.maxLength) || form.maxLength < 1)
+  ) {
+    errors.maxLength = "Enter a whole number of at least 1.";
   }
   if (form.fieldType === "reference" && !form.lookupTargetTableKey) {
-    return "Reference fields require a target module.";
+    errors.lookupTargetTableKey = "Choose the module this field refers to.";
   }
   if (
     form.fieldType === "choice" &&
     activeOptionRows(form.optionRows).length === 0
   ) {
-    return "Choice fields require at least one active option.";
+    errors.form = "Add at least one active option.";
   }
-  if (form.mode === "edit" && form.original?.fieldType !== form.fieldType) {
-    return "Field data type cannot be changed after creation.";
+  if (
+    form.original &&
+    apiFieldType(form.fieldType) !== form.original.fieldType
+  ) {
+    errors.form = "A field's type cannot be changed after creation.";
+  }
+  if (form.original?.isSystem && form.original.isRequired && !form.isRequired) {
+    errors.form = "A required system field cannot be made optional.";
   }
 
-  return null;
+  return errors;
 }
 
-function buildPayload(form: ColumnFormState) {
-  const payload: Record<string, unknown> = {
-    displayName: form.displayName.trim(),
-    fieldType: apiFieldType(form.fieldType),
-    isRequired: form.isRequired,
-    isVisible: form.isVisible,
-    isSearchable: form.isSearchable,
-    isFilterable: form.isFilterable,
-    isSortable: form.isSortable,
-    maxLength: supportsMaxLength(form.fieldType) ? form.maxLength : null,
-    defaultValue: form.defaultValue || undefined,
-    lookupTargetTableKey:
-      form.fieldType === "reference" ? form.lookupTargetTableKey : undefined,
-    optionSetJson:
-      form.fieldType === "choice"
-        ? { options: activeOptionRows(form.optionRows) }
-        : undefined,
-    sortOrder: form.sortOrder ?? 0,
-  };
-
-  if (form.mode === "create") {
-    payload.columnKey = form.columnKey;
-    payload.dataType = apiFieldType(form.fieldType);
+function placeServerError(message: string): FieldErrors {
+  const lower = message.toLowerCase();
+  if (lower.includes("maximum length")) return { maxLength: message };
+  if (lower.includes("lookup target")) return { lookupTargetTableKey: message };
+  if (lower.includes("column already") || lower.includes("columnkey")) {
+    return { columnKey: message };
   }
-
-  return payload;
-}
-
-function supportsMaxLength(fieldType: string) {
-  return ["text", "multilineText", "email", "phone"].includes(fieldType);
+  return { form: message };
 }
 
 function nextSortOrder(columns: CustomizationColumn[]) {
@@ -805,32 +832,8 @@ function toChoiceValue(label: string) {
   return toCamelCase(label);
 }
 
-function yesNo(value: unknown) {
-  return value ? "Yes" : "No";
-}
-
-function fieldTypeLabel(value: string) {
-  const labels: Record<string, string> = {
-    multilineText: "multiline text",
-    reference: "reference",
-    choice: "choice",
-  };
-
-  return labels[value] ?? value;
-}
-
 function stateLabel(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
-function apiFieldType(value: string) {
-  const map: Record<string, string> = {
-    reference: "lookup",
-    choice: "select",
-    multilineText: "textarea",
-  };
-
-  return map[value] ?? value;
 }
 
 function ChoiceOptionsEditor({
@@ -866,14 +869,7 @@ function ChoiceOptionsEditor({
   return (
     <div className="md:col-span-2 rounded-lg border border-border bg-slate-50 p-3">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-foreground">
-            Choice options
-          </p>
-          <p className="text-xs text-muted">
-            Define labels, stable values, and active state.
-          </p>
-        </div>
+        <p className="text-sm font-semibold text-foreground">Options</p>
         <Button onClick={addRow} size="sm" type="button" variant="secondary">
           Add option
         </Button>
@@ -886,7 +882,7 @@ function ChoiceOptionsEditor({
             key={row.id}
           >
             <span className="flex h-10 items-center text-muted">
-              <GripVertical className="h-4 w-4" />
+              <GripVertical aria-hidden className="h-4 w-4" />
             </span>
             <TextField
               label={`Label ${index + 1}`}
@@ -894,7 +890,7 @@ function ChoiceOptionsEditor({
               value={row.label}
             />
             <TextField
-              label="Value/key"
+              label="Value"
               onChange={(value) => updateRow(row.id, { value })}
               value={row.value}
             />

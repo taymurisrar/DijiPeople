@@ -78,6 +78,8 @@ Questions where the engineering is understood and the **product answer**
 - [[BUG-3182-no-per-tenant-restore-is-possible-restoring-one-tenant-means|BUG-3182]] — **No per-tenant restore is possible: restoring one tenant means rolling back all of them** (HIGH)
 - [[BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-|BUG-3333]] — **Tenant buyers choose their own currency and the three price schedules are not equivalent** (HIGH)
 - [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] — **No multi-factor authentication exists anywhere, including for platform super admins** (HIGH)
+- [[ITEM-0193-decide-whether-the-hr-role-may-manage-notification-events|ITEM-0193]] — **Decide whether the hr role may manage notification events** (unrated)
+- [[ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins|ITEM-0191]] — **Decide whether custom modules need their own access keys instead of the shared custom-records privilege** (unrated)
 
 ## Recent Product Changes
 
@@ -117,6 +119,7 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-3332-plan-cards-truncate-to-eight-features-so-growth-and-enterpri|BUG-3332]] | Plan cards truncate to eight features so Growth and Enterprise advertise identical capability | UX | HIGH | FIXED | apps/web, api:billing | FIX_NOW |
 | [[BUG-3375-the-notification-rules-screen-edits-preferences-and-cannot-r|BUG-3375]] | The Notification Rules screen edits preferences and cannot reach NotificationRule at all | UX | HIGH | FIXED | notifications, apps/web | PLAN_REQUIRED |
 | [[BUG-3376-runtime-lookups-fetch-one-unpaged-page-and-filter-it-in-the-|BUG-3376]] | Runtime lookups fetch one unpaged page and filter it in the browser, hiding every record past the server page size | DATA_INTEGRITY | HIGH | FIXED | apps/web, apps/admin | PLAN_REQUIRED |
+| [[BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver|BUG-3501]] | The email provider screen presents a console sink as delivery and offers sink providers in production | UX | MEDIUM | FIXED | notifications, apps/web | PLAN_REQUIRED |
 | [[BUG-1668-tenant-workspace-pages-scroll-horizontally-at-mobile-width|BUG-1668]] | Tenant workspace pages scroll horizontally at mobile width | UX | MEDIUM | FIXED | views | DONE |
 | [[BUG-1950-every-tenant-workspace-screen-renders-the-same-h1-so-no-page|BUG-1950]] | Every tenant workspace screen renders the same h1, so no page announces what it is | UX | MEDIUM | FIXED | apps/web | DONE |
 | [[BUG-1951-most-tenant-workspace-pages-render-no-main-landmark-includin|BUG-1951]] | Most tenant workspace pages render no main landmark, including every settings category | UX | MEDIUM | FIXED | apps/web | DONE |
@@ -145,6 +148,7 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-3373-web-paints-the-operating-system-dark-theme-before-the-tenant|BUG-3373]] | Web paints the operating-system dark theme before the tenant Light default arrives | UX | MEDIUM | FIXED | apps/web | FIX_NOW |
 | [[BUG-3377-admin-lookup-controls-still-carry-the-nested-interactive-lis|BUG-3377]] | Admin lookup controls still carry the nested-interactive listbox that BUG-1956 fixed only in web | UX | MEDIUM | FIXED | apps/admin | FIX_NOW |
 | [[BUG-3378-the-responsive-runtime-tab-strip-hides-a-measurement-copy-fr|BUG-3378]] | The responsive runtime tab strip hides a measurement copy from screen readers while leaving thirteen buttons in the tab order | UX | MEDIUM | FIXED | apps/web | FIX_NOW |
+| [[BUG-3499-the-reporting-hierarchy-dialog-pins-a-clipped-detail-card-ha|BUG-3499]] | The reporting hierarchy dialog pins a clipped detail card, has no close control and cannot open a record | UX | MEDIUM | FIXED | apps/web, employees | FIX_NOW |
 | [[BUG-1964-record-headings-and-dialog-titles-are-singularised-by-stripp|BUG-1964]] | Record headings and dialog titles are singularised by stripping a trailing s | UX | LOW | FIXED | apps/web | DONE |
 | [[BUG-2010-the-dashboard-recent-changes-list-renders-unformatted-iso-86|BUG-2010]] | The dashboard Recent changes list renders unformatted ISO-8601 timestamps | UX | LOW | FIXED | apps/web | DONE |
 | [[BUG-2017-the-inbox-related-record-column-renders-a-bare-uuid-with-no-|BUG-2017]] | The inbox Related record column renders a bare UUID with no label and no link | UX | LOW | FIXED | apps/web | DONE |

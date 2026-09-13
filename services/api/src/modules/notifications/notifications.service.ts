@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ForbiddenException,
   forwardRef,
   Inject,
   Injectable,
@@ -12,8 +11,6 @@ import {
   EmailDeliveryStatus,
   EmailProviderSetting,
   EmailProviderType,
-  EmailTemplate,
-  EmailTemplateStatus,
   NotificationChannel,
   NotificationDisplayMode,
   NotificationEventCategory,
@@ -26,40 +23,38 @@ import type { AuthenticatedUser } from '../../common/interfaces/authenticated-re
 import { AppError } from '../../common/errors/app-error';
 import { AuditService } from '../audit/audit.service';
 import {
-  CloneEmailTemplateDto,
   CreateEmailProviderDto,
-  CreateEmailTemplateDto,
   EmailDeliveryLogQueryDto,
-  PreviewEmailTemplateDto,
-  TestSendEmailTemplateDto,
+  InAppDeliveryLogQueryDto,
   UpdateEmailProviderDto,
-  UpdateEmailTemplateDto,
+  UpdateNotificationEventChannelDto,
   UpdateNotificationPreferencesDto,
   UpdateNotificationRuleDto,
 } from './dto';
+import { SUPPORTED_EMAIL_PROVIDER_TYPES } from '@repo/config';
 import { EmailService } from './email/email.service';
 import { EffectiveEmailProviderService } from './email/effective-email-provider.service';
+import { PROVIDER_SCHEMAS } from './email/provider-field-schema';
 import { isSinkProvider } from './email/providers';
 import { AUTH_NOTIFICATION_EVENTS } from './email/email-execution.service';
 import {
   maskSensitiveConfiguration,
   mergeConfigurationPreservingMaskedSecrets,
-  sanitizeHtmlTemplate,
   SECRET_KEY_PATTERN,
 } from './email/email-safety';
-import { TENANT_MODULES } from '../../common/constants/tenant-modules';
+import { buildTenantNotificationScopeKey } from './notifications.constants';
 import {
-  buildNotificationScopeKey,
-  EMAIL_TEMPLATE_SCOPE_LEVELS,
-  buildTenantNotificationScopeKey,
-  EmailTemplateScopeLevel,
-  parseNotificationScopeKey,
-} from './notifications.constants';
-import {
+  isAvailableEvent,
   isConfigurableEvent,
   isRetiredEventCode,
   NOTIFICATION_EVENT_CATALOG,
 } from './notification-events.catalog';
+import {
+  buildEventSettingItems,
+  describeEventSetting,
+  resolveDeliverableChannels,
+  ruleEnabledAfterToggle,
+} from './notification-event-delivery';
 import { SecretEncryptionService } from '../../common/security/secret-encryption.service';
 import { NotificationsRepository } from './notifications.repository';
 import { WorkflowRuntimeService } from '../workflows/workflow-runtime.service';
@@ -73,6 +68,13 @@ import type {
 const CATALOG_BY_CODE = new Map(
   NOTIFICATION_EVENT_CATALOG.map((event) => [event.code, event]),
 );
+
+function notificationEventNotFound() {
+  return new NotFoundException({
+    code: 'NOTIFICATION_EVENT_NOT_FOUND',
+    message: 'Notification event was not found.',
+  });
+}
 
 @Injectable()
 export class NotificationsService {
@@ -338,6 +340,201 @@ export class NotificationsService {
   }
 
   /*
+   * ITEM-0180. The read model behind /settings/notifications/rules: one row per
+   * event that some code path can deliver to this tenant, with each channel's
+   * state computed the way dispatch decides it. What "can deliver" means, and
+   * why, lives in notification-event-delivery.ts.
+   */
+  async listEventSettings(currentUser: AuthenticatedUser) {
+    const tenantScopeKey = buildTenantNotificationScopeKey(
+      currentUser.tenantId,
+    );
+    const [events, rules, preferences] = await Promise.all([
+      this.notificationsRepository.listEvents(),
+      this.notificationsRepository.listRulesForTenant(currentUser.tenantId),
+      this.notificationsRepository.listPreferences(currentUser.tenantId),
+    ]);
+
+    return {
+      items: buildEventSettingItems({
+        events,
+        rules,
+        preferences: preferences.filter(
+          (preference) => preference.scopeKey === tenantScopeKey,
+        ),
+      }),
+    };
+  }
+
+  /*
+   * ITEM-0180. One toggle on the events page. Writes the channel preference,
+   * then brings the event's NotificationRule rows into line with ADR-0011's
+   * "can this event notify anyone" — in one transaction, so a failure cannot
+   * leave the preference saved and the rule stale, which would make the page
+   * the administrator is looking at wrong about what will be sent.
+   *
+   * No rule is ever created here. Rule wiring (resolver, template) is
+   * structural per ADR-0011, and an event whose in-app delivery needs a rule
+   * the tenant does not have is not offered at all.
+   */
+  async updateEventChannel(
+    currentUser: AuthenticatedUser,
+    rawEventCode: string,
+    dto: UpdateNotificationEventChannelDto,
+  ) {
+    const tenantId = currentUser.tenantId;
+    const eventCode = rawEventCode.trim();
+    const catalogEntry =
+      eventCode.length > 0 && eventCode.length <= 120
+        ? CATALOG_BY_CODE.get(eventCode)
+        : undefined;
+
+    if (!catalogEntry || isRetiredEventCode(eventCode)) {
+      throw notificationEventNotFound();
+    }
+    if (!isAvailableEvent(catalogEntry) || !isConfigurableEvent(catalogEntry)) {
+      throw new AppError('NOTIFICATION_EVENT_NOT_CONFIGURABLE');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      const event = await this.notificationsRepository.findEventByCode(
+        eventCode,
+        tx,
+      );
+      if (!event) {
+        throw notificationEventNotFound();
+      }
+
+      const rules = await this.notificationsRepository.listRulesForEvent(
+        tenantId,
+        eventCode,
+        tx,
+      );
+      const channels = resolveDeliverableChannels({
+        eventCode,
+        supportedChannels: event.supportedChannels,
+        rules,
+      });
+      if (!channels.includes(dto.channel)) {
+        throw new AppError('NOTIFICATION_EVENT_NOT_CONFIGURABLE');
+      }
+
+      const preferences =
+        await this.notificationsRepository.listPreferencesForEvent(
+          tenantId,
+          eventCode,
+          tx,
+        );
+      const before =
+        preferences.find((preference) => preference.channel === dto.channel) ??
+        null;
+      // Captured before any write, so the audit's "before" can never be read
+      // back from a row the write has already changed.
+      const preferenceBefore = before
+        ? { eventCode, channel: before.channel, enabled: before.enabled }
+        : null;
+
+      const saved = await this.notificationsRepository.upsertTenantPreference(
+        {
+          tenantId,
+          eventCode,
+          channel: dto.channel,
+          enabled: dto.enabled,
+          // The upsert writes metadata on update too; a toggle has no business
+          // clearing whatever was stored beside the flag.
+          metadata:
+            before?.metadata === null || before?.metadata === undefined
+              ? Prisma.JsonNull
+              : (before.metadata as Prisma.InputJsonValue),
+        },
+        tx,
+      );
+
+      await this.auditService.log(
+        {
+          tenantId,
+          actorUserId: currentUser.userId,
+          action: 'notification_preference.updated',
+          entityType: 'NotificationPreference',
+          entityId: saved.id,
+          beforeSnapshot: preferenceBefore,
+          afterSnapshot: {
+            eventCode,
+            channel: saved.channel,
+            enabled: saved.enabled,
+          },
+        },
+        tx,
+      );
+
+      const ruleEnabled = ruleEnabledAfterToggle({
+        channels,
+        preferences,
+        channel: dto.channel,
+        enabled: dto.enabled,
+      });
+      const changedRules = rules
+        .filter((rule) => rule.enabled !== ruleEnabled)
+        .map((rule) => ({ id: rule.id, enabled: rule.enabled }));
+      if (!changedRules.length) {
+        return;
+      }
+
+      await this.notificationsRepository.setRulesEnabledForEvent(
+        tenantId,
+        eventCode,
+        ruleEnabled,
+        tx,
+      );
+      for (const rule of changedRules) {
+        await this.auditService.log(
+          {
+            tenantId,
+            actorUserId: currentUser.userId,
+            action: 'notification_rule.updated',
+            entityType: 'NotificationRule',
+            entityId: rule.id,
+            beforeSnapshot: { enabled: rule.enabled },
+            afterSnapshot: { enabled: ruleEnabled },
+          },
+          tx,
+        );
+      }
+    });
+
+    const [event, rules, preferences] = await Promise.all([
+      this.notificationsRepository.findEventByCode(eventCode),
+      this.notificationsRepository.listRulesForEvent(tenantId, eventCode),
+      this.notificationsRepository.listPreferencesForEvent(tenantId, eventCode),
+    ]);
+    const item = event
+      ? describeEventSetting({ event, rules, preferences })
+      : null;
+    if (!item) {
+      throw notificationEventNotFound();
+    }
+    return item;
+  }
+
+  /*
+   * ITEM-0180. The in-app half of the preference gate `execute()` has always
+   * applied to email. A configurable:false event is never asked, exactly as on
+   * the email side.
+   */
+  private async isInAppOptedOut(tenantId: string, eventCode: string) {
+    const catalogEntry = CATALOG_BY_CODE.get(eventCode);
+    if (catalogEntry && !isConfigurableEvent(catalogEntry)) {
+      return false;
+    }
+    const preference = await this.notificationsRepository.findPreference({
+      tenantId,
+      eventCode,
+      channel: NotificationChannel.IN_APP,
+    });
+    return preference?.enabled === false;
+  }
+
+  /*
    * ITEM-0168. A manual, operator-initiated retry of one delivery log. Only
    * a FAILED, retryable row is eligible — a NOT_DELIVERED row went through a
    * sink provider on purpose (BUG-3379/BUG-2741) and retrying it would only
@@ -471,229 +668,6 @@ export class NotificationsService {
     return { retriedLog, newDeliveryLog };
   }
 
-  async listTemplates(currentUser: AuthenticatedUser) {
-    const templates = await this.notificationsRepository.listTemplates(
-      currentUser.tenantId,
-    );
-    return { items: templates.map(mapEmailTemplate) };
-  }
-
-  async getTemplate(currentUser: AuthenticatedUser, templateId: string) {
-    const template = await this.notificationsRepository.findVisibleTemplateById(
-      currentUser.tenantId,
-      templateId,
-    );
-    if (!template) {
-      throw new NotFoundException('Email template was not found.');
-    }
-    return mapEmailTemplate(template);
-  }
-
-  /*
-   * Everything the authoring screen needs to offer a placement: the tenant's
-   * own organizations, business units, departments and teams, plus the module
-   * catalogue. Reading it requires the same permission as reading a template.
-   */
-  async listTemplateScopeOptions(currentUser: AuthenticatedUser) {
-    const targets = await this.notificationsRepository.listScopeTargets(
-      currentUser.tenantId,
-    );
-
-    return {
-      levels: EMAIL_TEMPLATE_SCOPE_LEVELS.map((level) => ({
-        value: level,
-        label: SCOPE_LEVEL_LABELS[level],
-      })),
-      ...targets,
-      modules: TENANT_MODULES.map((module) => ({
-        value: module.key,
-        label: module.label,
-      })),
-    };
-  }
-
-  async createTemplate(
-    currentUser: AuthenticatedUser,
-    dto: CreateEmailTemplateDto,
-  ) {
-    await this.assertEventExists(dto.eventCode);
-    this.validateTemplateContent(dto.subjectTemplate, dto.htmlTemplate);
-
-    const scopeKey = await this.resolveTemplateScopeKey(
-      currentUser.tenantId,
-      dto.scopeLevel,
-      dto.scopeId,
-    );
-
-    const template = await this.notificationsRepository.createTenantTemplate({
-      tenantId: currentUser.tenantId,
-      scopeKey,
-      moduleKey: dto.moduleKey?.trim() || null,
-      eventCode: dto.eventCode.trim(),
-      templateKey: dto.templateKey.trim(),
-      name: dto.name.trim(),
-      description: dto.description?.trim() || null,
-      subjectTemplate: dto.subjectTemplate.trim(),
-      htmlTemplate: sanitizeHtmlTemplate(dto.htmlTemplate),
-      textTemplate: dto.textTemplate?.trim() || null,
-      availableVariables: dto.availableVariables as Prisma.InputJsonValue,
-      status: dto.status ?? EmailTemplateStatus.DRAFT,
-      actorUserId: currentUser.userId,
-    });
-
-    return mapEmailTemplate(template);
-  }
-
-  async updateTemplate(
-    currentUser: AuthenticatedUser,
-    templateId: string,
-    dto: UpdateEmailTemplateDto,
-  ) {
-    const existing = await this.assertTenantTemplate(
-      currentUser.tenantId,
-      templateId,
-    );
-
-    if (dto.subjectTemplate !== undefined || dto.htmlTemplate !== undefined) {
-      this.validateTemplateContent(
-        dto.subjectTemplate ?? existing.subjectTemplate,
-        dto.htmlTemplate ?? existing.htmlTemplate,
-      );
-    }
-
-    /*
-     * Re-placing a template moves it to a different scope key. The unique
-     * constraint on (scopeKey, templateKey) means the target may already be
-     * taken, which is reported plainly rather than surfacing a database error.
-     */
-    const scopeKey =
-      dto.scopeLevel !== undefined || dto.scopeId !== undefined
-        ? await this.resolveTemplateScopeKey(
-            currentUser.tenantId,
-            dto.scopeLevel,
-            dto.scopeId,
-          )
-        : null;
-
-    if (scopeKey && scopeKey !== existing.scopeKey) {
-      const clash =
-        await this.notificationsRepository.findTemplateByScopeAndKey(
-          scopeKey,
-          existing.templateKey,
-        );
-      if (clash) {
-        throw new BadRequestException(
-          'Another template with this key already exists at the selected scope.',
-        );
-      }
-    }
-
-    const activateAfterUpdate = dto.status === EmailTemplateStatus.ACTIVE;
-    const data: Prisma.EmailTemplateUpdateInput = {
-      ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
-      ...(dto.description !== undefined
-        ? { description: dto.description?.trim() || null }
-        : {}),
-      ...(dto.subjectTemplate !== undefined
-        ? { subjectTemplate: dto.subjectTemplate.trim() }
-        : {}),
-      ...(dto.htmlTemplate !== undefined
-        ? { htmlTemplate: sanitizeHtmlTemplate(dto.htmlTemplate) }
-        : {}),
-      ...(dto.textTemplate !== undefined
-        ? { textTemplate: dto.textTemplate?.trim() || null }
-        : {}),
-      ...(dto.availableVariables !== undefined
-        ? {
-            availableVariables: dto.availableVariables as Prisma.InputJsonValue,
-          }
-        : {}),
-      ...(dto.moduleKey !== undefined
-        ? { moduleKey: dto.moduleKey?.trim() || null }
-        : {}),
-      ...(scopeKey && scopeKey !== existing.scopeKey ? { scopeKey } : {}),
-      ...(dto.status !== undefined && !activateAfterUpdate
-        ? { status: dto.status }
-        : {}),
-    };
-
-    let template = await this.notificationsRepository.updateTenantTemplate(
-      currentUser.tenantId,
-      templateId,
-      data,
-      currentUser.userId,
-    );
-
-    if (activateAfterUpdate) {
-      const activatedTemplate =
-        await this.notificationsRepository.activateTenantTemplate(
-          currentUser.tenantId,
-          templateId,
-        );
-      if (!activatedTemplate) {
-        throw new NotFoundException('Email template was not found.');
-      }
-      template = activatedTemplate;
-    }
-
-    return mapEmailTemplate(template);
-  }
-
-  async cloneTemplate(
-    currentUser: AuthenticatedUser,
-    templateId: string,
-    dto: CloneEmailTemplateDto = {},
-  ) {
-    const source = await this.notificationsRepository.findVisibleTemplateById(
-      currentUser.tenantId,
-      templateId,
-    );
-    if (!source) {
-      throw new NotFoundException('Email template was not found.');
-    }
-
-    const templateKey =
-      dto.templateKey?.trim() ||
-      (source.isSystem ? source.templateKey : `${source.templateKey}-copy`);
-
-    const template = await this.notificationsRepository.createTenantTemplate({
-      tenantId: currentUser.tenantId,
-      eventCode: source.eventCode,
-      templateKey,
-      name: dto.name?.trim() || `${source.name} copy`,
-      description: source.description,
-      subjectTemplate: source.subjectTemplate,
-      htmlTemplate: source.htmlTemplate,
-      textTemplate: source.textTemplate,
-      availableVariables: source.availableVariables as Prisma.InputJsonValue,
-      status: EmailTemplateStatus.DRAFT,
-      actorUserId: currentUser.userId,
-    });
-
-    return mapEmailTemplate(template);
-  }
-
-  async activateTemplate(currentUser: AuthenticatedUser, templateId: string) {
-    await this.assertTenantTemplate(currentUser.tenantId, templateId);
-    const template = await this.notificationsRepository.activateTenantTemplate(
-      currentUser.tenantId,
-      templateId,
-    );
-    if (!template) {
-      throw new NotFoundException('Email template was not found.');
-    }
-    return mapEmailTemplate(template);
-  }
-
-  async archiveTemplate(currentUser: AuthenticatedUser, templateId: string) {
-    await this.assertTenantTemplate(currentUser.tenantId, templateId);
-    await this.notificationsRepository.archiveTenantTemplate(
-      currentUser.tenantId,
-      templateId,
-    );
-    return { archived: true };
-  }
-
   async listProviderSettings(currentUser: AuthenticatedUser) {
     const providers = await this.notificationsRepository.listProviderSettings(
       currentUser.tenantId,
@@ -726,10 +700,32 @@ export class NotificationsService {
     return mapEmailProviderSetting(provider);
   }
 
+  /**
+   * What each provider type needs configured, and which types an administrator
+   * may choose here.
+   *
+   * BUG-3501. The settings screen used to offer `SUPPORTED_EMAIL_PROVIDER_TYPES`
+   * straight from `@repo/config`, so production offered CONSOLE and DEV. The
+   * web app cannot tell production from a preview build on its own, so the API
+   * — which is the authority that refuses them — publishes the list instead.
+   * `items` is unchanged, so an older screen keeps working.
+   */
+  listProviderFieldSchema() {
+    const sinksRetired = this.effectiveProvider.sinkProvidersRetired();
+    return {
+      items: PROVIDER_SCHEMAS,
+      selectableProviderTypes: SUPPORTED_EMAIL_PROVIDER_TYPES.filter(
+        (providerType) =>
+          !(sinksRetired && isSinkProvider(providerType as EmailProviderType)),
+      ),
+    };
+  }
+
   async createProvider(
     currentUser: AuthenticatedUser,
     dto: CreateEmailProviderDto,
   ) {
+    this.assertProviderTypeAllowed(dto.providerType);
     const configuration = normalizeConfiguration(dto.configuration);
     validateProviderConfiguration(dto.providerType, configuration);
 
@@ -745,6 +741,12 @@ export class NotificationsService {
       fromName: dto.fromName.trim(),
       replyToEmail: dto.replyToEmail?.trim().toLowerCase() || null,
       configuration: this.protectConfiguration(configuration),
+    });
+
+    await this.auditProviderChange(currentUser, 'email_provider.created', {
+      entityId: provider.id,
+      before: null,
+      after: provider,
     });
 
     return mapEmailProviderSetting(provider);
@@ -764,6 +766,19 @@ export class NotificationsService {
     }
 
     const providerType = dto.providerType ?? existing.providerType;
+    const enabled = dto.enabled ?? existing.enabled;
+    /*
+     * An existing Console row may still be disabled, renamed while disabled, or
+     * switched to SMTP — that is how an administrator cleans it up. What
+     * production refuses is a row that ends up a sink AND is either enabled or
+     * newly switched into a sink type.
+     */
+    if (
+      isSinkProvider(providerType) &&
+      (enabled || providerType !== existing.providerType)
+    ) {
+      this.assertProviderTypeAllowed(providerType);
+    }
     const configuration =
       dto.configuration !== undefined
         ? mergeConfigurationPreservingMaskedSecrets(
@@ -773,7 +788,6 @@ export class NotificationsService {
         : (existing.configuration as Record<string, unknown>);
     validateProviderConfiguration(providerType, configuration);
 
-    const enabled = dto.enabled ?? existing.enabled;
     const isDefault = enabled ? (dto.isDefault ?? existing.isDefault) : false;
 
     const provider = await this.notificationsRepository.updateProvider(
@@ -803,6 +817,12 @@ export class NotificationsService {
       },
     );
 
+    await this.auditProviderChange(currentUser, 'email_provider.updated', {
+      entityId: provider.id,
+      before: existing,
+      after: provider,
+    });
+
     return mapEmailProviderSetting(provider);
   }
 
@@ -829,6 +849,17 @@ export class NotificationsService {
   }
 
   async setDefaultProvider(currentUser: AuthenticatedUser, providerId: string) {
+    const existing = await this.notificationsRepository.findProviderById(
+      currentUser.tenantId,
+      providerId,
+    );
+    if (!existing) {
+      throw new NotFoundException('Email provider setting was not found.');
+    }
+    // Set-default also enables the row (NotificationsRepository.setDefaultProvider),
+    // so it is refused for a sink on the same terms as enabling one.
+    this.assertProviderTypeAllowed(existing.providerType);
+
     const provider = await this.notificationsRepository.setDefaultProvider(
       currentUser.tenantId,
       providerId,
@@ -836,18 +867,81 @@ export class NotificationsService {
     if (!provider) {
       throw new NotFoundException('Email provider setting was not found.');
     }
+
+    await this.auditProviderChange(currentUser, 'email_provider.default_set', {
+      entityId: provider.id,
+      before: existing,
+      after: provider,
+    });
+
     return mapEmailProviderSetting(provider);
   }
 
   async disableProvider(currentUser: AuthenticatedUser, providerId: string) {
+    const existing = await this.notificationsRepository.findProviderById(
+      currentUser.tenantId,
+      providerId,
+    );
     const result = await this.notificationsRepository.disableProvider(
       currentUser.tenantId,
       providerId,
     );
-    if (result.count === 0) {
+    if (!existing || result.count === 0) {
       throw new NotFoundException('Email provider setting was not found.');
     }
+
+    await this.auditProviderChange(currentUser, 'email_provider.disabled', {
+      entityId: existing.id,
+      before: existing,
+      after: { ...existing, enabled: false, isDefault: false },
+    });
+
     return { disabled: true };
+  }
+
+  /**
+   * ADR-0015 — production refuses CONSOLE and DEV providers.
+   *
+   * Server-side on purpose: the settings screen stops offering them too, but a
+   * hidden option is not a control, and a stale browser tab or a direct API
+   * call would otherwise recreate the sink this decision retires.
+   */
+  private assertProviderTypeAllowed(providerType: EmailProviderType) {
+    if (
+      isSinkProvider(providerType) &&
+      this.effectiveProvider.sinkProvidersRetired()
+    ) {
+      throw new BadRequestException({
+        code: 'EMAIL_PROVIDER_TYPE_NOT_ALLOWED',
+        message:
+          'Console and Dev email providers cannot be used in production. Choose SMTP.',
+      });
+    }
+  }
+
+  /*
+   * Provider changes decide where a tenant's mail goes, so every write is
+   * audited. The snapshot deliberately omits `configuration`: even masked it
+   * describes credentials, and nothing an auditor needs is in it.
+   */
+  private async auditProviderChange(
+    currentUser: AuthenticatedUser,
+    action: string,
+    input: {
+      entityId: string;
+      before: EmailProviderSetting | null;
+      after: EmailProviderSetting;
+    },
+  ) {
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action,
+      entityType: 'EmailProviderSetting',
+      entityId: input.entityId,
+      beforeSnapshot: input.before ? providerAuditSnapshot(input.before) : null,
+      afterSnapshot: providerAuditSnapshot(input.after),
+    });
   }
 
   listDeliveryLogs(
@@ -860,6 +954,41 @@ export class NotificationsService {
     );
   }
 
+  /**
+   * ITEM-0182 — in-app deliveries across the tenant.
+   *
+   * Flattened to the row a log table shows. The recipient is identified by
+   * name and work email only; what the notification said stays out of the
+   * log (see `listTenantInAppDeliveryLogs`).
+   */
+  async listInAppDeliveryLogs(
+    currentUser: AuthenticatedUser,
+    query: InAppDeliveryLogQueryDto,
+  ) {
+    const result =
+      await this.notificationsRepository.listTenantInAppDeliveryLogs(
+        currentUser.tenantId,
+        query,
+      );
+
+    return {
+      ...result,
+      items: result.items.map((row) => ({
+        id: row.id,
+        title: row.notification.title,
+        eventCode: row.notification.eventCode,
+        recipient: row.user.email,
+        recipientName: [row.user.firstName, row.user.lastName]
+          .filter(Boolean)
+          .join(' '),
+        status: row.status,
+        deliveredAt: row.deliveredAt,
+        readAt: row.readAt,
+        createdAt: row.createdAt,
+      })),
+    };
+  }
+
   async getDeliveryLog(currentUser: AuthenticatedUser, deliveryLogId: string) {
     const log = await this.notificationsRepository.findDeliveryLogById(
       currentUser.tenantId,
@@ -869,46 +998,6 @@ export class NotificationsService {
       throw new NotFoundException('Email delivery log was not found.');
     }
     return log;
-  }
-
-  async previewTemplate(
-    currentUser: AuthenticatedUser,
-    templateId: string,
-    dto: PreviewEmailTemplateDto,
-  ) {
-    await this.getTemplate(currentUser, templateId);
-    return this.emailService.previewTemplate({
-      tenantId: currentUser.tenantId,
-      templateId,
-      variables: dto.variables,
-    });
-  }
-
-  async testSendTemplate(
-    currentUser: AuthenticatedUser,
-    templateId: string,
-    dto: TestSendEmailTemplateDto,
-  ) {
-    const template = await this.notificationsRepository.findVisibleTemplateById(
-      currentUser.tenantId,
-      templateId,
-    );
-    if (!template) {
-      throw new NotFoundException('Email template was not found.');
-    }
-
-    return this.emailService.sendTemplateEmail({
-      tenantId: currentUser.tenantId,
-      eventCode: template.eventCode,
-      templateId,
-      recipient: dto.recipient.trim().toLowerCase(),
-      cc: dto.cc?.trim() || null,
-      bcc: dto.bcc?.trim() || null,
-      variables: dto.variables,
-      metadata: dto.metadata,
-      requestedByUserId: currentUser.userId,
-      dryRun: dto.dryRun ?? false,
-    });
   }
 
   findTemplateForEvent(input: EmailTemplateLookupInput) {
@@ -970,7 +1059,19 @@ export class NotificationsService {
         },
       });
 
-    if (!rules.length) {
+    /*
+     * ITEM-0180. Turning an event's In-app channel off writes
+     * NotificationPreference(IN_APP) = false. Nothing on this path used to read
+     * it — only the rule — so the checkbox the old screen offered changed
+     * nothing. Asked only when a rule would otherwise fire, so the common
+     * no-rule path costs no extra query. Workflows still run: they are authored
+     * per event, independently of who is notified in-app.
+     */
+    const inAppOptedOut =
+      rules.length > 0 &&
+      (await this.isInAppOptedOut(input.tenantId, input.eventKey));
+
+    if (!rules.length || inAppOptedOut) {
       await triggerWorkflows();
       return { created: 0, items: [] };
     }
@@ -1137,41 +1238,6 @@ export class NotificationsService {
   }
 
   /*
-   * Turns an authored placement into a scope key. Every level below tenant is
-   * checked against the tenant first: without that, a user could point a
-   * template at another tenant's business unit and have it resolve for them.
-   */
-  private async resolveTemplateScopeKey(
-    tenantId: string,
-    level: EmailTemplateScopeLevel | undefined,
-    scopeId: string | null | undefined,
-  ) {
-    if (!level || level === 'TENANT') {
-      return buildTenantNotificationScopeKey(tenantId);
-    }
-
-    if (!scopeId) {
-      throw new BadRequestException(
-        `A ${SCOPE_LABELS[level]} must be selected for this scope.`,
-      );
-    }
-
-    const exists = await this.notificationsRepository.scopeTargetExists({
-      tenantId,
-      level,
-      scopeId,
-    });
-
-    if (!exists) {
-      throw new BadRequestException(
-        `The selected ${SCOPE_LABELS[level]} was not found in this tenant.`,
-      );
-    }
-
-    return buildNotificationScopeKey(level, scopeId);
-  }
-
-  /*
    * Credentials are encrypted before they reach the database. Masking hid them
    * from API responses but left them readable in the database, a backup or a
    * replica.
@@ -1180,47 +1246,6 @@ export class NotificationsService {
     return this.secretEncryption.encryptSecrets(configuration, (key) =>
       SECRET_KEY_PATTERN.test(key),
     ) as Prisma.InputJsonValue;
-  }
-
-  private async assertEventExists(eventCode: string) {
-    const event = await this.notificationsRepository.findEventByCode(
-      eventCode.trim(),
-    );
-    if (!event) {
-      throw new BadRequestException(
-        `Unsupported notification event: ${eventCode}.`,
-      );
-    }
-    return event;
-  }
-
-  private async assertTenantTemplate(tenantId: string, templateId: string) {
-    const template = await this.notificationsRepository.findVisibleTemplateById(
-      tenantId,
-      templateId,
-    );
-    if (!template) {
-      throw new NotFoundException('Email template was not found.');
-    }
-    if (template.isSystem || !template.tenantId) {
-      throw new ForbiddenException(
-        'System email templates cannot be modified by tenant users. Clone the template first.',
-      );
-    }
-    if (template.tenantId !== tenantId) {
-      throw new NotFoundException('Email template was not found.');
-    }
-    return template;
-  }
-
-  private validateTemplateContent(
-    subjectTemplate: string,
-    htmlTemplate: string,
-  ) {
-    if (!subjectTemplate.trim()) {
-      throw new BadRequestException('Email subject template cannot be empty.');
-    }
-    sanitizeHtmlTemplate(htmlTemplate);
   }
 
   private buildDedupeKey(input: {
@@ -1613,45 +1638,15 @@ function validateProviderConfiguration(
   }
 }
 
-const SCOPE_LABELS: Record<EmailTemplateScopeLevel, string> = {
-  TENANT: 'tenant',
-  ORGANIZATION: 'organization',
-  BUSINESS_UNIT: 'business unit',
-  DEPARTMENT: 'department',
-  TEAM: 'team',
-};
-
-const SCOPE_LEVEL_LABELS: Record<EmailTemplateScopeLevel, string> = {
-  TENANT: 'Whole tenant',
-  ORGANIZATION: 'Organization',
-  BUSINESS_UNIT: 'Business unit',
-  DEPARTMENT: 'Department',
-  TEAM: 'Team',
-};
-
-function mapEmailTemplate(template: EmailTemplate) {
+function providerAuditSnapshot(provider: EmailProviderSetting) {
   return {
-    id: template.id,
-    tenantId: template.tenantId,
-    eventCode: template.eventCode,
-    templateKey: template.templateKey,
-    name: template.name,
-    description: template.description,
-    subjectTemplate: template.subjectTemplate,
-    htmlTemplate: template.htmlTemplate,
-    textTemplate: template.textTemplate,
-    availableVariables: template.availableVariables,
-    moduleKey: template.moduleKey,
-    scopeKey: template.scopeKey,
-    scopeLevel: parseNotificationScopeKey(template.scopeKey).level,
-    scopeId: parseNotificationScopeKey(template.scopeKey).id,
-    status: template.status,
-    version: template.version,
-    isSystem: template.isSystem,
-    createdBy: template.createdBy,
-    updatedBy: template.updatedBy,
-    createdAt: template.createdAt,
-    updatedAt: template.updatedAt,
+    providerType: provider.providerType,
+    providerName: provider.providerName,
+    enabled: provider.enabled,
+    isDefault: provider.isDefault,
+    fromEmail: provider.fromEmail,
+    fromName: provider.fromName,
+    replyToEmail: provider.replyToEmail,
   };
 }
 

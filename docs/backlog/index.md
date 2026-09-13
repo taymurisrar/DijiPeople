@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**621 records** — 443 bugs under [`docs/bugs/`](../bugs/), 178 non-bug items under [`items/`](items/).
+**652 records** — 456 bugs under [`docs/bugs/`](../bugs/), 196 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 186 |
+| Open (active work) | 197 |
 | Blocked | 2 |
-| Deferred | 94 |
-| Awaiting a product decision | 7 |
-| Completed / closed | 332 |
+| Deferred | 105 |
+| Awaiting a product decision | 9 |
+| Completed / closed | 339 |
 | **Open CRITICAL** | **4** |
-| **Open HIGH** | **89** |
+| **Open HIGH** | **94** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,16 +27,16 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 4 |
-| HIGH | 89 |
-| MEDIUM | 77 |
+| HIGH | 94 |
+| MEDIUM | 83 |
 | LOW | 16 |
 
 ## Open by type
 
 | Type | Count |
 |---|---|
-| AUTHORIZATION | 10 |
-| BUG | 47 |
+| AUTHORIZATION | 11 |
+| BUG | 55 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 18 |
 | DOCUMENTATION | 1 |
@@ -50,7 +50,7 @@ see [`README.md`](README.md) for why.
 | TECH_DEBT | 7 |
 | TENANT_ISOLATION | 2 |
 | TEST_GAP | 9 |
-| UX | 41 |
+| UX | 43 |
 
 ## All records by status
 
@@ -58,14 +58,14 @@ see [`README.md`](README.md) for why.
 |---|---|
 | OPEN | 44 |
 | BLOCKED | 2 |
-| DEFERRED | 94 |
-| PRODUCT_DECISION | 7 |
-| FIXED | 120 |
+| DEFERRED | 105 |
+| PRODUCT_DECISION | 9 |
+| FIXED | 131 |
 | VERIFIED | 218 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
 | READY | 22 |
-| DONE | 100 |
+| DONE | 107 |
 
 ## All records
 
@@ -293,6 +293,11 @@ see [`README.md`](README.md) for why.
 | [BUG-3374](../../docs/bugs/BUG-3374-settings-customization-and-its-twelve-child-routes-silently-.md) | Settings Customization and its twelve child routes silently redirect to Roles | AUTHORIZATION | HIGH | P1 | FIXED | apps/web, customization | FIX_NOW |
 | [BUG-3375](../../docs/bugs/BUG-3375-the-notification-rules-screen-edits-preferences-and-cannot-r.md) | The Notification Rules screen edits preferences and cannot reach NotificationRule at all | UX | HIGH | P1 | FIXED | notifications, apps/web | PLAN_REQUIRED |
 | [BUG-3376](../../docs/bugs/BUG-3376-runtime-lookups-fetch-one-unpaged-page-and-filter-it-in-the-.md) | Runtime lookups fetch one unpaged page and filter it in the browser, hiding every record past the server page size | DATA_INTEGRITY | HIGH | P1 | FIXED | apps/web, apps/admin | PLAN_REQUIRED |
+| [BUG-3491](../../docs/bugs/BUG-3491-customization-pages-crash-for-a-user-who-holds-customization.md) | Customization pages crash for a user who holds customization permissions but no customizer role | AUTHORIZATION | HIGH | P1 | FIXED | apps/web, customization | FIX_NOW |
+| [BUG-3492](../../docs/bugs/BUG-3492-every-custom-field-type-without-a-length-is-rejected-with-ma.md) | Every custom field type without a length is rejected with Maximum length must be at least 1 | BUG | HIGH | P1 | FIXED | apps/web, customization | FIX_NOW |
+| [BUG-3493](../../docs/bugs/BUG-3493-publishing-customizations-dead-ends-because-new-drafts-land-.md) | Publishing customizations dead-ends because new drafts land in a package that cannot be published | BUG | HIGH | P1 | FIXED | apps/web, customization | FIX_NOW |
+| [BUG-3494](../../docs/bugs/BUG-3494-a-published-custom-module-has-no-sidebar-entry-and-no-list-f.md) | A published custom module has no sidebar entry and no list, form or record screen | BUG | HIGH | P1 | FIXED | apps/web, customization, data | PLAN_REQUIRED |
+| [BUG-3500](../../docs/bugs/BUG-3500-every-seeded-email-template-is-active-with-placeholder-body-.md) | Every seeded email template is active with placeholder body text | BUG | HIGH | P1 | FIXED | notifications, apps/web | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -316,8 +321,10 @@ see [`README.md`](README.md) for why.
 | [ITEM-0136](../../docs/backlog/items/ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-.md) | electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major | SECURITY | HIGH | P2 | READY | apps/agent-desktop | FIX_NOW |
 | [ITEM-0176](../../docs/backlog/items/ITEM-0176-seatchangeservice-applyduechanges-has-no-caller-and-cannot-b.md) | SeatChangeService.applyDueChanges has no caller and cannot be wired without under-billing | TECH_DEBT | HIGH | P2 | READY | api:billing | PLAN_REQUIRED |
 | [BUG-0051](../../docs/bugs/BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state.md) | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | P1 | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
+| [BUG-3501](../../docs/bugs/BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver.md) | The email provider screen presents a console sink as delivery and offers sink providers in production | UX | MEDIUM | P1 | FIXED | notifications, apps/web | PLAN_REQUIRED |
 | [ITEM-0018](../../docs/backlog/items/ITEM-0018-plans-and-prices-have-no-draft-publish-or-archive-lifecycle.md) | Plans and prices have no draft, publish or archive lifecycle | ARCHITECTURE | MEDIUM | P1 | DONE | services/api/prisma, api:super-admin, apps/admin, apps/landing | DONE |
 | [ITEM-0044](../../docs/backlog/items/ITEM-0044-validate-forwarded-host-before-tenant-web-workspace-resoluti.md) | Validate forwarded host before tenant web workspace resolution | SECURITY | MEDIUM | P1 | DONE | apps/web | DONE |
+| [ITEM-0180](../../docs/backlog/items/ITEM-0180-one-plain-notification-events-page-replacing-rules-and-chann.md) | One plain notification events page replacing Rules and Channel Preferences | UX | MEDIUM | P1 | DONE | apps/web, notifications | DONE |
 | [BUG-0009](../../docs/bugs/BUG-0009-session-revocation-depended-on-the-refresh-cookie.md) | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | P2 | VERIFIED | app:admin, api:auth | DONE |
 | [BUG-0010](../../docs/bugs/BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500.md) | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | P2 | VERIFIED | app:admin | DONE |
 | [BUG-0013](../../docs/bugs/BUG-0013-public-lead-endpoint-had-no-rate-limiting.md) | The public lead endpoint had no rate limiting | SECURITY | MEDIUM | P2 | VERIFIED | api:leads | DONE |
@@ -506,6 +513,12 @@ see [`README.md`](README.md) for why.
 | [BUG-3377](../../docs/bugs/BUG-3377-admin-lookup-controls-still-carry-the-nested-interactive-lis.md) | Admin lookup controls still carry the nested-interactive listbox that BUG-1956 fixed only in web | UX | MEDIUM | P2 | FIXED | apps/admin | FIX_NOW |
 | [BUG-3378](../../docs/bugs/BUG-3378-the-responsive-runtime-tab-strip-hides-a-measurement-copy-fr.md) | The responsive runtime tab strip hides a measurement copy from screen readers while leaving thirteen buttons in the tab order | UX | MEDIUM | P2 | FIXED | apps/web | FIX_NOW |
 | [BUG-3450](../../docs/bugs/BUG-3450-get-employees-id-reporting-structure-computed-every-root-in-.md) | GET /employees/{id}/reporting-structure computed every root in the tenant to unbounded depth on every page view, unused | PERFORMANCE | MEDIUM | P2 | FIXED | api:employees | FIX_NOW |
+| [BUG-3495](../../docs/bugs/BUG-3495-customization-editors-accept-invalid-metadata-and-silently-r.md) | Customization editors accept invalid metadata and silently rewrite what the administrator typed | BUG | MEDIUM | P2 | FIXED | apps/web, customization | FIX_NOW |
+| [BUG-3496](../../docs/bugs/BUG-3496-a-hydration-mismatch-on-customization-pages-opens-a-blocking.md) | A hydration mismatch on Customization pages opens a blocking raw React error modal and logs a 500 | BUG | MEDIUM | P2 | FIXED | apps/web, error-logs | FIX_NOW |
+| [BUG-3497](../../docs/bugs/BUG-3497-employee-reset-password-sends-without-confirmation-is-offere.md) | Employee Reset Password sends without confirmation, is offered with no linked user and fails silently | BUG | MEDIUM | P2 | FIXED | apps/web, employees, error-logs | FIX_NOW |
+| [BUG-3498](../../docs/bugs/BUG-3498-the-employee-record-export-writes-lookup-fields-as-raw-ids.md) | The employee record export writes lookup fields as raw ids | BUG | MEDIUM | P2 | FIXED | apps/web, employees | FIX_NOW |
+| [BUG-3499](../../docs/bugs/BUG-3499-the-reporting-hierarchy-dialog-pins-a-clipped-detail-card-ha.md) | The reporting hierarchy dialog pins a clipped detail card, has no close control and cannot open a record | UX | MEDIUM | P2 | FIXED | apps/web, employees | FIX_NOW |
+| [BUG-3506](../../docs/bugs/BUG-3506-the-payslip-email-has-no-working-button-and-names-the-payrol.md) | The payslip email has no working button and names the payroll calendar as the company | BUG | MEDIUM | P2 | DEFERRED | payslips, notifications | DEFER |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -598,6 +611,13 @@ see [`README.md`](README.md) for why.
 | [ITEM-0171](../../docs/backlog/items/ITEM-0171-a-second-dispatch-path-sends-email-without-consulting-notifi.md) | A second dispatch path sends email without consulting NotificationRule | ARCHITECTURE | MEDIUM | P2 | DONE | notifications, payroll, payslips, auth, reporting | DONE |
 | [ITEM-0175](../../docs/backlog/items/ITEM-0175-wire-the-plans-screen-onto-the-seat-quote-and-plan-change-en.md) | Wire the plans screen onto the seat-quote and plan-change endpoints that now exist | FOLLOW_UP | MEDIUM | P2 | READY | apps/web, api:billing | FIX_NOW |
 | [ITEM-0177](../../docs/backlog/items/ITEM-0177-the-recruitment-draft-form-s-reporting-manager-lookup-still-.md) | The recruitment draft form's Reporting manager lookup still filters one page in the browser | TECH_DEBT | MEDIUM | P2 | READY | apps/web | FIX_NOW |
+| [ITEM-0179](../../docs/backlog/items/ITEM-0179-manage-employee-work-sites-in-a-related-records-tab-with-a-t.md) | Manage employee work sites in a related-records tab with a transactional Make primary action | UX | MEDIUM | P2 | DONE | apps/web, employees, attendance | DONE |
+| [ITEM-0181](../../docs/backlog/items/ITEM-0181-a-visual-email-template-editor-with-a-variable-picker-and-re.md) | A visual email template editor with a variable picker and read-only system templates | UX | MEDIUM | P2 | DONE | apps/web, notifications | DONE |
+| [ITEM-0182](../../docs/backlog/items/ITEM-0182-delivery-logs-that-cover-in-app-notifications-and-state-why-.md) | Delivery logs that cover in-app notifications and state why a message was not delivered | UX | MEDIUM | P2 | DONE | apps/web, notifications | DONE |
+| [ITEM-0183](../../docs/backlog/items/ITEM-0183-remove-agent-added-explanatory-helper-text-from-tenant-scree.md) | Remove agent-added explanatory helper text from tenant screens | UX | MEDIUM | P2 | DONE | apps/web | DONE |
+| [ITEM-0185](../../docs/backlog/items/ITEM-0185-the-settings-shell-keeps-a-fixed-width-navigation-column-bes.md) | The settings shell keeps a fixed-width navigation column beside the content at phone width | UX | MEDIUM | P2 | DEFERRED | apps/web | DEFER |
+| [ITEM-0187](../../docs/backlog/items/ITEM-0187-custom-module-list-views-filter-only-the-loaded-page-and-the.md) | Custom-module list views filter only the loaded page and the data API has no filtering or search | FOLLOW_UP | MEDIUM | P2 | DEFERRED | apps/web, data | DEFER |
+| [ITEM-0194](../../docs/backlog/items/ITEM-0194-check-production-for-tenant-owned-copies-of-the-old-placehol.md) | Check production for tenant-owned copies of the old placeholder email templates after release | FOLLOW_UP | MEDIUM | P2 | DONE | notifications | DONE |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |
@@ -640,6 +660,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3360](../../docs/bugs/BUG-3360-every-session-row-records-the-user-agent-as-node-and-the-clo.md) | Every session row records the user agent as node and the Cloudflare edge IP | BUG | LOW | P3 | FIXED | api:auth, web:auth | FIX_NOW |
 | [BUG-3379](../../docs/bugs/BUG-3379-a-delivery-log-row-says-not-delivered-and-carries-nothing-th.md) | A delivery log row says Not delivered and carries nothing that explains why | UX | LOW | P3 | FIXED | notifications, apps/web | FIX_NOW |
 | [BUG-3412](../../docs/bugs/BUG-3412-every-widget-section-on-a-record-form-prints-its-title-twice.md) | Every widget section on a record form prints its title twice, and the profile section's two titles disagree | UX | LOW | P3 | FIXED | apps/web | FIX_NOW |
+| [BUG-3523](../../docs/bugs/BUG-3523-custom-module-page-header-shows-the-table-key-instead-of-the.md) | Custom module page header shows the table key instead of the module name | BUG | LOW | P3 | DEFERRED | apps/web | DEFER |
 | [ITEM-0007](../../docs/backlog/items/ITEM-0007-should-duplicate-website-leads-be-deduplicated.md) | Product decision — should duplicate website leads be deduplicated? | PRODUCT_DECISION | LOW | P3 | DONE | api:leads, apps/landing | DONE |
 | [ITEM-0008](../../docs/backlog/items/ITEM-0008-customeraccount-has-no-origin-channel.md) | Product decision — CustomerAccount carries no origin channel | PRODUCT_DECISION | LOW | P3 | DONE | services/api/prisma, api:super-admin | DONE |
 | [ITEM-0011](../../docs/backlog/items/ITEM-0011-framework-validation-should-catch-absence-claims.md) | Framework validation should catch false absence claims in context documents | TECH_DEBT | LOW | P3 | DONE | .agent/context, scripts | DONE |
@@ -671,6 +692,14 @@ see [`README.md`](README.md) for why.
 | [ITEM-0121](../../docs/backlog/items/ITEM-0121-the-approvals-capability-signal-does-not-model-each-module-s.md) | The approvals capability signal does not model each module's object-level rules, so a refused action can look available | UX | LOW | P3 | DEFERRED | approvals, attendance | DEFER |
 | [ITEM-0160](../../docs/backlog/items/ITEM-0160-feature-comparison-badges-assume-the-api-returns-plans-in-as.md) | Feature comparison badges assume the API returns plans in ascending tier order | TECH_DEBT | LOW | P3 | DEFERRED | apps/web, api:billing | DEFER |
 | [ITEM-0161](../../docs/backlog/items/ITEM-0161-subscription-plans-screen-content-and-interaction-polish.md) | Subscription plans screen content and interaction polish | UX | LOW | P3 | DEFERRED | apps/web | DEFER |
+| [ITEM-0184](../../docs/backlog/items/ITEM-0184-employee-record-and-customization-usability-defects-found-in.md) | Employee record and customization usability defects found in the second demo walkthrough | UX | LOW | P3 | DONE | apps/web, employees, customization, users | DONE |
+| [ITEM-0186](../../docs/backlog/items/ITEM-0186-the-form-designer-palette-adds-a-field-on-click-only-and-dra.md) | The Form Designer palette adds a field on click only and drag-to-add does nothing | UX | LOW | P3 | DEFERRED | apps/web, customization | DEFER |
+| [ITEM-0188](../../docs/backlog/items/ITEM-0188-custom-module-screens-ignore-the-module-s-published-action-b.md) | Custom-module screens ignore the module's published action bar | FOLLOW_UP | LOW | P3 | DEFERRED | apps/web, customization | DEFER |
+| [ITEM-0189](../../docs/backlog/items/ITEM-0189-custom-module-lookup-fields-that-target-system-entities-have.md) | Custom-module lookup fields that target system entities have no options source | FOLLOW_UP | LOW | P3 | DEFERRED | apps/web, data | DEFER |
+| [ITEM-0190](../../docs/backlog/items/ITEM-0190-the-custom-module-sidebar-entry-ignores-the-module-s-configu.md) | The custom-module sidebar entry ignores the module's configured icon | UX | LOW | P3 | DEFERRED | apps/web | DEFER |
+| [ITEM-0192](../../docs/backlog/items/ITEM-0192-the-unreachable-notifications-settings-form-still-declares-i.md) | The unreachable notifications settings form still declares In-app, Browser Push and Digest switches | TECH_DEBT | LOW | P3 | DEFERRED | apps/web, notifications | DEFER |
+| [ITEM-0195](../../docs/backlog/items/ITEM-0195-the-legacy-publish-snapshot-shape-can-expose-a-never-publish.md) | The legacy publish snapshot shape can expose a never-published custom module at runtime | FOLLOW_UP | LOW | P3 | DEFERRED | data, customization | DEFER |
+| [ITEM-0196](../../docs/backlog/items/ITEM-0196-the-employee-record-still-shows-a-hardcoded-cnic-field-an-en.md) | The employee record still shows a hardcoded CNIC field, an end-user form selector and a mislabelled Global Administrator role | UX | LOW | P3 | DEFERRED | apps/web, employees, permissions | DEFER |
 | [ITEM-0126](../../docs/backlog/items/ITEM-0126-decide-which-of-the-41-always-visible-settings-pages-should-.md) | Decide which of the 41 always-visible settings pages should be sold | PRODUCT_DECISION | — | P1 | DONE | apps/web | DONE |
 | [ITEM-0129](../../docs/backlog/items/ITEM-0129-tenants-should-inherit-the-platform-email-provider-by-defaul.md) | Tenants should inherit the platform email provider by default, and may override it | ARCHITECTURE | — | P1 | DONE | services/api, apps/web | DONE |
 | [ITEM-0130](../../docs/backlog/items/ITEM-0130-review-process-missed-four-defects-on-screens-adjacent-to-th.md) | Review process missed four defects on screens adjacent to the change | TEST_GAP | — | P1 | DONE | apps/web, .agent | DONE |
@@ -687,11 +716,13 @@ see [`README.md`](README.md) for why.
 | [ITEM-0167](../../docs/backlog/items/ITEM-0167-adopt-the-employee-record-shell-across-the-record-pages-that.md) | Adopt the employee record shell across the record pages that still hand-roll their own | ARCHITECTURE | — | P2 | DONE | apps/web | DONE |
 | [ITEM-0168](../../docs/backlog/items/ITEM-0168-a-retry-action-on-an-email-delivery-log.md) | A retry action on an email delivery log | FOLLOW_UP | — | P2 | DONE | notifications, apps/web | DONE |
 | [ITEM-0173](../../docs/backlog/items/ITEM-0173-wire-notification-coverage-for-the-four-highest-value-remain.md) | Wire notification coverage for the four highest-value remaining silent modules | FOLLOW_UP | — | P2 | DEFERRED | documents, contracts, recruitment, business-trips | DEFER |
+| [ITEM-0193](../../docs/backlog/items/ITEM-0193-decide-whether-the-hr-role-may-manage-notification-events.md) | Decide whether the hr role may manage notification events | PRODUCT_DECISION | — | P2 | PRODUCT_DECISION | notifications, permissions | PRODUCT_DECISION |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |
 | [ITEM-0114](../../docs/backlog/items/ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-.md) | The workspace shell states the tenant's identity four times and its purpose twice | UX | — | P3 | DONE | views, apps/web | DONE |
 | [ITEM-0174](../../docs/backlog/items/ITEM-0174-unify-the-notification-catalog-on-one-key-convention-dotted-.md) | Unify the notification catalog on one key convention (dotted form) | TECH_DEBT | — | P3 | DEFERRED | notifications | DEFER |
 | [ITEM-0178](../../docs/backlog/items/ITEM-0178-recruitment-job-opening-edit-page-is-bespoke-while-its-detai.md) | Recruitment job opening edit page is bespoke while its detail page already uses the shared record shell | ARCHITECTURE | — | P3 | DEFERRED | app:web | DEFER |
+| [ITEM-0191](../../docs/backlog/items/ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins.md) | Decide whether custom modules need their own access keys instead of the shared custom-records privilege | PRODUCT_DECISION | — | P3 | PRODUCT_DECISION | data, permissions | PRODUCT_DECISION |
 
 ## Views
 

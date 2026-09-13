@@ -79,8 +79,9 @@ export class AttendanceOperationsService {
     dto: {
       locationId: string;
       isPrimary?: boolean;
-      validFrom?: string;
-      validTo?: string;
+      // null clears a date back to "no restriction" (the web tab sends it).
+      validFrom?: string | null;
+      validTo?: string | null;
     },
   ) {
     await this.requireEmployee(user.tenantId, employeeId);
@@ -92,7 +93,15 @@ export class AttendanceOperationsService {
         employeeId,
         dto.locationId,
         {
-          isPrimary: dto.isPrimary ?? false,
+          /*
+           * ITEM-0179 — passed through as given. `?? false` turned an omitted
+           * flag into an explicit demotion, so editing only the validity dates
+           * of the primary site cleared its primary flag while
+           * `Employee.locationId` still pointed at it. The resolver already
+           * creates a new row as non-primary and leaves an existing row's
+           * flag alone when this is `undefined`.
+           */
+          isPrimary: dto.isPrimary,
           validFrom: dto.validFrom ? new Date(dto.validFrom) : null,
           validTo: dto.validTo ? new Date(dto.validTo) : null,
           actorUserId: user.userId,

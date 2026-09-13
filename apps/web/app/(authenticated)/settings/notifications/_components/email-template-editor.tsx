@@ -1,33 +1,28 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/app/components/ui/button";
-import {
-  EmailTemplate,
-  EmailTemplateScopeLevel,
+import type {
   RenderedTemplate,
   TemplateScopeOptions,
-  previewEmailTemplate,
-  testSendEmailTemplate,
-  updateEmailTemplate,
 } from "@/lib/notifications-api";
 import {
-  ScopePicker,
-  ScopeValue,
-  describeScope,
-  validateScope,
-} from "../../_components/scope-picker";
-import {
-  codeInputClassName,
-  ErrorBanner,
-  Field,
-  inputClassName,
-  parseJsonObject,
-  SettingsPanel,
-  stringifyJson,
-} from "./notification-ui";
+  customizeTemplate,
+  previewSavedTemplate,
+  type EditableEmailTemplate,
+} from "../templates/_lib/email-template-client";
+import { EmailTemplateComposer } from "./email-template-composer";
+import { EmailTemplatePreview } from "./email-template-preview";
+import { ErrorBanner, StatusBadge } from "./notification-ui";
 
+/*
+ * ITEM-0181. A system template is a read-only default: it opens as the email a
+ * recipient would receive, with one action, Customize, which makes a tenant copy
+ * that replaces the default once activated. It used to open as a form of
+ * disabled inputs under a banner saying it could not be edited, which looked
+ * editable and hid the path that worked.
+ */
 export function EmailTemplateEditor({
   canManage,
   scopeOptions,
@@ -35,398 +30,85 @@ export function EmailTemplateEditor({
 }: {
   canManage: boolean;
   scopeOptions: TemplateScopeOptions | null;
-  template: EmailTemplate;
+  template: EditableEmailTemplate;
+}) {
+  if (template.isSystem) {
+    return <SystemTemplateView canManage={canManage} template={template} />;
+  }
+
+  return (
+    <EmailTemplateComposer
+      canManage={canManage}
+      mode="edit"
+      scopeOptions={scopeOptions}
+      template={template}
+    />
+  );
+}
+
+function SystemTemplateView({
+  canManage,
+  template,
+}: {
+  canManage: boolean;
+  template: EditableEmailTemplate;
 }) {
   const router = useRouter();
-  const readOnly = template.isSystem || !canManage;
-  const [form, setForm] = useState({
-    name: template.name,
-    description: template.description ?? "",
-    subjectTemplate: template.subjectTemplate,
-    htmlTemplate: template.htmlTemplate,
-    textTemplate: template.textTemplate ?? "",
-    availableVariables: stringifyJson(template.availableVariables),
-    status: template.status,
-  });
-  const [scope, setScope] = useState<ScopeValue>({
-    // A system template has no tenant placement; editing one starts from tenant.
-    scopeLevel:
-      template.scopeLevel === "SYSTEM"
-        ? "TENANT"
-        : (template.scopeLevel as EmailTemplateScopeLevel),
-    scopeId: template.scopeId,
-    moduleKey: template.moduleKey,
-  });
-  const [sampleVariables, setSampleVariables] = useState(() =>
-    stringifyJson(buildSampleVariables(template.availableVariables)),
-  );
-  const [recipient, setRecipient] = useState("");
-  const [dryRun, setDryRun] = useState(true);
-  const [preview, setPreview] = useState<RenderedTemplate | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [rendered, setRendered] = useState<RenderedTemplate | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  const variables = useMemo(
-    () => Object.keys(template.availableVariables ?? {}),
-    [template.availableVariables],
-  );
-
-  async function save(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError(null);
-    setMessage(null);
-    if (readOnly) return;
-    if (!form.name.trim() || !form.subjectTemplate.trim() || !form.htmlTemplate.trim()) {
-      setError("Name, subject, and HTML template are required.");
-      return;
-    }
-    if (/<script[\s>]/i.test(form.htmlTemplate)) {
-      setError("Script tags are not allowed in email templates.");
-      return;
-    }
-    const scopeError = validateScope(scope);
-    if (scopeError) {
-      setError(scopeError);
-      return;
-    }
-
-    setBusy("save");
-    try {
-      const availableVariables = parseJsonObject(
-        form.availableVariables,
-        "Available variables must be a JSON object.",
-      );
-      await updateEmailTemplate(template.id, {
-        name: form.name,
-        description: form.description || null,
-        subjectTemplate: form.subjectTemplate,
-        htmlTemplate: form.htmlTemplate,
-        textTemplate: form.textTemplate || null,
-        availableVariables,
-        status: form.status,
-        scopeLevel: scope.scopeLevel,
-        scopeId: scope.scopeId,
-        moduleKey: scope.moduleKey,
+  useEffect(() => {
+    let cancelled = false;
+    previewSavedTemplate(template.id, {})
+      .then((result) => {
+        if (!cancelled) setRendered(result);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err.message : "The preview could not be rendered.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
-      setMessage("Template saved.");
-      router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to save template.");
-    } finally {
-      setBusy(null);
-    }
-  }
+    return () => {
+      cancelled = true;
+    };
+  }, [template.id]);
 
-  async function renderPreview() {
+  async function customize() {
+    setBusy(true);
     setError(null);
-    setMessage(null);
-    setBusy("preview");
     try {
-      const variablesPayload = parseJsonObject(
-        sampleVariables,
-        "Sample variables must be a JSON object.",
-      );
-      setPreview(await previewEmailTemplate(template.id, variablesPayload));
+      const copy = await customizeTemplate(template.id);
+      router.push(`/settings/notifications/templates/${copy.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to render preview.");
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function sendTest() {
-    setError(null);
-    setMessage(null);
-    if (!recipient.trim()) {
-      setError("Recipient email is required.");
-      return;
-    }
-    setBusy("test");
-    try {
-      const variablesPayload = parseJsonObject(
-        sampleVariables,
-        "Test variables must be a JSON object.",
-      );
-      const result = await testSendEmailTemplate(template.id, {
-        recipient,
-        variables: variablesPayload,
-        dryRun,
-      });
-      setMessage(
-        dryRun
-          ? "Dry run completed and logged."
-          : result.providerType === "CONSOLE"
-            ? "Console test succeeded. Check server logs for the rendered email."
-            : "Test email sent.",
-      );
-      router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to test template.");
-    } finally {
-      setBusy(null);
+      setError(err instanceof Error ? err.message : "The template could not be customized.");
+      setBusy(false);
     }
   }
 
   return (
     <div className="grid gap-6">
-      <ErrorBanner message={error} />
-      {message ? (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-          {message}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusBadge status={template.status} />
+          <span className="text-sm text-muted">System default</span>
         </div>
-      ) : null}
-
-      <form className="grid gap-6" onSubmit={save}>
-        <SettingsPanel
-          title="Template Definition"
-          description={
-            template.isSystem
-              ? "System templates are read-only. Clone one into your tenant before editing."
-              : "Edit tenant-owned template source. Rendering and delivery always happen through backend templates."
-          }
-        >
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Name" required>
-              <input
-                className={inputClassName}
-                disabled={readOnly}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, name: event.target.value }))
-                }
-                value={form.name}
-              />
-            </Field>
-            <Field label="Status">
-              <select
-                className={inputClassName}
-                disabled={readOnly}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    status: event.target.value as typeof form.status,
-                  }))
-                }
-                value={form.status}
-              >
-                <option value="DRAFT">Draft</option>
-                <option value="ACTIVE">Active</option>
-                <option value="ARCHIVED">Archived</option>
-              </select>
-            </Field>
-            <Field label="Description">
-              <input
-                className={inputClassName}
-                disabled={readOnly}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    description: event.target.value,
-                  }))
-                }
-                value={form.description}
-              />
-            </Field>
-            <Field label="Subject" required>
-              <input
-                className={inputClassName}
-                disabled={readOnly}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    subjectTemplate: event.target.value,
-                  }))
-                }
-                value={form.subjectTemplate}
-              />
-            </Field>
-          </div>
-          <div className="mt-6 rounded-2xl border border-border bg-surface-muted/40 p-4">
-            <div className="mb-1 text-sm font-semibold text-foreground">
-              Where this template applies
-            </div>
-            <p className="mb-4 text-xs text-muted">
-              The most specific matching template wins. A team template beats a
-              department one, which beats a business unit, an organization, and
-              finally the tenant default.
-              {template.isSystem
-                ? " System templates apply to every tenant and cannot be placed."
-                : ""}
-            </p>
-            <ScopePicker
-              disabled={readOnly}
-              onChange={setScope}
-              options={scopeOptions}
-              value={scope}
-            />
-            <p className="mt-3 text-xs text-muted">
-              Currently:{" "}
-              <span className="font-medium text-foreground">
-                {describeScope(
-                  template.scopeLevel,
-                  template.scopeId,
-                  scopeOptions,
-                )}
-              </span>
-            </p>
-          </div>
-
-          <div className="mt-4 grid gap-4">
-            <Field label="HTML Template" required>
-              <textarea
-                className={`${codeInputClassName} min-h-[260px]`}
-                disabled={readOnly}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    htmlTemplate: event.target.value,
-                  }))
-                }
-                value={form.htmlTemplate}
-              />
-            </Field>
-            <Field label="Text Template">
-              <textarea
-                className={`${codeInputClassName} min-h-[140px]`}
-                disabled={readOnly}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    textTemplate: event.target.value,
-                  }))
-                }
-                value={form.textTemplate}
-              />
-            </Field>
-            <Field label="Available Variables JSON">
-              <textarea
-                className={`${codeInputClassName} min-h-[160px]`}
-                disabled={readOnly}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    availableVariables: event.target.value,
-                  }))
-                }
-                value={form.availableVariables}
-              />
-            </Field>
-          </div>
-          <div className="mt-5 flex justify-end">
-            <Button disabled={readOnly} loading={busy === "save"} type="submit">
-              Save Template
-            </Button>
-          </div>
-        </SettingsPanel>
-      </form>
-
-      <div className="grid gap-6 xl:grid-cols-[360px_1fr]">
-        <SettingsPanel title="Variables" description="Variables are rendered as {{variableName}} placeholders.">
-          {variables.length ? (
-            <div className="flex flex-wrap gap-2">
-              {variables.map((variable) => (
-                <span
-                  className="rounded-full border border-border bg-white px-3 py-1 font-mono text-xs text-foreground"
-                  key={variable}
-                >
-                  {`{{${variable}}}`}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted">No variables declared.</p>
-          )}
-        </SettingsPanel>
-
-        <SettingsPanel title="Preview and Test Send">
-          <Field label="Sample/Test Variables JSON">
-            <textarea
-              className={`${codeInputClassName} min-h-[160px]`}
-              onChange={(event) => setSampleVariables(event.target.value)}
-              value={sampleVariables}
-            />
-          </Field>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Button
-              loading={busy === "preview"}
-              onClick={renderPreview}
-              type="button"
-              variant="secondary"
-            >
-              Render Preview
-            </Button>
-          </div>
-          {preview ? (
-            <div className="mt-5 grid gap-4">
-              <div className="rounded-2xl border border-border bg-white p-4">
-                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-                  Subject
-                </div>
-                <div className="mt-2 text-sm font-semibold text-foreground">
-                  {preview.renderedSubject}
-                </div>
-                {preview.missingVariables.length ? (
-                  <div className="mt-2 text-xs text-red-600">
-                    Missing: {preview.missingVariables.join(", ")}
-                  </div>
-                ) : null}
-              </div>
-              <iframe
-                className="h-[420px] w-full rounded-2xl border border-border bg-white"
-                sandbox=""
-                srcDoc={preview.renderedHtml}
-                title="Email HTML preview"
-              />
-              <pre className="max-h-60 overflow-auto rounded-2xl border border-border bg-white p-4 text-xs text-muted">
-                {preview.renderedText ?? "No text template rendered."}
-              </pre>
-            </div>
-          ) : null}
-          <div className="mt-6 grid gap-4 rounded-2xl border border-border bg-white p-4 md:grid-cols-[1fr_auto_auto] md:items-end">
-            <Field label="Recipient email">
-              <input
-                className={inputClassName}
-                onChange={(event) => setRecipient(event.target.value)}
-                placeholder="person@example.com"
-                type="email"
-                value={recipient}
-              />
-            </Field>
-            <label className="flex items-center gap-2 pb-3 text-sm font-medium text-foreground">
-              <input
-                checked={dryRun}
-                className="h-4 w-4 rounded border-border"
-                onChange={(event) => setDryRun(event.target.checked)}
-                type="checkbox"
-              />
-              Dry run
-            </label>
-            <Button
-              disabled={!canManage}
-              loading={busy === "test"}
-              onClick={sendTest}
-              type="button"
-            >
-              Test Send
-            </Button>
-          </div>
-        </SettingsPanel>
+        {template.customizable && canManage ? (
+          <Button loading={busy} onClick={customize} type="button">
+            Customize
+          </Button>
+        ) : null}
+      </div>
+      <ErrorBanner message={error} />
+      <div className="max-w-4xl">
+        <EmailTemplatePreview error={null} loading={loading} rendered={rendered} />
       </div>
     </div>
   );
-}
-
-function buildSampleVariables(definitions: Record<string, unknown>) {
-  const sample: Record<string, unknown> = {};
-  for (const key of Object.keys(definitions ?? {})) {
-    sample[key] =
-      key.toLowerCase().includes("url")
-        ? "https://example.com/action"
-        : key.toLowerCase().includes("email")
-          ? "support@example.com"
-          : key.toLowerCase().includes("color")
-            ? "#2563eb"
-            : `Sample ${key}`;
-  }
-  return sample;
 }

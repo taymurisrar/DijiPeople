@@ -9,6 +9,7 @@ import type {
   FormMetadata,
   FormSectionMetadata,
   OptionSetValueMetadata,
+  RelatedSubgridMetadata,
   ViewColumnMetadata,
   ViewMetadata,
 } from "../metadata-runtime.types";
@@ -25,6 +26,11 @@ import {
   employeeRuntimeModuleConfig,
   employeeRuntimePermissions,
 } from "./employee.module";
+import {
+  EMPLOYEE_WORK_SITE_SET_PRIMARY_ACTION,
+  EMPLOYEE_WORK_SITES_PATH,
+  EMPLOYEE_WORK_SITES_RELATIONSHIP,
+} from "./employee-work-sites";
 
 const EMPLOYEE_STATUS_OPTIONS: readonly OptionSetValueMetadata[] = [
   { value: "ACTIVE", label: "Active", isDefault: true },
@@ -508,8 +514,17 @@ export function buildEmployeeEntityMetadata(
     primaryIdField: "id",
     primaryNameField: "fullName",
     ownerField: "ownerId",
-    statusField: "status",
-    subStatusField: "subStatus",
+    /*
+     * ITEM-0184 (H4) — the Record Status popover showed "Status" (the generic
+     * record lifecycle flag, Active) beside the Employment Status the record
+     * already carries, plus a "Sub Status: Open" that means nothing for a
+     * person. An employee has one status a reader cares about, so the popover
+     * shows Employment Status and no Sub Status. The generic `status` /
+     * `subStatus` values are still sent unchanged on update; employees never
+     * had a working record-status change path (`changeStatus` throws in
+     * `employee-data.adapter.ts`).
+     */
+    statusField: "employmentStatus",
     routeBase: employeeRuntimeModuleConfig.routeBase,
     defaultFormLogicalName: employeeRuntimeModuleConfig.defaultFormLogicalName,
     defaultViewLogicalName: employeeRuntimeModuleConfig.defaultViewLogicalName,
@@ -614,7 +629,9 @@ export function mapEmployeeForms(
             }),
             ...(hasExplicitComponents
               ? {
-                  components: (section.components ?? []).map(
+                  components: (section.components ?? [])
+                    .filter((component) => !isRetiredEmployeeWidget(component))
+                    .map(
                     (component, componentIndex) => ({
                       id: component.id,
                       type: "widget" as const,
@@ -638,6 +655,48 @@ export function mapEmployeeForms(
       ),
     })),
   ).map(ensureDefaultSystemWidgets);
+}
+
+/*
+ * ITEM-0179 — `employee.workSites` was retired by ADR-0014 in favour of the
+ * Work Sites tab. A layout saved in the form designer before then still names
+ * it, and without this it would render "This System Widget has no registered
+ * renderer." in the Organization section.
+ */
+function isRetiredEmployeeWidget(component: {
+  readonly widgetId?: string | null;
+  readonly widgetType?: string | null;
+}) {
+  return (
+    component.widgetId === "employee.workSites" ||
+    component.widgetType === "employee_work_sites"
+  );
+}
+
+/*
+ * ITEM-0184 (H9) — Provision System Access and Send Invitation Now are
+ * instructions for the create request (`mapFormValues` in
+ * `employee-data.adapter.ts`), not facts about an existing employee. On a
+ * saved record they read as settings that did nothing; account actions for an
+ * existing employee are the record's commands.
+ */
+const CREATE_ONLY_EMPLOYEE_FIELDS: ReadonlySet<string> = new Set([
+  "provisionSystemAccess",
+  "sendInvitationNow",
+]);
+
+export function withoutCreateOnlyEmployeeFields(
+  form: FormMetadata,
+): FormMetadata {
+  return {
+    ...form,
+    sections: form.sections.map((section) => ({
+      ...section,
+      fields: section.fields.filter(
+        (field) => !CREATE_ONLY_EMPLOYEE_FIELDS.has(field.fieldLogicalName),
+      ),
+    })),
+  };
 }
 
 export function mapEmployeeViews(
@@ -752,6 +811,13 @@ function fallbackEmployeeForm(
         "employee_leave_history",
       ),
       formRelatedTab("attendance", "Attendance", 20, "employee_attendance"),
+      formRelatedTab(
+        "work-sites",
+        "Work Sites",
+        25,
+        EMPLOYEE_WORK_SITES_RELATIONSHIP,
+        WORK_SITE_READERS,
+      ),
       formRelatedTab("timesheets", "Timesheets", 40, "employee_timesheets"),
       formRelatedTab(
         "employee-history",
@@ -840,23 +906,11 @@ function fallbackEmployeeForm(
           requiredFormField("reportingManagerEmployeeId", 70, requiredFields),
         ],
         /*
-         * ITEM-0165 — the authorised work sites list rendered beneath the
-         * Location lookup above, in the same section, so the relationship
-         * between "where this person normally works" (locationId, a field)
-         * and "where they may record attendance" (the widget) is visible on
-         * screen instead of being two unrelated panels at different heading
-         * levels. The widget is the interactive surface (add / edit validity
-         * / remove / make primary); the Location field stays the plain,
-         * unrelated-to-this-widget primary-site value it already was.
+         * ITEM-0179 / ADR-0014 — authorised work sites are no longer a widget
+         * in this section; they are the Work Sites related-records tab. The
+         * Location field above is read-only on an existing record and mirrors
+         * the primary site, which changes only through Make primary.
          */
-        components: [
-          createSystemWidgetComponent({
-            widgetKey: "employee.workSites",
-            idSeed: "employee.main.full.worksites",
-            order: 10,
-            columnSpan: 3,
-          }),
-        ],
       },
       {
         id: "contact-information",
@@ -1217,6 +1271,15 @@ const PAY_DATA_ROLES: readonly CommandVisibilityRule[] = [
   },
 ];
 
+/*
+ * ITEM-0179 — the Work Sites tab reads `GET …/work-sites`, which requires
+ * `attendanceDevices.read`; without it the tab could only ever be empty. As
+ * above, hiding it is presentation — the API enforces the permission itself.
+ */
+const WORK_SITE_READERS: readonly CommandVisibilityRule[] = [
+  { operator: "has-permission", permissionKeys: ["attendanceDevices.read"] },
+];
+
 export function resolveEmployeeRuntimeForm(
   forms: readonly FormMetadata[],
   selectedFormId?: string | null,
@@ -1368,7 +1431,7 @@ export function mapEmployeeRecordToRuntimeValues(
     probationEndDate: dateValue(employee.probationEndDate),
     terminationDate: dateValue(employee.terminationDate),
     ownerId: stringValue(employee.ownerUserId),
-    ownerDisplayName: readNestedName(employee.ownerUser, ["fullName", "email"]),
+    ownerDisplayName: readPersonName(employee.ownerUser),
     ownerEmail: readNestedName(employee.ownerUser, ["email"]),
     reportingManagerEmployeeId: stringValue(
       employee.reportingManagerEmployeeId ?? employee.managerEmployeeId,
@@ -1403,6 +1466,15 @@ export function mapEmployeeRecordToRuntimeValues(
     provisionSystemAccess: Boolean(employee.userId),
     sendInvitationNow: false,
     initialRoleIds: readUserRoleIds(employee.user),
+    /*
+     * BUG-3497 — derived flags the record's account commands are gated on.
+     * `field-equals` compares with `===` against this mapped record, not the
+     * raw API payload, so a flag the API returns but this mapping drops is a
+     * rule that can never pass: Send Invitation's `hasNeverLoggedIn` was
+     * exactly that, and was never offered to anyone.
+     */
+    hasLinkedUser: Boolean(stringValue(employee.userId)),
+    hasNeverLoggedIn: employee.hasNeverLoggedIn === true,
   };
 }
 
@@ -1475,7 +1547,7 @@ export function mapEmployeeLookupDisplayValues(
   employee: Readonly<Record<string, unknown>>,
 ): Record<string, string> {
   return {
-    ownerId: readNestedName(employee.ownerUser, ["fullName", "email"]),
+    ownerId: readPersonName(employee.ownerUser),
     reportingManagerEmployeeId: readNestedName(employee.reportingManager, [
       "fullName",
     ]),
@@ -1535,7 +1607,7 @@ export function mapEmployeeLookupOptions(input: {
       employee
         ? {
             id: stringValue(employee.ownerUserId),
-            name: readNestedName(employee.ownerUser, ["fullName", "email"]),
+            name: readPersonName(employee.ownerUser),
             subtitle: readNestedName(employee.ownerUser, ["email"]),
           }
         : null,
@@ -1733,6 +1805,17 @@ function employeeRelationships() {
       "employeeId",
       "projectName",
     ),
+    // ITEM-0179 — the Work Sites tab. `employeeId` is what binds the subgrid
+    // to this record; the rows themselves come from the attendance endpoints.
+    relationship(
+      EMPLOYEE_WORK_SITES_RELATIONSHIP,
+      "one-to-many",
+      "employee",
+      "employeeWorkSite",
+      "id",
+      "employeeId",
+      "locationName",
+    ),
   ] as const;
 }
 
@@ -1780,6 +1863,13 @@ function employeeRelatedTabs() {
       110,
       "subgrid",
       "employee_attendance",
+    ),
+    relatedTab(
+      "work-sites",
+      "Work Sites",
+      115,
+      "subgrid",
+      EMPLOYEE_WORK_SITES_RELATIONSHIP,
     ),
     relatedTab(
       "timesheets",
@@ -1942,7 +2032,11 @@ function relatedSubgrid(
   tabKey: string,
   title: string,
   relationshipName: string,
-) {
+): RelatedSubgridMetadata {
+  if (relationshipName === EMPLOYEE_WORK_SITES_RELATIONSHIP) {
+    return employeeWorkSitesSubgrid(tabKey, title);
+  }
+
   return {
     id: `employee-subgrid-${tabKey}`,
     relationshipName,
@@ -1965,6 +2059,71 @@ function relatedSubgrid(
     emptyStateDescription:
       "No related records are available for this employee yet.",
     api: employeeRelatedApi(relationshipName),
+  };
+}
+
+/**
+ * ITEM-0179 / ADR-0014 — work sites as a standard related-records tab.
+ *
+ * Assign, validity edit and remove go to the attendance work-site endpoints
+ * through the employee data adapter (`employee-data.adapter.ts`), and Make
+ * primary is a declared row action the same adapter runs, because it must
+ * move `EmployeeWorkSite` and `Employee.locationId` in one transaction —
+ * something no generic create/update/delete can express. Every action needs
+ * `attendanceDevices.manage`, the permission the endpoints enforce.
+ */
+function employeeWorkSitesSubgrid(
+  tabKey: string,
+  title: string,
+): RelatedSubgridMetadata {
+  const manage = "attendanceDevices.manage";
+  return {
+    id: `employee-subgrid-${tabKey}`,
+    relationshipName: EMPLOYEE_WORK_SITES_RELATIONSHIP,
+    entityLogicalName: "employee",
+    relatedEntityLogicalName: "employeeWorkSite",
+    title,
+    columns: [
+      { fieldLogicalName: "locationName", label: "Site", order: 10 },
+      { fieldLogicalName: "isPrimary", label: "Primary", order: 20 },
+      { fieldLogicalName: "validFrom", label: "Valid From", order: 30 },
+      { fieldLogicalName: "validTo", label: "Valid To", order: 40 },
+    ],
+    // Also what an edit changes: an assignment's site is its identity.
+    quickCreateFields: [
+      { fieldLogicalName: "validFrom", label: "Valid From", dataType: "date" },
+      { fieldLogicalName: "validTo", label: "Valid To", dataType: "date" },
+    ],
+    assignment: {
+      lookupFieldLogicalName: "locationId",
+      optionsPath: "/api/locations?isActive=true",
+      title: "Assign Work Sites",
+      optionValueField: "id",
+      optionLabelField: "name",
+      assignedValueField: "locationId",
+      extraFields: [
+        { fieldLogicalName: "validFrom", label: "Valid From", dataType: "date" },
+        { fieldLogicalName: "validTo", label: "Valid To", dataType: "date" },
+      ],
+    },
+    rowActions: [
+      {
+        key: EMPLOYEE_WORK_SITE_SET_PRIMARY_ACTION,
+        label: "Make primary",
+        hiddenWhenFieldTrue: "isPrimary",
+        permissions: manage,
+      },
+    ],
+    removeConfirmation: { title: "Remove work site?", confirmLabel: "Remove" },
+    emptyStateTitle: `No ${title}`,
+    api: {
+      listPath: EMPLOYEE_WORK_SITES_PATH,
+      createPath: EMPLOYEE_WORK_SITES_PATH,
+      // The assign endpoint upserts; the adapter routes an edit there.
+      updatePath: EMPLOYEE_WORK_SITES_PATH,
+      deletePath: `${EMPLOYEE_WORK_SITES_PATH}/{recordId}`,
+      permissions: { create: manage, update: manage, delete: manage },
+    },
   };
 }
 
@@ -2613,6 +2772,13 @@ function ensureSystemRelatedTabs(form: FormMetadata): FormMetadata {
   );
   const additions = [
     formRelatedTab("payslips", "Payslips", 66, "employee_payslips"),
+    formRelatedTab(
+      "work-sites",
+      "Work Sites",
+      25,
+      EMPLOYEE_WORK_SITES_RELATIONSHIP,
+      WORK_SITE_READERS,
+    ),
   ].filter(
     (tab) =>
       !existingKeys.has(tab.tabKey) &&
@@ -2723,6 +2889,20 @@ function readNestedName(value: unknown, fields: readonly string[]) {
     );
 
   return values.join(" ").trim();
+}
+
+/*
+ * ITEM-0184 (H4) — a person's name, or their email only when there is no
+ * name. `readNestedName(user, ["fullName", "email"])` joins every field it
+ * finds, so the Record Status popover's Owner read "Taimur Khan
+ * taimur@example.com" as one value.
+ */
+function readPersonName(value: unknown) {
+  return (
+    readNestedName(value, ["fullName"]) ||
+    readNestedName(value, ["firstName", "lastName"]) ||
+    readNestedName(value, ["email"])
+  );
 }
 
 function readLookupPrimaryName(value: unknown) {

@@ -156,7 +156,7 @@ Two further things worth carrying:
   incidental. The default stays `REPORT_ONLY` and the setting is kept out of
   `seed-config` on purpose: `seed:config` runs on every release, and a new field
   in the shipped defaults goes live in every environment that never set it. A
-  cutover as a deploy side effect is the failure mode [[ADR-0009]] exists to
+  cutover as a deploy side effect is the failure mode ADR-0009 exists to
   prevent. The mode is re-read on a short TTL, so flipping it is a deliberate act
   that takes effect — and can be reversed — within a minute.
 

@@ -257,6 +257,7 @@ task.
 ## Related
 
 - Backlog item — [[ITEM-0168]]
+- Referenced by — [[ITEM-0182]]
 - Modules — [[notifications]], [[tenant-application]]
 - Regression — REG-461 (see the regression register)
 

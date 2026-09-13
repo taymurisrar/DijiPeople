@@ -6,6 +6,7 @@ import { FormEvent, useMemo, useState } from "react";
 import { DataTable } from "@/app/components/data-table/data-table";
 import { DataTableColumn } from "@/app/components/data-table/types";
 import { ConfirmDialog } from "@/app/components/feedback/confirm-dialog";
+import { useSideToast } from "@/app/components/notifications/use-side-toast";
 import { Button } from "@/app/components/ui/button";
 import { EmptyState } from "@/app/components/ui/empty-state";
 import {
@@ -55,6 +56,8 @@ export function FormsManagement({
   table: CustomizationTable;
 }) {
   const router = useRouter();
+  // ITEM-0184 — create and save gave no feedback.
+  const { notifySuccess, toast } = useSideToast();
   const [form, setForm] = useState<FormState | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CustomizationForm | null>(
     null,
@@ -369,6 +372,9 @@ export function FormsManagement({
       return;
     }
 
+    notifySuccess(
+      `${form.name.trim()} ${form.mode === "create" ? "created" : "saved"}`,
+    );
     setForm(null);
     router.refresh();
   }
@@ -511,10 +517,8 @@ export function FormsManagement({
   });
 
   return (
-    <SectionCard
-      description="Forms define runtime field layout metadata. Designer v1 is unchanged in this phase; this list shows package and lifecycle state."
-      title="Forms"
-    >
+    <SectionCard title="Forms">
+      {toast}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted">
           {forms.length} form{forms.length === 1 ? "" : "s"} configured for{" "}
@@ -570,14 +574,9 @@ export function FormsManagement({
             className="grid max-h-[92vh] w-full max-w-5xl gap-5 overflow-y-auto rounded-[24px] border border-border bg-white p-6 shadow-xl"
             onSubmit={handleSubmit}
           >
-            <div>
-              <h3 className="text-lg font-semibold text-foreground" id={formDialog.titleId}>
-                {form.mode === "create" ? "Create form" : "Edit form"}
-              </h3>
-              <p className="mt-1 text-sm leading-6 text-muted">
-                Build tabs and sections, then choose fields for each section.
-              </p>
-            </div>
+            <h3 className="text-lg font-semibold text-foreground" id={formDialog.titleId}>
+              {form.mode === "create" ? "Create form" : "Edit form"}
+            </h3>
 
             <div className="grid gap-4 md:grid-cols-2">
               <TextField
@@ -646,8 +645,12 @@ export function FormsManagement({
               >
                 Cancel
               </Button>
-              <Button loading={isSaving} loadingText="Saving..." type="submit">
-                Save form
+              <Button
+                loading={isSaving}
+                loadingText={form.mode === "create" ? "Creating..." : "Saving..."}
+                type="submit"
+              >
+                {form.mode === "create" ? "Create" : "Save"}
               </Button>
             </div>
           </form>

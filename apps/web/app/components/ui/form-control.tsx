@@ -57,6 +57,7 @@ function FieldShell({
   dirty,
   error,
   label,
+  labelId,
   hint,
   labelLink,
   required,
@@ -65,10 +66,24 @@ function FieldShell({
   warning,
   className,
   children,
-}: BaseFieldProps & { children: React.ReactNode }) {
+}: BaseFieldProps & {
+  children: React.ReactNode;
+  /*
+   * Id for the visible label text. A combobox is a `div`, which `label htmlFor`
+   * cannot name, so `SelectField` and `LookupField` point `aria-labelledby` at
+   * this instead (ITEM-0184 — every select in the customization dialogs was
+   * announced with no name).
+   */
+  labelId?: string;
+}) {
   const generatedId = React.useId();
   const controlId = `field-${generatedId.replace(/:/g, "")}`;
   const feedbackId = `${controlId}-feedback`;
+  /*
+   * ITEM-0183 — a hint renders once, as the line under the control. It used to
+   * render a second time inside an "i" tooltip beside the label, so every hint
+   * on every field appeared twice.
+   */
   const feedback = error || warning || hint;
   const feedbackTone = error
     ? "text-danger"
@@ -84,7 +99,7 @@ function FieldShell({
         .join(" ")}
     >
       <span className="flex min-w-0 items-center gap-1.5 font-medium text-foreground">
-        <span>
+        <span id={labelId}>
           {label}
           {required ? <span className="ml-1 text-danger">*</span> : null}
         </span>
@@ -97,27 +112,6 @@ function FieldShell({
           >
             {labelLink.text}
           </a>
-        ) : null}
-
-        {hint ? (
-          <span className="group relative inline-flex">
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              type="button"
-              tabIndex={0}
-              aria-label={`${label} help`}
-              onClick={(event) => event.preventDefault()}
-              className="h-4 w-4 rounded-full border border-border bg-slate-50 text-[10px] font-semibold text-muted hover:border-accent hover:bg-accent/5 hover:text-accent"
-            >
-              i
-            </Button>
-
-            <span className="pointer-events-none absolute left-1/2 top-6 z-40 hidden w-72 -translate-x-1/2 rounded-xl border border-border bg-slate-950 px-3 py-2 text-xs font-normal leading-5 text-white shadow-xl group-hover:block group-focus-within:block">
-              {hint}
-              <span className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-950" />
-            </span>
-          </span>
         ) : null}
       </span>
 
@@ -186,6 +180,45 @@ function calculateFloatingMenuPosition(rect: DOMRect) {
   };
 }
 
+/*
+ * BUG-3495 — Escape inside an open listbox closes the listbox, not the dialog
+ * around it.
+ *
+ * `useDialogBehavior` listens for Escape on `document` in the capture phase, so
+ * it ran before any control inside the dialog saw the key: pressing Escape to
+ * dismiss a dropdown closed the whole dialog and threw away everything typed.
+ * An open listbox therefore listens on `window` in the capture phase, which runs
+ * before `document`, closes itself and stops the event there. Only while open —
+ * with every listbox closed, Escape reaches the dialog exactly as before.
+ */
+export function closeListboxOnEscape(
+  event: Pick<KeyboardEvent, "key" | "preventDefault" | "stopPropagation">,
+  close: () => void,
+): boolean {
+  if (event.key !== "Escape") return false;
+  event.preventDefault();
+  event.stopPropagation();
+  close();
+  return true;
+}
+
+export function useListboxEscape(isOpen: boolean, close: () => void) {
+  const closeRef = React.useRef(close);
+
+  React.useEffect(() => {
+    closeRef.current = close;
+  }, [close]);
+
+  React.useEffect(() => {
+    if (!isOpen) return;
+    function handleKeyDown(event: KeyboardEvent) {
+      closeListboxOnEscape(event, () => closeRef.current());
+    }
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
+  }, [isOpen]);
+}
+
 export function SelectField({
   label,
   hint,
@@ -212,6 +245,7 @@ export function SelectField({
   // `role="combobox"` requires `aria-controls` and `aria-expanded`; without them
   // a screen reader announces a combobox whose popup it cannot find. BUG-0043.
   const listboxId = React.useId();
+  const labelId = `${listboxId}-label`;
   const menuRef = React.useRef<HTMLDivElement | null>(null);
   const [isOpen, setIsOpen] = React.useState(false);
   /*
@@ -220,6 +254,11 @@ export function SelectField({
    * set `aria-activedescendant` because there was no descendant to name.
    */
   const [activeIndex, setActiveIndex] = React.useState(-1);
+  const closeListbox = React.useCallback(() => {
+    setIsOpen(false);
+    setActiveIndex(-1);
+  }, []);
+  useListboxEscape(isOpen, closeListbox);
   const [menuPosition, setMenuPosition] = React.useState<{
     left: number;
     top: number;
@@ -408,10 +447,12 @@ export function SelectField({
       warning={warning}
       touched={touched}
       dirty={dirty}
+      labelId={labelId}
       validationStatus={validationStatus}
     >
       <div className="relative" ref={containerRef}>
         <div
+          aria-labelledby={labelId}
           aria-activedescendant={activeDescendantId(
             listboxId,
             isOpen,
@@ -995,6 +1036,7 @@ export function LookupField({
   // See SelectField: a combobox must name the popup it controls, and this one
   // did not even report whether it was open. BUG-0043.
   const listboxId = React.useId();
+  const labelId = `${listboxId}-label`;
   const menuRef = React.useRef<HTMLDivElement | null>(null);
   const inputRef = React.useRef<HTMLInputElement | null>(null);
 
@@ -1014,6 +1056,11 @@ export function LookupField({
    * reader was told a list existed and given nothing to move through.
    */
   const [activeIndex, setActiveIndex] = React.useState(-1);
+  const closeLookup = React.useCallback(() => {
+    setIsOpen(false);
+    setActiveIndex(-1);
+  }, []);
+  useListboxEscape(isOpen, closeLookup);
   const onSearchRef = React.useRef(onSearch);
 
   const uniqueOptions = React.useMemo(
@@ -1398,10 +1445,12 @@ export function LookupField({
       warning={warning}
       touched={touched}
       dirty={dirty}
+      labelId={labelId}
       validationStatus={validationStatus}
     >
       <div className="relative" ref={containerRef}>
         <div
+          aria-labelledby={labelId}
           aria-activedescendant={activeDescendantId(
             listboxId,
             isOpen,

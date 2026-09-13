@@ -403,6 +403,12 @@ function adapter(input: {
   recordCategory?: string;
   settingFieldCategories?: Readonly<Record<string, string>>;
   specializedHref?: string;
+  /*
+   * Set false for a list whose rows have no record page of their own (ITEM-0182:
+   * in-app delivery rows). Omitted, it keeps the previous rule — every mode but
+   * `specialized` navigates.
+   */
+  recordNavigation?: boolean;
 }): SettingsRuntimeAdapter {
   const routeBase = input.routeBase ?? `/settings-runtime/${input.key}`;
   const mode = input.mode ?? "crud";
@@ -447,7 +453,7 @@ function adapter(input: {
     singularLabel: input.singular ?? singularize(input.label),
     createCommandLabel: input.createCommandLabel,
     routeBase,
-    recordNavigation: mode !== "specialized",
+    recordNavigation: input.recordNavigation ?? mode !== "specialized",
     primaryIdField: input.primaryId,
     primaryNameField: input.primaryName ?? "name",
     ownerField:
@@ -6640,8 +6646,19 @@ const adapters: readonly SettingsRuntimeAdapter[] = [
      * for NOT_DELIVERED too — see EmailExecutionService — not only FAILED, and
      * is relabelled "Reason" because "Error Message" reads wrong on a row that
      * did not fail.
+     *
+     * ITEM-0182. That reason was stored and shown only on the record page, so
+     * a list of NOT_DELIVERED rows still said nothing about why. `errorMessage`
+     * is now a column beside the status it explains.
      */
-    columns: ["subject", "recipient", "status", "providerType", "createdAt"],
+    columns: [
+      "subject",
+      "recipient",
+      "status",
+      "errorMessage",
+      "providerType",
+      "createdAt",
+    ],
     fields: [
       field("subject", "Subject", "string", {
         isPrimaryName: true,
@@ -6664,6 +6681,48 @@ const adapters: readonly SettingsRuntimeAdapter[] = [
     ],
     permissions: { read: "notification.logs.read" },
     formatters: { createdAt: "datetime" },
+  }),
+  /*
+   * ITEM-0182 — the in-app channel of the same Delivery Logs screen. It has no
+   * navigation entry of its own: `SettingsRuntimeList` swaps to it when the
+   * screen is opened with `?channel=in-app`, so the page keeps one name and one
+   * URL. Rows do not open a record page — there is nothing on one that the row
+   * does not already show, and the email adapter's record route would not find
+   * an in-app id.
+   */
+  adapter({
+    key: "notification-in-app-logs",
+    label: "Delivery Logs",
+    singular: "Delivery Log",
+    serverApiPath: "/notifications/in-app-delivery-logs",
+    collectionKey: "items",
+    supportsServerPagination: true,
+    mode: "read-only",
+    primaryName: "title",
+    recordNavigation: false,
+    columns: ["title", "recipientName", "status", "readAt", "createdAt"],
+    fields: [
+      field("title", "Notification", "string", {
+        isPrimaryName: true,
+        isReadOnly: true,
+      }),
+      field("recipientName", "Recipient", "string", { isReadOnly: true }),
+      field("recipient", "Recipient Email", "email", { isReadOnly: true }),
+      field("status", "Status", "optionset", {
+        isReadOnly: true,
+        isStatus: true,
+      }),
+      field("eventCode", "Event", "string", { isReadOnly: true }),
+      field("deliveredAt", "Delivered", "datetime", { isReadOnly: true }),
+      field("readAt", "Read", "datetime", { isReadOnly: true }),
+      field("createdAt", "Created", "datetime", { isReadOnly: true }),
+    ],
+    permissions: { read: "notification.logs.read" },
+    formatters: {
+      createdAt: "datetime",
+      deliveredAt: "datetime",
+      readAt: "datetime",
+    },
   }),
   adapter({
     key: "audit-logs",

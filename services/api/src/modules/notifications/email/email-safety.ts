@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
+import sanitizeHtml from 'sanitize-html';
 import { toDisplayString } from '../../../common/utils/display-string';
 
 export const SECRET_KEY_PATTERN =
@@ -30,6 +31,76 @@ export function sanitizeHtmlTemplate(htmlTemplate: string) {
   const trimmed = htmlTemplate.trim();
   assertSafeHtmlTemplate(trimmed);
   return trimmed;
+}
+
+/*
+ * ITEM-0181. What a tenant may store as an email body.
+ *
+ * `sanitizeHtmlTemplate` above only refuses `<script>` and `javascript:` links,
+ * which was enough while the only author was someone pasting HTML they wrote.
+ * The visual editor produces markup from a browser's editing surface, and a
+ * paste into it can carry anything the clipboard held — iframes, forms, event
+ * handler attributes. The allowlist is what an email body needs and nothing
+ * more; the editor is not trusted to have produced only that.
+ *
+ * `style` is kept on every element because email clients ignore stylesheets
+ * and inline styles are the only styling that survives. `{{token}}` hrefs have
+ * no scheme and pass as relative URLs; the scheme check applies to what they
+ * render into, and the rendered output is checked again at send time.
+ */
+const EMAIL_TEMPLATE_ALLOWED_TAGS = [
+  'a',
+  'b',
+  'blockquote',
+  'br',
+  'div',
+  'em',
+  'h1',
+  'h2',
+  'h3',
+  'hr',
+  'i',
+  'li',
+  'ol',
+  'p',
+  's',
+  'span',
+  'strong',
+  'table',
+  'tbody',
+  'td',
+  'th',
+  'thead',
+  'tr',
+  'u',
+  'ul',
+];
+
+const UNSAFE_STYLE_PATTERN = /expression\s*\(|javascript:|url\s*\(/i;
+
+export function sanitizeEmailTemplateHtml(htmlTemplate: string) {
+  const cleaned = sanitizeHtml(htmlTemplate, {
+    allowedTags: EMAIL_TEMPLATE_ALLOWED_TAGS,
+    allowedAttributes: {
+      '*': ['style'],
+      a: ['href', 'target', 'rel', 'style'],
+      table: ['role', 'width', 'cellpadding', 'cellspacing', 'border', 'style'],
+      td: ['align', 'valign', 'width', 'colspan', 'style'],
+      th: ['align', 'valign', 'width', 'colspan', 'style'],
+    },
+    allowedSchemes: ['http', 'https', 'mailto'],
+    allowedSchemesAppliedToAttributes: ['href'],
+    allowProtocolRelative: false,
+  }).trim();
+
+  assertSafeHtmlTemplate(cleaned);
+  if (UNSAFE_STYLE_PATTERN.test(cleaned)) {
+    throw new BadRequestException(
+      'Email templates cannot include script expressions or external resources in styles.',
+    );
+  }
+
+  return cleaned;
 }
 
 export function escapeHtmlValue(value: unknown) {

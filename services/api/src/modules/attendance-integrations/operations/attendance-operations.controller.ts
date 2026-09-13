@@ -39,14 +39,16 @@ import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../../common/interfaces/authenticated-request.interface';
 import { AttendanceOperationsService } from './attendance-operations.service';
 
-class AssignWorkSiteDto {
+// Exported for `attendance-operations.dto.spec.ts`, which validates the exact
+// payloads the web Work Sites tab sends (ITEM-0179).
+export class AssignWorkSiteDto {
   @IsUUID() locationId!: string;
   @IsOptional() @IsBoolean() isPrimary?: boolean;
-  @IsOptional() @IsDateString() validFrom?: string;
-  @IsOptional() @IsDateString() validTo?: string;
+  @IsOptional() @IsDateString() validFrom?: string | null;
+  @IsOptional() @IsDateString() validTo?: string | null;
 }
 
-class SetPrimaryWorkSiteDto {
+export class SetPrimaryWorkSiteDto {
   @IsUUID() locationId!: string;
 }
 

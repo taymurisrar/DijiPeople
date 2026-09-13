@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
 import { DataTable } from "@/app/components/data-table/data-table";
 import { DataTableColumn } from "@/app/components/data-table/types";
+import { useFormattingContext } from "@/app/components/filters/use-formatting-context";
+import { useSideToast } from "@/app/components/notifications/use-side-toast";
 import { Button } from "@/app/components/ui/button";
 import { EmptyState } from "@/app/components/ui/empty-state";
 import {
@@ -14,6 +16,7 @@ import {
 } from "@/app/components/ui/form-control";
 import { StatusPill } from "@/app/components/ui/status-pill";
 import { PermissionGate } from "@/app/(authenticated)/_components/permission-gate";
+import { formatDate } from "@/lib/formatting-context";
 import { CustomizationTable } from "../types";
 import { useDialogBehavior } from "@/app/components/ui/dialog";
 
@@ -33,6 +36,8 @@ type EditState = {
 
 export function TablesList({ tables }: TablesListProps) {
   const router = useRouter();
+  const formattingContext = useFormattingContext();
+  const { notifySuccess, toast } = useSideToast();
   const [editing, setEditing] = useState<EditState | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CustomizationTable | null>(
     null,
@@ -44,7 +49,7 @@ export function TablesList({ tables }: TablesListProps) {
     () => [
       {
         key: "displayName",
-        header: "Module name",
+        header: "Module",
         sortable: true,
         searchable: true,
         sortAccessor: (row) => row.displayName,
@@ -52,9 +57,11 @@ export function TablesList({ tables }: TablesListProps) {
         render: (row) => (
           <div>
             <p className="font-semibold text-foreground">{row.displayName}</p>
-            <p className="mt-1 max-w-xs truncate text-xs text-muted">
-              {row.description || row.pluralDisplayName}
-            </p>
+            {row.description ? (
+              <p className="mt-1 max-w-xs truncate text-xs text-muted">
+                {row.description}
+              </p>
+            ) : null}
           </div>
         ),
       },
@@ -68,19 +75,6 @@ export function TablesList({ tables }: TablesListProps) {
           <code className="rounded-lg bg-slate-100 px-2 py-1 text-xs text-slate-700">
             {row.tableKey}
           </code>
-        ),
-      },
-      {
-        key: "route",
-        header: "Route",
-        searchable: true,
-        searchAccessor: (row) => row.moduleKey,
-        sortable: true,
-        sortAccessor: (row) => row.moduleKey,
-        render: (row) => (
-          <span className="text-xs text-muted">
-            /{row.moduleKey || row.tableKey}
-          </span>
         ),
       },
       {
@@ -112,133 +106,121 @@ export function TablesList({ tables }: TablesListProps) {
         render: (row) => statusBadge(row.isActive),
       },
       {
-        key: "source",
-        header: "Source",
-        filterable: true,
-        filterType: "select",
-        filterAccessor: (row) => row.source ?? componentSource(row),
-        filterOptions: [
-          { label: "System", value: "System" },
-          { label: "Custom", value: "Custom" },
-        ],
-        render: (row) => row.source ?? componentSource(row),
-      },
-      {
         key: "package",
         header: "Package",
         searchable: true,
         searchAccessor: (row) => row.packageName ?? "",
-        render: (row) => row.packageName ?? "Default Package",
+        render: (row) =>
+          row.packageName ?? (row.isCustomTable ? "Not set" : "Default Package"),
       },
       {
         key: "lifecycle",
         header: "Lifecycle",
         filterable: true,
         filterType: "select",
-        filterAccessor: (row) => lifecycleLabel(row.lifecycleState),
+        filterAccessor: (row) => lifecycleLabel(row),
         filterOptions: [
           { label: "Draft", value: "Draft" },
           { label: "Published", value: "Published" },
-          { label: "Deprecated", value: "Deprecated" },
-          { label: "Archived", value: "Archived" },
         ],
-        render: (row) => lifecycleLabel(row.lifecycleState),
+        render: (row) => lifecycleLabel(row),
       },
-      metricColumn("fields", "Fields count", (row) =>
-        readCount(row, "fieldsCount"),
-      ),
-      metricColumn("forms", "Forms count", (row) =>
-        readCount(row, "formsCount"),
-      ),
-      metricColumn("views", "Views count", (row) =>
-        readCount(row, "viewsCount"),
-      ),
+      metricColumn("fields", "Fields", (row) => readCount(row, "fieldsCount")),
+      metricColumn("forms", "Forms", (row) => readCount(row, "formsCount")),
+      metricColumn("views", "Views", (row) => readCount(row, "viewsCount")),
       {
         key: "updatedAt",
-        header: "Modified on",
+        header: "Modified",
         sortable: true,
         sortAccessor: (row) => row.updatedAt ?? "",
-        render: (row) => formatDate(row.updatedAt),
+        render: (row) => formatDate(row.updatedAt, formattingContext) || "-",
       },
       {
         key: "actions",
         header: "Actions",
-        cellClassName: "min-w-[260px]",
         render: (row) => (
-<div className="flex gap-2">
-  <Button
-    href={`/settings/customization/tables/${row.tableKey}`}
-    leftIcon={<ExternalLink className="h-4 w-4" />}
-    size="icon-sm"
-    variant="secondary"
-    aria-label="Customize"
-    title="Customize"
-  />
+          <div className="flex gap-1">
+            <Button
+              href={`/settings/customization/tables/${row.tableKey}`}
+              leftIcon={<ExternalLink className="h-4 w-4" />}
+              size="icon-sm"
+              variant="secondary"
+              aria-label={`Open ${row.displayName}`}
+              title="Open"
+            />
 
-  <PermissionGate anyOf={["customization.tables.update"]}>
-    <Button
-      leftIcon={<Edit3 className="h-4 w-4" />}
-      onClick={() =>
-        setEditing({
-          mode: "edit",
-          tableKey: row.tableKey,
-          displayName: row.displayName,
-          pluralDisplayName: row.pluralDisplayName,
-          icon: row.icon ?? "",
-          description: row.description ?? "",
-          isActive: row.isActive,
-        })
-      }
-      size="icon-sm"
-      variant="ghost"
-      aria-label="Rename"
-      title="Rename"
-    />
+            <PermissionGate anyOf={["customization.tables.update"]}>
+              <Button
+                leftIcon={<Edit3 className="h-4 w-4" />}
+                onClick={() =>
+                  setEditing({
+                    mode: "edit",
+                    tableKey: row.tableKey,
+                    displayName: row.displayName,
+                    pluralDisplayName: row.pluralDisplayName,
+                    icon: row.icon ?? "",
+                    description: row.description ?? "",
+                    isActive: row.isActive,
+                  })
+                }
+                size="icon-sm"
+                variant="ghost"
+                aria-label={`Rename ${row.displayName}`}
+                title="Rename"
+              />
 
-    <Button
-      disabled={!row.isCustomTable}
-      leftIcon={<PauseCircle className="h-4 w-4" />}
-      onClick={() =>
-        row.isCustomTable
-          ? setEditing({
-              mode: "edit",
-              tableKey: row.tableKey,
-              displayName: row.displayName,
-              pluralDisplayName: row.pluralDisplayName,
-              icon: row.icon ?? "",
-              description: row.description ?? "",
-              isActive: !row.isActive,
-            })
-          : undefined
-      }
-      size="icon-sm"
-      variant="ghost"
-      aria-label={row.isActive ? "Deactivate" : "Activate"}
-      title={row.isActive ? "Deactivate" : "Activate"}
-      type="button"
-    />
+              {row.isCustomTable ? (
+                <Button
+                  leftIcon={<PauseCircle className="h-4 w-4" />}
+                  onClick={() =>
+                    setEditing({
+                      mode: "edit",
+                      tableKey: row.tableKey,
+                      displayName: row.displayName,
+                      pluralDisplayName: row.pluralDisplayName,
+                      icon: row.icon ?? "",
+                      description: row.description ?? "",
+                      isActive: !row.isActive,
+                    })
+                  }
+                  size="icon-sm"
+                  variant="ghost"
+                  aria-label={
+                    row.isActive
+                      ? `Deactivate ${row.displayName}`
+                      : `Activate ${row.displayName}`
+                  }
+                  title={row.isActive ? "Deactivate" : "Activate"}
+                  type="button"
+                />
+              ) : null}
 
-    {row.isCustomTable && (
-      <Button
-        leftIcon={<Trash2 className="h-4 w-4" />}
-        onClick={() => setDeleteTarget(row)}
-        size="icon-sm"
-        variant="danger"
-        aria-label="Delete"
-        title="Delete"
-      />
-    )}
-  </PermissionGate>
-</div>
+              {row.isCustomTable ? (
+                <Button
+                  leftIcon={<Trash2 className="h-4 w-4" />}
+                  onClick={() => setDeleteTarget(row)}
+                  size="icon-sm"
+                  variant="danger"
+                  aria-label={`Delete ${row.displayName}`}
+                  title="Delete"
+                />
+              ) : null}
+            </PermissionGate>
+          </div>
         ),
       },
     ],
-    [],
+    [formattingContext],
   );
 
   async function handleSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!editing) return;
+
+    if (editing.mode === "create" && !editing.tableKey) {
+      setError("Enter a display name.");
+      return;
+    }
 
     setError(null);
     setIsSaving(true);
@@ -261,16 +243,30 @@ export function TablesList({ tables }: TablesListProps) {
       },
     );
     const data = (await response.json().catch(() => ({}))) as {
-      message?: string;
+      message?: string | string[];
     };
 
     setIsSaving(false);
     if (!response.ok) {
-      setError(data.message ?? "Unable to save customization table.");
+      setError(
+        (Array.isArray(data.message) ? data.message.join(" ") : data.message) ??
+          "Unable to save the module.",
+      );
       return;
     }
 
+    const saved = editing;
     setEditing(null);
+    if (saved.mode === "create") {
+      /*
+       * ITEM-0184 — a new module used to be created silently onto a list sorted
+       * by name, usually on a page the user was not looking at. It opens now.
+       */
+      notifySuccess(`${saved.displayName.trim()} created`);
+      router.push(`/settings/customization/tables/${saved.tableKey}`);
+      return;
+    }
+    notifySuccess(`${saved.displayName.trim()} saved`);
     router.refresh();
   }
 
@@ -285,9 +281,10 @@ export function TablesList({ tables }: TablesListProps) {
       message?: string;
     };
     if (!response.ok) {
-      setError(data.message ?? "Unable to delete customization table.");
+      setError(data.message ?? "Unable to delete the module.");
       return;
     }
+    notifySuccess(`${deleteTarget.displayName} deleted`);
     setDeleteTarget(null);
     router.refresh();
   }
@@ -305,11 +302,13 @@ export function TablesList({ tables }: TablesListProps) {
 
   return (
     <>
+      {toast}
       <div className="mb-3 flex justify-end">
         <PermissionGate anyOf={["customization.tables.update"]}>
           <Button
             leftIcon={<Plus className="h-4 w-4" />}
-            onClick={() =>
+            onClick={() => {
+              setError(null);
               setEditing({
                 mode: "create",
                 tableKey: "",
@@ -318,8 +317,8 @@ export function TablesList({ tables }: TablesListProps) {
                 icon: "",
                 description: "",
                 isActive: true,
-              })
-            }
+              });
+            }}
             type="button"
           >
             Create module
@@ -328,7 +327,10 @@ export function TablesList({ tables }: TablesListProps) {
       </div>
 
       {error && !editing ? (
-        <div className="mb-4 rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
+        <div
+          className="mb-4 rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger"
+          role="alert"
+        >
           {error}
         </div>
       ) : null}
@@ -338,8 +340,8 @@ export function TablesList({ tables }: TablesListProps) {
         columns={columns}
         emptyState={
           <EmptyState
-            description="No metadata modules are registered for customization yet."
-            title="No configurable modules"
+            description="No modules are available for customization."
+            title="No modules"
           />
         }
         getRowKey={(row) => row.tableKey}
@@ -347,7 +349,7 @@ export function TablesList({ tables }: TablesListProps) {
         pagination={{ page: 1, pageSize: 10, total: tables.length }}
         rows={tables}
         searchPlaceholder="Search modules"
-        tableClassName="min-w-[980px] divide-y divide-border text-xs"
+        tableClassName="min-w-[860px] divide-y divide-border text-xs"
       />
 
       {editing ? (
@@ -357,50 +359,43 @@ export function TablesList({ tables }: TablesListProps) {
         >
           <form
             {...editDialog.panelProps}
-            className="grid w-full max-w-2xl gap-5 rounded-[24px] border border-border bg-white p-6 shadow-xl"
+            className="grid max-h-[92vh] w-full max-w-2xl gap-5 overflow-y-auto rounded-[24px] border border-border bg-white p-6 shadow-xl"
             onSubmit={handleSave}
           >
-            <div>
-              <h3
-                className="text-lg font-semibold text-foreground"
-                id={editDialog.titleId}
-              >
-                {editing.mode === "create"
-                  ? "Create custom module"
-                  : "Edit module metadata"}
-              </h3>
-              <p className="mt-1 text-sm text-muted">
-                {editing.mode === "create"
-                  ? "Create a tenant-scoped metadata module."
-                  : `Update tenant-facing labels for ${editing.tableKey}.`}
-              </p>
-            </div>
+            <h3
+              className="text-lg font-semibold text-foreground"
+              id={editDialog.titleId}
+            >
+              {editing.mode === "create" ? "Create module" : "Edit module"}
+            </h3>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <TextField
-                disabled={editing.mode === "edit"}
-                hint="Use camelCase. This logical name is immutable after creation."
-                label="Module logical name"
-                onChange={(tableKey) =>
-                  setEditing((current) =>
-                    current ? { ...current, tableKey } : current,
-                  )
-                }
-                required
-                value={editing.tableKey}
-              />
               <TextField
                 label="Display name"
                 onChange={(displayName) =>
                   setEditing((current) =>
-                    current ? { ...current, displayName } : current,
+                    current
+                      ? {
+                          ...current,
+                          displayName,
+                          /*
+                           * ITEM-0184 — the logical name is derived from the
+                           * display name and shown read-only. It used to be a
+                           * raw camelCase input a business user had to invent.
+                           */
+                          tableKey:
+                            current.mode === "create"
+                              ? toCamelCase(displayName)
+                              : current.tableKey,
+                        }
+                      : current,
                   )
                 }
                 required
                 value={editing.displayName}
               />
               <TextField
-                label="Plural display name"
+                label="Plural name"
                 onChange={(pluralDisplayName) =>
                   setEditing((current) =>
                     current ? { ...current, pluralDisplayName } : current,
@@ -408,6 +403,12 @@ export function TablesList({ tables }: TablesListProps) {
                 }
                 required
                 value={editing.pluralDisplayName}
+              />
+              <TextField
+                disabled
+                label="Logical name"
+                onChange={() => undefined}
+                value={editing.tableKey}
               />
               <TextField
                 label="Icon"
@@ -420,7 +421,6 @@ export function TablesList({ tables }: TablesListProps) {
               />
               <CheckboxField
                 checked={editing.isActive}
-                hint="Inactive modules stay registered but should be hidden from customization-driven UI."
                 label="Active"
                 onChange={(isActive) =>
                   setEditing((current) =>
@@ -440,7 +440,11 @@ export function TablesList({ tables }: TablesListProps) {
               />
             </div>
 
-            {error ? <p className="text-sm text-danger">{error}</p> : null}
+            {error ? (
+              <p className="text-sm text-danger" role="alert">
+                {error}
+              </p>
+            ) : null}
 
             <div className="flex flex-wrap justify-end gap-3">
               <Button
@@ -450,8 +454,14 @@ export function TablesList({ tables }: TablesListProps) {
               >
                 Cancel
               </Button>
-              <Button loading={isSaving} loadingText="Saving..." type="submit">
-                Save changes
+              <Button
+                loading={isSaving}
+                loadingText={
+                  editing.mode === "create" ? "Creating..." : "Saving..."
+                }
+                type="submit"
+              >
+                {editing.mode === "create" ? "Create" : "Save"}
               </Button>
             </div>
           </form>
@@ -467,19 +477,12 @@ export function TablesList({ tables }: TablesListProps) {
             {...deleteDialog.panelProps}
             className="grid w-full max-w-lg gap-4 rounded-[24px] border border-border bg-white p-6 shadow-xl"
           >
-            <div>
-              <h3
-                className="text-lg font-semibold text-foreground"
-                id={deleteDialog.titleId}
-              >
-                Delete custom module
-              </h3>
-              <p className="mt-1 text-sm leading-6 text-muted">
-                Delete {deleteTarget.displayName}? System modules cannot be
-                deleted, and modules with dependent fields, forms, or views are
-                blocked by the server.
-              </p>
-            </div>
+            <h3
+              className="text-lg font-semibold text-foreground"
+              id={deleteDialog.titleId}
+            >
+              Delete {deleteTarget.displayName}?
+            </h3>
             <div className="flex justify-end gap-3">
               <Button
                 onClick={() => setDeleteTarget(null)}
@@ -511,8 +514,9 @@ function statusBadge(isActive: boolean) {
   );
 }
 
-function lifecycleLabel(value?: string | null) {
-  if (!value) return "Published";
+function lifecycleLabel(row: CustomizationTable) {
+  const value =
+    row.lifecycleState ?? (row.isCustomTable ? "draft" : "published");
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
@@ -549,12 +553,23 @@ function readCount(row: CustomizationTable, key: string) {
     if (typeof countValue === "number") return countValue;
   }
 
-  return typeof value === "number" ? value : 0;
+  return 0;
 }
 
-function formatDate(value: string | null | undefined) {
-  if (!value) return "-";
-  return new Intl.DateTimeFormat("en", {
-    dateStyle: "medium",
-  }).format(new Date(value));
+function toCamelCase(value: string) {
+  const words = value
+    .trim()
+    .replace(/[^a-zA-Z0-9]+/g, " ")
+    .split(" ")
+    .filter(Boolean);
+  const camel = words
+    .map((word, index) => {
+      const lower = word.toLowerCase();
+      return index === 0
+        ? lower
+        : `${lower[0]?.toUpperCase() ?? ""}${lower.slice(1)}`;
+    })
+    .join("");
+  // The API key must start with a letter.
+  return /^[a-z]/.test(camel) ? camel : camel ? `m${camel}` : "";
 }

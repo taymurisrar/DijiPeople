@@ -59,6 +59,11 @@ plainly what an agent must or must not do as a result of this decision.
 | [ADR-0009](ADR-0009-entitlement-enforcement-cutover.md) | Entitlement enforcement moves from REPORT_ONLY to ENFORCE, via grandfathering | Accepted |
 | [ADR-0010](ADR-0010-concurrent-sessions-are-allowed-by-default.md) | Concurrent sessions are allowed by default; single-session is opt-in | Accepted |
 | [ADR-0011](ADR-0011-notification-rule-and-preference-are-two-gates-not-one.md) | `NotificationRule` and `NotificationPreference` both stay, answering different questions | Accepted |
+| [ADR-0013](ADR-0013-customization-access-is-granted-by-permission.md) | Customization access is granted by customization permissions, not by role membership | Accepted |
+| [ADR-0014](ADR-0014-employee-work-sites-are-a-related-records-tab.md) | Employee work sites are managed in a related-records tab with a transactional Make primary action | Accepted |
+| [ADR-0015](ADR-0015-production-retires-sink-email-providers.md) | Production retires sink email providers, tenants fall back to the platform relay, and default templates ship with real copy | Accepted |
+| [ADR-0016](ADR-0016-published-custom-modules-render-in-the-tenant-runtime.md) | A published custom module renders in the tenant runtime with a sidebar entry and standard list, form and record screens | Accepted |
+| [ADR-0017](ADR-0017-the-hierarchy-viewer-stays-a-chain-scoped-dialog.md) | The reporting hierarchy viewer stays a chain-scoped dialog, drawn as a real branching tree | Accepted |
 
 > ADR-0008 was written as `ADR-0006` by a parallel stream on 2026-09-11 and
 > renumbered at integration, because a second `ADR-0006` already existed. The

@@ -37,10 +37,11 @@ test("registers the built-in System Widgets", () => {
     "system.timeline",
     "system.reportingHierarchy",
     "employee.profilePhoto",
-    "employee.workSites",
     "system.approvalTracker",
     "system.documents",
   ]);
+  // ADR-0014 — the retired work-site widget must never be re-registered.
+  assert.equal(resolveSystemWidgetDefinition("employee.workSites"), null);
   assert.equal(
     resolveSystemWidgetDefinition("reporting_hierarchy").widgetKey,
     "system.reportingHierarchy",
@@ -198,12 +199,7 @@ test("covers target Module widget capability matrix", () => {
 test("filters the Form Designer palette by Module capability", () => {
   assert.deepEqual(
     listSupportedSystemWidgets("employees").map((widget) => widget.widgetKey),
-    [
-      "system.timeline",
-      "system.reportingHierarchy",
-      "employee.profilePhoto",
-      "employee.workSites",
-    ],
+    ["system.timeline", "system.reportingHierarchy", "employee.profilePhoto"],
   );
   assert.deepEqual(
     listSupportedSystemWidgets("leaves").map((widget) => widget.widgetKey),

@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 621,
+    "total_records": 652,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -19924,6 +19924,585 @@
       "verification_result": "NOT_VERIFIED"
     },
     {
+      "record_id": "BUG-3491",
+      "type": "AUTHORIZATION",
+      "title": "Customization pages crash for a user who holds customization permissions but no customizer role",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3491-customization-pages-crash-for-a-user-who-holds-customization.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "df0f84f1",
+        "created_at": "2026-09-13",
+        "updated_at": "2026-09-13",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "customization"
+      ],
+      "regressions": [
+        "REG-481"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-021"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "customization"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3491-customization-pages-crash-for-a-user-who-holds-customization.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3492",
+      "type": "BUG",
+      "title": "Every custom field type without a length is rejected with Maximum length must be at least 1",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3492-every-custom-field-type-without-a-length-is-rejected-with-ma.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "df0f84f1",
+        "created_at": "2026-09-13",
+        "updated_at": "2026-09-13",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "customization"
+      ],
+      "regressions": [
+        "REG-482"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-022"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "customization"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3492-every-custom-field-type-without-a-length-is-rejected-with-ma.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3493",
+      "type": "BUG",
+      "title": "Publishing customizations dead-ends because new drafts land in a package that cannot be published",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3493-publishing-customizations-dead-ends-because-new-drafts-land-.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "df0f84f1",
+        "created_at": "2026-09-13",
+        "updated_at": "2026-09-13",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "customization"
+      ],
+      "regressions": [
+        "REG-483"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-023"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "customization"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3493-publishing-customizations-dead-ends-because-new-drafts-land-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3494",
+      "type": "BUG",
+      "title": "A published custom module has no sidebar entry and no list, form or record screen",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3494-a-published-custom-module-has-no-sidebar-entry-and-no-list-f.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "df0f84f1",
+        "created_at": "2026-09-13",
+        "updated_at": "2026-09-13",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "customization",
+        "data"
+      ],
+      "regressions": [
+        "REG-491",
+        "REG-492",
+        "REG-493",
+        "REG-494"
+      ],
+      "qa_scenarios": [
+        "QA-RUNTIME-045",
+        "QA-RUNTIME-046"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "customization",
+          "data"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3494-a-published-custom-module-has-no-sidebar-entry-and-no-list-f.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3495",
+      "type": "BUG",
+      "title": "Customization editors accept invalid metadata and silently rewrite what the administrator typed",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3495-customization-editors-accept-invalid-metadata-and-silently-r.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "df0f84f1",
+        "created_at": "2026-09-13",
+        "updated_at": "2026-09-13",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "customization"
+      ],
+      "regressions": [
+        "REG-484",
+        "REG-485"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-024"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "customization"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3495-customization-editors-accept-invalid-metadata-and-silently-r.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3496",
+      "type": "BUG",
+      "title": "A hydration mismatch on Customization pages opens a blocking raw React error modal and logs a 500",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3496-a-hydration-mismatch-on-customization-pages-opens-a-blocking.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "df0f84f1",
+        "created_at": "2026-09-13",
+        "updated_at": "2026-09-13",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "error-logs"
+      ],
+      "regressions": [
+        "REG-486"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-025"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "error-logs"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3496-a-hydration-mismatch-on-customization-pages-opens-a-blocking.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3497",
+      "type": "BUG",
+      "title": "Employee Reset Password sends without confirmation, is offered with no linked user and fails silently",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3497-employee-reset-password-sends-without-confirmation-is-offere.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "df0f84f1",
+        "created_at": "2026-09-13",
+        "updated_at": "2026-09-13",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "employees",
+        "error-logs"
+      ],
+      "regressions": [
+        "REG-495",
+        "REG-496"
+      ],
+      "qa_scenarios": [
+        "QA-EMPLOYEE-002"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "employees",
+          "error-logs"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3497-employee-reset-password-sends-without-confirmation-is-offere.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3498",
+      "type": "BUG",
+      "title": "The employee record export writes lookup fields as raw ids",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3498-the-employee-record-export-writes-lookup-fields-as-raw-ids.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "df0f84f1",
+        "created_at": "2026-09-13",
+        "updated_at": "2026-09-13",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "employees"
+      ],
+      "regressions": [
+        "REG-497"
+      ],
+      "qa_scenarios": [
+        "QA-EMPLOYEE-003"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "employees"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3498-the-employee-record-export-writes-lookup-fields-as-raw-ids.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3499",
+      "type": "UX",
+      "title": "The reporting hierarchy dialog pins a clipped detail card, has no close control and cannot open a record",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3499-the-reporting-hierarchy-dialog-pins-a-clipped-detail-card-ha.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "df0f84f1",
+        "created_at": "2026-09-13",
+        "updated_at": "2026-09-13",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "employees"
+      ],
+      "regressions": [
+        "REG-498",
+        "REG-499"
+      ],
+      "qa_scenarios": [
+        "QA-EMPLOYEE-004"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "employees"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3499-the-reporting-hierarchy-dialog-pins-a-clipped-detail-card-ha.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3500",
+      "type": "BUG",
+      "title": "Every seeded email template is active with placeholder body text",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3500-every-seeded-email-template-is-active-with-placeholder-body-.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "df0f84f1",
+        "created_at": "2026-09-13",
+        "updated_at": "2026-09-13",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "notifications",
+        "apps/web"
+      ],
+      "regressions": [
+        "REG-505",
+        "REG-506",
+        "REG-509"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-027"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "notifications",
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3500-every-seeded-email-template-is-active-with-placeholder-body-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3501",
+      "type": "UX",
+      "title": "The email provider screen presents a console sink as delivery and offers sink providers in production",
+      "severity": "MEDIUM",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "df0f84f1",
+        "created_at": "2026-09-13",
+        "updated_at": "2026-09-13",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "notifications",
+        "apps/web"
+      ],
+      "regressions": [
+        "REG-515",
+        "REG-516",
+        "REG-517",
+        "REG-518"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-030",
+        "QA-SETTINGS-031"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "notifications",
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3506",
+      "type": "BUG",
+      "title": "The payslip email has no working button and names the payroll calendar as the company",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/bugs/BUG-3506-the-payslip-email-has-no-working-button-and-names-the-payrol.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "4d249b40",
+        "created_at": "2026-09-13",
+        "updated_at": "2026-09-13",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "payslips",
+        "notifications"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "payslips",
+          "notifications"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3506-the-payslip-email-has-no-working-button-and-names-the-payrol.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3523",
+      "type": "BUG",
+      "title": "Custom module page header shows the table key instead of the module name",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/bugs/BUG-3523-custom-module-page-header-shows-the-table-key-instead-of-the.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "22511c32",
+        "created_at": "2026-09-13",
+        "updated_at": "2026-09-13",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3523-custom-module-page-header-shows-the-table-key-instead-of-the.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
       "record_id": "ITEM-0001",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md",
@@ -27561,6 +28140,758 @@
           "apps/web/app/(authenticated)/recruitment"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0178-recruitment-job-opening-edit-page-is-bespoke-while-its-detai.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0179",
+      "type": "UX",
+      "title": "Manage employee work sites in a related-records tab with a transactional Make primary action",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0179-manage-employee-work-sites-in-a-related-records-tab-with-a-t.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-13",
+        "updated_at": "2026-09-13",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "employees",
+        "attendance"
+      ],
+      "regressions": [
+        "REG-488",
+        "REG-500",
+        "REG-501"
+      ],
+      "qa_scenarios": [
+        "QA-EMPLOYEE-005",
+        "QA-EMPLOYEE-006"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "employees",
+          "attendance"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0179-manage-employee-work-sites-in-a-related-records-tab-with-a-t.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0180",
+      "type": "UX",
+      "title": "One plain notification events page replacing Rules and Channel Preferences",
+      "severity": "MEDIUM",
+      "priority": "P1",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0180-one-plain-notification-events-page-replacing-rules-and-chann.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-13",
+        "updated_at": "2026-09-13",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "notifications"
+      ],
+      "regressions": [
+        "REG-510",
+        "REG-511",
+        "REG-512"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-029"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "notifications"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0180-one-plain-notification-events-page-replacing-rules-and-chann.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0181",
+      "type": "UX",
+      "title": "A visual email template editor with a variable picker and read-only system templates",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0181-a-visual-email-template-editor-with-a-variable-picker-and-re.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-13",
+        "updated_at": "2026-09-13",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "notifications"
+      ],
+      "regressions": [
+        "REG-507",
+        "REG-508"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-028"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "notifications"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0181-a-visual-email-template-editor-with-a-variable-picker-and-re.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0182",
+      "type": "UX",
+      "title": "Delivery logs that cover in-app notifications and state why a message was not delivered",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0182-delivery-logs-that-cover-in-app-notifications-and-state-why-.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-13",
+        "updated_at": "2026-09-13",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "notifications"
+      ],
+      "regressions": [
+        "REG-519"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-032"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "notifications"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0182-delivery-logs-that-cover-in-app-notifications-and-state-why-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0183",
+      "type": "UX",
+      "title": "Remove agent-added explanatory helper text from tenant screens",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0183-remove-agent-added-explanatory-helper-text-from-tenant-scree.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-13",
+        "updated_at": "2026-09-13",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [
+        "REG-487",
+        "REG-504"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-026"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0183-remove-agent-added-explanatory-helper-text-from-tenant-scree.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0184",
+      "type": "UX",
+      "title": "Employee record and customization usability defects found in the second demo walkthrough",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0184-employee-record-and-customization-usability-defects-found-in.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-13",
+        "updated_at": "2026-09-13",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "employees",
+        "customization",
+        "users"
+      ],
+      "regressions": [
+        "REG-502",
+        "REG-503"
+      ],
+      "qa_scenarios": [
+        "QA-EMPLOYEE-007"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "employees",
+          "customization",
+          "users"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0184-employee-record-and-customization-usability-defects-found-in.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0185",
+      "type": "UX",
+      "title": "The settings shell keeps a fixed-width navigation column beside the content at phone width",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0185-the-settings-shell-keeps-a-fixed-width-navigation-column-bes.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-13",
+        "updated_at": "2026-09-13",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0185-the-settings-shell-keeps-a-fixed-width-navigation-column-bes.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0186",
+      "type": "UX",
+      "title": "The Form Designer palette adds a field on click only and drag-to-add does nothing",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0186-the-form-designer-palette-adds-a-field-on-click-only-and-dra.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-13",
+        "updated_at": "2026-09-13",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "customization"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "customization"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0186-the-form-designer-palette-adds-a-field-on-click-only-and-dra.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0187",
+      "type": "FOLLOW_UP",
+      "title": "Custom-module list views filter only the loaded page and the data API has no filtering or search",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0187-custom-module-list-views-filter-only-the-loaded-page-and-the.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-13",
+        "updated_at": "2026-09-13",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "data"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "data"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0187-custom-module-list-views-filter-only-the-loaded-page-and-the.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0188",
+      "type": "FOLLOW_UP",
+      "title": "Custom-module screens ignore the module's published action bar",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0188-custom-module-screens-ignore-the-module-s-published-action-b.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-13",
+        "updated_at": "2026-09-13",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "customization"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "customization"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0188-custom-module-screens-ignore-the-module-s-published-action-b.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0189",
+      "type": "FOLLOW_UP",
+      "title": "Custom-module lookup fields that target system entities have no options source",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0189-custom-module-lookup-fields-that-target-system-entities-have.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-13",
+        "updated_at": "2026-09-13",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "data"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "data"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0189-custom-module-lookup-fields-that-target-system-entities-have.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0190",
+      "type": "UX",
+      "title": "The custom-module sidebar entry ignores the module's configured icon",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0190-the-custom-module-sidebar-entry-ignores-the-module-s-configu.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-13",
+        "updated_at": "2026-09-13",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0190-the-custom-module-sidebar-entry-ignores-the-module-s-configu.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0191",
+      "type": "PRODUCT_DECISION",
+      "title": "Decide whether custom modules need their own access keys instead of the shared custom-records privilege",
+      "severity": "",
+      "priority": "P3",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-13",
+        "updated_at": "2026-09-13",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "data",
+        "permissions"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "data",
+          "permissions"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0192",
+      "type": "TECH_DEBT",
+      "title": "The unreachable notifications settings form still declares In-app, Browser Push and Digest switches",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0192-the-unreachable-notifications-settings-form-still-declares-i.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-13",
+        "updated_at": "2026-09-13",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "notifications"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "notifications"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0192-the-unreachable-notifications-settings-form-still-declares-i.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0193",
+      "type": "PRODUCT_DECISION",
+      "title": "Decide whether the hr role may manage notification events",
+      "severity": "",
+      "priority": "P2",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0193-decide-whether-the-hr-role-may-manage-notification-events.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-13",
+        "updated_at": "2026-09-13",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "notifications",
+        "permissions"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "notifications",
+          "permissions"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0193-decide-whether-the-hr-role-may-manage-notification-events.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0194",
+      "type": "FOLLOW_UP",
+      "title": "Check production for tenant-owned copies of the old placeholder email templates after release",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0194-check-production-for-tenant-owned-copies-of-the-old-placehol.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-13",
+        "updated_at": "2026-09-13",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "notifications"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "notifications"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0194-check-production-for-tenant-owned-copies-of-the-old-placehol.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0195",
+      "type": "FOLLOW_UP",
+      "title": "The legacy publish snapshot shape can expose a never-published custom module at runtime",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0195-the-legacy-publish-snapshot-shape-can-expose-a-never-publish.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-13",
+        "updated_at": "2026-09-13",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "data",
+        "customization"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "data",
+          "customization"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0195-the-legacy-publish-snapshot-shape-can-expose-a-never-publish.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0196",
+      "type": "UX",
+      "title": "The employee record still shows a hardcoded CNIC field, an end-user form selector and a mislabelled Global Administrator role",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0196-the-employee-record-still-shows-a-hardcoded-cnic-field-an-en.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-13",
+        "updated_at": "2026-09-13",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "employees",
+        "permissions"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "employees",
+          "permissions"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0196-the-employee-record-still-shows-a-hardcoded-cnic-field-an-en.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

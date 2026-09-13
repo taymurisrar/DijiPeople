@@ -91,10 +91,6 @@ export function ModuleAssignDialog({
           {validationError}
         </p>
       ) : null}
-      <p className="mt-3 text-xs leading-5 text-muted">
-        This action updates ownership through the Module data adapter and
-        respects module permissions.
-      </p>
     </Dialog>
   );
 }

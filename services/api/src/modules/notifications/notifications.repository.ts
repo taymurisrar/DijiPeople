@@ -14,8 +14,9 @@ import {
 import { PrismaService } from '../../common/prisma/prisma.service';
 import {
   NOTIFICATION_EVENT_CATALOG,
+  planSystemTemplateWrite,
   RETIRED_EVENT_ALIASES,
-  SYSTEM_EMAIL_TEMPLATE_PLACEHOLDERS,
+  SYSTEM_EMAIL_TEMPLATES,
 } from './notification-events.catalog';
 import {
   buildTenantNotificationScopeKey,
@@ -33,6 +34,21 @@ import type {
 import type { EmailDeliveryLogQueryDto } from './dto/email-delivery-log-query.dto';
 
 type PrismaDb = PrismaService | Prisma.TransactionClient;
+
+/*
+ * ITEM-0182. What a tenant delivery log may show about an in-app notification:
+ * that it reached a person, when, and whether it was read. Declared once so the
+ * query and its spec agree on it.
+ */
+export const inAppDeliveryLogSelect = {
+  id: true,
+  status: true,
+  deliveredAt: true,
+  readAt: true,
+  createdAt: true,
+  notification: { select: { title: true, eventCode: true } },
+  user: { select: { firstName: true, lastName: true, email: true } },
+} satisfies Prisma.NotificationRecipientSelect;
 
 export type TenantEmailTemplateWriteInput = {
   tenantId: string;
@@ -212,6 +228,55 @@ export class NotificationsRepository {
       data,
     });
     return this.findRuleById(tenantId, id, db);
+  }
+
+  /*
+   * ITEM-0180. Every rule governing one event for one tenant, in the order
+   * `findRuleForEvent` picks from. Seeded data has one rule per eventKey, but
+   * the unique key also includes moduleKey and resolver type, so the events
+   * page reads and writes them as a set rather than trusting there is one.
+   */
+  listRulesForEvent(
+    tenantId: string,
+    eventKey: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.notificationRule.findMany({
+      where: { tenantId, eventKey },
+      orderBy: [{ priority: 'asc' }, { createdAt: 'asc' }],
+    });
+  }
+
+  setRulesEnabledForEvent(
+    tenantId: string,
+    eventKey: string,
+    enabled: boolean,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.notificationRule.updateMany({
+      where: { tenantId, eventKey },
+      data: { enabled },
+    });
+  }
+
+  /*
+   * The tenant-scope preference rows for one event — the same scope key
+   * `findPreference` and `upsertTenantPreference` use, so user-level rows are
+   * never mistaken for the tenant's choice.
+   */
+  listPreferencesForEvent(
+    tenantId: string,
+    eventCode: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.notificationPreference.findMany({
+      where: {
+        tenantId,
+        userId: null,
+        scopeKey: buildTenantNotificationScopeKey(tenantId),
+        eventCode,
+      },
+    });
   }
 
   async findTemplateForEvent(
@@ -399,20 +464,28 @@ export class NotificationsRepository {
     });
   }
 
-  updateTenantTemplate(
+  /*
+   * ITEM-0181. Scoped in the write itself, not only in the caller's earlier
+   * read: an update by bare id trusted that nothing between the ownership
+   * check and the write had changed which row the id named. Returns null when
+   * the row is not this tenant's own template.
+   */
+  async updateTenantTemplate(
     tenantId: string,
     templateId: string,
-    data: Prisma.EmailTemplateUpdateInput,
+    data: Prisma.EmailTemplateUpdateManyMutationInput,
     actorUserId: string,
   ) {
-    return this.prisma.emailTemplate.update({
-      where: { id: templateId },
+    const result = await this.prisma.emailTemplate.updateMany({
+      where: { id: templateId, ...this.tenantOwnedTemplateWhere(tenantId) },
       data: {
         ...data,
         version: { increment: 1 },
         updatedBy: actorUserId,
       },
     });
+    if (result.count === 0) return null;
+    return this.findTenantTemplateById(tenantId, templateId);
   }
 
   async activateTenantTemplate(tenantId: string, templateId: string) {
@@ -471,6 +544,18 @@ export class NotificationsRepository {
     return this.prisma.emailTemplate.findUnique({
       where: { scopeKey_templateKey: { scopeKey, templateKey } },
       select: { id: true },
+    });
+  }
+
+  /*
+   * ITEM-0181. The whole row holding a scope and key, so Customize can tell a
+   * tenant's existing copy (open it) from anything else (refuse). Callers pass
+   * a scope key built from the caller's own tenant id, and still check
+   * `tenantId` on the result.
+   */
+  findTemplateRowByScopeAndKey(scopeKey: string, templateKey: string) {
+    return this.prisma.emailTemplate.findUnique({
+      where: { scopeKey_templateKey: { scopeKey, templateKey } },
     });
   }
 
@@ -876,6 +961,65 @@ export class NotificationsRepository {
     });
   }
 
+  /**
+   * ITEM-0182 — every in-app delivery in the tenant, for the Delivery Logs
+   * screen, not only the caller's own inbox.
+   *
+   * The `select` is explicit on purpose. A notification's `body`, `payload` and
+   * `metadata` can carry links and record details addressed to one person
+   * (BUG-3137 is the email-log version of that leak); an administrator reading
+   * a delivery log needs to know that it reached someone, not what it said.
+   */
+  async listTenantInAppDeliveryLogs(
+    tenantId: string,
+    query: { search?: string; page?: number; pageSize?: number },
+    db: PrismaDb = this.prisma,
+  ) {
+    const page = Math.max(1, Number(query.page ?? 1));
+    const pageSize = Math.min(100, Math.max(1, Number(query.pageSize ?? 25)));
+    const search = query.search?.trim();
+    const where: Prisma.NotificationRecipientWhereInput = {
+      tenantId,
+      ...(search
+        ? {
+            OR: [
+              {
+                notification: {
+                  title: { contains: search, mode: 'insensitive' },
+                },
+              },
+              { user: { email: { contains: search, mode: 'insensitive' } } },
+              {
+                user: { firstName: { contains: search, mode: 'insensitive' } },
+              },
+              {
+                user: { lastName: { contains: search, mode: 'insensitive' } },
+              },
+            ],
+          }
+        : {}),
+    };
+
+    const [items, total] = await Promise.all([
+      db.notificationRecipient.findMany({
+        where,
+        select: inAppDeliveryLogSelect,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      db.notificationRecipient.count({ where }),
+    ]);
+
+    return {
+      items,
+      page,
+      pageSize,
+      total,
+      totalPages: Math.ceil(total / pageSize),
+    };
+  }
+
   countUnreadInAppNotifications(
     tenantId: string,
     userId: string,
@@ -1240,43 +1384,48 @@ export class NotificationsRepository {
       });
     }
 
-    for (const template of SYSTEM_EMAIL_TEMPLATE_PLACEHOLDERS) {
-      await db.emailTemplate.upsert({
-        where: {
-          scopeKey_templateKey: {
+    /*
+     * BUG-3500. The same write guard `seed-config.ts` uses, so the two writers
+     * of system templates cannot disagree about which rows they may touch.
+     */
+    for (const template of SYSTEM_EMAIL_TEMPLATES) {
+      const where = {
+        scopeKey_templateKey: {
+          scopeKey: template.scopeKey,
+          templateKey: template.templateKey,
+        },
+      };
+      const existing = await db.emailTemplate.findUnique({
+        where,
+        select: { tenantId: true, isSystem: true, updatedBy: true },
+      });
+      const content = {
+        eventCode: template.eventCode,
+        name: template.name,
+        description: template.description,
+        subjectTemplate: template.subjectTemplate,
+        htmlTemplate: template.htmlTemplate,
+        textTemplate: template.textTemplate,
+        availableVariables:
+          template.availableVariables as unknown as Prisma.InputJsonValue,
+        status: template.status,
+        isSystem: true,
+      };
+
+      const plan = planSystemTemplateWrite(existing);
+      if (plan === 'create') {
+        await db.emailTemplate.create({
+          data: {
+            tenantId: null,
             scopeKey: template.scopeKey,
             templateKey: template.templateKey,
+            version: template.version,
+            ...content,
           },
-        },
-        create: {
-          tenantId: null,
-          scopeKey: template.scopeKey,
-          eventCode: template.eventCode,
-          templateKey: template.templateKey,
-          name: template.name,
-          description: template.description,
-          subjectTemplate: template.subjectTemplate,
-          htmlTemplate: template.htmlTemplate,
-          textTemplate: template.textTemplate,
-          availableVariables:
-            template.availableVariables as unknown as Prisma.InputJsonValue,
-          status: template.status,
-          version: template.version,
-          isSystem: true,
-        },
-        update: {
-          eventCode: template.eventCode,
-          name: template.name,
-          description: template.description,
-          subjectTemplate: template.subjectTemplate,
-          htmlTemplate: template.htmlTemplate,
-          textTemplate: template.textTemplate,
-          availableVariables:
-            template.availableVariables as unknown as Prisma.InputJsonValue,
-          status: template.status,
-          isSystem: true,
-        },
-      });
+        });
+      } else if (plan === 'update') {
+        await db.emailTemplate.update({ where, data: content });
+      }
     }
 
     // ITEM-0169. Runs after the catalog upsert above so both retired codes

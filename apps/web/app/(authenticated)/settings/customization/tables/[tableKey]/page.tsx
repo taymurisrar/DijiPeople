@@ -1,7 +1,11 @@
 import { apiRequestJson } from "@/lib/server-api";
 import { getAudienceOptions } from "@/lib/runtime/audience-options.server";
 import { SettingsShell } from "../../../_components/settings-shell";
-import { requireSettingsPermissions } from "../../../_lib/require-settings-permission";
+import {
+  isAccessDeniedError,
+  requireCustomizationPage,
+} from "../../_lib/customization-access";
+import { CustomizationAccessDenied } from "../../_components/customization-access-denied";
 import {
   TableDetailShell,
   type TabKey,
@@ -30,13 +34,20 @@ export default async function CustomizationTableDetailPage({
   const { tableKey } = await params;
   const query = await searchParams;
   const initialTab = resolveTab(query.tab);
-  await requireSettingsPermissions([
-    "customization.read",
-    "customization.tables.read",
-  ]);
+  const { allowed } = await requireCustomizationPage("moduleDetail");
+  if (!allowed) return <CustomizationAccessDenied />;
 
-  const [table, columns, views, forms, lookupTables, packages, audiences] =
-    await Promise.all([
+  let loaded: [
+    CustomizationTable,
+    CustomizationColumn[],
+    CustomizationView[],
+    CustomizationForm[],
+    CustomizationTable[],
+    CustomizationPackage[],
+    Awaited<ReturnType<typeof getAudienceOptions>>,
+  ];
+  try {
+    loaded = await Promise.all([
       apiRequestJson<CustomizationTable>(`/customization/tables/${tableKey}`),
       apiRequestJson<CustomizationColumn[]>(
         `/customization/tables/${tableKey}/columns`,
@@ -51,24 +62,28 @@ export default async function CustomizationTableDetailPage({
       apiRequestJson<CustomizationPackage[]>("/customization/packages"),
       getAudienceOptions(),
     ]);
-  const resolvedForms = mergeRuntimeForms(tableKey, forms);
-  const resolvedViews = mergeRuntimeViews(tableKey, views);
+  } catch (error) {
+    if (isAccessDeniedError(error)) return <CustomizationAccessDenied />;
+    throw error;
+  }
+  const [table, columns, views, forms, lookupTables, packages, audiences] =
+    loaded;
 
   return (
     <SettingsShell
-      description={`Configure metadata for ${table.pluralDisplayName}, including fields, saved views, form layouts, and module-level settings.`}
+      description=""
       eyebrow="Customization"
-      title={table.pluralDisplayName}
+      title={table.displayName}
     >
       <TableDetailShell
         audiences={audiences}
         columns={columns}
-        forms={resolvedForms}
+        forms={mergeRuntimeForms(tableKey, forms)}
         lookupTables={lookupTables}
         packages={packages}
         initialTab={initialTab}
         table={table}
-        views={resolvedViews}
+        views={mergeRuntimeViews(tableKey, views)}
       />
     </SettingsShell>
   );

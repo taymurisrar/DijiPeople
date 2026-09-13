@@ -2,7 +2,11 @@ import { notFound } from "next/navigation";
 import { apiRequestJson } from "@/lib/server-api";
 import { getAudienceOptions } from "@/lib/runtime/audience-options.server";
 import { SettingsShell } from "../../../../../../_components/settings-shell";
-import { requireSettingsPermissions } from "../../../../../../_lib/require-settings-permission";
+import {
+  isAccessDeniedError,
+  requireCustomizationPage,
+} from "../../../../../_lib/customization-access";
+import { CustomizationAccessDenied } from "../../../../../_components/customization-access-denied";
 import { FormDesignerWorkspace } from "../../../../../_components/form-designer-workspace";
 import { mergeRuntimeForms } from "../../../../../_lib/runtime-customization-metadata";
 import type {
@@ -20,25 +24,35 @@ export default async function CustomizationFormDesignerRoute({
   params,
 }: FormDesignerRouteProps) {
   const { formId, tableKey } = await params;
-  await requireSettingsPermissions([
-    "customization.read",
-    "customization.tables.read",
-    "customization.forms.read",
-  ]);
+  const { allowed } = await requireCustomizationPage("formDesigner");
+  if (!allowed) return <CustomizationAccessDenied />;
 
-  const [table, columns, forms, packages, audiences] = await Promise.all([
-    apiRequestJson<CustomizationTable>(`/customization/tables/${tableKey}`),
-    apiRequestJson<CustomizationColumn[]>(
-      `/customization/tables/${tableKey}/columns`,
-    ),
-    apiRequestJson<CustomizationForm[]>(
-      `/customization/tables/${tableKey}/forms`,
-    ),
-    apiRequestJson<CustomizationPackage[]>("/customization/packages").catch(
-      () => [] as CustomizationPackage[],
-    ),
-    getAudienceOptions(),
-  ]);
+  let loaded: [
+    CustomizationTable,
+    CustomizationColumn[],
+    CustomizationForm[],
+    CustomizationPackage[],
+    Awaited<ReturnType<typeof getAudienceOptions>>,
+  ];
+  try {
+    loaded = await Promise.all([
+      apiRequestJson<CustomizationTable>(`/customization/tables/${tableKey}`),
+      apiRequestJson<CustomizationColumn[]>(
+        `/customization/tables/${tableKey}/columns`,
+      ),
+      apiRequestJson<CustomizationForm[]>(
+        `/customization/tables/${tableKey}/forms`,
+      ),
+      apiRequestJson<CustomizationPackage[]>("/customization/packages").catch(
+        () => [] as CustomizationPackage[],
+      ),
+      getAudienceOptions(),
+    ]);
+  } catch (error) {
+    if (isAccessDeniedError(error)) return <CustomizationAccessDenied />;
+    throw error;
+  }
+  const [table, columns, forms, packages, audiences] = loaded;
   /*
    * Resolved through the same merge the module list uses.
    *
@@ -62,7 +76,7 @@ export default async function CustomizationFormDesignerRoute({
      * the canvas needs to resemble the form it is editing.
      */
     <SettingsShell
-      description="Design tabs, sections, fields, and form-specific field behavior."
+      description=""
       eyebrow="Form designer"
       showHeader={false}
       showSidebar={false}

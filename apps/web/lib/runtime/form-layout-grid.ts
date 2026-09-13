@@ -49,6 +49,18 @@ export function columnsFromSectionLayout(
   return 1;
 }
 
+/*
+ * ITEM-0184 (H10) — how many columns a record's sections sit in, per
+ * breakpoint. Three from `md` (768px) meant a tablet at 820px, less the
+ * navigation, squeezed each section to about 200px; three now start at `xl`,
+ * with two between `md` and `xl`.
+ */
+export function resolveSectionColumnClass(columnCount: FormGridColumnCount) {
+  if (columnCount === 3) return "md:grid-cols-2 xl:grid-cols-3";
+  if (columnCount === 2) return "md:grid-cols-2";
+  return "grid-cols-1";
+}
+
 export function getEffectiveFormGridColumnCount(
   configuredColumns: unknown,
   containerWidth: number,

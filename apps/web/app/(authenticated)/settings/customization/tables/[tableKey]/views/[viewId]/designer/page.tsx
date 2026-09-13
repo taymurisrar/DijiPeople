@@ -1,7 +1,11 @@
 import { notFound } from "next/navigation";
 import { apiRequestJson } from "@/lib/server-api";
 import { SettingsShell } from "../../../../../../_components/settings-shell";
-import { requireSettingsPermissions } from "../../../../../../_lib/require-settings-permission";
+import {
+  isAccessDeniedError,
+  requireCustomizationPage,
+} from "../../../../../_lib/customization-access";
+import { CustomizationAccessDenied } from "../../../../../_components/customization-access-denied";
 import { ViewDesignerWorkspace } from "../../../../../_components/view-designer-workspace";
 import { mergeRuntimeViews } from "../../../../../_lib/runtime-customization-metadata";
 import type {
@@ -18,21 +22,25 @@ export default async function CustomizationViewDesignerRoute({
   params,
 }: ViewDesignerRouteProps) {
   const { tableKey, viewId } = await params;
-  await requireSettingsPermissions([
-    "customization.read",
-    "customization.tables.read",
-    "customization.views.read",
-  ]);
+  const { allowed } = await requireCustomizationPage("viewDesigner");
+  if (!allowed) return <CustomizationAccessDenied />;
 
-  const [table, columns, views] = await Promise.all([
-    apiRequestJson<CustomizationTable>(`/customization/tables/${tableKey}`),
-    apiRequestJson<CustomizationColumn[]>(
-      `/customization/tables/${tableKey}/columns`,
-    ),
-    apiRequestJson<CustomizationView[]>(
-      `/customization/tables/${tableKey}/views`,
-    ),
-  ]);
+  let loaded: [CustomizationTable, CustomizationColumn[], CustomizationView[]];
+  try {
+    loaded = await Promise.all([
+      apiRequestJson<CustomizationTable>(`/customization/tables/${tableKey}`),
+      apiRequestJson<CustomizationColumn[]>(
+        `/customization/tables/${tableKey}/columns`,
+      ),
+      apiRequestJson<CustomizationView[]>(
+        `/customization/tables/${tableKey}/views`,
+      ),
+    ]);
+  } catch (error) {
+    if (isAccessDeniedError(error)) return <CustomizationAccessDenied />;
+    throw error;
+  }
+  const [table, columns, views] = loaded;
   /*
    * Merged like every list route that links here, so a code-defined view that
    * has no tenant row yet opens instead of 404ing. See the form designer for
@@ -45,7 +53,7 @@ export default async function CustomizationViewDesignerRoute({
 
   return (
     <SettingsShell
-      description="Design list fields, filters, and sorting for runtime module grids."
+      description=""
       eyebrow="View designer"
       title={`${table.displayName} - ${view.name}`}
     >

@@ -6,16 +6,20 @@ import { Button } from "@/app/components/ui/button";
 import { SectionCard } from "@/app/components/ui/section-card";
 import {
   applyDashboardNavOverrides,
-  dashboardNavItems,
+  resolveDashboardNavCatalog,
   type DashboardNavOverride,
 } from "../../../_components/navigation";
+import type { CustomModuleSummary } from "@/lib/runtime/custom-modules/custom-module-navigation";
 import type { VisibilityRule } from "@/lib/runtime/visibility.resolver";
 import {
   VisibilityRulesEditor,
   type AudienceOptions,
 } from "@/app/components/runtime/visibility-rules-editor";
 
-export type { AudienceOption, AudienceOptions } from "@/app/components/runtime/visibility-rules-editor";
+export type {
+  AudienceOption,
+  AudienceOptions,
+} from "@/app/components/runtime/visibility-rules-editor";
 
 type DraftRow = {
   itemKey: string;
@@ -26,7 +30,12 @@ type DraftRow = {
   visibilityRules: VisibilityRule[];
 };
 
-function buildDraft(overrides: readonly DashboardNavOverride[]): DraftRow[] {
+type NavCatalog = ReturnType<typeof resolveDashboardNavCatalog>;
+
+function buildDraft(
+  overrides: readonly DashboardNavOverride[],
+  catalog: NavCatalog,
+): DraftRow[] {
   const byKey = new Map(overrides.map((entry) => [entry.itemKey, entry]));
 
   /*
@@ -34,18 +43,21 @@ function buildDraft(overrides: readonly DashboardNavOverride[]): DraftRow[] {
    * actually looks like today. Hidden entries are excluded by the merge, so
    * they are appended afterwards — an administrator still needs to see and
    * un-hide them.
+   *
+   * BUG-3494 — `catalog` is the product entries plus the tenant's published
+   * custom modules, the same composition the live sidebar renders, so a custom
+   * module can be ordered, renamed and hidden like any other entry.
    */
-  const visible = applyDashboardNavOverrides(dashboardNavItems, overrides);
+  const visible = applyDashboardNavOverrides(catalog, overrides);
   const visibleKeys = new Set(visible.map((item) => item.href));
   const ordered = [
     ...visible,
-    ...dashboardNavItems.filter((item) => !visibleKeys.has(item.href)),
+    ...catalog.filter((item) => !visibleKeys.has(item.href)),
   ];
 
   return ordered.map((item) => {
     const override = byKey.get(item.href);
-    const codeItem =
-      dashboardNavItems.find((entry) => entry.href === item.href) ?? item;
+    const codeItem = catalog.find((entry) => entry.href === item.href) ?? item;
     return {
       itemKey: item.href,
       codeLabel: codeItem.label,
@@ -74,16 +86,22 @@ function toOverrides(rows: readonly DraftRow[]): DashboardNavOverride[] {
 
 export function SidebarDesigner({
   audiences,
+  customModules,
   initialOverrides,
 }: {
   audiences: AudienceOptions;
+  customModules?: readonly CustomModuleSummary[];
   initialOverrides: readonly DashboardNavOverride[];
 }) {
+  const catalog = useMemo(
+    () => resolveDashboardNavCatalog(customModules),
+    [customModules],
+  );
   const [rows, setRows] = useState<DraftRow[]>(() =>
-    buildDraft(initialOverrides),
+    buildDraft(initialOverrides, catalog),
   );
   const [saved, setSaved] = useState<DraftRow[]>(() =>
-    buildDraft(initialOverrides),
+    buildDraft(initialOverrides, catalog),
   );
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -153,15 +171,12 @@ export function SidebarDesigner({
   function resetToDefaults() {
     setStatus(null);
     setError(null);
-    setRows(buildDraft([]));
+    setRows(buildDraft([], catalog));
   }
 
   return (
     <div className="grid gap-4">
-      <SectionCard
-        description="Changes apply to every user in this tenant. Hiding an entry only removes the link — the permissions behind that page still apply, so it is a tidying tool, not a security control."
-        title="Sidebar layout"
-      >
+      <SectionCard title="Sidebar layout">
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <Button
             disabled={!isDirty || isSaving}
