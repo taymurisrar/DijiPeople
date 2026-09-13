@@ -164,6 +164,51 @@ describe('CustomDataService related CRUD', () => {
     );
   });
 
+  /*
+   * BUG-3494 / ADR-0016 — a published custom module is a top-level module, so
+   * its list screen creates records with no parent. The service used to demand
+   * parentEntity/parentId/lookupField on every create, which the unit specs
+   * never noticed because they only ever created related records; the
+   * DB-backed runtime e2e did.
+   */
+  it('creates a top-level record with no parent when the module has no required lookup', async () => {
+    const { service, prisma, runtime, tx } = setup();
+    const topLevelTable = {
+      ...table,
+      columns: table.columns.map((item) =>
+        item.columnKey === 'pub_employee' ? { ...item, isRequired: false } : item,
+      ),
+    };
+    prisma.customizationTable.findFirst.mockResolvedValue(topLevelTable);
+    runtime.resolvePublishedTable.mockResolvedValue(topLevelTable);
+
+    await service.create('customChild', {}, { pub_name: 'Standalone' }, user);
+
+    expect(tx.customDataRecord.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          tenantId: 'tenant-1',
+          values: expect.objectContaining({ pub_name: 'Standalone' }),
+        }),
+      }),
+    );
+  });
+
+  it('still refuses a create that names only part of a parent', async () => {
+    const { service, tx } = setup();
+    await expect(
+      service.create(
+        'customChild',
+        { parentEntity: 'employees' },
+        { pub_name: 'Half a parent' },
+        user,
+      ),
+    ).rejects.toThrow(
+      'parentEntity, parentId, and lookupField are required for related records.',
+    );
+    expect(tx.customDataRecord.create).not.toHaveBeenCalled();
+  });
+
   it('scopes related list reads by tenant, record scope, and lookup JSON path', async () => {
     const { service, prisma } = setup();
     await service.findMany('customChild', related, user);

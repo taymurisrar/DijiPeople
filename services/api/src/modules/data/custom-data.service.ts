@@ -222,7 +222,16 @@ export class CustomDataService {
       user,
       SecurityPrivilege.CREATE,
     );
-    const relation = await this.resolveRelationship(table, query, user, true);
+    /*
+     * BUG-3494 / ADR-0016 — a published custom module is a top-level runtime
+     * module, so a record is created from its own list screen with no parent.
+     * Before that, custom tables were reachable only as related records and
+     * this call forced a parent on every create, which made the module's New
+     * button unusable. A parent is still validated in full whenever any parent
+     * field is supplied — a partial parent is refused inside
+     * resolveRelationship — it is just no longer mandatory.
+     */
+    const relation = await this.resolveRelationship(table, query, user);
     const values = this.validateValues(
       table,
       body,
