@@ -7,20 +7,22 @@ import {
 import {
   CustomizationColumn,
   CustomizationFieldDataType,
-  CustomizationTable,
   Prisma,
   SecurityPrivilege,
 } from '@prisma/client';
-import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import {
+  CustomModuleRuntimeService,
+  type PublishedCustomTable,
+} from './custom-module-runtime.service';
+import { CUSTOM_RECORDS_METADATA } from './custom-records.metadata';
 import { EntityPermissionResolver } from './entity-permission.resolver';
 import { EntityScopeResolver } from './entity-scope.resolver';
-import type { EntityMetadata } from './entity-query.types';
 import { getEntityMetadata } from './entity-registry';
 
-type CustomTable = CustomizationTable & { columns: CustomizationColumn[] };
+type CustomTable = PublishedCustomTable;
 type RelatedQuery = {
   parentEntity?: string;
   parentId?: string;
@@ -42,32 +44,7 @@ type RelationshipResolution = {
   parentScope: ParentScope;
 };
 
-const CUSTOM_METADATA: EntityMetadata = {
-  logicalName: 'custom-records',
-  prismaModel: 'customDataRecord',
-  rbacEntityKey: ENTITY_KEYS.CUSTOM_RECORDS,
-  primaryKey: 'id',
-  permissions: {
-    read: 'custom-records.read',
-    create: 'custom-records.create',
-    update: 'custom-records.write',
-    delete: 'custom-records.delete',
-  },
-  tenantScoped: true,
-  businessUnitScoped: true,
-  scope: {
-    tenantIdField: 'tenantId',
-    businessUnitIdField: 'businessUnitId',
-    organizationIdField: 'organizationId',
-    ownerUserIdField: 'ownerUserId',
-    ownerTeamIdField: 'ownerTeamId',
-    createdByIdField: 'createdById',
-  },
-  defaultSelect: ['id'],
-  defaultOrderBy: [{ field: 'createdAt', direction: 'desc' }],
-  fields: {},
-  expands: {},
-};
+const CUSTOM_METADATA = CUSTOM_RECORDS_METADATA;
 
 @Injectable()
 export class CustomDataService {
@@ -76,6 +53,7 @@ export class CustomDataService {
     private readonly permissionResolver: EntityPermissionResolver,
     private readonly scopeResolver: EntityScopeResolver,
     private readonly auditService: AuditService,
+    private readonly runtimeService: CustomModuleRuntimeService,
   ) {}
 
   async isCustomTable(entityLogicalName: string, tenantId: string) {
@@ -145,6 +123,35 @@ export class CustomDataService {
           ]),
       ),
     };
+  }
+
+  /**
+   * One record of a published custom module, for the runtime record screen.
+   *
+   * Same checks as every other path here, in the same order: the table must
+   * be runtime-available for the caller's tenant (404 otherwise), the caller
+   * must hold READ in both permission systems, and the record must fall inside
+   * their `custom-records` READ row scope — `findFirst` with `tenantId`, never a
+   * bare-id lookup.
+   */
+  async findOne(
+    entityLogicalName: string,
+    recordId: string,
+    user: AuthenticatedUser,
+  ) {
+    const table = await this.tableOrThrow(entityLogicalName, user.tenantId);
+    this.permissionResolver.assertCan(
+      CUSTOM_METADATA,
+      user,
+      SecurityPrivilege.READ,
+    );
+    const record = await this.recordOrThrow(
+      table,
+      recordId,
+      user,
+      SecurityPrivilege.READ,
+    );
+    return this.toPublicRecord(record, table, user);
   }
 
   async findMany(
@@ -621,21 +628,15 @@ export class CustomDataService {
     return table;
   }
 
+  /*
+   * BUG-3494 / ADR-0016. This used to accept any active custom table, so a
+   * draft module's records could be listed, created and edited through `/data`
+   * before anyone published it — the sidebar would only ever have hidden it,
+   * which is a read filter, not an access control. Runtime availability now
+   * has one definition, shared with the metadata the screens are built from.
+   */
   private findTable(entity: string, tenantId: string) {
-    return this.prisma.customizationTable.findFirst({
-      where: {
-        tenantId,
-        isCustom: true,
-        isActive: true,
-        OR: [
-          { tableKey: { equals: entity, mode: 'insensitive' } },
-          { systemName: { equals: entity, mode: 'insensitive' } },
-        ],
-      },
-      include: {
-        columns: { where: { isActive: true }, orderBy: { sortOrder: 'asc' } },
-      },
-    });
+    return this.runtimeService.resolvePublishedTable(tenantId, entity);
   }
 }
 
