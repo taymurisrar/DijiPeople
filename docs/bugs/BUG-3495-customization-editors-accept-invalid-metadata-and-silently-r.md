@@ -2,7 +2,7 @@
 ID: BUG-3495
 aliases: [BUG-3495]
 Title: Customization editors accept invalid metadata and silently rewrite what the administrator typed
-Status: OPEN
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: BUG
@@ -13,10 +13,10 @@ AffectedModules: [apps/web, customization]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-484
 RelatedBacklogItem:
 RelatedDecision:
-RelatedImplementation:
+RelatedImplementation: [docs/plans/EXECPLAN-0045-customization-end-to-end-for-permission-holders.md, services/api/src/modules/customization/customization.service.ts, apps/web/app/(authenticated)/settings/customization/_components/metadata-components-management.tsx, apps/web/app/components/ui/form-control.tsx]
 CreatedAt: 2026-09-13
 UpdatedAt: 2026-09-13
 ResolvedAt:
@@ -105,11 +105,25 @@ Established for the package key only. `createPackage` never stores the typed
 key: it always derives one from the publisher prefix and display name, and the
 response does not say so.
 
-Not yet established for the rest: action-bar command validation, the
-relationship reference-field check, the prefix hint's double underscore, the
-dialog Escape handling and the lifecycle label. Each needs its code path traced
-before a cause is recorded. The prefix mismatch is at least consistent with
-`validatePackageComponentDependencies` having no prefix rule.
+Established for the rest during TASK-0031 WP-01 (line numbers at `88f33c6e`):
+
+- **Action bar.** `metadata-components-management.tsx:1307-1308` silently dropped
+  rows without a command on save, and the API (`ensureCustomizationLayer`)
+  validated no component metadata.
+- **Relationship.** The reference field was a free `TextField`
+  (`metadata-components-management.tsx:890-894`) and the API never checked it.
+- **Prefix hint.** `metadata-components-management.tsx:494` rendered `${prefix}_`
+  where `packagePrefix()` already ends in `_`.
+- **Escape.** `apps/web/app/components/ui/dialog.tsx:216` listens on `document`
+  in the capture phase, so it runs before a combobox's own handler and closes the
+  dialog; `SearchableSelect` had no Escape handling at all.
+- **Lifecycle and package labels.** `customization.service.ts:5334` hardcoded
+  `lifecycleState: 'published'` for every module; `columns-management.tsx:188`
+  hardcoded "Default Package" / "Custom Package", and the column list returned no
+  lifecycle.
+- **Prefix mismatch.** `validatePackageComponentDependencies` has no prefix rule,
+  by design: the Architect decided a component's logical name and prefix are
+  immutable and record its originating publisher (see Resolution).
 
 ## Impact
 
@@ -165,6 +179,25 @@ prefix-renaming on move is chosen.
 
 ## Regression Coverage
 
+QA scenario QA-SETTINGS-024.
+
+- REG-484: `services/api/src/modules/customization/customization-publish-and-metadata.spec.ts`
+  — an action bar missing a command returns 400 naming the row; a missing
+  reference field returns 400; a real reference field is accepted into the tenant
+  package; legacy deactivation is allowed; a missing component-type write key
+  returns 403; a typed package key is stored exactly.
+- REG-485: `apps/web/app/components/ui/listbox-escape.spec.ts` — the Escape
+  decision, window-capture versus document-capture ordering, both comboboxes
+  wired and named.
+
+Mutation-checked: each of package key rewrite, command-less row, missing
+reference field and unchecked type key fails the spec; moving the listbox
+listener to `document` fails the Escape spec. The API checks are unit-level
+rather than the DB-backed e2e required below; the component test is
+source-reading because the web jest environment has no jsdom.
+
+As filed, the record required:
+
 - A DB-backed API e2e test posting an action bar with an unset command, and a
   relationship with a non-existent reference field. Both must return 400;
   today both return success.
@@ -189,16 +222,49 @@ check can be exercised end to end.
 
 ## Resolution
 
+Fixed in TASK-0031 WP-01 (commit 811a915c on `agent/walkthrough2-customization`,
+merged into `agent/walkthrough2-integration`; plan EXECPLAN-0045).
+
+| Observed | Change |
+|---|---|
+| Action bar rows with no command | API `validateLayerMetadata` refuses a row without a command (400 "Action N has no command…"); the dialog validates rows by position and drops nothing silently. |
+| Relationship over a missing field | The API requires `referenceField` to be a lookup column of the source module (system definition or active tenant column, tenant-scoped query); the dialog offers only the module's reference fields. Deactivation (`isActive: false`) is exempt. |
+| Typed package key replaced | `createPackage` stores the validated `dto.packageKey` (DTO pattern plus the existing 409 on conflict). |
+| Prefix hint "dd__" | Removed with the other explanatory hints (ITEM-0183). |
+| Escape closes the dialog | `useListboxEscape` in `form-control.tsx`: an open `SelectField`, `LookupField` or the action bar's `SearchableSelect` handles Escape on `window` in the capture phase, closes itself and stops the event; with everything closed, Escape reaches the dialog. |
+| Contradictory lifecycle and package labels | The module's lifecycle and package come from its table component, each field's from its column components; the Fields tab and module list show real package names. Labels "Many-to-many" and plain cascade wording replace "metadata-ready". |
+| Component prefix differs from its package's prefix | Intended behaviour, not a defect (Architect decision, 2026-09-13): logical names are immutable, the prefix records the originating publisher, and renaming on move would break every reference to the component. Moving legacy `dd_` drafts into another publisher's package stays allowed and is not flagged. |
+
+The "registered command" rule is enforced on the server as non-empty; the check
+against the web command catalog stays client-side because the API has no
+command registry.
+
 ## QA Retest
+
+Pending — browser verification on a throwaway database and on production in
+TASK-0031 WP-07/WP-08. Scenario QA-SETTINGS-024:
+
+1. Action Bars → Add action bar with a row left on "Choose a command" → the row
+   is named; the same payload to the API returns 400.
+2. Relationships → the Reference field offers only the module's reference
+   fields; `referenceField: "dd_assignedEmployee"` to the API returns 400.
+3. New package with key `qw_walkthrough` stores `qw_walkthrough`.
+4. In Add field, Add relationship and Action bar dialogs, Escape in an open
+   dropdown closes only the dropdown; a second Escape closes the dialog.
+5. A module whose components are all Draft reads "Draft"; after publish,
+   "Published"; the Package column names the owning package.
 
 ## History
 
 - 2026-09-13 — created from the second demo walkthrough (browser QA on the live demo tenant at df0f84f1); disposition set by the Architect after owner decisions.
+- 2026-09-13 — fixed in TASK-0031 WP-01; the prefix-versus-package observation closed as intended behaviour by the Architect; unit-tested; browser verification pending.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
 ## Related
 
 - Modules — [[tenant-application]]
+- Implementation — [[EXECPLAN-0045-customization-end-to-end-for-permission-holders]]
+- Regression — REG-484 (see the regression register)
 
 <!-- GRAPH:END -->

@@ -2,7 +2,7 @@
 ID: BUG-3496
 aliases: [BUG-3496]
 Title: A hydration mismatch on Customization pages opens a blocking raw React error modal and logs a 500
-Status: OPEN
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: BUG
@@ -13,10 +13,10 @@ AffectedModules: [apps/web, error-logs]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-486
 RelatedBacklogItem:
 RelatedDecision:
-RelatedImplementation:
+RelatedImplementation: [docs/plans/EXECPLAN-0045-customization-end-to-end-for-permission-holders.md, apps/web/app/components/errors/runtime-error-classification.ts, apps/web/app/components/errors/error-provider.tsx, apps/web/app/(authenticated)/settings/customization/_components/publish-center.tsx, apps/web/app/(authenticated)/settings/customization/_components/packages-list.tsx, apps/web/app/(authenticated)/settings/customization/_components/package-detail-shell.tsx]
 CreatedAt: 2026-09-13
 UpdatedAt: 2026-09-13
 ResolvedAt:
@@ -81,6 +81,21 @@ Reproduced on each load on the live demo tenant at `df0f84f1`.
 
 ## Root Cause
 
+Established during TASK-0031 WP-01 (line numbers at `88f33c6e`):
+
+- **Mismatch.** `publish-center.tsx:576`, `packages-list.tsx:718` and
+  `package-detail-shell.tsx:1274` formatted dates during render with
+  `new Intl.DateTimeFormat(undefined, …)`: the server's locale and timezone
+  during SSR, the browser's after hydration. That is the pattern documented in
+  `apps/web/app/components/filters/use-formatting-context.ts`. The module detail
+  page shows metadata tables whose Modified column went through the same kind of
+  render-time formatting (`tables-list.tsx:557` used a fixed `"en"` locale but the
+  runtime default timezone). The module detail source was identified by code
+  reading, not by a development-build reproduction.
+- **Modal and false 500.** `apps/web/app/components/errors/error-provider.tsx:58-75`
+  sent every window error, recoverable hydration errors included, to the blocking
+  modal and to `persistClientError` as a 500.
+
 ## Impact
 
 Administrators hit a blocking, alarming modal with a raw developer message on
@@ -120,6 +135,19 @@ No ExecPlan needed.
 
 ## Regression Coverage
 
+REG-486, QA scenario QA-SETTINGS-025:
+`apps/web/app/components/errors/runtime-error-classification.spec.ts` — hydration
+errors are ignored, an ordinary runtime error is still reported, and a
+non-hydration minified React error is reported with a plain message.
+Mutation-checked: hydration errors no longer ignored fails 6 tests.
+
+The classifier is tested as a pure function rather than through
+`ErrorProvider`'s event listeners. No render test for the mismatching component
+exists: the source was fixed by moving every Customization date onto the explicit
+formatting context, and the browser scenario compares server and hydrated dates.
+
+As filed, the record required:
+
 - A unit test on `ErrorProvider`'s runtime error path. It dispatches a
   hydration-mismatch error event and asserts no modal and no
   `persistClientError` call. It dispatches an ordinary error and asserts both
@@ -141,16 +169,51 @@ None.
 
 ## Resolution
 
+Fixed in TASK-0031 WP-01 (commit 811a915c on `agent/walkthrough2-customization`,
+merged into `agent/walkthrough2-integration`; plan EXECPLAN-0045). Both composed
+defects were addressed.
+
+- **Mismatch source.** Every Customization date now renders through
+  `useFormattingContext()` with `formatDate`/`formatDateTime` from
+  `lib/formatting-context.ts`: Publish Center, packages list, package detail and
+  modules list. No `Intl.DateTimeFormat(undefined` remains under
+  `settings/customization`.
+- **Interceptor.** `apps/web/app/components/errors/runtime-error-classification.ts`
+  (`classifyRuntimeError`) ignores React hydration errors (#418, #419, #422,
+  #423, #425 and their development messages): no modal, nothing persisted. Other
+  minified React errors are shown and logged with a plain message instead of
+  React's text; ResizeObserver noise and aborts stay ignored.
+  `error-provider.tsx` routes window `error` and `unhandledrejection` through it.
+
+The module detail page's mismatch source was identified by code reading
+(`tables-list.tsx` formatted with a fixed locale but the runtime default
+timezone), not by a development-build reproduction. If #418 still appears there
+in the browser, the classifier keeps it silent and the remaining source must be
+found with a development build.
+
 ## QA Retest
+
+Pending — browser verification on a throwaway database and on production in
+TASK-0031 WP-07/WP-08. Scenario QA-SETTINGS-025:
+
+1. Load `/settings/customization/tables/<key>` and
+   `/settings/customization/publish-center` with the console open: no React
+   #418, no error modal, no `POST /api/error-logs/client`.
+2. Compare server HTML and hydrated DOM dates on the packages list and Publish
+   Center: identical.
+3. Force an ordinary runtime `TypeError`: the modal still opens and it is logged.
 
 ## History
 
 - 2026-09-13 — created from the second demo walkthrough (browser QA on the live demo tenant at df0f84f1); disposition set by the Architect after owner decisions.
+- 2026-09-13 — fixed in TASK-0031 WP-01; unit-tested; browser verification pending.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
 ## Related
 
 - Modules — [[tenant-application]]
+- Implementation — [[EXECPLAN-0045-customization-end-to-end-for-permission-holders]]
+- Regression — REG-486 (see the regression register)
 
 <!-- GRAPH:END -->

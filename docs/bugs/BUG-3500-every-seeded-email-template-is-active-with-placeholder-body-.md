@@ -2,7 +2,7 @@
 ID: BUG-3500
 aliases: [BUG-3500]
 Title: Every seeded email template is active with placeholder body text
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -13,10 +13,10 @@ AffectedModules: [notifications, apps/web]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
-RelatedBacklogItem:
+RegressionId: REG-505
+RelatedBacklogItem: [ITEM-0194]
 RelatedDecision: docs/decisions/ADR-0015-production-retires-sink-email-providers.md
-RelatedImplementation:
+RelatedImplementation: [docs/plans/EXECPLAN-0048-email-template-default-copy-and-visual-editor.md, services/api/src/modules/notifications/system-email-templates.copy.ts, services/api/src/modules/notifications/notification-events.catalog.ts, services/api/prisma/seed-config.ts, services/api/src/modules/notifications/notifications.repository.ts]
 CreatedAt: 2026-09-13
 UpdatedAt: 2026-09-13
 ResolvedAt:
@@ -134,6 +134,23 @@ needed.
 
 ## Regression Coverage
 
+QA scenario QA-SETTINGS-027.
+
+- REG-505: `services/api/src/modules/notifications/system-email-templates.spec.ts`
+  — no placeholder wording in any template field; tokens used equal variables
+  declared, per template; the exact ACTIVE/DRAFT map; the catalog throws with
+  missing copy; the sanitiser keeps tokens and links and strips unsafe markup.
+  Mutation: the placeholder sentence in the payslip copy fails it.
+- REG-506: `services/api/src/modules/notifications/system-email-template-emitters.spec.ts`
+  — every ACTIVE template's declared variables are passed at every emitter call
+  site. Mutation: `{{logoUrl}}` added to the reset copy fails it.
+- REG-509: the `planSystemTemplateWrite` seed guard cases in
+  `system-email-templates.spec.ts`; the tenant shadow-row retirement is a manual
+  DB-backed step in the scenario, because `seed-config.ts` builds a Prisma client
+  at import.
+
+As filed, the record required:
+
 An API unit test over `SYSTEM_EMAIL_TEMPLATE_PLACEHOLDERS` must assert that:
 - no seed body or description contains "placeholder";
 - every ACTIVE seed's template variables are a subset of its declared `availableVariables`.
@@ -152,24 +169,83 @@ The test fails today. REG entry to be added when the test exists.
 - [[ITEM-0181]]: the visual template editor.
 - [[ITEM-0180]]: the plain notification events page.
 - [[BUG-3379]]: the NOT_DELIVERED delivery log reason.
+- [[BUG-3506]]: follow-up — the payslip email passes a relative action link and
+  the payroll calendar's name as the company, so its copy has no button or
+  company name.
+- [[ITEM-0194]]: follow-up — check production for tenant-owned copies of the old
+  placeholder templates, which the seed only warns about. Checked read-only on
+  2026-09-13: 0 found; closed DONE.
 
 ## Resolution
 
-Not yet fixed.
+Fixed in TASK-0031 WP-04 (commit b0d8278d on `agent/walkthrough2-email-templates`,
+merged into `agent/walkthrough2-integration`; plan EXECPLAN-0048), shipping with
+[[BUG-3501]] per ADR-0015.
+
+- **Authored copy.** `services/api/src/modules/notifications/system-email-templates.copy.ts`
+  (new) holds subject, inline-styled HTML, plain text and labelled variables with
+  sample values for all 11 templates. Each template's variables are the
+  intersection of what its emitters pass. The owner review copy,
+  `docs/tasks/TASK-0031-streams/WP-04-email-copy-for-owner-review.md`, is
+  generated from it.
+- **No fallback.** `notification-events.catalog.ts` builds the system templates
+  only from authored copy and throws at module load when an event names a
+  template with no copy.
+- **Status rule.** ACTIVE only where something sends the event by email today:
+  account activation, password reset, invoice, payslip, scheduled report, support
+  case. DRAFT for `AUTH_OTP`, `LEAVE_APPROVAL_REQUEST`, `LEAVE_APPROVED`,
+  `TIMESHEET_APPROVAL_REQUEST` and `PAYROLL_PROCESSED`.
+- **Seed guard.** `planSystemTemplateWrite` creates a missing row, refreshes only
+  an untouched system default (`tenantId null`, `isSystem`, `updatedBy null`) and
+  skips everything else; `seedSystemEmailTemplates` and
+  `NotificationsRepository.bootstrapSystemDefaults` both use it.
+- **Seed verification.** `verifySystemEmailTemplates` fails the seed when an
+  ACTIVE system row contains placeholder wording, and warns without changing
+  tenant-owned rows. A read-only production check on 2026-09-13 found 0
+  tenant-owned ACTIVE templates containing placeholder copy, so no tenant row
+  needs an owner decision (ITEM-0194, closed DONE).
+- **Shadow rows retired (found while fixing).** `seedTenantEmailTemplates` had
+  written hidden ACTIVE `isSystem` auth templates into every tenant's scope; they
+  outranked the system templates and blocked Customize. It now re-keys each such
+  row, never saved by a person, to `<key>.retired-tenant-default` and archives
+  it: idempotent, nothing deleted.
+- **Latent send failure (found while fixing).** The system password reset
+  template declared `primaryColor` and `logoUrl`, which no reset call site
+  passes; retiring the shadow rows without the authored variables would have
+  stopped forgot-password email.
+
+Stream validation: api notifications and report-scheduler specs 20 suites / 184
+tests passed; seed files typecheck; both mutation checks caught. The seed run
+itself is a manual step on a throwaway database.
 
 ## QA Retest
 
-Not yet retested.
+Pending — browser verification on a throwaway database and on production in
+TASK-0031 WP-07/WP-08. Scenario QA-SETTINGS-027:
+
+1. Run `npm --workspace api run seed:config` twice: the second run logs 0
+   created, 11 refreshed, 0 left unchanged, with no verification error; SYSTEM
+   rows match the owner review document; per-tenant `AUTH_*` `isSystem` rows are
+   re-keyed `.retired-tenant-default` and ARCHIVED.
+2. A forgot-password email arrives with the new copy.
+3. Customize on Password reset creates a DRAFT tenant copy with no unique
+   constraint error.
+4. On the demo tenant after release, "Password reset email" shows the new copy
+   and the scheduled report email arrives with the new copy.
 
 ## History
 
 - 2026-09-13 — created from the second demo walkthrough (browser QA on the live demo tenant at df0f84f1); disposition set by the Architect after owner decisions.
+- 2026-09-13 — fixed in TASK-0031 WP-04; unit-tested; browser verification pending. Follow-ups BUG-3506 and ITEM-0194 filed.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
 ## Related
 
+- Backlog item — [[ITEM-0194]]
 - Referenced by — [[ITEM-0181]]
 - Modules — [[notifications]], [[tenant-application]]
+- Implementation — [[EXECPLAN-0048-email-template-default-copy-and-visual-editor]]
+- Regression — REG-505 (see the regression register)
 
 <!-- GRAPH:END -->

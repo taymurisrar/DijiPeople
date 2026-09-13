@@ -2,7 +2,7 @@
 ID: BUG-3494
 aliases: [BUG-3494]
 Title: A published custom module has no sidebar entry and no list, form or record screen
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: BUG
@@ -13,10 +13,10 @@ AffectedModules: [apps/web, customization, data]
 OwnerAgent: architect
 ArchitectDisposition: PLAN_REQUIRED
 QAReport: 
-RegressionId: 
-RelatedBacklogItem:
+RegressionId: REG-492
+RelatedBacklogItem: [ITEM-0187, ITEM-0188, ITEM-0189, ITEM-0190, ITEM-0191, ITEM-0195]
 RelatedDecision: docs/decisions/ADR-0016-published-custom-modules-render-in-the-tenant-runtime.md
-RelatedImplementation:
+RelatedImplementation: [docs/plans/EXECPLAN-0046-published-custom-modules-tenant-runtime.md, services/api/src/modules/data/custom-module-runtime.service.ts, services/api/src/modules/data/custom-module-runtime.controller.ts, services/api/src/modules/data/published-custom-modules.ts, services/api/src/modules/data/custom-data.service.ts, services/api/src/modules/data/data.controller.ts, apps/web/lib/runtime/custom-modules/custom-module-runtime.ts, apps/web/lib/runtime/custom-modules/custom-module-navigation.ts, apps/web/app/(authenticated)/custom-modules/[moduleKey]/page.tsx, apps/web/app/(authenticated)/settings/customization/_components/sidebar-designer.tsx]
 CreatedAt: 2026-09-13
 UpdatedAt: 2026-09-13
 ResolvedAt:
@@ -146,6 +146,23 @@ a new one:
 
 ## Regression Coverage
 
+QA scenarios QA-RUNTIME-045 and QA-RUNTIME-046.
+
+- REG-492 (the defect filed here): `apps/web/lib/runtime/custom-modules/custom-module-navigation.spec.ts`,
+  `apps/web/lib/runtime/custom-modules/custom-module-runtime.spec.ts`.
+- REG-491 (found while fixing: draft records reachable through `/data`):
+  `services/api/src/modules/data/custom-data.service.spec.ts`,
+  `services/api/src/modules/data/custom-module-runtime.service.spec.ts`,
+  `services/api/src/modules/data/published-custom-modules.spec.ts`.
+- REG-493 (found while fixing: service-only authorization):
+  `services/api/src/modules/data/data.controller.permissions.spec.ts`,
+  `services/api/src/common/constants/wiring-invariants.spec.ts`.
+- REG-494 (tenant isolation under an identical module key):
+  `services/api/test/custom-module-runtime.e2e-spec.ts`, which covers both
+  requirements below on a database and has not yet been run against one.
+
+As filed, the record required:
+
 - A DB-backed e2e test that publishes a minimal custom module and asserts it
   appears in the resolved sidebar and that a record can be created and listed
   through the runtime path.
@@ -169,18 +186,118 @@ entry follows once written.
 - [[BUG-3495]]: metadata quality of what gets published.
 - [[ITEM-0184]]: Customization usability defects.
 
+Follow-ups filed from the fix (TASK-0031 WP-02 residuals and Architect
+decisions):
+
+- [[ITEM-0187]]: list views filter only the loaded page; `/data/<key>` has no
+  filtering or search.
+- [[ITEM-0188]]: published action bars are not consumed by custom-module screens.
+- [[ITEM-0189]]: lookup fields targeting system entities have no options source.
+- [[ITEM-0190]]: the sidebar entry ignores the module's icon.
+- [[ITEM-0191]]: product decision on per-module access keys versus the shared
+  `custom-records` privilege.
+- [[ITEM-0195]]: the legacy `publish()` snapshot shape can expose a
+  never-published module.
+
 ## Resolution
 
+Fixed in TASK-0031 WP-02 (commit c213b6ae on `agent/walkthrough2-custom-runtime`,
+merged into `agent/walkthrough2-integration`; plan EXECPLAN-0046), applying
+ADR-0016, with the Sidebar Designer hand-off applied at integration in 4d249b40.
+
+**API** (`services/api/src/modules/data/`):
+
+- `published-custom-modules.ts` reads the latest published snapshot in both
+  production shapes (Publish Center and legacy `publish()`) and fails closed.
+- `custom-module-runtime.service.ts` defines runtime-available: a live
+  `isCustom && isActive` table of the caller's tenant that appears in that
+  tenant's latest published snapshot, with columns narrowed to published ones.
+  `GET /metadata/custom-modules` returns the sidebar list and
+  `GET /metadata/custom-modules/:moduleKey` the definition (fields after field
+  read security, active forms, non-hidden views, capabilities); both declare
+  `custom-records` read in both permission systems.
+- `CustomDataService.findTable` delegates to that definition, so every record
+  path returns 404 for a draft or deactivated module (found while fixing: before
+  this, a draft module's records were listed, created, edited and deleted through
+  `/data`). New `findOne` reads with `{ id, tenantId: user.tenantId, tableId,
+  isDeleted: false }` ANDed with the `custom-records` READ row scope.
+- `DataController` gains `GET :entity/:recordId`, and `PermissionsGuard` plus
+  both decorators on every custom-only handler (found while fixing: they ran
+  `JwtAuthGuard` only). The dispatching list route stays service-authorized on
+  the reviewed list in `wiring-invariants.spec.ts`.
+- Permission model: the existing `custom-records` entity. No key added, no
+  single-writer file edited, seeds unchanged (Architect decision; ITEM-0191 asks
+  the owner about per-module keys).
+
+**Web** (`apps/web`):
+
+- `lib/runtime/custom-modules/custom-module-navigation.ts` builds entries at
+  `/custom-modules/<key>` (plural display name, `custom-records.read`) and
+  composes them before Settings; Sidebar Designer overrides keyed by href apply.
+  The layout fetches the list only for holders of the read key.
+- `lib/runtime/custom-modules/custom-module-runtime.ts` turns the definition
+  into a standard runtime spec: routes, API path, field types, list views from
+  the published view, published forms, a fallback view and form.
+- Routes under `app/(authenticated)/custom-modules/[moduleKey]/` (list, new,
+  record, edit) use `StandardModuleListPage` and `StandardModuleRecordPage`; 403
+  renders access denied and 404 not found. `/custom-modules` is a protected
+  route prefix.
+- Integration commit 4d249b40: the Sidebar Designer lists published custom
+  modules (`resolveDashboardNavCatalog`), so they can be ordered, renamed and
+  hidden there. The second hand-off (Module Properties ROUTE) is moot: WP-01
+  removed that entry.
+
+Found at integration, fix pending as a commit on
+`agent/walkthrough2-integration` (no SHA recorded yet): `CustomDataService.create`
+did not let a published custom module create a record without a parent record,
+so New on a module's own screen could not save. The fix lets create proceed
+without a parent and adds two unit cases to
+`services/api/src/modules/data/custom-data.service.spec.ts`, listed under
+REG-492. Integration commits 23044aed (notifications and data integration seams,
+lint cap) and 89bc55a6 (component index regenerated) also sit on that branch.
+
+Accepted residual behaviour change: a draft table used by a related-record
+subgrid now returns 404, as ADR-0016 intends. Custom-module screens use the
+standard command set; the published action bar is ITEM-0188.
+
+Stream validation: the new API and web specs listed under Regression Coverage
+pass; the unpublished-module cases were run against the pre-fix
+`custom-data.service.ts` and fail there. Combined integration run at 9183d737
+(WP-02, WP-03, WP-06): api 337 suites / 6759 tests and web 106 suites / 1962
+tests passed; both typechecks clean.
+
 ## QA Retest
+
+Pending — browser verification on a throwaway database and on production in
+TASK-0031 WP-07/WP-08. Scenarios QA-RUNTIME-045 (screens) and QA-RUNTIME-046
+(publish gate, permissions, tenant isolation; includes the first run of
+`services/api/test/custom-module-runtime.e2e-spec.ts`):
+
+1. The workspace owner sees "QA Assets" immediately above Settings.
+2. `/custom-modules/qaAsset` renders the list with the published views and the
+   Serial Number column.
+3. New → the published form → Save → `POST /api/data/qaAsset` 201; the record
+   appears.
+4. Open the record → Edit → Save → `PATCH` 200.
+5. `/custom-modules/doesNotExist` and `/custom-modules/qaAsset/not-a-uuid` show
+   not-found, with no error modal and no `SYSTEM_UNEXPECTED_ERROR` row.
+6. A user without `custom-records.read` sees no entry and gets access denied.
+7. Deactivating the module removes the entry and the routes show not-found.
+8. At 400px and 820px the pages reflow like other runtime modules.
+9. The Sidebar Designer lists the module; rename and hide apply.
 
 ## History
 
 - 2026-09-13 — created from the second demo walkthrough (browser QA on the live demo tenant at df0f84f1); disposition set by the Architect after owner decisions.
+- 2026-09-13 — fixed in TASK-0031 WP-02, with the Sidebar Designer listing added at integration (4d249b40); unit-tested; browser verification pending. Remaining gaps filed as ITEM-0187…ITEM-0191 and ITEM-0195.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
 ## Related
 
+- Backlog item — [[ITEM-0187]], [[ITEM-0188]], [[ITEM-0189]], [[ITEM-0190]], [[ITEM-0191]], [[ITEM-0195]]
 - Modules — [[tenant-application]]
+- Implementation — [[EXECPLAN-0046-published-custom-modules-tenant-runtime]]
+- Regression — REG-492 (see the regression register)
 
 <!-- GRAPH:END -->

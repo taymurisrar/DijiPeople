@@ -2,7 +2,7 @@
 ID: BUG-3499
 aliases: [BUG-3499]
 Title: The reporting hierarchy dialog pins a clipped detail card, has no close control and cannot open a record
-Status: OPEN
+Status: FIXED
 Severity: MEDIUM
 Priority: P2
 Type: UX
@@ -13,10 +13,10 @@ AffectedModules: [apps/web, employees]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-498
 RelatedBacklogItem:
 RelatedDecision: docs/decisions/ADR-0017-the-hierarchy-viewer-stays-a-chain-scoped-dialog.md
-RelatedImplementation:
+RelatedImplementation: [docs/plans/EXECPLAN-0047-employee-record-walkthrough-two-remediation.md, apps/web/app/components/runtime/module-widget-renderer.tsx, apps/web/lib/runtime/modules/employee-hierarchy-tree.ts]
 CreatedAt: 2026-09-13
 UpdatedAt: 2026-09-13
 ResolvedAt:
@@ -99,6 +99,13 @@ Established for most of the defects:
 - Why hovering another node shows no card while the root card is pinned. That node's `onMouseEnter` does set its own state, so its card may be rendering and clipped, but this is unconfirmed.
 - Why the dialog has no accessible name. `useDialogBehavior` does supply `aria-labelledby` pointing at the rendered title (`dialog.tsx:246-247`, `:326`).
 
+TASK-0031 WP-03 narrowed both, by inference only, to be confirmed in the browser:
+each node's card rendered inside the scroll container, extending its scroll area
+below the visible region instead of overlaying, and the first child was covered
+by the pinned root card, so the pointer never entered it. The missing accessible
+name remains unconfirmed because `aria-labelledby` was set; the rewrite keeps the
+shared `Dialog` title and names the tree list.
+
 ## Impact
 
 - Every user who opens the hierarchy from an employee record, in production, gets a viewer whose main interaction does not work.
@@ -138,6 +145,19 @@ need one. No ExecPlan needed.
 
 ## Regression Coverage
 
+REG-498 and REG-499, QA scenario QA-EMPLOYEE-004:
+`apps/web/lib/runtime/modules/employee-hierarchy-tree.spec.ts` — no card
+initially; hover moves the card; a stale blur does not close another node's
+card; a tap after focus keeps the card; tap intent (mouse and keyboard navigate,
+touch shows then navigates); placement below, above, clamped left and right.
+
+The interaction rules were extracted into a pure module and tested there,
+because the web jest environment has no DOM; the close control, accessible name
+and node links are checked in the browser scenario, which is also the only check
+for clipping.
+
+As filed, the record required:
+
 - A web component test must fail today: render the dialog with a two-level tree and assert no card on open, a card on a subsequent node's focus and on its click, a close control, an accessible name, and a link or navigation on the node.
 - Add a browser check on the demo tenant for the clipping. A DOM test cannot see overflow clipping.
 - REG entry to be added when the tests exist.
@@ -155,20 +175,61 @@ tenant screens, including this dialog's intro.
 
 ## Resolution
 
-Not yet fixed.
+Fixed in TASK-0031 WP-03 (commit 270757ba on `agent/walkthrough2-employee-record`,
+merged into `agent/walkthrough2-integration`; plan EXECPLAN-0047), within the
+chain-scoped dialog ADR-0017 keeps. Code:
+`apps/web/app/components/runtime/module-widget-renderer.tsx`
+(`ReportingHierarchyTreeDialog`, `ReportingHierarchyBranch`,
+`ReportingHierarchyNodeLink`, `ReportingHierarchyDetailCard`), with the
+interaction rules in `apps/web/lib/runtime/modules/employee-hierarchy-tree.ts`.
+
+- **Branching layout.** Children sit in a row under their manager, joined by CSS
+  pseudo-element connectors, inside an `overflow-x-auto` region. Still
+  hand-rolled with no dependency (ADR-0012).
+- **Close control.** A visible `DialogCloseButton` is the first focusable
+  element, so opening the dialog shows no card.
+- **Navigation.** Nodes are links to `/employees/{id}`, with `aria-current` on
+  the viewed employee.
+- **Interaction.** Mouse: hover shows the card, click opens the record.
+  Keyboard: focus shows it, Enter opens. Touch: the first tap shows the card, the
+  second opens the record.
+- **No clipping.** The card renders in a portal (`z-[120]`,
+  `pointer-events-none`), placed in viewport coordinates inside the viewport,
+  and repositions on scroll or resize.
+- The intro paragraph is removed; the chain scope and the `canReadWorkEmail` /
+  `canReadWorkSite` checks are unchanged. The dialog keeps the shared `Dialog`
+  title as its name and names the tree list.
+
+Connector alignment and the Tailwind v4 `first:`/`last:`/`only:` pseudo-element
+variants are unverified visually; clipping can only be confirmed in a browser.
 
 ## QA Retest
 
-Not yet retested.
+Pending — browser verification on a throwaway database and on production in
+TASK-0031 WP-07/WP-08. Scenario QA-EMPLOYEE-004:
+
+1. View hierarchy on a record whose chain has a manager with two or more
+   reports: no card; Close visible top-right with focus.
+2. Siblings side by side with connectors; a wide tree scrolls inside the dialog.
+3. Hover each node: its card is fully visible and moves with the pointer.
+4. Tab to a node: the card shows; Enter opens that record.
+5. Touch emulation: first tap shows the card, second opens the record.
+6. A card near the bottom or right edge flips or clamps; scrolling keeps it
+   attached.
+7. The dialog is named "Reporting hierarchy"; no intro paragraph.
+8. At 400px the dialog is usable.
 
 ## History
 
 - 2026-09-13 — created from the second demo walkthrough (browser QA on the live demo tenant at df0f84f1); disposition set by the Architect after owner decisions.
+- 2026-09-13 — fixed in TASK-0031 WP-03; unit-tested; browser verification pending.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
 ## Related
 
 - Modules — [[tenant-application]], [[employees]]
+- Implementation — [[EXECPLAN-0047-employee-record-walkthrough-two-remediation]]
+- Regression — REG-498 (see the regression register)
 
 <!-- GRAPH:END -->

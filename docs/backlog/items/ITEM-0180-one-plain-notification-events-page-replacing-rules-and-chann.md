@@ -3,19 +3,19 @@ ID: ITEM-0180
 aliases: [ITEM-0180]
 Title: One plain notification events page replacing Rules and Channel Preferences
 Type: UX
-Status: READY
+Status: DONE
 Priority: P1
 Severity: MEDIUM
 AffectedModules: [apps/web, notifications]
 Source: USER_REPORT
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 CreatedAt: 2026-09-13
 UpdatedAt: 2026-09-13
 RelatedBug: BUG-3375
-RelatedQA: 
+RelatedQA: [QA-SETTINGS-029]
 RelatedADR: 
-RelatedImplementation:
+RelatedImplementation: [docs/plans/EXECPLAN-0049-one-notification-events-page.md, services/api/src/modules/notifications/notification-event-delivery.ts, services/api/src/modules/notifications/notifications.service.ts, services/api/src/modules/notifications/notification-orchestrator.service.ts, apps/web/app/(authenticated)/settings/notifications/_components/notification-events-manager.tsx]
 TargetMilestone: 
 BlockedBy: 
 ---
@@ -154,9 +154,75 @@ read one definition of "fires".
 convention. [[ITEM-0181]] the template editor. [[ITEM-0182]] delivery logs.
 [[ITEM-0183]] helper-text removal. Decision: ADR-0011.
 
+Follow-ups filed from this item: [[ITEM-0185]] the settings shell at phone
+width; [[ITEM-0192]] unconsumed notification switches in
+`settings-page-config.ts`; [[ITEM-0193]] whether the `hr` role may manage
+notification events.
+
+## Resolution
+
+Done in TASK-0031 WP-05 (commit 1051495e on
+`agent/walkthrough2-notification-events`, merged into
+`agent/walkthrough2-integration`; plan EXECPLAN-0049). Browser verification
+pending in WP-07/WP-08 (QA-SETTINGS-029).
+
+**What was actually wrong** (beyond length): the In-app checkboxes were read by
+no dispatch path, and "live" meant catalog availability alone, so events with no
+emitter, or no tenant rule, were offered.
+
+**API** (existing `/notifications/rules` and `/notifications/preferences` routes
+unchanged):
+
+- `notification-event-delivery.ts` (new) declares which path delivers each event
+  (rule-driven `emit()` with its `moduleKey`, direct orchestrator in-app, or
+  email) and lists the ACTIVE events with no emitter; module grouping and
+  `resolveDeliverableChannels` live here.
+- `GET /notifications/event-settings` returns one item per event some path
+  delivers to this tenant, each channel's `enabled` mirroring dispatch; required
+  events report `required: true`.
+- `PATCH /notifications/event-settings/:code` with `{ channel, enabled }`
+  (`notifications.manage` and `notifications.manageRules`, plus
+  `USER_PREFERENCES` write), in one transaction: upsert the tenant-scope
+  preference, set every rule for the event to "any deliverable channel still on"
+  (ADR-0011; rules are never created), and audit both with before/after
+  snapshots. Required, unavailable and undeliverable channels are refused.
+- **In-app gates.** `emit()` creates no rows when `NotificationPreference(IN_APP)`
+  is `false` (workflows still run); `NotificationOrchestratorService.dispatch()`
+  skips the in-app create on preference `false` or a disabled rule and returns
+  `inAppSkippedReason`. Email is untouched.
+
+**Web.** `rules/page.tsx` renders `notification-events-manager.tsx` (new): a
+search field, a "Send email" tenant switch, one `SectionCard` per module, per
+event its name with In-app and Email checkboxes for deliverable channels or
+"Always on", autosave with per-toggle rollback and inline error, no codes, no
+`min-w-*`, no explanatory copy. `notification-rules-manager.tsx` was deleted. It
+supersedes the screen-level part of [[BUG-3375]].
+
+**Differences from the proposed approach, decided in the ExecPlan.** Events whose
+module has no tenant rule (claims, loans, timesheets) are hidden rather than
+having rules created, because creating a rule would not make them fire; they
+reappear when a tenant has a matching rule. The page title stays "Notification
+Rules"; the Architect declined the proposed rename to "Notification Events" for
+now.
+
+**Acceptance criteria not met by this page alone.** At 400px the rows wrap with
+no minimum width, but the shared settings shell still pushes content below its
+navigation, so "the event list starts within the first viewport height" depends
+on [[ITEM-0185]].
+
+**Release notes.** A tenant that unticked In-app on the old page (which nothing
+read) now stops receiving those in-app notifications. Turning an event's last
+channel off disables its rules, which also stops a tenant workflow's
+`SEND_EMAIL` action keyed on that event.
+
+Regression coverage: REG-510, REG-511, REG-512. Stream validation: api 334
+suites / 6694 tests and web 95 suites / 1855 tests passed; web typecheck passed;
+9 of 9 mutations killed.
+
 ## History
 
 - 2026-09-13 — created from the second demo walkthrough (browser QA on the live demo tenant at df0f84f1); disposition set by the Architect after owner decisions.
+- 2026-09-13 — done in TASK-0031 WP-05; unit-tested; browser verification pending. Follow-ups ITEM-0185, ITEM-0192 and ITEM-0193 filed.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
@@ -164,5 +230,6 @@ convention. [[ITEM-0181]] the template editor. [[ITEM-0182]] delivery logs.
 
 - Bug — [[BUG-3375]]
 - Modules — [[tenant-application]], [[notifications]]
+- Implementation — [[EXECPLAN-0049-one-notification-events-page]]
 
 <!-- GRAPH:END -->
