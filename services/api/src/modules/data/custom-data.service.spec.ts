@@ -1,3 +1,4 @@
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { SecurityPrivilege } from '@prisma/client';
 import { CustomDataService } from './custom-data.service';
 
@@ -114,13 +115,17 @@ describe('CustomDataService related CRUD', () => {
       buildReadScope: jest.fn().mockReturnValue({ tenantId: 'tenant-1' }),
     };
     const audit = { log: jest.fn().mockResolvedValue({}) };
+    const runtime = {
+      resolvePublishedTable: jest.fn().mockResolvedValue(table),
+    };
     const service = new CustomDataService(
       prisma as never,
       permissions as never,
       scope as never,
       audit as never,
+      runtime as never,
     );
-    return { service, prisma, permissions, audit, tx };
+    return { service, prisma, permissions, scope, audit, tx, runtime };
   }
 
   const related = {
@@ -199,6 +204,109 @@ describe('CustomDataService related CRUD', () => {
       expect.objectContaining({ action: 'custom-record.delete' }),
       tx,
     );
+  });
+
+  /*
+   * BUG-3494 / ADR-0016. A draft or deactivated module is not a sidebar
+   * question only: every record path must refuse it, or hiding the entry is a
+   * read filter over a write that still works.
+   */
+  describe('a module that is not runtime-available (draft or inactive)', () => {
+    it.each([
+      ['list', (s: CustomDataService) => s.findMany('draftThing', {}, user)],
+      [
+        'create',
+        (s: CustomDataService) =>
+          s.create('draftThing', {}, { pub_name: 'x' }, user),
+      ],
+      [
+        'read one',
+        (s: CustomDataService) => s.findOne('draftThing', 'record-1', user),
+      ],
+      [
+        'update',
+        (s: CustomDataService) =>
+          s.update('draftThing', 'record-1', {}, { pub_name: 'x' }, user),
+      ],
+      [
+        'delete',
+        (s: CustomDataService) => s.softDelete('draftThing', ['r'], {}, user),
+      ],
+    ])('refuses %s with not-found and touches no record', async (_l, call) => {
+      const { service, runtime, prisma, tx } = setup();
+      runtime.resolvePublishedTable.mockResolvedValue(null);
+      await expect(call(service)).rejects.toBeInstanceOf(NotFoundException);
+      expect(runtime.resolvePublishedTable).toHaveBeenCalledWith(
+        'tenant-1',
+        'draftThing',
+      );
+      expect(prisma.customDataRecord.findMany).not.toHaveBeenCalled();
+      expect(prisma.customDataRecord.findFirst).not.toHaveBeenCalled();
+      expect(tx.customDataRecord.create).not.toHaveBeenCalled();
+      expect(tx.customDataRecord.update).not.toHaveBeenCalled();
+    });
+
+    it('reports it as not a custom table, so the list dispatch falls through to not-found', async () => {
+      const { service, runtime } = setup();
+      runtime.resolvePublishedTable.mockResolvedValue(null);
+      await expect(
+        service.isCustomTable('draftThing', 'tenant-1'),
+      ).resolves.toBe(false);
+    });
+  });
+
+  describe('findOne', () => {
+    it('reads by id within the caller tenant, table and READ row scope', async () => {
+      const { service, prisma, permissions, scope } = setup();
+      const result = await service.findOne('customChild', 'record-1', user);
+
+      expect(permissions.assertCan).toHaveBeenCalledWith(
+        expect.anything(),
+        user,
+        SecurityPrivilege.READ,
+      );
+      expect(scope.buildScope).toHaveBeenCalledWith(
+        expect.anything(),
+        user,
+        SecurityPrivilege.READ,
+      );
+      expect(prisma.customDataRecord.findFirst).toHaveBeenCalledWith({
+        where: {
+          AND: [
+            { tenantId: 'tenant-1' },
+            {
+              id: 'record-1',
+              tenantId: 'tenant-1',
+              tableId: 'table-1',
+              isDeleted: false,
+            },
+          ],
+        },
+      });
+      expect(result).toEqual(
+        expect.objectContaining({ id: 'record-1', pub_name: 'Created' }),
+      );
+      expect(result).not.toHaveProperty('pub_adminOnly');
+    });
+
+    it('is not found when the record is outside scope or in another tenant', async () => {
+      const { service, prisma } = setup();
+      prisma.customDataRecord.findFirst.mockResolvedValue(null);
+      await expect(
+        service.findOne('customChild', 'record-other-tenant', user),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('checks permission before reading the record', async () => {
+      const { service, prisma, permissions } = setup();
+      permissions.assertCan.mockImplementation(() => {
+        throw new ForbiddenException();
+      });
+      await expect(
+        service.findOne('customChild', 'record-1', user),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(prisma.customDataRecord.findFirst).not.toHaveBeenCalled();
+    });
   });
 
   it('publishes effective CRUD capabilities and omits unreadable fields', async () => {

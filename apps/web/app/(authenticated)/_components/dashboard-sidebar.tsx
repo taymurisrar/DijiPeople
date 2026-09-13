@@ -33,6 +33,7 @@ import {
   type DashboardNavOverride,
 } from "./navigation";
 import type { VisibilityPlacement } from "@/lib/runtime/visibility-placement";
+import type { CustomModuleSummary } from "@/lib/runtime/custom-modules/custom-module-navigation";
 import { Button } from "@/app/components/ui/button";
 
 type DashboardSidebarProps = {
@@ -48,6 +49,7 @@ type DashboardSidebarProps = {
   tenantName?: string;
   navOverrides?: readonly DashboardNavOverride[] | null;
   placement?: VisibilityPlacement | null;
+  customModules?: readonly CustomModuleSummary[] | null;
 };
 
 type SidebarNavIconProps = {
@@ -67,6 +69,7 @@ export function DashboardSidebar({
   tenantName,
   navOverrides,
   placement,
+  customModules,
 }: DashboardSidebarProps) {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -80,6 +83,7 @@ export function DashboardSidebar({
     businessUnitAccess,
     overrides: navOverrides,
     placement,
+    customModules,
   });
 
   return (
