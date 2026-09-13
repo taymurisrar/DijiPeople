@@ -230,6 +230,55 @@ export class NotificationsRepository {
     return this.findRuleById(tenantId, id, db);
   }
 
+  /*
+   * ITEM-0180. Every rule governing one event for one tenant, in the order
+   * `findRuleForEvent` picks from. Seeded data has one rule per eventKey, but
+   * the unique key also includes moduleKey and resolver type, so the events
+   * page reads and writes them as a set rather than trusting there is one.
+   */
+  listRulesForEvent(
+    tenantId: string,
+    eventKey: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.notificationRule.findMany({
+      where: { tenantId, eventKey },
+      orderBy: [{ priority: 'asc' }, { createdAt: 'asc' }],
+    });
+  }
+
+  setRulesEnabledForEvent(
+    tenantId: string,
+    eventKey: string,
+    enabled: boolean,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.notificationRule.updateMany({
+      where: { tenantId, eventKey },
+      data: { enabled },
+    });
+  }
+
+  /*
+   * The tenant-scope preference rows for one event — the same scope key
+   * `findPreference` and `upsertTenantPreference` use, so user-level rows are
+   * never mistaken for the tenant's choice.
+   */
+  listPreferencesForEvent(
+    tenantId: string,
+    eventCode: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.notificationPreference.findMany({
+      where: {
+        tenantId,
+        userId: null,
+        scopeKey: buildTenantNotificationScopeKey(tenantId),
+        eventCode,
+      },
+    });
+  }
+
   async findTemplateForEvent(
     input: EmailTemplateLookupInput,
     db: PrismaDb = this.prisma,

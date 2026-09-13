@@ -316,6 +316,38 @@ export const updateNotificationRule = (
     body: JSON.stringify(body),
   });
 
+/*
+ * ITEM-0180. The notification events page. Each item is an event some code
+ * path can actually deliver to this workspace; `channels` holds only the
+ * channels it can arrive on, each `enabled` computed the way dispatch decides
+ * it. Events with no emitter, and channels nothing sends, are not returned.
+ */
+export type NotificationEventSettingChannel = "IN_APP" | "EMAIL";
+
+export type NotificationEventSetting = {
+  eventCode: string;
+  name: string;
+  moduleKey: string;
+  moduleLabel: string;
+  required: boolean;
+  channels: Array<{ channel: NotificationEventSettingChannel; enabled: boolean }>;
+};
+
+export const getNotificationEventSettings = () =>
+  requestJson<{ items: NotificationEventSetting[] }>("/event-settings");
+
+export const updateNotificationEventChannel = (
+  eventCode: string,
+  payload: { channel: NotificationEventSettingChannel; enabled: boolean },
+) =>
+  requestJson<NotificationEventSetting>(
+    `/event-settings/${encodeURIComponent(eventCode)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    },
+  );
+
 export const getEmailTemplates = () =>
   requestJson<{ items: EmailTemplate[] }>("/email-templates");
 export const getEmailTemplate = (id: string) =>

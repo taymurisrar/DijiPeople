@@ -29,6 +29,7 @@ import {
   TestSendEmailTemplateDto,
   UpdateEmailProviderDto,
   UpdateEmailTemplateDto,
+  UpdateNotificationEventChannelDto,
   UpdateNotificationPreferencesDto,
   UpdateNotificationRuleDto,
 } from './dto';
@@ -102,6 +103,38 @@ export class NotificationsController {
     @Body() dto: UpdateNotificationRuleDto,
   ) {
     return this.notificationsService.updateRule(user, ruleId, dto);
+  }
+
+  /*
+   * ITEM-0180 — the notification events page. `event-settings` rather than a
+   * sub-path of `events/:code`, so it cannot collide with that parameterised
+   * route.
+   *
+   * The write declares BOTH legacy keys because it writes both models: the
+   * channel preference (`notifications.manage`) and, when the first channel
+   * comes back on or the last one goes off, the event's rule
+   * (`notifications.manageRules`). PermissionsGuard requires every declared
+   * legacy key, so holding only one of them is not enough to change either.
+   */
+  @Get('event-settings')
+  @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATIONS_READ)
+  @RequirePermission(ENTITY_KEYS.USER_PREFERENCES, 'read')
+  listEventSettings(@CurrentUser() user: AuthenticatedUser) {
+    return this.notificationsService.listEventSettings(user);
+  }
+
+  @Patch('event-settings/:code')
+  @Permissions(
+    NOTIFICATION_PERMISSION_KEYS.NOTIFICATIONS_MANAGE,
+    NOTIFICATION_PERMISSION_KEYS.NOTIFICATIONS_MANAGE_RULES,
+  )
+  @RequirePermission(ENTITY_KEYS.USER_PREFERENCES, 'write')
+  updateEventChannel(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('code') eventCode: string,
+    @Body() dto: UpdateNotificationEventChannelDto,
+  ) {
+    return this.notificationsService.updateEventChannel(user, eventCode, dto);
   }
 
   @Get('email-templates')

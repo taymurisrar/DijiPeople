@@ -3,6 +3,17 @@ import { NotificationChannel, NotificationType } from '@prisma/client';
 import { EmailService, SendTemplateEmailResult } from './email/email.service';
 import { InAppNotificationsService } from './in-app-notifications.service';
 import type { EmailAttachment } from './interfaces/email-provider.interface';
+import {
+  isConfigurableEvent,
+  NOTIFICATION_EVENT_CATALOG,
+} from './notification-events.catalog';
+import { NotificationsRepository } from './notifications.repository';
+
+const CATALOG_BY_CODE = new Map(
+  NOTIFICATION_EVENT_CATALOG.map((event) => [event.code, event]),
+);
+
+export type InAppSkipReason = 'EVENT_IN_APP_DISABLED' | 'EVENT_RULE_DISABLED';
 
 export type NotificationDispatchInput = {
   tenantId: string;
@@ -55,12 +66,14 @@ export class NotificationOrchestratorService {
   constructor(
     private readonly emailService: EmailService,
     private readonly inAppNotificationsService: InAppNotificationsService,
+    private readonly repository: NotificationsRepository,
   ) {}
 
   async dispatch(input: NotificationDispatchInput) {
     const results: {
       email?: SendTemplateEmailResult;
       inApp?: unknown;
+      inAppSkippedReason?: InAppSkipReason;
     } = {};
 
     if (input.channels.includes(NotificationChannel.EMAIL) && input.email) {
@@ -90,7 +103,17 @@ export class NotificationOrchestratorService {
       });
     }
 
-    if (input.channels.includes(NotificationChannel.IN_APP) && input.inApp) {
+    const wantsInApp = Boolean(
+      input.channels.includes(NotificationChannel.IN_APP) && input.inApp,
+    );
+    const inAppSkippedReason = wantsInApp
+      ? await this.resolveInAppSkipReason(input.tenantId, input.eventCode)
+      : null;
+    if (inAppSkippedReason) {
+      results.inAppSkippedReason = inAppSkippedReason;
+    }
+
+    if (wantsInApp && input.inApp && !inAppSkippedReason) {
       results.inApp = await this.inAppNotificationsService.create({
         tenantId: input.tenantId,
         eventCode: input.eventCode,
@@ -120,5 +143,41 @@ export class NotificationOrchestratorService {
     );
 
     return results;
+  }
+
+  /*
+   * ITEM-0180. The in-app half of this dispatcher — payroll and payslip
+   * notifications — used to create rows with no gate at all, so neither an
+   * event's rule nor its In-app preference could stop them, and an In-app
+   * toggle for a payroll event would have been a switch wired to nothing. This
+   * mirrors `EmailExecutionService.execute()` exactly: the preference narrows,
+   * a disabled rule stops the event, no rule row is not a "disabled", and a
+   * configurable:false event is never asked. The email half is untouched —
+   * `execute()` already gates it.
+   */
+  private async resolveInAppSkipReason(
+    tenantId: string,
+    eventCode: string,
+  ): Promise<InAppSkipReason | null> {
+    const catalogEntry = CATALOG_BY_CODE.get(eventCode);
+    if (catalogEntry && !isConfigurableEvent(catalogEntry)) {
+      return null;
+    }
+
+    const [preference, rule] = await Promise.all([
+      this.repository.findPreference({
+        tenantId,
+        eventCode,
+        channel: NotificationChannel.IN_APP,
+      }),
+      this.repository.findRuleForEvent({ tenantId, eventCode }),
+    ]);
+    if (preference?.enabled === false) {
+      return 'EVENT_IN_APP_DISABLED';
+    }
+    if (rule && !rule.enabled) {
+      return 'EVENT_RULE_DISABLED';
+    }
+    return null;
   }
 }
