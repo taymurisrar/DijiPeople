@@ -597,7 +597,7 @@ export class CustomDataService {
       const readPermission = stringOrNull(rules.readPermission);
       if (readPermission && !user.permissionKeys.includes(readPermission))
         continue;
-      const value = values[column.columnKey];
+      const value: unknown = values[column.columnKey];
       secured[column.columnKey] =
         rules.mask === true && value ? maskValue(String(value)) : value;
     }

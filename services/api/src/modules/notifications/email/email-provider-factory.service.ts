@@ -176,14 +176,14 @@ export class EmailProviderFactory {
     const configuration =
       providerType === EmailProviderType.SMTP
         ? {
-            host: this.configService.get('EMAIL_SMTP_HOST'),
+            host: this.configService.get<string>('EMAIL_SMTP_HOST'),
             port: Number(this.configService.get('EMAIL_SMTP_PORT') ?? 587),
             secure: this.configService.get('EMAIL_SMTP_SECURE') === 'true',
-            username: this.configService.get('EMAIL_SMTP_USER'),
-            password: this.configService.get('EMAIL_SMTP_PASSWORD'),
+            username: this.configService.get<string>('EMAIL_SMTP_USER'),
+            password: this.configService.get<string>('EMAIL_SMTP_PASSWORD'),
           }
         : {
-            apiKey: this.configService.get('EMAIL_API_KEY'),
+            apiKey: this.configService.get<string>('EMAIL_API_KEY'),
           };
 
     const provider = this.getProvider(providerType);

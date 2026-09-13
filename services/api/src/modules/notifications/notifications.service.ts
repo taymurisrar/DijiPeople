@@ -42,7 +42,7 @@ import {
   mergeConfigurationPreservingMaskedSecrets,
   SECRET_KEY_PATTERN,
 } from './email/email-safety';
-import {} from './notifications.constants';
+import { buildTenantNotificationScopeKey } from './notifications.constants';
 import {
   isAvailableEvent,
   isConfigurableEvent,

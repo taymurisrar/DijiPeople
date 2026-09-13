@@ -31,12 +31,15 @@ const MODULES_ROOT = join(__dirname, '..');
 
 /*
  * Files that name event codes without sending them: the catalog and this
- * declaration describe events, and the payroll notification service declares
- * a type union of every payroll code it *could* be called with.
+ * declaration describe events, the payroll notification service declares
+ * a type union of every payroll code it *could* be called with, and the
+ * system template copy (BUG-3500) is authored content keyed by `eventCode` —
+ * a DRAFT template for an event nothing sends is still copy, not a call site.
  */
 const NON_EMITTING_FILES = new Set([
   'notifications/notification-events.catalog.ts',
   'notifications/notification-event-delivery.ts',
+  'notifications/system-email-templates.copy.ts',
   'payroll/payroll-notification.service.ts',
 ]);
 
