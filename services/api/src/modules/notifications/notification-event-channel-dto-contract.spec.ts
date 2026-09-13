@@ -77,7 +77,9 @@ describe('notification events page request contract', () => {
       ');',
     );
     expect(squash(call)).toContain('body: JSON.stringify(payload)');
-    expect(squash(call)).toContain('/event-settings/${encodeURIComponent(eventCode)}');
+    expect(squash(call)).toContain(
+      '/event-settings/${encodeURIComponent(eventCode)}',
+    );
   });
 
   it.each([

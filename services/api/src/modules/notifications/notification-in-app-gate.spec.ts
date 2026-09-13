@@ -35,7 +35,13 @@ function buildOrchestrator(input: {
     { findPreference, findRuleForEvent } as unknown as NotificationsRepository,
   );
 
-  return { service, sendTemplateEmail, create, findPreference, findRuleForEvent };
+  return {
+    service,
+    sendTemplateEmail,
+    create,
+    findPreference,
+    findRuleForEvent,
+  };
 }
 
 const PAYROLL_IN_APP = {
@@ -47,7 +53,7 @@ const PAYROLL_IN_APP = {
 };
 
 describe('NotificationOrchestratorService in-app gate (ITEM-0180)', () => {
-  it('creates nothing when the event\'s In-app preference is off', async () => {
+  it("creates nothing when the event's In-app preference is off", async () => {
     const harness = buildOrchestrator({
       preference: { enabled: false },
       rule: null,
@@ -64,7 +70,7 @@ describe('NotificationOrchestratorService in-app gate (ITEM-0180)', () => {
     });
   });
 
-  it('creates nothing when the event\'s rule is disabled', async () => {
+  it("creates nothing when the event's rule is disabled", async () => {
     const harness = buildOrchestrator({
       preference: null,
       rule: { enabled: false },

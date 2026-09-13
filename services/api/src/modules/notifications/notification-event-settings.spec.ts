@@ -149,35 +149,49 @@ function buildHarness(
   const rules = (seed.rules ?? []).map((row) => ({ ...row }));
   const preferences = (seed.preferences ?? []).map((row) => ({ ...row }));
   const tenantArguments: string[] = [];
+  // Prisma hands back fresh objects, never live references to stored rows.
+  // Copying here keeps a write from silently rewriting a row the service is
+  // still holding — which would hide exactly the before/after audit bug these
+  // specs exist to catch.
+  const copy = <T extends object>(rows: T[]) => rows.map((row) => ({ ...row }));
 
   const repository = {
     listEvents: jest.fn(async () => EVENTS),
     findEventByCode: jest.fn(
-      async (code: string) => EVENTS.find((event) => event.code === code) ?? null,
+      async (code: string) =>
+        EVENTS.find((event) => event.code === code) ?? null,
     ),
     listRulesForTenant: jest.fn(async (tenantId: string) => {
       tenantArguments.push(tenantId);
-      return rules.filter((row) => row.tenantId === tenantId);
+      return copy(rules.filter((row) => row.tenantId === tenantId));
     }),
     listRulesForEvent: jest.fn(async (tenantId: string, eventKey: string) => {
       tenantArguments.push(tenantId);
-      return rules
-        .filter((row) => row.tenantId === tenantId && row.eventKey === eventKey)
-        .sort((left, right) => left.priority - right.priority);
+      return copy(
+        rules
+          .filter(
+            (row) => row.tenantId === tenantId && row.eventKey === eventKey,
+          )
+          .sort((left, right) => left.priority - right.priority),
+      );
     }),
     listPreferences: jest.fn(async (tenantId: string) => {
       tenantArguments.push(tenantId);
-      return preferences.filter(
-        (row) => row.tenantId === tenantId && row.userId === null,
+      return copy(
+        preferences.filter(
+          (row) => row.tenantId === tenantId && row.userId === null,
+        ),
       );
     }),
     listPreferencesForEvent: jest.fn(
       async (tenantId: string, eventCode: string) => {
         tenantArguments.push(tenantId);
-        return preferences.filter(
-          (row) =>
-            row.scopeKey === buildTenantNotificationScopeKey(tenantId) &&
-            row.eventCode === eventCode,
+        return copy(
+          preferences.filter(
+            (row) =>
+              row.scopeKey === buildTenantNotificationScopeKey(tenantId) &&
+              row.eventCode === eventCode,
+          ),
         );
       },
     ),
@@ -228,8 +242,8 @@ function buildHarness(
 
   const auditService = { log: jest.fn(async () => undefined) };
   const prisma = {
-    $transaction: jest.fn(
-      async (callback: (tx: unknown) => Promise<unknown>) => callback(TX),
+    $transaction: jest.fn(async (callback: (tx: unknown) => Promise<unknown>) =>
+      callback(TX),
     ),
   };
 
@@ -253,10 +267,10 @@ function buildHarness(
   };
 }
 
-async function rejection(promise: Promise<unknown>) {
+async function rejection(promise: Promise<unknown>): Promise<unknown> {
   try {
     await promise;
-  } catch (error) {
+  } catch (error: unknown) {
     return error;
   }
   throw new Error('Expected the call to be refused.');
@@ -266,7 +280,10 @@ describe('NotificationsService.listEventSettings (ITEM-0180)', () => {
   it('offers only events some code path delivers to this tenant, grouped in module order', async () => {
     const { service } = buildHarness({
       rules: [
-        rule({ eventKey: 'leave.request.approved.employee', moduleKey: 'leave' }),
+        rule({
+          eventKey: 'leave.request.approved.employee',
+          moduleKey: 'leave',
+        }),
         rule({
           tenantId: OTHER_TENANT,
           eventKey: 'CLAIM_APPROVAL_REQUESTED',
@@ -297,7 +314,10 @@ describe('NotificationsService.listEventSettings (ITEM-0180)', () => {
   it('never offers Email for an event nothing emails, even when the catalog lists it', async () => {
     const { service } = buildHarness({
       rules: [
-        rule({ eventKey: 'leave.request.approved.employee', moduleKey: 'leave' }),
+        rule({
+          eventKey: 'leave.request.approved.employee',
+          moduleKey: 'leave',
+        }),
       ],
     });
 
@@ -325,7 +345,11 @@ describe('NotificationsService.listEventSettings (ITEM-0180)', () => {
         }),
       ],
       preferences: [
-        preference({ eventCode: 'PAYSLIP_AVAILABLE', channel: EMAIL, enabled: false }),
+        preference({
+          eventCode: 'PAYSLIP_AVAILABLE',
+          channel: EMAIL,
+          enabled: false,
+        }),
         preference({
           tenantId: OTHER_TENANT,
           eventCode: 'PAYSLIP_AVAILABLE',
@@ -438,7 +462,10 @@ describe('NotificationsService.updateEventChannel (ITEM-0180)', () => {
   it('turning the last channel off disables the rule — the event notifies nobody', async () => {
     const harness = buildHarness({
       rules: [
-        rule({ eventKey: 'leave.request.approved.employee', moduleKey: 'leave' }),
+        rule({
+          eventKey: 'leave.request.approved.employee',
+          moduleKey: 'leave',
+        }),
       ],
     });
 
@@ -545,7 +572,7 @@ describe('NotificationsService.updateEventChannel (ITEM-0180)', () => {
 
       const error = await rejection(
         harness.service.updateEventChannel(USER, eventCode, {
-          channel: channel as 'IN_APP' | 'EMAIL',
+          channel: channel,
           enabled: true,
         }),
       );
@@ -579,7 +606,10 @@ describe('NotificationsService.updateEventChannel (ITEM-0180)', () => {
   it("reads and writes only the caller's tenant, and never touches another tenant's rows", async () => {
     const harness = buildHarness({
       rules: [
-        rule({ eventKey: 'leave.request.approved.employee', moduleKey: 'leave' }),
+        rule({
+          eventKey: 'leave.request.approved.employee',
+          moduleKey: 'leave',
+        }),
         rule({
           tenantId: OTHER_TENANT,
           eventKey: 'leave.request.approved.employee',
@@ -615,7 +645,10 @@ describe('NotificationsService.updateEventChannel (ITEM-0180)', () => {
 });
 
 describe('NotificationsController event-settings routes carry both permission systems', () => {
-  function metadata(key: string, handler: 'listEventSettings' | 'updateEventChannel') {
+  function metadata(
+    key: string,
+    handler: 'listEventSettings' | 'updateEventChannel',
+  ) {
     return Reflect.getMetadata(
       key,
       NotificationsController.prototype[handler],
@@ -626,7 +659,9 @@ describe('NotificationsController event-settings routes carry both permission sy
     expect(metadata(PERMISSIONS_KEY, 'listEventSettings')).toEqual([
       'notifications.read',
     ]);
-    expect(metadata(REQUIRED_RBAC_PERMISSIONS_KEY, 'listEventSettings')).toEqual([
+    expect(
+      metadata(REQUIRED_RBAC_PERMISSIONS_KEY, 'listEventSettings'),
+    ).toEqual([
       {
         entityKey: ENTITY_KEYS.USER_PREFERENCES,
         privilege: expect.stringMatching(/^read$/i) as unknown,

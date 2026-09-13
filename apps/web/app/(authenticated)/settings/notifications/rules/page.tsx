@@ -37,9 +37,12 @@ export default async function NotificationEventsPage() {
   const emailEnabled = tenantSettings?.notifications?.emailEnabled;
 
   return (
+    // "Notification Rules" is pinned together with the settings navigation,
+    // group and adapter-registry labels (TASK-0031 WP-06); a rename has to
+    // move all of them at once, so it is proposed rather than made here.
     <SettingsShell
-      description="Notification events"
-      title="Notification Events"
+      description="Notification rules"
+      title="Notification Rules"
     >
       <NotificationEventsManager
         // Mirrors PATCH /notifications/event-settings/:code, which declares

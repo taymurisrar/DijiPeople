@@ -441,6 +441,11 @@ export class NotificationsService {
       const before =
         preferences.find((preference) => preference.channel === dto.channel) ??
         null;
+      // Captured before any write, so the audit's "before" can never be read
+      // back from a row the write has already changed.
+      const preferenceBefore = before
+        ? { eventCode, channel: before.channel, enabled: before.enabled }
+        : null;
 
       const saved = await this.notificationsRepository.upsertTenantPreference(
         {
@@ -465,9 +470,7 @@ export class NotificationsService {
           action: 'notification_preference.updated',
           entityType: 'NotificationPreference',
           entityId: saved.id,
-          beforeSnapshot: before
-            ? { eventCode, channel: before.channel, enabled: before.enabled }
-            : null,
+          beforeSnapshot: preferenceBefore,
           afterSnapshot: {
             eventCode,
             channel: saved.channel,
@@ -483,7 +486,9 @@ export class NotificationsService {
         channel: dto.channel,
         enabled: dto.enabled,
       });
-      const changedRules = rules.filter((rule) => rule.enabled !== ruleEnabled);
+      const changedRules = rules
+        .filter((rule) => rule.enabled !== ruleEnabled)
+        .map((rule) => ({ id: rule.id, enabled: rule.enabled }));
       if (!changedRules.length) {
         return;
       }
