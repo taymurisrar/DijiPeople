@@ -2,7 +2,7 @@
 ID: BUG-3491
 aliases: [BUG-3491]
 Title: Customization pages crash for a user who holds customization permissions but no customizer role
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: AUTHORIZATION
@@ -13,10 +13,10 @@ AffectedModules: [apps/web, customization]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
 QAReport: 
-RegressionId: 
+RegressionId: REG-481
 RelatedBacklogItem:
 RelatedDecision: docs/decisions/ADR-0013-customization-access-is-granted-by-permission.md
-RelatedImplementation:
+RelatedImplementation: [docs/plans/EXECPLAN-0045-customization-end-to-end-for-permission-holders.md, services/api/src/modules/customization/customization-access.guard.ts, services/api/src/modules/customization/customization.controller.ts, apps/web/app/(authenticated)/settings/_lib/require-settings-permission.ts, apps/web/app/(authenticated)/settings/customization/_lib/customization-page-permissions.json]
 CreatedAt: 2026-09-13
 UpdatedAt: 2026-09-13
 ResolvedAt:
@@ -167,8 +167,26 @@ ExecPlan needed.
 
 ## Regression Coverage
 
-The test must cross the web/API seam. A unit test on either side alone is what
-let this regression through. Required:
+REG-481, QA scenario QA-SETTINGS-021:
+
+- `services/api/src/modules/customization/customization-web-gate.seam.spec.ts`
+  crosses the seam: it reads the web page map, asserts each page's keys cover the
+  keys its API routes declare, runs the real guard for a `system-admin` holding
+  exactly those keys on every route, and asserts every route declares a key.
+- `services/api/src/modules/customization/customization-access.guard.spec.ts`,
+  rewritten on purpose: the "does not give an ordinary System Administrator
+  customization access" case is inverted.
+- `apps/web/app/(authenticated)/settings/_lib/require-settings-permission.spec.ts`:
+  permission-only, all-of; roles alone no longer admit.
+
+Mutation-checked: the guard admitting by role again fails 11 tests.
+
+REG-420 (BUG-3374) did not catch this regression because its only test was on
+the web side of the seam. The DB-backed e2e test required below was not
+written; the seam spec covers the guard with real controller metadata but not
+the full Nest pipeline, and the browser scenario covers the journey.
+
+As filed, the record required:
 
 - A DB-backed API e2e test that calls `/customization/tables` as a tenant user
   holding the customization permissions and only the `system-admin` role, and
@@ -192,16 +210,71 @@ ADR-0013 records the access rule. No infrastructure dependency.
 
 ## Resolution
 
+Fixed in TASK-0031 WP-01 (commit 811a915c on `agent/walkthrough2-customization`,
+merged into `agent/walkthrough2-integration`; plan EXECPLAN-0045), applying
+ADR-0013: customization access is granted by permission, not by role.
+
+- **API guard.** `customization-access.guard.ts` has no role check. It requires
+  every `@Permissions` key the handler declares, for elevated roles too, and
+  refuses a handler that declares none (fail closed). A missing
+  `customization.publish` keeps `CUSTOMIZATION_PUBLISH_PERMISSION_REQUIRED`;
+  anything else is `CUSTOMIZATION_PERMISSION_REQUIRED`.
+- **No administrator locked out.** `auth-access.service.ts` already gives
+  elevated roles and the tenant owner every foundation permission key, all
+  `customization.*` keys included. No grant, matrix or single-writer file changed.
+- **Controller decorators** (`customization.controller.ts`), both permission
+  systems kept on every route: package create, edit, delete and membership
+  routes moved from `customization.publish` to `customization.packages.manage`;
+  import preview to `customization.import.preview`; `layers/ensure` to
+  `customization.read`/write, with the service asserting the component type's
+  own key before writing.
+- **Web gate.** `requireCustomizationAccess` admits on all of the page's keys,
+  with no role bypass and no redirect. One map,
+  `customization-page-permissions.json`, lists each page's keys and the API
+  routes it loads; the layout and every page gate through it and render the
+  access-denied state in place, including when their own API load returns 403.
+- Tenant scoping unchanged; `hasElevatedTenantRole` not extended.
+- **Accepted consequence (Architect).** A custom role holding
+  `customization.publish` but not `customization.packages.manage` loses package
+  create, edit and delete. System roles are unaffected.
+- **Left as found.** `settings-navigation.ts` still lists `requiredAnyRoles` for
+  Customization entries; nothing in `apps/web` reads it. No DB-backed e2e of
+  `GET /api/customization/tables` for a `system-admin` user was written; the seam
+  spec runs the real guard against real controller metadata.
+
+Stream validation: api customization, dual-permission, wiring-invariants and
+rbac-matrix specs 16 suites / 143 tests passed; web 97 suites / 1869 tests
+passed; web typecheck passed; 14 of 14 mutations caught.
+
 ## QA Retest
+
+Pending — browser verification on a throwaway database and on production in
+TASK-0031 WP-07/WP-08. Scenario QA-SETTINGS-021:
+
+1. As a `system-admin` holding every `customization.*` key and no System
+   Customizer role, open every Customization page and both designers: data, no
+   server error.
+2. As a custom-role user with `customization.read` and
+   `customization.tables.read` only: the modules list loads; a module detail
+   shows Access denied in place with the URL unchanged.
+3. As a user with no `customization.*` key: Access denied in place; `GET
+   /api/customization/tables` returns 403 `CUSTOMIZATION_PERMISSION_REQUIRED`.
+4. Publish still needs `customization.publish`; package create needs
+   `customization.packages.manage`.
+5. After release, remove the temporary System Customizer role from the demo
+   workspace owner and repeat step 1.
 
 ## History
 
 - 2026-09-13 — created from the second demo walkthrough (browser QA on the live demo tenant at df0f84f1); disposition set by the Architect after owner decisions.
+- 2026-09-13 — fixed in TASK-0031 WP-01; unit-tested; browser verification pending.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
 ## Related
 
 - Modules — [[tenant-application]]
+- Implementation — [[EXECPLAN-0045-customization-end-to-end-for-permission-holders]]
+- Regression — REG-481 (see the regression register)
 
 <!-- GRAPH:END -->

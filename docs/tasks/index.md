@@ -14,9 +14,7 @@ graph and the block reasons. See
 
 ## Next ready work package
 
-| Task | WP | Title |
-|---|---|---|
-| [TASK-0031](TASK-0031-demo-walkthrough-2-remediation-hierarchy-work-sites-customiz.md) | WP-01 | Customization blockers: permission-based access, field creation, publish path, editor validation, hydration modal |
+Nothing ready.
 
 ## Needs a human
 
@@ -62,4 +60,4 @@ graph and the block reasons. See
 | [TASK-0027](TASK-0027-tenant-app-assignment-which-tenants-receive-a-release.md) | Tenant app assignment: which tenants receive a release | FEATURE | MEDIUM | P1 | COMPLETE | 1/1 | — |
 | [TASK-0028](TASK-0028-enterprise-reports-and-analytics-platform.md) | Enterprise Reports and Analytics platform | FEATURE | LARGE | P1 | IN_PROGRESS | 5/15 | WP-08 |
 | [TASK-0030](TASK-0030-implement-the-34-open-records-from-sessions-0099-0102.md) | Implement the 34 open records from sessions 0099-0102 | FEATURE | LARGE | P1 | COMPLETE | 8/8 | — |
-| [TASK-0031](TASK-0031-demo-walkthrough-2-remediation-hierarchy-work-sites-customiz.md) | Demo walkthrough 2 remediation - hierarchy, work sites, customization, notifications | FEATURE | PROGRAM | P1 | IN_PROGRESS | 0/9 | WP-00 |
+| [TASK-0031](TASK-0031-demo-walkthrough-2-remediation-hierarchy-work-sites-customiz.md) | Demo walkthrough 2 remediation - hierarchy, work sites, customization, notifications | FEATURE | PROGRAM | P1 | IN_PROGRESS | 7/9 | WP-07 |

@@ -10,8 +10,9 @@ CREATED_AT: 2026-09-12
 AFFECTED_MODULES: [apps/web, customization, notifications, employees, attendance, data]
 AGENTS: [architect, qa, backend-api, frontend, ui-ux, security, reviewer, integrator, release-devops, knowledge-graph]
 DEPENDENCIES: WP-07 depends on WP-01..WP-06; WP-08 depends on WP-07
-CURRENT_PACKAGE: WP-00
-COMPLETED_PACKAGES: []
+CURRENT_PACKAGE: WP-07
+NEXT_READY_WORK_PACKAGE: WP-07
+COMPLETED_PACKAGES: [WP-00, WP-01, WP-02, WP-03, WP-04, WP-05, WP-06]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 9
 FINAL_STATUS:
@@ -33,14 +34,14 @@ has been removed from the demo tenant's owner.
 
 | WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | BUGS | CI_STATUS | MERGE_STATUS |
 |---|---|---|---|---|---|---|---|---|---|---|
-| WP-00 | Findings records and owner decisions | IN_PROGRESS | — | architect, qa | agent/demo-walkthrough-2-records | — | — | BUG-3491..BUG-3501, ITEM-0179..ITEM-0184 | — | — |
-| WP-01 | Customization blockers: permission-based access, field creation, publish path, editor validation, hydration modal | READY | — | backend-api, frontend, security | agent/walkthrough2-customization | — | — | BUG-3491, BUG-3492, BUG-3493, BUG-3495, BUG-3496 | — | — |
-| WP-02 | Published custom modules in the tenant runtime | READY | — | frontend, backend-api | agent/walkthrough2-custom-runtime | — | — | BUG-3494 | — | — |
-| WP-03 | Employee record: hierarchy dialog, work-sites tab, reset password, export, record usability, helper text | READY | — | frontend, ui-ux, backend-api | agent/walkthrough2-employee-record | — | — | BUG-3497, BUG-3498, BUG-3499, ITEM-0179, ITEM-0183, ITEM-0184 | — | — |
-| WP-04 | Email templates: real default copy and visual editor | READY | — | backend-api, frontend | agent/walkthrough2-email-templates | — | — | BUG-3500, ITEM-0181 | — | — |
-| WP-05 | One plain notification events page | READY | — | frontend, backend-api | agent/walkthrough2-notification-events | — | — | ITEM-0180 | — | — |
-| WP-06 | Email providers and delivery logs: retire sinks in production, truthful status, logs | READY | — | backend-api, frontend, security | agent/walkthrough2-providers-logs | — | — | BUG-3501, ITEM-0182 | — | — |
-| WP-07 | Integration, browser QA on a throwaway database, review, CI, develop | NOT_STARTED | WP-01, WP-02, WP-03, WP-04, WP-05, WP-06 | qa, reviewer, integrator | agent/walkthrough2-integration | — | — | — | — | — |
+| WP-00 | Findings records and owner decisions | DONE | — | architect, qa | agent/demo-walkthrough-2-records | c494311d | — | BUG-3491..BUG-3501, ITEM-0179..ITEM-0184 | PASS (run 34725936912) | merged into develop |
+| WP-01 | Customization blockers: permission-based access, field creation, publish path, editor validation, hydration modal | DONE | — | backend-api, frontend, security | agent/walkthrough2-customization | 811a915c | unit PASS; browser pending | BUG-3491, BUG-3492, BUG-3493, BUG-3495, BUG-3496 | pending (integration) | merged into agent/walkthrough2-integration |
+| WP-02 | Published custom modules in the tenant runtime | DONE | — | frontend, backend-api | agent/walkthrough2-custom-runtime | c213b6ae | unit PASS; browser pending | BUG-3494 | pending (integration) | merged into agent/walkthrough2-integration |
+| WP-03 | Employee record: hierarchy dialog, work-sites tab, reset password, export, record usability, helper text | DONE | — | frontend, ui-ux, backend-api | agent/walkthrough2-employee-record | 270757ba | unit PASS; browser pending | BUG-3497, BUG-3498, BUG-3499, ITEM-0179, ITEM-0183, ITEM-0184 | pending (integration) | merged into agent/walkthrough2-integration |
+| WP-04 | Email templates: real default copy and visual editor | DONE | — | backend-api, frontend | agent/walkthrough2-email-templates | b0d8278d | unit PASS; browser pending | BUG-3500, ITEM-0181 | pending (integration) | merged into agent/walkthrough2-integration |
+| WP-05 | One plain notification events page | DONE | — | frontend, backend-api | agent/walkthrough2-notification-events | 1051495e | unit PASS; browser pending | ITEM-0180 | pending (integration) | merged into agent/walkthrough2-integration |
+| WP-06 | Email providers and delivery logs: retire sinks in production, truthful status, logs | DONE | — | backend-api, frontend, security | agent/walkthrough2-providers-logs | 11e987a6 | unit PASS; browser pending | BUG-3501, ITEM-0182 | pending (integration) | merged into agent/walkthrough2-integration |
+| WP-07 | Integration, browser QA on a throwaway database, review, CI, develop | IN_PROGRESS | WP-01, WP-02, WP-03, WP-04, WP-05, WP-06 | qa, reviewer, integrator | agent/walkthrough2-integration | — | — | — | — | — |
 | WP-08 | Production release and demo-tenant verification | NOT_STARTED | WP-07 | release-devops, qa | release PR to main | — | — | — | — | — |
 
 ## Assumptions
@@ -48,7 +49,7 @@ has been removed from the demo tenant's owner.
 | ASSUMPTION_ID | STATEMENT | EVIDENCE | CONFIDENCE | IMPACT_IF_WRONG |
 |---|---|---|---|---|
 | A-01 | Render's pre-deploy step runs `npm --workspace api run release` (migrate, seed:config) on every deploy, so seeded template copy reaches production on release | Render service API read 2026-09-13 | HIGH | Template copy would need a deliberate script |
-| A-02 | Production has a working platform relay for tenant email once sink providers are ignored | Not yet verified | MEDIUM | Demo tenant would send nothing instead of real mail; verify before WP-08 closes |
+| A-02 | Production has a working platform relay for tenant email once sink providers are ignored | VERIFIED — production read-only check 2026-09-13: the platform relay is enabled as Mailtrap live SMTP; all 3 production tenants are sink-only (CONSOLE) and will send real mail through it after release | HIGH | Demo tenant would send nothing instead of real mail |
 | A-03 | No schema change is needed for WP-01, WP-03, WP-04 | Code reading during record filing | MEDIUM | An ExecPlan database section and migration would be added |
 | A-04 | WP-01 to WP-06 touch mostly disjoint files; shared seams are `module-widget-renderer.tsx` (WP-03 only) and the notifications service (WP-04, WP-06) | File ownership plan | MEDIUM | Integration conflicts resolved in WP-07 |
 
@@ -75,12 +76,19 @@ All asked and answered on 2026-09-13; each is `USER_CONFIRMED`.
 
 - 2026-09-12 — created at `f36ec9a9`.
 - 2026-09-13 — decomposed into WP-00..WP-08 after the owner's decisions; records BUG-3491..BUG-3501 and ITEM-0179..ITEM-0184 filed; ADR-0013..ADR-0017 accepted.
+- 2026-09-13 — WP-00 integrated into `develop` at `c494311d` (CI run 34725936912 PASS).
+- 2026-09-13 — WP-01..WP-06 finished on their branches (811a915c, c213b6ae, 270757ba, b0d8278d, 1051495e, 11e987a6) and merged into `agent/walkthrough2-integration`: WP-02 at 27bff342, WP-06 at f09ddce2, WP-03 at 9183d737, WP-04 at d0922e9b, WP-05 at 80235361, WP-01 at ca33e9a5.
+- 2026-09-13 — integration fix `dba1605d`: ADR-0014 enforced on the server (the employee update refuses a changed `locationId`) and the `employee.workSites` widget retired from the system widget registry (REG-488).
+- 2026-09-13 — integration fix `4d249b40`: the Sidebar Designer lists published custom modules (BUG-3494 hand-off from WP-02).
+- 2026-09-13 — records brought up to date on `agent/walkthrough2-records-update`: BUG-3491..BUG-3501 `FIXED` and ITEM-0179..ITEM-0184 `DONE`, browser verification pending; REG-481..REG-488, REG-491..REG-512 and REG-515..REG-519 registered with QA scenarios QA-SETTINGS-021..QA-SETTINGS-032, QA-RUNTIME-045..QA-RUNTIME-046 and QA-EMPLOYEE-002..QA-EMPLOYEE-007; follow-ups BUG-3506 and ITEM-0185..ITEM-0196 filed. WP-07 in progress.
+- 2026-09-13 — further integration commits on `agent/walkthrough2-integration`: `23044aed` (notifications and data integration seams, lint cap) and `89bc55a6` (component index regenerated); a pending commit makes `CustomDataService.create` work for a published custom module without a parent record (BUG-3494, two unit cases under REG-492).
+- 2026-09-13 — production read-only checks: assumption A-02 VERIFIED (platform relay enabled as Mailtrap live SMTP; all 3 production tenants are sink-only and will send real mail through it after release); 0 tenant-owned ACTIVE placeholder templates, so ITEM-0194 closed DONE.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-tasks.mjs; edit the record, not this block -->
 
 ## Related
 
-- Records — [[BUG-3491]], [[BUG-3492]], [[BUG-3493]], [[BUG-3494]], [[BUG-3495]], [[BUG-3496]], [[BUG-3497]], [[BUG-3498]], [[BUG-3499]], [[BUG-3500]], [[BUG-3501]], [[ITEM-0179]], [[ITEM-0180]], [[ITEM-0181]], [[ITEM-0182]], [[ITEM-0183]], [[ITEM-0184]]
+- Records — [[BUG-3491]], [[BUG-3492]], [[BUG-3493]], [[BUG-3494]], [[BUG-3495]], [[BUG-3496]], [[BUG-3497]], [[BUG-3498]], [[BUG-3499]], [[BUG-3500]], [[BUG-3501]], [[BUG-3506]], [[ITEM-0179]], [[ITEM-0180]], [[ITEM-0181]], [[ITEM-0182]], [[ITEM-0183]], [[ITEM-0184]], [[ITEM-0185]], [[ITEM-0194]], [[ITEM-0196]]
 - Modules — [[notifications]], [[employees]], [[attendance]]
 
 <!-- GRAPH:END -->

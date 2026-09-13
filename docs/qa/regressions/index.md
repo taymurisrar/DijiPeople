@@ -5067,3 +5067,554 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-09-12, branch `agent/r-s8-employee`, found and fixed while implementing [[ITEM-0164]] |
 | **Active** | yes |
 
+### REG-481 — Customization pages admitted by permission while their API admitted only by role
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` |
+| **Module** | `services/api/src/modules/customization`, `apps/web` |
+| **Bug record** | BUG-3491 |
+| **Root cause** | After BUG-3374 the web Customization section admitted by permission, while `CustomizationAccessGuard` admitted only the Global Administrator and System Customizer roles. `PermissionsGuard` skips every key check for elevated roles, so that role check was the API's only customization gate: a System Administrator holding every `customization.*` key reached each page and then got 403 from its first server-side API call, which the server component rendered as a server error page. |
+| **Regression test** | `services/api/src/modules/customization/customization-web-gate.seam.spec.ts`, `services/api/src/modules/customization/customization-access.guard.spec.ts`, `apps/web/app/(authenticated)/settings/_lib/require-settings-permission.spec.ts` |
+| **QA scenario** | QA-SETTINGS-021 |
+| **Scenario** | A `system-admin` or custom-role user holding exactly a page's keys passes the real guard on every API route that page loads; a user without the keys is refused whatever their role; a route that declares no key is refused; the web page map covers every key its routes declare. In the browser, the same user opens every Customization page with no server error, and a user without the keys gets Access denied in place. |
+| **Proven to fail without the fix** | Mutation: the guard admitting by role again fails the guard spec and the seam spec (11 failed); the web gate falling back to a role bypass or any-of fails `require-settings-permission.spec.ts` (5 failed). |
+| **Note** | REG-420 (BUG-3374) did not catch this because its only test was on the web side of the seam. The web pages and the seam spec now read the same JSON page map (`customization-page-permissions.json`), so a key change on either side fails CI instead of crashing a screen. No DB-backed e2e of `GET /api/customization/tables` for a `system-admin` user was written. |
+| **Fixed** | 2026-09-13, commit 811a915c on branch `agent/walkthrough2-customization`, merged into `agent/walkthrough2-integration` |
+| **Active** | yes |
+
+### REG-482 — The Add field dialog sent a null length the API read as zero
+
+| | |
+|---|---|
+| **Bug class** | `client-payload-drifts-from-its-dto` |
+| **Module** | `services/api/src/modules/customization`, `apps/web` |
+| **Bug record** | BUG-3492 |
+| **Root cause** | The Add field dialog sent `maxLength: null` for every type without a length and for a blank text length. `@IsOptional` let `null` through the DTO, and `validateValueRules` compared `null < 1`, so choice, reference, number, date and boolean fields could not be created at all. |
+| **Regression test** | `services/api/src/modules/customization/column-payload.seam.spec.ts`, `apps/web/app/(authenticated)/settings/customization/_lib/column-payload.spec.ts` |
+| **QA scenario** | QA-SETTINGS-022 |
+| **Scenario** | The real client payload for each field type, through the real `ValidationPipe` (configured as in `main.ts`) and `CustomizationService.createColumn`, succeeds; a text field with length 0 is refused; a stale client still sending `null` succeeds. |
+| **Proven to fail without the fix** | Mutations: server treating `null` as below 1 (1 failed); client sending `null` again with the server rejecting it, the original seam defect (7 failed); client sending a length for every type (3 failed in the web spec). |
+| **Note** | The seam spec transpiles the client's own `column-payload.ts`, so a later change to the dialog's payload is tested against the server rather than a copy of it. |
+| **Fixed** | 2026-09-13, commit 811a915c on branch `agent/walkthrough2-customization`, merged into `agent/walkthrough2-integration` |
+| **Active** | yes |
+
+### REG-483 — New customization drafts defaulted into a package that publish refused and validation passed
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` |
+| **Module** | `services/api/src/modules/customization` |
+| **Bug record** | BUG-3493 |
+| **Root cause** | Every draft created without a package landed in "Unassigned Draft Customizations". The rule that this package cannot be published lived only in `publishComponents` and `publishPackage`, not in `validatePublishDrafts`, so validation passed a set publish then refused; Publish Center filtered the package out of the move targets, leaving no way out. Separately, every form and view draft was passed as a default component. |
+| **Regression test** | `services/api/src/modules/customization/customization-publish-and-metadata.spec.ts` |
+| **QA scenario** | QA-SETTINGS-023 |
+| **Scenario** | Validation reports a legacy-package draft as blocking and publish refuses exactly that set; a draft created without a package lands in the tenant's own writable Custom Package, scoped by `tenantId`; a view the administrator created gets no default-component warning while a system default view keeps it. |
+| **Proven to fail without the fix** | Mutations: validation ignoring the legacy package (2 failed); every form and view treated as a default component (1 failed). |
+| **Note** | The rule exists once, in validation. Do not re-add a publish-side copy. `listPackages` provisions the tenant package when legacy drafts exist, an idempotent write on read in the same shape as `syncDefaultSolution`. |
+| **Fixed** | 2026-09-13, commit 811a915c on branch `agent/walkthrough2-customization`, merged into `agent/walkthrough2-integration` |
+| **Active** | yes |
+
+### REG-484 — Customization stored action bars without commands, relationships over missing fields, and a rewritten package key
+
+| | |
+|---|---|
+| **Bug class** | `silent-degradation` |
+| **Module** | `services/api/src/modules/customization` |
+| **Bug record** | BUG-3495 |
+| **Root cause** | `layers/ensure` validated no component metadata, so action bars with command-less rows and relationships over reference fields that do not exist were stored; `createPackage` discarded the typed package key and stored one derived from the publisher prefix and display name. |
+| **Regression test** | `services/api/src/modules/customization/customization-publish-and-metadata.spec.ts` |
+| **QA scenario** | QA-SETTINGS-024 |
+| **Scenario** | A command-less action row returns 400 naming the row; a reference field that is not a lookup column of the source module returns 400; a real one is accepted into the tenant package; deactivating a legacy component is still allowed; a missing component-type write key returns 403; a typed package key is stored exactly. |
+| **Proven to fail without the fix** | Mutations: package key rewritten, command-less row accepted, missing reference field accepted, component-type write key unchecked (1 failed each). |
+| **Note** | Server-side, so no client can bypass it. A component prefix that differs from its package's publisher prefix is accepted by design: logical names are immutable and the prefix records the originating publisher (Architect decision, BUG-3495). The unknown-command warning stays client-side because the API has no command registry. |
+| **Fixed** | 2026-09-13, commit 811a915c on branch `agent/walkthrough2-customization`, merged into `agent/walkthrough2-integration` |
+| **Active** | yes |
+
+### REG-485 — Escape in an open dropdown closed the whole dialog
+
+| | |
+|---|---|
+| **Bug class** | `structural-guard-lost-in-rewrite` |
+| **Module** | `apps/web` |
+| **Bug record** | BUG-3495 |
+| **Root cause** | `useDialogBehavior` handles Escape on `document` in the capture phase, which runs before a combobox's own handler, and `SearchableSelect` had no Escape handling at all; pressing Escape to close a dropdown closed the dialog and discarded its input. |
+| **Regression test** | `apps/web/app/components/ui/listbox-escape.spec.ts` |
+| **QA scenario** | QA-SETTINGS-024 |
+| **Scenario** | An open listbox closes on Escape and stops propagation; its listener is on `window` in the capture phase, so it runs before the dialog's `document` capture listener; both `SelectField` and `LookupField` use it; with every listbox closed, Escape reaches the dialog. |
+| **Proven to fail without the fix** | Mutation: moving the listener to `document` fails the spec (1 failed). |
+| **Note** | Source-reading, because the web jest environment has no jsdom; comments are stripped and CRLF normalised before matching. |
+| **Fixed** | 2026-09-13, commit 811a915c on branch `agent/walkthrough2-customization`, merged into `agent/walkthrough2-integration` |
+| **Active** | yes |
+
+### REG-486 — A recoverable hydration mismatch became a blocking modal and a false 500
+
+| | |
+|---|---|
+| **Bug class** | `ssr-hydration-mismatch` |
+| **Module** | `apps/web` |
+| **Bug record** | BUG-3496 |
+| **Root cause** | Customization pages formatted dates during render with the environment's locale and timezone (`new Intl.DateTimeFormat(undefined, …)`), so server and browser output differed (React #418). The global error provider sent every window error to the blocking modal and persisted it as a 500 `SYSTEM_UNEXPECTED_ERROR`, on every load. |
+| **Regression test** | `apps/web/app/components/errors/runtime-error-classification.spec.ts` |
+| **QA scenario** | QA-SETTINGS-025 |
+| **Scenario** | React hydration errors are ignored (no modal, not persisted); an ordinary runtime error is still shown and logged; a non-hydration minified React error is shown and logged with a plain message. |
+| **Proven to fail without the fix** | Mutation: hydration errors no longer ignored fails the spec (6 failed). |
+| **Note** | The source fix is the explicit formatting context (`useFormattingContext` with `formatDate`/`formatDateTime`) on every Customization date; the classifier only stops a future mismatch from becoming a modal and a false 500. The module detail page's source was found by code reading, not a development-build reproduction. |
+| **Fixed** | 2026-09-13, commit 811a915c on branch `agent/walkthrough2-customization`, merged into `agent/walkthrough2-integration` |
+| **Active** | yes |
+
+### REG-487 — Every form hint rendered twice and a combobox had no accessible name
+
+| | |
+|---|---|
+| **Bug class** | `agent-added-explanatory-copy` |
+| **Module** | `apps/web` |
+| **Bug record** | ITEM-0183 |
+| **Root cause** | `FieldShell` rendered `hint` both as an "i" tooltip beside the label and as the feedback line under the control, so every hint appeared twice; `SelectField`'s generated id landed on a wrapper `div`, leaving the combobox unnamed. |
+| **Regression test** | `apps/web/app/components/ui/listbox-escape.spec.ts` ("renders a hint once", "names both comboboxes") |
+| **QA scenario** | QA-SETTINGS-026 |
+| **Scenario** | No `${label} help` tooltip button exists; both `SelectField` and `LookupField` comboboxes carry `aria-labelledby` pointing at their visible label. |
+| **Proven to fail without the fix** | Restoring the tooltip, or dropping `aria-labelledby`, fails the named assertions (mutation W6: 1 failed). |
+| **Note** | No explanatory text was added anywhere as a remedy. |
+| **Fixed** | 2026-09-13, commit 811a915c on branch `agent/walkthrough2-customization`, merged into `agent/walkthrough2-integration` |
+| **Active** | yes |
+
+### REG-488 — An employee record update could move the primary work site around the transactional endpoint
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-step` |
+| **Module** | `services/api/src/modules/employees`, `packages/config` |
+| **Bug record** | ITEM-0179 |
+| **Root cause** | ITEM-0179 made Location read-only in the employee form only. `EmployeesService.update` still accepted a changed `locationId`, so any client could move the primary site without the `EmployeeWorkSite` rows following it, and `packages/config/system-widget-registry.js` still offered the retired `employee.workSites` widget to the Form Designer, which ADR-0014 forbids reintroducing. |
+| **Regression test** | `services/api/src/modules/employees/employees.service.spec.ts`, `packages/config/system-widget-registry.test.js` |
+| **QA scenario** | QA-EMPLOYEE-006 |
+| **Scenario** | `PATCH /employees/{id}` with a different `locationId` returns 400 `VALIDATION_FAILED` with a `locationId` field error and the record is unchanged; an unchanged `locationId` is accepted; the Form Designer palette for Employees offers no Work Site widget, and `resolveSystemWidgetDefinition("employee.workSites")` returns null. |
+| **Note** | Orchestrator integration fix after WP-03, which had recorded both gaps as residual risks. Create may still set the initial Location so `requireWorkLocation` stays satisfiable. |
+| **Fixed** | 2026-09-13, commit dba1605d on branch `agent/walkthrough2-integration` |
+| **Active** | yes |
+
+### REG-491 — A draft custom module's records were readable and writable through `/data`
+
+| | |
+|---|---|
+| **Bug class** | `read-filter-without-a-write-check` |
+| **Module** | `services/api/src/modules/data` |
+| **Bug record** | BUG-3494 |
+| **Root cause** | `CustomDataService.findTable` accepted any `isCustom && isActive` table and never consulted the publish snapshot, so `GET/POST/PATCH/DELETE /data/<draftTableKey>` worked for a module nobody had published. Hiding drafts from navigation alone would have been a read filter over a working write path. |
+| **Regression test** | `services/api/src/modules/data/custom-data.service.spec.ts` ("a module that is not runtime-available"), `services/api/src/modules/data/custom-module-runtime.service.spec.ts`, `services/api/src/modules/data/published-custom-modules.spec.ts`, `services/api/test/custom-module-runtime.e2e-spec.ts` |
+| **QA scenario** | QA-RUNTIME-046 |
+| **Scenario** | Create a custom module with a field and do not publish it: `GET /api/data/<key>` and `POST /api/data/<key>` return 404 and `GET /api/metadata/custom-modules` does not list it. Publish it: both succeed and it is listed. Deactivate it: 404 again and it leaves the list. |
+| **Proven to fail without the fix** | The unpublished-module cases in `custom-data.service.spec.ts` fail against the pre-fix `custom-data.service.ts`, whose `findTable` returns the draft table. |
+| **Note** | The DB-backed e2e spec has not yet run against a database; the throwaway-database pass in TASK-0031 WP-07 is its first run. The legacy `publish()` snapshot shape lists every table present at publish time, a residual risk tracked as a follow-up on BUG-3494. |
+| **Fixed** | 2026-09-13, commit c213b6ae on branch `agent/walkthrough2-custom-runtime`, merged into `agent/walkthrough2-integration` |
+| **Active** | yes |
+
+### REG-492 — A published custom module had no sidebar entry and no list, form or record screen
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-step` |
+| **Module** | `apps/web`, `services/api/src/modules/data` |
+| **Bug record** | BUG-3494 |
+| **Root cause** | The sidebar was a fixed code list the Sidebar Designer could only override, and no tenant route rendered custom-table records, so publishing had no end-user outcome. |
+| **Regression test** | `apps/web/lib/runtime/custom-modules/custom-module-navigation.spec.ts`, `apps/web/lib/runtime/custom-modules/custom-module-runtime.spec.ts`, `services/api/src/modules/data/custom-data.service.spec.ts` (the two create-without-a-parent cases) |
+| **QA scenario** | QA-RUNTIME-045 |
+| **Scenario** | On a tenant with a published module, a user holding `custom-records.read` sees its entry before Settings. The entry opens `/custom-modules/<key>` with the published view's columns; New opens the published form, saves, and the record appears in the list and opens at `/custom-modules/<key>/<id>`. A Sidebar Designer hide or rename keyed by `/custom-modules/<key>` applies, and the designer lists the module. A second, differently shaped module works with no code change. |
+| **Proven to fail without the fix** | The runtime and navigation specs cover code that did not exist at the base commit. |
+| **Note** | Integration commit 4d249b40 made the Sidebar Designer list published custom modules (`resolveDashboardNavCatalog`). Screens use the standard runtime command set; the published action bar is not consumed yet (follow-up on BUG-3494). |
+| **Fixed** | 2026-09-13, commit c213b6ae on branch `agent/walkthrough2-custom-runtime`, merged into `agent/walkthrough2-integration`; designer listing 4d249b40 |
+| **Active** | yes |
+
+### REG-493 — Custom-record endpoints were authorized only inside the service
+
+| | |
+|---|---|
+| **Bug class** | `service-authorization-hidden` |
+| **Module** | `services/api/src/modules/data` |
+| **Bug record** | BUG-3494 |
+| **Root cause** | `DataController` ran `JwtAuthGuard` only. Its custom-only handlers declared neither `@Permissions` nor `@RequirePermission`, so the guard-level two-system check never ran on the endpoints the new screens call. |
+| **Regression test** | `services/api/src/modules/data/data.controller.permissions.spec.ts`, `services/api/src/common/constants/wiring-invariants.spec.ts` |
+| **QA scenario** | QA-RUNTIME-046 |
+| **Scenario** | A user with `custom-records:READ` only receives 403 on `POST`, `PATCH` and `DELETE /api/data/<key>` and succeeds on `GET /api/data/<key>/<id>`. A user with neither permission system's grant receives 403 on `GET /api/metadata/custom-modules` and sees no custom entries. The real `PermissionsGuard` denies legacy-only and matrix-only callers on every custom-only handler. |
+| **Note** | The dispatching list `GET /data/:entity` stays service-authorized, because it serves both `employees` and custom tables; it remains on the reviewed list in `wiring-invariants.spec.ts`. |
+| **Fixed** | 2026-09-13, commit c213b6ae on branch `agent/walkthrough2-custom-runtime`, merged into `agent/walkthrough2-integration` |
+| **Active** | yes |
+
+### REG-494 — Custom-module records must stay inside their tenant even under an identical module key
+
+| | |
+|---|---|
+| **Bug class** | `tenant-filter-missing` |
+| **Module** | `services/api/src/modules/data` |
+| **Bug record** | BUG-3494 |
+| **Root cause** | Preventive guard for the new record read path. Module keys are unique per tenant, not globally, so a lookup by key or by record id alone would cross tenants. Every query carries `user.tenantId` and the table id resolved within that tenant. |
+| **Regression test** | `services/api/test/custom-module-runtime.e2e-spec.ts`, `services/api/src/modules/data/custom-data.service.spec.ts` |
+| **QA scenario** | QA-RUNTIME-046 |
+| **Scenario** | Two tenants each publish module `e2eAsset`. A record created in A is listed and readable in A. In B the list is empty and `GET /data/e2eAsset/<A-id>` is 404; B's `PATCH` and `DELETE` of that id are 404 and the row is unchanged. |
+| **Note** | The unit spec pins the `findOne` where-shape (`id`, `tenantId`, `tableId`, `isDeleted: false`, ANDed with the row scope); the e2e spec proves it on a database and has not yet run against one. |
+| **Fixed** | 2026-09-13, commit c213b6ae on branch `agent/walkthrough2-custom-runtime`, merged into `agent/walkthrough2-integration` |
+| **Active** | yes |
+
+### REG-495 — An employee account-action refusal lost its HTTP status and was logged as a 500
+
+| | |
+|---|---|
+| **Bug class** | `reason-code-erased-below-the-classifier` |
+| **Module** | `apps/web` |
+| **Bug record** | BUG-3497 |
+| **Root cause** | `postEmployeeAction` threw a bare `Error` on a non-OK response, so `executeInjectedHandler` found no `error.data`, `readCommandFailureContract` defaulted the status to 500, and an expected 400 refusal was dispatched to the client error log as `SYSTEM_UNEXPECTED_ERROR` with nothing shown to the user. |
+| **Regression test** | `apps/web/lib/runtime/modules/employee-account-actions.spec.ts` |
+| **QA scenario** | QA-EMPLOYEE-002 |
+| **Scenario** | A 400 envelope from `POST /api/employees/{id}/send-reset-password-link` reaches `classifyCommandFailure` as status 400 / `VALIDATION_FAILED` and classifies as a business failure; a 500, and a 4xx with no API envelope, stay unexpected. |
+| **Proven to fail without the fix** | Restoring `throw new Error("Employee account action failed.")` fails two cases (400 classified as 500; the envelope-less path). |
+| **Note** | `buildCommandRequestError` in `apps/web/lib/runtime/command-failure-message.ts` is the shared seam any adapter handler can use instead of a bare `Error`. |
+| **Fixed** | 2026-09-13, commit 270757ba on branch `agent/walkthrough2-employee-record`, merged into `agent/walkthrough2-integration` |
+| **Active** | yes |
+
+### REG-496 — Reset Password acted on the first click and was offered to employees without a login
+
+| | |
+|---|---|
+| **Bug class** | `unguarded-destructive-command` |
+| **Module** | `apps/web` |
+| **Bug record** | BUG-3497 |
+| **Root cause** | The command had no confirmation and no visibility rule; the sibling Send Invitation's rule read a flag (`hasNeverLoggedIn`) the runtime record never carried, so it could never pass either. |
+| **Regression test** | `apps/web/lib/runtime/modules/employee-account-actions.spec.ts` |
+| **QA scenario** | QA-EMPLOYEE-002 |
+| **Scenario** | Reset Password declares a confirmation; evaluated against the real `mapEmployeeRecordToRuntimeValues` output it is hidden when `userId` is null and shown when set; Send Invitation is shown when the API reports `hasNeverLoggedIn: true`. |
+| **Proven to fail without the fix** | Without the `hasLinkedUser` mapping the "offered with a linked user" case fails; without the confirmation the confirmation case fails. |
+| **Fixed** | 2026-09-13, commit 270757ba on branch `agent/walkthrough2-employee-record`, merged into `agent/walkthrough2-integration` |
+| **Active** | yes |
+
+### REG-497 — Record export wrote lookup ids instead of names
+
+| | |
+|---|---|
+| **Bug class** | `display-value-not-carried-to-export` |
+| **Module** | `apps/web` |
+| **Bug record** | BUG-3498 |
+| **Root cause** | `displayExportValue` read the stored lookup value (the referenced id), and the export path never received the record page's `lookupDisplayValues`. |
+| **Regression test** | `apps/web/lib/runtime/module-adapter-command-handlers.export.spec.ts` |
+| **QA scenario** | QA-EMPLOYEE-003 |
+| **Scenario** | `record.export` on an employee record whose Owner, Reporting Manager and relation type hold ids writes their display names; a lookup with no known name is blank; the CSV contains no UUID; option set, boolean and date values are unchanged. |
+| **Proven to fail without the fix** | Bypassing the display-name substitution fails the names case. |
+| **Note** | Applies to every module using the client-side record export. |
+| **Fixed** | 2026-09-13, commit 270757ba on branch `agent/walkthrough2-employee-record`, merged into `agent/walkthrough2-integration` |
+| **Active** | yes |
+
+### REG-498 — Hierarchy card opened on its own and a tap could never show it
+
+| | |
+|---|---|
+| **Bug class** | `focus-and-click-toggle-conflict` |
+| **Module** | `apps/web` |
+| **Bug record** | BUG-3499 |
+| **Root cause** | The dialog auto-focused the root node, whose focus handler opened its card, and the same control's click toggled the card shut after focus had opened it. |
+| **Regression test** | `apps/web/lib/runtime/modules/employee-hierarchy-tree.spec.ts` |
+| **QA scenario** | QA-EMPLOYEE-004 |
+| **Scenario** | Initial card state is empty; focus then tap on the same node leaves its card open; hovering another node moves the card; a stale blur does not close it; touch activation shows the card first and navigates second; mouse and keyboard activation navigate. |
+| **Proven to fail without the fix** | The old toggle (focus opens, click toggles) is exactly the "tap after focus" case, which requires the card to stay open. |
+| **Note** | A visible Close control is now the dialog's first focusable element, so opening shows no card. |
+| **Fixed** | 2026-09-13, commit 270757ba on branch `agent/walkthrough2-employee-record`, merged into `agent/walkthrough2-integration` |
+| **Active** | yes |
+
+### REG-499 — Hierarchy card was clipped by the dialog's scroll containers
+
+| | |
+|---|---|
+| **Bug class** | `popover-clipped-by-overflow-ancestor` |
+| **Module** | `apps/web` |
+| **Bug record** | BUG-3499 |
+| **Root cause** | The card was absolutely positioned inside `overflow-auto`, `overflow-y-auto` and `overflow-hidden` ancestors. |
+| **Regression test** | `apps/web/lib/runtime/modules/employee-hierarchy-tree.spec.ts` (placement); clipping needs the browser check |
+| **QA scenario** | QA-EMPLOYEE-004 |
+| **Scenario** | The card position is computed in viewport coordinates, below the node when it fits and above when not, clamped inside both horizontal margins, and rendered in a portal at the body. In the browser, every card is fully visible. |
+| **Proven to fail without the fix** | The base component had no viewport placement at all; the clamping cases describe the observed left-edge cut. |
+| **Note** | Connector alignment and the Tailwind v4 `first:`/`last:`/`only:` pseudo-element variants are unverified visually. |
+| **Fixed** | 2026-09-13, commit 270757ba on branch `agent/walkthrough2-employee-record`, merged into `agent/walkthrough2-integration` |
+| **Active** | yes |
+
+### REG-500 — Work sites were an in-form widget that contradicted the record
+
+| | |
+|---|---|
+| **Bug class** | `two-writers-one-field` |
+| **Module** | `apps/web` |
+| **Bug record** | ITEM-0179 |
+| **Root cause** | Work sites lived in a bespoke widget whose empty state ignored the derived primary site, while Location remained a separately editable path to the same fact. |
+| **Regression test** | `apps/web/lib/runtime/modules/employee-work-sites.spec.ts`, `apps/web/lib/runtime/modules/employee-metadata.work-sites.spec.ts`, `apps/web/lib/runtime/related-subgrid-rows.spec.ts` |
+| **QA scenario** | QA-EMPLOYEE-005 |
+| **Scenario** | The employee main form (system and stored) has a Work Sites related tab bound by `employeeId`, writing only to the attendance work-site endpoints under `attendanceDevices.manage`; a record with no rows shows its Location as the primary row; the assign payload carries no empty-string date and no tenant id; the employee update drops `locationId`; no layout renders `employee.workSites`; Make primary is hidden on the primary row and without permission. |
+| **Proven to fail without the fix** | Every case asserts structure that did not exist at the base commit (no tab, widget present, `locationId` in the update). |
+| **Note** | The server-side half is REG-488. |
+| **Fixed** | 2026-09-13, commit 270757ba on branch `agent/walkthrough2-employee-record`, merged into `agent/walkthrough2-integration` |
+| **Active** | yes |
+
+### REG-501 — Editing a work site's dates cleared its primary flag
+
+| | |
+|---|---|
+| **Bug class** | `omitted-flag-coerced-to-false` |
+| **Module** | `services/api/src/modules/attendance-integrations` |
+| **Bug record** | ITEM-0179 |
+| **Root cause** | `assignWorkSite` passed `dto.isPrimary ?? false` to a resolver that leaves the flag alone only for `undefined`, so a validity edit demoted the primary row while `Employee.locationId` still pointed at it. |
+| **Regression test** | `services/api/src/modules/attendance-integrations/operations/attendance-operations.service.spec.ts`, `services/api/src/modules/attendance-integrations/operations/attendance-operations.dto.spec.ts` |
+| **QA scenario** | QA-EMPLOYEE-006 |
+| **Scenario** | Assign without `isPrimary` reaches the resolver with `isPrimary` undefined and does not touch `Employee.locationId`; Make primary writes the old primary, the new primary and `Employee.locationId` through the same transaction client, and nothing when the site is not an active assignment; the web payload shapes validate against the DTOs under `whitelist` and `forbidNonWhitelisted`. |
+| **Proven to fail without the fix** | Restoring `?? false` fails the "leaves the primary flag untouched" case. |
+| **Fixed** | 2026-09-13, commit 270757ba on branch `agent/walkthrough2-employee-record`, merged into `agent/walkthrough2-integration` |
+| **Active** | yes |
+
+### REG-502 — Create-time employee fields showed on existing records
+
+| | |
+|---|---|
+| **Bug class** | `create-only-field-on-saved-record` |
+| **Module** | `apps/web` |
+| **Bug record** | ITEM-0184 |
+| **Root cause** | Provision System Access and Send Invitation Now were ordinary System Information fields in every mode, and the employee entity's record status pointed at the generic `status` and `subStatus` fields. |
+| **Regression test** | `apps/web/lib/runtime/modules/employee-metadata.work-sites.spec.ts` |
+| **QA scenario** | QA-EMPLOYEE-007 |
+| **Scenario** | `withoutCreateOnlyEmployeeFields` removes both fields and keeps `userId`; the unfiltered form used on create still has both; the employee entity's status field is Employment Status with no sub status. |
+| **Proven to fail without the fix** | The filter did not exist; the status-field case fails at the base commit (`status` / `subStatus`). |
+| **Fixed** | 2026-09-13, commit 270757ba on branch `agent/walkthrough2-employee-record`, merged into `agent/walkthrough2-integration` |
+| **Active** | yes |
+
+### REG-503 — Record sections stayed three columns at tablet width
+
+| | |
+|---|---|
+| **Bug class** | `responsive-overflow` |
+| **Module** | `apps/web` |
+| **Bug record** | ITEM-0184 |
+| **Root cause** | The runtime section column class used `md:grid-cols-3`, so any viewport from 768px laid sections three across and squeezed each to about 200px. |
+| **Regression test** | `apps/web/lib/runtime/form-layout-section-columns.spec.ts` |
+| **QA scenario** | QA-EMPLOYEE-007 |
+| **Scenario** | A three-column layout resolves to `md:grid-cols-2 xl:grid-cols-3`; two- and one-column layouts are unchanged. |
+| **Proven to fail without the fix** | The base class string contains `md:grid-cols-3`, which the first case forbids. |
+| **Fixed** | 2026-09-13, commit 270757ba on branch `agent/walkthrough2-employee-record`, merged into `agent/walkthrough2-integration` |
+| **Active** | yes |
+
+### REG-504 — Removed explanatory copy on the employee record, login and Assign surfaces stays removed
+
+| | |
+|---|---|
+| **Bug class** | `agent-added-explanatory-copy` |
+| **Module** | `apps/web` |
+| **Bug record** | ITEM-0183 |
+| **Root cause** | Agents explained controls with sentences instead of making the controls clear; the owner ruled such copy out on 2026-09-13. |
+| **Regression test** | `apps/web/lib/runtime/modules/employee-record-removed-copy.spec.ts` |
+| **QA scenario** | QA-SETTINGS-026 |
+| **Scenario** | The removed fragments (login Remember me hint, work-site widget texts, hierarchy intro, Assign dialog adapter note, Assign panel allocation subtitle) are absent from their source files, whitespace-normalised. |
+| **Proven to fail without the fix** | Re-adding the Assign dialog note fails the guard. |
+| **Fixed** | 2026-09-13, commit 270757ba on branch `agent/walkthrough2-employee-record`, merged into `agent/walkthrough2-integration` |
+| **Active** | yes |
+
+### REG-505 — ACTIVE system email templates shipped placeholder bodies, restored on every deploy
+
+| | |
+|---|---|
+| **Bug class** | `unvalidated-seed-state` |
+| **Module** | `services/api/src/modules/notifications` |
+| **Bug record** | BUG-3500 |
+| **Root cause** | `createSystemTemplateSeed` in `notification-events.catalog.ts` fell back to a generic "This is a system placeholder email template" body with `status: ACTIVE` for every event with a `systemTemplateKey` but no inline copy. `seedSystemEmailTemplates` in `seed-config.ts`, run on every release, re-imposed body and status on every run. Nothing asserted template copy, so placeholder and real copy were indistinguishable to every test. |
+| **Regression test** | `services/api/src/modules/notifications/system-email-templates.spec.ts` |
+| **QA scenario** | QA-SETTINGS-027 |
+| **Scenario** | No system email template field contains placeholder wording. The catalog refuses to load when an event names a system template with no authored copy. A template is ACTIVE only for events something sends by email today. `seed:config` fails if an ACTIVE system template in the database contains placeholder wording. |
+| **Proven to fail without the fix** | Mutation: re-inserting the placeholder sentence into the payslip copy fails the spec (1 failed / 42 passed). |
+| **Note** | Copy lives in `system-email-templates.copy.ts`, the single source; `docs/tasks/TASK-0031-streams/WP-04-email-copy-for-owner-review.md` is generated from it for the owner's review (ADR-0015). |
+| **Fixed** | 2026-09-13, commit b0d8278d on branch `agent/walkthrough2-email-templates`, merged into `agent/walkthrough2-integration` |
+| **Active** | yes |
+
+### REG-506 — An ACTIVE template declared a variable its emitter never passes
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-step` |
+| **Module** | `services/api/src/modules/notifications` |
+| **Bug record** | BUG-3500 |
+| **Root cause** | `EmailTemplateRendererService.render` requires every key in `availableVariables`. The system `AUTH_PASSWORD_RESET` template declared `primaryColor` and `logoUrl`, which neither reset call site in `auth.service.ts` passes. It only worked because hidden per-tenant rows shadowed the system template; removing them, or seeding real copy naively, would have stopped forgot-password email. REG-386 was the same defect for scheduled reports. |
+| **Regression test** | `services/api/src/modules/notifications/system-email-template-emitters.spec.ts` |
+| **QA scenario** | QA-SETTINGS-027 |
+| **Scenario** | For every ACTIVE system template, every declared variable is present in the `variables` object at every emitter call site: activation, reset (three sites), invoice, payslip, scheduled report, support case. |
+| **Proven to fail without the fix** | Mutation: adding `{{logoUrl}}` to the reset copy fails the spec (1 failed / 6 passed). |
+| **Note** | The spec reads source rather than constructing the services; it normalises CRLF and requires at least three extracted keys per call site so it cannot pass vacuously. A new ACTIVE template with no emitter listed fails the spec. |
+| **Fixed** | 2026-09-13, commit b0d8278d on branch `agent/walkthrough2-email-templates`, merged into `agent/walkthrough2-integration` |
+| **Active** | yes |
+
+### REG-507 — Template authoring accepted hand-typed HTML, keys and variable JSON, and system templates could not be customized
+
+| | |
+|---|---|
+| **Bug class** | `read-filter-without-a-write-check` |
+| **Module** | `services/api/src/modules/notifications` |
+| **Bug record** | ITEM-0181 |
+| **Root cause** | Create and update stored whatever `availableVariables` JSON and key the client typed; HTML was only checked for `<script>` and `javascript:`; the event list offered events that never send email; cloning a system auth template collided with the hidden per-tenant rows; template writes had no audit rows, and update wrote by bare id. |
+| **Regression test** | `services/api/src/modules/notifications/email/email-template-authoring.service.spec.ts` |
+| **QA scenario** | QA-SETTINGS-028 |
+| **Scenario** | Authoring events exclude platform mail, unsent, retired and out-of-plan events. Create derives key and variables from the event, sanitises HTML and refuses unknown tokens. Customize creates a DRAFT tenant copy under the system key, or opens the existing one. Platform mail is not found for a tenant. Update writes through `{ id, tenantId, isSystem: false }` and ignores client variable JSON. Preview escapes hostile variable values. Every state change is audited. |
+| **Proven to fail without the fix** | At the base commit `createTemplate` stored `dto.availableVariables` verbatim and required `templateKey`; there was no authoring-events route and no audit call, so the derivation, refusal and audit assertions cannot pass against it. |
+| **Note** | Web counterpart: the editor renders no HTML or JSON textarea; covered by the browser scenario. |
+| **Fixed** | 2026-09-13, commit b0d8278d on branch `agent/walkthrough2-email-templates`, merged into `agent/walkthrough2-integration` |
+| **Active** | yes |
+
+### REG-508 — The template editor payload and the API DTOs could drift apart
+
+| | |
+|---|---|
+| **Bug class** | `client-payload-drifts-from-its-dto` |
+| **Module** | `apps/web`, `services/api/src/modules/notifications` |
+| **Bug record** | ITEM-0181 |
+| **Root cause** | The global `ValidationPipe` runs `forbidNonWhitelisted`, so a field the editor sends that a DTO does not declare is a 400. The editor was rewritten to send new shapes (no key, no variables, preview overrides, draft preview, recipient-only test send), and nothing tied the client body to the DTOs. |
+| **Regression test** | `services/api/src/modules/notifications/dto/email-template-payload.spec.ts`, `apps/web/app/(authenticated)/settings/notifications/templates/_lib/email-template-editing.spec.ts` |
+| **QA scenario** | QA-SETTINGS-028 |
+| **Scenario** | The web builders produce exactly the shared fixture, and every fixture payload validates against the real DTO with the pipe's options. An undeclared field in the fixture is rejected, which proves the check has teeth. |
+| **Proven to fail without the fix** | The base DTOs required `templateKey` and `availableVariables` on create and `variables` on preview and test send, and had no draft preview DTO, so the fixture payloads would be rejected. |
+| **Note** | Both specs read `email-template-payload.fixture.json`, so neither side can change alone. |
+| **Fixed** | 2026-09-13, commit b0d8278d on branch `agent/walkthrough2-email-templates`, merged into `agent/walkthrough2-integration` |
+| **Active** | yes |
+
+### REG-509 — Seeds rewrote system templates unconditionally and hid tenant-scope auth copies that shadowed them
+
+| | |
+|---|---|
+| **Bug class** | `two-writers-one-field` |
+| **Module** | `services/api/prisma`, `services/api/src/modules/notifications` |
+| **Bug record** | BUG-3500 |
+| **Root cause** | `seedSystemEmailTemplates` and `NotificationsRepository.bootstrapSystemDefaults` both upserted system templates with an unconditional update. `seedTenantEmailTemplates` wrote ACTIVE `isSystem` auth templates into every tenant's scope; they outranked the system templates in resolution, were invisible on every screen, and held the key a tenant's Customize needs. |
+| **Regression test** | `services/api/src/modules/notifications/system-email-templates.spec.ts` (the planSystemTemplateWrite seed guard cases) |
+| **QA scenario** | QA-SETTINGS-027 |
+| **Scenario** | Running `seed:config` twice leaves system copy unchanged on the second run. A tenant's own template is never written. Legacy per-tenant `isSystem` auth rows are re-keyed `.retired-tenant-default` and ARCHIVED, and auth emails then resolve to the system templates. Customize on the password reset template succeeds. |
+| **Proven to fail without the fix** | Before the fix the seed's update branch rewrote body and status on every existing system row, and the legacy per-tenant rows made cloning an auth template violate `@@unique([scopeKey, templateKey])`. The guard's skip cases are unit-tested; the retirement step needs the DB-backed scenario. |
+| **Note** | Rows are re-keyed rather than deleted so `EmailDeliveryLog.templateId` history keeps its template. Rollback: re-key `%.retired-tenant-default` rows back to their original key and status ACTIVE. Tenant clones of the old placeholder templates stay ACTIVE (the seed only warns); tracked as a follow-up on BUG-3500. |
+| **Fixed** | 2026-09-13, commit b0d8278d on branch `agent/walkthrough2-email-templates`, merged into `agent/walkthrough2-integration` |
+| **Active** | yes |
+
+### REG-510 — An In-app notification checkbox that no dispatch path read
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-step` |
+| **Module** | `services/api/src/modules/notifications`, `apps/web` |
+| **Bug record** | ITEM-0180 |
+| **Root cause** | `/settings/notifications/rules` wrote `NotificationPreference(IN_APP)`. Neither in-app path read it: `NotificationsService.emit()` consulted only `NotificationRule`, and `NotificationOrchestratorService.dispatch()` (payroll, payslips) created in-app rows with no gate at all. Only `EmailExecutionService.execute()` honoured a preference. |
+| **Regression test** | `services/api/src/modules/notifications/notification-in-app-gate.spec.ts`, `services/api/src/modules/notifications/notification-event-settings.spec.ts` |
+| **QA scenario** | QA-SETTINGS-029 |
+| **Scenario** | Turning an event's In-app channel off stops its in-app notification on both paths: `emit()` creates no rows, though workflows still run, and the orchestrator reports `inAppSkippedReason`. Email for the same event is unaffected. Turning the last channel off disables the event's rules; turning one back on re-enables them. Both writes are audited in one transaction. Required events are never asked. |
+| **Proven to fail without the fix** | Removing the orchestrator gate fails 3 of 8 in `notification-in-app-gate.spec.ts`, removing the `emit()` gate 1 of 8; removing rule alignment fails 2 of 18 in `notification-event-settings.spec.ts`. |
+| **Note** | ADR-0011 is unchanged: rule = can this event notify anyone; preference = which channels. Release note: a tenant that unticked In-app on the old page stops receiving those in-app notifications, and turning an event's last channel off also stops workflow `SEND_EMAIL` actions keyed on it. |
+| **Fixed** | 2026-09-13, commit 1051495e on branch `agent/walkthrough2-notification-events`, merged into `agent/walkthrough2-integration` |
+| **Active** | yes |
+
+### REG-511 — Events with no emitter offered as live, because "live" meant catalog availability
+
+| | |
+|---|---|
+| **Bug class** | `gate-scoped-to-one-structure` |
+| **Module** | `services/api/src/modules/notifications` |
+| **Bug record** | ITEM-0180 |
+| **Root cause** | The settings screen treated `availability: ACTIVE` as "can fire". Claims, loans and timesheets are ACTIVE, but their in-app path needs a tenant `NotificationRule` for module keys `claim`, `loan` and `timesheet`, which no tenant has. Six payroll events are ACTIVE with no emitter at all. Leave events list EMAIL, but nothing emails them. |
+| **Regression test** | `services/api/src/modules/notifications/notification-event-delivery.spec.ts`, `services/api/src/modules/notifications/notification-event-settings.spec.ts` |
+| **QA scenario** | QA-SETTINGS-029 |
+| **Scenario** | The events page lists only events a code path delivers to this tenant, with only the channels it delivers on. Every live catalog event is declared in `NOTIFICATION_EVENT_DELIVERY` or `EVENTS_WITHOUT_EMITTER`, never both and never neither. Each declared emitter has a call site with the rule's `moduleKey` in the same file, and no no-emitter event has a sending call site. |
+| **Proven to fail without the fix** | Dropping `PAYROLL_PROCESSED` from the no-emitter list, or declaring a leave event under `moduleKey` `leaves`, fails `notification-event-delivery.spec.ts` (1 of 6); making the read model ignore rule and preference fails 3 of 18 in `notification-event-settings.spec.ts`. |
+| **Note** | Hiding claims, loans and timesheets is truthful today, not permanent: they reappear once a tenant has a matching rule (ITEM-0170's resolver work). |
+| **Fixed** | 2026-09-13, commit 1051495e on branch `agent/walkthrough2-notification-events`, merged into `agent/walkthrough2-integration` |
+| **Active** | yes |
+
+### REG-512 — The events page toggle payload and its DTO are one contract
+
+| | |
+|---|---|
+| **Bug class** | `client-payload-drifts-from-its-dto` |
+| **Module** | `apps/web`, `services/api/src/modules/notifications` |
+| **Bug record** | ITEM-0180 |
+| **Root cause** | A field added on the web side would 400 every toggle. With optimistic save and rollback, that reads as "the checkbox will not stay ticked", not as a validation error. |
+| **Regression test** | `services/api/src/modules/notifications/notification-event-channel-dto-contract.spec.ts`, `apps/web/app/(authenticated)/settings/notifications/_components/notification-events-model.spec.ts` |
+| **QA scenario** | QA-SETTINGS-029 |
+| **Scenario** | The body the page sends (`{ channel, enabled }`, read from the web source) passes the real `ValidationPipe` with `main.ts` options. Any extra field, a `PUSH` or `SMS` channel, or a non-boolean flag is rejected. A failed save reverts only its own checkbox and shows an inline error. |
+| **Proven to fail without the fix** | Adding a field to `buildEventChannelPayload` fails the contract spec (1 of 11); making a failed save keep the optimistic value fails 3 of 11 in `notification-events-model.spec.ts`. |
+| **Fixed** | 2026-09-13, commit 1051495e on branch `agent/walkthrough2-notification-events`, merged into `agent/walkthrough2-integration` |
+| **Active** | yes |
+
+### REG-515 — Production API refuses sink email providers
+
+| | |
+|---|---|
+| **Bug class** | `read-filter-without-a-write-check` |
+| **Module** | `services/api/src/modules/notifications`, `packages/config` |
+| **Bug record** | BUG-3501 |
+| **Root cause** | The supported provider types in `packages/config/email-providers.js` had no environment input, and provider create, update, set-default and disable in `NotificationsService` had no environment check and wrote no audit row, so CONSOLE and DEV could be created and enabled in production. Hiding them in the screen alone would have been cosmetic. |
+| **Regression test** | `services/api/src/modules/notifications/email/production-sink-retirement.spec.ts` ("NotificationsService provider writes in production") |
+| **QA scenario** | QA-SETTINGS-030 |
+| **Scenario** | With `NODE_ENV` or `APP_ENV` set to production, `POST /notifications/email-providers` with CONSOLE or DEV returns 400 `EMAIL_PROVIDER_TYPE_NOT_ALLOWED`, and so does an update that leaves a sink row enabled, switches a row into a sink type, or sets a sink as default. Disabling a sink row, or switching it to SMTP, succeeds. The real web payload is validated by the real DTO before the refusal. Provider writes are audited without `configuration`. |
+| **Proven to fail without the fix** | Mutation: forcing `sinkEmailProvidersRetired` to false fails 7 of the spec's 24 tests. |
+| **Note** | `staging` is deliberately not treated as production (ADR-0015 covers production only). |
+| **Fixed** | 2026-09-13, commit 11e987a6 on branch `agent/walkthrough2-providers-logs`, merged into `agent/walkthrough2-integration` |
+| **Active** | yes |
+
+### REG-516 — Production provider resolution never returns a sink
+
+| | |
+|---|---|
+| **Bug class** | `silent-config-fallback` |
+| **Module** | `services/api/src/modules/notifications`, `packages/config` |
+| **Bug record** | BUG-3501 |
+| **Root cause** | `EmailProviderFactory` chose the tenant's default enabled row even when it was a sink, accepted `EMAIL_PROVIDER=CONSOLE`, and gated its development console fallback on `NODE_ENV` alone; `platform-email-provider.resolver.ts` resolved a non-SMTP platform relay to the console sink. Mail "sent" in production could go nowhere. |
+| **Regression test** | `services/api/src/modules/notifications/email/production-sink-retirement.spec.ts` ("EmailProviderFactory in production", "EffectiveEmailProviderService in production"), `packages/config/email-providers.test.js` |
+| **QA scenario** | QA-SETTINGS-030 |
+| **Scenario** | In production, tenant sink rows, a sink `EMAIL_PROVIDER`, a sink platform relay and the development console fallback are all ignored; SMTP is preferred over a default sink; a tenant whose only providers are sinks resolves to the platform relay; `APP_ENV` production is honoured even when `NODE_ENV` is not. Development and test behaviour is unchanged. |
+| **Proven to fail without the fix** | Mutation: forcing `sinkEmailProvidersRetired` to false fails the factory and effective-provider cases. |
+| **Note** | After deploy every tenant whose enabled providers are all CONSOLE or DEV sends real mail through the platform relay. Verified on production by a read-only check on 2026-09-13 (TASK-0031 assumption A-02): the relay is enabled as Mailtrap live SMTP, and all 3 production tenants are sink-only. |
+| **Fixed** | 2026-09-13, commit 11e987a6 on branch `agent/walkthrough2-providers-logs`, merged into `agent/walkthrough2-integration` |
+| **Active** | yes |
+
+### REG-517 — seed-config never creates a sink provider in production
+
+| | |
+|---|---|
+| **Bug class** | `unvalidated-seed-state` |
+| **Module** | `services/api/prisma`, `services/api/src/modules/notifications` |
+| **Bug record** | BUG-3501 |
+| **Root cause** | `seedTenantConsoleProviders` upserted an enabled default Console provider for every tenant with no enabled provider, and the release runs `seed:config` on every deploy, so production tenants were re-given a sink each release. |
+| **Regression test** | `services/api/src/modules/notifications/email/production-sink-retirement.spec.ts` ("seedTenantConsoleProviders") |
+| **QA scenario** | QA-SETTINGS-030 |
+| **Scenario** | `seedTenantConsoleProviders` returns 0 and performs no read or write when `NODE_ENV` or `APP_ENV` is production; `npm run seed:config` with `APP_ENV=production` against a tenant with no provider creates no "Console Provider" row. |
+| **Proven to fail without the fix** | Mutation: forcing `sinkEmailProvidersRetired` to false fails the seed case. |
+| **Note** | Existing sink rows stay stored and show as "Not used" in production; a later cleanup is optional. |
+| **Fixed** | 2026-09-13, commit 11e987a6 on branch `agent/walkthrough2-providers-logs`, merged into `agent/walkthrough2-integration` |
+| **Active** | yes |
+
+### REG-518 — The Email Providers screen described a console sink as delivering mail
+
+| | |
+|---|---|
+| **Bug class** | `copy-contradicts-configuration` |
+| **Module** | `apps/web` |
+| **Bug record** | BUG-3501 |
+| **Root cause** | `EffectiveProviderPanel` distinguished only "can send" from "cannot send", so a sink provider was reported exactly like SMTP ("Email is sent by this workspace's own provider … over CONSOLE"); the create form defaulted to CONSOLE, was always open, and carried a developer JSON note; the manager's grid column could grow to the table's minimum width, so the page scrolled sideways at 1440px. |
+| **Regression test** | `apps/web/app/(authenticated)/settings/notifications/_components/email-delivery-path.spec.ts` |
+| **QA scenario** | QA-SETTINGS-031 |
+| **Scenario** | The banner never describes a CONSOLE or DEV provider as delivering, including against an API that does not send `deliveryPath`; production offers no sink type; a sink row production ignores reads "Not used" with no Set Default; the form opens only from "Add provider" or "Edit" in a `Dialog`; the note "Configuration JSON is sent to the backend as-is" is absent. |
+| **Proven to fail without the fix** | The base screen rendered the sink as delivery and always rendered the form with the JSON note, which the banner and removed-copy assertions forbid. |
+| **Note** | Also removes ITEM-0183 occurrence 4. Source assertions use plain `includes` with no newline literals, so CRLF checkouts cannot make them pass vacuously. |
+| **Fixed** | 2026-09-13, commit 11e987a6 on branch `agent/walkthrough2-providers-logs`, merged into `agent/walkthrough2-integration` |
+| **Active** | yes |
+
+### REG-519 — Delivery Logs: reason column, in-app channel, one name, no checkboxes
+
+| | |
+|---|---|
+| **Bug class** | `silent-degradation` |
+| **Module** | `apps/web`, `services/api/src/modules/notifications` |
+| **Bug record** | ITEM-0182 |
+| **Root cause** | The delivery log list omitted `errorMessage`, which BUG-3379 stores for NOT_DELIVERED and FAILED rows, so the reason was visible only on the record page; no tenant-wide in-app delivery log existed; `StandardModuleListPage` hardcoded row selection with no action to use it; and one screen went by three names. |
+| **Regression test** | `apps/web/app/(authenticated)/settings/_lib/delivery-log-channel.spec.ts`, `services/api/src/modules/notifications/in-app-delivery-logs.spec.ts` |
+| **QA scenario** | QA-SETTINGS-032 |
+| **Scenario** | The email log lists the Reason beside Status; `?channel=in-app` serves tenant in-app deliveries from `GET /notifications/in-app-delivery-logs` (tenant-scoped from the session, `notification.logs.read` plus REPORTS read, an explicit select with no notification content, a DTO that rejects `tenantId`); navigation, settings group, adapter and page title all read "Delivery Logs"; the Notifications card label equals its page and adapter label; log rows have no selection checkbox. |
+| **Proven to fail without the fix** | At the base commit the adapter had no Reason column, no in-app adapter or endpoint existed, and the names disagreed, which the name and column assertions forbid. |
+| **Note** | If the Notification Rules page is renamed, navigation, adapter, group and page title must change together; `delivery-log-channel.spec.ts` fails on a partial rename. |
+| **Fixed** | 2026-09-13, commit 11e987a6 on branch `agent/walkthrough2-providers-logs`, merged into `agent/walkthrough2-integration` |
+| **Active** | yes |
+

@@ -2,7 +2,7 @@
 ID: BUG-3501
 aliases: [BUG-3501]
 Title: The email provider screen presents a console sink as delivery and offers sink providers in production
-Status: OPEN
+Status: FIXED
 Severity: MEDIUM
 Priority: P1
 Type: UX
@@ -13,10 +13,10 @@ AffectedModules: [notifications, apps/web]
 OwnerAgent: architect
 ArchitectDisposition: PLAN_REQUIRED
 QAReport: 
-RegressionId: 
+RegressionId: REG-515
 RelatedBacklogItem:
 RelatedDecision: docs/decisions/ADR-0015-production-retires-sink-email-providers.md
-RelatedImplementation:
+RelatedImplementation: [docs/plans/EXECPLAN-0050-production-retires-sink-email-providers-and-honest-delivery-logs.md, packages/config/email-providers.js, services/api/src/modules/notifications/email/email-provider-factory.service.ts, services/api/src/modules/notifications/notifications.service.ts, services/api/prisma/seed-config.ts, apps/web/app/(authenticated)/settings/notifications/_components/email-providers-manager.tsx, apps/web/app/(authenticated)/settings/notifications/_components/email-delivery-path.ts]
 CreatedAt: 2026-09-13
 UpdatedAt: 2026-09-13
 ResolvedAt:
@@ -104,6 +104,22 @@ Established for the offer, the default and the banner:
 provider table is `min-w-[900px]` but sits inside an `overflow-x-auto` wrapper
 (lines 471-472), so it is not asserted as the cause.
 
+TASK-0031 WP-06 inferred it from code, to be confirmed in the browser: the
+settings layout's own column is `minmax(0,1fr)`
+(`apps/web/app/components/settings/settings-layout.tsx:40`), but the manager's
+inner `grid gap-6` was not, so its auto column could grow to the table's
+`min-w-[900px]` and the table's `overflow-x-auto` wrapper never engaged.
+
+**Also found during WP-06** (line numbers at `88f33c6e`): the resolution path
+chose a sink too. `email-provider-factory.service.ts:45-58` took the default
+enabled tenant row even when it was a sink, `:64` accepted
+`EMAIL_PROVIDER=CONSOLE`, `:69` gated the development fallback on `NODE_ENV`
+alone, and `platform-email-provider.resolver.ts:49-52` resolved a non-SMTP
+platform relay to the console sink. Provider writes in `notifications.service.ts`
+had no environment check and no audit row, and `seedTenantConsoleProviders` in
+`seed-config.ts` re-created an enabled Console default for every tenant without
+an enabled provider on every release.
+
 ## Impact
 
 - Tenant administrators are told mail is being delivered when it is not, so notifications, invitations and scheduled reports silently go nowhere.
@@ -144,6 +160,26 @@ tenants and includes a data change. Write an ExecPlan covering:
 
 ## Regression Coverage
 
+QA scenarios QA-SETTINGS-030 (API, resolution, seed) and QA-SETTINGS-031 (screen).
+
+- REG-515 (write refusal), REG-516 (resolution never returns a sink) and REG-517
+  (seed): `services/api/src/modules/notifications/email/production-sink-retirement.spec.ts`,
+  plus `packages/config/email-providers.test.js` for the environment predicate
+  (including the `APP_ENV` masking case and staging). Mutation: forcing
+  `sinkEmailProvidersRetired` to false fails 7 of the spec's 24 tests; the rest
+  stub the environment answer and test the refusal itself.
+- REG-518 (the banner and screen):
+  `apps/web/app/(authenticated)/settings/notifications/_components/email-delivery-path.spec.ts`
+  — banner wording per path, a sink never "delivered" even against an older API,
+  type options, the "Not used" state, removed copy, the form behind "Add
+  provider".
+- `services/api/src/modules/notifications/email/email-delivery-capability.spec.ts`
+  keeps the development chain pinned.
+
+Both requirements below are met.
+
+As filed, the record required:
+
 - An API unit test must fail today: provider creation with `providerType: CONSOLE` under a production environment must be rejected.
 - A web test of `EffectiveProviderPanel` with a sink effective provider must assert it is not described as sending mail.
 - REG entries to be added when the tests exist.
@@ -163,20 +199,87 @@ tenants and includes a data change. Write an ExecPlan covering:
 
 ## Resolution
 
-Not yet fixed.
+Fixed in TASK-0031 WP-06 (commit 11e987a6 on `agent/walkthrough2-providers-logs`,
+merged into `agent/walkthrough2-integration`; plan EXECPLAN-0050), applying
+ADR-0015 and shipping with [[BUG-3500]].
+
+- **Production detection.** `sinkEmailProvidersRetired(env)` in `@repo/config`
+  is true when `NODE_ENV` or `APP_ENV` is `production` (either one, so neither
+  masks the other). `staging` is deliberately excluded. The API reads it once
+  through `EmailProviderFactory.sinkProvidersRetired()`; the seed passes
+  `process.env`.
+- **API refusal.** In production, creating CONSOLE or DEV, an update leaving a
+  sink row enabled, switching a row into a sink type, and set-default on a sink
+  all return 400 `EMAIL_PROVIDER_TYPE_NOT_ALLOWED`. Disabling a sink row, or
+  switching it to SMTP, stays allowed.
+- **Resolution in production.** `EmailProviderFactory` skips sink tenant rows and
+  a sink `EMAIL_PROVIDER` and never returns the development fallback;
+  `EffectiveEmailProviderService` drops a sink platform relay, so a sink-only
+  tenant resolves to the SMTP platform relay. Diagnostics use the same factory.
+  Development and test behaviour is unchanged.
+- **Existing rows.** Not deleted: a sink row production ignores is shown as "Not
+  used". `seedTenantConsoleProviders` returns 0 in production, so no release
+  re-creates one.
+- **Contract (additive).** `GET …/email-providers/effective` adds `deliveryPath`,
+  `notDeliveredReason` and `sinkProvidersRetired`; `GET …/field-schema` adds
+  `selectableProviderTypes`, and the web offers exactly that list.
+- **Audit.** Provider create, update, set-default and disable are audited on
+  `EmailProviderSetting`, never including `configuration`.
+- **Screen.** The banner reads "Email is delivered by this workspace's provider",
+  "Email is delivered by the DijiPeople platform relay" or "Email is not
+  delivered" with its reason; the form lives in a `Dialog` opened by "Add
+  provider" or a row's Edit, defaulting to the first non-sink type; the shared
+  `DataTable` replaces the hand-rolled table and `ConfirmDialog` replaces
+  `window.confirm`; the JSON note and other explanatory copy are removed
+  (ITEM-0183 occurrence 4).
+- **Horizontal overflow.** Cause inferred from code: the manager's inner grid
+  column could grow to the table's `min-w-[900px]`, so the table's own
+  `overflow-x-auto` never engaged. Every grid child is now `min-w-0`.
+
+Effect on release: every tenant whose enabled providers are all CONSOLE or DEV,
+effectively every tenant that never configured its own SMTP provider, the demo
+tenant included, starts sending real mail through the platform relay.
+
+Verified on production (read-only check, 2026-09-13; TASK-0031 assumption A-02
+now HIGH): the platform relay is enabled as SMTP on Mailtrap live SMTP, not a
+sandbox; production has 3 tenants, and all 3 are sink-only (CONSOLE). All three
+will therefore receive real mail through the relay once this release is deployed.
 
 ## QA Retest
 
-Not yet retested.
+Pending — browser verification on a throwaway database and on production in
+TASK-0031 WP-07/WP-08. Scenarios QA-SETTINGS-030 (API, resolution, seed) and
+QA-SETTINGS-031 (screen):
+
+1. Locally with `APP_ENV=production` and a tenant holding only a default Console
+   provider: with the relay enabled as SMTP the banner reads "Email is delivered
+   by the DijiPeople platform relay"; with it disabled, "Email is not
+   delivered" and "No email provider is available."; the Console row reads "Not
+   used" with no Set Default.
+2. Add provider opens a dialog offering only SMTP; Escape closes it.
+3. Edit the Console row: "Console (not available)"; saving enabled is refused;
+   unticking Enabled saves.
+4. `POST /api/notifications/email-providers` with CONSOLE returns 400
+   `EMAIL_PROVIDER_TYPE_NOT_ALLOWED`.
+5. Without production settings, CONSOLE and DEV are offered and a Console default
+   reads "Email is not delivered" with "The Console provider does not send
+   email."
+6. 1440px and 400px: no horizontal page scroll, no JSON note or help text.
+7. `npm run seed:config` with `APP_ENV=production` creates no Console provider.
+8. After release, on the demo tenant: a template test arrives, logged SENT with
+   providerType SMTP.
 
 ## History
 
 - 2026-09-13 — created from the second demo walkthrough (browser QA on the live demo tenant at df0f84f1); disposition set by the Architect after owner decisions.
+- 2026-09-13 — fixed in TASK-0031 WP-06; unit-tested; browser verification pending.
 
 <!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
 
 ## Related
 
 - Modules — [[notifications]], [[tenant-application]]
+- Implementation — [[EXECPLAN-0050-production-retires-sink-email-providers-and-honest-delivery-logs]]
+- Regression — REG-515 (see the regression register)
 
 <!-- GRAPH:END -->
