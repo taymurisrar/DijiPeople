@@ -34,6 +34,7 @@ import {
   TestSendEmailTemplateDto,
   UpdateEmailProviderDto,
   UpdateEmailTemplateDto,
+  UpdateNotificationEventChannelDto,
   UpdateNotificationPreferencesDto,
   UpdateNotificationRuleDto,
 } from './dto';
@@ -56,10 +57,17 @@ import {
   parseNotificationScopeKey,
 } from './notifications.constants';
 import {
+  isAvailableEvent,
   isConfigurableEvent,
   isRetiredEventCode,
   NOTIFICATION_EVENT_CATALOG,
 } from './notification-events.catalog';
+import {
+  buildEventSettingItems,
+  describeEventSetting,
+  resolveDeliverableChannels,
+  ruleEnabledAfterToggle,
+} from './notification-event-delivery';
 import { SecretEncryptionService } from '../../common/security/secret-encryption.service';
 import { NotificationsRepository } from './notifications.repository';
 import { WorkflowRuntimeService } from '../workflows/workflow-runtime.service';
@@ -73,6 +81,13 @@ import type {
 const CATALOG_BY_CODE = new Map(
   NOTIFICATION_EVENT_CATALOG.map((event) => [event.code, event]),
 );
+
+function notificationEventNotFound() {
+  return new NotFoundException({
+    code: 'NOTIFICATION_EVENT_NOT_FOUND',
+    message: 'Notification event was not found.',
+  });
+}
 
 @Injectable()
 export class NotificationsService {
@@ -335,6 +350,196 @@ export class NotificationsService {
     });
 
     return updated;
+  }
+
+  /*
+   * ITEM-0180. The read model behind /settings/notifications/rules: one row per
+   * event that some code path can deliver to this tenant, with each channel's
+   * state computed the way dispatch decides it. What "can deliver" means, and
+   * why, lives in notification-event-delivery.ts.
+   */
+  async listEventSettings(currentUser: AuthenticatedUser) {
+    const tenantScopeKey = buildTenantNotificationScopeKey(
+      currentUser.tenantId,
+    );
+    const [events, rules, preferences] = await Promise.all([
+      this.notificationsRepository.listEvents(),
+      this.notificationsRepository.listRulesForTenant(currentUser.tenantId),
+      this.notificationsRepository.listPreferences(currentUser.tenantId),
+    ]);
+
+    return {
+      items: buildEventSettingItems({
+        events,
+        rules,
+        preferences: preferences.filter(
+          (preference) => preference.scopeKey === tenantScopeKey,
+        ),
+      }),
+    };
+  }
+
+  /*
+   * ITEM-0180. One toggle on the events page. Writes the channel preference,
+   * then brings the event's NotificationRule rows into line with ADR-0011's
+   * "can this event notify anyone" — in one transaction, so a failure cannot
+   * leave the preference saved and the rule stale, which would make the page
+   * the administrator is looking at wrong about what will be sent.
+   *
+   * No rule is ever created here. Rule wiring (resolver, template) is
+   * structural per ADR-0011, and an event whose in-app delivery needs a rule
+   * the tenant does not have is not offered at all.
+   */
+  async updateEventChannel(
+    currentUser: AuthenticatedUser,
+    rawEventCode: string,
+    dto: UpdateNotificationEventChannelDto,
+  ) {
+    const tenantId = currentUser.tenantId;
+    const eventCode = rawEventCode.trim();
+    const catalogEntry =
+      eventCode.length > 0 && eventCode.length <= 120
+        ? CATALOG_BY_CODE.get(eventCode)
+        : undefined;
+
+    if (!catalogEntry || isRetiredEventCode(eventCode)) {
+      throw notificationEventNotFound();
+    }
+    if (!isAvailableEvent(catalogEntry) || !isConfigurableEvent(catalogEntry)) {
+      throw new AppError('NOTIFICATION_EVENT_NOT_CONFIGURABLE');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      const event = await this.notificationsRepository.findEventByCode(
+        eventCode,
+        tx,
+      );
+      if (!event) {
+        throw notificationEventNotFound();
+      }
+
+      const rules = await this.notificationsRepository.listRulesForEvent(
+        tenantId,
+        eventCode,
+        tx,
+      );
+      const channels = resolveDeliverableChannels({
+        eventCode,
+        supportedChannels: event.supportedChannels,
+        rules,
+      });
+      if (!channels.includes(dto.channel)) {
+        throw new AppError('NOTIFICATION_EVENT_NOT_CONFIGURABLE');
+      }
+
+      const preferences =
+        await this.notificationsRepository.listPreferencesForEvent(
+          tenantId,
+          eventCode,
+          tx,
+        );
+      const before =
+        preferences.find((preference) => preference.channel === dto.channel) ??
+        null;
+
+      const saved = await this.notificationsRepository.upsertTenantPreference(
+        {
+          tenantId,
+          eventCode,
+          channel: dto.channel,
+          enabled: dto.enabled,
+          // The upsert writes metadata on update too; a toggle has no business
+          // clearing whatever was stored beside the flag.
+          metadata:
+            before?.metadata === null || before?.metadata === undefined
+              ? Prisma.JsonNull
+              : (before.metadata as Prisma.InputJsonValue),
+        },
+        tx,
+      );
+
+      await this.auditService.log(
+        {
+          tenantId,
+          actorUserId: currentUser.userId,
+          action: 'notification_preference.updated',
+          entityType: 'NotificationPreference',
+          entityId: saved.id,
+          beforeSnapshot: before
+            ? { eventCode, channel: before.channel, enabled: before.enabled }
+            : null,
+          afterSnapshot: {
+            eventCode,
+            channel: saved.channel,
+            enabled: saved.enabled,
+          },
+        },
+        tx,
+      );
+
+      const ruleEnabled = ruleEnabledAfterToggle({
+        channels,
+        preferences,
+        channel: dto.channel,
+        enabled: dto.enabled,
+      });
+      const changedRules = rules.filter((rule) => rule.enabled !== ruleEnabled);
+      if (!changedRules.length) {
+        return;
+      }
+
+      await this.notificationsRepository.setRulesEnabledForEvent(
+        tenantId,
+        eventCode,
+        ruleEnabled,
+        tx,
+      );
+      for (const rule of changedRules) {
+        await this.auditService.log(
+          {
+            tenantId,
+            actorUserId: currentUser.userId,
+            action: 'notification_rule.updated',
+            entityType: 'NotificationRule',
+            entityId: rule.id,
+            beforeSnapshot: { enabled: rule.enabled },
+            afterSnapshot: { enabled: ruleEnabled },
+          },
+          tx,
+        );
+      }
+    });
+
+    const [event, rules, preferences] = await Promise.all([
+      this.notificationsRepository.findEventByCode(eventCode),
+      this.notificationsRepository.listRulesForEvent(tenantId, eventCode),
+      this.notificationsRepository.listPreferencesForEvent(tenantId, eventCode),
+    ]);
+    const item = event
+      ? describeEventSetting({ event, rules, preferences })
+      : null;
+    if (!item) {
+      throw notificationEventNotFound();
+    }
+    return item;
+  }
+
+  /*
+   * ITEM-0180. The in-app half of the preference gate `execute()` has always
+   * applied to email. A configurable:false event is never asked, exactly as on
+   * the email side.
+   */
+  private async isInAppOptedOut(tenantId: string, eventCode: string) {
+    const catalogEntry = CATALOG_BY_CODE.get(eventCode);
+    if (catalogEntry && !isConfigurableEvent(catalogEntry)) {
+      return false;
+    }
+    const preference = await this.notificationsRepository.findPreference({
+      tenantId,
+      eventCode,
+      channel: NotificationChannel.IN_APP,
+    });
+    return preference?.enabled === false;
   }
 
   /*
@@ -970,7 +1175,19 @@ export class NotificationsService {
         },
       });
 
-    if (!rules.length) {
+    /*
+     * ITEM-0180. Turning an event's In-app channel off writes
+     * NotificationPreference(IN_APP) = false. Nothing on this path used to read
+     * it — only the rule — so the checkbox the old screen offered changed
+     * nothing. Asked only when a rule would otherwise fire, so the common
+     * no-rule path costs no extra query. Workflows still run: they are authored
+     * per event, independently of who is notified in-app.
+     */
+    const inAppOptedOut =
+      rules.length > 0 &&
+      (await this.isInAppOptedOut(input.tenantId, input.eventKey));
+
+    if (!rules.length || inAppOptedOut) {
       await triggerWorkflows();
       return { created: 0, items: [] };
     }

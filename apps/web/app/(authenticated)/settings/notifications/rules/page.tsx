@@ -1,54 +1,57 @@
 import { apiRequestJson } from "@/lib/server-api";
-import type {
-  NotificationEvent,
-  NotificationPreferenceItem,
-  NotificationRuleItem,
-} from "@/lib/notifications-api";
+import type { NotificationEventSetting } from "@/lib/notifications-api";
 import { SettingsShell } from "../../_components/settings-shell";
 import {
   hasAnySettingsPermission,
   requireSettingsPermissions,
 } from "../../_lib/require-settings-permission";
 import type { TenantSettingsResponse } from "../../types";
-import { NotificationRulesManager } from "../_components/notification-rules-manager";
+import { NotificationEventsManager } from "../_components/notification-events-manager";
 
 /*
- * BUG-3375. This screen used to be named "Notification Rules" while
- * rendering only `NotificationPreference` data — a per-event channel opt-in —
- * with no way to see or change a `NotificationRule`, the model that actually
- * decides whether an event can fire at all. It now fetches both, and the
- * heading, this page's title and the manager component's own section titles
- * agree on what the screen manages: rules AND channel preferences for the
- * same catalog of events.
+ * ITEM-0180 (TASK-0031 WP-05). This route used to render two ~53-row tables —
+ * Notification Rules and Channel Preferences, the same events twice — with one
+ * Save button at the bottom, channel tiles for Browser Push and Digests that
+ * nothing sends, and events that cannot fire. It is now one list of the events
+ * this workspace can actually receive, each channel saving on change.
+ *
+ * The route is unchanged on purpose: `settings-runtime.ts` links the
+ * Notifications landing card here, and existing bookmarks keep working.
+ *
+ * Loading and failure use the shared `(authenticated)/loading.tsx` and
+ * `(authenticated)/error.tsx` boundaries: the events fetch is allowed to throw
+ * into the latter, because a page of toggles drawn from a partial answer would
+ * misstate what gets sent.
  */
-export default async function NotificationRulesPage() {
+export default async function NotificationEventsPage() {
   const user = await requireSettingsPermissions(["notifications.read"]);
-  const [events, preferences, rules, tenantSettings] = await Promise.all([
-    apiRequestJson<NotificationEvent[]>("/notifications/events"),
-    apiRequestJson<{ items: NotificationPreferenceItem[] }>(
-      "/notifications/preferences",
+  const [eventSettings, tenantSettings] = await Promise.all([
+    apiRequestJson<{ items: NotificationEventSetting[] }>(
+      "/notifications/event-settings",
     ),
-    apiRequestJson<{ items: NotificationRuleItem[] }>("/notifications/rules"),
     apiRequestJson<TenantSettingsResponse>("/tenant-settings").catch(
-      () => ({}) as TenantSettingsResponse,
+      () => null,
     ),
   ]);
+
+  const emailEnabled = tenantSettings?.notifications?.emailEnabled;
+
   return (
     <SettingsShell
-      description="See which events can notify anyone at all, and which channels each one uses."
-      title="Notification Rules"
+      description="Notification events"
+      title="Notification Events"
     >
-      <NotificationRulesManager
-        canManagePreferences={hasAnySettingsPermission(user, [
-          "notifications.manage",
-        ])}
-        canManageRules={hasAnySettingsPermission(user, [
-          "notifications.manageRules",
-        ])}
-        events={events}
-        globalSettings={tenantSettings.notifications ?? {}}
-        preferences={preferences.items}
-        rules={rules.items}
+      <NotificationEventsManager
+        // Mirrors PATCH /notifications/event-settings/:code, which declares
+        // both keys because one toggle can write both the preference and the
+        // event's rule. Cosmetic only — the API enforces it.
+        canManageEvents={
+          hasAnySettingsPermission(user, ["notifications.manage"]) &&
+          hasAnySettingsPermission(user, ["notifications.manageRules"])
+        }
+        canManageEmail={hasAnySettingsPermission(user, ["settings.update"])}
+        emailEnabled={typeof emailEnabled === "boolean" ? emailEnabled : null}
+        items={eventSettings.items}
       />
     </SettingsShell>
   );
