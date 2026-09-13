@@ -1,20 +1,28 @@
 "use client";
 
-import { Eye, MoveRight, RefreshCw, ShieldCheck } from "lucide-react";
+import { MoveRight, RefreshCw, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { DataTable } from "@/app/components/data-table/data-table";
 import type { DataTableColumn } from "@/app/components/data-table/types";
+import { useFormattingContext } from "@/app/components/filters/use-formatting-context";
 import { Button } from "@/app/components/ui/button";
 import { EmptyState } from "@/app/components/ui/empty-state";
 import { SelectField } from "@/app/components/ui/form-control";
 import { StatusPill } from "@/app/components/ui/status-pill";
 import { PermissionGate } from "@/app/(authenticated)/_components/permission-gate";
+import { formatDateTime } from "@/lib/formatting-context";
 import type {
   CustomizationPublishDraftComponent,
   CustomizationPublishValidationResult,
   CustomizationPackage,
 } from "../types";
+
+/*
+ * The legacy holding package. Drafts no longer land in it (BUG-3493), but a
+ * tenant can still have drafts there from before; it is never a move target.
+ */
+const UNASSIGNED_PACKAGE_KEY = "unassigned-draft-customizations";
 
 export function PublishCenter({
   drafts,
@@ -24,9 +32,16 @@ export function PublishCenter({
   packages: CustomizationPackage[];
 }) {
   const router = useRouter();
+  /*
+   * BUG-3496 — dates were formatted with `Intl.DateTimeFormat(undefined, …)`
+   * during render: the server's locale and timezone on the server, the
+   * browser's on the client. The two strings differed, React raised #418 on
+   * every load, and the global error handler put a blocking modal over the
+   * page. Both passes now use the tenant's formatting context.
+   */
+  const formattingContext = useFormattingContext();
   const [validation, setValidation] =
     useState<CustomizationPublishValidationResult | null>(null);
-  const [validationScope, setValidationScope] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -36,7 +51,6 @@ export function PublishCenter({
   const [isValidating, setIsValidating] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isMoving, setIsMoving] = useState(false);
-  const [reviewingId, setReviewingId] = useState<string | null>(null);
   const [isRefreshing, startRefreshTransition] = useTransition();
   const visibleDrafts = useMemo(
     () =>
@@ -50,19 +64,27 @@ export function PublishCenter({
   const allSelected =
     visibleDrafts.length > 0 &&
     visibleDrafts.every((draft) => selectedIdSet.has(draft.id));
+  /*
+   * BUG-3493 — every writable Custom Package is a move target. The tenant's own
+   * Custom Package is created on first customization, so this list is not empty
+   * on the path an administrator actually takes.
+   */
   const movablePackages = packages.filter(
     (item) =>
       !item.isDefault &&
       !item.isReadOnly &&
-      item.type === "custom" &&
-      item.packageKey !== "unassigned-draft-customizations",
+      !item.isManaged &&
+      item.packageKey !== UNASSIGNED_PACKAGE_KEY,
   );
-  const isBusy =
-    isValidating ||
-    isPublishing ||
-    isMoving ||
-    Boolean(reviewingId) ||
-    isRefreshing;
+  const issuesByComponent = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const issue of validation?.issues ?? []) {
+      if (!issue.componentId || issue.severity === "info") continue;
+      counts.set(issue.componentId, (counts.get(issue.componentId) ?? 0) + 1);
+    }
+    return counts;
+  }, [validation]);
+  const isBusy = isValidating || isPublishing || isMoving || isRefreshing;
 
   const columns: DataTableColumn<CustomizationPublishDraftComponent>[] = [
     {
@@ -71,7 +93,7 @@ export function PublishCenter({
       render: (row) => (
         <PermissionGate
           anyOf={["customization.publish"]}
-          fallback={<span className="text-muted">N/A</span>}
+          fallback={<span className="text-muted">-</span>}
         >
           <input
             aria-label={`Select ${row.componentName}`}
@@ -79,7 +101,8 @@ export function PublishCenter({
             className="h-4 w-4 rounded border-border"
             disabled={isBusy}
             onChange={(event) => {
-              clearValidationFeedback();
+              setValidation(null);
+              setSuccess(null);
               setSelectedIds((current) =>
                 event.target.checked
                   ? [...new Set([...current, row.id])]
@@ -93,15 +116,14 @@ export function PublishCenter({
     },
     {
       key: "name",
-      header: "Component name",
+      header: "Name",
       searchable: true,
       sortable: true,
       sortAccessor: (row) => row.componentName,
       render: (row) => (
-        <div>
-          <p className="font-semibold text-foreground">{row.componentName}</p>
-          <p className="mt-1 text-xs text-muted">{row.componentId}</p>
-        </div>
+        <span className="font-semibold text-foreground">
+          {row.componentName}
+        </span>
       ),
     },
     {
@@ -117,6 +139,7 @@ export function PublishCenter({
         "View",
         "Choice List",
         "Relationship",
+        "Action Bar",
       ].map((value) => ({ label: value, value })),
       render: (row) => componentTypeLabel(row.componentType),
     },
@@ -133,9 +156,9 @@ export function PublishCenter({
       render: (row) => row.packageName,
     },
     {
-      key: "layerAction",
-      header: "Layer action",
-      render: (row) => actionLabel(row.layerAction),
+      key: "change",
+      header: "Change",
+      render: (row) => changeLabel(row.layerAction),
     },
     {
       key: "state",
@@ -151,96 +174,44 @@ export function PublishCenter({
       header: "Modified on",
       sortable: true,
       sortAccessor: (row) => row.modifiedOn,
-      render: (row) => formatDate(row.modifiedOn),
+      render: (row) =>
+        formatDateTime(row.modifiedOn, formattingContext) || "Not set",
     },
     {
       key: "issues",
       header: "Issues",
-      render: (row) => row.issues.length || "None",
-    },
-    {
-      key: "actions",
-      header: "Actions",
-      render: (row) => (
-        <PermissionGate
-          anyOf={["customization.publish"]}
-          fallback={<span className="text-xs text-muted">Read only</span>}
-        >
-          <Button
-            disabled={isBusy && reviewingId !== row.id}
-            leftIcon={<Eye className="h-4 w-4" />}
-            loading={reviewingId === row.id}
-            loadingText="Reviewing..."
-            onClick={() => void validate([row.id], row.componentName, row.id)}
-            size="xs"
-            title={`Validate ${row.componentName} before publishing.`}
-            variant="ghost"
-          >
-            Review
-          </Button>
-        </PermissionGate>
-      ),
+      render: (row) =>
+        validation ? (issuesByComponent.get(row.id) ?? "None") : "-",
     },
   ];
 
-  function clearValidationFeedback() {
-    setValidation(null);
-    setValidationScope(null);
-    setSuccess(null);
-  }
-
-  async function validate(
-    componentIds: string[],
-    scope: string,
-    rowId?: string,
-  ) {
-    if (!componentIds.length) {
-      setError("Select at least one draft component to validate.");
-      return;
-    }
-
-    if (rowId) {
-      setReviewingId(rowId);
-    } else {
-      setIsValidating(true);
-    }
+  async function validate() {
+    setIsValidating(true);
     setError(null);
     setSuccess(null);
     setValidation(null);
-    setValidationScope(null);
     try {
       const response = await fetch("/api/customization/publish/validate", {
         method: "POST",
-        body: JSON.stringify({ componentIds }),
+        body: JSON.stringify({ componentIds: selectedIds }),
         headers: { "Content-Type": "application/json" },
       });
       const data = (await response.json().catch(() => ({}))) as
         | CustomizationPublishValidationResult
         | { message?: string | string[] };
       if (!response.ok || !("issues" in data)) {
-        setError(readApiMessage(data) ?? "Unable to validate draft metadata.");
+        setError(readApiMessage(data) ?? "Unable to validate the selection.");
         return;
       }
       setValidation(data);
-      setValidationScope(scope);
     } catch {
-      setError(
-        "Unable to validate draft metadata. Check your connection and retry.",
-      );
+      setError("Unable to validate the selection. Check your connection and retry.");
     } finally {
-      if (rowId) {
-        setReviewingId(null);
-      } else {
-        setIsValidating(false);
-      }
+      setIsValidating(false);
     }
   }
 
   async function publishSelected() {
-    if (!selectedIds.length) {
-      setError("Select at least one draft component to publish.");
-      return;
-    }
     setIsPublishing(true);
     setError(null);
     setSuccess(null);
@@ -254,19 +225,14 @@ export function PublishCenter({
       const data = (await response.json().catch(() => ({}))) as {
         count?: number;
         message?: string | string[];
-        issues?: Array<{ message?: string }>;
-        packages?: Array<{
-          afterState?: string;
-          draftComponentsCount?: number;
-          packageName?: string;
-          publishedComponentsCount?: number;
-        }>;
+        issues?: CustomizationPublishValidationResult["issues"];
       };
       if (!response.ok) {
+        if (Array.isArray(data.issues) && data.issues.length) {
+          setValidation({ valid: false, issues: data.issues });
+        }
         setError(
-          readApiMessage(data) ??
-            data.issues?.[0]?.message ??
-            "Unable to publish selected draft metadata.",
+          readApiMessage(data) ?? "Unable to publish the selection.",
         );
         return;
       }
@@ -275,33 +241,17 @@ export function PublishCenter({
       ]);
       setSelectedIds([]);
       setValidation(null);
-      setValidationScope(null);
-      const packageSummary = data.packages?.length
-        ? ` ${data.packages
-            .map(
-              (item) =>
-                `${item.packageName ?? "Package"} is ${item.afterState ?? "updated"} (${item.draftComponentsCount ?? 0} draft, ${item.publishedComponentsCount ?? 0} published).`,
-            )
-            .join(" ")}`
-        : "";
-      setSuccess(
-        `${data.count ?? publishingIds.length} component(s) published.${packageSummary}`,
-      );
+      const count = data.count ?? publishingIds.length;
+      setSuccess(`${count} component${count === 1 ? "" : "s"} published.`);
       router.refresh();
     } catch {
-      setError(
-        "Unable to publish selected draft metadata. Check your connection and retry.",
-      );
+      setError("Unable to publish the selection. Check your connection and retry.");
     } finally {
       setIsPublishing(false);
     }
   }
 
   async function moveSelected() {
-    if (!selectedIds.length || !targetPackageId) {
-      setError("Select draft components and a target Custom Package.");
-      return;
-    }
     setIsMoving(true);
     setError(null);
     setSuccess(null);
@@ -320,19 +270,20 @@ export function PublishCenter({
         message?: string | string[];
       };
       if (!response.ok) {
-        setError(readApiMessage(data) ?? "Unable to move draft components.");
+        setError(readApiMessage(data) ?? "Unable to move the selection.");
         return;
       }
+      const target = movablePackages.find((item) => item.id === targetPackageId);
       setSelectedIds([]);
       setTargetPackageId("");
       setValidation(null);
-      setValidationScope(null);
-      setSuccess(`${data.count ?? movingIds.length} component(s) moved.`);
+      const count = data.count ?? movingIds.length;
+      setSuccess(
+        `${count} component${count === 1 ? "" : "s"} moved${target ? ` to ${target.displayName}` : ""}.`,
+      );
       router.refresh();
     } catch {
-      setError(
-        "Unable to move draft components. Check your connection and retry.",
-      );
+      setError("Unable to move the selection. Check your connection and retry.");
     } finally {
       setIsMoving(false);
     }
@@ -344,23 +295,23 @@ export function PublishCenter({
     startRefreshTransition(() => router.refresh());
   }
 
+  const blockingIssues = (validation?.issues ?? []).filter(
+    (issue) => issue.blocking,
+  );
+  const warnings = (validation?.issues ?? []).filter(
+    (issue) => !issue.blocking && issue.severity === "warning",
+  );
+
   return (
     <div className="grid gap-4">
       <section
         aria-label="Publish actions"
         className="rounded-2xl border border-border bg-surface p-4 shadow-sm"
       >
-        <div className="flex flex-col gap-3 border-b border-border/70 pb-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-sm font-semibold text-foreground">
-              Publish actions
-            </h2>
-            <p className="mt-1 text-xs text-muted" aria-live="polite">
-              {selectedIds.length
-                ? `${selectedIds.length} draft component${selectedIds.length === 1 ? "" : "s"} selected`
-                : "Select draft components to validate, publish, or move."}
-            </p>
-          </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 pb-4">
+          <p className="text-sm font-semibold text-foreground" aria-live="polite">
+            {selectedIds.length} selected
+          </p>
           <Button
             disabled={isBusy && !isRefreshing}
             leftIcon={<RefreshCw className="h-4 w-4" />}
@@ -375,8 +326,8 @@ export function PublishCenter({
           </Button>
         </div>
 
-        <div className="mt-4 grid items-end gap-3 xl:grid-cols-[minmax(16rem,1fr)_minmax(19rem,1.15fr)_minmax(25rem,1.5fr)]">
-          <div className="grid gap-3 sm:grid-cols-[auto_minmax(12rem,1fr)] sm:items-end xl:grid-cols-1">
+        <div className="mt-4 grid items-end gap-3 lg:grid-cols-[minmax(12rem,1fr)_auto_minmax(14rem,1fr)]">
+          <div className="grid gap-3 sm:grid-cols-[auto_minmax(12rem,1fr)] sm:items-end">
             <PermissionGate anyOf={["customization.publish"]}>
               <label
                 className={[
@@ -385,12 +336,12 @@ export function PublishCenter({
                 ].join(" ")}
               >
                 <input
-                  aria-label="Select all visible draft components"
                   checked={allSelected}
                   className="h-4 w-4 rounded border-border"
                   disabled={isBusy || visibleDrafts.length === 0}
                   onChange={(event) => {
-                    clearValidationFeedback();
+                    setValidation(null);
+                    setSuccess(null);
                     setSelectedIds(
                       event.target.checked
                         ? visibleDrafts.map((row) => row.id)
@@ -399,49 +350,42 @@ export function PublishCenter({
                   }}
                   type="checkbox"
                 />
-                Select all visible
+                Select all
               </label>
             </PermissionGate>
             <SelectField
               className="min-w-0"
               disabled={isBusy}
-              label="Package filter"
+              label="Package"
               onChange={(value) => {
                 setPackageFilter(value);
                 setSelectedIds([]);
-                clearValidationFeedback();
+                setValidation(null);
               }}
-              options={packages.map((item) => ({
-                label: item.displayName,
-                value: item.id,
-              }))}
-              placeholder="All draft packages"
+              options={packages
+                .filter((item) => !item.isDefault)
+                .map((item) => ({
+                  label: item.displayName,
+                  value: item.id,
+                }))}
+              placeholder="All packages"
               value={packageFilter}
             />
           </div>
 
           <PermissionGate anyOf={["customization.publish"]}>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="flex flex-wrap gap-2">
               <Button
                 disabled={!selectedIds.length || isBusy}
                 leftIcon={<ShieldCheck className="h-4 w-4" />}
                 loading={isValidating}
                 loadingText="Validating..."
-                onClick={() =>
-                  void validate(
-                    selectedIds,
-                    `${selectedIds.length} selected component${selectedIds.length === 1 ? "" : "s"}`,
-                  )
-                }
+                onClick={() => void validate()}
                 size="sm"
-                title={
-                  selectedIds.length
-                    ? "Validate selected draft metadata."
-                    : "Select draft components to validate."
-                }
                 type="button"
+                variant="secondary"
               >
-                Validate selected
+                Validate
               </Button>
               <Button
                 disabled={!selectedIds.length || isBusy}
@@ -449,33 +393,23 @@ export function PublishCenter({
                 loadingText="Publishing..."
                 onClick={() => void publishSelected()}
                 size="sm"
-                title={
-                  selectedIds.length
-                    ? "Publish selected draft metadata."
-                    : "Select draft components to publish."
-                }
                 type="button"
-                variant="secondary"
               >
-                Publish selected
+                Publish
               </Button>
             </div>
 
-            <div className="grid items-end gap-3 sm:grid-cols-[minmax(13rem,1fr)_auto]">
+            <div className="grid items-end gap-3 sm:grid-cols-[minmax(12rem,1fr)_auto]">
               <SelectField
                 className="min-w-0"
                 disabled={isBusy || movablePackages.length === 0}
-                label="Move target"
+                label="Move to package"
                 onChange={setTargetPackageId}
                 options={movablePackages.map((item) => ({
                   label: item.displayName,
                   value: item.id,
                 }))}
-                placeholder={
-                  movablePackages.length
-                    ? "Select Custom Package"
-                    : "No writable Custom Packages"
-                }
+                placeholder="Select a package"
                 value={targetPackageId}
               />
               <Button
@@ -485,17 +419,10 @@ export function PublishCenter({
                 loadingText="Moving..."
                 onClick={() => void moveSelected()}
                 size="sm"
-                title={
-                  !selectedIds.length
-                    ? "Select draft components to move."
-                    : !targetPackageId
-                      ? "Choose a target Custom Package."
-                      : "Move selected drafts to the target package."
-                }
                 type="button"
                 variant="ghost"
               >
-                Move to Package
+                Move
               </Button>
             </div>
           </PermissionGate>
@@ -504,7 +431,6 @@ export function PublishCenter({
 
       {error ? (
         <div
-          aria-live="assertive"
           className="rounded-lg border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger"
           role="alert"
         >
@@ -513,7 +439,6 @@ export function PublishCenter({
       ) : null}
       {success ? (
         <div
-          aria-live="polite"
           className="rounded-lg border border-success/20 bg-success/5 px-4 py-3 text-sm text-success"
           role="status"
         >
@@ -523,14 +448,29 @@ export function PublishCenter({
       {validation ? (
         <div
           aria-live="polite"
-          className="rounded-lg border border-border bg-surface px-4 py-3 text-sm text-muted"
+          className="grid gap-2 rounded-lg border border-border bg-surface px-4 py-3 text-sm"
         >
-          <span className="font-semibold text-foreground">
-            {validationScope ?? "Selection"}:
-          </span>{" "}
-          {validation.issues.length} validation issue
-          {validation.issues.length === 1 ? "" : "s"} found. Publish is{" "}
-          {validation.valid ? "not blocked by foundation checks" : "blocked"}.
+          <p className="font-semibold text-foreground">
+            {blockingIssues.length
+              ? `${blockingIssues.length} issue${blockingIssues.length === 1 ? "" : "s"} block publishing`
+              : "Ready to publish"}
+          </p>
+          {[...blockingIssues, ...warnings].length ? (
+            <ul className="grid gap-1 text-muted">
+              {[...blockingIssues, ...warnings].map((issue, index) => (
+                <li key={`${issue.componentId ?? "general"}-${index}`}>
+                  <span
+                    className={
+                      issue.blocking ? "font-semibold text-danger" : "text-amber-700"
+                    }
+                  >
+                    {issue.blocking ? "Blocking" : "Warning"}:
+                  </span>{" "}
+                  {issue.message}
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </div>
       ) : null}
 
@@ -539,15 +479,15 @@ export function PublishCenter({
         columns={columns}
         emptyState={
           <EmptyState
-            description="No draft package components are pending publish."
-            title="No draft metadata"
+            description="There are no unpublished changes."
+            title="Nothing to publish"
           />
         }
         getRowKey={(row) => row.id}
         pagination={{ page: 1, pageSize: 10, total: visibleDrafts.length }}
         rows={visibleDrafts}
-        searchPlaceholder="Search draft components"
-        tableClassName="min-w-[1180px] divide-y divide-border text-xs"
+        searchPlaceholder="Search"
+        tableClassName="min-w-[900px] divide-y divide-border text-xs"
       />
     </div>
   );
@@ -559,24 +499,24 @@ function componentTypeLabel(value: string) {
     column: "Field",
     optionSet: "Choice List",
     lookup: "Relationship",
+    actionBar: "Action Bar",
   };
   return labels[value] ?? value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-function actionLabel(value: string) {
-  return value.charAt(0).toUpperCase() + value.slice(1);
+/* ITEM-0184 — "Layer action: Create/Reference" read as developer jargon. */
+function changeLabel(value: string) {
+  const labels: Record<string, string> = {
+    create: "New",
+    modify: "Changed",
+    remove: "Removed",
+    reference: "Included",
+  };
+  return labels[value] ?? value;
 }
 
 function stateLabel(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
-function formatDate(value: string | null | undefined) {
-  if (!value) return "Not set";
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
 }
 
 function readApiMessage(value: unknown) {

@@ -20,7 +20,12 @@ import { DataTable } from "@/app/components/data-table/data-table";
 import type { DataTableColumn } from "@/app/components/data-table/types";
 import { ConfirmDialog } from "@/app/components/feedback/confirm-dialog";
 import { TopAlert } from "@/app/components/notifications/top-alert";
+import { useFormattingContext } from "@/app/components/filters/use-formatting-context";
 import { Button } from "@/app/components/ui/button";
+import {
+  formatDateTime,
+  type ResolvedFormattingContext,
+} from "@/lib/formatting-context";
 import { EmptyState } from "@/app/components/ui/empty-state";
 import { SelectField } from "@/app/components/ui/form-control";
 import { StatusPill } from "@/app/components/ui/status-pill";
@@ -71,6 +76,7 @@ export function PackageDetailShell({
   modules,
 }: PackageDetailShellProps) {
   const router = useRouter();
+  const formattingContext = useFormattingContext();
   const [selection, setSelection] = useState<ExplorerSelection>({
     kind: "package",
   });
@@ -184,10 +190,10 @@ export function PackageDetailShell({
         header: "Modified on",
         sortable: true,
         sortAccessor: (row) => row.updatedAt ?? "",
-        render: (row) => formatDate(row.updatedAt),
+        render: (row) => formatDate(row.updatedAt, formattingContext),
       },
     ],
-    [],
+    [formattingContext],
   );
 
   const candidateColumns = useMemo<
@@ -989,6 +995,7 @@ function ComponentDetail({
   onRemove: () => void;
 }) {
   const removeReason = isReadOnly ? "Default Package is read-only." : null;
+  const formattingContext = useFormattingContext();
   return (
     <div className="grid gap-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1036,8 +1043,8 @@ function ComponentDetail({
         />
         <Detail label="Source" value={component.source ?? "Custom"} />
         <Detail
-          label="Layer action"
-          value={component.layerAction ?? "Reference"}
+          label="Change"
+          value={changeLabel(component.layerAction ?? "Reference")}
         />
         <Detail label="Status" value={component.state ?? "Draft"} />
         <Detail label="Version" value={component.version ?? "1.0.0"} />
@@ -1049,7 +1056,10 @@ function ComponentDetail({
               : "No recorded dependencies"
           }
         />
-        <Detail label="Modified on" value={formatDate(component.updatedAt)} />
+        <Detail
+          label="Modified on"
+          value={formatDate(component.updatedAt, formattingContext)}
+        />
       </dl>
       {deleteReason ? (
         <div className="rounded-lg border border-warning/30 bg-warning/5 px-4 py-3 text-sm text-warning">
@@ -1269,12 +1279,28 @@ function stateLabel(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-function formatDate(value: string | null | undefined) {
+/* ITEM-0184 — "Layer action: Create/Reference" read as developer jargon. */
+function changeLabel(value: string) {
+  const labels: Record<string, string> = {
+    create: "New",
+    modify: "Changed",
+    remove: "Removed",
+    reference: "Included",
+  };
+  return labels[value.toLowerCase()] ?? value;
+}
+
+/*
+ * BUG-3496 — formatted with the tenant's context, passed explicitly. The
+ * previous `Intl.DateTimeFormat(undefined, …)` used the server's locale during
+ * SSR and the browser's after hydration, so the text differed (React #418).
+ */
+function formatDate(
+  value: string | null | undefined,
+  context: ResolvedFormattingContext | null,
+) {
   if (!value) return "Not set";
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
+  return formatDateTime(value, context) || "Not set";
 }
 
 function Metric({ label, value }: { label: string; value: string | number }) {

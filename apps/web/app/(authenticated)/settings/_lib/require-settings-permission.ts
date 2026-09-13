@@ -75,23 +75,31 @@ export type CustomizationAccessCheck = {
 };
 
 /*
- * BUG-3374 — this used to gate on role membership only
- * (`GLOBAL_ADMIN`/`SYSTEM_CUSTOMIZER`) and redirect to a hardcoded legacy
- * Roles URL on denial, while the settings navigation catalog and every page
- * under `/settings/customization/*` gate on the `customization.read`
- * permission through `hasAnySettingsPermission` (see
- * `requireSettingsPermissions` above). When the two disagreed — as for the
- * workspace owner, who holds the permission but not either role — the layout
- * won and silently threw the user onto Roles before its own page-level check
- * ever ran.
+ * ADR-0013 / BUG-3491 — Customization is authorized by the `customization.*`
+ * permission keys alone. No role is consulted.
  *
- * This now shares the exact model `requireSettingsPermissions` uses, so
- * there is one authorization decision for this section, not two. It also no
- * longer redirects: the caller (the customization layout) renders
- * `AccessDeniedState` in place when `allowed` is false, so a denial lands on
- * the route the user asked for with the URL unchanged, instead of teleporting
- * them to an unrelated screen.
+ * BUG-3374 first moved this off a role-only check onto
+ * `hasAnySettingsPermission`, which admits three administrator roles *or* any
+ * one key. The API kept its own role-only rule, so the owner — System
+ * Administrator, every customization key — passed here and then met a 403 from
+ * every page's first API call. The API now checks the same keys, and so does
+ * this: every key the page's API calls need, held outright.
+ *
+ * Elevated roles and the tenant owner lose nothing: the API gives them every
+ * foundation key at sign-in, and the session carries those keys.
+ *
+ * No redirect: the caller renders `AccessDeniedState` in place, so a denial
+ * lands on the URL the user asked for.
  */
+export function hasCustomizationPermissions(
+  user: SessionUser | null,
+  permissionKeys: readonly string[],
+) {
+  if (!user || permissionKeys.length === 0) return false;
+  const held = new Set(user.permissionKeys ?? []);
+  return permissionKeys.every((key) => held.has(key));
+}
+
 export async function requireCustomizationAccess(
   permissionKeys: readonly string[] = ["customization.read"],
 ): Promise<CustomizationAccessCheck> {
@@ -99,6 +107,6 @@ export async function requireCustomizationAccess(
 
   return {
     user,
-    allowed: !!user && hasAnySettingsPermission(user, permissionKeys),
+    allowed: hasCustomizationPermissions(user, permissionKeys),
   };
 }

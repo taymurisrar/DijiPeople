@@ -150,12 +150,12 @@ export function TableDetailShell({
         </span>
       </nav>
 
-      <section className="grid gap-3 rounded-lg border border-border bg-surface p-4 shadow-sm md:grid-cols-5">
+      <section className="grid grid-cols-2 gap-3 rounded-lg border border-border bg-surface p-4 shadow-sm sm:grid-cols-3 md:grid-cols-5">
         <Metric label="Fields" value={columns.length} />
         <Metric label="Forms" value={forms.length} />
         <Metric label="Views" value={views.length} />
         <Metric
-          label="Metadata"
+          label="Other components"
           value={
             metadataCounts.choiceLists +
             metadataCounts.relationships +
@@ -220,6 +220,7 @@ export function TableDetailShell({
         {activeTab === "choiceLists" ? (
           <MetadataComponentsManagement
             audiences={audiences}
+            columns={columns}
             componentType="choiceList"
             lookupTables={lookupTables}
             onCountChange={(choiceLists) =>
@@ -232,6 +233,7 @@ export function TableDetailShell({
         {activeTab === "relationships" ? (
           <MetadataComponentsManagement
             audiences={audiences}
+            columns={columns}
             componentType="relationship"
             lookupTables={lookupTables}
             onCountChange={(relationships) =>
@@ -244,6 +246,7 @@ export function TableDetailShell({
         {activeTab === "actionBars" ? (
           <MetadataComponentsManagement
             audiences={audiences}
+            columns={columns}
             componentType="actionBar"
             lookupTables={lookupTables}
             onCountChange={(actionBars) =>
@@ -256,6 +259,7 @@ export function TableDetailShell({
         {activeTab === "widgets" ? (
           <MetadataComponentsManagement
             audiences={audiences}
+            columns={columns}
             componentType="widget"
             lookupTables={lookupTables}
             onCountChange={(widgets) =>
@@ -269,7 +273,8 @@ export function TableDetailShell({
         {activeTab === "settings" ? (
           <SettingsTab
             primaryNameColumn={
-              columns.find((column) => column.isPrimaryName)?.columnKey ?? null
+              columns.find((column) => column.isPrimaryName)?.displayName ??
+              null
             }
             counts={{
               actionBars: metadataCounts.actionBars,
@@ -305,11 +310,16 @@ function SettingsTab({
   };
   table: CustomizationTable;
 }) {
+  const lifecycle =
+    table.lifecycleState ?? (table.isCustomTable ? "draft" : "published");
+
   return (
-    <SectionCard
-      description="Module-level metadata controls how this module appears in customization-aware runtime screens. System identity and routes are locked. Every value here is read from the module record."
-      title="Module Properties"
-    >
+    <SectionCard title="Module Properties">
+      {/*
+        ITEM-0184 — the "Route" entry showed this settings page's own URL, which
+        read as the module's runtime address; it is gone, along with the
+        explanatory paragraph above the list.
+      */}
       <dl className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         <Meta
           copyValue={table.displayName}
@@ -327,27 +337,25 @@ function SettingsTab({
           locked
           value={table.tableKey}
         />
-        <Meta
-          copyValue={`/settings/customization/tables/${table.tableKey}`}
-          label="Route"
-          locked
-          value={`/settings/customization/tables/${table.tableKey}`}
-        />
-        <Meta
-          label="Primary name field"
-          value={primaryNameColumn ?? "Not set — set one on the Fields tab"}
-        />
+        <Meta label="Primary name field" value={primaryNameColumn ?? "Not set"} />
         <Meta label="Ownership" value={table.ownershipType ?? "Not set"} />
         <Meta label="Icon" value={table.icon ?? "Not set"} />
         <Meta
           label="Source"
           value={table.source ?? (table.isCustomTable ? "Custom" : "System")}
         />
-        <Meta label="Package" value={table.packageName ?? "Default Package"} />
+        <Meta
+          label="Package"
+          value={
+            table.packageName ??
+            (table.isCustomTable ? "Not set" : "Default Package")
+          }
+        />
         <Meta
           label="Lifecycle"
-          value={table.lifecycleState ?? (table.isActive ? "active" : "inactive")}
+          value={lifecycle.charAt(0).toUpperCase() + lifecycle.slice(1)}
         />
+        <Meta label="Status" value={table.isActive ? "Active" : "Inactive"} />
         <Meta
           label="Advanced Find"
           value={table.isValidForAdvancedFind === false ? "No" : "Yes"}
@@ -371,14 +379,6 @@ function SettingsTab({
         <Meta
           label="Customizable"
           value={table.isCustomizable ? "Yes" : "No"}
-        />
-        <Meta
-          label="Deletion"
-          value={
-            table.isSystem
-              ? "System modules cannot be deleted"
-              : "Dependency guarded"
-          }
         />
       </dl>
     </SectionCard>

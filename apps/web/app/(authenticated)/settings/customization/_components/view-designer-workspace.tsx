@@ -3,6 +3,7 @@
 import { ArrowLeft, GripVertical, Plus, Save, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { useSideToast } from "@/app/components/notifications/use-side-toast";
 import { Button } from "@/app/components/ui/button";
 import {
   CheckboxField,
@@ -44,6 +45,8 @@ type Props = {
 
 export function ViewDesignerWorkspace({ columns, table, view }: Props) {
   const router = useRouter();
+  // ITEM-0184 — Save gave no feedback at all.
+  const { notifySuccess, toast } = useSideToast();
   const designerColumns = useMemo(
     () =>
       columns.filter(
@@ -127,11 +130,13 @@ export function ViewDesignerWorkspace({ columns, table, view }: Props) {
       setError(data.message ?? "Unable to save view designer changes.");
       return;
     }
+    notifySuccess(`${metadata.name} saved`);
     router.refresh();
   }
 
   return (
     <div className="grid gap-4">
+      {toast}
       <div className="flex items-center justify-between gap-4 rounded-lg border border-border bg-white px-4 py-2 shadow-sm">
         <div className="flex min-w-0 items-center gap-2 overflow-x-auto">
           <Button

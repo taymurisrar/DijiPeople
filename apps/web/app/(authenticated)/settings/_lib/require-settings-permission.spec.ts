@@ -1,20 +1,18 @@
 import type { SessionUser } from "@/lib/auth";
 
 /*
- * BUG-3374 — `/settings/customization` and its twelve child routes silently
- * redirected to Roles for the workspace owner. `requireCustomizationAccess`
- * gated on role membership (`GLOBAL_ADMIN`/`SYSTEM_CUSTOMIZER`) only, while
- * the navigation catalog and every page under the section gate on the
- * `customization.read` permission via `requireSettingsPermissions` — a
- * tenant owner holding the permission but neither role passed every page's
- * own check and still never got there, because the layout's stricter,
- * disagreeing model ran first and redirected before any page could.
+ * ADR-0013 / BUG-3491 — the web half of the Customization access rule.
  *
- * This is the regression test the bug record asked for, adapted to what
- * `apps/web`'s jest can run: it has no jsdom and cannot request a route and
- * follow a redirect, but `requireCustomizationAccess` is a plain async
- * function once `getSessionUser` is mocked, and the whole defect was a
- * one-function decision.
+ * BUG-3374's version of this spec asserted that three administrator roles were
+ * admitted with no permission at all. That was the web side agreeing with
+ * itself while the API disagreed with both: the owner passed here and crashed on
+ * the first API call. The rule is now the keys, held outright, on both sides.
+ * The API side, and the check that the two sides name the same keys, are in
+ * services/api/src/modules/customization/customization-web-gate.seam.spec.ts.
+ *
+ * `apps/web` jest has no jsdom and cannot request a route, but
+ * `requireCustomizationAccess` is a plain async function once `getSessionUser`
+ * is mocked, and the decision is the function.
  */
 
 jest.mock("@/lib/auth", () => ({
@@ -22,7 +20,14 @@ jest.mock("@/lib/auth", () => ({
 }));
 
 import { getSessionUser } from "@/lib/auth";
-import { requireCustomizationAccess } from "./require-settings-permission";
+import {
+  hasCustomizationPermissions,
+  requireCustomizationAccess,
+} from "./require-settings-permission";
+import {
+  customizationPageKeys,
+  requireCustomizationPage,
+} from "../customization/_lib/customization-access";
 
 const mockGetSessionUser = getSessionUser as jest.MockedFunction<
   typeof getSessionUser
@@ -50,39 +55,46 @@ describe("requireCustomizationAccess", () => {
     mockGetSessionUser.mockReset();
   });
 
-  it("allows the exact regression case: permission held, neither administrator role", async () => {
-    // The workspace owner as reproduced live in BUG-3374.
+  it("admits the workspace owner case: System Administrator holding the keys", async () => {
     mockGetSessionUser.mockResolvedValue(
-      userWith([], ["customization.read"]),
+      userWith(["system-admin"], ["customization.read"]),
     );
 
-    const result = await requireCustomizationAccess(["customization.read"]);
-
-    expect(result.allowed).toBe(true);
+    await expect(
+      requireCustomizationAccess(["customization.read"]),
+    ).resolves.toMatchObject({ allowed: true });
   });
 
-  it("still allows a GLOBAL_ADMIN with no explicit permission grant", async () => {
-    mockGetSessionUser.mockResolvedValue(userWith(["global-admin"], []));
+  it("admits a custom role holding the keys", async () => {
+    mockGetSessionUser.mockResolvedValue(
+      userWith(["tenant-configurator"], ["customization.read"]),
+    );
 
-    const result = await requireCustomizationAccess(["customization.read"]);
-
-    expect(result.allowed).toBe(true);
+    await expect(
+      requireCustomizationAccess(["customization.read"]),
+    ).resolves.toMatchObject({ allowed: true });
   });
 
-  it("still allows a SYSTEM_CUSTOMIZER with no explicit permission grant", async () => {
-    mockGetSessionUser.mockResolvedValue(userWith(["system-customizer"], []));
+  it.each(["global-admin", "system-admin", "system-customizer"])(
+    "no longer admits %s without the keys",
+    async (roleKey) => {
+      mockGetSessionUser.mockResolvedValue(userWith([roleKey], []));
 
-    const result = await requireCustomizationAccess(["customization.read"]);
+      await expect(
+        requireCustomizationAccess(["customization.read"]),
+      ).resolves.toMatchObject({ allowed: false });
+    },
+  );
 
-    expect(result.allowed).toBe(true);
-  });
+  it("requires every key, not any one", async () => {
+    mockGetSessionUser.mockResolvedValue(userWith([], ["customization.read"]));
 
-  it("denies a user with neither the permission nor an administrator role", async () => {
-    mockGetSessionUser.mockResolvedValue(userWith(["employee"], []));
-
-    const result = await requireCustomizationAccess(["customization.read"]);
-
-    expect(result.allowed).toBe(false);
+    await expect(
+      requireCustomizationAccess([
+        "customization.read",
+        "customization.tables.read",
+      ]),
+    ).resolves.toMatchObject({ allowed: false });
   });
 
   it("denies when there is no session", async () => {
@@ -94,16 +106,42 @@ describe("requireCustomizationAccess", () => {
     expect(result.user).toBeNull();
   });
 
-  it("matches requireSettingsPermissions's own model rather than a second one", async () => {
-    // The bug was two authorization models disagreeing. SYSTEM_ADMIN is in
-    // `hasSettingsAdministratorRole` (what every page under this section
-    // already uses) but was never in the old, narrower
-    // `hasCustomizationAdministratorRole` — so this case would have failed
-    // before the fix even though every page would have allowed it.
-    mockGetSessionUser.mockResolvedValue(userWith(["system-admin"], []));
+  it("never admits on an empty key list", () => {
+    expect(
+      hasCustomizationPermissions(userWith(["global-admin"], []), []),
+    ).toBe(false);
+  });
+});
 
-    const result = await requireCustomizationAccess(["customization.read"]);
+describe("requireCustomizationPage", () => {
+  beforeEach(() => {
+    mockGetSessionUser.mockReset();
+  });
 
-    expect(result.allowed).toBe(true);
+  it("gates the module detail page on every key its API calls need", async () => {
+    const keys = customizationPageKeys("moduleDetail");
+    expect(keys).toEqual(
+      expect.arrayContaining([
+        "customization.tables.read",
+        "customization.columns.read",
+        "customization.views.read",
+        "customization.forms.read",
+      ]),
+    );
+
+    mockGetSessionUser.mockResolvedValue(userWith([], [...keys]));
+    await expect(
+      requireCustomizationPage("moduleDetail"),
+    ).resolves.toMatchObject({ allowed: true });
+
+    mockGetSessionUser.mockResolvedValue(
+      userWith(
+        [],
+        keys.filter((key) => key !== "customization.forms.read"),
+      ),
+    );
+    await expect(
+      requireCustomizationPage("moduleDetail"),
+    ).resolves.toMatchObject({ allowed: false });
   });
 });

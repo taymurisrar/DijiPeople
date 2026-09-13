@@ -14,6 +14,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { listSupportedSystemWidgets } from "@repo/config";
+import { useSideToast } from "@/app/components/notifications/use-side-toast";
 import { Button } from "@/app/components/ui/button";
 import {
   CheckboxField,
@@ -86,6 +87,8 @@ export function FormDesignerWorkspace({
   table,
 }: Props) {
   const router = useRouter();
+  // ITEM-0184 — Save gave no feedback at all.
+  const { notifySuccess, toast } = useSideToast();
   const designerColumns = useMemo(
     () =>
       columns.filter(
@@ -217,11 +220,13 @@ export function FormDesignerWorkspace({
       setError(data.message ?? "Unable to save form designer changes.");
       return;
     }
+    notifySuccess(`${metadata.name} saved`);
     router.refresh();
   }
 
   return (
     <div className="grid gap-4">
+      {toast}
       {/*
        * Sticky so Save stays reachable: the canvas runs to several thousand
        * pixels on a real form, and a toolbar that scrolls away means scrolling
