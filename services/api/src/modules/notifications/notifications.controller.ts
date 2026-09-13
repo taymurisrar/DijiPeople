@@ -24,6 +24,7 @@ import {
   EmailDeliveryLogQueryDto,
   InAppDeliveryLogQueryDto,
   InAppNotificationQueryDto,
+  PreviewDraftEmailTemplateDto,
   PreviewEmailTemplateDto,
   TestSendEmailTemplateDto,
   UpdateEmailProviderDto,
@@ -31,6 +32,7 @@ import {
   UpdateNotificationPreferencesDto,
   UpdateNotificationRuleDto,
 } from './dto';
+import { EmailTemplateAuthoringService } from './email/email-template-authoring.service';
 import { InAppNotificationsService } from './in-app-notifications.service';
 import { NotificationDiagnosticsService } from './notification-diagnostics.service';
 import { NOTIFICATION_PERMISSION_KEYS } from './notifications.constants';
@@ -43,6 +45,7 @@ export class NotificationsController {
     private readonly notificationsService: NotificationsService,
     private readonly inAppNotificationsService: InAppNotificationsService,
     private readonly diagnosticsService: NotificationDiagnosticsService,
+    private readonly templateAuthoring: EmailTemplateAuthoringService,
   ) {}
 
   @Get('events')
@@ -105,7 +108,7 @@ export class NotificationsController {
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_TEMPLATES_READ)
   @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   listTemplates(@CurrentUser() user: AuthenticatedUser) {
-    return this.notificationsService.listTemplates(user);
+    return this.templateAuthoring.listTemplates(user);
   }
 
   /*
@@ -116,7 +119,29 @@ export class NotificationsController {
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_TEMPLATES_READ)
   @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   listScopeOptions(@CurrentUser() user: AuthenticatedUser) {
-    return this.notificationsService.listTemplateScopeOptions(user);
+    return this.templateAuthoring.listTemplateScopeOptions(user);
+  }
+
+  /*
+   * ITEM-0181. The events a template can be written for, with the variables
+   * each supplies. Also registered before :id.
+   */
+  @Get('email-templates/authoring-events')
+  @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_TEMPLATES_READ)
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
+  listAuthoringEvents(@CurrentUser() user: AuthenticatedUser) {
+    return this.templateAuthoring.listAuthoringEvents(user);
+  }
+
+  /* ITEM-0181. Preview of a template that has not been saved yet. */
+  @Post('email-templates/preview')
+  @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_TEMPLATES_READ)
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
+  previewDraftTemplate(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: PreviewDraftEmailTemplateDto,
+  ) {
+    return this.templateAuthoring.previewDraftTemplate(user, dto);
   }
 
   @Get('email-templates/:id')
@@ -126,7 +151,7 @@ export class NotificationsController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') templateId: string,
   ) {
-    return this.notificationsService.getTemplate(user, templateId);
+    return this.templateAuthoring.getTemplate(user, templateId);
   }
 
   @Post('email-templates')
@@ -136,7 +161,7 @@ export class NotificationsController {
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateEmailTemplateDto,
   ) {
-    return this.notificationsService.createTemplate(user, dto);
+    return this.templateAuthoring.createTemplate(user, dto);
   }
 
   @Patch('email-templates/:id')
@@ -147,7 +172,7 @@ export class NotificationsController {
     @Param('id') templateId: string,
     @Body() dto: UpdateEmailTemplateDto,
   ) {
-    return this.notificationsService.updateTemplate(user, templateId, dto);
+    return this.templateAuthoring.updateTemplate(user, templateId, dto);
   }
 
   @Post('email-templates/:id/clone')
@@ -158,7 +183,7 @@ export class NotificationsController {
     @Param('id') templateId: string,
     @Body() dto: CloneEmailTemplateDto,
   ) {
-    return this.notificationsService.cloneTemplate(user, templateId, dto);
+    return this.templateAuthoring.cloneTemplate(user, templateId, dto);
   }
 
   @Post('email-templates/:id/activate')
@@ -168,7 +193,7 @@ export class NotificationsController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') templateId: string,
   ) {
-    return this.notificationsService.activateTemplate(user, templateId);
+    return this.templateAuthoring.activateTemplate(user, templateId);
   }
 
   @Post('email-templates/:id/archive')
@@ -178,7 +203,7 @@ export class NotificationsController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') templateId: string,
   ) {
-    return this.notificationsService.archiveTemplate(user, templateId);
+    return this.templateAuthoring.archiveTemplate(user, templateId);
   }
 
   @Post('email-templates/:id/preview')
@@ -189,7 +214,7 @@ export class NotificationsController {
     @Param('id') templateId: string,
     @Body() dto: PreviewEmailTemplateDto,
   ) {
-    return this.notificationsService.previewTemplate(user, templateId, dto);
+    return this.templateAuthoring.previewTemplate(user, templateId, dto);
   }
 
   @Post('email-templates/:id/test-send')
@@ -200,7 +225,7 @@ export class NotificationsController {
     @Param('id') templateId: string,
     @Body() dto: TestSendEmailTemplateDto,
   ) {
-    return this.notificationsService.testSendTemplate(user, templateId, dto);
+    return this.templateAuthoring.testSendTemplate(user, templateId, dto);
   }
 
   /*

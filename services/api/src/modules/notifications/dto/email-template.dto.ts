@@ -20,6 +20,15 @@ import {
 } from '../notifications.constants';
 
 /*
+ * Bounds on authored content. The global JSON body limit is 1 MB; these keep a
+ * single template well inside it and stop an editor bug from storing megabytes
+ * of markup that every send would then render.
+ */
+export const EMAIL_TEMPLATE_HTML_MAX_LENGTH = 100_000;
+export const EMAIL_TEMPLATE_TEXT_MAX_LENGTH = 50_000;
+export const EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH = 300;
+
+/*
  * Placement and module reach are authored the same way on create and update, so
  * both DTOs share these. `scopeId` is required for every level except TENANT,
  * which is checked in the service where the tenant is known.
@@ -40,11 +49,17 @@ class EmailTemplatePlacementDto {
 }
 
 export class CreateEmailTemplateDto extends EmailTemplatePlacementDto {
+  /*
+   * ITEM-0181. Optional: the key is what emitters match on, so it is derived
+   * from the event on the server rather than typed. Still accepted for API
+   * callers that place a second template under an explicit key.
+   */
+  @IsOptional()
   @IsString()
   @MinLength(1)
   @MaxLength(160)
   @Matches(/^[a-z0-9]+(?:[._-][a-z0-9]+)*$/)
-  templateKey!: string;
+  templateKey?: string;
 
   @IsString()
   @MinLength(1)
@@ -63,19 +78,28 @@ export class CreateEmailTemplateDto extends EmailTemplatePlacementDto {
 
   @IsString()
   @MinLength(1)
-  @MaxLength(300)
+  @MaxLength(EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH)
   subjectTemplate!: string;
 
   @IsString()
   @MinLength(1)
+  @MaxLength(EMAIL_TEMPLATE_HTML_MAX_LENGTH)
   htmlTemplate!: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(EMAIL_TEMPLATE_TEXT_MAX_LENGTH)
   textTemplate?: string | null;
 
+  /*
+   * ITEM-0181. Optional and ignored for catalog events: what an event supplies
+   * is a fact about its emitters, so it comes from the catalog, not from JSON a
+   * user typed. Only a template for an event the catalog has no copy for keeps
+   * what the caller sends.
+   */
+  @IsOptional()
   @IsObject()
-  availableVariables!: Record<string, unknown>;
+  availableVariables?: Record<string, unknown>;
 
   @IsOptional()
   @IsEnum(EmailTemplateStatus)
@@ -97,16 +121,18 @@ export class UpdateEmailTemplateDto extends EmailTemplatePlacementDto {
   @IsOptional()
   @IsString()
   @MinLength(1)
-  @MaxLength(300)
+  @MaxLength(EMAIL_TEMPLATE_SUBJECT_MAX_LENGTH)
   subjectTemplate?: string;
 
   @IsOptional()
   @IsString()
   @MinLength(1)
+  @MaxLength(EMAIL_TEMPLATE_HTML_MAX_LENGTH)
   htmlTemplate?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(EMAIL_TEMPLATE_TEXT_MAX_LENGTH)
   textTemplate?: string | null;
 
   @IsOptional()

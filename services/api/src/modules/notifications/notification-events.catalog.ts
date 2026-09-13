@@ -4,6 +4,11 @@ import {
   NotificationEventCategory,
 } from '@prisma/client';
 import { NOTIFICATION_SYSTEM_SCOPE_KEY } from './notifications.constants';
+import {
+  SYSTEM_EMAIL_TEMPLATE_COPY,
+  type EmailTemplateVariableDefinition,
+  type SystemEmailTemplateCopy,
+} from './system-email-templates.copy';
 
 export type NotificationEventDefinition = {
   code: string;
@@ -551,274 +556,254 @@ export function isAvailableEvent(event: NotificationEventDefinition) {
   return (event.availability ?? 'ACTIVE') === 'ACTIVE';
 }
 
-export const SYSTEM_EMAIL_TEMPLATE_PLACEHOLDERS: SystemEmailTemplateSeed[] =
+/*
+ * BUG-3500. Wording that must never reach a recipient from an ACTIVE template.
+ * Checked by `system-email-templates.spec.ts` against the catalog and by the
+ * configuration seed against the database, so a placeholder can neither be
+ * authored here nor survive in a deployed row.
+ */
+export const PLACEHOLDER_COPY_PATTERN =
+  /\bplaceholder\b|configure tenant-specific content|lorem ipsum|write your message here/i;
+
+export function containsPlaceholderCopy(value: string | null | undefined) {
+  return Boolean(value && PLACEHOLDER_COPY_PATTERN.test(value));
+}
+
+/* Declared before the seed list below, which reads it while the module loads. */
+const CATALOG_EVENT_BY_CODE = new Map(
+  NOTIFICATION_EVENT_CATALOG.map((event) => [event.code, event]),
+);
+
+/*
+ * Whether a system template should be ACTIVE: something in the product sends
+ * the event by email today, and the catalog has not marked the event retired or
+ * unavailable. ITEM-0169 made `availability` the source of "does this fire";
+ * `sendsEmail` answers the narrower "does it fire as an email", because an
+ * event can be live in-app while nothing ever mails it
+ * (TIMESHEET_APPROVAL_REQUEST).
+ */
+export function isSystemTemplateSendable(copy: SystemEmailTemplateCopy) {
+  const event = CATALOG_EVENT_BY_CODE.get(copy.eventCode);
+  return Boolean(
+    copy.sendsEmail &&
+    event &&
+    isAvailableEvent(event) &&
+    !isRetiredEventCode(event.code),
+  );
+}
+
+/*
+ * BUG-3500. One seed per catalog event that names a system template, built only
+ * from authored copy. There is deliberately no fallback: an event that names a
+ * `systemTemplateKey` without an entry in `system-email-templates.copy.ts`
+ * throws here, at module load, so the API refuses to boot and the seed refuses
+ * to run rather than shipping the generic "system placeholder" body that went
+ * out ACTIVE for six events.
+ */
+export const SYSTEM_EMAIL_TEMPLATES: SystemEmailTemplateSeed[] =
   NOTIFICATION_EVENT_CATALOG.filter((event) => event.systemTemplateKey).map(
     (event) => createSystemTemplateSeed(event),
   );
 
+/**
+ * @deprecated The seeds are no longer placeholders; use SYSTEM_EMAIL_TEMPLATES.
+ * Kept because `report-scheduler.worker.spec.ts` imports this name.
+ */
+export const SYSTEM_EMAIL_TEMPLATE_PLACEHOLDERS = SYSTEM_EMAIL_TEMPLATES;
+
 function createSystemTemplateSeed(
   event: NotificationEventDefinition,
 ): SystemEmailTemplateSeed {
-  if (event.code === 'AUTH_ACCOUNT_ACTIVATION') {
-    return {
-      scopeKey: NOTIFICATION_SYSTEM_SCOPE_KEY,
-      eventCode: event.code,
-      templateKey: 'AUTH_ACCOUNT_ACTIVATION',
-      name: 'Account activation email',
-      description: 'System template for tenant user account activation.',
-      subjectTemplate: 'Activate your {{appName}} account for {{tenantName}}',
-      htmlTemplate: buildAuthEmailHtml({
-        title: 'Activate your account',
-        intro:
-          'You have been invited to access the HR workspace for {{tenantName}}.',
-        buttonLabel: 'Activate account',
-        actionUrlVariable: 'activationUrl',
-      }),
-      textTemplate:
-        'Hello {{recipientName}},\n\nYou have been invited to access {{appName}} for {{tenantName}}.\n\nActivate your account using this link: {{activationUrl}}\n\nThis link expires at {{expiresAt}}.\n\nIf you did not expect this invitation, you can ignore this email or contact {{supportEmail}}.',
-      availableVariables: authTemplateVariables('activationUrl'),
-      status: EmailTemplateStatus.ACTIVE,
-      version: 1,
-      isSystem: true,
-    };
-  }
-
-  if (event.code === 'AUTH_PASSWORD_RESET') {
-    return {
-      scopeKey: NOTIFICATION_SYSTEM_SCOPE_KEY,
-      eventCode: event.code,
-      templateKey: 'AUTH_PASSWORD_RESET',
-      name: 'Password reset email',
-      description: 'System template for tenant user password reset.',
-      subjectTemplate: 'Reset your {{appName}} password for {{tenantName}}',
-      htmlTemplate: buildAuthEmailHtml({
-        title: 'Reset your password',
-        intro:
-          'A password reset was requested for your {{appName}} account at {{tenantName}}.',
-        buttonLabel: 'Reset password',
-        actionUrlVariable: 'resetUrl',
-      }),
-      textTemplate:
-        'Hello {{recipientName}},\n\nA password reset was requested for your {{appName}} account at {{tenantName}}.\n\nReset your password using this link: {{resetUrl}}\n\nThis link expires at {{expiresAt}}.\n\nIf you did not request this change, you can ignore this email or contact {{supportEmail}}.',
-      availableVariables: authTemplateVariables('resetUrl'),
-      status: EmailTemplateStatus.ACTIVE,
-      version: 1,
-      isSystem: true,
-    };
-  }
-
-  if (event.code === 'BILLING_INVOICE_ISSUED') {
-    return {
-      scopeKey: NOTIFICATION_SYSTEM_SCOPE_KEY,
-      eventCode: event.code,
-      templateKey: 'BILLING_INVOICE_ISSUED',
-      name: 'Invoice issued email',
-      description: 'System template for platform invoice delivery.',
-      subjectTemplate: 'Invoice {{invoiceNumber}} from {{platformName}}',
-      htmlTemplate: [
-        '<div style="font-family:Inter,Arial,sans-serif;line-height:1.6;color:#0f172a">',
-        '<h1 style="margin:0 0 12px">Invoice {{invoiceNumber}}</h1>',
-        '<p>Hello {{recipientName}},</p>',
-        '<p>Your invoice for {{tenantName}} has been issued.</p>',
-        '<table style="border-collapse:collapse;margin:16px 0">',
-        '<tr><td style="padding:6px 16px 6px 0;color:#64748b">Amount due</td><td style="padding:6px 0;font-weight:700">{{currency}} {{amountDue}}</td></tr>',
-        '<tr><td style="padding:6px 16px 6px 0;color:#64748b">Due date</td><td style="padding:6px 0">{{dueDate}}</td></tr>',
-        '<tr><td style="padding:6px 16px 6px 0;color:#64748b">Billing period</td><td style="padding:6px 0">{{billingPeriod}}</td></tr>',
-        '</table>',
-        '<p>{{paymentInstructions}}</p>',
-        '<p>If you need help, contact {{supportEmail}}.</p>',
-        '</div>',
-      ].join(''),
-      textTemplate:
-        'Hello {{recipientName}},\n\nInvoice {{invoiceNumber}} for {{tenantName}} has been issued.\n\nAmount due: {{currency}} {{amountDue}}\nDue date: {{dueDate}}\nBilling period: {{billingPeriod}}\n\n{{paymentInstructions}}\n\nSupport: {{supportEmail}}',
-      availableVariables: {
-        platformName: 'Platform billing name',
-        tenantName: 'Tenant display name',
-        recipientName: 'Recipient display name',
-        invoiceNumber: 'Invoice number',
-        currency: 'Invoice currency',
-        amountDue: 'Outstanding amount due',
-        dueDate: 'Invoice due date',
-        billingPeriod: 'Subscription billing period',
-        paymentInstructions: 'Payment instructions',
-        supportEmail: 'Support email address',
-      },
-      status: EmailTemplateStatus.ACTIVE,
-      version: 1,
-      isSystem: true,
-    };
-  }
-
-  if (event.code === 'REPORT_SCHEDULE_DELIVERY') {
-    /*
-     * Written out rather than left as the generic placeholder below, because
-     * this one arrives with a file attached and the reader has to be able to
-     * tell, without opening it, which report it is and what period it covers.
-     * A "configure tenant-specific content before production sending" body next
-     * to a spreadsheet of headcount is worse than no email.
-     */
-    return {
-      scopeKey: NOTIFICATION_SYSTEM_SCOPE_KEY,
-      eventCode: event.code,
-      templateKey: 'REPORT_SCHEDULE_DELIVERY',
-      name: 'Scheduled report delivery email',
-      description:
-        'System template for a scheduled report delivered as an attachment.',
-      subjectTemplate: '{{reportName}} - {{tenantName}}',
-      htmlTemplate: [
-        '<div style="font-family:Inter,Arial,sans-serif;line-height:1.6;color:#0f172a">',
-        '<h1 style="margin:0 0 12px;font-size:20px">{{reportName}}</h1>',
-        '<p>Hello {{recipientName}},</p>',
-        '<p>Your scheduled report is attached.</p>',
-        '<table style="border-collapse:collapse;margin:16px 0">',
-        '<tr><td style="padding:6px 16px 6px 0;color:#64748b">Schedule</td><td style="padding:6px 0">{{scheduleName}}</td></tr>',
-        '<tr><td style="padding:6px 16px 6px 0;color:#64748b">Period</td><td style="padding:6px 0">{{periodLabel}}</td></tr>',
-        '<tr><td style="padding:6px 16px 6px 0;color:#64748b">Rows</td><td style="padding:6px 0">{{rowCount}}</td></tr>',
-        '<tr><td style="padding:6px 16px 6px 0;color:#64748b">File</td><td style="padding:6px 0">{{fileName}}</td></tr>',
-        '</table>',
-        '<p style="font-size:13px;color:#64748b">This report was produced with the access rights of the person who created the schedule. If you should no longer receive it, ask them to remove you.</p>',
-        '</div>',
-      ].join(''),
-      textTemplate:
-        'Hello {{recipientName}},\n\nYour scheduled report "{{reportName}}" is attached.\n\nSchedule: {{scheduleName}}\nPeriod: {{periodLabel}}\nRows: {{rowCount}}\nFile: {{fileName}}\n\nThis report was produced with the access rights of the person who created the schedule. If you should no longer receive it, ask them to remove you.',
-      availableVariables: {
-        tenantName: 'Tenant display name',
-        recipientName: 'Recipient display name',
-        reportName: 'Name of the report that was run',
-        scheduleName: 'Name of the schedule that produced it',
-        periodLabel: 'The reporting period the file covers',
-        format: 'Export format (CSV, XLSX or PDF)',
-        rowCount: 'Rows in the attached file',
-        fileName: 'Attached file name',
-      },
-      status: EmailTemplateStatus.ACTIVE,
-      version: 1,
-      isSystem: true,
-    };
-  }
-
-  if (event.code === 'SUPPORT_CASE_UPDATE') {
-    /*
-     * ITEM-0170. Written out because the generic placeholder below only
-     * knows `tenantName`/`recipientName`/`actionUrl` — none of which
-     * `SupportCasesService.sendCommunication` actually supplies. Using only
-     * the variables that call site passes (`caseNumber`, `caseTitle`,
-     * `customerName`, `updateBody`) is what makes this template render a real
-     * message rather than blank fields.
-     */
-    return {
-      scopeKey: NOTIFICATION_SYSTEM_SCOPE_KEY,
-      eventCode: event.code,
-      templateKey: 'SUPPORT_CASE_UPDATE',
-      name: 'Support case update email',
-      description: 'System template for a support agent update to a customer.',
-      subjectTemplate: 'Update on your support case {{caseNumber}}',
-      htmlTemplate: [
-        '<div style="font-family:Inter,Arial,sans-serif;line-height:1.6;color:#0f172a">',
-        '<p>Hello {{customerName}},</p>',
-        '<p>There is a new update on your support case.</p>',
-        '<table style="border-collapse:collapse;margin:16px 0">',
-        '<tr><td style="padding:6px 16px 6px 0;color:#64748b">Case</td><td style="padding:6px 0;font-weight:700">{{caseNumber}} — {{caseTitle}}</td></tr>',
-        '</table>',
-        '<p style="white-space:pre-wrap">{{updateBody}}</p>',
-        '</div>',
-      ].join(''),
-      textTemplate:
-        'Hello {{customerName}},\n\nThere is a new update on your support case.\n\nCase: {{caseNumber}} - {{caseTitle}}\n\n{{updateBody}}',
-      availableVariables: {
-        customerName: 'Requester or customer account display name',
-        caseNumber: 'Support case number',
-        caseTitle: 'Support case title',
-        updateBody: 'The update text the agent wrote',
-      },
-      status: EmailTemplateStatus.ACTIVE,
-      version: 1,
-      isSystem: true,
-    };
+  const copy = SYSTEM_EMAIL_TEMPLATE_COPY.get(event.code);
+  if (!copy || copy.templateKey !== event.systemTemplateKey) {
+    throw new Error(
+      `Notification event ${event.code} names system email template "${event.systemTemplateKey}" but system-email-templates.copy.ts has no authored copy for it. Write the copy; there is no placeholder fallback.`,
+    );
   }
 
   return {
     scopeKey: NOTIFICATION_SYSTEM_SCOPE_KEY,
-    eventCode: event.code,
-    templateKey: event.systemTemplateKey as string,
-    name: `${event.name} email`,
-    description: `System placeholder template for ${event.name}.`,
-    subjectTemplate: `{{tenantName}} - ${event.name}`,
-    htmlTemplate:
-      '<p>This is a system placeholder email template. Configure tenant-specific content before production sending.</p>',
-    textTemplate:
-      'This is a system placeholder email template. Configure tenant-specific content before production sending.',
-    availableVariables: {
-      tenantName: 'Tenant display name',
-      recipientName: 'Recipient display name',
-      actionUrl: 'Action URL for the notification event',
-    },
-    status: EmailTemplateStatus.ACTIVE,
+    eventCode: copy.eventCode,
+    templateKey: copy.templateKey,
+    name: copy.name,
+    description: copy.description,
+    subjectTemplate: copy.subjectTemplate,
+    htmlTemplate: copy.htmlTemplate,
+    textTemplate: copy.textTemplate,
+    availableVariables: variablesAsRecord(copy.variables),
+    status: isSystemTemplateSendable(copy)
+      ? EmailTemplateStatus.ACTIVE
+      : EmailTemplateStatus.DRAFT,
     version: 1,
     isSystem: true,
   };
 }
 
-function authTemplateVariables(
-  actionUrlVariable: 'activationUrl' | 'resetUrl',
-) {
-  return {
-    tenantName: 'Tenant display name',
-    appName: 'Application display name',
-    recipientName: 'Recipient display name',
-    [actionUrlVariable]: 'Secure action URL',
-    expiresAt: 'Expiration timestamp',
-    supportEmail: 'Support email address',
-    primaryColor: 'Tenant brand primary color',
-    logoUrl: 'Tenant email logo URL',
+export function variablesAsRecord(
+  variables: readonly EmailTemplateVariableDefinition[],
+): Record<string, string> {
+  return Object.fromEntries(
+    variables.map((definition) => [definition.key, definition.label]),
+  );
+}
+
+/* Same token grammar as EmailTemplateRendererService. */
+const TEMPLATE_TOKEN_PATTERN = /{{\s*([a-zA-Z0-9_.-]+)\s*}}/g;
+
+export function templateTokens(
+  ...templates: Array<string | null | undefined>
+): string[] {
+  const tokens = new Set<string>();
+  for (const template of templates) {
+    for (const match of (template ?? '').matchAll(TEMPLATE_TOKEN_PATTERN)) {
+      if (match[1]) tokens.add(match[1]);
+    }
+  }
+  return [...tokens].sort();
+}
+
+/* The variables an event's emitters supply, or null for an event with no copy. */
+export function emailTemplateVariablesForEvent(
+  eventCode: string,
+): EmailTemplateVariableDefinition[] | null {
+  return SYSTEM_EMAIL_TEMPLATE_COPY.get(eventCode)?.variables ?? null;
+}
+
+export function systemEmailTemplateCopyForEvent(eventCode: string) {
+  return SYSTEM_EMAIL_TEMPLATE_COPY.get(eventCode) ?? null;
+}
+
+/*
+ * The definitions a template is edited and previewed against. Catalog events
+ * use the authored list; a legacy tenant template for an event with no copy
+ * falls back to the keys it stored, with a sample derived from the key name.
+ */
+export function resolveTemplateVariables(
+  eventCode: string,
+  storedAvailableVariables: unknown,
+): EmailTemplateVariableDefinition[] {
+  const catalogVariables = emailTemplateVariablesForEvent(eventCode);
+  if (catalogVariables) return catalogVariables;
+
+  const keys = Array.isArray(storedAvailableVariables)
+    ? storedAvailableVariables.map(String)
+    : storedAvailableVariables && typeof storedAvailableVariables === 'object'
+      ? Object.keys(storedAvailableVariables as Record<string, unknown>)
+      : [];
+
+  return keys.filter(Boolean).map((key) => {
+    const label =
+      storedAvailableVariables &&
+      typeof storedAvailableVariables === 'object' &&
+      !Array.isArray(storedAvailableVariables) &&
+      typeof (storedAvailableVariables as Record<string, unknown>)[key] ===
+        'string'
+        ? ((storedAvailableVariables as Record<string, string>)[key] ?? key)
+        : key;
+    const lower = key.toLowerCase();
+    const sample = lower.includes('url')
+      ? 'https://app.example.com/sample'
+      : lower.includes('email')
+        ? 'person@example.com'
+        : lower.includes('color')
+          ? '#0f766e'
+          : `Sample ${label}`;
+    return { key, label, sample };
+  });
+}
+
+export function sampleVariables(
+  definitions: readonly EmailTemplateVariableDefinition[],
+): Record<string, string> {
+  return Object.fromEntries(
+    definitions.map((definition) => [definition.key, definition.sample]),
+  );
+}
+
+export type EmailTemplateAuthoringEvent = {
+  code: string;
+  name: string;
+  category: NotificationEventCategory;
+  templateKey: string;
+  variables: EmailTemplateVariableDefinition[];
+  defaultContent: {
+    subjectTemplate: string;
+    htmlTemplate: string;
+    textTemplate: string;
   };
+};
+
+/*
+ * ITEM-0181. The events a tenant may write an email template for: an emitter
+ * sends it by email today, the catalog has it available, it is the tenant's own
+ * mail rather than DijiPeople's mail to the tenant, and the tenant's plan
+ * includes the feature it belongs to. One predicate, so the event picker, the
+ * template list and the create/customize write paths cannot disagree.
+ */
+export function isEmailTemplateAuthorable(
+  copy: SystemEmailTemplateCopy,
+  enabledFeatureKeys: ReadonlySet<string>,
+) {
+  return (
+    isSystemTemplateSendable(copy) &&
+    !copy.sentByPlatform &&
+    (!copy.featureKey || enabledFeatureKeys.has(copy.featureKey))
+  );
 }
 
-function buildAuthEmailHtml(input: {
-  title: string;
-  intro: string;
-  buttonLabel: string;
-  actionUrlVariable: 'activationUrl' | 'resetUrl';
-}) {
-  const actionUrl = `{{${input.actionUrlVariable}}}`;
-
-  return `
-<div style="margin:0;padding:0;background:#f6f7fb;font-family:Arial,Helvetica,sans-serif;color:#172033;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;background:#f6f7fb;margin:0;padding:32px 16px;">
-    <tr>
-      <td align="center">
-        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="width:100%;max-width:600px;background:#ffffff;border:1px solid #e6e8ef;border-radius:12px;overflow:hidden;">
-          <tr>
-            <td style="padding:28px 32px 16px 32px;text-align:left;">
-              <img src="{{logoUrl}}" alt="{{appName}}" style="max-height:40px;max-width:180px;display:block;margin:0 0 20px 0;border:0;" />
-              <h1 style="margin:0;font-size:24px;line-height:32px;color:#172033;font-weight:700;">${input.title}</h1>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:0 32px 8px 32px;">
-              <p style="margin:0 0 16px 0;font-size:15px;line-height:24px;color:#3b4559;">Hello {{recipientName}},</p>
-              <p style="margin:0 0 24px 0;font-size:15px;line-height:24px;color:#3b4559;">${input.intro}</p>
-              <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 0 24px 0;">
-                <tr>
-                  <td style="border-radius:8px;background:{{primaryColor}};">
-                    <a href="${actionUrl}" style="display:inline-block;padding:12px 20px;font-size:14px;line-height:20px;color:#ffffff;text-decoration:none;font-weight:700;border-radius:8px;">${input.buttonLabel}</a>
-                  </td>
-                </tr>
-              </table>
-              <p style="margin:0 0 12px 0;font-size:13px;line-height:20px;color:#5f6b7a;">This secure link expires at {{expiresAt}}.</p>
-              <p style="margin:0 0 20px 0;font-size:13px;line-height:20px;color:#5f6b7a;">If the button does not work, copy and paste this link into your browser:</p>
-              <p style="margin:0 0 24px 0;font-size:12px;line-height:18px;word-break:break-all;color:#2563eb;">${actionUrl}</p>
-              <p style="margin:0;font-size:13px;line-height:20px;color:#5f6b7a;">If you did not request this email, you can safely ignore it or contact {{supportEmail}}.</p>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:24px 32px 28px 32px;border-top:1px solid #eef0f5;">
-              <p style="margin:0;font-size:12px;line-height:18px;color:#7b8494;">{{appName}} for {{tenantName}}</p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</div>`.trim();
+export function listEmailTemplateAuthoringEvents(
+  enabledFeatureKeys: ReadonlySet<string>,
+): EmailTemplateAuthoringEvent[] {
+  return [...SYSTEM_EMAIL_TEMPLATE_COPY.values()]
+    .filter((copy) => isEmailTemplateAuthorable(copy, enabledFeatureKeys))
+    .map((copy) => {
+      const event = CATALOG_EVENT_BY_CODE.get(copy.eventCode);
+      return {
+        code: copy.eventCode,
+        name: event?.name ?? copy.name,
+        category: event?.category ?? NotificationEventCategory.SYSTEM,
+        templateKey: copy.templateKey,
+        variables: copy.variables,
+        defaultContent: {
+          subjectTemplate: copy.subjectTemplate,
+          htmlTemplate: copy.htmlTemplate,
+          textTemplate: copy.textTemplate,
+        },
+      };
+    });
 }
+
+/*
+ * BUG-3500 / ADR-0015. Whether a seed may write a system template row. The
+ * seed runs on every deploy, so this is what stands between drafted copy and a
+ * tenant's own template. Only a row that is still exactly what a seed created —
+ * system scope, no tenant, never saved by a person — is refreshed. A tenant
+ * clone lives at the tenant's scope and never reaches here, and no code path
+ * lets a user save a system row, but if one ever did, `updatedBy` would be set
+ * and the row would be left alone.
+ */
+export type SystemTemplateRowState = {
+  tenantId: string | null;
+  isSystem: boolean;
+  updatedBy: string | null;
+} | null;
+
+export function planSystemTemplateWrite(
+  existing: SystemTemplateRowState,
+): 'create' | 'update' | 'skip' {
+  if (!existing) return 'create';
+  if (existing.tenantId !== null || !existing.isSystem) return 'skip';
+  if (existing.updatedBy) return 'skip';
+  return 'update';
+}
+
+/*
+ * BUG-3500. `seedTenantEmailTemplates` used to write a hidden, ACTIVE,
+ * `isSystem` copy of each auth template into every tenant's own scope. Those
+ * rows beat the system template in resolution (tenant scope precedes SYSTEM),
+ * so the system copy never reached anyone, and they held the exact
+ * `(scopeKey, templateKey)` a tenant's Customize needs. They are re-keyed with
+ * this suffix and archived rather than deleted, so delivery history keeps its
+ * template and the step can be reversed.
+ */
+export const RETIRED_TENANT_DEFAULT_TEMPLATE_SUFFIX = '.retired-tenant-default';

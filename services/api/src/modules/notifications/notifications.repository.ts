@@ -14,8 +14,9 @@ import {
 import { PrismaService } from '../../common/prisma/prisma.service';
 import {
   NOTIFICATION_EVENT_CATALOG,
+  planSystemTemplateWrite,
   RETIRED_EVENT_ALIASES,
-  SYSTEM_EMAIL_TEMPLATE_PLACEHOLDERS,
+  SYSTEM_EMAIL_TEMPLATES,
 } from './notification-events.catalog';
 import {
   buildTenantNotificationScopeKey,
@@ -414,20 +415,28 @@ export class NotificationsRepository {
     });
   }
 
-  updateTenantTemplate(
+  /*
+   * ITEM-0181. Scoped in the write itself, not only in the caller's earlier
+   * read: an update by bare id trusted that nothing between the ownership
+   * check and the write had changed which row the id named. Returns null when
+   * the row is not this tenant's own template.
+   */
+  async updateTenantTemplate(
     tenantId: string,
     templateId: string,
-    data: Prisma.EmailTemplateUpdateInput,
+    data: Prisma.EmailTemplateUpdateManyMutationInput,
     actorUserId: string,
   ) {
-    return this.prisma.emailTemplate.update({
-      where: { id: templateId },
+    const result = await this.prisma.emailTemplate.updateMany({
+      where: { id: templateId, ...this.tenantOwnedTemplateWhere(tenantId) },
       data: {
         ...data,
         version: { increment: 1 },
         updatedBy: actorUserId,
       },
     });
+    if (result.count === 0) return null;
+    return this.findTenantTemplateById(tenantId, templateId);
   }
 
   async activateTenantTemplate(tenantId: string, templateId: string) {
@@ -486,6 +495,18 @@ export class NotificationsRepository {
     return this.prisma.emailTemplate.findUnique({
       where: { scopeKey_templateKey: { scopeKey, templateKey } },
       select: { id: true },
+    });
+  }
+
+  /*
+   * ITEM-0181. The whole row holding a scope and key, so Customize can tell a
+   * tenant's existing copy (open it) from anything else (refuse). Callers pass
+   * a scope key built from the caller's own tenant id, and still check
+   * `tenantId` on the result.
+   */
+  findTemplateRowByScopeAndKey(scopeKey: string, templateKey: string) {
+    return this.prisma.emailTemplate.findUnique({
+      where: { scopeKey_templateKey: { scopeKey, templateKey } },
     });
   }
 
@@ -1314,43 +1335,48 @@ export class NotificationsRepository {
       });
     }
 
-    for (const template of SYSTEM_EMAIL_TEMPLATE_PLACEHOLDERS) {
-      await db.emailTemplate.upsert({
-        where: {
-          scopeKey_templateKey: {
+    /*
+     * BUG-3500. The same write guard `seed-config.ts` uses, so the two writers
+     * of system templates cannot disagree about which rows they may touch.
+     */
+    for (const template of SYSTEM_EMAIL_TEMPLATES) {
+      const where = {
+        scopeKey_templateKey: {
+          scopeKey: template.scopeKey,
+          templateKey: template.templateKey,
+        },
+      };
+      const existing = await db.emailTemplate.findUnique({
+        where,
+        select: { tenantId: true, isSystem: true, updatedBy: true },
+      });
+      const content = {
+        eventCode: template.eventCode,
+        name: template.name,
+        description: template.description,
+        subjectTemplate: template.subjectTemplate,
+        htmlTemplate: template.htmlTemplate,
+        textTemplate: template.textTemplate,
+        availableVariables:
+          template.availableVariables as unknown as Prisma.InputJsonValue,
+        status: template.status,
+        isSystem: true,
+      };
+
+      const plan = planSystemTemplateWrite(existing);
+      if (plan === 'create') {
+        await db.emailTemplate.create({
+          data: {
+            tenantId: null,
             scopeKey: template.scopeKey,
             templateKey: template.templateKey,
+            version: template.version,
+            ...content,
           },
-        },
-        create: {
-          tenantId: null,
-          scopeKey: template.scopeKey,
-          eventCode: template.eventCode,
-          templateKey: template.templateKey,
-          name: template.name,
-          description: template.description,
-          subjectTemplate: template.subjectTemplate,
-          htmlTemplate: template.htmlTemplate,
-          textTemplate: template.textTemplate,
-          availableVariables:
-            template.availableVariables as unknown as Prisma.InputJsonValue,
-          status: template.status,
-          version: template.version,
-          isSystem: true,
-        },
-        update: {
-          eventCode: template.eventCode,
-          name: template.name,
-          description: template.description,
-          subjectTemplate: template.subjectTemplate,
-          htmlTemplate: template.htmlTemplate,
-          textTemplate: template.textTemplate,
-          availableVariables:
-            template.availableVariables as unknown as Prisma.InputJsonValue,
-          status: template.status,
-          isSystem: true,
-        },
-      });
+        });
+      } else if (plan === 'update') {
+        await db.emailTemplate.update({ where, data: content });
+      }
     }
 
     // ITEM-0169. Runs after the catalog upsert above so both retired codes
