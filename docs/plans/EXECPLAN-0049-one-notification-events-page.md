@@ -493,14 +493,21 @@ None. No gateway, agent, Stripe or email-provider contract changes.
 
 ## Definition of Done
 
-- [ ] ExecPlan committed before implementation.
-- [ ] Both permission decorators on both new routes, pinned by spec.
-- [ ] Tenant scoping on every new query, pinned by spec.
-- [ ] Audit before/after for preference and rule writes.
-- [ ] The toggle payload is validated by the real pipe (seam spec).
-- [ ] api: `test` (notification specs), `check-types`, eslint on changed files. web: `test`, `check-types`, eslint on changed files.
-- [ ] No edits to templates, providers, delivery logs, settings navigation/adapter registry, `form-control.tsx` or the error provider.
-- [ ] Stream report with root causes, tests, REG-510…, QA retest steps, residual risks.
+- [x] ExecPlan committed before implementation (003dfded).
+- [x] Both permission decorators on both new routes, pinned by spec.
+- [x] Tenant scoping on every new query, pinned by spec.
+- [x] Audit before/after for preference and rule writes.
+- [x] The toggle payload is validated by the real pipe (seam spec).
+- [x] api: `test` and eslint pass. `check-types` fails only on the pre-existing missing `@aws-sdk` packages (see stream report). web: `test`, `check-types` and eslint pass.
+- [x] No edits to templates, providers, delivery logs, settings navigation/adapter registry, `form-control.tsx` or the error provider.
+- [x] Stream report: `docs/tasks/TASK-0031-streams/WP-05-report.md`.
+- [ ] Browser verification on a throwaway database (orchestrator; steps in the stream report).
+
+## Divergence from this plan
+
+- **Page title.** Frontend impact said `SettingsShell` would be titled "Notification Events". The coordinator instructed that the title stay "Notification Rules", because WP-06 pins it together with the settings navigation, group and adapter-registry labels. The rename is proposed in the stream report instead.
+- **Audit snapshots.** They are captured before the write, not read from the rows afterwards. A spec failure showed that reading them back is fragile.
+- **Existing loading/error boundaries reused.** `(authenticated)/loading.tsx` and `error.tsx` are used as planned; no route-level files were added.
 
 ## Related
 
