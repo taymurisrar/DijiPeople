@@ -46,6 +46,8 @@ const CONFORMING_ROUTES = [
   "attendance/[entryId]/page.tsx",
   "benefits/assignments/[id]/page.tsx",
   "customers/[customerId]/page.tsx",
+  // BUG-3494 — one route for every published custom module.
+  "custom-modules/[moduleKey]/[recordId]/page.tsx",
   "employee-bank-accounts/[id]/page.tsx",
   "employees/[employeeId]/page.tsx",
   "leaves/[id]/page.tsx",
@@ -68,6 +70,8 @@ const CONFORMING_ROUTES = [
  * exceptions" table.
  */
 const JUSTIFIED_EXCEPTIONS: Record<string, string> = {
+  "custom-modules/[moduleKey]/page.tsx":
+    "Not a record page (BUG-3494): the list route of a published custom module. Its dynamic segment is the module key, not a record id; it renders StandardModuleListPage, and the module's record route is listed as conforming.",
   "attendance/corrections/[id]/page.tsx":
     "Structural exception (record-page-layout-contract.md): a single-decision approval screen, not a browsable record with tabs.",
   "attendance/exceptions/[id]/page.tsx":

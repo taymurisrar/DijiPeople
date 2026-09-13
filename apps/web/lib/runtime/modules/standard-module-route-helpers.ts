@@ -121,7 +121,12 @@ function mergePublishedWidgetForms(
   ];
 }
 
-function mapPublishedForm(
+/*
+ * Exported so the custom-module runtime (BUG-3494) turns a published form
+ * layout into FormMetadata through this one mapping rather than a second copy
+ * that would drift from what system modules render.
+ */
+export function mapPublishedForm(
   form: RuntimeCustomizationForm,
   entityLogicalName: string,
 ): FormMetadata {

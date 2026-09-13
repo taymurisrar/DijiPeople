@@ -24,8 +24,13 @@ import { CustomDataService } from './custom-data.service';
 import { CUSTOM_RECORDS_PERMISSION_KEYS } from './custom-records.metadata';
 import { EntityQueryParams } from './entity-query.types';
 
+/*
+ * `PermissionsGuard` is applied per handler, not on the class, because of the
+ * list handler below. Every other handler serves custom tables only and runs
+ * the guard with both permission systems declared (BUG-3494).
+ */
 @Controller('data')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard)
 export class DataController {
   constructor(
     private readonly dataService: DataService,
@@ -37,8 +42,9 @@ export class DataController {
    * between the static entity registry (`employees`, authorized by
    * `employees.read`) and custom tables (`custom-records.read`), so no single
    * static declaration is correct for both. Each branch asserts both permission
-   * systems itself through `EntityPermissionResolver` before any query runs.
-   * Every other handler here serves custom tables only and is declared.
+   * systems itself through `EntityPermissionResolver` before any query runs —
+   * which is why `DataController` stays on the reviewed service-authorized list
+   * in `wiring-invariants.spec.ts`.
    */
   @Get(':entityLogicalName')
   async findMany(
@@ -58,6 +64,7 @@ export class DataController {
   }
 
   @Get(':entityLogicalName/:recordId')
+  @UseGuards(PermissionsGuard)
   @Permissions(CUSTOM_RECORDS_PERMISSION_KEYS.READ)
   @RequirePermission(ENTITY_KEYS.CUSTOM_RECORDS, 'read')
   findOne(
@@ -69,6 +76,7 @@ export class DataController {
   }
 
   @Post(':entityLogicalName')
+  @UseGuards(PermissionsGuard)
   @Permissions(CUSTOM_RECORDS_PERMISSION_KEYS.CREATE)
   @RequirePermission(ENTITY_KEYS.CUSTOM_RECORDS, 'create')
   create(
@@ -81,6 +89,7 @@ export class DataController {
   }
 
   @Patch(':entityLogicalName/:recordId')
+  @UseGuards(PermissionsGuard)
   @Permissions(CUSTOM_RECORDS_PERMISSION_KEYS.WRITE)
   @RequirePermission(ENTITY_KEYS.CUSTOM_RECORDS, 'write')
   update(
@@ -100,6 +109,7 @@ export class DataController {
   }
 
   @Delete(':entityLogicalName/:recordId')
+  @UseGuards(PermissionsGuard)
   @Permissions(CUSTOM_RECORDS_PERMISSION_KEYS.DELETE)
   @RequirePermission(ENTITY_KEYS.CUSTOM_RECORDS, 'delete')
   deleteOne(
@@ -117,6 +127,7 @@ export class DataController {
   }
 
   @Delete(':entityLogicalName')
+  @UseGuards(PermissionsGuard)
   @Permissions(CUSTOM_RECORDS_PERMISSION_KEYS.DELETE)
   @RequirePermission(ENTITY_KEYS.CUSTOM_RECORDS, 'delete')
   deleteMany(

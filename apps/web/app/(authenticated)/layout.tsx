@@ -18,6 +18,10 @@ import {
 import type { BrandingSettings } from "@/lib/branding";
 import { buildFaviconMetadata } from "@/lib/favicon-metadata";
 import { isSelfServiceUser } from "@/lib/permissions";
+import {
+  CUSTOM_RECORDS_READ_PERMISSION,
+  type CustomModuleSummary,
+} from "@/lib/runtime/custom-modules/custom-module-navigation";
 import { buildVisibilityPlacement } from "@/lib/runtime/visibility-placement";
 import { apiRequestJson } from "@/lib/server-api";
 import { resolveRouteTitle } from "@/lib/tenant-branding-client";
@@ -139,6 +143,7 @@ export default async function DashboardLayout({
     businessUnitAccess,
     timesheetRestriction,
     navOverrides,
+    customModules,
   ] = await Promise.all([
     apiRequestJson<TenantFeaturesResponse>(
       "/tenant-settings/features/availability",
@@ -168,6 +173,21 @@ export default async function DashboardLayout({
     apiRequestJson<DashboardNavOverride[]>(
       "/navigation/sidebar",
     ).catch(() => [] as DashboardNavOverride[]),
+
+    /*
+     * Published custom modules (BUG-3494). Asked only of a user who holds the
+     * read key, because the endpoint answers everyone else with a 403 — which
+     * the API records in the error log — and this layout renders on every
+     * page. Skipping the call hides nothing the API would have shown. A failure
+     * falls back to no custom entries, like the overrides above.
+     */
+    user.permissionKeys.includes(CUSTOM_RECORDS_READ_PERMISSION)
+      ? apiRequestJson<{ items?: CustomModuleSummary[] }>(
+          "/metadata/custom-modules",
+        )
+          .then((response) => response.items ?? [])
+          .catch(() => [] as CustomModuleSummary[])
+      : Promise.resolve([] as CustomModuleSummary[]),
   ]);
 
   const currentEmployee = currentEmployeeContext.employee;
@@ -319,6 +339,7 @@ export default async function DashboardLayout({
               brandTagline={brandingSettings.portalTagline}
               navOverrides={navOverrides}
               placement={buildVisibilityPlacement(currentEmployee)}
+              customModules={customModules}
             />
 
             <div className="flex min-w-0 flex-1 flex-col gap-6">

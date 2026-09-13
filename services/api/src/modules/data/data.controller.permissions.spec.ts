@@ -98,15 +98,40 @@ describe('custom-module endpoints declare and enforce both permission systems', 
   const reflector = new Reflector();
   const guard = new PermissionsGuard(reflector);
 
-  it.each([DataController, CustomModuleRuntimeController])(
-    '%p runs JwtAuthGuard then PermissionsGuard',
-    (controller) => {
-      expect(Reflect.getMetadata(GUARDS_METADATA, controller)).toEqual([
-        JwtAuthGuard,
-        PermissionsGuard,
-      ]);
+  it('CustomModuleRuntimeController runs JwtAuthGuard then PermissionsGuard', () => {
+    expect(
+      Reflect.getMetadata(GUARDS_METADATA, CustomModuleRuntimeController),
+    ).toEqual([JwtAuthGuard, PermissionsGuard]);
+  });
+
+  /*
+   * DataController authenticates at the class and guards per handler, because
+   * its dispatching list handler cannot carry one static declaration (it stays
+   * on the reviewed service-authorized list in wiring-invariants.spec.ts).
+   */
+  it('DataController authenticates every handler at the class', () => {
+    expect(Reflect.getMetadata(GUARDS_METADATA, DataController)).toEqual([
+      JwtAuthGuard,
+    ]);
+  });
+
+  it.each(CASES.filter(([controller]) => controller === DataController))(
+    '%p.%s runs PermissionsGuard',
+    (controller, handler) => {
+      expect(
+        Reflect.getMetadata(GUARDS_METADATA, handlerOf(controller, handler)),
+      ).toEqual([PermissionsGuard]);
     },
   );
+
+  it('the dispatching list handler is the only DataController handler without the guard', () => {
+    expect(
+      Reflect.getMetadata(
+        GUARDS_METADATA,
+        handlerOf(DataController, 'findMany'),
+      ),
+    ).toBeUndefined();
+  });
 
   it.each(CASES)(
     '%p.%s declares %s and the matching matrix privilege',
