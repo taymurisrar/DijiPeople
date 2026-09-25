@@ -24,6 +24,7 @@ import {
   describeBlockedSave,
   firstFailingTab,
 } from "@/lib/runtime/blocked-save-feedback";
+import { editEntryTab } from "@/lib/runtime/edit-tab-selection";
 import {
   humanizeErrorMessage,
   humanizeFieldError,
@@ -430,7 +431,25 @@ function RuntimeRecordEditor({
       save,
       reloadRecord,
       resetForm: form.reset,
-      enterEditMode: () => setMode("edit"),
+      /*
+       * BUG-3546: Edit used to leave the operator on whichever tab they were
+       * already looking at, enabled Save, and said nothing when that tab had
+       * no editable field at all (tenants' three writable fields all live on
+       * Configuration; the default landing tab, Overview, has none). Jump to
+       * the first tab with something editable — generically, from the form's
+       * own field/tab metadata, not a tenant-specific special case — and only
+       * when the current tab genuinely has nothing to offer.
+       */
+      enterEditMode: () => {
+        const target = editEntryTab(
+          formDefinition.tabs ?? [],
+          formDefinition.fields,
+          form.values,
+          activeTab,
+        );
+        if (target) setActiveTab(target);
+        setMode("edit");
+      },
       leaveEditMode: () => setMode("read"),
       openSignatureDialog: () => setSignatureOpen(true),
       requestReason,
