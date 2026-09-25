@@ -89,6 +89,7 @@ function service(prisma: Record<string, unknown>) {
     {} as never,
     {} as never,
     { record: jest.fn() } as never,
+    { log: jest.fn() } as never,
   );
 }
 
@@ -289,9 +290,9 @@ describe('tenant provisioning service order gate', () => {
     ).resolves.toBeNull();
   });
 
-  it('exposes grouped, non-deprecated definitions to the picker', () => {
+  it('exposes grouped, non-deprecated definitions to the picker', async () => {
     const contracts = service({});
-    const payload = contracts.listPlaceholderDefinitions(platformUser);
+    const payload = await contracts.listPlaceholderDefinitions(platformUser);
 
     expect(payload.groups).toContain('Commercial');
     expect(

@@ -582,6 +582,7 @@ export function ContractTemplateEditor({
           previewHtml={samplePreview ? previewHtml : undefined}
           readOnly={samplePreview}
           value={html}
+          contractType={type}
         />
         <label className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white p-4 text-sm font-semibold text-slate-700">
           <input

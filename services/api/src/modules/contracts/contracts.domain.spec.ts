@@ -1,6 +1,8 @@
 import {
   cleanContractHtml,
   convertContractDocumentToHtml,
+  createDocx,
+  createPdf,
   decodeSignatureDataUrl,
   extractAgreementDocumentStructure,
   extractContractPlaceholders,
@@ -355,5 +357,114 @@ describe('contract document domain', () => {
       'signature.counterparty.date': '2026-08-13T10:00:00.000Z',
       'signature.counterparty.initials': 'AH',
     });
+  });
+
+  /*
+   * BUG-3552. A stringified `undefined`/`null`/`[object Object]` must never
+   * reach a rendered agreement in a placeholder position — checked at the
+   * substitution site itself (`renderContractPlaceholders`), not by scanning
+   * finished prose, which would false-positive on ordinary legal language
+   * ("null and void").
+   */
+  it('never renders undefined/null/[object Object] literals in a placeholder position', () => {
+    expect(
+      renderContractPlaceholders('<p>Owner: {{contract.paymentTerms}}</p>', {
+        'contract.paymentTerms': undefined as unknown as string,
+      }),
+    ).toBe('<p>Owner: {{contract.paymentTerms}}</p>');
+    expect(
+      renderContractPlaceholders('<p>Owner: {{contract.paymentTerms}}</p>', {
+        'contract.paymentTerms': 'null',
+      }),
+    ).toBe('<p>Owner: {{contract.paymentTerms}}</p>');
+    expect(
+      renderContractPlaceholders('<p>Owner: {{contract.paymentTerms}}</p>', {
+        'contract.paymentTerms': String({}),
+      }),
+    ).toBe('<p>Owner: {{contract.paymentTerms}}</p>');
+    // Ordinary legal prose containing the word "null" is untouched — the
+    // guard checks the substituted value, never surrounding text.
+    expect(
+      renderContractPlaceholders('<p>This clause is null and void.</p>', {}),
+    ).toBe('<p>This clause is null and void.</p>');
+  });
+
+  /*
+   * BUG-3554. `data-signature-style` (added to `cleanContractHtml`'s `span`
+   * allowlist) is what lets a typed signature's paragraph choose a distinct
+   * font in the rendered document — confirmed here at the structure-parsing
+   * level that feeds both `createPdf` and `createDocx`.
+   */
+  it('reads a typed signature style from its paragraph for the PDF/DOCX font choice', () => {
+    const blocks = extractAgreementDocumentStructure(
+      '<p><span data-signature-metadata="true" data-signature-style="SCRIPT"><strong>Amal Hassan</strong></span></p>',
+    );
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0]).toMatchObject({
+      kind: 'paragraph',
+      signatureStyle: 'SCRIPT',
+    });
+  });
+
+  it('leaves an ordinary paragraph with no signature style undefined', () => {
+    const blocks = extractAgreementDocumentStructure('<p>Ordinary clause.</p>');
+    expect(blocks[0]).toMatchObject({ kind: 'paragraph' });
+    expect(
+      (blocks[0] as { signatureStyle?: string }).signatureStyle,
+    ).toBeUndefined();
+  });
+
+  /*
+   * BUG-3554 / task instruction: confirm a drawn or uploaded signature image
+   * is drawn into the PDF bytes themselves, not only present in the source
+   * HTML — search the rendered buffer for an image XObject.
+   */
+  it('draws an embedded signature image into the generated PDF (not only the HTML)', async () => {
+    const pixel = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+      'base64',
+    );
+    const html = `<h1>Agreement</h1><p>Signed by:</p><img src="data:image/png;base64,${pixel.toString('base64')}" alt="Signature">`;
+    const pdf = await createPdf('Agreement', html);
+    expect(pdf.toString('latin1')).toContain('/Subtype /Image');
+  });
+
+  it("renders a SCRIPT-style typed signature in a standard font distinct from the document body's", async () => {
+    const scriptHtml =
+      '<h1>Agreement</h1><p><span data-signature-style="SCRIPT">Amal Hassan</span></p>';
+    const classicHtml =
+      '<h1>Agreement</h1><p><span data-signature-style="CLASSIC">Amal Hassan</span></p>';
+    const scriptPdf = (await createPdf('Agreement', scriptHtml)).toString(
+      'latin1',
+    );
+    const classicPdf = (await createPdf('Agreement', classicHtml)).toString(
+      'latin1',
+    );
+    expect(scriptPdf).toContain('Times-Italic');
+    expect(classicPdf).not.toContain('Times-Italic');
+  });
+
+  it('persists the typed signature style into a DOCX run (distinct font from CLASSIC)', async () => {
+    // A DOCX is a deflate-compressed zip archive — unlike the PDF check
+    // above, the font name is not readable in the raw bytes, so this unzips
+    // word/document.xml (the same way Word itself would) to read the run's
+    // actual font.
+    const JSZip = (await import('jszip')).default;
+    const scriptDocx = await createDocx(
+      'Agreement',
+      '<p><span data-signature-style="SCRIPT">Amal Hassan</span></p>',
+    );
+    const classicDocx = await createDocx(
+      'Agreement',
+      '<p><span data-signature-style="CLASSIC">Amal Hassan</span></p>',
+    );
+    const scriptXml = await (await JSZip.loadAsync(scriptDocx))
+      .file('word/document.xml')!
+      .async('string');
+    const classicXml = await (await JSZip.loadAsync(classicDocx))
+      .file('word/document.xml')!
+      .async('string');
+    expect(scriptXml).toContain('Times New Roman');
+    expect(classicXml).not.toContain('Times New Roman');
   });
 });
