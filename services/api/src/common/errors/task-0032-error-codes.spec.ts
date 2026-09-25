@@ -1,4 +1,5 @@
-import { getErrorCatalogEntry, isErrorCode } from './error-catalog';
+import { isErrorCode } from './app-error';
+import { getErrorCatalogEntry } from './error-catalog';
 
 /**
  * TASK-0032 added error codes for MFA (ADR-0019), platform authorization
