@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { MonitoringNav } from "@/app/_components/monitoring/monitoring-nav";
 import {
+  HealthOverviewTiles,
+  type PlatformHealth,
+} from "@/app/_components/monitoring/health-overview-tiles";
+import {
   MonitoringOverview,
   type EventHealth,
   type OverviewIncident,
@@ -33,7 +37,7 @@ export const metadata: Metadata = {
 export default async function MonitoringSettingsPage() {
   await requireSystemAdminUser("/settings/monitoring");
 
-  const [incidents, events] = await Promise.all([
+  const [incidents, events, health] = await Promise.all([
     /*
      * The queue's own endpoint, with its own filters — asking for the most
      * recent 25 rather than re-implementing pagination on a landing page. The
@@ -46,6 +50,9 @@ export default async function MonitoringSettingsPage() {
       metrics: OverviewMetrics;
     }>("/platform/logs/events?pageSize=25&sortBy=createdAt&sortDirection=desc"),
     apiRequestJson<EventHealth>("/platform/events/overview"),
+    // TASK-0032 WP-06: "is the platform healthy" answered first, from real
+    // dependency probes rather than inferred from the incident queue below.
+    apiRequestJson<PlatformHealth>("/platform/monitoring/health"),
   ]);
 
   return (
@@ -56,6 +63,7 @@ export default async function MonitoringSettingsPage() {
         title="Monitoring"
       />
       <MonitoringNav current="/settings/monitoring" />
+      <HealthOverviewTiles health={health} />
       <MonitoringOverview
         events={events}
         incidents={incidents.items}

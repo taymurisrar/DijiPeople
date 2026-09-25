@@ -612,7 +612,7 @@ export function ErrorLogsTable({
                   <Detail label="Sanitized message" value={log.message} />
                 </div>
               </div>
-              <IncidentDetailPanel log={log} />
+              <IncidentDetailPanel key={log.referenceNumber} log={log} />
               <SupportCaseEditor log={log} assignees={assignees} />
             </div>
           )}
@@ -795,8 +795,10 @@ function IncidentDetailPanel({ log }: { log: PlatformErrorEvent }) {
   >({ status: "loading" });
 
   useEffect(() => {
+    // `key={log.referenceNumber}` at the call site remounts this component
+    // fresh for each row, so the initial "loading" state above already covers
+    // the reset — no synchronous setState is needed here.
     let cancelled = false;
-    setState({ status: "loading" });
 
     fetch(`/api/platform/logs/events/${encodeURIComponent(log.referenceNumber)}`)
       .then(async (response) => {
