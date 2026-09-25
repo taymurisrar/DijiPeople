@@ -29,19 +29,17 @@ import {
 
 const LOOKUP_PATH = "/partners?pageSize=100&status=ACTIVE";
 
-type LeadRecord = {
-  id: string;
-  partnerId?: string | null;
-  partnerReferralLinkId?: string | null;
-};
-
 export function LeadAttributionPanel({
   record,
   onComplete,
 }: {
-  record: LeadRecord;
+  record: Record<string, unknown>;
   onComplete?: () => void | Promise<void>;
 }) {
+  const leadId = String(record.id ?? "");
+  const currentPartnerId =
+    typeof record.partnerId === "string" ? record.partnerId : null;
+
   const [selectedPartnerId, setSelectedPartnerId] = useState("");
   const [reason, setReason] = useState("");
   const [query, setQuery] = useState("");
@@ -61,7 +59,7 @@ export function LeadAttributionPanel({
   }, []);
 
   const lookup = useRuntimeLookupOptions(LOOKUP_PATH, query);
-  const hasCurrentPartner = Boolean(record.partnerId);
+  const hasCurrentPartner = Boolean(currentPartnerId);
 
   async function submit(nextPartnerId: string | null) {
     if (!reason.trim()) {
@@ -73,7 +71,7 @@ export function LeadAttributionPanel({
     setMessage(null);
     try {
       const response = await fetch(
-        `/api/super-admin/leads/${encodeURIComponent(record.id)}/attribution`,
+        `/api/super-admin/leads/${encodeURIComponent(leadId)}/attribution`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -112,7 +110,7 @@ export function LeadAttributionPanel({
       setError("Select a partner first.");
       return;
     }
-    if (selectedPartnerId === record.partnerId) {
+    if (selectedPartnerId === currentPartnerId) {
       setError("That partner is already attributed to this lead.");
       return;
     }

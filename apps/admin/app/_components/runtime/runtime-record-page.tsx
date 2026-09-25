@@ -613,10 +613,7 @@ function RuntimeRecordEditor({
         />
       ) : null}
       {moduleKey === "leads" && !isCreate ? (
-        <LeadAttributionPanel
-          record={form.values as never}
-          onComplete={reloadRecord}
-        />
+        <LeadAttributionPanel record={form.values} onComplete={reloadRecord} />
       ) : null}
       {moduleKey === "contracts" && !isCreate && activeTab === "versions" ? (
         <ContractVersionHistory
