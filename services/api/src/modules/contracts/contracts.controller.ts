@@ -39,6 +39,7 @@ import {
   CreateContractTemplateDto,
   CreateContractTemplateVersionDto,
   DeclineSignatureDto,
+  PlaceholderDefinitionsQueryDto,
   RequestSignatureChangesDto,
   SaveContractVersionDto,
   SendSignatureRequestDto,
@@ -101,8 +102,15 @@ export class ContractsController {
   }
 
   @Get('placeholder-definitions')
-  placeholderDefinitions(@CurrentUser() user: AuthenticatedUser) {
-    return this.contracts.listPlaceholderDefinitions(user);
+  placeholderDefinitions(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: PlaceholderDefinitionsQueryDto,
+  ) {
+    return this.contracts.listPlaceholderDefinitions(
+      user,
+      query.contractType,
+      query.contractId,
+    );
   }
 
   @Get(':id')
@@ -354,13 +362,16 @@ export class SignatureRequestsController {
     return this.contracts.cancelSignatureRequest(user, id);
   }
 
+  /*
+   * BUG-3553 (Admin agreement UX). `resend` and `remind` used to be two
+   * routes calling the identical service method under different labels —
+   * the admin UI only ever called `resend`, and nothing else in the
+   * repository referenced `/remind` (verified by search), so the dead
+   * duplicate is removed rather than kept as a second name for the same
+   * action.
+   */
   @Post(':id/resend')
   resend(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
-    return this.contracts.resendSignatureRequest(user, id);
-  }
-
-  @Post(':id/remind')
-  remind(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.contracts.resendSignatureRequest(user, id);
   }
 }

@@ -150,12 +150,20 @@ export function ContractDocumentEditor({
   onChange,
   readOnly = false,
   placeholders,
+  contractType,
   previewHtml,
 }: {
   value: string;
   onChange: (html: string) => void;
   readOnly?: boolean;
   placeholders?: Array<string | PlaceholderDefinition>;
+  /**
+   * ADR-0020. Narrows the fields rail to the placeholder groups this
+   * contract type's context can hold — a partner agreement no longer offers
+   * `customer.*`/`tenant.*`. Omitted for the caller that still passes its own
+   * `placeholders` list explicitly.
+   */
+  contractType?: string;
   /**
    * Rendered instead of the editor's own content while set.
    *
@@ -214,7 +222,10 @@ export function ContractDocumentEditor({
   useEffect(() => {
     if (placeholders !== undefined) return;
     const controller = new AbortController();
-    fetch("/api/contracts/placeholder-definitions", {
+    const query = contractType
+      ? `?contractType=${encodeURIComponent(contractType)}`
+      : "";
+    fetch(`/api/contracts/placeholder-definitions${query}`, {
       signal: controller.signal,
     })
       .then((response) => (response.ok ? response.json() : null))
@@ -231,7 +242,10 @@ export function ContractDocumentEditor({
       )
       .catch(() => undefined);
     return () => controller.abort();
-  }, [placeholders]);
+    // Refetches whenever the author changes the contract type, so the rail
+    // always reflects the type currently selected, not the one open when the
+    // editor first mounted.
+  }, [placeholders, contractType]);
   const normalizedPlaceholders = useMemo(
     () =>
       placeholders === undefined
