@@ -135,7 +135,8 @@ export class MfaService {
     return {
       enabled: state.mfaEnabled,
       enabledAt: state.mfaEnabledAt,
-      pendingSetup: !state.mfaEnabled && Boolean(state.mfaPendingSecretEncrypted),
+      pendingSetup:
+        !state.mfaEnabled && Boolean(state.mfaPendingSecretEncrypted),
       recoveryCodesRemaining,
       methods: ['TOTP'] as const,
     };
@@ -162,9 +163,13 @@ export class MfaService {
     }
 
     const secret = generateTotpSecret();
-    await this.writeState(subject, {}, {
-      mfaPendingSecretEncrypted: this.encryption.encrypt(secret),
-    });
+    await this.writeState(
+      subject,
+      {},
+      {
+        mfaPendingSecretEncrypted: this.encryption.encrypt(secret),
+      },
+    );
 
     const otpauthUri = buildOtpauthUri({
       issuer: MFA_ISSUER,
@@ -449,8 +454,15 @@ export class MfaService {
       { organizationIdField: null, userIdField: 'id' },
     );
     const target = await this.prisma.user.findFirst({
-      where: { AND: [{ id: targetUserId, tenantId: actor.tenantId }, scopeWhere] },
-      select: { id: true, tenantId: true, mfaEnabled: true, mfaEnabledAt: true },
+      where: {
+        AND: [{ id: targetUserId, tenantId: actor.tenantId }, scopeWhere],
+      },
+      select: {
+        id: true,
+        tenantId: true,
+        mfaEnabled: true,
+        mfaEnabledAt: true,
+      },
     });
 
     if (!target) {
@@ -470,7 +482,11 @@ export class MfaService {
       await this.writeState(subject, {}, { ...MFA_CLEARED }, tx);
       await this.deleteRecoveryCodes(subject, tx);
       const revoked = await tx.refreshToken.updateMany({
-        where: { userId: target.id, tenantId: target.tenantId, revokedAt: null },
+        where: {
+          userId: target.id,
+          tenantId: target.tenantId,
+          revokedAt: null,
+        },
         data: { revokedAt: new Date() },
       });
       await this.audit(
@@ -609,8 +625,13 @@ export class MfaService {
 
     // The same identity-aware lookup sign-in uses, so the password that signs
     // this person in is the password that turns MFA off.
-    const credential = await resolveLoginCredential(this.prisma, subject.userId);
-    return credential ? bcrypt.compare(password, credential.passwordHash) : false;
+    const credential = await resolveLoginCredential(
+      this.prisma,
+      subject.userId,
+    );
+    return credential
+      ? bcrypt.compare(password, credential.passwordHash)
+      : false;
   }
 
   private assertEncryptionAvailable() {

@@ -23,7 +23,8 @@ const trim = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim() : value;
 
 const TOTP_CODE = /^\d{6}$/;
-const TOTP_CODE_MESSAGE = 'code must be the 6-digit code from your authenticator app.';
+const TOTP_CODE_MESSAGE =
+  'code must be the 6-digit code from your authenticator app.';
 /** `xxxxx-xxxxx`, case- and hyphen-insensitive; normalised again server-side. */
 const RECOVERY_CODE = /^[0-9A-Za-z]{5}[-\s]?[0-9A-Za-z]{5}$/;
 const RECOVERY_CODE_MESSAGE = 'recoveryCode must look like xxxxx-xxxxx.';
