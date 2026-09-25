@@ -1358,7 +1358,20 @@ const definitions: PlatformModuleDefinition[] = [
         ]),
         {
           ...field("partnerId", "Referral partner", "lookup", "acquisition"),
-          lookupPath: "/partners?pageSize=100",
+          /*
+           * TASK-0032 WP-04, item 4. Filtered to `status=ACTIVE` so the picker
+           * itself cannot offer a suspended/inactive/terminated/rejected
+           * partner — the same rule `PartnerReferralResolverService.resolve()`
+           * already applies to an automatic referral-code attribution, and
+           * `LeadsService.correctAttribution()` now enforces it server-side
+           * too. Read-only here: the generic PATCH this form otherwise
+           * submits is explicitly refused by `updateLead()` — "Use the
+           * audited attribution-correction action to change a lead partner"
+           * — so reassignment happens through the "Partner attribution" panel
+           * instead, which calls that endpoint.
+           */
+          lookupPath: "/partners?pageSize=100&status=ACTIVE",
+          readOnly: true,
           visibleWhenAny: [
             {
               field: "source",
