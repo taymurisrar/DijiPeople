@@ -882,6 +882,29 @@ const partnerFields: RuntimeFieldDefinition[] = [
     "COMPANY",
     "INDIVIDUAL",
   ]),
+  /*
+   * BUG-3549. The commercial relationship (`PartnershipModel`) is distinct
+   * from the contracting entity type above and was captured on every
+   * `PartnerInquiry` (ITEM-0030) but never surfaced on the `Partner` record
+   * itself once converted — an operator opening a partner's own detail page
+   * could not see, or correct, which relationship it was taken on under.
+   */
+  field(
+    "partnershipModel",
+    "Partnership model",
+    "option",
+    "identity",
+    false,
+    [
+      "REFERRAL",
+      "RESELLER",
+      "IMPLEMENTATION",
+      "TECHNOLOGY",
+      "STRATEGIC",
+      "CONSULTANT",
+      "OTHER",
+    ],
+  ),
   field(
     "status",
     "Status",
@@ -900,10 +923,28 @@ const partnerFields: RuntimeFieldDefinition[] = [
     ]),
     readOnly: true,
   },
-  field("companyName", "Legal company name", "text", "identity"),
+  /*
+   * BUG-3549. `type` now drives which identity fields are required
+   * (`partner-type-policy.ts`, enforced server-side in
+   * `partners.service.ts`). The form mirrors that split rather than showing
+   * both a company field and a personal-name field as equally optional for
+   * every partner: a COMPANY partner needs a company name, an INDIVIDUAL
+   * partner needs a contact name and never a company name.
+   */
+  {
+    ...field("companyName", "Legal company name", "text", "identity"),
+    visibleWhen: { field: "type", equals: "COMPANY" },
+    requiredWhen: { field: "type", equals: "COMPANY" },
+  },
   field("taxId", "Tax ID", "text", "identity"),
-  field("contactFirstName", "Contact first name", "text", "contact"),
-  field("contactLastName", "Contact last name", "text", "contact"),
+  {
+    ...field("contactFirstName", "Contact first name", "text", "contact"),
+    requiredWhen: { field: "type", equals: "INDIVIDUAL" },
+  },
+  {
+    ...field("contactLastName", "Contact last name", "text", "contact"),
+    requiredWhen: { field: "type", equals: "INDIVIDUAL" },
+  },
   field("email", "Business email", "email", "contact", true),
   field("phone", "Phone", "phone", "contact"),
   field("website", "Website", "url", "contact"),
@@ -1626,6 +1667,7 @@ const definitions: PlatformModuleDefinition[] = [
     columns: [
       col("displayName", "Partner", 230),
       col("type", "Type", 120),
+      col("partnershipModel", "Partnership", 160, "status"),
       col("status", "Status", 170, "status"),
       col("onboardingApplications", "Onboarding", 170, "number"),
       col("agreements", "Agreements", 170, "number"),

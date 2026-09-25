@@ -13,9 +13,10 @@ import { PartnerExperienceService } from './partner-experience.service';
 import { PartnerReferralResolverService } from './partner-referral-resolver.service';
 import { PlatformCommunicationsModule } from '../platform-communications/platform-communications.module';
 import { LegalModule } from '../legal/legal.module';
+import { AuditModule } from '../audit/audit.module';
 
 @Module({
-  imports: [AuthModule, PlatformCommunicationsModule, LegalModule],
+  imports: [AuthModule, PlatformCommunicationsModule, LegalModule, AuditModule],
   controllers: [
     PublicPartnersController,
     PartnerAuthController,

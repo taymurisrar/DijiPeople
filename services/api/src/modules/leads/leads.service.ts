@@ -10,6 +10,7 @@ import {
   LegalDocumentType,
   LeadInquiryIntent,
   LeadStatus,
+  PartnerStatus,
   PlatformUserRole,
   PlatformUserStatus,
 } from '@prisma/client';
@@ -771,14 +772,46 @@ export class LeadsService {
       throw new BadRequestException(
         'Referral link does not belong to the selected partner.',
       );
-    if (
-      partnerId &&
-      !(await this.prisma.partner.findUnique({
+    let partner: { id: string; status: PartnerStatus; displayName: string } | null =
+      null;
+    if (partnerId) {
+      partner = await this.prisma.partner.findUnique({
         where: { id: partnerId },
-        select: { id: true },
-      }))
-    )
-      throw new BadRequestException('Selected partner does not exist.');
+        select: { id: true, status: true, displayName: true },
+      });
+      if (!partner) throw new BadRequestException('Selected partner does not exist.');
+      /*
+       * The same rule `PartnerReferralResolverService.resolve()` already
+       * applies to an automatic referral-code attribution — a partner who is
+       * not ACTIVE cannot be attributed a lead. Manual correction is a second
+       * path to the same column and must not be looser than the first one; a
+       * `LeadAttributionStatus.INACTIVE_PARTNER` exists specifically for this
+       * case, which this codebase would otherwise only ever reach
+       * automatically, never through an operator's own action.
+       */
+      if (partner.status !== PartnerStatus.ACTIVE)
+        throw new BadRequestException(
+          `${partner.displayName} is ${partner.status} and cannot be attributed a lead. Reactivate the partner first, or choose an active one.`,
+        );
+    }
+
+    /*
+     * Assigning the same partner (and the same referral link, including both
+     * being cleared) again is a no-op, not a second correction. Without this,
+     * clicking "Save" on an unchanged attribution field wrote a
+     * `LeadAttributionCorrection` row and a `PartnerTimeline` entry that
+     * recorded no actual change — noise an auditor reading the history later
+     * has to work out is not a real reassignment.
+     */
+    if (
+      partnerId === lead.partnerId &&
+      (link?.id ?? null) === lead.partnerReferralLinkId
+    ) {
+      return {
+        ...(await this.getLead(currentUser, leadId)),
+        attributionUnchanged: true,
+      };
+    }
 
     await this.prisma.$transaction(async (tx) => {
       await tx.leadAttributionCorrection.create({

@@ -29,6 +29,7 @@ describe('partner activation workflow', () => {
         resolvePublished: jest.fn(async () => null),
         acknowledge: jest.fn(),
       } as never,
+      { log: jest.fn() } as never,
     );
     await expect(
       service.activatePartner(platformAdmin, 'partner-1'),
@@ -53,6 +54,7 @@ describe('partner activation workflow', () => {
         resolvePublished: jest.fn(async () => null),
         acknowledge: jest.fn(),
       } as never,
+      { log: jest.fn() } as never,
     );
     await expect(
       service.activatePartner(platformAdmin, 'partner-1'),
