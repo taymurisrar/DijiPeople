@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**673 records** — 472 bugs under [`docs/bugs/`](../bugs/), 201 non-bug items under [`items/`](items/).
+**685 records** — 483 bugs under [`docs/bugs/`](../bugs/), 202 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,32 +13,32 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 217 |
+| Open (active work) | 227 |
 | Blocked | 2 |
-| Deferred | 106 |
+| Deferred | 107 |
 | Awaiting a product decision | 9 |
-| Completed / closed | 339 |
-| **Open CRITICAL** | **4** |
-| **Open HIGH** | **98** |
+| Completed / closed | 340 |
+| **Open CRITICAL** | **6** |
+| **Open HIGH** | **99** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
 
 | Severity | Count |
 |---|---|
-| CRITICAL | 4 |
-| HIGH | 98 |
-| MEDIUM | 97 |
-| LOW | 18 |
+| CRITICAL | 6 |
+| HIGH | 99 |
+| MEDIUM | 102 |
+| LOW | 20 |
 
 ## Open by type
 
 | Type | Count |
 |---|---|
 | AUTHORIZATION | 13 |
-| BUG | 60 |
+| BUG | 66 |
 | DATABASE | 1 |
-| DATA_INTEGRITY | 20 |
+| DATA_INTEGRITY | 21 |
 | DOCUMENTATION | 1 |
 | FOLLOW_UP | 3 |
 | INFRA | 6 |
@@ -50,7 +50,7 @@ see [`README.md`](README.md) for why.
 | TECH_DEBT | 7 |
 | TENANT_ISOLATION | 2 |
 | TEST_GAP | 10 |
-| UX | 48 |
+| UX | 51 |
 
 ## All records by status
 
@@ -58,14 +58,14 @@ see [`README.md`](README.md) for why.
 |---|---|
 | OPEN | 60 |
 | BLOCKED | 2 |
-| DEFERRED | 106 |
+| DEFERRED | 107 |
 | PRODUCT_DECISION | 9 |
-| FIXED | 131 |
+| FIXED | 141 |
 | VERIFIED | 218 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
 | READY | 26 |
-| DONE | 107 |
+| DONE | 108 |
 
 ## All records
 
@@ -96,6 +96,8 @@ see [`README.md`](README.md) for why.
 | [BUG-3153](../../docs/bugs/BUG-3153-production-had-no-persistent-disk-so-every-uploaded-hr-docum.md) | Production had no persistent disk, so every uploaded HR document was destroyed on the next deploy | INFRA | CRITICAL | P0 | DUPLICATE | services/api/src/common, api:documents | DUPLICATE |
 | [BUG-3154](../../docs/bugs/BUG-3154-employee-bank-accounts-ibans-cnics-and-tax-identifiers-are-s.md) | Employee bank accounts, IBANs, CNICs and tax identifiers are stored in plaintext beside an unused AES-256-GCM service | DATA_INTEGRITY | CRITICAL | P0 | OPEN | api:employees, api:compensation | PLAN_REQUIRED |
 | [BUG-3155](../../docs/bugs/BUG-3155-fieldsecurityrule-masking-is-enforced-only-in-the-browser-th.md) | FieldSecurityRule masking is enforced only in the browser; the API sends the unmasked value | AUTHORIZATION | CRITICAL | P0 | OPEN | api:employees | FIX_NOW |
+| [BUG-3580](../../docs/bugs/BUG-3580-agreement-preview-documents-print-unresolved-placeholders.md) | Agreement preview documents print unresolved placeholders | BUG | CRITICAL | P0 | FIXED | api:contracts | DONE |
+| [BUG-3581](../../docs/bugs/BUG-3581-signature-date-placeholders-block-sending-and-freeze-a-fabri.md) | Signature-date placeholders block sending and freeze a fabricated date into signed agreements | BUG | CRITICAL | P0 | FIXED | api:contracts | DONE |
 | [ITEM-0131](../../docs/backlog/items/ITEM-0131-production-hr-and-payroll-data-has-no-backup-the-database-is.md) | Production HR and payroll data has no backup: the database is on the Neon free plan | INFRA | CRITICAL | P0 | PRODUCT_DECISION | services/api | PRODUCT_DECISION |
 | [BUG-1494](../../docs/bugs/BUG-1494-git-worktree-remove-follows-node-modules-junctions-and-delet.md) | git worktree remove follows node_modules junctions and deletes the primary checkout | INFRA | CRITICAL | P1 | VERIFIED | scripts | DONE |
 | [BUG-0049](../../docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md) | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | P0 | VERIFIED | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | DONE |
@@ -302,6 +304,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3545](../../docs/bugs/BUG-3545-the-admin-session-heartbeat-is-refused-for-most-platform-rol.md) | The admin session heartbeat is refused for most platform roles and raises a blocking permission dialog | AUTHORIZATION | HIGH | P1 | OPEN | api:auth, apps/admin | FIX_NOW |
 | [BUG-3564](../../docs/bugs/BUG-3564-the-platform-audit-trail-is-write-only-no-screen-or-endpoint.md) | The platform audit trail is write-only: no screen or endpoint can read PlatformAuditLog | SECURITY | HIGH | P1 | OPEN | api:audit, apps/admin | FIX_NOW |
 | [BUG-3565](../../docs/bugs/BUG-3565-opening-a-contract-template-or-signature-request-from-its-ad.md) | Opening a contract template or signature request from its admin list returns 404 | BUG | HIGH | P1 | OPEN | api:platform-runtime | FIX_NOW |
+| [BUG-3578](../../docs/bugs/BUG-3578-deleting-a-partner-or-lead-with-restricted-history-crashes-w.md) | Deleting a partner or lead with restricted history crashes with a 500 | DATA_INTEGRITY | HIGH | P1 | FIXED | api:partners, api:leads | DONE |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -533,6 +536,11 @@ see [`README.md`](README.md) for why.
 | [BUG-3555](../../docs/bugs/BUG-3555-error-log-redaction-covers-auth-secrets-only-stack-traces-an.md) | Error log redaction covers auth secrets only: stack traces and personal or financial values are stored unredacted | SECURITY | MEDIUM | P2 | OPEN | api:error-logs | FIX_NOW |
 | [BUG-3566](../../docs/bugs/BUG-3566-a-partial-partner-edit-is-rejected-because-the-update-dto-re.md) | A partial partner edit is rejected because the update DTO requires every create field | BUG | MEDIUM | P2 | OPEN | api:partners | FIX_NOW |
 | [BUG-3567](../../docs/bugs/BUG-3567-platform-administrator-sign-ins-and-failed-sign-ins-are-not-.md) | Platform administrator sign-ins and failed sign-ins are not audited | SECURITY | MEDIUM | P2 | OPEN | api:auth | FIX_NOW |
+| [BUG-3579](../../docs/bugs/BUG-3579-an-attributed-lead-never-shows-its-referral-partner.md) | An attributed lead never shows its referral partner | UX | MEDIUM | P2 | FIXED | api:leads, apps/admin | DONE |
+| [BUG-3582](../../docs/bugs/BUG-3582-system-agreement-templates-have-no-signature-block.md) | System agreement templates have no signature block | BUG | MEDIUM | P2 | FIXED | services/api/prisma, api:contracts | DONE |
+| [BUG-3584](../../docs/bugs/BUG-3584-a-partner-agreement-never-fills-partner-placeholders-from-it.md) | A partner agreement never fills partner placeholders from its linked partner | BUG | MEDIUM | P2 | FIXED | api:contracts | DONE |
+| [BUG-3585](../../docs/bugs/BUG-3585-error-codes-added-for-mfa-platform-authorization-and-agreeme.md) | Error codes added for MFA, platform authorization and agreements reach clients as generic codes | BUG | MEDIUM | P2 | FIXED | services/api/src/common/errors, api:auth, api:contracts | DONE |
+| [BUG-3587](../../docs/bugs/BUG-3587-the-monitoring-overview-raises-a-hydration-error-that-covers.md) | The monitoring overview raises a hydration error that covers the page with the error dialog | UX | MEDIUM | P2 | FIXED | apps/admin | DONE |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -682,6 +690,9 @@ see [`README.md`](README.md) for why.
 | [BUG-3523](../../docs/bugs/BUG-3523-custom-module-page-header-shows-the-table-key-instead-of-the.md) | Custom module page header shows the table key instead of the module name | BUG | LOW | P3 | DEFERRED | apps/web | DEFER |
 | [BUG-3546](../../docs/bugs/BUG-3546-tenant-record-edit-leaves-the-operator-on-a-tab-with-nothing.md) | Tenant record Edit leaves the operator on a tab with nothing editable | UX | LOW | P3 | OPEN | apps/admin | FIX_NOW |
 | [BUG-3554](../../docs/bugs/BUG-3554-the-typed-signature-style-selector-is-cosmetic-the-chosen-st.md) | The typed-signature style selector is cosmetic: the chosen style never reaches the signed document | UX | LOW | P3 | OPEN | apps/landing, api:contracts | FIX_NOW |
+| [BUG-3583](../../docs/bugs/BUG-3583-counterparty-placeholders-are-grouped-under-customer.md) | Counterparty placeholders are grouped under Customer | UX | LOW | P3 | FIXED | api:contracts | DONE |
+| [BUG-3586](../../docs/bugs/BUG-3586-the-monitoring-health-headline-reads-unknown-when-no-email-h.md) | The monitoring health headline reads Unknown when no email has been sent | BUG | LOW | P3 | FIXED | api:platform-monitoring | DONE |
+| [BUG-3588](../../docs/bugs/BUG-3588-a-signed-in-operator-without-the-users-permission-sees-a-log.md) | A signed-in operator without the users permission sees a login-style Access denied page | UX | LOW | P3 | DEFERRED | apps/admin | DEFER |
 | [ITEM-0007](../../docs/backlog/items/ITEM-0007-should-duplicate-website-leads-be-deduplicated.md) | Product decision — should duplicate website leads be deduplicated? | PRODUCT_DECISION | LOW | P3 | DONE | api:leads, apps/landing | DONE |
 | [ITEM-0008](../../docs/backlog/items/ITEM-0008-customeraccount-has-no-origin-channel.md) | Product decision — CustomerAccount carries no origin channel | PRODUCT_DECISION | LOW | P3 | DONE | services/api/prisma, api:super-admin | DONE |
 | [ITEM-0011](../../docs/backlog/items/ITEM-0011-framework-validation-should-catch-absence-claims.md) | Framework validation should catch false absence claims in context documents | TECH_DEBT | LOW | P3 | DONE | .agent/context, scripts | DONE |
@@ -721,6 +732,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0192](../../docs/backlog/items/ITEM-0192-the-unreachable-notifications-settings-form-still-declares-i.md) | The unreachable notifications settings form still declares In-app, Browser Push and Digest switches | TECH_DEBT | LOW | P3 | DEFERRED | apps/web, notifications | DEFER |
 | [ITEM-0195](../../docs/backlog/items/ITEM-0195-the-legacy-publish-snapshot-shape-can-expose-a-never-publish.md) | The legacy publish snapshot shape can expose a never-published custom module at runtime | FOLLOW_UP | LOW | P3 | DEFERRED | data, customization | DEFER |
 | [ITEM-0196](../../docs/backlog/items/ITEM-0196-the-employee-record-still-shows-a-hardcoded-cnic-field-an-en.md) | The employee record still shows a hardcoded CNIC field, an end-user form selector and a mislabelled Global Administrator role | UX | LOW | P3 | DEFERRED | apps/web, employees, permissions | DEFER |
+| [ITEM-0202](../../docs/backlog/items/ITEM-0202-mfa-status-reads-off-while-new-recovery-codes-are-shown.md) | MFA status reads Off while new recovery codes are shown | UX | LOW | P3 | DONE | apps/web, apps/admin | DONE |
 | [ITEM-0126](../../docs/backlog/items/ITEM-0126-decide-which-of-the-41-always-visible-settings-pages-should-.md) | Decide which of the 41 always-visible settings pages should be sold | PRODUCT_DECISION | — | P1 | DONE | apps/web | DONE |
 | [ITEM-0129](../../docs/backlog/items/ITEM-0129-tenants-should-inherit-the-platform-email-provider-by-defaul.md) | Tenants should inherit the platform email provider by default, and may override it | ARCHITECTURE | — | P1 | DONE | services/api, apps/web | DONE |
 | [ITEM-0130](../../docs/backlog/items/ITEM-0130-review-process-missed-four-defects-on-screens-adjacent-to-th.md) | Review process missed four defects on screens adjacent to the change | TEST_GAP | — | P1 | DONE | apps/web, .agent | DONE |

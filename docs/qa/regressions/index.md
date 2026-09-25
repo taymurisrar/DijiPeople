@@ -6504,7 +6504,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 |---|---|
 | **Bug class** | `divergent-duplicate-guard` (three renderers of one version; one never substituted) |
 | **Module** | `services/api/src/modules/contracts` |
-| **Bug record** | QA agreements DEFECT-1 (TASK-0032 WP-09 live QA; evidence `B1-partner-only.pdf`, `B3-customer.pdf`) |
+| **Bug record** | BUG-3580 — QA agreements DEFECT-1 (TASK-0032 WP-09 live QA; evidence `B1-partner-only.pdf`, `B3-customer.pdf`) |
 | **Root cause** | `ContractsService.generateDocument`'s non-immutable path used `version.contentHtml` as stored and only replaced `{{signature.*}}`; `documentFields()` and `sendForSignature()` each called `renderContractPlaceholders` themselves. All three now call one `renderContractVersionHtml(html, rows, 'display' \| 'freeze')`; the immutable path still renders only from the frozen version plus `SignatureEvidence` (`renderSignatureEvidenceTokens`). |
 | **Regression test** | `services/api/src/modules/contracts/contracts.agreement-rendering.spec.ts` — `'prints resolved values in the preview PDF, never {{platform.*}}'`, `'prints resolved values in the preview DOCX'`, `'the document-fields view renders through the same function'`, `'renders from the frozen version and evidence, not from current values'` |
 | **Scenario** | A draft partner agreement with `platform.legalName`/`partner.name` stored: `POST /contracts/:id/generate/pdf` prints "DijiPeople Technologies Ltd." and "Northstar Advisory" (PDF text extracted from the inflated content streams), no `{{`, signature lines read "Pending". After signing, renaming the partner does not change the executed copy. A required unresolved token stays visible in a draft preview; an optional one follows its EMPTY fallback. |
@@ -6517,7 +6517,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 |---|---|
 | **Bug class** | `wrong-question-in-a-guard` (exemption keyed on data type instead of namespace) |
 | **Module** | `services/api/src/modules/contracts` |
-| **Bug record** | QA agreements DEFECT-2 (TASK-0032 WP-09 live QA; evidence `D15-b3-signed-copy.pdf`) |
+| **Bug record** | BUG-3581 — QA agreements DEFECT-2 (TASK-0032 WP-09 live QA; evidence `D15-b3-signed-copy.pdf`) |
 | **Root cause** | `sendForSignature`'s "every token resolved" check exempted only `SIGNATURE`/`INITIALS` data types, but `signature.*.date` is `DATE_TIME` — so any template with a dated signature line (seeded `CUSTOMER_SERVICE_STANDARD`) could not be sent. The workaround (typing a date into document fields) was frozen into the signing version, and the executed PDF printed "— 1 October 2026, 00:00 UTC" beside the real signing timestamp. The whole `signature.*` namespace is now exempt from the gate, stripped from the signing snapshot, refused by `saveDocumentFields` (`CONTRACT_SIGNATURE_FIELD_NOT_EDITABLE`, 400), ignored at display unless written by signing, and filled at render from the matching signer's `SignatureEvidence.signedAt`. |
 | **Regression test** | `services/api/src/modules/contracts/contracts.agreement-rendering.spec.ts` — `'sends a template whose signature date lines are unresolved'`, `'never freezes a stored signature.* value into the signing version'`, `'refuses a manual value for a signature.* field with a clear 400'`, `'renders from the frozen version and evidence, not from current values'`, `'fills every field of one slot from the same signer'`, `'a named slot with no signer reads "Not signed", never another party'`; `common/errors/task-0032-error-codes.spec.ts` pins the new code. |
 | **Scenario** | Send a partner agreement whose body has `{{signature.platform.date}}`/`{{signature.counterparty.date}}` and a stale manual `signature.platform.date` row: the send succeeds, the signing version keeps both tokens, the snapshot has no `signature.*` key. `PATCH /contracts/:id/document-fields` with `signature.counterparty.date` returns 400 `CONTRACT_SIGNATURE_FIELD_NOT_EDITABLE`. The signed PDF prints "25 September 2026, 10:36 UTC" (the real `signedAt`) and no fabricated date. |
@@ -6530,7 +6530,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 |---|---|
 | **Bug class** | `doc-code-drift` |
 | **Module** | `services/api/src/modules/contracts` |
-| **Bug record** | QA agreements DEFECT-4 (TASK-0032 WP-09 live QA) |
+| **Bug record** | BUG-3583 — QA agreements DEFECT-4 (TASK-0032 WP-09 live QA) |
 | **Root cause** | `PLACEHOLDER_GROUP_BY_NAMESPACE` mapped `counterparty` to `'Customer'`. `counterparty.*` is always available (ADR-0020), so every partner agreement template listed a Customer group even though ADR-0020 had removed `customer.*` from it. `counterparty` now has its own `'Counterparty'` group, ordered right after `'Platform'`. |
 | **Regression test** | `services/api/src/modules/contracts/contracts.agreement-rendering.spec.ts` — `'labels counterparty.* Counterparty, listed right after Platform'`, `'a partner agreement template is offered no Customer group'` |
 | **Scenario** | `GET /contracts/placeholder-definitions?contractType=PARTNER_AGREEMENT` returns Platform, Counterparty, Partner, Contract, SLA, Signatures groups and no Customer group. |
@@ -6543,7 +6543,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 |---|---|
 | **Bug class** | `declared-but-unwired-step` |
 | **Module** | `services/api/src/modules/contracts` |
-| **Bug record** | TASK-0032 WP-11 item 5 (verification of the ADR-0020 "linked entities feed their namespace" promise, surfaced while fixing QA agreements DEFECT-1) |
+| **Bug record** | BUG-3584 — TASK-0032 WP-11 item 5 (verification of the ADR-0020 "linked entities feed their namespace" promise, surfaced while fixing QA agreements DEFECT-1) |
 | **Root cause** | `resolveSource` handles lead, customer, onboarding and tenant; there is no `partner` source, and `create()` stored `partnerId` without deriving a single `partner.*` value. With DEFECT-1 fixed, a partner agreement's preview would still print `{{partner.name}}` until the operator typed the partner's own name in. `create()` now derives `partner.*` from the linked partner (explicit `placeholderValues` still win) and `syncDerivedPlaceholderValues` refreshes them on every contract edit, preserving values an operator entered manually. |
 | **Regression test** | `services/api/src/modules/contracts/contracts.partner-source.spec.ts` — `'POST /contracts with a partnerId stores the partner values'`, `'a contract edit refreshes partner.* from the record, keeping manual overrides'`, plus three `partnerPlaceholderValues` unit tests |
 | **Scenario** | `POST /contracts` `{ contractType: PARTNER_AGREEMENT, partnerId }` for an individual partner stores `partner.name`, `partner.legalName` (the individual's name), `partner.contact.*`, `partner.taxId` and a configured commission; it never invents a company legal name, a 0% commission, an address or a registration number. Renaming the partner then editing the draft updates `partner.name`; a manually entered `partner.contact.email` survives. |
@@ -6556,7 +6556,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 |---|---|
 | **Bug class** | `unvalidated-seed-state` |
 | **Module** | `services/api/prisma` (`seed-config.ts`), `services/api/src/modules/contracts` |
-| **Bug record** | QA agreements DEFECT-3 (TASK-0032 WP-09 live QA) |
+| **Bug record** | BUG-3582 — QA agreements DEFECT-3 (TASK-0032 WP-09 live QA) |
 | **Root cause** | `seedPlatformContractTemplates` shipped seven of nine system templates (`PARTNER_REFERRAL_STANDARD`, `PARTNER_COMPANY_STANDARD`, `PARTNER_INDIVIDUAL_STANDARD`, `CUSTOMER_ENTERPRISE_STANDARD`, `NDA_STANDARD`, `DATA_PROCESSING_STANDARD`, `REFERRAL_ADDENDUM_STANDARD`) with no `signature.*` tokens, so an executed agreement's body showed no signature; and the seed bypasses `createTemplate`'s ADR-0020 context check, so nothing validated seeded content. Each now ends with a platform + counterparty block (mark and date), naming the counterparty with a placeholder in its type's context; the list is exported as `PLATFORM_CONTRACT_TEMPLATES` and validated by a spec. |
 | **Regression test** | `services/api/src/modules/contracts/contract-templates.seed.spec.ts` — `'%s has a platform and counterparty signature block'`, `'%s references only registered placeholders valid for its type'` (per template) |
 | **Scenario** | Every seeded template contains `{{signature.platform.name}}`, `{{signature.platform.date}}`, `{{signature.counterparty.name}}`, `{{signature.counterparty.date}}`, and `outOfContextPlaceholders` over it is empty. A future seed template referencing, say, `customer.*` in a partner agreement fails this spec. |
@@ -6569,7 +6569,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 |---|---|
 | **Bug class** | A delete guard that checks some `onDelete: Restrict` relations and not others, so the database refuses what the service allowed. |
 | **Module** | `services/api/src/modules/partners` — `partner-deletion.service.ts` |
-| **Bug record** | Found by TASK-0032 WP-09 QA (partners, Defect 1). |
+| **Bug record** | BUG-3578 — Found by TASK-0032 WP-09 QA (partners, Defect 1). |
 | **Root cause** | `deletePartners` checked leads, commissions, agreements, referral links and portal users, but not the origin inquiry, onboarding applications, lead attribution history, lead reviews or support cases — all Restrict — nor the partner's own Restrict timeline. |
 | **Regression test** | `services/api/src/modules/partners/partner-deletion.service.spec.ts` ("restricted relations refuse by name") |
 | **Scenario** | A partner with any of those relations is refused with the relation named; a partner with none is deleted together with its timeline in one transaction. |
@@ -6582,7 +6582,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 |---|---|
 | **Bug class** | Same as REG-620, for leads. |
 | **Module** | `services/api/src/modules/leads` — `leads.service.ts` `bulkDeleteLeads` |
-| **Bug record** | Found by TASK-0032 WP-09 QA (partners Defect 1, agreements Defect 5). |
+| **Bug record** | BUG-3578 — Found by TASK-0032 WP-09 QA (partners Defect 1, agreements Defect 5). |
 | **Root cause** | Only a converted customer blocked the delete; `LeadAttributionCorrection`, `Contract.relatedLeadId` and `PartnerLeadReview` are Restrict and were not checked. |
 | **Regression test** | `services/api/src/modules/leads/lead-delete-and-partner.spec.ts` |
 | **Scenario** | A lead with attribution changes, agreements or partner reviews is refused with a 400 naming them; a lead with none is deleted. |
@@ -6595,7 +6595,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 |---|---|
 | **Bug class** | A lookup field whose label depends on an embedded relation the API never embeds. |
 | **Module** | `services/api/src/modules/leads` `getLead`; `apps/admin` lead attribution panel |
-| **Bug record** | Found by TASK-0032 WP-09 QA (partners Defects 2 and 3). |
+| **Bug record** | BUG-3579 — Found by TASK-0032 WP-09 QA (partners Defects 2 and 3). |
 | **Root cause** | `getLead` returned only the scalar `partnerId`; the runtime form labels a lookup from `values.partner`, and the attribution panel had no current-partner value. |
 | **Regression test** | `services/api/src/modules/leads/lead-delete-and-partner.spec.ts` ("the attributed partner is embedded") |
 | **Scenario** | `getLead` returns `partner { id, displayName, type, status }` and nothing more about the partner; the panel shows "Current partner". |
@@ -6613,4 +6613,46 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Regression test** | `services/api/src/modules/contracts/platform-signature-lines.spec.ts`; updated cases in `contracts.agreement-rendering.spec.ts` |
 | **Scenario** | Marked and token-bearing platform lines are removed when no PLATFORM party signs, kept when one does; every system template marks its platform lines; a partner-only send freezes no platform line. |
 | **Fails without the fix** | Yes — the helpers do not exist without it, and the rendering cases expect the line removed. |
+| **Active** | yes |
+
+### REG-624 — Error codes added for MFA, platform authorization and agreements reached clients as generic codes
+
+| | |
+|---|---|
+| **Bug class** | `uncatalogued-error-code` |
+| **Module** | `services/api/src/common/errors`, `services/api/src/modules/auth`, `services/api/src/modules/contracts` |
+| **Bug record** | BUG-3585 |
+| **Root cause** | Three TASK-0032 streams (WP-02 platform RBAC, WP-03 MFA, WP-05 agreement guards) each introduced new `AppError` codes — including `CONTRACT_SIGNATURE_FIELD_NOT_EDITABLE` (REG-611) — without registering any of them in `common/errors/error-catalog.ts`. `HttpExceptionFilter` renders `errorCode: 'SYSTEM_UNEXPECTED_ERROR'` for any code the catalogue does not recognise, so a client hitting these new paths could not distinguish the specific failure from an unrelated server fault. |
+| **Regression test** | `services/api/src/common/errors/task-0032-error-codes.spec.ts` |
+| **Scenario** | Every error code TASK-0032 introduced across MFA, platform authorization and agreements is registered in `error-catalog.ts` and renders its own `errorCode`, never the `SYSTEM_UNEXPECTED_ERROR` fallback. |
+| **Proven to fail without the fix** | Yes — the catalogue entries this spec asserts on did not exist before the fix; reverting `error-catalog.ts` to omit them fails the spec. |
+| **Fixed** | 2026-09-25, commits `e52a345c`, `bbb61ab5` |
+| **Active** | yes |
+
+### REG-625 — The monitoring health headline read Unknown when no email had ever been sent
+
+| | |
+|---|---|
+| **Bug class** | `ambiguous-absent-vs-inconclusive-status` |
+| **Module** | `services/api/src/modules/platform-monitoring` |
+| **Bug record** | BUG-3586 |
+| **Root cause** | `PlatformHealthService`'s email component reported `'UNKNOWN'` both when a probe was genuinely inconclusive (a timeout) and when there was simply no delivery-log history to sample from — collapsing "never tried" and "tried and could not tell" into one status, unlike every other component in the same service (REG-580's "never fabricate OK, and a timeout is not the same as confirmed down" rule). |
+| **Regression test** | `services/api/src/modules/platform-monitoring/platform-health.service.spec.ts` ("reports email UNKNOWN when nothing has ever been sent") |
+| **Scenario** | An environment with zero delivery-log rows reports the email component's dedicated "nothing sent yet" status, distinct from the status a genuinely inconclusive (timed-out) probe reports. |
+| **Proven to fail without the fix** | Yes — collapsing the two branches back into one shared `'UNKNOWN'` value fails this spec's case. |
+| **Fixed** | 2026-09-25, commit `910fcb50` |
+| **Active** | yes |
+
+### REG-626 — The admin monitoring overview's hydration mismatch blanked the page under the global error dialog
+
+| | |
+|---|---|
+| **Bug class** | `hydration-mismatch-treated-as-fatal` |
+| **Module** | `apps/admin` |
+| **Bug record** | BUG-3587 |
+| **Root cause** | The monitoring overview rendered incident relative times ("2 minutes ago") directly in the shared render path with no hydration guard, so the server's snapshot and the client's first hydration pass — computed moments apart — necessarily disagreed. `ErrorProvider`'s global error boundary treated the resulting React hydration warning as page-fatal and covered the whole page with its blocking error dialog. |
+| **Regression test** | None automated — `apps/admin`'s jest configuration runs no rendering tests (no `jsdom` installed), the same constraint already recorded for REG-587 in this app. Verified by direct browser reproduction against the throwaway stack (repeated loads of the monitoring overview with incidents present, no dialog after the fix) and by code review of the hydration-safe rendering change, following the manual/browser-regression precedent REG-587 already established in this register. |
+| **Scenario** | Loading the monitoring overview with at least one incident present never triggers the page-level error dialog; incident relative times still update to reflect elapsed time after the initial render. |
+| **Fails without the fix** | Not mechanically (no test harness) — confirmed by live browser reproduction before the fix and its absence after, per the same precedent as REG-587. |
+| **Fixed** | 2026-09-25, commit `910fcb50` |
 | **Active** | yes |
