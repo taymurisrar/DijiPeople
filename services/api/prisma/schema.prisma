@@ -2353,6 +2353,7 @@ model Tenant {
   reportSchedules                 ReportSchedule[]
   reportRuns                      ReportRun[]
   workforceSnapshots              WorkforceSnapshotDaily[]
+  userMfaRecoveryCodes            UserMfaRecoveryCode[]
 
   @@index([status])
   @@index([slug])
@@ -3447,6 +3448,9 @@ model SignatureEvidence {
   recipientId          String             @unique
   method               SignatureMethod
   typedName            String?
+  /// The rendering style the signer chose for a typed signature (e.g. SCRIPT).
+  /// Null for drawn/uploaded signatures and for evidence recorded before it existed.
+  typedStyle           String?
   signatureStorageKey  String?
   signatureStorageProvider String?
   signatureSha256      String
@@ -4378,6 +4382,18 @@ model User {
   /// When the password was last set, for expiry checks.
   passwordChangedAt              DateTime?
   passwordHistory                PasswordHistory[]
+  /// TOTP multi-factor authentication (ADR-0019). The seed is encrypted with
+  /// SecretEncryptionService and never leaves the API after setup. A pending
+  /// seed exists only between "start setup" and the first verified code, so an
+  /// abandoned setup never turns MFA on.
+  mfaEnabled                     Boolean                       @default(false)
+  mfaSecretEncrypted             String?
+  mfaPendingSecretEncrypted      String?
+  mfaEnabledAt                   DateTime?
+  /// The last accepted TOTP time step. A code for this step or an earlier one
+  /// is refused, so one code cannot be used twice (RFC 6238 §5.2).
+  mfaLastUsedStep                BigInt?
+  mfaRecoveryCodes               UserMfaRecoveryCode[]
   createdAt                      DateTime                      @default(now())
   updatedAt                      DateTime                      @updatedAt
   createdById                    String?
@@ -4470,6 +4486,22 @@ model PlatformUser {
   /// `PlatformEvent`, which nothing owns per-user, and a read receipt table
   /// would be a second write on every page view for a count.
   notificationsReadAt      DateTime?
+  /// Brute-force protection, mirroring User (BUG-3146). Counts consecutive
+  /// failed password or MFA attempts; cleared on success.
+  failedLoginAttempts      Int                        @default(0)
+  /// While in the future, sign-in is refused regardless of the password.
+  lockedUntil              DateTime?
+  /// TOTP multi-factor authentication (ADR-0019). The seed is encrypted with
+  /// SecretEncryptionService and never leaves the API after setup. A pending
+  /// seed exists only between "start setup" and the first verified code, so an
+  /// abandoned setup never turns MFA on.
+  mfaEnabled               Boolean                    @default(false)
+  mfaSecretEncrypted       String?
+  mfaPendingSecretEncrypted String?
+  mfaEnabledAt             DateTime?
+  /// The last accepted TOTP time step. A code for this step or an earlier one
+  /// is refused, so one code cannot be used twice (RFC 6238 §5.2).
+  mfaLastUsedStep          BigInt?
   createdAt                DateTime                   @default(now())
   updatedAt                DateTime                   @updatedAt
   createdById              String?
@@ -4491,10 +4523,39 @@ model PlatformUser {
   createdContracts         Contract[]                 @relation("ContractsCreatedBy")
   updatedContracts         Contract[]                 @relation("ContractsUpdatedBy")
   modulePreferences        PlatformModulePreference[]
+  mfaRecoveryCodes         PlatformUserMfaRecoveryCode[]
 
   @@index([email])
   @@index([role])
   @@index([status])
+}
+
+/// One-time MFA recovery codes for a tenant user (ADR-0019). Only a keyed hash
+/// is stored; the code itself is shown once. Tenant-owned: it carries tenantId
+/// so an administrative reset is scoped to the tenant that owns the account.
+model UserMfaRecoveryCode {
+  id        String    @id @default(uuid())
+  tenantId  String
+  userId    String
+  codeHash  String    @unique
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, userId])
+}
+
+/// One-time MFA recovery codes for a platform operator (ADR-0019).
+model PlatformUserMfaRecoveryCode {
+  id             String       @id @default(uuid())
+  platformUserId String
+  codeHash       String       @unique
+  usedAt         DateTime?
+  createdAt      DateTime     @default(now())
+  platformUser   PlatformUser @relation(fields: [platformUserId], references: [id], onDelete: Cascade)
+
+  @@index([platformUserId])
 }
 
 model PlatformModulePreference {
@@ -10567,6 +10628,10 @@ model ErrorLog {
   statusCode       Int
   severity         String
   sourceApp        String                @default("api")
+  /// The API module the failing route belongs to (e.g. "contracts"), derived
+  /// from the route when the error is written. Null for rows written before
+  /// TASK-0032 and for client-side errors with no API route.
+  module           String?
   environment      String                @default("unknown")
   message          String
   description      String
@@ -10601,6 +10666,7 @@ model ErrorLog {
   @@index([errorCode, createdAt])
   @@index([severity, createdAt])
   @@index([sourceApp, createdAt])
+  @@index([module, lastSeenAt])
   @@index([supportStatus, createdAt])
   @@index([assignedToUserId, supportStatus])
   @@index([createdAt])
