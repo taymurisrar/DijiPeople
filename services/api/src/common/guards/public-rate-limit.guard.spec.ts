@@ -134,4 +134,25 @@ describe('public workflow rate limiting', () => {
       expect(() => guard.canActivate(request)).toThrow(HttpException);
     });
   });
+
+  /**
+   * ADR-0019 (TASK-0032). A caller submitting an MFA code already holds the
+   * password, and a six-digit code is a small space, so these routes get a
+   * budget tighter than the credential default. The account lockout is the
+   * real control; this pins the per-address backstop.
+   */
+  describe('MFA code submission is budgeted tighter than a password', () => {
+    it.each([
+      '/auth/mfa/verify',
+      '/admin/auth/mfa/verify',
+      '/auth/mfa/challenge/setup/confirm',
+    ])('refuses the eleventh code on %s', (path) => {
+      const guard = new PublicRateLimitGuard();
+      const request = context(`/m${Date.now()}${path}`);
+
+      for (let index = 0; index < 10; index += 1)
+        expect(guard.canActivate(request)).toBe(true);
+      expect(() => guard.canActivate(request)).toThrow(HttpException);
+    });
+  });
 });
