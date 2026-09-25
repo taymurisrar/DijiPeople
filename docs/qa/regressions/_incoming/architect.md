@@ -59,3 +59,16 @@ REG-600..REG-609.
 | **Scenario** | `getLead` returns `partner { id, displayName, type, status }` and nothing more about the partner; the panel shows "Current partner". |
 | **Fails without the fix** | Yes. |
 | **Active** | yes |
+
+### REG-623 — DijiPeople's signature line shows only when DijiPeople signs
+
+| | |
+|---|---|
+| **Bug class** | Owner decision (ADR-0021) pinned as a regression: a template section that must follow who actually signs. |
+| **Module** | `services/api/src/modules/contracts` — `omitPlatformSignatureLines`, `platformSignsContract`; `prisma/seed-config.ts` platform signature markers |
+| **Bug record** | Follow-up to TASK-0032 QA agreements DEFECT-3 (REG-614). |
+| **Root cause** | After every system template gained a signature block, agreements without a DijiPeople signer printed "Not signed" beside DijiPeople. |
+| **Regression test** | `services/api/src/modules/contracts/platform-signature-lines.spec.ts`; updated cases in `contracts.agreement-rendering.spec.ts` |
+| **Scenario** | Marked and token-bearing platform lines are removed when no PLATFORM party signs, kept when one does; every system template marks its platform lines; a partner-only send freezes no platform line. |
+| **Fails without the fix** | Yes — the helpers do not exist without it, and the rendering cases expect the line removed. |
+| **Active** | yes |

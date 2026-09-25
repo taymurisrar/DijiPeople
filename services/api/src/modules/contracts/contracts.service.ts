@@ -2334,7 +2334,10 @@ export class ContractsService {
       })),
       previewHtml: version
         ? renderContractVersionHtml(
-            version.contentHtml,
+            omitPlatformSignatureLines(
+              version.contentHtml,
+              platformSignsContract(contract.parties),
+            ),
             [
               ...definitions
                 .filter((definition) => !(definition.key in resolved))
@@ -2350,7 +2353,10 @@ export class ContractsService {
         : '',
       resolvedHtml: version
         ? renderContractVersionHtml(
-            version.contentHtml,
+            omitPlatformSignatureLines(
+              version.contentHtml,
+              platformSignsContract(contract.parties),
+            ),
             contract.placeholderValues,
             'display',
           )
@@ -3478,8 +3484,19 @@ export class ContractsService {
       placeholderSnapshot,
       true,
     );
+    /*
+     * Owner decision (TASK-0032): a platform signature line appears only when a
+     * DijiPeople signer is on the request being sent. Recipients are fixed at
+     * send, so the frozen — and hashed — content never carries a line nobody
+     * will sign.
+     */
+    const platformSigns = dto.recipients.some(
+      (recipient) =>
+        contract.parties.find((party) => party.id === recipient.partyId)
+          ?.partyType === 'PLATFORM',
+    );
     const resolvedHtml = renderContractVersionHtml(
-      version.contentHtml,
+      omitPlatformSignatureLines(version.contentHtml, platformSigns),
       contract.placeholderValues,
       'freeze',
     );
@@ -4675,6 +4692,14 @@ export class ContractsService {
       include: {
         versions: { orderBy: { version: 'desc' }, take: 1 },
         placeholderValues: { select: { key: true, value: true, source: true } },
+        // Whether DijiPeople signs decides whether its signature line appears.
+        parties: {
+          select: {
+            partyType: true,
+            isSignatory: true,
+            signatureRequired: true,
+          },
+        },
       },
     });
     if (!contract || !contract.versions[0])
@@ -4733,7 +4758,12 @@ export class ContractsService {
        * current placeholder values, which may have changed since signing.
        */
       documentHtml = renderSignatureEvidenceTokens(
-        documentHtml,
+        omitPlatformSignatureLines(
+          documentHtml,
+          evidenceRows.some(
+            (evidence) => evidence.recipient.party?.partyType === 'PLATFORM',
+          ),
+        ),
         evidenceRows,
         signatureImages,
       );
@@ -4788,7 +4818,10 @@ export class ContractsService {
        * frozen for signing has nothing left to resolve but `signature.*`.
        */
       documentHtml = renderContractVersionHtml(
-        documentHtml,
+        omitPlatformSignatureLines(
+          documentHtml,
+          platformSignsContract(contract.parties),
+        ),
         contract.placeholderValues,
         'display',
       );
@@ -6214,6 +6247,47 @@ function renderPendingSignatureTokens(html: string) {
  * gate refuses it. `renderContractPlaceholders` guarantees that neither path
  * prints `undefined`, `null` or `[object Object]`.
  */
+/**
+ * Owner decision (TASK-0032, 2026-09-25): the DijiPeople signature line is shown
+ * only when DijiPeople actually signs. Otherwise an executed partner or
+ * customer agreement printed "Not signed" beside the platform's name.
+ *
+ * Removes every paragraph that is a platform signature line — marked
+ * `data-document-role="platform-signature"` (system templates) or carrying a
+ * `{{signature.platform.*}}` token (operator-authored templates). Nothing else
+ * in the document is touched.
+ */
+export function omitPlatformSignatureLines(
+  html: string,
+  platformSigns: boolean,
+) {
+  if (platformSigns) return html;
+  return html.replace(/<p\b[^>]*>[\s\S]*?<\/p>/gi, (paragraph) =>
+    /data-document-role\s*=\s*["']platform-signature["']/i.test(paragraph) ||
+    /\{\{\s*signature\.platform\./i.test(paragraph)
+      ? ''
+      : paragraph,
+  );
+}
+
+/** Whether any DijiPeople (PLATFORM) party on the agreement signs it. */
+export function platformSignsContract(
+  parties:
+    | ReadonlyArray<{
+        partyType: string;
+        isSignatory?: boolean | null;
+        signatureRequired?: boolean | null;
+      }>
+    | null
+    | undefined,
+) {
+  return (parties ?? []).some(
+    (party) =>
+      party.partyType === 'PLATFORM' &&
+      Boolean(party.isSignatory || party.signatureRequired),
+  );
+}
+
 export function renderContractVersionHtml(
   html: string,
   rows: StoredContractPlaceholderValue[],

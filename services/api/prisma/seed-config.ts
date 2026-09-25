@@ -583,8 +583,8 @@ const SAAS_SUBSCRIPTION_AGREEMENT_HTML = [
   '<h2>5. Governing law</h2>',
   '<p>This agreement is governed by {{contract.governingLaw}} and subject to the exclusive jurisdiction of {{contract.jurisdiction}}.</p>',
   '<h2>6. Signatures</h2>',
-  '<p>For {{platform.legalName}}: {{platform.authorizedSigner.name}}, {{platform.authorizedSigner.title}}</p>',
-  '<p>{{signature.platform.name}} &mdash; {{signature.platform.date}}</p>',
+  '<p data-document-role="platform-signature">For {{platform.legalName}}: {{platform.authorizedSigner.name}}, {{platform.authorizedSigner.title}}</p>',
+  '<p data-document-role="platform-signature">{{signature.platform.name}} &mdash; {{signature.platform.date}}</p>',
   '<p>For {{customer.legalName}}: {{customer.primarySigner.name}}, {{customer.primarySigner.title}}</p>',
   '<p>{{signature.counterparty.name}} &mdash; {{signature.counterparty.date}}</p>',
 ].join('');
@@ -618,7 +618,7 @@ const TENANT_SERVICE_ORDER_HTML = [
   '<h2>7. Billing</h2>',
   '<p>Billing starts {{commercial.billingStartDate}} on {{commercial.billingStartTrigger}}.</p>',
   '<h2>8. Signatures</h2>',
-  '<p>{{signature.platform.name}} &mdash; {{signature.platform.date}}</p>',
+  '<p data-document-role="platform-signature">{{signature.platform.name}} &mdash; {{signature.platform.date}}</p>',
   '<p>{{signature.counterparty.name}} &mdash; {{signature.counterparty.date}}</p>',
 ].join('');
 
@@ -637,7 +637,8 @@ const TENANT_SERVICE_ORDER_HTML = [
 function signatureBlock(counterpartyName: string) {
   return [
     '<h2>Signatures</h2>',
-    '<p>For {{platform.legalName}}: {{signature.platform.name}} &mdash; {{signature.platform.date}}</p>',
+    // Marked so it is left out when DijiPeople does not sign (owner decision, TASK-0032).
+    '<p data-document-role="platform-signature">For {{platform.legalName}}: {{signature.platform.name}} &mdash; {{signature.platform.date}}</p>',
     `<p>For ${counterpartyName}: {{signature.counterparty.name}} &mdash; {{signature.counterparty.date}}</p>`,
   ].join('');
 }

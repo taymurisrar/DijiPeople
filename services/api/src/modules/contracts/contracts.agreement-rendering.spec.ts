@@ -5,6 +5,7 @@ import {
   ContractsService,
   PLACEHOLDER_GROUP_ORDER,
   placeholderGroup,
+  omitPlatformSignatureLines,
   renderContractVersionHtml,
   renderSignatureEvidenceTokens,
 } from './contracts.service';
@@ -211,7 +212,13 @@ describe('QA agreements DEFECT-1 — a generated preview resolves placeholders',
     const fields = await service.documentFields(platformAdmin, 'contract-1');
 
     expect(fields.resolvedHtml).toBe(
-      renderContractVersionHtml(PARTNER_TEMPLATE_HTML, draftValues, 'display'),
+      // No DijiPeople signer on this agreement, so its signature line is left
+      // out (owner decision, TASK-0032) — the same render, applied first.
+      renderContractVersionHtml(
+        omitPlatformSignatureLines(PARTNER_TEMPLATE_HTML, false),
+        draftValues,
+        'display',
+      ),
     );
     expect(fields.resolvedHtml).not.toContain('2026-10-01');
     const dateField = fields.items.find(
@@ -440,7 +447,9 @@ describe('QA agreements DEFECT-2 — signature.* is resolved at signing, never b
 
     const frozen = frozenVersion().contentHtml;
     expect(frozen).toContain('Northstar Advisory');
-    expect(frozen).toContain('{{signature.platform.date}}');
+    // Only the partner signs, so the DijiPeople signature line is left out
+    // (owner decision, TASK-0032); the partner's date stays for signing to fill.
+    expect(frozen).not.toContain('signature.platform');
     expect(frozen).toContain('{{signature.counterparty.date}}');
   });
 
@@ -459,7 +468,7 @@ describe('QA agreements DEFECT-2 — signature.* is resolved at signing, never b
 
     const { contentHtml, placeholderSnapshot } = frozenVersion();
     expect(contentHtml).not.toContain('October 2026');
-    expect(contentHtml).toContain('{{signature.platform.date}}');
+    expect(contentHtml).toContain('{{signature.counterparty.date}}');
     expect(Object.keys(placeholderSnapshot)).not.toContain(
       'signature.platform.date',
     );
