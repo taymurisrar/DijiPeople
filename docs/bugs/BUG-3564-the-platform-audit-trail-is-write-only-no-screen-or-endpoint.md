@@ -45,7 +45,7 @@ A platform user with monitoring or audit read permission can list and filter the
 
 ## Evidence
 
-- WP-08 live CRUD harness run on 2026-09-25 against the throwaway stack at `10d5d148` (TASK-0032-streams/WP-08-report.md, finding 1): the Audit column of the CRUD matrix could not be verified for any module.
+- WP-08 live CRUD harness run on 2026-09-25 against the throwaway stack at `10d5d148` (TASK-0032-streams/t0032-wp-08-report.md, finding 1): the Audit column of the CRUD matrix could not be verified for any module.
 - `services/api/src/modules/audit` — no `platformAuditLog.findMany/count` anywhere in `services/api/src` (grep at `c6fb718d`).
 
 ## Root Cause

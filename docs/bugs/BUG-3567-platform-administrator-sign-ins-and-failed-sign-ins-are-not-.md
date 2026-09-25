@@ -43,7 +43,7 @@ Every platform sign-in attempt, success or failure, writes a platform audit even
 
 ## Evidence
 
-- WP-07 report (TASK-0032-streams/WP-07-report.md, UNRESOLVED): no source exists for platform login activity.
+- WP-07 report (TASK-0032-streams/t0032-wp-07-report.md, UNRESOLVED): no source exists for platform login activity.
 - `services/api/src/modules/auth/auth.service.ts` `logTenantAuthEvent` is only called from tenant paths.
 
 ## Root Cause

@@ -2,7 +2,7 @@
 
 TASK-0032 · branch `agent/pah-wp02-rbac` (from `10d5d148`) · final commit `3b2dbf6e`
 · merged into the task branch at `d5535f0a`. Module notes: [[platform-auth]],
-[[super-admin]]. Per-route table: [[WP-02-route-mapping]].
+[[super-admin]]. Per-route table: [[platform-route-mapping]].
 
 The specialist returned this report as text (the harness does not let
 subagents write report files); the Architect filed it verbatim in substance.
@@ -67,7 +67,7 @@ set; the gate dates from when SUPER_ADMIN and MEMBER were the only roles and mea
 "is a platform user". Each route now admits exactly the holders of the permission
 it already required — the same keys `PlatformRuntimeService` applies to the same
 data (BUG-0055 precedent). Narrowing any route again is one
-`@RequirePlatformPermission` line. Full table: [[WP-02-route-mapping]].
+`@RequirePlatformPermission` line. Full table: [[platform-route-mapping]].
 
 Unchanged SUPER_ADMIN-only (24 routes): tenant status (legacy), agent
 assignments, tenant audit logs, tenant access users and their resets, tenant

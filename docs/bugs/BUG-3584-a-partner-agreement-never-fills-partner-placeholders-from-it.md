@@ -124,7 +124,7 @@ None.
 ## Related Items
 
 - [[BUG-3580]] — the general rendering gap this fix builds on.
-- Modules — [[contracts]]
+- Modules — [[contracts-and-agreements]]
 - TASK-0032 — the program that found and fixed this.
 
 ## Resolution
@@ -139,7 +139,7 @@ preserving manual overrides.
 
 Verified by TASK-0032 WP-11's own regression suite
 (`contracts.partner-source.spec.ts`) — see
-`docs/tasks/TASK-0032-streams/WP-11-report.md` RECORD_CLOSURES ("WP-11 item 5
+`docs/tasks/TASK-0032-streams/t0032-wp-11-report.md` RECORD_CLOSURES ("WP-11 item 5
 (partner source)").
 
 ## History

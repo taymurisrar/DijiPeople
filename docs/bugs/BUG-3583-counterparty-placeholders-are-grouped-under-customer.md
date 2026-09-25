@@ -109,7 +109,7 @@ None.
 
 - [[BUG-3552]] (REG-560..563) — the ADR-0020 context-narrowing work this label
   should have followed at the time.
-- Modules — [[contracts]]
+- Modules — [[contracts-and-agreements]]
 - TASK-0032 — the program that found and fixed this.
 
 ## Resolution

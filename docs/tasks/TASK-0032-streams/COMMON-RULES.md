@@ -96,7 +96,7 @@ Instead, in the **same commit as each fix**:
 
 ## Report
 
-Write `docs/tasks/TASK-0032-streams/WP-NN-report.md` (commit it with your work):
+Write `docs/tasks/TASK-0032-streams/t0032-wp-NN-report.md` (commit it with your work):
 
 ```
 IMPLEMENTED              what was built

@@ -1,10 +1,10 @@
 # EXECPLAN-0051 — Partner onboarding, agreements, platform RBAC, monitoring, dashboard and MFA hardening
 
-TASK-0032 · SESSION-0106 · integration branch `agent/partner-agreements-admin-hardening`
+[[TASK-0032]] · SESSION-0106 · integration branch `agent/partner-agreements-admin-hardening`
 · binding decisions ADR-0018 (platform authorization and role list), ADR-0019
 (TOTP MFA), ADR-0020 (contextual agreement placeholders) · discovery evidence
 `docs/tasks/TASK-0032-streams/discovery/D1..D6` · record map
-`docs/tasks/TASK-0032-streams/records-map.md`.
+`docs/tasks/TASK-0032-streams/records-map.md`. Modules: [[platform-auth]], [[partners]], [[contracts-and-agreements]], [[platform-admin]].
 
 ```
 CONTEXT_FILES_REQUIRED:

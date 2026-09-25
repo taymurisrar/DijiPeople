@@ -122,7 +122,7 @@ None.
 ## Related Items
 
 - [[BUG-3586]] — the sibling monitoring defect fixed in the same commit.
-- Modules — [[platform-monitoring]]
+- Modules — [[platform-admin]]
 - TASK-0032 — the program that found and fixed this.
 
 ## Resolution

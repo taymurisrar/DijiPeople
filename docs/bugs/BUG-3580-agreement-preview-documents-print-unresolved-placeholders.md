@@ -132,7 +132,7 @@ None.
   the same commit.
 - [[BUG-3583]], [[BUG-3584]] — related placeholder-context defects found in the
   same QA pass.
-- Modules — [[contracts]]
+- Modules — [[contracts-and-agreements]]
 - TASK-0032 — the program that found and fixed this.
 
 ## Resolution

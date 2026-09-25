@@ -96,7 +96,7 @@ const GENERIC_ENTITIES = [
  * and used (`seed-config.ts`'s `seedPlatformContractTemplates`,
  * `validateCounterparty`, `assertTenantServiceOrderEligible`,
  * `governing-agreement.ts`), not merely enumerated. See
- * `docs/tasks/TASK-0032-streams/WP-05-report.md` for the type table.
+ * `docs/tasks/TASK-0032-streams/t0032-wp-05-report.md` for the type table.
  */
 const CONTRACT_TYPE_SOURCE_ENTITIES: Partial<Record<ContractType, string[]>> = {
   [ContractType.PARTNER_AGREEMENT]: PARTNER_FAMILY_ENTITIES,

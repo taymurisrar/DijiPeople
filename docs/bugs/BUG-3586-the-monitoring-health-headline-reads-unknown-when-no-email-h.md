@@ -109,7 +109,7 @@ None.
 ## Related Items
 
 - [[ITEM-0198]] — the monitoring redesign this component belongs to.
-- Modules — [[platform-monitoring]]
+- Modules — [[platform-admin]]
 - TASK-0032 — the program that found and fixed this.
 
 ## Resolution

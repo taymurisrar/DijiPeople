@@ -138,7 +138,7 @@ None.
 - [[BUG-3580]] — the general placeholder-rendering gap fixed in the same
   commit.
 - [[BUG-3585]] — the new error code this fix introduced needed cataloguing.
-- Modules — [[contracts]]
+- Modules — [[contracts-and-agreements]]
 - TASK-0032 — the program that found and fixed this.
 
 ## Resolution

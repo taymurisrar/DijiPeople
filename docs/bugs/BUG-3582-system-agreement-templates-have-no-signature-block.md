@@ -124,7 +124,7 @@ None.
 
 - ADR-0021 — DijiPeople's signature line appears only when DijiPeople signs
   (the follow-up decision this fix required, see REG-623).
-- Modules — [[contracts]]
+- Modules — [[contracts-and-agreements]]
 - TASK-0032 — the program that found and fixed this.
 
 ## Resolution

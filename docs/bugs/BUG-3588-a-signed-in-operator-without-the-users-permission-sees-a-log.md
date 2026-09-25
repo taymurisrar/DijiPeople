@@ -105,7 +105,7 @@ None.
 
 ## Related Items
 
-- Modules — [[platform-users]]
+- Modules — [[platform-auth]], [[platform-admin]]
 - TASK-0032 — the program that found this (not the program that fixes it).
 
 ## Resolution

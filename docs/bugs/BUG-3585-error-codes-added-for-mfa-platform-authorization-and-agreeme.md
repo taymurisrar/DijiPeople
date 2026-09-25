@@ -122,7 +122,7 @@ None.
 - [[BUG-3581]] — the signature-date fix that introduced
   `CONTRACT_SIGNATURE_FIELD_NOT_EDITABLE`, one of the codes this fix
   catalogues.
-- Modules — [[auth]], [[contracts]]
+- Modules — [[auth]], [[contracts-and-agreements]]
 - TASK-0032 — the program that found and fixed this.
 
 ## Resolution

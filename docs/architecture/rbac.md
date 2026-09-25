@@ -212,7 +212,7 @@ Derived from `ROLE_PERMISSIONS` via `hasPlatformPermission`, one row per
 platform role, covering tenants, platform-user management, leads, customers,
 onboarding, partners, contracts, billing, plans, invoices, support,
 monitoring, settings, email credentials and legal — see
-[`WP-02-report.md`](../tasks/TASK-0032-streams/WP-02-report.md#role_matrix-derived-from-role_permissions-via-hasplatformpermission)
+[`WP-02-report.md`](../tasks/TASK-0032-streams/t0032-wp-02-report.md#role_matrix-derived-from-role_permissions-via-hasplatformpermission)
 for the full table. Two properties worth restating here:
 
 - **Legacy `MEMBER`, `PLATFORM_OWNER` and `SUPER_ADMIN` retain everything
@@ -230,7 +230,7 @@ Every route on `SuperAdminController`, `AdminLeadsController`,
 `AdminLegalController` and `DemoDataController` — old permission, new
 permission, old/new admitted roles, and whether the route widened, narrowed
 or stayed the same — is enumerated in
-[`docs/tasks/TASK-0032-streams/WP-02-route-mapping.md`](../tasks/TASK-0032-streams/WP-02-route-mapping.md).
+[`docs/tasks/TASK-0032-streams/platform-route-mapping.md`](../tasks/TASK-0032-streams/platform-route-mapping.md).
 105 routes total: 23 unchanged, 82 widened (80 of which previously carried
 only a class-level `@RequireRoles` that admitted `{SUPER_ADMIN,
 PLATFORM_OWNER, MEMBER}` regardless of the route's own domain — a set no

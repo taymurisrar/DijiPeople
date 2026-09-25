@@ -5645,7 +5645,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Regression test** | `services/api/src/modules/platform-auth/platform-permissions.spec.ts` |
 | **Scenario** | Every route on the four controllers resolves a platform permission; none carries `REQUIRED_ROLES_KEY` metadata; each controller's guards are exactly `[JwtAuthGuard, PlatformPermissionsGuard]`; the set of routes only `platform.*` can reach equals the 24 listed in `SUPER_ADMIN_ONLY_ROUTES`; the narrow keys `platform-users.manage`, `platform.tenants.administer`, `platform.billing.administer`, `platform.legal.administer` and `platform.demoData.delete` are held by SUPER_ADMIN and PLATFORM_OWNER only; a declared `@RequirePlatformPermission` overrides the path-derived permission (LEGAL_REVIEWER holds `legal.read` and is still refused on `super-admin/legal`). |
 | **Proven to fail without the fix** | At `10d5d148` the controllers carry `RolesGuard` and role metadata and `RequirePlatformPermission` does not exist, so the guard-list, role-metadata and narrow-route assertions fail. |
-| **Note** | Access widened on the 80 routes that carried only the class-level gate, to exactly the holders of each route's existing platform permission; the tenant profile edit widens as ADR-0018 intends, and the slug route admits the PLATFORM_OWNER alias — see the route table in `docs/tasks/TASK-0032-streams/WP-02-report.md`. |
+| **Note** | Access widened on the 80 routes that carried only the class-level gate, to exactly the holders of each route's existing platform permission; the tenant profile edit widens as ADR-0018 intends, and the slug route admits the PLATFORM_OWNER alias — see the route table in `docs/tasks/TASK-0032-streams/t0032-wp-02-report.md`. |
 | **Fixed** | 2026-09-25, branch `agent/pah-wp02-rbac` (TASK-0032 WP-02) |
 | **Active** | yes |
 
@@ -6462,7 +6462,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 |---|---|
 | **Bug class** | `two-paths-one-decision-decided-differently` |
 | **Module** | `services/api/src/modules/super-admin/platform-lifecycle.service.ts` |
-| **Bug record** | BUG-3564 (WP-02 follow-up, noted in `docs/tasks/TASK-0032-streams/WP-02-report.md` RISK_AREAS) |
+| **Bug record** | BUG-3564 (WP-02 follow-up, noted in `docs/tasks/TASK-0032-streams/t0032-wp-02-report.md` RISK_AREAS) |
 | **Root cause** | `PlatformLifecycleService.bulkDeleteCustomers` decided who may bulk-delete on a weaker rule than `PlatformRuntimeService.assertAdmin` (the generic runtime delete path for the same records): a non-admin-tier role holding `customers.update` — PLATFORM_OPERATIONS, MEMBER, PRESALES_MANAGER — could still bulk-delete customers it "owned" via `assignedToUserId`. The runtime path refuses those roles outright regardless of ownership. Both now decide with the shared `isPlatformAdminTier` predicate (`platform-permissions.ts`). |
 | **Regression test** | `services/api/src/modules/super-admin/bulk-delete-admin-tier.spec.ts` |
 | **Scenario** | PLATFORM_OPERATIONS/MEMBER/PRESALES_MANAGER calling `bulkDeleteCustomers` against records it "owns" (simulated by `customerAccount.count` returning every id as owned) is refused with `ForbiddenException` before any Prisma query runs; SUPER_ADMIN/PLATFORM_OWNER/PLATFORM_ADMIN proceed and the records are deleted. |
