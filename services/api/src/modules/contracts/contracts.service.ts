@@ -1313,11 +1313,12 @@ export class ContractsService {
         'The selected template has no published version.',
       );
     }
-    const [reportingCurrency, companyProfile, agreementTerms] =
+    const [reportingCurrency, companyProfile, agreementTerms, partnerValues] =
       await Promise.all([
         this.reportingCurrency(),
         this.companyProfile(),
         this.agreementTermValues(),
+        this.linkedPartnerValues(dto.partnerId, dto.commissionPercentage),
       ]);
     const contractNumber = reference('CON');
     const values = compactStringRecord({
@@ -1358,6 +1359,8 @@ export class ContractsService {
       'contract.terminationNoticeDays': dto.terminationNoticeDays,
       'counterparty.name': dto.counterpartyName.trim(),
       'counterparty.email': dto.counterpartyEmail?.trim().toLowerCase(),
+      // Explicit values (a source, or the caller) still win over the record.
+      ...partnerValues,
       ...(dto.placeholderValues ?? {}),
     });
     const rawHtml =
@@ -2174,21 +2177,32 @@ export class ContractsService {
         autoRenewal: true,
         counterpartyName: true,
         counterpartyEmail: true,
+        partnerId: true,
       },
     });
     if (!contract) return;
 
-    const [reportingCurrency, companyProfile, agreementTerms, existing] =
-      await Promise.all([
-        this.reportingCurrency(),
-        this.companyProfile(),
-        this.agreementTermValues(),
-        this.prisma.contractPlaceholderValue.findMany({
-          where: { contractId },
-          select: { key: true, value: true },
-        }),
-      ]);
+    const [
+      reportingCurrency,
+      companyProfile,
+      agreementTerms,
+      existing,
+      partnerValues,
+    ] = await Promise.all([
+      this.reportingCurrency(),
+      this.companyProfile(),
+      this.agreementTermValues(),
+      this.prisma.contractPlaceholderValue.findMany({
+        where: { contractId },
+        select: { key: true, value: true, source: true },
+      }),
+      this.linkedPartnerValues(
+        contract.partnerId,
+        contract.commissionPercentage,
+      ),
+    ]);
     const current = new Map(existing.map((row) => [row.key, row.value]));
+    const currentSource = new Map(existing.map((row) => [row.key, row.source]));
 
     const authoritative = definedValues({
       'contract.number': contract.contractNumber,
@@ -2228,10 +2242,22 @@ export class ContractsService {
       'platform.contact.email': companyProfile.supportEmail,
     });
 
+    /*
+     * The linked partner is the source of `partner.*` the way the columns are
+     * of `contract.*`, so a partner renamed while the agreement is a draft is
+     * picked up on the next edit — except where an operator typed a value in
+     * the document fields, which survives.
+     */
+    const linkedEntity = Object.fromEntries(
+      Object.entries(partnerValues).filter(
+        ([key]) => currentSource.get(key) !== 'manual',
+      ),
+    );
     const next = {
       ...Object.fromEntries(
         Object.entries(gapFilling).filter(([key]) => !current.get(key)?.trim()),
       ),
+      ...linkedEntity,
       ...authoritative,
     };
     const changed = Object.entries(next).filter(
@@ -5299,6 +5325,31 @@ export class ContractsService {
     this.validateContractDates(dto);
   }
 
+  /** `partner.*` values from the linked partner (see `partnerPlaceholderValues`). */
+  private async linkedPartnerValues(
+    partnerId: string | null | undefined,
+    contractCommissionPercentage?: { toString(): string } | number | null,
+  ): Promise<Record<string, string>> {
+    if (!partnerId) return {};
+    const partner = await this.prisma.partner.findUnique({
+      where: { id: partnerId },
+      select: {
+        type: true,
+        displayName: true,
+        legalName: true,
+        companyName: true,
+        contactFirstName: true,
+        contactLastName: true,
+        email: true,
+        taxId: true,
+        defaultCommissionRate: true,
+      },
+    });
+    return partner
+      ? partnerPlaceholderValues(partner, contractCommissionPercentage)
+      : {};
+  }
+
   /**
    * BUG-3553. An agreement's counterparty must be usable and internally
    * consistent — this is called with the *resulting* link set, at create and
@@ -6624,6 +6675,60 @@ export function decodeSignatureDataUrl(value: string) {
       'Signature content must be a valid PNG or JPEG image.',
     );
   return buffer;
+}
+
+/**
+ * The `partner.*` namespace as the linked partner record resolves it.
+ *
+ * ADR-0020 promises that a linked entity feeds its own namespace, and
+ * lead/customer/onboarding/tenant do through `resolveSource`. A partner never
+ * did: `createFromSource` has no partner source, and `create()` with a
+ * `partnerId` stored the link but not one `partner.*` value — so every
+ * partner agreement needed its partner's own name typed in by hand before it
+ * could be sent (found while verifying QA agreements DEFECT-1).
+ *
+ * Only what the record actually holds is emitted. `Partner` has no address or
+ * registration number column, so `partner.address`/`partner.registrationNumber`
+ * stay for the operator to fill. A legal name is the recorded one, else — for
+ * an individual, whose name is their legal name — the display name, else the
+ * company name; never invented. The commission is the agreement's own, else
+ * the partner's configured default when one was actually set (the column
+ * defaults to 0, which means "not configured", not "0%").
+ */
+export function partnerPlaceholderValues(
+  partner: {
+    type?: string | null;
+    displayName: string;
+    legalName?: string | null;
+    companyName?: string | null;
+    contactFirstName?: string | null;
+    contactLastName?: string | null;
+    email?: string | null;
+    taxId?: string | null;
+    defaultCommissionRate?: { toString(): string } | number | null;
+  },
+  contractCommissionPercentage?: { toString(): string } | number | null,
+): Record<string, string> {
+  const defaultRate =
+    partner.defaultCommissionRate !== undefined &&
+    partner.defaultCommissionRate !== null &&
+    Number(partner.defaultCommissionRate.toString()) > 0
+      ? partner.defaultCommissionRate.toString()
+      : undefined;
+  return definedValues({
+    'partner.name': partner.displayName,
+    'partner.legalName':
+      partner.legalName ??
+      (partner.type === 'INDIVIDUAL'
+        ? partner.displayName
+        : partner.companyName),
+    'partner.taxId': partner.taxId,
+    'partner.contact.firstName': partner.contactFirstName,
+    'partner.contact.lastName': partner.contactLastName,
+    'partner.contact.email': partner.email?.toLowerCase(),
+    'partner.commissionPercentage':
+      contractCommissionPercentage?.toString() ?? defaultRate,
+  });
 }
 
 function customerSource(
