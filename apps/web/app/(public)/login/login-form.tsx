@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
 import { DEFAULT_AUTHENTICATED_ROUTE } from "@/lib/auth-config";
 import { CheckboxField, TextField } from "@/app/components/ui/form-control";
+import { MfaLoginStep, type LoginMfaChallenge } from "./mfa-login-step";
 
 type LoginPayload = {
   email: string;
@@ -19,6 +20,10 @@ type LoginFieldErrors = {
 
 type LoginResponse = {
   message?: string;
+  mfaRequired?: boolean;
+  challengeKind?: LoginMfaChallenge["challengeKind"];
+  challengeToken?: string;
+  methods?: string[];
 };
 
 export function LoginForm({
@@ -43,6 +48,9 @@ export function LoginForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResetSubmitting, setIsResetSubmitting] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [mfaChallenge, setMfaChallenge] = useState<LoginMfaChallenge | null>(
+    null,
+  );
 
   const authNotice = useMemo(
     () => getAuthNotice(searchParams.get("reason")),
@@ -132,6 +140,32 @@ export function LoginForm({
     }
   }
 
+  function navigateAfterSignIn() {
+    const nextPath = searchParams.get("next") || DEFAULT_AUTHENTICATED_ROUTE;
+    const nextUrl = resolveNextUrl(nextPath);
+
+    if (!nextUrl) {
+      router.push(DEFAULT_AUTHENTICATED_ROUTE);
+      return;
+    }
+
+    const currentOrigin = window.location.origin;
+    const nextPathnameWithQuery = `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`;
+    const isLoginRoute =
+      nextUrl.pathname === "/login" || nextUrl.pathname.startsWith("/login/");
+
+    if (nextUrl.origin === currentOrigin) {
+      router.push(
+        isLoginRoute
+          ? DEFAULT_AUTHENTICATED_ROUTE
+          : nextPathnameWithQuery || DEFAULT_AUTHENTICATED_ROUTE,
+      );
+      return;
+    }
+
+    window.location.assign(nextUrl.toString());
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -172,29 +206,24 @@ export function LoginForm({
         return;
       }
 
-      const nextPath = searchParams.get("next") || DEFAULT_AUTHENTICATED_ROUTE;
-      const nextUrl = resolveNextUrl(nextPath);
-
-      if (!nextUrl) {
-        router.push(DEFAULT_AUTHENTICATED_ROUTE);
+      /*
+       * ADR-0019 — the password was accepted but a second factor is owed.
+       * No cookie has been set; the MFA step completes the sign-in.
+       */
+      if (
+        data.mfaRequired === true &&
+        typeof data.challengeToken === "string" &&
+        data.challengeKind
+      ) {
+        setMfaChallenge({
+          challengeKind: data.challengeKind,
+          challengeToken: data.challengeToken,
+          methods: data.methods ?? ["TOTP"],
+        });
         return;
       }
 
-      const currentOrigin = window.location.origin;
-      const nextPathnameWithQuery = `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`;
-      const isLoginRoute =
-        nextUrl.pathname === "/login" || nextUrl.pathname.startsWith("/login/");
-
-      if (nextUrl.origin === currentOrigin) {
-        router.push(
-          isLoginRoute
-            ? DEFAULT_AUTHENTICATED_ROUTE
-            : nextPathnameWithQuery || DEFAULT_AUTHENTICATED_ROUTE,
-        );
-        return;
-      }
-
-      window.location.assign(nextUrl.toString());
+      navigateAfterSignIn();
     } catch {
       setError(
         "The login request failed. Check that the web app and API are running.",
@@ -202,6 +231,20 @@ export function LoginForm({
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  if (mfaChallenge) {
+    return (
+      <MfaLoginStep
+        challenge={mfaChallenge}
+        onRestart={(message) => {
+          setMfaChallenge(null);
+          setForm((current) => ({ ...current, password: "" }));
+          setError(message || null);
+        }}
+        onSignedIn={navigateAfterSignIn}
+      />
+    );
   }
 
   return (
