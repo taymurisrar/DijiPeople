@@ -648,84 +648,84 @@ function signatureBlock(counterpartyName: string) {
  * version and is never touched.
  */
 export const PLATFORM_CONTRACT_TEMPLATES = [
-    {
-      key: 'PARTNER_REFERRAL_STANDARD',
-      name: 'Standard Partner Agreement',
-      contractType: 'MASTER_PARTNER_AGREEMENT' as const,
-      title: 'Standard Partner Agreement',
-      contentHtml:
-        '<h1>Standard Partner Agreement</h1><p>This agreement is between {{platform.legalName}} and {{partner.name}}.</p><h2>Commercial terms</h2><p>The referral commission is {{partner.commissionPercentage}} and will be reported in {{contract.currency}}.</p><p>Effective date: {{contract.effectiveDate}}</p>' +
-        signatureBlock('{{partner.name}}'),
-    },
-    {
-      key: 'CUSTOMER_SERVICE_STANDARD',
-      name: 'DijiPeople SaaS Subscription & Services Agreement',
-      contractType: 'SUBSCRIPTION_AGREEMENT' as const,
-      title: 'DijiPeople SaaS Subscription & Services Agreement',
-      contentHtml: SAAS_SUBSCRIPTION_AGREEMENT_HTML,
-    },
-    {
-      key: 'TENANT_PROVISIONING_SERVICE_ORDER',
-      name: 'DijiPeople Tenant Provisioning & Service Order',
-      contractType: 'SERVICE_AGREEMENT' as const,
-      title: 'DijiPeople Tenant Provisioning & Service Order',
-      contentHtml: TENANT_SERVICE_ORDER_HTML,
-    },
-    {
-      key: 'PARTNER_COMPANY_STANDARD',
-      name: 'Company Partner Agreement',
-      contractType: 'MASTER_PARTNER_AGREEMENT' as const,
-      title: 'Company Partner Agreement',
-      contentHtml:
-        '<h1>Company Partner Agreement</h1><p>{{platform.legalName}} and {{partner.legalName}} agree to the referral and delivery terms in this agreement.</p>' +
-        signatureBlock('{{partner.legalName}}'),
-    },
-    {
-      key: 'PARTNER_INDIVIDUAL_STANDARD',
-      name: 'Individual Partner Agreement',
-      contractType: 'PARTNER_AGREEMENT' as const,
-      title: 'Individual Partner Agreement',
-      contentHtml:
-        '<h1>Individual Partner Agreement</h1><p>{{platform.legalName}} and {{partner.name}} agree to the terms in this agreement.</p>' +
-        signatureBlock('{{partner.name}}'),
-    },
-    {
-      key: 'CUSTOMER_ENTERPRISE_STANDARD',
-      name: 'Enterprise Customer Agreement',
-      contractType: 'MASTER_SERVICES_AGREEMENT' as const,
-      title: 'Enterprise Customer Agreement',
-      contentHtml:
-        '<h1>Enterprise Customer Agreement</h1><p>This agreement is between {{platform.legalName}} and {{customer.legalName}}.</p><p>Effective date: {{contract.effectiveDate}}</p>' +
-        signatureBlock('{{customer.legalName}}'),
-    },
-    {
-      key: 'NDA_STANDARD',
-      name: 'NDA',
-      contractType: 'NDA' as const,
-      title: 'Mutual Non-Disclosure Agreement',
-      contentHtml:
-        '<h1>Mutual Non-Disclosure Agreement</h1><p>{{platform.legalName}} and {{counterparty.name}} agree to protect confidential information.</p>' +
-        signatureBlock('{{counterparty.name}}'),
-    },
-    {
-      key: 'DATA_PROCESSING_STANDARD',
-      name: 'Data Processing Agreement',
-      contractType: 'DATA_PROCESSING_AGREEMENT' as const,
-      title: 'Data Processing Agreement',
-      contentHtml:
-        '<h1>Data Processing Agreement</h1><p>This DPA supplements the agreement between {{platform.legalName}} and {{customer.legalName}}.</p>' +
-        signatureBlock('{{customer.legalName}}'),
-    },
-    {
-      key: 'REFERRAL_ADDENDUM_STANDARD',
-      name: 'Referral Addendum',
-      contractType: 'REFERRAL_ADDENDUM' as const,
-      title: 'Referral Addendum',
-      contentHtml:
-        '<h1>Referral Addendum</h1><p>This addendum records referral terms for {{partner.name}}.</p>' +
-        signatureBlock('{{partner.name}}'),
-    },
-  ];
+  {
+    key: 'PARTNER_REFERRAL_STANDARD',
+    name: 'Standard Partner Agreement',
+    contractType: 'MASTER_PARTNER_AGREEMENT' as const,
+    title: 'Standard Partner Agreement',
+    contentHtml:
+      '<h1>Standard Partner Agreement</h1><p>This agreement is between {{platform.legalName}} and {{partner.name}}.</p><h2>Commercial terms</h2><p>The referral commission is {{partner.commissionPercentage}} and will be reported in {{contract.currency}}.</p><p>Effective date: {{contract.effectiveDate}}</p>' +
+      signatureBlock('{{partner.name}}'),
+  },
+  {
+    key: 'CUSTOMER_SERVICE_STANDARD',
+    name: 'DijiPeople SaaS Subscription & Services Agreement',
+    contractType: 'SUBSCRIPTION_AGREEMENT' as const,
+    title: 'DijiPeople SaaS Subscription & Services Agreement',
+    contentHtml: SAAS_SUBSCRIPTION_AGREEMENT_HTML,
+  },
+  {
+    key: 'TENANT_PROVISIONING_SERVICE_ORDER',
+    name: 'DijiPeople Tenant Provisioning & Service Order',
+    contractType: 'SERVICE_AGREEMENT' as const,
+    title: 'DijiPeople Tenant Provisioning & Service Order',
+    contentHtml: TENANT_SERVICE_ORDER_HTML,
+  },
+  {
+    key: 'PARTNER_COMPANY_STANDARD',
+    name: 'Company Partner Agreement',
+    contractType: 'MASTER_PARTNER_AGREEMENT' as const,
+    title: 'Company Partner Agreement',
+    contentHtml:
+      '<h1>Company Partner Agreement</h1><p>{{platform.legalName}} and {{partner.legalName}} agree to the referral and delivery terms in this agreement.</p>' +
+      signatureBlock('{{partner.legalName}}'),
+  },
+  {
+    key: 'PARTNER_INDIVIDUAL_STANDARD',
+    name: 'Individual Partner Agreement',
+    contractType: 'PARTNER_AGREEMENT' as const,
+    title: 'Individual Partner Agreement',
+    contentHtml:
+      '<h1>Individual Partner Agreement</h1><p>{{platform.legalName}} and {{partner.name}} agree to the terms in this agreement.</p>' +
+      signatureBlock('{{partner.name}}'),
+  },
+  {
+    key: 'CUSTOMER_ENTERPRISE_STANDARD',
+    name: 'Enterprise Customer Agreement',
+    contractType: 'MASTER_SERVICES_AGREEMENT' as const,
+    title: 'Enterprise Customer Agreement',
+    contentHtml:
+      '<h1>Enterprise Customer Agreement</h1><p>This agreement is between {{platform.legalName}} and {{customer.legalName}}.</p><p>Effective date: {{contract.effectiveDate}}</p>' +
+      signatureBlock('{{customer.legalName}}'),
+  },
+  {
+    key: 'NDA_STANDARD',
+    name: 'NDA',
+    contractType: 'NDA' as const,
+    title: 'Mutual Non-Disclosure Agreement',
+    contentHtml:
+      '<h1>Mutual Non-Disclosure Agreement</h1><p>{{platform.legalName}} and {{counterparty.name}} agree to protect confidential information.</p>' +
+      signatureBlock('{{counterparty.name}}'),
+  },
+  {
+    key: 'DATA_PROCESSING_STANDARD',
+    name: 'Data Processing Agreement',
+    contractType: 'DATA_PROCESSING_AGREEMENT' as const,
+    title: 'Data Processing Agreement',
+    contentHtml:
+      '<h1>Data Processing Agreement</h1><p>This DPA supplements the agreement between {{platform.legalName}} and {{customer.legalName}}.</p>' +
+      signatureBlock('{{customer.legalName}}'),
+  },
+  {
+    key: 'REFERRAL_ADDENDUM_STANDARD',
+    name: 'Referral Addendum',
+    contractType: 'REFERRAL_ADDENDUM' as const,
+    title: 'Referral Addendum',
+    contentHtml:
+      '<h1>Referral Addendum</h1><p>This addendum records referral terms for {{partner.name}}.</p>' +
+      signatureBlock('{{partner.name}}'),
+  },
+];
 
 async function seedPlatformContractTemplates(client: PrismaClient) {
   for (const item of PLATFORM_CONTRACT_TEMPLATES) {
