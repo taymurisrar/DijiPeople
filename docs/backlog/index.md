@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**652 records** — 456 bugs under [`docs/bugs/`](../bugs/), 196 non-bug items under [`items/`](items/).
+**668 records** — 468 bugs under [`docs/bugs/`](../bugs/), 200 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 197 |
+| Open (active work) | 213 |
 | Blocked | 2 |
 | Deferred | 105 |
 | Awaiting a product decision | 9 |
 | Completed / closed | 339 |
 | **Open CRITICAL** | **4** |
-| **Open HIGH** | **94** |
+| **Open HIGH** | **96** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,36 +27,36 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 4 |
-| HIGH | 94 |
-| MEDIUM | 83 |
-| LOW | 16 |
+| HIGH | 96 |
+| MEDIUM | 95 |
+| LOW | 18 |
 
 ## Open by type
 
 | Type | Count |
 |---|---|
-| AUTHORIZATION | 11 |
-| BUG | 55 |
+| AUTHORIZATION | 13 |
+| BUG | 58 |
 | DATABASE | 1 |
-| DATA_INTEGRITY | 18 |
+| DATA_INTEGRITY | 20 |
 | DOCUMENTATION | 1 |
 | FOLLOW_UP | 3 |
 | INFRA | 6 |
 | INTEGRATION | 5 |
 | PERFORMANCE | 15 |
 | PRODUCT_DECISION | 1 |
-| SECURITY | 17 |
+| SECURITY | 20 |
 | STATE_MACHINE | 3 |
 | TECH_DEBT | 7 |
 | TENANT_ISOLATION | 2 |
-| TEST_GAP | 9 |
-| UX | 43 |
+| TEST_GAP | 10 |
+| UX | 48 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 44 |
+| OPEN | 56 |
 | BLOCKED | 2 |
 | DEFERRED | 105 |
 | PRODUCT_DECISION | 9 |
@@ -64,7 +64,7 @@ see [`README.md`](README.md) for why.
 | VERIFIED | 218 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
-| READY | 22 |
+| READY | 26 |
 | DONE | 107 |
 
 ## All records
@@ -298,6 +298,8 @@ see [`README.md`](README.md) for why.
 | [BUG-3493](../../docs/bugs/BUG-3493-publishing-customizations-dead-ends-because-new-drafts-land-.md) | Publishing customizations dead-ends because new drafts land in a package that cannot be published | BUG | HIGH | P1 | FIXED | apps/web, customization | FIX_NOW |
 | [BUG-3494](../../docs/bugs/BUG-3494-a-published-custom-module-has-no-sidebar-entry-and-no-list-f.md) | A published custom module has no sidebar entry and no list, form or record screen | BUG | HIGH | P1 | FIXED | apps/web, customization, data | PLAN_REQUIRED |
 | [BUG-3500](../../docs/bugs/BUG-3500-every-seeded-email-template-is-active-with-placeholder-body-.md) | Every seeded email template is active with placeholder body text | BUG | HIGH | P1 | FIXED | notifications, apps/web | FIX_NOW |
+| [BUG-3544](../../docs/bugs/BUG-3544-a-platform-admin-can-open-and-edit-a-tenant-but-every-save-i.md) | A Platform Admin can open and edit a tenant but every save is refused as not System Admin | AUTHORIZATION | HIGH | P1 | OPEN | api:super-admin, api:platform-runtime | FIX_NOW |
+| [BUG-3545](../../docs/bugs/BUG-3545-the-admin-session-heartbeat-is-refused-for-most-platform-rol.md) | The admin session heartbeat is refused for most platform roles and raises a blocking permission dialog | AUTHORIZATION | HIGH | P1 | OPEN | api:auth, apps/admin | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -519,6 +521,14 @@ see [`README.md`](README.md) for why.
 | [BUG-3498](../../docs/bugs/BUG-3498-the-employee-record-export-writes-lookup-fields-as-raw-ids.md) | The employee record export writes lookup fields as raw ids | BUG | MEDIUM | P2 | FIXED | apps/web, employees | FIX_NOW |
 | [BUG-3499](../../docs/bugs/BUG-3499-the-reporting-hierarchy-dialog-pins-a-clipped-detail-card-ha.md) | The reporting hierarchy dialog pins a clipped detail card, has no close control and cannot open a record | UX | MEDIUM | P2 | FIXED | apps/web, employees | FIX_NOW |
 | [BUG-3506](../../docs/bugs/BUG-3506-the-payslip-email-has-no-working-button-and-names-the-payrol.md) | The payslip email has no working button and names the payroll calendar as the company | BUG | MEDIUM | P2 | DEFERRED | payslips, notifications | DEFER |
+| [BUG-3547](../../docs/bugs/BUG-3547-the-platform-role-picker-offers-two-platform-owner-roles-and.md) | The platform role picker offers two Platform Owner roles and a legacy Member role | UX | MEDIUM | P2 | OPEN | apps/admin, api:platform-auth | FIX_NOW |
+| [BUG-3548](../../docs/bugs/BUG-3548-a-numeric-value-in-a-ttl-seconds-variable-issues-access-toke.md) | A numeric value in a TTL_SECONDS variable issues access tokens that expire after one second | BUG | MEDIUM | P2 | OPEN | services/api/src/common/config | FIX_NOW |
+| [BUG-3549](../../docs/bugs/BUG-3549-partner-type-individual-or-company-drives-no-behaviour-and-i.md) | Partner type Individual or Company drives no behaviour and individuals are asked for a company registration number | BUG | MEDIUM | P2 | OPEN | api:partners, api:partner-experience, apps/admin | FIX_NOW |
+| [BUG-3550](../../docs/bugs/BUG-3550-partners-can-be-created-as-duplicates-admin-create-has-no-du.md) | Partners can be created as duplicates: admin create has no duplicate check and the inquiry check ignores tax and registration numbers | DATA_INTEGRITY | MEDIUM | P2 | OPEN | api:partners, api:partner-experience | FIX_NOW |
+| [BUG-3551](../../docs/bugs/BUG-3551-partner-create-update-lifecycle-and-onboarding-review-are-no.md) | Partner create, update, lifecycle and onboarding review are not written to the audit log | SECURITY | MEDIUM | P2 | OPEN | api:partners, api:partner-experience | FIX_NOW |
+| [BUG-3552](../../docs/bugs/BUG-3552-the-agreement-template-editor-offers-every-placeholder-group.md) | The agreement template editor offers every placeholder group regardless of agreement type | BUG | MEDIUM | P2 | OPEN | api:contracts, apps/admin | FIX_NOW |
+| [BUG-3553](../../docs/bugs/BUG-3553-an-agreement-can-be-created-for-an-inactive-partner-or-an-ar.md) | An agreement can be created for an inactive partner or an archived lead or customer, and duplicate submissions create duplicate agreements | DATA_INTEGRITY | MEDIUM | P2 | OPEN | api:contracts | FIX_NOW |
+| [BUG-3555](../../docs/bugs/BUG-3555-error-log-redaction-covers-auth-secrets-only-stack-traces-an.md) | Error log redaction covers auth secrets only: stack traces and personal or financial values are stored unredacted | SECURITY | MEDIUM | P2 | OPEN | api:error-logs | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -618,6 +628,10 @@ see [`README.md`](README.md) for why.
 | [ITEM-0185](../../docs/backlog/items/ITEM-0185-the-settings-shell-keeps-a-fixed-width-navigation-column-bes.md) | The settings shell keeps a fixed-width navigation column beside the content at phone width | UX | MEDIUM | P2 | DEFERRED | apps/web | DEFER |
 | [ITEM-0187](../../docs/backlog/items/ITEM-0187-custom-module-list-views-filter-only-the-loaded-page-and-the.md) | Custom-module list views filter only the loaded page and the data API has no filtering or search | FOLLOW_UP | MEDIUM | P2 | DEFERRED | apps/web, data | DEFER |
 | [ITEM-0194](../../docs/backlog/items/ITEM-0194-check-production-for-tenant-owned-copies-of-the-old-placehol.md) | Check production for tenant-owned copies of the old placeholder email templates after release | FOLLOW_UP | MEDIUM | P2 | DONE | notifications | DONE |
+| [ITEM-0197](../../docs/backlog/items/ITEM-0197-totp-multi-factor-authentication-for-tenant-and-platform-use.md) | TOTP multi-factor authentication for tenant and platform users | SECURITY | MEDIUM | P2 | READY | api:auth, apps/web, apps/admin | FIX_NOW |
+| [ITEM-0198](../../docs/backlog/items/ITEM-0198-admin-monitoring-platform-health-overview-grouped-error-fiel.md) | Admin monitoring: platform health overview, grouped error fields, module facet and incident-first layout | UX | MEDIUM | P2 | READY | apps/admin, api:error-logs, api:platform-monitoring | FIX_NOW |
+| [ITEM-0199](../../docs/backlog/items/ITEM-0199-admin-dashboard-operational-metrics-for-logins-mfa-adoption-.md) | Admin dashboard: operational metrics for logins, MFA adoption, error rate, job failures, partner funnel and agreements | UX | MEDIUM | P2 | READY | apps/admin, api:super-admin | FIX_NOW |
+| [ITEM-0200](../../docs/backlog/items/ITEM-0200-agreements-have-no-end-to-end-test-coverage-and-partners-lea.md) | Agreements have no end-to-end test coverage and partners/leads have no e2e lifecycle suite | TEST_GAP | MEDIUM | P2 | READY | api:contracts, api:partners, api:leads | FIX_NOW |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |
@@ -661,6 +675,8 @@ see [`README.md`](README.md) for why.
 | [BUG-3379](../../docs/bugs/BUG-3379-a-delivery-log-row-says-not-delivered-and-carries-nothing-th.md) | A delivery log row says Not delivered and carries nothing that explains why | UX | LOW | P3 | FIXED | notifications, apps/web | FIX_NOW |
 | [BUG-3412](../../docs/bugs/BUG-3412-every-widget-section-on-a-record-form-prints-its-title-twice.md) | Every widget section on a record form prints its title twice, and the profile section's two titles disagree | UX | LOW | P3 | FIXED | apps/web | FIX_NOW |
 | [BUG-3523](../../docs/bugs/BUG-3523-custom-module-page-header-shows-the-table-key-instead-of-the.md) | Custom module page header shows the table key instead of the module name | BUG | LOW | P3 | DEFERRED | apps/web | DEFER |
+| [BUG-3546](../../docs/bugs/BUG-3546-tenant-record-edit-leaves-the-operator-on-a-tab-with-nothing.md) | Tenant record Edit leaves the operator on a tab with nothing editable | UX | LOW | P3 | OPEN | apps/admin | FIX_NOW |
+| [BUG-3554](../../docs/bugs/BUG-3554-the-typed-signature-style-selector-is-cosmetic-the-chosen-st.md) | The typed-signature style selector is cosmetic: the chosen style never reaches the signed document | UX | LOW | P3 | OPEN | apps/landing, api:contracts | FIX_NOW |
 | [ITEM-0007](../../docs/backlog/items/ITEM-0007-should-duplicate-website-leads-be-deduplicated.md) | Product decision — should duplicate website leads be deduplicated? | PRODUCT_DECISION | LOW | P3 | DONE | api:leads, apps/landing | DONE |
 | [ITEM-0008](../../docs/backlog/items/ITEM-0008-customeraccount-has-no-origin-channel.md) | Product decision — CustomerAccount carries no origin channel | PRODUCT_DECISION | LOW | P3 | DONE | services/api/prisma, api:super-admin | DONE |
 | [ITEM-0011](../../docs/backlog/items/ITEM-0011-framework-validation-should-catch-absence-claims.md) | Framework validation should catch false absence claims in context documents | TECH_DEBT | LOW | P3 | DONE | .agent/context, scripts | DONE |

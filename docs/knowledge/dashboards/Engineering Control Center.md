@@ -7,15 +7,15 @@
 
 | | |
 |---|---|
-| Active sessions | **0** |
-| Active parent tasks | 4 |
-| Active work packages | 4 |
+| Active sessions | **1** |
+| Active parent tasks | 5 |
+| Active work packages | 5 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **4** |
-| Open HIGH | 94 |
+| Open HIGH | 96 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 9 |
 | QA coverage gaps | 161 |
@@ -30,12 +30,12 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 197 |
-| No next action | 197 |
-| Aging — 7d / 30d / 90d | 100 / 0 / 0 |
+| No acceptance criteria | 213 |
+| No next action | 213 |
+| Aging — 7d / 30d / 90d | 197 / 15 / 0 |
 | Architecture and technical debt | 7 |
-| Security gaps | 30 |
-| Database gaps | 19 |
+| Security gaps | 35 |
+| Database gaps | 21 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -47,7 +47,9 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-_No session is currently registered as active._
+| Session | Task | Title | Status | Branch | Target | Leases | Schema |
+|---|---|---|---|---|---|---|---|
+| [[SESSION-0106-task-0032-partner-agreements-admin-rbac-monitoring-dashboard|SESSION-0106]] | TASK-0032 | TASK-0032 partner/agreements/admin RBAC/monitoring/dashboard/MFA hardening | ACTIVE | `agent/partner-agreements-admin-hardening` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
 
@@ -57,6 +59,7 @@ _No session is currently registered as active._
 | [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 16/16 | — | — | — |
 | [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 11/11 | — | — | — |
 | [[TASK-0028-enterprise-reports-and-analytics-platform|TASK-0028]] | Enterprise Reports and Analytics platform | FEATURE | LARGE | 5/15 | WP-08 | — | — |
+| [[TASK-0032-partner-onboarding-agreements-admin-rbac-monitoring-dashboar|TASK-0032]] | Partner onboarding, agreements, admin RBAC, monitoring, dashboard and MFA hardening | FEATURE | PROGRAM | 0/10 | WP-00 | WP-01, WP-02, WP-04 | — |
 
 ## Branch model
 
@@ -293,7 +296,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 197 |
+| Open total | 213 |
 | Blocked | 2 |
 | Deferred | 105 |
 | Awaiting a product decision | 9 |

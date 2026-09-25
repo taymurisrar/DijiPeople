@@ -1,0 +1,57 @@
+---
+SESSION_ID: SESSION-0106
+aliases: [SESSION-0106]
+TASK_ID: TASK-0032
+TITLE: TASK-0032 partner/agreements/admin RBAC/monitoring/dashboard/MFA hardening
+ARCHITECT_INTENT: TASK-0032 partner/agreements/admin RBAC/monitoring/dashboard/MFA hardening
+STATUS: ACTIVE
+TASK_TYPE: FEATURE
+TASK_SIZE: PROGRAM
+BASE_BRANCH: origin/develop
+BASE_SHA: 75fec5b95651e2e1aab124a26895abd89c13cc9a
+TASK_BRANCH: agent/partner-agreements-admin-hardening
+TARGET_BRANCH: develop
+WORKTREE: D:/My Work/hrm-dijipeople/dp-partner-admin
+AFFECTED_MODULES: [partners, partner-experience, contracts, legal, leads, super-admin, platform-users, platform-auth, auth, platform-monitoring, error-logs, dashboard, roles, permissions]
+WRITE_LEASES: []
+ACTIVE_WORK_PACKAGES: []
+SCHEMA_WRITE: NO
+CI_STATUS: NOT_RUN
+MERGE_STATUS: NOT_STARTED
+STARTED_AT: 2026-09-25T00:07:43.417Z
+LAST_HEARTBEAT: 2026-09-25T00:07:43.417Z
+BLOCKERS: none
+---
+
+# SESSION-0106 — TASK-0032 partner/agreements/admin RBAC/monitoring/dashboard/MFA hardening
+
+## Intent
+
+TASK-0032 partner/agreements/admin RBAC/monitoring/dashboard/MFA hardening
+
+## Scope
+
+- partners
+- partner-experience
+- contracts
+- legal
+- leads
+- super-admin
+- platform-users
+- platform-auth
+- auth
+- platform-monitoring
+- error-logs
+- dashboard
+- roles
+- permissions
+
+## Concurrency
+
+Write leases held, overlap classification against other active sessions, and
+anything this session deliberately serialised behind another. Live state:
+`node scripts/session.mjs list`.
+
+## History
+
+- 2026-09-25 — session started from `origin/develop` at `75fec5b`.

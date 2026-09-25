@@ -149,6 +149,11 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-3377-admin-lookup-controls-still-carry-the-nested-interactive-lis|BUG-3377]] | Admin lookup controls still carry the nested-interactive listbox that BUG-1956 fixed only in web | UX | MEDIUM | FIXED | apps/admin | FIX_NOW |
 | [[BUG-3378-the-responsive-runtime-tab-strip-hides-a-measurement-copy-fr|BUG-3378]] | The responsive runtime tab strip hides a measurement copy from screen readers while leaving thirteen buttons in the tab order | UX | MEDIUM | FIXED | apps/web | FIX_NOW |
 | [[BUG-3499-the-reporting-hierarchy-dialog-pins-a-clipped-detail-card-ha|BUG-3499]] | The reporting hierarchy dialog pins a clipped detail card, has no close control and cannot open a record | UX | MEDIUM | FIXED | apps/web, employees | FIX_NOW |
+| [[BUG-3547-the-platform-role-picker-offers-two-platform-owner-roles-and|BUG-3547]] | The platform role picker offers two Platform Owner roles and a legacy Member role | UX | MEDIUM | OPEN | apps/admin, api:platform-auth | FIX_NOW |
+| [[BUG-3550-partners-can-be-created-as-duplicates-admin-create-has-no-du|BUG-3550]] | Partners can be created as duplicates: admin create has no duplicate check and the inquiry check ignores tax and registration numbers | DATA_INTEGRITY | MEDIUM | OPEN | api:partners, api:partner-experience | FIX_NOW |
+| [[BUG-3553-an-agreement-can-be-created-for-an-inactive-partner-or-an-ar|BUG-3553]] | An agreement can be created for an inactive partner or an archived lead or customer, and duplicate submissions create duplicate agreements | DATA_INTEGRITY | MEDIUM | OPEN | api:contracts | FIX_NOW |
+| [[ITEM-0198-admin-monitoring-platform-health-overview-grouped-error-fiel|ITEM-0198]] | Admin monitoring: platform health overview, grouped error fields, module facet and incident-first layout | UX | MEDIUM | READY | apps/admin, api:error-logs, api:platform-monitoring | FIX_NOW |
+| [[ITEM-0199-admin-dashboard-operational-metrics-for-logins-mfa-adoption-|ITEM-0199]] | Admin dashboard: operational metrics for logins, MFA adoption, error rate, job failures, partner funnel and agreements | UX | MEDIUM | READY | apps/admin, api:super-admin | FIX_NOW |
 | [[BUG-1964-record-headings-and-dialog-titles-are-singularised-by-stripp|BUG-1964]] | Record headings and dialog titles are singularised by stripping a trailing s | UX | LOW | FIXED | apps/web | DONE |
 | [[BUG-2010-the-dashboard-recent-changes-list-renders-unformatted-iso-86|BUG-2010]] | The dashboard Recent changes list renders unformatted ISO-8601 timestamps | UX | LOW | FIXED | apps/web | DONE |
 | [[BUG-2017-the-inbox-related-record-column-renders-a-bare-uuid-with-no-|BUG-2017]] | The inbox Related record column renders a bare UUID with no label and no link | UX | LOW | FIXED | apps/web | DONE |
@@ -158,6 +163,8 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-3021-workspace-switcher-in-the-avatar-menu-overflows-horizontally|BUG-3021]] | Workspace switcher in the avatar menu overflows horizontally and shows a scrollbar | UX | LOW | FIXED | apps/web | FIX_NOW |
 | [[BUG-3379-a-delivery-log-row-says-not-delivered-and-carries-nothing-th|BUG-3379]] | A delivery log row says Not delivered and carries nothing that explains why | UX | LOW | FIXED | notifications, apps/web | FIX_NOW |
 | [[BUG-3412-every-widget-section-on-a-record-form-prints-its-title-twice|BUG-3412]] | Every widget section on a record form prints its title twice, and the profile section's two titles disagree | UX | LOW | FIXED | apps/web | FIX_NOW |
+| [[BUG-3546-tenant-record-edit-leaves-the-operator-on-a-tab-with-nothing|BUG-3546]] | Tenant record Edit leaves the operator on a tab with nothing editable | UX | LOW | OPEN | apps/admin | FIX_NOW |
+| [[BUG-3554-the-typed-signature-style-selector-is-cosmetic-the-chosen-st|BUG-3554]] | The typed-signature style selector is cosmetic: the chosen style never reaches the signed document | UX | LOW | OPEN | apps/landing, api:contracts | FIX_NOW |
 
 ## How to read this
 

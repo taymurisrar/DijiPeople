@@ -8,8 +8,8 @@
 | | |
 |---|---|
 | Open CRITICAL | **4** |
-| Open HIGH | **94** |
-| Open total | 197 |
+| Open HIGH | **96** |
+| Open total | 213 |
 | Blocked | 2 |
 | Awaiting a product decision | 9 |
 | Deferred | 105 |
@@ -119,6 +119,8 @@
 | [[BUG-3493-publishing-customizations-dead-ends-because-new-drafts-land-|BUG-3493]] | Publishing customizations dead-ends because new drafts land in a package that cannot be published | BUG | HIGH | FIXED | apps/web, customization | FIX_NOW |
 | [[BUG-3494-a-published-custom-module-has-no-sidebar-entry-and-no-list-f|BUG-3494]] | A published custom module has no sidebar entry and no list, form or record screen | BUG | HIGH | FIXED | apps/web, customization, data | PLAN_REQUIRED |
 | [[BUG-3500-every-seeded-email-template-is-active-with-placeholder-body-|BUG-3500]] | Every seeded email template is active with placeholder body text | BUG | HIGH | FIXED | notifications, apps/web | FIX_NOW |
+| [[BUG-3544-a-platform-admin-can-open-and-edit-a-tenant-but-every-save-i|BUG-3544]] | A Platform Admin can open and edit a tenant but every save is refused as not System Admin | AUTHORIZATION | HIGH | OPEN | api:super-admin, api:platform-runtime | FIX_NOW |
+| [[BUG-3545-the-admin-session-heartbeat-is-refused-for-most-platform-rol|BUG-3545]] | The admin session heartbeat is refused for most platform roles and raises a blocking permission dialog | AUTHORIZATION | HIGH | OPEN | api:auth, apps/admin | FIX_NOW |
 | [[ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no|ITEM-0133]] | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | READY | services/api/test | PLAN_REQUIRED |
 | [[ITEM-0134-the-payroll-run-engine-has-no-tests|ITEM-0134]] | The payroll run engine has no tests | TEST_GAP | HIGH | READY | api:payroll | PLAN_REQUIRED |
 | [[ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-|ITEM-0136]] | electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major | SECURITY | HIGH | READY | apps/agent-desktop | FIX_NOW |
@@ -158,6 +160,7 @@
 | [[ITEM-0077-re-read-the-packaged-agent-archive-after-the-node-pre-gyp-up|ITEM-0077]] | Re-read the packaged agent archive after the node-pre-gyp upgrade | TEST_GAP | MEDIUM | READY | apps/agent-desktop, package-lock.json | PLAN_REQUIRED |
 | [[ITEM-0078-no-end-to-end-payment-to-provisioned-tenant-run-against-stri|ITEM-0078]] | No end-to-end payment to provisioned tenant run against Stripe test mode | TEST_GAP | MEDIUM | READY | api:billing, api:tenant-control-plane, api:outbox, apps/landing | PLAN_REQUIRED |
 | [[ITEM-0116-53-bug-fixes-are-regression-covered-but-have-never-been-qa-r|ITEM-0116]] | 53 bug fixes are regression-covered but have never been QA-retested | TEST_GAP | MEDIUM | READY | — | FIX_NOW |
+| [[ITEM-0200-agreements-have-no-end-to-end-test-coverage-and-partners-lea|ITEM-0200]] | Agreements have no end-to-end test coverage and partners/leads have no e2e lifecycle suite | TEST_GAP | MEDIUM | READY | api:contracts, api:partners, api:leads | FIX_NOW |
 
 ## Current Infrastructure Gaps
 
@@ -636,6 +639,14 @@
 | [[BUG-3497-employee-reset-password-sends-without-confirmation-is-offere|BUG-3497]] | Employee Reset Password sends without confirmation, is offered with no linked user and fails silently | BUG | MEDIUM | FIXED | apps/web, employees, error-logs | FIX_NOW |
 | [[BUG-3498-the-employee-record-export-writes-lookup-fields-as-raw-ids|BUG-3498]] | The employee record export writes lookup fields as raw ids | BUG | MEDIUM | FIXED | apps/web, employees | FIX_NOW |
 | [[BUG-3499-the-reporting-hierarchy-dialog-pins-a-clipped-detail-card-ha|BUG-3499]] | The reporting hierarchy dialog pins a clipped detail card, has no close control and cannot open a record | UX | MEDIUM | FIXED | apps/web, employees | FIX_NOW |
+| [[BUG-3547-the-platform-role-picker-offers-two-platform-owner-roles-and|BUG-3547]] | The platform role picker offers two Platform Owner roles and a legacy Member role | UX | MEDIUM | OPEN | apps/admin, api:platform-auth | FIX_NOW |
+| [[BUG-3548-a-numeric-value-in-a-ttl-seconds-variable-issues-access-toke|BUG-3548]] | A numeric value in a TTL_SECONDS variable issues access tokens that expire after one second | BUG | MEDIUM | OPEN | services/api/src/common/config | FIX_NOW |
+| [[BUG-3549-partner-type-individual-or-company-drives-no-behaviour-and-i|BUG-3549]] | Partner type Individual or Company drives no behaviour and individuals are asked for a company registration number | BUG | MEDIUM | OPEN | api:partners, api:partner-experience, apps/admin | FIX_NOW |
+| [[BUG-3550-partners-can-be-created-as-duplicates-admin-create-has-no-du|BUG-3550]] | Partners can be created as duplicates: admin create has no duplicate check and the inquiry check ignores tax and registration numbers | DATA_INTEGRITY | MEDIUM | OPEN | api:partners, api:partner-experience | FIX_NOW |
+| [[BUG-3551-partner-create-update-lifecycle-and-onboarding-review-are-no|BUG-3551]] | Partner create, update, lifecycle and onboarding review are not written to the audit log | SECURITY | MEDIUM | OPEN | api:partners, api:partner-experience | FIX_NOW |
+| [[BUG-3552-the-agreement-template-editor-offers-every-placeholder-group|BUG-3552]] | The agreement template editor offers every placeholder group regardless of agreement type | BUG | MEDIUM | OPEN | api:contracts, apps/admin | FIX_NOW |
+| [[BUG-3553-an-agreement-can-be-created-for-an-inactive-partner-or-an-ar|BUG-3553]] | An agreement can be created for an inactive partner or an archived lead or customer, and duplicate submissions create duplicate agreements | DATA_INTEGRITY | MEDIUM | OPEN | api:contracts | FIX_NOW |
+| [[BUG-3555-error-log-redaction-covers-auth-secrets-only-stack-traces-an|BUG-3555]] | Error log redaction covers auth secrets only: stack traces and personal or financial values are stored unredacted | SECURITY | MEDIUM | OPEN | api:error-logs | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -651,6 +662,10 @@
 | [[ITEM-0158-public-traffic-that-bypasses-cloudflare-shares-one-rate-limi|ITEM-0158]] | Public traffic that bypasses Cloudflare shares one rate-limit bucket, by design and untested | INFRA | MEDIUM | READY | pkg:config, services/api/src/common/security | PLAN_REQUIRED |
 | [[ITEM-0175-wire-the-plans-screen-onto-the-seat-quote-and-plan-change-en|ITEM-0175]] | Wire the plans screen onto the seat-quote and plan-change endpoints that now exist | FOLLOW_UP | MEDIUM | READY | apps/web, api:billing | FIX_NOW |
 | [[ITEM-0177-the-recruitment-draft-form-s-reporting-manager-lookup-still-|ITEM-0177]] | The recruitment draft form's Reporting manager lookup still filters one page in the browser | TECH_DEBT | MEDIUM | READY | apps/web | FIX_NOW |
+| [[ITEM-0197-totp-multi-factor-authentication-for-tenant-and-platform-use|ITEM-0197]] | TOTP multi-factor authentication for tenant and platform users | SECURITY | MEDIUM | READY | api:auth, apps/web, apps/admin | FIX_NOW |
+| [[ITEM-0198-admin-monitoring-platform-health-overview-grouped-error-fiel|ITEM-0198]] | Admin monitoring: platform health overview, grouped error fields, module facet and incident-first layout | UX | MEDIUM | READY | apps/admin, api:error-logs, api:platform-monitoring | FIX_NOW |
+| [[ITEM-0199-admin-dashboard-operational-metrics-for-logins-mfa-adoption-|ITEM-0199]] | Admin dashboard: operational metrics for logins, MFA adoption, error rate, job failures, partner funnel and agreements | UX | MEDIUM | READY | apps/admin, api:super-admin | FIX_NOW |
+| [[ITEM-0200-agreements-have-no-end-to-end-test-coverage-and-partners-lea|ITEM-0200]] | Agreements have no end-to-end test coverage and partners/leads have no e2e lifecycle suite | TEST_GAP | MEDIUM | READY | api:contracts, api:partners, api:leads | FIX_NOW |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [[ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle|ITEM-0108]] | Decide whether the roughly one-hour session lifetime is idle or absolute | PRODUCT_DECISION | LOW | READY | api:auth | PLAN_REQUIRED |
 | [[BUG-1964-record-headings-and-dialog-titles-are-singularised-by-stripp|BUG-1964]] | Record headings and dialog titles are singularised by stripping a trailing s | UX | LOW | FIXED | apps/web | DONE |
@@ -666,6 +681,8 @@
 | [[BUG-3360-every-session-row-records-the-user-agent-as-node-and-the-clo|BUG-3360]] | Every session row records the user agent as node and the Cloudflare edge IP | BUG | LOW | FIXED | api:auth, web:auth | FIX_NOW |
 | [[BUG-3379-a-delivery-log-row-says-not-delivered-and-carries-nothing-th|BUG-3379]] | A delivery log row says Not delivered and carries nothing that explains why | UX | LOW | FIXED | notifications, apps/web | FIX_NOW |
 | [[BUG-3412-every-widget-section-on-a-record-form-prints-its-title-twice|BUG-3412]] | Every widget section on a record form prints its title twice, and the profile section's two titles disagree | UX | LOW | FIXED | apps/web | FIX_NOW |
+| [[BUG-3546-tenant-record-edit-leaves-the-operator-on-a-tab-with-nothing|BUG-3546]] | Tenant record Edit leaves the operator on a tab with nothing editable | UX | LOW | OPEN | apps/admin | FIX_NOW |
+| [[BUG-3554-the-typed-signature-style-selector-is-cosmetic-the-chosen-st|BUG-3554]] | The typed-signature style selector is cosmetic: the chosen style never reaches the signed document | UX | LOW | OPEN | apps/landing, api:contracts | FIX_NOW |
 | [[ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by|ITEM-0080]] | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
 
 ## Key Architecture Decisions
@@ -687,6 +704,9 @@
 - [[ADR-0015-production-retires-sink-email-providers|ADR-0015 — Production retires sink email providers, tenants fall back to the platform relay, and default templates ship with real copy]]
 - [[ADR-0016-published-custom-modules-render-in-the-tenant-runtime|ADR-0016 — A published custom module renders in the tenant runtime with a sidebar entry and standard list, form and record screens]]
 - [[ADR-0017-the-hierarchy-viewer-stays-a-chain-scoped-dialog|ADR-0017 — The reporting hierarchy viewer stays a chain-scoped dialog, drawn as a real branching tree]]
+- [[ADR-0018-platform-operations-are-authorized-by-platform-permission-only|ADR-0018 — Platform operations are authorized by platform permission only, and the platform role list is consolidated]]
+- [[ADR-0019-totp-mfa-for-tenant-and-platform-users|ADR-0019 — Standard TOTP multi-factor authentication for tenant and platform users]]
+- [[ADR-0020-agreement-placeholders-are-offered-by-agreement-context|ADR-0020 — Agreement placeholders are offered and resolved by agreement context]]
 - [[decision-a-bug-record-is-its-own-backlog-item|Decision — A bug record **is** its own backlog item]]
 - [[decision-ci-verdict-gates-shared-merges|Decision — A shared-target merge requires a read CI verdict on the exact SHA]]
 - [[decision-platform-admin-is-a-separate-identity|Decision — Platform admin is a separate identity, not an elevated tenant user]]
@@ -696,15 +716,15 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 456 |
-| Backlog items | 196 |
+| Bug records | 468 |
+| Backlog items | 200 |
 | Known bug patterns | 35 |
 | QA runs | 33 |
 | Engineering history records | 82 |
 | Release records | 10 |
 | Module notes | 30 |
 | Architecture notes | 22 |
-| Decision notes (ADR + generated) | 21 |
+| Decision notes (ADR + generated) | 24 |
 | Implementation records | 7 |
 
 **Awaiting Architect triage: 0.** A record nobody has
