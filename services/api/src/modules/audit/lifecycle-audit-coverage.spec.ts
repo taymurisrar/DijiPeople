@@ -1,6 +1,7 @@
 import { EmployeesService } from '../employees/employees.service';
 import { LeaveService } from '../leave/leave.service';
 import { OrganizationService } from '../organization/organization.service';
+import { ContractsService } from '../contracts/contracts.service';
 
 /**
  * BUG-2044, the structural half.
@@ -37,6 +38,20 @@ import { OrganizationService } from '../organization/organization.service';
 const WRITE_METHOD_PATTERN =
   /^(create|update|delete|assign|submit|cancel|archive|deactivate|provision|import|restore)/;
 
+/*
+ * BUG-3231. `ContractsService`'s write surface is not named like the three
+ * services above (`void`, `terminate`, `add`/`removeParty`, `send`,
+ * `complete`/`decline`, `resend`, `clone`, `transition`, `decide`,
+ * `generate`, `open`, `invalidate`, `apply`) — the base pattern would miss
+ * most of it. Rather than loosen the shared pattern for every service (and
+ * pull in false positives on `EmployeesService`/`OrganizationService`/
+ * `LeaveService`), each `Coverage` entry may declare its own pattern; a
+ * missing one falls back to `WRITE_METHOD_PATTERN` so the existing three
+ * entries are unaffected.
+ */
+const CONTRACT_WRITE_METHOD_PATTERN =
+  /^(create|update|delete|assign|submit|cancel|archive|deactivate|provision|import|restore|copy|void|terminate|add|remove|save|send|complete|decline|request|resend|decide|transition|clone|sync|invalidate|apply|generate|open)/;
+
 type Coverage = {
   readonly service: string;
   readonly prototype: object;
@@ -44,6 +59,8 @@ type Coverage = {
   readonly audited: readonly string[];
   /** Operations deliberately not audited here, each with its reason. */
   readonly exempt: Readonly<Record<string, string>>;
+  /** Defaults to `WRITE_METHOD_PATTERN` — see `CONTRACT_WRITE_METHOD_PATTERN`. */
+  readonly pattern?: RegExp;
 };
 
 const COVERAGE: readonly Coverage[] = [
@@ -121,12 +138,57 @@ const COVERAGE: readonly Coverage[] = [
       deleteLeavePolicyAssignment: 'As updateLeavePolicyRule.',
     },
   },
+  {
+    service: 'ContractsService',
+    prototype: ContractsService.prototype,
+    pattern: CONTRACT_WRITE_METHOD_PATTERN,
+    audited: [
+      'create',
+      'createFromUpload',
+      'update',
+      'saveDocumentFields',
+      'saveVersion',
+      'createTemplate',
+      'createTemplateVersion',
+      'cloneTemplate',
+      'updateTemplateState',
+      'submitApproval',
+      'transitionStage',
+      'decideApproval',
+      'addParty',
+      'updateParty',
+      'removeParty',
+      'addFieldPlacement',
+      'voidContract',
+      'terminateContract',
+      'createDerivedContract',
+      'sendForSignature',
+      'applyPassiveSignatureExpiry',
+      'cancelSignatureRequest',
+      'resendSignatureRequest',
+      'completeSignature',
+      'declineSignature',
+      'requestSignatureChanges',
+      'generateDocument',
+      'openDocument',
+      'invalidateSigningForNewVersion',
+    ],
+    exempt: {
+      createFromSource:
+        'Delegates entirely to create(), which writes the CONTRACT_CREATED row for the resulting contract — auditing here too would double it.',
+      copy: "Delegates entirely to create(), which writes the CONTRACT_CREATED row for the resulting contract. An explicit, deliberate duplication path (discovery D3 scenario 27) — BUG-3553's duplicate guard is bypassed here on purpose, not the audit.",
+      importDocument:
+        'No persistence — converts an uploaded file to HTML and returns it. Nothing is written until a caller (createFromUpload) creates the contract, which is audited there.',
+      syncDerivedPlaceholderValues:
+        'Private helper called only from update(), which writes the CONTRACT_UPDATED row that provoked it; a second row per placeholder sync would be the noise REG-308 warns against.',
+    },
+  },
 ];
 
-function writeMethodsOf(prototype: object) {
+function writeMethodsOf(prototype: object, pattern: RegExp) {
   return Object.getOwnPropertyNames(prototype)
     .filter((name) => name !== 'constructor')
-    .filter((name) => WRITE_METHOD_PATTERN.test(name))
+    .filter((name) => pattern.test(name))
     .filter(
       (name) =>
         typeof (prototype as Record<string, unknown>)[name] === 'function',
@@ -142,9 +204,10 @@ describe('lifecycle audit coverage', () => {
         ...entry.audited,
         ...Object.keys(entry.exempt),
       ]);
-      const unclassified = writeMethodsOf(entry.prototype).filter(
-        (name) => !classified.has(name),
-      );
+      const unclassified = writeMethodsOf(
+        entry.prototype,
+        entry.pattern ?? WRITE_METHOD_PATTERN,
+      ).filter((name) => !classified.has(name));
 
       /*
        * A method landing here is not necessarily a defect — it is an
@@ -179,7 +242,10 @@ describe('lifecycle audit coverage', () => {
      * assertions would pass while checking nothing.
      */
     for (const entry of COVERAGE) {
-      expect(writeMethodsOf(entry.prototype).length).toBeGreaterThan(0);
+      expect(
+        writeMethodsOf(entry.prototype, entry.pattern ?? WRITE_METHOD_PATTERN)
+          .length,
+      ).toBeGreaterThan(0);
       expect(entry.audited.length).toBeGreaterThan(0);
     }
   });

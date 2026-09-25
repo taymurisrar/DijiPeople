@@ -17,15 +17,17 @@ type Session = {
   allowedSignatureMethods: Method[];
 };
 type Method = "TYPED" | "DRAWN" | "UPLOADED";
+// BUG-3554. Matches `TYPED_SIGNATURE_STYLES` (services/api dto/contracts.dto.ts)
+// exactly — this value is now sent to and persisted by the API, not merely
+// local presentation, so it must be one of the three the server accepts.
+type TypedStyle = "CLASSIC" | "SCRIPT" | "FORMAL";
 
 export function SigningExperience({ token }: { token: string }) {
   const [session, setSession] = useState<Session | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [method, setMethod] = useState<Method>("TYPED");
   const [typedName, setTypedName] = useState("");
-  const [typedStyle, setTypedStyle] = useState<"serif" | "script" | "formal">(
-    "serif",
-  );
+  const [typedStyle, setTypedStyle] = useState<TypedStyle>("CLASSIC");
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -76,6 +78,7 @@ export function SigningExperience({ token }: { token: string }) {
         body: JSON.stringify({
           method,
           typedName: method === "TYPED" ? typedName : undefined,
+          typedStyle: method === "TYPED" ? typedStyle : undefined,
           signatureDataUrl: method === "TYPED" ? undefined : signatureDataUrl,
           consentAccepted: consent,
           consentText: session.consentText,
@@ -209,9 +212,9 @@ export function SigningExperience({ token }: { token: string }) {
                     onChange={(event) => setTypedName(event.target.value)}
                     style={{
                       fontFamily:
-                        typedStyle === "script"
+                        typedStyle === "SCRIPT"
                           ? "cursive"
-                          : typedStyle === "formal"
+                          : typedStyle === "FORMAL"
                             ? "Georgia, serif"
                             : "ui-serif, Georgia, serif",
                     }}
@@ -222,18 +225,14 @@ export function SigningExperience({ token }: { token: string }) {
                     aria-label="Signature style"
                     value={typedStyle}
                     onChange={(event) =>
-                      setTypedStyle(event.target.value as typeof typedStyle)
+                      setTypedStyle(event.target.value as TypedStyle)
                     }
                     className="h-10 w-full rounded-lg border border-border bg-white px-3 text-sm text-foreground"
                   >
-                    <option value="serif">Classic</option>
-                    <option value="script">Script</option>
-                    <option value="formal">Formal</option>
+                    <option value="CLASSIC">Classic</option>
+                    <option value="SCRIPT">Script</option>
+                    <option value="FORMAL">Formal</option>
                   </select>
-                  <p className="text-xs text-muted">
-                    The entered legal name is retained as text; the style is
-                    presentation only.
-                  </p>
                 </div>
               ) : method === "DRAWN" ? (
                 <SignatureCanvas onChange={setSignatureDataUrl} />
