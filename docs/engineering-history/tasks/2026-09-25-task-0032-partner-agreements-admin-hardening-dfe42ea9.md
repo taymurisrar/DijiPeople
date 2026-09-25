@@ -629,8 +629,20 @@ reports sit under `docs/tasks/TASK-0032-streams/`.
 
 ## Obsidian Sync
 
-TODO — whether `node scripts/sync-obsidian.mjs` ran, and which `Generated/`
-folders changed.
+Ran `npm run knowledge:sync` (config resolved from the primary checkout) after
+each closure commit — 145 files written on the first pass — and `knowledge:verify`
+after it. Verify found problems TASK-0032 introduced and all were fixed: stream
+reports WP-02..WP-06 shared source ids with TASK-0031's (renamed to
+`t0032-wp-NN-report.md`; the WP-02 route table to `platform-route-mapping.md`),
+BUG-3580..3588 linked module names with no note, and EXECPLAN-0051, COMMON-RULES,
+D1..D6 and the stream reports had no wikilink. The ten stale vault copies left by
+the rename were removed. **OBSIDIAN_SYNC_STATUS = FAILED on 33 pre-existing
+problems, none from TASK-0032**: 29 GRAPH_ORPHAN (BUG-3132..3228, ITEM-0138..0155,
+EXECPLAN-0029..0036) and 4 DUPLICATE_NODE where EXECPLAN numbers collide with
+QA plan ids PLAN-032..035. Those records belong to earlier tasks and were left
+untouched. Folders written: `00 - Home/Generated/Tasks`, `07 - Bugs/Generated`,
+`06 - Implementation Plans/Generated`, `03 - Modules/Generated`, QA and
+dashboards.
 
 ## Cleanup
 
@@ -647,6 +659,6 @@ integrated.
 
 Records this task created, closed or depended on, cited in its own body:
 
-[[ADR-0018]] · [[ADR-0019]] · [[ADR-0020]] · [[ADR-0021]] · [[BUG-3146]] · [[BUG-3220]] · [[BUG-3227]] · [[BUG-3231]] · [[BUG-3544]] · [[BUG-3545]] · [[BUG-3546]] · [[BUG-3547]] · [[BUG-3548]] · [[BUG-3549]] · [[BUG-3550]] · [[BUG-3551]] · [[BUG-3552]] · [[BUG-3553]] · [[BUG-3554]] · [[BUG-3555]] · [[BUG-3564]] · [[BUG-3565]] · [[BUG-3566]] · [[BUG-3567]] · [[BUG-3578]] · [[BUG-3579]] · [[BUG-3580]] · [[BUG-3581]] · [[BUG-3582]] · [[BUG-3583]] · [[BUG-3584]] · [[BUG-3585]] · [[BUG-3586]] · [[BUG-3587]] · [[BUG-3588]] · [[BUG-3597]] · [[BUG-3598]] · [[BUG-3599]] · [[ITEM-0197]] · [[ITEM-0198]] · [[ITEM-0199]] · [[ITEM-0200]] · [[ITEM-0201]] · [[ITEM-0202]] · [[PLAN-001]] · [[PLAN-002]] · [[PLAN-005]] · [[PLAN-006]] · [[PLAN-015]] · [[PLAN-019]] · [[PLAN-030]] · [[QA-AUTH-017]] · [[QA-AUTH-018]] · [[QA-AUTH-019]] · [[QA-AUTH-020]] · [[QA-AUTHZ-017]] · [[QA-AUTHZ-018]] · [[QA-CONTRACT-002]] · [[QA-CONTRACT-003]] · [[QA-CONTRACT-004]] · [[QA-CONTRACT-005]] · [[QA-CONTRACT-006]] · [[QA-CONTRACT-007]] · [[QA-CONTRACT-008]] · [[QA-CONTRACT-009]] · [[QA-CONTRACT-010]] · [[QA-CONTRACT-011]] · [[QA-CONTRACT-012]] · [[QA-LEAD-006]] · [[QA-PARTNER-008]] · [[QA-PARTNER-009]] · [[QA-PARTNER-010]] · [[QA-PARTNER-011]] · [[QA-PARTNER-012]] · [[QA-PLATFORM-033]] · [[QA-PLATFORM-034]] · [[QA-PLATFORM-035]] · [[QA-PLATFORM-036]] · [[QA-PLATFORM-037]] · [[QA-PLATFORM-038]] · [[QA-PLATFORM-039]] · [[QA-PLATFORM-040]] · [[QA-PLATFORM-041]] · [[QA-PLATFORM-042]] · [[QA-SECURITY-004]] · [[SESSION-0106]] · [[TASK-0005]] · [[TASK-0032]]
+[[ADR-0018]] · [[ADR-0019]] · [[ADR-0020]] · [[ADR-0021]] · [[BUG-3132]] · [[BUG-3146]] · [[BUG-3220]] · [[BUG-3227]] · [[BUG-3231]] · [[BUG-3544]] · [[BUG-3545]] · [[BUG-3546]] · [[BUG-3547]] · [[BUG-3548]] · [[BUG-3549]] · [[BUG-3550]] · [[BUG-3551]] · [[BUG-3552]] · [[BUG-3553]] · [[BUG-3554]] · [[BUG-3555]] · [[BUG-3564]] · [[BUG-3565]] · [[BUG-3566]] · [[BUG-3567]] · [[BUG-3578]] · [[BUG-3579]] · [[BUG-3580]] · [[BUG-3581]] · [[BUG-3582]] · [[BUG-3583]] · [[BUG-3584]] · [[BUG-3585]] · [[BUG-3586]] · [[BUG-3587]] · [[BUG-3588]] · [[BUG-3597]] · [[BUG-3598]] · [[BUG-3599]] · [[EXECPLAN-0029]] · [[ITEM-0138]] · [[ITEM-0197]] · [[ITEM-0198]] · [[ITEM-0199]] · [[ITEM-0200]] · [[ITEM-0201]] · [[ITEM-0202]] · [[PLAN-001]] · [[PLAN-002]] · [[PLAN-005]] · [[PLAN-006]] · [[PLAN-015]] · [[PLAN-019]] · [[PLAN-030]] · [[PLAN-032]] · [[QA-AUTH-017]] · [[QA-AUTH-018]] · [[QA-AUTH-019]] · [[QA-AUTH-020]] · [[QA-AUTHZ-017]] · [[QA-AUTHZ-018]] · [[QA-CONTRACT-002]] · [[QA-CONTRACT-003]] · [[QA-CONTRACT-004]] · [[QA-CONTRACT-005]] · [[QA-CONTRACT-006]] · [[QA-CONTRACT-007]] · [[QA-CONTRACT-008]] · [[QA-CONTRACT-009]] · [[QA-CONTRACT-010]] · [[QA-CONTRACT-011]] · [[QA-CONTRACT-012]] · [[QA-LEAD-006]] · [[QA-PARTNER-008]] · [[QA-PARTNER-009]] · [[QA-PARTNER-010]] · [[QA-PARTNER-011]] · [[QA-PARTNER-012]] · [[QA-PLATFORM-033]] · [[QA-PLATFORM-034]] · [[QA-PLATFORM-035]] · [[QA-PLATFORM-036]] · [[QA-PLATFORM-037]] · [[QA-PLATFORM-038]] · [[QA-PLATFORM-039]] · [[QA-PLATFORM-040]] · [[QA-PLATFORM-041]] · [[QA-PLATFORM-042]] · [[QA-SECURITY-004]] · [[SESSION-0106]] · [[TASK-0005]] · [[TASK-0031]] · [[TASK-0032]]
 
 <!-- GRAPH:END -->
