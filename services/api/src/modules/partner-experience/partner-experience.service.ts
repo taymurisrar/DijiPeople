@@ -83,7 +83,7 @@ export class PartnerExperienceService {
     });
     if (missingIdentity.length)
       throw new BadRequestException(
-        `A ${dto.type === 'COMPANY' ? 'company' : 'individual'} application requires: ${missingIdentity.join(', ')}.`,
+        `${dto.type === 'COMPANY' ? 'A company' : 'An individual'} application requires: ${missingIdentity.join(', ')}.`,
       );
     const normalized = partnerApplicationSnapshot(dto);
     const submissionHash = sha256(JSON.stringify(normalized));
@@ -340,7 +340,7 @@ export class PartnerExperienceService {
       });
       if (missingIdentity.length)
         throw new BadRequestException(
-          `A ${inquiry.type === 'COMPANY' ? 'company' : 'individual'} partner requires: ${missingIdentity.join(', ')}.`,
+          `${inquiry.type === 'COMPANY' ? 'A company' : 'An individual'} partner requires: ${missingIdentity.join(', ')}.`,
         );
       assertNoPartnerDuplicate(
         await findPartnerDuplicate(this.prisma, {

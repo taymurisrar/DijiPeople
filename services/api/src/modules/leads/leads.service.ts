@@ -474,7 +474,7 @@ export class LeadsService {
     }
     this.assertLeadOwnerAccess(currentUser, lead);
 
-    const [convertedCustomer, contracts] = await Promise.all([
+    const [convertedCustomer, contracts, partner] = await Promise.all([
       this.prisma.customerAccount.findFirst({
         where: { leadId },
         select: { id: true, companyName: true, status: true, subStatus: true },
@@ -492,6 +492,20 @@ export class LeadsService {
         },
         orderBy: { updatedAt: 'desc' },
       }),
+      /*
+       * The attributed partner's name, type and status. The admin record read
+       * only the scalar `partnerId`, so the "Referral partner" field rendered
+       * "Not set" for every attributed lead and the attribution panel could not
+       * say who is currently attributed (TASK-0032 WP-09 QA). The runtime form
+       * labels a lookup from the embedded `partner` object; nothing else is
+       * exposed about the partner here.
+       */
+      lead.partnerId
+        ? this.prisma.partner.findUnique({
+            where: { id: lead.partnerId },
+            select: { id: true, displayName: true, type: true, status: true },
+          })
+        : Promise.resolve(null),
     ]);
 
     await this.auditService.log({
@@ -502,7 +516,7 @@ export class LeadsService {
       entityId: leadId,
     });
 
-    return { ...lead, convertedCustomer, contracts };
+    return { ...lead, convertedCustomer, contracts, partner };
   }
 
   async createLead(currentUser: AuthenticatedUser, dto: CreateAdminLeadDto) {
@@ -725,6 +739,32 @@ export class LeadsService {
     if (protectedLeadIds.size > 0) {
       throw new BadRequestException(
         'Converted leads cannot be deleted in bulk.',
+      );
+    }
+
+    /*
+     * Attribution history, agreements and partner lead reviews all point at
+     * Lead with `onDelete: Restrict`. Unchecked, the delete failed in Postgres
+     * and reached the operator as a 500 "Unexpected error" — for every lead
+     * whose attribution was ever corrected, or that an agreement was raised
+     * against (TASK-0032 WP-09 QA). Each is history that must survive, so the
+     * delete is refused and says why.
+     */
+    const [corrections, agreements, reviews] = await Promise.all([
+      this.prisma.leadAttributionCorrection.count({
+        where: { leadId: { in: ids } },
+      }),
+      this.prisma.contract.count({ where: { relatedLeadId: { in: ids } } }),
+      this.prisma.partnerLeadReview.count({ where: { leadId: { in: ids } } }),
+    ]);
+    const blockers = [
+      corrections ? `${corrections} attribution change(s)` : null,
+      agreements ? `${agreements} agreement(s)` : null,
+      reviews ? `${reviews} partner lead review(s)` : null,
+    ].filter((reason): reason is string => reason !== null);
+    if (blockers.length) {
+      throw new BadRequestException(
+        `These leads cannot be deleted because they still have ${blockers.join(', ')}. Archive them instead.`,
       );
     }
 

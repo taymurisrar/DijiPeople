@@ -907,7 +907,7 @@ function assertPartnerIdentityFields(identity: {
   const missing = missingAdminIdentityFields(identity.type, identity);
   if (missing.length)
     throw new BadRequestException(
-      `A ${identity.type === 'COMPANY' ? 'company' : 'individual'} partner requires: ${missing.join(', ')}.`,
+      `${identity.type === 'COMPANY' ? 'A company' : 'An individual'} partner requires: ${missing.join(', ')}.`,
     );
 }
 

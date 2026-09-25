@@ -60,6 +60,13 @@ export function LeadAttributionPanel({
 
   const lookup = useRuntimeLookupOptions(LOOKUP_PATH, query);
   const hasCurrentPartner = Boolean(currentPartnerId);
+  /*
+   * The picker chooses the partner to move the lead TO, so it starts empty;
+   * who the lead is attributed to now is shown as its own value (TASK-0032
+   * WP-09 QA: the panel gave no way to tell). The lead record embeds the
+   * partner's name, type and status for exactly this.
+   */
+  const currentPartnerLabel = describeCurrentPartner(record.partner);
 
   async function submit(nextPartnerId: string | null) {
     if (!reason.trim()) {
@@ -141,6 +148,14 @@ export function LeadAttributionPanel({
           Partner attribution
         </h2>
       </div>
+      <dl className="mt-3 text-sm">
+        <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Current partner
+        </dt>
+        <dd className="mt-1 text-slate-900" data-testid="lead-current-partner">
+          {currentPartnerLabel ?? (hasCurrentPartner ? currentPartnerId : "None")}
+        </dd>
+      </dl>
       <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
         <SearchableSelect
           ariaLabel="Partner"
@@ -198,4 +213,23 @@ export function LeadAttributionPanel({
       ) : null}
     </section>
   );
+}
+
+/** "Northstar Growth Partners — Company · Active", the same shape the picker uses. */
+function describeCurrentPartner(partner: unknown): string | null {
+  if (!partner || typeof partner !== "object" || Array.isArray(partner))
+    return null;
+  const value = partner as Record<string, unknown>;
+  const name =
+    typeof value.displayName === "string" ? value.displayName.trim() : "";
+  if (!name) return null;
+  const facets = [value.type, value.status]
+    .filter((facet): facet is string => typeof facet === "string" && !!facet)
+    .map(humanize);
+  return facets.length ? `${name} — ${facets.join(" · ")}` : name;
+}
+
+function humanize(value: string) {
+  const words = value.toLowerCase().replaceAll("_", " ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }

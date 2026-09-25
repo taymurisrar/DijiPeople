@@ -9,10 +9,21 @@ const user = { userId: 'op-1' } as AuthenticatedUser;
 
 function service(prisma: Record<string, unknown>) {
   const log = jest.fn().mockResolvedValue(undefined);
+  const withTransaction = {
+    // The partner delete runs its timeline cleanup and the delete as one
+    // transaction; an array transaction resolves its operations in order.
+    $transaction: (operations: Array<Promise<unknown>>) =>
+      Promise.all(operations),
+    partnerTimeline: {
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    ...prisma,
+  };
   return {
     log,
+    prisma: withTransaction,
     subject: new PartnerDeletionService(
-      prisma as unknown as PrismaService,
+      withTransaction as unknown as PrismaService,
       { log } as unknown as AuditService,
     ),
   };
@@ -28,8 +39,63 @@ const partner = (id: string, counts: Partial<Record<string, number>> = {}) => ({
     agreements: 0,
     referralLinks: 0,
     portalUsers: 0,
+    inquiries: 0,
+    onboardingApplications: 0,
+    previousAttributions: 0,
+    correctedAttributions: 0,
+    leadReviews: 0,
+    supportCases: 0,
     ...counts,
   },
+});
+
+/**
+ * TASK-0032 WP-09 QA: every relation that points at Partner with
+ * `onDelete: Restrict` must be a named refusal. Unchecked, the delete reached
+ * Postgres and came back as a 500 "Unexpected error" — for nearly every real
+ * partner, because almost all of them originate from a public inquiry.
+ */
+describe('partner deletion — restricted relations refuse by name', () => {
+  it.each([
+    ['inquiries', 'the partner application it came from'],
+    ['onboardingApplications', 'onboarding application'],
+    ['previousAttributions', 'lead attribution change'],
+    ['correctedAttributions', 'lead attribution change'],
+    ['leadReviews', 'lead review'],
+    ['supportCases', 'support case'],
+  ])('refuses a partner with %s, naming it', async (relation, expected) => {
+    const deleteMany = jest.fn();
+    const { subject } = service({
+      partner: {
+        findMany: jest
+          .fn()
+          .mockResolvedValue([partner('a', { [relation]: 1 })]),
+        deleteMany,
+      },
+    });
+
+    const result = await subject.deletePartners(user, ['a']);
+
+    expect(result.deleted).toBe(0);
+    expect(result.refused[0].reason).toContain(expected);
+    expect(deleteMany).not.toHaveBeenCalled();
+  });
+
+  it('removes a deletable partner together with its own timeline', async () => {
+    const { subject, prisma } = service({
+      partner: {
+        findMany: jest.fn().mockResolvedValue([partner('a')]),
+        deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+    });
+
+    const result = await subject.deletePartners(user, ['a']);
+
+    expect(result.deleted).toBe(1);
+    expect(prisma.partnerTimeline.deleteMany).toHaveBeenCalledWith({
+      where: { partnerId: { in: ['a'] } },
+    });
+  });
 });
 
 /**
