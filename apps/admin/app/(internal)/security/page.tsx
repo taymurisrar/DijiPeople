@@ -6,6 +6,7 @@ import {
   AdminWorkspace,
 } from "@/app/_components/admin-ui";
 import { ChangePasswordForm } from "@/app/_components/security/change-password-form";
+import { AdminMfaCard } from "@/app/_components/security/mfa-security";
 import { requireSystemAdminUser } from "@/lib/auth";
 import { apiRequestJson } from "@/lib/server-api";
 import { formatPlatformRole, type PlatformRole } from "@/lib/platform-rbac";
@@ -119,6 +120,10 @@ export default async function SecurityPage() {
         description="Applies immediately. Your current password is required and is verified by the API."
       >
         <ChangePasswordForm />
+      </AdminSectionCard>
+
+      <AdminSectionCard title="Two-factor authentication">
+        <AdminMfaCard />
       </AdminSectionCard>
 
       <AdminSectionCard

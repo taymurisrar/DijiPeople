@@ -5,9 +5,16 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 import { sanitizeAdminNextPath } from "@/lib/auth-config";
+import {
+  AdminMfaLoginStep,
+  type AdminMfaChallenge,
+} from "@/app/_components/security/mfa-security";
 
 type LoginResponse = {
   message?: string;
+  mfaRequired?: boolean;
+  challengeToken?: string;
+  methods?: string[];
   cookies?: {
     accessToken: boolean;
     refreshToken: boolean;
@@ -26,6 +33,9 @@ export function AdminLoginForm() {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mfaChallenge, setMfaChallenge] = useState<AdminMfaChallenge | null>(
+    null,
+  );
 
   const sessionExpired = searchParams.get("reason") === SESSION_EXPIRED_REASON;
   const passwordReset = searchParams.get("reason") === "password-reset-success";
@@ -78,6 +88,15 @@ export function AdminLoginForm() {
         return;
       }
 
+      // ADR-0019 — password accepted, second factor owed; no cookie yet.
+      if (data?.mfaRequired === true && typeof data.challengeToken === "string") {
+        setMfaChallenge({
+          challengeToken: data.challengeToken,
+          methods: data.methods ?? ["TOTP"],
+        });
+        return;
+      }
+
       if (
         !data?.cookies?.accessToken ||
         !data.cookies.refreshToken ||
@@ -98,6 +117,23 @@ export function AdminLoginForm() {
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  if (mfaChallenge) {
+    return (
+      <AdminMfaLoginStep
+        challenge={mfaChallenge}
+        onRestart={(message) => {
+          setMfaChallenge(null);
+          setPassword("");
+          setError(message);
+        }}
+        onSignedIn={() => {
+          router.replace(nextPath);
+          router.refresh();
+        }}
+      />
+    );
   }
 
   return (
