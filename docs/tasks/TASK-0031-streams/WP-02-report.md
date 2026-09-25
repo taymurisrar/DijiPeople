@@ -1,5 +1,7 @@
 # TASK-0031 — WP-02 stream report: published custom modules in the tenant runtime
 
+Stream report of [[TASK-0031]].
+
 - Branch: `agent/walkthrough2-custom-runtime` (base `origin/develop` 88f33c6e)
 - ExecPlan: `docs/plans/EXECPLAN-0046-published-custom-modules-tenant-runtime.md`
 - Binding decision: ADR-0016

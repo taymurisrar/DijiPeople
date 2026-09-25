@@ -191,3 +191,91 @@ describe('ErrorLogsService.findForUser tenant isolation', () => {
     expect(log).toBeNull();
   });
 });
+
+/*
+ * TASK-0032 WP-06 / REG-577. `module` is derived once in the exception filter
+ * and must reach the ErrorLog row on both the first occurrence (create) and a
+ * repeat (update) — a repeat is the far more common case in production, and
+ * before this fix the update branch dropped the field on the floor even
+ * though `create` carried it.
+ */
+describe('ErrorLogsService.persist module field', () => {
+  function buildPersistPrisma(existing: { module: string | null } | null) {
+    const tx = {
+      errorLog: {
+        findUnique: jest.fn(async () => existing),
+        create: jest.fn(async (args: { data: Record<string, unknown> }) => ({
+          id: 'incident-new',
+          ...args.data,
+        })),
+        update: jest.fn(async (args: { data: Record<string, unknown> }) => ({
+          id: 'incident-existing',
+          ...args.data,
+        })),
+      },
+      errorLogOccurrence: {
+        upsert: jest.fn(async () => ({})),
+      },
+    };
+    const prisma = {
+      errorLog: { count: jest.fn(async () => 1) },
+      $transaction: jest.fn(async (callback: (tx: unknown) => unknown) =>
+        callback(tx),
+      ),
+    };
+    return { prisma, tx };
+  }
+
+  const baseInput = {
+    traceId: 'req_new-trace',
+    errorCode: 'VALIDATION_FAILED',
+    statusCode: 400,
+    severity: 'WARNING',
+    message: 'Validation failed',
+    description: 'Review the fields.',
+    method: 'GET',
+    path: '/api/contracts/123',
+    module: 'contracts',
+  };
+
+  it('writes module on first occurrence (create)', async () => {
+    const { prisma, tx } = buildPersistPrisma(null);
+    const service = new ErrorLogsService(
+      prisma as never,
+      { get: jest.fn() } as never,
+    );
+
+    await service.persist(baseInput);
+
+    expect(tx.errorLog.create).toHaveBeenCalledTimes(1);
+    const createArgs = tx.errorLog.create.mock.calls[0][0];
+    expect(createArgs.data.module).toBe('contracts');
+  });
+
+  it('writes module on a repeat occurrence (update)', async () => {
+    const { prisma, tx } = buildPersistPrisma({ module: null });
+    const service = new ErrorLogsService(
+      prisma as never,
+      { get: jest.fn() } as never,
+    );
+
+    await service.persist(baseInput);
+
+    expect(tx.errorLog.update).toHaveBeenCalledTimes(1);
+    const updateArgs = tx.errorLog.update.mock.calls[0][0];
+    expect(updateArgs.data.module).toBe('contracts');
+  });
+
+  it('backfills module from the existing row when a repeat carries none', async () => {
+    const { prisma, tx } = buildPersistPrisma({ module: 'contracts' });
+    const service = new ErrorLogsService(
+      prisma as never,
+      { get: jest.fn() } as never,
+    );
+
+    await service.persist({ ...baseInput, module: null });
+
+    const updateArgs = tx.errorLog.update.mock.calls[0][0];
+    expect(updateArgs.data.module).toBe('contracts');
+  });
+});

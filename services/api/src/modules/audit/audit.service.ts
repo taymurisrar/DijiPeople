@@ -1,13 +1,18 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { canonicalAuditAction } from '../../common/constants/audit-actions';
+import { TraceContextService } from '../../common/request-context/trace-context.service';
 import { AuditRepository } from './audit.repository';
 import { redactAuditSnapshot } from './audit-snapshot';
 import { AuditLogQueryDto } from './dto/audit-log-query.dto';
+import { PlatformAuditLogQueryDto } from './dto/platform-audit-log-query.dto';
 
 @Injectable()
 export class AuditService {
-  constructor(private readonly auditRepository: AuditRepository) {}
+  constructor(
+    private readonly auditRepository: AuditRepository,
+    private readonly traceContext: TraceContextService,
+  ) {}
 
   async log(
     input: {
@@ -27,14 +32,28 @@ export class AuditService {
     },
     db?: Prisma.TransactionClient,
   ) {
+    /*
+     * BUG-3227. Every call site up to now either passed `requestId`/`traceId`
+     * explicitly (none did, per the D4 discovery) or left both `null` — the
+     * columns exist and are indexed but were never populated, so an error
+     * detail view could never join back to the audit trail by trace id. Ambient
+     * context is the fallback here rather than a required parameter so the ~40
+     * existing call sites do not all need editing to benefit; a caller that
+     * *does* pass its own value (a job replaying a past request's trace id, for
+     * example) is never overridden.
+     */
+    const ambientTraceId = this.traceContext.getContext()?.traceId ?? null;
+    const requestId = input.requestId ?? ambientTraceId;
+    const traceId = input.traceId ?? ambientTraceId;
+
     if (input.tenantId === 'platform') {
       const data = {
         platformActorUserId: input.actorUserId ?? null,
         action: input.action,
         entityType: input.entityType,
         entityId: input.entityId,
-        requestId: input.requestId ?? null,
-        traceId: input.traceId ?? null,
+        requestId,
+        traceId,
         sourceModule: input.sourceModule ?? null,
         scope: normalizeSnapshot(input.scope),
         beforeSnapshot: normalizeSnapshot(input.beforeSnapshot),
@@ -62,8 +81,8 @@ export class AuditService {
       action: input.action,
       entityType: input.entityType,
       entityId: input.entityId,
-      requestId: input.requestId ?? null,
-      traceId: input.traceId ?? null,
+      requestId,
+      traceId,
       sourceModule: input.sourceModule ?? null,
       scope: mergeAuditScope(normalizedScope, actorContext.platformActor),
       beforeSnapshot: normalizeSnapshot(input.beforeSnapshot),
@@ -132,6 +151,42 @@ export class AuditService {
     }
 
     return mapAuditLogItem(item);
+  }
+
+  /*
+   * BUG-3564. The platform-side counterpart to `listByTenant`: every platform
+   * action writes a `PlatformAuditLog` row (see the `tenantId === 'platform'`
+   * branch of `log()` above), and until now nothing read it back — a Super
+   * Admin editing a tenant, resetting an MFA factor or changing a role had no
+   * way to review any of it. Paginates in the database, same as the tenant
+   * reader; `PlatformAuditController` is the only caller, and it is
+   * platform-guarded.
+   */
+  async listPlatform(query: PlatformAuditLogQueryDto) {
+    const [{ items, total }, metadata] = await Promise.all([
+      this.auditRepository.findPlatformAudit(query),
+      this.auditRepository.getPlatformFilterMetadata(),
+    ]);
+
+    return {
+      items: items.map((item) => mapPlatformAuditLogItem(item)),
+      meta: {
+        page: query.page,
+        pageSize: query.pageSize,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / query.pageSize)),
+      },
+      filters: metadata,
+    };
+  }
+
+  async detailPlatform(id: string) {
+    const item = await this.auditRepository.findOnePlatformAudit(id);
+    if (!item) {
+      throw new NotFoundException('Platform audit log entry was not found.');
+    }
+
+    return mapPlatformAuditLogItem(item, { includeSnapshots: true });
   }
 
   async listRecordTimeline(input: {
@@ -225,6 +280,61 @@ function mapAuditLogItem(item: AuditLogItem) {
           email: item.actorUser.email,
         }
       : null,
+  };
+}
+
+type PlatformAuditLogItem =
+  Awaited<ReturnType<AuditRepository['findOnePlatformAudit']>> extends infer T
+    ? NonNullable<T>
+    : never;
+
+/*
+ * BUG-3564. List rows carry no snapshot at all — a list screen has no reason
+ * to ship every row's before/after payload over the wire, and the smaller
+ * shape is also the one that cannot leak a snapshot through a list endpoint
+ * that forgot to redact. `detailPlatform()` asks for the snapshots
+ * explicitly, and re-runs `redactAuditSnapshot` on read even though
+ * `AuditService.log()` already redacted at write time (`normalizeSnapshot`
+ * below) — defence in depth, not the primary control, for a row written
+ * before a redaction rule existed or by some future call site that bypassed
+ * `log()` entirely.
+ */
+function mapPlatformAuditLogItem(
+  item: PlatformAuditLogItem,
+  options: { includeSnapshots?: boolean } = {},
+) {
+  const actor = item.platformActorUser;
+  const actorDisplayName = actor
+    ? [actor.firstName, actor.lastName].filter(Boolean).join(' ') || actor.email
+    : 'System';
+
+  const base = {
+    id: item.id,
+    platformActorUserId: item.platformActorUserId,
+    actorDisplayName,
+    actorEmail: actor?.email ?? null,
+    actorRole: actor?.role ?? null,
+    action: item.action,
+    actionCanonical: canonicalAuditAction(item.action),
+    actionLabel: humanizeAuditAction(item.action),
+    entityType: item.entityType,
+    entityId: item.entityId,
+    requestId: item.requestId,
+    traceId: item.traceId,
+    sourceModule: item.sourceModule,
+    createdAt: item.createdAt,
+    eventTime: item.createdAt,
+  };
+
+  if (!options.includeSnapshots) {
+    return base;
+  }
+
+  return {
+    ...base,
+    scope: redactAuditSnapshot(item.scope),
+    beforeSnapshot: redactAuditSnapshot(item.beforeSnapshot),
+    afterSnapshot: redactAuditSnapshot(item.afterSnapshot),
   };
 }
 

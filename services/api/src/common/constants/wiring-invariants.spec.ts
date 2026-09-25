@@ -7,6 +7,7 @@ import {
   PATH_METADATA,
 } from '@nestjs/common/constants';
 import { Reflector } from '@nestjs/core';
+import { AUTHENTICATION_ONLY_KEY } from '../decorators/authentication-only.decorator';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import {
   REQUIRED_PERMISSIONS_KEY,
@@ -361,6 +362,17 @@ async function collectRouteHandlers(): Promise<RouteHandler[]> {
   return handlers;
 }
 
+/*
+ * Every handler allowed to require a session and no permission (ADR-0018,
+ * `@AuthenticationOnly()`). Each must act only on the caller's own session or
+ * preferences and take no id that could point it at someone else. Adding one is
+ * an authorization decision: review it, then add it here.
+ */
+const AUTHENTICATION_ONLY_HANDLERS = [
+  // BUG-3545: the session heartbeat, sent by the tenant and admin consoles.
+  'AuthController.activity',
+] as const;
+
 describe('permission wiring invariants', () => {
   it('every guarded, non-public endpoint declares both permission systems', async () => {
     const reflector = new Reflector();
@@ -370,6 +382,7 @@ describe('permission wiring invariants', () => {
     expect(handlers.length).toBeGreaterThan(500);
 
     const skippedPublic: string[] = [];
+    const authenticationOnly: string[] = [];
     const skippedUnguarded = new Map<string, number>();
     const violations: string[] = [];
     let compliant = 0;
@@ -390,6 +403,20 @@ describe('permission wiring invariants', () => {
       );
       if (isPublic === true) {
         skippedPublic.push(`${handler.controller}.${handler.handler}`);
+        continue;
+      }
+
+      /*
+       * ADR-0018 self-scoped handlers: a session is the whole requirement, and
+       * PermissionsGuard admits them without reading permission metadata. They
+       * are held to AUTHENTICATION_ONLY_HANDLERS instead of to this rule, and
+       * the assertion at the end of this test fails if the decorator appears on
+       * any handler not in that reviewed list.
+       */
+      if (
+        reflector.getAllAndOverride<boolean>(AUTHENTICATION_ONLY_KEY, lookup)
+      ) {
+        authenticationOnly.push(`${handler.controller}.${handler.handler}`);
         continue;
       }
 
@@ -476,6 +503,9 @@ describe('permission wiring invariants', () => {
     }
 
     expect({ violations }).toEqual({ violations: [] });
+    expect(authenticationOnly.sort()).toEqual([
+      ...AUTHENTICATION_ONLY_HANDLERS,
+    ]);
   }, 600_000);
 
   it('keeps every non-PermissionsGuard route on an explicit reviewed authorization surface', async () => {
@@ -495,8 +525,16 @@ describe('permission wiring invariants', () => {
       // storage dependency rather than about any tenant's data, and it returns
       // no bucket name, object key or credential.
       'StorageReadinessController',
+      // Same pattern again (TASK-0032 WP-06): platform identity + `monitoring.read`
+      // checked in the handler, not via PermissionsGuard — this answers "is the
+      // platform healthy", not a question about tenant data.
+      'PlatformHealthController',
       'PlatformRuntimeController',
       'PlatformUsersController',
+      // ADR-0019 self-service MFA. Authentication only: every route acts on
+      // `request.user` and takes no user id, so the only account a caller can
+      // reach is their own. Its public routes are challenge-token authorised.
+      'AuthMfaController',
       'SupportCasesController',
       'TenantControlPlaneController',
       'PartnersController',

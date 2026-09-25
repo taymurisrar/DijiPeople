@@ -1,8 +1,10 @@
 # TASK-0031 WP-04 — stream report: email templates
 
+Stream report of [[TASK-0031]].
+
 - Branch: `agent/walkthrough2-email-templates` (base `origin/develop` 88f33c6e)
 - ExecPlan: `docs/plans/EXECPLAN-0048-email-template-default-copy-and-visual-editor.md`
-- Owner copy review: `docs/tasks/TASK-0031-streams/WP-04-email-copy-for-owner-review.md` (generated from the copy file)
+- Owner copy review: `docs/tasks/TASK-0031-streams/email-copy-for-owner-review.md` (generated from the copy file)
 - Reserved regression ids used: REG-505 … REG-509
 
 Record files were not edited, because they do not exist on develop yet. Everything the orchestrator needs to update BUG-3500 and ITEM-0181 is below.
@@ -68,7 +70,7 @@ Three writers kept placeholder copy live, not one. All line numbers are at 88f33
 | **QA scenario** | to be assigned at integration |
 | **Scenario** | No system email template field contains placeholder wording. The catalog refuses to load when an event names a system template with no authored copy. A template is ACTIVE only for events something sends by email today. `seed:config` fails if an ACTIVE system template in the database contains placeholder wording. |
 | **Proven to fail without the fix** | Mutation check: re-inserting the placeholder sentence into the payslip copy makes the spec fail (1 failed / 42 passed). By inspection, six 88f33c6e seeds carry that sentence, so the same assertion covers the original defect. |
-| **Note** | Copy lives in `system-email-templates.copy.ts`, the single source; `docs/tasks/TASK-0031-streams/WP-04-email-copy-for-owner-review.md` is generated from it for the owner's review (ADR-0015). |
+| **Note** | Copy lives in `system-email-templates.copy.ts`, the single source; `docs/tasks/TASK-0031-streams/email-copy-for-owner-review.md` is generated from it for the owner's review (ADR-0015). |
 | **Fixed** | 2026-09-13 |
 | **Active** | yes |
 

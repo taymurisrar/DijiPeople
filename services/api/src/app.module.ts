@@ -8,6 +8,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MailerModule } from './common/mailer/mailer.module';
+import { AccessLogMiddleware } from './common/middleware/access-log.middleware';
 import { BusinessUnitAccessMiddleware } from './common/middleware/business-unit-access.middleware';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { AuthenticatedRateLimitInterceptor } from './common/interceptors/authenticated-rate-limit.interceptor';
@@ -163,6 +164,7 @@ import { SupportCasesModule } from './modules/support-cases/support-cases.module
     AppService,
     BusinessUnitAccessMiddleware,
     RequestIdMiddleware,
+    AccessLogMiddleware,
     HttpExceptionFilter,
     AuthenticatedRateLimitInterceptor,
   ],
@@ -175,6 +177,17 @@ export class AppModule implements NestModule {
 
     consumer
       .apply(BusinessUnitAccessMiddleware)
+      .forRoutes({ path: '*path', method: RequestMethod.ALL });
+
+    /*
+     * Last in the chain: by the time a response reaches `finish`, both the
+     * trace id (RequestIdMiddleware) and — for an authenticated route — the
+     * guard-resolved `req.user` already exist, so the access log line can
+     * carry both. See access-log.middleware.ts for what it does and does not
+     * include.
+     */
+    consumer
+      .apply(AccessLogMiddleware)
       .forRoutes({ path: '*path', method: RequestMethod.ALL });
   }
 }

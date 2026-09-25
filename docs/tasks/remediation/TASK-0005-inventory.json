@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 652,
+    "total_records": 693,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -15756,21 +15756,25 @@
       "title": "Platform-admin login has no account lockout of any kind",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-3146-platform-admin-login-has-no-account-lockout-of-any-kind.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "a800d8f2",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-11",
-        "resolved_at": ""
+        "updated_at": "2026-09-25",
+        "resolved_at": "2026-09-25"
       },
       "affected_modules": [
         "services/api/src/modules/platform-auth"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-536"
+      ],
+      "qa_scenarios": [
+        "QA-AUTH-019"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -18101,15 +18105,19 @@
         "provenance": "REVIEWER",
         "detected_in_sha": "4c86a29b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-11",
+        "updated_at": "2026-09-25",
         "resolved_at": ""
       },
       "affected_modules": [
         "apps/admin",
         "apps/web"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-587"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-042"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -18362,21 +18370,27 @@
       "title": "No access log, and traceId never reaches an application log line: a successful request leaves no trace at all",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-3227-no-access-log-and-traceid-never-reaches-an-application-log-l.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "f36749b3",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-11",
-        "resolved_at": ""
+        "updated_at": "2026-09-25",
+        "resolved_at": "2026-09-25"
       },
       "affected_modules": [
         "services/api/src/common"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-578",
+        "REG-579",
+        "REG-582"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-037"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -18523,15 +18537,20 @@
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "f36749b3",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-11",
+        "updated_at": "2026-09-25",
         "resolved_at": ""
       },
       "affected_modules": [
         "services/api/src/modules/contracts",
         "services/api/src/modules/customization"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-570",
+        "REG-571"
+      ],
+      "qa_scenarios": [
+        "QA-CONTRACT-011"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -20491,6 +20510,1324 @@
           "apps/web"
         ],
         "verification_scope": "See docs/bugs/BUG-3523-custom-module-page-header-shows-the-table-key-instead-of-the.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3544",
+      "type": "AUTHORIZATION",
+      "title": "A Platform Admin can open and edit a tenant but every save is refused as not System Admin",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3544-a-platform-admin-can-open-and-edit-a-tenant-but-every-save-i.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "75fec5b9",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": "2026-09-25"
+      },
+      "affected_modules": [
+        "services/api/src/modules/super-admin",
+        "services/api/src/modules/platform-runtime"
+      ],
+      "regressions": [
+        "REG-525",
+        "REG-526",
+        "REG-529"
+      ],
+      "qa_scenarios": [
+        "QA-AUTHZ-017"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/super-admin",
+          "services/api/src/modules/platform-runtime"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3544-a-platform-admin-can-open-and-edit-a-tenant-but-every-save-i.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3545",
+      "type": "AUTHORIZATION",
+      "title": "The admin session heartbeat is refused for most platform roles and raises a blocking permission dialog",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3545-the-admin-session-heartbeat-is-refused-for-most-platform-rol.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "75fec5b9",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": "2026-09-25"
+      },
+      "affected_modules": [
+        "services/api/src/modules/auth",
+        "apps/admin"
+      ],
+      "regressions": [
+        "REG-527"
+      ],
+      "qa_scenarios": [
+        "QA-AUTHZ-018"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/auth",
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3545-the-admin-session-heartbeat-is-refused-for-most-platform-rol.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3546",
+      "type": "UX",
+      "title": "Tenant record Edit leaves the operator on a tab with nothing editable",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3546-tenant-record-edit-leaves-the-operator-on-a-tab-with-nothing.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "75fec5b9",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": "2026-09-25"
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "regressions": [
+        "REG-590"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-033"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3546-tenant-record-edit-leaves-the-operator-on-a-tab-with-nothing.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3547",
+      "type": "UX",
+      "title": "The platform role picker offers two Platform Owner roles and a legacy Member role",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3547-the-platform-role-picker-offers-two-platform-owner-roles-and.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "75fec5b9",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": "2026-09-25"
+      },
+      "affected_modules": [
+        "apps/admin",
+        "services/api/src/modules/platform-auth"
+      ],
+      "regressions": [
+        "REG-528"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-034"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin",
+          "services/api/src/modules/platform-auth"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3547-the-platform-role-picker-offers-two-platform-owner-roles-and.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3548",
+      "type": "BUG",
+      "title": "A numeric value in a TTL_SECONDS variable issues access tokens that expire after one second",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3548-a-numeric-value-in-a-ttl-seconds-variable-issues-access-toke.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "75fec5b9",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": "2026-09-25"
+      },
+      "affected_modules": [
+        "services/api/src/common/config"
+      ],
+      "regressions": [
+        "REG-535"
+      ],
+      "qa_scenarios": [
+        "QA-AUTH-017"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/common/config"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3548-a-numeric-value-in-a-ttl-seconds-variable-issues-access-toke.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3549",
+      "type": "BUG",
+      "title": "Partner type Individual or Company drives no behaviour and individuals are asked for a company registration number",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3549-partner-type-individual-or-company-drives-no-behaviour-and-i.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "75fec5b9",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": "2026-09-25"
+      },
+      "affected_modules": [
+        "services/api/src/modules/partners",
+        "services/api/src/modules/partner-experience",
+        "apps/admin"
+      ],
+      "regressions": [
+        "REG-550",
+        "REG-551"
+      ],
+      "qa_scenarios": [
+        "QA-PARTNER-008"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/partners",
+          "services/api/src/modules/partner-experience",
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3549-partner-type-individual-or-company-drives-no-behaviour-and-i.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3550",
+      "type": "DATA_INTEGRITY",
+      "title": "Partners can be created as duplicates: admin create has no duplicate check and the inquiry check ignores tax and registration numbers",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3550-partners-can-be-created-as-duplicates-admin-create-has-no-du.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "75fec5b9",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": "2026-09-25"
+      },
+      "affected_modules": [
+        "services/api/src/modules/partners",
+        "services/api/src/modules/partner-experience"
+      ],
+      "regressions": [
+        "REG-552",
+        "REG-553",
+        "REG-554",
+        "REG-557",
+        "REG-558",
+        "REG-559"
+      ],
+      "qa_scenarios": [
+        "QA-PARTNER-009"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/partners",
+          "services/api/src/modules/partner-experience"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3550-partners-can-be-created-as-duplicates-admin-create-has-no-du.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3551",
+      "type": "SECURITY",
+      "title": "Partner create, update, lifecycle and onboarding review are not written to the audit log",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3551-partner-create-update-lifecycle-and-onboarding-review-are-no.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "75fec5b9",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": "2026-09-25"
+      },
+      "affected_modules": [
+        "services/api/src/modules/partners",
+        "services/api/src/modules/partner-experience"
+      ],
+      "regressions": [
+        "REG-555",
+        "REG-556"
+      ],
+      "qa_scenarios": [
+        "QA-PARTNER-010"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/partners",
+          "services/api/src/modules/partner-experience"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3551-partner-create-update-lifecycle-and-onboarding-review-are-no.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3552",
+      "type": "BUG",
+      "title": "The agreement template editor offers every placeholder group regardless of agreement type",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3552-the-agreement-template-editor-offers-every-placeholder-group.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "75fec5b9",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": "2026-09-25"
+      },
+      "affected_modules": [
+        "services/api/src/modules/contracts",
+        "apps/admin"
+      ],
+      "regressions": [
+        "REG-560",
+        "REG-561",
+        "REG-562",
+        "REG-563",
+        "REG-564"
+      ],
+      "qa_scenarios": [
+        "QA-CONTRACT-002"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/contracts",
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3552-the-agreement-template-editor-offers-every-placeholder-group.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3553",
+      "type": "DATA_INTEGRITY",
+      "title": "An agreement can be created for an inactive partner or an archived lead or customer, and duplicate submissions create duplicate agreements",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3553-an-agreement-can-be-created-for-an-inactive-partner-or-an-ar.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "75fec5b9",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": "2026-09-25"
+      },
+      "affected_modules": [
+        "services/api/src/modules/contracts"
+      ],
+      "regressions": [
+        "REG-565",
+        "REG-566",
+        "REG-567",
+        "REG-568",
+        "REG-569",
+        "REG-574"
+      ],
+      "qa_scenarios": [
+        "QA-CONTRACT-003"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/contracts"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3553-an-agreement-can-be-created-for-an-inactive-partner-or-an-ar.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3554",
+      "type": "UX",
+      "title": "The typed-signature style selector is cosmetic: the chosen style never reaches the signed document",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3554-the-typed-signature-style-selector-is-cosmetic-the-chosen-st.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "75fec5b9",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": "2026-09-25"
+      },
+      "affected_modules": [
+        "apps/landing",
+        "services/api/src/modules/contracts"
+      ],
+      "regressions": [
+        "REG-572",
+        "REG-573"
+      ],
+      "qa_scenarios": [
+        "QA-CONTRACT-004"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/landing",
+          "services/api/src/modules/contracts"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3554-the-typed-signature-style-selector-is-cosmetic-the-chosen-st.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3555",
+      "type": "SECURITY",
+      "title": "Error log redaction covers auth secrets only: stack traces and personal or financial values are stored unredacted",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3555-error-log-redaction-covers-auth-secrets-only-stack-traces-an.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "75fec5b9",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": "2026-09-25"
+      },
+      "affected_modules": [
+        "services/api/src/modules/error-logs"
+      ],
+      "regressions": [
+        "REG-575",
+        "REG-576",
+        "REG-583"
+      ],
+      "qa_scenarios": [
+        "QA-SECURITY-004"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/error-logs"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3555-error-log-redaction-covers-auth-secrets-only-stack-traces-an.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3564",
+      "type": "SECURITY",
+      "title": "The platform audit trail is write-only: no screen or endpoint can read PlatformAuditLog",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3564-the-platform-audit-trail-is-write-only-no-screen-or-endpoint.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "10d5d148",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": "2026-09-25"
+      },
+      "affected_modules": [
+        "services/api/src/modules/audit",
+        "apps/admin"
+      ],
+      "regressions": [
+        "REG-602",
+        "REG-603",
+        "REG-604",
+        "REG-605",
+        "REG-606",
+        "REG-607",
+        "REG-608",
+        "REG-609"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-035"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/audit",
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3564-the-platform-audit-trail-is-write-only-no-screen-or-endpoint.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3565",
+      "type": "BUG",
+      "title": "Opening a contract template or signature request from its admin list returns 404",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3565-opening-a-contract-template-or-signature-request-from-its-ad.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "10d5d148",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": "2026-09-25"
+      },
+      "affected_modules": [
+        "services/api/src/modules/platform-runtime"
+      ],
+      "regressions": [
+        "REG-600"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-036"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/platform-runtime"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3565-opening-a-contract-template-or-signature-request-from-its-ad.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3566",
+      "type": "BUG",
+      "title": "A partial partner edit is rejected because the update DTO requires every create field",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3566-a-partial-partner-edit-is-rejected-because-the-update-dto-re.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "10d5d148",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": "2026-09-25"
+      },
+      "affected_modules": [
+        "services/api/src/modules/partners"
+      ],
+      "regressions": [
+        "REG-601"
+      ],
+      "qa_scenarios": [
+        "QA-PARTNER-011"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/partners"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3566-a-partial-partner-edit-is-rejected-because-the-update-dto-re.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3567",
+      "type": "SECURITY",
+      "title": "Platform administrator sign-ins and failed sign-ins are not audited",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3567-platform-administrator-sign-ins-and-failed-sign-ins-are-not-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "10d5d148",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": "2026-09-25"
+      },
+      "affected_modules": [
+        "services/api/src/modules/auth"
+      ],
+      "regressions": [
+        "REG-543"
+      ],
+      "qa_scenarios": [
+        "QA-AUTH-018"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/auth"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3567-platform-administrator-sign-ins-and-failed-sign-ins-are-not-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3578",
+      "type": "DATA_INTEGRITY",
+      "title": "Deleting a partner or lead with restricted history crashes with a 500",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3578-deleting-a-partner-or-lead-with-restricted-history-crashes-w.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "0a84a58e",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": "2026-09-25"
+      },
+      "affected_modules": [
+        "services/api/src/modules/partners",
+        "services/api/src/modules/leads"
+      ],
+      "regressions": [
+        "REG-620",
+        "REG-621"
+      ],
+      "qa_scenarios": [
+        "QA-PARTNER-012"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/partners",
+          "services/api/src/modules/leads"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3578-deleting-a-partner-or-lead-with-restricted-history-crashes-w.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3579",
+      "type": "UX",
+      "title": "An attributed lead never shows its referral partner",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3579-an-attributed-lead-never-shows-its-referral-partner.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "0a84a58e",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": "2026-09-25"
+      },
+      "affected_modules": [
+        "services/api/src/modules/leads",
+        "apps/admin"
+      ],
+      "regressions": [
+        "REG-622"
+      ],
+      "qa_scenarios": [
+        "QA-LEAD-006"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/leads",
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3579-an-attributed-lead-never-shows-its-referral-partner.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3580",
+      "type": "BUG",
+      "title": "Agreement preview documents print unresolved placeholders",
+      "severity": "CRITICAL",
+      "priority": "P0",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3580-agreement-preview-documents-print-unresolved-placeholders.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "0a84a58e",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": "2026-09-25"
+      },
+      "affected_modules": [
+        "services/api/src/modules/contracts"
+      ],
+      "regressions": [
+        "REG-610"
+      ],
+      "qa_scenarios": [
+        "QA-CONTRACT-005"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/contracts"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3580-agreement-preview-documents-print-unresolved-placeholders.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3581",
+      "type": "BUG",
+      "title": "Signature-date placeholders block sending and freeze a fabricated date into signed agreements",
+      "severity": "CRITICAL",
+      "priority": "P0",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3581-signature-date-placeholders-block-sending-and-freeze-a-fabri.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "0a84a58e",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": "2026-09-25"
+      },
+      "affected_modules": [
+        "services/api/src/modules/contracts"
+      ],
+      "regressions": [
+        "REG-611"
+      ],
+      "qa_scenarios": [
+        "QA-CONTRACT-006"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/contracts"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3581-signature-date-placeholders-block-sending-and-freeze-a-fabri.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3582",
+      "type": "BUG",
+      "title": "System agreement templates have no signature block",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3582-system-agreement-templates-have-no-signature-block.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "0a84a58e",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": "2026-09-25"
+      },
+      "affected_modules": [
+        "services/api/prisma",
+        "services/api/src/modules/contracts"
+      ],
+      "regressions": [
+        "REG-614",
+        "REG-623"
+      ],
+      "qa_scenarios": [
+        "QA-CONTRACT-007"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/prisma",
+          "services/api/src/modules/contracts"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3582-system-agreement-templates-have-no-signature-block.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3583",
+      "type": "UX",
+      "title": "Counterparty placeholders are grouped under Customer",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3583-counterparty-placeholders-are-grouped-under-customer.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "0a84a58e",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": "2026-09-25"
+      },
+      "affected_modules": [
+        "services/api/src/modules/contracts"
+      ],
+      "regressions": [
+        "REG-612"
+      ],
+      "qa_scenarios": [
+        "QA-CONTRACT-008"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/contracts"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3583-counterparty-placeholders-are-grouped-under-customer.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3584",
+      "type": "BUG",
+      "title": "A partner agreement never fills partner placeholders from its linked partner",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3584-a-partner-agreement-never-fills-partner-placeholders-from-it.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "0a84a58e",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": "2026-09-25"
+      },
+      "affected_modules": [
+        "services/api/src/modules/contracts"
+      ],
+      "regressions": [
+        "REG-613"
+      ],
+      "qa_scenarios": [
+        "QA-CONTRACT-009"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/contracts"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3584-a-partner-agreement-never-fills-partner-placeholders-from-it.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3585",
+      "type": "BUG",
+      "title": "Error codes added for MFA, platform authorization and agreements reach clients as generic codes",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3585-error-codes-added-for-mfa-platform-authorization-and-agreeme.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "0a84a58e",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": "2026-09-25"
+      },
+      "affected_modules": [
+        "services/api/src/common/errors",
+        "services/api/src/modules/auth",
+        "services/api/src/modules/contracts"
+      ],
+      "regressions": [
+        "REG-624"
+      ],
+      "qa_scenarios": [
+        "QA-CONTRACT-010"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/common/errors",
+          "services/api/src/modules/auth",
+          "services/api/src/modules/contracts"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3585-error-codes-added-for-mfa-platform-authorization-and-agreeme.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3586",
+      "type": "BUG",
+      "title": "The monitoring health headline reads Unknown when no email has been sent",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3586-the-monitoring-health-headline-reads-unknown-when-no-email-h.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "0a84a58e",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": "2026-09-25"
+      },
+      "affected_modules": [
+        "services/api/src/modules/platform-monitoring"
+      ],
+      "regressions": [
+        "REG-625"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-038"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/platform-monitoring"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3586-the-monitoring-health-headline-reads-unknown-when-no-email-h.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3587",
+      "type": "UX",
+      "title": "The monitoring overview raises a hydration error that covers the page with the error dialog",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3587-the-monitoring-overview-raises-a-hydration-error-that-covers.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "0a84a58e",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": "2026-09-25"
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "regressions": [
+        "REG-626"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-039"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3587-the-monitoring-overview-raises-a-hydration-error-that-covers.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3588",
+      "type": "UX",
+      "title": "A signed-in operator without the users permission sees a login-style Access denied page",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/bugs/BUG-3588-a-signed-in-operator-without-the-users-permission-sees-a-log.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "0a84a58e",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3588-a-signed-in-operator-without-the-users-permission-sees-a-log.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3597",
+      "type": "BUG",
+      "title": "A drawn or uploaded signature inside a signature paragraph is dropped from the signed PDF and DOCX",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3597-a-drawn-or-uploaded-signature-inside-a-signature-paragraph-i.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "8ad6edc6",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": "2026-09-25"
+      },
+      "affected_modules": [
+        "services/api/src/modules/contracts"
+      ],
+      "regressions": [
+        "REG-627"
+      ],
+      "qa_scenarios": [
+        "QA-CONTRACT-012"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/contracts"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3597-a-drawn-or-uploaded-signature-inside-a-signature-paragraph-i.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3598",
+      "type": "BUG",
+      "title": "Generate document on an executed agreement renders from draft values, not the signature evidence",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3598-generate-document-on-an-executed-agreement-renders-from-draf.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "8ad6edc6",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": "2026-09-25"
+      },
+      "affected_modules": [
+        "services/api/src/modules/contracts",
+        "apps/admin"
+      ],
+      "regressions": [
+        "REG-628"
+      ],
+      "qa_scenarios": [
+        "QA-CONTRACT-012"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/contracts",
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3598-generate-document-on-an-executed-agreement-renders-from-draf.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3599",
+      "type": "BUG",
+      "title": "Generating an agreement in an unsupported format returns a 500 instead of a 400",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3599-generating-an-agreement-in-an-unsupported-format-returns-a-5.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "8ad6edc6",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": "2026-09-25"
+      },
+      "affected_modules": [
+        "services/api/src/modules/contracts"
+      ],
+      "regressions": [
+        "REG-629"
+      ],
+      "qa_scenarios": [
+        "QA-CONTRACT-012"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/contracts"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3599-generating-an-agreement-in-an-unsupported-format-returns-a-5.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],
@@ -28892,6 +30229,480 @@
           "permissions"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0196-the-employee-record-still-shows-a-hardcoded-cnic-field-an-en.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0197",
+      "type": "SECURITY",
+      "title": "TOTP multi-factor authentication for tenant and platform users",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0197-totp-multi-factor-authentication-for-tenant-and-platform-use.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/auth",
+        "apps/web",
+        "apps/admin"
+      ],
+      "regressions": [
+        "REG-537",
+        "REG-538",
+        "REG-539",
+        "REG-540",
+        "REG-541",
+        "REG-542"
+      ],
+      "qa_scenarios": [
+        "QA-AUTH-020"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/auth",
+          "apps/web",
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0197-totp-multi-factor-authentication-for-tenant-and-platform-use.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0198",
+      "type": "UX",
+      "title": "Admin monitoring: platform health overview, grouped error fields, module facet and incident-first layout",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0198-admin-monitoring-platform-health-overview-grouped-error-fiel.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/admin",
+        "services/api/src/modules/error-logs",
+        "services/api/src/modules/platform-monitoring"
+      ],
+      "regressions": [
+        "REG-577",
+        "REG-580",
+        "REG-581",
+        "REG-582",
+        "REG-584"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-040"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin",
+          "services/api/src/modules/error-logs",
+          "services/api/src/modules/platform-monitoring"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0198-admin-monitoring-platform-health-overview-grouped-error-fiel.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0199",
+      "type": "UX",
+      "title": "Admin dashboard: operational metrics for logins, MFA adoption, error rate, job failures, partner funnel and agreements",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0199-admin-dashboard-operational-metrics-for-logins-mfa-adoption-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/admin",
+        "services/api/src/modules/super-admin"
+      ],
+      "regressions": [
+        "REG-585",
+        "REG-586"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-041"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin",
+          "services/api/src/modules/super-admin"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0199-admin-dashboard-operational-metrics-for-logins-mfa-adoption-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0200",
+      "type": "TEST_GAP",
+      "title": "Agreements have no end-to-end test coverage and partners/leads have no e2e lifecycle suite",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0200-agreements-have-no-end-to-end-test-coverage-and-partners-lea.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/contracts",
+        "services/api/src/modules/partners",
+        "services/api/src/modules/leads"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/contracts",
+          "services/api/src/modules/partners",
+          "services/api/src/modules/leads"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0200-agreements-have-no-end-to-end-test-coverage-and-partners-lea.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0201",
+      "type": "TECH_DEBT",
+      "title": "Platform runtime edits ignore the record version, so concurrent edits silently overwrite each other",
+      "severity": "LOW",
+      "priority": "P2",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0201-platform-runtime-edits-ignore-the-record-version-so-concurre.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/platform-runtime",
+        "apps/admin"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/platform-runtime",
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0201-platform-runtime-edits-ignore-the-record-version-so-concurre.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0202",
+      "type": "UX",
+      "title": "MFA status reads Off while new recovery codes are shown",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0202-mfa-status-reads-off-while-new-recovery-codes-are-shown.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web",
+        "apps/admin"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web",
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0202-mfa-status-reads-off-while-new-recovery-codes-are-shown.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0203",
+      "type": "FOLLOW_UP",
+      "title": "An individual partner's agreement still records the counterparty as a PARTNER party, not INDIVIDUAL",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "READY",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0203-an-individual-partner-s-agreement-still-records-the-counterp.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/contracts",
+        "services/api/src/modules/partners"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/contracts",
+          "services/api/src/modules/partners"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0203-an-individual-partner-s-agreement-still-records-the-counterp.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0204",
+      "type": "TECH_DEBT",
+      "title": "ADR-0018 follow-ups: platform role-literal tier checks and the ungoverned legacy tenant status route",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0204-adr-0018-follow-ups-platform-role-literal-tier-checks-and-th.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/platform-runtime",
+        "services/api/src/modules/tenant-control-plane",
+        "services/api/src/modules/super-admin",
+        "services/api/src/modules/leads",
+        "services/api/src/modules/platform-monitoring"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/platform-runtime",
+          "services/api/src/modules/tenant-control-plane",
+          "services/api/src/modules/super-admin",
+          "services/api/src/modules/leads",
+          "services/api/src/modules/platform-monitoring"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0204-adr-0018-follow-ups-platform-role-literal-tier-checks-and-th.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0205",
+      "type": "DATA_MIGRATION",
+      "title": "Before promoting TASK-0032: review agreements signed with a fabricated date and partners that fail the new type policy",
+      "severity": "MEDIUM",
+      "priority": "P1",
+      "current_status": "READY",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0205-before-promoting-task-0032-review-agreements-signed-with-a-f.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/contracts",
+        "services/api/src/modules/partners"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/contracts",
+          "services/api/src/modules/partners"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0205-before-promoting-task-0032-review-agreements-signed-with-a-f.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0206",
+      "type": "UX",
+      "title": "Admin dashboard drill-downs for active users, failed sign-ins and unresolved errors land on approximate pages",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0206-admin-dashboard-drill-downs-for-active-users-failed-sign-ins.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/admin",
+        "services/api/src/modules/super-admin",
+        "services/api/src/modules/platform-monitoring"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin",
+          "services/api/src/modules/super-admin",
+          "services/api/src/modules/platform-monitoring"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0206-admin-dashboard-drill-downs-for-active-users-failed-sign-ins.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0207",
+      "type": "PRODUCT_DECISION",
+      "title": "seed:config rewrites version 1 of system agreement templates in place instead of publishing a new version",
+      "severity": "",
+      "priority": "P2",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0207-seed-config-rewrites-version-1-of-system-agreement-templates.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/prisma"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/prisma"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0207-seed-config-rewrites-version-1-of-system-agreement-templates.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

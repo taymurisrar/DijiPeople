@@ -30,6 +30,11 @@ import {
 } from '@prisma/client';
 import { AGREEMENT_CATEGORY_VALUES } from '@repo/config';
 
+export class PlaceholderDefinitionsQueryDto {
+  @IsOptional() @IsEnum(ContractType) contractType?: ContractType;
+  @IsOptional() @IsUUID() contractId?: string;
+}
+
 export class ContractQueryDto {
   @IsOptional() @IsString() search?: string;
   @IsOptional() @IsEnum(ContractStatus) status?: ContractStatus;
@@ -344,9 +349,19 @@ export class CreateDerivedContractDto {
   @IsOptional() @IsString() contentHtml?: string;
 }
 
+/** BUG-3554. Rendering styles a typed signature may be presented in. Kept as
+ * an explicit allowlist rather than a free string — this value is persisted
+ * to `SignatureEvidence.typedStyle` and later chooses a PDFKit standard font,
+ * so an unrecognised value must never reach either. */
+export const TYPED_SIGNATURE_STYLES = ['CLASSIC', 'SCRIPT', 'FORMAL'] as const;
+export type TypedSignatureStyle = (typeof TYPED_SIGNATURE_STYLES)[number];
+
 export class CompleteSignatureDto {
   @IsEnum(SignatureMethod) method!: SignatureMethod;
   @IsOptional() @IsString() @MaxLength(200) typedName?: string;
+  @IsOptional()
+  @IsIn(TYPED_SIGNATURE_STYLES)
+  typedStyle?: TypedSignatureStyle;
   @IsOptional() @IsString() signatureDataUrl?: string;
   @IsBoolean() consentAccepted!: boolean;
   @IsString() @MaxLength(2000) consentText!: string;

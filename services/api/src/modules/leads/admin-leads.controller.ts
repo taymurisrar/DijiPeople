@@ -11,10 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { RequireRoles } from '../../common/decorators/require-roles.decorator';
-import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PlatformPermissionsGuard } from '../platform-auth/platform-permissions';
 import {
@@ -27,8 +24,14 @@ import {
 } from './dto/admin-lead.dto';
 import { LeadsService } from './leads.service';
 
-@UseGuards(JwtAuthGuard, RolesGuard, PlatformPermissionsGuard)
-@RequireRoles(ROLE_KEYS.SYSTEM_ADMIN, ROLE_KEYS.SYSTEM_CUSTOMIZER)
+/*
+ * ADR-0018: the `leads.*` platform permission decides these routes. The
+ * `@RequireRoles('system-admin', 'system-customizer')` this carried was a tenant
+ * role-key gate only SUPER_ADMIN, PLATFORM_OWNER and MEMBER passed, so the
+ * presales roles ROLE_PERMISSIONS grants `leads.*` to were refused here. Owner
+ * scoping and attribution correction are still enforced in LeadsService.
+ */
+@UseGuards(JwtAuthGuard, PlatformPermissionsGuard)
 @Controller('super-admin/leads')
 export class AdminLeadsController {
   constructor(private readonly leadsService: LeadsService) {}

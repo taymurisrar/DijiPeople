@@ -10,6 +10,7 @@ import {
   LegalDocumentType,
   LeadInquiryIntent,
   LeadStatus,
+  PartnerStatus,
   PlatformUserRole,
   PlatformUserStatus,
 } from '@prisma/client';
@@ -473,7 +474,7 @@ export class LeadsService {
     }
     this.assertLeadOwnerAccess(currentUser, lead);
 
-    const [convertedCustomer, contracts] = await Promise.all([
+    const [convertedCustomer, contracts, partner] = await Promise.all([
       this.prisma.customerAccount.findFirst({
         where: { leadId },
         select: { id: true, companyName: true, status: true, subStatus: true },
@@ -491,6 +492,20 @@ export class LeadsService {
         },
         orderBy: { updatedAt: 'desc' },
       }),
+      /*
+       * The attributed partner's name, type and status. The admin record read
+       * only the scalar `partnerId`, so the "Referral partner" field rendered
+       * "Not set" for every attributed lead and the attribution panel could not
+       * say who is currently attributed (TASK-0032 WP-09 QA). The runtime form
+       * labels a lookup from the embedded `partner` object; nothing else is
+       * exposed about the partner here.
+       */
+      lead.partnerId
+        ? this.prisma.partner.findUnique({
+            where: { id: lead.partnerId },
+            select: { id: true, displayName: true, type: true, status: true },
+          })
+        : Promise.resolve(null),
     ]);
 
     await this.auditService.log({
@@ -501,7 +516,7 @@ export class LeadsService {
       entityId: leadId,
     });
 
-    return { ...lead, convertedCustomer, contracts };
+    return { ...lead, convertedCustomer, contracts, partner };
   }
 
   async createLead(currentUser: AuthenticatedUser, dto: CreateAdminLeadDto) {
@@ -727,6 +742,32 @@ export class LeadsService {
       );
     }
 
+    /*
+     * Attribution history, agreements and partner lead reviews all point at
+     * Lead with `onDelete: Restrict`. Unchecked, the delete failed in Postgres
+     * and reached the operator as a 500 "Unexpected error" — for every lead
+     * whose attribution was ever corrected, or that an agreement was raised
+     * against (TASK-0032 WP-09 QA). Each is history that must survive, so the
+     * delete is refused and says why.
+     */
+    const [corrections, agreements, reviews] = await Promise.all([
+      this.prisma.leadAttributionCorrection.count({
+        where: { leadId: { in: ids } },
+      }),
+      this.prisma.contract.count({ where: { relatedLeadId: { in: ids } } }),
+      this.prisma.partnerLeadReview.count({ where: { leadId: { in: ids } } }),
+    ]);
+    const blockers = [
+      corrections ? `${corrections} attribution change(s)` : null,
+      agreements ? `${agreements} agreement(s)` : null,
+      reviews ? `${reviews} partner lead review(s)` : null,
+    ].filter((reason): reason is string => reason !== null);
+    if (blockers.length) {
+      throw new BadRequestException(
+        `These leads cannot be deleted because they still have ${blockers.join(', ')}. Archive them instead.`,
+      );
+    }
+
     const result = await this.leadsRepository.deleteMany(ids);
 
     await this.auditService.log({
@@ -771,14 +812,50 @@ export class LeadsService {
       throw new BadRequestException(
         'Referral link does not belong to the selected partner.',
       );
-    if (
-      partnerId &&
-      !(await this.prisma.partner.findUnique({
+    let partner: {
+      id: string;
+      status: PartnerStatus;
+      displayName: string;
+    } | null = null;
+    if (partnerId) {
+      partner = await this.prisma.partner.findUnique({
         where: { id: partnerId },
-        select: { id: true },
-      }))
-    )
-      throw new BadRequestException('Selected partner does not exist.');
+        select: { id: true, status: true, displayName: true },
+      });
+      if (!partner)
+        throw new BadRequestException('Selected partner does not exist.');
+      /*
+       * The same rule `PartnerReferralResolverService.resolve()` already
+       * applies to an automatic referral-code attribution — a partner who is
+       * not ACTIVE cannot be attributed a lead. Manual correction is a second
+       * path to the same column and must not be looser than the first one; a
+       * `LeadAttributionStatus.INACTIVE_PARTNER` exists specifically for this
+       * case, which this codebase would otherwise only ever reach
+       * automatically, never through an operator's own action.
+       */
+      if (partner.status !== PartnerStatus.ACTIVE)
+        throw new BadRequestException(
+          `${partner.displayName} is ${partner.status} and cannot be attributed a lead. Reactivate the partner first, or choose an active one.`,
+        );
+    }
+
+    /*
+     * Assigning the same partner (and the same referral link, including both
+     * being cleared) again is a no-op, not a second correction. Without this,
+     * clicking "Save" on an unchanged attribution field wrote a
+     * `LeadAttributionCorrection` row and a `PartnerTimeline` entry that
+     * recorded no actual change — noise an auditor reading the history later
+     * has to work out is not a real reassignment.
+     */
+    if (
+      partnerId === lead.partnerId &&
+      (link?.id ?? null) === lead.partnerReferralLinkId
+    ) {
+      return {
+        ...(await this.getLead(currentUser, leadId)),
+        attributionUnchanged: true,
+      };
+    }
 
     await this.prisma.$transaction(async (tx) => {
       await tx.leadAttributionCorrection.create({

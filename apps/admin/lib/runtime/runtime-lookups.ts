@@ -166,11 +166,43 @@ function getRuntimeLookupLabel(item: Record<string, unknown>) {
     item.label,
     item.id,
   ];
-  return String(
+  const label = String(
     candidates.find(
       (candidate) => typeof candidate === "string" && candidate.trim(),
     ) ?? "Unknown",
   );
+  return partnerLookupSuffix(item, label) ?? label;
+}
+
+/**
+ * TASK-0032 WP-04, item 4. A partner selector that only ever shows a name
+ * gives an operator no way to tell a live partner from a suspended one, or an
+ * individual from a company, until they open the record. `item.type` being
+ * `COMPANY`/`INDIVIDUAL` is unique to a `Partner` row among everything this
+ * registry looks up — no other lookup target carries both a `type` in that
+ * pair and a `status` — so this stays scoped to partners without a
+ * per-lookup flag the registry would have to declare and keep in sync.
+ */
+function partnerLookupSuffix(
+  item: Record<string, unknown>,
+  label: string,
+): string | null {
+  const type = item.type;
+  const status = item.status;
+  if (
+    (type !== "COMPANY" && type !== "INDIVIDUAL") ||
+    typeof status !== "string" ||
+    !status
+  )
+    return null;
+  return `${label} — ${titleCaseEnum(type)} · ${titleCaseEnum(status)}`;
+}
+
+function titleCaseEnum(value: string) {
+  return value
+    .toLowerCase()
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

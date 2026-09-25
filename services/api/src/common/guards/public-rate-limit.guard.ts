@@ -41,6 +41,17 @@ const DEFAULT_READ_LIMIT = 120;
  */
 const ROUTE_LIMITS: ReadonlyArray<{ suffix: string; limit: number }> = [
   { suffix: '/auth/refresh', limit: 600 },
+  /*
+   * MFA code submission (ADR-0019), tighter than the credential default: a
+   * caller here already holds a valid password, and a six-digit code is a far
+   * smaller space than a password. Ten a window is still ample for a person
+   * mistyping a code or waiting out an authenticator step. The account lockout
+   * that wrong codes feed is the real control; this is the per-address
+   * backstop. The first suffix covers both `/auth/mfa/verify` and
+   * `/admin/auth/mfa/verify`.
+   */
+  { suffix: '/auth/mfa/verify', limit: 10 },
+  { suffix: '/auth/mfa/challenge/setup/confirm', limit: 10 },
 ];
 
 @Injectable()

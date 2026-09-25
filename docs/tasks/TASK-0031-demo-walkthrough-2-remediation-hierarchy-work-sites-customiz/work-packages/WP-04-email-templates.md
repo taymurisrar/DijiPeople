@@ -24,7 +24,7 @@ and give tenants a visual editor to customise a system template.
 REQUIRED:
 - `services/api/src/modules/notifications/`
 - `apps/web/app/(authenticated)/settings/notifications/templates/`
-- `docs/tasks/TASK-0031-streams/WP-04-email-copy-for-owner-review.md`
+- `docs/tasks/TASK-0031-streams/email-copy-for-owner-review.md`
 
 OPTIONAL:
 - `services/api/prisma/seed-config.ts` — how system templates reach production

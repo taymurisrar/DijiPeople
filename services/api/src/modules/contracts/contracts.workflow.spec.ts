@@ -37,6 +37,7 @@ describe('contract and signature workflow guards', () => {
       {} as never,
       {} as never,
       {} as never,
+      { log: jest.fn() } as never,
     );
 
     await service.createTemplateVersion(platformAdmin, 'template-1', {

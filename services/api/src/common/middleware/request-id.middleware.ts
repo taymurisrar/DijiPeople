@@ -2,6 +2,7 @@ import { Injectable, NestMiddleware } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { NextFunction, Request, Response } from 'express';
 import { randomUUID } from 'node:crypto';
+import { TraceContextService } from '../request-context/trace-context.service';
 
 export const REQUEST_ID_HEADER = 'x-request-id';
 
@@ -11,7 +12,10 @@ export type RequestWithId = Request & {
 
 @Injectable()
 export class RequestIdMiddleware implements NestMiddleware {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly traceContext: TraceContextService,
+  ) {}
 
   use(req: RequestWithId, res: Response, next: NextFunction) {
     const traceHeader =
@@ -28,6 +32,13 @@ export class RequestIdMiddleware implements NestMiddleware {
     req.requestId = requestId;
     res.setHeader('X-Request-Id', requestId);
     res.setHeader('X-Trace-Id', requestId);
-    next();
+    /*
+     * BUG-3227. Everything downstream of `next()` — guards, interceptors, the
+     * controller, and every service and job it calls synchronously or via an
+     * awaited promise — runs inside this ALS scope, so `AuditService.log()`
+     * can read the trace id back without a caller having to pass it through
+     * ten layers of function signatures.
+     */
+    this.traceContext.runWithContext({ traceId: requestId }, () => next());
   }
 }

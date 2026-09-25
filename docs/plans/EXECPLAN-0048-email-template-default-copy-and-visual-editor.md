@@ -72,7 +72,7 @@ action, and the event picker lists only events that send email for this tenant.
 BUG-3500 (P1, go-live blocker) and ITEM-0181, TASK-0031 WP-04. Owner decisions
 D4 and D9 (2026-09-13) and ADR-0015: the Architect drafts the copy and it ships
 ACTIVE together with sink-provider retirement (WP-06). The owner reviews the copy
-afterwards, from `docs/tasks/TASK-0031-streams/WP-04-email-copy-for-owner-review.md`.
+afterwards, from `docs/tasks/TASK-0031-streams/email-copy-for-owner-review.md`.
 
 ## Existing behavior
 
@@ -151,7 +151,7 @@ Web (`apps/web`):
 - `_components/email-template-editor.tsx`, `_components/email-template-create-form.tsx`, `_components/email-templates-table.tsx` — rewritten
 - `templates/page.tsx`, `templates/new/page.tsx`, `templates/[id]/page.tsx` — data and copy
 
-Docs: this plan; `docs/tasks/TASK-0031-streams/WP-04-report.md`; `docs/tasks/TASK-0031-streams/WP-04-email-copy-for-owner-review.md`.
+Docs: this plan; `docs/tasks/TASK-0031-streams/WP-04-report.md`; `docs/tasks/TASK-0031-streams/email-copy-for-owner-review.md`.
 
 ## Database impact
 

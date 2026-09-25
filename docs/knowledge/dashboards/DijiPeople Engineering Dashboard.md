@@ -7,13 +7,13 @@
 
 | | |
 |---|---|
-| Open CRITICAL | **4** |
-| Open HIGH | **94** |
-| Open total | 197 |
+| Open CRITICAL | **6** |
+| Open HIGH | **100** |
+| Open total | 230 |
 | Blocked | 2 |
-| Awaiting a product decision | 9 |
-| Deferred | 105 |
-| Completed | 339 |
+| Awaiting a product decision | 10 |
+| Deferred | 108 |
+| Completed | 343 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -24,6 +24,8 @@
 | [[BUG-3152-post-users-userid-roles-lets-a-delegated-role-assignment-adm|BUG-3152]] | POST /users/:userId/roles lets a delegated role-assignment admin self-grant GLOBAL_ADMIN | AUTHORIZATION | CRITICAL | FIXED | api:users/users.service.ts, api:users/users.controller.ts | DONE |
 | [[BUG-3154-employee-bank-accounts-ibans-cnics-and-tax-identifiers-are-s|BUG-3154]] | Employee bank accounts, IBANs, CNICs and tax identifiers are stored in plaintext beside an unused AES-256-GCM service | DATA_INTEGRITY | CRITICAL | OPEN | api:employees, api:compensation | PLAN_REQUIRED |
 | [[BUG-3155-fieldsecurityrule-masking-is-enforced-only-in-the-browser-th|BUG-3155]] | FieldSecurityRule masking is enforced only in the browser; the API sends the unmasked value | AUTHORIZATION | CRITICAL | OPEN | api:employees | FIX_NOW |
+| [[BUG-3580-agreement-preview-documents-print-unresolved-placeholders|BUG-3580]] | Agreement preview documents print unresolved placeholders | BUG | CRITICAL | FIXED | api:contracts | DONE |
+| [[BUG-3581-signature-date-placeholders-block-sending-and-freeze-a-fabri|BUG-3581]] | Signature-date placeholders block sending and freeze a fabricated date into signed agreements | BUG | CRITICAL | FIXED | api:contracts | DONE |
 
 ## Open High Bugs
 
@@ -119,6 +121,12 @@
 | [[BUG-3493-publishing-customizations-dead-ends-because-new-drafts-land-|BUG-3493]] | Publishing customizations dead-ends because new drafts land in a package that cannot be published | BUG | HIGH | FIXED | apps/web, customization | FIX_NOW |
 | [[BUG-3494-a-published-custom-module-has-no-sidebar-entry-and-no-list-f|BUG-3494]] | A published custom module has no sidebar entry and no list, form or record screen | BUG | HIGH | FIXED | apps/web, customization, data | PLAN_REQUIRED |
 | [[BUG-3500-every-seeded-email-template-is-active-with-placeholder-body-|BUG-3500]] | Every seeded email template is active with placeholder body text | BUG | HIGH | FIXED | notifications, apps/web | FIX_NOW |
+| [[BUG-3544-a-platform-admin-can-open-and-edit-a-tenant-but-every-save-i|BUG-3544]] | A Platform Admin can open and edit a tenant but every save is refused as not System Admin | AUTHORIZATION | HIGH | FIXED | api:super-admin, api:platform-runtime | DONE |
+| [[BUG-3545-the-admin-session-heartbeat-is-refused-for-most-platform-rol|BUG-3545]] | The admin session heartbeat is refused for most platform roles and raises a blocking permission dialog | AUTHORIZATION | HIGH | FIXED | api:auth, apps/admin | DONE |
+| [[BUG-3564-the-platform-audit-trail-is-write-only-no-screen-or-endpoint|BUG-3564]] | The platform audit trail is write-only: no screen or endpoint can read PlatformAuditLog | SECURITY | HIGH | FIXED | api:audit, apps/admin | DONE |
+| [[BUG-3565-opening-a-contract-template-or-signature-request-from-its-ad|BUG-3565]] | Opening a contract template or signature request from its admin list returns 404 | BUG | HIGH | FIXED | api:platform-runtime | DONE |
+| [[BUG-3578-deleting-a-partner-or-lead-with-restricted-history-crashes-w|BUG-3578]] | Deleting a partner or lead with restricted history crashes with a 500 | DATA_INTEGRITY | HIGH | FIXED | api:partners, api:leads | DONE |
+| [[BUG-3597-a-drawn-or-uploaded-signature-inside-a-signature-paragraph-i|BUG-3597]] | A drawn or uploaded signature inside a signature paragraph is dropped from the signed PDF and DOCX | BUG | HIGH | FIXED | api:contracts | DONE |
 | [[ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no|ITEM-0133]] | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | READY | services/api/test | PLAN_REQUIRED |
 | [[ITEM-0134-the-payroll-run-engine-has-no-tests|ITEM-0134]] | The payroll run engine has no tests | TEST_GAP | HIGH | READY | api:payroll | PLAN_REQUIRED |
 | [[ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-|ITEM-0136]] | electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major | SECURITY | HIGH | READY | apps/agent-desktop | FIX_NOW |
@@ -136,6 +144,7 @@
 | [[BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-|BUG-3333]] | Tenant buyers choose their own currency and the three price schedules are not equivalent | DATA_INTEGRITY | HIGH | PRODUCT_DECISION | apps/web, api:billing | PRODUCT_DECISION |
 | [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] | No multi-factor authentication exists anywhere, including for platform super admins | SECURITY | HIGH | PRODUCT_DECISION | api:auth | PRODUCT_DECISION |
 | [[ITEM-0193-decide-whether-the-hr-role-may-manage-notification-events|ITEM-0193]] | Decide whether the hr role may manage notification events | PRODUCT_DECISION | — | PRODUCT_DECISION | notifications, permissions | PRODUCT_DECISION |
+| [[ITEM-0207-seed-config-rewrites-version-1-of-system-agreement-templates|ITEM-0207]] | seed:config rewrites version 1 of system agreement templates in place instead of publishing a new version | PRODUCT_DECISION | — | PRODUCT_DECISION | services/api/prisma | PRODUCT_DECISION |
 | [[ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins|ITEM-0191]] | Decide whether custom modules need their own access keys instead of the shared custom-records privilege | PRODUCT_DECISION | — | PRODUCT_DECISION | data, permissions | PRODUCT_DECISION |
 
 ## Blocked Items
@@ -167,6 +176,7 @@
 | [[BUG-3168-two-required-ci-gates-report-success-while-executing-nothing|BUG-3168]] | Two required CI gates report success while executing nothing | INFRA | HIGH | OPEN | .github/workflows | FIX_NOW |
 | [[BUG-3183-platform-ops-alerts-for-failed-payments-and-provisioning-are|BUG-3183]] | Platform-ops alerts for failed payments and provisioning are written to a log line that is never sent and is suppressed at the production log level | INFRA | HIGH | OPEN | api:platform-monitoring | FIX_NOW |
 | [[BUG-3198-api-health-is-a-static-ok-payload-so-a-broken-deploy-and-a-d|BUG-3198]] | api/health is a static ok payload, so a broken deploy and a dead database both report healthy | INFRA | HIGH | OPEN | services/api/src/common | FIX_NOW |
+| [[BUG-3227-no-access-log-and-traceid-never-reaches-an-application-log-l|BUG-3227]] | No access log, and traceId never reaches an application log line: a successful request leaves no trace at all | INFRA | MEDIUM | FIXED | services/api/src/common | DONE |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0158-public-traffic-that-bypasses-cloudflare-shares-one-rate-limi|ITEM-0158]] | Public traffic that bypasses Cloudflare shares one rate-limit bucket, by design and untested | INFRA | MEDIUM | READY | pkg:config, services/api/src/common/security | PLAN_REQUIRED |
 
@@ -193,6 +203,8 @@
 | [[BUG-1743-customers-and-partners-cannot-be-edited-the-runtime-form-ech|BUG-1743]] | Customers and partners cannot be edited: the runtime form echoes fields the update DTO forbids | BUG | CRITICAL | VERIFIED | apps/admin, api:platform-runtime, api:super-admin | DONE |
 | [[BUG-1744-every-subscription-has-a-zero-length-billing-period-and-a-re|BUG-1744]] | Every subscription has a zero-length billing period and a renewal date in the past | DATA_INTEGRITY | CRITICAL | VERIFIED | api:super-admin, api:billing, integration:stripe | DONE |
 | [[BUG-3152-post-users-userid-roles-lets-a-delegated-role-assignment-adm|BUG-3152]] | POST /users/:userId/roles lets a delegated role-assignment admin self-grant GLOBAL_ADMIN | AUTHORIZATION | CRITICAL | FIXED | api:users/users.service.ts, api:users/users.controller.ts | DONE |
+| [[BUG-3580-agreement-preview-documents-print-unresolved-placeholders|BUG-3580]] | Agreement preview documents print unresolved placeholders | BUG | CRITICAL | FIXED | api:contracts | DONE |
+| [[BUG-3581-signature-date-placeholders-block-sending-and-freeze-a-fabri|BUG-3581]] | Signature-date placeholders block sending and freeze a fabricated date into signed agreements | BUG | CRITICAL | FIXED | api:contracts | DONE |
 | [[BUG-1494-git-worktree-remove-follows-node-modules-junctions-and-delet|BUG-1494]] | git worktree remove follows node_modules junctions and deletes the primary checkout | INFRA | CRITICAL | VERIFIED | scripts | DONE |
 | [[BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur|BUG-0049]] | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | VERIFIED | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | DONE |
 | [[BUG-0052-production-dependency-graph-carries-critical-and-high-securi|BUG-0052]] | Production dependency graph carries critical and high security advisories | SECURITY | HIGH | VERIFIED | package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api | DONE |
@@ -345,6 +357,12 @@
 | [[BUG-3493-publishing-customizations-dead-ends-because-new-drafts-land-|BUG-3493]] | Publishing customizations dead-ends because new drafts land in a package that cannot be published | BUG | HIGH | FIXED | apps/web, customization | FIX_NOW |
 | [[BUG-3494-a-published-custom-module-has-no-sidebar-entry-and-no-list-f|BUG-3494]] | A published custom module has no sidebar entry and no list, form or record screen | BUG | HIGH | FIXED | apps/web, customization, data | PLAN_REQUIRED |
 | [[BUG-3500-every-seeded-email-template-is-active-with-placeholder-body-|BUG-3500]] | Every seeded email template is active with placeholder body text | BUG | HIGH | FIXED | notifications, apps/web | FIX_NOW |
+| [[BUG-3544-a-platform-admin-can-open-and-edit-a-tenant-but-every-save-i|BUG-3544]] | A Platform Admin can open and edit a tenant but every save is refused as not System Admin | AUTHORIZATION | HIGH | FIXED | api:super-admin, api:platform-runtime | DONE |
+| [[BUG-3545-the-admin-session-heartbeat-is-refused-for-most-platform-rol|BUG-3545]] | The admin session heartbeat is refused for most platform roles and raises a blocking permission dialog | AUTHORIZATION | HIGH | FIXED | api:auth, apps/admin | DONE |
+| [[BUG-3564-the-platform-audit-trail-is-write-only-no-screen-or-endpoint|BUG-3564]] | The platform audit trail is write-only: no screen or endpoint can read PlatformAuditLog | SECURITY | HIGH | FIXED | api:audit, apps/admin | DONE |
+| [[BUG-3565-opening-a-contract-template-or-signature-request-from-its-ad|BUG-3565]] | Opening a contract template or signature request from its admin list returns 404 | BUG | HIGH | FIXED | api:platform-runtime | DONE |
+| [[BUG-3578-deleting-a-partner-or-lead-with-restricted-history-crashes-w|BUG-3578]] | Deleting a partner or lead with restricted history crashes with a 500 | DATA_INTEGRITY | HIGH | FIXED | api:partners, api:leads | DONE |
+| [[BUG-3597-a-drawn-or-uploaded-signature-inside-a-signature-paragraph-i|BUG-3597]] | A drawn or uploaded signature inside a signature paragraph is dropped from the signed PDF and DOCX | BUG | HIGH | FIXED | api:contracts | DONE |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver|BUG-3501]] | The email provider screen presents a console sink as delivery and offers sink providers in production | UX | MEDIUM | FIXED | notifications, apps/web | PLAN_REQUIRED |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
@@ -474,6 +492,8 @@
 | [[BUG-2822-a-business-refusal-is-rendered-as-a-fatal-error-dialog-with-|BUG-2822]] | A business refusal is rendered as a fatal error dialog with a reference id and a log download | UX | MEDIUM | FIXED | runtime, approvals, attendance | FIX_NOW |
 | [[BUG-2839-a-dashboard-fx-test-asserted-on-the-last-month-bucket-so-it-|BUG-2839]] | A dashboard FX test asserted on the last month bucket, so it passed in August and failed on 1 September | BUG | MEDIUM | FIXED | super-admin | FIX_NOW |
 | [[BUG-2888-an-externally-hosted-release-is-invisible-to-the-desktop-age|BUG-2888]] | An externally hosted release is invisible to the desktop agent update feed, because the platform publish route cannot record a SHA-512 | INTEGRATION | MEDIUM | FIXED | api:app-releases | DONE |
+| [[BUG-3146-platform-admin-login-has-no-account-lockout-of-any-kind|BUG-3146]] | Platform-admin login has no account lockout of any kind | SECURITY | MEDIUM | FIXED | api:platform-auth | DONE |
+| [[BUG-3227-no-access-log-and-traceid-never-reaches-an-application-log-l|BUG-3227]] | No access log, and traceId never reaches an application log line: a successful request leaves no trace at all | INFRA | MEDIUM | FIXED | services/api/src/common | DONE |
 | [[BUG-3254-the-forwarded-for-hop-guard-rejected-every-honest-chain-coll|BUG-3254]] | The rate-limit e2e suite sent a forwarded chain one hop short, and the guard was misread as an off-by-one | TEST_GAP | MEDIUM | FIXED | pkg:config, services/api/src/common/security, services/api/test | DONE |
 | [[BUG-3263-the-provisioning-queue-e2e-fixture-raced-the-clock-so-an-exa|BUG-3263]] | The provisioning queue e2e fixture raced the clock, so an exact five-minute interval came out 300001ms | TEST_GAP | MEDIUM | FIXED | services/api/test | DONE |
 | [[BUG-3316-notification-settings-screens-hydrate-with-utc-timestamps-an|BUG-3316]] | Notification settings screens hydrate with UTC timestamps and crash the React tree | UX | MEDIUM | FIXED | apps/web | DONE |
@@ -493,6 +513,22 @@
 | [[BUG-3497-employee-reset-password-sends-without-confirmation-is-offere|BUG-3497]] | Employee Reset Password sends without confirmation, is offered with no linked user and fails silently | BUG | MEDIUM | FIXED | apps/web, employees, error-logs | FIX_NOW |
 | [[BUG-3498-the-employee-record-export-writes-lookup-fields-as-raw-ids|BUG-3498]] | The employee record export writes lookup fields as raw ids | BUG | MEDIUM | FIXED | apps/web, employees | FIX_NOW |
 | [[BUG-3499-the-reporting-hierarchy-dialog-pins-a-clipped-detail-card-ha|BUG-3499]] | The reporting hierarchy dialog pins a clipped detail card, has no close control and cannot open a record | UX | MEDIUM | FIXED | apps/web, employees | FIX_NOW |
+| [[BUG-3547-the-platform-role-picker-offers-two-platform-owner-roles-and|BUG-3547]] | The platform role picker offers two Platform Owner roles and a legacy Member role | UX | MEDIUM | FIXED | apps/admin, api:platform-auth | DONE |
+| [[BUG-3548-a-numeric-value-in-a-ttl-seconds-variable-issues-access-toke|BUG-3548]] | A numeric value in a TTL_SECONDS variable issues access tokens that expire after one second | BUG | MEDIUM | FIXED | services/api/src/common/config | DONE |
+| [[BUG-3549-partner-type-individual-or-company-drives-no-behaviour-and-i|BUG-3549]] | Partner type Individual or Company drives no behaviour and individuals are asked for a company registration number | BUG | MEDIUM | FIXED | api:partners, api:partner-experience, apps/admin | DONE |
+| [[BUG-3550-partners-can-be-created-as-duplicates-admin-create-has-no-du|BUG-3550]] | Partners can be created as duplicates: admin create has no duplicate check and the inquiry check ignores tax and registration numbers | DATA_INTEGRITY | MEDIUM | FIXED | api:partners, api:partner-experience | DONE |
+| [[BUG-3551-partner-create-update-lifecycle-and-onboarding-review-are-no|BUG-3551]] | Partner create, update, lifecycle and onboarding review are not written to the audit log | SECURITY | MEDIUM | FIXED | api:partners, api:partner-experience | DONE |
+| [[BUG-3552-the-agreement-template-editor-offers-every-placeholder-group|BUG-3552]] | The agreement template editor offers every placeholder group regardless of agreement type | BUG | MEDIUM | FIXED | api:contracts, apps/admin | DONE |
+| [[BUG-3553-an-agreement-can-be-created-for-an-inactive-partner-or-an-ar|BUG-3553]] | An agreement can be created for an inactive partner or an archived lead or customer, and duplicate submissions create duplicate agreements | DATA_INTEGRITY | MEDIUM | FIXED | api:contracts | DONE |
+| [[BUG-3555-error-log-redaction-covers-auth-secrets-only-stack-traces-an|BUG-3555]] | Error log redaction covers auth secrets only: stack traces and personal or financial values are stored unredacted | SECURITY | MEDIUM | FIXED | api:error-logs | DONE |
+| [[BUG-3566-a-partial-partner-edit-is-rejected-because-the-update-dto-re|BUG-3566]] | A partial partner edit is rejected because the update DTO requires every create field | BUG | MEDIUM | FIXED | api:partners | DONE |
+| [[BUG-3567-platform-administrator-sign-ins-and-failed-sign-ins-are-not-|BUG-3567]] | Platform administrator sign-ins and failed sign-ins are not audited | SECURITY | MEDIUM | FIXED | api:auth | DONE |
+| [[BUG-3579-an-attributed-lead-never-shows-its-referral-partner|BUG-3579]] | An attributed lead never shows its referral partner | UX | MEDIUM | FIXED | api:leads, apps/admin | DONE |
+| [[BUG-3582-system-agreement-templates-have-no-signature-block|BUG-3582]] | System agreement templates have no signature block | BUG | MEDIUM | FIXED | services/api/prisma, api:contracts | DONE |
+| [[BUG-3584-a-partner-agreement-never-fills-partner-placeholders-from-it|BUG-3584]] | A partner agreement never fills partner placeholders from its linked partner | BUG | MEDIUM | FIXED | api:contracts | DONE |
+| [[BUG-3585-error-codes-added-for-mfa-platform-authorization-and-agreeme|BUG-3585]] | Error codes added for MFA, platform authorization and agreements reach clients as generic codes | BUG | MEDIUM | FIXED | services/api/src/common/errors, api:auth, api:contracts | DONE |
+| [[BUG-3587-the-monitoring-overview-raises-a-hydration-error-that-covers|BUG-3587]] | The monitoring overview raises a hydration error that covers the page with the error dialog | UX | MEDIUM | FIXED | apps/admin | DONE |
+| [[BUG-3598-generate-document-on-an-executed-agreement-renders-from-draf|BUG-3598]] | Generate document on an executed agreement renders from draft values, not the signature evidence | BUG | MEDIUM | FIXED | api:contracts, apps/admin | DONE |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -523,9 +559,15 @@
 | [[BUG-3360-every-session-row-records-the-user-agent-as-node-and-the-clo|BUG-3360]] | Every session row records the user agent as node and the Cloudflare edge IP | BUG | LOW | FIXED | api:auth, web:auth | FIX_NOW |
 | [[BUG-3379-a-delivery-log-row-says-not-delivered-and-carries-nothing-th|BUG-3379]] | A delivery log row says Not delivered and carries nothing that explains why | UX | LOW | FIXED | notifications, apps/web | FIX_NOW |
 | [[BUG-3412-every-widget-section-on-a-record-form-prints-its-title-twice|BUG-3412]] | Every widget section on a record form prints its title twice, and the profile section's two titles disagree | UX | LOW | FIXED | apps/web | FIX_NOW |
+| [[BUG-3546-tenant-record-edit-leaves-the-operator-on-a-tab-with-nothing|BUG-3546]] | Tenant record Edit leaves the operator on a tab with nothing editable | UX | LOW | FIXED | apps/admin | DONE |
+| [[BUG-3554-the-typed-signature-style-selector-is-cosmetic-the-chosen-st|BUG-3554]] | The typed-signature style selector is cosmetic: the chosen style never reaches the signed document | UX | LOW | FIXED | apps/landing, api:contracts | DONE |
+| [[BUG-3583-counterparty-placeholders-are-grouped-under-customer|BUG-3583]] | Counterparty placeholders are grouped under Customer | UX | LOW | FIXED | api:contracts | DONE |
+| [[BUG-3586-the-monitoring-health-headline-reads-unknown-when-no-email-h|BUG-3586]] | The monitoring health headline reads Unknown when no email has been sent | BUG | LOW | FIXED | api:platform-monitoring | DONE |
+| [[BUG-3599-generating-an-agreement-in-an-unsupported-format-returns-a-5|BUG-3599]] | Generating an agreement in an unsupported format returns a 500 instead of a 400 | BUG | LOW | FIXED | api:contracts | DONE |
 
 ## Recent QA Runs
 
+- [[2026-09-13-task-0031-demo-walkthrough-2-local-browser-qa-e253306|QA Run — task-0031-demo-walkthrough-2-local-browser-qa]]
 - [[2026-08-31-reports-analytics-platform-96ff155|QA Run — reports-analytics-platform]]
 - [[2026-08-29-starter-plan-e2e-pass-2-8ab1cbf|QA Run — starter-plan-e2e-pass-2]]
 - [[2026-08-29-starter-plan-e2e-eb457d9|QA Run — starter-plan-e2e]]
@@ -533,7 +575,6 @@
 - [[2026-08-28-admin-console-e2e-912f4e6|QA Run — Admin console end-to-end, browser-driven]]
 - [[2026-08-26-admin-prod-e2e-8d6be21|QA Run — admin-prod-e2e]]
 - [[2026-08-25-landing-fixes-verification|QA Run — landing-fixes-verification]]
-- [[2026-08-25-landing-e2e-local-and-prod-42435d5|QA Run — landing-e2e-local-and-prod]]
 
 ## Recent Implementations
 
@@ -547,14 +588,14 @@
 
 ## Recent Engineering History
 
+- [[2026-09-25-task-0032-partner-agreements-admin-hardening-dfe42ea9|Engineering History — Task 0032 partner agreements admin hardening]]
+- [[2026-09-13-task-0031-demo-walkthrough-2-remediation-e253306a|Engineering History — Task 0031 demo walkthrough 2 remediation]]
 - [[2026-09-12-ux-findings-audit-d5388a4c|Engineering History — Ux findings audit]]
 - [[2026-09-12-records-0099-0102-413565f0|Engineering History — Implement the 34 records from sessions 0099–0102]]
 - [[2026-09-11-review-subscription-plans-screen-118d22ed|Engineering History — Review subscription plans screen]]
 - [[2026-09-11-closeout-sweep-658eb39c|Engineering History — Closeout sweep]]
 - [[2026-09-11-auth-session-revocation-690cacbc|Engineering History — Auth session revocation]]
 - [[2026-09-10-release-settings-entitlements-254e8d2b|Engineering History — Release settings entitlements]]
-- [[2026-09-10-r2-durable-object-storage-11afbd50|Engineering History — Durable object storage on Cloudflare R2 (FILE-01/INF-05)]]
-- [[2026-09-09-settings-plan-entitlements-c3627cad|Engineering History — Settings plan entitlements]]
 
 ## Recent Releases
 
@@ -569,6 +610,7 @@
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
 | [[BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver|BUG-3501]] | The email provider screen presents a console sink as delivery and offers sink providers in production | UX | MEDIUM | FIXED | notifications, apps/web | PLAN_REQUIRED |
+| [[ITEM-0205-before-promoting-task-0032-review-agreements-signed-with-a-f|ITEM-0205]] | Before promoting TASK-0032: review agreements signed with a fabricated date and partners that fail the new type policy | DATA_MIGRATION | MEDIUM | READY | api:contracts, api:partners | FIX_NOW |
 | [[BUG-1548-customer-onboarding-validate-accepts-payloads-that-create-re|BUG-1548]] | Customer onboarding validate accepts payloads that create rejects | BUG | MEDIUM | FIXED | onboarding | DONE |
 | [[BUG-1551-desktop-agent-auto-update-manifest-returns-404|BUG-1551]] | Desktop agent auto-update manifest returns 404 | INTEGRATION | MEDIUM | FIXED | agent, app-releases | DONE |
 | [[BUG-1668-tenant-workspace-pages-scroll-horizontally-at-mobile-width|BUG-1668]] | Tenant workspace pages scroll horizontally at mobile width | UX | MEDIUM | FIXED | views | DONE |
@@ -617,6 +659,8 @@
 | [[BUG-2822-a-business-refusal-is-rendered-as-a-fatal-error-dialog-with-|BUG-2822]] | A business refusal is rendered as a fatal error dialog with a reference id and a log download | UX | MEDIUM | FIXED | runtime, approvals, attendance | FIX_NOW |
 | [[BUG-2839-a-dashboard-fx-test-asserted-on-the-last-month-bucket-so-it-|BUG-2839]] | A dashboard FX test asserted on the last month bucket, so it passed in August and failed on 1 September | BUG | MEDIUM | FIXED | super-admin | FIX_NOW |
 | [[BUG-2888-an-externally-hosted-release-is-invisible-to-the-desktop-age|BUG-2888]] | An externally hosted release is invisible to the desktop agent update feed, because the platform publish route cannot record a SHA-512 | INTEGRATION | MEDIUM | FIXED | api:app-releases | DONE |
+| [[BUG-3146-platform-admin-login-has-no-account-lockout-of-any-kind|BUG-3146]] | Platform-admin login has no account lockout of any kind | SECURITY | MEDIUM | FIXED | api:platform-auth | DONE |
+| [[BUG-3227-no-access-log-and-traceid-never-reaches-an-application-log-l|BUG-3227]] | No access log, and traceId never reaches an application log line: a successful request leaves no trace at all | INFRA | MEDIUM | FIXED | services/api/src/common | DONE |
 | [[BUG-3254-the-forwarded-for-hop-guard-rejected-every-honest-chain-coll|BUG-3254]] | The rate-limit e2e suite sent a forwarded chain one hop short, and the guard was misread as an off-by-one | TEST_GAP | MEDIUM | FIXED | pkg:config, services/api/src/common/security, services/api/test | DONE |
 | [[BUG-3263-the-provisioning-queue-e2e-fixture-raced-the-clock-so-an-exa|BUG-3263]] | The provisioning queue e2e fixture raced the clock, so an exact five-minute interval came out 300001ms | TEST_GAP | MEDIUM | FIXED | services/api/test | DONE |
 | [[BUG-3316-notification-settings-screens-hydrate-with-utc-timestamps-an|BUG-3316]] | Notification settings screens hydrate with UTC timestamps and crash the React tree | UX | MEDIUM | FIXED | apps/web | DONE |
@@ -636,6 +680,22 @@
 | [[BUG-3497-employee-reset-password-sends-without-confirmation-is-offere|BUG-3497]] | Employee Reset Password sends without confirmation, is offered with no linked user and fails silently | BUG | MEDIUM | FIXED | apps/web, employees, error-logs | FIX_NOW |
 | [[BUG-3498-the-employee-record-export-writes-lookup-fields-as-raw-ids|BUG-3498]] | The employee record export writes lookup fields as raw ids | BUG | MEDIUM | FIXED | apps/web, employees | FIX_NOW |
 | [[BUG-3499-the-reporting-hierarchy-dialog-pins-a-clipped-detail-card-ha|BUG-3499]] | The reporting hierarchy dialog pins a clipped detail card, has no close control and cannot open a record | UX | MEDIUM | FIXED | apps/web, employees | FIX_NOW |
+| [[BUG-3547-the-platform-role-picker-offers-two-platform-owner-roles-and|BUG-3547]] | The platform role picker offers two Platform Owner roles and a legacy Member role | UX | MEDIUM | FIXED | apps/admin, api:platform-auth | DONE |
+| [[BUG-3548-a-numeric-value-in-a-ttl-seconds-variable-issues-access-toke|BUG-3548]] | A numeric value in a TTL_SECONDS variable issues access tokens that expire after one second | BUG | MEDIUM | FIXED | services/api/src/common/config | DONE |
+| [[BUG-3549-partner-type-individual-or-company-drives-no-behaviour-and-i|BUG-3549]] | Partner type Individual or Company drives no behaviour and individuals are asked for a company registration number | BUG | MEDIUM | FIXED | api:partners, api:partner-experience, apps/admin | DONE |
+| [[BUG-3550-partners-can-be-created-as-duplicates-admin-create-has-no-du|BUG-3550]] | Partners can be created as duplicates: admin create has no duplicate check and the inquiry check ignores tax and registration numbers | DATA_INTEGRITY | MEDIUM | FIXED | api:partners, api:partner-experience | DONE |
+| [[BUG-3551-partner-create-update-lifecycle-and-onboarding-review-are-no|BUG-3551]] | Partner create, update, lifecycle and onboarding review are not written to the audit log | SECURITY | MEDIUM | FIXED | api:partners, api:partner-experience | DONE |
+| [[BUG-3552-the-agreement-template-editor-offers-every-placeholder-group|BUG-3552]] | The agreement template editor offers every placeholder group regardless of agreement type | BUG | MEDIUM | FIXED | api:contracts, apps/admin | DONE |
+| [[BUG-3553-an-agreement-can-be-created-for-an-inactive-partner-or-an-ar|BUG-3553]] | An agreement can be created for an inactive partner or an archived lead or customer, and duplicate submissions create duplicate agreements | DATA_INTEGRITY | MEDIUM | FIXED | api:contracts | DONE |
+| [[BUG-3555-error-log-redaction-covers-auth-secrets-only-stack-traces-an|BUG-3555]] | Error log redaction covers auth secrets only: stack traces and personal or financial values are stored unredacted | SECURITY | MEDIUM | FIXED | api:error-logs | DONE |
+| [[BUG-3566-a-partial-partner-edit-is-rejected-because-the-update-dto-re|BUG-3566]] | A partial partner edit is rejected because the update DTO requires every create field | BUG | MEDIUM | FIXED | api:partners | DONE |
+| [[BUG-3567-platform-administrator-sign-ins-and-failed-sign-ins-are-not-|BUG-3567]] | Platform administrator sign-ins and failed sign-ins are not audited | SECURITY | MEDIUM | FIXED | api:auth | DONE |
+| [[BUG-3579-an-attributed-lead-never-shows-its-referral-partner|BUG-3579]] | An attributed lead never shows its referral partner | UX | MEDIUM | FIXED | api:leads, apps/admin | DONE |
+| [[BUG-3582-system-agreement-templates-have-no-signature-block|BUG-3582]] | System agreement templates have no signature block | BUG | MEDIUM | FIXED | services/api/prisma, api:contracts | DONE |
+| [[BUG-3584-a-partner-agreement-never-fills-partner-placeholders-from-it|BUG-3584]] | A partner agreement never fills partner placeholders from its linked partner | BUG | MEDIUM | FIXED | api:contracts | DONE |
+| [[BUG-3585-error-codes-added-for-mfa-platform-authorization-and-agreeme|BUG-3585]] | Error codes added for MFA, platform authorization and agreements reach clients as generic codes | BUG | MEDIUM | FIXED | services/api/src/common/errors, api:auth, api:contracts | DONE |
+| [[BUG-3587-the-monitoring-overview-raises-a-hydration-error-that-covers|BUG-3587]] | The monitoring overview raises a hydration error that covers the page with the error dialog | UX | MEDIUM | FIXED | apps/admin | DONE |
+| [[BUG-3598-generate-document-on-an-executed-agreement-renders-from-draf|BUG-3598]] | Generate document on an executed agreement renders from draft values, not the signature evidence | BUG | MEDIUM | FIXED | api:contracts, apps/admin | DONE |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -666,7 +726,13 @@
 | [[BUG-3360-every-session-row-records-the-user-agent-as-node-and-the-clo|BUG-3360]] | Every session row records the user agent as node and the Cloudflare edge IP | BUG | LOW | FIXED | api:auth, web:auth | FIX_NOW |
 | [[BUG-3379-a-delivery-log-row-says-not-delivered-and-carries-nothing-th|BUG-3379]] | A delivery log row says Not delivered and carries nothing that explains why | UX | LOW | FIXED | notifications, apps/web | FIX_NOW |
 | [[BUG-3412-every-widget-section-on-a-record-form-prints-its-title-twice|BUG-3412]] | Every widget section on a record form prints its title twice, and the profile section's two titles disagree | UX | LOW | FIXED | apps/web | FIX_NOW |
+| [[BUG-3546-tenant-record-edit-leaves-the-operator-on-a-tab-with-nothing|BUG-3546]] | Tenant record Edit leaves the operator on a tab with nothing editable | UX | LOW | FIXED | apps/admin | DONE |
+| [[BUG-3554-the-typed-signature-style-selector-is-cosmetic-the-chosen-st|BUG-3554]] | The typed-signature style selector is cosmetic: the chosen style never reaches the signed document | UX | LOW | FIXED | apps/landing, api:contracts | DONE |
+| [[BUG-3583-counterparty-placeholders-are-grouped-under-customer|BUG-3583]] | Counterparty placeholders are grouped under Customer | UX | LOW | FIXED | api:contracts | DONE |
+| [[BUG-3586-the-monitoring-health-headline-reads-unknown-when-no-email-h|BUG-3586]] | The monitoring health headline reads Unknown when no email has been sent | BUG | LOW | FIXED | api:platform-monitoring | DONE |
+| [[BUG-3599-generating-an-agreement-in-an-unsupported-format-returns-a-5|BUG-3599]] | Generating an agreement in an unsupported format returns a 500 instead of a 400 | BUG | LOW | FIXED | api:contracts | DONE |
 | [[ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by|ITEM-0080]] | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
+| [[ITEM-0203-an-individual-partner-s-agreement-still-records-the-counterp|ITEM-0203]] | An individual partner's agreement still records the counterparty as a PARTNER party, not INDIVIDUAL | FOLLOW_UP | LOW | READY | api:contracts, api:partners | PLAN_REQUIRED |
 
 ## Key Architecture Decisions
 
@@ -687,6 +753,10 @@
 - [[ADR-0015-production-retires-sink-email-providers|ADR-0015 — Production retires sink email providers, tenants fall back to the platform relay, and default templates ship with real copy]]
 - [[ADR-0016-published-custom-modules-render-in-the-tenant-runtime|ADR-0016 — A published custom module renders in the tenant runtime with a sidebar entry and standard list, form and record screens]]
 - [[ADR-0017-the-hierarchy-viewer-stays-a-chain-scoped-dialog|ADR-0017 — The reporting hierarchy viewer stays a chain-scoped dialog, drawn as a real branching tree]]
+- [[ADR-0018-platform-operations-are-authorized-by-platform-permission-only|ADR-0018 — Platform operations are authorized by platform permission only, and the platform role list is consolidated]]
+- [[ADR-0019-totp-mfa-for-tenant-and-platform-users|ADR-0019 — Standard TOTP multi-factor authentication for tenant and platform users]]
+- [[ADR-0020-agreement-placeholders-are-offered-by-agreement-context|ADR-0020 — Agreement placeholders are offered and resolved by agreement context]]
+- [[ADR-0021-owner-decisions-countersign-platform-mfa-legal-publishing|ADR-0021 — Owner decisions for TASK-0032: countersign line, platform MFA, legal publishing]]
 - [[decision-a-bug-record-is-its-own-backlog-item|Decision — A bug record **is** its own backlog item]]
 - [[decision-ci-verdict-gates-shared-merges|Decision — A shared-target merge requires a read CI verdict on the exact SHA]]
 - [[decision-platform-admin-is-a-separate-identity|Decision — Platform admin is a separate identity, not an elevated tenant user]]
@@ -696,15 +766,15 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 456 |
-| Backlog items | 196 |
-| Known bug patterns | 34 |
-| QA runs | 32 |
-| Engineering history records | 81 |
+| Bug records | 486 |
+| Backlog items | 207 |
+| Known bug patterns | 35 |
+| QA runs | 33 |
+| Engineering history records | 83 |
 | Release records | 10 |
 | Module notes | 30 |
 | Architecture notes | 22 |
-| Decision notes (ADR + generated) | 21 |
+| Decision notes (ADR + generated) | 25 |
 | Implementation records | 7 |
 
 **Awaiting Architect triage: 0.** A record nobody has

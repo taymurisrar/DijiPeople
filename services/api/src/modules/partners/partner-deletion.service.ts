@@ -56,6 +56,22 @@ export class PartnerDeletionService {
                 agreements: true,
                 referralLinks: true,
                 portalUsers: true,
+                /*
+                 * Every relation below points at Partner with
+                 * `onDelete: Restrict`. Unchecked, the delete reached Postgres
+                 * and failed as a raw foreign-key error — a 500 "Unexpected
+                 * error" for almost every real partner, because nearly all of
+                 * them originate from a public inquiry, and any partner ever
+                 * re-attributed to a lead appears in the attribution history
+                 * (TASK-0032 WP-09 QA). Each is business history the delete
+                 * must not erase, so each is a named refusal.
+                 */
+                inquiries: true,
+                onboardingApplications: true,
+                previousAttributions: true,
+                correctedAttributions: true,
+                leadReviews: true,
+                supportCases: true,
               },
             },
           },
@@ -72,10 +88,36 @@ export class PartnerDeletionService {
           reasons.push(`${row._count.portalUsers} portal user(s)`);
         if (row._count.referralLinks)
           reasons.push(`${row._count.referralLinks} referral link(s)`);
+        if (row._count.inquiries)
+          reasons.push(`the partner application it came from`);
+        if (row._count.onboardingApplications)
+          reasons.push(
+            `${row._count.onboardingApplications} onboarding application(s)`,
+          );
+        const attributionHistory =
+          row._count.previousAttributions + row._count.correctedAttributions;
+        if (attributionHistory)
+          reasons.push(`${attributionHistory} lead attribution change(s)`);
+        if (row._count.leadReviews)
+          reasons.push(`${row._count.leadReviews} lead review(s)`);
+        if (row._count.supportCases)
+          reasons.push(`${row._count.supportCases} support case(s)`);
         return reasons;
       },
-      remove: (batch) =>
-        this.prisma.partner.deleteMany({ where: { id: { in: batch } } }),
+      /*
+       * PartnerTimeline is Restrict too, but it is the partner's own diary, not
+       * business history anything else depends on: when nothing above blocks
+       * the delete, the timeline goes with the partner, in one transaction.
+       */
+      remove: async (batch) => {
+        const [, removed] = await this.prisma.$transaction([
+          this.prisma.partnerTimeline.deleteMany({
+            where: { partnerId: { in: batch } },
+          }),
+          this.prisma.partner.deleteMany({ where: { id: { in: batch } } }),
+        ]);
+        return removed;
+      },
       label: (row) => row.displayName,
     });
   }

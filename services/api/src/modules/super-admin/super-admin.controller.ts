@@ -18,11 +18,11 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { PaymentRecheckService } from '../billing/services/payment-recheck.service';
 import { PlatformFxService } from './platform-fx.service';
 import type { PlatformRateView } from './platform-fx.service';
-import { RequireRoles } from '../../common/decorators/require-roles.decorator';
-import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { PlatformPermissionsGuard } from '../platform-auth/platform-permissions';
+import {
+  PlatformPermissionsGuard,
+  RequirePlatformPermission,
+} from '../platform-auth/platform-permissions';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { CreatePlanDto } from './dto/create-plan.dto';
 import { CreatePlanPriceDto } from './dto/create-plan-price.dto';
@@ -54,6 +54,7 @@ import { SetAgentAssignmentDto } from './dto/set-agent-assignment.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { UpdateTenantSlugDto } from '../tenants/dto/update-tenant-slug.dto';
 import { SuperAdminService } from './super-admin.service';
+import { OperationsDashboardService } from './operations-dashboard.service';
 import { ConvertLeadToCustomerDto } from '../leads/dto/admin-lead.dto';
 import {
   CreateTenantAccessUserDto,
@@ -70,8 +71,23 @@ import {
 } from '../platform-communications/platform-communications.service';
 import { PlatformEmailSettingsService } from '../platform-communications/platform-email-settings.service';
 
-@UseGuards(JwtAuthGuard, RolesGuard, PlatformPermissionsGuard)
-@RequireRoles(ROLE_KEYS.SYSTEM_ADMIN, ROLE_KEYS.SYSTEM_CUSTOMIZER)
+/*
+ * ADR-0018: a platform permission, and nothing else, decides every route here.
+ *
+ * This controller used to add `RolesGuard` with
+ * `@RequireRoles('system-admin', 'system-customizer')` — two *tenant* role keys,
+ * dating from when SUPER_ADMIN and MEMBER were the only platform roles. For a
+ * platform subject they meant "carries the right guard alias", which only
+ * SUPER_ADMIN, PLATFORM_OWNER and MEMBER did, so every other platform role was
+ * refused here however its permissions read — PLATFORM_ADMIN could not reach the
+ * plan catalog platform-permissions.spec.ts says it administers. The routes are now decided
+ * by `PlatformPermissionsGuard` alone: the path-derived permission, or the
+ * narrower one a handler declares with `@RequirePlatformPermission`. Those
+ * narrow `platform.*`-only keys are exactly the routes that repeated
+ * `@RequireRoles('system-admin')` to exclude MEMBER — their allowed set is
+ * unchanged (SUPER_ADMIN, PLATFORM_OWNER).
+ */
+@UseGuards(JwtAuthGuard, PlatformPermissionsGuard)
 @Controller('super-admin')
 export class SuperAdminController {
   constructor(
@@ -80,11 +96,34 @@ export class SuperAdminController {
     private readonly platformCommunications: PlatformCommunicationsService,
     private readonly paymentRecheck: PaymentRecheckService,
     private readonly fx: PlatformFxService,
+    private readonly operationsDashboard: OperationsDashboardService,
   ) {}
 
   @Get('dashboard-summary')
   getDashboardSummary(@Query('range') range?: string) {
     return this.superAdminService.getDashboardSummary(range);
+  }
+
+  /**
+   * The Operations view (TASK-0032 WP-07 / ITEM-0199): tenants, users,
+   * partners, agreements and system reliability, computed independently of
+   * the commercial `dashboard-summary` so a failure in one never blanks the
+   * other. Each section of the response resolves on its own — see
+   * `OperationsDashboardService`.
+   *
+   * Nested under `dashboard-summary/` on purpose, not `dashboard/`:
+   * `resolvePlatformPermission` (`modules/platform-auth/platform-permissions.ts`)
+   * maps every super-admin route to a platform permission via
+   * `path.includes(...)`, and that file is WP-02's alone to edit (COMMON-RULES
+   * single-writer list) — landing here means this route resolves to the same
+   * `dashboard.read` its sibling already carries with no change to that file.
+   * A path of `dashboard/operations` would have fallen through to `null`, and
+   * `PlatformPermissionsGuard` refuses an unresolved permission (BUG-0071) —
+   * this route would 403 for every role until WP-02 added a line for it.
+   */
+  @Get('dashboard-summary/operations')
+  getOperationsDashboard() {
+    return this.operationsDashboard.getOperationsDashboard();
   }
 
   @Get('lifecycle-options')
@@ -262,7 +301,6 @@ export class SuperAdminController {
   }
 
   @Patch('tenants/:tenantId')
-  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN, ROLE_KEYS.SYSTEM_CUSTOMIZER)
   updateTenant(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
@@ -272,6 +310,7 @@ export class SuperAdminController {
   }
 
   @Patch('tenants/:tenantId/slug')
+  @RequirePlatformPermission('platform.tenants.administer')
   updateTenantSlug(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
@@ -294,7 +333,7 @@ export class SuperAdminController {
   }
 
   @Patch('tenants/:tenantId/status')
-  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
+  @RequirePlatformPermission('platform.tenants.administer')
   updateTenantStatus(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
@@ -306,13 +345,13 @@ export class SuperAdminController {
   // Desktop-agent rollout (TASK-0027): which tenants receive a release, and on
   // which channel. Platform-guarded like the rest of this controller.
   @Get('agent-assignments')
-  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
+  @RequirePlatformPermission('platform.tenants.administer')
   listAgentAssignments() {
     return this.superAdminService.listAgentAssignments();
   }
 
   @Patch('tenants/:tenantId/agent-assignment')
-  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
+  @RequirePlatformPermission('platform.tenants.administer')
   setAgentAssignment(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
@@ -322,7 +361,7 @@ export class SuperAdminController {
   }
 
   @Get('tenants/:tenantId/audit-logs')
-  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
+  @RequirePlatformPermission('platform.tenants.administer')
   listTenantAuditLogs(
     @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
   ) {
@@ -330,7 +369,7 @@ export class SuperAdminController {
   }
 
   @Get('tenants/:tenantId/access-users')
-  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
+  @RequirePlatformPermission('platform.tenants.administer')
   listTenantAccessUsers(
     @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
   ) {
@@ -338,7 +377,7 @@ export class SuperAdminController {
   }
 
   @Post('tenants/:tenantId/access-users')
-  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
+  @RequirePlatformPermission('platform.tenants.administer')
   createTenantAccessUser(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
@@ -348,7 +387,7 @@ export class SuperAdminController {
   }
 
   @Patch('tenants/:tenantId/access-users/:userId')
-  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
+  @RequirePlatformPermission('platform.tenants.administer')
   updateTenantAccessUser(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
@@ -364,7 +403,7 @@ export class SuperAdminController {
   }
 
   @Post('tenants/:tenantId/access-users/:userId/reset-activation')
-  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
+  @RequirePlatformPermission('platform.tenants.administer')
   resetTenantAccessUserActivation(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
@@ -378,7 +417,7 @@ export class SuperAdminController {
   }
 
   @Post('tenants/:tenantId/access-users/:userId/reset-password')
-  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
+  @RequirePlatformPermission('platform.tenants.administer')
   resetTenantAccessUserPassword(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
@@ -392,13 +431,13 @@ export class SuperAdminController {
   }
 
   @Get('tenants/:tenantId/invoices')
-  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
+  @RequirePlatformPermission('platform.billing.administer')
   listTenantInvoices(@Param('tenantId', new ParseUUIDPipe()) tenantId: string) {
     return this.superAdminService.listTenantInvoices(tenantId);
   }
 
   @Patch('tenants/:tenantId/subscription')
-  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
+  @RequirePlatformPermission('platform.billing.administer')
   updateTenantSubscription(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
@@ -423,7 +462,7 @@ export class SuperAdminController {
   }
 
   @Get('invoices/:invoiceId/pdf')
-  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
+  @RequirePlatformPermission('platform.billing.administer')
   async downloadInvoicePdf(
     @CurrentUser() user: AuthenticatedUser,
     @Param('invoiceId', new ParseUUIDPipe()) invoiceId: string,
@@ -443,7 +482,7 @@ export class SuperAdminController {
   }
 
   @Post('invoices/:invoiceId/email')
-  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
+  @RequirePlatformPermission('platform.billing.administer')
   emailInvoice(
     @CurrentUser() user: AuthenticatedUser,
     @Param('invoiceId', new ParseUUIDPipe()) invoiceId: string,
@@ -452,7 +491,7 @@ export class SuperAdminController {
   }
 
   @Patch('invoices/:invoiceId/status')
-  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
+  @RequirePlatformPermission('platform.billing.administer')
   updateInvoiceStatus(
     @CurrentUser() user: AuthenticatedUser,
     @Param('invoiceId', new ParseUUIDPipe()) invoiceId: string,
@@ -462,7 +501,7 @@ export class SuperAdminController {
   }
 
   @Post('subscriptions/:subscriptionId/invoices')
-  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
+  @RequirePlatformPermission('platform.billing.administer')
   createInvoiceFromSubscription(
     @CurrentUser() user: AuthenticatedUser,
     @Param('subscriptionId', new ParseUUIDPipe()) subscriptionId: string,

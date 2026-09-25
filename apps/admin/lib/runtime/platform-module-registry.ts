@@ -713,6 +713,15 @@ const TENANT_RECORD_ACTIONS: RuntimeActionDefinition[] = [
 
 export const DASHBOARD_VIEWS: RuntimeViewDefinition[] = [
   {
+    key: "operations",
+    label: "Operations",
+    description:
+      "Tenants, users, partners, agreements, and system reliability, live, with what needs attention first.",
+    kind: "system",
+    roleDefaultFor: ["SUPER_ADMIN", "PLATFORM_ADMIN"],
+    roles: [...PLATFORM_OPERATORS, "MONITORING_OPERATOR"],
+  },
+  {
     key: "executive",
     label: "Executive overview",
     description: "Commercial and operational health across the platform.",
@@ -882,6 +891,29 @@ const partnerFields: RuntimeFieldDefinition[] = [
     "COMPANY",
     "INDIVIDUAL",
   ]),
+  /*
+   * BUG-3549. The commercial relationship (`PartnershipModel`) is distinct
+   * from the contracting entity type above and was captured on every
+   * `PartnerInquiry` (ITEM-0030) but never surfaced on the `Partner` record
+   * itself once converted — an operator opening a partner's own detail page
+   * could not see, or correct, which relationship it was taken on under.
+   */
+  field(
+    "partnershipModel",
+    "Partnership model",
+    "option",
+    "identity",
+    false,
+    [
+      "REFERRAL",
+      "RESELLER",
+      "IMPLEMENTATION",
+      "TECHNOLOGY",
+      "STRATEGIC",
+      "CONSULTANT",
+      "OTHER",
+    ],
+  ),
   field(
     "status",
     "Status",
@@ -900,10 +932,28 @@ const partnerFields: RuntimeFieldDefinition[] = [
     ]),
     readOnly: true,
   },
-  field("companyName", "Legal company name", "text", "identity"),
+  /*
+   * BUG-3549. `type` now drives which identity fields are required
+   * (`partner-type-policy.ts`, enforced server-side in
+   * `partners.service.ts`). The form mirrors that split rather than showing
+   * both a company field and a personal-name field as equally optional for
+   * every partner: a COMPANY partner needs a company name, an INDIVIDUAL
+   * partner needs a contact name and never a company name.
+   */
+  {
+    ...field("companyName", "Legal company name", "text", "identity"),
+    visibleWhen: { field: "type", equals: "COMPANY" },
+    requiredWhen: { field: "type", equals: "COMPANY" },
+  },
   field("taxId", "Tax ID", "text", "identity"),
-  field("contactFirstName", "Contact first name", "text", "contact"),
-  field("contactLastName", "Contact last name", "text", "contact"),
+  {
+    ...field("contactFirstName", "Contact first name", "text", "contact"),
+    requiredWhen: { field: "type", equals: "INDIVIDUAL" },
+  },
+  {
+    ...field("contactLastName", "Contact last name", "text", "contact"),
+    requiredWhen: { field: "type", equals: "INDIVIDUAL" },
+  },
   field("email", "Business email", "email", "contact", true),
   field("phone", "Phone", "phone", "contact"),
   field("website", "Website", "url", "contact"),
@@ -1317,7 +1367,20 @@ const definitions: PlatformModuleDefinition[] = [
         ]),
         {
           ...field("partnerId", "Referral partner", "lookup", "acquisition"),
-          lookupPath: "/partners?pageSize=100",
+          /*
+           * TASK-0032 WP-04, item 4. Filtered to `status=ACTIVE` so the picker
+           * itself cannot offer a suspended/inactive/terminated/rejected
+           * partner — the same rule `PartnerReferralResolverService.resolve()`
+           * already applies to an automatic referral-code attribution, and
+           * `LeadsService.correctAttribution()` now enforces it server-side
+           * too. Read-only here: the generic PATCH this form otherwise
+           * submits is explicitly refused by `updateLead()` — "Use the
+           * audited attribution-correction action to change a lead partner"
+           * — so reassignment happens through the "Partner attribution" panel
+           * instead, which calls that endpoint.
+           */
+          lookupPath: "/partners?pageSize=100&status=ACTIVE",
+          readOnly: true,
           visibleWhenAny: [
             {
               field: "source",
@@ -1626,6 +1689,7 @@ const definitions: PlatformModuleDefinition[] = [
     columns: [
       col("displayName", "Partner", 230),
       col("type", "Type", 120),
+      col("partnershipModel", "Partnership", 160, "status"),
       col("status", "Status", 170, "status"),
       col("onboardingApplications", "Onboarding", 170, "number"),
       col("agreements", "Agreements", 170, "number"),

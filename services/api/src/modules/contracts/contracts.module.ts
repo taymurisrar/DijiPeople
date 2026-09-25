@@ -10,9 +10,10 @@ import {
 } from './contracts.controller';
 import { ContractsService } from './contracts.service';
 import { PlatformCommunicationsModule } from '../platform-communications/platform-communications.module';
+import { AuditModule } from '../audit/audit.module';
 
 @Module({
-  imports: [PlatformCommunicationsModule],
+  imports: [PlatformCommunicationsModule, AuditModule],
   controllers: [
     ContractsController,
     ContractTemplatesController,

@@ -29,6 +29,7 @@ export function PartnerOnboardingForm({ token }: { token: string }) {
         ),
       );
   }, [token]);
+  const isIndividual = invitation?.partner.type === "INDIVIDUAL";
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
@@ -36,7 +37,16 @@ export function PartnerOnboardingForm({ token }: { token: string }) {
     const data = new FormData(event.currentTarget);
     const payload = {
       legalName: data.get("legalName"),
-      registrationNumber: data.get("registrationNumber"),
+      /*
+       * BUG-3549. A company registration number and a national ID are the
+       * same question — "prove who you are" — answered differently by a
+       * company and by an individual. `validatePartnerOnboardingData`
+       * (`partner-experience.service.ts`) requires whichever one matches
+       * `invitation.partner.type`, via `partner-type-policy.ts`.
+       */
+      ...(isIndividual
+        ? { nationalIdNumber: data.get("nationalIdNumber") }
+        : { registrationNumber: data.get("registrationNumber") }),
       registeredAddress: {
         line1: data.get("addressLine1"),
         city: data.get("city"),
@@ -114,13 +124,27 @@ export function PartnerOnboardingForm({ token }: { token: string }) {
       >
         <Input
           name="legalName"
-          label="Legal name"
+          label={isIndividual ? "Full legal name" : "Legal name"}
           required
           defaultValue={String(
             previous.legalName ?? invitation.partner.displayName,
           )}
         />
-        <Input name="registrationNumber" label="Registration number" required />
+        {isIndividual ? (
+          <Input
+            name="nationalIdNumber"
+            label="National ID number"
+            required
+            defaultValue={String(previous.nationalIdNumber ?? "")}
+          />
+        ) : (
+          <Input
+            name="registrationNumber"
+            label="Registration number"
+            required
+            defaultValue={String(previous.registrationNumber ?? "")}
+          />
+        )}
         <Input name="taxId" label="Tax ID" required />
         <Input name="website" label="Website" type="url" />
       </Section>

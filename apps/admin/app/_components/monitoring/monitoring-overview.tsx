@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import {
   AlertTriangle,
   ArrowRight,
@@ -344,13 +344,7 @@ export function MonitoringOverview({
                   >
                     {incident.message}
                   </Link>
-                  <time
-                    className="shrink-0 text-xs text-slate-500"
-                    dateTime={incident.timestamp}
-                    title={new Date(incident.timestamp).toLocaleString()}
-                  >
-                    {relativeTime(incident.timestamp)}
-                  </time>
+                  <IncidentTime timestamp={incident.timestamp} />
                 </div>
                 <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
                   {/*
@@ -601,6 +595,36 @@ function titleCase(value: string) {
     .toLowerCase()
     .replaceAll("_", " ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+const subscribeNever = () => () => {};
+
+/**
+ * An incident's age, rendered only in the browser.
+ *
+ * "7m ago" depends on the clock and the tooltip on the viewer's locale, so the
+ * server and the browser computed different text whenever a minute ticked
+ * between render and hydration. React then threw a hydration error, which the
+ * admin error dialog turned into a full-screen "unexpected system error" over
+ * the monitoring page (TASK-0032 browser QA). The server now renders an empty
+ * `<time>` carrying only the machine-readable timestamp, and the browser fills
+ * in the human text after hydration.
+ */
+function IncidentTime({ timestamp }: { timestamp: string }) {
+  const inBrowser = useSyncExternalStore(
+    subscribeNever,
+    () => true,
+    () => false,
+  );
+  return (
+    <time
+      className="shrink-0 text-xs text-slate-500"
+      dateTime={timestamp}
+      title={inBrowser ? new Date(timestamp).toLocaleString() : undefined}
+    >
+      {inBrowser ? relativeTime(timestamp) : null}
+    </time>
+  );
 }
 
 /** "4 minutes ago", falling back to a date once relative stops helping. */

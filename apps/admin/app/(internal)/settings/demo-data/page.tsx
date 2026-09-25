@@ -20,8 +20,9 @@ export default async function DemoDataPage() {
   const user = await requireSystemAdminUser("/settings/demo-data");
   /*
    * Owner-level access uses the shared helper, not a role-string comparison.
-   * SUPER_ADMIN is the legacy alias for PLATFORM_OWNER and the API grants
-   * `platform.*` to both, so testing the literal locked owners out.
+   * SUPER_ADMIN (Platform Super Admin) is the top role and PLATFORM_OWNER a
+   * retired alias of it (ADR-0018); the API grants `platform.*` to both, so a
+   * literal comparison would lock one of them out.
    */
   if (!isPlatformSuperAdmin(user.role)) {
     redirect("/access-denied");

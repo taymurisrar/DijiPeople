@@ -1,7 +1,10 @@
 import {
+  DEFAULT_NEW_PLATFORM_ROLE,
   PLATFORM_ROLES,
   formatPlatformRole,
+  isAssignablePlatformRole,
   isPlatformSuperAdmin,
+  platformRoleOptions,
   type PlatformRole,
 } from "./platform-rbac";
 
@@ -74,8 +77,16 @@ describe("PLATFORM_ROLES", () => {
 });
 
 describe("formatPlatformRole", () => {
-  it("labels the legacy role so its equivalence is visible in the UI", () => {
-    expect(formatPlatformRole("SUPER_ADMIN")).toContain("Platform Owner");
+  /*
+   * BUG-3547. SUPER_ADMIN was labelled "Platform Owner (legacy Super Admin)"
+   * beside PLATFORM_OWNER, so the picker offered two "Platform Owner" roles
+   * with identical permissions. ADR-0018 names SUPER_ADMIN the single top role.
+   */
+  it("labels the top role Platform Super Admin, and no two roles alike", () => {
+    expect(formatPlatformRole("SUPER_ADMIN")).toBe("Platform Super Admin");
+    expect(formatPlatformRole("MEMBER")).toBe("Legacy Member (deprecated)");
+    const labels = PLATFORM_ROLES.map(formatPlatformRole);
+    expect(new Set(labels).size).toBe(labels.length);
   });
 
   it("renders every role as readable text, never a raw enum", () => {
@@ -84,5 +95,35 @@ describe("formatPlatformRole", () => {
       expect(label.trim()).not.toBe("");
       expect(label).not.toMatch(/_/);
     }
+  });
+});
+
+describe("BUG-3547 the role picker offers each role once", () => {
+  const values = (options: Array<{ value: PlatformRole }>) =>
+    options.map((option) => option.value);
+
+  it("does not offer PLATFORM_OWNER or MEMBER for a new user", () => {
+    const offered = values(platformRoleOptions());
+    expect(offered).not.toContain("PLATFORM_OWNER");
+    expect(offered).not.toContain("MEMBER");
+    expect(offered).toContain("SUPER_ADMIN");
+    expect(offered).toHaveLength(PLATFORM_ROLES.length - 2);
+    // Exactly one option reads as the top role.
+    expect(
+      platformRoleOptions().filter((option) =>
+        /Owner|Super Admin/.test(option.label),
+      ),
+    ).toEqual([{ label: "Platform Super Admin", value: "SUPER_ADMIN" }]);
+  });
+
+  it("keeps an existing legacy member's own role selectable, and only theirs", () => {
+    const offered = values(platformRoleOptions("MEMBER"));
+    expect(offered).toContain("MEMBER");
+    expect(offered).not.toContain("PLATFORM_OWNER");
+  });
+
+  it("defaults a new user to an assignable, least-privileged role", () => {
+    expect(isAssignablePlatformRole(DEFAULT_NEW_PLATFORM_ROLE)).toBe(true);
+    expect(isPlatformSuperAdmin(DEFAULT_NEW_PLATFORM_ROLE)).toBe(false);
   });
 });

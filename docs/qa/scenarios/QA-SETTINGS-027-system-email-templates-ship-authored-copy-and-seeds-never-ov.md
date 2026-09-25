@@ -42,7 +42,7 @@ UPDATED_AT: 2026-09-13
 - Step 1-2: no verification error; the second run logs 0 created, 11 refreshed,
   0 left unchanged.
 - Step 3: every SYSTEM row matches
-  `docs/tasks/TASK-0031-streams/WP-04-email-copy-for-owner-review.md`; ACTIVE for
+  `docs/tasks/TASK-0031-streams/email-copy-for-owner-review.md`; ACTIVE for
   activation, password reset, invoice, payslip, scheduled report and support
   case; DRAFT for the other five. Per-tenant `AUTH_*` rows carry key
   `…retired-tenant-default` and status ARCHIVED. The tenant-owned template is

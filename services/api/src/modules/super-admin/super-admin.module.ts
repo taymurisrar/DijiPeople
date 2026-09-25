@@ -22,6 +22,7 @@ import { PlansRepository } from './plans.repository';
 import { PlatformLifecycleService } from './platform-lifecycle.service';
 import { PlatformFxService } from './platform-fx.service';
 import { PlatformOnboardingService } from './platform-onboarding.service';
+import { OperationsDashboardService } from './operations-dashboard.service';
 import { ProvisioningRequestedHandler } from './provisioning-requested.handler';
 import { SuperAdminController } from './super-admin.controller';
 import { SuperAdminService } from './super-admin.service';
@@ -53,6 +54,7 @@ import { TenantIdentitiesProvisioningService } from './tenant-identities-provisi
     PlatformFxService,
     PlatformOnboardingService,
     PlatformLifecycleService,
+    OperationsDashboardService,
     TenantProvisioningService,
     TenantIdentitiesProvisioningService,
     SuperAdminService,

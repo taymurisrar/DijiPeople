@@ -27,14 +27,11 @@ import {
   getAuthCookieNames,
 } from '../../common/config/auth.config';
 import { ConfigService } from '@nestjs/config';
-import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import { AuthenticationOnly } from '../../common/decorators/authentication-only.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import {
-  Permissions,
-  RequirePermission,
-} from '../../common/decorators/permissions.decorator';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PublicRateLimitGuard } from '../../common/guards/public-rate-limit.guard';
+import { isMfaChallengeResponse } from './mfa/mfa-challenge';
 
 @Controller('auth')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -81,6 +78,15 @@ export class AuthController {
   ) {
     const result = await this.authService.login(dto, req);
     const clientId = getAuthClientIdFromHeaders(req.headers);
+
+    /*
+     * ADR-0019 — the password was right but a second factor is owed. The
+     * challenge goes back as it is and no auth cookie is set: there is no
+     * session yet, and a cookie here would be one.
+     */
+    if (isMfaChallengeResponse(result)) {
+      return result;
+    }
 
     this.authService.setAuthCookies(
       res,
@@ -156,9 +162,15 @@ export class AuthController {
     return this.authService.getProfileFromRequest(req, res);
   }
 
+  /*
+   * The session heartbeat. It touches only the caller's own session row
+   * (`recordActivity` scopes by the session's own user and session id), so a
+   * session is the whole requirement — ADR-0018. It used to demand the tenant
+   * permission `user-preferences.write`, which no platform role holds: the
+   * admin console's heartbeat was refused for almost every operator (BUG-3545).
+   */
   @Post('activity')
-  @Permissions('user-preferences.write')
-  @RequirePermission(ENTITY_KEYS.USER_PREFERENCES, 'write')
+  @AuthenticationOnly()
   activity(@CurrentUser() user: AuthenticatedUser) {
     return this.authService.recordActivity(user);
   }

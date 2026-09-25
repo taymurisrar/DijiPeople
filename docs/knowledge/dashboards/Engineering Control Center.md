@@ -7,17 +7,17 @@
 
 | | |
 |---|---|
-| Active sessions | **1** |
-| Active parent tasks | 5 |
-| Active work packages | 5 |
+| Active sessions | **0** |
+| Active parent tasks | 4 |
+| Active work packages | 4 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
-| Open CRITICAL | **4** |
-| Open HIGH | 94 |
+| Open CRITICAL | **6** |
+| Open HIGH | 100 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 9 |
+| Owner decisions pending | 10 |
 | QA coverage gaps | 161 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -30,12 +30,12 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 197 |
-| No next action | 197 |
-| Aging — 7d / 30d / 90d | 100 / 0 / 0 |
+| No acceptance criteria | 230 |
+| No next action | 230 |
+| Aging — 7d / 30d / 90d | 199 / 15 / 0 |
 | Architecture and technical debt | 7 |
-| Security gaps | 30 |
-| Database gaps | 19 |
+| Security gaps | 37 |
+| Database gaps | 23 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -47,9 +47,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-| Session | Task | Title | Status | Branch | Target | Leases | Schema |
-|---|---|---|---|---|---|---|---|
-| [[SESSION-0105-demo-walkthrough-2-hierarchy-work-site-customization-notific|SESSION-0105]] | — | Demo walkthrough 2 - hierarchy, work site, customization, notifications findings | ACTIVE | `agent/demo-walkthrough-2-records` | `develop` | — | NO |
+_No session is currently registered as active._
 
 ## Active Tasks and Work Packages
 
@@ -59,7 +57,6 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 | [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 16/16 | — | — | — |
 | [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 11/11 | — | — | — |
 | [[TASK-0028-enterprise-reports-and-analytics-platform|TASK-0028]] | Enterprise Reports and Analytics platform | FEATURE | LARGE | 5/15 | WP-08 | — | — |
-| [[TASK-0031-demo-walkthrough-2-remediation-hierarchy-work-sites-customiz|TASK-0031]] | Demo walkthrough 2 remediation - hierarchy, work sites, customization, notifications | FEATURE | PROGRAM | 7/9 | WP-07 | — | — |
 
 ## Branch model
 
@@ -107,6 +104,8 @@ what they own, and what the backlog and QA systems currently say.
 | [[BUG-3152-post-users-userid-roles-lets-a-delegated-role-assignment-adm|BUG-3152]] | POST /users/:userId/roles lets a delegated role-assignment admin self-grant GLOBAL_ADMIN | AUTHORIZATION | CRITICAL | FIXED | api:users/users.service.ts, api:users/users.controller.ts | DONE |
 | [[BUG-3154-employee-bank-accounts-ibans-cnics-and-tax-identifiers-are-s|BUG-3154]] | Employee bank accounts, IBANs, CNICs and tax identifiers are stored in plaintext beside an unused AES-256-GCM service | DATA_INTEGRITY | CRITICAL | OPEN | api:employees, api:compensation | PLAN_REQUIRED |
 | [[BUG-3155-fieldsecurityrule-masking-is-enforced-only-in-the-browser-th|BUG-3155]] | FieldSecurityRule masking is enforced only in the browser; the API sends the unmasked value | AUTHORIZATION | CRITICAL | OPEN | api:employees | FIX_NOW |
+| [[BUG-3580-agreement-preview-documents-print-unresolved-placeholders|BUG-3580]] | Agreement preview documents print unresolved placeholders | BUG | CRITICAL | FIXED | api:contracts | DONE |
+| [[BUG-3581-signature-date-placeholders-block-sending-and-freeze-a-fabri|BUG-3581]] | Signature-date placeholders block sending and freeze a fabricated date into signed agreements | BUG | CRITICAL | FIXED | api:contracts | DONE |
 
 ## Owner Decisions Pending
 
@@ -121,6 +120,7 @@ Questions where the engineering is understood and the **product answer is**
 - [[BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-|BUG-3333]] — **Tenant buyers choose their own currency and the three price schedules are not equivalent**
 - [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] — **No multi-factor authentication exists anywhere, including for platform super admins**
 - [[ITEM-0193-decide-whether-the-hr-role-may-manage-notification-events|ITEM-0193]] — **Decide whether the hr role may manage notification events**
+- [[ITEM-0207-seed-config-rewrites-version-1-of-system-agreement-templates|ITEM-0207]] — **seed:config rewrites version 1 of system agreement templates in place instead of publishing a new version**
 - [[ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins|ITEM-0191]] — **Decide whether custom modules need their own access keys instead of the shared custom-records privilege**
 
 ## QA Coverage Gaps
@@ -296,10 +296,10 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 197 |
+| Open total | 230 |
 | Blocked | 2 |
-| Deferred | 105 |
-| Awaiting a product decision | 9 |
+| Deferred | 108 |
+| Awaiting a product decision | 10 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

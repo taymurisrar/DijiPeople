@@ -37,6 +37,19 @@ export type TenantAuthPolicy = {
   absoluteSessionLifetimeDays: number;
   idleTimeoutMinutes: number;
   allowMultipleActiveSessions: boolean;
+  /**
+   * ADR-0019 — every user of this tenant must complete TOTP MFA to sign in. A
+   * user who has not enrolled is taken through enrolment during sign-in
+   * (challenge kind `SETUP_REQUIRED`) before any session is issued.
+   */
+  mfaRequired: boolean;
+  /**
+   * The second factor the tenant requires. Only `TOTP` is implemented; the
+   * catalog's former `EMAIL` default was never honoured by anything, so any
+   * stored value resolves to `TOTP` rather than to a method that does not
+   * exist. See ADR-0019 for why email OTP was not adopted as the factor.
+   */
+  mfaMethod: 'TOTP';
 };
 
 const SECURITY_SETTING_KEYS = [
@@ -46,6 +59,8 @@ const SECURITY_SETTING_KEYS = [
   'absoluteSessionLifetimeDays',
   'idleTimeoutMinutes',
   'allowMultipleActiveSessions',
+  'mfaRequired',
+  'mfaMethod',
 ] as const;
 
 /*
@@ -121,8 +136,17 @@ export class TenantAuthPolicyService {
         values.get('allowMultipleActiveSessions'),
         true,
       ),
+      mfaRequired: readBooleanSetting(values.get('mfaRequired'), false),
+      mfaMethod: resolveMfaMethod(values.get('mfaMethod')),
     };
   }
+}
+
+function resolveMfaMethod(value: unknown): 'TOTP' {
+  // Read so the stored value is honoured the day a second method exists; today
+  // every value, including the historical 'EMAIL' default, means TOTP.
+  void value;
+  return 'TOTP';
 }
 
 function readBooleanSetting(value: unknown, fallback: boolean) {

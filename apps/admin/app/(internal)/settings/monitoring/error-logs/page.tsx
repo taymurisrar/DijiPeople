@@ -92,6 +92,8 @@ function buildQueryString(searchParams: Record<string, string | string[] | undef
     "tenantId",
     "userId",
     "category",
+    "module",
+    "correlationId",
     "route",
     "method",
     "from",

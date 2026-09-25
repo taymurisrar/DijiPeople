@@ -5423,7 +5423,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **QA scenario** | QA-SETTINGS-027 |
 | **Scenario** | No system email template field contains placeholder wording. The catalog refuses to load when an event names a system template with no authored copy. A template is ACTIVE only for events something sends by email today. `seed:config` fails if an ACTIVE system template in the database contains placeholder wording. |
 | **Proven to fail without the fix** | Mutation: re-inserting the placeholder sentence into the payslip copy fails the spec (1 failed / 42 passed). |
-| **Note** | Copy lives in `system-email-templates.copy.ts`, the single source; `docs/tasks/TASK-0031-streams/WP-04-email-copy-for-owner-review.md` is generated from it for the owner's review (ADR-0015). |
+| **Note** | Copy lives in `system-email-templates.copy.ts`, the single source; `docs/tasks/TASK-0031-streams/email-copy-for-owner-review.md` is generated from it for the owner's review (ADR-0015). |
 | **Fixed** | 2026-09-13, commit b0d8278d on branch `agent/walkthrough2-email-templates`, merged into `agent/walkthrough2-integration` |
 | **Active** | yes |
 
@@ -5618,3 +5618,1083 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fixed** | 2026-09-13, commit 11e987a6 on branch `agent/walkthrough2-providers-logs`, merged into `agent/walkthrough2-integration` |
 | **Active** | yes |
 
+
+### REG-525 — Platform operators with tenants.update refused on tenant profile save
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` |
+| **Module** | `services/api/src/modules/super-admin`, `services/api/src/modules/platform-auth` |
+| **Bug record** | BUG-3544 |
+| **Root cause** | `SuperAdminService.updateTenant` re-checked `actor.roleKeys.includes('system-admin')` after `PlatformRuntimeService.assertModuleWrite` had already passed `tenants.update`. `system-admin` is a tenant role key a platform subject only carries as a guard alias, and `platformAccessForRole` injects it for SUPER_ADMIN and PLATFORM_OWNER only, so PLATFORM_ADMIN, PLATFORM_OPERATIONS and MEMBER saw an enabled Save and were refused with "Only System Admin can edit tenant profile fields." The same idiom gated the direct `PATCH /super-admin/tenants/:id` route through `RolesGuard`. The service also wrote `status`/`subStatus` without a reason and audited nothing. |
+| **Regression test** | `services/api/src/modules/super-admin/super-admin.service.spec.ts`, `services/api/src/modules/platform-auth/platform-permissions.spec.ts` |
+| **Scenario** | Through the service, SUPER_ADMIN, PLATFORM_OWNER, PLATFORM_ADMIN, PLATFORM_OPERATIONS and MEMBER can save `displayName`; PRESALES_USER, SUPPORT_AGENT and READ_ONLY_AUDITOR get 403; a tenant user carrying the `system-admin` role key and `tenants.update` gets 403; a changed `status` or `subStatus` gets 400 `TENANT_STATUS_REQUIRES_LIFECYCLE_ACTION` naming the Actions-menu lifecycle actions and `POST /api/platform/tenants/{tenantId}/status`; a blank `name` gets 400; one `TENANT_PROFILE_UPDATED` audit row carries `name`/`displayName`/`legalName` before and after. Live: `PATCH /api/platform-runtime/tenants/:id` with `{values:{displayName}}` returns 200 for PLATFORM_ADMIN and PLATFORM_OPERATIONS. |
+| **Proven to fail without the fix** | With `super-admin.service.ts` restored to `10d5d148`, 9 of the 16 tests in `super-admin.service.spec.ts` fail — the PLATFORM_ADMIN, PLATFORM_OPERATIONS and MEMBER allow cases, the tenant-user refusal (the old check admitted it), both status refusals, the echoed-status case, the blank-name case and the audit case. |
+| **Note** | A status equal to the current one is ignored rather than refused, so a client echoing the whole record is not broken. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp02-rbac` (TASK-0032 WP-02) |
+| **Active** | yes |
+
+### REG-526 — Platform routes gated by tenant role keys through RolesGuard
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` |
+| **Module** | `services/api/src/modules/super-admin`, `services/api/src/modules/leads`, `services/api/src/modules/legal`, `services/api/src/modules/demo-data`, `services/api/src/modules/platform-auth` |
+| **Bug record** | BUG-3544 |
+| **Root cause** | `SuperAdminController`, `AdminLeadsController`, `AdminLegalController` and `DemoDataController` stacked `RolesGuard` + `@RequireRoles('system-admin', 'system-customizer')` (or `'system-admin'`, or `'SUPER_ADMIN'`) on top of `PlatformPermissionsGuard`. For a platform subject that asked which guard alias `platformAccessForRole` injected, so every role except SUPER_ADMIN, PLATFORM_OWNER and MEMBER was refused on all 105 routes whatever its platform permissions said. |
+| **Regression test** | `services/api/src/modules/platform-auth/platform-permissions.spec.ts` |
+| **Scenario** | Every route on the four controllers resolves a platform permission; none carries `REQUIRED_ROLES_KEY` metadata; each controller's guards are exactly `[JwtAuthGuard, PlatformPermissionsGuard]`; the set of routes only `platform.*` can reach equals the 24 listed in `SUPER_ADMIN_ONLY_ROUTES`; the narrow keys `platform-users.manage`, `platform.tenants.administer`, `platform.billing.administer`, `platform.legal.administer` and `platform.demoData.delete` are held by SUPER_ADMIN and PLATFORM_OWNER only; a declared `@RequirePlatformPermission` overrides the path-derived permission (LEGAL_REVIEWER holds `legal.read` and is still refused on `super-admin/legal`). |
+| **Proven to fail without the fix** | At `10d5d148` the controllers carry `RolesGuard` and role metadata and `RequirePlatformPermission` does not exist, so the guard-list, role-metadata and narrow-route assertions fail. |
+| **Note** | Access widened on the 80 routes that carried only the class-level gate, to exactly the holders of each route's existing platform permission; the tenant profile edit widens as ADR-0018 intends, and the slug route admits the PLATFORM_OWNER alias — see the route table in `docs/tasks/TASK-0032-streams/t0032-wp-02-report.md`. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp02-rbac` (TASK-0032 WP-02) |
+| **Active** | yes |
+
+### REG-527 — Admin session heartbeat refused, and the refusal shown as a blocking dialog
+
+| | |
+|---|---|
+| **Bug class** | `permission-family-drift` |
+| **Module** | `services/api/src/modules/auth`, `services/api/src/common/guards`, `apps/admin` |
+| **Bug record** | BUG-3545 |
+| **Root cause** | `POST /auth/activity` required the tenant permission `user-preferences.write` (plus the USER_PREFERENCES matrix privilege). No platform role holds tenant permissions, so only SUPER_ADMIN and PLATFORM_OWNER (the `system-admin` alias trips `hasElevatedTenantRole`) passed. The admin console sends the heartbeat on clicks, and `ErrorProvider`'s global fetch interceptor opened the blocking error dialog for every failed `/api/` response, including this background call. |
+| **Regression test** | `services/api/src/modules/auth/auth-activity-authorization.spec.ts`, `services/api/src/common/constants/wiring-invariants.spec.ts`, `apps/admin/lib/background-request.spec.ts` |
+| **Scenario** | `POST /api/auth/activity` returns 200 for a session of every one of the 16 platform roles and for a tenant user with no permissions; without a session it is 401 (the handler is not `@Public()`; `JwtAuthGuard` runs). In the admin console a failed heartbeat never opens the error dialog; a heartbeat 401 goes through the refresh-or-session-expired flow; a failed operator action still opens the dialog. |
+| **Proven to fail without the fix** | With `auth.controller.ts` restored to `10d5d148`, 17 of the 20 tests in `auth-activity-authorization.spec.ts` fail: all 14 non-elevated platform roles, the tenant user, the metadata test and the no-user test. SUPER_ADMIN and PLATFORM_OWNER passed on the old code, which matches the live reproduction. In `apps/admin` the call-site assertions fail at `10d5d148` because the heartbeat is not marked and the interceptor has no background rule. |
+| **Note** | `@AuthenticationOnly()` is the explicit marker; `PermissionsGuard` honours it before reading permission metadata, and the dual-permission invariant exempts only handlers on its reviewed list, so the decorator cannot spread unreviewed. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp02-rbac` (TASK-0032 WP-02) |
+| **Active** | yes |
+
+### REG-528 — Role picker offered two "Platform Owner" roles and the legacy Member
+
+| | |
+|---|---|
+| **Bug class** | `doc-code-drift` |
+| **Module** | `apps/admin`, `services/api/src/modules/platform-users`, `services/api/src/modules/platform-auth` |
+| **Bug record** | BUG-3547 |
+| **Root cause** | `formatPlatformRole` labelled SUPER_ADMIN "Platform Owner (legacy Super Admin)" next to PLATFORM_OWNER, which has identical `platform.*` permissions. The picker offered every enum value, MEMBER included, and the new-user form defaulted to MEMBER. `CreatePlatformUserDto`/`UpdatePlatformUserDto` accepted any `PlatformUserRole`, and the service did not check the role. |
+| **Regression test** | `apps/admin/lib/platform-rbac.spec.ts`, `services/api/src/modules/platform-users/platform-users-rbac.spec.ts` |
+| **Scenario** | SUPER_ADMIN reads "Platform Super Admin", and no two roles share a label. For a new user the picker offers 14 roles, neither PLATFORM_OWNER nor MEMBER, and defaults to READ_ONLY_AUDITOR. Editing an existing MEMBER still shows "Legacy Member (deprecated)" as their current role. `POST /platform-users` with role PLATFORM_OWNER or MEMBER, and `PATCH /platform-users/:id` changing a role to either, return 400 `PLATFORM_ROLE_NOT_ASSIGNABLE` naming the role to use instead. Saving a MEMBER with their unchanged role succeeds. |
+| **Proven to fail without the fix** | With `platform-users.service.ts` restored to `10d5d148`, the 5 retired-role tests in `platform-users-rbac.spec.ts` fail: both creates, both role changes and the message check. At `10d5d148`, `platform-rbac.ts` exports no `platformRoleOptions`, `isAssignablePlatformRole` or `DEFAULT_NEW_PLATFORM_ROLE`, and it labels SUPER_ADMIN "Platform Owner (legacy Super Admin)", so the admin spec fails. |
+| **Note** | Until a contract step (ADR-0018), PLATFORM_OWNER stays an alias with `platform.*` in `ROLE_PERMISSIONS`, `platformAccessForRole` and `isPlatformSuperAdmin`. WP-01 migrated its holders to SUPER_ADMIN. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp02-rbac` (TASK-0032 WP-02) |
+| **Active** | yes |
+
+### REG-529 — Super Admin is not a bypass: platform-user management by permission, RolesGuard tenant-only
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` |
+| **Module** | `services/api/src/common/guards`, `services/api/src/modules/platform-users` |
+| **Bug record** | BUG-3544 |
+| **Root cause** | `RolesGuard` returned true for the literal platform role SUPER_ADMIN before checking anything, and for MEMBER because of its `system-customizer` alias. `PlatformUsersService.assertCanManage` compared role literals. Both were role-name decisions in platform paths, which is the pattern ADR-0018 retires. |
+| **Regression test** | `services/api/src/common/guards/roles.guard.spec.ts`, `services/api/src/modules/platform-users/platform-users-rbac.spec.ts` |
+| **Scenario** | A SUPER_ADMIN, PLATFORM_OWNER or MEMBER platform subject on a `@RequireRoles` route gets 403 `PLATFORM_PERMISSION_DENIED`. Tenant users are decided by role keys exactly as before. Platform-user list, create, update and disable require `platform-users.manage`. SUPER_ADMIN and PLATFORM_OWNER pass. The other 14 roles get 403, and so does a tenant user carrying `system-admin` and `platform.*` keys. The last-active-Super-Admin invariant still refuses a Super Admin actor. |
+| **Proven to fail without the fix** | At `10d5d148`, `RolesGuard` admits SUPER_ADMIN and MEMBER (and PLATFORM_OWNER through its alias), so the three platform-subject cases in `roles.guard.spec.ts` fail. |
+| **Note** | No route a platform subject reaches still uses `@RequireRoles`; `platform-permissions.spec.ts` pins that for the four platform controllers. `PermissionsController` keeps `RolesGuard` but declares no role metadata, so the guard does nothing there. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp02-rbac` (TASK-0032 WP-02) |
+| **Active** | yes |
+
+### REG-535 — A numeric `*_TTL_SECONDS` value signs tokens for that many seconds
+
+| | |
+|---|---|
+| **Bug class** | `unit-mismatch-between-consumers` |
+| **Module** | `services/api/src/common/config`, `services/api/src/modules/auth` |
+| **Bug record** | BUG-3548 |
+| **Root cause** | `getClientAccessTokenTtl`, `getClientRefreshTokenTtl`, `getAccessTokenTtl`, `getRefreshTokenTtl` and the agent/remember-me equivalents returned the raw configured string. `parseDurationToMilliseconds` (API, web and admin cookie sizing) read a bare integer as seconds, but `jsonwebtoken` passes an `expiresIn` string through `ms()`, which reads it as milliseconds — so `AUTH_ADMIN_ACCESS_TOKEN_TTL_SECONDS=1800` signed tokens with `exp = iat + 1` inside a cookie that lived thirty minutes. |
+| **Regression test** | `services/api/src/common/config/auth.config.spec.ts` |
+| **QA scenario** | — |
+| **Scenario** | With `AUTH_ADMIN_ACCESS_TOKEN_TTL_SECONDS=1800` an admin access token decodes to `exp - iat = 1800`; the same holds for web access tokens, refresh tokens and agent tokens; `15m`/`7d` keep their meaning; the cookie `maxAge` sized from the returned `accessTokenExpiresIn` equals the signed lifetime; a blank value falls back to the default rather than a zero lifetime. |
+| **Proven to fail without the fix** | Mutation: making `normalizeTokenTtl` return the value unchanged fails 7 of the spec's 12 tests. |
+| **Note** | The API now reports bare-integer lifetimes as `<n>s` in `accessTokenExpiresIn`/`refreshTokenExpiresIn`; both frontends' parsers already accept the suffix. |
+| **Fixed** | 2026-09-25, TASK-0032 WP-03 on branch `agent/pah-wp03-mfa` (see WP-03 report for the commit) |
+| **Active** | yes |
+
+### REG-536 — Platform sign-in locks after repeated failures and says nothing different when locked
+
+| | |
+|---|---|
+| **Bug class** | `missing-brute-force-control` |
+| **Module** | `services/api/src/modules/auth` |
+| **Bug record** | BUG-3146 |
+| **Root cause** | `validatePlatformAdminCredentials` compared the password and returned; no counter, no lock, no audit row. Platform operators — the most privileged accounts — were the only ones with no lockout. |
+| **Regression test** | `services/api/src/modules/auth/platform-login-lockout.spec.ts` |
+| **QA scenario** | — |
+| **Scenario** | Five wrong passwords for a platform user set `lockedUntil` 30 minutes ahead and reset the counter; the correct password is then refused; an unknown address, a wrong password and a locked account return the identical 401 body (`Invalid admin credentials.`); after the lock expires the correct password signs in and clears the counter; failures and the lock are written to the platform audit log. Wrong MFA codes count toward the same lock (REG-540). |
+| **Proven to fail without the fix** | Mutation: removing the `isLocked`/`registerFailure` calls from the sign-in path fails 3 of the spec's 4 tests. |
+| **Note** | Thresholds are fixed at 5 failures / 30 minutes (the tenant defaults); there is no platform security-settings store. |
+| **Fixed** | 2026-09-25, TASK-0032 WP-03 on branch `agent/pah-wp03-mfa` (see WP-03 report for the commit) |
+| **Active** | yes |
+
+### REG-537 — TOTP matches the RFC test vectors
+
+| | |
+|---|---|
+| **Bug class** | `algorithm-drift` |
+| **Module** | `services/api/src/modules/auth/mfa` |
+| **Bug record** | ITEM-0197 |
+| **Root cause** | New code (ADR-0019). A TOTP implementation that is subtly wrong still yields six plausible digits that never match the phone. |
+| **Regression test** | `services/api/src/modules/auth/mfa/totp.spec.ts` |
+| **QA scenario** | — |
+| **Scenario** | HOTP matches RFC 4226 Appendix D; TOTP (SHA1, 8 digits) matches RFC 6238 Appendix B at all six times; ±1 step accepted, ±2 refused; replay of the last accepted step or earlier refused. |
+| **Proven to fail without the fix** | Pinned against published vectors; any change to truncation, counter encoding or base32 fails them. |
+| **Note** | — |
+| **Fixed** | 2026-09-25, TASK-0032 WP-03 on branch `agent/pah-wp03-mfa` (see WP-03 report for the commit) |
+| **Active** | yes |
+
+### REG-538 — MFA setup stays pending until confirmed; one code, one use
+
+| | |
+|---|---|
+| **Bug class** | `replay-and-pending-state` |
+| **Module** | `services/api/src/modules/auth/mfa` |
+| **Bug record** | ITEM-0197 |
+| **Root cause** | New code (ADR-0019). |
+| **Regression test** | `services/api/src/modules/auth/mfa/mfa.service.spec.ts` |
+| **QA scenario** | — |
+| **Scenario** | Starting setup stores an encrypted pending seed without enabling MFA; restarting replaces it; a wrong confirmation code leaves MFA off; confirming records the step so the confirmation code cannot also complete a sign-in; a code accepted once is refused the second time (compare-and-set on `mfaLastUsedStep`); no seed is stored when `SECRET_ENCRYPTION_KEY` is unset. |
+| **Proven to fail without the fix** | Mutation: removing the last-used-step condition from the verify write fails 2 tests. |
+| **Note** | — |
+| **Fixed** | 2026-09-25, TASK-0032 WP-03 on branch `agent/pah-wp03-mfa` (see WP-03 report for the commit) |
+| **Active** | yes |
+
+### REG-539 — Recovery codes work once, on one account, and regeneration invalidates the old set
+
+| | |
+|---|---|
+| **Bug class** | `single-use-credential` |
+| **Module** | `services/api/src/modules/auth/mfa` |
+| **Bug record** | ITEM-0197 |
+| **Root cause** | New code (ADR-0019). |
+| **Regression test** | `services/api/src/modules/auth/mfa/mfa.service.spec.ts`, `recovery-codes.spec.ts` |
+| **QA scenario** | — |
+| **Scenario** | Ten codes shown once and stored as keyed hashes bound to the account id; a code works once regardless of case/spacing; another account cannot use it; regenerating needs a current TOTP and invalidates every earlier code; disable needs the password and a TOTP or recovery code. |
+| **Proven to fail without the fix** | The single-use condition is `usedAt: null` in the consuming `updateMany`; the spec fails if the filter is dropped (second use would pass). |
+| **Note** | — |
+| **Fixed** | 2026-09-25, TASK-0032 WP-03 on branch `agent/pah-wp03-mfa` (see WP-03 report for the commit) |
+| **Active** | yes |
+
+### REG-540 — Sign-in owes a second factor: challenge, no cookie, single-use verify, lockout
+
+| | |
+|---|---|
+| **Bug class** | `auth-step-skipped` |
+| **Module** | `services/api/src/modules/auth` |
+| **Bug record** | ITEM-0197 |
+| **Root cause** | New code (ADR-0019). Login used to issue tokens in one step. |
+| **Regression test** | `services/api/src/modules/auth/mfa/mfa-login.spec.ts` |
+| **QA scenario** | — |
+| **Scenario** | An enrolled tenant user or platform operator receives `{ mfaRequired, challengeKind: VERIFY, challengeToken }` with no tokens and no `Set-Cookie`; tenant `security.mfaRequired` sends an unenrolled user through SETUP_REQUIRED; `JwtAuthGuard` refuses the challenge token as an access token; verify issues exactly one session (the challenge is spent), with audit `mfaResult` PASSED or RECOVERY_CODE_USED; a challenge for one client is refused by the other; five wrong codes lock the account, after which both the valid code and the password are refused; wrong codes are audited as AUTH_LOGIN_FAILED / MFA_CODE_INVALID / FAILED. |
+| **Proven to fail without the fix** | Written with the feature; the controller cases fail if `setAuthCookies` runs before the challenge branch. |
+| **Note** | Platform MFA is optional; no platform SETUP_REQUIRED flow exists (owner decision pending). |
+| **Fixed** | 2026-09-25, TASK-0032 WP-03 on branch `agent/pah-wp03-mfa` (see WP-03 report for the commit) |
+| **Active** | yes |
+
+### REG-541 — An administrator MFA reset cannot leave the tenant or the row scope
+
+| | |
+|---|---|
+| **Bug class** | `cross-tenant-write` |
+| **Module** | `services/api/src/modules/auth/mfa`, `services/api/src/modules/users`, `services/api/src/modules/platform-users` |
+| **Bug record** | ITEM-0197 |
+| **Root cause** | New code (ADR-0019). |
+| **Regression test** | `services/api/src/modules/auth/mfa/mfa.service.spec.ts`, `services/api/src/modules/platform-users/platform-user-mfa-reset.spec.ts` |
+| **QA scenario** | — |
+| **Scenario** | A tenant global admin resets a same-tenant user (seed, codes cleared; sessions revoked; audited with the admin as actor); the same admin targeting a user in another tenant gets USER_NOT_FOUND and nothing changes; an admin whose USERS write scope is USER cannot reset someone else; nobody can reset their own MFA this way; a platform reset is refused for anyone `assertCanManage` refuses and the MFA service is never called. |
+| **Proven to fail without the fix** | Mutation: removing both the tenant filter and the row scope from the target lookup fails 2 tests. |
+| **Note** | — |
+| **Fixed** | 2026-09-25, TASK-0032 WP-03 on branch `agent/pah-wp03-mfa` (see WP-03 report for the commit) |
+| **Active** | yes |
+
+### REG-542 — No MFA secret reaches an audit row or a log line
+
+| | |
+|---|---|
+| **Bug class** | `secret-in-log` |
+| **Module** | `services/api/src/modules/auth/mfa` |
+| **Bug record** | ITEM-0197 |
+| **Root cause** | New code (ADR-0019). |
+| **Regression test** | `services/api/src/modules/auth/mfa/mfa.service.spec.ts` |
+| **QA scenario** | — |
+| **Scenario** | Across setup, confirm, a failed code, a recovery-code sign-in, regeneration and disable, no audit payload or Nest Logger call contains the seed, the manual key, the otpauth URI, a TOTP, the password or any recovery code. |
+| **Proven to fail without the fix** | Spies on every Logger level and on AuditService.log. |
+| **Note** | — |
+| **Fixed** | 2026-09-25, TASK-0032 WP-03 on branch `agent/pah-wp03-mfa` (see WP-03 report for the commit) |
+| **Active** | yes |
+
+### REG-543 — Every platform sign-in outcome is audited, without the attempted password
+
+| | |
+|---|---|
+| **Bug class** | `missing-audit-trail` |
+| **Module** | `services/api/src/modules/auth` |
+| **Bug record** | BUG-3567 — platform sign-in not audited (found by TASK-0032 WP-07) |
+| **Root cause** | Tenant sign-ins wrote `AUTH_LOGIN_*` rows through `logTenantAuthEvent`; `adminLogin` wrote nothing, so the platform audit log had no source for operator sign-ins or failed attempts. |
+| **Regression test** | `services/api/src/modules/auth/platform-login-audit.spec.ts` |
+| **QA scenario** | — |
+| **Scenario** | Success writes `AUTH_LOGIN_SUCCEEDED` (`tenantId: 'platform'`, actor = operator, `mfaResult`, session id, forwarded IP and user agent); wrong password, locked account, unknown address (no actor, entity = the address tried) and wrong MFA code write `AUTH_LOGIN_FAILED` with the `failureReason`; every failure keeps the identical 401 body; no row contains the attempted password. |
+| **Proven to fail without the fix** | Mutation: making `logPlatformAuthEvent` return early fails 4 of the spec's 5 tests. |
+| **Note** | Same snapshot shape as tenant sign-in rows, so the audit screens read both alike. |
+| **Fixed** | 2026-09-25, TASK-0032 WP-03 on branch `agent/pah-wp03-mfa` (see WP-03 report for the commit) |
+| **Active** | yes |
+
+### REG-550 — Individual partner onboarding asked for a company registration number
+
+| | |
+|---|---|
+| **Bug class** | `type-blind-required-field` |
+| **Module** | `services/api/src/modules/partner-experience`, `apps/landing/app/partners/onboarding` |
+| **Bug record** | BUG-3549 |
+| **Root cause** | `validatePartnerOnboardingData` applied one required-field list to every applicant regardless of `Partner.type`, including `registrationNumber` — a company registration number an individual does not have and the onboarding form offered no alternative for, even though the form already receives `invitation.partner.type`. |
+| **Regression test** | `services/api/src/modules/partners/partner-type-policy.spec.ts` |
+| **Scenario** | An INDIVIDUAL applicant's onboarding submission missing `registrationNumber` but carrying `nationalIdNumber` passes validation; a COMPANY applicant is still required to provide `registrationNumber` and is never asked for `nationalIdNumber`. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp04-partners` |
+| **Active** | yes |
+
+### REG-551 — Admin partner create/update accepted any identity-field combination for either type
+
+| | |
+|---|---|
+| **Bug class** | `type-blind-required-field` |
+| **Module** | `services/api/src/modules/partners` |
+| **Bug record** | BUG-3549 |
+| **Root cause** | `CreatePartnerDto`/`UpdatePartnerDto` left `companyName`/`contactFirstName`/`contactLastName` all optional with no server-side rule tying them to `type` — a COMPANY partner could be created with no company name, an INDIVIDUAL partner with no name at all. |
+| **Regression test** | `services/api/src/modules/partners/partner-type-policy.spec.ts` |
+| **Scenario** | `POST /partners` with `type: COMPANY` and no `companyName` → 400 naming the missing field; `type: INDIVIDUAL` with no `contactFirstName`/`contactLastName` → 400; an INDIVIDUAL is never asked for `companyName`. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp04-partners` |
+| **Active** | yes |
+
+### REG-552 — `POST /partners` (admin create) had no duplicate detection at all
+
+| | |
+|---|---|
+| **Bug class** | `missing-duplicate-check` |
+| **Module** | `services/api/src/modules/partners` |
+| **Bug record** | BUG-3550 |
+| **Root cause** | `PartnersService.create()` inserted a `Partner` row unconditionally. Unlike the public inquiry path (`submitInquiry`, weak email/company-name check), the internal admin path — and the identical "runtime create" path through `platform-runtime.service.ts` — had no check on `email`, `taxId` or `companyName` at all. |
+| **Regression test** | `services/api/src/modules/partners/partner-duplicate-detection.spec.ts`, `partners-audit.spec.ts` |
+| **Scenario** | `POST /partners` with an email, tax id (any punctuation/case) or company name (COMPANY only) already held by an existing partner → `409 Conflict` naming the existing partner's display name, code and status. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp04-partners` |
+| **Active** | yes |
+
+### REG-553 — Qualifying an inquiry with no `partnerId` could create a duplicate partner
+
+| | |
+|---|---|
+| **Bug class** | `missing-duplicate-check` |
+| **Module** | `services/api/src/modules/partner-experience` |
+| **Bug record** | BUG-3550 |
+| **Root cause** | `qualifyInquiry()` created a new `Partner` whenever `inquiry.partnerId` was unset, with no check against existing partners sharing the same email/company name — reachable for any inquiry that predates `submitInquiry`'s partner-linking (imported data, or a row inserted by another path). |
+| **Regression test** | `services/api/src/modules/partners/partner-duplicate-detection.spec.ts`, `services/api/src/modules/partner-experience/partnership-model-conversion.spec.ts` |
+| **Scenario** | `qualifyInquiry` on an inquiry with `partnerId: null` whose email already belongs to another partner → `409 Conflict` before the transaction opens, no second `Partner` row created. An inquiry that already carries `partnerId` (the normal case) is unaffected — it still updates in place. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp04-partners` |
+| **Active** | yes |
+
+### REG-554 — No duplicate detection on registration number / tax ID anywhere
+
+| | |
+|---|---|
+| **Bug class** | `missing-duplicate-check` |
+| **Module** | `services/api/src/modules/partner-experience`, `services/api/src/modules/partners` |
+| **Bug record** | BUG-3550 |
+| **Root cause** | `registrationNumber` (and its INDIVIDUAL counterpart `nationalIdNumber`) is not a `Partner`/`PartnerInquiry` column — it exists only inside `PartnerOnboardingSubmission.data` — so nothing ever compared one applicant's value against another's, and `taxId` (a real column) was never checked at onboarding submission time either. |
+| **Regression test** | `services/api/src/modules/partners/partner-duplicate-detection.spec.ts` |
+| **Scenario** | Submitting onboarding data whose `registrationNumber`/`nationalIdNumber` or `taxInformation.taxId` (normalised) matches another partner's most recent submission → `409 Conflict`; the applying partner's own prior submissions never match themselves. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp04-partners` |
+| **Active** | yes |
+
+### REG-555 — `partners.service.ts` mutations never reached the platform audit trail
+
+| | |
+|---|---|
+| **Bug class** | `missing-audit-trail` |
+| **Module** | `services/api/src/modules/partners` |
+| **Bug record** | BUG-3551 |
+| **Root cause** | `PartnersService` had no `AuditService` dependency. Create, update, every lifecycle transition, referral-link create/enable/disable/expire/regenerate, and commission create/update were written only to `PartnerTimeline` (partner-scoped, free-text `eventType`), never to `AuditService`/`PlatformAuditLog` — unlike `leads.service.ts`, the sibling funnel, which has audited 7 actions from the start. |
+| **Regression test** | `services/api/src/modules/partners/partners-audit.spec.ts` |
+| **Scenario** | Creating, updating or transitioning a partner's lifecycle writes an `AuditService.log()` call with `tenantId: 'platform'`, the acting platform user id, and a snapshot excluding `applicationSnapshot`/`notes`. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp04-partners` |
+| **Active** | yes |
+
+### REG-556 — `partner-experience.service.ts` mutations never reached the platform audit trail
+
+| | |
+|---|---|
+| **Bug class** | `missing-audit-trail` |
+| **Module** | `services/api/src/modules/partner-experience` |
+| **Bug record** | BUG-3551 |
+| **Root cause** | `PartnerExperienceService` had no `AuditService` dependency. Inquiry qualify/reject, onboarding invitation/submission/review, partner activation and partner-lead review all went through `PartnerTimeline` + email only. A compliance officer querying the platform audit log for "who activated this partner" or "who approved this onboarding" found nothing. |
+| **Regression test** | `services/api/src/modules/partner-experience/partner-experience-audit.spec.ts` |
+| **Scenario** | Qualifying/rejecting an inquiry, deciding an onboarding review, activating a partner, or deciding a partner-lead review each write an `AuditService.log()` call with `tenantId: 'platform'` and the deciding platform user's id. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp04-partners` |
+| **Active** | yes |
+
+### REG-557 — Lead attribution correction accepted a non-ACTIVE partner
+
+| | |
+|---|---|
+| **Bug class** | `inconsistent-invariant-enforcement` |
+| **Module** | `services/api/src/modules/leads` |
+| **Bug record** | BUG-3550 (owner brief, lead↔partner assignment UX) |
+| **Root cause** | `LeadsService.correctAttribution()` checked only that the chosen partner exists, not its status — looser than the *automatic* referral-code attribution path (`PartnerReferralResolverService.resolve()`), which has refused a non-ACTIVE partner (`LeadAttributionStatus.INACTIVE_PARTNER`) since it was written. A manual correction could attribute a lead to a suspended, inactive, terminated, rejected or still-draft partner with no warning. |
+| **Regression test** | `services/api/src/modules/leads/lead-attribution-correction.spec.ts` |
+| **Scenario** | `PATCH /super-admin/leads/:leadId/attribution` with a `partnerId` whose `status !== ACTIVE` → 400 naming the partner and its current status; the same call with an ACTIVE partner succeeds as before. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp04-partners` |
+| **Active** | yes |
+
+### REG-558 — Re-saving the same lead attribution wrote a second history row
+
+| | |
+|---|---|
+| **Bug class** | `spurious-audit-noise` |
+| **Module** | `services/api/src/modules/leads` |
+| **Bug record** | BUG-3550 (owner brief, lead↔partner assignment UX) |
+| **Root cause** | `correctAttribution()` always wrote a `LeadAttributionCorrection` row and a `PartnerTimeline` entry, even when the submitted `partnerId`/`referralLinkId` were identical to what the lead already carried — recording a "correction" that changed nothing. |
+| **Regression test** | `services/api/src/modules/leads/lead-attribution-correction.spec.ts` |
+| **Scenario** | Submitting the same `partnerId` (and same/absent `referralLinkId`) a lead already has returns success with `attributionUnchanged: true` and writes nothing new; changing the referral link, the partner, or clearing an existing attribution still writes a correction as before. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp04-partners` |
+| **Active** | yes |
+
+### REG-559 — Admin lead partner selector let an operator pick, and submit, a change the server always refused
+
+| | |
+|---|---|
+| **Bug class** | `frontend-backend-contract-mismatch` |
+| **Module** | `apps/admin` |
+| **Bug record** | BUG-3550 (owner brief, lead↔partner assignment UX) |
+| **Root cause** | The leads runtime form's `partnerId` field was a plain editable lookup with no status filter, fed by the generic `PATCH /super-admin/leads/:id`. `LeadsService.updateLead()` has refused a `partnerId` change through that route since the attribution-correction endpoint was built — so the field could be edited and "saved" only to 400, and any partner regardless of status appeared in the picker. |
+| **Regression test** | `apps/admin/app/_components/runtime/runtime-form.tsx` — no admin component test harness exists in this repo for its behaviour; covered at the unit level by REG-557/REG-558 (the endpoint this panel calls); verified by `npm run check-types` and manual reasoning against its read-only/visible-when field handling (both pre-existing, exercised elsewhere). |
+| **Scenario** | The `partnerId` field on `/leads/[leadId]` is now read-only and its lookup (when shown elsewhere, e.g. on create) is filtered to `status=ACTIVE`; a "Partner attribution" panel on the lead record page performs reassignment/removal through `PATCH /super-admin/leads/:leadId/attribution` with a required reason and a confirmation dialog, and its lookup shows each candidate's type and status in the option label. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp04-partners` |
+| **Active** | yes |
+
+### REG-560 — Placeholder editor offered every group regardless of contract type
+
+| | |
+|---|---|
+| **Bug class** | `fail-open-scope` |
+| **Module** | `services/api/src/modules/contracts` |
+| **Bug record** | BUG-3552 |
+| **Root cause** | `CONTRACT_PLACEHOLDER_REGISTRY`'s `allowedContractTypes` field existed but nothing populated or read it, and `listPlaceholderDefinitions` returned the whole registry unconditionally — a partner onboarding template's editor offered `customer.*`/`lead.*`/`tenant.*` groups it could never resolve. |
+| **Regression test** | `services/api/src/modules/contracts/placeholder-context.spec.ts` |
+| **Scenario** | `contractAllowedSourceEntities(ContractType.PARTNER_AGREEMENT)` excludes `customer`/`lead`/`tenant`/`implementation`; `GET /contracts/placeholder-definitions?contractType=PARTNER_AGREEMENT` returns only the partner-family groups plus the always-available ones. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp05-agreements` |
+| **Active** | yes |
+
+### REG-561 — `customer.*` resolvable pre-conversion only when a lead legitimately supports it
+
+| | |
+|---|---|
+| **Bug class** | `fail-open-scope` |
+| **Module** | `services/api/src/modules/contracts` |
+| **Bug record** | BUG-3552 |
+| **Root cause** | Without context narrowing, a `CUSTOMER_AGREEMENT` with no `customerAccountId` and no `relatedLeadId` would still list `customer.*` as offered/required, with no way to tell a legitimate lead-sourced agreement from one with no supporting relationship at all. |
+| **Regression test** | `services/api/src/modules/contracts/placeholder-context.spec.ts` |
+| **Scenario** | `contractInstanceContextEntities(CUSTOMER_AGREEMENT, {})` excludes `customer`; the same call with `{ relatedLeadId }` includes it — matching `resolveSource('lead', …)`, which resolves `customer.*` directly from Lead fields. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp05-agreements` |
+| **Active** | yes |
+
+### REG-562 — Saving a template did not refuse an out-of-context placeholder
+
+| | |
+|---|---|
+| **Bug class** | `fail-open-scope` |
+| **Module** | `services/api/src/modules/contracts` |
+| **Bug record** | BUG-3552 |
+| **Root cause** | `createTemplate`/`createTemplateVersion` sanitised and stored `contentHtml` without checking whether its placeholders belonged to the template's `contractType`'s context. |
+| **Regression test** | `services/api/src/modules/contracts/contracts.agreement-guards.spec.ts` |
+| **Scenario** | Creating a `PARTNER_AGREEMENT` template whose body includes `{{customer.legalName}}` is refused with a 400 naming the token and why; `listTemplates`/`getTemplate` additionally surface `contextIssues` for templates already saved with an out-of-context token (read-only — nothing is mutated). |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp05-agreements` |
+| **Active** | yes |
+
+### REG-563 — Missing-relationship placeholders reported as a generic missing-value error
+
+| | |
+|---|---|
+| **Bug class** | `silent-degradation` |
+| **Module** | `services/api/src/modules/contracts` |
+| **Bug record** | BUG-3552 |
+| **Root cause** | `assertValidContractPlaceholderValues` reported every unmet required placeholder identically ("X is required"), whether the platform simply had not filled in a value yet or the agreement was never linked to the entity that value comes from — the operator could not tell which relationship to add. |
+| **Regression test** | `services/api/src/modules/contracts/contracts.agreement-guards.spec.ts`, `placeholder-context.spec.ts` |
+| **Scenario** | Sending a `CUSTOMER_AGREEMENT` with no customer/lead/onboarding linked and a required `{{customer.legalName}}` token fails with "Customer legal name cannot be resolved because this agreement is not associated with a customer." A lead-linked agreement with the same template is not blocked. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp05-agreements` |
+| **Active** | yes |
+
+### REG-564 — A stringified `undefined`/`null`/`[object Object]` could reach a rendered agreement
+
+| | |
+|---|---|
+| **Bug class** | `assertion-without-a-check` |
+| **Module** | `services/api/src/modules/contracts` |
+| **Bug record** | BUG-3552 |
+| **Root cause** | `renderContractPlaceholders` stringified whatever value it was given (`String(values[key])`) with no check that the result was a real value rather than an artifact of `undefined`/`null`/an object reaching `String()` upstream. |
+| **Regression test** | `services/api/src/modules/contracts/contracts.domain.spec.ts` |
+| **Scenario** | A placeholder value of `undefined`, the string `'null'`, or `String({})` all resolve to the placeholder's normal empty/token fallback instead of printing the literal; ordinary prose containing the word "null" ("This clause is null and void.") is untouched, proving the guard checks the substituted value, not surrounding text. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp05-agreements` |
+| **Active** | yes |
+
+### REG-565 — An inactive/terminated/suspended/rejected partner could source a new agreement
+
+| | |
+|---|---|
+| **Bug class** | `authorization-missing` |
+| **Module** | `services/api/src/modules/contracts` |
+| **Bug record** | BUG-3553 |
+| **Root cause** | `validateCounterparty` checked only that `partnerId` was present, never the partner's status — discovery D3 scenario 20. |
+| **Regression test** | `services/api/src/modules/contracts/agreement-source-guards.spec.ts`, `contracts.agreement-guards.spec.ts` |
+| **Scenario** | Creating any agreement with `partnerId` pointing at a `TERMINATED`/`REJECTED`/`SUSPENDED`/`INACTIVE` partner is refused with a 400 naming the partner and its status; an in-pipeline status (`AGREEMENT_DRAFTING`, `ACTIVE`, …) is unaffected. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp05-agreements` |
+| **Active** | yes |
+
+### REG-566 — An archived/lost/converted/unqualified lead could source a new agreement
+
+| | |
+|---|---|
+| **Bug class** | `authorization-missing` |
+| **Module** | `services/api/src/modules/contracts` |
+| **Bug record** | BUG-3553 |
+| **Root cause** | `resolveSource('lead', id)` only checked the lead existed, never its status — discovery D3 scenario 21. |
+| **Regression test** | `services/api/src/modules/contracts/agreement-source-guards.spec.ts` |
+| **Scenario** | Creating an agreement with `relatedLeadId` pointing at an `ARCHIVED`/`CLOSED_LOST`/`UNQUALIFIED`/`CONVERTED` lead is refused; a `QUALIFIED` lead is unaffected. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp05-agreements` |
+| **Active** | yes |
+
+### REG-567 — An archived/churned customer could source a new agreement
+
+| | |
+|---|---|
+| **Bug class** | `authorization-missing` |
+| **Module** | `services/api/src/modules/contracts` |
+| **Bug record** | BUG-3553 |
+| **Root cause** | Neither `validateCounterparty` nor `resolveSource('customer'/'onboarding', …)` checked `CustomerAccount.status` — discovery D3 scenario 22. |
+| **Regression test** | `services/api/src/modules/contracts/agreement-source-guards.spec.ts` |
+| **Scenario** | Creating an agreement with `customerAccountId` pointing at an `ARCHIVED`/`CHURNED` customer is refused; a `SUSPENDED` customer (reversible) is unaffected. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp05-agreements` |
+| **Active** | yes |
+
+### REG-568 — A lead attributed to a different partner could be linked to that partner's agreement
+
+| | |
+|---|---|
+| **Bug class** | `authorization-missing` |
+| **Module** | `services/api/src/modules/contracts` |
+| **Bug record** | BUG-3553 |
+| **Root cause** | Nothing checked that `relatedLeadId` and `partnerId`, when both set on the same agreement, were actually the same relationship — discovery D3 scenario 4 ("SUPPORTED, unvalidated combo"). |
+| **Regression test** | `services/api/src/modules/contracts/agreement-source-guards.spec.ts`, `contracts.agreement-guards.spec.ts` |
+| **Scenario** | Creating a `PARTNER_AGREEMENT` with `partnerId: p-1` and `relatedLeadId` pointing at a lead whose own `partnerId` is `p-2` is refused; a direct (unattributed) lead, or one already attributed to `p-1`, is accepted. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp05-agreements` |
+| **Active** | yes |
+
+### REG-569 — No protection against a duplicate non-terminal agreement
+
+| | |
+|---|---|
+| **Bug class** | `assertion-without-a-check` |
+| **Module** | `services/api/src/modules/contracts` |
+| **Bug record** | BUG-3553 |
+| **Root cause** | `POST /contracts` generated a fresh `reference('CON')` per call with no uniqueness or prior-agreement check — discovery D3 scenario 27: two identical calls each succeeded and created two separate rows. |
+| **Regression test** | `services/api/src/modules/contracts/agreement-source-guards.spec.ts`, `contracts.agreement-guards.spec.ts` |
+| **Scenario** | Creating a second `PARTNER_AGREEMENT` for the same `partnerId` while an earlier one is not `DECLINED`/`VOIDED`/`SUPERSEDED`/`TERMINATED`/`ARCHIVED` fails with 409, naming the existing agreement's number. `copy()`, `AMENDMENT` and `RENEWAL` are exempt by design. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp05-agreements` |
+| **Active** | yes |
+
+### REG-570 — Contracts module had zero `AuditService` calls across its mutating endpoints
+
+| | |
+|---|---|
+| **Bug class** | `service-authorization-hidden` |
+| **Module** | `services/api/src/modules/contracts` |
+| **Bug record** | BUG-3231 |
+| **Root cause** | `ContractTimeline` (a per-contract, non-queryable trail) was the only record of contract mutation; `rg "AuditService\|audit\.log"` found no matches across 31 mutating endpoints. |
+| **Regression test** | `services/api/src/modules/audit/lifecycle-audit-coverage.spec.ts`, `services/api/src/modules/contracts/contracts.agreement-guards.spec.ts` |
+| **Scenario** | Creating, updating, voiding, terminating, amending, renewing, sending for signature, approving, and every party/field/template mutation now write a `PlatformAuditLog` row (`tenantId: 'platform'`) alongside the existing `ContractTimeline` row, via the same `timeline`/`timelineTx` helper both write through. `lifecycle-audit-coverage.spec.ts` fails if a future write method on `ContractsService` is added without being classified audited/exempt. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp05-agreements` |
+| **Active** | yes |
+
+### REG-571 — Public signing events (sign/decline/changes-requested) left no attributable audit row
+
+| | |
+|---|---|
+| **Bug class** | `service-authorization-hidden` |
+| **Module** | `services/api/src/modules/contracts` |
+| **Bug record** | BUG-3231 |
+| **Root cause** | `completeSignature`/`declineSignature`/`requestSignatureChanges` wrote only a `ContractTimeline` row with `actorType: 'SIGNER'`; none reached `AuditService`, so the platform's queryable audit surface never recorded who signed, declined, or requested changes on an executed agreement. |
+| **Regression test** | `services/api/src/modules/contracts/contracts.agreement-guards.spec.ts` |
+| **Scenario** | Completing a signature writes a `PlatformAuditLog` row with `actorUserId: null` and the signer's name/email/role in `afterSnapshot` — proving `AuditService.log` accepts and correctly stores a null platform actor for a non-platform event. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp05-agreements` |
+| **Active** | yes |
+
+### REG-572 — The typed-signature style picker was never sent to the API
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-step` |
+| **Module** | `apps/landing`, `services/api/src/modules/contracts` |
+| **Bug record** | BUG-3554 |
+| **Root cause** | `signing-experience.tsx` held a `typedStyle` state and rendered a `<select>` for it, but `POST /public/signatures/:token/sign` was only ever called with `typedName`; the field never left the browser. `CompleteSignatureDto` had no `typedStyle` field to receive it. |
+| **Regression test** | `services/api/src/modules/contracts/contracts.agreement-guards.spec.ts` |
+| **Scenario** | Choosing "Script" in the signing UI now sends `typedStyle: 'SCRIPT'`, validated server-side against `TYPED_SIGNATURE_STYLES` (`CLASSIC`/`SCRIPT`/`FORMAL`) and persisted to `SignatureEvidence.typedStyle`. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp05-agreements` |
+| **Active** | yes |
+
+### REG-573 — A signed document rendered every typed signature identically, regardless of the chosen style
+
+| | |
+|---|---|
+| **Bug class** | `silent-degradation` |
+| **Module** | `services/api/src/modules/contracts` |
+| **Bug record** | BUG-3554 |
+| **Root cause** | `generateDocument`'s evidence-driven substitution always emitted `<strong>{name}</strong>` with no style information, and the PDF/DOCX renderers had no path to pick a font per signature even if it had. |
+| **Regression test** | `services/api/src/modules/contracts/contracts.domain.spec.ts` |
+| **Scenario** | A `SCRIPT`-styled signature renders in `Times-Italic` in the generated PDF (distinct from `CLASSIC`'s `Helvetica`) and as an actual `Times New Roman` run in the DOCX's `word/document.xml`, surviving regeneration from stored `SignatureEvidence` since the style is persisted, not recomputed. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp05-agreements` |
+| **Active** | yes |
+
+### REG-574 — Expired signature requests kept showing `SENT`/`VIEWED` to the admin indefinitely
+
+| | |
+|---|---|
+| **Bug class** | `stale-read-model-of-a-write-rule` |
+| **Module** | `services/api/src/modules/contracts` |
+| **Bug record** | BUG-3553 (Admin agreement UX) |
+| **Root cause** | `assertTokenUsable` reactively refused an expired signer link, but nothing transitioned `SignatureRequest.status`/`SignatureRecipient.status` to `EXPIRED` on the admin side — discovery D3 scenario 16. No scheduler (`@Cron`/`@Interval`) exists anywhere in this repository to sweep it. Also folds in the dead `/signature-requests/:id/remind` route, a byte-for-byte duplicate of `/resend` that nothing in the frontend called. |
+| **Regression test** | `services/api/src/modules/contracts/contracts.agreement-guards.spec.ts` |
+| **Scenario** | Opening a `SENT`/`VIEWED`/`PARTIALLY_SIGNED` signature request past its `expiresAt` transitions it (and its still-open recipients) to `EXPIRED`, writes a `SIGNATURE_REQUEST_EXPIRED` timeline/audit row, and is durable on the next read by anyone — not merely displayed differently for the caller who happened to open it. The contracts list also *displays* (without writing) the same computed status. `POST /signature-requests/:id/remind` no longer exists; `/resend` is the one action. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp05-agreements` |
+| **Active** | yes |
+
+### REG-575 — Redaction covered auth secrets only; national-id and bank-account keys reached the sanitized error log
+
+| | |
+|---|---|
+| **Bug class** | `incomplete-redaction-denylist` |
+| **Module** | `services/api/src/common/errors/sanitize-error-log.ts` |
+| **Bug record** | BUG-3555 |
+| **Root cause** | `SENSITIVE_KEY_PATTERNS` was a generic auth-token/credential denylist (`password`, `token`, `secret`, …). It did not cover the PII/financial fields AGENTS.md's own Security checklist names ("national ids or bank details") — a `cnic`, `nationalId`, `ssn`, `taxIdentifier`, `bankAccountNumber`, `accountNumber`, `routingNumber`, `cardNumber`, `cvv`, `pin` or `signingKey` field inside `details`/`cause` reached the persisted `ErrorLog` row unredacted. |
+| **Regression test** | `services/api/src/common/errors/sanitize-error-log.spec.ts` |
+| **Scenario** | An object containing `cnic`, `nationalId`, `ssn`, `taxIdentifier`, `bankAccountNumber`, `accountNumber`, `routingNumber`, `cardNumber`, `cvv` and `signingKey` is passed to `sanitizeForErrorLog`; every one of those fields comes back `[REDACTED]`, while unrelated fields containing the substring "account" (`accountId`, `accountStatus`) are left intact — the list is deliberately narrower than a bare `account`/`bank` match, which would erase harmless reference fields. |
+| **Proven to fail without the fix** | Yes — reverting the added key patterns fails this test (the pre-fix denylist has none of `iban/cnic/ssn/nationalid/taxid/bankaccount/accountnumber/routingnumber/cardnumber/cvv/cvc/pin/signingkey/privatekey`). |
+| **Fixed** | 2026-09-25, merged as `9abb01f4` on branch `agent/pah-wp06-monitoring` |
+| **Active** | yes |
+
+### REG-576 — Redaction never scanned free text; a secret interpolated into a stack trace or message survived
+
+| | |
+|---|---|
+| **Bug class** | `keyed-redaction-only-free-text-unscrubbed` |
+| **Module** | `services/api/src/common/errors/sanitize-error-log.ts` |
+| **Bug record** | BUG-3555 |
+| **Root cause** | `sanitizeForErrorLog` only redacted values reached through a matched **key**. `stack` and `message` are free text, so `throw new Error(\`Invalid token ${token}\`)` reached the sanitized error log with the live token still readable in the stack string — the D4 discovery's exact finding ("Sanitization does not run over the `stack` string itself"). |
+| **Regression test** | `services/api/src/common/errors/sanitize-error-log.spec.ts` |
+| **Scenario** | `sanitizeForErrorLog({ stack: 'Authorization: Bearer sk_live_abcdefghijklmnop' })` no longer contains the token; a Postgres connection string's `user:pass@` segment is stripped while the host survives; a Luhn-valid card number and a real IBAN are redacted; a UUID, a `req_…` trace id and a non-Luhn 13-digit timestamp are left untouched (the false-positive guard). A free-standing email address is deliberately left intact — documented in the source as not being a credential. |
+| **Proven to fail without the fix** | Yes — each pattern's test fails against the pre-fix function, which returned any non-object value unchanged. |
+| **Fixed** | 2026-09-25, merged as `9abb01f4` on branch `agent/pah-wp06-monitoring` |
+| **Active** | yes |
+
+### REG-577 — `ErrorLog.module` was never written, dropping the field on the far more common update path
+
+| | |
+|---|---|
+| **Bug class** | `schema-field-added-write-path-incomplete` |
+| **Module** | `services/api/src/modules/error-logs/error-logs.service.ts`, `services/api/src/common/filters/http-exception.filter.ts`, `services/api/src/common/errors/derive-error-module.ts` |
+| **Bug record** | ITEM-0198 |
+| **Root cause** | WP-01 added `ErrorLog.module` to the schema but nothing derived or wrote it. The exception filter now derives it from the request path (`deriveErrorModule`) and passes it to `ErrorLogsService.persist()`, which includes it in the `create` branch automatically (object spread) but — the actual defect this regression guards — the `update` branch (a repeat occurrence, which is the common case for a real incident) built its `data` object explicitly and left `module` out entirely. |
+| **Regression test** | `services/api/src/modules/error-logs/error-logs.service.spec.ts`, `services/api/src/common/errors/derive-error-module.spec.ts` |
+| **Scenario** | A second occurrence of the same fingerprint calls `tx.errorLog.update()` with `module` present in `data`; an occurrence whose own derivation is null backfills from the existing row's `module` rather than overwriting it with null. |
+| **Proven to fail without the fix** | Yes — removing the `module: data.module ?? existing.module` line from the update branch fails both the "writes module on a repeat occurrence" and "backfills module from the existing row" cases (confirmed by mutation during implementation). |
+| **Fixed** | 2026-09-25, merged as `9abb01f4` on branch `agent/pah-wp06-monitoring` |
+| **Active** | yes |
+
+### REG-578 — Audit rows never carried a trace id, so an error detail could never be joined back to the audit trail
+
+| | |
+|---|---|
+| **Bug class** | `unpopulated-schema-column` |
+| **Module** | `services/api/src/modules/audit/audit.service.ts`, `services/api/src/common/request-context/trace-context.service.ts` |
+| **Bug record** | BUG-3227 |
+| **Root cause** | `AuditLog`/`PlatformAuditLog` carry `requestId`/`traceId` columns, indexed, but `AuditService.log()` only ever read `input.requestId`/`input.traceId` — optional inputs that, per the D4 discovery's repo-wide grep, **no call site in the codebase ever passed**. Every audit row's trace id was `null`. A new `TraceContextService` (AsyncLocalStorage, set by `RequestIdMiddleware`) supplies the ambient trace id as a fallback whenever a caller does not provide one explicitly, for both the tenant and platform branches. |
+| **Regression test** | `services/api/src/modules/audit/audit.service.spec.ts` |
+| **Scenario** | Inside a request, `AuditService.log()` called without `requestId`/`traceId` writes the ambient trace id into both columns, for both tenant and platform audit tables; a caller that explicitly passes its own value is never overridden; outside any request (no ambient context), both fields stay `null` rather than throwing. |
+| **Proven to fail without the fix** | Yes — the four new specs fail against a `TraceContextService`-less `AuditService` constructed with only the repository (the pre-fix signature). |
+| **Fixed** | 2026-09-25, merged as `9abb01f4` on branch `agent/pah-wp06-monitoring` |
+| **Active** | yes |
+
+### REG-579 — A successful (or slow) request produced zero log output; there was no access log
+
+| | |
+|---|---|
+| **Bug class** | `missing-observability-instrumentation` |
+| **Module** | `services/api/src/common/middleware/access-log.middleware.ts` |
+| **Bug record** | BUG-3227 |
+| **Root cause** | `rg -ln "NestInterceptor"` returned nothing and the only log line in the whole request lifecycle was the exception filter's, which runs only on failure. A request that succeeded, or one that was merely slow, left nothing to find by trace id. `AccessLogMiddleware` writes one structured line per request on `finish`, gated on `REQUEST_LOGGING_ENABLED` (already declared in every committed `.env*` example but never read by any code). |
+| **Regression test** | `services/api/src/common/middleware/access-log.middleware.spec.ts` |
+| **Scenario** | With `REQUEST_LOGGING_ENABLED=true`, any request produces exactly one `AccessLog` line on `finish` carrying `method, route, statusCode, durationMs, traceId, tenantId, userId` and never the request body, headers or query string; with the flag unset, no listener is attached and nothing is logged. |
+| **Proven to fail without the fix** | Yes — before this middleware existed, there was no code path producing this line at all; the middleware did not exist in `app.module.ts`'s middleware chain. |
+| **Fixed** | 2026-09-25, merged as `9abb01f4` on branch `agent/pah-wp06-monitoring` |
+| **Active** | yes |
+
+### REG-580 — Health probes must never fabricate OK, and a timeout is not the same as confirmed down
+
+| | |
+|---|---|
+| **Bug class** | `fabricated-health-status` |
+| **Module** | `services/api/src/modules/platform-monitoring/platform-health.service.ts` |
+| **Bug record** | ITEM-0198 |
+| **Root cause** | No health-overview endpoint existed at all (D4 discovery: "no queue depth, no DB health, no auth service health, no storage health tile exists anywhere"). Written from scratch with the explicit constraint that every component must reflect a real, time-boxed probe: a database query failure is `DOWN`, a probe that does not answer within 3s is `UNKNOWN` (not `DOWN`, since a timeout is inconclusive, and not `OK`), and a component this platform genuinely does not have — an async notification queue — reports `UNKNOWN` with the reason stated rather than a green tile. |
+| **Regression test** | `services/api/src/modules/platform-monitoring/platform-health.service.spec.ts` |
+| **Scenario** | `$queryRaw` rejecting reports `database.status: 'DOWN'` and the overall status `'DOWN'`; a `$queryRaw` that never resolves within 3s reports `'UNKNOWN'` with a "timed out" reason, and the overall status is `'UNKNOWN'`, not `'DOWN'` or `'OK'`; the notification queue always reports `'UNKNOWN'` and is excluded from the overall vote (`votesOnOverallStatus: false`) since its absence is an intentional architecture, not a fault. |
+| **Proven to fail without the fix** | Yes — the endpoint and service did not exist before this change; there is no prior implementation to regress against, only the absence the D4 discovery documented. |
+| **Fixed** | 2026-09-25, merged as `9abb01f4` on branch `agent/pah-wp06-monitoring` |
+| **Active** | yes |
+
+### REG-581 — Module and correlation-id filters were silently absent from the grouped-error list, which already paginates in the database
+
+| | |
+|---|---|
+| **Bug class** | `missing-filter-facet` |
+| **Module** | `services/api/src/modules/platform-monitoring/platform-monitoring.service.ts` |
+| **Bug record** | ITEM-0198 |
+| **Root cause** | `listEvents`'s `where.AND` array had no clause reading `query.module`, and its only trace-id filter (`reference`) was a substring `contains` match — an operator handed a full trace id from a "Reference: req_…" toast could not search for exactly that request. Both are now real `Prisma.ErrorLogWhereInput` clauses (`{ module: query.module }`, `{ traceId: query.correlationId }`), verified against the actual `findMany` call arguments rather than the response shape, which also reconfirms the existing `skip`/`take` DB pagination (BUG-3175) still holds with the new filters added. |
+| **Regression test** | `services/api/src/modules/platform-monitoring/platform-monitoring-list-filters.spec.ts` |
+| **Scenario** | `listEvents(user, { module: 'contracts' })` includes `{ module: 'contracts' }` in `where.AND`; `listEvents(user, { correlationId: 'req_exact-match-1' })` includes `{ traceId: 'req_exact-match-1' }` (exact, not `contains`); `listEvents(user, { page: '3', pageSize: '10' })` calls `findMany` with `skip: 20, take: 10`; each returned item carries `module`. |
+| **Proven to fail without the fix** | Yes — removing the `query.correlationId`/`query.module` where-clauses and the `module` field on the enriched item each independently fail their respective assertions (confirmed by mutation during implementation). |
+| **Fixed** | 2026-09-25, merged as `9abb01f4` on branch `agent/pah-wp06-monitoring` |
+| **Active** | yes |
+
+### REG-582 — An incident's detail view could not answer "did this recur" or "what else did this request do"
+
+| | |
+|---|---|
+| **Bug class** | `missing-correlation-join` |
+| **Module** | `services/api/src/modules/platform-monitoring/platform-monitoring.service.ts` |
+| **Bug record** | BUG-3227, ITEM-0198 |
+| **Root cause** | `getEvent()` returned the sanitized stack and request metadata but nothing that joined this incident to other data sharing its identity: other occurrences of the same fingerprint (`ErrorLogOccurrence` by `incidentId`), audit rows sharing the trace id (blocked until REG-578 wired `traceId` into `AuditService.log()`), or an outbox job sharing the same `correlationId`. `getEvent()` now returns `relatedOccurrences`, `relatedAuditEvents` (tenant and platform, merged and sorted) and `relatedOutboxEvents`. |
+| **Regression test** | `services/api/src/modules/platform-monitoring/platform-monitoring-list-filters.spec.ts` |
+| **Scenario** | `getEvent(user, 'req_original')` returns `relatedOccurrences` excluding the incident's own trace id, `relatedAuditEvents` scoped `'tenant'`/`'platform'` and sorted newest-first across both tables, and `relatedOutboxEvents` matched on `correlationId`. |
+| **Proven to fail without the fix** | Yes — before this change `getEvent()`'s return object had no such keys and the three new `prisma.*.findMany` calls did not exist. |
+| **Fixed** | 2026-09-25, merged as `9abb01f4` on branch `agent/pah-wp06-monitoring` |
+| **Active** | yes |
+
+### REG-583 — A related outbox job's raw error message could leak a secret into the incident detail view
+
+| | |
+|---|---|
+| **Bug class** | `unsanitized-secondary-data-source` |
+| **Module** | `services/api/src/modules/platform-monitoring/platform-monitoring.service.ts` |
+| **Bug record** | BUG-3555 |
+| **Root cause** | `OutboxEvent.lastError` is a raw driver/handler message, never routed through `ErrorLog`'s sanitizer — a connection failure recorded there (e.g. `postgres://user:pass@host`) would have reached the admin incident detail view unredacted via the new `relatedOutboxEvents` join (REG-582). `findRelatedOutboxEvents` now runs every `lastError` through the same `redactSecretsInText` free-text scrubber added for REG-576. |
+| **Regression test** | `services/api/src/modules/platform-monitoring/platform-monitoring-list-filters.spec.ts` |
+| **Scenario** | A related `OutboxEvent` with `lastError: 'Could not connect using postgres://appuser:Sup3rSecret@db.internal:5432/hrm'` comes back from `getEvent()` with the credential segment redacted. |
+| **Proven to fail without the fix** | Yes — removing the `redactSecretsInText` mapping from `findRelatedOutboxEvents` fails this test. |
+| **Fixed** | 2026-09-25, merged as `9abb01f4` on branch `agent/pah-wp06-monitoring` |
+| **Active** | yes |
+
+### REG-584 — Module derivation must not lump every platform-ops feature under one bucket
+
+| | |
+|---|---|
+| **Bug class** | `low-cardinality-grouping-gap` |
+| **Module** | `services/api/src/common/errors/derive-error-module.ts` |
+| **Bug record** | ITEM-0198 |
+| **Root cause** | A naive "first path segment after `/api`" derivation would file every `platform/*`, `super-admin/*` and `settings/*` route — two dozen unrelated features — under one bucket (`platform`, `super-admin`, `settings`), defeating the purpose of a module facet ("which module is failing"). For these three umbrella prefixes, the second path segment is appended (`platform/tenants`, `super-admin/billing`, `settings/monitoring`); every other route uses its bare first segment, matching `services/api/src/modules/<domain>/`. |
+| **Regression test** | `services/api/src/common/errors/derive-error-module.spec.ts` |
+| **Scenario** | `/api/platform/tenants/xyz` derives `platform/tenants`; `/api/super-admin/billing/diagnostics` derives `super-admin/billing`; `/api/settings/monitoring/error-logs` derives `settings/monitoring`; `/api/contracts/abc-123` derives the bare `contracts`; a query string is stripped before deriving; an empty/root/missing path derives `null` rather than throwing. |
+| **Proven to fail without the fix** | Yes — a naive first-segment-only implementation fails the three umbrella-prefix cases (each would return `platform`/`super-admin`/`settings` instead of the two-segment form). |
+| **Fixed** | 2026-09-25, merged as `9abb01f4` on branch `agent/pah-wp06-monitoring` |
+| **Active** | yes |
+
+### REG-585 — One failing dashboard section blanked all five
+
+| | |
+|---|---|
+| **Bug class** | `cascading-failure-single-promise-all` |
+| **Module** | `services/api/src/modules/super-admin` (`OperationsDashboardService`) |
+| **Bug record** | none — hardening built into new code (TASK-0032 WP-07 / ITEM-0199), not a fix to a pre-existing incident. The pattern itself is the one `SuperAdminService.getDashboardSummary()` already carries (one ~40-query `Promise.all`, any rejection fails the whole response) and the WP-07 brief named as a requirement to avoid repeating: "make the summary endpoint return per-section errors rather than failing entirely." |
+| **Root cause (pattern being guarded against)** | Computing tenants/users/partners/agreements/operational metrics inside one shared `Promise.all` means a single rejected query (a slow `AuditLog` scan, a transient connection reset) rejects the whole response, and the admin page has nothing left to render for any of the other four sections. |
+| **Regression test** | `services/api/src/modules/super-admin/operations-dashboard.service.spec.ts` |
+| **Scenario** | `partner.groupBy` rejects with `connection reset`. `getOperationsDashboard()` still resolves; `result.partners.available === false` with the rejection's message as `reason`, while `platform`, `users`, `agreements`, and `operational` all resolve `available: true` with real data. |
+| **Fails without the fix** | Yes — replacing the five independent `section(...)` wrappers with one shared `Promise.all` over the underlying queries makes the whole method reject, and the assertions on `platform.available`/`users.available`/etc. fail because the call never resolves. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp07-dashboard` |
+| **Active** | yes |
+
+### REG-586 — A metric with no reliable source must say so, not read zero
+
+| | |
+|---|---|
+| **Bug class** | `fabricated-metric-zero` |
+| **Module** | `services/api/src/modules/super-admin` (`OperationsDashboardService`), `apps/admin/lib/dashboard/operations-dashboard-metrics.ts` |
+| **Bug record** | none — hardening built into new code (TASK-0032 WP-07 / ITEM-0199), not a fix to a pre-existing incident. AGENTS.md's Security/Testing sections both name this failure mode explicitly ("No fabricated numbers": a spec asserting that absent sources yield "not available", not zero-with-OK). |
+| **Root cause (pattern being guarded against)** | Contract-generation failures have no model or `ErrorLog` field that records them by contract; a naive implementation returns `0`, which reads identically to "generation never fails" — a claim nobody has verified. The same failure mode applies to any KPI whose backing section did not resolve: rendering it as `0` would misreport "nothing wrong" for "we don't know." |
+| **Regression test** | `services/api/src/modules/super-admin/operations-dashboard.service.spec.ts`, `apps/admin/lib/dashboard/operations-dashboard-metrics.spec.ts` |
+| **Scenario** | `contractGenerationFailures()` always returns `{ available: false, reason: ... }`, never a number. `metricValueOrUnavailable()` given an unavailable section returns `{ value: "Not available", reason: <the section's reason> }`, never `{ value: 0 }`. |
+| **Fails without the fix** | Yes — swapping either function to return `0`/`{ available: true, data: 0 }` on the unavailable path makes both assertions (`expect(result.value).not.toBe(0)`, `expect(result.available).toBe(false)`) fail. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp07-dashboard` |
+| **Active** | yes |
+
+### REG-587 — Operations view fetch failure blanked the whole dashboard page
+
+| | |
+|---|---|
+| **Bug class** | `shared-promise-all-blanks-unrelated-ui` |
+| **Module** | `apps/admin/app/(internal)/page.tsx` |
+| **Bug record** | BUG-3220 (DEFERRED) — partial. That record covers the *absence* of `loading.tsx`/`error.tsx` across the whole admin app (88 pages), which is unchanged and still open. This entry covers only the specific mechanism this WP introduced a second instance of and then removed: the dashboard page fetched the commercial summary and the new Operations summary as two endpoints, and before this fix both were folded into one `Promise.all().catch()` — so a transient failure fetching *only* the new `/super-admin/dashboard-summary/operations` endpoint would have blanked the entire page, including the already-working commercial view. |
+| **Regression test** | `apps/admin/app/(internal)/page.tsx` — no automated test; `apps/admin/jest.config.js` runs no rendering tests, and this file is a Next Server Component with no unit-testable seam for its own fetch composition; verified by code review of this file. |
+| **Scenario** | `/super-admin/dashboard-summary/operations` times out or 500s while `/super-admin/dashboard-summary` succeeds → the page still renders the full nine-view dashboard; the Operations view's KPIs and charts each show "Not available" with the fetch's error message instead of the whole page showing "We could not load the dashboard right now." |
+| **Fails without the fix** | Not mechanically (no test harness), but reverting to a single shared `Promise.all` over all three requests reproduces the exact failure this entry exists to prevent, confirmed by reading the diff. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp07-dashboard` |
+| **Active** | yes |
+
+### REG-590 — Edit lands the operator on a tab with nothing editable
+
+| | |
+|---|---|
+| **Bug class** | No existing entry under `docs/qa/known-bug-patterns/` matches this shape (it is UI tab-selection state computed independently of field editability, not an authorization/data-exposure/wiring defect); flagged here rather than force-fit onto an unrelated pattern. |
+| **Module** | `apps/admin` — `app/_components/runtime/runtime-record-page.tsx`, `lib/runtime/edit-tab-selection.ts` |
+| **Bug record** | BUG-3546 |
+| **Root cause** | The runtime record page enabled Edit/Save based on whether the module has *any* writable field (`MODULE_CAPABILITIES.tenants.update`), with no regard for which tab holds it or which tab is selected. `tenants`' three writable fields (`name`/`displayName`/`legalName`) all live on the Configuration tab; Overview, the default landing tab, has none. |
+| **Regression test** | `apps/admin/lib/runtime/edit-tab-selection.spec.ts` |
+| **Scenario** | `editEntryTab(tabs, fields, values, currentTab)` returns the first tab (in the record's own tab order) containing an editable field when the current tab has none, `null` when the current tab already has one, and `null` when no tab has anything editable at all. Covers `hidden`, `readOnlyWhen`, `visibleWhen`/`visibleWhenAny`, and the non-input field types (`timeline`/`relatedRecords`/`process`) so a field that would not actually render as an input is never counted as a reason to switch tabs. |
+| **Fails without the fix** | Yes — before `edit-tab-selection.ts` existed, `enterEditMode` was `() => setMode("edit")` with no tab logic at all; the new spec asserts behaviour that file cannot provide. |
+| **Active** | yes |
+
+### REG-600 — A record the runtime can list 404s when opened
+
+| | |
+|---|---|
+| **Bug class** | Two dispatchers for one module list that drift apart — the shape `generic-delete.spec.ts` already guards for remove vs bulk-delete. |
+| **Module** | `services/api/src/modules/platform-runtime` — `platform-runtime.service.ts` `get()` |
+| **Bug record** | BUG-3565 |
+| **Root cause** | `list()` had cases for `contract-templates` and `signature-requests`; `get()` did not, so both fell to `findGeneric`, whose fallback only knows plans, subscriptions and payments. |
+| **Regression test** | `services/api/src/modules/platform-runtime/runtime-get-coverage.spec.ts` |
+| **Scenario** | `get(superAdmin, 'contract-templates' \| 'signature-requests', id)` reaches `ContractsService.getTemplate` / `getSignatureRequest` and returns the record in the runtime envelope. |
+| **Fails without the fix** | Yes — with the service change stashed, both cases fail (`findGeneric` is reached instead). |
+| **Active** | yes |
+
+> Note: REG-602..REG-609 were handed to WP-10, which overlapped this file's
+> original reservation; the Architect's later entries continue from REG-620.
+
+### REG-601 — `PATCH /partners/:id` was never actually partial
+
+| | |
+|---|---|
+| **Bug class** | `mapped-partial-type-not-partial` |
+| **Module** | `services/api/src/modules/partners` |
+| **Bug record** | BUG-3566 (found by WP-08, relayed to this stream) |
+| **Root cause** | `UpdatePartnerDto extends CreatePartnerDto {}` inherited every one of `CreatePartnerDto`'s required fields (`type`, `displayName`, `email`, `defaultCommissionRate`) unchanged, so a PATCH body omitting any one of them — the entire point of a partial update — failed `class-validator` before the request reached `PartnersService.update()`. The admin console's edit form never surfaced this because it always resubmits the whole record on save. |
+| **Regression test** | `services/api/src/modules/partners/dto/partner-update-partial.spec.ts`, `services/api/src/modules/partners/partners-partial-update.spec.ts` |
+| **Scenario** | `PATCH /partners/:id` with `{ "notes": "..." }` alone now succeeds and writes only `notes`; the same request against the unfixed DTO 400s naming `type`/`displayName`/`email`/`defaultCommissionRate` as missing. A patch that would leave a COMPANY partner with an empty `companyName` (whether by clearing it directly or by switching `type` to INDIVIDUAL without supplying a contact name) is still refused. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp04-partners` |
+| **Active** | yes |
+
+### REG-602 — `PlatformAuditLog` was write-only; no endpoint could read it back
+
+| | |
+|---|---|
+| **Bug class** | `missing-read-path-for-write-only-table` |
+| **Module** | `services/api/src/modules/audit/audit.service.ts`, `services/api/src/modules/audit/audit.repository.ts`, `services/api/src/modules/audit/platform-audit.controller.ts` |
+| **Bug record** | BUG-3564 |
+| **Root cause** | `AuditService.log()` has always written a `PlatformAuditLog` row for every platform action (`tenantId === 'platform'` branch), but no reader existed anywhere in `services/api/src` (`rg -n "platformAuditLog\." services/api/src` found only `.create(` calls). `AuditService.listPlatform`/`detailPlatform`, `AuditRepository.findPlatformAudit`/`findOnePlatformAudit`/`getPlatformFilterMetadata` and `PlatformAuditController` did not exist. |
+| **Regression test** | `services/api/src/modules/audit/platform-audit-trail.spec.ts` |
+| **Scenario** | `AuditService.listPlatform(query)` returns paginated, mapped platform audit rows with actor display name, canonical/human action label, entity and trace/request ids; `detailPlatform(id)` returns the same row's before/after snapshots; a missing id throws `NotFoundException`. |
+| **Proven to fail without the fix** | Yes — the methods and their backing repository queries did not exist before this package; a spec exercising them fails to compile/run against the pre-fix tree. |
+| **Fixed** | 2026-09-25, merged as `3dccd1e6` on branch `agent/pah-wp10-audit-trail` |
+| **Active** | yes |
+
+### REG-603 — `GET /audit-logs` answered a platform caller with a silent, empty 200 instead of refusing
+
+| | |
+|---|---|
+| **Bug class** | `wrong-table-silent-empty-result` |
+| **Module** | `services/api/src/modules/audit/audit.controller.ts` |
+| **Bug record** | BUG-3564 |
+| **Root cause** | A platform user's `tenantId` is the literal string `'platform'`. `PermissionsGuard`'s elevated-role bypass (`hasElevatedTenantRole`, satisfied by the `system-admin` alias SUPER_ADMIN/PLATFORM_OWNER carry) let those roles straight through this tenant-scoped guard, and `AuditService.listByTenant('platform', query)` then queried the tenant `AuditLog` table — which never holds a `tenantId: 'platform'` row, since those rows go to `PlatformAuditLog` — and returned 200 with an empty page. An empty page reads as "no audit history exists", the wrong answer for the one role built to review it. |
+| **Regression test** | `services/api/src/modules/audit/audit.controller.spec.ts` |
+| **Scenario** | `listAuditLogs`/`detailAuditLog` called with a platform-caller `AuthenticatedUser` (`tenantId: 'platform'`) throw `BadRequestException` with code `PLATFORM_AUDIT_TRAIL_USE_DEDICATED_ENDPOINT` and never call `AuditService.listByTenant`/`detailByTenant`; an ordinary tenant caller is unaffected. |
+| **Proven to fail without the fix** | Yes — with the `assertNotPlatformCaller` guard clause removed, 3 of the 4 cases fail: `listAuditLogs`/`detailAuditLog` no longer throw, and the "names the dedicated endpoint" case throws a plain `Error` instead. The tenant-caller case correctly still passes, confirming tenant behaviour is untouched. |
+| **Fixed** | 2026-09-25, merged as `3dccd1e6` on branch `agent/pah-wp10-audit-trail` |
+| **Active** | yes |
+
+### REG-604 — The new platform audit reader had no authorization boundary pinned
+
+| | |
+|---|---|
+| **Bug class** | `unpinned-authorization-boundary` |
+| **Module** | `services/api/src/modules/audit/platform-audit.controller.ts` |
+| **Bug record** | BUG-3564 |
+| **Root cause** | A new platform-guarded endpoint is only as safe as the permission it declares and the role matrix that grants it; without a pinned test, a future edit to `ROLE_PERMISSIONS` or to the controller's guard stack could silently widen or narrow who reads platform audit history. `monitoring.read` was chosen (not a new `audit.read` key) because it is already held by every audit-facing role (READ_ONLY_AUDITOR, SUPPORT_MANAGER, SUPPORT_AGENT, MONITORING_OPERATOR, PLATFORM_ADMIN, PLATFORM_OPERATIONS, SUPER_ADMIN) and by no commercial/presales role. |
+| **Regression test** | `services/api/src/modules/audit/platform-audit-authorization.spec.ts` |
+| **Scenario** | Both `PlatformAuditController` handlers declare `monitoring.read`; every audit-facing role is admitted and every commercial/presales role is refused via `userHasPlatformPermission`; `PlatformPermissionsGuard.canActivate` refuses a tenant subject and an unauthenticated request outright, admits READ_ONLY_AUDITOR, and refuses a platform subject lacking `monitoring.read` (PRESALES_MANAGER). |
+| **Proven to fail without the fix** | Yes — `PlatformAuditController` and the `monitoring.read` declarations did not exist before this package; the spec cannot resolve `declaredPlatformPermission` against them without the fix. |
+| **Fixed** | 2026-09-25, merged as `3dccd1e6` on branch `agent/pah-wp10-audit-trail` |
+| **Active** | yes |
+
+### REG-605 — A trace-id filter and a free-text search would have silently overwritten each other
+
+| | |
+|---|---|
+| **Bug class** | `colliding-or-keys-on-one-where-object` |
+| **Module** | `services/api/src/modules/audit/audit.repository.ts` |
+| **Bug record** | BUG-3564 |
+| **Root cause** | `traceId` (matches either `traceId` or `requestId`) and `search` (free text over `action`/`entityType`) each need their own `OR` clause. Building the `where` as a single object literal with two `OR` keys would let the second silently replace the first — the same shape `platform-monitoring.service.ts`'s event filters already avoid by using an `AND` array. `findPlatformAudit` builds its `where` the same way: an `AND` array of clauses, each clause contributing one filter (including its own `OR` where needed). |
+| **Regression test** | `services/api/src/modules/audit/platform-audit-trail.spec.ts` |
+| **Scenario** | `findPlatformAudit({ traceId, search })` produces a `where.AND` array containing both the `{ OR: [traceId, requestId] }` clause and the `{ OR: [action contains, entityType contains] }` clause, not just one of them. |
+| **Proven to fail without the fix** | Yes — an implementation that spread both `OR` filters onto one object literal would fail this assertion (only the last-assigned `OR` key would survive); the test inspects the actual `where` passed to Prisma, not the response shape. |
+| **Fixed** | 2026-09-25, merged as `3dccd1e6` on branch `agent/pah-wp10-audit-trail` |
+| **Active** | yes |
+
+### REG-606 — Snapshot redaction was trusted from write time, with nothing re-checked on read
+
+| | |
+|---|---|
+| **Bug class** | `single-point-of-redaction-no-defence-in-depth` |
+| **Module** | `services/api/src/modules/audit/audit.service.ts` |
+| **Bug record** | BUG-3564 |
+| **Root cause** | `AuditService.log()` redacts a snapshot before writing it (`normalizeSnapshot` → `redactAuditSnapshot`), which is the primary control, but a row written before a redaction rule existed, or by some future call site that bypassed `log()` entirely, would surface an unredacted secret on read with nothing to catch it. `detailPlatform()` now re-runs `redactAuditSnapshot` on the stored `beforeSnapshot`/`afterSnapshot`/`scope` before returning them. |
+| **Regression test** | `services/api/src/modules/audit/platform-audit-trail.spec.ts` |
+| **Scenario** | A fake repository row simulating a historical, never-redacted snapshot (`{ totpSecret: 'JBSWY3DPEHPK3PXP' }`) comes back from `detailPlatform()` as `{ totpSecret: '[REDACTED]' }`. |
+| **Proven to fail without the fix** | Yes — `mapPlatformAuditLogItem` without the `redactAuditSnapshot` call on the snapshot fields would return the fake row's secret unchanged. |
+| **Fixed** | 2026-09-25, merged as `3dccd1e6` on branch `agent/pah-wp10-audit-trail` |
+| **Active** | yes |
+
+### REG-607 — `DELETE /super-admin/customers` admitted a non-admin-tier role the runtime delete path already refused
+
+| | |
+|---|---|
+| **Bug class** | `two-paths-one-decision-decided-differently` |
+| **Module** | `services/api/src/modules/super-admin/platform-lifecycle.service.ts` |
+| **Bug record** | BUG-3564 (WP-02 follow-up, noted in `docs/tasks/TASK-0032-streams/t0032-wp-02-report.md` RISK_AREAS) |
+| **Root cause** | `PlatformLifecycleService.bulkDeleteCustomers` decided who may bulk-delete on a weaker rule than `PlatformRuntimeService.assertAdmin` (the generic runtime delete path for the same records): a non-admin-tier role holding `customers.update` — PLATFORM_OPERATIONS, MEMBER, PRESALES_MANAGER — could still bulk-delete customers it "owned" via `assignedToUserId`. The runtime path refuses those roles outright regardless of ownership. Both now decide with the shared `isPlatformAdminTier` predicate (`platform-permissions.ts`). |
+| **Regression test** | `services/api/src/modules/super-admin/bulk-delete-admin-tier.spec.ts` |
+| **Scenario** | PLATFORM_OPERATIONS/MEMBER/PRESALES_MANAGER calling `bulkDeleteCustomers` against records it "owns" (simulated by `customerAccount.count` returning every id as owned) is refused with `ForbiddenException` before any Prisma query runs; SUPER_ADMIN/PLATFORM_OWNER/PLATFORM_ADMIN proceed and the records are deleted. |
+| **Proven to fail without the fix** | Yes — with the `isPlatformAdminTier` guard clause removed, all three non-admin-tier cases resolve successfully (`{"deletedCount": 2}`) instead of rejecting. |
+| **Fixed** | 2026-09-25, merged as `3dccd1e6` on branch `agent/pah-wp10-audit-trail` |
+| **Active** | yes |
+
+### REG-608 — `DELETE /super-admin/customer-onboarding` admitted the same non-admin-tier gap
+
+| | |
+|---|---|
+| **Bug class** | `two-paths-one-decision-decided-differently` |
+| **Module** | `services/api/src/modules/super-admin/platform-lifecycle.service.ts` |
+| **Bug record** | BUG-3564 (WP-02 follow-up) |
+| **Root cause** | Identical shape to REG-607, on `bulkDeleteCustomerOnboardings`: PLATFORM_OPERATIONS, MEMBER and PRESALES_MANAGER could bulk-delete onboarding records it "owned" via `onboardingOwnerUserId`, where the runtime path's `assertAdmin` refuses them outright. |
+| **Regression test** | `services/api/src/modules/super-admin/bulk-delete-admin-tier.spec.ts` |
+| **Scenario** | Same as REG-607, against `bulkDeleteCustomerOnboardings` and `customerOnboarding.count`/`deleteMany`. |
+| **Proven to fail without the fix** | Yes — same removal, same three cases resolve instead of rejecting. |
+| **Fixed** | 2026-09-25, merged as `3dccd1e6` on branch `agent/pah-wp10-audit-trail` |
+| **Active** | yes |
+
+### REG-609 — The platform audit list had no server-side pagination proof, only a response-shape assumption
+
+| | |
+|---|---|
+| **Bug class** | `unproven-database-pagination` |
+| **Module** | `services/api/src/modules/audit/audit.repository.ts` |
+| **Bug record** | BUG-3564 |
+| **Root cause** | A list endpoint over `PlatformAuditLog` — a table with no natural upper bound — must page in the database from the first commit, not slice an unbounded `findMany` in memory (the exact shape of BUG-3175). `findPlatformAudit` passes `skip`/`take` straight through to `platformAuditLog.findMany`, but nothing asserted that until this test inspected the actual Prisma call arguments for a non-default page. |
+| **Regression test** | `services/api/src/modules/audit/platform-audit-trail.spec.ts` |
+| **Scenario** | `findPlatformAudit({ page: 3, pageSize: 10 })` calls `platformAuditLog.findMany` with `skip: 20, take: 10`. |
+| **Proven to fail without the fix** | Yes — an implementation that fetched everything and sliced in memory, or that ignored `page`, would fail this assertion on the captured call arguments; the default-query case (`skip: 0, take: 20`) is asserted separately in the same file. |
+| **Fixed** | 2026-09-25, merged as `3dccd1e6` on branch `agent/pah-wp10-audit-trail` |
+| **Active** | yes |
+
+### REG-610 — Pre-send agreement PDF/DOCX printed raw `{{placeholders}}`
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` (three renderers of one version; one never substituted) |
+| **Module** | `services/api/src/modules/contracts` |
+| **Bug record** | BUG-3580 — QA agreements DEFECT-1 (TASK-0032 WP-09 live QA; evidence `B1-partner-only.pdf`, `B3-customer.pdf`) |
+| **Root cause** | `ContractsService.generateDocument`'s non-immutable path used `version.contentHtml` as stored and only replaced `{{signature.*}}`; `documentFields()` and `sendForSignature()` each called `renderContractPlaceholders` themselves. All three now call one `renderContractVersionHtml(html, rows, 'display' \| 'freeze')`; the immutable path still renders only from the frozen version plus `SignatureEvidence` (`renderSignatureEvidenceTokens`). |
+| **Regression test** | `services/api/src/modules/contracts/contracts.agreement-rendering.spec.ts` |
+| **Scenario** | A draft partner agreement with `platform.legalName`/`partner.name` stored: `POST /contracts/:id/generate/pdf` prints "DijiPeople Technologies Ltd." and "Northstar Advisory" (PDF text extracted from the inflated content streams), no `{{`, signature lines read "Pending". After signing, renaming the partner does not change the executed copy. A required unresolved token stays visible in a draft preview; an optional one follows its EMPTY fallback. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp11-agreement-qa-fixes` |
+| **Active** | yes |
+
+### REG-611 — Signature-date placeholders blocked sending and corrupted the executed copy
+
+| | |
+|---|---|
+| **Bug class** | `wrong-question-in-a-guard` (exemption keyed on data type instead of namespace) |
+| **Module** | `services/api/src/modules/contracts` |
+| **Bug record** | BUG-3581 — QA agreements DEFECT-2 (TASK-0032 WP-09 live QA; evidence `D15-b3-signed-copy.pdf`) |
+| **Root cause** | `sendForSignature`'s "every token resolved" check exempted only `SIGNATURE`/`INITIALS` data types, but `signature.*.date` is `DATE_TIME` — so any template with a dated signature line (seeded `CUSTOMER_SERVICE_STANDARD`) could not be sent. The workaround (typing a date into document fields) was frozen into the signing version, and the executed PDF printed "— 1 October 2026, 00:00 UTC" beside the real signing timestamp. The whole `signature.*` namespace is now exempt from the gate, stripped from the signing snapshot, refused by `saveDocumentFields` (`CONTRACT_SIGNATURE_FIELD_NOT_EDITABLE`, 400), ignored at display unless written by signing, and filled at render from the matching signer's `SignatureEvidence.signedAt`. |
+| **Regression test** | `services/api/src/modules/contracts/contracts.agreement-rendering.spec.ts`, `services/api/src/common/errors/task-0032-error-codes.spec.ts` |
+| **Scenario** | Send a partner agreement whose body has `{{signature.platform.date}}`/`{{signature.counterparty.date}}` and a stale manual `signature.platform.date` row: the send succeeds, the signing version keeps both tokens, the snapshot has no `signature.*` key. `PATCH /contracts/:id/document-fields` with `signature.counterparty.date` returns 400 `CONTRACT_SIGNATURE_FIELD_NOT_EDITABLE`. The signed PDF prints "25 September 2026, 10:36 UTC" (the real `signedAt`) and no fabricated date. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp11-agreement-qa-fixes` |
+| **Active** | yes |
+
+### REG-612 — Partner agreement template picker showed a "Customer" group
+
+| | |
+|---|---|
+| **Bug class** | `doc-code-drift` |
+| **Module** | `services/api/src/modules/contracts` |
+| **Bug record** | BUG-3583 — QA agreements DEFECT-4 (TASK-0032 WP-09 live QA) |
+| **Root cause** | `PLACEHOLDER_GROUP_BY_NAMESPACE` mapped `counterparty` to `'Customer'`. `counterparty.*` is always available (ADR-0020), so every partner agreement template listed a Customer group even though ADR-0020 had removed `customer.*` from it. `counterparty` now has its own `'Counterparty'` group, ordered right after `'Platform'`. |
+| **Regression test** | `services/api/src/modules/contracts/contracts.agreement-rendering.spec.ts` |
+| **Scenario** | `GET /contracts/placeholder-definitions?contractType=PARTNER_AGREEMENT` returns Platform, Counterparty, Partner, Contract, SLA, Signatures groups and no Customer group. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp11-agreement-qa-fixes` |
+| **Active** | yes |
+
+### REG-613 — A partner agreement never resolved its linked partner's `partner.*` values
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-step` |
+| **Module** | `services/api/src/modules/contracts` |
+| **Bug record** | BUG-3584 — TASK-0032 WP-11 item 5 (verification of the ADR-0020 "linked entities feed their namespace" promise, surfaced while fixing QA agreements DEFECT-1) |
+| **Root cause** | `resolveSource` handles lead, customer, onboarding and tenant; there is no `partner` source, and `create()` stored `partnerId` without deriving a single `partner.*` value. With DEFECT-1 fixed, a partner agreement's preview would still print `{{partner.name}}` until the operator typed the partner's own name in. `create()` now derives `partner.*` from the linked partner (explicit `placeholderValues` still win) and `syncDerivedPlaceholderValues` refreshes them on every contract edit, preserving values an operator entered manually. |
+| **Regression test** | `services/api/src/modules/contracts/contracts.partner-source.spec.ts` |
+| **Scenario** | `POST /contracts` `{ contractType: PARTNER_AGREEMENT, partnerId }` for an individual partner stores `partner.name`, `partner.legalName` (the individual's name), `partner.contact.*`, `partner.taxId` and a configured commission; it never invents a company legal name, a 0% commission, an address or a registration number. Renaming the partner then editing the draft updates `partner.name`; a manually entered `partner.contact.email` survives. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp11-agreement-qa-fixes` |
+| **Active** | yes |
+
+### REG-614 — Seeded agreement templates had no signature block
+
+| | |
+|---|---|
+| **Bug class** | `unvalidated-seed-state` |
+| **Module** | `services/api/prisma` (`seed-config.ts`), `services/api/src/modules/contracts` |
+| **Bug record** | BUG-3582 — QA agreements DEFECT-3 (TASK-0032 WP-09 live QA) |
+| **Root cause** | `seedPlatformContractTemplates` shipped seven of nine system templates (`PARTNER_REFERRAL_STANDARD`, `PARTNER_COMPANY_STANDARD`, `PARTNER_INDIVIDUAL_STANDARD`, `CUSTOMER_ENTERPRISE_STANDARD`, `NDA_STANDARD`, `DATA_PROCESSING_STANDARD`, `REFERRAL_ADDENDUM_STANDARD`) with no `signature.*` tokens, so an executed agreement's body showed no signature; and the seed bypasses `createTemplate`'s ADR-0020 context check, so nothing validated seeded content. Each now ends with a platform + counterparty block (mark and date), naming the counterparty with a placeholder in its type's context; the list is exported as `PLATFORM_CONTRACT_TEMPLATES` and validated by a spec. |
+| **Regression test** | `services/api/src/modules/contracts/contract-templates.seed.spec.ts` |
+| **Scenario** | Every seeded template contains `{{signature.platform.name}}`, `{{signature.platform.date}}`, `{{signature.counterparty.name}}`, `{{signature.counterparty.date}}`, and `outOfContextPlaceholders` over it is empty. A future seed template referencing, say, `customer.*` in a partner agreement fails this spec. |
+| **Fixed** | 2026-09-25, branch `agent/pah-wp11-agreement-qa-fixes` |
+| **Active** | yes |
+
+### REG-620 — Deleting a partner with restricted history crashes with a 500
+
+| | |
+|---|---|
+| **Bug class** | A delete guard that checks some `onDelete: Restrict` relations and not others, so the database refuses what the service allowed. |
+| **Module** | `services/api/src/modules/partners` — `partner-deletion.service.ts` |
+| **Bug record** | BUG-3578 — Found by TASK-0032 WP-09 QA (partners, Defect 1). |
+| **Root cause** | `deletePartners` checked leads, commissions, agreements, referral links and portal users, but not the origin inquiry, onboarding applications, lead attribution history, lead reviews or support cases — all Restrict — nor the partner's own Restrict timeline. |
+| **Regression test** | `services/api/src/modules/partners/partner-deletion.service.spec.ts` |
+| **Scenario** | A partner with any of those relations is refused with the relation named; a partner with none is deleted together with its timeline in one transaction. |
+| **Fails without the fix** | Yes — with the service change stashed, the refusal and timeline cases fail. |
+| **Active** | yes |
+
+### REG-621 — Bulk-deleting a lead with restricted history crashes with a 500
+
+| | |
+|---|---|
+| **Bug class** | Same as REG-620, for leads. |
+| **Module** | `services/api/src/modules/leads` — `leads.service.ts` `bulkDeleteLeads` |
+| **Bug record** | BUG-3578 — Found by TASK-0032 WP-09 QA (partners Defect 1, agreements Defect 5). |
+| **Root cause** | Only a converted customer blocked the delete; `LeadAttributionCorrection`, `Contract.relatedLeadId` and `PartnerLeadReview` are Restrict and were not checked. |
+| **Regression test** | `services/api/src/modules/leads/lead-delete-and-partner.spec.ts` |
+| **Scenario** | A lead with attribution changes, agreements or partner reviews is refused with a 400 naming them; a lead with none is deleted. |
+| **Fails without the fix** | Yes. |
+| **Active** | yes |
+
+### REG-622 — An attributed lead shows no referral partner
+
+| | |
+|---|---|
+| **Bug class** | A lookup field whose label depends on an embedded relation the API never embeds. |
+| **Module** | `services/api/src/modules/leads` `getLead`; `apps/admin` lead attribution panel |
+| **Bug record** | BUG-3579 — Found by TASK-0032 WP-09 QA (partners Defects 2 and 3). |
+| **Root cause** | `getLead` returned only the scalar `partnerId`; the runtime form labels a lookup from `values.partner`, and the attribution panel had no current-partner value. |
+| **Regression test** | `services/api/src/modules/leads/lead-delete-and-partner.spec.ts` |
+| **Scenario** | `getLead` returns `partner { id, displayName, type, status }` and nothing more about the partner; the panel shows "Current partner". |
+| **Fails without the fix** | Yes. |
+| **Active** | yes |
+
+### REG-623 — DijiPeople's signature line shows only when DijiPeople signs
+
+| | |
+|---|---|
+| **Bug class** | Owner decision (ADR-0021) pinned as a regression: a template section that must follow who actually signs. |
+| **Module** | `services/api/src/modules/contracts` — `omitPlatformSignatureLines`, `platformSignsContract`; `prisma/seed-config.ts` platform signature markers |
+| **Bug record** | BUG-3582 — follow-up to TASK-0032 QA agreements DEFECT-3 (REG-614); ADR-0021. |
+| **Root cause** | After every system template gained a signature block, agreements without a DijiPeople signer printed "Not signed" beside DijiPeople. |
+| **Regression test** | `services/api/src/modules/contracts/platform-signature-lines.spec.ts`, `contracts.agreement-rendering.spec.ts` |
+| **Scenario** | Marked and token-bearing platform lines are removed when no PLATFORM party signs, kept when one does; every system template marks its platform lines; a partner-only send freezes no platform line. |
+| **Fails without the fix** | Yes — the helpers do not exist without it, and the rendering cases expect the line removed. |
+| **Active** | yes |
+
+### REG-624 — Error codes added for MFA, platform authorization and agreements reached clients as generic codes
+
+| | |
+|---|---|
+| **Bug class** | `uncatalogued-error-code` |
+| **Module** | `services/api/src/common/errors`, `services/api/src/modules/auth`, `services/api/src/modules/contracts` |
+| **Bug record** | BUG-3585 |
+| **Root cause** | Three TASK-0032 streams (WP-02 platform RBAC, WP-03 MFA, WP-05 agreement guards) each introduced new `AppError` codes — including `CONTRACT_SIGNATURE_FIELD_NOT_EDITABLE` (REG-611) — without registering any of them in `common/errors/error-catalog.ts`. `HttpExceptionFilter` renders `errorCode: 'SYSTEM_UNEXPECTED_ERROR'` for any code the catalogue does not recognise, so a client hitting these new paths could not distinguish the specific failure from an unrelated server fault. |
+| **Regression test** | `services/api/src/common/errors/task-0032-error-codes.spec.ts` |
+| **Scenario** | Every error code TASK-0032 introduced across MFA, platform authorization and agreements is registered in `error-catalog.ts` and renders its own `errorCode`, never the `SYSTEM_UNEXPECTED_ERROR` fallback. |
+| **Proven to fail without the fix** | Yes — the catalogue entries this spec asserts on did not exist before the fix; reverting `error-catalog.ts` to omit them fails the spec. |
+| **Fixed** | 2026-09-25, commits `e52a345c`, `bbb61ab5` |
+| **Active** | yes |
+
+### REG-625 — The monitoring health headline read Unknown when no email had ever been sent
+
+| | |
+|---|---|
+| **Bug class** | `ambiguous-absent-vs-inconclusive-status` |
+| **Module** | `services/api/src/modules/platform-monitoring` |
+| **Bug record** | BUG-3586 |
+| **Root cause** | `PlatformHealthService`'s email component reported `'UNKNOWN'` both when a probe was genuinely inconclusive (a timeout) and when there was simply no delivery-log history to sample from — collapsing "never tried" and "tried and could not tell" into one status, unlike every other component in the same service (REG-580's "never fabricate OK, and a timeout is not the same as confirmed down" rule). |
+| **Regression test** | `services/api/src/modules/platform-monitoring/platform-health.service.spec.ts` |
+| **Scenario** | An environment with zero delivery-log rows reports the email component's dedicated "nothing sent yet" status, distinct from the status a genuinely inconclusive (timed-out) probe reports. |
+| **Proven to fail without the fix** | Yes — collapsing the two branches back into one shared `'UNKNOWN'` value fails this spec's case. |
+| **Fixed** | 2026-09-25, commit `910fcb50` |
+| **Active** | yes |
+
+### REG-626 — The admin monitoring overview's hydration mismatch blanked the page under the global error dialog
+
+| | |
+|---|---|
+| **Bug class** | `hydration-mismatch-treated-as-fatal` |
+| **Module** | `apps/admin` |
+| **Bug record** | BUG-3587 |
+| **Root cause** | The monitoring overview rendered incident relative times ("2 minutes ago") directly in the shared render path with no hydration guard, so the server's snapshot and the client's first hydration pass — computed moments apart — necessarily disagreed. `ErrorProvider`'s global error boundary treated the resulting React hydration warning as page-fatal and covered the whole page with its blocking error dialog. |
+| **Regression test** | `apps/admin/app/_components/monitoring/monitoring-overview.tsx` — no automated test; `apps/admin/jest.config.js` runs no rendering tests, the same constraint as REG-587; verified by direct browser reproduction against the throwaway stack and by code review of the hydration-safe rendering change in this file. |
+| **Scenario** | Loading the monitoring overview with at least one incident present never triggers the page-level error dialog; incident relative times still update to reflect elapsed time after the initial render. |
+| **Fails without the fix** | Not mechanically (no test harness) — confirmed by live browser reproduction before the fix and its absence after, per the same precedent as REG-587. |
+| **Fixed** | 2026-09-25, commit `910fcb50` |
+| **Active** | yes |
+
+### REG-627 — A drawn signature inside a signature paragraph vanished from the signed PDF and DOCX
+
+| | |
+|---|---|
+| **Bug class** | `renderer-flattens-inline-content` |
+| **Module** | `services/api/src/modules/contracts` |
+| **Bug record** | BUG-3597 |
+| **Root cause** | The document structure extractor turned every paragraph into one text block, discarding element children. The evidence renderer places a drawn or uploaded signature image inline where the signature name token was — inside a paragraph in every system template — so the image was dropped from both the PDF and the DOCX. The earlier image test placed its image at the top level and never exercised the paragraph case. |
+| **Regression test** | `services/api/src/modules/contracts/contracts.domain.spec.ts` — "keeps a signature image that sits inside a paragraph, with the text on either side": asserts the text-image-text block order, an image object in the PDF and a media entry in the DOCX. |
+| **Scenario** | Signing an agreement with a drawn signature produces a signed copy whose signature line shows the drawn mark between the party label and the signer's name and time. |
+| **Fails without the fix** | Yes — run against the pre-fix service, the block order is text-only and the test fails. |
+| **Fixed** | 2026-09-25, branch `agent/partner-agreements-admin-hardening` (TASK-0032) |
+| **Active** | yes |
+
+### REG-628 — Generating a document for a signed agreement rendered from draft values
+
+| | |
+|---|---|
+| **Bug class** | `second-render-path-diverges` |
+| **Module** | `services/api/src/modules/contracts` |
+| **Bug record** | BUG-3598 |
+| **Root cause** | Only the completion hook asked the document generator to render from signature evidence. The admin "Generate document" action always took the draft-preview path, so a copy of a signed version printed typed names, blanked drawn ones and omitted images and the signature appendix. |
+| **Regression test** | `services/api/src/modules/contracts/contracts.agreement-rendering.spec.ts` — "an operator-generated copy of a signed version also renders from the evidence": asserts signer names and signing times from evidence, the appendix, no "Pending", and that the copy is stored as an ordinary generated PDF rather than the immutable signed copy. |
+| **Scenario** | Generating a document from admin for an executed agreement downloads a copy matching the stored signed copy. |
+| **Fails without the fix** | Yes — against the pre-fix service the generated copy has no evidence and the test fails. |
+| **Fixed** | 2026-09-25, branch `agent/partner-agreements-admin-hardening` (TASK-0032) |
+| **Active** | yes |
+
+### REG-629 — An unsupported agreement document format returned a 500
+
+| | |
+|---|---|
+| **Bug class** | `client-input-raised-as-system-fault` |
+| **Module** | `services/api/src/modules/contracts` |
+| **Bug record** | BUG-3599 |
+| **Root cause** | The generate endpoint rejected an unknown format path segment with a plain error, which the exception filter reports as an unexpected system fault. |
+| **Regression test** | `services/api/src/modules/contracts/contracts.controller.generate.spec.ts` — an unsupported format is refused as a bad request and nothing is generated. |
+| **Scenario** | Requesting an agreement document in an unsupported format returns 400 with the invalid-format code. |
+| **Fails without the fix** | Yes — the plain error is not a bad-request exception. |
+| **Fixed** | 2026-09-25, branch `agent/partner-agreements-admin-hardening` (TASK-0032) |
+| **Active** | yes |

@@ -1,3 +1,4 @@
+import { PartialType } from '@nestjs/mapped-types';
 import { Type } from 'class-transformer';
 import {
   IsDateString,
@@ -76,7 +77,25 @@ export class CreatePartnerDto {
   @IsOptional() @IsUUID() assignedToUserId?: string;
   @IsOptional() @IsString() @MaxLength(4000) notes?: string;
 }
-export class UpdatePartnerDto extends CreatePartnerDto {}
+/*
+ * WP-08 finding 3. `extends CreatePartnerDto {}` inherited every one of its
+ * required fields (`type`, `displayName`, `email`, `defaultCommissionRate`)
+ * unchanged, so `PATCH /partners/:id` was never actually a partial update —
+ * omitting any one of them failed validation before the request reached the
+ * service, regardless of what the caller was trying to change. The admin
+ * console never noticed because its edit form always resubmits the whole
+ * record; a caller sending a genuinely partial body could not.
+ *
+ * `PartialType` wraps every inherited field in `@IsOptional()` while keeping
+ * its other validators, which is the standard fix elsewhere in this
+ * repository (`update-employment-type.dto.ts` and others). The service's
+ * `update()` now validates identity-field policy and duplicate detection
+ * against the record as it *would* read after the patch — existing fields the
+ * patch does not mention, merged with the fields it does — rather than
+ * against the patch body alone, so this cannot be satisfied by omitting the
+ * field that would fail it.
+ */
+export class UpdatePartnerDto extends PartialType(CreatePartnerDto) {}
 export class CreatePartnerCommissionDto {
   @IsOptional() @IsUUID() leadId?: string;
   @IsOptional() @IsUUID() customerAccountId?: string;

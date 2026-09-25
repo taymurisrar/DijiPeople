@@ -19,6 +19,10 @@ so rather than guessing.
 | [`object-storage.md`](object-storage.md) | **Canonical** for durable file storage: provider abstraction, Cloudflare R2, object keys and tenant scoping, upload limits, download authorization, deletion and reconciliation |
 | [`tenant-control-plane.md`](tenant-control-plane.md) | Platform Admin's control plane over a tenant: lifecycle, access identities, module entitlement, apps, provisioning runs, erasure |
 | [`workspace-routing-and-domains.md`](workspace-routing-and-domains.md) | **Canonical** for hostname → tenant routing, workspace slugs, custom domains, environments, and the production DNS/TLS checklist |
+| [`mfa.md`](mfa.md) | TOTP multi-factor authentication (ADR-0019): setup, login challenge, recovery codes, admin reset, platform lockout, audit, rate limits |
+| [`partners.md`](partners.md) | The partner program: `PartnerType` vs `PartnershipModel`, lifecycle, duplicate detection, audit, lead/customer attribution, deletion rules |
+| [`agreements.md`](agreements.md) | Agreement types and families, ADR-0020 contextual placeholders, template authoring, generation, signing evidence, source guards, the 30-scenario matrix |
+| [`monitoring.md`](monitoring.md) | Health overview, grouped/correlated errors, redaction, the platform audit trail, and the debugging workflow |
 
 ## Pre-existing design contracts
 

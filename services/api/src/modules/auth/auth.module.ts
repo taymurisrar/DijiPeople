@@ -10,6 +10,7 @@ import {
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { MailerModule } from '../../common/mailer/mailer.module';
+import { SecretEncryptionService } from '../../common/security/secret-encryption.service';
 import { TenantAuthPolicyService } from '../../common/security/tenant-auth-policy.service';
 import { AuditModule } from '../audit/audit.module';
 import { NotificationsModule } from '../notifications/notifications.module';
@@ -21,6 +22,9 @@ import { AdminAuthController } from './admin-auth.controller';
 import { AuthController } from './auth.controller';
 import { AuthAccessService } from './auth-access.service';
 import { LoginLockoutService } from './login-lockout.service';
+import { PlatformLoginLockoutService } from './platform-login-lockout.service';
+import { MfaService } from './mfa/mfa.service';
+import { AuthMfaController } from './mfa/auth-mfa.controller';
 import { PasswordPolicyService } from './password-policy.service';
 import { AuthService } from './auth.service';
 import { UserInvitationsService } from './user-invitations.service';
@@ -49,11 +53,14 @@ import { PlatformCommunicationsModule } from '../platform-communications/platfor
     NotificationsModule,
     PlatformCommunicationsModule,
   ],
-  controllers: [AuthController, AdminAuthController],
+  controllers: [AuthController, AdminAuthController, AuthMfaController],
   providers: [
     AuthService,
     AuthAccessService,
     LoginLockoutService,
+    PlatformLoginLockoutService,
+    MfaService,
+    SecretEncryptionService,
     PasswordPolicyService,
     UserInvitationsService,
     TenantAuthPolicyService,
@@ -64,6 +71,7 @@ import { PlatformCommunicationsModule } from '../platform-communications/platfor
     AuthService,
     AuthAccessService,
     LoginLockoutService,
+    MfaService,
     PasswordPolicyService,
     UserInvitationsService,
     TenantAuthPolicyService,
