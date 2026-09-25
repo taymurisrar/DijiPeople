@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PartnerStatus, Prisma } from '@prisma/client';
+import { PartnerStatus, PartnerType, Prisma } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -499,11 +499,21 @@ export class PartnersService {
         'A live partner’s status is changed through the governed lifecycle actions — suspend, deactivate or reactivate — so the reason is recorded.',
       );
     await this.validateOwner(dto.assignedToUserId);
-    assertPartnerIdentityFields(dto);
-    assertNoPartnerDuplicate(await findPartnerDuplicate(this.prisma, dto, id));
+    /*
+     * WP-08 finding 3. `dto` may now be a genuinely partial patch — validate
+     * the record as it would read *after* the patch, not the patch body in
+     * isolation. A `{ notes: '...' }` patch on an already-compliant COMPANY
+     * partner must not be told it is missing a company name it never touched;
+     * a patch that clears the one it has must still be refused.
+     */
+    const merged = mergedPartnerIdentity(existing, dto);
+    assertPartnerIdentityFields(merged);
+    assertNoPartnerDuplicate(
+      await findPartnerDuplicate(this.prisma, merged, id),
+    );
     const updated = await this.prisma.partner.update({
       where: { id },
-      data: partnerData(dto, dto.currencyCode ?? existing.currencyCode),
+      data: partnerUpdateData(dto),
     });
     await this.auditService.log({
       tenantId: 'platform',
@@ -888,18 +898,20 @@ function dateCondition(operator: string, value: string) {
  * validation rule would make that test's minimal context an accidental
  * dependency of this one.
  */
-function assertPartnerIdentityFields(dto: CreatePartnerDto | UpdatePartnerDto) {
-  const missing = missingAdminIdentityFields(dto.type, dto);
+function assertPartnerIdentityFields(identity: {
+  type: PartnerType;
+  companyName?: string | null;
+  contactFirstName?: string | null;
+  contactLastName?: string | null;
+}) {
+  const missing = missingAdminIdentityFields(identity.type, identity);
   if (missing.length)
     throw new BadRequestException(
-      `A ${dto.type === 'COMPANY' ? 'company' : 'individual'} partner requires: ${missing.join(', ')}.`,
+      `A ${identity.type === 'COMPANY' ? 'company' : 'individual'} partner requires: ${missing.join(', ')}.`,
     );
 }
 
-function partnerData(
-  dto: CreatePartnerDto | UpdatePartnerDto,
-  currencyCode: string,
-) {
+function partnerData(dto: CreatePartnerDto, currencyCode: string) {
   return {
     ...dto,
     displayName: dto.displayName.trim(),
@@ -907,6 +919,81 @@ function partnerData(
     currencyCode: currencyCode.toUpperCase(),
     status: dto.status ?? PartnerStatus.DRAFT,
     defaultCommissionRate: dto.defaultCommissionRate,
+  };
+}
+
+/**
+ * WP-08 finding 3. What `PATCH /partners/:id` actually writes, now that
+ * `UpdatePartnerDto` is genuinely partial (`PartialType(CreatePartnerDto)`).
+ *
+ * `partnerData()` above assumes every field is present — true for `create()`,
+ * where the DTO's own required decorators guarantee it, and no longer true
+ * here. Spreading `...dto` the way `partnerData()` does would write
+ * `undefined` over every column the patch did not mention (Prisma treats an
+ * explicit `undefined` in `data` as "do not touch this field" in some
+ * versions and as a validation error in others — either way, not what a
+ * caller who sent `{ notes: '...' }` meant), and unconditionally defaulting
+ * `status` to `DRAFT` would silently demote every partner whose patch simply
+ * did not mention status. Each field is written only when the patch actually
+ * included it.
+ */
+function partnerUpdateData(dto: UpdatePartnerDto) {
+  const data: Record<string, unknown> = {};
+  if (dto.type !== undefined) data.type = dto.type;
+  if (dto.displayName !== undefined) data.displayName = dto.displayName.trim();
+  if (dto.legalName !== undefined) data.legalName = dto.legalName;
+  if (dto.companyName !== undefined) data.companyName = dto.companyName;
+  if (dto.contactFirstName !== undefined)
+    data.contactFirstName = dto.contactFirstName;
+  if (dto.contactLastName !== undefined)
+    data.contactLastName = dto.contactLastName;
+  if (dto.email !== undefined) data.email = dto.email.trim().toLowerCase();
+  if (dto.phone !== undefined) data.phone = dto.phone;
+  if (dto.country !== undefined) data.country = dto.country;
+  if (dto.website !== undefined) data.website = dto.website;
+  if (dto.taxId !== undefined) data.taxId = dto.taxId;
+  if (dto.defaultCommissionRate !== undefined)
+    data.defaultCommissionRate = dto.defaultCommissionRate;
+  if (dto.currencyCode !== undefined)
+    data.currencyCode = dto.currencyCode.toUpperCase();
+  if (dto.status !== undefined) data.status = dto.status;
+  if (dto.assignedToUserId !== undefined)
+    data.assignedToUserId = dto.assignedToUserId;
+  if (dto.notes !== undefined) data.notes = dto.notes;
+  return data;
+}
+
+/**
+ * The identity/identifier fields a patch would leave the partner with, for
+ * validating against `partner-type-policy.ts` and re-running duplicate
+ * detection (`partner-duplicate-detection.ts`) — the field the patch sent, or
+ * the value already on the record when the patch did not touch it.
+ */
+function mergedPartnerIdentity(
+  existing: {
+    type: PartnerType;
+    email: string;
+    taxId: string | null;
+    companyName: string | null;
+    contactFirstName: string | null;
+    contactLastName: string | null;
+  },
+  dto: UpdatePartnerDto,
+) {
+  return {
+    type: dto.type ?? existing.type,
+    email: dto.email ?? existing.email,
+    taxId: dto.taxId !== undefined ? dto.taxId : existing.taxId,
+    companyName:
+      dto.companyName !== undefined ? dto.companyName : existing.companyName,
+    contactFirstName:
+      dto.contactFirstName !== undefined
+        ? dto.contactFirstName
+        : existing.contactFirstName,
+    contactLastName:
+      dto.contactLastName !== undefined
+        ? dto.contactLastName
+        : existing.contactLastName,
   };
 }
 function normalizePartner<T extends Record<string, any>>(item: T) {
