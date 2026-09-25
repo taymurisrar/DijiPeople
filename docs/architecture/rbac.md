@@ -131,7 +131,126 @@ Tenants can define additional roles; role privileges are stored per role as
 
 Platform users have a separate `PlatformUserRole` enum and their own
 authorization path in the `super-admin` / `platform-*` modules and
-`apps/admin/lib/platform-rbac.ts`.
+`apps/admin/lib/platform-rbac.ts` — see the next section.
+
+## Platform roles (ADR-0018)
+
+TASK-0032 replaced two authorization models that disagreed with a single
+rule: **a platform subject is authorized by platform permission, never by a
+tenant role key.** Before this, `SuperAdminService.updateTenant` decided with
+`roleKeys.includes('system-admin')` — a *tenant* role key injected as an
+alias for two platform roles — while every other platform check used
+`userHasPlatformPermission`. The two models disagreed in practice: a
+`PLATFORM_ADMIN` holding `tenants.*` passed every permission check, got an
+enabled Save, and was refused on save with "Only System Admin can edit tenant
+profile fields."
+
+**The rule going forward**: every platform code path decides with
+`userHasPlatformPermission(actor, '<permission>')` (service-level) or
+`PlatformPermissionsGuard` + `@RequirePlatformPermission('<permission>')`
+(route-level, `services/api/src/modules/platform-auth/`).
+`roleKeys.includes(<tenant key>)` and `@RequireRoles(<tenant key>)` must never
+be the deciding check for a platform subject — `RolesGuard` itself now refuses
+any platform user outright (`PLATFORM_PERMISSION_DENIED`), so no platform
+route can fall back on it even by accident. **Super Admin is the widest
+permission set (`platform.*`), not a bypass** — authentication, validation,
+protected-record invariants and auditing all still run for it; no code path
+skips them because the actor is a Super Admin. Full reasoning:
+[ADR-0018](../decisions/ADR-0018-platform-operations-are-authorized-by-platform-permission-only.md).
+
+### `@RequirePlatformPermission` and narrow keys
+
+Some operations are deliberately narrower than their module's general write
+permission — status changes on a tenant, for example, must not be reachable
+through the same permission that edits the tenant's display name. These get
+an explicit narrow key, held only via the `platform.*` wildcard (Super Admin
+and the `PLATFORM_OWNER` alias):
+
+```ts
+@RequirePlatformPermission('platform.tenants.administer')
+```
+
+Narrow keys introduced by ADR-0018: `platform-users.manage`,
+`platform.tenants.administer`, `platform.billing.administer`,
+`platform.legal.administer`. `tenants.update` remains the ordinary,
+widely-held permission for tenant **profile** fields (`name`, `displayName`,
+`legalName`); a changed `status`/`subStatus` through that same endpoint is
+refused with `400 TENANT_STATUS_REQUIRES_LIFECYCLE_ACTION`, naming the
+governed lifecycle action to use instead — the generic edit and the lifecycle
+transition are two different gates on purpose.
+
+### `@AuthenticationOnly()`
+
+An endpoint that acts solely on the caller's own session or preferences needs
+no business permission at all. `POST /auth/activity` (the session heartbeat)
+is the one handler carrying this decorator
+(`AUTHENTICATION_ONLY_HANDLERS` in `wiring-invariants.spec.ts` pins the exact
+list) — `PermissionsGuard` honours it explicitly, still 401s with no
+authenticated user, and `JwtAuthGuard` still runs. Before this, the heartbeat
+required the tenant permission `user-preferences.write`, so most platform
+roles got a blocking "no permission" dialog simply by staying signed in.
+
+### The consolidated role list
+
+| Role | Label | Assignable |
+|---|---|---|
+| `SUPER_ADMIN` | Platform Super Admin | yes — the single top role |
+| `PLATFORM_ADMIN` | Platform Admin | yes — full day-to-day administration short of platform-user management and destructive platform operations |
+| `PLATFORM_OPERATIONS` | Platform Operations | yes |
+| Presales Manager/User, Partner Manager, Contract Manager, Legal Reviewer, Finance Manager, Billing User, Support Manager/Agent, Monitoring Operator, Read-only Auditor | unchanged | yes |
+| `PLATFORM_OWNER` | Platform Owner (legacy) | **no** — existing assignments migrated to `SUPER_ADMIN` (identical permission set, so no access change); the enum value stays as a permission alias until a later contract step |
+| `MEMBER` | Legacy Member (deprecated) | **no** — existing assignments keep working unchanged; new assignments are refused (`400 PLATFORM_ROLE_NOT_ASSIGNABLE`) |
+
+The role picker no longer offers two visually identical "Platform Owner"
+entries or a bare "Member"; the default role for a newly created platform
+user is `READ_ONLY_AUDITOR`. Tenant roles (`ROLE_KEYS` above) are a separate
+catalog and are not merged with this list.
+
+### Role × Capability matrix (`ROLE_MATRIX`)
+
+Derived from `ROLE_PERMISSIONS` via `hasPlatformPermission`, one row per
+platform role, covering tenants, platform-user management, leads, customers,
+onboarding, partners, contracts, billing, plans, invoices, support,
+monitoring, settings, email credentials and legal — see
+[`WP-02-report.md`](../tasks/TASK-0032-streams/WP-02-report.md#role_matrix-derived-from-role_permissions-via-hasplatformpermission)
+for the full table. Two properties worth restating here:
+
+- **Legacy `MEMBER`, `PLATFORM_OWNER` and `SUPER_ADMIN` retain everything
+  they held before** — the migration widened who else could act, it did not
+  narrow anyone's existing access.
+- **`READ_ONLY_AUDITOR` holds only `.read` variants** of plans, invoices,
+  subscriptions and payments — a deliberate grant, not an oversight (see
+  [[platform-auth]] for the sibling defect, BUG-0072, where a `.manage`
+  action was once satisfied by a `.read` permission because no mutating
+  permission existed to return instead).
+
+### Per-route mapping
+
+Every route on `SuperAdminController`, `AdminLeadsController`,
+`AdminLegalController` and `DemoDataController` — old permission, new
+permission, old/new admitted roles, and whether the route widened, narrowed
+or stayed the same — is enumerated in
+[`docs/tasks/TASK-0032-streams/WP-02-route-mapping.md`](../tasks/TASK-0032-streams/WP-02-route-mapping.md).
+105 routes total: 23 unchanged, 82 widened (80 of which previously carried
+only a class-level `@RequireRoles` that admitted `{SUPER_ADMIN,
+PLATFORM_OWNER, MEMBER}` regardless of the route's own domain — a set no
+platform permission can express, since it dates from when those two roles
+were the only ones that existed and the check really meant "is a platform
+user". Each route now admits exactly the holders of the permission it already
+declared, matching what `PlatformRuntimeService` applies to the same data).
+24 routes stay `SUPER_ADMIN`-only by explicit narrow-key design (tenant
+status/agent-assignment/access-user/invoice-detail actions, legal
+administration, demo data).
+
+### Platform audit trail read access
+
+`GET /platform/audit-logs` (`services/api/src/modules/audit/platform-audit.controller.ts`)
+is guarded by `@RequirePlatformPermission('monitoring.read')` — reusing the
+existing permission every audit-facing role already holds
+(`READ_ONLY_AUDITOR`, `SUPPORT_MANAGER`, `SUPPORT_AGENT`,
+`MONITORING_OPERATOR`, `PLATFORM_ADMIN`, `PLATFORM_OPERATIONS`,
+`SUPER_ADMIN`) rather than a new permission key. See
+[`monitoring.md`](monitoring.md#platform-audit-trail) for the reader itself.
 
 ## Entities and privileges
 
