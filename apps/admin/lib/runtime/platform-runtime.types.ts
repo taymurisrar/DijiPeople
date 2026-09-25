@@ -113,6 +113,15 @@ export type RuntimeViewDefinition = {
   description?: string;
   kind?: "system" | "personal" | "team";
   isSystemDefault?: boolean;
+  /**
+   * Makes this view the default for a viewer holding any of these roles,
+   * ahead of `isSystemDefault`. Additive: a view with no `roleDefaultFor`
+   * behaves exactly as before. Exists so a role-specific default (the
+   * platform Operations dashboard view, for SUPER_ADMIN/PLATFORM_ADMIN) does
+   * not require a second selection mechanism alongside the existing
+   * `isSystemDefault`/per-user "pin a default" one.
+   */
+  roleDefaultFor?: string[];
   filters?: RuntimeFilter[];
   sort?: RuntimeSort[];
   roles?: string[];

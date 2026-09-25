@@ -54,6 +54,7 @@ import { SetAgentAssignmentDto } from './dto/set-agent-assignment.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { UpdateTenantSlugDto } from '../tenants/dto/update-tenant-slug.dto';
 import { SuperAdminService } from './super-admin.service';
+import { OperationsDashboardService } from './operations-dashboard.service';
 import { ConvertLeadToCustomerDto } from '../leads/dto/admin-lead.dto';
 import {
   CreateTenantAccessUserDto,
@@ -95,11 +96,34 @@ export class SuperAdminController {
     private readonly platformCommunications: PlatformCommunicationsService,
     private readonly paymentRecheck: PaymentRecheckService,
     private readonly fx: PlatformFxService,
+    private readonly operationsDashboard: OperationsDashboardService,
   ) {}
 
   @Get('dashboard-summary')
   getDashboardSummary(@Query('range') range?: string) {
     return this.superAdminService.getDashboardSummary(range);
+  }
+
+  /**
+   * The Operations view (TASK-0032 WP-07 / ITEM-0199): tenants, users,
+   * partners, agreements and system reliability, computed independently of
+   * the commercial `dashboard-summary` so a failure in one never blanks the
+   * other. Each section of the response resolves on its own — see
+   * `OperationsDashboardService`.
+   *
+   * Nested under `dashboard-summary/` on purpose, not `dashboard/`:
+   * `resolvePlatformPermission` (`modules/platform-auth/platform-permissions.ts`)
+   * maps every super-admin route to a platform permission via
+   * `path.includes(...)`, and that file is WP-02's alone to edit (COMMON-RULES
+   * single-writer list) — landing here means this route resolves to the same
+   * `dashboard.read` its sibling already carries with no change to that file.
+   * A path of `dashboard/operations` would have fallen through to `null`, and
+   * `PlatformPermissionsGuard` refuses an unresolved permission (BUG-0071) —
+   * this route would 403 for every role until WP-02 added a line for it.
+   */
+  @Get('dashboard-summary/operations')
+  getOperationsDashboard() {
+    return this.operationsDashboard.getOperationsDashboard();
   }
 
   @Get('lifecycle-options')

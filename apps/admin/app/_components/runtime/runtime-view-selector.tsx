@@ -51,6 +51,8 @@ export function RuntimeViewSelector({
     [roleKeys, views],
   );
   const systemDefault =
+    availableViews.find((view) => view.roleDefaultFor?.some((role) => roleKeys.includes(role)))
+      ?.key ??
     availableViews.find((view) => view.isSystemDefault)?.key ??
     availableViews[0]?.key ??
     "";

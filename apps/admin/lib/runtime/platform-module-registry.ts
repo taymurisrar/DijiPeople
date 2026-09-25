@@ -713,6 +713,15 @@ const TENANT_RECORD_ACTIONS: RuntimeActionDefinition[] = [
 
 export const DASHBOARD_VIEWS: RuntimeViewDefinition[] = [
   {
+    key: "operations",
+    label: "Operations",
+    description:
+      "Tenants, users, partners, agreements, and system reliability, live, with what needs attention first.",
+    kind: "system",
+    roleDefaultFor: ["SUPER_ADMIN", "PLATFORM_ADMIN"],
+    roles: [...PLATFORM_OPERATORS, "MONITORING_OPERATOR"],
+  },
+  {
     key: "executive",
     label: "Executive overview",
     description: "Commercial and operational health across the platform.",
