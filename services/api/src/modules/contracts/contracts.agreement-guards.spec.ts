@@ -405,3 +405,132 @@ describe('ContractsService — audit trail (BUG-3231)', () => {
     );
   });
 });
+
+describe('ContractsService — passive signature expiry (discovery D3 scenario 16)', () => {
+  it('transitions an elapsed SENT request to EXPIRED on read, durably, with an audit row', async () => {
+    const staleRequest = {
+      id: 'request-1',
+      contractId: 'contract-1',
+      requestNumber: 'SIG-20260901-0001',
+      status: 'SENT',
+      expiresAt: new Date(Date.now() - 60_000),
+      recipients: [{ id: 'r1', status: 'SENT' }],
+    };
+    const tx = {
+      signatureRecipient: {
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      signatureRequest: {
+        update: jest
+          .fn()
+          .mockResolvedValue({ ...staleRequest, status: 'EXPIRED' }),
+      },
+      contractTimeline: { create: jest.fn().mockResolvedValue({}) },
+    };
+    const prisma = {
+      signatureRequest: {
+        findUnique: jest.fn().mockResolvedValue(staleRequest),
+      },
+      $transaction: jest.fn(async (operation: (client: typeof tx) => unknown) =>
+        operation(tx),
+      ),
+    };
+    const audit = auditStub();
+    const service = new ContractsService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      audit as never,
+    );
+
+    const result = await service.getSignatureRequest(
+      platformAdmin,
+      'request-1',
+    );
+
+    expect(result.status).toBe('EXPIRED');
+    expect(tx.signatureRecipient.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ signatureRequestId: 'request-1' }),
+        data: expect.objectContaining({ status: 'EXPIRED' }),
+      }),
+    );
+    expect(tx.signatureRequest.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'request-1' },
+        data: { status: 'EXPIRED' },
+      }),
+    );
+    expect(audit.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'SIGNATURE_REQUEST_EXPIRED',
+        entityId: 'contract-1',
+        actorUserId: null,
+      }),
+      tx,
+    );
+  });
+
+  it('leaves a request that has not elapsed untouched', async () => {
+    const openRequest = {
+      id: 'request-2',
+      contractId: 'contract-1',
+      requestNumber: 'SIG-20260901-0002',
+      status: 'SENT',
+      expiresAt: new Date(Date.now() + 60_000),
+      recipients: [],
+    };
+    const prisma = {
+      signatureRequest: {
+        findUnique: jest.fn().mockResolvedValue(openRequest),
+      },
+      $transaction: jest.fn(),
+    };
+    const service = new ContractsService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      auditStub() as never,
+    );
+
+    const result = await service.getSignatureRequest(
+      platformAdmin,
+      'request-2',
+    );
+
+    expect(result.status).toBe('SENT');
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('leaves a COMPLETED request untouched even past its expiry', async () => {
+    const completed = {
+      id: 'request-3',
+      contractId: 'contract-1',
+      requestNumber: 'SIG-20260901-0003',
+      status: 'COMPLETED',
+      expiresAt: new Date(Date.now() - 60_000),
+      recipients: [],
+    };
+    const prisma = {
+      signatureRequest: { findUnique: jest.fn().mockResolvedValue(completed) },
+      $transaction: jest.fn(),
+    };
+    const service = new ContractsService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      auditStub() as never,
+    );
+
+    const result = await service.getSignatureRequest(
+      platformAdmin,
+      'request-3',
+    );
+
+    expect(result.status).toBe('COMPLETED');
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+});
