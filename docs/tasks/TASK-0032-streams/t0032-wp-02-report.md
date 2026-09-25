@@ -1,5 +1,7 @@
 # WP-02 report — Platform RBAC under ADR-0018
 
+Stream report of [[TASK-0032]].
+
 TASK-0032 · branch `agent/pah-wp02-rbac` (from `10d5d148`) · final commit `3b2dbf6e`
 · merged into the task branch at `d5535f0a`. Module notes: [[platform-auth]],
 [[super-admin]]. Per-route table: [[platform-route-mapping]].

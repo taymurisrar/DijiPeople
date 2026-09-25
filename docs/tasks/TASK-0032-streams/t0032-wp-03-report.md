@@ -1,5 +1,7 @@
 # TASK-0032 WP-03 report — TOTP MFA, platform sign-in lockout and audit, token TTL units
 
+Stream report of [[TASK-0032]].
+
 Branch `agent/pah-wp03-mfa` (worktree `dp-pah-wp03`), on WP-01 `10d5d148`.
 Decision implemented: ADR-0019. Regression entries: `docs/qa/regressions/_incoming/wp03.md`
 (REG-535..REG-543; REG-544..549 unused).

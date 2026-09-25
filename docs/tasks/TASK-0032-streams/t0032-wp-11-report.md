@@ -1,5 +1,7 @@
 # WP-11 — Agreement defects found by live QA (TASK-0032 / EXECPLAN-0051)
 
+Stream report of [[TASK-0032]].
+
 Worktree `D:/My Work/hrm-dijipeople/dp-pah-wp11`, branch
 `agent/pah-wp11-agreement-qa-fixes`, cut from `bbb61ab5`. REG range
 REG-610..REG-619 (used 610–614). Closes the WP-09 live-QA findings

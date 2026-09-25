@@ -1,5 +1,7 @@
 # WP-04 report — Partner domain (TASK-0032 / EXECPLAN-0051)
 
+Stream report of [[TASK-0032]].
+
 Branch `agent/pah-wp04-partners`, worktree `D:/My Work/hrm-dijipeople/dp-pah-wp04`.
 Final commit: `e2cfbdcb`.
 

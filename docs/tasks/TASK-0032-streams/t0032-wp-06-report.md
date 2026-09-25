@@ -1,5 +1,7 @@
 # WP-06 report — monitoring and observability
 
+Stream report of [[TASK-0032]].
+
 TASK-0032, EXECPLAN-0051. Branch `agent/pah-wp06-monitoring`, worktree
 `D:/My Work/hrm-dijipeople/dp-pah-wp06`. REG range REG-575..REG-584 (all used).
 

@@ -1,5 +1,7 @@
 # WP-07 — Platform operations dashboard (TASK-0032 / ITEM-0199)
 
+Stream report of [[TASK-0032]].
+
 Worktree `D:/My Work/hrm-dijipeople/dp-pah-wp07`, branch `agent/pah-wp07-dashboard`,
 based on WP-01's `10d5d148`. Implementation and tests landed in checkpoint
 commit `11c74257` (the orchestrating session was interrupted mid-task; the

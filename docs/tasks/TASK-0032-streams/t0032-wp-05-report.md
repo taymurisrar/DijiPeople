@@ -1,5 +1,7 @@
 # WP-05 — Agreements (TASK-0032 / EXECPLAN-0051)
 
+Stream report of [[TASK-0032]].
+
 Worktree `D:/My Work/hrm-dijipeople/dp-pah-wp05`, branch `agent/pah-wp05-agreements`.
 Implements ADR-0020 and closes BUG-3552, BUG-3553, BUG-3554, BUG-3231.
 

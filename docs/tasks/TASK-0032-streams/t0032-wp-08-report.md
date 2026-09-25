@@ -1,5 +1,7 @@
 # WP-08 — Admin CRUD and tenant management sweep
 
+Stream report of [[TASK-0032]].
+
 Session interrupted three times mid-task; work preserved as checkpoint
 commits `9baf16e1`, `0ec7fd3a`, `91c5e11f` plus normal commits in between
 (`1fbcfd97`, `d6746868`, `86be0253`) on `agent/pah-wp08-admin-crud`.

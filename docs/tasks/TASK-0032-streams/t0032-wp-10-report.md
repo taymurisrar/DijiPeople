@@ -1,5 +1,7 @@
 # WP-10 report — platform audit trail
 
+Stream report of [[TASK-0032]].
+
 TASK-0032, EXECPLAN-0051. Branch `agent/pah-wp10-audit-trail`, worktree
 `D:/My Work/hrm-dijipeople/dp-pah-wp10`, cut from the task branch at `b8198c76`
 (WP-01..WP-08 already integrated). REG range REG-602..REG-609 (all used).
