@@ -9,3 +9,7 @@ commit lands.
   `fix(auth): …BUG-3548` commit on this branch. Spec:
   `services/api/src/common/config/auth.config.spec.ts`. Fails without the fix:
   yes (7 of 12, by mutation). Regression: REG-535.
+- **BUG-3146** — platform login had no lockout. Commit: the
+  `fix(auth): lock platform sign-in …BUG-3146` commit on this branch. Spec:
+  `services/api/src/modules/auth/platform-login-lockout.spec.ts`. Fails without
+  the fix: yes (3 of 4, by mutation). Regression: REG-536.

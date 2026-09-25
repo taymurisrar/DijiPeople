@@ -21,6 +21,7 @@ import { AdminAuthController } from './admin-auth.controller';
 import { AuthController } from './auth.controller';
 import { AuthAccessService } from './auth-access.service';
 import { LoginLockoutService } from './login-lockout.service';
+import { PlatformLoginLockoutService } from './platform-login-lockout.service';
 import { PasswordPolicyService } from './password-policy.service';
 import { AuthService } from './auth.service';
 import { UserInvitationsService } from './user-invitations.service';
@@ -54,6 +55,7 @@ import { PlatformCommunicationsModule } from '../platform-communications/platfor
     AuthService,
     AuthAccessService,
     LoginLockoutService,
+    PlatformLoginLockoutService,
     PasswordPolicyService,
     UserInvitationsService,
     TenantAuthPolicyService,

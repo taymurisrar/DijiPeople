@@ -58,6 +58,7 @@ import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
 import { AuthAccessService } from './auth-access.service';
 import { LoginLockoutService } from './login-lockout.service';
+import { PlatformLoginLockoutService } from './platform-login-lockout.service';
 import { PasswordPolicyService } from './password-policy.service';
 import { platformAccessForRole } from '../platform-auth/platform-permissions';
 import { AdminLoginDto } from './dto/admin-login.dto';
@@ -138,6 +139,17 @@ const ADMIN_AUTH_ROLE_KEYS = new Set<string>([
  */
 const ROTATION_GRACE_WINDOW_MS = 30_000;
 
+/**
+ * What the second factor contributed to a sign-in, as written to the login
+ * audit row (`afterSnapshot.mfaResult`, read back by `AuditService`). Before
+ * ADR-0019 this was the literal `'NOT_REQUIRED'` on every row.
+ */
+export type MfaLoginResult =
+  | 'NOT_REQUIRED'
+  | 'PASSED'
+  | 'RECOVERY_CODE_USED'
+  | 'FAILED';
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -159,6 +171,7 @@ export class AuthService {
     private readonly loginLockoutService: LoginLockoutService,
     private readonly tenantDomains: TenantDomainService,
     private readonly tenantAuthPolicyService: TenantAuthPolicyService,
+    private readonly platformLoginLockoutService: PlatformLoginLockoutService,
   ) {}
 
   /**
@@ -398,7 +411,7 @@ export class AuthService {
 
   async adminLogin(dto: AdminLoginDto, req?: Request) {
     const clientId: AuthClientId = 'admin';
-    const user = await this.validatePlatformAdminCredentials(dto);
+    const user = await this.validatePlatformAdminCredentials(dto, req);
 
     if (user.status !== 'ACTIVE') {
       throw this.authUnauthorized(
@@ -1488,11 +1501,26 @@ export class AuthService {
     );
   }
 
-  private async validatePlatformAdminCredentials(dto: AdminLoginDto) {
+  private async validatePlatformAdminCredentials(
+    dto: AdminLoginDto,
+    req?: Request,
+  ) {
     const normalizedEmail = normalizeEmail(dto.email);
     const user = await this.prisma.platformUser.findUnique({
       where: { email: normalizedEmail },
     });
+
+    /*
+     * BUG-3146. Unknown address, locked account and wrong password all end in
+     * the one response below, so none of the three can be told apart from
+     * outside: naming the lock would confirm the account exists and tell an
+     * attacker their guessing is working.
+     */
+    const invalidCredentials = () =>
+      this.authUnauthorized(
+        'ADMIN_AUTH_INVALID_CREDENTIALS',
+        'Invalid admin credentials.',
+      );
 
     if (!user) {
       this.logger.warn(
@@ -1502,10 +1530,27 @@ export class AuthService {
           identifier: normalizedEmail,
         }),
       );
-      throw this.authUnauthorized(
-        'ADMIN_AUTH_INVALID_CREDENTIALS',
-        'Invalid admin credentials.',
+      throw invalidCredentials();
+    }
+
+    if (this.platformLoginLockoutService.isLocked(user)) {
+      this.logger.warn(
+        JSON.stringify({
+          event: 'admin.auth.login.failed',
+          reason: 'ACCOUNT_LOCKED',
+          identifier: normalizedEmail,
+          platformUserId: user.id,
+        }),
       );
+      await this.logPlatformAuthEvent({
+        platformUserId: user.id,
+        action: AUDIT_ACTIONS.AUTH_LOGIN_FAILED,
+        email: user.email,
+        result: 'FAILED',
+        failureReason: 'ACCOUNT_LOCKED',
+        req,
+      });
+      throw invalidCredentials();
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -1514,6 +1559,8 @@ export class AuthService {
     );
 
     if (!isPasswordValid) {
+      const lockout =
+        await this.platformLoginLockoutService.registerFailure(user);
       this.logger.warn(
         JSON.stringify({
           event: 'admin.auth.login.failed',
@@ -1522,11 +1569,20 @@ export class AuthService {
           platformUserId: user.id,
         }),
       );
-      throw this.authUnauthorized(
-        'ADMIN_AUTH_INVALID_CREDENTIALS',
-        'Invalid admin credentials.',
-      );
+      await this.logPlatformAuthEvent({
+        platformUserId: user.id,
+        action: AUDIT_ACTIONS.AUTH_LOGIN_FAILED,
+        email: user.email,
+        result: 'FAILED',
+        failureReason: lockout.locked
+          ? 'PASSWORD_MISMATCH_ACCOUNT_LOCKED'
+          : 'PASSWORD_MISMATCH',
+        req,
+      });
+      throw invalidCredentials();
     }
+
+    await this.platformLoginLockoutService.registerSuccess(user);
 
     return user;
   }
@@ -1765,6 +1821,7 @@ export class AuthService {
     failureReason?: string | null;
     clientId: AuthClientId;
     sessionId?: string | null;
+    mfaResult?: MfaLoginResult;
     req?: Request;
   }) {
     try {
@@ -1784,7 +1841,7 @@ export class AuthService {
           sessionId: input.sessionId ?? null,
           ipAddress: requestInfo.ipAddress,
           userAgent: requestInfo.userAgent,
-          mfaResult: 'NOT_REQUIRED',
+          mfaResult: input.mfaResult ?? 'NOT_REQUIRED',
         },
       });
     } catch (error) {
@@ -1793,6 +1850,55 @@ export class AuthService {
           event: 'auth.audit.failed',
           action: input.action,
           tenantId: input.tenantId,
+          reason: error instanceof Error ? error.message : String(error),
+        }),
+      );
+    }
+  }
+
+  /**
+   * Platform sign-in events, in the platform audit log (`tenantId:
+   * 'platform'` routes the row to `PlatformAuditLog`). Platform sign-in wrote
+   * no audit row at all before BUG-3146, so a run of failed guesses against a
+   * super admin — and the lock that ends it — left no trace an operator could
+   * find. Never throws, for the same reason `logTenantAuthEvent` does not.
+   */
+  private async logPlatformAuthEvent(input: {
+    platformUserId: string;
+    action: string;
+    email: string;
+    result: 'SUCCESS' | 'FAILED';
+    failureReason?: string | null;
+    sessionId?: string | null;
+    mfaResult?: MfaLoginResult;
+    req?: Request;
+  }) {
+    try {
+      const requestInfo = getAuthRequestInfo(input.req);
+      await this.auditService.log({
+        tenantId: 'platform',
+        actorUserId: input.platformUserId,
+        action: input.action,
+        entityType: 'AUTH_LOGIN',
+        entityId: input.platformUserId,
+        sourceModule: 'auth',
+        afterSnapshot: {
+          email: input.email,
+          result: input.result,
+          failureReason: input.failureReason ?? null,
+          appClientId: 'admin',
+          sessionId: input.sessionId ?? null,
+          ipAddress: requestInfo.ipAddress,
+          userAgent: requestInfo.userAgent,
+          mfaResult: input.mfaResult ?? 'NOT_REQUIRED',
+        },
+      });
+    } catch (error) {
+      this.logger.warn(
+        JSON.stringify({
+          event: 'auth.audit.failed',
+          action: input.action,
+          tenantId: 'platform',
           reason: error instanceof Error ? error.message : String(error),
         }),
       );
