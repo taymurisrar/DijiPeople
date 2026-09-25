@@ -417,7 +417,10 @@ describe('MFA at sign-in (ADR-0019)', () => {
 
   describe('platform operators', () => {
     async function enrolOperator() {
-      const subject = { kind: 'platform' as const, platformUserId: 'operator-1' };
+      const subject = {
+        kind: 'platform' as const,
+        platformUserId: 'operator-1',
+      };
       await mfa.startSetup(subject);
       const secret = encryption.decrypt(
         platformUser().mfaPendingSecretEncrypted as string,
