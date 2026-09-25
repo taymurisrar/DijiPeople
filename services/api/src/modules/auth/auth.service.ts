@@ -29,6 +29,7 @@ import {
   isRefreshRotationEnabled,
   isSlidingSessionEnabled,
   normalizeAuthClientId,
+  normalizeTokenTtl,
   parseDurationToMilliseconds,
   buildAuthCookieOptions,
   type AuthClientId,
@@ -2374,12 +2375,18 @@ export class AuthService {
       rememberMe,
     };
 
+    // BUG-3548 — the remember-me overrides are read through the same
+    // normaliser as every other TTL, so a bare `1800` means seconds here too.
     const accessTokenTtl = rememberMe
-      ? this.configService.get<string>('JWT_ACCESS_TTL_REMEMBER_ME') || '30m'
+      ? (normalizeTokenTtl(
+          this.configService.get<string>('JWT_ACCESS_TTL_REMEMBER_ME'),
+        ) ?? '30m')
       : getClientAccessTokenTtl(this.configService, clientId);
 
     const refreshTokenTtl = rememberMe
-      ? this.configService.get<string>('JWT_REFRESH_TTL_REMEMBER_ME') || '30d'
+      ? (normalizeTokenTtl(
+          this.configService.get<string>('JWT_REFRESH_TTL_REMEMBER_ME'),
+        ) ?? '30d')
       : getClientRefreshTokenTtl(this.configService, clientId);
 
     const accessToken = this.jwtService.sign(accessPayload, {

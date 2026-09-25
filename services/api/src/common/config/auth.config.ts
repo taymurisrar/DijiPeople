@@ -71,24 +71,30 @@ export function getClientRefreshTokenSecret(
 }
 
 export function getAccessTokenTtl(configService: ConfigService) {
-  return (
-    configService.get<string>('AUTH_ACCESS_TOKEN_TTL_SECONDS') ??
-    configService.get<string>('AUTH_ACCESS_TOKEN_TTL') ??
-    configService.get<string>('JWT_ACCESS_TOKEN_TTL_SECONDS') ??
-    configService.get<string>('JWT_ACCESS_TOKEN_TTL') ??
-    configService.get<string>('JWT_ACCESS_TTL') ??
-    AUTH_CONFIG_DEFAULTS.accessTtl
+  return readTokenTtl(
+    configService,
+    [
+      'AUTH_ACCESS_TOKEN_TTL_SECONDS',
+      'AUTH_ACCESS_TOKEN_TTL',
+      'JWT_ACCESS_TOKEN_TTL_SECONDS',
+      'JWT_ACCESS_TOKEN_TTL',
+      'JWT_ACCESS_TTL',
+    ],
+    AUTH_CONFIG_DEFAULTS.accessTtl,
   );
 }
 
 export function getRefreshTokenTtl(configService: ConfigService) {
-  return (
-    configService.get<string>('AUTH_REFRESH_TOKEN_TTL_SECONDS') ??
-    configService.get<string>('AUTH_REFRESH_TOKEN_TTL') ??
-    configService.get<string>('JWT_REFRESH_TOKEN_TTL_SECONDS') ??
-    configService.get<string>('JWT_REFRESH_TOKEN_TTL') ??
-    configService.get<string>('JWT_REFRESH_TTL') ??
-    AUTH_CONFIG_DEFAULTS.refreshTtl
+  return readTokenTtl(
+    configService,
+    [
+      'AUTH_REFRESH_TOKEN_TTL_SECONDS',
+      'AUTH_REFRESH_TOKEN_TTL',
+      'JWT_REFRESH_TOKEN_TTL_SECONDS',
+      'JWT_REFRESH_TOKEN_TTL',
+      'JWT_REFRESH_TTL',
+    ],
+    AUTH_CONFIG_DEFAULTS.refreshTtl,
   );
 }
 
@@ -120,18 +126,18 @@ export function getSessionActivityThrottleMs(configService: ConfigService) {
 }
 
 export function getAgentAccessTokenTtl(configService: ConfigService) {
-  return (
-    configService.get<string>('AUTH_AGENT_ACCESS_TOKEN_TTL_SECONDS') ??
-    configService.get<string>('AGENT_ACCESS_TOKEN_TTL') ??
-    AUTH_CONFIG_DEFAULTS.agentAccessTtl
+  return readTokenTtl(
+    configService,
+    ['AUTH_AGENT_ACCESS_TOKEN_TTL_SECONDS', 'AGENT_ACCESS_TOKEN_TTL'],
+    AUTH_CONFIG_DEFAULTS.agentAccessTtl,
   );
 }
 
 export function getAgentRefreshTokenTtl(configService: ConfigService) {
-  return (
-    configService.get<string>('AUTH_AGENT_REFRESH_TOKEN_TTL_SECONDS') ??
-    configService.get<string>('AGENT_REFRESH_TOKEN_TTL') ??
-    AUTH_CONFIG_DEFAULTS.agentRefreshTtl
+  return readTokenTtl(
+    configService,
+    ['AUTH_AGENT_REFRESH_TOKEN_TTL_SECONDS', 'AGENT_REFRESH_TOKEN_TTL'],
+    AUTH_CONFIG_DEFAULTS.agentRefreshTtl,
   );
 }
 
@@ -161,15 +167,15 @@ export function getClientAccessTokenTtl(
     return getAgentAccessTokenTtl(configService);
   }
 
-  return (
-    configService.get<string>(
+  const clientSpecific = readTokenTtl(
+    configService,
+    [
       `${getClientEnvPrefix(clientId)}_ACCESS_TOKEN_TTL_SECONDS`,
-    ) ??
-    configService.get<string>(
       `${getPublicClientEnvPrefix(clientId)}_JWT_ACCESS_TTL`,
-    ) ??
-    getAccessTokenTtl(configService)
+    ],
+    null,
   );
+  return clientSpecific ?? getAccessTokenTtl(configService);
 }
 
 export function getClientRefreshTokenTtl(
@@ -180,15 +186,62 @@ export function getClientRefreshTokenTtl(
     return getAgentRefreshTokenTtl(configService);
   }
 
-  return (
-    configService.get<string>(
+  const clientSpecific = readTokenTtl(
+    configService,
+    [
       `${getClientEnvPrefix(clientId)}_REFRESH_TOKEN_TTL_SECONDS`,
-    ) ??
-    configService.get<string>(
       `${getPublicClientEnvPrefix(clientId)}_JWT_REFRESH_TTL`,
-    ) ??
-    getRefreshTokenTtl(configService)
+    ],
+    null,
   );
+  return clientSpecific ?? getRefreshTokenTtl(configService);
+}
+
+/**
+ * BUG-3548 — a token lifetime in the one spelling every consumer agrees on.
+ *
+ * The same configured value is read by three parsers. `parseDurationToMilliseconds`
+ * (here, and its copies in `apps/web` and `apps/admin`, which size the cookies)
+ * reads a bare integer as **seconds** — the unit the `*_TTL_SECONDS` variable
+ * names promise. `jsonwebtoken`, which `JwtService.sign({ expiresIn })` hands the
+ * value to, passes a string through `ms()`, and `ms('1800')` is **1800
+ * milliseconds**. So `AUTH_ADMIN_ACCESS_TOKEN_TTL_SECONDS=1800` produced a cookie
+ * that lived thirty minutes around a token that expired after one second, and
+ * every admin request after the first bounced to the refresh path.
+ *
+ * Normalising at the source — a bare integer becomes `<n>s` — means the value
+ * the token is signed with, the `expiresIn` the API returns to the client, the
+ * cookie `maxAge` derived from it and the refresh row's `expiresAt` are all the
+ * same duration. Values that already carry a unit (`15m`, `8h`, `30d`, `900s`)
+ * are returned untouched.
+ */
+export function normalizeTokenTtl(value: unknown): string | null {
+  if (typeof value !== 'string' && typeof value !== 'number') return null;
+  const text = String(value).trim();
+  if (!text) return null;
+  return /^\d+$/.test(text) ? `${text}s` : text;
+}
+
+function readTokenTtl(
+  configService: ConfigService,
+  keys: readonly string[],
+  fallback: string,
+): string;
+function readTokenTtl(
+  configService: ConfigService,
+  keys: readonly string[],
+  fallback: null,
+): string | null;
+function readTokenTtl(
+  configService: ConfigService,
+  keys: readonly string[],
+  fallback: string | null,
+): string | null {
+  for (const key of keys) {
+    const normalized = normalizeTokenTtl(configService.get<unknown>(key));
+    if (normalized) return normalized;
+  }
+  return fallback === null ? null : normalizeTokenTtl(fallback);
 }
 
 export function getClientIdleTimeoutMs(
