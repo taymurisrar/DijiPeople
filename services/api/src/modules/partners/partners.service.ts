@@ -4,12 +4,18 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PartnerStatus, Prisma } from '@prisma/client';
+import { PartnerStatus, PartnerType, Prisma } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { userHasPlatformPermission } from '../platform-auth/platform-permissions';
 import { toDisplayString } from '../../common/utils/display-string';
+import { AuditService } from '../audit/audit.service';
+import {
+  assertNoPartnerDuplicate,
+  findPartnerDuplicate,
+} from './partner-duplicate-detection';
+import { missingAdminIdentityFields } from './partner-type-policy';
 import {
   CreatePartnerCommissionDto,
   CreatePartnerDto,
@@ -23,7 +29,10 @@ import {
 
 @Injectable()
 export class PartnersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditService: AuditService,
+  ) {}
 
   listForUser(user: AuthenticatedUser, query: PartnerQueryDto) {
     this.assertRead(user);
@@ -37,12 +46,12 @@ export class PartnersService {
 
   createForUser(user: AuthenticatedUser, dto: CreatePartnerDto) {
     this.assertWrite(user);
-    return this.create(dto);
+    return this.create(dto, user.userId);
   }
 
   updateForUser(user: AuthenticatedUser, id: string, dto: UpdatePartnerDto) {
     this.assertWrite(user);
-    return this.update(id, dto);
+    return this.update(id, dto, user.userId);
   }
 
   lifecycleActionForUser(
@@ -79,7 +88,7 @@ export class PartnersService {
     dto: CreatePartnerCommissionDto,
   ) {
     this.assertWrite(user);
-    return this.createCommission(id, dto);
+    return this.createCommission(id, dto, user.userId);
   }
 
   updateCommissionForUser(
@@ -89,7 +98,7 @@ export class PartnersService {
     dto: UpdatePartnerCommissionDto,
   ) {
     this.assertWrite(user);
-    return this.updateCommission(id, commissionId, dto);
+    return this.updateCommission(id, commissionId, dto, user.userId);
   }
 
   private assertRead(user: AuthenticatedUser) {
@@ -255,6 +264,7 @@ export class PartnersService {
   ) {
     const partner = await this.get(id);
     const next = partnerTransition(partner.status, dto.action);
+    const eventType = `PARTNER_${dto.action.toUpperCase().replaceAll('-', '_')}`;
     await this.prisma.$transaction([
       this.prisma.partner.update({
         where: { id },
@@ -272,7 +282,7 @@ export class PartnersService {
       this.prisma.partnerTimeline.create({
         data: {
           partnerId: id,
-          eventType: `PARTNER_${dto.action.toUpperCase().replaceAll('-', '_')}`,
+          eventType,
           actorType: 'PLATFORM_USER',
           actorId,
           message: partnerActionMessage(dto.action, partner.displayName),
@@ -288,6 +298,26 @@ export class PartnersService {
           ]
         : []),
     ]);
+    /*
+     * BUG-3551. Every lifecycle transition wrote to `PartnerTimeline` — a
+     * partner-scoped, free-text table reachable only from that partner's own
+     * detail page — and never to `AuditService`/`PlatformAuditLog`, the table
+     * the platform's general audit views actually read. `leads.service.ts`,
+     * the sibling funnel, has audited its transitions since it was written;
+     * this was the omission, not a decision (D2 discovery, §6/§10.1).
+     */
+    await this.auditService.log({
+      tenantId: 'platform',
+      actorUserId: actorId,
+      action: eventType,
+      entityType: 'Partner',
+      entityId: id,
+      beforeSnapshot: {
+        status: partner.status,
+        accountStatus: partner.accountStatus,
+      },
+      afterSnapshot: { status: next, reason: dto.reason ?? null },
+    });
     return this.get(id);
   }
 
@@ -364,9 +394,25 @@ export class PartnersService {
           replacedById: replacement.id,
         },
       });
+      // Only platform-authorized regeneration reaches here through
+      // `referralLinkActionForUser`; the Partner-portal caller creates links
+      // through `createPartnerReferralLink` in partner-experience.service.ts,
+      // which does not call this method.
+      await this.auditService.log({
+        tenantId: 'platform',
+        actorUserId: actorId ?? null,
+        action: 'PARTNER_REFERRAL_LINK_REGENERATED',
+        entityType: 'PartnerReferralLink',
+        entityId: link.id,
+        beforeSnapshot: { code: link.code, status: link.status },
+        afterSnapshot: {
+          replacedById: replacement.id,
+          newCode: replacement.code,
+        },
+      });
       return replacement;
     }
-    return this.prisma.partnerReferralLink.update({
+    const updated = await this.prisma.partnerReferralLink.update({
       where: { id: link.id },
       data:
         action === 'enable'
@@ -375,6 +421,16 @@ export class PartnersService {
             ? { status: 'DISABLED', isDefault: false }
             : { status: 'EXPIRED', expiresAt: new Date(), isDefault: false },
     });
+    await this.auditService.log({
+      tenantId: 'platform',
+      actorUserId: actorId ?? null,
+      action: `PARTNER_REFERRAL_LINK_${action.toUpperCase()}`,
+      entityType: 'PartnerReferralLink',
+      entityId: link.id,
+      beforeSnapshot: { status: link.status },
+      afterSnapshot: { status: updated.status },
+    });
+    return updated;
   }
 
   async ensureDefaultReferralLink(partnerId: string, actorId?: string) {
@@ -388,19 +444,36 @@ export class PartnersService {
       actorId,
     );
   }
-  async create(dto: CreatePartnerDto) {
+  async create(dto: CreatePartnerDto, actorId?: string) {
     await this.validateOwner(dto.assignedToUserId);
+    assertPartnerIdentityFields(dto);
+    /*
+     * BUG-3550. This was the path with no duplicate detection at all — an
+     * operator could create any number of `Partner` rows sharing an email,
+     * tax id or company name through `POST /partners`. The public inquiry
+     * path (`submitInquiry`) already checked email/company-name; this brings
+     * the internal path to at least the same standard, and adds `taxId`,
+     * which neither path checked before.
+     */
+    assertNoPartnerDuplicate(await findPartnerDuplicate(this.prisma, dto));
     const currencyCode = dto.currencyCode ?? (await this.reportingCurrency());
-    return normalizePartner(
-      await this.prisma.partner.create({
-        data: {
-          ...partnerData(dto, currencyCode),
-          code: createReference('PTR'),
-        },
-      }),
-    );
+    const created = await this.prisma.partner.create({
+      data: {
+        ...partnerData(dto, currencyCode),
+        code: createReference('PTR'),
+      },
+    });
+    await this.auditService.log({
+      tenantId: 'platform',
+      actorUserId: actorId ?? null,
+      action: 'PARTNER_CREATED',
+      entityType: 'Partner',
+      entityId: created.id,
+      afterSnapshot: partnerAuditSnapshot(created),
+    });
+    return normalizePartner(created);
   }
-  async update(id: string, dto: UpdatePartnerDto) {
+  async update(id: string, dto: UpdatePartnerDto, actorId?: string) {
     const existing = await this.get(id);
     if (
       dto.status === PartnerStatus.ACTIVE &&
@@ -426,17 +499,42 @@ export class PartnersService {
         'A live partner’s status is changed through the governed lifecycle actions — suspend, deactivate or reactivate — so the reason is recorded.',
       );
     await this.validateOwner(dto.assignedToUserId);
-    return normalizePartner(
-      await this.prisma.partner.update({
-        where: { id },
-        data: partnerData(dto, dto.currencyCode ?? existing.currencyCode),
-      }),
+    /*
+     * WP-08 finding 3. `dto` may now be a genuinely partial patch — validate
+     * the record as it would read *after* the patch, not the patch body in
+     * isolation. A `{ notes: '...' }` patch on an already-compliant COMPANY
+     * partner must not be told it is missing a company name it never touched;
+     * a patch that clears the one it has must still be refused.
+     */
+    const merged = mergedPartnerIdentity(existing, dto);
+    assertPartnerIdentityFields(merged);
+    assertNoPartnerDuplicate(
+      await findPartnerDuplicate(this.prisma, merged, id),
     );
+    const updated = await this.prisma.partner.update({
+      where: { id },
+      data: partnerUpdateData(dto),
+    });
+    await this.auditService.log({
+      tenantId: 'platform',
+      actorUserId: actorId ?? null,
+      action: 'PARTNER_UPDATED',
+      entityType: 'Partner',
+      entityId: id,
+      beforeSnapshot: partnerAuditSnapshot(existing),
+      afterSnapshot: partnerAuditSnapshot(updated),
+    });
+    return normalizePartner(updated);
   }
-  async createCommission(partnerId: string, dto: CreatePartnerCommissionDto) {
+
+  async createCommission(
+    partnerId: string,
+    dto: CreatePartnerCommissionDto,
+    actorId?: string,
+  ) {
     const partner = await this.get(partnerId);
     const amount = Math.round(dto.baseAmount * dto.commissionRate) / 100;
-    return this.prisma.partnerCommission.create({
+    const created = await this.prisma.partnerCommission.create({
       data: {
         partnerId,
         ...dto,
@@ -450,23 +548,51 @@ export class PartnersService {
         dueAt: dto.dueAt ? new Date(dto.dueAt) : null,
       },
     });
+    await this.auditService.log({
+      tenantId: 'platform',
+      actorUserId: actorId ?? null,
+      action: 'PARTNER_COMMISSION_CREATED',
+      entityType: 'PartnerCommission',
+      entityId: created.id,
+      afterSnapshot: {
+        partnerId,
+        commissionNumber: created.commissionNumber,
+        baseAmount: Number(created.baseAmount),
+        commissionRate: Number(created.commissionRate),
+        commissionAmount: Number(created.commissionAmount),
+        currencyCode: created.currencyCode,
+        status: created.status,
+      },
+    });
+    return created;
   }
   async updateCommission(
     partnerId: string,
     id: string,
     dto: UpdatePartnerCommissionDto,
+    actorId?: string,
   ) {
     const item = await this.prisma.partnerCommission.findFirst({
       where: { id, partnerId },
     });
     if (!item) throw new NotFoundException('Commission was not found.');
-    return this.prisma.partnerCommission.update({
+    const updated = await this.prisma.partnerCommission.update({
       where: { id },
       data: {
         status: dto.status,
         ...(dto.status === 'PAID' ? { paidAt: new Date() } : {}),
       },
     });
+    await this.auditService.log({
+      tenantId: 'platform',
+      actorUserId: actorId ?? null,
+      action: 'PARTNER_COMMISSION_UPDATED',
+      entityType: 'PartnerCommission',
+      entityId: id,
+      beforeSnapshot: { status: item.status },
+      afterSnapshot: { status: updated.status, paidAt: updated.paidAt },
+    });
+    return updated;
   }
   private async validateOwner(id?: string) {
     if (!id) return;
@@ -760,10 +886,32 @@ function dateCondition(operator: string, value: string) {
   if (operator === 'ne') return { not: date };
   return date;
 }
-function partnerData(
-  dto: CreatePartnerDto | UpdatePartnerDto,
-  currencyCode: string,
-) {
+/**
+ * BUG-3549. `type` (INDIVIDUAL/COMPANY) used to accept any combination of
+ * identity fields — an individual could be created with no name at all, and a
+ * company with no company name. `partner-type-policy.ts` is the one place
+ * that now says what each type requires.
+ *
+ * A free function, not a method: `partner-lifecycle-guards.spec.ts` exercises
+ * `update()` through a structural `this` cast carrying only the collaborators
+ * that test needs, and a method reaching back into `this` for a pure
+ * validation rule would make that test's minimal context an accidental
+ * dependency of this one.
+ */
+function assertPartnerIdentityFields(identity: {
+  type: PartnerType;
+  companyName?: string | null;
+  contactFirstName?: string | null;
+  contactLastName?: string | null;
+}) {
+  const missing = missingAdminIdentityFields(identity.type, identity);
+  if (missing.length)
+    throw new BadRequestException(
+      `A ${identity.type === 'COMPANY' ? 'company' : 'individual'} partner requires: ${missing.join(', ')}.`,
+    );
+}
+
+function partnerData(dto: CreatePartnerDto, currencyCode: string) {
   return {
     ...dto,
     displayName: dto.displayName.trim(),
@@ -771,6 +919,81 @@ function partnerData(
     currencyCode: currencyCode.toUpperCase(),
     status: dto.status ?? PartnerStatus.DRAFT,
     defaultCommissionRate: dto.defaultCommissionRate,
+  };
+}
+
+/**
+ * WP-08 finding 3. What `PATCH /partners/:id` actually writes, now that
+ * `UpdatePartnerDto` is genuinely partial (`PartialType(CreatePartnerDto)`).
+ *
+ * `partnerData()` above assumes every field is present — true for `create()`,
+ * where the DTO's own required decorators guarantee it, and no longer true
+ * here. Spreading `...dto` the way `partnerData()` does would write
+ * `undefined` over every column the patch did not mention (Prisma treats an
+ * explicit `undefined` in `data` as "do not touch this field" in some
+ * versions and as a validation error in others — either way, not what a
+ * caller who sent `{ notes: '...' }` meant), and unconditionally defaulting
+ * `status` to `DRAFT` would silently demote every partner whose patch simply
+ * did not mention status. Each field is written only when the patch actually
+ * included it.
+ */
+function partnerUpdateData(dto: UpdatePartnerDto) {
+  const data: Record<string, unknown> = {};
+  if (dto.type !== undefined) data.type = dto.type;
+  if (dto.displayName !== undefined) data.displayName = dto.displayName.trim();
+  if (dto.legalName !== undefined) data.legalName = dto.legalName;
+  if (dto.companyName !== undefined) data.companyName = dto.companyName;
+  if (dto.contactFirstName !== undefined)
+    data.contactFirstName = dto.contactFirstName;
+  if (dto.contactLastName !== undefined)
+    data.contactLastName = dto.contactLastName;
+  if (dto.email !== undefined) data.email = dto.email.trim().toLowerCase();
+  if (dto.phone !== undefined) data.phone = dto.phone;
+  if (dto.country !== undefined) data.country = dto.country;
+  if (dto.website !== undefined) data.website = dto.website;
+  if (dto.taxId !== undefined) data.taxId = dto.taxId;
+  if (dto.defaultCommissionRate !== undefined)
+    data.defaultCommissionRate = dto.defaultCommissionRate;
+  if (dto.currencyCode !== undefined)
+    data.currencyCode = dto.currencyCode.toUpperCase();
+  if (dto.status !== undefined) data.status = dto.status;
+  if (dto.assignedToUserId !== undefined)
+    data.assignedToUserId = dto.assignedToUserId;
+  if (dto.notes !== undefined) data.notes = dto.notes;
+  return data;
+}
+
+/**
+ * The identity/identifier fields a patch would leave the partner with, for
+ * validating against `partner-type-policy.ts` and re-running duplicate
+ * detection (`partner-duplicate-detection.ts`) — the field the patch sent, or
+ * the value already on the record when the patch did not touch it.
+ */
+function mergedPartnerIdentity(
+  existing: {
+    type: PartnerType;
+    email: string;
+    taxId: string | null;
+    companyName: string | null;
+    contactFirstName: string | null;
+    contactLastName: string | null;
+  },
+  dto: UpdatePartnerDto,
+) {
+  return {
+    type: dto.type ?? existing.type,
+    email: dto.email ?? existing.email,
+    taxId: dto.taxId !== undefined ? dto.taxId : existing.taxId,
+    companyName:
+      dto.companyName !== undefined ? dto.companyName : existing.companyName,
+    contactFirstName:
+      dto.contactFirstName !== undefined
+        ? dto.contactFirstName
+        : existing.contactFirstName,
+    contactLastName:
+      dto.contactLastName !== undefined
+        ? dto.contactLastName
+        : existing.contactLastName,
   };
 }
 function normalizePartner<T extends Record<string, any>>(item: T) {
@@ -793,6 +1016,41 @@ function normalizePartner<T extends Record<string, any>>(item: T) {
       commissionRate: Number(c.commissionRate),
       commissionAmount: Number(c.commissionAmount),
     })),
+  };
+}
+
+/**
+ * The fields an auditor querying "who changed this partner" needs — not the
+ * whole row. `applicationSnapshot` (the raw original submission) and `notes`
+ * are left out: the former duplicates what the audit trail already has a
+ * dedicated origin for, and neither is a field an audit reviewer changes
+ * decisions on the way status, ownership or commission terms are.
+ */
+function partnerAuditSnapshot(partner: {
+  id: string;
+  code: string;
+  type: string;
+  displayName: string;
+  companyName: string | null;
+  email: string;
+  status: string;
+  accountStatus: string;
+  assignedToUserId: string | null;
+  defaultCommissionRate: unknown;
+  currencyCode: string;
+}) {
+  return {
+    id: partner.id,
+    code: partner.code,
+    type: partner.type,
+    displayName: partner.displayName,
+    companyName: partner.companyName,
+    email: partner.email,
+    status: partner.status,
+    accountStatus: partner.accountStatus,
+    assignedToUserId: partner.assignedToUserId,
+    defaultCommissionRate: Number(partner.defaultCommissionRate),
+    currencyCode: partner.currencyCode,
   };
 }
 

@@ -44,6 +44,7 @@ import {
 import { PlanCommercialSummary } from "@/app/_components/plans/plan-commercial-summary";
 import { PlanEntitlementsPanel } from "@/app/_components/plans/plan-entitlements-panel";
 import { PaymentRecheckPanel } from "@/app/_components/customers/payment-recheck-panel";
+import { LeadAttributionPanel } from "@/app/_components/leads/lead-attribution-panel";
 import {
   RuntimeForm,
   useRuntimeFormState,
@@ -629,6 +630,9 @@ function RuntimeRecordEditor({
           record={form.values}
           onComplete={reloadRecord}
         />
+      ) : null}
+      {moduleKey === "leads" && !isCreate ? (
+        <LeadAttributionPanel record={form.values} onComplete={reloadRecord} />
       ) : null}
       {moduleKey === "contracts" && !isCreate && activeTab === "versions" ? (
         <ContractVersionHistory

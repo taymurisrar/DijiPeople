@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -14,6 +15,7 @@ import {
   PartnerLeadReviewStatus,
   PartnerOnboardingStatus,
   PartnerStatus,
+  PartnerType,
   Prisma,
 } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
@@ -29,6 +31,16 @@ import {
 import type { PartnerActor } from './partner-auth.guard';
 import { partnerOnboardingReviewRefusal } from './partner-onboarding.state-machine';
 import { PlatformEventsService } from '../platform-events/platform-events.service';
+import { AuditService } from '../audit/audit.service';
+import {
+  assertNoPartnerDuplicate,
+  findOnboardingIdentifierDuplicate,
+  findPartnerDuplicate,
+} from '../partners/partner-duplicate-detection';
+import {
+  missingAdminIdentityFields,
+  missingOnboardingFields,
+} from '../partners/partner-type-policy';
 import {
   CreatePartnerInquiryDto,
   CreatePartnerPortalReferralLinkDto,
@@ -51,11 +63,28 @@ export class PartnerExperienceService {
     private readonly communications: PlatformCommunicationsService,
     private readonly events: PlatformEventsService,
     private readonly legalService: LegalService,
+    private readonly auditService: AuditService,
   ) {}
 
   async submitInquiry(dto: CreatePartnerInquiryDto, correlationId?: string) {
     if (!dto.consentAccepted)
       throw new BadRequestException('Privacy consent is required.');
+    /*
+     * BUG-3549. A COMPANY inquiry with no company name used to be accepted —
+     * `companyName` is optional on the DTO because an INDIVIDUAL inquiry
+     * genuinely has none. `contactFirstName`/`contactLastName` are already
+     * required for every applicant at the DTO level, so only the
+     * company-only field needs a type-conditional check here.
+     */
+    const missingIdentity = missingAdminIdentityFields(dto.type, {
+      companyName: dto.companyName,
+      contactFirstName: dto.contactFirstName,
+      contactLastName: dto.contactLastName,
+    });
+    if (missingIdentity.length)
+      throw new BadRequestException(
+        `A ${dto.type === 'COMPANY' ? 'company' : 'individual'} application requires: ${missingIdentity.join(', ')}.`,
+      );
     const normalized = partnerApplicationSnapshot(dto);
     const submissionHash = sha256(JSON.stringify(normalized));
     const retry = await this.prisma.partnerInquiry.findUnique({
@@ -292,6 +321,35 @@ export class PartnerExperienceService {
         : typeof platformDefaults.currency === 'string'
           ? platformDefaults.currency
           : 'USD';
+    /*
+     * Scenario E (TASK-0032 owner brief). `inquiry.partnerId` is how this
+     * schema already answers "does an existing partner belong to this
+     * inquiry" — `submitInquiry` sets it on every inquiry it creates. The only
+     * way this branch reaches `tx.partner.create` below is an inquiry that
+     * predates that link (imported data, or one created outside
+     * `submitInquiry`), and creating a second `Partner` for an email/company
+     * that already has one would be exactly the duplicate BUG-3550 is about —
+     * so the same duplicate check that guards the admin create path guards
+     * this one too, before the transaction opens.
+     */
+    if (!inquiry.partnerId) {
+      const missingIdentity = missingAdminIdentityFields(inquiry.type, {
+        companyName: inquiry.companyName,
+        contactFirstName: inquiry.contactFirstName,
+        contactLastName: inquiry.contactLastName,
+      });
+      if (missingIdentity.length)
+        throw new BadRequestException(
+          `A ${inquiry.type === 'COMPANY' ? 'company' : 'individual'} partner requires: ${missingIdentity.join(', ')}.`,
+        );
+      assertNoPartnerDuplicate(
+        await findPartnerDuplicate(this.prisma, {
+          email: inquiry.email,
+          companyName: inquiry.companyName,
+          type: inquiry.type,
+        }),
+      );
+    }
     const partner = await this.prisma.$transaction(async (tx) => {
       const created = inquiry.partnerId
         ? await tx.partner.update({
@@ -374,6 +432,18 @@ export class PartnerExperienceService {
         onboardingUnlocked: false,
       },
     });
+    await this.auditService.log({
+      tenantId: 'platform',
+      actorUserId: user.userId,
+      action: 'PARTNER_APPLICATION_APPROVED',
+      entityType: 'Partner',
+      entityId: partner.id,
+      beforeSnapshot: { inquiryId, inquiryStatus: inquiry.status },
+      afterSnapshot: {
+        status: partner.status,
+        assignedToUserId: partner.assignedToUserId,
+      },
+    });
     return { partner, agreementRequired: true, onboardingUnlocked: false };
   }
 
@@ -422,6 +492,15 @@ export class PartnerExperienceService {
       entityType: 'PartnerInquiry',
       entityId: inquiryId,
       requestedById: user.userId,
+    });
+    await this.auditService.log({
+      tenantId: 'platform',
+      actorUserId: user.userId,
+      action: 'PARTNER_APPLICATION_REJECTED',
+      entityType: 'PartnerInquiry',
+      entityId: inquiryId,
+      beforeSnapshot: { status: inquiry.status, partnerId: inquiry.partnerId },
+      afterSnapshot: { status: rejected.status, reason: dto.notes ?? null },
     });
     return rejected;
   }
@@ -521,6 +600,18 @@ export class PartnerExperienceService {
       entityId: partnerId,
       requestedById: user.userId,
     });
+    await this.auditService.log({
+      tenantId: 'platform',
+      actorUserId: user.userId,
+      action: 'PARTNER_ONBOARDING_INVITATION_SENT',
+      entityType: 'PartnerOnboardingApplication',
+      entityId: application.id,
+      afterSnapshot: {
+        partnerId,
+        expiresAt,
+        requiredAgreementTypes: requiredTypes,
+      },
+    });
     return {
       applicationId: application.id,
       onboardingToken: token,
@@ -561,10 +652,31 @@ export class PartnerExperienceService {
       ]).has(application.status)
     )
       throw new BadRequestException('This onboarding application is closed.');
-    validatePartnerOnboardingData(
-      dto.data,
-      await this.setting('partner-settings'),
+    const settings = await this.setting('partner-settings');
+    validatePartnerOnboardingData(dto.data, settings, application.partner.type);
+    /*
+     * BUG-3550. `registrationNumber` (COMPANY) / `nationalIdNumber`
+     * (INDIVIDUAL) and `taxInformation.taxId` are not columns anywhere — this
+     * submission's JSON payload is the only place either value is ever
+     * captured, so it is also the only place a collision with another partner
+     * can be detected.
+     */
+    const duplicate = await findOnboardingIdentifierDuplicate(
+      this.prisma,
+      {
+        registrationNumber:
+          dto.data.registrationNumber ?? dto.data.nationalIdNumber,
+        taxId: (dto.data.taxInformation as Record<string, unknown> | undefined)
+          ?.taxId,
+      },
+      application.partnerId,
     );
+    if (duplicate)
+      throw new ConflictException(
+        duplicate.field === 'taxId'
+          ? 'Another partner is already registered with this tax ID.'
+          : 'Another partner is already registered with this registration/identification number.',
+      );
     const nextVersion = (application.submissions[0]?.version ?? 0) + 1;
     await this.prisma.$transaction([
       this.prisma.partnerOnboardingSubmission.create({
@@ -599,6 +711,14 @@ export class PartnerExperienceService {
       ),
       entityType: 'PartnerOnboardingApplication',
       entityId: application.id,
+    });
+    await this.auditService.log({
+      tenantId: 'platform',
+      actorUserId: null,
+      action: 'PARTNER_ONBOARDING_SUBMITTED',
+      entityType: 'PartnerOnboardingApplication',
+      entityId: application.id,
+      afterSnapshot: { partnerId: application.partnerId, version: nextVersion },
     });
     return {
       success: true,
@@ -675,6 +795,18 @@ export class PartnerExperienceService {
         data: { status: partnerStatus },
       }),
     ]);
+    await this.auditService.log({
+      tenantId: 'platform',
+      actorUserId: user.userId,
+      action: `PARTNER_ONBOARDING_${decision === 'changes' ? 'CHANGES_REQUESTED' : decision.toUpperCase()}`,
+      entityType: 'PartnerOnboardingApplication',
+      entityId: applicationId,
+      beforeSnapshot: {
+        status: application.status,
+        partnerStatus: application.partner.status,
+      },
+      afterSnapshot: { status, partnerStatus, notes: dto.notes ?? null },
+    });
     await this.communications.sendEmail({
       eventCode:
         decision === 'approve'
@@ -796,6 +928,22 @@ export class PartnerExperienceService {
           invitationExpiresAt: addDays(new Date(), 7),
         },
       });
+    });
+    await this.auditService.log({
+      tenantId: 'platform',
+      actorUserId: user.userId,
+      action: 'PARTNER_ACTIVATED',
+      entityType: 'Partner',
+      entityId: partnerId,
+      beforeSnapshot: {
+        status: partner.status,
+        accountStatus: partner.accountStatus,
+      },
+      afterSnapshot: {
+        status: PartnerStatus.ACTIVE,
+        accountStatus: 'INVITED',
+        portalUserId: portalUser.id,
+      },
     });
     const activationUrl = buildPublicSiteUrl(
       `/partners/activate/${invitationToken}`,
@@ -1157,6 +1305,15 @@ export class PartnerExperienceService {
         lockedAt: decision === 'changes' ? null : undefined,
       },
     });
+    await this.auditService.log({
+      tenantId: 'platform',
+      actorUserId: user.userId,
+      action: `PARTNER_LEAD_REVIEW_${decision === 'changes' ? 'CHANGES_REQUESTED' : decision.toUpperCase()}`,
+      entityType: 'PartnerLeadReview',
+      entityId: reviewId,
+      beforeSnapshot: { status: review.status },
+      afterSnapshot: { status, notes: dto.notes ?? null },
+    });
     await this.communications.sendEmail({
       eventCode: `PARTNER_LEAD_${decision.toUpperCase()}`,
       recipient: review.partner.email,
@@ -1317,23 +1474,20 @@ export class PartnerExperienceService {
   }
 }
 
+/**
+ * BUG-3549. This used to apply one required-field list to every applicant
+ * regardless of `type`, so an INDIVIDUAL applicant was asked for
+ * `registrationNumber` — a company registration number nobody without a
+ * company has. The required-field list itself now lives in
+ * `partner-type-policy.ts`, keyed by type, so this stays a thin wrapper that
+ * adds the one rule that is not a field-presence check.
+ */
 export function validatePartnerOnboardingData(
   data: Record<string, unknown>,
   settings: Record<string, unknown> = {},
+  type: PartnerType = PartnerType.COMPANY,
 ) {
-  const required = [
-    'legalName',
-    'registrationNumber',
-    'registeredAddress',
-    'authorizedSigner',
-    'privacyConsent',
-  ];
-  if (settings.requireTaxInformation !== false) required.push('taxInformation');
-  if (settings.requireBankInformation !== false)
-    required.push('bankingInformation');
-  const missing = required.filter(
-    (key) => data[key] === undefined || data[key] === null || data[key] === '',
-  );
+  const missing = missingOnboardingFields(type, data, settings);
   if (missing.length)
     throw new BadRequestException(
       `Required onboarding fields are missing: ${missing.join(', ')}.`,
