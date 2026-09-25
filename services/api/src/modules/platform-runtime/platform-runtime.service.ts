@@ -384,6 +384,12 @@ export class PlatformRuntimeService {
         return envelope(await this.superAdmin.getInvoiceDetail(id));
       case 'contracts':
         return envelope(await this.contracts.get(user, id));
+      // Both modules have list cases above; without these, a record opened
+      // from its own list fell through to findGeneric and 404'd (BUG-3565).
+      case 'contract-templates':
+        return envelope(await this.contracts.getTemplate(user, id));
+      case 'signature-requests':
+        return envelope(await this.contracts.getSignatureRequest(user, id));
       case 'support-cases':
         return envelope(await this.supportCases.get(user, id));
       case 'monitoring-incidents':
