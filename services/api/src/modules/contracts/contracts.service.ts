@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -1730,7 +1729,9 @@ export class ContractsService {
 
     const unfillable = extractContractPlaceholders(templateVersion.contentHtml)
       .filter((definition) => definition.required)
-      .filter((definition) => !filledAfterSource.includes(definition.sourceEntity))
+      .filter(
+        (definition) => !filledAfterSource.includes(definition.sourceEntity),
+      )
       .filter((definition) => !values[definition.key]?.trim())
       .map((definition) => definition.key);
 
@@ -1795,27 +1796,31 @@ export class ContractsService {
     });
     if (!source || !source.versions[0])
       throw new NotFoundException('Source contract was not found.');
-    return this.create(user, {
-      title: dto.title,
-      contractType: source.contractType,
-      counterpartyName: dto.counterpartyName ?? source.counterpartyName,
-      counterpartyEmail:
-        dto.counterpartyEmail ?? source.counterpartyEmail ?? undefined,
-      partnerId: source.partnerId ?? undefined,
-      customerAccountId: source.customerAccountId ?? undefined,
-      customerOnboardingId: source.customerOnboardingId ?? undefined,
-      tenantId: source.tenantId ?? undefined,
-      currencyCode: source.currencyCode ?? undefined,
-      contractValue: source.contractValue
-        ? Number(source.contractValue)
-        : undefined,
-      effectiveDate: source.effectiveDate?.toISOString(),
-      expiryDate: source.expiryDate?.toISOString(),
-      renewalNoticeDays: source.renewalNoticeDays ?? undefined,
-      contentHtml: source.versions[0].contentHtml,
-      // An explicit, deliberate duplication path (discovery D3 scenario 27)
-      // — it is expected to share every link with its source.
-    }, { skipDuplicateGuard: true });
+    return this.create(
+      user,
+      {
+        title: dto.title,
+        contractType: source.contractType,
+        counterpartyName: dto.counterpartyName ?? source.counterpartyName,
+        counterpartyEmail:
+          dto.counterpartyEmail ?? source.counterpartyEmail ?? undefined,
+        partnerId: source.partnerId ?? undefined,
+        customerAccountId: source.customerAccountId ?? undefined,
+        customerOnboardingId: source.customerOnboardingId ?? undefined,
+        tenantId: source.tenantId ?? undefined,
+        currencyCode: source.currencyCode ?? undefined,
+        contractValue: source.contractValue
+          ? Number(source.contractValue)
+          : undefined,
+        effectiveDate: source.effectiveDate?.toISOString(),
+        expiryDate: source.expiryDate?.toISOString(),
+        renewalNoticeDays: source.renewalNoticeDays ?? undefined,
+        contentHtml: source.versions[0].contentHtml,
+        // An explicit, deliberate duplication path (discovery D3 scenario 27)
+        // — it is expected to share every link with its source.
+      },
+      { skipDuplicateGuard: true },
+    );
   }
 
   async createFromUpload(
@@ -2630,19 +2635,17 @@ export class ContractsService {
       });
       return created;
     });
-    await this.auditService.log(
-      {
-        tenantId: 'platform',
-        actorUserId: user.userId,
-        action: 'CONTRACT_TEMPLATE_VERSION_CREATED',
-        entityType: 'ContractTemplate',
-        entityId: templateId,
-        afterSnapshot: {
-          version: version.version,
-          isPublished: version.isPublished,
-        },
+    await this.auditService.log({
+      tenantId: 'platform',
+      actorUserId: user.userId,
+      action: 'CONTRACT_TEMPLATE_VERSION_CREATED',
+      entityType: 'ContractTemplate',
+      entityId: templateId,
+      afterSnapshot: {
+        version: version.version,
+        isPublished: version.isPublished,
       },
-    );
+    });
     return version;
   }
 
@@ -5797,7 +5800,9 @@ const OPEN_SIGNATURE_REQUEST_STATUSES: SignatureRequestStatus[] = [
 ];
 
 function displaySignatureStatus(
-  request: { status: SignatureRequestStatus; expiresAt: Date | null } | undefined,
+  request:
+    | { status: SignatureRequestStatus; expiresAt: Date | null }
+    | undefined,
 ) {
   if (!request) return null;
   if (

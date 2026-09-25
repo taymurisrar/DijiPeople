@@ -98,30 +98,28 @@ const GENERIC_ENTITIES = [
  * `governing-agreement.ts`), not merely enumerated. See
  * `docs/tasks/TASK-0032-streams/WP-05-report.md` for the type table.
  */
-const CONTRACT_TYPE_SOURCE_ENTITIES: Partial<Record<ContractType, string[]>> =
-  {
-    [ContractType.PARTNER_AGREEMENT]: PARTNER_FAMILY_ENTITIES,
-    [ContractType.MASTER_PARTNER_AGREEMENT]: PARTNER_FAMILY_ENTITIES,
-    [ContractType.COMMISSION_ADDENDUM]: PARTNER_FAMILY_ENTITIES,
-    [ContractType.TERRITORY_ADDENDUM]: PARTNER_FAMILY_ENTITIES,
-    [ContractType.REFERRAL_ADDENDUM]: PARTNER_FAMILY_ENTITIES,
-    [ContractType.CUSTOMER_AGREEMENT]: CUSTOMER_FAMILY_ENTITIES,
-    [ContractType.MASTER_SERVICES_AGREEMENT]: CUSTOMER_FAMILY_ENTITIES,
-    [ContractType.SUBSCRIPTION_AGREEMENT]: CUSTOMER_FAMILY_ENTITIES,
-    [ContractType.DATA_PROCESSING_AGREEMENT]: CUSTOMER_FAMILY_ENTITIES,
-    [ContractType.SLA]: CUSTOMER_FAMILY_ENTITIES,
-    [ContractType.STATEMENT_OF_WORK]: CUSTOMER_FAMILY_ENTITIES,
-    [ContractType.SERVICE_AGREEMENT]: TENANT_FAMILY_ENTITIES,
-    // Generic: NDA, ADDENDUM, AMENDMENT, RENEWAL, TERMINATION, OTHER fall
-    // through to GENERIC_ENTITIES via the `?? GENERIC_ENTITIES` below.
-  };
+const CONTRACT_TYPE_SOURCE_ENTITIES: Partial<Record<ContractType, string[]>> = {
+  [ContractType.PARTNER_AGREEMENT]: PARTNER_FAMILY_ENTITIES,
+  [ContractType.MASTER_PARTNER_AGREEMENT]: PARTNER_FAMILY_ENTITIES,
+  [ContractType.COMMISSION_ADDENDUM]: PARTNER_FAMILY_ENTITIES,
+  [ContractType.TERRITORY_ADDENDUM]: PARTNER_FAMILY_ENTITIES,
+  [ContractType.REFERRAL_ADDENDUM]: PARTNER_FAMILY_ENTITIES,
+  [ContractType.CUSTOMER_AGREEMENT]: CUSTOMER_FAMILY_ENTITIES,
+  [ContractType.MASTER_SERVICES_AGREEMENT]: CUSTOMER_FAMILY_ENTITIES,
+  [ContractType.SUBSCRIPTION_AGREEMENT]: CUSTOMER_FAMILY_ENTITIES,
+  [ContractType.DATA_PROCESSING_AGREEMENT]: CUSTOMER_FAMILY_ENTITIES,
+  [ContractType.SLA]: CUSTOMER_FAMILY_ENTITIES,
+  [ContractType.STATEMENT_OF_WORK]: CUSTOMER_FAMILY_ENTITIES,
+  [ContractType.SERVICE_AGREEMENT]: TENANT_FAMILY_ENTITIES,
+  // Generic: NDA, ADDENDUM, AMENDMENT, RENEWAL, TERMINATION, OTHER fall
+  // through to GENERIC_ENTITIES via the `?? GENERIC_ENTITIES` below.
+};
 
 export function contractAllowedSourceEntities(
-  contractType: ContractType | string,
+  contractType: ContractType,
 ): Set<string> {
   const family =
-    CONTRACT_TYPE_SOURCE_ENTITIES[contractType as ContractType] ??
-    GENERIC_ENTITIES;
+    CONTRACT_TYPE_SOURCE_ENTITIES[contractType] ?? GENERIC_ENTITIES;
   return new Set([...ALWAYS_AVAILABLE_SOURCE_ENTITIES, ...family]);
 }
 
@@ -153,8 +151,8 @@ export function contractLinkedSourceEntities(
    */
   const hasCustomerRelationship = Boolean(
     contract.customerAccountId ||
-      contract.relatedLeadId ||
-      contract.customerOnboardingId,
+    contract.relatedLeadId ||
+    contract.customerOnboardingId,
   );
   if (hasCustomerRelationship) {
     linked.add('customer');
@@ -176,7 +174,7 @@ export function contractLinkedSourceEntities(
  * type's ceiling, narrowed to what this specific agreement actually links.
  */
 export function contractInstanceContextEntities(
-  contractType: ContractType | string,
+  contractType: ContractType,
   contract: LinkableContract,
 ): Set<string> {
   const allowed = contractAllowedSourceEntities(contractType);
@@ -200,7 +198,7 @@ const ASSOCIATION_PHRASE: Record<string, string> = {
 
 export function unresolvableRequiredPlaceholders(
   definitions: ContractPlaceholderDefinition[],
-  contractType: ContractType | string,
+  contractType: ContractType,
   contract: LinkableContract,
 ) {
   const context = contractInstanceContextEntities(contractType, contract);
@@ -214,8 +212,7 @@ export function unresolvableRequiredPlaceholders(
       label: definition.label,
       sourceEntity: definition.sourceEntity,
       message: `${definition.label} cannot be resolved because this agreement is not associated with ${
-        ASSOCIATION_PHRASE[definition.sourceEntity] ??
-        definition.sourceEntity
+        ASSOCIATION_PHRASE[definition.sourceEntity] ?? definition.sourceEntity
       }.`,
     }));
 }
@@ -223,7 +220,7 @@ export function unresolvableRequiredPlaceholders(
 /** Placeholders a template of this contract type has no business offering. */
 export function outOfContextPlaceholders(
   definitions: ContractPlaceholderDefinition[],
-  contractType: ContractType | string,
+  contractType: ContractType,
 ) {
   const allowed = contractAllowedSourceEntities(contractType);
   return definitions.filter(

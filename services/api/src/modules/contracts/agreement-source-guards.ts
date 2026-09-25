@@ -68,9 +68,7 @@ export function assertPartnerUsable(partner: {
   status: string;
   displayName?: string | null;
 }) {
-  if (
-    (UNUSABLE_PARTNER_STATUSES as readonly string[]).includes(partner.status)
-  )
+  if ((UNUSABLE_PARTNER_STATUSES as readonly string[]).includes(partner.status))
     throw new BadRequestException(
       `${partner.displayName ?? 'This partner'} is ${partner.status.toLowerCase()} and cannot be the source of a new agreement.`,
     );
@@ -93,9 +91,7 @@ export function assertCustomerUsable(customer: {
   companyName?: string | null;
 }) {
   if (
-    (UNUSABLE_CUSTOMER_STATUSES as readonly string[]).includes(
-      customer.status,
-    )
+    (UNUSABLE_CUSTOMER_STATUSES as readonly string[]).includes(customer.status)
   )
     throw new BadRequestException(
       `${customer.companyName ?? 'This customer'} is ${customer.status.toLowerCase()} and cannot be the source of a new agreement.`,
@@ -119,7 +115,7 @@ export function assertLeadAttributedToPartner(
 }
 
 export type DuplicateAgreementLinks = {
-  contractType: ContractType | string;
+  contractType: ContractType;
   partnerId?: string | null;
   customerAccountId?: string | null;
   relatedLeadId?: string | null;
@@ -141,8 +137,7 @@ export async function findDuplicateAgreement(
   prisma: { contract: { findFirst: (args: unknown) => Promise<unknown> } },
   links: DuplicateAgreementLinks,
 ): Promise<{ id: string; contractNumber: string } | null> {
-  if (DUPLICATE_GUARD_EXEMPT_TYPES.includes(links.contractType as ContractType))
-    return null;
+  if (DUPLICATE_GUARD_EXEMPT_TYPES.includes(links.contractType)) return null;
   const linkFilters: Prisma.ContractWhereInput[] = [];
   if (links.partnerId) linkFilters.push({ partnerId: links.partnerId });
   if (links.customerAccountId)
