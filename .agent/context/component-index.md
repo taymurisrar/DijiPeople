@@ -1,7 +1,7 @@
 # Component Index
 
-> **Last verified:** 2026-09-13
-> **Verified against commit:** 819208d9
+> **Last verified:** 2026-09-25
+> **Verified against commit:** 8ad6edc6
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -16,8 +16,8 @@ question an agent can answer by retrieval rather than by reading a directory.
 comment beside it is the reasoning; this document is a route to both. Every row
 carries `file`:`line` for that reason — read the source before changing it.
 
-**An export missing from here is undocumented, not absent.** 833 of
-1089 exports across these kits carry no
+**An export missing from here is undocumented, not absent.** 849 of
+1114 exports across these kits carry no
 doc-comment and are omitted rather than listed as bare names. That ratio is
 itself worth knowing: it is where a UI/UX or Frontend agent is working without
 stated rationale, and where adding one is worth more than a new abstraction.
@@ -45,7 +45,7 @@ re-derived on each run.
 
 `ProDataTable` (`crm/data-table.tsx`) is the required table for every production admin screen. A hand-rolled table here is a review failure.
 
-72 documented export(s); 247 undocumented export(s) omitted.
+77 documented export(s); 258 undocumented export(s) omitted.
 
 | Export | Kind | Used by | Where | What it is |
 |---|---|---|---|---|
@@ -57,6 +57,7 @@ re-derived on each run.
 | `NotificationBell` | component | 2 | `apps/admin/app/_components/notifications/notification-bell.tsx`:34 | The bell: a count, and the last few things worth knowing. |
 | `PlanPriceManager` | component | 2 | `apps/admin/app/_components/plan-price-manager.tsx`:94 | Plan prices. This screen was a stack of cards, one per price, each repeating "Cycle", "Amount", "Stripe Price ID" and "Subscriptions" as its own labelled block — so a plan priced in six currencies across two periods, with a few superseded versions behind it, rendered several hundred vertical pixels of column headings. |
 | `AccountPreferencesClient` | component | 1 | `apps/admin/app/_components/account-preferences-client.tsx`:26 | Personal console preferences, stored against the operator. |
+| `HealthOverviewTiles` | component | 1 | `apps/admin/app/_components/monitoring/health-overview-tiles.tsx`:84 | TASK-0032 WP-06. "Is the platform healthy" as the first thing on the monitoring page, not something inferred from an error queue. |
 | `NotificationsFeed` | component | 1 | `apps/admin/app/_components/notifications/notifications-feed.tsx`:30 | What has happened on this platform that somebody should look at. |
 | `PaymentRecheckPanel` | component | 1 | `apps/admin/app/_components/customers/payment-recheck-panel.tsx`:63 | What Stripe says about this customer's payment, and what to tell them. |
 | `PlanCommercialSummary` | component | 1 | `apps/admin/app/_components/plans/plan-commercial-summary.tsx`:33 | What this plan currently costs and who is on it. |
@@ -81,19 +82,20 @@ re-derived on each run.
 | `relativeTime` | function | 5 | `apps/admin/app/_components/tenants/tenant-panel-ui.tsx`:405 | Relative time for heartbeat and last-seen columns. |
 | `runStandardRecordCommand` | function | 4 | `apps/admin/lib/runtime/standard-record-commands.ts`:23 | Back, New and Refresh for the record pages that are **not** the runtime. |
 | `useReasonPrompt` | function | 3 | `apps/admin/app/_components/runtime/use-reason-prompt.tsx`:62 | Collects a governed reason through the design system instead of `window.prompt` (BUG-0020). |
+| `useRuntimeLookupOptions` | function | 3 | `apps/admin/lib/runtime/use-runtime-lookup-options.ts`:31 | Read an allowlisted runtime lookup. |
 | `describePlanSchedule` | function | 2 | `apps/admin/lib/runtime/plan-headline-prices.ts`:180 | "Per seat, PKR" — how the tiles name the schedule they are showing. |
 | `formatWhen` | function | 2 | `apps/admin/app/_components/notifications/notification-model.ts`:86 | "4 minutes ago", falling back to an absolute time once relative stops being the more useful phrasing. |
+| `humanizeErrorMessage` | function | 2 | `apps/admin/lib/runtime/humanize-field-error.ts`:62 | Whether this message is implementation detail rather than user-facing text. |
 | `humanizeLabel` | function | 2 | `apps/admin/lib/runtime/humanize-label.ts`:89 | Display text for a stored enum value, lookup key or similar. |
 | `recordDisplayName` | function | 2 | `apps/admin/lib/runtime/destructive-confirm.ts`:95 | The best display name for a record, from whatever the row happens to carry. |
 | `useConfirmAction` | function | 2 | `apps/admin/app/_components/runtime/use-confirm-action.tsx`:50 | Confirmation for an irreversible, billable create (BUG-0022). |
-| `useRuntimeLookupOptions` | function | 2 | `apps/admin/lib/runtime/use-runtime-lookup-options.ts`:31 | Read an allowlisted runtime lookup. |
 | `buildLookupRecordHref` | function | 1 | `apps/admin/lib/runtime/lookup-record-href.ts`:64 | The link for a resolved lookup value. |
 | `buildWritePayload` | function | 1 | `apps/admin/lib/runtime/runtime-write-payload.ts`:73 | The values a create or update request should actually carry. |
 | `describeBlockedSave` | function | 1 | `apps/admin/lib/runtime/blocked-save-feedback.ts`:52 | The summary message. Names the fields so it stands on its own even when the tab strip has scrolled out of view — the message was previously the only feedback available and said nothing. |
 | `describeDestructiveConfirm` | function | 1 | `apps/admin/lib/runtime/destructive-confirm.ts`:47 | Title, description and names for a destructive confirmation. |
+| `editEntryTab` | function | 1 | `apps/admin/lib/runtime/edit-tab-selection.ts`:104 | The tab Edit should switch to, or `null` when the current tab already has something editable and no switch is needed. |
 | `errorCountByTab` | function | 1 | `apps/admin/lib/runtime/blocked-save-feedback.ts`:33 | How many failures sit on each tab, for the tab strip's badges. |
 | `firstFailingTab` | function | 1 | `apps/admin/lib/runtime/blocked-save-feedback.ts`:22 | The tab holding the first failure, or null when none of them declare one. |
-| `humanizeErrorMessage` | function | 1 | `apps/admin/lib/runtime/humanize-field-error.ts`:62 | Whether this message is implementation detail rather than user-facing text. |
 | `humanizeFieldError` | function | 1 | `apps/admin/lib/runtime/humanize-field-error.ts`:24 | Replace a leading DTO property name with the label the operator sees. |
 | `isTransportFailure` | function | 1 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:683 | Whether a failure means "the request never got an answer" rather than "the server said no". |
 | `planEntitlementKeys` | function | 1 | `apps/admin/lib/runtime/plan-entitlement-keys.ts`:29 | The entitlement keys a plan record grants, whatever shape the record is in. |
@@ -109,15 +111,18 @@ re-derived on each run.
 | `normalizeWriteValue` | function | 0 | `apps/admin/lib/runtime/runtime-write-payload.ts`:49 | What an empty optional field should be sent as — or whether to send it. |
 | `resolveLookupRecordRoute` | function | 0 | `apps/admin/lib/runtime/lookup-record-href.ts`:44 | The module a lookup reads from, if Platform Admin can show that record. |
 | `standardRecordActions` | function | 0 | `apps/admin/lib/runtime/standard-record-commands.ts`:56 | The registry's command bar for a module, with the page's own commands merged in on top — same rule the registry itself uses, so a bespoke page can override a default's label or states without losing the rest. |
+| `tabHasEditableField` | function | 0 | `apps/admin/lib/runtime/edit-tab-selection.ts`:88 | Whether the named tab currently has at least one field the operator could edit. |
 | `ConsolePreferencesApplier` | value | 1 | `apps/admin/app/_components/console-preferences-applier.tsx`:23 | Apply the operator's preferences to every page, not just the one that sets them. |
-| `LOOKUP_SEARCH_DEBOUNCE_MS` | constant | 2 | `apps/admin/lib/runtime/lookup-search.ts`:14 | How long to wait after the last keystroke before issuing a search request. |
+| `LOOKUP_SEARCH_DEBOUNCE_MS` | constant | 3 | `apps/admin/lib/runtime/lookup-search.ts`:14 | How long to wait after the last keystroke before issuing a search request. |
 | `NOTIFICATIONS_ENDPOINT` | constant | 2 | `apps/admin/app/_components/notifications/notification-model.ts`:37 | The read endpoint, and the one that clears the unread mark. |
 | `NOTIFICATIONS_READ_EVENT` | constant | 2 | `apps/admin/app/_components/notifications/notification-model.ts`:47 | The badge and the page read the same count from the same endpoint, so clearing it in one place has to reach the other. |
 | `SEVERITY` | constant | 2 | `apps/admin/app/_components/notifications/notification-model.ts`:57 | Severity as it is drawn. |
 | `TENANT_PANEL_TABS` | constant | 1 | `apps/admin/app/_components/tenants/use-tenant-record-actions.tsx`:21 | Tabs whose content comes from a tenant panel rather than from form fields. |
-| `DASHBOARD_WIDGET_REGISTRY` | constant | 0 | `apps/admin/app/_components/dashboard/platform-dashboard.tsx`:183 | Canonical widget capability registry. |
+| `DASHBOARD_WIDGET_REGISTRY` | constant | 0 | `apps/admin/app/_components/dashboard/platform-dashboard.tsx`:294 | Canonical widget capability registry. |
 | `RUNTIME_ELEVATED_ROLES` | constant | 0 | `apps/admin/lib/runtime/runtime-permissions.ts`:21 | Roles that reach every platform module regardless of the granted key set. |
+| `AdminMfaChallenge` | type | 0 | `apps/admin/app/_components/security/mfa-security.tsx`:138 | ------------------------------------------------------------------ |
 | `Notification` | type | 0 | `apps/admin/app/_components/notifications/notification-model.ts`:11 | One row of the feed, as `platform-notifications.ts` projects it. |
+| `OperationsSection` | type | 0 | `apps/admin/app/_components/dashboard/platform-dashboard.tsx`:137 | The Operations view's own data source (TASK-0032 WP-07 / ITEM-0199), `GET /super-admin/dashboard-summary/operations`. |
 | `OverviewIncident` | type | 0 | `apps/admin/app/_components/monitoring/monitoring-overview.tsx`:39 | Monitoring, as a place to start work rather than a place to read numbers. |
 | `PlanPriceLike` | type | 0 | `apps/admin/lib/runtime/plan-headline-prices.ts`:43 | The one monthly/annual pair a plan's headline tiles may show. |
 | `TenantWorkspaceHealth` | type | 0 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:174 | What is missing from a workspace, as facts about the tenant rather than about a provisioning run that may never have been recorded. |
@@ -126,7 +131,7 @@ re-derived on each run.
 
 Metadata-driven UI is the default. New modules are declared through `lib/runtime/` and rendered by the standard runtime pages; a bespoke page needs a stated reason in the plan.
 
-184 documented export(s); 583 undocumented export(s) omitted.
+188 documented export(s); 588 undocumented export(s) omitted.
 
 | Export | Kind | Used by | Where | What it is |
 |---|---|---|---|---|
@@ -138,6 +143,9 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `AttendanceCorrectionForm` | component | 2 | `apps/web/app/components/attendance-corrections/attendance-correction-form.tsx`:38 | The employee's correction request form. |
 | `ChartPatternDefs` | component | 2 | `apps/web/app/components/charts/chart-chrome.tsx`:69 | One `<pattern>` per series: the series colour, overlaid with a hatch whose geometry differs per index. |
 | `DialogCloseButton` | component | 2 | `apps/web/app/components/ui/dialog.tsx`:374 | The close affordance most dialogs want in their footer or header. |
+| `MfaEnrolmentPanel` | component | 2 | `apps/web/app/components/security/mfa-panels.tsx`:121 | Scan (or type) the key, then prove it with a code. |
+| `OneTimeCodeField` | component | 2 | `apps/web/app/components/security/mfa-panels.tsx`:36 | A six-digit authenticator code: numeric keypad, and SMS/app autofill. |
+| `RecoveryCodesPanel` | component | 2 | `apps/web/app/components/security/mfa-panels.tsx`:225 | Recovery codes, shown once. |
 | `ApprovalChain` | component | 1 | `apps/web/app/components/approvals/approval-chain.tsx`:20 | The approval chain and its history. |
 | `AttendanceActionFeedback` | component | 1 | `apps/web/app/components/runtime/attendance-action-feedback.tsx`:15 | The contextual answer to an attendance attempt. |
 | `AttendanceCorrectionPanel` | component | 1 | `apps/web/app/components/attendance-corrections/attendance-correction-panel.tsx`:29 | Raising a correction against the record the employee is already reading. |
@@ -169,6 +177,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `seriesExtent` | function | 4 | `apps/web/app/components/charts/chart-geometry.ts`:1197 | The `[min, max]` across every point of every series, always including zero. |
 | `buildLinePath` | function | 3 | `apps/web/app/components/charts/chart-geometry.ts`:552 | An SVG `d` for a polyline through `points`, in data space, mapped by the given scales. |
 | `computeShares` | function | 3 | `apps/web/app/components/charts/chart-geometry.ts`:876 | Percentage shares that add up. |
+| `createDebouncedCallback` | function | 3 | `apps/web/lib/runtime/lookup-search.ts`:64 | A debounced wrapper around a callback that takes a single string. |
 | `formatPeriodLabel` | function | 3 | `apps/web/app/components/filters/period.ts`:507 | A period, written out for a person, in the tenant's date format. |
 | `isVisibleByRules` | function | 3 | `apps/web/lib/runtime/visibility.resolver.ts`:57 | True when every rule passes. |
 | `niceTicks` | function | 3 | `apps/web/app/components/charts/chart-geometry.ts`:160 | Axis ticks a person would have chosen: round steps, covering `[min, max]`, roughly `count` of them. "Roughly" is honest — the returned length is usually `count` or `count + 1` and is never forced, because forcing an exact count is what produces axes labelled 0, 23.75, 47.5, 71.25, 95. |
@@ -179,10 +188,10 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `buildApprovalRecord` | function | 2 | `apps/web/app/components/approvals/approval-record.ts`:15 | One approval, flattened into the shape the runtime record page reads. |
 | `buildAreaPath` | function | 2 | `apps/web/app/components/charts/chart-geometry.ts`:592 | The same shape, closed down to a baseline so it can be filled. |
 | `collapseToTopN` | function | 2 | `apps/web/app/components/charts/chart-geometry.ts`:791 | Sort descending and roll everything past the first `limit` into one bucket. |
-| `createDebouncedCallback` | function | 2 | `apps/web/lib/runtime/lookup-search.ts`:64 | A debounced wrapper around a callback that takes a single string. |
 | `formatShare` | function | 2 | `apps/web/app/components/charts/chart-format.ts`:98 | A proportion, rendered. |
 | `formatShares` | function | 2 | `apps/web/app/components/charts/chart-format.ts`:140 | A whole breakdown's shares, rendered with one shared rounding rule. |
 | `periodLengthInDays` | function | 2 | `apps/web/app/components/filters/period.ts`:404 | Inclusive day count. A single-day period is 1, never 0. |
+| `readMfaError` | function | 2 | `apps/web/app/components/security/mfa-panels.tsx`:309 | Reads `message` from a JSON error body, whatever shape the proxy used. |
 | `activeAnalyticsFilterCount` | function | 1 | `apps/web/app/components/filters/analytics-search-params.ts`:196 | How many scope filters are narrowing the data. |
 | `buildQuickCreateValues` | function | 1 | `apps/web/lib/runtime/related-record-create-values.ts`:56 | The dialog's value map, in precedence order: declared inheritance from the parent, then the record being edited, then whatever the user has typed, then the parent foreign key — which is not the user's to change. |
 | `buildSubgridQuickCreate` | function | 1 | `apps/web/lib/runtime/quick-create-metadata.ts`:23 | Quick-create metadata and the gate in front of it. |
@@ -245,12 +254,12 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `ThemeApplier` | value | 1 | `apps/web/app/components/theme/theme-applier.tsx`:18 | Re-asserts the user's theme after hydration, everywhere in the app. |
 | `CHART_FOCUSABLE_CLASS` | constant | 4 | `apps/web/app/components/charts/chart-chrome.tsx`:408 | The focus ring for an in-SVG target. |
 | `CHART_VIEWBOX_WIDTH` | constant | 3 | `apps/web/app/components/charts/chart-chrome.tsx`:39 | The nominal drawing width. |
+| `LOOKUP_SEARCH_DEBOUNCE_MS` | constant | 3 | `apps/web/lib/runtime/lookup-search.ts`:13 | How long to wait after the last keystroke before issuing a search request. |
 | `MAX_CHART_SLICES` | constant | 3 | `apps/web/app/components/charts/chart-tokens.ts`:157 | Beyond seven slices a ranked proportion chart stops ranking anything: the tail is a row of indistinguishable slivers and the legend is longer than the chart. |
 | `PERIOD_PRESET_OPTIONS` | constant | 3 | `apps/web/app/components/filters/period.ts`:90 | Labels for the preset dropdown. "This month", "This quarter" and "Year to date" are *to date* — they end today, not at the end of the calendar period. |
 | `CUSTOM_RECORDS_READ_PERMISSION` | constant | 2 | `apps/web/lib/runtime/custom-modules/custom-module-navigation.ts`:26 | Derived, not catalogued: the API builds this key from the `custom-records` READ matrix privilege (`auth-access.service.ts`). |
 | `EMPLOYEE_WORK_SITES_RELATIONSHIP` | constant | 2 | `apps/web/lib/runtime/modules/employee-work-sites.ts`:14 | ITEM-0179 / ADR-0014 — an employee's authorised work sites as rows of the standard related-records subgrid, on a Work Sites tab. |
 | `ENTITY_LOOKUP_PAGE_SIZE` | constant | 2 | `apps/web/lib/runtime/lookup-search.ts`:21 | The page size sent for an entity-backed lookup once a search or an explicit fetch is issued. |
-| `LOOKUP_SEARCH_DEBOUNCE_MS` | constant | 2 | `apps/web/lib/runtime/lookup-search.ts`:13 | How long to wait after the last keystroke before issuing a search request. |
 | `MISSING_VALUE_TEXT` | constant | 2 | `apps/web/app/components/charts/chart-format.ts`:38 | What a missing or unmeasurable number reads as. |
 | `CHART_GRID_OPACITY` | constant | 1 | `apps/web/app/components/charts/chart-tokens.ts`:192 | Axis, gridline and baseline strokes. |
 | `CHART_PATTERN_OVERLAY` | constant | 1 | `apps/web/app/components/charts/chart-tokens.ts`:203 | The hatch drawn over a series colour to give it a shape as well as a hue. |

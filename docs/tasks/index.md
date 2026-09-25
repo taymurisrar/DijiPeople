@@ -14,9 +14,7 @@ graph and the block reasons. See
 
 ## Next ready work package
 
-| Task | WP | Title |
-|---|---|---|
-| [TASK-0032](TASK-0032-partner-onboarding-agreements-admin-rbac-monitoring-dashboar.md) | WP-01 | Schema: MFA, platform lockout, error module, signature style, role consolidation migration |
+Nothing ready.
 
 ## Needs a human
 
@@ -64,4 +62,4 @@ graph and the block reasons. See
 | [TASK-0028](TASK-0028-enterprise-reports-and-analytics-platform.md) | Enterprise Reports and Analytics platform | FEATURE | LARGE | P1 | IN_PROGRESS | 5/15 | WP-08 |
 | [TASK-0030](TASK-0030-implement-the-34-open-records-from-sessions-0099-0102.md) | Implement the 34 open records from sessions 0099-0102 | FEATURE | LARGE | P1 | COMPLETE | 8/8 | — |
 | [TASK-0031](TASK-0031-demo-walkthrough-2-remediation-hierarchy-work-sites-customiz.md) | Demo walkthrough 2 remediation - hierarchy, work sites, customization, notifications | FEATURE | PROGRAM | P1 | COMPLETE | 9/9 | — |
-| [TASK-0032](TASK-0032-partner-onboarding-agreements-admin-rbac-monitoring-dashboar.md) | Partner onboarding, agreements, admin RBAC, monitoring, dashboard and MFA hardening | FEATURE | PROGRAM | P1 | IN_PROGRESS | 0/10 | WP-00 |
+| [TASK-0032](TASK-0032-partner-onboarding-agreements-admin-rbac-monitoring-dashboar.md) | Partner onboarding, agreements, admin RBAC, monitoring, dashboard and MFA hardening | FEATURE | PROGRAM | P1 | IN_PROGRESS | 12/13 | WP-09 |

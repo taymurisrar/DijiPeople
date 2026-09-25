@@ -5963,7 +5963,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Module** | `apps/admin` |
 | **Bug record** | BUG-3550 (owner brief, lead↔partner assignment UX) |
 | **Root cause** | The leads runtime form's `partnerId` field was a plain editable lookup with no status filter, fed by the generic `PATCH /super-admin/leads/:id`. `LeadsService.updateLead()` has refused a `partnerId` change through that route since the attribution-correction endpoint was built — so the field could be edited and "saved" only to 400, and any partner regardless of status appeared in the picker. |
-| **Regression test** | Covered at the unit level by REG-557/REG-558 (the endpoint this panel calls). No admin component test harness exists in this repo for `apps/admin/app/_components/runtime/runtime-form.tsx` component behaviour — verified by `npm run check-types` and manual reasoning against its read-only/visible-when field handling (both pre-existing, exercised elsewhere). |
+| **Regression test** | `apps/admin/app/_components/runtime/runtime-form.tsx` — no admin component test harness exists in this repo for its behaviour; covered at the unit level by REG-557/REG-558 (the endpoint this panel calls); verified by `npm run check-types` and manual reasoning against its read-only/visible-when field handling (both pre-existing, exercised elsewhere). |
 | **Scenario** | The `partnerId` field on `/leads/[leadId]` is now read-only and its lookup (when shown elsewhere, e.g. on create) is filtered to `status=ACTIVE`; a "Partner attribution" panel on the lead record page performs reassignment/removal through `PATCH /super-admin/leads/:leadId/attribution` with a required reason and a confirmation dialog, and its lookup shows each candidate's type and status in the option label. |
 | **Fixed** | 2026-09-25, branch `agent/pah-wp04-partners` |
 | **Active** | yes |
@@ -6338,7 +6338,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Bug class** | `shared-promise-all-blanks-unrelated-ui` |
 | **Module** | `apps/admin/app/(internal)/page.tsx` |
 | **Bug record** | BUG-3220 (DEFERRED) — partial. That record covers the *absence* of `loading.tsx`/`error.tsx` across the whole admin app (88 pages), which is unchanged and still open. This entry covers only the specific mechanism this WP introduced a second instance of and then removed: the dashboard page fetched the commercial summary and the new Operations summary as two endpoints, and before this fix both were folded into one `Promise.all().catch()` — so a transient failure fetching *only* the new `/super-admin/dashboard-summary/operations` endpoint would have blanked the entire page, including the already-working commercial view. |
-| **Regression test** | None automated — `apps/admin/jest.config.js` runs no rendering tests, and `apps/admin/app/(internal)/page.tsx` is a Next Server Component with no unit-testable seam for its own fetch composition; verified by code review of `apps/admin/app/(internal)/page.tsx`. |
+| **Regression test** | `apps/admin/app/(internal)/page.tsx` — no automated test; `apps/admin/jest.config.js` runs no rendering tests, and this file is a Next Server Component with no unit-testable seam for its own fetch composition; verified by code review of this file. |
 | **Scenario** | `/super-admin/dashboard-summary/operations` times out or 500s while `/super-admin/dashboard-summary` succeeds → the page still renders the full nine-view dashboard; the Operations view's KPIs and charts each show "Not available" with the fetch's error message instead of the whole page showing "We could not load the dashboard right now." |
 | **Fails without the fix** | Not mechanically (no test harness), but reverting to a single shared `Promise.all` over all three requests reproduces the exact failure this entry exists to prevent, confirmed by reading the diff. |
 | **Fixed** | 2026-09-25, branch `agent/pah-wp07-dashboard` |
@@ -6651,8 +6651,50 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Module** | `apps/admin` |
 | **Bug record** | BUG-3587 |
 | **Root cause** | The monitoring overview rendered incident relative times ("2 minutes ago") directly in the shared render path with no hydration guard, so the server's snapshot and the client's first hydration pass — computed moments apart — necessarily disagreed. `ErrorProvider`'s global error boundary treated the resulting React hydration warning as page-fatal and covered the whole page with its blocking error dialog. |
-| **Regression test** | None automated — `apps/admin/jest.config.js` runs no rendering tests, the same constraint as REG-587; verified by direct browser reproduction against the throwaway stack and by code review of the hydration-safe rendering change in `apps/admin/app/_components/monitoring/monitoring-overview.tsx`. |
+| **Regression test** | `apps/admin/app/_components/monitoring/monitoring-overview.tsx` — no automated test; `apps/admin/jest.config.js` runs no rendering tests, the same constraint as REG-587; verified by direct browser reproduction against the throwaway stack and by code review of the hydration-safe rendering change in this file. |
 | **Scenario** | Loading the monitoring overview with at least one incident present never triggers the page-level error dialog; incident relative times still update to reflect elapsed time after the initial render. |
 | **Fails without the fix** | Not mechanically (no test harness) — confirmed by live browser reproduction before the fix and its absence after, per the same precedent as REG-587. |
 | **Fixed** | 2026-09-25, commit `910fcb50` |
+| **Active** | yes |
+
+### REG-627 — A drawn signature inside a signature paragraph vanished from the signed PDF and DOCX
+
+| | |
+|---|---|
+| **Bug class** | `renderer-flattens-inline-content` |
+| **Module** | `services/api/src/modules/contracts` |
+| **Bug record** | BUG-3597 |
+| **Root cause** | The document structure extractor turned every paragraph into one text block, discarding element children. The evidence renderer places a drawn or uploaded signature image inline where the signature name token was — inside a paragraph in every system template — so the image was dropped from both the PDF and the DOCX. The earlier image test placed its image at the top level and never exercised the paragraph case. |
+| **Regression test** | `services/api/src/modules/contracts/contracts.domain.spec.ts` — "keeps a signature image that sits inside a paragraph, with the text on either side": asserts the text-image-text block order, an image object in the PDF and a media entry in the DOCX. |
+| **Scenario** | Signing an agreement with a drawn signature produces a signed copy whose signature line shows the drawn mark between the party label and the signer's name and time. |
+| **Fails without the fix** | Yes — run against the pre-fix service, the block order is text-only and the test fails. |
+| **Fixed** | 2026-09-25, branch `agent/partner-agreements-admin-hardening` (TASK-0032) |
+| **Active** | yes |
+
+### REG-628 — Generating a document for a signed agreement rendered from draft values
+
+| | |
+|---|---|
+| **Bug class** | `second-render-path-diverges` |
+| **Module** | `services/api/src/modules/contracts` |
+| **Bug record** | BUG-3598 |
+| **Root cause** | Only the completion hook asked the document generator to render from signature evidence. The admin "Generate document" action always took the draft-preview path, so a copy of a signed version printed typed names, blanked drawn ones and omitted images and the signature appendix. |
+| **Regression test** | `services/api/src/modules/contracts/contracts.agreement-rendering.spec.ts` — "an operator-generated copy of a signed version also renders from the evidence": asserts signer names and signing times from evidence, the appendix, no "Pending", and that the copy is stored as an ordinary generated PDF rather than the immutable signed copy. |
+| **Scenario** | Generating a document from admin for an executed agreement downloads a copy matching the stored signed copy. |
+| **Fails without the fix** | Yes — against the pre-fix service the generated copy has no evidence and the test fails. |
+| **Fixed** | 2026-09-25, branch `agent/partner-agreements-admin-hardening` (TASK-0032) |
+| **Active** | yes |
+
+### REG-629 — An unsupported agreement document format returned a 500
+
+| | |
+|---|---|
+| **Bug class** | `client-input-raised-as-system-fault` |
+| **Module** | `services/api/src/modules/contracts` |
+| **Bug record** | BUG-3599 |
+| **Root cause** | The generate endpoint rejected an unknown format path segment with a plain error, which the exception filter reports as an unexpected system fault. |
+| **Regression test** | `services/api/src/modules/contracts/contracts.controller.generate.spec.ts` — an unsupported format is refused as a bad request and nothing is generated. |
+| **Scenario** | Requesting an agreement document in an unsupported format returns 400 with the invalid-format code. |
+| **Fails without the fix** | Yes — the plain error is not a bad-request exception. |
+| **Fixed** | 2026-09-25, branch `agent/partner-agreements-admin-hardening` (TASK-0032) |
 | **Active** | yes |

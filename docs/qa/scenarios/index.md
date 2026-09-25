@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 428** · automated: 352 · manual: 27 · blocked by infrastructure: 0
+**Scenarios: 429** · automated: 353 · manual: 27 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -143,6 +143,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-CONTRACT-009](../../../docs/qa/scenarios/QA-CONTRACT-009-a-partner-agreement-resolves-partner-placeholders-from-its-l.md) | A partner agreement resolves partner.* placeholders from its linked partner | legal | API | MEDIUM | AUTOMATED | `services/api/src/modules/contracts/contracts.partner-source.spec.ts` | BUG-3584 | REG-613 |
 | [QA-CONTRACT-010](../../../docs/qa/scenarios/QA-CONTRACT-010-error-codes-this-task-introduced-reach-clients-as-their-own-.md) | Error codes this task introduced reach clients as their own code, not a generic fallback | legal | UNIT | MEDIUM | AUTOMATED | `services/api/src/common/errors/task-0032-error-codes.spec.ts` | BUG-3585 | REG-624 |
 | [QA-CONTRACT-011](../../../docs/qa/scenarios/QA-CONTRACT-011-contracts-module-mutations-and-public-signing-events-write-a.md) | Contracts module mutations and public signing events write a platform audit row | legal | API | MEDIUM | AUTOMATED | `services/api/src/modules/contracts/contracts.agreement-guards.spec.ts` | BUG-3231 | REG-570, REG-571 |
+| [QA-CONTRACT-012](../../../docs/qa/scenarios/QA-CONTRACT-012-an-executed-agreement-s-signed-and-regenerated-copies-show-e.md) | An executed agreement's signed and regenerated copies show every signature from the evidence | legal | API | HIGH | AUTOMATED | `services/api/src/modules/contracts/contracts.domain.spec.ts` | BUG-3597, BUG-3598, BUG-3599 | REG-627, REG-628, REG-629 |
 | [QA-DEPLOY-001](../../../docs/qa/scenarios/QA-DEPLOY-001-deployment-smoke-checks-answer-against-the-deployed-environm.md) | Deployment smoke checks answer against the deployed environment | deployment-release | DEPLOYMENT_SMOKE | HIGH | AUTOMATED | `scripts/smoke-deployment.mjs` | — | — |
 | [QA-DEPLOY-002](../../../docs/qa/scenarios/QA-DEPLOY-002-no-url-is-hardcoded-where-configuration-is-required.md) | No URL is hardcoded where configuration is required | deployment-release | UNIT | HIGH | AUTOMATED | `scripts/check-no-hardcoded-urls.mjs` | BUG-0026 | REG-016 |
 | [QA-DEPLOY-003](../../../docs/qa/scenarios/QA-DEPLOY-003-the-running-api-exposes-the-commit-it-was-built-from.md) | The running API exposes the commit it was built from | deployment-release | UNIT | MEDIUM | AUTOMATED | `services/api/src/config/deployed-commit.spec.ts` | — | — |

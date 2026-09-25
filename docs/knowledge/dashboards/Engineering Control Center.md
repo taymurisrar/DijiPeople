@@ -14,8 +14,8 @@
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
-| Open CRITICAL | **4** |
-| Open HIGH | 96 |
+| Open CRITICAL | **6** |
+| Open HIGH | 100 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 9 |
 | QA coverage gaps | 161 |
@@ -30,12 +30,12 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 213 |
-| No next action | 213 |
-| Aging — 7d / 30d / 90d | 197 / 15 / 0 |
+| No acceptance criteria | 228 |
+| No next action | 228 |
+| Aging — 7d / 30d / 90d | 199 / 15 / 0 |
 | Architecture and technical debt | 7 |
-| Security gaps | 35 |
-| Database gaps | 21 |
+| Security gaps | 37 |
+| Database gaps | 22 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -59,7 +59,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 | [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 16/16 | — | — | — |
 | [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 11/11 | — | — | — |
 | [[TASK-0028-enterprise-reports-and-analytics-platform|TASK-0028]] | Enterprise Reports and Analytics platform | FEATURE | LARGE | 5/15 | WP-08 | — | — |
-| [[TASK-0032-partner-onboarding-agreements-admin-rbac-monitoring-dashboar|TASK-0032]] | Partner onboarding, agreements, admin RBAC, monitoring, dashboard and MFA hardening | FEATURE | PROGRAM | 0/10 | WP-00 | WP-01, WP-02, WP-04 | — |
+| [[TASK-0032-partner-onboarding-agreements-admin-rbac-monitoring-dashboar|TASK-0032]] | Partner onboarding, agreements, admin RBAC, monitoring, dashboard and MFA hardening | FEATURE | PROGRAM | 12/13 | WP-09 | — | — |
 
 ## Branch model
 
@@ -107,6 +107,8 @@ what they own, and what the backlog and QA systems currently say.
 | [[BUG-3152-post-users-userid-roles-lets-a-delegated-role-assignment-adm|BUG-3152]] | POST /users/:userId/roles lets a delegated role-assignment admin self-grant GLOBAL_ADMIN | AUTHORIZATION | CRITICAL | FIXED | api:users/users.service.ts, api:users/users.controller.ts | DONE |
 | [[BUG-3154-employee-bank-accounts-ibans-cnics-and-tax-identifiers-are-s|BUG-3154]] | Employee bank accounts, IBANs, CNICs and tax identifiers are stored in plaintext beside an unused AES-256-GCM service | DATA_INTEGRITY | CRITICAL | OPEN | api:employees, api:compensation | PLAN_REQUIRED |
 | [[BUG-3155-fieldsecurityrule-masking-is-enforced-only-in-the-browser-th|BUG-3155]] | FieldSecurityRule masking is enforced only in the browser; the API sends the unmasked value | AUTHORIZATION | CRITICAL | OPEN | api:employees | FIX_NOW |
+| [[BUG-3580-agreement-preview-documents-print-unresolved-placeholders|BUG-3580]] | Agreement preview documents print unresolved placeholders | BUG | CRITICAL | FIXED | api:contracts | DONE |
+| [[BUG-3581-signature-date-placeholders-block-sending-and-freeze-a-fabri|BUG-3581]] | Signature-date placeholders block sending and freeze a fabricated date into signed agreements | BUG | CRITICAL | FIXED | api:contracts | DONE |
 
 ## Owner Decisions Pending
 
@@ -296,9 +298,9 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 213 |
+| Open total | 228 |
 | Blocked | 2 |
-| Deferred | 105 |
+| Deferred | 106 |
 | Awaiting a product decision | 9 |
 | Awaiting Architect triage | 0 |
 

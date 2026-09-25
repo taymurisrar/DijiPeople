@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**685 records** — 483 bugs under [`docs/bugs/`](../bugs/), 202 non-bug items under [`items/`](items/).
+**688 records** — 486 bugs under [`docs/bugs/`](../bugs/), 202 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 225 |
+| Open (active work) | 228 |
 | Blocked | 2 |
 | Deferred | 106 |
 | Awaiting a product decision | 9 |
 | Completed / closed | 343 |
 | **Open CRITICAL** | **6** |
-| **Open HIGH** | **99** |
+| **Open HIGH** | **100** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,16 +27,16 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 6 |
-| HIGH | 99 |
-| MEDIUM | 100 |
-| LOW | 20 |
+| HIGH | 100 |
+| MEDIUM | 101 |
+| LOW | 21 |
 
 ## Open by type
 
 | Type | Count |
 |---|---|
 | AUTHORIZATION | 13 |
-| BUG | 66 |
+| BUG | 69 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 21 |
 | DOCUMENTATION | 1 |
@@ -60,7 +60,7 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 2 |
 | DEFERRED | 106 |
 | PRODUCT_DECISION | 9 |
-| FIXED | 159 |
+| FIXED | 162 |
 | VERIFIED | 218 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
@@ -305,6 +305,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3564](../../docs/bugs/BUG-3564-the-platform-audit-trail-is-write-only-no-screen-or-endpoint.md) | The platform audit trail is write-only: no screen or endpoint can read PlatformAuditLog | SECURITY | HIGH | P1 | FIXED | api:audit, apps/admin | DONE |
 | [BUG-3565](../../docs/bugs/BUG-3565-opening-a-contract-template-or-signature-request-from-its-ad.md) | Opening a contract template or signature request from its admin list returns 404 | BUG | HIGH | P1 | FIXED | api:platform-runtime | DONE |
 | [BUG-3578](../../docs/bugs/BUG-3578-deleting-a-partner-or-lead-with-restricted-history-crashes-w.md) | Deleting a partner or lead with restricted history crashes with a 500 | DATA_INTEGRITY | HIGH | P1 | FIXED | api:partners, api:leads | DONE |
+| [BUG-3597](../../docs/bugs/BUG-3597-a-drawn-or-uploaded-signature-inside-a-signature-paragraph-i.md) | A drawn or uploaded signature inside a signature paragraph is dropped from the signed PDF and DOCX | BUG | HIGH | P1 | FIXED | api:contracts | DONE |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -541,6 +542,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3584](../../docs/bugs/BUG-3584-a-partner-agreement-never-fills-partner-placeholders-from-it.md) | A partner agreement never fills partner placeholders from its linked partner | BUG | MEDIUM | P2 | FIXED | api:contracts | DONE |
 | [BUG-3585](../../docs/bugs/BUG-3585-error-codes-added-for-mfa-platform-authorization-and-agreeme.md) | Error codes added for MFA, platform authorization and agreements reach clients as generic codes | BUG | MEDIUM | P2 | FIXED | services/api/src/common/errors, api:auth, api:contracts | DONE |
 | [BUG-3587](../../docs/bugs/BUG-3587-the-monitoring-overview-raises-a-hydration-error-that-covers.md) | The monitoring overview raises a hydration error that covers the page with the error dialog | UX | MEDIUM | P2 | FIXED | apps/admin | DONE |
+| [BUG-3598](../../docs/bugs/BUG-3598-generate-document-on-an-executed-agreement-renders-from-draf.md) | Generate document on an executed agreement renders from draft values, not the signature evidence | BUG | MEDIUM | P2 | FIXED | api:contracts, apps/admin | DONE |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -693,6 +695,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3583](../../docs/bugs/BUG-3583-counterparty-placeholders-are-grouped-under-customer.md) | Counterparty placeholders are grouped under Customer | UX | LOW | P3 | FIXED | api:contracts | DONE |
 | [BUG-3586](../../docs/bugs/BUG-3586-the-monitoring-health-headline-reads-unknown-when-no-email-h.md) | The monitoring health headline reads Unknown when no email has been sent | BUG | LOW | P3 | FIXED | api:platform-monitoring | DONE |
 | [BUG-3588](../../docs/bugs/BUG-3588-a-signed-in-operator-without-the-users-permission-sees-a-log.md) | A signed-in operator without the users permission sees a login-style Access denied page | UX | LOW | P3 | DEFERRED | apps/admin | DEFER |
+| [BUG-3599](../../docs/bugs/BUG-3599-generating-an-agreement-in-an-unsupported-format-returns-a-5.md) | Generating an agreement in an unsupported format returns a 500 instead of a 400 | BUG | LOW | P3 | FIXED | api:contracts | DONE |
 | [ITEM-0007](../../docs/backlog/items/ITEM-0007-should-duplicate-website-leads-be-deduplicated.md) | Product decision — should duplicate website leads be deduplicated? | PRODUCT_DECISION | LOW | P3 | DONE | api:leads, apps/landing | DONE |
 | [ITEM-0008](../../docs/backlog/items/ITEM-0008-customeraccount-has-no-origin-channel.md) | Product decision — CustomerAccount carries no origin channel | PRODUCT_DECISION | LOW | P3 | DONE | services/api/prisma, api:super-admin | DONE |
 | [ITEM-0011](../../docs/backlog/items/ITEM-0011-framework-validation-should-catch-absence-claims.md) | Framework validation should catch false absence claims in context documents | TECH_DEBT | LOW | P3 | DONE | .agent/context, scripts | DONE |

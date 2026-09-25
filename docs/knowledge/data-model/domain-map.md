@@ -8,11 +8,11 @@ aliases: [Domain Map]
 
 Attribution is by counted Prisma call sites, not by name. A model with no call site anywhere is listed under **Unattributed** — that is a finding, not a gap in the tooling. See [[known-gaps]].
 
-**325 models · 306 enums · 261 tenant-scoped · 13 with an entity note**
+**327 models · 306 enums · 262 tenant-scoped · 13 with an entity note**
 
 Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 
-## Identity — 13 models
+## Identity — 16 models
 
 | Model | Tenant | Owning module | Note |
 |---|---|---|---|
@@ -20,6 +20,8 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `PasswordHistory` | no | `auth` | — |
 | `Permission` | yes | `permissions` | — |
 | `PlatformRefreshToken` | no | `auth` | — |
+| `PlatformUser` | no | `auth` | — |
+| `PlatformUserMfaRecoveryCode` | no | `auth` | — |
 | `RefreshToken` | yes | `auth` | — |
 | `Role` | yes | `roles` | [[entity-role|documented]] |
 | `RoleMiscPermission` | yes | `roles` | — |
@@ -27,6 +29,7 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `RolePrivilege` | yes | `permissions` | — |
 | `User` | yes | `users` | [[entity-user|documented]] |
 | `UserInvitation` | yes | `auth` | — |
+| `UserMfaRecoveryCode` | yes | `auth` | — |
 | `UserPermission` | yes | `users` | — |
 | `UserRole` | yes | `users` | — |
 
@@ -330,7 +333,7 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `NotificationRule` | yes | `notifications` | — |
 | `NotificationTemplate` | yes | **none** | — |
 
-## Platform ops — 37 models
+## Platform ops — 36 models
 
 | Model | Tenant | Owning module | Note |
 |---|---|---|---|
@@ -356,7 +359,6 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `PlatformModulePreference` | no | `platform-users` | — |
 | `PlatformOutboundEmail` | no | `platform-communications` | — |
 | `PlatformSetting` | no | `platform-communications` | — |
-| `PlatformUser` | no | `platform-users` | — |
 | `ReportDefinition` | yes | `reporting` | — |
 | `ReportFavorite` | yes | `reporting` | — |
 | `ReportRecentView` | yes | `reporting` | — |
