@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 668,
+    "total_records": 673,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -20977,6 +20977,160 @@
       "verification_result": "NOT_VERIFIED"
     },
     {
+      "record_id": "BUG-3564",
+      "type": "SECURITY",
+      "title": "The platform audit trail is write-only: no screen or endpoint can read PlatformAuditLog",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3564-the-platform-audit-trail-is-write-only-no-screen-or-endpoint.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "10d5d148",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/audit",
+        "apps/admin"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/audit",
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3564-the-platform-audit-trail-is-write-only-no-screen-or-endpoint.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3565",
+      "type": "BUG",
+      "title": "Opening a contract template or signature request from its admin list returns 404",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3565-opening-a-contract-template-or-signature-request-from-its-ad.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "10d5d148",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/platform-runtime"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/platform-runtime"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3565-opening-a-contract-template-or-signature-request-from-its-ad.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3566",
+      "type": "BUG",
+      "title": "A partial partner edit is rejected because the update DTO requires every create field",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3566-a-partial-partner-edit-is-rejected-because-the-update-dto-re.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "10d5d148",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/partners"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/partners"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3566-a-partial-partner-edit-is-rejected-because-the-update-dto-re.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3567",
+      "type": "SECURITY",
+      "title": "Platform administrator sign-ins and failed sign-ins are not audited",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3567-platform-administrator-sign-ins-and-failed-sign-ins-are-not-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "10d5d148",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/auth"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/auth"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3567-platform-administrator-sign-ins-and-failed-sign-ins-are-not-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
       "record_id": "ITEM-0001",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md",
@@ -29532,6 +29686,46 @@
           "services/api/src/modules/leads"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0200-agreements-have-no-end-to-end-test-coverage-and-partners-lea.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0201",
+      "type": "TECH_DEBT",
+      "title": "Platform runtime edits ignore the record version, so concurrent edits silently overwrite each other",
+      "severity": "LOW",
+      "priority": "P2",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0201-platform-runtime-edits-ignore-the-record-version-so-concurre.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/platform-runtime",
+        "apps/admin"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/platform-runtime",
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0201-platform-runtime-edits-ignore-the-record-version-so-concurre.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

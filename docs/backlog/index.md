@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**668 records** — 468 bugs under [`docs/bugs/`](../bugs/), 200 non-bug items under [`items/`](items/).
+**673 records** — 472 bugs under [`docs/bugs/`](../bugs/), 201 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 213 |
+| Open (active work) | 217 |
 | Blocked | 2 |
-| Deferred | 105 |
+| Deferred | 106 |
 | Awaiting a product decision | 9 |
 | Completed / closed | 339 |
 | **Open CRITICAL** | **4** |
-| **Open HIGH** | **96** |
+| **Open HIGH** | **98** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,8 +27,8 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 4 |
-| HIGH | 96 |
-| MEDIUM | 95 |
+| HIGH | 98 |
+| MEDIUM | 97 |
 | LOW | 18 |
 
 ## Open by type
@@ -36,7 +36,7 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | AUTHORIZATION | 13 |
-| BUG | 58 |
+| BUG | 60 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 20 |
 | DOCUMENTATION | 1 |
@@ -45,7 +45,7 @@ see [`README.md`](README.md) for why.
 | INTEGRATION | 5 |
 | PERFORMANCE | 15 |
 | PRODUCT_DECISION | 1 |
-| SECURITY | 20 |
+| SECURITY | 22 |
 | STATE_MACHINE | 3 |
 | TECH_DEBT | 7 |
 | TENANT_ISOLATION | 2 |
@@ -56,9 +56,9 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 56 |
+| OPEN | 60 |
 | BLOCKED | 2 |
-| DEFERRED | 105 |
+| DEFERRED | 106 |
 | PRODUCT_DECISION | 9 |
 | FIXED | 131 |
 | VERIFIED | 218 |
@@ -300,6 +300,8 @@ see [`README.md`](README.md) for why.
 | [BUG-3500](../../docs/bugs/BUG-3500-every-seeded-email-template-is-active-with-placeholder-body-.md) | Every seeded email template is active with placeholder body text | BUG | HIGH | P1 | FIXED | notifications, apps/web | FIX_NOW |
 | [BUG-3544](../../docs/bugs/BUG-3544-a-platform-admin-can-open-and-edit-a-tenant-but-every-save-i.md) | A Platform Admin can open and edit a tenant but every save is refused as not System Admin | AUTHORIZATION | HIGH | P1 | OPEN | api:super-admin, api:platform-runtime | FIX_NOW |
 | [BUG-3545](../../docs/bugs/BUG-3545-the-admin-session-heartbeat-is-refused-for-most-platform-rol.md) | The admin session heartbeat is refused for most platform roles and raises a blocking permission dialog | AUTHORIZATION | HIGH | P1 | OPEN | api:auth, apps/admin | FIX_NOW |
+| [BUG-3564](../../docs/bugs/BUG-3564-the-platform-audit-trail-is-write-only-no-screen-or-endpoint.md) | The platform audit trail is write-only: no screen or endpoint can read PlatformAuditLog | SECURITY | HIGH | P1 | OPEN | api:audit, apps/admin | FIX_NOW |
+| [BUG-3565](../../docs/bugs/BUG-3565-opening-a-contract-template-or-signature-request-from-its-ad.md) | Opening a contract template or signature request from its admin list returns 404 | BUG | HIGH | P1 | OPEN | api:platform-runtime | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -529,6 +531,8 @@ see [`README.md`](README.md) for why.
 | [BUG-3552](../../docs/bugs/BUG-3552-the-agreement-template-editor-offers-every-placeholder-group.md) | The agreement template editor offers every placeholder group regardless of agreement type | BUG | MEDIUM | P2 | OPEN | api:contracts, apps/admin | FIX_NOW |
 | [BUG-3553](../../docs/bugs/BUG-3553-an-agreement-can-be-created-for-an-inactive-partner-or-an-ar.md) | An agreement can be created for an inactive partner or an archived lead or customer, and duplicate submissions create duplicate agreements | DATA_INTEGRITY | MEDIUM | P2 | OPEN | api:contracts | FIX_NOW |
 | [BUG-3555](../../docs/bugs/BUG-3555-error-log-redaction-covers-auth-secrets-only-stack-traces-an.md) | Error log redaction covers auth secrets only: stack traces and personal or financial values are stored unredacted | SECURITY | MEDIUM | P2 | OPEN | api:error-logs | FIX_NOW |
+| [BUG-3566](../../docs/bugs/BUG-3566-a-partial-partner-edit-is-rejected-because-the-update-dto-re.md) | A partial partner edit is rejected because the update DTO requires every create field | BUG | MEDIUM | P2 | OPEN | api:partners | FIX_NOW |
+| [BUG-3567](../../docs/bugs/BUG-3567-platform-administrator-sign-ins-and-failed-sign-ins-are-not-.md) | Platform administrator sign-ins and failed sign-ins are not audited | SECURITY | MEDIUM | P2 | OPEN | api:auth | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -641,6 +645,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0089](../../docs/backlog/items/ITEM-0089-the-contact-form-is-the-only-public-lead-creating-form-with-.md) | The contact form is the only public lead-creating form with no honeypot | SECURITY | LOW | P2 | DEFERRED | apps/landing | DEFER |
 | [ITEM-0098](../../docs/backlog/items/ITEM-0098-753-of-846-shared-frontend-exports-carry-no-doc-comment.md) | 753 of 846 shared frontend exports carry no doc-comment | DOCUMENTATION | LOW | P2 | DEFERRED | admin, web | DEFER |
 | [ITEM-0108](../../docs/backlog/items/ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle.md) | Decide whether the roughly one-hour session lifetime is idle or absolute | PRODUCT_DECISION | LOW | P2 | READY | api:auth | PLAN_REQUIRED |
+| [ITEM-0201](../../docs/backlog/items/ITEM-0201-platform-runtime-edits-ignore-the-record-version-so-concurre.md) | Platform runtime edits ignore the record version, so concurrent edits silently overwrite each other | TECH_DEBT | LOW | P2 | DEFERRED | api:platform-runtime, apps/admin | DEFER |
 | [BUG-0018](../../docs/bugs/BUG-0018-bulk-lead-delete-is-unreachable-for-every-role.md) | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | P3 | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [BUG-0023](../../docs/bugs/BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist.md) | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | P3 | VERIFIED | .agent/context | DONE |
 | [BUG-0024](../../docs/bugs/BUG-0024-start-onboarding-api-and-proxy-have-no-caller.md) | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | P3 | VERIFIED | apps/admin, api:super-admin | DONE |
