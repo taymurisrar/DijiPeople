@@ -15772,7 +15772,9 @@
       "regressions": [
         "REG-536"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-AUTH-019"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -18113,7 +18115,9 @@
       "regressions": [
         "REG-587"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-PLATFORM-042"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -18384,7 +18388,9 @@
         "REG-579",
         "REG-582"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-PLATFORM-037"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -18542,7 +18548,9 @@
         "REG-570",
         "REG-571"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-CONTRACT-011"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -20538,7 +20546,9 @@
         "REG-526",
         "REG-529"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-AUTHZ-017"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -20580,7 +20590,9 @@
       "regressions": [
         "REG-527"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-AUTHZ-018"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -20621,7 +20633,9 @@
       "regressions": [
         "REG-590"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-PLATFORM-033"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -20662,7 +20676,9 @@
       "regressions": [
         "REG-528"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-PLATFORM-034"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -20703,7 +20719,9 @@
       "regressions": [
         "REG-535"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-AUTH-017"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -20746,7 +20764,9 @@
         "REG-550",
         "REG-551"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-PARTNER-008"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -20794,7 +20814,9 @@
         "REG-558",
         "REG-559"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-PARTNER-009"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -20837,7 +20859,9 @@
         "REG-555",
         "REG-556"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-PARTNER-010"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -20883,7 +20907,9 @@
         "REG-563",
         "REG-564"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-CONTRACT-002"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -20929,7 +20955,9 @@
         "REG-569",
         "REG-574"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-CONTRACT-003"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -20971,7 +20999,9 @@
         "REG-572",
         "REG-573"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-CONTRACT-004"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -21014,7 +21044,9 @@
         "REG-576",
         "REG-583"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-SECURITY-004"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -21062,7 +21094,9 @@
         "REG-608",
         "REG-609"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-PLATFORM-035"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -21103,7 +21137,9 @@
       "regressions": [
         "REG-600"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-PLATFORM-036"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -21143,7 +21179,9 @@
       "regressions": [
         "REG-601"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-PARTNER-011"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -21183,7 +21221,9 @@
       "regressions": [
         "REG-543"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-AUTH-018"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -21225,7 +21265,9 @@
         "REG-620",
         "REG-621"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-PARTNER-012"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -21267,7 +21309,9 @@
       "regressions": [
         "REG-622"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-LEAD-006"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -21308,7 +21352,9 @@
       "regressions": [
         "REG-610"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-CONTRACT-005"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -21348,7 +21394,9 @@
       "regressions": [
         "REG-611"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-CONTRACT-006"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -21387,9 +21435,12 @@
         "services/api/src/modules/contracts"
       ],
       "regressions": [
-        "REG-614"
+        "REG-614",
+        "REG-623"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-CONTRACT-007"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -21430,7 +21481,9 @@
       "regressions": [
         "REG-612"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-CONTRACT-008"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -21470,7 +21523,9 @@
       "regressions": [
         "REG-613"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-CONTRACT-009"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -21512,7 +21567,9 @@
       "regressions": [
         "REG-624"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-CONTRACT-010"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -21554,7 +21611,9 @@
       "regressions": [
         "REG-625"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-PLATFORM-038"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -21594,7 +21653,9 @@
       "regressions": [
         "REG-626"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-PLATFORM-039"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -30080,7 +30141,9 @@
         "REG-541",
         "REG-542"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-AUTH-020"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -30128,7 +30191,9 @@
         "REG-582",
         "REG-584"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-PLATFORM-040"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -30169,9 +30234,12 @@
         "services/api/src/modules/super-admin"
       ],
       "regressions": [
-        "REG-585"
+        "REG-585",
+        "REG-586"
       ],
-      "qa_scenarios": [],
+      "qa_scenarios": [
+        "QA-PLATFORM-041"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
