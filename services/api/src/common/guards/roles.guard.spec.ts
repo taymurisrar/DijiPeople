@@ -23,6 +23,10 @@ class Gated {
   }
 }
 
+// Read off the prototype without binding, exactly as Nest hands it to a guard.
+const method = (name: 'handler' | 'open') =>
+  (Gated.prototype as unknown as Record<string, () => unknown>)[name];
+
 describe('RolesGuard is tenant-only (ADR-0018)', () => {
   const guard = new RolesGuard(new Reflector());
   const contextFor = (user: AuthenticatedUser, handler: () => unknown) =>
@@ -51,9 +55,7 @@ describe('RolesGuard is tenant-only (ADR-0018)', () => {
     'refuses a %s platform subject on a role-gated route, aliases notwithstanding',
     (role) => {
       expect(() =>
-        guard.canActivate(
-          contextFor(platformUser(role), Gated.prototype.handler),
-        ),
+        guard.canActivate(contextFor(platformUser(role), method('handler'))),
       ).toThrow(ForbiddenException);
     },
   );
@@ -64,9 +66,9 @@ describe('RolesGuard is tenant-only (ADR-0018)', () => {
       tenantId: 'tenant-a',
       roleKeys: ['system-admin'],
     } as unknown as AuthenticatedUser;
-    expect(
-      guard.canActivate(contextFor(tenantUser, Gated.prototype.handler)),
-    ).toBe(true);
+    expect(guard.canActivate(contextFor(tenantUser, method('handler')))).toBe(
+      true,
+    );
   });
 
   it('still refuses a tenant user without one', () => {
@@ -76,7 +78,7 @@ describe('RolesGuard is tenant-only (ADR-0018)', () => {
       roleKeys: ['employee'],
     } as unknown as AuthenticatedUser;
     expect(() =>
-      guard.canActivate(contextFor(tenantUser, Gated.prototype.handler)),
+      guard.canActivate(contextFor(tenantUser, method('handler'))),
     ).toThrow(ForbiddenException);
   });
 
@@ -85,7 +87,7 @@ describe('RolesGuard is tenant-only (ADR-0018)', () => {
       guard.canActivate(
         contextFor(
           platformUser(PlatformUserRole.READ_ONLY_AUDITOR),
-          Gated.prototype.open,
+          method('open'),
         ),
       ),
     ).toBe(true);
