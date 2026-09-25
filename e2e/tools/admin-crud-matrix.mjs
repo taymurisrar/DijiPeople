@@ -106,6 +106,7 @@ const ROLE_CREDENTIALS = {
     password:
       env("ADMIN_CRUD_TENANT_ADMIN_PASSWORD") ??
       env("DEMO_USER_PASSWORD") ??
+      envFileValue("DEMO_USER_PASSWORD") ??
       "DemoUser@12345",
     app: "web",
     loginPath: "/auth/login",
@@ -306,6 +307,11 @@ function onboardingFixture(customerId, suffix = "") {
   return {
     customerId,
     plannedTenantSlug: `${RUN_TAG}-onb${suffix}`.toLowerCase(),
+    // primaryOwner* are required (`!:`) on CreateCustomerOnboardingRecordDto,
+    // separately from the linked customer's own contact fields.
+    primaryOwnerFirstName: "Harness",
+    primaryOwnerLastName: `Owner${suffix}`,
+    primaryOwnerWorkEmail: `${RUN_TAG}owner${suffix}@example.test`,
   };
 }
 
