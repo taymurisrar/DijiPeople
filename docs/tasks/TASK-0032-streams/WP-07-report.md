@@ -11,10 +11,21 @@ is a follow-up commit on the same branch.
 
 **Backend** — `services/api/src/modules/super-admin/operations-dashboard.service.ts`
 (new `OperationsDashboardService`, registered in `super-admin.module.ts`,
-exposed as `GET /super-admin/dashboard/operations` alongside the existing
-`GET /super-admin/dashboard-summary` in `super-admin.controller.ts`, same
-controller-level guards — `JwtAuthGuard, RolesGuard, PlatformPermissionsGuard`
-+ `@RequireRoles(SYSTEM_ADMIN, SYSTEM_CUSTOMIZER)` — no new permission key).
+exposed as `GET /super-admin/dashboard-summary/operations` alongside the
+existing `GET /super-admin/dashboard-summary` in `super-admin.controller.ts`,
+same controller-level guards — `JwtAuthGuard, RolesGuard,
+PlatformPermissionsGuard` + `@RequireRoles(SYSTEM_ADMIN, SYSTEM_CUSTOMIZER)`.
+Nested under `dashboard-summary/` rather than `dashboard/` deliberately: the
+platform's second permission system (`resolvePlatformPermission` in
+`modules/platform-auth/platform-permissions.ts`, a WP-02-owned,
+single-writer file per COMMON-RULES) maps every super-admin route to a
+platform permission by `path.includes(...)`, refuses to serve a route it
+cannot map (BUG-0071), and had no entry for a `dashboard/` prefix. Nesting
+under the already-mapped `dashboard-summary` path resolves this route to the
+same `dashboard.read` its sibling carries with **zero changes** to that
+locked file — confirmed by re-running
+`platform-auth/platform-permissions.spec.ts`'s full route-coverage
+assertion, which failed with the `dashboard/` path and passes with this one).
 Five sections, each computed in parallel and each isolated in its own
 try/catch (`section()` helper) so one failing query never blanks the other
 four:
@@ -98,7 +109,7 @@ Commercial metrics were **not** duplicated onto this view — per the brief,
   of `isSystemDefault`. No existing view sets it, so every other view/module
   resolves its default exactly as before.
 - `apps/admin/app/(internal)/page.tsx` now fetches
-  `/super-admin/dashboard/operations` with its own independent
+  `/super-admin/dashboard-summary/operations` with its own independent
   `.then()/.catch()`, separate from the existing `Promise.all` over
   `dashboard-summary` + module preferences. A failure fetching the new
   endpoint renders the dashboard with `operations={null}` and an inline
@@ -209,7 +220,7 @@ Commercial metrics were **not** duplicated onto this view — per the brief,
 
 ## TEST_HOOKS
 
-- `GET /super-admin/dashboard/operations` — no extra params beyond the
+- `GET /super-admin/dashboard-summary/operations` — no extra params beyond the
   existing `SYSTEM_ADMIN`/`SYSTEM_CUSTOMIZER` platform roles; returns 200
   with per-section `available`/`reason` even when a section fails, never a
   5xx for a partial failure.
@@ -257,9 +268,21 @@ weakened the register rather than strengthened it.
   clean, no remaining findings.
 - `npm run test:runtime-schema` — 3/3 passed (unaffected; `DASHBOARD_VIEWS`
   is not consumed by the runtime-schema generator — confirmed by grep).
-- `npm --workspace api run test` (full suite) — see the final message for
-  the exact pass/fail count and whether any failure is pre-existing; it was
-  run separately from this report.
+- `npm --workspace api run test` (full suite) — 349 suites / 6939 tests.
+  First run (before the `dashboard-summary/operations` route rename): 347
+  suites / 6937 tests passed, 2 failed —
+  `modules/platform-auth/platform-permissions.spec.ts` (this WP's new route
+  was unmapped in the route-coverage assertion — **mine**, fixed by the
+  rename described in CHANGED_BEHAVIOR rather than by editing the
+  WP-02-owned permission file) and
+  `modules/tenant-control-plane/tenant-erasure.constants.spec.ts` (**not
+  mine, pre-existing on `10d5d148`** — WP-01 added the tenant-owned
+  `UserMfaRecoveryCode` model but never added it to the tenant-erasure
+  coverage list; confirmed by `git log` showing WP-01's commit never touched
+  `tenant-erasure.constants.ts`, and no commit since has either). Re-run
+  after the rename: `platform-permissions.spec.ts` now passes;
+  `tenant-erasure.constants.spec.ts` remains red, as expected for a
+  pre-existing gap this WP did not introduce and is not scoped to fix.
 - No `next build`/`next dev` run, per COMMON-RULES (`node_modules` are
   junctions; Turbopack refuses them).
 
@@ -288,3 +311,9 @@ weakened the register rather than strengthened it.
   write. Out of scope to add here (touches `auth`/`platform-auth`, not
   `super-admin`); worth a backlog item if the platform team wants this
   monitored.
+- **Pre-existing, not mine:** `modules/tenant-control-plane/tenant-erasure.constants.spec.ts`
+  fails on the full suite (`UserMfaRecoveryCode` missing from the tenant
+  erasure model coverage list) — introduced by WP-01's `10d5d148`, which
+  added the tenant-owned model without updating this list. `schema.prisma`
+  and this constants file are outside WP-07's scope; flagging for the
+  Architect/WP-01 to close.
