@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import {
   PlatformDashboard,
+  type OperationsDashboardSummary,
   type PlatformDashboardSummary,
 } from "@/app/_components/dashboard/platform-dashboard";
 import { requireSystemAdminUser } from "@/lib/auth";
@@ -38,10 +39,30 @@ export default async function AdminDashboardPage({
       preference,
     }))
     .catch((error: unknown) => ({ ok: false as const, error }));
+  /*
+   * Fetched and failed independently of the block above.
+   *
+   * The Operations view is one screen among nine and its data comes from a
+   * separate endpoint (`OperationsDashboardService`, itself section-isolated
+   * on the API side). A network hiccup fetching *it* used to have no way to
+   * avoid blanking the whole page, because the only failure path here was one
+   * `Promise.all().catch()` shared with the commercial summary above — this
+   * keeps the two failures from being able to take each other down.
+   */
+  const operationsResult = await apiRequestJson<OperationsDashboardSummary>(
+    "/super-admin/dashboard/operations",
+  )
+    .then((data) => ({ ok: true as const, data }))
+    .catch((error: unknown) => ({
+      ok: false as const,
+      reason: error instanceof Error ? error.message : "Request failed.",
+    }));
   if (result.ok) {
     return (
       <PlatformDashboard
         summary={result.summary}
+        operations={operationsResult.ok ? operationsResult.data : null}
+        operationsError={operationsResult.ok ? null : operationsResult.reason}
         defaultViewKey={result.preference.defaultViewKey}
         roleKeys={[user.role, ...(user.roleKeys ?? [])]}
       />

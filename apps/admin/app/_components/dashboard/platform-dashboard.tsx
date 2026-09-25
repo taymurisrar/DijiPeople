@@ -15,6 +15,7 @@ import {
   Handshake,
   Headphones,
   RefreshCw,
+  Server,
   ShieldCheck,
   TrendingUp,
   UserRoundSearch,
@@ -23,6 +24,14 @@ import {
 import { RuntimeViewSelector } from "@/app/_components/runtime/runtime-view-selector";
 import { DASHBOARD_VIEWS } from "@/lib/runtime/platform-module-registry";
 import { formatDate } from "@/lib/formatters";
+import {
+  applicationsAwaitingReviewCount,
+  metricValueOrUnavailable,
+  partnerFunnelToRecord,
+  relabelAgreementGroups,
+  totalJobFailures,
+  type OperationsSectionLike,
+} from "@/lib/dashboard/operations-dashboard-metrics";
 
 type TrendPoint = {
   key: string;
@@ -113,6 +122,75 @@ export type PlatformDashboardSummary = {
   refreshedAt: string;
 };
 
+/**
+ * The Operations view's own data source (TASK-0032 WP-07 / ITEM-0199),
+ * `GET /super-admin/dashboard/operations`. Hand-mirrored from
+ * `OperationsDashboardService` rather than imported — this app and the API
+ * are separate TypeScript projects, same as `PlatformDashboardSummary` above.
+ *
+ * Every section resolves independently on the API side, so each one here is
+ * a discriminated union rather than a plain object: a network hiccup
+ * computing partner metrics must not stop tenant or error metrics from
+ * rendering, and a widget fed an unavailable section shows that explicitly
+ * rather than a fabricated zero.
+ */
+export type OperationsSection<T> =
+  | { available: true; data: T }
+  | { available: false; reason: string };
+
+export type OperationsDashboardSummary = {
+  refreshedAt: string;
+  platform: OperationsSection<{
+    tenantsTotal: number;
+    tenantsActive: number;
+    tenantsTrial: number;
+    tenantsSuspended: number;
+    tenantsStuckProvisioning: number;
+    tenantsNewLast30Days: number;
+    growthTrend: TrendPoint[];
+  }>;
+  users: OperationsSection<{
+    activeUsers: number;
+    newUsersLast30Days: number;
+    pendingInvitations: number;
+    loginsLast24h: number;
+    failedLoginsLast24h: number;
+    loginTrend: TrendPoint[];
+    mfa: {
+      tenant: { enabledActive: number; totalActive: number; ratePercent: number };
+      platform: { enabledActive: number; totalActive: number; ratePercent: number };
+    };
+  }>;
+  partners: OperationsSection<{
+    total: number;
+    active: number;
+    byType: Record<string, number>;
+    byModel: Record<string, number>;
+    funnel: Array<{ key: string; label: string; count: number }>;
+    recentlyActivated: Array<{ id: string; displayName: string; updatedAt: string }>;
+  }>;
+  agreements: OperationsSection<{
+    byStatusGroup: Record<string, number>;
+    pendingSignature: number;
+    generationFailures: OperationsSection<number>;
+  }>;
+  operational: OperationsSection<{
+    unresolvedErrors: number;
+    errorsLast24h: number;
+    errorTrend: TrendPoint[];
+    jobFailures: { outboxFailed: number; platformEventsFailedLast24h: number };
+    recentIncidents: Array<{
+      id: string;
+      errorCode: string;
+      severity: string;
+      module: string | null;
+      occurrenceCount: number;
+      lastSeenAt: string;
+      supportStatus: string;
+    }>;
+  }>;
+};
+
 type Metric = {
   label: string;
   value: number | string;
@@ -127,8 +205,10 @@ type DashboardTrend = {
   points: TrendPoint[];
   series: Array<{ key: string; label: string; color: string }>;
   formatter?: (value: number) => string;
+  cadenceLabel?: string;
 };
 type DashboardAlert = { tone: string; label: string; href: string };
+type UnavailableNote = { id: string; title: string; reason: string };
 type DashboardContent = {
   title: string;
   subtitle: string;
@@ -136,6 +216,7 @@ type DashboardContent = {
   trend?: DashboardTrend;
   breakdownTitle: string;
   breakdown: Record<string, number>;
+  breakdownOrdered?: boolean;
   secondaryTitle: string;
   secondary: Record<string, number>;
   queueTitle: string;
@@ -144,9 +225,36 @@ type DashboardContent = {
   queueEmpty: string;
   actions: Array<[string, string]>;
   alerts: DashboardAlert[];
+  /*
+   * Additive, optional, and read by nobody but the "operations" view today.
+   * The other eight views produce none of these and render exactly as before
+   * — this is the same generic widget system every view already goes
+   * through (`buildDashboardWidgets`), extended to carry more than one trend
+   * or distribution rather than replaced with a bespoke layout for one view.
+   */
+  extraTrends?: Array<{ id: string; trend: DashboardTrend }>;
+  extraBreakdowns?: Array<{
+    id: string;
+    title: string;
+    values: Record<string, number>;
+    ordered?: boolean;
+  }>;
+  extraQueues?: Array<{
+    id: string;
+    title: string;
+    description: string;
+    items: QueueItem[];
+    empty: string;
+  }>;
+  unavailable?: UnavailableNote[];
+  /** Replaces the primary/secondary analysis slot with an unavailable-note instead of an empty chart. */
+  primaryUnavailable?: UnavailableNote;
+  secondaryUnavailable?: UnavailableNote;
 };
 type DashboardContext = {
   summary: PlatformDashboardSummary;
+  operations: OperationsDashboardSummary | null;
+  operationsError: string | null;
   money: Intl.NumberFormat;
   totalLeads: number;
   conversionRate: string;
@@ -168,10 +276,13 @@ type DashboardWidgetDefinition = {
   description?: string;
   trend?: DashboardTrend;
   values?: Record<string, number>;
+  /** When true, `values` renders in insertion order rather than sorted by value — a funnel's stage order is meaning, not decoration. */
+  ordered?: boolean;
   items?: QueueItem[];
   empty?: string;
   actions?: Array<[string, string]>;
   alerts?: DashboardAlert[];
+  reason?: string;
   permission?: string;
 };
 
@@ -208,14 +319,25 @@ export const DASHBOARD_WIDGET_REGISTRY = {
   "quick-actions": "actions",
   "saved-view": "actions",
   "drill-down-link": "actions",
+  /**
+   * One section of `OperationsDashboardSummary` came back unavailable. Not a
+   * "breakdown" or a "queue" wearing the wrong data — a distinct capability
+   * so it never silently renders as an empty chart implying zero activity
+   * when the truth is "we don't know right now" (WP-07 / ITEM-0199).
+   */
+  "unavailable-note": "notice",
 } as const;
 
 export function PlatformDashboard({
   summary,
+  operations = null,
+  operationsError = null,
   defaultViewKey,
   roleKeys,
 }: {
   summary: PlatformDashboardSummary;
+  operations?: OperationsDashboardSummary | null;
+  operationsError?: string | null;
   defaultViewKey?: string | null;
   roleKeys: string[];
 }) {
@@ -235,6 +357,8 @@ export function PlatformDashboard({
   const selectedKey =
     searchParams.get("viewId") ??
     defaultViewKey ??
+    available.find((item) => item.roleDefaultFor?.some((role) => roleKeys.includes(role)))
+      ?.key ??
     available.find((item) => item.isSystemDefault)?.key ??
     available[0]?.key ??
     "executive";
@@ -292,6 +416,8 @@ export function PlatformDashboard({
   const content = addPeriodComparisons(
     dashboardContent(viewKey, {
       summary,
+      operations,
+      operationsError,
       money,
       totalLeads,
       conversionRate,
@@ -481,28 +607,47 @@ function buildDashboardWidgets(
     }),
   );
   widgets.push(
-    content.trend
+    content.primaryUnavailable
       ? {
-        id: "primary-analysis",
-        type: "time-series-chart" as const,
+        id: content.primaryUnavailable.id,
+        type: "unavailable-note" as const,
         region: "analysis" as const,
-        trend: content.trend,
+        title: content.primaryUnavailable.title,
+        reason: content.primaryUnavailable.reason,
+      }
+      : content.trend
+        ? {
+          id: "primary-analysis",
+          type: "time-series-chart" as const,
+          region: "analysis" as const,
+          trend: content.trend,
+        }
+        : {
+          id: "primary-analysis",
+          type: "bar-chart" as const,
+          region: "analysis" as const,
+          title: content.breakdownTitle,
+          values: content.breakdown,
+          ordered: content.breakdownOrdered,
+        },
+  );
+  widgets.push(
+    content.secondaryUnavailable
+      ? {
+        id: content.secondaryUnavailable.id,
+        type: "unavailable-note" as const,
+        region: "analysis" as const,
+        title: content.secondaryUnavailable.title,
+        reason: content.secondaryUnavailable.reason,
       }
       : {
-        id: "primary-analysis",
-        type: "bar-chart" as const,
+        id: "secondary-analysis",
+        type: "donut-chart" as const,
         region: "analysis" as const,
-        title: content.breakdownTitle,
-        values: content.breakdown,
+        title: content.secondaryTitle,
+        values: content.secondary,
       },
   );
-  widgets.push({
-    id: "secondary-analysis",
-    type: "donut-chart" as const,
-    region: "analysis" as const,
-    title: content.secondaryTitle,
-    values: content.secondary,
-  });
   widgets.push({
     id: "operations-queue",
     type: "work-queue" as const,
@@ -519,6 +664,44 @@ function buildDashboardWidgets(
     actions: content.actions,
     alerts: content.alerts,
   });
+  for (const extra of content.extraTrends ?? []) {
+    widgets.push({
+      id: extra.id,
+      type: "time-series-chart" as const,
+      region: "analysis" as const,
+      trend: extra.trend,
+    });
+  }
+  for (const extra of content.extraBreakdowns ?? []) {
+    widgets.push({
+      id: extra.id,
+      type: "bar-chart" as const,
+      region: "analysis" as const,
+      title: extra.title,
+      values: extra.values,
+      ordered: extra.ordered,
+    });
+  }
+  for (const extra of content.extraQueues ?? []) {
+    widgets.push({
+      id: extra.id,
+      type: "work-queue" as const,
+      region: "operations" as const,
+      title: extra.title,
+      description: extra.description,
+      items: extra.items,
+      empty: extra.empty,
+    });
+  }
+  for (const note of content.unavailable ?? []) {
+    widgets.push({
+      id: note.id,
+      type: "unavailable-note" as const,
+      region: "operations" as const,
+      title: note.title,
+      reason: note.reason,
+    });
+  }
   return widgets;
 }
 
@@ -562,6 +745,7 @@ function DashboardWidget({ widget }: { widget: DashboardWidgetDefinition }) {
       <BreakdownChart
         title={widget.title ?? "Breakdown"}
         values={widget.values ?? {}}
+        ordered={widget.ordered}
       />
     );
   if (renderer === "queue")
@@ -573,14 +757,351 @@ function DashboardWidget({ widget }: { widget: DashboardWidgetDefinition }) {
         empty={widget.empty ?? "No items require attention."}
       />
     );
+  if (renderer === "notice")
+    return (
+      <UnavailableNotice
+        title={widget.title ?? "Not available"}
+        reason={widget.reason ?? "No data source for this metric yet."}
+      />
+    );
   return (
     <QuickActions actions={widget.actions ?? []} alerts={widget.alerts ?? []} />
   );
 }
 
+/**
+ * A KPI whose section resolved shows the real figure; a KPI whose section
+ * didn't shows "Not available" and the reason — never a zero standing in for
+ * data that was never fetched (AGENTS.md "No fabricated numbers").
+ */
+function metricOrUnavailable<T>(
+  section: OperationsSectionLike<T> | undefined,
+  opsError: string | null,
+  label: string,
+  pick: (data: T) => { value: number | string; description: string },
+  href: string,
+  icon: typeof UsersRound,
+  tone: Metric["tone"],
+): Metric {
+  const resolved = metricValueOrUnavailable(section, opsError, pick);
+  return m(
+    label,
+    resolved.value,
+    resolved.description,
+    href,
+    icon,
+    resolved.reason ? "rose" : tone,
+  );
+}
+
+/**
+ * The "Operations" dashboard view (TASK-0032 WP-07 / ITEM-0199) — "what is
+ * happening across the platform right now and what needs attention", built
+ * from `GET /super-admin/dashboard/operations`.
+ *
+ * Every one of the five source sections can be independently unavailable, so
+ * this reads more defensively than the other views' `configs` entries: each
+ * KPI degrades on its own (`metricOrUnavailable`), and a chart or queue whose
+ * section failed is replaced with an explicit "not available" notice
+ * (`unavailable`/`primaryUnavailable`/`secondaryUnavailable`) rather than
+ * rendered as an empty, falsely-zero chart.
+ */
+function buildOperationsContent(
+  ops: OperationsDashboardSummary | null,
+  opsError: string | null,
+  shared: Omit<DashboardContent, "title" | "subtitle" | "metrics">,
+  recentlyActivatedTenants: QueueItem[],
+): DashboardContent {
+  const platform = ops?.platform;
+  const users = ops?.users;
+  const partners = ops?.partners;
+  const agreements = ops?.agreements;
+  const operational = ops?.operational;
+  const fallbackReason = (
+    section: { available: boolean; reason?: string } | undefined,
+  ) =>
+    section && !section.available
+      ? section.reason
+      : (opsError ?? "The operations dashboard endpoint did not respond.");
+
+  const metrics: Metric[] = [
+    metricOrUnavailable(
+      platform,
+      opsError,
+      "Tenants",
+      (data) => ({
+        value: data.tenantsTotal,
+        description: `${data.tenantsActive.toLocaleString()} active · ${data.tenantsTrial.toLocaleString()} trial · ${data.tenantsSuspended.toLocaleString()} suspended`,
+      }),
+      "/tenants",
+      Building2,
+      "blue",
+    ),
+    metricOrUnavailable(
+      platform,
+      opsError,
+      "Stuck provisioning",
+      (data) => ({
+        value: data.tenantsStuckProvisioning,
+        description: "Tenants in PROVISIONING or PROVISIONING_FAILED",
+      }),
+      "/operations/provisioning",
+      AlertTriangle,
+      "amber",
+    ),
+    metricOrUnavailable(
+      users,
+      opsError,
+      "Active users",
+      (data) => ({
+        value: data.activeUsers,
+        description: `${data.newUsersLast30Days.toLocaleString()} new in the last 30 days`,
+      }),
+      "/settings/security",
+      UsersRound,
+      "blue",
+    ),
+    metricOrUnavailable(
+      users,
+      opsError,
+      "Failed sign-ins (24h)",
+      (data) => ({
+        value: data.failedLoginsLast24h,
+        description: `${data.loginsLast24h.toLocaleString()} successful sign-ins in the same window`,
+      }),
+      "/settings/monitoring",
+      ShieldCheck,
+      "amber",
+    ),
+    metricOrUnavailable(
+      operational,
+      opsError,
+      "Errors needing attention",
+      (data) => ({
+        value: data.unresolvedErrors,
+        description: `${data.errorsLast24h.toLocaleString()} occurrences in the last 24h`,
+      }),
+      "/settings/monitoring/error-logs?viewKey=new",
+      Activity,
+      "rose",
+    ),
+    metricOrUnavailable(
+      agreements,
+      opsError,
+      "Pending signatures",
+      (data) => ({
+        value: data.pendingSignature,
+        description: "Agreements sent, viewed, or partially signed",
+      }),
+      "/contracts?viewId=awaiting-external-signature",
+      FileSignature,
+      "amber",
+    ),
+    metricOrUnavailable(
+      partners,
+      opsError,
+      "Applications awaiting review",
+      (data) => ({
+        value: applicationsAwaitingReviewCount(data.funnel),
+        description: "Submitted or under review",
+      }),
+      "/partners?viewId=under-review",
+      ClipboardCheck,
+      "violet",
+    ),
+    metricOrUnavailable(
+      operational,
+      opsError,
+      "Background job failures",
+      (data) => ({
+        value: totalJobFailures(data.jobFailures),
+        description: `${data.jobFailures.outboxFailed.toLocaleString()} outbox · ${data.jobFailures.platformEventsFailedLast24h.toLocaleString()} events (24h)`,
+      }),
+      "/settings/monitoring/events?result=FAILED&source=BACKGROUND",
+      Server,
+      "rose",
+    ),
+  ];
+
+  const extraTrends: NonNullable<DashboardContent["extraTrends"]> = [];
+  const extraBreakdowns: NonNullable<DashboardContent["extraBreakdowns"]> = [];
+  const extraQueues: NonNullable<DashboardContent["extraQueues"]> = [];
+  const unavailable: UnavailableNote[] = [];
+
+  if (users?.available) {
+    extraTrends.push({
+      id: "logins-trend",
+      trend: {
+        title: "Tenant sign-ins vs failed sign-ins",
+        points: users.data.loginTrend,
+        series: [
+          { key: "succeeded", label: "Succeeded", color: "bg-emerald-500" },
+          { key: "failed", label: "Failed", color: "bg-rose-500" },
+        ],
+        cadenceLabel: "day",
+      },
+    });
+  } else {
+    unavailable.push({
+      id: "logins-trend-unavailable",
+      title: "Tenant sign-ins vs failed sign-ins",
+      reason: fallbackReason(users) ?? "No data source.",
+    });
+  }
+
+  if (operational?.available) {
+    extraTrends.push({
+      id: "errors-trend",
+      trend: {
+        title: "Error volume",
+        points: operational.data.errorTrend,
+        series: [{ key: "count", label: "Errors", color: "bg-rose-500" }],
+        cadenceLabel: "day",
+      },
+    });
+  } else {
+    unavailable.push({
+      id: "errors-trend-unavailable",
+      title: "Error volume",
+      reason: fallbackReason(operational) ?? "No data source.",
+    });
+  }
+
+  if (partners?.available) {
+    extraBreakdowns.push({
+      id: "partners-by-type",
+      title: "Partners by type",
+      values: partners.data.byType,
+    });
+    extraBreakdowns.push({
+      id: "partners-by-model",
+      title: "Partners by commercial model",
+      values: partners.data.byModel,
+    });
+    extraBreakdowns.push({
+      id: "partners-funnel",
+      title: "Partner onboarding funnel",
+      values: partnerFunnelToRecord(partners.data.funnel),
+      ordered: true,
+    });
+    extraQueues.push({
+      id: "recently-activated-partners",
+      title: "Recently activated partners",
+      description: "Partners whose status most recently became active.",
+      items: partners.data.recentlyActivated,
+      empty: "No partners have activated recently.",
+    });
+  } else {
+    const reason = fallbackReason(partners) ?? "No data source.";
+    unavailable.push(
+      { id: "partners-by-type-unavailable", title: "Partners by type", reason },
+      { id: "partners-by-model-unavailable", title: "Partners by commercial model", reason },
+      { id: "partners-funnel-unavailable", title: "Partner onboarding funnel", reason },
+      {
+        id: "partners-recent-unavailable",
+        title: "Recently activated partners",
+        reason,
+      },
+    );
+  }
+
+  const alerts: DashboardAlert[] = [];
+  if (platform?.available && platform.data.tenantsStuckProvisioning > 0) {
+    alerts.push({
+      tone: "rose",
+      label: `${platform.data.tenantsStuckProvisioning} tenants stuck in provisioning`,
+      href: "/operations/provisioning",
+    });
+  }
+  if (operational?.available && operational.data.unresolvedErrors > 0) {
+    alerts.push({
+      tone: "rose",
+      label: `${operational.data.unresolvedErrors} unresolved application errors`,
+      href: "/settings/monitoring/error-logs?viewKey=new",
+    });
+  }
+  if (partners?.available) {
+    const awaitingReview = applicationsAwaitingReviewCount(partners.data.funnel);
+    if (awaitingReview > 0) {
+      alerts.push({
+        tone: "amber",
+        label: `${awaitingReview} partner applications awaiting review`,
+        href: "/partners?viewId=under-review",
+      });
+    }
+  }
+  if (agreements?.available && agreements.data.pendingSignature > 0) {
+    alerts.push({
+      tone: "amber",
+      label: `${agreements.data.pendingSignature} agreements pending signature`,
+      href: "/contracts?viewId=awaiting-external-signature",
+    });
+  }
+  if (operational?.available) {
+    const jobFailures = totalJobFailures(operational.data.jobFailures);
+    if (jobFailures > 0) {
+      alerts.push({
+        tone: "rose",
+        label: `${jobFailures} background job failures`,
+        href: "/settings/monitoring/events?result=FAILED&source=BACKGROUND",
+      });
+    }
+  }
+
+  return {
+    ...shared,
+    title: "Operations",
+    subtitle:
+      "Tenants, users, partners, agreements, and system reliability, live, with what needs attention first.",
+    metrics,
+    trend: platform?.available
+      ? {
+        title: "Tenant growth (12 weeks)",
+        points: platform.data.growthTrend,
+        series: [{ key: "count", label: "New tenants", color: "bg-violet-500" }],
+        cadenceLabel: "week",
+      }
+      : undefined,
+    primaryUnavailable: platform?.available
+      ? undefined
+      : {
+        id: "tenant-growth-unavailable",
+        title: "Tenant growth (12 weeks)",
+        reason: fallbackReason(platform) ?? "No data source.",
+      },
+    secondaryTitle: agreements?.available ? "Agreements by status" : "",
+    secondary: agreements?.available
+      ? relabelAgreementGroups(agreements.data.byStatusGroup)
+      : {},
+    secondaryUnavailable: agreements?.available
+      ? undefined
+      : {
+        id: "agreements-by-status-unavailable",
+        title: "Agreements by status",
+        reason: fallbackReason(agreements) ?? "No data source.",
+      },
+    queueTitle: "Recently activated tenants",
+    queueDescription: "The newest tenant workspaces to reach active status.",
+    queueItems: recentlyActivatedTenants,
+    queueEmpty: "No tenants have been activated recently.",
+    actions: [
+      ["Open provisioning queue", "/operations/provisioning"],
+      ["Review error queue", "/settings/monitoring/error-logs"],
+      ["Review partner applications", "/partners?viewId=under-review"],
+    ],
+    alerts,
+    extraTrends,
+    extraBreakdowns,
+    extraQueues,
+    unavailable,
+  };
+}
+
 function dashboardContent(view: string, context: DashboardContext) {
   const {
     summary: s,
+    operations,
+    operationsError,
     money,
     totalLeads,
     conversionRate,
@@ -604,6 +1125,12 @@ function dashboardContent(view: string, context: DashboardContext) {
     alerts: [],
   };
   const configs = {
+    operations: buildOperationsContent(
+      operations,
+      operationsError,
+      shared,
+      s.recentlyActivatedTenants,
+    ),
     executive: {
       ...shared,
       title: "Executive overview",
@@ -1432,11 +1959,16 @@ function MetricCard({ metric }: { metric: Metric }) {
 function BreakdownChart({
   title,
   values,
+  ordered = false,
 }: {
   title: string;
   values: Record<string, number>;
+  /** A funnel's stage order is meaning, not decoration — skip the usual biggest-first sort. */
+  ordered?: boolean;
 }) {
-  const entries = Object.entries(values).sort((a, b) => b[1] - a[1]);
+  const entries = ordered
+    ? Object.entries(values)
+    : Object.entries(values).sort((a, b) => b[1] - a[1]);
   const max = Math.max(1, ...entries.map(([, value]) => value));
   const colors = [
     "bg-blue-500",
@@ -1467,7 +1999,8 @@ function BreakdownChart({
               <div
                 className="h-2 overflow-hidden rounded-full bg-slate-100"
                 role="img"
-                aria-label={`${labelize(key)} ${value}`}
+                aria-label={`${labelize(key)} ${value.toLocaleString()} of ${max.toLocaleString()}`}
+                title={`${labelize(key)}: ${value.toLocaleString()}`}
               >
                 <div
                   className={`h-full rounded-full ${colors[index % colors.length]}`}
@@ -1482,6 +2015,13 @@ function BreakdownChart({
           <Empty text="No records are available for this breakdown." />
         )}
       </div>
+      {/* The scale every bar's width is relative to — colour and length both carry the value, but neither states the axis. */}
+      {entries.length ? (
+        <div className="mt-3 flex justify-between text-[10px] font-medium text-slate-400">
+          <span>0</span>
+          <span>{max.toLocaleString()}</span>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -1491,11 +2031,14 @@ function TrendChart({
   points,
   series,
   formatter = (value: number) => value.toLocaleString(),
+  cadenceLabel = "month",
 }: {
   title: string;
   points: TrendPoint[];
   series: Array<{ key: string; label: string; color: string }>;
   formatter?: (value: number) => string;
+  /** "week" / "day" / "month" — the bar-chart caption assumed monthly data unconditionally. */
+  cadenceLabel?: string;
 }) {
   const max = Math.max(
     1,
@@ -1509,7 +2052,7 @@ function TrendChart({
         <div>
           <h2 className="text-base font-semibold text-slate-950">{title}</h2>
           <p className="mt-1 text-xs text-slate-500">
-            {points.length}-month operational trend from persisted records.
+            {points.length}-{cadenceLabel} operational trend from persisted records.
           </p>
         </div>
         <div className="flex gap-3">
@@ -1524,40 +2067,85 @@ function TrendChart({
           ))}
         </div>
       </div>
-      <div
-        className="mt-6 grid h-52 items-end gap-3 overflow-x-auto border-b border-slate-200 px-1"
-        style={{
-          gridTemplateColumns: `repeat(${points.length}, minmax(48px, 1fr))`,
-        }}
-        role="img"
-        aria-label={title}
-      >
-        {points.map((point) => (
-          <div
-            key={point.key}
-            className="flex h-full min-w-0 flex-col justify-end"
-          >
-            <div className="flex flex-1 items-end justify-center gap-1">
-              {series.map((item) => {
-                const value = Number(point[item.key] ?? 0);
-                return (
-                  <div
-                    key={item.key}
-                    title={`${item.label}: ${formatter(value)}`}
-                    className={`w-[35%] min-w-2 rounded-t-md ${item.color}`}
-                    style={{
-                      height: `${Math.max(value ? 4 : 0, (value / max) * 100)}%`,
-                    }}
-                  />
-                );
-              })}
+      <div className="mt-6 flex items-stretch gap-2">
+        <div className="flex h-52 flex-col justify-between py-0.5 text-[10px] font-medium text-slate-400">
+          <span>{formatter(max)}</span>
+          <span>0</span>
+        </div>
+        <div
+          className="grid h-52 flex-1 items-end gap-3 overflow-x-auto border-b border-l border-slate-200 px-1"
+          style={{
+            gridTemplateColumns: `repeat(${points.length}, minmax(48px, 1fr))`,
+          }}
+          role="img"
+          aria-label={`${title}. ${series.map((item) => item.label).join(" vs ")}, ${points.length} ${cadenceLabel}s ending ${points[points.length - 1]?.label ?? "now"}.`}
+        >
+          {points.map((point) => (
+            <div
+              key={point.key}
+              className="flex h-full min-w-0 flex-col justify-end"
+            >
+              <div className="flex flex-1 items-end justify-center gap-1">
+                {series.map((item) => {
+                  const value = Number(point[item.key] ?? 0);
+                  return (
+                    <div
+                      key={item.key}
+                      title={`${item.label}: ${formatter(value)}`}
+                      className={`w-[35%] min-w-2 rounded-t-md ${item.color}`}
+                      style={{
+                        height: `${Math.max(value ? 4 : 0, (value / max) * 100)}%`,
+                      }}
+                    />
+                  );
+                })}
+              </div>
+              <span className="py-2 text-center text-[10px] font-medium text-slate-500">
+                {point.label}
+              </span>
             </div>
-            <span className="py-2 text-center text-[10px] font-medium text-slate-500">
-              {point.label}
-            </span>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
+      {/*
+        A screen reader announces the chart's `aria-label` once and stops —
+        the bars themselves carry no accessible text of their own. This gives
+        the same values as a real table rather than a shape nobody but a
+        sighted user can read.
+      */}
+      <table className="sr-only">
+        <caption>{title}</caption>
+        <thead>
+          <tr>
+            <th scope="col">Period</th>
+            {series.map((item) => (
+              <th scope="col" key={item.key}>
+                {item.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {points.map((point) => (
+            <tr key={point.key}>
+              <th scope="row">{point.label}</th>
+              {series.map((item) => (
+                <td key={item.key}>{formatter(Number(point[item.key] ?? 0))}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
+function UnavailableNotice({ title, reason }: { title: string; reason: string }) {
+  return (
+    <section className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5">
+      <h2 className="text-base font-semibold text-slate-700">{title}</h2>
+      <p className="mt-2 text-sm text-slate-500">Not available right now.</p>
+      <p className="mt-1 text-xs text-slate-400">{reason}</p>
     </section>
   );
 }
@@ -1580,14 +2168,24 @@ function OperationsQueue({
       <div className="mt-4 divide-y divide-slate-100">
         {items.length ? (
           items.map((item) => {
+            // `displayName` with no `companyName`/`contractNumber` is a
+            // Partner row (WP-07's "recently activated partners" queue) —
+            // added rather than folded into the tenant fallback, since a
+            // partner id resolved against `/tenants/:id` would 404.
+            const isPartner =
+              "displayName" in item &&
+              !("companyName" in item) &&
+              !("contractNumber" in item);
             const href =
               "contractNumber" in item
                 ? `/contracts/${item.id}`
                 : "companyName" in item
                   ? `/leads/${item.id}`
-                  : `/tenants/${item.id}`;
+                  : isPartner
+                    ? `/partners/${item.id}`
+                    : `/tenants/${item.id}`;
             const title = String(
-              item.title ?? item.companyName ?? item.name ?? item.id,
+              item.title ?? item.companyName ?? item.displayName ?? item.name ?? item.id,
             );
             const detail = String(
               item.contractNumber ??
@@ -1596,7 +2194,9 @@ function OperationsQueue({
                 ? formatDate(String(item.expiryDate))
                 : item.createdAt
                   ? formatDate(String(item.createdAt))
-                  : ""),
+                  : item.updatedAt
+                    ? formatDate(String(item.updatedAt))
+                    : ""),
             );
             return (
               <Link

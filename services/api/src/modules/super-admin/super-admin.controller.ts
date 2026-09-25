@@ -54,6 +54,7 @@ import { SetAgentAssignmentDto } from './dto/set-agent-assignment.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { UpdateTenantSlugDto } from '../tenants/dto/update-tenant-slug.dto';
 import { SuperAdminService } from './super-admin.service';
+import { OperationsDashboardService } from './operations-dashboard.service';
 import { ConvertLeadToCustomerDto } from '../leads/dto/admin-lead.dto';
 import {
   CreateTenantAccessUserDto,
@@ -80,11 +81,24 @@ export class SuperAdminController {
     private readonly platformCommunications: PlatformCommunicationsService,
     private readonly paymentRecheck: PaymentRecheckService,
     private readonly fx: PlatformFxService,
+    private readonly operationsDashboard: OperationsDashboardService,
   ) {}
 
   @Get('dashboard-summary')
   getDashboardSummary(@Query('range') range?: string) {
     return this.superAdminService.getDashboardSummary(range);
+  }
+
+  /**
+   * The Operations view (TASK-0032 WP-07 / ITEM-0199): tenants, users,
+   * partners, agreements and system reliability, computed independently of
+   * the commercial `dashboard-summary` so a failure in one never blanks the
+   * other. Each section of the response resolves on its own — see
+   * `OperationsDashboardService`.
+   */
+  @Get('dashboard/operations')
+  getOperationsDashboard() {
+    return this.operationsDashboard.getOperationsDashboard();
   }
 
   @Get('lifecycle-options')
