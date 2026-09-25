@@ -28,7 +28,9 @@ describe('AuditService record Timeline', () => {
         },
       ]),
     } as unknown as AuditRepository;
-    const service = new AuditService(repository, { getContext: () => null } as never);
+    const service = new AuditService(repository, {
+      getContext: () => null,
+    } as never);
 
     await expect(
       service.listRecordTimeline({
@@ -71,7 +73,9 @@ describe('AuditService record Timeline', () => {
     const repository = {
       findRecordTimeline: jest.fn().mockResolvedValue([]),
     } as unknown as AuditRepository;
-    const service = new AuditService(repository, { getContext: () => null } as never);
+    const service = new AuditService(repository, {
+      getContext: () => null,
+    } as never);
 
     await expect(
       service.listRecordTimeline({
@@ -97,7 +101,9 @@ describe('AuditService tenant actors', () => {
       }),
       create,
     } as unknown as AuditRepository;
-    const service = new AuditService(repository, { getContext: () => null } as never);
+    const service = new AuditService(repository, {
+      getContext: () => null,
+    } as never);
 
     await service.log({
       tenantId: 'tenant-1',
@@ -157,7 +163,9 @@ describe('AuditService trace context propagation', () => {
   });
 
   it('fills traceId/requestId from the ambient trace context for a platform audit row', async () => {
-    const createPlatform = jest.fn().mockResolvedValue({ id: 'platform-audit-1' });
+    const createPlatform = jest
+      .fn()
+      .mockResolvedValue({ id: 'platform-audit-1' });
     const repository = { createPlatform } as unknown as AuditRepository;
     const traceContext = { getContext: () => ({ traceId: 'req_ambient-2' }) };
     const service = new AuditService(repository, traceContext as never);

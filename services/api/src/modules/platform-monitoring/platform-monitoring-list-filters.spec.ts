@@ -223,8 +223,6 @@ describe('PlatformMonitoringService.getEvent related data', () => {
 
     const event = await service.getEvent(platformUser, 'req_original');
 
-    expect(event.relatedOutboxEvents[0].lastError).not.toContain(
-      'Sup3rSecret',
-    );
+    expect(event.relatedOutboxEvents[0].lastError).not.toContain('Sup3rSecret');
   });
 });

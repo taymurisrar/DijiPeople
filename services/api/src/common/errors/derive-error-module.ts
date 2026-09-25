@@ -20,11 +20,7 @@
  * different platform-ops modules. Every other route uses its first segment
  * unchanged, which lines up with `services/api/src/modules/<domain>/`.
  */
-const GENERIC_ROUTE_PREFIXES = new Set([
-  'platform',
-  'super-admin',
-  'settings',
-]);
+const GENERIC_ROUTE_PREFIXES = new Set(['platform', 'super-admin', 'settings']);
 
 export function deriveErrorModule(
   path: string | null | undefined,

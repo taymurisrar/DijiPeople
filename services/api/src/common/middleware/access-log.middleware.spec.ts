@@ -36,7 +36,9 @@ describe('AccessLogMiddleware', () => {
     const middleware = new AccessLogMiddleware({
       get: () => 'true',
     } as never);
-    const req = buildRequest({ user: { tenantId: 'tenant-1', userId: 'user-1' } });
+    const req = buildRequest({
+      user: { tenantId: 'tenant-1', userId: 'user-1' },
+    });
     const res = buildResponse();
     const next = jest.fn();
 

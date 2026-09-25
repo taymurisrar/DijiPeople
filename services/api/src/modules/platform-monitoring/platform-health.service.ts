@@ -53,21 +53,17 @@ export class PlatformHealthService {
   ) {}
 
   async getHealth() {
-    const [
-      database,
-      backgroundProcessing,
-      notificationQueue,
-      authentication,
-      storage,
-      email,
-    ] = await Promise.all([
-      this.checkDatabase(),
-      this.checkBackgroundProcessing(),
-      this.checkNotificationQueue(),
-      this.checkAuthentication(),
-      this.checkStorage(),
-      this.checkEmail(),
-    ]);
+    const [database, backgroundProcessing, authentication, storage, email] =
+      await Promise.all([
+        this.checkDatabase(),
+        this.checkBackgroundProcessing(),
+        this.checkAuthentication(),
+        this.checkStorage(),
+        this.checkEmail(),
+      ]);
+    // Synchronous — a config read, not an I/O probe — so it does not belong in
+    // the Promise.all above.
+    const notificationQueue = this.checkNotificationQueue();
 
     const components = {
       api: this.checkApi(),
@@ -102,10 +98,7 @@ export class PlatformHealthService {
   private async checkDatabase(): Promise<HealthComponent> {
     const startedAt = Date.now();
     try {
-      await withTimeout(
-        this.prisma.$queryRaw`SELECT 1`,
-        PROBE_TIMEOUT_MS,
-      );
+      await withTimeout(this.prisma.$queryRaw`SELECT 1`, PROBE_TIMEOUT_MS);
       const latencyMs = Date.now() - startedAt;
       if (latencyMs >= DB_DEGRADED_LATENCY_MS) {
         return {
@@ -210,8 +203,7 @@ export class PlatformHealthService {
    */
   private checkNotificationQueue(): HealthComponent {
     const enabled =
-      this.configService.get<string>('NOTIFICATIONS_QUEUE_ENABLED') ===
-      'true';
+      this.configService.get<string>('NOTIFICATIONS_QUEUE_ENABLED') === 'true';
     const redisConfigured = Boolean(
       this.configService.get<string>('REDIS_HOST'),
     );
@@ -394,9 +386,9 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
         clearTimeout(timer);
         resolve(value);
       },
-      (error) => {
+      (error: unknown) => {
         clearTimeout(timer);
-        reject(error);
+        reject(error instanceof Error ? error : new Error(String(error)));
       },
     );
   });

@@ -137,7 +137,9 @@ describe('audit log projection', () => {
       findOneByTenant: jest.fn().mockResolvedValue(itemWith(action)),
     } as unknown as AuditRepository;
 
-    return new AuditService(repository, { getContext: () => null } as never).detailByTenant('tenant-1', 'audit-1');
+    return new AuditService(repository, {
+      getContext: () => null,
+    } as never).detailByTenant('tenant-1', 'audit-1');
   }
 
   it('reports the stored action unchanged', async () => {

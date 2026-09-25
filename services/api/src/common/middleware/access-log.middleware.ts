@@ -67,8 +67,6 @@ export class AccessLogMiddleware implements NestMiddleware {
   }
 
   private isEnabled() {
-    return (
-      this.configService.get<string>('REQUEST_LOGGING_ENABLED') === 'true'
-    );
+    return this.configService.get<string>('REQUEST_LOGGING_ENABLED') === 'true';
   }
 }

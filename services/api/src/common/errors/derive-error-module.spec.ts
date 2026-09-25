@@ -23,9 +23,7 @@ describe('deriveErrorModule', () => {
   });
 
   it('strips a query string before deriving', () => {
-    expect(deriveErrorModule('/api/employees?tenantId=abc')).toBe(
-      'employees',
-    );
+    expect(deriveErrorModule('/api/employees?tenantId=abc')).toBe('employees');
   });
 
   it('handles a path with no /api prefix by using its own first segment', () => {

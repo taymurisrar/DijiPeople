@@ -130,15 +130,17 @@ describe('audit snapshot redaction', () => {
       create,
     } as unknown as AuditRepository;
 
-    await new AuditService(repository, { getContext: () => null } as never).log({
-      tenantId: 'tenant-1',
-      actorUserId: 'user-1',
-      action: 'EMPLOYEE_UPDATED',
-      entityType: 'Employee',
-      entityId: 'employee-1',
-      beforeSnapshot: { id: 'employee-1', cnic: '42101-1234567-8' },
-      afterSnapshot: { id: 'employee-1', cnic: '42101-7654321-8' },
-    });
+    await new AuditService(repository, { getContext: () => null } as never).log(
+      {
+        tenantId: 'tenant-1',
+        actorUserId: 'user-1',
+        action: 'EMPLOYEE_UPDATED',
+        entityType: 'Employee',
+        entityId: 'employee-1',
+        beforeSnapshot: { id: 'employee-1', cnic: '42101-1234567-8' },
+        afterSnapshot: { id: 'employee-1', cnic: '42101-7654321-8' },
+      },
+    );
 
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
