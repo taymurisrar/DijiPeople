@@ -15756,15 +15756,15 @@
       "title": "Platform-admin login has no account lockout of any kind",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-3146-platform-admin-login-has-no-account-lockout-of-any-kind.md",
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "a800d8f2",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-11",
-        "resolved_at": ""
+        "updated_at": "2026-09-25",
+        "resolved_at": "2026-09-25"
       },
       "affected_modules": [
         "services/api/src/modules/platform-auth"
@@ -18103,7 +18103,7 @@
         "provenance": "REVIEWER",
         "detected_in_sha": "4c86a29b",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-11",
+        "updated_at": "2026-09-25",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -18366,15 +18366,15 @@
       "title": "No access log, and traceId never reaches an application log line: a successful request leaves no trace at all",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-3227-no-access-log-and-traceid-never-reaches-an-application-log-l.md",
         "provenance": "REVIEWER",
         "detected_in_sha": "f36749b3",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-11",
-        "resolved_at": ""
+        "updated_at": "2026-09-25",
+        "resolved_at": "2026-09-25"
       },
       "affected_modules": [
         "services/api/src/common"
@@ -18531,7 +18531,7 @@
         "provenance": "SECURITY_REVIEW",
         "detected_in_sha": "f36749b3",
         "created_at": "2026-09-10",
-        "updated_at": "2026-09-11",
+        "updated_at": "2026-09-25",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -20519,15 +20519,15 @@
       "title": "A Platform Admin can open and edit a tenant but every save is refused as not System Admin",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-3544-a-platform-admin-can-open-and-edit-a-tenant-but-every-save-i.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "75fec5b9",
         "created_at": "2026-09-25",
         "updated_at": "2026-09-25",
-        "resolved_at": ""
+        "resolved_at": "2026-09-25"
       },
       "affected_modules": [
         "services/api/src/modules/super-admin",
@@ -20563,15 +20563,15 @@
       "title": "The admin session heartbeat is refused for most platform roles and raises a blocking permission dialog",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-3545-the-admin-session-heartbeat-is-refused-for-most-platform-rol.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "75fec5b9",
         "created_at": "2026-09-25",
         "updated_at": "2026-09-25",
-        "resolved_at": ""
+        "resolved_at": "2026-09-25"
       },
       "affected_modules": [
         "services/api/src/modules/auth",
@@ -20605,15 +20605,15 @@
       "title": "Tenant record Edit leaves the operator on a tab with nothing editable",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-3546-tenant-record-edit-leaves-the-operator-on-a-tab-with-nothing.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "75fec5b9",
         "created_at": "2026-09-25",
         "updated_at": "2026-09-25",
-        "resolved_at": ""
+        "resolved_at": "2026-09-25"
       },
       "affected_modules": [
         "apps/admin"
@@ -20645,15 +20645,15 @@
       "title": "The platform role picker offers two Platform Owner roles and a legacy Member role",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-3547-the-platform-role-picker-offers-two-platform-owner-roles-and.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "75fec5b9",
         "created_at": "2026-09-25",
         "updated_at": "2026-09-25",
-        "resolved_at": ""
+        "resolved_at": "2026-09-25"
       },
       "affected_modules": [
         "apps/admin",
@@ -20687,15 +20687,15 @@
       "title": "A numeric value in a TTL_SECONDS variable issues access tokens that expire after one second",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-3548-a-numeric-value-in-a-ttl-seconds-variable-issues-access-toke.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "75fec5b9",
         "created_at": "2026-09-25",
         "updated_at": "2026-09-25",
-        "resolved_at": ""
+        "resolved_at": "2026-09-25"
       },
       "affected_modules": [
         "services/api/src/common/config"
@@ -20727,15 +20727,15 @@
       "title": "Partner type Individual or Company drives no behaviour and individuals are asked for a company registration number",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-3549-partner-type-individual-or-company-drives-no-behaviour-and-i.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "75fec5b9",
         "created_at": "2026-09-25",
         "updated_at": "2026-09-25",
-        "resolved_at": ""
+        "resolved_at": "2026-09-25"
       },
       "affected_modules": [
         "services/api/src/modules/partners",
@@ -20772,15 +20772,15 @@
       "title": "Partners can be created as duplicates: admin create has no duplicate check and the inquiry check ignores tax and registration numbers",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-3550-partners-can-be-created-as-duplicates-admin-create-has-no-du.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "75fec5b9",
         "created_at": "2026-09-25",
         "updated_at": "2026-09-25",
-        "resolved_at": ""
+        "resolved_at": "2026-09-25"
       },
       "affected_modules": [
         "services/api/src/modules/partners",
@@ -20819,15 +20819,15 @@
       "title": "Partner create, update, lifecycle and onboarding review are not written to the audit log",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-3551-partner-create-update-lifecycle-and-onboarding-review-are-no.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "75fec5b9",
         "created_at": "2026-09-25",
         "updated_at": "2026-09-25",
-        "resolved_at": ""
+        "resolved_at": "2026-09-25"
       },
       "affected_modules": [
         "services/api/src/modules/partners",
@@ -20862,15 +20862,15 @@
       "title": "The agreement template editor offers every placeholder group regardless of agreement type",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-3552-the-agreement-template-editor-offers-every-placeholder-group.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "75fec5b9",
         "created_at": "2026-09-25",
         "updated_at": "2026-09-25",
-        "resolved_at": ""
+        "resolved_at": "2026-09-25"
       },
       "affected_modules": [
         "services/api/src/modules/contracts",
@@ -20908,15 +20908,15 @@
       "title": "An agreement can be created for an inactive partner or an archived lead or customer, and duplicate submissions create duplicate agreements",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-3553-an-agreement-can-be-created-for-an-inactive-partner-or-an-ar.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "75fec5b9",
         "created_at": "2026-09-25",
         "updated_at": "2026-09-25",
-        "resolved_at": ""
+        "resolved_at": "2026-09-25"
       },
       "affected_modules": [
         "services/api/src/modules/contracts"
@@ -20953,15 +20953,15 @@
       "title": "The typed-signature style selector is cosmetic: the chosen style never reaches the signed document",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-3554-the-typed-signature-style-selector-is-cosmetic-the-chosen-st.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "75fec5b9",
         "created_at": "2026-09-25",
         "updated_at": "2026-09-25",
-        "resolved_at": ""
+        "resolved_at": "2026-09-25"
       },
       "affected_modules": [
         "apps/landing",
@@ -20996,15 +20996,15 @@
       "title": "Error log redaction covers auth secrets only: stack traces and personal or financial values are stored unredacted",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-3555-error-log-redaction-covers-auth-secrets-only-stack-traces-an.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "75fec5b9",
         "created_at": "2026-09-25",
         "updated_at": "2026-09-25",
-        "resolved_at": ""
+        "resolved_at": "2026-09-25"
       },
       "affected_modules": [
         "services/api/src/modules/error-logs"
@@ -21038,15 +21038,15 @@
       "title": "The platform audit trail is write-only: no screen or endpoint can read PlatformAuditLog",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-3564-the-platform-audit-trail-is-write-only-no-screen-or-endpoint.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "10d5d148",
         "created_at": "2026-09-25",
         "updated_at": "2026-09-25",
-        "resolved_at": ""
+        "resolved_at": "2026-09-25"
       },
       "affected_modules": [
         "services/api/src/modules/audit",
@@ -21087,15 +21087,15 @@
       "title": "Opening a contract template or signature request from its admin list returns 404",
       "severity": "HIGH",
       "priority": "P1",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-3565-opening-a-contract-template-or-signature-request-from-its-ad.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "10d5d148",
         "created_at": "2026-09-25",
         "updated_at": "2026-09-25",
-        "resolved_at": ""
+        "resolved_at": "2026-09-25"
       },
       "affected_modules": [
         "services/api/src/modules/platform-runtime"
@@ -21127,15 +21127,15 @@
       "title": "A partial partner edit is rejected because the update DTO requires every create field",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-3566-a-partial-partner-edit-is-rejected-because-the-update-dto-re.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "10d5d148",
         "created_at": "2026-09-25",
         "updated_at": "2026-09-25",
-        "resolved_at": ""
+        "resolved_at": "2026-09-25"
       },
       "affected_modules": [
         "services/api/src/modules/partners"
@@ -21167,20 +21167,22 @@
       "title": "Platform administrator sign-ins and failed sign-ins are not audited",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/bugs/BUG-3567-platform-administrator-sign-ins-and-failed-sign-ins-are-not-.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "10d5d148",
         "created_at": "2026-09-25",
         "updated_at": "2026-09-25",
-        "resolved_at": ""
+        "resolved_at": "2026-09-25"
       },
       "affected_modules": [
         "services/api/src/modules/auth"
       ],
-      "regressions": [],
+      "regressions": [
+        "REG-543"
+      ],
       "qa_scenarios": [],
       "test_plan": [],
       "current_evidence": {
@@ -30055,8 +30057,8 @@
       "title": "TOTP multi-factor authentication for tenant and platform users",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0197-totp-multi-factor-authentication-for-tenant-and-platform-use.md",
         "provenance": "QA_RUN",
@@ -30104,8 +30106,8 @@
       "title": "Admin monitoring: platform health overview, grouped error fields, module facet and incident-first layout",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0198-admin-monitoring-platform-health-overview-grouped-error-fiel.md",
         "provenance": "QA_RUN",
@@ -30152,8 +30154,8 @@
       "title": "Admin dashboard: operational metrics for logins, MFA adoption, error rate, job failures, partner funnel and agreements",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0199-admin-dashboard-operational-metrics-for-logins-mfa-adoption-.md",
         "provenance": "QA_RUN",
@@ -30194,8 +30196,8 @@
       "title": "Agreements have no end-to-end test coverage and partners/leads have no e2e lifecycle suite",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "READY",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0200-agreements-have-no-end-to-end-test-coverage-and-partners-lea.md",
         "provenance": "QA_RUN",

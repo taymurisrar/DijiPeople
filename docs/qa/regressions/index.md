@@ -5828,7 +5828,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 |---|---|
 | **Bug class** | `missing-audit-trail` |
 | **Module** | `services/api/src/modules/auth` |
-| **Bug record** | platform sign-in not audited (record to be filed by the Architect; found by TASK-0032 WP-07) |
+| **Bug record** | BUG-3567 — platform sign-in not audited (found by TASK-0032 WP-07) |
 | **Root cause** | Tenant sign-ins wrote `AUTH_LOGIN_*` rows through `logTenantAuthEvent`; `adminLogin` wrote nothing, so the platform audit log had no source for operator sign-ins or failed attempts. |
 | **Regression test** | `services/api/src/modules/auth/platform-login-audit.spec.ts` |
 | **QA scenario** | — |

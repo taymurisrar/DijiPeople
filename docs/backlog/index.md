@@ -13,11 +13,11 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 227 |
+| Open (active work) | 225 |
 | Blocked | 2 |
-| Deferred | 107 |
+| Deferred | 106 |
 | Awaiting a product decision | 9 |
-| Completed / closed | 340 |
+| Completed / closed | 343 |
 | **Open CRITICAL** | **6** |
 | **Open HIGH** | **99** |
 | **Awaiting Architect triage** | **0** |
@@ -28,7 +28,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 6 |
 | HIGH | 99 |
-| MEDIUM | 102 |
+| MEDIUM | 100 |
 | LOW | 20 |
 
 ## Open by type
@@ -41,7 +41,7 @@ see [`README.md`](README.md) for why.
 | DATA_INTEGRITY | 21 |
 | DOCUMENTATION | 1 |
 | FOLLOW_UP | 3 |
-| INFRA | 6 |
+| INFRA | 7 |
 | INTEGRATION | 5 |
 | PERFORMANCE | 15 |
 | PRODUCT_DECISION | 1 |
@@ -49,23 +49,23 @@ see [`README.md`](README.md) for why.
 | STATE_MACHINE | 3 |
 | TECH_DEBT | 7 |
 | TENANT_ISOLATION | 2 |
-| TEST_GAP | 10 |
-| UX | 51 |
+| TEST_GAP | 9 |
+| UX | 49 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 60 |
+| OPEN | 44 |
 | BLOCKED | 2 |
-| DEFERRED | 107 |
+| DEFERRED | 106 |
 | PRODUCT_DECISION | 9 |
-| FIXED | 141 |
+| FIXED | 159 |
 | VERIFIED | 218 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
-| READY | 26 |
-| DONE | 108 |
+| READY | 22 |
+| DONE | 111 |
 
 ## All records
 
@@ -300,10 +300,10 @@ see [`README.md`](README.md) for why.
 | [BUG-3493](../../docs/bugs/BUG-3493-publishing-customizations-dead-ends-because-new-drafts-land-.md) | Publishing customizations dead-ends because new drafts land in a package that cannot be published | BUG | HIGH | P1 | FIXED | apps/web, customization | FIX_NOW |
 | [BUG-3494](../../docs/bugs/BUG-3494-a-published-custom-module-has-no-sidebar-entry-and-no-list-f.md) | A published custom module has no sidebar entry and no list, form or record screen | BUG | HIGH | P1 | FIXED | apps/web, customization, data | PLAN_REQUIRED |
 | [BUG-3500](../../docs/bugs/BUG-3500-every-seeded-email-template-is-active-with-placeholder-body-.md) | Every seeded email template is active with placeholder body text | BUG | HIGH | P1 | FIXED | notifications, apps/web | FIX_NOW |
-| [BUG-3544](../../docs/bugs/BUG-3544-a-platform-admin-can-open-and-edit-a-tenant-but-every-save-i.md) | A Platform Admin can open and edit a tenant but every save is refused as not System Admin | AUTHORIZATION | HIGH | P1 | OPEN | api:super-admin, api:platform-runtime | FIX_NOW |
-| [BUG-3545](../../docs/bugs/BUG-3545-the-admin-session-heartbeat-is-refused-for-most-platform-rol.md) | The admin session heartbeat is refused for most platform roles and raises a blocking permission dialog | AUTHORIZATION | HIGH | P1 | OPEN | api:auth, apps/admin | FIX_NOW |
-| [BUG-3564](../../docs/bugs/BUG-3564-the-platform-audit-trail-is-write-only-no-screen-or-endpoint.md) | The platform audit trail is write-only: no screen or endpoint can read PlatformAuditLog | SECURITY | HIGH | P1 | OPEN | api:audit, apps/admin | FIX_NOW |
-| [BUG-3565](../../docs/bugs/BUG-3565-opening-a-contract-template-or-signature-request-from-its-ad.md) | Opening a contract template or signature request from its admin list returns 404 | BUG | HIGH | P1 | OPEN | api:platform-runtime | FIX_NOW |
+| [BUG-3544](../../docs/bugs/BUG-3544-a-platform-admin-can-open-and-edit-a-tenant-but-every-save-i.md) | A Platform Admin can open and edit a tenant but every save is refused as not System Admin | AUTHORIZATION | HIGH | P1 | FIXED | api:super-admin, api:platform-runtime | DONE |
+| [BUG-3545](../../docs/bugs/BUG-3545-the-admin-session-heartbeat-is-refused-for-most-platform-rol.md) | The admin session heartbeat is refused for most platform roles and raises a blocking permission dialog | AUTHORIZATION | HIGH | P1 | FIXED | api:auth, apps/admin | DONE |
+| [BUG-3564](../../docs/bugs/BUG-3564-the-platform-audit-trail-is-write-only-no-screen-or-endpoint.md) | The platform audit trail is write-only: no screen or endpoint can read PlatformAuditLog | SECURITY | HIGH | P1 | FIXED | api:audit, apps/admin | DONE |
+| [BUG-3565](../../docs/bugs/BUG-3565-opening-a-contract-template-or-signature-request-from-its-ad.md) | Opening a contract template or signature request from its admin list returns 404 | BUG | HIGH | P1 | FIXED | api:platform-runtime | DONE |
 | [BUG-3578](../../docs/bugs/BUG-3578-deleting-a-partner-or-lead-with-restricted-history-crashes-w.md) | Deleting a partner or lead with restricted history crashes with a 500 | DATA_INTEGRITY | HIGH | P1 | FIXED | api:partners, api:leads | DONE |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
@@ -472,7 +472,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3143](../../docs/bugs/BUG-3143-session-cookies-scoped-to-domain-dijipeople-com-transmit-the.md) | Session cookies scoped to Domain=.dijipeople.com transmit the platform-admin token to every tenant hostname | SECURITY | MEDIUM | P2 | DEFERRED | api:auth | DEFER |
 | [BUG-3144](../../docs/bugs/BUG-3144-constant-time-defence-in-verifyidentitycredential-is-inert-l.md) | Constant-time defence in verifyIdentityCredential is inert, leaving a 2700x timing oracle for email existence | SECURITY | MEDIUM | P2 | DEFERRED | api:auth | DEFER |
 | [BUG-3145](../../docs/bugs/BUG-3145-no-refresh-token-reuse-detection-anywhere-tokenfamilyid-is-w.md) | No refresh-token reuse detection anywhere; tokenFamilyId is written and never read | SECURITY | MEDIUM | P2 | DEFERRED | api:auth | DEFER |
-| [BUG-3146](../../docs/bugs/BUG-3146-platform-admin-login-has-no-account-lockout-of-any-kind.md) | Platform-admin login has no account lockout of any kind | SECURITY | MEDIUM | P2 | DEFERRED | api:platform-auth | DEFER |
+| [BUG-3146](../../docs/bugs/BUG-3146-platform-admin-login-has-no-account-lockout-of-any-kind.md) | Platform-admin login has no account lockout of any kind | SECURITY | MEDIUM | P2 | FIXED | api:platform-auth | DONE |
 | [BUG-3147](../../docs/bugs/BUG-3147-placeholder-and-reset-passwords-are-derived-from-date-now.md) | Placeholder and reset passwords are derived from Date.now() | SECURITY | MEDIUM | P2 | DEFERRED | api:auth | DEFER |
 | [BUG-3148](../../docs/bugs/BUG-3148-web-proxy-rewrites-auth-cookies-to-samesite-none-in-producti.md) | Web proxy rewrites auth cookies to SameSite=None in production with no CSRF token anywhere | SECURITY | MEDIUM | P2 | DEFERRED | apps/web | DEFER |
 | [BUG-3149](../../docs/bugs/BUG-3149-account-lockout-has-no-per-ip-dimension-so-any-known-email-c.md) | Account lockout has no per-IP dimension, so any known email can be locked out indefinitely | SECURITY | MEDIUM | P2 | DEFERRED | api:auth | DEFER |
@@ -497,7 +497,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3224](../../docs/bugs/BUG-3224-deleting-a-document-deletes-nothing-the-bytes-stay-in-storag.md) | Deleting a document deletes nothing; the bytes stay in storage forever | DATA_INTEGRITY | MEDIUM | P2 | DEFERRED | api:documents | DEFER |
 | [BUG-3225](../../docs/bugs/BUG-3225-tenant-erasure-sweeps-only-two-of-the-eight-models-that-hold.md) | Tenant erasure sweeps only two of the eight models that hold storage keys | DATA_INTEGRITY | MEDIUM | P2 | DEFERRED | api:tenants | DEFER |
 | [BUG-3226](../../docs/bugs/BUG-3226-custom-tenant-domains-can-be-registered-but-can-never-be-ver.md) | Custom tenant domains can be registered but can never be verified or given a certificate; the feature is inert | BUG | MEDIUM | P2 | DEFERRED | api:tenant-domains | DEFER |
-| [BUG-3227](../../docs/bugs/BUG-3227-no-access-log-and-traceid-never-reaches-an-application-log-l.md) | No access log, and traceId never reaches an application log line: a successful request leaves no trace at all | INFRA | MEDIUM | P2 | DEFERRED | services/api/src/common | DEFER |
+| [BUG-3227](../../docs/bugs/BUG-3227-no-access-log-and-traceid-never-reaches-an-application-log-l.md) | No access log, and traceId never reaches an application log line: a successful request leaves no trace at all | INFRA | MEDIUM | P2 | FIXED | services/api/src/common | DONE |
 | [BUG-3228](../../docs/bugs/BUG-3228-sanitizeforerrorlog-and-redactauditsnapshot-disagree-on-what.md) | sanitizeForErrorLog and redactAuditSnapshot disagree on what to redact, and the weaker one covers persisted query strings and route params | SECURITY | MEDIUM | P2 | DEFERRED | services/api/src/common | DEFER |
 | [BUG-3229](../../docs/bugs/BUG-3229-post-api-error-logs-client-accepts-an-unvalidated-arbitrary-.md) | POST /api/error-logs/client accepts an unvalidated arbitrary JSON body, stores it verbatim, and has no rate limit | SECURITY | MEDIUM | P2 | DEFERRED | api:error-logs | DEFER |
 | [BUG-3230](../../docs/bugs/BUG-3230-platform-admin-and-tenant-admin-login-failures-are-not-audit.md) | Platform-admin and tenant-admin login failures are not audited; only tenant-user login failures are | DATA_INTEGRITY | MEDIUM | P2 | DEFERRED | api:platform-auth, api:auth | DEFER |
@@ -526,16 +526,16 @@ see [`README.md`](README.md) for why.
 | [BUG-3498](../../docs/bugs/BUG-3498-the-employee-record-export-writes-lookup-fields-as-raw-ids.md) | The employee record export writes lookup fields as raw ids | BUG | MEDIUM | P2 | FIXED | apps/web, employees | FIX_NOW |
 | [BUG-3499](../../docs/bugs/BUG-3499-the-reporting-hierarchy-dialog-pins-a-clipped-detail-card-ha.md) | The reporting hierarchy dialog pins a clipped detail card, has no close control and cannot open a record | UX | MEDIUM | P2 | FIXED | apps/web, employees | FIX_NOW |
 | [BUG-3506](../../docs/bugs/BUG-3506-the-payslip-email-has-no-working-button-and-names-the-payrol.md) | The payslip email has no working button and names the payroll calendar as the company | BUG | MEDIUM | P2 | DEFERRED | payslips, notifications | DEFER |
-| [BUG-3547](../../docs/bugs/BUG-3547-the-platform-role-picker-offers-two-platform-owner-roles-and.md) | The platform role picker offers two Platform Owner roles and a legacy Member role | UX | MEDIUM | P2 | OPEN | apps/admin, api:platform-auth | FIX_NOW |
-| [BUG-3548](../../docs/bugs/BUG-3548-a-numeric-value-in-a-ttl-seconds-variable-issues-access-toke.md) | A numeric value in a TTL_SECONDS variable issues access tokens that expire after one second | BUG | MEDIUM | P2 | OPEN | services/api/src/common/config | FIX_NOW |
-| [BUG-3549](../../docs/bugs/BUG-3549-partner-type-individual-or-company-drives-no-behaviour-and-i.md) | Partner type Individual or Company drives no behaviour and individuals are asked for a company registration number | BUG | MEDIUM | P2 | OPEN | api:partners, api:partner-experience, apps/admin | FIX_NOW |
-| [BUG-3550](../../docs/bugs/BUG-3550-partners-can-be-created-as-duplicates-admin-create-has-no-du.md) | Partners can be created as duplicates: admin create has no duplicate check and the inquiry check ignores tax and registration numbers | DATA_INTEGRITY | MEDIUM | P2 | OPEN | api:partners, api:partner-experience | FIX_NOW |
-| [BUG-3551](../../docs/bugs/BUG-3551-partner-create-update-lifecycle-and-onboarding-review-are-no.md) | Partner create, update, lifecycle and onboarding review are not written to the audit log | SECURITY | MEDIUM | P2 | OPEN | api:partners, api:partner-experience | FIX_NOW |
-| [BUG-3552](../../docs/bugs/BUG-3552-the-agreement-template-editor-offers-every-placeholder-group.md) | The agreement template editor offers every placeholder group regardless of agreement type | BUG | MEDIUM | P2 | OPEN | api:contracts, apps/admin | FIX_NOW |
-| [BUG-3553](../../docs/bugs/BUG-3553-an-agreement-can-be-created-for-an-inactive-partner-or-an-ar.md) | An agreement can be created for an inactive partner or an archived lead or customer, and duplicate submissions create duplicate agreements | DATA_INTEGRITY | MEDIUM | P2 | OPEN | api:contracts | FIX_NOW |
-| [BUG-3555](../../docs/bugs/BUG-3555-error-log-redaction-covers-auth-secrets-only-stack-traces-an.md) | Error log redaction covers auth secrets only: stack traces and personal or financial values are stored unredacted | SECURITY | MEDIUM | P2 | OPEN | api:error-logs | FIX_NOW |
-| [BUG-3566](../../docs/bugs/BUG-3566-a-partial-partner-edit-is-rejected-because-the-update-dto-re.md) | A partial partner edit is rejected because the update DTO requires every create field | BUG | MEDIUM | P2 | OPEN | api:partners | FIX_NOW |
-| [BUG-3567](../../docs/bugs/BUG-3567-platform-administrator-sign-ins-and-failed-sign-ins-are-not-.md) | Platform administrator sign-ins and failed sign-ins are not audited | SECURITY | MEDIUM | P2 | OPEN | api:auth | FIX_NOW |
+| [BUG-3547](../../docs/bugs/BUG-3547-the-platform-role-picker-offers-two-platform-owner-roles-and.md) | The platform role picker offers two Platform Owner roles and a legacy Member role | UX | MEDIUM | P2 | FIXED | apps/admin, api:platform-auth | DONE |
+| [BUG-3548](../../docs/bugs/BUG-3548-a-numeric-value-in-a-ttl-seconds-variable-issues-access-toke.md) | A numeric value in a TTL_SECONDS variable issues access tokens that expire after one second | BUG | MEDIUM | P2 | FIXED | services/api/src/common/config | DONE |
+| [BUG-3549](../../docs/bugs/BUG-3549-partner-type-individual-or-company-drives-no-behaviour-and-i.md) | Partner type Individual or Company drives no behaviour and individuals are asked for a company registration number | BUG | MEDIUM | P2 | FIXED | api:partners, api:partner-experience, apps/admin | DONE |
+| [BUG-3550](../../docs/bugs/BUG-3550-partners-can-be-created-as-duplicates-admin-create-has-no-du.md) | Partners can be created as duplicates: admin create has no duplicate check and the inquiry check ignores tax and registration numbers | DATA_INTEGRITY | MEDIUM | P2 | FIXED | api:partners, api:partner-experience | DONE |
+| [BUG-3551](../../docs/bugs/BUG-3551-partner-create-update-lifecycle-and-onboarding-review-are-no.md) | Partner create, update, lifecycle and onboarding review are not written to the audit log | SECURITY | MEDIUM | P2 | FIXED | api:partners, api:partner-experience | DONE |
+| [BUG-3552](../../docs/bugs/BUG-3552-the-agreement-template-editor-offers-every-placeholder-group.md) | The agreement template editor offers every placeholder group regardless of agreement type | BUG | MEDIUM | P2 | FIXED | api:contracts, apps/admin | DONE |
+| [BUG-3553](../../docs/bugs/BUG-3553-an-agreement-can-be-created-for-an-inactive-partner-or-an-ar.md) | An agreement can be created for an inactive partner or an archived lead or customer, and duplicate submissions create duplicate agreements | DATA_INTEGRITY | MEDIUM | P2 | FIXED | api:contracts | DONE |
+| [BUG-3555](../../docs/bugs/BUG-3555-error-log-redaction-covers-auth-secrets-only-stack-traces-an.md) | Error log redaction covers auth secrets only: stack traces and personal or financial values are stored unredacted | SECURITY | MEDIUM | P2 | FIXED | api:error-logs | DONE |
+| [BUG-3566](../../docs/bugs/BUG-3566-a-partial-partner-edit-is-rejected-because-the-update-dto-re.md) | A partial partner edit is rejected because the update DTO requires every create field | BUG | MEDIUM | P2 | FIXED | api:partners | DONE |
+| [BUG-3567](../../docs/bugs/BUG-3567-platform-administrator-sign-ins-and-failed-sign-ins-are-not-.md) | Platform administrator sign-ins and failed sign-ins are not audited | SECURITY | MEDIUM | P2 | FIXED | api:auth | DONE |
 | [BUG-3579](../../docs/bugs/BUG-3579-an-attributed-lead-never-shows-its-referral-partner.md) | An attributed lead never shows its referral partner | UX | MEDIUM | P2 | FIXED | api:leads, apps/admin | DONE |
 | [BUG-3582](../../docs/bugs/BUG-3582-system-agreement-templates-have-no-signature-block.md) | System agreement templates have no signature block | BUG | MEDIUM | P2 | FIXED | services/api/prisma, api:contracts | DONE |
 | [BUG-3584](../../docs/bugs/BUG-3584-a-partner-agreement-never-fills-partner-placeholders-from-it.md) | A partner agreement never fills partner placeholders from its linked partner | BUG | MEDIUM | P2 | FIXED | api:contracts | DONE |
@@ -640,10 +640,10 @@ see [`README.md`](README.md) for why.
 | [ITEM-0185](../../docs/backlog/items/ITEM-0185-the-settings-shell-keeps-a-fixed-width-navigation-column-bes.md) | The settings shell keeps a fixed-width navigation column beside the content at phone width | UX | MEDIUM | P2 | DEFERRED | apps/web | DEFER |
 | [ITEM-0187](../../docs/backlog/items/ITEM-0187-custom-module-list-views-filter-only-the-loaded-page-and-the.md) | Custom-module list views filter only the loaded page and the data API has no filtering or search | FOLLOW_UP | MEDIUM | P2 | DEFERRED | apps/web, data | DEFER |
 | [ITEM-0194](../../docs/backlog/items/ITEM-0194-check-production-for-tenant-owned-copies-of-the-old-placehol.md) | Check production for tenant-owned copies of the old placeholder email templates after release | FOLLOW_UP | MEDIUM | P2 | DONE | notifications | DONE |
-| [ITEM-0197](../../docs/backlog/items/ITEM-0197-totp-multi-factor-authentication-for-tenant-and-platform-use.md) | TOTP multi-factor authentication for tenant and platform users | SECURITY | MEDIUM | P2 | READY | api:auth, apps/web, apps/admin | FIX_NOW |
-| [ITEM-0198](../../docs/backlog/items/ITEM-0198-admin-monitoring-platform-health-overview-grouped-error-fiel.md) | Admin monitoring: platform health overview, grouped error fields, module facet and incident-first layout | UX | MEDIUM | P2 | READY | apps/admin, api:error-logs, api:platform-monitoring | FIX_NOW |
-| [ITEM-0199](../../docs/backlog/items/ITEM-0199-admin-dashboard-operational-metrics-for-logins-mfa-adoption-.md) | Admin dashboard: operational metrics for logins, MFA adoption, error rate, job failures, partner funnel and agreements | UX | MEDIUM | P2 | READY | apps/admin, api:super-admin | FIX_NOW |
-| [ITEM-0200](../../docs/backlog/items/ITEM-0200-agreements-have-no-end-to-end-test-coverage-and-partners-lea.md) | Agreements have no end-to-end test coverage and partners/leads have no e2e lifecycle suite | TEST_GAP | MEDIUM | P2 | READY | api:contracts, api:partners, api:leads | FIX_NOW |
+| [ITEM-0197](../../docs/backlog/items/ITEM-0197-totp-multi-factor-authentication-for-tenant-and-platform-use.md) | TOTP multi-factor authentication for tenant and platform users | SECURITY | MEDIUM | P2 | DONE | api:auth, apps/web, apps/admin | DONE |
+| [ITEM-0198](../../docs/backlog/items/ITEM-0198-admin-monitoring-platform-health-overview-grouped-error-fiel.md) | Admin monitoring: platform health overview, grouped error fields, module facet and incident-first layout | UX | MEDIUM | P2 | DONE | apps/admin, api:error-logs, api:platform-monitoring | DONE |
+| [ITEM-0199](../../docs/backlog/items/ITEM-0199-admin-dashboard-operational-metrics-for-logins-mfa-adoption-.md) | Admin dashboard: operational metrics for logins, MFA adoption, error rate, job failures, partner funnel and agreements | UX | MEDIUM | P2 | DONE | apps/admin, api:super-admin | DONE |
+| [ITEM-0200](../../docs/backlog/items/ITEM-0200-agreements-have-no-end-to-end-test-coverage-and-partners-lea.md) | Agreements have no end-to-end test coverage and partners/leads have no e2e lifecycle suite | TEST_GAP | MEDIUM | P2 | DEFERRED | api:contracts, api:partners, api:leads | DEFER |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |
@@ -688,8 +688,8 @@ see [`README.md`](README.md) for why.
 | [BUG-3379](../../docs/bugs/BUG-3379-a-delivery-log-row-says-not-delivered-and-carries-nothing-th.md) | A delivery log row says Not delivered and carries nothing that explains why | UX | LOW | P3 | FIXED | notifications, apps/web | FIX_NOW |
 | [BUG-3412](../../docs/bugs/BUG-3412-every-widget-section-on-a-record-form-prints-its-title-twice.md) | Every widget section on a record form prints its title twice, and the profile section's two titles disagree | UX | LOW | P3 | FIXED | apps/web | FIX_NOW |
 | [BUG-3523](../../docs/bugs/BUG-3523-custom-module-page-header-shows-the-table-key-instead-of-the.md) | Custom module page header shows the table key instead of the module name | BUG | LOW | P3 | DEFERRED | apps/web | DEFER |
-| [BUG-3546](../../docs/bugs/BUG-3546-tenant-record-edit-leaves-the-operator-on-a-tab-with-nothing.md) | Tenant record Edit leaves the operator on a tab with nothing editable | UX | LOW | P3 | OPEN | apps/admin | FIX_NOW |
-| [BUG-3554](../../docs/bugs/BUG-3554-the-typed-signature-style-selector-is-cosmetic-the-chosen-st.md) | The typed-signature style selector is cosmetic: the chosen style never reaches the signed document | UX | LOW | P3 | OPEN | apps/landing, api:contracts | FIX_NOW |
+| [BUG-3546](../../docs/bugs/BUG-3546-tenant-record-edit-leaves-the-operator-on-a-tab-with-nothing.md) | Tenant record Edit leaves the operator on a tab with nothing editable | UX | LOW | P3 | FIXED | apps/admin | DONE |
+| [BUG-3554](../../docs/bugs/BUG-3554-the-typed-signature-style-selector-is-cosmetic-the-chosen-st.md) | The typed-signature style selector is cosmetic: the chosen style never reaches the signed document | UX | LOW | P3 | FIXED | apps/landing, api:contracts | DONE |
 | [BUG-3583](../../docs/bugs/BUG-3583-counterparty-placeholders-are-grouped-under-customer.md) | Counterparty placeholders are grouped under Customer | UX | LOW | P3 | FIXED | api:contracts | DONE |
 | [BUG-3586](../../docs/bugs/BUG-3586-the-monitoring-health-headline-reads-unknown-when-no-email-h.md) | The monitoring health headline reads Unknown when no email has been sent | BUG | LOW | P3 | FIXED | api:platform-monitoring | DONE |
 | [BUG-3588](../../docs/bugs/BUG-3588-a-signed-in-operator-without-the-users-permission-sees-a-log.md) | A signed-in operator without the users permission sees a login-style Access denied page | UX | LOW | P3 | DEFERRED | apps/admin | DEFER |
