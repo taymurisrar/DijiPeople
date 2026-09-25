@@ -16,6 +16,7 @@ import {
   SlidersHorizontal,
   X,
 } from "lucide-react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ProDataTable } from "@/app/_components/crm/data-table";
 import { TenantStatusBadge } from "@/app/_components/tenant-status-badge";
@@ -898,6 +899,28 @@ function IncidentDetailPanel({ log }: { log: PlatformErrorEvent }) {
                 <li key={event.id}>
                   {formatPlatformDateTime(event.createdAt, defaults)} ·{" "}
                   {event.action} ({event.entityType})
+                  {/*
+                    BUG-3564. Links to the audit trail filtered by this
+                    incident's own trace id — the same id `relatedAuditEvents`
+                    was queried by — rather than a per-record route that does
+                    not exist under `settings/monitoring` (the exact 404 shape
+                    BUG-1419 already found once in this file). Only a
+                    `platform`-scope row has anywhere to go: a `tenant`-scope
+                    row lives in that tenant's own audit trail, which this
+                    admin app has no screen for.
+                  */}
+                  {event.scope === "platform" ? (
+                    <>
+                      {" "}
+                      ·{" "}
+                      <Link
+                        className="font-semibold text-[var(--admin-primary)] underline"
+                        href={`/settings/monitoring/audit-logs?traceId=${encodeURIComponent(log.referenceNumber)}`}
+                      >
+                        View in audit trail
+                      </Link>
+                    </>
+                  ) : null}
                 </li>
               ))}
             </ul>

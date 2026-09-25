@@ -4,6 +4,9 @@ const items = [
   ["Overview", "/settings/monitoring"],
   ["Incidents / Errors", "/settings/monitoring/error-logs"],
   ["Events", "/settings/monitoring/events"],
+  // BUG-3564: PlatformAuditLog was write-only until TASK-0032 WP-10 — no
+  // screen could read what a platform action had actually done.
+  ["Audit trail", "/settings/monitoring/audit-logs"],
   ["Integrations", "/settings/monitoring/integrations"],
   // D4 discovery item 8: a real, working provisioning-stuck queue existed at
   // /operations/provisioning but was reachable only by direct URL — an
