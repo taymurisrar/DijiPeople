@@ -438,6 +438,8 @@ export const TENANT_ERASURE_DELETE_ORDER: string[] = [
   'timesheetWeek',
   'travelAllowancePolicy',
   'userInvitation',
+  // MFA recovery codes (TASK-0032, ADR-0019) point at User, so they go first.
+  'userMfaRecoveryCode',
   'userPermission',
   'userRole',
   'workScheduleDay',
