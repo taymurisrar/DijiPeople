@@ -379,7 +379,9 @@ describe('contract document domain', () => {
     ).toBe('<p>Owner: {{contract.paymentTerms}}</p>');
     expect(
       renderContractPlaceholders('<p>Owner: {{contract.paymentTerms}}</p>', {
-        'contract.paymentTerms': String({}),
+        // Same value `String({})` produces at runtime — spelled as a literal
+        // so the assertion does not itself trigger no-base-to-string.
+        'contract.paymentTerms': '[object Object]',
       }),
     ).toBe('<p>Owner: {{contract.paymentTerms}}</p>');
     // Ordinary legal prose containing the word "null" is untouched — the
@@ -427,6 +429,39 @@ describe('contract document domain', () => {
     const html = `<h1>Agreement</h1><p>Signed by:</p><img src="data:image/png;base64,${pixel.toString('base64')}" alt="Signature">`;
     const pdf = await createPdf('Agreement', html);
     expect(pdf.toString('latin1')).toContain('/Subtype /Image');
+  });
+
+  /*
+   * TASK-0032 re-verification. The test above puts the image at the top
+   * level, but an executed agreement carries it inside its signature
+   * paragraph — `<p>For X: <img …><span>…</span> — date</p>` — and that
+   * paragraph was flattened to text, so the drawn signature never reached the
+   * signed PDF or DOCX.
+   */
+  it('keeps a signature image that sits inside a paragraph, with the text on either side', async () => {
+    const pixel =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+    const html = `<h1>Agreement</h1><p>For Northstar: <img src="data:image/png;base64,${pixel}" alt="Signer signature" width="240" height="80"><span data-signature-metadata="true"><strong>Sara Mansour</strong><br>DRAWN signature</span> &mdash; 25 September 2026</p>`;
+
+    const blocks = extractAgreementDocumentStructure(html);
+    expect(blocks.map((block) => block.kind)).toEqual([
+      'paragraph',
+      'paragraph',
+      'image',
+      'paragraph',
+    ]);
+    expect(blocks[1]).toMatchObject({ text: 'For Northstar:' });
+    expect(blocks[3]).toMatchObject({
+      text: expect.stringContaining('Sara Mansour') as unknown,
+    });
+
+    const pdf = await createPdf('Agreement', html);
+    expect(pdf.toString('latin1')).toContain('/Subtype /Image');
+    const JSZip = (await import('jszip')).default;
+    const docx = await JSZip.loadAsync(await createDocx('Agreement', html));
+    expect(
+      Object.keys(docx.files).some((path) => path.startsWith('word/media/')),
+    ).toBe(true);
   });
 
   it("renders a SCRIPT-style typed signature in a standard font distinct from the document body's", async () => {

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -269,8 +270,12 @@ export class ContractsController {
     @Param('format') format: string,
     @Res({ passthrough: true }) response: Response,
   ) {
+    // A client-chosen path segment: an unknown value is a bad request, not a 500.
     if (format !== 'pdf' && format !== 'docx')
-      throw new Error('Unsupported document format.');
+      throw new BadRequestException({
+        code: 'VALIDATION_INVALID_FORMAT',
+        message: 'Documents can be generated as PDF or DOCX.',
+      });
     const generated = await this.contracts.generateDocument(user, id, format);
     response.setHeader('Content-Type', generated.document.mimeType);
     response.setHeader(

@@ -87,6 +87,8 @@ function generateHarness(input: {
   contentHtml: string;
   placeholderValues: Array<{ key: string; value: string; source: string }>;
   evidence?: unknown[];
+  /** The latest version's COMPLETED signature request, if it was signed. */
+  completedRequest?: { id: string };
 }) {
   const saveFile = jest.fn().mockResolvedValue({
     storageKey: 'contracts/doc',
@@ -114,7 +116,9 @@ function generateHarness(input: {
     signatureEvidence: {
       findMany: jest.fn().mockResolvedValue(input.evidence ?? []),
     },
-    signatureRequest: { findFirst: jest.fn().mockResolvedValue(null) },
+    signatureRequest: {
+      findFirst: jest.fn().mockResolvedValue(input.completedRequest ?? null),
+    },
     signatureEvent: { findMany: jest.fn().mockResolvedValue([]) },
     contractTimeline: { findMany: jest.fn().mockResolvedValue([]) },
     contractDocument: {
@@ -131,7 +135,7 @@ function generateHarness(input: {
     { record: jest.fn().mockResolvedValue(undefined) } as never,
     { log: jest.fn().mockResolvedValue(undefined) } as never,
   );
-  return { service };
+  return { service, prisma };
 }
 
 const draftValues = [
@@ -304,6 +308,42 @@ describe('QA agreements DEFECT-1 — the executed copy stays frozen', () => {
     expect(text).toContain('26 September 2026, 08:05 UTC');
     expect(text).not.toContain('1 October 2026');
     expect(text).not.toContain('{{');
+  });
+
+  /*
+   * TASK-0032 re-verification. "Generate document" on an executed agreement
+   * used to render from the placeholder values: the typed signer's name
+   * printed, a drawn signer's was blank, and no signature image appeared.
+   */
+  it('an operator-generated copy of a signed version also renders from the evidence', async () => {
+    const { service, prisma } = generateHarness({
+      contentHtml: frozen,
+      placeholderValues: [
+        { key: 'partner.name', value: 'Renamed Holdings', source: 'derived' },
+      ],
+      evidence,
+      completedRequest: { id: 'request-1' },
+    });
+
+    const { buffer } = await service.generateDocument(
+      platformAdmin,
+      'contract-1',
+      'pdf',
+    );
+    const text = pdfText(buffer);
+
+    expect(text).toContain('Noura Al-Salem');
+    expect(text).toContain('26 September 2026, 08:05 UTC');
+    expect(text).toContain('ELECTRONIC SIGNATURE APPENDIX');
+    expect(text).not.toContain('Renamed Holdings');
+    expect(text).not.toContain('Pending');
+    // Still an ordinary generated copy; only the completion copy is immutable.
+    const stored = (
+      prisma.contractDocument.create.mock.calls as unknown as Array<
+        [{ data: { kind: string; isImmutable: boolean } }]
+      >
+    )[0][0].data;
+    expect(stored).toMatchObject({ kind: 'GENERATED_PDF', isImmutable: false });
   });
 
   it('fills every field of one slot from the same signer', () => {

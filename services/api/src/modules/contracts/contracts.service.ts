@@ -4708,7 +4708,24 @@ export class ContractsService {
     const scope = this.contractStorageScope(contract.tenantId);
     let documentHtml = version.contentHtml;
     let documentText = '';
-    if (immutable) {
+    /*
+     * An executed agreement renders from its frozen version and signature
+     * evidence whether the copy is the one stored at completion or one an
+     * operator generates again later. Rendering the later copy from the
+     * agreement's placeholder values printed a typed signer's name, left a
+     * drawn signer's blank and dropped every signature image. Only the copy
+     * stored at completion is the immutable SIGNED_COPY.
+     */
+    const fromEvidence =
+      immutable ||
+      (await this.prisma.signatureRequest.findFirst({
+        where: {
+          contractVersionId: version.id,
+          status: SignatureRequestStatus.COMPLETED,
+        },
+        select: { id: true },
+      })) !== null;
+    if (fromEvidence) {
       const evidenceRows = await this.prisma.signatureEvidence.findMany({
         where: {
           recipient: {
@@ -4809,7 +4826,7 @@ export class ContractsService {
         documentText += `\n${event.createdAt.toISOString()} — ${event.eventType}: ${event.message}`;
       }
     }
-    if (!immutable)
+    if (!fromEvidence)
       /*
        * QA agreements DEFECT-1. The preview used to print `version.contentHtml`
        * as stored, so every pre-send PDF/DOCX showed literal
@@ -7249,13 +7266,16 @@ export function extractAgreementDocumentStructure(html: string) {
           text: nodeText(node),
           level: Number(name.slice(1)),
         });
-      else if (name === 'p')
-        blocks.push({
-          kind: 'paragraph',
-          text: nodeText(node),
-          signatureStyle: signatureStyleOf(node),
-        });
-      else if (name === 'blockquote')
+      else if (name === 'p') {
+        if (findDescendants(node, 'img').length)
+          blocks.push(...splitParagraphAroundImages(node));
+        else
+          blocks.push({
+            kind: 'paragraph',
+            text: nodeText(node),
+            signatureStyle: signatureStyleOf(node),
+          });
+      } else if (name === 'blockquote')
         blocks.push({ kind: 'paragraph', text: nodeText(node), quote: true });
       else if (name === 'ul' || name === 'ol') {
         const items = (node.children ?? []).filter(
@@ -7310,6 +7330,51 @@ export function extractAgreementDocumentStructure(html: string) {
       block.kind === 'pageBreak' ||
       block.text.trim().length > 0,
   );
+}
+
+/*
+ * An executed agreement's signature line is one paragraph —
+ * `<p>For X: <img …><span>Signer …</span> &mdash; date</p>` — because the
+ * system templates carry their signature tokens inline. Flattening that
+ * paragraph to text, as every other paragraph is, silently dropped the drawn
+ * or uploaded signature from the signed PDF and DOCX. The paragraph is split
+ * at each image instead: the text before it, the image, the text after it.
+ */
+function splitParagraphAroundImages(paragraph: AgreementHtmlNode) {
+  const blocks: AgreementBlock[] = [];
+  let pending: AgreementHtmlNode[] = [];
+  const flush = () => {
+    if (!pending.length) return;
+    const segment = { children: pending } as AgreementHtmlNode;
+    blocks.push({
+      kind: 'paragraph',
+      text: DomUtils.getText(pending as never)
+        .replace(/\s+/g, ' ')
+        .trim(),
+      signatureStyle: signatureStyleOf(segment),
+    });
+    pending = [];
+  };
+  const visit = (nodes: AgreementHtmlNode[]) => {
+    for (const node of nodes) {
+      if (node.name?.toLowerCase() === 'img') {
+        flush();
+        const image = decodeEmbeddedDocumentImage(node.attribs?.src);
+        if (image)
+          blocks.push({
+            kind: 'image',
+            data: image.data,
+            imageType: image.imageType,
+            alt: node.attribs?.alt ?? 'Electronic signature',
+          });
+      } else if (findDescendants(node, 'img').length)
+        visit(node.children ?? []);
+      else pending.push(node);
+    }
+  };
+  visit(paragraph.children ?? []);
+  flush();
+  return blocks;
 }
 
 function decodeEmbeddedDocumentImage(value: string | undefined) {
