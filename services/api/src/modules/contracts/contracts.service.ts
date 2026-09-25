@@ -6928,7 +6928,10 @@ const PDF_SIGNATURE_STYLE_FONT: Record<SignatureRenderStyle, string> = {
   FORMAL: 'Times-Roman',
 };
 
-async function createPdf(title: string, html: string, appendix = '') {
+// Exported for contracts.domain.spec.ts to assert directly against the
+// rendered PDF/DOCX bytes (BUG-3554's drawn-image and typed-style checks) —
+// not otherwise part of this module's public service surface.
+export async function createPdf(title: string, html: string, appendix = '') {
   return new Promise<Buffer>((resolve, reject) => {
     const chunks: Buffer[] = [];
     const document = new PDFDocument({
@@ -7012,7 +7015,7 @@ const DOCX_SIGNATURE_STYLE_FONT: Partial<Record<SignatureRenderStyle, string>> =
     FORMAL: 'Times New Roman',
   };
 
-async function createDocx(title: string, html: string, appendix = '') {
+export async function createDocx(title: string, html: string, appendix = '') {
   const children: Array<Paragraph | Table> = [
     new Paragraph({
       children: [new TextRun({ text: title, bold: true, size: 32 })],
