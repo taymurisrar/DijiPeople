@@ -28,7 +28,7 @@ describe('AuditService record Timeline', () => {
         },
       ]),
     } as unknown as AuditRepository;
-    const service = new AuditService(repository);
+    const service = new AuditService(repository, { getContext: () => null } as never);
 
     await expect(
       service.listRecordTimeline({
@@ -71,7 +71,7 @@ describe('AuditService record Timeline', () => {
     const repository = {
       findRecordTimeline: jest.fn().mockResolvedValue([]),
     } as unknown as AuditRepository;
-    const service = new AuditService(repository);
+    const service = new AuditService(repository, { getContext: () => null } as never);
 
     await expect(
       service.listRecordTimeline({
@@ -97,7 +97,7 @@ describe('AuditService tenant actors', () => {
       }),
       create,
     } as unknown as AuditRepository;
-    const service = new AuditService(repository);
+    const service = new AuditService(repository, { getContext: () => null } as never);
 
     await service.log({
       tenantId: 'tenant-1',
@@ -121,6 +121,101 @@ describe('AuditService tenant actors', () => {
           },
         },
       }),
+    );
+  });
+});
+
+/*
+ * BUG-3227 / REG-578. Before this fix, `requestId`/`traceId` were always
+ * whatever the caller passed — which the D4 discovery confirmed was nothing,
+ * at every one of the ~40 call sites in the codebase — so an "error detail →
+ * related audit event" join by trace id had no audit rows to find. Both
+ * assertions below fail on the pre-fix `AuditService`, which read only
+ * `input.requestId`/`input.traceId` and had no `TraceContextService` to fall
+ * back to.
+ */
+describe('AuditService trace context propagation', () => {
+  it('fills traceId/requestId from the ambient trace context for a tenant audit row', async () => {
+    const create = jest.fn().mockResolvedValue({ id: 'audit-1' });
+    const repository = { create } as unknown as AuditRepository;
+    const traceContext = { getContext: () => ({ traceId: 'req_ambient-1' }) };
+    const service = new AuditService(repository, traceContext as never);
+
+    await service.log({
+      tenantId: 'tenant-1',
+      action: 'EMPLOYEE_UPDATED',
+      entityType: 'Employee',
+      entityId: 'employee-1',
+    });
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requestId: 'req_ambient-1',
+        traceId: 'req_ambient-1',
+      }),
+    );
+  });
+
+  it('fills traceId/requestId from the ambient trace context for a platform audit row', async () => {
+    const createPlatform = jest.fn().mockResolvedValue({ id: 'platform-audit-1' });
+    const repository = { createPlatform } as unknown as AuditRepository;
+    const traceContext = { getContext: () => ({ traceId: 'req_ambient-2' }) };
+    const service = new AuditService(repository, traceContext as never);
+
+    await service.log({
+      tenantId: 'platform',
+      action: 'PLATFORM_ERROR_LOG_DOWNLOADED',
+      entityType: 'PlatformLogFile',
+      entityId: 'file-1',
+    });
+
+    expect(createPlatform).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requestId: 'req_ambient-2',
+        traceId: 'req_ambient-2',
+      }),
+    );
+  });
+
+  it('never overrides a traceId/requestId the caller explicitly provided', async () => {
+    const create = jest.fn().mockResolvedValue({ id: 'audit-1' });
+    const repository = { create } as unknown as AuditRepository;
+    const traceContext = { getContext: () => ({ traceId: 'req_ambient-3' }) };
+    const service = new AuditService(repository, traceContext as never);
+
+    await service.log({
+      tenantId: 'tenant-1',
+      action: 'EMPLOYEE_UPDATED',
+      entityType: 'Employee',
+      entityId: 'employee-1',
+      requestId: 'req_explicit',
+      traceId: 'req_explicit',
+    });
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requestId: 'req_explicit',
+        traceId: 'req_explicit',
+      }),
+    );
+  });
+
+  it('leaves requestId/traceId null outside any request (no ambient context)', async () => {
+    const create = jest.fn().mockResolvedValue({ id: 'audit-1' });
+    const repository = { create } as unknown as AuditRepository;
+    const service = new AuditService(repository, {
+      getContext: () => null,
+    } as never);
+
+    await service.log({
+      tenantId: 'tenant-1',
+      action: 'EMPLOYEE_UPDATED',
+      entityType: 'Employee',
+      entityId: 'employee-1',
+    });
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ requestId: null, traceId: null }),
     );
   });
 });

@@ -12,6 +12,7 @@ import type { AuthenticatedUser } from '../../common/interfaces/authenticated-re
 import { userHasPlatformPermission } from '../platform-auth/platform-permissions';
 import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { redactSecretsInText } from '../../common/errors/sanitize-error-log';
 import { NOT_AN_INCIDENT } from '../error-logs/expected-protocol-outcome';
 
 const LOG_FILE_PATTERN =
@@ -46,6 +47,13 @@ export class PlatformMonitoringService {
         query.reference
           ? { traceId: { contains: query.reference, mode: 'insensitive' } }
           : {},
+        /*
+         * Exact match, distinct from `reference` above. An operator who has
+         * been handed a full trace id — from a "Reference: req_…" toast, a log
+         * line, or another incident's "related" list — wants exactly that
+         * request, not every id containing it as a substring.
+         */
+        query.correlationId ? { traceId: query.correlationId } : {},
         query.sourceApp ? { sourceApp: query.sourceApp } : {},
         query.environment ? { environment: query.environment } : {},
         query.tenantId && query.tenantId !== 'platform'
@@ -72,6 +80,7 @@ export class PlatformMonitoringService {
         query.category
           ? { errorCode: { contains: query.category, mode: 'insensitive' } }
           : {},
+        query.module ? { module: query.module } : {},
         query.route
           ? { path: { contains: query.route, mode: 'insensitive' } }
           : {},
@@ -165,7 +174,13 @@ export class PlatformMonitoringService {
     if (!log) {
       throw new NotFoundException('Error event was not found.');
     }
-    const [event] = await this.enrichEvents([log]);
+    const [event, relatedOccurrences, relatedAuditEvents, relatedOutboxEvents] =
+      await Promise.all([
+        this.enrichEvents([log]).then(([item]) => item),
+        this.findRelatedOccurrences(log.id, log.traceId),
+        this.findRelatedAuditEvents(log.traceId),
+        this.findRelatedOutboxEvents(log.traceId),
+      ]);
     return {
       ...event,
       fullMessage: log.message,
@@ -173,6 +188,7 @@ export class PlatformMonitoringService {
       stack: log.stack,
       cause: log.cause,
       details: log.details,
+      module: log.module,
       request: {
         method: log.method,
         path: log.path,
@@ -189,7 +205,105 @@ export class PlatformMonitoringService {
         businessUnitId: log.businessUnitId,
         platformActor: readPlatformActor(log.details),
       },
+      /*
+       * BUG-3227's payoff: once AuditService fills traceId from ambient
+       * context, an incident here can be joined straight back to the audit
+       * rows the same request wrote — the "what did this request actually do"
+       * question a raw stack trace cannot answer on its own.
+       */
+      relatedOccurrences,
+      relatedAuditEvents,
+      relatedOutboxEvents,
     };
+  }
+
+  /** Other recent occurrences of the same incident (same fingerprint), for "is this recurring". */
+  private async findRelatedOccurrences(incidentId: string, ownTraceId: string) {
+    const occurrences = await this.prisma.errorLogOccurrence.findMany({
+      where: { incidentId, traceId: { not: ownTraceId } },
+      orderBy: { occurredAt: 'desc' },
+      take: 10,
+      select: { traceId: true, occurredAt: true },
+    });
+    return occurrences.map((occurrence) => ({
+      traceId: occurrence.traceId,
+      occurredAt: occurrence.occurredAt,
+    }));
+  }
+
+  /**
+   * Audit rows this exact request wrote, tenant or platform. Both tables are
+   * queried because a caller's own tenant is not known until the log row is
+   * read, and a platform-scope request can still act on a tenant (a platform
+   * admin editing a customer's record writes a *tenant* audit row carrying the
+   * platform actor in `scope`, not a platform audit row).
+   */
+  private async findRelatedAuditEvents(traceId: string) {
+    const [tenantRows, platformRows] = await Promise.all([
+      this.prisma.auditLog.findMany({
+        where: { traceId },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+        select: {
+          id: true,
+          action: true,
+          entityType: true,
+          entityId: true,
+          sourceModule: true,
+          createdAt: true,
+          tenantId: true,
+        },
+      }),
+      this.prisma.platformAuditLog.findMany({
+        where: { traceId },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+        select: {
+          id: true,
+          action: true,
+          entityType: true,
+          entityId: true,
+          sourceModule: true,
+          createdAt: true,
+        },
+      }),
+    ]);
+
+    return [
+      ...tenantRows.map((row) => ({ ...row, scope: 'tenant' as const })),
+      ...platformRows.map((row) => ({
+        ...row,
+        tenantId: null,
+        scope: 'platform' as const,
+      })),
+    ]
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, 20);
+  }
+
+  /** Outbox jobs threaded through the same correlation id, for "did this come from a job". */
+  private async findRelatedOutboxEvents(traceId: string) {
+    const events = await this.prisma.outboxEvent.findMany({
+      where: { correlationId: traceId },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+      select: {
+        id: true,
+        eventType: true,
+        status: true,
+        attemptCount: true,
+        lastError: true,
+        createdAt: true,
+      },
+    });
+    // `lastError` is a raw driver/handler message, never run through
+    // `ErrorLog`'s sanitizer — the same free-text redaction applies here.
+    return events.map((eventRow) => ({
+      ...eventRow,
+      lastError: eventRow.lastError
+        ? redactSecretsInText(eventRow.lastError)
+        : eventRow.lastError,
+    }));
   }
 
   async updateEvent(
@@ -393,6 +507,7 @@ export class PlatformMonitoringService {
       message: string;
       method: string | null;
       path: string | null;
+      module?: string | null;
       tenantId: string | null;
       userId: string | null;
       createdAt: Date;
@@ -510,6 +625,7 @@ export class PlatformMonitoringService {
               : null,
         route: log.path,
         method: log.method,
+        module: log.module ?? null,
         category: log.errorCode,
         message: log.message,
         status: log.supportStatus ?? 'NEW',

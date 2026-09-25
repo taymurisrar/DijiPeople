@@ -31,6 +31,11 @@ export type PersistErrorLogInput = {
   stack?: string;
   cause?: unknown;
   details?: unknown;
+  /*
+   * The API module the failing route belongs to (see `derive-error-module.ts`).
+   * Null for client-reported errors, which have no API route of their own.
+   */
+  module?: string | null;
   method?: string;
   path?: string;
   params?: unknown;
@@ -89,6 +94,7 @@ export class ErrorLogsService implements OnModuleInit, OnModuleDestroy {
         input.clientReported || config.includeStack ? input.stack : undefined,
       cause: input.cause,
       details: input.details,
+      module: input.module ?? null,
       method: input.method,
       path: input.path,
       params: input.params,
@@ -126,6 +132,9 @@ export class ErrorLogsService implements OnModuleInit, OnModuleDestroy {
                 stack: data.stack,
                 cause: data.cause as Prisma.InputJsonValue | undefined,
                 details: data.details as Prisma.InputJsonValue | undefined,
+                // Backfills rows created before TASK-0032 WP-06 (module was
+                // always null) the next time that same incident recurs.
+                module: data.module ?? existing.module,
               },
             })
           : await tx.errorLog.create({

@@ -14,6 +14,7 @@ import { ErrorLogsService } from '../../modules/error-logs/error-logs.service';
 import { AppError, isErrorCode } from '../errors/app-error';
 import { ErrorCode, getErrorCatalogEntry } from '../errors/error-catalog';
 import { getErrorFrameworkConfig } from '../errors/error-config';
+import { deriveErrorModule } from '../errors/derive-error-module';
 import { sanitizeForErrorLog } from '../errors/sanitize-error-log';
 import type { AuthenticatedUser } from '../interfaces/authenticated-request.interface';
 import type { RequestWithId } from '../middleware/request-id.middleware';
@@ -131,6 +132,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       stack: normalized.stack,
       cause: normalized.cause,
       details,
+      module: deriveErrorModule(request.originalUrl ?? request.url),
       method: request.method,
       path: request.originalUrl ?? request.url,
       params: request.params,

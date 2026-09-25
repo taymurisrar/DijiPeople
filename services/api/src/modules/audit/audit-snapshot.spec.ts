@@ -130,7 +130,7 @@ describe('audit snapshot redaction', () => {
       create,
     } as unknown as AuditRepository;
 
-    await new AuditService(repository).log({
+    await new AuditService(repository, { getContext: () => null } as never).log({
       tenantId: 'tenant-1',
       actorUserId: 'user-1',
       action: 'EMPLOYEE_UPDATED',
