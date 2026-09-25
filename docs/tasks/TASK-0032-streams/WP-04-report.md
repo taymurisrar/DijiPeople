@@ -267,7 +267,7 @@ fix and re-running, then restoring):
 | REG-559 (admin lead partner selector UX) | `9f3c3dd5` | Covered indirectly by the endpoint's own specs; verified by `check-types` | N/A — frontend wiring, no dedicated component harness in this repo |
 | **BUG-3566 / WP-08 finding 3** (`UpdatePartnerDto` never partial) | `eb172564` | `partners/dto/partner-update-partial.spec.ts`, `partners-partial-update.spec.ts` | Yes — verified by temporary revert (3/6 DTO cases fail) |
 
-Full regression entries (REG-550..559, plus REG-560 pending Architect
+Full regression entries (REG-550..559, plus REG-601 allocated by the Architect
 allocation): `docs/qa/regressions/_incoming/wp04.md`.
 
 ## VALIDATION
