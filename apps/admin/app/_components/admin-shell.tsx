@@ -4,6 +4,11 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { AdminSidebar } from "./admin-sidebar";
 import { AdminTopbar } from "./admin-topbar";
 import { usePlatformDefaults } from "./platform-defaults-provider";
+import {
+  backgroundRequestInit,
+  isSessionHeartbeat,
+  SESSION_HEARTBEAT_PATH,
+} from "@/lib/background-request";
 import type { PlatformRole } from "@/lib/platform-rbac";
 
 type AdminShellProps = {
@@ -39,10 +44,16 @@ export function AdminShell({
       const response = await originalFetch(...args);
       const url = resolveRequestUrl(args[0]);
 
+      /*
+       * The heartbeat lives under /api/auth/ but is an ordinary authenticated
+       * call, not a sign-in step, so its 401 takes the same refresh-or-expire
+       * path as any other. It is marked background, so the error dialog never
+       * handles it — this is the only place its 401 is answered (BUG-3545).
+       */
       if (
         response.status === 401 &&
         isInternalApiRequest(url) &&
-        !isAuthApiRequest(url)
+        (!isAuthApiRequest(url) || isSessionHeartbeat(url))
       ) {
         if (!rememberSession) {
           window.location.assign(sessionExpiredLoginUrl());
@@ -74,8 +85,13 @@ export function AdminShell({
       if (now - lastActivitySyncAt.current < 60_000) return;
 
       lastActivitySyncAt.current = now;
+      // Background: a failed heartbeat must never open the error dialog
+      // (BUG-3545). A 401 still reaches the session handling above.
       void window
-        .fetch("/api/auth/activity", { method: "POST" })
+        .fetch(
+          SESSION_HEARTBEAT_PATH,
+          backgroundRequestInit({ method: "POST" }),
+        )
         .catch(() => undefined);
     };
 

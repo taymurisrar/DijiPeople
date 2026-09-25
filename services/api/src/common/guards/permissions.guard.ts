@@ -3,8 +3,10 @@ import {
   ExecutionContext,
   ForbiddenException,
   Injectable,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { AUTHENTICATION_ONLY_KEY } from '../decorators/authentication-only.decorator';
 import {
   REQUIRED_PERMISSIONS_KEY,
   REQUIRED_RBAC_PERMISSIONS_KEY,
@@ -18,6 +20,25 @@ export class PermissionsGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
+    /*
+     * ADR-0018: a self-scoped handler needs a session and nothing more, for
+     * tenant and platform subjects alike. Read first and explicitly, so a
+     * permission declared on the controller later cannot silently re-apply to
+     * it through `getAllAndOverride`. The session itself is JwtAuthGuard's job,
+     * which runs before this guard; the user check is defence in depth.
+     */
+    if (
+      this.reflector.getAllAndOverride<boolean>(AUTHENTICATION_ONLY_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ])
+    ) {
+      if (!context.switchToHttp().getRequest<AuthenticatedRequest>().user) {
+        throw new UnauthorizedException();
+      }
+      return true;
+    }
+
     const requiredPermissions =
       this.reflector.getAllAndOverride<string[]>(REQUIRED_PERMISSIONS_KEY, [
         context.getHandler(),
