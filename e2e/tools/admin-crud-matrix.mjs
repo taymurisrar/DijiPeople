@@ -289,7 +289,16 @@ function partnerFixture(suffix = "") {
   };
 }
 
-function customerFixture(suffix = "") {
+/*
+ * `planId` is optional: a customer without it can still be created and
+ * edited, it just cannot pass `assertOnboardingCreatable`'s prerequisite
+ * check (`getOnboardingPrerequisites` requires industry, companySize,
+ * selectedPlanId and preferredBillingCycle all set before an onboarding
+ * record can be created under it) — see `main()`, which fetches a real plan
+ * id up front specifically so the customer-onboarding fixture chain can
+ * clear that gate.
+ */
+function customerFixture(suffix = "", planId = null) {
   return {
     companyName: `${RUN_TAG} Customer ${suffix}`.trim(),
     primaryContactFirstName: "Harness",
@@ -300,6 +309,10 @@ function customerFixture(suffix = "") {
     // `services/api/src/modules/super-admin/dto/customer-lifecycle.dto.ts` —
     // omitting it 400s with a message naming a field this fixture never sent.
     country: "United Arab Emirates",
+    industry: "Technology",
+    companySize: "11-50",
+    preferredBillingCycle: "MONTHLY",
+    ...(planId ? { selectedPlanId: planId } : {}),
   };
 }
 
@@ -694,6 +707,15 @@ async function main() {
     await checkMalformedAndMissingId(admin, moduleKey);
   }
 
+  // A real plan id, so the customer fixture can clear
+  // `assertOnboardingCreatable`'s prerequisite check (it requires
+  // `selectedPlanId` to be set, among other customer fields).
+  const plansList = await admin(`/platform-runtime/plans?pageSize=1`);
+  const samplePlanId =
+    (plansList.status === 200 &&
+      (plansList.body?.items?.[0]?.id ?? plansList.body?.items?.[0]?.item?.id)) ||
+    null;
+
   // ---- create/edit/delete happy path for the six create-capable modules ----
   let createdCustomerId = null;
   for (const moduleKey of MODULE_KEYS) {
@@ -701,9 +723,15 @@ async function main() {
       await checkCreateRefused(admin, moduleKey);
       continue;
     }
-    await runCreateCapableModule(admin, moduleKey, () => createdCustomerId, (id) => {
-      createdCustomerId = id;
-    });
+    await runCreateCapableModule(
+      admin,
+      moduleKey,
+      () => createdCustomerId,
+      (id) => {
+        createdCustomerId = id;
+      },
+      samplePlanId,
+    );
   }
 
   // ---- update/delete refusal for every module the runtime does not allow it on ----
@@ -736,7 +764,13 @@ async function main() {
   render();
 }
 
-async function runCreateCapableModule(fetcher, moduleKey, getCustomerId, setCustomerId) {
+async function runCreateCapableModule(
+  fetcher,
+  moduleKey,
+  getCustomerId,
+  setCustomerId,
+  samplePlanId,
+) {
   const fixture = FIXTURES[moduleKey];
   let payload;
   if (moduleKey === "customer-onboarding") {
@@ -753,6 +787,8 @@ async function runCreateCapableModule(fetcher, moduleKey, getCustomerId, setCust
       return;
     }
     payload = onboardingFixture(customerId, "a");
+  } else if (moduleKey === "customers") {
+    payload = fixture("a", samplePlanId);
   } else {
     payload = fixture("a");
   }
@@ -904,7 +940,11 @@ function editFixtureFor(moduleKey) {
     case "customers":
       return { industry: "Software" };
     case "customer-onboarding":
-      return { subStatus: "harness-touch" };
+      // Not `subStatus` — its allowed values depend on the record's current
+      // `status` (`assertCustomerOnboardingSubStatus`), so an arbitrary
+      // string 400s regardless of PATCH partiality. `agreedPrice` has no such
+      // cross-field rule.
+      return { agreedPrice: 150 };
     case "contracts":
       return { paymentTerms: "Net 30" };
     case "support-cases":
@@ -933,6 +973,12 @@ function invalidEditFor(moduleKey) {
   }
 }
 
+/*
+ * By the time this runs, `runCreateCapableModule` has already created one
+ * onboarding record for `customerId` (the happy-path create for
+ * customer-onboarding) — so a single further create attempt for the same
+ * customer is already the duplicate case; no need to create a first one here.
+ */
 async function checkDuplicateOnboarding(fetcher, customerId) {
   if (!customerId) {
     recordFinding(
@@ -942,23 +988,6 @@ async function checkDuplicateOnboarding(fetcher, customerId) {
     );
     return;
   }
-  const first = await fetcher(`/platform-runtime/customer-onboarding`, {
-    method: "POST",
-    body: JSON.stringify({ values: onboardingFixture(customerId, "dup1") }),
-  });
-  if (first.status !== 200 && first.status !== 201) {
-    recordFinding(
-      "INFO",
-      "customer-onboarding: duplicate-create probe skipped",
-      `first onboarding create failed: ${first.status}`,
-    );
-    return;
-  }
-  createdRecords.push({
-    moduleKey: "customer-onboarding",
-    id: first.body?.item?.id,
-    parentCustomerId: customerId,
-  });
   const second = await fetcher(`/platform-runtime/customer-onboarding`, {
     method: "POST",
     body: JSON.stringify({ values: onboardingFixture(customerId, "dup2") }),
