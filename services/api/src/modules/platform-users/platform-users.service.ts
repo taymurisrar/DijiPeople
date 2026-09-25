@@ -16,7 +16,11 @@ import {
 import { UpdatePlatformPreferencesDto } from './dto/platform-preferences.dto';
 import { UpdatePlatformModulePreferenceDto } from './dto/platform-module-preference.dto';
 import { ChangePlatformPasswordDto } from './dto/platform-password.dto';
-import { platformAccessForRole } from '../platform-auth/platform-permissions';
+import {
+  NON_ASSIGNABLE_PLATFORM_ROLES,
+  platformAccessForRole,
+  userHasPlatformPermission,
+} from '../platform-auth/platform-permissions';
 import { resolveRuntimeField } from '@repo/config';
 
 @Injectable()
@@ -77,6 +81,7 @@ export class PlatformUsersService {
 
   async create(actor: AuthenticatedUser, dto: CreatePlatformUserDto) {
     this.assertCanManage(actor);
+    this.assertAssignableRole(dto.role);
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const user = await this.prisma.platformUser.create({
@@ -461,6 +466,10 @@ export class PlatformUsersService {
       throw new NotFoundException('Platform user was not found.');
     }
 
+    if (dto.role !== undefined && dto.role !== existing.role) {
+      this.assertAssignableRole(dto.role);
+    }
+
     await this.assertSuperAdminInvariant(actor, existing.id, dto);
 
     const updated = await this.prisma.platformUser.update({
@@ -542,16 +551,33 @@ export class PlatformUsersService {
     return disabled;
   }
 
+  /*
+   * ADR-0018: managing platform users is the `platform-users.manage` platform
+   * permission, which only `platform.*` holds (SUPER_ADMIN, and the
+   * PLATFORM_OWNER alias) — the same two roles the role-literal comparison here
+   * admitted, now decided by the permission model every other platform path
+   * uses. `assertSuperAdminInvariant` still runs for every holder, SUPER_ADMIN
+   * included: the widest permission set is not a bypass.
+   */
   private assertCanManage(actor: AuthenticatedUser) {
     this.assertPlatformUser(actor);
-    if (
-      actor.platform?.role !== PlatformUserRole.SUPER_ADMIN &&
-      actor.platform?.role !== PlatformUserRole.PLATFORM_OWNER
-    ) {
+    if (!userHasPlatformPermission(actor, 'platform-users.manage')) {
       throw new ForbiddenException(
         'Only platform Super Admins can manage platform users.',
       );
     }
+  }
+
+  /** BUG-3547: PLATFORM_OWNER and MEMBER are not given to anyone new. */
+  private assertAssignableRole(role: PlatformUserRole) {
+    if (!NON_ASSIGNABLE_PLATFORM_ROLES.has(role)) return;
+    throw new BadRequestException({
+      code: 'PLATFORM_ROLE_NOT_ASSIGNABLE',
+      message:
+        role === PlatformUserRole.PLATFORM_OWNER
+          ? 'Platform Owner can no longer be assigned. Assign Platform Super Admin, which has the same access.'
+          : 'Legacy Member can no longer be assigned. Choose Platform Admin, Platform Operations or a functional role.',
+    });
   }
 
   private assertPlatformUser(actor: AuthenticatedUser) {

@@ -337,9 +337,9 @@ function canShowNavItem(
   permissionKeys: string[],
 ) {
   /*
-   * PLATFORM_OWNER is the current name for owner-level access; SUPER_ADMIN is
-   * its legacy alias. Listing only the legacy one hid navigation from the very
-   * role that is meant to see everything.
+   * SUPER_ADMIN is the top role; PLATFORM_OWNER is its retired alias
+   * (ADR-0018), kept so an unmigrated account still sees everything. Listing
+   * only one of them once hid navigation from the other.
    */
   if (
     roleKeys.includes("PLATFORM_OWNER") ||

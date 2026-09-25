@@ -11,8 +11,9 @@ import {
   type ProDataTableColumn,
 } from "@/app/_components/crm/data-table";
 import {
+  DEFAULT_NEW_PLATFORM_ROLE,
   formatPlatformRole,
-  PLATFORM_ROLES,
+  platformRoleOptions,
   type PlatformRole,
 } from "@/lib/platform-rbac";
 
@@ -42,7 +43,7 @@ const emptyForm: FormState = {
   firstName: "",
   lastName: "",
   password: "",
-  role: "MEMBER",
+  role: DEFAULT_NEW_PLATFORM_ROLE,
   status: "ACTIVE",
 };
 
@@ -345,10 +346,7 @@ export function SettingsUsersClient({
             <SelectField
               label="Platform role"
               onChange={(value) => updateForm("role", value as PlatformRole)}
-              options={PLATFORM_ROLES.map((role) => ({
-                label: formatPlatformRole(role),
-                value: role,
-              }))}
+              options={platformRoleOptions(editingUser?.role)}
               value={form.role}
             />
             <SelectField

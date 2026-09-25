@@ -105,6 +105,20 @@ const LEGACY_MEMBER_PERMISSIONS: PlatformPermission[] = [
   'plans.read',
 ];
 
+/**
+ * Roles nobody may be newly given (ADR-0018, BUG-3547).
+ *
+ * PLATFORM_OWNER duplicated SUPER_ADMIN exactly; its holders were migrated to
+ * SUPER_ADMIN (WP-01) and it stays in the enum, and in ROLE_PERMISSIONS below,
+ * only as an alias until a contract step. MEMBER is the pre-role-expansion
+ * catch-all; existing MEMBER accounts keep their access unchanged, but the
+ * population must not grow. `PlatformUsersService` refuses a create, or a role
+ * change, to either with a 400. Keeping an account's existing role is not a new
+ * assignment and is allowed.
+ */
+export const NON_ASSIGNABLE_PLATFORM_ROLES: ReadonlySet<PlatformUserRole> =
+  new Set([PlatformUserRole.PLATFORM_OWNER, PlatformUserRole.MEMBER]);
+
 const ROLE_PERMISSIONS: Record<PlatformUserRole, string[]> = {
   SUPER_ADMIN: ['platform.*'],
   PLATFORM_OWNER: ['platform.*'],
