@@ -1,13 +1,17 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { canonicalAuditAction } from '../../common/constants/audit-actions';
+import { TraceContextService } from '../../common/request-context/trace-context.service';
 import { AuditRepository } from './audit.repository';
 import { redactAuditSnapshot } from './audit-snapshot';
 import { AuditLogQueryDto } from './dto/audit-log-query.dto';
 
 @Injectable()
 export class AuditService {
-  constructor(private readonly auditRepository: AuditRepository) {}
+  constructor(
+    private readonly auditRepository: AuditRepository,
+    private readonly traceContext: TraceContextService,
+  ) {}
 
   async log(
     input: {
@@ -27,14 +31,28 @@ export class AuditService {
     },
     db?: Prisma.TransactionClient,
   ) {
+    /*
+     * BUG-3227. Every call site up to now either passed `requestId`/`traceId`
+     * explicitly (none did, per the D4 discovery) or left both `null` — the
+     * columns exist and are indexed but were never populated, so an error
+     * detail view could never join back to the audit trail by trace id. Ambient
+     * context is the fallback here rather than a required parameter so the ~40
+     * existing call sites do not all need editing to benefit; a caller that
+     * *does* pass its own value (a job replaying a past request's trace id, for
+     * example) is never overridden.
+     */
+    const ambientTraceId = this.traceContext.getContext()?.traceId ?? null;
+    const requestId = input.requestId ?? ambientTraceId;
+    const traceId = input.traceId ?? ambientTraceId;
+
     if (input.tenantId === 'platform') {
       const data = {
         platformActorUserId: input.actorUserId ?? null,
         action: input.action,
         entityType: input.entityType,
         entityId: input.entityId,
-        requestId: input.requestId ?? null,
-        traceId: input.traceId ?? null,
+        requestId,
+        traceId,
         sourceModule: input.sourceModule ?? null,
         scope: normalizeSnapshot(input.scope),
         beforeSnapshot: normalizeSnapshot(input.beforeSnapshot),
@@ -62,8 +80,8 @@ export class AuditService {
       action: input.action,
       entityType: input.entityType,
       entityId: input.entityId,
-      requestId: input.requestId ?? null,
-      traceId: input.traceId ?? null,
+      requestId,
+      traceId,
       sourceModule: input.sourceModule ?? null,
       scope: mergeAuditScope(normalizedScope, actorContext.platformActor),
       beforeSnapshot: normalizeSnapshot(input.beforeSnapshot),

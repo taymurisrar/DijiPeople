@@ -525,6 +525,10 @@ describe('permission wiring invariants', () => {
       // storage dependency rather than about any tenant's data, and it returns
       // no bucket name, object key or credential.
       'StorageReadinessController',
+      // Same pattern again (TASK-0032 WP-06): platform identity + `monitoring.read`
+      // checked in the handler, not via PermissionsGuard — this answers "is the
+      // platform healthy", not a question about tenant data.
+      'PlatformHealthController',
       'PlatformRuntimeController',
       'PlatformUsersController',
       'SupportCasesController',

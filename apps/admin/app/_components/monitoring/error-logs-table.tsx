@@ -51,6 +51,7 @@ export type PlatformErrorEvent = {
   } | null;
   route: string | null;
   method: string | null;
+  module: string | null;
   category: string;
   message: string;
   status: string;
@@ -62,6 +63,12 @@ export type PlatformErrorEvent = {
   updatedAt: string;
   statusCode: number;
   environment: string;
+  // TASK-0032 WP-06: the grouping data `ErrorLog` already computed
+  // (fingerprint dedup + first/last seen) but this table never rendered.
+  fingerprint: string | null;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  occurrenceCount: number;
 };
 
 export type SupportOwnerOption = {
@@ -130,6 +137,8 @@ export function ErrorLogsTable({
       tenantId: searchParams.get("tenantId") ?? "",
       userId: searchParams.get("userId") ?? "",
       category: searchParams.get("category") ?? "",
+      module: searchParams.get("module") ?? "",
+      correlationId: searchParams.get("correlationId") ?? "",
       route: searchParams.get("route") ?? "",
       method: searchParams.get("method") ?? "",
       from: searchParams.get("from") ?? "",
@@ -476,6 +485,18 @@ export function ErrorLogsTable({
                 placeholder="VALIDATION_FAILED"
                 onChange={(value) => updateQuery({ category: value })}
               />
+              <FilterInput
+                label="Module"
+                value={filters.module}
+                placeholder="contracts, platform/tenants, …"
+                onChange={(value) => updateQuery({ module: value })}
+              />
+              <FilterInput
+                label="Correlation ID"
+                value={filters.correlationId}
+                placeholder="req_… (exact match)"
+                onChange={(value) => updateQuery({ correlationId: value })}
+              />
               <FilterSelect
                 label="Environment"
                 value={filters.environment}
@@ -573,11 +594,25 @@ export function ErrorLogsTable({
                   mono
                 />
                 <Detail label="Route" value={log.route ?? "Unknown"} mono />
+                <Detail label="Module" value={log.module ?? "Unknown"} mono />
                 <Detail label="Category" value={log.category} mono />
+                <Detail
+                  label="Occurrences"
+                  value={`${log.occurrenceCount}x`}
+                />
+                <Detail
+                  label="First seen"
+                  value={formatPlatformDateTime(log.firstSeenAt, defaults)}
+                />
+                <Detail
+                  label="Last seen"
+                  value={formatPlatformDateTime(log.lastSeenAt, defaults)}
+                />
                 <div className="md:col-span-2">
                   <Detail label="Sanitized message" value={log.message} />
                 </div>
               </div>
+              <IncidentDetailPanel key={log.referenceNumber} log={log} />
               <SupportCaseEditor log={log} assignees={assignees} />
             </div>
           )}
@@ -671,6 +706,34 @@ export function ErrorLogsTable({
               ),
             },
             {
+              key: "module",
+              header: "Module",
+              width: 150,
+              minWidth: 150,
+              maxWidth: 150,
+              render: (log) => (
+                <span className="block max-w-[135px] truncate text-xs text-slate-600">
+                  {log.module ?? "Unknown"}
+                </span>
+              ),
+            },
+            {
+              key: "occurrences",
+              header: "Occurrences",
+              width: 150,
+              minWidth: 150,
+              render: (log) => (
+                <div className="text-xs">
+                  <p className="font-semibold text-slate-800">
+                    {log.occurrenceCount}x
+                  </p>
+                  <p className="text-slate-500">
+                    since {formatPlatformDateTime(log.firstSeenAt, defaults)}
+                  </p>
+                </div>
+              ),
+            },
+            {
               key: "status",
               header: "Support status",
               width: 165,
@@ -680,6 +743,187 @@ export function ErrorLogsTable({
           ]}
         />
       </section>
+    </div>
+  );
+}
+
+type IncidentDetail = {
+  module: string | null;
+  stack: string | null;
+  request: {
+    method: string | null;
+    path: string | null;
+    query: unknown;
+    ipAddress: string | null;
+  };
+  client: { userAgent: string | null };
+  relatedOccurrences: Array<{ traceId: string; occurredAt: string }>;
+  relatedAuditEvents: Array<{
+    id: string;
+    action: string;
+    entityType: string;
+    entityId: string;
+    sourceModule: string | null;
+    createdAt: string;
+    scope: "tenant" | "platform";
+  }>;
+  relatedOutboxEvents: Array<{
+    id: string;
+    eventType: string;
+    status: string;
+    attemptCount: number;
+    lastError: string | null;
+    createdAt: string;
+  }>;
+};
+
+/**
+ * TASK-0032 WP-06 — the investigation detail the D4 discovery found missing:
+ * `getEvent()` on the API already returns the sanitized stack, request
+ * metadata and (BUG-3227) the audit rows and outbox jobs that share this
+ * request's trace id, but nothing in this table rendered any of it. Fetched
+ * lazily on expand rather than folded into the list response, because the
+ * list is polled every 30s on auto-refresh and the detail payload (stack,
+ * related rows) is not something every row needs on every poll.
+ */
+function IncidentDetailPanel({ log }: { log: PlatformErrorEvent }) {
+  const { defaults } = usePlatformDefaults();
+  const [state, setState] = useState<
+    | { status: "loading" }
+    | { status: "error"; message: string }
+    | { status: "ready"; detail: IncidentDetail }
+  >({ status: "loading" });
+
+  useEffect(() => {
+    // `key={log.referenceNumber}` at the call site remounts this component
+    // fresh for each row, so the initial "loading" state above already covers
+    // the reset — no synchronous setState is needed here.
+    let cancelled = false;
+
+    fetch(`/api/platform/logs/events/${encodeURIComponent(log.referenceNumber)}`)
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`Request failed (${response.status}).`);
+        }
+        return (await response.json()) as IncidentDetail;
+      })
+      .then((detail) => {
+        if (!cancelled) setState({ status: "ready", detail });
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setState({
+            status: "error",
+            message:
+              error instanceof Error
+                ? error.message
+                : "Unable to load incident detail.",
+          });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [log.referenceNumber]);
+
+  if (state.status === "loading") {
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-500">
+        Loading investigation detail…
+      </div>
+    );
+  }
+
+  if (state.status === "error") {
+    return (
+      <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+        {state.message}
+      </div>
+    );
+  }
+
+  const { detail } = state;
+
+  return (
+    <div className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 text-sm lg:grid-cols-2">
+      <div className="space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+          Stack trace
+        </p>
+        <pre className="max-h-56 overflow-auto rounded-xl bg-slate-950 p-3 text-[11px] leading-relaxed text-slate-100">
+          {detail.stack ?? "No stack trace was captured for this incident."}
+        </pre>
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+          Request
+        </p>
+        <p className="font-mono text-xs text-slate-700">
+          {detail.request.method ?? "CLIENT"} {detail.request.path ?? "Unknown"}
+        </p>
+        <p className="text-xs text-slate-500">
+          User agent: {detail.client.userAgent ?? "Unknown"}
+        </p>
+      </div>
+      <div className="space-y-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Recurring occurrences
+          </p>
+          {detail.relatedOccurrences.length === 0 ? (
+            <p className="text-xs text-slate-500">
+              No other occurrences of this incident.
+            </p>
+          ) : (
+            <ul className="mt-1 space-y-1 text-xs">
+              {detail.relatedOccurrences.map((occurrence) => (
+                <li key={occurrence.traceId} className="font-mono text-slate-600">
+                  {formatPlatformDateTime(occurrence.occurredAt, defaults)} ·{" "}
+                  {occurrence.traceId}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Related audit events
+          </p>
+          {detail.relatedAuditEvents.length === 0 ? (
+            <p className="text-xs text-slate-500">
+              No audit rows share this correlation id.
+            </p>
+          ) : (
+            <ul className="mt-1 space-y-1 text-xs text-slate-600">
+              {detail.relatedAuditEvents.map((event) => (
+                <li key={event.id}>
+                  {formatPlatformDateTime(event.createdAt, defaults)} ·{" "}
+                  {event.action} ({event.entityType})
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Related background jobs
+          </p>
+          {detail.relatedOutboxEvents.length === 0 ? (
+            <p className="text-xs text-slate-500">
+              No outbox job shares this correlation id.
+            </p>
+          ) : (
+            <ul className="mt-1 space-y-1 text-xs text-slate-600">
+              {detail.relatedOutboxEvents.map((event) => (
+                <li key={event.id}>
+                  {event.eventType} · {event.status} (attempt{" "}
+                  {event.attemptCount})
+                  {event.lastError ? ` — ${event.lastError}` : ""}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

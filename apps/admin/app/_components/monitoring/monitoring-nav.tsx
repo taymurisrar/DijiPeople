@@ -5,6 +5,11 @@ const items = [
   ["Incidents / Errors", "/settings/monitoring/error-logs"],
   ["Events", "/settings/monitoring/events"],
   ["Integrations", "/settings/monitoring/integrations"],
+  // D4 discovery item 8: a real, working provisioning-stuck queue existed at
+  // /operations/provisioning but was reachable only by direct URL — an
+  // operator following the monitoring tabs during an incident would never
+  // find it.
+  ["Provisioning queue", "/operations/provisioning"],
 ] as const;
 
 export function MonitoringNav({ current }: { current: string }) {
