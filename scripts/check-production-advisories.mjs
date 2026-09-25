@@ -73,11 +73,13 @@ const DISPOSITIONED = new Map([
     'Moderate, transitive through exceljs. Same disposition. BUG-0052.',
   ],
   /*
-   * multer and the two @nestjs packages that carry it.
+   * multer and the @nestjs package that carries it.
    *
-   * These three are one advisory set: `@nestjs/platform-express` pins
-   * `multer: 2.2.0` exactly, and `@nestjs/core` is dragged in beside it, so all
-   * three are reported for the same underlying vulnerability in multer.
+   * These two are one advisory set: `@nestjs/platform-express` pins
+   * `multer: 2.2.0` exactly, so both are reported for the same underlying
+   * vulnerability in multer. `@nestjs/core` was reported beside them until the
+   * advisory feed stopped listing it (2026-09-25, with no lockfile change); its
+   * entry was removed then, as a stale disposition must be.
    *
    * This is a REACHABLE high, not a build-tool finding, and it is dispositioned
    * anyway. The argument is below rather than in a commit message, because a
@@ -91,10 +93,6 @@ const DISPOSITIONED = new Map([
   [
     '@nestjs/platform-express',
     'Reported for the multer pin it carries, not for a defect of its own. See the `multer` entry above, including its removal trigger. ITEM-0123.',
-  ],
-  [
-    '@nestjs/core',
-    'Reported alongside @nestjs/platform-express for the same multer pin. See the `multer` entry above. ITEM-0123.',
   ],
 ]);
 

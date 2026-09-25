@@ -2072,11 +2072,17 @@ function TrendChart({
           <span>{formatter(max)}</span>
           <span>0</span>
         </div>
+        {/*
+          With the y-axis beside it the chart overflows on narrower screens,
+          and a scrollable region must be reachable by keyboard to be scrolled
+          without a pointer (axe scrollable-region-focusable).
+        */}
         <div
-          className="grid h-52 flex-1 items-end gap-3 overflow-x-auto border-b border-l border-slate-200 px-1"
+          className="grid h-52 flex-1 items-end gap-3 overflow-x-auto border-b border-l border-slate-200 px-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400"
           style={{
             gridTemplateColumns: `repeat(${points.length}, minmax(48px, 1fr))`,
           }}
+          tabIndex={0}
           role="img"
           aria-label={`${title}. ${series.map((item) => item.label).join(" vs ")}, ${points.length} ${cadenceLabel}s ending ${points[points.length - 1]?.label ?? "now"}.`}
         >
