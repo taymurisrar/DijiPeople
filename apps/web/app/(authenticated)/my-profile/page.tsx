@@ -12,6 +12,7 @@ import {
 } from "@/lib/runtime";
 import type { FieldSecurityRule } from "@/lib/runtime/security-runtime.types";
 import { apiRequestJson } from "@/lib/server-api";
+import { MfaSettingsCard } from "@/app/components/security/mfa-settings-card";
 import { getCurrentEmployee } from "../_lib/current-employee";
 import type { TenantResolvedSettingsResponse } from "../settings/types";
 import type { EmployeeListResponse, EmployeeProfile } from "../employees/types";
@@ -56,12 +57,15 @@ export default async function MyProfilePage({
 
   if (!sessionUser) redirect("/login?reason=session-expired");
   if (!currentEmployeeContext.employee) {
+    // Two-factor authentication belongs to the sign-in account, not the
+    // employee record, so it is offered even when no employee is linked.
     return (
       <div className="grid gap-6">
         <AccessDeniedState
           description="An administrator must link this account to an Employee record."
           title="Employee profile not linked."
         />
+        <MfaSettingsCard />
       </div>
     );
   }
@@ -147,6 +151,7 @@ export default async function MyProfilePage({
         record={mapEmployeeRecordToRuntimeValues(employee)}
         runtime={runtime}
       />
+      <MfaSettingsCard />
     </div>
   );
 }

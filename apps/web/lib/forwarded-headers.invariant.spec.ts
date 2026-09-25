@@ -65,7 +65,9 @@ describe("client address forwarding across the proxy hop", () => {
    * deleted. If the scan stops finding handlers, the scan is broken.
    */
   it("finds the handlers it is supposed to be checking", () => {
-    expect(directApiCallers.length).toBeGreaterThanOrEqual(10);
+    // Nine since ADR-0019 moved `/api/auth/login` onto `postToAuthApi`,
+    // which the block below covers.
+    expect(directApiCallers.length).toBeGreaterThanOrEqual(9);
   });
 
   it.each(directApiCallers.map((handler) => [handler.path, handler.source]))(
@@ -74,6 +76,42 @@ describe("client address forwarding across the proxy hop", () => {
       expect(source).toContain("forwardedClientHeaders(request)");
     },
   );
+
+  /*
+   * ADR-0019 moved the public sign-in calls — `/auth/login`, `/auth/mfa/verify`
+   * and the MFA setup routes, all behind `PublicRateLimitGuard` — into one
+   * helper, `postToAuthApi` in `lib/auth-login-response.ts`, so the cookie
+   * rule lives in one place. A scan for `getApiBaseUrl` in route files would
+   * no longer see them, which is exactly how a guard goes quiet. So they are
+   * counted here, each must hand the incoming request to the helper, and the
+   * helper itself must forward it.
+   */
+  const helperCallers = handlers.filter((handler) =>
+    handler.source.includes("postToAuthApi("),
+  );
+
+  it("finds the handlers that reach the API through postToAuthApi", () => {
+    expect(helperCallers.length).toBeGreaterThanOrEqual(4);
+    expect(directApiCallers.length + helperCallers.length).toBeGreaterThanOrEqual(
+      13,
+    );
+  });
+
+  it.each(helperCallers.map((handler) => [handler.path, handler.source]))(
+    "%s passes the incoming request to postToAuthApi",
+    (_path, source) => {
+      expect(source).toMatch(/postToAuthApi\(\s*request,/);
+    },
+  );
+
+  it("postToAuthApi forwards the client address", () => {
+    const helper = readFileSync(
+      join(__dirname, "auth-login-response.ts"),
+      "utf8",
+    );
+    expect(helper).toContain("getApiBaseUrl");
+    expect(helper).toContain("forwardedClientHeaders(request)");
+  });
 });
 
 /*

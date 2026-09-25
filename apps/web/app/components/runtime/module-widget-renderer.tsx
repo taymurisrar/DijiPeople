@@ -357,21 +357,76 @@ function UserRecordWidget({
     return <UserEmployeeLinkWidget user={record} />;
   }
 
-  return <UserSecurityWidget user={record} />;
+  return (
+    <UserSecurityWidget
+      /*
+       * ADR-0019 — cosmetic gate only. `POST /users/:userId/mfa/reset`
+       * enforces `users.update` + USERS:write, the tenant and the row scope.
+       */
+      canResetMfa={
+        (runtime?.security.principal.permissionKeys ?? []).includes(
+          "users.update",
+        ) && recordId !== runtime?.security.principal.userId
+      }
+      onChanged={(next) => setRecord(next)}
+      user={record}
+    />
+  );
 }
 
 function UserSecurityWidget({
   user,
+  canResetMfa,
+  onChanged,
 }: {
   readonly user: Record<string, unknown>;
+  readonly canResetMfa: boolean;
+  readonly onChanged: (next: Record<string, unknown>) => void;
 }) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [resetBusy, setResetBusy] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
+  const [resetNotice, setResetNotice] = useState<string | null>(null);
+  const mfaEnabled = user.mfaEnabled === true;
+  const userId = stringValue(user.id);
+
   const fields = [
     ["User Status", stringValue(user.status)],
     ["Login Enabled", stringValue(user.status) === "ACTIVE" ? "Yes" : "No"],
     ["Service Account", user.isServiceAccount ? "Yes" : "No"],
+    ["Two-factor authentication", mfaEnabled ? "On" : "Off"],
     ["Last Login", formatOptionalDateTime(user.lastLoginAt)],
     ["Created On", formatOptionalDateTime(user.createdAt)],
   ] as const;
+
+  async function resetMfa() {
+    setResetBusy(true);
+    setResetError(null);
+    try {
+      const response = await fetch(
+        `/api/users/${encodeURIComponent(userId)}/mfa/reset`,
+        { method: "POST" },
+      );
+      const payload: unknown = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(
+          stringValue(isRecord(payload) ? payload.message : null) ||
+            "Unable to reset two-factor authentication.",
+        );
+      }
+      setConfirmOpen(false);
+      setResetNotice("Two-factor authentication was reset.");
+      onChanged({ ...user, mfaEnabled: false, mfaEnabledAt: null });
+    } catch (caught) {
+      setResetError(
+        caught instanceof Error
+          ? caught.message
+          : "Unable to reset two-factor authentication.",
+      );
+    } finally {
+      setResetBusy(false);
+    }
+  }
 
   return (
     <section className="grid gap-4">
@@ -386,6 +441,62 @@ function UserSecurityWidget({
           <ReadOnlyMetric key={label} label={label} value={value} />
         ))}
       </div>
+      {resetNotice ? (
+        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700" role="status">
+          {resetNotice}
+        </p>
+      ) : null}
+      {canResetMfa && mfaEnabled && userId ? (
+        <div>
+          <Button
+            onClick={() => {
+              setResetError(null);
+              setConfirmOpen(true);
+            }}
+            size="sm"
+            type="button"
+            variant="secondary"
+          >
+            Reset MFA
+          </Button>
+        </div>
+      ) : null}
+      <Dialog
+        busy={resetBusy}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button
+              disabled={resetBusy}
+              onClick={() => setConfirmOpen(false)}
+              type="button"
+              variant="secondary"
+            >
+              Cancel
+            </Button>
+            <Button
+              loading={resetBusy}
+              onClick={() => void resetMfa()}
+              type="button"
+              variant="danger"
+            >
+              Reset MFA
+            </Button>
+          </div>
+        }
+        onClose={() => setConfirmOpen(false)}
+        open={confirmOpen}
+        title="Reset two-factor authentication?"
+      >
+        {resetError ? (
+          <p className="rounded-lg border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger" role="alert">
+            {resetError}
+          </p>
+        ) : (
+          <p className="text-sm text-foreground">
+            {stringValue(user.email)}
+          </p>
+        )}
+      </Dialog>
     </section>
   );
 }
