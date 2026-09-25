@@ -166,6 +166,7 @@ const UPDATE_CAPABLE = new Set([
   "tenants",
   "contracts",
   "plans",
+  "support-cases",
 ]);
 const DELETE_CAPABLE = new Set([
   "leads",
