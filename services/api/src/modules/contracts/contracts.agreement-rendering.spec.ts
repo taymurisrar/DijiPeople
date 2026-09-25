@@ -3,6 +3,8 @@ import { BadRequestException } from '@nestjs/common';
 import { ContractType, PlatformUserRole } from '@prisma/client';
 import {
   ContractsService,
+  PLACEHOLDER_GROUP_ORDER,
+  placeholderGroup,
   renderContractVersionHtml,
   renderSignatureEvidenceTokens,
 } from './contracts.service';
@@ -474,5 +476,33 @@ describe('QA agreements DEFECT-2 — signature.* is resolved at signing, never b
     await expect(attempt).rejects.toMatchObject({
       response: { code: 'CONTRACT_SIGNATURE_FIELD_NOT_EDITABLE' },
     });
+  });
+});
+
+describe('QA agreements DEFECT-4 — counterparty is its own picker group', () => {
+  it('labels counterparty.* Counterparty, listed right after Platform', () => {
+    expect(placeholderGroup('counterparty.name')).toBe('Counterparty');
+    expect(PLACEHOLDER_GROUP_ORDER.slice(0, 2)).toEqual([
+      'Platform',
+      'Counterparty',
+    ]);
+  });
+
+  it('a partner agreement template is offered no Customer group', async () => {
+    const service = new ContractsService(
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+    const { items } = await service.listPlaceholderDefinitions(
+      platformAdmin,
+      ContractType.PARTNER_AGREEMENT,
+    );
+    const groups = new Set(items.map((item) => item.group));
+    expect(groups.has('Customer')).toBe(false);
+    expect(groups.has('Counterparty')).toBe(true);
+    expect(groups.has('Partner')).toBe(true);
   });
 });

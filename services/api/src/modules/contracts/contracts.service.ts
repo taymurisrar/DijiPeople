@@ -6730,9 +6730,15 @@ export function signaturePlaceholderValues(
  * The order the Fields & Signatures picker lists placeholder groups in. Driven
  * from the key's own namespace so a newly registered placeholder lands in the
  * right group without a second registration step.
+ *
+ * The two parties come first. `counterparty.*` is whoever signs opposite the
+ * platform — a partner, a lead, a customer — so it has its own group rather
+ * than living under "Customer", which showed a Customer group on every
+ * partner agreement template (QA agreements DEFECT-4).
  */
 export const PLACEHOLDER_GROUP_ORDER = [
   'Platform',
+  'Counterparty',
   'Partner',
   'Lead',
   'Customer',
@@ -6753,7 +6759,7 @@ const PLACEHOLDER_GROUP_BY_NAMESPACE: Record<string, string> = {
   partner: 'Partner',
   lead: 'Lead',
   customer: 'Customer',
-  counterparty: 'Customer',
+  counterparty: 'Counterparty',
   commercial: 'Commercial',
   contract: 'Contract',
   serviceOrder: 'Service order',
