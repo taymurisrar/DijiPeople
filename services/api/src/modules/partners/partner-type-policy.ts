@@ -1,4 +1,8 @@
-import { ContractPartyType, PartnerType, PartnershipModel } from '@prisma/client';
+import {
+  ContractPartyType,
+  PartnerType,
+  PartnershipModel,
+} from '@prisma/client';
 
 /**
  * What `PartnerType` (INDIVIDUAL/COMPANY) actually changes, in one place.

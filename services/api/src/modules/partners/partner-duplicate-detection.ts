@@ -40,7 +40,10 @@ export type PartnerDuplicateCandidate = {
 
 /** Trim, uppercase, strip spaces and dashes — the normal form for an identifier a person might type with different punctuation. */
 export function normalizeIdentifier(value?: string | null): string | undefined {
-  const normalized = value?.trim().toUpperCase().replace(/[\s-]+/g, '');
+  const normalized = value
+    ?.trim()
+    .toUpperCase()
+    .replace(/[\s-]+/g, '');
   return normalized || undefined;
 }
 
@@ -183,7 +186,10 @@ export async function findOnboardingIdentifierDuplicate(
   prisma: PrismaService,
   identifiers: { registrationNumber?: unknown; taxId?: unknown },
   excludePartnerId: string,
-): Promise<{ partnerId: string; field: 'registrationNumber' | 'taxId' } | null> {
+): Promise<{
+  partnerId: string;
+  field: 'registrationNumber' | 'taxId';
+} | null> {
   const registrationNumber = normalizeIdentifier(
     typeof identifiers.registrationNumber === 'string'
       ? identifiers.registrationNumber
@@ -228,7 +234,9 @@ export async function findOnboardingIdentifierDuplicate(
         ? (data.taxInformation as Record<string, unknown>)
         : {};
     const candidateTaxId = normalizeIdentifier(
-      typeof taxInformation.taxId === 'string' ? taxInformation.taxId : undefined,
+      typeof taxInformation.taxId === 'string'
+        ? taxInformation.taxId
+        : undefined,
     );
     if (taxId && candidateTaxId === taxId) return { partnerId, field: 'taxId' };
   }

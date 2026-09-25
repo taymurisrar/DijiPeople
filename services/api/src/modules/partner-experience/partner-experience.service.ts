@@ -37,7 +37,10 @@ import {
   findOnboardingIdentifierDuplicate,
   findPartnerDuplicate,
 } from '../partners/partner-duplicate-detection';
-import { missingAdminIdentityFields, missingOnboardingFields } from '../partners/partner-type-policy';
+import {
+  missingAdminIdentityFields,
+  missingOnboardingFields,
+} from '../partners/partner-type-policy';
 import {
   CreatePartnerInquiryDto,
   CreatePartnerPortalReferralLinkDto,
@@ -436,7 +439,10 @@ export class PartnerExperienceService {
       entityType: 'Partner',
       entityId: partner.id,
       beforeSnapshot: { inquiryId, inquiryStatus: inquiry.status },
-      afterSnapshot: { status: partner.status, assignedToUserId: partner.assignedToUserId },
+      afterSnapshot: {
+        status: partner.status,
+        assignedToUserId: partner.assignedToUserId,
+      },
     });
     return { partner, agreementRequired: true, onboardingUnlocked: false };
   }
@@ -600,7 +606,11 @@ export class PartnerExperienceService {
       action: 'PARTNER_ONBOARDING_INVITATION_SENT',
       entityType: 'PartnerOnboardingApplication',
       entityId: application.id,
-      afterSnapshot: { partnerId, expiresAt, requiredAgreementTypes: requiredTypes },
+      afterSnapshot: {
+        partnerId,
+        expiresAt,
+        requiredAgreementTypes: requiredTypes,
+      },
     });
     return {
       applicationId: application.id,
@@ -654,7 +664,8 @@ export class PartnerExperienceService {
     const duplicate = await findOnboardingIdentifierDuplicate(
       this.prisma,
       {
-        registrationNumber: dto.data.registrationNumber ?? dto.data.nationalIdNumber,
+        registrationNumber:
+          dto.data.registrationNumber ?? dto.data.nationalIdNumber,
         taxId: (dto.data.taxInformation as Record<string, unknown> | undefined)
           ?.taxId,
       },
@@ -924,7 +935,10 @@ export class PartnerExperienceService {
       action: 'PARTNER_ACTIVATED',
       entityType: 'Partner',
       entityId: partnerId,
-      beforeSnapshot: { status: partner.status, accountStatus: partner.accountStatus },
+      beforeSnapshot: {
+        status: partner.status,
+        accountStatus: partner.accountStatus,
+      },
       afterSnapshot: {
         status: PartnerStatus.ACTIVE,
         accountStatus: 'INVITED',

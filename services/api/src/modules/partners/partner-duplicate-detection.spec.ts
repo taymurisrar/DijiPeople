@@ -29,28 +29,30 @@ const EXISTING = {
 function prismaWith(rows: Array<Record<string, unknown>>) {
   return {
     partner: {
-      findFirst: jest.fn(async ({ where }: { where: Record<string, unknown> }) => {
-        if ('email' in where) {
-          const email = (where.email as { equals: string }).equals;
-          return (
-            rows.find(
-              (row) =>
-                (row.email as string)?.toLowerCase() === email.toLowerCase(),
-            ) ?? null
-          );
-        }
-        if ('companyName' in where) {
-          const name = (where.companyName as { equals: string }).equals;
-          return (
-            rows.find(
-              (row) =>
-                (row.companyName as string)?.toLowerCase() ===
-                name.toLowerCase(),
-            ) ?? null
-          );
-        }
-        return null;
-      }),
+      findFirst: jest.fn(
+        async ({ where }: { where: Record<string, unknown> }) => {
+          if ('email' in where) {
+            const email = (where.email as { equals: string }).equals;
+            return (
+              rows.find(
+                (row) =>
+                  (row.email as string)?.toLowerCase() === email.toLowerCase(),
+              ) ?? null
+            );
+          }
+          if ('companyName' in where) {
+            const name = (where.companyName as { equals: string }).equals;
+            return (
+              rows.find(
+                (row) =>
+                  (row.companyName as string)?.toLowerCase() ===
+                  name.toLowerCase(),
+              ) ?? null
+            );
+          }
+          return null;
+        },
+      ),
       findMany: jest.fn(async () => rows.filter((row) => row.taxId)),
     },
   } as never;
@@ -120,7 +122,9 @@ describe('findPartnerDuplicate', () => {
 
   it('sends an id-exclusion clause so a partner can never match itself', async () => {
     const findFirst = jest.fn(async () => null);
-    const prisma = { partner: { findFirst, findMany: jest.fn(async () => []) } } as never;
+    const prisma = {
+      partner: { findFirst, findMany: jest.fn(async () => []) },
+    } as never;
     await findPartnerDuplicate(
       prisma,
       { email: 'ops@contoso.test' },
@@ -190,7 +194,10 @@ describe('findOnboardingIdentifierDuplicate', () => {
       { registrationNumber: 'reg-999' },
       'partner-1',
     );
-    expect(result).toEqual({ partnerId: 'partner-2', field: 'registrationNumber' });
+    expect(result).toEqual({
+      partnerId: 'partner-2',
+      field: 'registrationNumber',
+    });
   });
 
   it('finds a national-id collision under the same registrationNumber check', async () => {
@@ -202,7 +209,10 @@ describe('findOnboardingIdentifierDuplicate', () => {
       { registrationNumber: 'ID-555' },
       'partner-1',
     );
-    expect(result).toEqual({ partnerId: 'partner-2', field: 'registrationNumber' });
+    expect(result).toEqual({
+      partnerId: 'partner-2',
+      field: 'registrationNumber',
+    });
   });
 
   it('finds a tax id collision inside taxInformation', async () => {
@@ -220,14 +230,16 @@ describe('findOnboardingIdentifierDuplicate', () => {
   it('never matches the same partner against its own earlier submission', async () => {
     const prisma = {
       partnerOnboardingSubmission: {
-        findMany: jest.fn(async ({ where }: { where: Record<string, unknown> }) => {
-          // The real query excludes the applying partner server-side; assert
-          // the exclusion is requested.
-          expect(where).toMatchObject({
-            application: { partnerId: { not: 'partner-1' } },
-          });
-          return [];
-        }),
+        findMany: jest.fn(
+          async ({ where }: { where: Record<string, unknown> }) => {
+            // The real query excludes the applying partner server-side; assert
+            // the exclusion is requested.
+            expect(where).toMatchObject({
+              application: { partnerId: { not: 'partner-1' } },
+            });
+            return [];
+          },
+        ),
       },
     } as never;
     const result = await findOnboardingIdentifierDuplicate(
@@ -240,7 +252,11 @@ describe('findOnboardingIdentifierDuplicate', () => {
 
   it('returns null when neither identifier is provided', async () => {
     const prisma = prismaWithSubmissions([]);
-    const result = await findOnboardingIdentifierDuplicate(prisma, {}, 'partner-1');
+    const result = await findOnboardingIdentifierDuplicate(
+      prisma,
+      {},
+      'partner-1',
+    );
     expect(result).toBeNull();
   });
 });

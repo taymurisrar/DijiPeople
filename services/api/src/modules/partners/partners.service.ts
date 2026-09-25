@@ -312,7 +312,10 @@ export class PartnersService {
       action: eventType,
       entityType: 'Partner',
       entityId: id,
-      beforeSnapshot: { status: partner.status, accountStatus: partner.accountStatus },
+      beforeSnapshot: {
+        status: partner.status,
+        accountStatus: partner.accountStatus,
+      },
       afterSnapshot: { status: next, reason: dto.reason ?? null },
     });
     return this.get(id);
@@ -402,7 +405,10 @@ export class PartnersService {
         entityType: 'PartnerReferralLink',
         entityId: link.id,
         beforeSnapshot: { code: link.code, status: link.status },
-        afterSnapshot: { replacedById: replacement.id, newCode: replacement.code },
+        afterSnapshot: {
+          replacedById: replacement.id,
+          newCode: replacement.code,
+        },
       });
       return replacement;
     }
@@ -494,9 +500,7 @@ export class PartnersService {
       );
     await this.validateOwner(dto.assignedToUserId);
     assertPartnerIdentityFields(dto);
-    assertNoPartnerDuplicate(
-      await findPartnerDuplicate(this.prisma, dto, id),
-    );
+    assertNoPartnerDuplicate(await findPartnerDuplicate(this.prisma, dto, id));
     const updated = await this.prisma.partner.update({
       where: { id },
       data: partnerData(dto, dto.currencyCode ?? existing.currencyCode),

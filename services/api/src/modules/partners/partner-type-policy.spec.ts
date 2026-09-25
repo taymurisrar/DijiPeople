@@ -41,9 +41,9 @@ describe('partner-type-policy — admin identity fields', () => {
       }),
     ).toEqual([]);
     // An individual is never asked for a company name.
-    expect(PARTNER_TYPE_POLICY[PartnerType.INDIVIDUAL].adminRequiredFields).not.toContain(
-      'companyName',
-    );
+    expect(
+      PARTNER_TYPE_POLICY[PartnerType.INDIVIDUAL].adminRequiredFields,
+    ).not.toContain('companyName');
   });
 
   it('treats whitespace-only values as missing, not present', () => {
@@ -65,9 +65,9 @@ describe('partner-type-policy — onboarding submission fields', () => {
       bankingInformation: { iban: 'x' },
     });
     expect(missing).toEqual([]);
-    expect(PARTNER_TYPE_POLICY[PartnerType.COMPANY].onboardingRequiredFields).toContain(
-      'registrationNumber',
-    );
+    expect(
+      PARTNER_TYPE_POLICY[PartnerType.COMPANY].onboardingRequiredFields,
+    ).toContain('registrationNumber');
     expect(
       PARTNER_TYPE_POLICY[PartnerType.COMPANY].onboardingRequiredFields,
     ).not.toContain('nationalIdNumber');
@@ -119,9 +119,7 @@ describe('partner-type-policy — onboarding submission fields', () => {
         requireBankInformation: false,
       }),
     ).toEqual([]);
-    expect(
-      missingOnboardingFields(PartnerType.COMPANY, base, {}),
-    ).toEqual(
+    expect(missingOnboardingFields(PartnerType.COMPANY, base, {})).toEqual(
       expect.arrayContaining(['taxInformation', 'bankingInformation']),
     );
   });
@@ -149,7 +147,15 @@ describe('partner-type-policy — partnership model matrix', () => {
   });
 
   it('covers every PartnershipModel value the schema defines', () => {
-    const values = ['REFERRAL', 'RESELLER', 'IMPLEMENTATION', 'TECHNOLOGY', 'STRATEGIC', 'CONSULTANT', 'OTHER'];
+    const values = [
+      'REFERRAL',
+      'RESELLER',
+      'IMPLEMENTATION',
+      'TECHNOLOGY',
+      'STRATEGIC',
+      'CONSULTANT',
+      'OTHER',
+    ];
     for (const value of values) {
       expect(PARTNERSHIP_MODEL_POLICY).toHaveProperty(value);
     }
