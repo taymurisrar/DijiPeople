@@ -35,6 +35,7 @@ const TASK_0032_CODES: Array<[code: string, status: number]> = [
   ['CONTRACT_TEMPLATE_PLACEHOLDER_OUT_OF_CONTEXT', 400],
   ['CONTRACT_PLACEHOLDER_UNRESOLVABLE_CONTEXT', 400],
   ['CONTRACT_DUPLICATE_AGREEMENT', 409],
+  ['CONTRACT_SIGNATURE_FIELD_NOT_EDITABLE', 400],
 ];
 
 describe('TASK-0032 error codes are catalogued', () => {
