@@ -317,6 +317,19 @@ Running the worker on more than one instance is safe — claims use
 running it on none is not, and nothing fails loudly when you do: the events
 accumulate in `PENDING` and the transitions they carry simply never happen.
 
+## Request access log
+
+Read by `services/api` (`common/middleware/access-log.middleware.ts`, TASK-0032
+WP-06, BUG-3227).
+
+| Variable | Where | Required | Meaning |
+|---|---|---|---|
+| `REQUEST_LOGGING_ENABLED` | API | no — defaults off | Exactly `true` writes one structured `AccessLog` line per request when it finishes: method, route, status, duration, trace id, tenant id and user id. Bodies, tokens, cookies and query strings are never logged. Any other value, or unset, logs nothing. It is a runtime setting, not a build input, so it needs no `turbo.json` entry. |
+
+The trace id on each line is the same `req_…` reference an error dialog shows and
+monitoring stores, so with the log on, one id finds a failing request's error,
+its access line and the audit rows it wrote.
+
 ## Active-employee overage thresholds
 
 Read by `services/api` (`SeatUsageService`). They decide when exceeding
