@@ -124,7 +124,7 @@ export type PlatformDashboardSummary = {
 
 /**
  * The Operations view's own data source (TASK-0032 WP-07 / ITEM-0199),
- * `GET /super-admin/dashboard/operations`. Hand-mirrored from
+ * `GET /super-admin/dashboard-summary/operations`. Hand-mirrored from
  * `OperationsDashboardService` rather than imported — this app and the API
  * are separate TypeScript projects, same as `PlatformDashboardSummary` above.
  *
@@ -797,7 +797,7 @@ function metricOrUnavailable<T>(
 /**
  * The "Operations" dashboard view (TASK-0032 WP-07 / ITEM-0199) — "what is
  * happening across the platform right now and what needs attention", built
- * from `GET /super-admin/dashboard/operations`.
+ * from `GET /super-admin/dashboard-summary/operations`.
  *
  * Every one of the five source sections can be independently unavailable, so
  * this reads more defensively than the other views' `configs` entries: each

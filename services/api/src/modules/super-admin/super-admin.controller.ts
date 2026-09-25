@@ -95,8 +95,18 @@ export class SuperAdminController {
    * the commercial `dashboard-summary` so a failure in one never blanks the
    * other. Each section of the response resolves on its own — see
    * `OperationsDashboardService`.
+   *
+   * Nested under `dashboard-summary/` on purpose, not `dashboard/`:
+   * `resolvePlatformPermission` (`modules/platform-auth/platform-permissions.ts`)
+   * maps every super-admin route to a platform permission via
+   * `path.includes(...)`, and that file is WP-02's alone to edit (COMMON-RULES
+   * single-writer list) — landing here means this route resolves to the same
+   * `dashboard.read` its sibling already carries with no change to that file.
+   * A path of `dashboard/operations` would have fallen through to `null`, and
+   * `PlatformPermissionsGuard` refuses an unresolved permission (BUG-0071) —
+   * this route would 403 for every role until WP-02 added a line for it.
    */
-  @Get('dashboard/operations')
+  @Get('dashboard-summary/operations')
   getOperationsDashboard() {
     return this.operationsDashboard.getOperationsDashboard();
   }

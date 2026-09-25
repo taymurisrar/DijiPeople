@@ -50,7 +50,7 @@ export default async function AdminDashboardPage({
    * keeps the two failures from being able to take each other down.
    */
   const operationsResult = await apiRequestJson<OperationsDashboardSummary>(
-    "/super-admin/dashboard/operations",
+    "/super-admin/dashboard-summary/operations",
   )
     .then((data) => ({ ok: true as const, data }))
     .catch((error: unknown) => ({
