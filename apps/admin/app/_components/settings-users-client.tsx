@@ -237,8 +237,9 @@ export function SettingsUsersClient({
       },
       {
         key: "mfaEnabled",
-        header: "Two-factor",
-        width: 110,
+        // "Two-factor" was clipped to "Two-facto" at 110px (TASK-0032 browser QA).
+        header: "MFA",
+        width: 90,
         sortable: true,
         render: (user) => (user.mfaEnabled ? "On" : "Off"),
       },

@@ -339,6 +339,10 @@ export class PlatformHealthService {
           status: 'UNKNOWN',
           reason: 'No email has been sent yet; nothing to assess.',
           providerConfigured,
+          // Nothing sent is an idle state, not an inconclusive check: it must
+          // not turn a healthy platform's headline to "Unknown" on a fresh
+          // environment (TASK-0032 browser QA). A timed-out probe still votes.
+          votesOnOverallStatus: false,
           drillDownHref: '/settings/monitoring/integrations',
         };
       }

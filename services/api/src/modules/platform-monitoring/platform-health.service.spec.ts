@@ -237,5 +237,8 @@ describe('PlatformHealthService', () => {
     const health = await service.getHealth();
 
     expect(health.components.email.status).toBe('UNKNOWN');
+    // Nothing sent is an idle state: a fresh, otherwise healthy environment
+    // must read OK at the top of the page, not "Unknown" (TASK-0032 browser QA).
+    expect(health.status).toBe('OK');
   });
 });
