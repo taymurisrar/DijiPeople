@@ -31,6 +31,7 @@ import { AuthenticationOnly } from '../../common/decorators/authentication-only.
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PublicRateLimitGuard } from '../../common/guards/public-rate-limit.guard';
+import { isMfaChallengeResponse } from './mfa/mfa-challenge';
 
 @Controller('auth')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -77,6 +78,15 @@ export class AuthController {
   ) {
     const result = await this.authService.login(dto, req);
     const clientId = getAuthClientIdFromHeaders(req.headers);
+
+    /*
+     * ADR-0019 — the password was right but a second factor is owed. The
+     * challenge goes back as it is and no auth cookie is set: there is no
+     * session yet, and a cookie here would be one.
+     */
+    if (isMfaChallengeResponse(result)) {
+      return result;
+    }
 
     this.authService.setAuthCookies(
       res,

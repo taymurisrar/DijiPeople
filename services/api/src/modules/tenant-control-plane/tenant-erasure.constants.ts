@@ -393,6 +393,8 @@ export const TENANT_ERASURE_DELETE_ORDER: string[] = [
   'rawAttendanceEvent',
   'recruitmentPipeline',
   'recruitmentPipelineStage',
+  // ADR-0019 (TASK-0032): cascades from User and Tenant; nothing references it.
+  'userMfaRecoveryCode',
   'refreshToken',
   'relationType',
   'role',
@@ -438,8 +440,6 @@ export const TENANT_ERASURE_DELETE_ORDER: string[] = [
   'timesheetWeek',
   'travelAllowancePolicy',
   'userInvitation',
-  // MFA recovery codes (TASK-0032, ADR-0019) point at User, so they go first.
-  'userMfaRecoveryCode',
   'userPermission',
   'userRole',
   'workScheduleDay',

@@ -3,7 +3,9 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   Put,
@@ -25,6 +27,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateUserBusinessUnitDto } from './dto/update-user-business-unit.dto';
 import { UpdateUserPermissionsDto } from './dto/update-user-permissions.dto';
 import { UsersService } from './users.service';
+import { MfaService } from '../auth/mfa/mfa.service';
 
 type DeleteUserResponse = {
   deleted: boolean;
@@ -34,7 +37,10 @@ type DeleteUserResponse = {
 @Controller('users')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly mfaService: MfaService,
+  ) {}
 
   @Get()
   @Permissions('users.read')
@@ -295,6 +301,25 @@ export class UsersController {
       currentUser.tenantId,
       targetUserId,
     );
+  }
+
+  /**
+   * ADR-0019 — clear another user's MFA so they can enrol again. The service
+   * loads the target by `{ id, tenantId }` from this token and within the
+   * caller's USERS write scope, refuses the caller's own account, deletes the
+   * seed and recovery codes, revokes every session the target holds and
+   * audits the reset with the administrator as actor. No credential is ever
+   * shown to, or chosen by, the administrator.
+   */
+  @Post(':userId/mfa/reset')
+  @HttpCode(200)
+  @Permissions('users.update')
+  @RequirePermission(ENTITY_KEYS.USERS, 'write')
+  resetMfa(
+    @CurrentUser() currentUser: AuthenticatedUser,
+    @Param('userId', new ParseUUIDPipe()) targetUserId: string,
+  ): Promise<unknown> {
+    return this.mfaService.adminResetTenantUser(currentUser, targetUserId);
   }
 
   @Get(':userId/login-history')

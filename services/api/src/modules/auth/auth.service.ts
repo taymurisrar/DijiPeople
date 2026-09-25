@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   Logger,
@@ -29,6 +30,7 @@ import {
   isRefreshRotationEnabled,
   isSlidingSessionEnabled,
   normalizeAuthClientId,
+  normalizeTokenTtl,
   parseDurationToMilliseconds,
   buildAuthCookieOptions,
   type AuthClientId,
@@ -57,6 +59,21 @@ import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
 import { AuthAccessService } from './auth-access.service';
 import { LoginLockoutService } from './login-lockout.service';
+import { PlatformLoginLockoutService } from './platform-login-lockout.service';
+import { MfaService } from './mfa/mfa.service';
+import {
+  MFA_CHALLENGE_METHODS,
+  MFA_CHALLENGE_TOKEN_USE,
+  MFA_CHALLENGE_TTL,
+  type MfaChallengeKind,
+  type MfaChallengePayload,
+  type MfaChallengeResponse,
+} from './mfa/mfa-challenge';
+import type {
+  MfaChallengeSetupConfirmDto,
+  MfaChallengeTokenDto,
+  MfaChallengeVerifyDto,
+} from './mfa/dto/mfa.dto';
 import { PasswordPolicyService } from './password-policy.service';
 import { platformAccessForRole } from '../platform-auth/platform-permissions';
 import { AdminLoginDto } from './dto/admin-login.dto';
@@ -137,6 +154,17 @@ const ADMIN_AUTH_ROLE_KEYS = new Set<string>([
  */
 const ROTATION_GRACE_WINDOW_MS = 30_000;
 
+/**
+ * What the second factor contributed to a sign-in, as written to the login
+ * audit row (`afterSnapshot.mfaResult`, read back by `AuditService`). Before
+ * ADR-0019 this was the literal `'NOT_REQUIRED'` on every row.
+ */
+export type MfaLoginResult =
+  | 'NOT_REQUIRED'
+  | 'PASSED'
+  | 'RECOVERY_CODE_USED'
+  | 'FAILED';
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -158,6 +186,8 @@ export class AuthService {
     private readonly loginLockoutService: LoginLockoutService,
     private readonly tenantDomains: TenantDomainService,
     private readonly tenantAuthPolicyService: TenantAuthPolicyService,
+    private readonly platformLoginLockoutService: PlatformLoginLockoutService,
+    private readonly mfaService: MfaService,
   ) {}
 
   /**
@@ -349,9 +379,56 @@ export class AuthService {
       );
     }
 
-    await this.permissionBootstrapService.bootstrapTenantRbac(user.tenantId);
+    /*
+     * ADR-0019. Every existing check has passed — the password, the account
+     * and tenant status, password expiry — so this caller has proved the
+     * first factor. An enrolled user (or any user of a tenant that requires
+     * MFA) receives a challenge instead of a session, and nothing in this
+     * response can be used as one: no tokens, and the controller sets no
+     * cookie. Disclosing "a second factor is required" here is safe for the
+     * same reason `discoverWorkspaces` may name workspaces: only a caller who
+     * already holds the password ever sees it.
+     */
+    const challenge = await this.maybeIssueTenantMfaChallenge(
+      user,
+      dto.rememberMe ?? false,
+      clientId,
+    );
+    if (challenge) {
+      return challenge;
+    }
 
-    const refreshedUser = await this.usersService.findByIdWithAccess(user.id);
+    return this.completeTenantLogin({
+      userId: user.id,
+      tenantId: user.tenantId,
+      rememberMe: dto.rememberMe ?? false,
+      clientId,
+      req,
+      mfaResult: 'NOT_REQUIRED',
+    });
+  }
+
+  /**
+   * The part of a tenant sign-in that issues the session: tokens, the refresh
+   * row, last-login and the success audit row. Shared by a password-only
+   * sign-in and by the MFA verify step, so the two cannot diverge in what a
+   * session is.
+   */
+  private async completeTenantLogin(input: {
+    userId: string;
+    tenantId: string;
+    rememberMe: boolean;
+    clientId: AuthClientId;
+    req?: Request;
+    mfaResult: MfaLoginResult;
+    sessionId?: string;
+  }) {
+    const { clientId, req } = input;
+    await this.permissionBootstrapService.bootstrapTenantRbac(input.tenantId);
+
+    const refreshedUser = await this.usersService.findByIdWithAccess(
+      input.userId,
+    );
 
     if (!refreshedUser) {
       throw new UnauthorizedException('Unable to load this account.');
@@ -359,8 +436,8 @@ export class AuthService {
 
     const authResponse = await this.buildAuthResponse(
       refreshedUser,
-      dto.rememberMe ?? false,
-      { clientId },
+      input.rememberMe,
+      { clientId, sessionId: input.sessionId },
     );
 
     await Promise.all([
@@ -389,15 +466,321 @@ export class AuthService {
       result: 'SUCCESS',
       clientId,
       sessionId: authResponse.tokens.sessionId,
+      mfaResult: input.mfaResult,
       req,
     });
 
     return authResponse;
   }
 
+  private async maybeIssueTenantMfaChallenge(
+    user: { id: string; tenantId: string; mfaEnabled?: boolean | null },
+    rememberMe: boolean,
+    clientId: AuthClientId,
+  ): Promise<MfaChallengeResponse | null> {
+    let challengeKind: MfaChallengeKind | null = null;
+
+    if (user.mfaEnabled) {
+      challengeKind = 'VERIFY';
+    } else {
+      const policy = await this.tenantAuthPolicyService.resolveEffectivePolicy(
+        user.tenantId,
+      );
+      if (policy.mfaRequired) {
+        challengeKind = 'SETUP_REQUIRED';
+      }
+    }
+
+    if (!challengeKind) return null;
+
+    return this.issueMfaChallenge({
+      sub: user.id,
+      tenantId: user.tenantId,
+      authSubjectType: 'tenant-user',
+      clientId,
+      rememberMe,
+      challengeKind,
+    });
+  }
+
+  private issueMfaChallenge(input: {
+    sub: string;
+    tenantId: string;
+    authSubjectType: 'tenant-user' | 'platform-user';
+    clientId: AuthClientId;
+    rememberMe: boolean;
+    challengeKind: MfaChallengeKind;
+  }): MfaChallengeResponse {
+    const payload: MfaChallengePayload = {
+      sub: input.sub,
+      tenantId: input.tenantId,
+      sessionId: randomUUID(),
+      tokenVersion: 0,
+      type: MFA_CHALLENGE_TOKEN_USE,
+      tokenUse: MFA_CHALLENGE_TOKEN_USE,
+      appClientId: input.clientId,
+      aud: input.clientId,
+      authSubjectType: input.authSubjectType,
+      challengeKind: input.challengeKind,
+      rememberMe: input.rememberMe,
+    };
+
+    const challengeToken = this.jwtService.sign(payload, {
+      secret: getClientAccessTokenSecret(this.configService, input.clientId),
+      expiresIn: MFA_CHALLENGE_TTL,
+    });
+
+    return {
+      mfaRequired: true,
+      challengeKind: input.challengeKind,
+      challengeToken,
+      challengeExpiresIn: MFA_CHALLENGE_TTL,
+      methods:
+        input.challengeKind === 'VERIFY' ? MFA_CHALLENGE_METHODS : ['TOTP'],
+    };
+  }
+
+  /**
+   * Reads a challenge token back, refusing anything that is not exactly the
+   * kind of challenge this endpoint serves, for this client and this kind of
+   * account. Every refusal is the one response, because the only thing a
+   * caller can usefully do with any of them is sign in again.
+   */
+  private async verifyMfaChallengeToken(
+    token: string,
+    expected: {
+      clientId: AuthClientId;
+      authSubjectType: 'tenant-user' | 'platform-user';
+      challengeKind: MfaChallengeKind;
+    },
+  ): Promise<MfaChallengePayload> {
+    let payload: MfaChallengePayload;
+    try {
+      payload = await this.jwtService.verifyAsync<MfaChallengePayload>(token, {
+        secret: getClientAccessTokenSecret(
+          this.configService,
+          expected.clientId,
+        ),
+      });
+    } catch {
+      throw this.mfaChallengeInvalid();
+    }
+
+    if (
+      payload.tokenUse !== MFA_CHALLENGE_TOKEN_USE ||
+      payload.type !== MFA_CHALLENGE_TOKEN_USE ||
+      normalizeAuthClientId(payload.appClientId) !== expected.clientId ||
+      normalizeAuthClientId(String(payload.aud ?? '')) !== expected.clientId ||
+      payload.authSubjectType !== expected.authSubjectType ||
+      payload.challengeKind !== expected.challengeKind ||
+      !payload.sub ||
+      !payload.sessionId
+    ) {
+      throw this.mfaChallengeInvalid();
+    }
+
+    return payload;
+  }
+
+  /**
+   * A challenge completes at most once. The session the verify step issues
+   * takes the challenge's `sessionId`, so a refresh row with that id means the
+   * token was already spent; a second presentation — even with a fresh,
+   * valid code — cannot mint a second session from one password entry.
+   */
+  private async assertChallengeUnspent(payload: MfaChallengePayload) {
+    const existing =
+      payload.authSubjectType === 'platform-user'
+        ? await this.prisma.platformRefreshToken.findFirst({
+            where: { sessionId: payload.sessionId },
+            select: { id: true },
+          })
+        : await this.prisma.refreshToken.findFirst({
+            where: { sessionId: payload.sessionId },
+            select: { id: true },
+          });
+
+    if (existing) {
+      throw this.mfaChallengeInvalid();
+    }
+  }
+
+  private mfaChallengeInvalid() {
+    return this.authUnauthorized(
+      'AUTH_MFA_CHALLENGE_INVALID',
+      'This sign-in has expired. Sign in again.',
+    );
+  }
+
+  private mfaCodeInvalid() {
+    return this.authUnauthorized(
+      'AUTH_MFA_CODE_INVALID',
+      'That code is not valid. Check your authenticator app and try again.',
+    );
+  }
+
+  /**
+   * The tenant account behind a challenge, re-checked now rather than trusted
+   * from when the password was entered: suspended, deactivated, locked, or a
+   * tenant switched off in the meantime all end the challenge.
+   */
+  private async loadTenantChallengeAccount(payload: MfaChallengePayload) {
+    const user = await this.prisma.user.findFirst({
+      where: { id: payload.sub, tenantId: payload.tenantId },
+      select: {
+        id: true,
+        tenantId: true,
+        email: true,
+        status: true,
+        mfaEnabled: true,
+        failedLoginAttempts: true,
+        lockedUntil: true,
+        tenant: { select: { status: true } },
+      },
+    });
+
+    if (
+      !user ||
+      user.status !== 'ACTIVE' ||
+      String(user.tenant.status).toUpperCase() !== 'ACTIVE' ||
+      this.loginLockoutService.isLocked(user)
+    ) {
+      throw this.mfaChallengeInvalid();
+    }
+
+    const credential = await resolveLoginCredential(this.prisma, user.id);
+    if (
+      !credential ||
+      (credential.identityLockedUntil &&
+        credential.identityLockedUntil.getTime() > Date.now())
+    ) {
+      throw this.mfaChallengeInvalid();
+    }
+
+    return user;
+  }
+
+  /** `POST /auth/mfa/verify` — the second step of a tenant sign-in. */
+  async verifyTenantMfaChallenge(dto: MfaChallengeVerifyDto, req?: Request) {
+    const clientId = this.getClientId(req);
+    const payload = await this.verifyMfaChallengeToken(dto.challengeToken, {
+      clientId,
+      authSubjectType: 'tenant-user',
+      challengeKind: 'VERIFY',
+    });
+    const user = await this.loadTenantChallengeAccount(payload);
+    await this.assertChallengeUnspent(payload);
+    assertOneSecondFactor(dto);
+
+    const subject = {
+      kind: 'tenant' as const,
+      userId: user.id,
+      tenantId: user.tenantId,
+    };
+    const method = await this.mfaService.verifySecondFactor(subject, dto);
+
+    if (!method) {
+      await this.loginLockoutService.registerFailure(user);
+      await this.logTenantAuthEvent({
+        tenantId: user.tenantId,
+        actorUserId: user.id,
+        action: AUDIT_ACTIONS.AUTH_LOGIN_FAILED,
+        entityId: user.id,
+        email: user.email,
+        result: 'FAILED',
+        failureReason: 'MFA_CODE_INVALID',
+        clientId,
+        mfaResult: 'FAILED',
+        req,
+      });
+      throw this.mfaCodeInvalid();
+    }
+
+    await this.loginLockoutService.registerSuccess(user);
+
+    return this.completeTenantLogin({
+      userId: user.id,
+      tenantId: user.tenantId,
+      rememberMe: payload.rememberMe === true,
+      clientId,
+      req,
+      mfaResult: method === 'TOTP' ? 'PASSED' : 'RECOVERY_CODE_USED',
+      sessionId: payload.sessionId,
+    });
+  }
+
+  /**
+   * `POST /auth/mfa/challenge/setup` — the tenant requires MFA and this user
+   * has not enrolled. The challenge token is the only authority here; it was
+   * issued after the password was verified and cannot be used for anything
+   * else.
+   */
+  async startTenantChallengeSetup(dto: MfaChallengeTokenDto, req?: Request) {
+    const clientId = this.getClientId(req);
+    const payload = await this.verifyMfaChallengeToken(dto.challengeToken, {
+      clientId,
+      authSubjectType: 'tenant-user',
+      challengeKind: 'SETUP_REQUIRED',
+    });
+    const user = await this.loadTenantChallengeAccount(payload);
+    await this.assertChallengeUnspent(payload);
+
+    if (user.mfaEnabled) {
+      // Enrolled in another tab since the password step; sign in again to be
+      // asked for a code rather than enrolling a second time.
+      throw this.mfaChallengeInvalid();
+    }
+
+    return this.mfaService.startSetup({
+      kind: 'tenant',
+      userId: user.id,
+      tenantId: user.tenantId,
+    });
+  }
+
+  /**
+   * `POST /auth/mfa/challenge/setup/confirm` — enrols, then issues the
+   * session, and returns the recovery codes alongside it: the one time they
+   * are readable. A wrong code here is not a lockout strike — it is checked
+   * against a seed generated moments ago for this person, not against a
+   * factor an attacker could be guessing.
+   */
+  async confirmTenantChallengeSetup(
+    dto: MfaChallengeSetupConfirmDto,
+    req?: Request,
+  ) {
+    const clientId = this.getClientId(req);
+    const payload = await this.verifyMfaChallengeToken(dto.challengeToken, {
+      clientId,
+      authSubjectType: 'tenant-user',
+      challengeKind: 'SETUP_REQUIRED',
+    });
+    const user = await this.loadTenantChallengeAccount(payload);
+    await this.assertChallengeUnspent(payload);
+
+    const enrolment = await this.mfaService.confirmSetup(
+      { kind: 'tenant', userId: user.id, tenantId: user.tenantId },
+      dto.code,
+      { actorId: user.id },
+    );
+    await this.loginLockoutService.registerSuccess(user);
+
+    const authResponse = await this.completeTenantLogin({
+      userId: user.id,
+      tenantId: user.tenantId,
+      rememberMe: payload.rememberMe === true,
+      clientId,
+      req,
+      mfaResult: 'PASSED',
+      sessionId: payload.sessionId,
+    });
+
+    return { ...authResponse, recoveryCodes: enrolment.recoveryCodes };
+  }
+
   async adminLogin(dto: AdminLoginDto, req?: Request) {
     const clientId: AuthClientId = 'admin';
-    const user = await this.validatePlatformAdminCredentials(dto);
+    const user = await this.validatePlatformAdminCredentials(dto, req);
 
     if (user.status !== 'ACTIVE') {
       throw this.authUnauthorized(
@@ -406,10 +789,95 @@ export class AuthService {
       );
     }
 
+    /*
+     * ADR-0019. MFA is optional for platform operators — whether it becomes
+     * mandatory is an owner decision recorded in TASK-0032, not a code
+     * default — so only an enrolled operator is challenged.
+     */
+    if (user.mfaEnabled) {
+      return this.issueMfaChallenge({
+        sub: user.id,
+        tenantId: 'platform',
+        authSubjectType: 'platform-user',
+        clientId,
+        rememberMe: dto.rememberMe ?? false,
+        challengeKind: 'VERIFY',
+      });
+    }
+
+    return this.completePlatformLogin({
+      user,
+      rememberMe: dto.rememberMe ?? false,
+      req,
+      mfaResult: 'NOT_REQUIRED',
+    });
+  }
+
+  /** `POST /admin/auth/mfa/verify` — the second step of a platform sign-in. */
+  async verifyPlatformMfaChallenge(dto: MfaChallengeVerifyDto, req?: Request) {
+    const payload = await this.verifyMfaChallengeToken(dto.challengeToken, {
+      clientId: 'admin',
+      authSubjectType: 'platform-user',
+      challengeKind: 'VERIFY',
+    });
+    const user = await this.prisma.platformUser.findUnique({
+      where: { id: payload.sub },
+    });
+
+    if (
+      !user ||
+      user.status !== 'ACTIVE' ||
+      this.platformLoginLockoutService.isLocked(user)
+    ) {
+      throw this.mfaChallengeInvalid();
+    }
+
+    await this.assertChallengeUnspent(payload);
+    assertOneSecondFactor(dto);
+
+    const method = await this.mfaService.verifySecondFactor(
+      { kind: 'platform', platformUserId: user.id },
+      dto,
+    );
+
+    if (!method) {
+      await this.platformLoginLockoutService.registerFailure(user);
+      await this.logPlatformAuthEvent({
+        platformUserId: user.id,
+        action: AUDIT_ACTIONS.AUTH_LOGIN_FAILED,
+        email: user.email,
+        result: 'FAILED',
+        failureReason: 'MFA_CODE_INVALID',
+        mfaResult: 'FAILED',
+        req,
+      });
+      throw this.mfaCodeInvalid();
+    }
+
+    await this.platformLoginLockoutService.registerSuccess(user);
+
+    return this.completePlatformLogin({
+      user,
+      rememberMe: payload.rememberMe === true,
+      req,
+      mfaResult: method === 'TOTP' ? 'PASSED' : 'RECOVERY_CODE_USED',
+      sessionId: payload.sessionId,
+    });
+  }
+
+  private async completePlatformLogin(input: {
+    user: PlatformUser;
+    rememberMe: boolean;
+    req?: Request;
+    mfaResult: MfaLoginResult;
+    sessionId?: string;
+  }) {
+    const clientId: AuthClientId = 'admin';
+    const { user, req } = input;
     const authResponse = this.buildPlatformAuthResponse(
       user,
-      dto.rememberMe ?? false,
-      { clientId },
+      input.rememberMe,
+      { clientId, sessionId: input.sessionId },
     );
 
     await Promise.all([
@@ -426,6 +894,16 @@ export class AuthService {
         data: { lastActiveAt: new Date() },
       }),
     ]);
+
+    await this.logPlatformAuthEvent({
+      platformUserId: user.id,
+      action: AUDIT_ACTIONS.AUTH_LOGIN_SUCCEEDED,
+      email: user.email,
+      result: 'SUCCESS',
+      sessionId: authResponse.tokens.sessionId,
+      mfaResult: input.mfaResult,
+      req,
+    });
 
     return authResponse;
   }
@@ -1487,11 +1965,26 @@ export class AuthService {
     );
   }
 
-  private async validatePlatformAdminCredentials(dto: AdminLoginDto) {
+  private async validatePlatformAdminCredentials(
+    dto: AdminLoginDto,
+    req?: Request,
+  ) {
     const normalizedEmail = normalizeEmail(dto.email);
     const user = await this.prisma.platformUser.findUnique({
       where: { email: normalizedEmail },
     });
+
+    /*
+     * BUG-3146. Unknown address, locked account and wrong password all end in
+     * the one response below, so none of the three can be told apart from
+     * outside: naming the lock would confirm the account exists and tell an
+     * attacker their guessing is working.
+     */
+    const invalidCredentials = () =>
+      this.authUnauthorized(
+        'ADMIN_AUTH_INVALID_CREDENTIALS',
+        'Invalid admin credentials.',
+      );
 
     if (!user) {
       this.logger.warn(
@@ -1501,10 +1994,37 @@ export class AuthService {
           identifier: normalizedEmail,
         }),
       );
-      throw this.authUnauthorized(
-        'ADMIN_AUTH_INVALID_CREDENTIALS',
-        'Invalid admin credentials.',
+      // No actor: nobody is known. The attempted address is recorded, the
+      // attempted password never is.
+      await this.logPlatformAuthEvent({
+        platformUserId: null,
+        action: AUDIT_ACTIONS.AUTH_LOGIN_FAILED,
+        email: normalizedEmail,
+        result: 'FAILED',
+        failureReason: 'USER_NOT_FOUND',
+        req,
+      });
+      throw invalidCredentials();
+    }
+
+    if (this.platformLoginLockoutService.isLocked(user)) {
+      this.logger.warn(
+        JSON.stringify({
+          event: 'admin.auth.login.failed',
+          reason: 'ACCOUNT_LOCKED',
+          identifier: normalizedEmail,
+          platformUserId: user.id,
+        }),
       );
+      await this.logPlatformAuthEvent({
+        platformUserId: user.id,
+        action: AUDIT_ACTIONS.AUTH_LOGIN_FAILED,
+        email: user.email,
+        result: 'FAILED',
+        failureReason: 'ACCOUNT_LOCKED',
+        req,
+      });
+      throw invalidCredentials();
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -1513,6 +2033,8 @@ export class AuthService {
     );
 
     if (!isPasswordValid) {
+      const lockout =
+        await this.platformLoginLockoutService.registerFailure(user);
       this.logger.warn(
         JSON.stringify({
           event: 'admin.auth.login.failed',
@@ -1521,11 +2043,20 @@ export class AuthService {
           platformUserId: user.id,
         }),
       );
-      throw this.authUnauthorized(
-        'ADMIN_AUTH_INVALID_CREDENTIALS',
-        'Invalid admin credentials.',
-      );
+      await this.logPlatformAuthEvent({
+        platformUserId: user.id,
+        action: AUDIT_ACTIONS.AUTH_LOGIN_FAILED,
+        email: user.email,
+        result: 'FAILED',
+        failureReason: lockout.locked
+          ? 'PASSWORD_MISMATCH_ACCOUNT_LOCKED'
+          : 'PASSWORD_MISMATCH',
+        req,
+      });
+      throw invalidCredentials();
     }
+
+    await this.platformLoginLockoutService.registerSuccess(user);
 
     return user;
   }
@@ -1764,6 +2295,7 @@ export class AuthService {
     failureReason?: string | null;
     clientId: AuthClientId;
     sessionId?: string | null;
+    mfaResult?: MfaLoginResult;
     req?: Request;
   }) {
     try {
@@ -1783,7 +2315,7 @@ export class AuthService {
           sessionId: input.sessionId ?? null,
           ipAddress: requestInfo.ipAddress,
           userAgent: requestInfo.userAgent,
-          mfaResult: 'NOT_REQUIRED',
+          mfaResult: input.mfaResult ?? 'NOT_REQUIRED',
         },
       });
     } catch (error) {
@@ -1792,6 +2324,57 @@ export class AuthService {
           event: 'auth.audit.failed',
           action: input.action,
           tenantId: input.tenantId,
+          reason: error instanceof Error ? error.message : String(error),
+        }),
+      );
+    }
+  }
+
+  /**
+   * Platform sign-in events, in the platform audit log (`tenantId:
+   * 'platform'` routes the row to `PlatformAuditLog`). Platform sign-in wrote
+   * no audit row at all before BUG-3146, so a run of failed guesses against a
+   * super admin — and the lock that ends it — left no trace an operator could
+   * find. Never throws, for the same reason `logTenantAuthEvent` does not.
+   */
+  private async logPlatformAuthEvent(input: {
+    platformUserId: string | null;
+    action: string;
+    email: string;
+    result: 'SUCCESS' | 'FAILED';
+    failureReason?: string | null;
+    sessionId?: string | null;
+    mfaResult?: MfaLoginResult;
+    req?: Request;
+  }) {
+    try {
+      const requestInfo = getAuthRequestInfo(input.req);
+      await this.auditService.log({
+        tenantId: 'platform',
+        actorUserId: input.platformUserId,
+        action: input.action,
+        entityType: 'AUTH_LOGIN',
+        // Mirrors the tenant path: an unknown account is identified by the
+        // address that was tried.
+        entityId: input.platformUserId ?? input.email,
+        sourceModule: 'auth',
+        afterSnapshot: {
+          email: input.email,
+          result: input.result,
+          failureReason: input.failureReason ?? null,
+          appClientId: 'admin',
+          sessionId: input.sessionId ?? null,
+          ipAddress: requestInfo.ipAddress,
+          userAgent: requestInfo.userAgent,
+          mfaResult: input.mfaResult ?? 'NOT_REQUIRED',
+        },
+      });
+    } catch (error) {
+      this.logger.warn(
+        JSON.stringify({
+          event: 'auth.audit.failed',
+          action: input.action,
+          tenantId: 'platform',
           reason: error instanceof Error ? error.message : String(error),
         }),
       );
@@ -2374,12 +2957,18 @@ export class AuthService {
       rememberMe,
     };
 
+    // BUG-3548 — the remember-me overrides are read through the same
+    // normaliser as every other TTL, so a bare `1800` means seconds here too.
     const accessTokenTtl = rememberMe
-      ? this.configService.get<string>('JWT_ACCESS_TTL_REMEMBER_ME') || '30m'
+      ? (normalizeTokenTtl(
+          this.configService.get<string>('JWT_ACCESS_TTL_REMEMBER_ME'),
+        ) ?? '30m')
       : getClientAccessTokenTtl(this.configService, clientId);
 
     const refreshTokenTtl = rememberMe
-      ? this.configService.get<string>('JWT_REFRESH_TTL_REMEMBER_ME') || '30d'
+      ? (normalizeTokenTtl(
+          this.configService.get<string>('JWT_REFRESH_TTL_REMEMBER_ME'),
+        ) ?? '30d')
       : getClientRefreshTokenTtl(this.configService, clientId);
 
     const accessToken = this.jwtService.sign(accessPayload, {
@@ -2633,4 +3222,21 @@ function getAuthRequestInfo(req?: Request) {
     ipAddress,
     userAgent: userAgent?.slice(0, 500) ?? null,
   };
+}
+
+/**
+ * Exactly one of a TOTP code or a recovery code. Both at once would leave it
+ * ambiguous which one was spent; neither is a malformed request rather than a
+ * wrong code, and must not cost a lockout strike.
+ */
+function assertOneSecondFactor(input: {
+  code?: string | null;
+  recoveryCode?: string | null;
+}) {
+  if (Boolean(input.code) === Boolean(input.recoveryCode)) {
+    throw new BadRequestException({
+      code: 'MFA_FACTOR_REQUIRED',
+      message: 'Enter either the 6-digit code or a recovery code.',
+    });
+  }
 }

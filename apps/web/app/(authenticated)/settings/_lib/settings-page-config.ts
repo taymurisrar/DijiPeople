@@ -2158,6 +2158,13 @@ export const passwordLoginSettingsSections: SettingsSectionConfig[] = [
         label: "Allow remember me",
         type: "checkbox",
       },
+      {
+        // ADR-0019 — enforced at sign-in by TenantAuthPolicyService.
+        category: "security",
+        key: "mfaRequired",
+        label: "Require two-factor authentication",
+        type: "checkbox",
+      },
     ],
   },
   {

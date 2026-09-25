@@ -938,6 +938,9 @@ export class UsersService {
       userStatus: user.status,
       isServiceAccount: user.isServiceAccount,
       lastLoginAt: user.lastLoginAt,
+      // ADR-0019 — enrolment state only; the seed never leaves the API.
+      mfaEnabled: user.mfaEnabled,
+      mfaEnabledAt: user.mfaEnabledAt,
       createdById:
         user.createdById ??
         (user.tenant.ownerUserId === user.id

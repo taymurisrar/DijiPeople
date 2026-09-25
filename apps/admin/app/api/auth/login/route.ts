@@ -1,35 +1,13 @@
 import { NextResponse } from "next/server";
+import { AUTH_APP_CLIENT_ID, getApiBaseUrl } from "@/lib/auth-config";
+import { classifyAdminLoginResponse } from "@/lib/admin-login-classify";
 import {
-  ACCESS_TOKEN_COOKIE,
-  AUTH_APP_CLIENT_ID,
-  REFRESH_TOKEN_COOKIE,
-  REMEMBER_ME_COOKIE,
-  SESSION_COOKIE,
-  getApiBaseUrl,
-} from "@/lib/auth-config";
-import {
-  ACCESS_TOKEN_MAX_AGE_SECONDS,
-  getAuthCookieDiagnostics,
-  getAuthCookieOptions,
-  getSessionAuthCookieOptions,
-  REFRESH_TOKEN_MAX_AGE_SECONDS,
-} from "@/lib/auth-cookies";
+  adminSessionResponse,
+  extractAdminErrorCode,
+  extractAdminErrorMessage,
+  safeParseAdminJson,
+} from "@/lib/admin-session-response";
 import { forwardedClientHeaders } from "@/lib/forwarded-headers";
-
-type JsonRecord = Record<string, unknown>;
-
-type TokenPair = {
-  accessToken: string;
-  refreshToken: string;
-  sessionId?: string;
-  rememberMe?: boolean;
-};
-
-type LoginSuccessResponse = JsonRecord & {
-  user: unknown;
-  tenant: unknown;
-  tokens: TokenPair;
-};
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -58,21 +36,33 @@ export async function POST(request: Request) {
     });
 
     const rawBody = await response.text();
-    const data = rawBody ? safeParseJson(rawBody) : null;
+    const data = rawBody ? safeParseAdminJson(rawBody) : null;
 
     if (!response.ok) {
       return NextResponse.json(
         {
           message:
-            extractErrorMessage(data) ??
+            extractAdminErrorMessage(data) ??
             `Login failed with status ${response.status}.`,
+          errorCode: extractAdminErrorCode(data),
           upstreamStatus: response.status,
         },
         { status: response.status },
       );
     }
 
-    if (!isLoginSuccessResponse(data)) {
+    const result = classifyAdminLoginResponse(data);
+
+    /*
+     * ADR-0019 — the password was right and the operator is enrolled in MFA.
+     * The challenge goes back with no cookie; `/api/auth/mfa/verify` sets them
+     * once a code is accepted.
+     */
+    if (result.kind === "challenge") {
+      return NextResponse.json({ ok: true, ...result.challenge });
+    }
+
+    if (result.kind !== "session") {
       return NextResponse.json(
         {
           message: "API login response did not include usable token payload.",
@@ -82,79 +72,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const nextResponse = NextResponse.json({
-      ok: true,
-      user: data.user,
-      tenant: data.tenant,
-      cookies: {
-        accessToken: true,
-        refreshToken: true,
-        session: Boolean(data.tokens.sessionId),
-      },
-    });
-
-    let accessCookieOptions:
-      | ReturnType<typeof getAuthCookieOptions>
-      | ReturnType<typeof getSessionAuthCookieOptions>;
-    let refreshCookieOptions:
-      | ReturnType<typeof getAuthCookieOptions>
-      | ReturnType<typeof getSessionAuthCookieOptions>;
-
-    try {
-      const remembered = data.tokens.rememberMe === true;
-      accessCookieOptions = remembered
-        ? getAuthCookieOptions(ACCESS_TOKEN_MAX_AGE_SECONDS)
-        : getSessionAuthCookieOptions();
-      refreshCookieOptions = remembered
-        ? getAuthCookieOptions(REFRESH_TOKEN_MAX_AGE_SECONDS)
-        : getSessionAuthCookieOptions();
-    } catch (error) {
-      return NextResponse.json(
-        {
-          message:
-            error instanceof Error
-              ? `Admin auth cookie configuration error: ${error.message}`
-              : "Admin auth cookie configuration error.",
-        },
-        { status: 500 },
-      );
-    }
-
-    nextResponse.cookies.set(
-      ACCESS_TOKEN_COOKIE,
-      data.tokens.accessToken,
-      accessCookieOptions,
-    );
-
-    nextResponse.cookies.set(
-      REFRESH_TOKEN_COOKIE,
-      data.tokens.refreshToken,
-      refreshCookieOptions,
-    );
-    if (data.tokens.sessionId) {
-      nextResponse.cookies.set(
-        SESSION_COOKIE,
-        data.tokens.sessionId,
-        refreshCookieOptions,
-      );
-    }
-    nextResponse.cookies.set(
-      REMEMBER_ME_COOKIE,
-      data.tokens.rememberMe === true ? "true" : "false",
-      refreshCookieOptions,
-    );
-
-    console.info("[admin-auth-login-cookies]", {
-      cookies: {
-        access: ACCESS_TOKEN_COOKIE,
-        refresh: REFRESH_TOKEN_COOKIE,
-        session: SESSION_COOKIE,
-      },
-      access: getAuthCookieDiagnostics(ACCESS_TOKEN_MAX_AGE_SECONDS),
-      refresh: getAuthCookieDiagnostics(REFRESH_TOKEN_MAX_AGE_SECONDS),
-    });
-
-    return nextResponse;
+    return adminSessionResponse(result);
   } catch (error) {
     const message =
       error instanceof Error
@@ -163,58 +81,4 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ message }, { status: 502 });
   }
-}
-
-function safeParseJson(value: string): JsonRecord | null {
-  try {
-    const parsed: unknown = JSON.parse(value);
-    return isJsonRecord(parsed) ? parsed : null;
-  } catch {
-    return null;
-  }
-}
-
-function isJsonRecord(value: unknown): value is JsonRecord {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function extractErrorMessage(data: JsonRecord | null): string | null {
-  if (!data) {
-    return null;
-  }
-
-  if (typeof data.message === "string") {
-    return data.message;
-  }
-
-  if (
-    Array.isArray(data.message) &&
-    data.message.every((item) => typeof item === "string")
-  ) {
-    return data.message.join(", ");
-  }
-
-  if (isJsonRecord(data.error) && typeof data.error.message === "string") {
-    return data.error.message;
-  }
-
-  return null;
-}
-
-function isLoginSuccessResponse(
-  data: JsonRecord | null,
-): data is LoginSuccessResponse {
-  if (!data) {
-    return false;
-  }
-
-  const tokens = data.tokens;
-
-  return (
-    isJsonRecord(tokens) &&
-    typeof tokens.accessToken === "string" &&
-    typeof tokens.refreshToken === "string" &&
-    tokens.accessToken.trim().length > 20 &&
-    tokens.refreshToken.trim().length > 20
-  );
 }

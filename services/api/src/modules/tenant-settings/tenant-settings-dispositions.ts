@@ -303,13 +303,12 @@ export const INERT_TENANT_SETTING_KEYS: Readonly<
   'notifications.notifyEmployeesDirectly': 'DUPLICATE_OF_DOMAIN_MODEL',
   'notifications.showNotificationPreviewInApp': 'DUPLICATE_OF_DOMAIN_MODEL',
 
-  // security (7)
+  // security (5). `mfaRequired` and `mfaMethod` left this list with ADR-0019:
+  // `TenantAuthPolicyService` reads both and sign-in enforces the first.
   'security.requireEmailVerification': 'NOT_IMPLEMENTED',
   'security.invitationExpiryHours': 'DUPLICATE_OF_DOMAIN_MODEL',
   'security.allowInvitationResend': 'NOT_IMPLEMENTED',
   'security.passwordSetupRequiredBeforeFirstLogin': 'NOT_IMPLEMENTED',
-  'security.mfaRequired': 'NOT_IMPLEMENTED',
-  'security.mfaMethod': 'NOT_IMPLEMENTED',
   'security.rememberTrustedDevice': 'NOT_IMPLEMENTED',
 });
 

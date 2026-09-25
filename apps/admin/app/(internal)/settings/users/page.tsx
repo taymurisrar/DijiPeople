@@ -30,6 +30,7 @@ type PlatformUser = {
   role: PlatformRole;
   status: "ACTIVE" | "INVITED" | "DISABLED";
   lastActiveAt?: string | null;
+  mfaEnabled?: boolean;
 };
 
 export default async function SettingsUsersPage() {

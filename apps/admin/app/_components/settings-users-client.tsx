@@ -27,6 +27,7 @@ type PlatformUser = {
   role: PlatformRole;
   status: PlatformStatus;
   lastActiveAt?: string | null;
+  mfaEnabled?: boolean;
 };
 
 type FormState = {
@@ -176,6 +177,30 @@ export function SettingsUsersClient({
     });
   }
 
+  function resetMfa(user: PlatformUser) {
+    if (!window.confirm(`Reset two-factor authentication for ${user.email}?`))
+      return;
+    startTransition(async () => {
+      const response = await fetch(
+        `/api/users/${encodeURIComponent(user.userId)}/mfa/reset`,
+        { method: "POST" },
+      );
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        setMessage({
+          tone: "error",
+          text: payload?.message ?? "Unable to reset two-factor authentication.",
+        });
+        return;
+      }
+      setMessage({
+        tone: "success",
+        text: "Two-factor authentication was reset.",
+      });
+      router.refresh();
+    });
+  }
+
   const panelOpen = editingUser !== null || form !== emptyForm;
   const columns: ProDataTableColumn<PlatformUser>[] = [
       {
@@ -211,6 +236,13 @@ export function SettingsUsersClient({
         ),
       },
       {
+        key: "mfaEnabled",
+        header: "Two-factor",
+        width: 110,
+        sortable: true,
+        render: (user) => (user.mfaEnabled ? "On" : "Off"),
+      },
+      {
         key: "lastActiveAt",
         header: "Last active",
         width: 180,
@@ -220,7 +252,7 @@ export function SettingsUsersClient({
       {
         key: "actions",
         header: "Actions",
-        width: 120,
+        width: 200,
         align: "right",
         sticky: "right",
         render: (user) => (
@@ -232,6 +264,16 @@ export function SettingsUsersClient({
             >
               Edit
             </button>
+            {user.mfaEnabled && user.userId !== currentUserId ? (
+              <button
+                className="rounded-lg px-2 py-1 font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-40"
+                disabled={isPending}
+                onClick={() => resetMfa(user)}
+                type="button"
+              >
+                Reset MFA
+              </button>
+            ) : null}
             <button
               aria-label={`Disable ${user.email}`}
               className="rounded-lg px-2 py-1 font-semibold text-red-700 hover:bg-red-50 disabled:opacity-40"

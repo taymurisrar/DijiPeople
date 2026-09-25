@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -24,6 +25,7 @@ import {
   UpdatePlatformModulePreferenceDto,
 } from './dto/platform-module-preference.dto';
 import { ChangePlatformPasswordDto } from './dto/platform-password.dto';
+import { MfaCodeDto, MfaDisableDto } from '../auth/mfa/dto/mfa.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('platform-users')
@@ -55,6 +57,49 @@ export class PlatformUsersController {
     @Body() dto: ChangePlatformPasswordDto,
   ) {
     return this.platformUsersService.changeOwnPassword(user, dto);
+  }
+
+  /*
+   * ADR-0019 — the signed-in operator's own MFA. `me` only, like the password
+   * route above: nothing here takes an id, so none of it can be pointed at
+   * another platform account.
+   */
+  @Get('me/mfa')
+  getMyMfa(@CurrentUser() user: AuthenticatedUser) {
+    return this.platformUsersService.getMyMfaStatus(user);
+  }
+
+  @Post('me/mfa/setup')
+  @HttpCode(200)
+  startMyMfaSetup(@CurrentUser() user: AuthenticatedUser) {
+    return this.platformUsersService.startMyMfaSetup(user);
+  }
+
+  @Post('me/mfa/setup/confirm')
+  @HttpCode(200)
+  confirmMyMfaSetup(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: MfaCodeDto,
+  ) {
+    return this.platformUsersService.confirmMyMfaSetup(user, dto.code);
+  }
+
+  @Post('me/mfa/recovery-codes')
+  @HttpCode(200)
+  regenerateMyRecoveryCodes(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: MfaCodeDto,
+  ) {
+    return this.platformUsersService.regenerateMyRecoveryCodes(user, dto.code);
+  }
+
+  @Post('me/mfa/disable')
+  @HttpCode(200)
+  disableMyMfa(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: MfaDisableDto,
+  ) {
+    return this.platformUsersService.disableMyMfa(user, dto);
   }
 
   @Get('me/preferences')
@@ -101,6 +146,19 @@ export class PlatformUsersController {
     @Body() dto: UpdatePlatformUserDto,
   ) {
     return this.platformUsersService.update(user, userId, dto);
+  }
+
+  /**
+   * ADR-0019 — clear another operator's MFA. Authorised by the same
+   * manage-platform-users check as every other `:userId` route here.
+   */
+  @Post(':userId/mfa/reset')
+  @HttpCode(200)
+  resetMfa(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('userId', new ParseUUIDPipe()) userId: string,
+  ) {
+    return this.platformUsersService.resetUserMfa(user, userId);
   }
 
   @Delete(':userId')
