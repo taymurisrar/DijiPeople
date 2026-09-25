@@ -124,6 +124,7 @@ _None._
 | [BUG-3565](../../docs/bugs/BUG-3565-opening-a-contract-template-or-signature-request-from-its-ad.md) | Opening a contract template or signature request from its admin list returns 404 | BUG | HIGH | P1 | FIXED | api:platform-runtime | DONE |
 | [BUG-3578](../../docs/bugs/BUG-3578-deleting-a-partner-or-lead-with-restricted-history-crashes-w.md) | Deleting a partner or lead with restricted history crashes with a 500 | DATA_INTEGRITY | HIGH | P1 | FIXED | api:partners, api:leads | DONE |
 | [BUG-3597](../../docs/bugs/BUG-3597-a-drawn-or-uploaded-signature-inside-a-signature-paragraph-i.md) | A drawn or uploaded signature inside a signature paragraph is dropped from the signed PDF and DOCX | BUG | HIGH | P1 | FIXED | api:contracts | DONE |
+| [ITEM-0208](../../docs/backlog/items/ITEM-0208-production-neon-database-exceeded-its-data-transfer-quota-an.md) | Production Neon database exceeded its data transfer quota and failed two deploys | INFRA | HIGH | P1 | READY | services/api | PLAN_REQUIRED |
 | [ITEM-0133](../../docs/backlog/items/ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no.md) | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | P2 | READY | services/api/test | PLAN_REQUIRED |
 | [ITEM-0134](../../docs/backlog/items/ITEM-0134-the-payroll-run-engine-has-no-tests.md) | The payroll run engine has no tests | TEST_GAP | HIGH | P2 | READY | api:payroll | PLAN_REQUIRED |
 | [ITEM-0136](../../docs/backlog/items/ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-.md) | electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major | SECURITY | HIGH | P2 | READY | apps/agent-desktop | FIX_NOW |
@@ -134,7 +135,6 @@ _None._
 | ID | Title | Type | Severity | Priority | Status | Affected | Architect |
 |---|---|---|---|---|---|---|---|
 | [BUG-3501](../../docs/bugs/BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver.md) | The email provider screen presents a console sink as delivery and offers sink providers in production | UX | MEDIUM | P1 | FIXED | notifications, apps/web | PLAN_REQUIRED |
-| [ITEM-0205](../../docs/backlog/items/ITEM-0205-before-promoting-task-0032-review-agreements-signed-with-a-f.md) | Before promoting TASK-0032: review agreements signed with a fabricated date and partners that fail the new type policy | DATA_MIGRATION | MEDIUM | P1 | READY | api:contracts, api:partners | FIX_NOW |
 | [BUG-1548](../../docs/bugs/BUG-1548-customer-onboarding-validate-accepts-payloads-that-create-re.md) | Customer onboarding validate accepts payloads that create rejects | BUG | MEDIUM | P2 | FIXED | onboarding | DONE |
 | [BUG-1551](../../docs/bugs/BUG-1551-desktop-agent-auto-update-manifest-returns-404.md) | Desktop agent auto-update manifest returns 404 | INTEGRATION | MEDIUM | P2 | FIXED | agent, app-releases | DONE |
 | [BUG-1668](../../docs/bugs/BUG-1668-tenant-workspace-pages-scroll-horizontally-at-mobile-width.md) | Tenant workspace pages scroll horizontally at mobile width | UX | MEDIUM | P2 | FIXED | views | DONE |

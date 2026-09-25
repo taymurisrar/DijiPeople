@@ -8,12 +8,12 @@
 | | |
 |---|---|
 | Open CRITICAL | **6** |
-| Open HIGH | **100** |
+| Open HIGH | **101** |
 | Open total | 230 |
 | Blocked | 2 |
 | Awaiting a product decision | 10 |
 | Deferred | 108 |
-| Completed | 343 |
+| Completed | 344 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -127,6 +127,7 @@
 | [[BUG-3565-opening-a-contract-template-or-signature-request-from-its-ad|BUG-3565]] | Opening a contract template or signature request from its admin list returns 404 | BUG | HIGH | FIXED | api:platform-runtime | DONE |
 | [[BUG-3578-deleting-a-partner-or-lead-with-restricted-history-crashes-w|BUG-3578]] | Deleting a partner or lead with restricted history crashes with a 500 | DATA_INTEGRITY | HIGH | FIXED | api:partners, api:leads | DONE |
 | [[BUG-3597-a-drawn-or-uploaded-signature-inside-a-signature-paragraph-i|BUG-3597]] | A drawn or uploaded signature inside a signature paragraph is dropped from the signed PDF and DOCX | BUG | HIGH | FIXED | api:contracts | DONE |
+| [[ITEM-0208-production-neon-database-exceeded-its-data-transfer-quota-an|ITEM-0208]] | Production Neon database exceeded its data transfer quota and failed two deploys | INFRA | HIGH | READY | services/api | PLAN_REQUIRED |
 | [[ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no|ITEM-0133]] | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | READY | services/api/test | PLAN_REQUIRED |
 | [[ITEM-0134-the-payroll-run-engine-has-no-tests|ITEM-0134]] | The payroll run engine has no tests | TEST_GAP | HIGH | READY | api:payroll | PLAN_REQUIRED |
 | [[ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-|ITEM-0136]] | electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major | SECURITY | HIGH | READY | apps/agent-desktop | FIX_NOW |
@@ -176,6 +177,7 @@
 | [[BUG-3168-two-required-ci-gates-report-success-while-executing-nothing|BUG-3168]] | Two required CI gates report success while executing nothing | INFRA | HIGH | OPEN | .github/workflows | FIX_NOW |
 | [[BUG-3183-platform-ops-alerts-for-failed-payments-and-provisioning-are|BUG-3183]] | Platform-ops alerts for failed payments and provisioning are written to a log line that is never sent and is suppressed at the production log level | INFRA | HIGH | OPEN | api:platform-monitoring | FIX_NOW |
 | [[BUG-3198-api-health-is-a-static-ok-payload-so-a-broken-deploy-and-a-d|BUG-3198]] | api/health is a static ok payload, so a broken deploy and a dead database both report healthy | INFRA | HIGH | OPEN | services/api/src/common | FIX_NOW |
+| [[ITEM-0208-production-neon-database-exceeded-its-data-transfer-quota-an|ITEM-0208]] | Production Neon database exceeded its data transfer quota and failed two deploys | INFRA | HIGH | READY | services/api | PLAN_REQUIRED |
 | [[BUG-3227-no-access-log-and-traceid-never-reaches-an-application-log-l|BUG-3227]] | No access log, and traceId never reaches an application log line: a successful request leaves no trace at all | INFRA | MEDIUM | FIXED | services/api/src/common | DONE |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0158-public-traffic-that-bypasses-cloudflare-shares-one-rate-limi|ITEM-0158]] | Public traffic that bypasses Cloudflare shares one rate-limit bucket, by design and untested | INFRA | MEDIUM | READY | pkg:config, services/api/src/common/security | PLAN_REQUIRED |
@@ -610,7 +612,6 @@
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
 | [[BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver|BUG-3501]] | The email provider screen presents a console sink as delivery and offers sink providers in production | UX | MEDIUM | FIXED | notifications, apps/web | PLAN_REQUIRED |
-| [[ITEM-0205-before-promoting-task-0032-review-agreements-signed-with-a-f|ITEM-0205]] | Before promoting TASK-0032: review agreements signed with a fabricated date and partners that fail the new type policy | DATA_MIGRATION | MEDIUM | READY | api:contracts, api:partners | FIX_NOW |
 | [[BUG-1548-customer-onboarding-validate-accepts-payloads-that-create-re|BUG-1548]] | Customer onboarding validate accepts payloads that create rejects | BUG | MEDIUM | FIXED | onboarding | DONE |
 | [[BUG-1551-desktop-agent-auto-update-manifest-returns-404|BUG-1551]] | Desktop agent auto-update manifest returns 404 | INTEGRATION | MEDIUM | FIXED | agent, app-releases | DONE |
 | [[BUG-1668-tenant-workspace-pages-scroll-horizontally-at-mobile-width|BUG-1668]] | Tenant workspace pages scroll horizontally at mobile width | UX | MEDIUM | FIXED | views | DONE |
@@ -767,7 +768,7 @@
 | Knowledge | Count |
 |---|---|
 | Bug records | 486 |
-| Backlog items | 207 |
+| Backlog items | 208 |
 | Known bug patterns | 35 |
 | QA runs | 33 |
 | Engineering history records | 83 |

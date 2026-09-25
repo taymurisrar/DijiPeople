@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 693,
+    "total_records": 694,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -30600,14 +30600,14 @@
       "title": "Before promoting TASK-0032: review agreements signed with a fabricated date and partners that fail the new type policy",
       "severity": "MEDIUM",
       "priority": "P1",
-      "current_status": "READY",
-      "architect_disposition": "FIX_NOW",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0205-before-promoting-task-0032-review-agreements-signed-with-a-f.md",
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-09-25",
-        "updated_at": "2026-09-25",
+        "updated_at": "2026-09-26",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -30703,6 +30703,44 @@
           "services/api/prisma"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0207-seed-config-rewrites-version-1-of-system-agreement-templates.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0208",
+      "type": "INFRA",
+      "title": "Production Neon database exceeded its data transfer quota and failed two deploys",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "READY",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0208-production-neon-database-exceeded-its-data-transfer-quota-an.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0208-production-neon-database-exceeded-its-data-transfer-quota-an.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

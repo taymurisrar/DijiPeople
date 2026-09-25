@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**693 records** — 486 bugs under [`docs/bugs/`](../bugs/), 207 non-bug items under [`items/`](items/).
+**694 records** — 486 bugs under [`docs/bugs/`](../bugs/), 208 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -17,9 +17,9 @@ see [`README.md`](README.md) for why.
 | Blocked | 2 |
 | Deferred | 108 |
 | Awaiting a product decision | 10 |
-| Completed / closed | 343 |
+| Completed / closed | 344 |
 | **Open CRITICAL** | **6** |
-| **Open HIGH** | **100** |
+| **Open HIGH** | **101** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,8 +27,8 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 6 |
-| HIGH | 100 |
-| MEDIUM | 102 |
+| HIGH | 101 |
+| MEDIUM | 101 |
 | LOW | 22 |
 
 ## Open by type
@@ -39,10 +39,9 @@ see [`README.md`](README.md) for why.
 | BUG | 69 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 21 |
-| DATA_MIGRATION | 1 |
 | DOCUMENTATION | 1 |
 | FOLLOW_UP | 4 |
-| INFRA | 7 |
+| INFRA | 8 |
 | INTEGRATION | 5 |
 | PERFORMANCE | 15 |
 | PRODUCT_DECISION | 1 |
@@ -66,7 +65,7 @@ see [`README.md`](README.md) for why.
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
 | READY | 24 |
-| DONE | 111 |
+| DONE | 112 |
 
 ## All records
 
@@ -321,6 +320,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0123](../../docs/backlog/items/ITEM-0123-multer-carries-three-high-advisories-and-the-override-that-f.md) | multer carries three high advisories and the override that fixes it cannot be applied without a full re-resolve | SECURITY | HIGH | P1 | DEFERRED | dependencies, ci | DEFER |
 | [ITEM-0124](../../docs/backlog/items/ITEM-0124-production-advisory-gate-blocks-every-release-to-main-and-np.md) | Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile | SECURITY | HIGH | P1 | DONE | scripts/check-production-advisories.mjs | DONE |
 | [ITEM-0172](../../docs/backlog/items/ITEM-0172-wire-debounced-search-and-the-openable-label-into-the-metada.md) | Wire debounced search and the openable label into the metadata-driven record-form lookup call site | FOLLOW_UP | HIGH | P1 | DONE | apps/web | DONE |
+| [ITEM-0208](../../docs/backlog/items/ITEM-0208-production-neon-database-exceeded-its-data-transfer-quota-an.md) | Production Neon database exceeded its data transfer quota and failed two deploys | INFRA | HIGH | P1 | READY | services/api | PLAN_REQUIRED |
 | [ITEM-0048](../../docs/backlog/items/ITEM-0048-replace-or-contain-active-win-and-the-xlsx-export-path.md) | Replace or contain active-win and the xlsx export path | SECURITY | HIGH | P2 | BLOCKED | apps/agent-desktop, services/api/src/common/excel, package-lock.json | BLOCKED_EXTERNAL |
 | [ITEM-0086](../../docs/backlog/items/ITEM-0086-smoke-deployment-does-not-assert-that-a-launched-market-has-.md) | smoke:deployment does not assert that a launched market has a purchasable price or a running outbox worker | TEST_GAP | HIGH | P2 | DONE | scripts | DONE |
 | [ITEM-0132](../../docs/backlog/items/ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for.md) | No multi-factor authentication exists anywhere, including for platform super admins | SECURITY | HIGH | P2 | PRODUCT_DECISION | api:auth | PRODUCT_DECISION |
@@ -334,7 +334,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0018](../../docs/backlog/items/ITEM-0018-plans-and-prices-have-no-draft-publish-or-archive-lifecycle.md) | Plans and prices have no draft, publish or archive lifecycle | ARCHITECTURE | MEDIUM | P1 | DONE | services/api/prisma, api:super-admin, apps/admin, apps/landing | DONE |
 | [ITEM-0044](../../docs/backlog/items/ITEM-0044-validate-forwarded-host-before-tenant-web-workspace-resoluti.md) | Validate forwarded host before tenant web workspace resolution | SECURITY | MEDIUM | P1 | DONE | apps/web | DONE |
 | [ITEM-0180](../../docs/backlog/items/ITEM-0180-one-plain-notification-events-page-replacing-rules-and-chann.md) | One plain notification events page replacing Rules and Channel Preferences | UX | MEDIUM | P1 | DONE | apps/web, notifications | DONE |
-| [ITEM-0205](../../docs/backlog/items/ITEM-0205-before-promoting-task-0032-review-agreements-signed-with-a-f.md) | Before promoting TASK-0032: review agreements signed with a fabricated date and partners that fail the new type policy | DATA_MIGRATION | MEDIUM | P1 | READY | api:contracts, api:partners | FIX_NOW |
+| [ITEM-0205](../../docs/backlog/items/ITEM-0205-before-promoting-task-0032-review-agreements-signed-with-a-f.md) | Before promoting TASK-0032: review agreements signed with a fabricated date and partners that fail the new type policy | DATA_MIGRATION | MEDIUM | P1 | DONE | api:contracts, api:partners | DONE |
 | [BUG-0009](../../docs/bugs/BUG-0009-session-revocation-depended-on-the-refresh-cookie.md) | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | P2 | VERIFIED | app:admin, api:auth | DONE |
 | [BUG-0010](../../docs/bugs/BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500.md) | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | P2 | VERIFIED | app:admin | DONE |
 | [BUG-0013](../../docs/bugs/BUG-0013-public-lead-endpoint-had-no-rate-limiting.md) | The public lead endpoint had no rate limiting | SECURITY | MEDIUM | P2 | VERIFIED | api:leads | DONE |
