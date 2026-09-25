@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**688 records** — 486 bugs under [`docs/bugs/`](../bugs/), 202 non-bug items under [`items/`](items/).
+**693 records** — 486 bugs under [`docs/bugs/`](../bugs/), 207 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,10 +13,10 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 228 |
+| Open (active work) | 230 |
 | Blocked | 2 |
-| Deferred | 106 |
-| Awaiting a product decision | 9 |
+| Deferred | 108 |
+| Awaiting a product decision | 10 |
 | Completed / closed | 343 |
 | **Open CRITICAL** | **6** |
 | **Open HIGH** | **100** |
@@ -28,8 +28,8 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 6 |
 | HIGH | 100 |
-| MEDIUM | 101 |
-| LOW | 21 |
+| MEDIUM | 102 |
+| LOW | 22 |
 
 ## Open by type
 
@@ -39,8 +39,9 @@ see [`README.md`](README.md) for why.
 | BUG | 69 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 21 |
+| DATA_MIGRATION | 1 |
 | DOCUMENTATION | 1 |
-| FOLLOW_UP | 3 |
+| FOLLOW_UP | 4 |
 | INFRA | 7 |
 | INTEGRATION | 5 |
 | PERFORMANCE | 15 |
@@ -58,13 +59,13 @@ see [`README.md`](README.md) for why.
 |---|---|
 | OPEN | 44 |
 | BLOCKED | 2 |
-| DEFERRED | 106 |
-| PRODUCT_DECISION | 9 |
+| DEFERRED | 108 |
+| PRODUCT_DECISION | 10 |
 | FIXED | 162 |
 | VERIFIED | 218 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
-| READY | 22 |
+| READY | 24 |
 | DONE | 111 |
 
 ## All records
@@ -333,6 +334,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0018](../../docs/backlog/items/ITEM-0018-plans-and-prices-have-no-draft-publish-or-archive-lifecycle.md) | Plans and prices have no draft, publish or archive lifecycle | ARCHITECTURE | MEDIUM | P1 | DONE | services/api/prisma, api:super-admin, apps/admin, apps/landing | DONE |
 | [ITEM-0044](../../docs/backlog/items/ITEM-0044-validate-forwarded-host-before-tenant-web-workspace-resoluti.md) | Validate forwarded host before tenant web workspace resolution | SECURITY | MEDIUM | P1 | DONE | apps/web | DONE |
 | [ITEM-0180](../../docs/backlog/items/ITEM-0180-one-plain-notification-events-page-replacing-rules-and-chann.md) | One plain notification events page replacing Rules and Channel Preferences | UX | MEDIUM | P1 | DONE | apps/web, notifications | DONE |
+| [ITEM-0205](../../docs/backlog/items/ITEM-0205-before-promoting-task-0032-review-agreements-signed-with-a-f.md) | Before promoting TASK-0032: review agreements signed with a fabricated date and partners that fail the new type policy | DATA_MIGRATION | MEDIUM | P1 | READY | api:contracts, api:partners | FIX_NOW |
 | [BUG-0009](../../docs/bugs/BUG-0009-session-revocation-depended-on-the-refresh-cookie.md) | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | P2 | VERIFIED | app:admin, api:auth | DONE |
 | [BUG-0010](../../docs/bugs/BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500.md) | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | P2 | VERIFIED | app:admin | DONE |
 | [BUG-0013](../../docs/bugs/BUG-0013-public-lead-endpoint-had-no-rate-limiting.md) | The public lead endpoint had no rate limiting | SECURITY | MEDIUM | P2 | VERIFIED | api:leads | DONE |
@@ -736,6 +738,9 @@ see [`README.md`](README.md) for why.
 | [ITEM-0195](../../docs/backlog/items/ITEM-0195-the-legacy-publish-snapshot-shape-can-expose-a-never-publish.md) | The legacy publish snapshot shape can expose a never-published custom module at runtime | FOLLOW_UP | LOW | P3 | DEFERRED | data, customization | DEFER |
 | [ITEM-0196](../../docs/backlog/items/ITEM-0196-the-employee-record-still-shows-a-hardcoded-cnic-field-an-en.md) | The employee record still shows a hardcoded CNIC field, an end-user form selector and a mislabelled Global Administrator role | UX | LOW | P3 | DEFERRED | apps/web, employees, permissions | DEFER |
 | [ITEM-0202](../../docs/backlog/items/ITEM-0202-mfa-status-reads-off-while-new-recovery-codes-are-shown.md) | MFA status reads Off while new recovery codes are shown | UX | LOW | P3 | DONE | apps/web, apps/admin | DONE |
+| [ITEM-0203](../../docs/backlog/items/ITEM-0203-an-individual-partner-s-agreement-still-records-the-counterp.md) | An individual partner's agreement still records the counterparty as a PARTNER party, not INDIVIDUAL | FOLLOW_UP | LOW | P3 | READY | api:contracts, api:partners | PLAN_REQUIRED |
+| [ITEM-0204](../../docs/backlog/items/ITEM-0204-adr-0018-follow-ups-platform-role-literal-tier-checks-and-th.md) | ADR-0018 follow-ups: platform role-literal tier checks and the ungoverned legacy tenant status route | TECH_DEBT | LOW | P3 | DEFERRED | api:platform-runtime, api:tenant-control-plane, api:super-admin, api:leads, api:platform-monitoring | DEFER |
+| [ITEM-0206](../../docs/backlog/items/ITEM-0206-admin-dashboard-drill-downs-for-active-users-failed-sign-ins.md) | Admin dashboard drill-downs for active users, failed sign-ins and unresolved errors land on approximate pages | UX | LOW | P3 | DEFERRED | apps/admin, api:super-admin, api:platform-monitoring | DEFER |
 | [ITEM-0126](../../docs/backlog/items/ITEM-0126-decide-which-of-the-41-always-visible-settings-pages-should-.md) | Decide which of the 41 always-visible settings pages should be sold | PRODUCT_DECISION | — | P1 | DONE | apps/web | DONE |
 | [ITEM-0129](../../docs/backlog/items/ITEM-0129-tenants-should-inherit-the-platform-email-provider-by-defaul.md) | Tenants should inherit the platform email provider by default, and may override it | ARCHITECTURE | — | P1 | DONE | services/api, apps/web | DONE |
 | [ITEM-0130](../../docs/backlog/items/ITEM-0130-review-process-missed-four-defects-on-screens-adjacent-to-th.md) | Review process missed four defects on screens adjacent to the change | TEST_GAP | — | P1 | DONE | apps/web, .agent | DONE |
@@ -753,6 +758,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0168](../../docs/backlog/items/ITEM-0168-a-retry-action-on-an-email-delivery-log.md) | A retry action on an email delivery log | FOLLOW_UP | — | P2 | DONE | notifications, apps/web | DONE |
 | [ITEM-0173](../../docs/backlog/items/ITEM-0173-wire-notification-coverage-for-the-four-highest-value-remain.md) | Wire notification coverage for the four highest-value remaining silent modules | FOLLOW_UP | — | P2 | DEFERRED | documents, contracts, recruitment, business-trips | DEFER |
 | [ITEM-0193](../../docs/backlog/items/ITEM-0193-decide-whether-the-hr-role-may-manage-notification-events.md) | Decide whether the hr role may manage notification events | PRODUCT_DECISION | — | P2 | PRODUCT_DECISION | notifications, permissions | PRODUCT_DECISION |
+| [ITEM-0207](../../docs/backlog/items/ITEM-0207-seed-config-rewrites-version-1-of-system-agreement-templates.md) | seed:config rewrites version 1 of system agreement templates in place instead of publishing a new version | PRODUCT_DECISION | — | P2 | PRODUCT_DECISION | services/api/prisma | PRODUCT_DECISION |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |
 | [ITEM-0114](../../docs/backlog/items/ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-.md) | The workspace shell states the tenant's identity four times and its purpose twice | UX | — | P3 | DONE | views, apps/web | DONE |

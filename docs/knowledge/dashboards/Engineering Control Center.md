@@ -17,7 +17,7 @@
 | Open CRITICAL | **6** |
 | Open HIGH | 100 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 9 |
+| Owner decisions pending | 10 |
 | QA coverage gaps | 161 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -30,12 +30,12 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 228 |
-| No next action | 228 |
+| No acceptance criteria | 230 |
+| No next action | 230 |
 | Aging — 7d / 30d / 90d | 199 / 15 / 0 |
 | Architecture and technical debt | 7 |
 | Security gaps | 37 |
-| Database gaps | 22 |
+| Database gaps | 23 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -120,6 +120,7 @@ Questions where the engineering is understood and the **product answer is**
 - [[BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-|BUG-3333]] — **Tenant buyers choose their own currency and the three price schedules are not equivalent**
 - [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] — **No multi-factor authentication exists anywhere, including for platform super admins**
 - [[ITEM-0193-decide-whether-the-hr-role-may-manage-notification-events|ITEM-0193]] — **Decide whether the hr role may manage notification events**
+- [[ITEM-0207-seed-config-rewrites-version-1-of-system-agreement-templates|ITEM-0207]] — **seed:config rewrites version 1 of system agreement templates in place instead of publishing a new version**
 - [[ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins|ITEM-0191]] — **Decide whether custom modules need their own access keys instead of the shared custom-records privilege**
 
 ## QA Coverage Gaps
@@ -295,10 +296,10 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 228 |
+| Open total | 230 |
 | Blocked | 2 |
-| Deferred | 106 |
-| Awaiting a product decision | 9 |
+| Deferred | 108 |
+| Awaiting a product decision | 10 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

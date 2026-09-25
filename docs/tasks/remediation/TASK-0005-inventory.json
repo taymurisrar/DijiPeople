@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 688,
+    "total_records": 693,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -30497,6 +30497,212 @@
           "apps/admin"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0202-mfa-status-reads-off-while-new-recovery-codes-are-shown.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0203",
+      "type": "FOLLOW_UP",
+      "title": "An individual partner's agreement still records the counterparty as a PARTNER party, not INDIVIDUAL",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "READY",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0203-an-individual-partner-s-agreement-still-records-the-counterp.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/contracts",
+        "services/api/src/modules/partners"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/contracts",
+          "services/api/src/modules/partners"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0203-an-individual-partner-s-agreement-still-records-the-counterp.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0204",
+      "type": "TECH_DEBT",
+      "title": "ADR-0018 follow-ups: platform role-literal tier checks and the ungoverned legacy tenant status route",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0204-adr-0018-follow-ups-platform-role-literal-tier-checks-and-th.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/platform-runtime",
+        "services/api/src/modules/tenant-control-plane",
+        "services/api/src/modules/super-admin",
+        "services/api/src/modules/leads",
+        "services/api/src/modules/platform-monitoring"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/platform-runtime",
+          "services/api/src/modules/tenant-control-plane",
+          "services/api/src/modules/super-admin",
+          "services/api/src/modules/leads",
+          "services/api/src/modules/platform-monitoring"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0204-adr-0018-follow-ups-platform-role-literal-tier-checks-and-th.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0205",
+      "type": "DATA_MIGRATION",
+      "title": "Before promoting TASK-0032: review agreements signed with a fabricated date and partners that fail the new type policy",
+      "severity": "MEDIUM",
+      "priority": "P1",
+      "current_status": "READY",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0205-before-promoting-task-0032-review-agreements-signed-with-a-f.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/contracts",
+        "services/api/src/modules/partners"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/contracts",
+          "services/api/src/modules/partners"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0205-before-promoting-task-0032-review-agreements-signed-with-a-f.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0206",
+      "type": "UX",
+      "title": "Admin dashboard drill-downs for active users, failed sign-ins and unresolved errors land on approximate pages",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0206-admin-dashboard-drill-downs-for-active-users-failed-sign-ins.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/admin",
+        "services/api/src/modules/super-admin",
+        "services/api/src/modules/platform-monitoring"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin",
+          "services/api/src/modules/super-admin",
+          "services/api/src/modules/platform-monitoring"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0206-admin-dashboard-drill-downs-for-active-users-failed-sign-ins.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0207",
+      "type": "PRODUCT_DECISION",
+      "title": "seed:config rewrites version 1 of system agreement templates in place instead of publishing a new version",
+      "severity": "",
+      "priority": "P2",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0207-seed-config-rewrites-version-1-of-system-agreement-templates.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-25",
+        "updated_at": "2026-09-25",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/prisma"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/prisma"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0207-seed-config-rewrites-version-1-of-system-agreement-templates.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

@@ -242,6 +242,7 @@ permission dialog) and the passing `super-admin.service.spec.ts` /
 
 ## Related
 
+- Referenced by — [[ITEM-0204]]
 - Modules — [[super-admin]]
 - Regression — REG-525 (see the regression register)
 
