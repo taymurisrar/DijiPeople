@@ -164,7 +164,24 @@ Invitations, activation and password reset live in
 `apps/web/app/activate-account/`. Links derive their base URL from
 `@repo/config` rather than hardcoded hosts.
 
+## Multi-factor authentication
+
+TOTP MFA (ADR-0019) sits between password verification and token issuance for
+both `login` and `adminLogin`. See [`mfa.md`](mfa.md) for setup, the login
+challenge, recovery codes, administrative reset, tenant enforcement, platform
+lockout, audit and rate limits.
+
+## Numeric token TTLs
+
+`normalizeTokenTtl` (`common/config/auth.config.ts`) turns a bare integer TTL
+into `<n>s` before it reaches any getter (access/refresh, per-client, agent,
+platform remember-me) — previously a numeric `*_TTL_SECONDS` environment
+value (e.g. `1800`) was handed to the JWT signer as-is, and `jsonwebtoken`
+reads a bare number as **milliseconds**, issuing tokens that expired after
+about one second (BUG-3548). Blank values still fall back to the documented
+defaults above; `15m`/`7d`-style values are unaffected.
+
 > **Not fully verified here:** the complete refresh-rotation semantics
-> (`AUTH_REFRESH_ROTATION_ENABLED`), MFA (no MFA implementation was found), and
-> the platform-user login path in `platform-auth`. Read those modules directly
-> before changing them.
+> (`AUTH_REFRESH_ROTATION_ENABLED`) and the platform-user login path's
+> non-MFA details in `platform-auth`. Read those modules directly before
+> changing them.
