@@ -9,6 +9,11 @@ import {
 } from "@/lib/admin-session-response";
 import { forwardedClientHeaders } from "@/lib/forwarded-headers";
 
+/**
+ * Second step of a platform sign-in (ADR-0019). The body — `challengeToken`
+ * and one of `code`/`recoveryCode` — is forwarded untouched; cookies are set
+ * only when the API answers with tokens.
+ */
 export async function POST(request: Request) {
   let body: unknown;
 
@@ -24,7 +29,7 @@ export async function POST(request: Request) {
   const apiBaseUrl = getApiBaseUrl();
 
   try {
-    const response = await fetch(`${apiBaseUrl}/admin/auth/login`, {
+    const response = await fetch(`${apiBaseUrl}/admin/auth/mfa/verify`, {
       method: "POST",
       headers: {
         ...forwardedClientHeaders(request),
@@ -43,7 +48,7 @@ export async function POST(request: Request) {
         {
           message:
             extractAdminErrorMessage(data) ??
-            `Login failed with status ${response.status}.`,
+            "The code could not be verified.",
           errorCode: extractAdminErrorCode(data),
           upstreamStatus: response.status,
         },
@@ -52,15 +57,6 @@ export async function POST(request: Request) {
     }
 
     const result = classifyAdminLoginResponse(data);
-
-    /*
-     * ADR-0019 — the password was right and the operator is enrolled in MFA.
-     * The challenge goes back with no cookie; `/api/auth/mfa/verify` sets them
-     * once a code is accepted.
-     */
-    if (result.kind === "challenge") {
-      return NextResponse.json({ ok: true, ...result.challenge });
-    }
 
     if (result.kind !== "session") {
       return NextResponse.json(
