@@ -35,6 +35,7 @@ import {
 } from '@prisma/client';
 import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
+import { userHasPlatformPermission } from '../platform-auth/platform-permissions';
 import {
   assertValidTenantSlug,
   normalizeTenantSlug,
@@ -1625,19 +1626,58 @@ export class SuperAdminService {
       throw new NotFoundException('Tenant not found.');
     }
 
-    const isSystemAdmin = actor.roleKeys.includes(ROLE_KEYS.SYSTEM_ADMIN);
-    const updatesNonSlugField =
-      dto.name !== undefined ||
-      dto.displayName !== undefined ||
-      dto.legalName !== undefined ||
-      dto.status !== undefined ||
-      dto.subStatus !== undefined;
-
-    if (updatesNonSlugField && !isSystemAdmin) {
-      throw new ForbiddenException(
-        'Only System Admin can edit tenant profile fields.',
-      );
+    /*
+     * ADR-0018 / BUG-3544. The platform permission is the whole authorization
+     * decision, checked here as well as in `PlatformRuntimeService` and the
+     * route guard so both entry points (`PATCH /platform-runtime/tenants/:id`,
+     * `PATCH /super-admin/tenants/:id`) answer identically.
+     *
+     * This used to test `actor.roleKeys.includes('system-admin')` — a *tenant*
+     * role key that a platform subject only carries as a guard alias, and only
+     * for SUPER_ADMIN and PLATFORM_OWNER. PLATFORM_ADMIN, PLATFORM_OPERATIONS
+     * and MEMBER hold `tenants.update`, were shown an enabled Save, and were
+     * refused on it with "Only System Admin can edit tenant profile fields."
+     */
+    if (!userHasPlatformPermission(actor, 'tenants.update')) {
+      throw new ForbiddenException({
+        code: 'PLATFORM_PERMISSION_DENIED',
+        message:
+          'Editing a tenant profile requires the tenants.update platform permission.',
+      });
     }
+
+    /*
+     * Status is lifecycle, not profile. The governed path takes a reason,
+     * enforces the transition map, revokes sessions on suspension and audits the
+     * move; writing `status` here skipped every one of those. A value equal to
+     * the current one is a no-op and is ignored rather than refused, so a client
+     * that echoes the whole record back is not broken by it.
+     */
+    const changesStatus =
+      dto.status !== undefined && dto.status !== tenant.status;
+    const changesSubStatus =
+      dto.subStatus !== undefined &&
+      (dto.subStatus?.trim() || null) !== (tenant.subStatus ?? null);
+    if (changesStatus || changesSubStatus) {
+      throw new BadRequestException({
+        code: 'TENANT_STATUS_REQUIRES_LIFECYCLE_ACTION',
+        message:
+          "A tenant's status can't be changed by editing the tenant. Use the tenant's Actions menu — Suspend Tenant, Reactivate Tenant, Activate Tenant or Start Decommissioning (POST /api/platform/tenants/{tenantId}/status with a reason) — so the change is validated, recorded with its reason and audited.",
+      });
+    }
+
+    if (dto.name !== undefined && !dto.name.trim()) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: 'Tenant name cannot be blank.',
+      });
+    }
+
+    const before = {
+      name: tenant.name,
+      displayName: tenant.displayName,
+      legalName: tenant.legalName,
+    };
 
     await this.prisma.$transaction(async (tx) => {
       if (dto.legalName !== undefined && tenant.customerAccountId) {
@@ -1647,7 +1687,7 @@ export class SuperAdminService {
         });
       }
 
-      return tx.tenant.update({
+      const updated = await tx.tenant.update({
         where: { id: tenantId },
         data: {
           ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
@@ -1659,13 +1699,29 @@ export class SuperAdminService {
           ...(dto.legalName !== undefined
             ? { legalName: dto.legalName?.trim() || null }
             : {}),
-          ...(dto.status !== undefined ? { status: dto.status } : {}),
-          ...(dto.subStatus !== undefined
-            ? { subStatus: dto.subStatus?.trim() || null }
-            : {}),
           updatedById: actor.userId,
         },
+        select: { name: true, displayName: true, legalName: true },
       });
+
+      /*
+       * This path wrote no audit row at all before. Same shape as the lifecycle
+       * move in TenantControlPlaneService: the tenant's own log, the platform
+       * actor, the three profile fields before and after.
+       */
+      await this.auditService.log(
+        {
+          tenantId,
+          actorUserId: actor.userId,
+          action: 'TENANT_PROFILE_UPDATED',
+          entityType: 'Tenant',
+          entityId: tenantId,
+          sourceModule: 'super-admin',
+          beforeSnapshot: before,
+          afterSnapshot: updated,
+        },
+        tx,
+      );
     });
 
     return this.getTenantDetail(tenantId);
@@ -1676,7 +1732,13 @@ export class SuperAdminService {
     tenantId: string,
     dto: UpdateTenantSlugDto,
   ) {
-    if (actor.platform?.role !== 'SUPER_ADMIN') {
+    /*
+     * ADR-0018: a narrow platform permission rather than a role literal. Only
+     * `platform.*` satisfies it, so the allowed set is SUPER_ADMIN plus the
+     * PLATFORM_OWNER alias — which the literal comparison had excluded although
+     * it held identical permissions everywhere else.
+     */
+    if (!userHasPlatformPermission(actor, 'platform.tenants.administer')) {
       throw new ForbiddenException(
         'Only Platform Super Admin can update tenant slug.',
       );

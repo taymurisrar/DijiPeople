@@ -3,7 +3,9 @@ import {
   ExecutionContext,
   ForbiddenException,
   Injectable,
+  SetMetadata,
 } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { PlatformUserRole } from '@prisma/client';
 import type {
   AuthenticatedRequest,
@@ -62,7 +64,23 @@ export type PlatformPermission =
    */
   | 'legal.read'
   | 'legal.manage'
-  | 'platform.demoData.delete';
+  | 'platform.demoData.delete'
+  /*
+   * ADR-0018. Narrow permissions for operations that are deliberately tighter
+   * than their domain's general permission. Each is named `platform-…` or
+   * `platform.…` precisely so that no domain wildcard (`tenants.*`,
+   * `billing.*`, …) can match it: only `platform.*` — SUPER_ADMIN, and the
+   * PLATFORM_OWNER alias — satisfies them. They replace the tenant role key
+   * `system-admin`, which is how these operations were narrowed before, and
+   * which a platform subject only ever carried as a guard alias.
+   *
+   * Widening one of them to another role is a decision, not a fix: grant the
+   * key in ROLE_PERMISSIONS and record why.
+   */
+  | 'platform-users.manage'
+  | 'platform.tenants.administer'
+  | 'platform.billing.administer'
+  | 'platform.legal.administer';
 
 type PlatformAccess = { roleKeys: string[]; permissionKeys: string[] };
 
@@ -254,6 +272,20 @@ const ROLE_PERMISSIONS: Record<PlatformUserRole, string[]> = {
  * reads as four roles when it describes one. Show `PlatformUser.role` instead;
  * `formatPlatformRole` in the admin app renders it.
  *
+ * AND IT DECIDES NO PLATFORM AUTHORIZATION (ADR-0018). `system-admin` and
+ * `system-customizer` are tenant role keys. They stay here only for the
+ * tenant-shaped code a platform subject can still pass through (error-log stack
+ * exposure, `RolesGuard` on tenant controllers). A platform route or service
+ * decides with `userHasPlatformPermission` / `PlatformPermissionsGuard` — the
+ * route that used to test `roleKeys.includes('system-admin')` refused a
+ * PLATFORM_ADMIN holding `tenants.update`, because only SUPER_ADMIN and
+ * PLATFORM_OWNER carried the alias (BUG-3544).
+ *
+ * PLATFORM_OWNER keeps the elevated aliases and `platform.*`: it is no longer
+ * assignable and existing holders were migrated to SUPER_ADMIN, but the enum
+ * value stays until a contract step, and an account still holding it must not
+ * silently lose access.
+ *
  * Deduplicated at source: this previously emitted `key` twice for every
  * non-elevated role that was not MEMBER, and `SUPER_ADMIN` twice for the
  * SUPER_ADMIN role itself.
@@ -337,8 +369,33 @@ export function userHasPlatformPermission(
  * So: platform identity first, then the permission the route names — and the
  * map was completed so that every route names one.
  */
+export const PLATFORM_PERMISSION_KEY = 'platform_permission';
+
+/**
+ * Name the platform permission a route requires, instead of letting
+ * `resolvePlatformPermission` derive it from the path.
+ *
+ * ADR-0018. This is how a route that is deliberately narrower than its domain
+ * says so. Before, those routes stacked `@RequireRoles('system-admin')` — a
+ * *tenant* role key — on top of the path-derived permission, and a platform
+ * operator passed or failed on whether `platformAccessForRole` happened to
+ * inject that alias. Now the one guard reads one permission, and the narrowing
+ * is visible on the handler and enumerable by platform-permissions.spec.ts.
+ *
+ * Handler metadata overrides controller metadata (`getAllAndOverride`), the
+ * same resolution order every other guard here uses.
+ */
+export const RequirePlatformPermission = (permission: PlatformPermission) =>
+  SetMetadata(PLATFORM_PERMISSION_KEY, permission);
+
 @Injectable()
 export class PlatformPermissionsGuard implements CanActivate {
+  /*
+   * Defaulted so the guard can still be constructed directly in a spec; Nest
+   * injects the application Reflector.
+   */
+  constructor(private readonly reflector: Reflector = new Reflector()) {}
+
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
 
@@ -356,7 +413,9 @@ export class PlatformPermissionsGuard implements CanActivate {
     // `/feature-catalog`, `/lifecycle-options`, `/tenant-slug/availability`)
     // were fixed by completing the map, not by relaxing the guard, and
     // platform-permissions.spec.ts enumerates the controller to keep it complete.
-    const permission = resolvePlatformPermission(request);
+    const permission =
+      declaredPlatformPermission(this.reflector, context) ??
+      resolvePlatformPermission(request);
 
     if (permission && userHasPlatformPermission(request.user, permission)) {
       return true;
@@ -467,6 +526,19 @@ export function resolvePlatformPermission(
     return reads ? 'billing.read' : 'billing.manage';
 
   return null;
+}
+
+/** The permission a handler or its controller declared, if any. */
+export function declaredPlatformPermission(
+  reflector: Reflector,
+  context: ExecutionContext,
+): PlatformPermission | null {
+  return (
+    reflector.getAllAndOverride<PlatformPermission | undefined>(
+      PLATFORM_PERMISSION_KEY,
+      [context.getHandler(), context.getClass()],
+    ) ?? null
+  );
 }
 
 function isAppearanceOnlyUpdate(body: unknown) {

@@ -1,12 +1,25 @@
 import { PlatformUserRole } from '@prisma/client';
-import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
+import type { ExecutionContext } from '@nestjs/common';
+import {
+  GUARDS_METADATA,
+  METHOD_METADATA,
+  PATH_METADATA,
+} from '@nestjs/common/constants';
+import { Reflector } from '@nestjs/core';
 import {
   hasPlatformPermission,
   platformAccessForRole,
   PlatformPermissionsGuard,
+  declaredPlatformPermission,
   resolvePlatformPermission,
   userHasPlatformPermission,
+  type PlatformPermission,
 } from './platform-permissions';
+import { REQUIRED_ROLES_KEY } from '../../common/decorators/require-roles.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { AdminLeadsController } from '../leads/admin-leads.controller';
+import { AdminLegalController } from '../legal/admin-legal.controller';
+import { DemoDataController } from '../demo-data/demo-data.controller';
 import { SuperAdminController } from '../super-admin/super-admin.controller';
 import type {
   AuthenticatedRequest,
@@ -382,12 +395,20 @@ describe('super-admin route coverage', () => {
 describe('the platform boundary guard', () => {
   const guard = new PlatformPermissionsGuard();
 
-  const contextFor = (user: AuthenticatedUser | undefined, path: string) =>
+  const contextFor = (
+    user: AuthenticatedUser | undefined,
+    path: string,
+    handler: (...args: unknown[]) => unknown = () => undefined,
+    controller: object = class Undecorated {},
+    method = 'GET',
+  ) =>
     ({
+      getHandler: () => handler,
+      getClass: () => controller,
       switchToHttp: () => ({
         getRequest: () => ({
           user,
-          method: 'GET',
+          method,
           route: { path },
           path,
           url: path,
@@ -459,3 +480,242 @@ describe('the platform boundary guard', () => {
     ).toThrow(/do not have permission/);
   });
 });
+
+/*
+ * ADR-0018 — platform routes are decided by platform permission only.
+ *
+ * Four controllers used to stack `RolesGuard` + `@RequireRoles(<tenant role
+ * key>)` on top of `PlatformPermissionsGuard`. This block enumerates every route
+ * on all four from the controllers' own metadata, computes the permission the
+ * guard will actually require (a declared `@RequirePlatformPermission`, else the
+ * path-derived one), and pins three things:
+ *
+ *   1. no route is unmapped, and none still carries role metadata;
+ *   2. the routes that are SUPER_ADMIN-only are exactly the ones listed below —
+ *      a route cannot drift into or out of that set unnoticed;
+ *   3. the narrow keys are held by no role but SUPER_ADMIN and the
+ *      PLATFORM_OWNER alias.
+ */
+describe('ADR-0018 platform route authorization', () => {
+  const controllers: Array<{ name: string; type: object }> = [
+    { name: 'SuperAdminController', type: SuperAdminController },
+    { name: 'AdminLeadsController', type: AdminLeadsController },
+    { name: 'AdminLegalController', type: AdminLegalController },
+    { name: 'DemoDataController', type: DemoDataController },
+  ];
+
+  const VERBS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'ALL', 'OPTIONS'];
+  const reflector = new Reflector();
+
+  type Route = {
+    controller: string;
+    handler: string;
+    method: string;
+    path: string;
+    permission: PlatformPermission | null;
+    roleMetadata: unknown;
+  };
+
+  const allRoutes = (): Route[] => {
+    const found: Route[] = [];
+    for (const { name, type } of controllers) {
+      const base = Reflect.getMetadata(PATH_METADATA, type) as string;
+      const proto = (type as { prototype: Record<string, unknown> }).prototype;
+      for (const handlerName of Object.getOwnPropertyNames(proto)) {
+        if (handlerName === 'constructor') continue;
+        const handler = proto[handlerName];
+        if (typeof handler !== 'function') continue;
+        const sub = Reflect.getMetadata(PATH_METADATA, handler) as
+          | string
+          | undefined;
+        if (sub === undefined) continue;
+        const method =
+          VERBS[Reflect.getMetadata(METHOD_METADATA, handler) as number] ??
+          'GET';
+        const path = `/${base}/${sub}`
+          .replace(/\/+/g, '/')
+          .replace(/(.)\/$/, '$1');
+        const context = {
+          getHandler: () => handler,
+          getClass: () => type,
+        } as unknown as ExecutionContext;
+        const permission =
+          declaredPlatformPermission(reflector, context) ??
+          resolvePlatformPermission({
+            method,
+            route: { path },
+            path,
+            url: path,
+            body: {},
+          } as unknown as AuthenticatedRequest);
+        found.push({
+          controller: name,
+          handler: handlerName,
+          method,
+          path,
+          permission,
+          roleMetadata: reflector.getAllAndOverride(REQUIRED_ROLES_KEY, [
+            handler as () => unknown,
+            type as () => unknown,
+          ]),
+        });
+      }
+    }
+    return found;
+  };
+
+  const ALL_ROLES = Object.values(PlatformUserRole);
+  const allowedRoles = (permission: PlatformPermission | null) =>
+    permission
+      ? ALL_ROLES.filter((role) => hasPlatformPermission(role, permission))
+      : [];
+
+  it('enumerates routes on all four controllers', () => {
+    const byController = new Set(allRoutes().map((route) => route.controller));
+    expect([...byController].sort()).toEqual(
+      controllers.map((c) => c.name).sort(),
+    );
+    expect(allRoutes().length).toBeGreaterThan(90);
+  });
+
+  it('maps every route to a platform permission', () => {
+    expect(
+      allRoutes()
+        .filter((route) => route.permission === null)
+        .map((route) => `${route.method} ${route.path}`),
+    ).toEqual([]);
+  });
+
+  it('leaves no tenant role-key gate on any platform route', () => {
+    /* A `@RequireRoles` left behind would be read by nothing now that
+     * RolesGuard is gone — it would look like a control and not be one. */
+    expect(
+      allRoutes()
+        .filter((route) => route.roleMetadata !== undefined)
+        .map((route) => `${route.controller}.${route.handler}`),
+    ).toEqual([]);
+    for (const { name, type } of controllers) {
+      const guards = (Reflect.getMetadata(GUARDS_METADATA, type) ??
+        []) as unknown[];
+      expect([name, guards]).toEqual([
+        name,
+        [JwtAuthGuard, PlatformPermissionsGuard],
+      ]);
+    }
+  });
+
+  it('keeps exactly the deliberately narrow routes SUPER_ADMIN-only', () => {
+    const superAdminOnly = allRoutes()
+      .filter((route) =>
+        allowedRoles(route.permission).every(
+          (role) =>
+            role === PlatformUserRole.SUPER_ADMIN ||
+            role === PlatformUserRole.PLATFORM_OWNER,
+        ),
+      )
+      .map((route) => `${route.method} ${route.path} -> ${route.permission}`)
+      .sort();
+
+    expect(superAdminOnly).toEqual(SUPER_ADMIN_ONLY_ROUTES.slice().sort());
+  });
+
+  it('gives the narrow platform keys to SUPER_ADMIN and the PLATFORM_OWNER alias only', () => {
+    for (const key of [
+      'platform-users.manage',
+      'platform.tenants.administer',
+      'platform.billing.administer',
+      'platform.legal.administer',
+      'platform.demoData.delete',
+    ] as PlatformPermission[]) {
+      expect([key, allowedRoles(key)]).toEqual([
+        key,
+        [PlatformUserRole.SUPER_ADMIN, PlatformUserRole.PLATFORM_OWNER],
+      ]);
+    }
+  });
+
+  it('BUG-3544: admits PLATFORM_ADMIN, PLATFORM_OPERATIONS and MEMBER on the tenant profile edit route', () => {
+    const route = allRoutes().find(
+      (r) =>
+        r.method === 'PATCH' && r.path === '/super-admin/tenants/:tenantId',
+    );
+    expect(route?.permission).toBe('tenants.update');
+    const roles = allowedRoles(route?.permission ?? null);
+    expect(roles).toEqual(
+      expect.arrayContaining([
+        PlatformUserRole.SUPER_ADMIN,
+        PlatformUserRole.PLATFORM_OWNER,
+        PlatformUserRole.PLATFORM_ADMIN,
+        PlatformUserRole.PLATFORM_OPERATIONS,
+        PlatformUserRole.MEMBER,
+      ]),
+    );
+    expect(roles).not.toContain(PlatformUserRole.READ_ONLY_AUDITOR);
+    expect(roles).not.toContain(PlatformUserRole.SUPPORT_AGENT);
+  });
+
+  it('enforces a declared permission over the path-derived one', () => {
+    const guard = new PlatformPermissionsGuard(reflector);
+    const handler = (
+      AdminLegalController.prototype as unknown as Record<string, unknown>
+    ).listDocuments as () => unknown;
+    const context = (role: PlatformUserRole) =>
+      ({
+        getHandler: () => handler,
+        getClass: () => AdminLegalController,
+        switchToHttp: () => ({
+          getRequest: () => ({
+            user: platformSubject(role),
+            method: 'GET',
+            route: { path: '/super-admin/legal/documents' },
+            path: '/super-admin/legal/documents',
+            url: '/super-admin/legal/documents',
+            body: {},
+          }),
+        }),
+      }) as never;
+
+    // LEGAL_REVIEWER holds the path-derived `legal.read` and is still refused:
+    // the controller declares `platform.legal.administer`.
+    expect(() =>
+      guard.canActivate(context(PlatformUserRole.LEGAL_REVIEWER)),
+    ).toThrow(/do not have permission/);
+    expect(guard.canActivate(context(PlatformUserRole.SUPER_ADMIN))).toBe(true);
+  });
+});
+
+/*
+ * Every route only `platform.*` can reach. The first fifteen repeated
+ * `@RequireRoles('system-admin')` (SUPER_ADMIN and PLATFORM_OWNER only) before
+ * ADR-0018; their allowed set is unchanged. Adding a route here, or removing
+ * one, is an access decision and should be reviewed as one.
+ */
+const SUPER_ADMIN_ONLY_ROUTES = [
+  'PATCH /super-admin/tenants/:tenantId/status -> platform.tenants.administer',
+  'GET /super-admin/agent-assignments -> platform.tenants.administer',
+  'PATCH /super-admin/tenants/:tenantId/agent-assignment -> platform.tenants.administer',
+  'GET /super-admin/tenants/:tenantId/audit-logs -> platform.tenants.administer',
+  'GET /super-admin/tenants/:tenantId/access-users -> platform.tenants.administer',
+  'POST /super-admin/tenants/:tenantId/access-users -> platform.tenants.administer',
+  'PATCH /super-admin/tenants/:tenantId/access-users/:userId -> platform.tenants.administer',
+  'POST /super-admin/tenants/:tenantId/access-users/:userId/reset-activation -> platform.tenants.administer',
+  'POST /super-admin/tenants/:tenantId/access-users/:userId/reset-password -> platform.tenants.administer',
+  'GET /super-admin/tenants/:tenantId/invoices -> platform.billing.administer',
+  'PATCH /super-admin/tenants/:tenantId/subscription -> platform.billing.administer',
+  'GET /super-admin/invoices/:invoiceId/pdf -> platform.billing.administer',
+  'POST /super-admin/invoices/:invoiceId/email -> platform.billing.administer',
+  'PATCH /super-admin/invoices/:invoiceId/status -> platform.billing.administer',
+  'POST /super-admin/subscriptions/:subscriptionId/invoices -> platform.billing.administer',
+  // SuperAdminService.updateTenantSlug already refused everyone else.
+  'PATCH /super-admin/tenants/:tenantId/slug -> platform.tenants.administer',
+  // Class-level @RequireRoles('system-admin') before ADR-0018.
+  'GET /super-admin/legal/documents -> platform.legal.administer',
+  'GET /super-admin/legal/versions/:versionId -> platform.legal.administer',
+  'PATCH /super-admin/legal/versions/:versionId -> platform.legal.administer',
+  'POST /super-admin/legal/documents/:documentId/drafts -> platform.legal.administer',
+  'POST /super-admin/legal/versions/:versionId/publish -> platform.legal.administer',
+  // Class-level @RequireRoles('SUPER_ADMIN') before ADR-0018.
+  'GET /admin/demo-data/summary -> platform.demoData.delete',
+  'DELETE /admin/demo-data -> platform.demoData.delete',
+  'POST /admin/demo-data/reseed -> platform.demoData.delete',
+];

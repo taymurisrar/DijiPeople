@@ -19,11 +19,11 @@ import {
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AppError } from '../../common/errors/app-error';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { RequireRoles } from '../../common/decorators/require-roles.decorator';
-import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
-import { PlatformPermissionsGuard } from '../platform-auth/platform-permissions';
+import {
+  PlatformPermissionsGuard,
+  RequirePlatformPermission,
+} from '../platform-auth/platform-permissions';
 import { LegalService } from './legal.service';
 
 /**
@@ -90,8 +90,16 @@ class PublishLegalVersionDto {
   effectiveFrom?: string;
 }
 
-@UseGuards(JwtAuthGuard, RolesGuard, PlatformPermissionsGuard)
-@RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
+@UseGuards(JwtAuthGuard, PlatformPermissionsGuard)
+/*
+ * ADR-0018: `platform.legal.administer` replaces `@RequireRoles('system-admin')`
+ * and admits exactly who that did — SUPER_ADMIN and PLATFORM_OWNER. LEGAL_REVIEWER
+ * holds `legal.manage` in ROLE_PERMISSIONS, and the route map resolves these
+ * paths to `legal.read`/`legal.manage`, but the role gate has refused it here
+ * since the feature shipped. Letting it publish legal text is a product
+ * decision, recorded as such; removing this decorator is all it would take.
+ */
+@RequirePlatformPermission('platform.legal.administer')
 @Controller('super-admin/legal')
 export class AdminLegalController {
   constructor(private readonly legal: LegalService) {}
