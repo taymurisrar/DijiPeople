@@ -1994,6 +1994,16 @@ export class AuthService {
           identifier: normalizedEmail,
         }),
       );
+      // No actor: nobody is known. The attempted address is recorded, the
+      // attempted password never is.
+      await this.logPlatformAuthEvent({
+        platformUserId: null,
+        action: AUDIT_ACTIONS.AUTH_LOGIN_FAILED,
+        email: normalizedEmail,
+        result: 'FAILED',
+        failureReason: 'USER_NOT_FOUND',
+        req,
+      });
       throw invalidCredentials();
     }
 
@@ -2328,7 +2338,7 @@ export class AuthService {
    * find. Never throws, for the same reason `logTenantAuthEvent` does not.
    */
   private async logPlatformAuthEvent(input: {
-    platformUserId: string;
+    platformUserId: string | null;
     action: string;
     email: string;
     result: 'SUCCESS' | 'FAILED';
@@ -2344,7 +2354,9 @@ export class AuthService {
         actorUserId: input.platformUserId,
         action: input.action,
         entityType: 'AUTH_LOGIN',
-        entityId: input.platformUserId,
+        // Mirrors the tenant path: an unknown account is identified by the
+        // address that was tried.
+        entityId: input.platformUserId ?? input.email,
         sourceModule: 'auth',
         afterSnapshot: {
           email: input.email,
