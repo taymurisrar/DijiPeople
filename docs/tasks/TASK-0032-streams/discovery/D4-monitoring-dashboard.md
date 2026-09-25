@@ -1,5 +1,7 @@
 # D4 — Discovery: Admin Monitoring, Error Capture/Observability, Correlation IDs, Admin Dashboard
 
+Discovery report of [[TASK-0032]].
+
 Read-only discovery. Worktree: `D:/My Work/hrm-dijipeople/dp-partner-admin`
 (branch `agent/partner-agreements-admin-hardening`). No source, git state or
 database was modified.

@@ -1,5 +1,7 @@
 # D5 — Authentication architecture discovery, for TOTP MFA design
 
+Discovery report of [[TASK-0032]].
+
 > Read-only discovery. No source, git state or database was modified. Worktree:
 > `D:/My Work/hrm-dijipeople/dp-partner-admin` (branch
 > `agent/partner-agreements-admin-hardening`).

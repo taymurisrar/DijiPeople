@@ -1,5 +1,7 @@
 # D2 — Partner model, partner types, onboarding lifecycle, and partner↔lead/customer relationships
 
+Discovery report of [[TASK-0032]].
+
 Discovery only. No source, git state or database was modified. Worktree:
 `D:/My Work/hrm-dijipeople/dp-partner-admin` (branch
 `agent/partner-agreements-admin-hardening`).

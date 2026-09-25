@@ -1,5 +1,7 @@
 # D6 — Platform Admin CRUD surface and tenant management inventory
 
+Discovery report of [[TASK-0032]].
+
 Read-only discovery. Worktree: `D:/My Work/hrm-dijipeople/dp-partner-admin`.
 Scope: `apps/admin` (platform admin console) and its API backers
 (`platform-runtime`, `super-admin`, `tenant-control-plane`, `tenants`).

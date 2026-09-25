@@ -1,5 +1,7 @@
 # D3 — Agreements / Contracts / Templates / Placeholders / Signatures — Discovery
 
+Discovery report of [[TASK-0032]].
+
 > Read-only discovery. Worktree: `D:/My Work/hrm-dijipeople/dp-partner-admin`, branch
 > `agent/partner-agreements-admin-hardening`. Sources: live code at the worktree HEAD,
 > `docs/knowledge/modules/contracts-and-agreements.md`, `docs/bugs/BUG-3231-*`,

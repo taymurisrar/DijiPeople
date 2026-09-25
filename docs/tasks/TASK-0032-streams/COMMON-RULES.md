@@ -1,5 +1,7 @@
 # TASK-0032 — rules every work-package agent follows
 
+Rules shared by every work package of [[TASK-0032]].
+
 These rules bind every WP agent in TASK-0032 (EXECPLAN-0051). They exist so five
 agents working at once cannot corrupt each other's work, the user's checkout, a
 shared database or production.

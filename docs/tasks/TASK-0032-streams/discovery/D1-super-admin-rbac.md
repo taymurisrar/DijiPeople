@@ -1,5 +1,7 @@
 # D1 — Platform Super Admin RBAC and the tenant-edit failure
 
+Discovery report of [[TASK-0032]].
+
 Read-only discovery. Worktree: `D:/My Work/hrm-dijipeople/dp-partner-admin`.
 Scope: platform authentication/authorization, the Tenant record edit path in
 `apps/admin`, the platform role inventory, and related open bug records.
