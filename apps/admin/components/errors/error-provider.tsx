@@ -15,6 +15,10 @@ import {
   normalizeApiError,
   type StandardApiError,
 } from "@/lib/api-error";
+import {
+  isBackgroundRequest,
+  shouldRaiseErrorDialog,
+} from "@/lib/background-request";
 import type { PlatformRole } from "@/lib/platform-rbac";
 
 type DisplayableError = StandardApiError;
@@ -90,10 +94,11 @@ export function ErrorProvider({
             ? args[0].toString()
             : args[0].url;
       if (
-        response.ok ||
-        !url.includes("/api/") ||
-        url.includes("/api/error-logs/client") ||
-        url.includes("/api/error-logs/")
+        !shouldRaiseErrorDialog({
+          url,
+          ok: response.ok,
+          background: isBackgroundRequest(args[0], args[1]),
+        })
       )
         return response;
       const data = await response

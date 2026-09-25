@@ -37,10 +37,9 @@ export default async function SettingsUsersPage() {
 
   /*
    * Owner-level access is decided by `isPlatformSuperAdmin`, not by comparing
-   * the role string. SUPER_ADMIN is the legacy name for this level — the app's
-   * own `formatPlatformRole` renders it as "Platform Owner (legacy Super
-   * Admin)" — and the API grants `platform.*` to both. Testing for the literal
-   * locked the current PLATFORM_OWNER role out of its own settings pages.
+   * the role string. SUPER_ADMIN (Platform Super Admin) is the top role and
+   * PLATFORM_OWNER a retired alias of it (ADR-0018); the API grants `platform.*`
+   * to both. Testing for one literal once locked the other out of these pages.
    */
   if (!isPlatformSuperAdmin(currentUser?.role)) {
     redirect(ACCESS_DENIED_ROUTE);
