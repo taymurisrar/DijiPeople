@@ -426,12 +426,42 @@ async function checkView(fetcher, moduleKey, sampleId) {
     response.status === 200 ? "PASS" : "FAIL",
     `GET :id -> ${response.status}`,
   );
-  if (response.status >= 500)
+  if (response.status >= 500) {
     recordFinding(
       "HIGH",
       `${moduleKey}: view returned 500 for a real id`,
       JSON.stringify(response.body).slice(0, 300),
     );
+  } else if (response.status !== 200) {
+    /*
+     * `sampleId` came straight from this module's own list a moment earlier —
+     * a real, currently-existing record. Any non-200 here means view is
+     * broken for that module, not that the id was bad.
+     *
+     * Root cause for contract-templates and signature-requests, confirmed by
+     * reading platform-runtime.service.ts: `get()`'s switch has no case for
+     * either, so both fall to the private `findGeneric(key, id)` — which only
+     * recognises `key === 'plans' | 'subscriptions'` plus a literal
+     * `key === 'payments' ? 'payment' : null` mapping, and throws
+     * NotFoundException('Record is not available.') for every other key.
+     * GET /platform-runtime/contract-templates/:id and
+     * .../signature-requests/:id therefore 404 for *any* id, real or not —
+     * the list works (it has its own paginateRuntimeRecords call site) but
+     * opening a record from it cannot.
+     */
+    recordFinding(
+      "HIGH",
+      `${moduleKey}: view 404s for a real id taken from this module's own list`,
+      `GET :id -> ${response.status}: ${JSON.stringify(response.body).slice(0, 200)}. ` +
+        (["contract-templates", "signature-requests"].includes(moduleKey)
+          ? "Root cause: get()'s switch in platform-runtime.service.ts has no case for " +
+            "this module, so it falls to findGeneric(), whose fallback only recognises " +
+            "'plans'/'subscriptions'/'payments' and 404s everything else — the module's " +
+            "list works (its own paginateRuntimeRecords call site) but opening a record " +
+            "from it cannot."
+          : ""),
+    );
+  }
 }
 
 async function checkMalformedAndMissingId(fetcher, moduleKey) {
