@@ -10592,6 +10592,11 @@ model AuditLog {
   @@index([tenantId, actorUserId, createdAt])
   @@index([tenantId, requestId])
   @@index([tenantId, sourceModule, createdAt])
+  /// Cross-tenant sign-in metrics on the operations dashboard count by action
+  /// and time with no tenant in the filter (TASK-0032 WP-07).
+  @@index([action, createdAt])
+  /// Monitoring links an error to the audit rows its request wrote (TASK-0032 WP-06).
+  @@index([traceId])
 }
 
 model PlatformAuditLog {
@@ -10615,6 +10620,8 @@ model PlatformAuditLog {
   @@index([platformActorUserId, createdAt])
   @@index([requestId])
   @@index([sourceModule, createdAt])
+  /// Monitoring links an error to the audit rows its request wrote (TASK-0032 WP-06).
+  @@index([traceId])
 }
 
 model ErrorLog {
