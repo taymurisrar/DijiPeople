@@ -97,17 +97,19 @@ describe('platform sign-in audit', () => {
     throw new Error('expected a refusal');
   };
 
-  const payloads = () =>
-    audit.log.mock.calls.map(
-      ([payload]) =>
-        payload as {
-          tenantId: string;
-          actorUserId: string | null;
-          action: string;
-          entityId: string;
-          afterSnapshot: Record<string, unknown>;
-        },
-    );
+  type LoginAuditPayload = {
+    tenantId: string;
+    actorUserId: string | null;
+    action: string;
+    entityId: string;
+    afterSnapshot: Record<string, unknown>;
+  };
+
+  // Explicit return type: `audit.log.mock.calls` is `any[][]` (`jest.fn()`
+  // carries no signature), so without it `payloads()` itself resolves to
+  // `any` and every call site becomes an unsafe call.
+  const payloads = (): LoginAuditPayload[] =>
+    audit.log.mock.calls.map(([payload]) => payload as LoginAuditPayload);
 
   it('audits a successful sign-in with the operator as actor and mfaResult NOT_REQUIRED', async () => {
     await signIn('ops@dijipeople.test', PASSWORD);
@@ -171,7 +173,11 @@ describe('platform sign-in audit', () => {
 
     expect(unknown.getResponse()).toEqual(wrong.getResponse());
     expect(wrong.getResponse()).toEqual(locked.getResponse());
-    expect(payloads().at(-1)).toEqual(
+    // `.at(-1)` needs an ES2022 lib this project's ES2021 target doesn't
+    // carry (TS2550); indexing from `.length` instead reads the same last
+    // entry.
+    const allPayloads = payloads();
+    expect(allPayloads[allPayloads.length - 1]).toEqual(
       expect.objectContaining({
         afterSnapshot: expect.objectContaining({
           failureReason: 'ACCOUNT_LOCKED',

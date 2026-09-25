@@ -196,7 +196,9 @@ describe('BUG-3544 tenant profile edit is authorized by platform permission', ()
     expect(tx.tenant.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 'tenant-1' },
-        data: expect.objectContaining({ displayName: 'Acme Workspace' }),
+        data: expect.objectContaining({
+          displayName: 'Acme Workspace',
+        }) as unknown,
       }),
     );
   });
@@ -241,7 +243,7 @@ describe('BUG-3544 tenant profile edit is authorized by platform permission', ()
     await expect(attempt).rejects.toMatchObject({
       response: {
         code: 'TENANT_STATUS_REQUIRES_LIFECYCLE_ACTION',
-        message: expect.stringContaining('/api/platform/tenants/'),
+        message: expect.stringContaining('/api/platform/tenants/') as unknown,
       },
     });
     expect(tx.tenant.update).not.toHaveBeenCalled();
@@ -264,9 +266,9 @@ describe('BUG-3544 tenant profile edit is authorized by platform permission', ()
       { status: 'ACTIVE' as never, displayName: 'Acme Workspace' },
     );
 
-    const { data } = tx.tenant.update.mock.calls[0][0] as {
-      data: Record<string, unknown>;
-    };
+    const [{ data }] = tx.tenant.update.mock.calls[0] as [
+      { data: Record<string, unknown> },
+    ];
     expect(data).not.toHaveProperty('status');
     expect(data).not.toHaveProperty('subStatus');
   });

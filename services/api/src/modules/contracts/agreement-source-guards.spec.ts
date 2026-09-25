@@ -126,7 +126,7 @@ describe('agreement-source-guards — BUG-3553', () => {
           where: expect.objectContaining({
             contractType: ContractType.PARTNER_AGREEMENT,
             status: { notIn: TERMINAL_DUPLICATE_STATUSES },
-          }),
+          }) as unknown,
         }),
       );
     });

@@ -20,10 +20,32 @@ function defaultQuery(
   return Object.assign(new PlatformAuditLogQueryDto(), overrides);
 }
 
+/*
+ * These structural types describe only the shape the tests below inspect —
+ * `where.AND[n].action.in` / `.createdAt.{gte,lte}` — not the full generated
+ * Prisma args. Typing the mocks with them (rather than leaving `jest.fn`'s
+ * implicit `any`) is what turns every `mock.calls[0][0]` access below from an
+ * unsafe `any` read into an ordinary typed one.
+ */
+type PlatformAuditWhereClause = Record<string, unknown> & {
+  action?: { in?: string[] };
+  createdAt?: { gte?: Date; lte?: Date };
+};
+type PlatformAuditWhere = Record<string, unknown> & {
+  AND?: PlatformAuditWhereClause[];
+};
+type FindManyArgs = {
+  where?: PlatformAuditWhere;
+  skip?: number;
+  take?: number;
+};
+type CountArgs = { where?: PlatformAuditWhere };
+type FindUniqueArgs = { where?: { id?: string } };
+
 function buildRepository(overrides: Record<string, unknown> = {}) {
-  const findMany = jest.fn(async () => []);
-  const count = jest.fn(async () => 0);
-  const findUnique = jest.fn(async () => null);
+  const findMany = jest.fn<Promise<unknown[]>, [FindManyArgs]>(async () => []);
+  const count = jest.fn<Promise<number>, [CountArgs]>(async () => 0);
+  const findUnique = jest.fn<Promise<null>, [FindUniqueArgs]>(async () => null);
   const prisma = {
     platformAuditLog: { findMany, count, findUnique },
     platformUser: { findMany: jest.fn(async () => []) },
@@ -56,7 +78,7 @@ describe('AuditRepository.findPlatformAudit', () => {
       }),
     );
 
-    const where = findMany.mock.calls[0][0].where;
+    const where = findMany.mock.calls[0][0].where!;
     expect(where.AND).toContainEqual({
       platformActorUserId: 'platform-user-1',
     });
@@ -71,11 +93,11 @@ describe('AuditRepository.findPlatformAudit', () => {
       defaultQuery({ action: 'TENANT_PROFILE_UPDATED' }),
     );
 
-    const where = findMany.mock.calls[0][0].where;
-    const actionClause = where.AND.find((clause: Record<string, unknown>) =>
+    const where = findMany.mock.calls[0][0].where!;
+    const actionClause = where.AND?.find((clause) =>
       Object.prototype.hasOwnProperty.call(clause, 'action'),
     );
-    expect(actionClause.action.in).toContain('TENANT_PROFILE_UPDATED');
+    expect(actionClause?.action?.in).toContain('TENANT_PROFILE_UPDATED');
   });
 
   it('matches a trace id filter against either traceId or requestId', async () => {
@@ -83,7 +105,7 @@ describe('AuditRepository.findPlatformAudit', () => {
 
     await repository.findPlatformAudit(defaultQuery({ traceId: 'req_abc123' }));
 
-    const where = findMany.mock.calls[0][0].where;
+    const where = findMany.mock.calls[0][0].where!;
     expect(where.AND).toContainEqual({
       OR: [{ traceId: 'req_abc123' }, { requestId: 'req_abc123' }],
     });
@@ -102,7 +124,7 @@ describe('AuditRepository.findPlatformAudit', () => {
       defaultQuery({ traceId: 'req_abc123', search: 'tenant' }),
     );
 
-    const where = findMany.mock.calls[0][0].where;
+    const where = findMany.mock.calls[0][0].where!;
     expect(where.AND).toContainEqual({
       OR: [{ traceId: 'req_abc123' }, { requestId: 'req_abc123' }],
     });
@@ -130,12 +152,12 @@ describe('AuditRepository.findPlatformAudit', () => {
       defaultQuery({ fromDate: '2026-09-01', toDate: '2026-09-25' }),
     );
 
-    const where = findMany.mock.calls[0][0].where;
-    const dateClause = where.AND.find((clause: Record<string, unknown>) =>
+    const where = findMany.mock.calls[0][0].where!;
+    const dateClause = where.AND?.find((clause) =>
       Object.prototype.hasOwnProperty.call(clause, 'createdAt'),
     );
-    expect(dateClause.createdAt.gte).toBeInstanceOf(Date);
-    expect(dateClause.createdAt.lte).toBeInstanceOf(Date);
+    expect(dateClause?.createdAt?.gte).toBeInstanceOf(Date);
+    expect(dateClause?.createdAt?.lte).toBeInstanceOf(Date);
   });
 });
 

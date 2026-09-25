@@ -141,7 +141,9 @@ describe('lead attribution correction — partner status guard', () => {
     expect(tx.leadAttributionCorrection.create).toHaveBeenCalled();
     expect(tx.lead.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ partnerId: 'partner-1' }),
+        data: expect.objectContaining({
+          partnerId: 'partner-1',
+        }) as unknown,
       }),
     );
     expect(auditLog).toHaveBeenCalledWith(
@@ -210,7 +212,9 @@ describe('lead attribution correction — duplicate-assignment no-op', () => {
 
     expect(tx.leadAttributionCorrection.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ correctedPartnerId: null }),
+        data: expect.objectContaining({
+          correctedPartnerId: null,
+        }) as unknown,
       }),
     );
   });

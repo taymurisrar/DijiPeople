@@ -132,7 +132,9 @@ describe('findPartnerDuplicate', () => {
     );
     expect(findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ id: { not: 'partner-1' } }),
+        where: expect.objectContaining({
+          id: { not: 'partner-1' },
+        }) as unknown,
       }),
     );
   });

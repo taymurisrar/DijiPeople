@@ -25,6 +25,27 @@ function buildRequest(overrides: Record<string, unknown> = {}) {
   };
 }
 
+/*
+ * `Logger.log`'s own signature takes `message: any`, so `logSpy.mock.calls`
+ * is `any[][]` — reading the logged line back through this helper (rather
+ * than destructuring `mock.calls[0]` inline) is what keeps every call site
+ * below a typed string read instead of an unsafe `any` one.
+ */
+function loggedLine(spy: jest.SpyInstance): string {
+  const [line] = spy.mock.calls[0] as [string];
+  return line;
+}
+
+type AccessLogLine = {
+  method: string;
+  route: string;
+  statusCode: number;
+  traceId: string;
+  tenantId: string | null;
+  userId: string | null;
+  durationMs: number;
+};
+
 describe('AccessLogMiddleware', () => {
   /*
    * REG-579. Before this middleware existed, a successful (or slow) request
@@ -49,8 +70,7 @@ describe('AccessLogMiddleware', () => {
     res.fireFinish();
 
     expect(logSpy).toHaveBeenCalledTimes(1);
-    const [line] = logSpy.mock.calls[0];
-    const parsed = JSON.parse(line as string);
+    const parsed = JSON.parse(loggedLine(logSpy)) as AccessLogLine;
     expect(parsed).toMatchObject({
       method: 'GET',
       route: '/api/employees/:id',
@@ -75,7 +95,7 @@ describe('AccessLogMiddleware', () => {
     middleware.use(req as never, res as never, jest.fn());
     res.fireFinish();
 
-    const [line] = logSpy.mock.calls[0];
+    const line = loggedLine(logSpy);
     expect(line).not.toContain('do-not-log-me');
     expect(line).not.toContain('do-not-log-me-either');
     expect(line).not.toContain('secretToken');
@@ -96,7 +116,7 @@ describe('AccessLogMiddleware', () => {
     middleware.use(req as never, res as never, jest.fn());
     res.fireFinish();
 
-    const parsed = JSON.parse(logSpy.mock.calls[0][0] as string);
+    const parsed = JSON.parse(loggedLine(logSpy)) as AccessLogLine;
     expect(parsed.tenantId).toBeNull();
     expect(parsed.userId).toBeNull();
 

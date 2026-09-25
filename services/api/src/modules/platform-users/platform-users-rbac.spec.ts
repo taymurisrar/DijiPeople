@@ -116,7 +116,7 @@ describe('platform user management authorization (ADR-0018)', () => {
       ).rejects.toMatchObject({
         response: {
           code: 'PLATFORM_ROLE_NOT_ASSIGNABLE',
-          message: expect.stringContaining('Platform Super Admin'),
+          message: expect.stringContaining('Platform Super Admin') as unknown,
         },
       });
     });

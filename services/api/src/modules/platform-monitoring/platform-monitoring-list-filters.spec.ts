@@ -24,9 +24,21 @@ const platformUser: AuthenticatedUser = {
   },
 } as unknown as AuthenticatedUser;
 
+/*
+ * Typing the mock's argument (rather than leaving `jest.fn`'s implicit `any`)
+ * is what turns `mock.calls[0][0].where.AND` below from an unsafe `any` read
+ * into an ordinary typed one — the same pattern `platform-audit-trail.spec.ts`
+ * uses for the same reason.
+ */
+type MonitoringWhere = Record<string, unknown> & {
+  AND?: Record<string, unknown>[];
+};
+type FindManyArgs = { where?: MonitoringWhere; skip?: number; take?: number };
+type CountArgs = { where?: MonitoringWhere };
+
 function buildService(overrides: Record<string, unknown> = {}) {
-  const findMany = jest.fn(async () => []);
-  const count = jest.fn(async () => 0);
+  const findMany = jest.fn<Promise<unknown[]>, [FindManyArgs]>(async () => []);
+  const count = jest.fn<Promise<number>, [CountArgs]>(async () => 0);
   const prisma = {
     errorLog: {
       findMany,
@@ -56,7 +68,7 @@ describe('PlatformMonitoringService.listEvents filters', () => {
 
     await service.listEvents(platformUser, { module: 'contracts' });
 
-    const where = findMany.mock.calls[0][0].where;
+    const where = findMany.mock.calls[0][0].where!;
     expect(where.AND).toContainEqual({ module: 'contracts' });
   });
 
@@ -65,7 +77,7 @@ describe('PlatformMonitoringService.listEvents filters', () => {
 
     await service.listEvents(platformUser, {});
 
-    const where = findMany.mock.calls[0][0].where;
+    const where = findMany.mock.calls[0][0].where!;
     expect(where.AND).toContainEqual({});
   });
 
@@ -76,7 +88,7 @@ describe('PlatformMonitoringService.listEvents filters', () => {
       correlationId: 'req_exact-match-1',
     });
 
-    const where = findMany.mock.calls[0][0].where;
+    const where = findMany.mock.calls[0][0].where!;
     expect(where.AND).toContainEqual({ traceId: 'req_exact-match-1' });
   });
 
@@ -167,7 +179,7 @@ describe('PlatformMonitoringService.getEvent related data', () => {
 
     expect(event.module).toBe('contracts');
     expect(event.relatedOccurrences).toEqual([
-      { traceId: 'req_repeat-1', occurredAt: expect.any(Date) },
+      { traceId: 'req_repeat-1', occurredAt: expect.any(Date) as unknown },
     ]);
     expect(event.relatedAuditEvents[0]).toMatchObject({
       id: 'audit-1',

@@ -73,8 +73,10 @@ describe('PartnersService.update — genuinely partial patches', () => {
     } as never);
 
     expect(result.notes).toBe('Follow up next week');
-    const writtenData = (prisma as { partner: { update: jest.Mock } }).partner
-      .update.mock.calls[0][0].data;
+    const writtenData = (
+      (prisma as { partner: { update: jest.Mock } }).partner.update.mock
+        .calls[0] as [{ data: Record<string, unknown> }]
+    )[0].data;
     // The fields the patch never mentioned must not appear in the write at
     // all — not even re-written back to their existing value — because a
     // partial patch that silently rewrites unrelated columns is not partial.
@@ -91,8 +93,10 @@ describe('PartnersService.update — genuinely partial patches', () => {
 
     await service.update('partner-1', { notes: 'x' } as never);
 
-    const writtenData = (prisma as { partner: { update: jest.Mock } }).partner
-      .update.mock.calls[0][0].data;
+    const writtenData = (
+      (prisma as { partner: { update: jest.Mock } }).partner.update.mock
+        .calls[0] as [{ data: Record<string, unknown> }]
+    )[0].data;
     expect(writtenData).not.toHaveProperty('status');
   });
 

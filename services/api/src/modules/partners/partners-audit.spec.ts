@@ -1,5 +1,6 @@
 import { PartnerType } from '@prisma/client';
 import { PartnersService } from './partners.service';
+import type { AuditService } from '../audit/audit.service';
 
 /*
  * BUG-3551. `partners.service.ts` never called `AuditService.log()` — every
@@ -66,7 +67,10 @@ function prismaStub(overrides: Record<string, unknown> = {}) {
 
 describe('PartnersService — audit coverage', () => {
   it('audits partner creation to the platform log', async () => {
-    const auditLog = jest.fn();
+    const auditLog = jest.fn<
+      Promise<unknown>,
+      Parameters<AuditService['log']>
+    >();
     const prisma = prismaStub();
     const service = new PartnersService(prisma, { log: auditLog } as never);
 
@@ -94,7 +98,10 @@ describe('PartnersService — audit coverage', () => {
   });
 
   it('audits partner update with a before/after snapshot', async () => {
-    const auditLog = jest.fn();
+    const auditLog = jest.fn<
+      Promise<unknown>,
+      Parameters<AuditService['log']>
+    >();
     const prisma = prismaStub();
     const service = new PartnersService(prisma, { log: auditLog } as never);
 
@@ -114,8 +121,8 @@ describe('PartnersService — audit coverage', () => {
       expect.objectContaining({
         action: 'PARTNER_UPDATED',
         tenantId: 'platform',
-        beforeSnapshot: expect.objectContaining({ id: 'partner-1' }),
-        afterSnapshot: expect.any(Object),
+        beforeSnapshot: expect.objectContaining({ id: 'partner-1' }) as unknown,
+        afterSnapshot: expect.any(Object) as unknown,
       }),
     );
   });

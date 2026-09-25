@@ -385,7 +385,7 @@ describe('ContractsService — audit trail (BUG-3231)', () => {
     // The typed style reaches SignatureEvidence.typedStyle.
     expect(tx.signatureEvidence.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ typedStyle: 'SCRIPT' }),
+        data: expect.objectContaining({ typedStyle: 'SCRIPT' }) as unknown,
       }),
     );
     // BUG-3231: audited, and with no platform actor.
@@ -399,7 +399,7 @@ describe('ContractsService — audit trail (BUG-3231)', () => {
         afterSnapshot: expect.objectContaining({
           recipientId: 'recipient-1',
           signerEmail: 'amal@example.test',
-        }),
+        }) as unknown,
       }),
       tx,
     );
@@ -452,8 +452,10 @@ describe('ContractsService — passive signature expiry (discovery D3 scenario 1
     expect(result.status).toBe('EXPIRED');
     expect(tx.signatureRecipient.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ signatureRequestId: 'request-1' }),
-        data: expect.objectContaining({ status: 'EXPIRED' }),
+        where: expect.objectContaining({
+          signatureRequestId: 'request-1',
+        }) as unknown,
+        data: expect.objectContaining({ status: 'EXPIRED' }) as unknown,
       }),
     );
     expect(tx.signatureRequest.update).toHaveBeenCalledWith(
