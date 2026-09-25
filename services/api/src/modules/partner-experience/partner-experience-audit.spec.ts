@@ -33,7 +33,10 @@ function service(prisma: Record<string, unknown>, auditLog = jest.fn()) {
     {} as never,
     { sendEmail: jest.fn() } as never,
     { record: jest.fn() } as never,
-    { resolvePublished: jest.fn(async () => null), acknowledge: jest.fn() } as never,
+    {
+      resolvePublished: jest.fn(async () => null),
+      acknowledge: jest.fn(),
+    } as never,
     { log: auditLog } as never,
   );
   return { instance, auditLog };
@@ -156,7 +159,9 @@ describe('PartnerExperienceService — audit coverage', () => {
         update: jest.fn(async () => ({})),
       },
       partner: { update: jest.fn(async () => ({})) },
-      $transaction: jest.fn(async (ops: unknown[]) => Promise.all(ops as never)),
+      $transaction: jest.fn(async (ops: unknown[]) =>
+        Promise.all(ops as never),
+      ),
     };
     const { instance, auditLog } = service(prisma);
 

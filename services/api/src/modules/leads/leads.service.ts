@@ -772,14 +772,18 @@ export class LeadsService {
       throw new BadRequestException(
         'Referral link does not belong to the selected partner.',
       );
-    let partner: { id: string; status: PartnerStatus; displayName: string } | null =
-      null;
+    let partner: {
+      id: string;
+      status: PartnerStatus;
+      displayName: string;
+    } | null = null;
     if (partnerId) {
       partner = await this.prisma.partner.findUnique({
         where: { id: partnerId },
         select: { id: true, status: true, displayName: true },
       });
-      if (!partner) throw new BadRequestException('Selected partner does not exist.');
+      if (!partner)
+        throw new BadRequestException('Selected partner does not exist.');
       /*
        * The same rule `PartnerReferralResolverService.resolve()` already
        * applies to an automatic referral-code attribution — a partner who is
