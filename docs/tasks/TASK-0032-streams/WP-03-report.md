@@ -196,7 +196,11 @@ boundary. Inside the API, `totpAt(secret, ms)` in
 
 - api `npx tsc --noEmit -p tsconfig.build.json` — pass.
 - api targeted suites (auth, mfa, platform-users, users, common/security, tenant-settings, audit) — pass.
-- api full `npx jest` — see the final message for counts.
+- api full `npx jest --maxWorkers=3` — 355 suites / 6993 tests; the one failure was
+  `tenant-erasure.constants.spec.ts` ("covers every tenant-owned model"), missing
+  `UserMfaRecoveryCode` — introduced by the WP-01 schema commit `10d5d148`, not by WP-03 code.
+  Fixed here by adding `userMfaRecoveryCode` to `TENANT_ERASURE_ORDER`; the tenant-control-plane
+  suite then passes (144/144).
 - `npx eslint --fix` on every changed api file — 0 errors.
 - `npm --workspace web run check-types` — pass; `npm --workspace web run test` — pass after the
   forwarded-headers invariant update (one run hit a Jest worker out-of-memory on `api-error.spec.ts`, passing on rerun).
