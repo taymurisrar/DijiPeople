@@ -90,18 +90,24 @@ describe('MfaService', () => {
 
   beforeEach(() => build());
 
-  /** Enrols user-a and returns the seed and the one-time recovery codes. */
+  /**
+   * Enrols user-a and returns the seed, the one-time recovery codes and the
+   * exact code that confirmed setup. Tests about "the confirming code" must use
+   * that returned code, never recompute it from the clock: under a loaded full
+   * suite a 30-second step boundary can pass between enrolment and the
+   * recomputation, which then yields the NEXT code — one the service rightly
+   * accepts — and the test failed intermittently (TASK-0032 integration).
+   */
   async function enrol() {
     await service.startSetup(subject);
     const secret = encryption.decrypt(
       userRow().mfaPendingSecretEncrypted as string,
     );
-    const { recoveryCodes } = await service.confirmSetup(
-      subject,
-      totpAt(secret, Date.now()),
-      { actorId: 'user-a' },
-    );
-    return { secret, recoveryCodes };
+    const confirmCode = totpAt(secret, Date.now());
+    const { recoveryCodes } = await service.confirmSetup(subject, confirmCode, {
+      actorId: 'user-a',
+    });
+    return { secret, recoveryCodes, confirmCode };
   }
 
   describe('setup', () => {
@@ -215,11 +221,9 @@ describe('MfaService', () => {
     });
 
     it('refuses the code used to confirm setup', async () => {
-      const { secret } = await enrol();
+      const { confirmCode } = await enrol();
       await expect(
-        service.verifySecondFactor(subject, {
-          code: totpAt(secret, Date.now()),
-        }),
+        service.verifySecondFactor(subject, { code: confirmCode }),
       ).resolves.toBeNull();
     });
 
