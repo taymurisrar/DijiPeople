@@ -106,6 +106,9 @@ export function MfaSettingsCard() {
     }
     const data = (await response.json()) as { recoveryCodes?: string[] };
     setMode({ kind: "codes", codes: data.recoveryCodes ?? [] });
+    // MFA is on from this moment; the status above must say so while the
+    // recovery codes are showing, not only after Done (TASK-0032 browser QA).
+    void load();
     return null;
   }
 

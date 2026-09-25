@@ -381,7 +381,12 @@ export function AdminMfaCard() {
       {mode.kind === "enrolling" ? (
         <EnrolmentPanel
           onCancel={() => setMode({ kind: "idle" })}
-          onConfirmed={(codes) => setMode({ kind: "codes", codes })}
+          onConfirmed={(codes) => {
+            setMode({ kind: "codes", codes });
+            // MFA is on from this moment; the status must say so while the
+            // recovery codes are showing (TASK-0032 browser QA).
+            void load();
+          }}
           setup={mode.setup}
         />
       ) : null}
