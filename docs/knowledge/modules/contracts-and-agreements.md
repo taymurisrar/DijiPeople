@@ -70,10 +70,38 @@ for a party the platform never fills is not an error — it prints
 `counterparty` are actually written, by `signaturePlaceholderValues`. A party
 outside that set must be given ruled blank lines, never a token.
 
+## Rendering an agreement document (TASK-0032)
+
+Three render paths, one renderer:
+
+- **Draft preview** (document-fields view, pre-send PDF/DOCX) resolves values in
+  `display` mode; `signature.*` prints "Pending".
+- **Signing freeze** (`sendForSignature`) resolves everything except
+  `signature.*` into the hashed signing version.
+- **Executed copy** renders the frozen version plus the signature evidence
+  (`renderSignatureEvidenceTokens`) — never current placeholder values. Since
+  BUG-3598 this holds for *any* copy of a version with a completed signature
+  request, not only the immutable `SIGNED_COPY` written at completion. An
+  unmatched named slot reads "Not signed".
+
+The DijiPeople signature line is omitted when no PLATFORM party signs
+(ADR-0021): paragraphs marked `data-document-role="platform-signature"` or
+carrying a `{{signature.platform.*}}` token.
+
+**The PDF/DOCX extractor works per block, not per run.** Every paragraph is
+flattened to text, so anything inline inside a `<p>` survives only if the
+extractor handles it explicitly. Signature images sit inline in every system
+template's signature paragraph; until BUG-3597 they were silently dropped from
+every signed copy, while the test for images used a top-level `<img>` and
+passed. When adding an inline element to agreement HTML, test it **inside a
+paragraph**, in the shape a real template produces.
+
 ## Regressions
 
 REG-009 — `contracts.agreement-immutability.spec.ts`; 19 assertions, **7 fail**
-against the unfixed code.
+against the unfixed code. REG-627 (signature image inside a paragraph),
+REG-628 (regenerated executed copy renders from evidence), REG-629
+(unsupported format is a 400).
 
 ## Residual risk
 
@@ -84,4 +112,5 @@ governed action. No such caller exists in the frontends.
 ## Related
 
 [[leads]] · [[customers]] · [[partners]] · [[partner-onboarding]] ·
-[[commercial-onboarding-lifecycle]] · [[requirement-lead-conversion]]
+[[commercial-onboarding-lifecycle]] · [[requirement-lead-conversion]] ·
+[[BUG-3597]] · [[BUG-3598]] · [[TASK-0032]]

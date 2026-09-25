@@ -587,6 +587,7 @@
 
 ## Recent Engineering History
 
+- [[2026-09-25-task-0032-partner-agreements-admin-hardening-dfe42ea9|Engineering History — Task 0032 partner agreements admin hardening]]
 - [[2026-09-13-task-0031-demo-walkthrough-2-remediation-e253306a|Engineering History — Task 0031 demo walkthrough 2 remediation]]
 - [[2026-09-12-ux-findings-audit-d5388a4c|Engineering History — Ux findings audit]]
 - [[2026-09-12-records-0099-0102-413565f0|Engineering History — Implement the 34 records from sessions 0099–0102]]
@@ -594,7 +595,6 @@
 - [[2026-09-11-closeout-sweep-658eb39c|Engineering History — Closeout sweep]]
 - [[2026-09-11-auth-session-revocation-690cacbc|Engineering History — Auth session revocation]]
 - [[2026-09-10-release-settings-entitlements-254e8d2b|Engineering History — Release settings entitlements]]
-- [[2026-09-10-r2-durable-object-storage-11afbd50|Engineering History — Durable object storage on Cloudflare R2 (FILE-01/INF-05)]]
 
 ## Recent Releases
 
@@ -767,7 +767,7 @@
 | Backlog items | 202 |
 | Known bug patterns | 35 |
 | QA runs | 33 |
-| Engineering history records | 82 |
+| Engineering history records | 83 |
 | Release records | 10 |
 | Module notes | 30 |
 | Architecture notes | 22 |
