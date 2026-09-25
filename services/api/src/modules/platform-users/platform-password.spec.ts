@@ -55,7 +55,7 @@ describe('PlatformUsersService.changeOwnPassword', () => {
     };
 
     return {
-      service: new PlatformUsersService(prisma as never),
+      service: new PlatformUsersService(prisma as never, {} as never),
       prisma,
       update,
       updateMany,

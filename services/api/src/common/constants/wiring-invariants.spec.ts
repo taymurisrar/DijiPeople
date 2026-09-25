@@ -497,6 +497,10 @@ describe('permission wiring invariants', () => {
       'StorageReadinessController',
       'PlatformRuntimeController',
       'PlatformUsersController',
+      // ADR-0019 self-service MFA. Authentication only: every route acts on
+      // `request.user` and takes no user id, so the only account a caller can
+      // reach is their own. Its public routes are challenge-token authorised.
+      'AuthMfaController',
       'SupportCasesController',
       'TenantControlPlaneController',
       'PartnersController',

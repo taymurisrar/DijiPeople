@@ -107,6 +107,22 @@ export const AUDIT_ACTIONS = {
    * than a routine `SESSION_REVOKED` response.
    */
   AUTH_REFRESH_TOKEN_REUSE_DETECTED: 'AUTH_REFRESH_TOKEN_REUSE_DETECTED',
+  /*
+   * TOTP multi-factor authentication — ADR-0019. Written for tenant users
+   * (entityType `User`, the tenant's own log) and platform operators
+   * (entityType `PlatformUser`, `tenantId: 'platform'`). Snapshots carry
+   * booleans, counts and timestamps only — never a seed, a code or a recovery
+   * code. A failed second factor at sign-in is not its own action: it is an
+   * `AUTH_LOGIN_FAILED` row with `failureReason: 'MFA_CODE_INVALID'` and
+   * `mfaResult: 'FAILED'`, so every refused sign-in stays in one place.
+   * `AUTH_MFA_RESET` is an administrator acting on someone else's account;
+   * the actor is the administrator and the target is in both snapshots.
+   */
+  AUTH_MFA_ENABLED: 'AUTH_MFA_ENABLED',
+  AUTH_MFA_DISABLED: 'AUTH_MFA_DISABLED',
+  AUTH_MFA_RESET: 'AUTH_MFA_RESET',
+  AUTH_MFA_RECOVERY_CODES_REGENERATED: 'AUTH_MFA_RECOVERY_CODES_REGENERATED',
+  AUTH_MFA_RECOVERY_CODE_USED: 'AUTH_MFA_RECOVERY_CODE_USED',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];

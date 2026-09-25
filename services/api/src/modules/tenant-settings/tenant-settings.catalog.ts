@@ -692,8 +692,13 @@ export const DEFAULT_TENANT_SETTINGS: TenantSettingDefaults = {
     invitationExpiryHours: 72,
     allowInvitationResend: true,
     passwordSetupRequiredBeforeFirstLogin: true,
+    /*
+     * ADR-0019 — enforced at sign-in through `TenantAuthPolicyService`. Only
+     * TOTP is implemented, so that is the method; the former 'EMAIL' default
+     * was never read by anything.
+     */
     mfaRequired: false,
-    mfaMethod: 'EMAIL',
+    mfaMethod: 'TOTP',
     rememberTrustedDevice: false,
   },
   system: {

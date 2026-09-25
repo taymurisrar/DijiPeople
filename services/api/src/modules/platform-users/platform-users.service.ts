@@ -18,10 +18,15 @@ import { UpdatePlatformModulePreferenceDto } from './dto/platform-module-prefere
 import { ChangePlatformPasswordDto } from './dto/platform-password.dto';
 import { platformAccessForRole } from '../platform-auth/platform-permissions';
 import { resolveRuntimeField } from '@repo/config';
+import { MfaService, type MfaSubject } from '../auth/mfa/mfa.service';
+import type { MfaDisableDto } from '../auth/mfa/dto/mfa.dto';
 
 @Injectable()
 export class PlatformUsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mfaService: MfaService,
+  ) {}
 
   async list(actor: AuthenticatedUser) {
     this.assertCanManage(actor);
@@ -39,6 +44,8 @@ export class PlatformUsersService {
       role: user.role,
       status: user.status,
       lastActiveAt: user.lastActiveAt,
+      // ADR-0019 — enrolment state only, for the users list.
+      mfaEnabled: user.mfaEnabled,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     }));
@@ -540,6 +547,48 @@ export class PlatformUsersService {
       },
     });
     return disabled;
+  }
+
+  /* ADR-0019 — the actor's own MFA. Every method is scoped to `actor`. */
+  getMyMfaStatus(actor: AuthenticatedUser) {
+    return this.mfaService.getStatus(this.mfaSubject(actor));
+  }
+
+  startMyMfaSetup(actor: AuthenticatedUser) {
+    return this.mfaService.startSetup(this.mfaSubject(actor));
+  }
+
+  confirmMyMfaSetup(actor: AuthenticatedUser, code: string) {
+    return this.mfaService.confirmSetup(this.mfaSubject(actor), code, {
+      actorId: actor.platform!.id,
+    });
+  }
+
+  regenerateMyRecoveryCodes(actor: AuthenticatedUser, code: string) {
+    return this.mfaService.regenerateRecoveryCodes(
+      this.mfaSubject(actor),
+      code,
+    );
+  }
+
+  disableMyMfa(actor: AuthenticatedUser, dto: MfaDisableDto) {
+    return this.mfaService.disable(this.mfaSubject(actor), dto);
+  }
+
+  /**
+   * Another operator's MFA, cleared. The authorization is `assertCanManage`,
+   * the same decision that gates creating, editing and disabling platform
+   * users — one place, so the reset cannot be reachable by anyone who could
+   * not already disable the account outright.
+   */
+  async resetUserMfa(actor: AuthenticatedUser, userId: string) {
+    this.assertCanManage(actor);
+    return this.mfaService.adminResetPlatformUser(actor.platform!.id, userId);
+  }
+
+  private mfaSubject(actor: AuthenticatedUser): MfaSubject {
+    this.assertPlatformUser(actor);
+    return { kind: 'platform', platformUserId: actor.platform!.id };
   }
 
   private assertCanManage(actor: AuthenticatedUser) {
