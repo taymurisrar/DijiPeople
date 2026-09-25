@@ -212,7 +212,7 @@ Derived from `ROLE_PERMISSIONS` via `hasPlatformPermission`, one row per
 platform role, covering tenants, platform-user management, leads, customers,
 onboarding, partners, contracts, billing, plans, invoices, support,
 monitoring, settings, email credentials and legal — see
-[`WP-02-report.md`](../tasks/TASK-0032-streams/WP-02-report.md#role_matrix-derived-from-role_permissions-via-haspermission)
+[`WP-02-report.md`](../tasks/TASK-0032-streams/WP-02-report.md#role_matrix-derived-from-role_permissions-via-hasplatformpermission)
 for the full table. Two properties worth restating here:
 
 - **Legacy `MEMBER`, `PLATFORM_OWNER` and `SUPER_ADMIN` retain everything
