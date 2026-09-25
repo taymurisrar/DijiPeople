@@ -290,4 +290,118 @@ describe('ContractsService — audit trail (BUG-3231)', () => {
       tx,
     );
   });
+
+  it('completeSignature audits DOCUMENT_SIGNED with a null actorUserId — the actor is the external signer, not a platform user', async () => {
+    const recipient = {
+      id: 'recipient-1',
+      name: 'Amal Hassan',
+      email: 'amal@example.test',
+      role: 'Signer',
+      partyId: null,
+      party: null,
+      signingOrder: 1,
+      isRequired: true,
+      status: 'SENT',
+      tokenExpiresAt: new Date(Date.now() + 60_000),
+      tokenRevokedAt: null,
+      signatureRequestId: 'request-1',
+      signatureRequest: {
+        id: 'request-1',
+        contractId: 'contract-1',
+        contractVersionId: 'version-1',
+        status: 'SENT',
+        signingMode: 'SEQUENTIAL',
+        requestNumber: 'SIG-20260925-0001',
+        contractVersion: {
+          id: 'version-1',
+          contentSha256: 'sha-abc',
+          version: 1,
+        },
+        contract: {
+          tenantId: null,
+          customerOnboardingId: null,
+          partnerId: null,
+        },
+        recipients: [
+          {
+            id: 'recipient-1',
+            signingOrder: 1,
+            isRequired: true,
+            status: 'SENT',
+          },
+          {
+            id: 'recipient-2',
+            signingOrder: 2,
+            isRequired: true,
+            status: 'SENT',
+          },
+        ],
+      },
+    };
+    const tx = {
+      signatureEvidence: { create: jest.fn().mockResolvedValue({}) },
+      signatureRecipient: { update: jest.fn().mockResolvedValue({}) },
+      contractPlaceholderValue: { upsert: jest.fn().mockResolvedValue({}) },
+      signatureEvent: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({}),
+      },
+      signatureRequest: { update: jest.fn().mockResolvedValue({}) },
+      contract: { update: jest.fn().mockResolvedValue({}) },
+      contractTimeline: { create: jest.fn().mockResolvedValue({}) },
+    };
+    const prisma = {
+      platformSetting: { findUnique: jest.fn().mockResolvedValue(null) },
+      signatureRecipient: {
+        findUnique: jest.fn().mockResolvedValue(recipient),
+      },
+      signatureEvidence: { findFirst: jest.fn().mockResolvedValue(null) },
+      $transaction: jest.fn(async (operation: (client: typeof tx) => unknown) =>
+        operation(tx),
+      ),
+    };
+    const audit = auditStub();
+    const service = new ContractsService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      { record: jest.fn().mockResolvedValue(undefined) } as never,
+      audit as never,
+    );
+
+    const result = await service.completeSignature(
+      'secure-token',
+      {
+        method: 'TYPED',
+        typedName: 'Amal Hassan',
+        typedStyle: 'SCRIPT',
+        consentAccepted: true,
+        consentText: 'I agree to sign electronically.',
+      } as never,
+      { ipAddress: '203.0.113.9', userAgent: 'test-agent', sessionId: 'req-1' },
+    );
+
+    expect(result).toMatchObject({ success: true, completed: false });
+    // The typed style reaches SignatureEvidence.typedStyle.
+    expect(tx.signatureEvidence.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ typedStyle: 'SCRIPT' }),
+      }),
+    );
+    // BUG-3231: audited, and with no platform actor.
+    expect(audit.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantId: 'platform',
+        actorUserId: null,
+        action: 'DOCUMENT_SIGNED',
+        entityType: 'Contract',
+        entityId: 'contract-1',
+        afterSnapshot: expect.objectContaining({
+          recipientId: 'recipient-1',
+          signerEmail: 'amal@example.test',
+        }),
+      }),
+      tx,
+    );
+  });
 });
