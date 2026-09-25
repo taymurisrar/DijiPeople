@@ -54,6 +54,7 @@ import type {
 } from './platform-runtime.types';
 import { PartnerExperienceService } from '../partner-experience/partner-experience.service';
 import {
+  isPlatformAdminTier,
   type PlatformPermission,
   userHasPlatformPermission,
 } from '../platform-auth/platform-permissions';
@@ -1273,11 +1274,13 @@ export class PlatformRuntimeService {
   }
   private assertAdmin(user: AuthenticatedUser) {
     this.assertPlatform(user);
-    if (
-      !['SUPER_ADMIN', 'PLATFORM_OWNER', 'PLATFORM_ADMIN'].includes(
-        user.platform?.role ?? '',
-      )
-    )
+    /*
+     * BUG-3564. This was an inline role list until the direct REST bulk-delete
+     * routes (`SuperAdminController` -> `PlatformLifecycleService`) turned out
+     * to decide the identical question on a weaker rule of their own. Both now
+     * read `isPlatformAdminTier` so they cannot drift apart again.
+     */
+    if (!isPlatformAdminTier(user))
       throw new ForbiddenException(
         'Platform administrator access is required.',
       );

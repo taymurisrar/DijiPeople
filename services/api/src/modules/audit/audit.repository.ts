@@ -6,6 +6,7 @@ import {
 } from '../../common/constants/audit-actions';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditLogQueryDto } from './dto/audit-log-query.dto';
+import { PlatformAuditLogQueryDto } from './dto/platform-audit-log-query.dto';
 
 type PrismaDb = PrismaService | Prisma.TransactionClient | PrismaClient;
 
@@ -177,6 +178,132 @@ export class AuditRepository {
       orderBy: { createdAt: 'desc' },
       take: 100,
     });
+  }
+
+  /*
+   * BUG-3564. `PlatformAuditLog` had no reader at all — every write landed in
+   * a table nothing ever queried. This mirrors `findByTenant` in shape
+   * (server-side pagination, the same `resolveAuditActionAliases` expansion
+   * for `action`), but the `where` is built as an `AND` array of clauses
+   * rather than an object literal: `traceId` and `search` each contribute
+   * their own `OR`, and two `OR` keys on one object literal silently
+   * overwrite each other rather than combining (the same shape
+   * `platform-monitoring.service.ts`'s event filters already avoid).
+   */
+  async findPlatformAudit(
+    query: PlatformAuditLogQueryDto,
+    db: PrismaDb = this.prisma,
+  ) {
+    const clauses: Prisma.PlatformAuditLogWhereInput[] = [];
+
+    if (query.action) {
+      clauses.push({ action: { in: resolveAuditActionAliases(query.action) } });
+    }
+    if (query.entityType) {
+      clauses.push({ entityType: query.entityType.trim() });
+    }
+    if (query.entityId) {
+      clauses.push({ entityId: query.entityId.trim() });
+    }
+    if (query.actorUserId) {
+      clauses.push({ platformActorUserId: query.actorUserId });
+    }
+    if (query.traceId) {
+      clauses.push({
+        OR: [{ traceId: query.traceId }, { requestId: query.traceId }],
+      });
+    }
+    if (query.search) {
+      const term = query.search.trim();
+      clauses.push({
+        OR: [
+          { action: { contains: term, mode: 'insensitive' } },
+          { entityType: { contains: term, mode: 'insensitive' } },
+        ],
+      });
+    }
+    const dateRange = buildDateRange(query.fromDate, query.toDate);
+    if (dateRange.createdAt) {
+      clauses.push({ createdAt: dateRange.createdAt });
+    }
+
+    const where: Prisma.PlatformAuditLogWhereInput = clauses.length
+      ? { AND: clauses }
+      : {};
+
+    const [items, total] = await Promise.all([
+      db.platformAuditLog.findMany({
+        where,
+        include: {
+          platformActorUser: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              role: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (query.page - 1) * query.pageSize,
+        take: query.pageSize,
+      }),
+      db.platformAuditLog.count({ where }),
+    ]);
+
+    return { items, total };
+  }
+
+  findOnePlatformAudit(id: string, db: PrismaDb = this.prisma) {
+    return db.platformAuditLog.findUnique({
+      where: { id },
+      include: {
+        platformActorUser: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+          },
+        },
+      },
+    });
+  }
+
+  async getPlatformFilterMetadata(db: PrismaDb = this.prisma) {
+    const [actions, entityTypes, actors] = await Promise.all([
+      db.platformAuditLog.findMany({
+        distinct: ['action'],
+        select: { action: true },
+        orderBy: { action: 'asc' },
+      }),
+      db.platformAuditLog.findMany({
+        distinct: ['entityType'],
+        select: { entityType: true },
+        orderBy: { entityType: 'asc' },
+      }),
+      db.platformUser.findMany({
+        where: { auditLogs: { some: {} } },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          role: true,
+        },
+        orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+      }),
+    ]);
+
+    return {
+      actions: [
+        ...new Set(actions.map((item) => canonicalAuditAction(item.action))),
+      ].sort(),
+      entityTypes: entityTypes.map((item) => item.entityType),
+      actors,
+    };
   }
 }
 

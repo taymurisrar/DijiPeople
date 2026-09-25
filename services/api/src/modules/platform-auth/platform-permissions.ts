@@ -365,6 +365,35 @@ export function userHasPlatformPermission(
 }
 
 /**
+ * The three roles a destructive administrative action requires, regardless of
+ * which permission key the route or the record itself grants.
+ *
+ * Extracted from `PlatformRuntimeService.assertAdmin` (BUG-3564 REST
+ * bulk-delete-tier follow-up to WP-02). The generic runtime delete path
+ * (`remove`/`execute … 'bulk-delete'`) already refused any role outside this
+ * set outright — "deleting a commercial record is an administrative act
+ * whether it is one row or five" — but the direct REST routes
+ * `DELETE /super-admin/customers` and `DELETE /super-admin/customer-onboarding`
+ * decided the same question on a weaker rule of their own
+ * (`PlatformLifecycleService`'s ownership check): a non-admin-tier role
+ * holding `customers.update`/`onboarding.update` — PLATFORM_OPERATIONS,
+ * MEMBER, PRESALES_MANAGER — could still bulk-delete records it "owned". One
+ * predicate now backs both call sites, so the two paths cannot decide the
+ * same action differently again.
+ */
+export const PLATFORM_ADMIN_TIER_ROLES: ReadonlySet<PlatformUserRole> = new Set(
+  [
+    PlatformUserRole.SUPER_ADMIN,
+    PlatformUserRole.PLATFORM_OWNER,
+    PlatformUserRole.PLATFORM_ADMIN,
+  ],
+);
+
+export function isPlatformAdminTier(user: AuthenticatedUser): boolean {
+  return PLATFORM_ADMIN_TIER_ROLES.has(user.platform?.role as PlatformUserRole);
+}
+
+/**
  * The platform boundary, and it fails closed.
  *
  * This guard used to open with `if (!role) return true` — reading "no platform

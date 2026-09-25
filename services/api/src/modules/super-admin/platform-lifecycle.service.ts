@@ -2,6 +2,7 @@ import {
   Logger,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -27,6 +28,7 @@ import { normalizeEmail } from '../../common/utils/email.util';
 import { assertValidTenantSlug } from '../../common/utils/slug.util';
 import { generateTenantCode } from '../../common/utils/tenant-code.util';
 import { AuditService } from '../audit/audit.service';
+import { isPlatformAdminTier } from '../platform-auth/platform-permissions';
 import { PermissionsService } from '../permissions/permissions.service';
 import { UserInvitationsService } from '../auth/user-invitations.service';
 import { LeadsRepository } from '../leads/leads.repository';
@@ -857,18 +859,21 @@ export class PlatformLifecycleService {
   }
 
   async bulkDeleteCustomers(actor: AuthenticatedUser, ids: string[]) {
-    if (!this.isPlatformSuperAdmin(actor)) {
-      const ownedCount = await this.prisma.customerAccount.count({
-        where: {
-          id: { in: ids },
-          assignedToUserId: actor.platform?.id ?? '__none__',
-        },
-      });
-      if (ownedCount !== ids.length) {
-        throw new BadRequestException(
-          'Members can only bulk delete customers they own.',
-        );
-      }
+    /*
+     * BUG-3564. This REST route used to decide who may run it on a weaker
+     * rule than the identical action through the generic runtime delete path
+     * (`PlatformRuntimeService.assertAdmin`): a non-admin-tier role holding
+     * `customers.update` (PLATFORM_OPERATIONS, MEMBER, PRESALES_MANAGER)
+     * could still bulk-delete customers it "owned" via `assignedToUserId`.
+     * The runtime path refuses those roles outright — deleting a commercial
+     * record is an administrative act whether it is one row or a hundred —
+     * so this route now applies the same tier, from the same shared
+     * predicate, before any ownership question is even asked.
+     */
+    if (!isPlatformAdminTier(actor)) {
+      throw new ForbiddenException(
+        'Platform administrator access is required to bulk delete customers.',
+      );
     }
     const blockers = await this.prisma.customerAccount.findMany({
       where: {
@@ -1367,18 +1372,16 @@ export class PlatformLifecycleService {
   }
 
   async bulkDeleteCustomerOnboardings(actor: AuthenticatedUser, ids: string[]) {
-    if (!this.isPlatformSuperAdmin(actor)) {
-      const ownedCount = await this.prisma.customerOnboarding.count({
-        where: {
-          id: { in: ids },
-          onboardingOwnerUserId: actor.platform?.id ?? '__none__',
-        },
-      });
-      if (ownedCount !== ids.length) {
-        throw new BadRequestException(
-          'Members can only bulk delete onboarding records they own.',
-        );
-      }
+    /*
+     * BUG-3564. Same fix as `bulkDeleteCustomers` above, for the same reason:
+     * the runtime delete path already refuses PLATFORM_OPERATIONS, MEMBER and
+     * PRESALES_MANAGER outright, and this REST route must not decide the
+     * identical question more leniently just because it is reached directly.
+     */
+    if (!isPlatformAdminTier(actor)) {
+      throw new ForbiddenException(
+        'Platform administrator access is required to bulk delete onboarding records.',
+      );
     }
     const blockers = await this.prisma.customerOnboarding.findMany({
       where: {
