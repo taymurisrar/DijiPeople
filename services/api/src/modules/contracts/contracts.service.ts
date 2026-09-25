@@ -1313,11 +1313,12 @@ export class ContractsService {
         'The selected template has no published version.',
       );
     }
-    const [reportingCurrency, companyProfile, agreementTerms] =
+    const [reportingCurrency, companyProfile, agreementTerms, partnerValues] =
       await Promise.all([
         this.reportingCurrency(),
         this.companyProfile(),
         this.agreementTermValues(),
+        this.linkedPartnerValues(dto.partnerId, dto.commissionPercentage),
       ]);
     const contractNumber = reference('CON');
     const values = compactStringRecord({
@@ -1358,6 +1359,8 @@ export class ContractsService {
       'contract.terminationNoticeDays': dto.terminationNoticeDays,
       'counterparty.name': dto.counterpartyName.trim(),
       'counterparty.email': dto.counterpartyEmail?.trim().toLowerCase(),
+      // Explicit values (a source, or the caller) still win over the record.
+      ...partnerValues,
       ...(dto.placeholderValues ?? {}),
     });
     const rawHtml =
@@ -2174,21 +2177,32 @@ export class ContractsService {
         autoRenewal: true,
         counterpartyName: true,
         counterpartyEmail: true,
+        partnerId: true,
       },
     });
     if (!contract) return;
 
-    const [reportingCurrency, companyProfile, agreementTerms, existing] =
-      await Promise.all([
-        this.reportingCurrency(),
-        this.companyProfile(),
-        this.agreementTermValues(),
-        this.prisma.contractPlaceholderValue.findMany({
-          where: { contractId },
-          select: { key: true, value: true },
-        }),
-      ]);
+    const [
+      reportingCurrency,
+      companyProfile,
+      agreementTerms,
+      existing,
+      partnerValues,
+    ] = await Promise.all([
+      this.reportingCurrency(),
+      this.companyProfile(),
+      this.agreementTermValues(),
+      this.prisma.contractPlaceholderValue.findMany({
+        where: { contractId },
+        select: { key: true, value: true, source: true },
+      }),
+      this.linkedPartnerValues(
+        contract.partnerId,
+        contract.commissionPercentage,
+      ),
+    ]);
     const current = new Map(existing.map((row) => [row.key, row.value]));
+    const currentSource = new Map(existing.map((row) => [row.key, row.source]));
 
     const authoritative = definedValues({
       'contract.number': contract.contractNumber,
@@ -2228,10 +2242,22 @@ export class ContractsService {
       'platform.contact.email': companyProfile.supportEmail,
     });
 
+    /*
+     * The linked partner is the source of `partner.*` the way the columns are
+     * of `contract.*`, so a partner renamed while the agreement is a draft is
+     * picked up on the next edit — except where an operator typed a value in
+     * the document fields, which survives.
+     */
+    const linkedEntity = Object.fromEntries(
+      Object.entries(partnerValues).filter(
+        ([key]) => currentSource.get(key) !== 'manual',
+      ),
+    );
     const next = {
       ...Object.fromEntries(
         Object.entries(gapFilling).filter(([key]) => !current.get(key)?.trim()),
       ),
+      ...linkedEntity,
       ...authoritative,
     };
     const changed = Object.entries(next).filter(
@@ -2268,11 +2294,19 @@ export class ContractsService {
     const version = contract.versions.find(
       (item) => item.version === contract.currentVersionNumber,
     );
+    /*
+     * A stored `signature.*` value counts only when signing wrote it (QA
+     * agreements DEFECT-2): one typed in before that fix is not a signature.
+     */
+    const storedValues = contract.placeholderValues.filter(
+      (item) =>
+        !isSignaturePlaceholderKey(item.key) || item.source === 'signature',
+    );
     const values = Object.fromEntries(
-      contract.placeholderValues.map((item) => [item.key, item.value]),
+      storedValues.map((item) => [item.key, item.value]),
     );
     const sources = new Map(
-      contract.placeholderValues.map((item) => [item.key, item.source]),
+      storedValues.map((item) => [item.key, item.source]),
     );
     const definitions = version
       ? extractContractPlaceholders(version.contentHtml)
@@ -2289,27 +2323,37 @@ export class ContractsService {
         exampleValue: definition.exampleValue,
         source: sources.get(definition.key) ?? null,
         /*
-         * Signature marks are produced by signing, never typed in here, and a
-         * derived value is owned by the contract field it mirrors.
+         * The signature namespace — marks, names and dates — is produced by
+         * signing, never typed in here, and a derived value is owned by the
+         * contract field it mirrors.
          */
         editable:
-          !['SIGNATURE', 'INITIALS'].includes(definition.dataType) &&
+          !isSignaturePlaceholderKey(definition.key) &&
           sources.get(definition.key) !== 'derived',
         value: resolved[definition.key] ?? '',
       })),
       previewHtml: version
-        ? renderContractPlaceholders(version.contentHtml, {
-            ...Object.fromEntries(
-              definitions.map((definition) => [
-                definition.key,
-                definition.exampleValue,
-              ]),
-            ),
-            ...resolved,
-          })
+        ? renderContractVersionHtml(
+            version.contentHtml,
+            [
+              ...definitions
+                .filter((definition) => !(definition.key in resolved))
+                .map((definition) => ({
+                  key: definition.key,
+                  value: definition.exampleValue,
+                  source: 'example',
+                })),
+              ...storedValues,
+            ],
+            'display',
+          )
         : '',
       resolvedHtml: version
-        ? renderContractPlaceholders(version.contentHtml, resolved)
+        ? renderContractVersionHtml(
+            version.contentHtml,
+            contract.placeholderValues,
+            'display',
+          )
         : '',
     };
   }
@@ -2320,6 +2364,19 @@ export class ContractsService {
     values: Record<string, string>,
   ) {
     this.assertWrite(user);
+    /*
+     * QA agreements DEFECT-2. A signature date typed in here was frozen into
+     * the executed version beside the real signing timestamp. The whole
+     * `signature.*` namespace comes from signing; refuse it loudly rather
+     * than dropping it silently, so a client learns why its value vanished.
+     */
+    const signatureKeys = Object.keys(values).filter(isSignaturePlaceholderKey);
+    if (signatureKeys.length)
+      throw new BadRequestException({
+        code: 'CONTRACT_SIGNATURE_FIELD_NOT_EDITABLE',
+        message: `Signature fields are filled when each party signs and cannot be entered by hand: ${signatureKeys.join(', ')}.`,
+        details: { keys: signatureKeys },
+      });
     const contract = await this.get(user, contractId);
     const version = contract.versions.find(
       (item) => item.version === contract.currentVersionNumber,
@@ -2329,10 +2386,7 @@ export class ContractsService {
     const definitions = extractContractPlaceholders(version.contentHtml);
     const allowed = new Map(
       definitions
-        .filter(
-          (definition) =>
-            !['SIGNATURE', 'INITIALS'].includes(definition.dataType),
-        )
+        .filter((definition) => !isSignaturePlaceholderKey(definition.key))
         .map((definition) => [definition.key, definition]),
     );
     const entries = Object.entries(values).filter(([key]) => allowed.has(key));
@@ -3404,8 +3458,16 @@ export class ContractsService {
     );
     if (!version)
       throw new BadRequestException('Current contract version was not found.');
+    /*
+     * QA agreements DEFECT-2. The signing snapshot never carries a
+     * `signature.*` value: whatever is stored for one (a date typed in to get
+     * past the old gate) would otherwise be frozen into the executed version
+     * beside the real signing timestamp.
+     */
     const placeholderSnapshot = Object.fromEntries(
-      contract.placeholderValues.map((item) => [item.key, item.value]),
+      contract.placeholderValues
+        .filter((item) => !isSignaturePlaceholderKey(item.key))
+        .map((item) => [item.key, item.value]),
     );
     const placeholderDefinitions = extractContractPlaceholders(
       version.contentHtml,
@@ -3416,14 +3478,17 @@ export class ContractsService {
       placeholderSnapshot,
       true,
     );
-    const resolvedHtml = renderContractPlaceholders(
+    const resolvedHtml = renderContractVersionHtml(
       version.contentHtml,
-      placeholderSnapshot,
+      contract.placeholderValues,
+      'freeze',
     );
+    /*
+     * Exempt by namespace, not by data type: `signature.*.date` is DATE_TIME
+     * and is filled from the signer's evidence like the mark itself.
+     */
     const unresolvedNonSignature = extractContractPlaceholders(resolvedHtml)
-      .filter(
-        (item) => item.dataType !== 'SIGNATURE' && item.dataType !== 'INITIALS',
-      )
+      .filter((item) => !isSignaturePlaceholderKey(item.key))
       .map((item) => item.key);
     if (unresolvedNonSignature.length)
       throw new BadRequestException(
@@ -4607,7 +4672,10 @@ export class ContractsService {
     if (user) this.assertPlatform(user);
     const contract = await this.prisma.contract.findUnique({
       where: { id: contractId },
-      include: { versions: { orderBy: { version: 'desc' }, take: 1 } },
+      include: {
+        versions: { orderBy: { version: 'desc' }, take: 1 },
+        placeholderValues: { select: { key: true, value: true, source: true } },
+      },
     });
     if (!contract || !contract.versions[0])
       throw new NotFoundException('Contract document was not found.');
@@ -4632,7 +4700,9 @@ export class ContractsService {
               email: true,
               role: true,
               signingOrder: true,
-              party: { select: { partyType: true, name: true } },
+              party: {
+                select: { partyType: true, name: true, isPrimary: true },
+              },
             },
           },
         },
@@ -4657,38 +4727,15 @@ export class ContractsService {
           );
         }),
       );
-      let fallbackIndex = 0;
-      documentHtml = documentHtml.replace(
-        /\{\{\s*(signature\.[a-zA-Z0-9_.-]+)\s*\}\}/g,
-        (_token, key: string) => {
-          const preferred = key.includes('.platform.')
-            ? evidenceRows.find(
-                (item) => item.recipient.party?.partyType === 'PLATFORM',
-              )
-            : key.includes('.counterparty.')
-              ? evidenceRows.find(
-                  (item) => item.recipient.party?.partyType !== 'PLATFORM',
-                )
-              : undefined;
-          const evidence =
-            preferred ?? evidenceRows[fallbackIndex++ % evidenceRows.length];
-          if (key.endsWith('.date'))
-            return escapeHtml(evidence.signedAt.toISOString());
-          const signatureImage = signatureImages.get(evidence.id);
-          /*
-           * BUG-3554. The chosen style used to be sent nowhere and rendered
-           * nowhere — every typed signature printed as plain bold text
-           * regardless of the picker. `data-signature-style` survives
-           * `cleanContractHtml` (span's allowlist, extended for it below) and
-           * is what `extractAgreementDocumentStructure` reads to choose a
-           * PDFKit standard font for this paragraph in `createPdf`/`createDocx`.
-           */
-          const typedStyleAttr =
-            evidence.method === 'TYPED' && evidence.typedStyle
-              ? ` data-signature-style="${escapeHtml(evidence.typedStyle)}"`
-              : '';
-          return `${signatureImage ? `<img src="${signatureImage}" alt="${escapeHtml(evidence.recipient.name)} signature" width="240" height="80">` : ''}<span data-signature-metadata="true"${typedStyleAttr}><strong>${escapeHtml(evidence.typedName || evidence.recipient.name)}</strong><br>${escapeHtml(evidence.method)} signature · ${escapeHtml(evidence.signedAt.toISOString())}<br>Verified · SHA-256 ${escapeHtml(evidence.signatureSha256.slice(0, 20))}…</span>`;
-        },
+      /*
+       * The executed copy renders only from the frozen version and the
+       * evidence of the completed request — never from the agreement's
+       * current placeholder values, which may have changed since signing.
+       */
+      documentHtml = renderSignatureEvidenceTokens(
+        documentHtml,
+        evidenceRows,
+        signatureImages,
       );
       documentText += `\n\nELECTRONIC SIGNATURE APPENDIX\nDocument SHA-256: ${version.contentSha256}\n`;
       for (const evidence of evidenceRows) {
@@ -4732,10 +4779,19 @@ export class ContractsService {
         documentText += `\n${event.createdAt.toISOString()} — ${event.eventType}: ${event.message}`;
       }
     }
-    documentHtml = documentHtml.replace(
-      /\{\{\s*signature\.[a-zA-Z0-9_.-]+\s*\}\}/g,
-      '<span data-signature-metadata="true">Electronic signature pending</span>',
-    );
+    if (!immutable)
+      /*
+       * QA agreements DEFECT-1. The preview used to print `version.contentHtml`
+       * as stored, so every pre-send PDF/DOCX showed literal
+       * `{{platform.legalName}}`. It now resolves through the same function
+       * as the document-fields view and the signing freeze. A version already
+       * frozen for signing has nothing left to resolve but `signature.*`.
+       */
+      documentHtml = renderContractVersionHtml(
+        documentHtml,
+        contract.placeholderValues,
+        'display',
+      );
     const buffer =
       format === 'pdf'
         ? await createPdf(contract.title, documentHtml, documentText)
@@ -5267,6 +5323,31 @@ export class ContractsService {
         'Customer agreement requires a customer account or source lead.',
       );
     this.validateContractDates(dto);
+  }
+
+  /** `partner.*` values from the linked partner (see `partnerPlaceholderValues`). */
+  private async linkedPartnerValues(
+    partnerId: string | null | undefined,
+    contractCommissionPercentage?: { toString(): string } | number | null,
+  ): Promise<Record<string, string>> {
+    if (!partnerId) return {};
+    const partner = await this.prisma.partner.findUnique({
+      where: { id: partnerId },
+      select: {
+        type: true,
+        displayName: true,
+        legalName: true,
+        companyName: true,
+        contactFirstName: true,
+        contactLastName: true,
+        email: true,
+        taxId: true,
+        defaultCommissionRate: true,
+      },
+    });
+    return partner
+      ? partnerPlaceholderValues(partner, contractCommissionPercentage)
+      : {};
   }
 
   /**
@@ -6068,6 +6149,199 @@ export function renderContractPlaceholders(
   );
 }
 
+/**
+ * The whole `signature.*` namespace — marks, names, dates, initials — belongs
+ * to the signing ceremony. It is never typed in, never frozen at send, and is
+ * filled at render time from `SignatureEvidence` (ADR-0020 point 6).
+ *
+ * QA agreements DEFECT-2. The pre-send "everything must be resolved" check
+ * used to exempt only the SIGNATURE and INITIALS *data types*, so the
+ * `signature.*.date` placeholders (DATE_TIME) blocked every template with a
+ * dated signature line from being sent — and the only workaround, typing a
+ * date into the document fields, froze a fabricated date into the executed
+ * version beside the real signing timestamp. Deciding by namespace rather
+ * than data type is what makes a new `signature.*` companion (a title, a
+ * place) safe by default.
+ */
+export function isSignaturePlaceholderKey(key: string) {
+  return key.startsWith('signature.');
+}
+
+export type StoredContractPlaceholderValue = {
+  key: string;
+  value: string;
+  source?: string | null;
+};
+
+/*
+ * What a draft preview prints where a signature is still to come. Dates read
+ * "Pending" so a dated signature line never shows a date nobody signed on.
+ */
+const PENDING_SIGNATURE_HTML =
+  '<span data-signature-metadata="true">Electronic signature pending</span>';
+const PENDING_SIGNATURE_DATE = 'Pending';
+
+function renderPendingSignatureTokens(html: string) {
+  return html.replace(
+    /\{\{\s*(signature\.[a-zA-Z0-9_.-]+)\s*\}\}/g,
+    (_token, key: string) =>
+      key.endsWith('.date') ? PENDING_SIGNATURE_DATE : PENDING_SIGNATURE_HTML,
+  );
+}
+
+/**
+ * Render one contract version for anything other than the executed copy.
+ *
+ * QA agreements DEFECT-1. There were three renderers of the same version:
+ * `documentFields()` and `sendForSignature()` substituted the agreement's
+ * placeholder values, while `generateDocument()`'s preview path did not — so
+ * every pre-send PDF/DOCX printed literal `{{platform.legalName}}`. This is
+ * now the one function all three call, so they cannot drift again.
+ *
+ * - `freeze` (sending for signature): every non-signature value is resolved
+ *   into the HTML that becomes the immutable signing version. `signature.*`
+ *   tokens are left in place whatever is stored for them, because the
+ *   evidence that fills them does not exist yet.
+ * - `display` (previews, the document-fields view, generated drafts): the same
+ *   substitution, then `signature.*` from signing itself (rows whose source
+ *   is `signature`, written by `completeSignature`) and "pending" for the
+ *   rest. A stored `signature.*` value from any other source — a hand-typed
+ *   date from before DEFECT-2 was fixed — is ignored.
+ *
+ * Decision on unresolved values in a preview: an optional placeholder follows
+ * its declared fallback (empty); a required one keeps its visible `{{token}}`,
+ * because it is precisely what the operator still has to fill, and the send
+ * gate refuses it. `renderContractPlaceholders` guarantees that neither path
+ * prints `undefined`, `null` or `[object Object]`.
+ */
+export function renderContractVersionHtml(
+  html: string,
+  rows: StoredContractPlaceholderValue[],
+  mode: 'freeze' | 'display',
+) {
+  const values = Object.fromEntries(
+    rows
+      .filter(
+        (row) =>
+          !isSignaturePlaceholderKey(row.key) ||
+          (mode === 'display' && row.source === 'signature'),
+      )
+      .map((row) => [row.key, row.value]),
+  );
+  const rendered = renderContractPlaceholders(html, values);
+  return mode === 'display' ? renderPendingSignatureTokens(rendered) : rendered;
+}
+
+/*
+ * The subset of `SignatureEvidence` (and its recipient) the executed copy is
+ * rendered from.
+ */
+export type SignatureEvidenceForRender = {
+  id: string;
+  method: string;
+  typedName: string | null;
+  typedStyle?: string | null;
+  signedAt: Date;
+  signatureSha256: string;
+  recipient: {
+    name: string;
+    party?: { partyType: string; isPrimary?: boolean | null } | null;
+  };
+};
+
+/**
+ * Fill every `signature.*` token of an executed version from the evidence of
+ * the completed request — the only source a signed document may take them
+ * from. The version HTML itself is frozen; nothing stored as a placeholder
+ * value is consulted.
+ *
+ * A token names a slot (`signature.<slot>.<field>`) and every field of one
+ * slot — the mark, the name, the date — resolves to the *same* signer. The
+ * previous inline version picked a signer per token round-robin for
+ * `signature.party.primary.*`, so the name and the date of one line could
+ * belong to two different people.
+ *
+ * `signature.<slot>.date` is the signer's real `signedAt`, formatted the way
+ * every other DATE_TIME in the agreement is (QA agreements DEFECT-2 — the
+ * executed copy used to print a date typed in before sending). A named slot
+ * with no matching signer reads "Not signed" rather than borrowing someone
+ * else's signature.
+ */
+export function renderSignatureEvidenceTokens(
+  html: string,
+  evidenceRows: SignatureEvidenceForRender[],
+  signatureImages: Map<string, string> = new Map(),
+) {
+  const bySlot = new Map<string, SignatureEvidenceForRender | undefined>();
+  let fallbackIndex = 0;
+  const counterparties = evidenceRows.filter(
+    (item) => item.recipient.party?.partyType !== 'PLATFORM',
+  );
+  const evidenceFor = (slot: string) => {
+    if (bySlot.has(slot)) return bySlot.get(slot);
+    let evidence: SignatureEvidenceForRender | undefined;
+    if (slot === 'platform')
+      evidence = evidenceRows.find(
+        (item) => item.recipient.party?.partyType === 'PLATFORM',
+      );
+    else if (slot === 'counterparty') evidence = counterparties[0];
+    else if (slot === 'party.primary')
+      evidence =
+        counterparties.find((item) => item.recipient.party?.isPrimary) ??
+        counterparties[0];
+    else if (evidenceRows.length)
+      evidence = evidenceRows[fallbackIndex++ % evidenceRows.length];
+    bySlot.set(slot, evidence);
+    return evidence;
+  };
+  const dateDefinition = CONTRACT_PLACEHOLDER_REGISTRY.find(
+    (item) => item.key === 'signature.counterparty.date',
+  );
+  return html.replace(
+    /\{\{\s*(signature\.[a-zA-Z0-9_.-]+)\s*\}\}/g,
+    (_token, key: string) => {
+      const parts = key.split('.');
+      const field = parts[parts.length - 1];
+      const slot = parts.slice(1, -1).join('.');
+      const evidence = evidenceFor(slot);
+      if (!evidence)
+        return field === 'date'
+          ? ''
+          : '<span data-signature-metadata="true">Not signed</span>';
+      if (field === 'date')
+        return escapeHtml(
+          formatPlaceholderValue(
+            evidence.signedAt.toISOString(),
+            dateDefinition,
+          ),
+        );
+      if (field === 'initials')
+        return escapeHtml(
+          (evidence.typedName || evidence.recipient.name)
+            .split(/\s+/)
+            .filter(Boolean)
+            .map((part) => part[0]?.toUpperCase() ?? '')
+            .join('')
+            .slice(0, 4),
+        );
+      const signatureImage = signatureImages.get(evidence.id);
+      /*
+       * BUG-3554. The chosen style used to be sent nowhere and rendered
+       * nowhere — every typed signature printed as plain bold text regardless
+       * of the picker. `data-signature-style` survives `cleanContractHtml`
+       * (span's allowlist) and is what `extractAgreementDocumentStructure`
+       * reads to choose a PDFKit standard font for this paragraph in
+       * `createPdf`/`createDocx`.
+       */
+      const typedStyleAttr =
+        evidence.method === 'TYPED' && evidence.typedStyle
+          ? ` data-signature-style="${escapeHtml(evidence.typedStyle)}"`
+          : '';
+      return `${signatureImage ? `<img src="${signatureImage}" alt="${escapeHtml(evidence.recipient.name)} signature" width="240" height="80">` : ''}<span data-signature-metadata="true"${typedStyleAttr}><strong>${escapeHtml(evidence.typedName || evidence.recipient.name)}</strong><br>${escapeHtml(evidence.method)} signature · ${escapeHtml(evidence.signedAt.toISOString())}<br>Verified · SHA-256 ${escapeHtml(evidence.signatureSha256.slice(0, 20))}…</span>`;
+    },
+  );
+}
+
 export function extractContractPlaceholders(html: string) {
   return [
     ...new Set(
@@ -6403,6 +6677,60 @@ export function decodeSignatureDataUrl(value: string) {
   return buffer;
 }
 
+/**
+ * The `partner.*` namespace as the linked partner record resolves it.
+ *
+ * ADR-0020 promises that a linked entity feeds its own namespace, and
+ * lead/customer/onboarding/tenant do through `resolveSource`. A partner never
+ * did: `createFromSource` has no partner source, and `create()` with a
+ * `partnerId` stored the link but not one `partner.*` value — so every
+ * partner agreement needed its partner's own name typed in by hand before it
+ * could be sent (found while verifying QA agreements DEFECT-1).
+ *
+ * Only what the record actually holds is emitted. `Partner` has no address or
+ * registration number column, so `partner.address`/`partner.registrationNumber`
+ * stay for the operator to fill. A legal name is the recorded one, else — for
+ * an individual, whose name is their legal name — the display name, else the
+ * company name; never invented. The commission is the agreement's own, else
+ * the partner's configured default when one was actually set (the column
+ * defaults to 0, which means "not configured", not "0%").
+ */
+export function partnerPlaceholderValues(
+  partner: {
+    type?: string | null;
+    displayName: string;
+    legalName?: string | null;
+    companyName?: string | null;
+    contactFirstName?: string | null;
+    contactLastName?: string | null;
+    email?: string | null;
+    taxId?: string | null;
+    defaultCommissionRate?: { toString(): string } | number | null;
+  },
+  contractCommissionPercentage?: { toString(): string } | number | null,
+): Record<string, string> {
+  const defaultRate =
+    partner.defaultCommissionRate !== undefined &&
+    partner.defaultCommissionRate !== null &&
+    Number(partner.defaultCommissionRate.toString()) > 0
+      ? partner.defaultCommissionRate.toString()
+      : undefined;
+  return definedValues({
+    'partner.name': partner.displayName,
+    'partner.legalName':
+      partner.legalName ??
+      (partner.type === 'INDIVIDUAL'
+        ? partner.displayName
+        : partner.companyName),
+    'partner.taxId': partner.taxId,
+    'partner.contact.firstName': partner.contactFirstName,
+    'partner.contact.lastName': partner.contactLastName,
+    'partner.contact.email': partner.email?.toLowerCase(),
+    'partner.commissionPercentage':
+      contractCommissionPercentage?.toString() ?? defaultRate,
+  });
+}
+
 function customerSource(
   customer: {
     id: string;
@@ -6507,9 +6835,15 @@ export function signaturePlaceholderValues(
  * The order the Fields & Signatures picker lists placeholder groups in. Driven
  * from the key's own namespace so a newly registered placeholder lands in the
  * right group without a second registration step.
+ *
+ * The two parties come first. `counterparty.*` is whoever signs opposite the
+ * platform — a partner, a lead, a customer — so it has its own group rather
+ * than living under "Customer", which showed a Customer group on every
+ * partner agreement template (QA agreements DEFECT-4).
  */
 export const PLACEHOLDER_GROUP_ORDER = [
   'Platform',
+  'Counterparty',
   'Partner',
   'Lead',
   'Customer',
@@ -6530,7 +6864,7 @@ const PLACEHOLDER_GROUP_BY_NAMESPACE: Record<string, string> = {
   partner: 'Partner',
   lead: 'Lead',
   customer: 'Customer',
-  counterparty: 'Customer',
+  counterparty: 'Counterparty',
   commercial: 'Commercial',
   contract: 'Contract',
   serviceOrder: 'Service order',

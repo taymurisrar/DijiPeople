@@ -884,6 +884,13 @@ export const ERROR_CATALOG = {
     'warning',
     'validation',
   ),
+  CONTRACT_SIGNATURE_FIELD_NOT_EDITABLE: entry(
+    400,
+    'Signature field cannot be entered',
+    'Signature marks, names and dates are filled when each party signs.',
+    'warning',
+    'validation',
+  ),
   NETWORK_ERROR: entry(
     503,
     'Network error',
