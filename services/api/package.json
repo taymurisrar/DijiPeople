@@ -43,7 +43,7 @@
     "entitlement:set-mode": "ts-node prisma/set-entitlement-enforcement.ts",
     "entitlement:grandfather": "ts-node prisma/grandfather-entitlement-overrides.ts",
     "seed:config": "ts-node prisma/seed-config.ts",
-    "seed:demo": "ts-node prisma/seed-demo.ts",
+    "seed:demo": "ts-node --transpile-only prisma/seed-demo.ts",
     "seed:demo:reseed": "npm run seed:demo:reset && npm run seed:demo",
     "seed:demo:reset": "ts-node prisma/seed-demo-reset.ts",
     "seed:legal": "ts-node prisma/seed-legal.ts",

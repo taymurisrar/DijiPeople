@@ -3,13 +3,13 @@ ID: ITEM-0215
 aliases: [ITEM-0215]
 Title: scripts/verify-database.mjs cannot run on Windows and seed:demo runs out of memory at the default heap
 Type: INFRA
-Status: DEFERRED
+Status: DONE
 Priority: P3
 Severity: LOW
 AffectedModules: [scripts, services/api]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: DEFER
+ArchitectDisposition: DONE
 CreatedAt: 2026-09-26
 UpdatedAt: 2026-09-26
 RelatedBug: 
@@ -62,6 +62,10 @@ None.
 
 [[ITEM-0200]]
 
+## Resolution
+
+Fixed on `agent/item-0215-and-release`. `scripts/verify-database.mjs` spawns npm through `npm-cli.js` beside the running Node (the `npmCliPath` resolution `check-production-advisories.mjs` already uses) instead of the `npm` shim Windows cannot spawn without a shell. `seed:demo` runs `ts-node --transpile-only`: the out-of-memory was ts-node type-checking the Prisma client, and `prisma/**/*.ts` is still type-checked by `check-types` (`tsconfig.build.json`). Verified on Windows against a throwaway database: `verify-database.mjs` → DATABASE_VERIFICATION = PASS, and `seed:demo` completes at the default heap. CI (Linux) runs both unchanged in its Database e2e job.
+
 ## History
 
 - 2026-09-26 — created at `5dda7524`.
@@ -74,3 +78,4 @@ None.
 - Modules — [[api-architecture]]
 
 <!-- GRAPH:END -->
+- 2026-09-26 — fixed and verified on Windows; DONE.

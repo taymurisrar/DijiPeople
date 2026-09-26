@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **0** |
+| Active sessions | **1** |
 | Active parent tasks | 4 |
 | Active work packages | 4 |
 | Blocked work packages | 0 |
@@ -47,7 +47,9 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-_No session is currently registered as active._
+| Session | Task | Title | Status | Branch | Target | Leases | Schema |
+|---|---|---|---|---|---|---|---|
+| [[SESSION-0111-release-develop-to-main-item-0215-then-full-release-of-item-|SESSION-0111]] | — | Release develop to main: ITEM-0215 then full release of ITEM-0200/0201/0203/0204/0206 | ACTIVE | `agent/item-0215-and-release` | `main` | — | NO |
 
 ## Active Tasks and Work Packages
 
@@ -299,7 +301,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 |---|---|
 | Open total | 235 |
 | Blocked | 3 |
-| Deferred | 118 |
+| Deferred | 117 |
 | Awaiting a product decision | 11 |
 | Awaiting Architect triage | 0 |
 

@@ -15,9 +15,9 @@ see [`README.md`](README.md) for why.
 |---|---|
 | Open (active work) | 235 |
 | Blocked | 3 |
-| Deferred | 118 |
+| Deferred | 117 |
 | Awaiting a product decision | 11 |
-| Completed / closed | 349 |
+| Completed / closed | 350 |
 | **Open CRITICAL** | **6** |
 | **Open HIGH** | **103** |
 | **Awaiting Architect triage** | **0** |
@@ -58,14 +58,14 @@ see [`README.md`](README.md) for why.
 |---|---|
 | OPEN | 46 |
 | BLOCKED | 3 |
-| DEFERRED | 118 |
+| DEFERRED | 117 |
 | PRODUCT_DECISION | 11 |
 | FIXED | 166 |
 | VERIFIED | 218 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
 | READY | 23 |
-| DONE | 117 |
+| DONE | 118 |
 
 ## All records
 
@@ -757,7 +757,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0212](../../docs/backlog/items/ITEM-0212-public-signup-offers-no-promotion-code-field-for-safepay-rou.md) | Public signup offers no promotion code field for Safepay-routed buyers | FOLLOW_UP | LOW | P3 | DEFERRED | api:billing | DEFER |
 | [ITEM-0213](../../docs/backlog/items/ITEM-0213-mid-period-seat-increases-on-a-safepay-subscription-are-not-.md) | Mid-period seat increases on a Safepay subscription are not charged until renewal | FOLLOW_UP | LOW | P3 | DEFERRED | api:billing | DEFER |
 | [ITEM-0214](../../docs/backlog/items/ITEM-0214-flipping-safepay-enabled-while-a-pkr-stripe-checkout-is-open.md) | Flipping SAFEPAY_ENABLED while a PKR Stripe checkout is open can let one order be paid twice | FOLLOW_UP | LOW | P3 | DEFERRED | api:billing | DEFER |
-| [ITEM-0215](../../docs/backlog/items/ITEM-0215-scripts-verify-database-mjs-cannot-run-on-windows-and-seed-d.md) | scripts/verify-database.mjs cannot run on Windows and seed:demo runs out of memory at the default heap | INFRA | LOW | P3 | DEFERRED | scripts, services/api | DEFER |
+| [ITEM-0215](../../docs/backlog/items/ITEM-0215-scripts-verify-database-mjs-cannot-run-on-windows-and-seed-d.md) | scripts/verify-database.mjs cannot run on Windows and seed:demo runs out of memory at the default heap | INFRA | LOW | P3 | DONE | scripts, services/api | DONE |
 | [ITEM-0126](../../docs/backlog/items/ITEM-0126-decide-which-of-the-41-always-visible-settings-pages-should-.md) | Decide which of the 41 always-visible settings pages should be sold | PRODUCT_DECISION | — | P1 | DONE | apps/web | DONE |
 | [ITEM-0129](../../docs/backlog/items/ITEM-0129-tenants-should-inherit-the-platform-email-provider-by-defaul.md) | Tenants should inherit the platform email provider by default, and may override it | ARCHITECTURE | — | P1 | DONE | services/api, apps/web | DONE |
 | [ITEM-0130](../../docs/backlog/items/ITEM-0130-review-process-missed-four-defects-on-screens-adjacent-to-th.md) | Review process missed four defects on screens adjacent to the change | TEST_GAP | — | P1 | DONE | apps/web, .agent | DONE |

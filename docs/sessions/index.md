@@ -6,11 +6,13 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 0** · completed: 107
+**Active: 1** · completed: 107
 
 ## Active
 
-_None. No session is currently running._
+| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
+|---|---|---|---|---|---|---|---|
+| [SESSION-0111](../../docs/sessions/SESSION-0111-release-develop-to-main-item-0215-then-full-release-of-item-.md) | — | Release develop to main: ITEM-0215 then full release of ITEM-0200/0201/0203/0204/0206 | ACTIVE | `agent/item-0215-and-release` | `main` | — | 2026-09-26T16:31:52.473Z |
 
 ## Completed
 
