@@ -477,7 +477,7 @@ export function parsePackageArtifact(raw: string | Buffer): {
         {
           path: 'formatVersion',
           message: `This package uses format version ${
-            formatVersion === undefined ? '(none)' : String(formatVersion)
+            formatVersion === undefined ? '(none)' : displayValue(formatVersion)
           }. This DijiPeople environment reads format ${SUPPORTED_ARTIFACT_FORMAT_VERSIONS.join(', ')}.`,
         },
       ],
@@ -1058,7 +1058,7 @@ function definitionProblem(
     }
     return typeof value === 'string' && allowed.includes(value)
       ? null
-      : `${field} "${String(value)}" is not supported by this environment.`;
+      : `${field} "${displayValue(value)}" is not supported by this environment.`;
   };
   const first = (...checks: (string | null)[]) => checks.find(Boolean) ?? null;
 
@@ -1137,6 +1137,24 @@ function definitionProblem(
     );
   }
   return null;
+}
+
+/*
+ * A value from untrusted JSON, as text for a message or a text column. A
+ * string stays itself; anything structured becomes JSON, never
+ * "[object Object]".
+ */
+export function displayValue(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (
+    typeof value === 'number' ||
+    typeof value === 'boolean' ||
+    typeof value === 'bigint'
+  ) {
+    return value.toString();
+  }
+  if (value === null || value === undefined) return '';
+  return JSON.stringify(value);
 }
 
 export function isJsonOnlyType(type: string) {

@@ -27,6 +27,21 @@ import {
  * determinism, integrity, and refusing what this reader cannot trust.
  */
 
+/* An exported artifact as the tests edit it: loosely, like a hand-edited file. */
+type ArtifactDocument = {
+  formatVersion: unknown;
+  contentChecksum: unknown;
+  manifest: Record<string, unknown> & { componentCount: number };
+  components: Array<
+    Record<string, unknown> & {
+      definition: Record<string, unknown>;
+      layer: unknown;
+      type: unknown;
+    }
+  >;
+};
+const parseDocument = (text: string) => JSON.parse(text) as ArtifactDocument;
+
 const manifest = (
   overrides: Partial<
     Omit<PackageManifest, 'componentCount' | 'signature'>
@@ -249,7 +264,7 @@ describe('parsePackageArtifact', () => {
   });
 
   it('detects a component edited after export', () => {
-    const document = JSON.parse(valid());
+    const document = parseDocument(valid());
     document.components[1].definition.dataType = 'number';
     const parsed = parsePackageArtifact(JSON.stringify(document));
     expect(parsed.artifact).toBeNull();
@@ -257,7 +272,7 @@ describe('parsePackageArtifact', () => {
   });
 
   it('detects a tampered package checksum', () => {
-    const document = JSON.parse(valid());
+    const document = parseDocument(valid());
     document.contentChecksum = 'a'.repeat(64);
     const parsed = parsePackageArtifact(JSON.stringify(document));
     expect(parsed.problems.map((problem) => problem.message).join()).toMatch(
@@ -266,7 +281,7 @@ describe('parsePackageArtifact', () => {
   });
 
   it('refuses a format version it cannot read, and names both versions', () => {
-    const document = JSON.parse(valid());
+    const document = parseDocument(valid());
     document.formatVersion = 4;
     const parsed = parsePackageArtifact(JSON.stringify(document));
     expect(parsed.problems[0].message).toBe(
@@ -346,7 +361,7 @@ describe('parsePackageArtifact', () => {
   });
 
   it('refuses duplicate logical identifiers', () => {
-    const document = JSON.parse(valid());
+    const document = parseDocument(valid());
     document.components.push(document.components[1]);
     document.manifest.componentCount += 1;
     const parsed = parsePackageArtifact(JSON.stringify(document));
@@ -356,7 +371,7 @@ describe('parsePackageArtifact', () => {
   });
 
   it('refuses a component type this environment does not support', () => {
-    const document = JSON.parse(valid());
+    const document = parseDocument(valid());
     document.components[0].type = 'plugin';
     const parsed = parsePackageArtifact(JSON.stringify(document));
     expect(parsed.problems[0].message).toMatch(
@@ -365,7 +380,7 @@ describe('parsePackageArtifact', () => {
   });
 
   it('refuses a package that carries a credential', () => {
-    const document = JSON.parse(valid());
+    const document = parseDocument(valid());
     document.components[2].layer = { password: 'hunter2' };
     const parsed = parsePackageArtifact(JSON.stringify(document));
     expect(parsed.problems.map((problem) => problem.message).join()).toMatch(
@@ -374,7 +389,7 @@ describe('parsePackageArtifact', () => {
   });
 
   it('refuses a signed package rather than pretending to verify it', () => {
-    const document = JSON.parse(valid());
+    const document = parseDocument(valid());
     document.manifest.signature = 'abc';
     const parsed = parsePackageArtifact(JSON.stringify(document));
     expect(parsed.problems.map((problem) => problem.message).join()).toMatch(

@@ -1,7 +1,7 @@
 # Component Index
 
 > **Last verified:** 2026-09-26
-> **Verified against commit:** aa2c507e
+> **Verified against commit:** c823ef5c
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -160,8 +160,8 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `WorkspaceEnvironmentBanner` | component | 1 | `apps/web/app/components/workspace-environment-banner.tsx`:38 | A persistent marker on non-production workspaces. |
 | `CommandRequestError` | component | 0 | `apps/web/lib/runtime/command-failure-message.ts`:77 | An adapter's failed request, carrying the response it failed with. |
 | `WorkspaceContextLabel` | component | 0 | `apps/web/app/components/workspace-environment-banner.tsx`:66 | The workspace label for the app shell. |
-| `useFormattingContext` | function | 25 | `apps/web/app/components/filters/use-formatting-context.ts`:28 | The tenant's formatting context, safe to use during render. |
-| `useDialogBehavior` | function | 15 | `apps/web/app/components/ui/dialog.tsx`:130 | The behaviour half of {@link Dialog}, on its own. |
+| `useFormattingContext` | function | 26 | `apps/web/app/components/filters/use-formatting-context.ts`:28 | The tenant's formatting context, safe to use during render. |
+| `useDialogBehavior` | function | 16 | `apps/web/app/components/ui/dialog.tsx`:130 | The behaviour half of {@link Dialog}, on its own. |
 | `useSideToast` | function | 11 | `apps/web/app/components/notifications/use-side-toast.tsx`:19 | Local toast state plus the element that renders it. |
 | `formatChartValue` | function | 10 | `apps/web/app/components/charts/chart-format.ts`:47 | Render one measured number the way the tenant has asked for numbers to be rendered. |
 | `hasChartData` | function | 8 | `apps/web/app/components/charts/chart-types.ts`:97 | `true` when there is nothing to draw: no series, or every series empty. |

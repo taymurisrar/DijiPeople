@@ -354,15 +354,12 @@ describe('packages (BUG-3493, BUG-3495)', () => {
         }),
       }),
     );
-    expect(publisherCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          tenantId: 'tenant-1',
-          prefix: 'qw',
-          displayName: 'QA Walkthrough',
-        }),
-      }),
-    );
+    expect(publisherCreate).toHaveBeenCalledTimes(1);
+    expect(publisherCreate.mock.calls[0][0].data).toMatchObject({
+      tenantId: 'tenant-1',
+      prefix: 'qw',
+      displayName: 'QA Walkthrough',
+    });
     expect(response.packageKey).toBe('qw_walkthrough');
   });
 

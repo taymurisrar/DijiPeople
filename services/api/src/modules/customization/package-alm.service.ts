@@ -41,6 +41,7 @@ import {
   bumpVersion,
   canonicalJson,
   compareSemver,
+  displayValue,
   findPackageDependencyCycle,
   isSemver,
   parsePackageArtifact,
@@ -1376,10 +1377,10 @@ export class PackageAlmService {
       )
       .map((component) => ({
         variableKey: component.objectKey,
-        displayName: String(
+        displayName: displayValue(
           component.definition?.displayName ?? component.objectKey,
         ),
-        type: String(component.definition?.type ?? 'text'),
+        type: displayValue(component.definition?.type ?? 'text'),
         description:
           (component.definition?.description as string | null) ?? null,
       }));
@@ -1942,9 +1943,9 @@ export class PackageAlmService {
       const tableKey = component.objectKey;
       if (writes) {
         const data = {
-          systemName: String(definition.systemName),
-          displayName: String(definition.displayName),
-          pluralDisplayName: String(definition.pluralDisplayName),
+          systemName: displayValue(definition.systemName),
+          displayName: displayValue(definition.displayName),
+          pluralDisplayName: displayValue(definition.pluralDisplayName),
           description: nullableString(definition.description),
           icon: nullableString(definition.icon),
           ownershipType: nullableString(definition.ownershipType),
@@ -1992,8 +1993,8 @@ export class PackageAlmService {
       if (component.type === 'column') {
         if (writes) {
           const data = {
-            systemName: String(definition.systemName ?? localKey),
-            displayName: String(definition.displayName),
+            systemName: displayValue(definition.systemName ?? localKey),
+            displayName: displayValue(definition.displayName),
             description: nullableString(definition.description),
             dataType:
               definition.dataType as Prisma.CustomizationColumnCreateInput['dataType'],
@@ -2058,7 +2059,7 @@ export class PackageAlmService {
       if (component.type === 'form') {
         if (writes) {
           const data = {
-            name: String(definition.name),
+            name: displayValue(definition.name),
             description: nullableString(definition.description),
             type: definition.type as Prisma.CustomizationFormCreateInput['type'],
             isDefault: definition.isDefault === true,
@@ -2097,7 +2098,7 @@ export class PackageAlmService {
       }
       if (writes) {
         const data = {
-          name: String(definition.name),
+          name: displayValue(definition.name),
           description: nullableString(definition.description),
           type: definition.type as Prisma.CustomizationViewCreateInput['type'],
           isDefault: definition.isDefault === true,
@@ -2141,7 +2142,7 @@ export class PackageAlmService {
     if (component.type === 'environmentVariable') {
       const variableKey = component.objectKey;
       const data = {
-        displayName: String(definition.displayName ?? variableKey),
+        displayName: displayValue(definition.displayName ?? variableKey),
         description: nullableString(definition.description),
         type: (definition.type ??
           'text') as Prisma.CustomizationEnvironmentVariableCreateInput['type'],
@@ -3028,7 +3029,7 @@ function dependencySnapshot(dependency: {
 }
 
 function nullableString(value: unknown) {
-  return value === null || value === undefined ? null : String(value);
+  return value === null || value === undefined ? null : displayValue(value);
 }
 
 function jsonOrNull(value: unknown) {

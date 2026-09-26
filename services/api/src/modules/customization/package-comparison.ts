@@ -15,6 +15,7 @@
  */
 import {
   componentChecksum,
+  displayValue,
   type PortableComponent,
   type PortableComponentInput,
 } from './package-artifact';
@@ -322,14 +323,14 @@ export function destructiveChanges(
     const targetType = targetDefinition.dataType ?? targetDefinition.fieldType;
     if (sourceType && targetType && sourceType !== targetType) {
       problems.push(
-        `Cannot update ${label}. Source type is ${String(sourceType)}, target type is ${String(targetType)}. Changing a field's type would be destructive.`,
+        `Cannot update ${label}. Source type is ${displayValue(sourceType)}, target type is ${displayValue(targetType)}. Changing a field's type would be destructive.`,
       );
     }
     const sourceLookup = source.lookupTargetTableKey ?? null;
     const targetLookup = targetDefinition.lookupTargetTableKey ?? null;
     if (sourceLookup !== targetLookup && (sourceLookup || targetLookup)) {
       problems.push(
-        `Cannot update ${label}. It looks up ${String(sourceLookup ?? 'nothing')} in the package but ${String(targetLookup ?? 'nothing')} here.`,
+        `Cannot update ${label}. It looks up ${displayValue(sourceLookup ?? 'nothing')} in the package but ${displayValue(targetLookup ?? 'nothing')} here.`,
       );
     }
   }

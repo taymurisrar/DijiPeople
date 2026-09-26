@@ -33,6 +33,11 @@ import { DbFixtures, describeWithDatabase } from './helpers/db-fixtures';
  * unique indexes make a re-import idempotent rather than duplicating rows, and
  * that nothing written in one tenant is reachable from another.
  */
+type ArtifactDocument = {
+  formatVersion: unknown;
+  components: Array<{ definition: Record<string, unknown> | null }>;
+};
+
 describeWithDatabase()('Customization package ALM (e2e, DB-backed)', () => {
   jest.setTimeout(600_000);
 
@@ -300,7 +305,10 @@ describeWithDatabase()('Customization package ALM (e2e, DB-backed)', () => {
         objectKey: 'misAsset.mis_grade',
       },
     });
-    const graph = await alm.componentDependencies(dev, field.id);
+    const graph = (await alm.componentDependencies(dev, field.id)) as {
+      dependsOn: { componentKey: string }[];
+      usedBy: { componentKey: string }[];
+    };
     expect(graph.dependsOn.map((entry) => entry.componentKey)).toContain(
       'table:misAsset',
     );
@@ -651,7 +659,7 @@ describeWithDatabase()('Customization package ALM (e2e, DB-backed)', () => {
   });
 
   it('refuses a tampered, corrupted or future-format file with a reason', async () => {
-    const tampered = JSON.parse(release110);
+    const tampered = JSON.parse(release110) as ArtifactDocument;
     const target = tampered.components.find(
       (component: { definition: unknown }) => component.definition,
     );
@@ -662,7 +670,7 @@ describeWithDatabase()('Customization package ALM (e2e, DB-backed)', () => {
       /modified or corrupted after export/,
     );
 
-    const future = JSON.parse(release110);
+    const future = JSON.parse(release110) as ArtifactDocument;
     future.formatVersion = 4;
     const b = await alm.analyzeImport(other, file(JSON.stringify(future)));
     expect(JSON.stringify(b.plan)).toContain(
