@@ -165,7 +165,7 @@ exists to prevent.
 
 **Owns** — the foreign key lives on the other side
 
-- **249 child relations** — too many to list usefully. See [[domain-map]] for the full model inventory, grouped by domain.
+- **255 child relations** — too many to list usefully. See [[domain-map]] for the full model inventory, grouped by domain.
 
 ### Constraints and indexes
 

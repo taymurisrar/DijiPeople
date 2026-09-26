@@ -2329,6 +2329,12 @@ model Tenant {
   customizationPublishSnapshots   CustomizationPublishSnapshot[]
   customizationSolutions          CustomizationSolution[]
   customizationSolutionComponents CustomizationSolutionComponent[]
+  customizationPublishers                CustomizationPublisher[]
+  customizationPackageVersions           CustomizationPackageVersion[]
+  customizationPackageDependencies       CustomizationPackageDependency[]
+  customizationPackageOperations         CustomizationPackageOperation[]
+  customizationEnvironmentVariables      CustomizationEnvironmentVariable[]
+  customizationEnvironmentVariableValues CustomizationEnvironmentVariableValue[]
   subscription                    Subscription?
   customerAccount                 CustomerAccount                  @relation(fields: [customerAccountId], references: [id], onDelete: Restrict)
   customerOnboardings             CustomerOnboarding[]
@@ -11237,6 +11243,41 @@ enum CustomizationSolutionComponentType {
   lookup
   actionBar
   widget
+  environmentVariable
+}
+
+/// Where a package's content came from in THIS workspace. A LOCAL package is
+/// authored here; an IMPORTED one was installed from a `.djpkg` artifact and is
+/// read-only (`isManaged`) until it is detached.
+enum CustomizationPackageOrigin {
+  LOCAL
+  IMPORTED
+}
+
+enum CustomizationPackageOperationKind {
+  IMPORT
+  UNINSTALL
+}
+
+/// ANALYZING → READY | BLOCKED → IMPORTING → COMPLETED | FAILED.
+/// FAILED means the apply transaction rolled back and nothing was changed;
+/// SUPERSEDED marks an analysis made stale by a later one for the same package.
+enum CustomizationPackageOperationStatus {
+  ANALYZING
+  READY
+  BLOCKED
+  IMPORTING
+  COMPLETED
+  FAILED
+  SUPERSEDED
+}
+
+enum CustomizationEnvironmentVariableType {
+  text
+  number
+  boolean
+  url
+  secret
 }
 
 model ModuleView {
@@ -11438,27 +11479,212 @@ model CustomizationForm {
 }
 
 model CustomizationSolution {
-  id              String                     @id @default(uuid())
-  tenantId        String?
-  solutionKey     String
-  displayName     String
-  description     String?
-  scope           CustomizationSolutionScope @default(tenant)
-  isDefault       Boolean                    @default(false)
-  isSystem        Boolean                    @default(false)
-  isManaged       Boolean                    @default(false)
-  isActive        Boolean                    @default(true)
-  createdByUserId String?
-  updatedByUserId String?
-  createdAt       DateTime                   @default(now())
-  updatedAt       DateTime                   @updatedAt
+  id                    String                     @id @default(uuid())
+  tenantId              String?
+  solutionKey           String
+  displayName           String
+  description           String?
+  scope                 CustomizationSolutionScope @default(tenant)
+  isDefault             Boolean                    @default(false)
+  isSystem              Boolean                    @default(false)
+  isManaged             Boolean                    @default(false)
+  isActive              Boolean                    @default(true)
+  /// The tenant's "Default Customizations" package: where a draft lands when
+  /// no package was chosen. Replaces recognising it by its key suffix.
+  isTenantDefault       Boolean                    @default(false)
+  /// The version the NEXT release will carry. Released versions are immutable
+  /// rows in CustomizationPackageVersion; this is only the working number.
+  version               String                     @default("1.0.0")
+  origin                CustomizationPackageOrigin @default(LOCAL)
+  /// For an IMPORTED package, the version currently applied here.
+  installedVersion      String?
+  installedAt           DateTime?
+  /// The environment the installed artifact was exported from, as it declared.
+  sourceEnvironmentType TenantEnvironmentType?
+  /// SetNull rather than Restrict: a publisher still in use is refused by the
+  /// service, and a Restrict edge would reorder tenant erasure for no gain.
+  publisherId           String?
+  createdByUserId       String?
+  updatedByUserId       String?
+  createdAt             DateTime                   @default(now())
+  updatedAt             DateTime                   @updatedAt
 
-  tenant     Tenant?                          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  components CustomizationSolutionComponent[]
+  tenant               Tenant?                            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  publisher            CustomizationPublisher?            @relation(fields: [publisherId], references: [id], onDelete: SetNull)
+  components           CustomizationSolutionComponent[]
+  versions             CustomizationPackageVersion[]
+  dependencies         CustomizationPackageDependency[]
+  operations           CustomizationPackageOperation[]
+  environmentVariables CustomizationEnvironmentVariable[]
 
   @@unique([tenantId, solutionKey])
   @@index([tenantId, isDefault])
+  @@index([tenantId, isTenantDefault])
   @@index([scope, solutionKey])
+  @@index([publisherId])
+}
+
+/// Who authors a package, and the prefix its logical names carry.
+///
+/// Before this model the publisher was derived from the tenant name on every
+/// read and the name typed at package creation was discarded. The prefix is
+/// unique per tenant so two publishers can never mint colliding logical names;
+/// `dijipeople` is the reserved system publisher whose components keep their
+/// historical unprefixed names.
+model CustomizationPublisher {
+  id              String   @id @default(uuid())
+  tenantId        String
+  publisherKey    String
+  displayName     String
+  prefix          String
+  description     String?
+  isSystem        Boolean  @default(false)
+  createdByUserId String?
+  updatedByUserId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant   Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  packages CustomizationSolution[]
+
+  @@unique([tenantId, publisherKey])
+  @@unique([tenantId, prefix])
+  @@index([tenantId])
+}
+
+/// An immutable released version of a package.
+///
+/// `artifactJson` is the canonical `.djpkg` document exactly as exported, and
+/// `checksum` its sha256, so what was deployed can always be reproduced byte
+/// for byte. There is deliberately no update path.
+model CustomizationPackageVersion {
+  id               String   @id @default(uuid())
+  tenantId         String
+  packageId        String
+  version          String
+  artifactJson     Json
+  checksum         String
+  componentCount   Int      @default(0)
+  notes            String?
+  releasedByUserId String?
+  releasedAt       DateTime @default(now())
+
+  tenant  Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  package CustomizationSolution @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@unique([packageId, version])
+  @@index([tenantId, packageId])
+}
+
+/// A package's declared dependency on another package, by portable identity
+/// (key + publisher), never by id — the depended-on package has a different id
+/// in every workspace.
+model CustomizationPackageDependency {
+  id                    String   @id @default(uuid())
+  tenantId              String
+  packageId             String
+  dependsOnPackageKey   String
+  dependsOnPublisherKey String?
+  dependsOnDisplayName  String?
+  minVersion            String
+  maxVersion            String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  tenant  Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  package CustomizationSolution @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@unique([packageId, dependsOnPackageKey])
+  @@index([tenantId, dependsOnPackageKey])
+}
+
+/// One import or uninstall, from analysis to result — the deployment history.
+///
+/// Persisted rather than held in a request so the analysis a user reviewed is
+/// exactly what executes (`artifactChecksum` is re-verified), and so a failed
+/// run keeps its diagnosis. The uploaded artifact is kept on the row because
+/// execution starts from the operation id, not from a second upload.
+model CustomizationPackageOperation {
+  id                 String                              @id @default(uuid())
+  tenantId           String
+  packageId          String?
+  kind               CustomizationPackageOperationKind
+  status             CustomizationPackageOperationStatus @default(ANALYZING)
+  packageKey         String
+  packageDisplayName String
+  publisherKey       String?
+  version            String
+  previousVersion    String?
+  artifactChecksum   String?
+  artifactJson       Json?
+  planJson           Json?
+  resultJson         Json?
+  errorJson          Json?
+  correlationId      String
+  createdCount       Int                                 @default(0)
+  updatedCount       Int                                 @default(0)
+  unchangedCount     Int                                 @default(0)
+  skippedCount       Int                                 @default(0)
+  conflictCount      Int                                 @default(0)
+  warningCount       Int                                 @default(0)
+  actorUserId        String?
+  startedAt          DateTime?
+  completedAt        DateTime?
+  createdAt          DateTime                            @default(now())
+  updatedAt          DateTime                            @updatedAt
+
+  tenant  Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  package CustomizationSolution? @relation(fields: [packageId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, packageKey])
+  @@index([tenantId, status])
+  @@index([packageId])
+}
+
+/// The definition of a per-environment setting a package needs — travels in
+/// the artifact. Its VALUE never does; see CustomizationEnvironmentVariableValue.
+model CustomizationEnvironmentVariable {
+  id              String                               @id @default(uuid())
+  tenantId        String
+  packageId       String?
+  variableKey     String
+  displayName     String
+  description     String?
+  type            CustomizationEnvironmentVariableType @default(text)
+  isRequired      Boolean                              @default(false)
+  /// Never set for `secret`: a default would be exported.
+  defaultValue    String?
+  createdByUserId String?
+  updatedByUserId String?
+  createdAt       DateTime                             @default(now())
+  updatedAt       DateTime                             @updatedAt
+
+  tenant  Tenant                                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  package CustomizationSolution?                  @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  values  CustomizationEnvironmentVariableValue[]
+
+  @@unique([tenantId, variableKey])
+  @@index([tenantId, packageId])
+}
+
+/// This workspace's value for a variable. Kept apart from the definition so an
+/// import that updates the definition can never overwrite it; `secret` values
+/// are stored encrypted by SecretEncryptionService.
+model CustomizationEnvironmentVariableValue {
+  id              String   @id @default(uuid())
+  tenantId        String
+  variableId      String
+  value           String
+  updatedByUserId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant   Tenant                           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  variable CustomizationEnvironmentVariable @relation(fields: [variableId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, variableId])
+  @@index([variableId])
 }
 
 model CustomizationSolutionComponent {
