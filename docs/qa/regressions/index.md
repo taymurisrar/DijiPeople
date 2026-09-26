@@ -6698,3 +6698,115 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — the plain error is not a bad-request exception. |
 | **Fixed** | 2026-09-25, branch `agent/partner-agreements-admin-hardening` (TASK-0032) |
 | **Active** | yes |
+
+### REG-630 — An individual partner's agreement recorded a PARTNER party
+
+| | |
+|---|---|
+| **Bug class** | `declared-policy-not-wired` |
+| **Module** | `services/api/src/modules/contracts` |
+| **Bug record** | ITEM-0203 |
+| **Root cause** | The partner type policy declared the counterparty party type per partner type, but the contracts module's default-party inference hard-coded PARTNER for every partner counterparty and never read it. |
+| **Regression test** | `services/api/src/modules/contracts/contracts.partner-source.spec.ts` — "records an individual partner as an INDIVIDUAL party and a company as PARTNER". |
+| **Scenario** | Creating an agreement for an individual partner records its counterparty party as INDIVIDUAL; for a company partner, PARTNER. |
+| **Fails without the fix** | Yes — with PARTNER hard-coded the individual case records PARTNER. |
+| **Fixed** | 2026-09-26, branch `agent/backlog-0203-0204-0206` |
+| **Active** | yes |
+
+### REG-631 — Platform administrator tiers decided by role literal
+
+| | |
+|---|---|
+| **Bug class** | `role-literal-authorization` |
+| **Module** | `services/api/src/modules/platform-auth` |
+| **Bug record** | ITEM-0204 |
+| **Root cause** | After ADR-0018 moved platform authorization to permission keys, six decisions still compared role names, which cannot be granted or audited like a permission and drift independently. |
+| **Regression test** | `services/api/src/modules/platform-auth/platform-admin-tier.spec.ts` — the holders of the administrator tier, lead management and platform log access are exactly the roles the literal lists named, and a tenant user carrying the same keys is never in the tier. |
+| **Scenario** | Only Super Admin, the Owner alias and Platform Admin pass the administrator tier; Presales Manager additionally manages any lead; only Super Admin reads platform log files. |
+| **Fails without the fix** | Yes — removing Platform Admin's `platform.administer` grant fails the tier test. |
+| **Fixed** | 2026-09-26, branch `agent/backlog-0203-0204-0206` |
+| **Active** | yes |
+
+### REG-632 — The dashboard's unresolved-errors tile opened a smaller list than it counted
+
+| | |
+|---|---|
+| **Bug class** | `tile-and-list-disagree` |
+| **Module** | `services/api/src/modules/platform-monitoring` |
+| **Bug record** | ITEM-0206 |
+| **Root cause** | The operations dashboard counted every incident not resolved or set aside but linked to the "new" view, which lists untriaged incidents only; the error-log page also turned named views into single-status filters, so "investigating" missed FIX_IN_PROGRESS rows its tile counted. |
+| **Regression test** | `services/api/src/modules/platform-monitoring/open-incident-view.spec.ts` — the `open` view and the dashboard count use one predicate. |
+| **Scenario** | The dashboard's "Errors needing attention" tile opens the Open incidents view, whose rows match the tile's count. |
+| **Fails without the fix** | Yes — the dashboard computed its own status list, which the source assertion rejects. |
+| **Fixed** | 2026-09-26, branch `agent/backlog-0203-0204-0206` |
+| **Active** | yes |
+
+### REG-633 — Concurrent admin edits silently overwrote each other
+
+| | |
+|---|---|
+| **Bug class** | `lost-update` |
+| **Module** | `services/api/src/modules/platform-runtime` |
+| **Bug record** | ITEM-0201 |
+| **Root cause** | The admin record page sent a `version` with every update, but the editable runtime models carry no version column so the token was always undefined, and `PlatformRuntimeService.update` never compared it. Two operators editing one record overwrote each other without a conflict. |
+| **Regression test** | `services/api/src/modules/platform-runtime/runtime-stale-update.spec.ts` — an update from a stale version is refused with 409 and writes nothing; a current one applies and returns the new version; an update without a version is not checked. |
+| **Scenario** | Two operators open the same record; the second to save gets a conflict telling them to reload, and the first operator's change survives. |
+| **Fails without the fix** | Yes — without the check the stale update reaches the owning service. |
+| **Fixed** | 2026-09-26, branch `agent/backlog-0201-concurrency` |
+| **Active** | yes |
+
+### REG-634 — Saving agreement document fields skipped the immutability check
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` |
+| **Module** | `services/api/src/modules/contracts` |
+| **Bug record** | BUG-3668 |
+| **Root cause** | `saveDocumentFields` never called the shared `assertAgreementEditable`; an executed agreement was refused only because its frozen version had no editable placeholder left. |
+| **Regression test** | `services/api/src/modules/contracts/contracts.agreement-immutability.spec.ts` — saving a field on an executed agreement is refused and writes nothing; a draft still saves. |
+| **Scenario** | Changing a document field on an executed agreement is refused by the immutability rule. |
+| **Fails without the fix** | Yes — without the guard the field is upserted. |
+| **Fixed** | 2026-09-26, branch `agent/backlog-0200-e2e` |
+| **Active** | yes |
+
+### REG-635 — Deleting a component another package still names
+
+| | |
+|---|---|
+| **Bug class** | `two-dependency-notions` |
+| **Module** | `services/api/src/modules/customization` |
+| **Bug record** | BUG-3699 |
+| **Root cause** | Deletes checked form layouts and view columns only; references held in other packages' layers (relationships, action bars, Core extensions) were never consulted. |
+| **Regression test** | `services/api/test/customization-package-alm.e2e-spec.ts` — "delete safety (B3)": a field named only by a relationship in another package cannot be deleted, and the refusal names the relationship and its package. |
+| **Scenario** | Deleting a field that a relationship in another package uses is refused and the field still exists. |
+| **Fails without the fix** | Yes — without the layer-reference check the delete succeeds. |
+| **Fixed** | 2026-09-26, branch `agent/packages-alm` |
+| **Active** | yes |
+
+### REG-636 — Adding a field demoted the package's own module to a reference
+
+| | |
+|---|---|
+| **Bug class** | `membership-upsert-overwrites-ownership` |
+| **Module** | `services/api/src/modules/customization` |
+| **Bug record** | BUG-3702 |
+| **Root cause** | Module membership was upserted with layerAction reference, overwriting the create row the package held for its own module, so exports shipped fields without their module. |
+| **Regression test** | `services/api/test/customization-package-alm.e2e-spec.ts` — "C/D": after a field is added, the package's module row is still create; the DEV → UAT import then installs the module. |
+| **Scenario** | A package's own module stays created by the package after fields are added, and the package imports into another environment. |
+| **Fails without the fix** | Yes — mutation-checked: restoring the overwrite fails the C/D assertion even with the reader recovery in place. |
+| **Fixed** | 2026-09-26, branch `agent/packages-alm` |
+| **Active** | yes |
+
+### REG-637 — Export readiness could never report a missing dependency
+
+| | |
+|---|---|
+| **Bug class** | `inert-check` |
+| **Module** | `services/api/src/modules/customization` |
+| **Bug record** | BUG-3703 |
+| **Root cause** | The readiness check compared declared dependencies that were always empty, so it always reported ready; release validation now computes real ones. |
+| **Regression test** | `services/api/test/customization-package-alm.e2e-spec.ts` (release validation reports the Core dependency; import refuses a missing package dependency) and `services/api/src/modules/customization/package-comparison.spec.ts` (MISSING_DEPENDENCY). |
+| **Scenario** | A package that needs something it does not carry is flagged before release and blocked at import. |
+| **Fails without the fix** | Yes — with dependencies empty neither the release issue nor MISSING_DEPENDENCY appears. |
+| **Fixed** | 2026-09-26, branch `agent/packages-alm` |
+| **Active** | yes |

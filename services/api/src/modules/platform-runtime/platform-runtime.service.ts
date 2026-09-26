@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   HttpException,
   Injectable,
@@ -486,6 +487,7 @@ export class PlatformRuntimeService {
   ) {
     const key = this.key(moduleKey);
     this.assertModuleWrite(user, key);
+    await this.assertNotChangedSince(key, id, body.version);
     const values = body.values ?? {};
     switch (key) {
       case 'leads':
@@ -1226,6 +1228,59 @@ export class PlatformRuntimeService {
       },
     };
   }
+  /**
+   * ITEM-0201. Refuse an update made from a stale copy of the record.
+   *
+   * The record page sends back the `version` it loaded (`recordVersion`: the
+   * record's `updatedAt`). If the record has changed since, the edit was made
+   * against values that no longer exist, and applying it would silently
+   * overwrite someone else's change. An update with no version — an API
+   * client that never read one — is not checked, as before.
+   *
+   * This is stale-edit detection, not a lock: a write landing between this
+   * read and the owning service's own update is not caught, which is the
+   * window a person editing in two tabs never hits.
+   */
+  private async assertNotChangedSince(
+    key: PlatformRuntimeModuleKey,
+    id: string,
+    version: number | undefined,
+  ) {
+    if (typeof version !== 'number' || !Number.isFinite(version)) return;
+    const select = { updatedAt: true } as const;
+    const where = { id };
+    const current =
+      key === 'leads'
+        ? await this.prisma.lead.findUnique({ where, select })
+        : key === 'partners'
+          ? await this.prisma.partner.findUnique({ where, select })
+          : key === 'customers'
+            ? await this.prisma.customerAccount.findUnique({ where, select })
+            : key === 'customer-onboarding'
+              ? await this.prisma.customerOnboarding.findUnique({
+                  where,
+                  select,
+                })
+              : key === 'tenants'
+                ? await this.prisma.tenant.findUnique({ where, select })
+                : key === 'contracts'
+                  ? await this.prisma.contract.findUnique({ where, select })
+                  : key === 'support-cases'
+                    ? await this.prisma.supportCase.findUnique({
+                        where,
+                        select,
+                      })
+                    : key === 'plans'
+                      ? await this.prisma.plan.findUnique({ where, select })
+                      : null;
+    // A missing record is the owning service's 404 to raise, not this check's.
+    if (!current || current.updatedAt.getTime() === version) return;
+    throw new ConflictException({
+      code: 'RECORD_CHANGED_SINCE_OPENED',
+      message:
+        'Someone else changed this record after you opened it. Reload it to see their changes, then make your edit again.',
+    });
+  }
   private key(value: string) {
     const keys: PlatformRuntimeModuleKey[] = [
       'leads',
@@ -1637,14 +1692,23 @@ function readPath(record: Record<string, unknown>, path: string) {
       record,
     );
 }
+/*
+ * ITEM-0201. The concurrency token a record page sends back with its update.
+ * None of the editable runtime models carries a `version` column, so this was
+ * `undefined` for every one of them and nothing was ever compared; it is now
+ * the record's `updatedAt` in epoch milliseconds, which every such model has.
+ */
+export function recordVersion(item: unknown): number | undefined {
+  if (!item || typeof item !== 'object') return undefined;
+  const record = item as Record<string, unknown>;
+  const updatedAt = record.updatedAt;
+  if (updatedAt instanceof Date) return updatedAt.getTime();
+  if (typeof updatedAt === 'string' && !Number.isNaN(Date.parse(updatedAt)))
+    return Date.parse(updatedAt);
+  return typeof record.version === 'number' ? record.version : undefined;
+}
 function envelope(item: unknown) {
-  return {
-    item,
-    version:
-      item && typeof item === 'object' && 'version' in item
-        ? Number((item as Record<string, unknown>).version)
-        : undefined,
-  };
+  return { item, version: recordVersion(item) };
 }
 function result(data: unknown) {
   return { success: true, data };

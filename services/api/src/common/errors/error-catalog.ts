@@ -647,6 +647,69 @@ export const ERROR_CATALOG = {
     'Reconcile the Stripe customer account, then retry the stored webhook event.',
     false,
   ),
+  /*
+   * Payments DijiPeople prices itself and a provider such as Safepay executes.
+   * Each names which step failed, because "checkout failed" is not something
+   * support can act on.
+   */
+  PAYMENT_PROVIDER_NOT_CONFIGURED: entry(
+    503,
+    'Payment provider not configured',
+    'Online payment for this currency is not available right now.',
+    'error',
+    'integration',
+    'Contact support to complete your purchase.',
+    false,
+  ),
+  PAYMENT_PROVIDER_REQUEST_FAILED: entry(
+    502,
+    'Payment provider request failed',
+    'The payment provider did not accept the request. No payment was taken.',
+    'error',
+    'integration',
+    'Try again in a few minutes.',
+    true,
+  ),
+  PAYMENT_VERIFICATION_FAILED: entry(
+    502,
+    'Payment could not be verified',
+    'The payment provider could not be reached to confirm this payment.',
+    'warning',
+    'integration',
+    'The payment is re-checked automatically; refresh shortly.',
+    true,
+  ),
+  PAYMENT_NOT_FOUND: entry(
+    404,
+    'Payment not found',
+    'This payment does not exist.',
+    'warning',
+    'tenant',
+  ),
+  BILLING_PROMOTION_INVALID: entry(
+    400,
+    'Promotion code not valid',
+    'This promotion code cannot be applied to this purchase.',
+    'warning',
+    'validation',
+    'Check the code, or continue without it.',
+  ),
+  BILLING_CHECKOUT_IN_PROGRESS: entry(
+    409,
+    'Checkout already starting',
+    'A checkout for this subscription is already being prepared.',
+    'info',
+    'tenant',
+    'Wait a moment, then try again.',
+    true,
+  ),
+  BILLING_INVOICE_NOT_PAYABLE: entry(
+    409,
+    'Invoice cannot be paid online',
+    'This invoice is not open for online payment.',
+    'warning',
+    'tenant',
+  ),
   AGENT_HEARTBEAT_FAILED: entry(
     502,
     'Agent heartbeat failed',
@@ -891,6 +954,14 @@ export const ERROR_CATALOG = {
     'warning',
     'validation',
   ),
+  // ITEM-0201: an admin record page saved a copy someone else had since changed.
+  RECORD_CHANGED_SINCE_OPENED: entry(
+    409,
+    'Record changed by someone else',
+    'Reload the record to see the latest changes, then make your edit again.',
+    'warning',
+    'validation',
+  ),
   NETWORK_ERROR: entry(
     503,
     'Network error',
@@ -962,6 +1033,68 @@ export const ERROR_CATALOG = {
     'The release descriptor names an unknown application, channel, platform, architecture or version.',
     'error',
     'validation',
+  ),
+  /*
+   * Customization package ALM — TASK-0033. Each carries its full issue list in
+   * `details.issues`, because "import failed" with no reason is the failure
+   * mode the whole import flow exists to prevent.
+   */
+  PACKAGE_READ_ONLY: entry(
+    400,
+    'This package cannot be changed here',
+    'DijiPeople Core and packages installed from another environment are read-only in this workspace.',
+    'warning',
+    'settings',
+    'Make the change in the environment the package is authored in, or detach the installed package first.',
+  ),
+  PACKAGE_VALIDATION_FAILED: entry(
+    400,
+    'Package validation found blocking errors',
+    'The package cannot be released until every error-level validation issue is resolved.',
+    'warning',
+    'validation',
+    'Open the package Validation tab and resolve each error.',
+  ),
+  PACKAGE_VERSION_CONFLICT: entry(
+    409,
+    'This package version already exists',
+    'A released package version is immutable. Releasing it again, or releasing a lower version, is refused.',
+    'warning',
+    'validation',
+    'Choose a higher version number.',
+  ),
+  PACKAGE_IMPORT_BLOCKED: entry(
+    409,
+    'The package cannot be imported',
+    'The import plan contains blocking conflicts, missing dependencies or incompatibilities. Nothing was changed.',
+    'warning',
+    'validation',
+    'Resolve each blocking item in the import plan, then analyze the package again.',
+  ),
+  PACKAGE_IMPORT_STALE: entry(
+    409,
+    'This workspace changed since the package was analyzed',
+    'The import plan no longer matches the workspace. Nothing was changed.',
+    'warning',
+    'validation',
+    'Analyze the package again and review the new plan.',
+    true,
+  ),
+  PACKAGE_IMPORT_FAILED: entry(
+    422,
+    'The package import failed and was rolled back',
+    'A component could not be applied. The whole import was rolled back, so the workspace is unchanged.',
+    'error',
+    'settings',
+    'Review the failed component in the deployment history.',
+  ),
+  PACKAGE_UNINSTALL_BLOCKED: entry(
+    409,
+    'The package cannot be uninstalled',
+    'Another package or customization depends on it, or it owns records that uninstalling would orphan.',
+    'warning',
+    'validation',
+    'Remove what depends on it first, or detach the package to keep its components.',
   ),
   RELEASE_VERSION_CONFLICT: entry(
     409,

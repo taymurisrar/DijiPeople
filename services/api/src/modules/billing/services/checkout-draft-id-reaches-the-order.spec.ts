@@ -10,6 +10,8 @@ import {
   SubscriptionOrderStatus,
 } from '@prisma/client';
 import { BillingService } from './billing.service';
+import { PaymentGateways } from '../providers/payment-gateways';
+import { SafepayGateway } from '../providers/safepay.gateway';
 
 /**
  * REG — BUG-2530, the half of BUG-1516 that never reached the service.
@@ -149,6 +151,9 @@ function buildService() {
     ownerEmailVerification as never,
     { acknowledgeMany: jest.fn() } as never,
     { resolveMarketForTenant: jest.fn() } as never,
+    // Safepay off: every currency routes to Stripe, the path under test.
+    new PaymentGateways(new SafepayGateway({ get: () => undefined } as never)),
+    {} as never,
   );
 
   return { service, openOrder, prisma, ownerEmailVerification };

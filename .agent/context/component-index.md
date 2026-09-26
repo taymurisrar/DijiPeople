@@ -1,7 +1,7 @@
 # Component Index
 
-> **Last verified:** 2026-09-25
-> **Verified against commit:** 8ad6edc6
+> **Last verified:** 2026-09-26
+> **Verified against commit:** 504c7438
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -17,7 +17,7 @@ comment beside it is the reasoning; this document is a route to both. Every row
 carries `file`:`line` for that reason — read the source before changing it.
 
 **An export missing from here is undocumented, not absent.** 849 of
-1114 exports across these kits carry no
+1115 exports across these kits carry no
 doc-comment and are omitted rather than listed as bare names. That ratio is
 itself worth knowing: it is where a UI/UX or Frontend agent is working without
 stated rationale, and where adding one is worth more than a new abstraction.
@@ -45,7 +45,7 @@ re-derived on each run.
 
 `ProDataTable` (`crm/data-table.tsx`) is the required table for every production admin screen. A hand-rolled table here is a review failure.
 
-77 documented export(s); 258 undocumented export(s) omitted.
+78 documented export(s); 258 undocumented export(s) omitted.
 
 | Export | Kind | Used by | Where | What it is |
 |---|---|---|---|---|
@@ -62,6 +62,7 @@ re-derived on each run.
 | `PaymentRecheckPanel` | component | 1 | `apps/admin/app/_components/customers/payment-recheck-panel.tsx`:63 | What Stripe says about this customer's payment, and what to tell them. |
 | `PlanCommercialSummary` | component | 1 | `apps/admin/app/_components/plans/plan-commercial-summary.tsx`:33 | What this plan currently costs and who is on it. |
 | `PlanEntitlementsPanel` | component | 1 | `apps/admin/app/_components/plans/plan-entitlements-panel.tsx`:22 | Plan entitlements. The entitlement set is what a plan actually sells, and until now it could only be changed on the legacy `?workspace=legacy-commerce` page — the runtime record page showed an "Entitlements" tab with nothing on it. |
+| `ProviderPaymentsClient` | component | 1 | `apps/admin/app/_components/billing/provider-payments-client.tsx`:61 | Payments DijiPeople billed through a provider other than Stripe (Safepay), and the webhook deliveries behind them. |
 | `ReadinessCard` | component | 1 | `apps/admin/app/_components/tenants/tenant-overview-panel.tsx`:446 | Deterministic readiness, shown as the list of rules it checked. |
 | `RecordCommandBar` | component | 1 | `apps/admin/app/_components/runtime/record-command-bar.tsx`:22 | The default record command bar for a **server-rendered** detail page. |
 | `RowActions` | component | 1 | `apps/admin/app/_components/crm/row-actions.tsx`:38 | The actions available on one row of a table. |
@@ -118,7 +119,7 @@ re-derived on each run.
 | `NOTIFICATIONS_READ_EVENT` | constant | 2 | `apps/admin/app/_components/notifications/notification-model.ts`:47 | The badge and the page read the same count from the same endpoint, so clearing it in one place has to reach the other. |
 | `SEVERITY` | constant | 2 | `apps/admin/app/_components/notifications/notification-model.ts`:57 | Severity as it is drawn. |
 | `TENANT_PANEL_TABS` | constant | 1 | `apps/admin/app/_components/tenants/use-tenant-record-actions.tsx`:21 | Tabs whose content comes from a tenant panel rather than from form fields. |
-| `DASHBOARD_WIDGET_REGISTRY` | constant | 0 | `apps/admin/app/_components/dashboard/platform-dashboard.tsx`:294 | Canonical widget capability registry. |
+| `DASHBOARD_WIDGET_REGISTRY` | constant | 0 | `apps/admin/app/_components/dashboard/platform-dashboard.tsx`:295 | Canonical widget capability registry. |
 | `RUNTIME_ELEVATED_ROLES` | constant | 0 | `apps/admin/lib/runtime/runtime-permissions.ts`:21 | Roles that reach every platform module regardless of the granted key set. |
 | `AdminMfaChallenge` | type | 0 | `apps/admin/app/_components/security/mfa-security.tsx`:138 | ------------------------------------------------------------------ |
 | `Notification` | type | 0 | `apps/admin/app/_components/notifications/notification-model.ts`:11 | One row of the feed, as `platform-notifications.ts` projects it. |
@@ -159,8 +160,8 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `WorkspaceEnvironmentBanner` | component | 1 | `apps/web/app/components/workspace-environment-banner.tsx`:38 | A persistent marker on non-production workspaces. |
 | `CommandRequestError` | component | 0 | `apps/web/lib/runtime/command-failure-message.ts`:77 | An adapter's failed request, carrying the response it failed with. |
 | `WorkspaceContextLabel` | component | 0 | `apps/web/app/components/workspace-environment-banner.tsx`:66 | The workspace label for the app shell. |
-| `useFormattingContext` | function | 25 | `apps/web/app/components/filters/use-formatting-context.ts`:28 | The tenant's formatting context, safe to use during render. |
-| `useDialogBehavior` | function | 15 | `apps/web/app/components/ui/dialog.tsx`:130 | The behaviour half of {@link Dialog}, on its own. |
+| `useFormattingContext` | function | 26 | `apps/web/app/components/filters/use-formatting-context.ts`:28 | The tenant's formatting context, safe to use during render. |
+| `useDialogBehavior` | function | 16 | `apps/web/app/components/ui/dialog.tsx`:130 | The behaviour half of {@link Dialog}, on its own. |
 | `useSideToast` | function | 11 | `apps/web/app/components/notifications/use-side-toast.tsx`:19 | Local toast state plus the element that renders it. |
 | `formatChartValue` | function | 10 | `apps/web/app/components/charts/chart-format.ts`:47 | Render one measured number the way the tenant has asked for numbers to be rendered. |
 | `hasChartData` | function | 8 | `apps/web/app/components/charts/chart-types.ts`:97 | `true` when there is nothing to draw: no series, or every series empty. |

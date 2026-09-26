@@ -3,15 +3,15 @@ ID: ITEM-0206
 aliases: [ITEM-0206]
 Title: Admin dashboard drill-downs for active users, failed sign-ins and unresolved errors land on approximate pages
 Type: UX
-Status: DEFERRED
+Status: DONE
 Priority: P3
 Severity: LOW
 AffectedModules: [apps/admin, services/api/src/modules/super-admin, services/api/src/modules/platform-monitoring]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: DEFER
+ArchitectDisposition: DONE
 CreatedAt: 2026-09-25
-UpdatedAt: 2026-09-25
+UpdatedAt: 2026-09-26
 RelatedBug:
 RelatedQA: 
 RelatedADR:
@@ -61,6 +61,16 @@ None.
 
 [[ITEM-0199]], [[TASK-0032]], [[platform-admin]]
 
+## Resolution
+
+Fixed on `agent/backlog-0203-0204-0206`. `openIncidentWhere()` backs the
+monitoring overview count, the operations dashboard's "Errors needing
+attention" and a new `open` view; the tile and its attention-list entry link
+to `?viewId=open`. The error-log page now passes every named view as its view
+key, so "Under investigation" also lists FIX_IN_PROGRESS as its tile counts.
+"Active users" and "Failed sign-ins" are no longer links — no screen lists
+what they count. REG-632, QA-PLATFORM-043.
+
 ## History
 
 - 2026-09-25 — created at `5496a244`.
@@ -73,3 +83,4 @@ None.
 - Modules — [[platform-admin]], [[super-admin]]
 
 <!-- GRAPH:END -->
+- 2026-09-26 — implemented and verified; DONE.

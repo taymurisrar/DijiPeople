@@ -157,7 +157,7 @@ export function FormsManagement({
       header: "Package",
       render: (row) =>
         componentSource(row) === "System"
-          ? "Default Package"
+          ? "DijiPeople Core"
           : "Custom Package",
     },
     {

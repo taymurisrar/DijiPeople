@@ -195,7 +195,8 @@ type Metric = {
   label: string;
   value: number | string;
   description: string;
-  href: string;
+  /** Null when no screen lists exactly what the tile counts (ITEM-0206). */
+  href: string | null;
   icon: typeof UsersRound;
   tone: "blue" | "emerald" | "amber" | "rose" | "violet";
   trend?: string;
@@ -779,7 +780,7 @@ function metricOrUnavailable<T>(
   opsError: string | null,
   label: string,
   pick: (data: T) => { value: number | string; description: string },
-  href: string,
+  href: string | null,
   icon: typeof UsersRound,
   tone: Metric["tone"],
 ): Metric {
@@ -857,7 +858,8 @@ function buildOperationsContent(
         value: data.activeUsers,
         description: `${data.newUsersLast30Days.toLocaleString()} new in the last 30 days`,
       }),
-      "/settings/security",
+      // No cross-tenant user list exists to open (ITEM-0206).
+      null,
       UsersRound,
       "blue",
     ),
@@ -869,7 +871,8 @@ function buildOperationsContent(
         value: data.failedLoginsLast24h,
         description: `${data.loginsLast24h.toLocaleString()} successful sign-ins in the same window`,
       }),
-      "/settings/monitoring",
+      // No cross-tenant sign-in list exists to open (ITEM-0206).
+      null,
       ShieldCheck,
       "amber",
     ),
@@ -881,7 +884,7 @@ function buildOperationsContent(
         value: data.unresolvedErrors,
         description: `${data.errorsLast24h.toLocaleString()} occurrences in the last 24h`,
       }),
-      "/settings/monitoring/error-logs?viewKey=new",
+      "/settings/monitoring/error-logs?viewId=open",
       Activity,
       "rose",
     ),
@@ -1017,7 +1020,7 @@ function buildOperationsContent(
     alerts.push({
       tone: "rose",
       label: `${operational.data.unresolvedErrors} unresolved application errors`,
-      href: "/settings/monitoring/error-logs?viewKey=new",
+      href: "/settings/monitoring/error-logs?viewId=open",
     });
   }
   if (partners?.available) {
@@ -1856,7 +1859,7 @@ function m(
   label: string,
   value: number | string,
   description: string,
-  href: string,
+  href: string | null,
   icon: typeof UsersRound,
   tone: Metric["tone"],
 ): Metric {
@@ -1927,16 +1930,15 @@ function MetricCard({ metric }: { metric: Metric }) {
     violet: "bg-violet-50 text-violet-700",
   };
   const Icon = metric.icon;
-  return (
-    <Link
-      href={metric.href}
-      className="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-    >
+  const body = (
+    <>
       <div className="flex items-start justify-between">
         <span className={`rounded-xl p-2.5 ${tones[metric.tone]}`}>
           <Icon className="h-5 w-5" />
         </span>
-        <ArrowRight className="h-4 w-4 text-slate-400 transition group-hover:translate-x-0.5" />
+        {metric.href ? (
+          <ArrowRight className="h-4 w-4 text-slate-400 transition group-hover:translate-x-0.5" />
+        ) : null}
       </div>
       <p className="mt-3 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
         {metric.label}
@@ -1952,7 +1954,20 @@ function MetricCard({ metric }: { metric: Metric }) {
           {metric.trend}
         </p>
       ) : null}
+    </>
+  );
+  // A tile with nowhere exact to go is not a link (ITEM-0206).
+  return metric.href ? (
+    <Link
+      href={metric.href}
+      className="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+    >
+      {body}
     </Link>
+  ) : (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      {body}
+    </div>
   );
 }
 

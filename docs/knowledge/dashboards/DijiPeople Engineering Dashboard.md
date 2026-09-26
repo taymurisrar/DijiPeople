@@ -8,12 +8,12 @@
 | | |
 |---|---|
 | Open CRITICAL | **6** |
-| Open HIGH | **101** |
-| Open total | 230 |
-| Blocked | 2 |
-| Awaiting a product decision | 10 |
-| Deferred | 108 |
-| Completed | 344 |
+| Open HIGH | **103** |
+| Open total | 235 |
+| Blocked | 3 |
+| Awaiting a product decision | 11 |
+| Deferred | 117 |
+| Completed | 350 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -127,6 +127,8 @@
 | [[BUG-3565-opening-a-contract-template-or-signature-request-from-its-ad|BUG-3565]] | Opening a contract template or signature request from its admin list returns 404 | BUG | HIGH | FIXED | api:platform-runtime | DONE |
 | [[BUG-3578-deleting-a-partner-or-lead-with-restricted-history-crashes-w|BUG-3578]] | Deleting a partner or lead with restricted history crashes with a 500 | DATA_INTEGRITY | HIGH | FIXED | api:partners, api:leads | DONE |
 | [[BUG-3597-a-drawn-or-uploaded-signature-inside-a-signature-paragraph-i|BUG-3597]] | A drawn or uploaded signature inside a signature paragraph is dropped from the signed PDF and DOCX | BUG | HIGH | FIXED | api:contracts | DONE |
+| [[BUG-3697-a-custom-field-added-to-a-system-module-has-nowhere-to-store|BUG-3697]] | A custom field added to a system module has nowhere to store its values | DATA_INTEGRITY | HIGH | OPEN | customization, employees | PLAN_REQUIRED |
+| [[BUG-3702-adding-a-field-to-a-package-s-own-custom-module-demoted-the-|BUG-3702]] | Adding a field to a package's own custom module demoted the module to a reference | DATA_INTEGRITY | HIGH | FIXED | customization | DONE |
 | [[ITEM-0208-production-neon-database-exceeded-its-data-transfer-quota-an|ITEM-0208]] | Production Neon database exceeded its data transfer quota and failed two deploys | INFRA | HIGH | READY | services/api | PLAN_REQUIRED |
 | [[ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no|ITEM-0133]] | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | READY | services/api/test | PLAN_REQUIRED |
 | [[ITEM-0134-the-payroll-run-engine-has-no-tests|ITEM-0134]] | The payroll run engine has no tests | TEST_GAP | HIGH | READY | api:payroll | PLAN_REQUIRED |
@@ -144,6 +146,7 @@
 | [[BUG-3182-no-per-tenant-restore-is-possible-restoring-one-tenant-means|BUG-3182]] | No per-tenant restore is possible: restoring one tenant means rolling back all of them | INFRA | HIGH | PRODUCT_DECISION | api:tenants | PRODUCT_DECISION |
 | [[BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-|BUG-3333]] | Tenant buyers choose their own currency and the three price schedules are not equivalent | DATA_INTEGRITY | HIGH | PRODUCT_DECISION | apps/web, api:billing | PRODUCT_DECISION |
 | [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] | No multi-factor authentication exists anywhere, including for platform super admins | SECURITY | HIGH | PRODUCT_DECISION | api:auth | PRODUCT_DECISION |
+| [[ITEM-0210-decide-when-pkr-checkout-moves-to-safepay-and-what-happens-t|ITEM-0210]] | Decide when PKR checkout moves to Safepay and what happens to existing PKR Stripe subscribers | PRODUCT_DECISION | MEDIUM | PRODUCT_DECISION | api:billing | PRODUCT_DECISION |
 | [[ITEM-0193-decide-whether-the-hr-role-may-manage-notification-events|ITEM-0193]] | Decide whether the hr role may manage notification events | PRODUCT_DECISION | — | PRODUCT_DECISION | notifications, permissions | PRODUCT_DECISION |
 | [[ITEM-0207-seed-config-rewrites-version-1-of-system-agreement-templates|ITEM-0207]] | seed:config rewrites version 1 of system agreement templates in place instead of publishing a new version | PRODUCT_DECISION | — | PRODUCT_DECISION | services/api/prisma | PRODUCT_DECISION |
 | [[ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins|ITEM-0191]] | Decide whether custom modules need their own access keys instead of the shared custom-records privilege | PRODUCT_DECISION | — | PRODUCT_DECISION | data, permissions | PRODUCT_DECISION |
@@ -152,6 +155,7 @@
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
+| [[ITEM-0209-confirm-the-safepay-refund-request-body-and-webhook-signing-|ITEM-0209]] | Confirm the Safepay refund request body and webhook signing input against a live sandbox run | TEST_GAP | HIGH | BLOCKED | api:billing | BLOCKED_EXTERNAL |
 | [[ITEM-0048-replace-or-contain-active-win-and-the-xlsx-export-path|ITEM-0048]] | Replace or contain active-win and the xlsx export path | SECURITY | HIGH | BLOCKED | apps/agent-desktop, services/api/src/common/excel, package-lock.json | BLOCKED_EXTERNAL |
 | [[BUG-0084-seven-unique-constraints-in-schema-prisma-are-absent-from-th|BUG-0084]] | Seven unique constraints in schema.prisma are absent from the migration chain | DATA_INTEGRITY | MEDIUM | BLOCKED | contracts, partner-experience, support-cases, approvals, tenant-settings | BLOCKED_EXTERNAL |
 
@@ -365,6 +369,7 @@
 | [[BUG-3565-opening-a-contract-template-or-signature-request-from-its-ad|BUG-3565]] | Opening a contract template or signature request from its admin list returns 404 | BUG | HIGH | FIXED | api:platform-runtime | DONE |
 | [[BUG-3578-deleting-a-partner-or-lead-with-restricted-history-crashes-w|BUG-3578]] | Deleting a partner or lead with restricted history crashes with a 500 | DATA_INTEGRITY | HIGH | FIXED | api:partners, api:leads | DONE |
 | [[BUG-3597-a-drawn-or-uploaded-signature-inside-a-signature-paragraph-i|BUG-3597]] | A drawn or uploaded signature inside a signature paragraph is dropped from the signed PDF and DOCX | BUG | HIGH | FIXED | api:contracts | DONE |
+| [[BUG-3702-adding-a-field-to-a-package-s-own-custom-module-demoted-the-|BUG-3702]] | Adding a field to a package's own custom module demoted the module to a reference | DATA_INTEGRITY | HIGH | FIXED | customization | DONE |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver|BUG-3501]] | The email provider screen presents a console sink as delivery and offers sink providers in production | UX | MEDIUM | FIXED | notifications, apps/web | PLAN_REQUIRED |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
@@ -531,6 +536,8 @@
 | [[BUG-3585-error-codes-added-for-mfa-platform-authorization-and-agreeme|BUG-3585]] | Error codes added for MFA, platform authorization and agreements reach clients as generic codes | BUG | MEDIUM | FIXED | services/api/src/common/errors, api:auth, api:contracts | DONE |
 | [[BUG-3587-the-monitoring-overview-raises-a-hydration-error-that-covers|BUG-3587]] | The monitoring overview raises a hydration error that covers the page with the error dialog | UX | MEDIUM | FIXED | apps/admin | DONE |
 | [[BUG-3598-generate-document-on-an-executed-agreement-renders-from-draf|BUG-3598]] | Generate document on an executed agreement renders from draft values, not the signature evidence | BUG | MEDIUM | FIXED | api:contracts, apps/admin | DONE |
+| [[BUG-3699-deleting-a-field-form-or-view-ignored-references-held-in-oth|BUG-3699]] | Deleting a field, form or view ignored references held in other packages' layers | DATA_INTEGRITY | MEDIUM | FIXED | customization | DONE |
+| [[BUG-3703-package-export-readiness-could-never-report-a-missing-depend|BUG-3703]] | Package export readiness could never report a missing dependency | BUG | MEDIUM | FIXED | customization | DONE |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -566,17 +573,18 @@
 | [[BUG-3583-counterparty-placeholders-are-grouped-under-customer|BUG-3583]] | Counterparty placeholders are grouped under Customer | UX | LOW | FIXED | api:contracts | DONE |
 | [[BUG-3586-the-monitoring-health-headline-reads-unknown-when-no-email-h|BUG-3586]] | The monitoring health headline reads Unknown when no email has been sent | BUG | LOW | FIXED | api:platform-monitoring | DONE |
 | [[BUG-3599-generating-an-agreement-in-an-unsupported-format-returns-a-5|BUG-3599]] | Generating an agreement in an unsupported format returns a 500 instead of a 400 | BUG | LOW | FIXED | api:contracts | DONE |
+| [[BUG-3668-saving-agreement-document-fields-skips-the-shared-immutabili|BUG-3668]] | Saving agreement document fields skips the shared immutability check | BUG | LOW | FIXED | api:contracts | DONE |
 
 ## Recent QA Runs
 
+- [[2026-09-26-task-0033-package-alm-b55afdb|QA Run — task-0033-package-alm]]
+- [[2026-09-26-safepay-multi-provider-billing-562dee9|QA Run — safepay-multi-provider-billing]]
 - [[2026-09-13-task-0031-demo-walkthrough-2-local-browser-qa-e253306|QA Run — task-0031-demo-walkthrough-2-local-browser-qa]]
 - [[2026-08-31-reports-analytics-platform-96ff155|QA Run — reports-analytics-platform]]
 - [[2026-08-29-starter-plan-e2e-pass-2-8ab1cbf|QA Run — starter-plan-e2e-pass-2]]
 - [[2026-08-29-starter-plan-e2e-eb457d9|QA Run — starter-plan-e2e]]
 - [[2026-08-28-regression-guard-sweep-9e55663|QA Run — regression-guard-sweep]]
 - [[2026-08-28-admin-console-e2e-912f4e6|QA Run — Admin console end-to-end, browser-driven]]
-- [[2026-08-26-admin-prod-e2e-8d6be21|QA Run — admin-prod-e2e]]
-- [[2026-08-25-landing-fixes-verification|QA Run — landing-fixes-verification]]
 
 ## Recent Implementations
 
@@ -590,14 +598,14 @@
 
 ## Recent Engineering History
 
+- [[2026-09-26-task-0033-package-alm-b55afdb2|Engineering History — TASK-0033 package ALM]]
+- [[2026-09-26-billing-safepay-provider-aa2c507e|Engineering History — Safepay for PKR alongside Stripe]]
+- [[2026-09-26-backlog-0203-0204-0206-7866e11e|Engineering History — Backlog 0203 0204 0206]]
+- [[2026-09-26-backlog-0201-0200-856747e7|Engineering History — Backlog 0201 0200]]
 - [[2026-09-25-task-0032-partner-agreements-admin-hardening-dfe42ea9|Engineering History — Task 0032 partner agreements admin hardening]]
 - [[2026-09-13-task-0031-demo-walkthrough-2-remediation-e253306a|Engineering History — Task 0031 demo walkthrough 2 remediation]]
 - [[2026-09-12-ux-findings-audit-d5388a4c|Engineering History — Ux findings audit]]
 - [[2026-09-12-records-0099-0102-413565f0|Engineering History — Implement the 34 records from sessions 0099–0102]]
-- [[2026-09-11-review-subscription-plans-screen-118d22ed|Engineering History — Review subscription plans screen]]
-- [[2026-09-11-closeout-sweep-658eb39c|Engineering History — Closeout sweep]]
-- [[2026-09-11-auth-session-revocation-690cacbc|Engineering History — Auth session revocation]]
-- [[2026-09-10-release-settings-entitlements-254e8d2b|Engineering History — Release settings entitlements]]
 
 ## Recent Releases
 
@@ -697,6 +705,9 @@
 | [[BUG-3585-error-codes-added-for-mfa-platform-authorization-and-agreeme|BUG-3585]] | Error codes added for MFA, platform authorization and agreements reach clients as generic codes | BUG | MEDIUM | FIXED | services/api/src/common/errors, api:auth, api:contracts | DONE |
 | [[BUG-3587-the-monitoring-overview-raises-a-hydration-error-that-covers|BUG-3587]] | The monitoring overview raises a hydration error that covers the page with the error dialog | UX | MEDIUM | FIXED | apps/admin | DONE |
 | [[BUG-3598-generate-document-on-an-executed-agreement-renders-from-draf|BUG-3598]] | Generate document on an executed agreement renders from draft values, not the signature evidence | BUG | MEDIUM | FIXED | api:contracts, apps/admin | DONE |
+| [[BUG-3698-draft-edits-to-custom-fields-take-effect-before-they-are-pub|BUG-3698]] | Draft edits to custom fields take effect before they are published | STATE_MACHINE | MEDIUM | OPEN | customization | PLAN_REQUIRED |
+| [[BUG-3699-deleting-a-field-form-or-view-ignored-references-held-in-oth|BUG-3699]] | Deleting a field, form or view ignored references held in other packages' layers | DATA_INTEGRITY | MEDIUM | FIXED | customization | DONE |
+| [[BUG-3703-package-export-readiness-could-never-report-a-missing-depend|BUG-3703]] | Package export readiness could never report a missing dependency | BUG | MEDIUM | FIXED | customization | DONE |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -732,8 +743,8 @@
 | [[BUG-3583-counterparty-placeholders-are-grouped-under-customer|BUG-3583]] | Counterparty placeholders are grouped under Customer | UX | LOW | FIXED | api:contracts | DONE |
 | [[BUG-3586-the-monitoring-health-headline-reads-unknown-when-no-email-h|BUG-3586]] | The monitoring health headline reads Unknown when no email has been sent | BUG | LOW | FIXED | api:platform-monitoring | DONE |
 | [[BUG-3599-generating-an-agreement-in-an-unsupported-format-returns-a-5|BUG-3599]] | Generating an agreement in an unsupported format returns a 500 instead of a 400 | BUG | LOW | FIXED | api:contracts | DONE |
+| [[BUG-3668-saving-agreement-document-fields-skips-the-shared-immutabili|BUG-3668]] | Saving agreement document fields skips the shared immutability check | BUG | LOW | FIXED | api:contracts | DONE |
 | [[ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by|ITEM-0080]] | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
-| [[ITEM-0203-an-individual-partner-s-agreement-still-records-the-counterp|ITEM-0203]] | An individual partner's agreement still records the counterparty as a PARTNER party, not INDIVIDUAL | FOLLOW_UP | LOW | READY | api:contracts, api:partners | PLAN_REQUIRED |
 
 ## Key Architecture Decisions
 
@@ -758,6 +769,7 @@
 - [[ADR-0019-totp-mfa-for-tenant-and-platform-users|ADR-0019 — Standard TOTP multi-factor authentication for tenant and platform users]]
 - [[ADR-0020-agreement-placeholders-are-offered-by-agreement-context|ADR-0020 — Agreement placeholders are offered and resolved by agreement context]]
 - [[ADR-0021-owner-decisions-countersign-platform-mfa-legal-publishing|ADR-0021 — Owner decisions for TASK-0032: countersign line, platform MFA, legal publishing]]
+- [[ADR-0022-customization-packages-are-the-alm-unit|ADR-0022 — Customization packages are the ALM unit]]
 - [[decision-a-bug-record-is-its-own-backlog-item|Decision — A bug record **is** its own backlog item]]
 - [[decision-ci-verdict-gates-shared-merges|Decision — A shared-target merge requires a read CI verdict on the exact SHA]]
 - [[decision-platform-admin-is-a-separate-identity|Decision — Platform admin is a separate identity, not an elevated tenant user]]
@@ -767,15 +779,15 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 486 |
-| Backlog items | 208 |
+| Bug records | 496 |
+| Backlog items | 220 |
 | Known bug patterns | 35 |
-| QA runs | 33 |
-| Engineering history records | 83 |
+| QA runs | 35 |
+| Engineering history records | 87 |
 | Release records | 10 |
-| Module notes | 30 |
+| Module notes | 31 |
 | Architecture notes | 22 |
-| Decision notes (ADR + generated) | 25 |
+| Decision notes (ADR + generated) | 26 |
 | Implementation records | 7 |
 
 **Awaiting Architect triage: 0.** A record nobody has

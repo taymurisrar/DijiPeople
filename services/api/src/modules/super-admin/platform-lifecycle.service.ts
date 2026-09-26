@@ -14,7 +14,6 @@ import {
   CustomerOnboardingStatus,
   DiscountType,
   LeadStatus,
-  PlatformUserRole,
   PlatformUserStatus,
   Prisma,
   TenantEnvironmentType,
@@ -2140,11 +2139,7 @@ export class PlatformLifecycleService {
   }
 
   private isPlatformSuperAdmin(actor: AuthenticatedUser) {
-    return new Set<PlatformUserRole>([
-      PlatformUserRole.SUPER_ADMIN,
-      PlatformUserRole.PLATFORM_OWNER,
-      PlatformUserRole.PLATFORM_ADMIN,
-    ]).has(actor.platform?.role as PlatformUserRole);
+    return isPlatformAdminTier(actor);
   }
 
   private async resolvePlatformOwnerId(

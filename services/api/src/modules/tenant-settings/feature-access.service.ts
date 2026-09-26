@@ -29,7 +29,7 @@ export class FeatureAccessService {
      * gate cannot come to disagree by a boolean.
      */
     const planFeatureMap = new Map(
-      isSubscriptionLive(subscription?.status)
+      isSubscriptionLive(subscription?.status, subscription?.gracePeriodEndsAt)
         ? (subscription?.plan?.features.map((feature) => [
             feature.featureKey,
             feature.isEnabled,

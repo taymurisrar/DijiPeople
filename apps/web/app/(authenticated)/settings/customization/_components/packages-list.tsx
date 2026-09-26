@@ -3,14 +3,13 @@
 import {
   ExternalLink,
   FileDown,
+  FileUp,
   Pencil,
   Plus,
   RefreshCw,
   Trash2,
-  X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import type { ExportGap } from "@/lib/customization/package-export-gap";
 import { FormEvent, useMemo, useState } from "react";
 import { DataTable } from "@/app/components/data-table/data-table";
 import type { DataTableColumn } from "@/app/components/data-table/types";
@@ -53,10 +52,6 @@ export function PackagesList({ initialMessage, packages }: PackagesListProps) {
     null,
   );
   const [error, setError] = useState<string | null>(null);
-  const [exportGaps, setExportGaps] = useState<{
-    packageName: string;
-    gaps: ExportGap[];
-  } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState(initialMessage ?? null);
 
@@ -91,15 +86,17 @@ export function PackagesList({ initialMessage, packages }: PackagesListProps) {
         header: "Type",
         filterable: true,
         filterType: "select",
-        filterAccessor: (row) => typeLabel(row.type),
+        filterAccessor: (row) => kindLabel(row),
         filterOptions: [
-          { label: "Default", value: "Default" },
-          { label: "Custom", value: "Custom" },
-          { label: "Managed", value: "Managed" },
-          { label: "Unmanaged", value: "Unmanaged" },
-          { label: "Patch", value: "Patch" },
+          { label: "System", value: "System" },
+          { label: "Editable", value: "Editable" },
+          { label: "Installed", value: "Installed" },
         ],
-        render: (row) => <StatusPill>{typeLabel(row.type)}</StatusPill>,
+        render: (row) => (
+          <StatusPill tone={row.kind === "installed" ? "info" : "neutral"}>
+            {kindLabel(row)}
+          </StatusPill>
+        ),
       },
       {
         key: "state",
@@ -119,16 +116,9 @@ export function PackagesList({ initialMessage, packages }: PackagesListProps) {
         ),
       },
       {
-        key: "managed",
-        header: "Managed",
-        filterable: true,
-        filterType: "select",
-        filterAccessor: (row) => (row.isManaged ? "Yes" : "No"),
-        filterOptions: [
-          { label: "Yes", value: "Yes" },
-          { label: "No", value: "No" },
-        ],
-        render: (row) => (row.isManaged ? "Yes" : "No"),
+        key: "installedVersion",
+        header: "Installed version",
+        render: (row) => row.installedVersion ?? "—",
       },
       {
         key: "components",
@@ -179,7 +169,11 @@ export function PackagesList({ initialMessage, packages }: PackagesListProps) {
                 onClick={() => openEdit(row)}
                 size="icon-sm"
                 title={
-                  row.canEdit ? "Edit package" : "Default Package is read-only."
+                  row.canEdit
+                    ? "Edit package"
+                    : row.kind === "installed"
+                      ? "Installed packages are read-only here."
+                      : "DijiPeople Core is read-only."
                 }
                 type="button"
                 variant="ghost"
@@ -187,15 +181,19 @@ export function PackagesList({ initialMessage, packages }: PackagesListProps) {
               />
             </PermissionGate>
 
-            <Button
-              leftIcon={<FileDown className="h-4 w-4" />}
-              onClick={() => exportPackage(row)}
-              size="icon-sm"
-              type="button"
-              variant="ghost"
-              aria-label="Export package"
-              title="Export package"
-            />
+            {row.kind !== "system" && row.kind !== undefined ? (
+              <PermissionGate anyOf={["customization.export"]}>
+                <Button
+                  leftIcon={<FileDown className="h-4 w-4" />}
+                  onClick={() => exportPackage(row)}
+                  size="icon-sm"
+                  type="button"
+                  variant="ghost"
+                  aria-label="Export latest version"
+                  title="Export latest version"
+                />
+              </PermissionGate>
+            ) : null}
 
             <PermissionGate anyOf={["customization.publish"]}>
               <Button
@@ -338,54 +336,34 @@ export function PackagesList({ initialMessage, packages }: PackagesListProps) {
   }
 
   /*
-   * Export runs the completeness check first and stops on a blocking gap.
-   *
-   * A package that downloads cleanly but references metadata it does not carry
-   * fails in the target tenant, normally after the administrator has already
-   * committed to the migration. Better to refuse here and name what is missing.
+   * TASK-0033 — export downloads the latest RELEASED version, byte for byte,
+   * as a `.djpkg`. Release is where completeness is validated now; the old
+   * working-copy JSON export and its readiness banner are superseded (their
+   * dependency list was always empty, so the banner could never fire).
    */
   async function exportPackage(record: CustomizationPackage) {
     setError(null);
-    setExportGaps(null);
-
-    const readinessResponse = await fetch(
-      `/api/customization/packages/${record.id}/export-readiness`,
-    ).catch(() => null);
-
-    if (readinessResponse?.ok) {
-      const readiness = (await readinessResponse.json().catch(() => null)) as
-        | { ready?: boolean; gaps?: ExportGap[] }
-        | null;
-      if (readiness && readiness.ready === false) {
-        setExportGaps({
-          packageName: record.displayName,
-          gaps: readiness.gaps ?? [],
-        });
-        return;
-      }
-      /* Warnings do not block, but they belong on screen before the download. */
-      if (readiness?.gaps?.length) {
-        setExportGaps({
-          packageName: record.displayName,
-          gaps: readiness.gaps,
-        });
-      }
-    }
-
     const response = await fetch(
-      `/api/customization/packages/${record.id}/export`,
-    );
-    const data = await response.json();
-    if (!response.ok) {
-      setError(data.message ?? "Unable to export package.");
+      `/api/customization/packages/${record.id}/versions/latest/artifact`,
+    ).catch(() => null);
+    if (!response?.ok) {
+      const data = (await response?.json().catch(() => null)) as {
+        message?: string;
+      } | null;
+      setError(data?.message ?? "Unable to export package.");
       return;
     }
-    downloadJson(data, `${record.packageKey || "package"}.package.json`);
+    const disposition = response.headers.get("content-disposition") ?? "";
+    const fileName =
+      /filename="([^"]+)"/.exec(disposition)?.[1] ??
+      `${record.packageKey}.djpkg`;
+    const url = URL.createObjectURL(await response.blob());
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(url);
   }
-
-  const blockingGaps = exportGaps?.gaps.filter(
-    (gap) => gap.severity === "error",
-  );
 
   // BUG-0043: this modal kept its own layout and gained the guarantees
   // it never had - focus containment, Escape, focus restore and dialog
@@ -397,62 +375,6 @@ export function PackagesList({ initialMessage, packages }: PackagesListProps) {
 
   return (
     <div className="grid gap-4">
-      {exportGaps ? (
-        <div
-          className={
-            blockingGaps?.length
-              ? "rounded-lg border border-danger/30 bg-danger/5 p-3"
-              : "rounded-lg border border-amber-300 bg-amber-50 p-3"
-          }
-          role="alert"
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-foreground">
-                {blockingGaps?.length
-                  ? `${exportGaps.packageName} is not ready to export`
-                  : `${exportGaps.packageName} exported with warnings`}
-              </p>
-              <p className="mt-1 text-xs text-muted">
-                {blockingGaps?.length
-                  ? "These references are not in the package. Add them, or the import will land incomplete."
-                  : "These dependencies are expected to already exist in the target tenant."}
-              </p>
-            </div>
-            <button
-              aria-label="Dismiss"
-              className="rounded p-1 text-muted transition hover:bg-muted/20"
-              onClick={() => setExportGaps(null)}
-              type="button"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          <ul className="mt-2 grid gap-1">
-            {exportGaps.gaps.map((gap) => (
-              <li
-                className="rounded-md border border-border bg-white px-2 py-1.5 text-xs"
-                key={`${gap.componentKey}-${gap.missingKey}`}
-              >
-                <span
-                  className={
-                    gap.severity === "error"
-                      ? "font-semibold text-danger"
-                      : "font-semibold text-amber-700"
-                  }
-                >
-                  {gap.severity === "error" ? "Missing" : "External"}
-                </span>{" "}
-                <code>{gap.missingKey}</code>{" "}
-                <span className="text-muted">
-                  required by {gap.componentType} {gap.componentKey}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface p-3 shadow-sm">
         <div className="flex flex-wrap gap-2">
           <PermissionGate anyOf={["customization.publish"]}>
@@ -472,6 +394,15 @@ export function PackagesList({ initialMessage, packages }: PackagesListProps) {
           >
             Refresh
           </Button>
+          <PermissionGate anyOf={["customization.packages.import"]}>
+            <Button
+              href="/settings/customization/packages/import"
+              leftIcon={<FileUp className="h-4 w-4" />}
+              variant="ghost"
+            >
+              Import Package
+            </Button>
+          </PermissionGate>
           <Button
             href="/settings/customization/publish"
             type="button"
@@ -709,8 +640,11 @@ function ensurePrefix(value: string) {
   return cleaned ? `${cleaned}_` : "";
 }
 
-function typeLabel(value: CustomizationPackage["type"]) {
-  return value.charAt(0).toUpperCase() + value.slice(1);
+/* TASK-0033 — SYSTEM (DijiPeople Core) | EDITABLE | INSTALLED. */
+function kindLabel(row: CustomizationPackage) {
+  if (row.kind === "installed") return "Installed";
+  if (row.kind === "system" || row.isDefault) return "System";
+  return "Editable";
 }
 
 function stateLabel(value: CustomizationPackage["state"]) {
@@ -730,14 +664,3 @@ function formatDate(
   return formatDateTime(value, context) || "Not set";
 }
 
-function downloadJson(value: unknown, fileName: string) {
-  const blob = new Blob([JSON.stringify(value, null, 2)], {
-    type: "application/json",
-  });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = fileName;
-  link.click();
-  URL.revokeObjectURL(url);
-}

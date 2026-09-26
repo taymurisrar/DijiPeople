@@ -145,12 +145,15 @@ tenant-facing response.
 | `canceledAt` | `DateTime` | no | — |
 | `trialStart` | `DateTime` | no | — |
 | `trialEnd` | `DateTime` | no | — |
+| `paymentProvider` | `PaymentProvider` (enum) | no | — |
+| `gracePeriodEndsAt` | `DateTime` | no | — |
 
 ### States
 
 - `billingCycle` — `BillingCycle`: `MONTHLY`, `ANNUAL`
 - `discountType` — `DiscountType`: `NONE`, `PERCENTAGE`, `FLAT`
 - `status` — `SubscriptionStatus`: `TRIALING`, `ACTIVE`, `PAST_DUE`, `CANCELLED`, `CANCELED`, `UNPAID`, `INCOMPLETE`, `EXPIRED`, `PAUSED`
+- `paymentProvider` — `PaymentProvider`: `STRIPE`, `SAFEPAY`
 
 ### Relationships
 
@@ -179,7 +182,7 @@ tenant-facing response.
 ### Constraints and indexes
 
 - Unique: `tenantId`, `stripeSubscriptionId`
-- Indexes: 6
+- Indexes: 7
 <!-- /GENERATED:schema-facts -->
 
 ## Related

@@ -3,15 +3,15 @@ ID: ITEM-0200
 aliases: [ITEM-0200]
 Title: Agreements have no end-to-end test coverage and partners/leads have no e2e lifecycle suite
 Type: TEST_GAP
-Status: DEFERRED
+Status: DONE
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [services/api/src/modules/contracts, services/api/src/modules/partners, services/api/src/modules/leads]
 Source: QA_RUN
 OwnerAgent: architect
-ArchitectDisposition: DEFER
+ArchitectDisposition: DONE
 CreatedAt: 2026-09-25
-UpdatedAt: 2026-09-25
+UpdatedAt: 2026-09-26
 RelatedBug: 
 RelatedQA: 
 RelatedADR: 
@@ -162,6 +162,22 @@ is a substantial, independent effort better scoped as its own task.
 Not applicable — deferred, no e2e suite to retest. See Resolution for what
 TASK-0032 WP-09 did verify manually.
 
+## Resolution
+
+Two database-backed suites exercise the real HTTP layer and `JwtAuthGuard`:
+`services/api/test/contracts-agreements.e2e-spec.ts` (20 tests — platform gate,
+template-based creation with an INDIVIDUAL party, placeholder preview,
+approvals, send, public drawn-signature signing, FULLY_EXECUTED with one
+immutable SIGNED_COPY, post-execution immutability) and
+`services/api/test/partner-lead-funnel.e2e-spec.ts` (18 tests — type-required
+fields, duplicate 409, inquiry to activation through public onboarding and a
+signed master agreement, referral attribution, admin-tier attribution
+correction, READ_ONLY_AUDITOR refusals), with a shared
+`test/helpers/http-actors.ts` that creates and cleans real platform and tenant
+callers. Locally the full e2e suite passed 41/41 suites, 454/454 tests, and each
+new suite passed twice in a row; removing three guards failed 5 tests. The suite
+found BUG-3668 (fixed) and ITEM-0215 (deferred).
+
 ## History
 
 - 2026-09-25 — created at `75fec5b9`; discovery streams D2 §8 and D3 §7.
@@ -178,3 +194,4 @@ TASK-0032 WP-09 did verify manually.
 - Modules — [[contracts-and-agreements]], [[partners]], [[leads]]
 
 <!-- GRAPH:END -->
+- 2026-09-26 — both suites added and passing; DONE.

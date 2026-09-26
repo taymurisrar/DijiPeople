@@ -36,17 +36,26 @@ export class OrderActivationService {
   /**
    * Mark an order paid and request onboarding.
    *
-   * Called from the Stripe webhook once payment is confirmed. Safe to call
-   * repeatedly with the same checkout session: the second call finds the order
-   * already PAID and returns without emitting anything new.
+   * Called once the provider has confirmed payment — the Stripe webhook, or
+   * DijiPeople's own verification of a Safepay tracker. Safe to call
+   * repeatedly: the second call finds the order already PAID and returns
+   * without emitting anything new.
    */
-  async confirmPayment(input: {
-    stripeCheckoutSessionId: string;
-    stripeSubscriptionId?: string | null;
-    correlationId?: string | null;
-  }): Promise<{ orderId: string | null; alreadyConfirmed: boolean }> {
+  async confirmPayment(
+    input: (
+      | { stripeCheckoutSessionId: string; orderId?: never }
+      // A provider with no checkout session of its own (Safepay) confirms by
+      // the order it already verified the payment against.
+      | { orderId: string; stripeCheckoutSessionId?: never }
+    ) & {
+      stripeSubscriptionId?: string | null;
+      correlationId?: string | null;
+    },
+  ): Promise<{ orderId: string | null; alreadyConfirmed: boolean }> {
     const order = await this.prisma.subscriptionOrder.findUnique({
-      where: { stripeCheckoutSessionId: input.stripeCheckoutSessionId },
+      where: input.orderId
+        ? { id: input.orderId }
+        : { stripeCheckoutSessionId: input.stripeCheckoutSessionId },
       select: {
         id: true,
         status: true,
@@ -56,6 +65,8 @@ export class OrderActivationService {
         planId: true,
         currency: true,
         totalAmount: true,
+        paymentProvider: true,
+        providerPaymentId: true,
       },
     });
 
@@ -64,7 +75,7 @@ export class OrderActivationService {
       // create — an older flow, or another environment sharing the account.
       // Not an error here; the webhook still records the provider event.
       this.logger.warn(
-        `No SubscriptionOrder for checkout session ${input.stripeCheckoutSessionId}; nothing to activate.`,
+        `No SubscriptionOrder for ${input.orderId ? `order ${input.orderId}` : `checkout session ${input.stripeCheckoutSessionId}`}; nothing to activate.`,
       );
       return { orderId: null, alreadyConfirmed: false };
     }
@@ -78,9 +89,22 @@ export class OrderActivationService {
       return { orderId: order.id, alreadyConfirmed: true };
     }
 
-    await this.prisma.$transaction(async (tx) => {
-      await tx.subscriptionOrder.update({
-        where: { id: order.id },
+    const confirmed = await this.prisma.$transaction(async (tx) => {
+      /*
+       * Conditional, so two confirmations racing each other — a webhook and a
+       * buyer's status poll arriving together — cannot both pass the check
+       * above and both proceed. Exactly one moves the order to PAID.
+       */
+      const moved = await tx.subscriptionOrder.updateMany({
+        where: {
+          id: order.id,
+          status: {
+            notIn: [
+              SubscriptionOrderStatus.PAID,
+              SubscriptionOrderStatus.ACTIVATED,
+            ],
+          },
+        },
         data: {
           status: SubscriptionOrderStatus.PAID,
           paidAt: new Date(),
@@ -89,6 +113,7 @@ export class OrderActivationService {
           submissionHash: null,
         },
       });
+      if (moved.count === 0) return false;
 
       // A paying customer is no longer a prospect.
       await tx.customerAccount.update({
@@ -111,16 +136,19 @@ export class OrderActivationService {
         customerAccountId: order.customerAccountId,
         correlationId: input.correlationId ?? null,
         payload: {
-          stripeCheckoutSessionId: input.stripeCheckoutSessionId,
+          stripeCheckoutSessionId: input.stripeCheckoutSessionId ?? null,
           stripeSubscriptionId: input.stripeSubscriptionId ?? null,
+          paymentProvider: order.paymentProvider,
+          providerPaymentId: order.providerPaymentId,
           currency: order.currency,
           totalAmount: order.totalAmount.toString(),
           requestedSeats: order.requestedSeats,
         },
       });
+      return true;
     });
 
-    return { orderId: order.id, alreadyConfirmed: false };
+    return { orderId: order.id, alreadyConfirmed: !confirmed };
   }
 
   /**

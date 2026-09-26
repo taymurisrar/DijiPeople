@@ -221,6 +221,33 @@ services:
         value: "true"
       - key: SUBSCRIPTION_ORDER_SWEEPER_POLL_INTERVAL_MS
         value: "900000"
+      # Safepay collects PKR once switched on; until then PKR stays on Stripe
+      # exactly as before, so deploying this changes nothing for a live buyer.
+      # Turning it on without the three keys below stops a production boot.
+      # Credential names follow Safepay's dashboard: the "Public API Key"
+      # (sec_…), the "Private API Secret Key", and the webhook "shared secret".
+      - key: SAFEPAY_ENABLED
+        value: "false"
+      - key: SAFEPAY_ENVIRONMENT
+        sync: false
+      - key: SAFEPAY_API_KEY
+        sync: false
+      - key: SAFEPAY_SECRET_KEY
+        sync: false
+      - key: SAFEPAY_WEBHOOK_SECRET
+        sync: false
+      # Renewal invoices, period-end transitions and re-verification of
+      # unconfirmed payments for subscriptions DijiPeople bills itself
+      # (Safepay). A no-op while there are none. Exactly one deployed service
+      # should have it true, or Safepay renewals are never invoiced.
+      - key: MANAGED_BILLING_WORKER_ENABLED
+        value: "true"
+      - key: MANAGED_BILLING_WORKER_POLL_INTERVAL_MS
+        value: "900000"
+      - key: MANAGED_BILLING_GRACE_DAYS
+        value: "7"
+      - key: MANAGED_BILLING_RENEWAL_NOTICE_DAYS
+        value: "7"
       # When exceeding purchased capacity is ordinary, warned, or stopped for a
       # human. The review thresholds exist for the import accident: 20 -> 22 is
       # hiring, 20 -> 900 overnight is a bad CSV, and billing the second one

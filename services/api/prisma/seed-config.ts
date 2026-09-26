@@ -1509,7 +1509,7 @@ export async function seedTenantDefaultSolutions(
       create: {
         tenantId: tenant.id,
         solutionKey: 'default',
-        displayName: 'Default Solution',
+        displayName: 'DijiPeople Core',
         description:
           'Built-in tenant solution containing all system and custom metadata components.',
         scope: 'tenant',
@@ -1519,7 +1519,7 @@ export async function seedTenantDefaultSolutions(
         isActive: true,
       },
       update: {
-        displayName: 'Default Solution',
+        displayName: 'DijiPeople Core',
         isDefault: true,
         isSystem: true,
         isActive: true,

@@ -473,7 +473,7 @@ const FRAMEWORK_PROBE_KEYS = new Set([
   'onApplicationShutdown',
 ]);
 
-function isProductionLike(configService: ConfigService): boolean {
+export function isProductionLike(configService: ConfigService): boolean {
   const appEnv =
     configService.get<string>('APP_ENV') ??
     configService.get<string>('NODE_ENV') ??

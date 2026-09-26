@@ -14,13 +14,13 @@ A screen marked **bespoke** is a hand-written page whose API calls and underlyin
 
 **`apiPath` is called by the server, not the browser.** Loading `/leaves` on that tenant issued no client-side request to `/api/leave-requests`; the list arrives already rendered, and the only client calls were notifications and settings. Runtime list and record screens fetch through `apps/web/lib/server-api.ts` in a server component. Watching the browser network log to discover which endpoint a screen uses will therefore find nothing, and concluding the screen calls no API would be wrong.
 
-**356 screens** across 3 applications · 11 runtime modules declare an API path and entity
+**357 screens** across 3 applications · 11 runtime modules declare an API path and entity
 
 Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[known-gaps]]
 
 ## Tenant product — `apps/web` (port 3001)
 
-253 screens, 32 runtime-driven.
+254 screens, 32 runtime-driven.
 
 | Route | Source | API | Entity |
 |---|---|---|---|
@@ -188,6 +188,7 @@ Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[
 | `/settings/customization/modules` | `apps/web/app/(authenticated)/settings/customization/modules/page.tsx` | _bespoke_ | — |
 | `/settings/customization/packages` | `apps/web/app/(authenticated)/settings/customization/packages/page.tsx` | _bespoke_ | — |
 | `/settings/customization/packages/[packageId]` | `apps/web/app/(authenticated)/settings/customization/packages/[packageId]/page.tsx` | _bespoke_ | — |
+| `/settings/customization/packages/import` | `apps/web/app/(authenticated)/settings/customization/packages/import/page.tsx` | _bespoke_ | — |
 | `/settings/customization/publish` | `apps/web/app/(authenticated)/settings/customization/publish/page.tsx` | _bespoke_ | — |
 | `/settings/customization/publish-center` | `apps/web/app/(authenticated)/settings/customization/publish-center/page.tsx` | _bespoke_ | — |
 | `/settings/customization/sidebar` | `apps/web/app/(authenticated)/settings/customization/sidebar/page.tsx` | _bespoke_ | — |

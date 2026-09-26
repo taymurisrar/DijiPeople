@@ -179,6 +179,6 @@ Records this session worked on, cited in its own body:
 
 Modules this record declares as affected:
 
-[[auth]] · [[billing]] · [[employees]] · [[notifications]] · [[platform-admin]] · [[tenant-application]]
+[[auth]] · [[billing]] · [[customization]] · [[employees]] · [[notifications]] · [[platform-admin]] · [[tenant-application]]
 
 <!-- GRAPH:END -->

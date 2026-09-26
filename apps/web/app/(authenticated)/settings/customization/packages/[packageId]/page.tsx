@@ -9,6 +9,9 @@ import { PackageDetailShell } from "../../_components/package-detail-shell";
 import type {
   CustomizationPackageDetail,
   CustomizationTable,
+  PackageEnvironmentVariable,
+  PackageLifecycle,
+  PackageReleaseReadiness,
 } from "../../types";
 
 type PackageDetailPageProps = {
@@ -36,13 +39,36 @@ export default async function CustomizationPackageDetailPage({
     throw error;
   }
 
+  /*
+   * TASK-0033 — lifecycle, release readiness and environment variables. Each
+   * degrades to its own empty state rather than failing the whole page: the
+   * package and its components are still worth showing without them.
+   */
+  const [lifecycle, readiness, environmentVariables] = await Promise.all([
+    apiRequestJson<PackageLifecycle>(
+      `/customization/packages/${packageId}/lifecycle`,
+    ).catch(() => null),
+    apiRequestJson<PackageReleaseReadiness>(
+      `/customization/packages/${packageId}/release-readiness`,
+    ).catch(() => null),
+    apiRequestJson<PackageEnvironmentVariable[]>(
+      "/customization/environment-variables",
+    ).catch(() => [] as PackageEnvironmentVariable[]),
+  ]);
+
   return (
     <SettingsShell
       description=""
       eyebrow="Package"
       title={packageDetail.displayName}
     >
-      <PackageDetailShell packageDetail={packageDetail} modules={modules} />
+      <PackageDetailShell
+        environmentVariables={environmentVariables}
+        lifecycle={lifecycle}
+        modules={modules}
+        packageDetail={packageDetail}
+        readiness={readiness}
+      />
     </SettingsShell>
   );
 }

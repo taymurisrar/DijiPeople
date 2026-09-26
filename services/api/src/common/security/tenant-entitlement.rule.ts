@@ -18,13 +18,27 @@ import { SubscriptionStatus } from '@prisma/client';
  * does not refuse on this basis — see `TenantEntitlementService`. Losing every
  * module over an unpaid invoice is a dunning decision with its own notice
  * period, not an entitlement decision.
+ *
+ * `PAST_DUE` counts as live only inside a grace period DijiPeople itself set —
+ * a renewal it billed through a provider with no dunning of its own, such as
+ * Safepay. Stripe never sets `gracePeriodEndsAt`, so a Stripe `past_due`
+ * resolves exactly as it always has.
  */
 export function isSubscriptionLive(
   status: SubscriptionStatus | null | undefined,
+  gracePeriodEndsAt?: Date | null,
+  now: Date = new Date(),
 ): boolean {
-  return (
+  if (
     status === SubscriptionStatus.ACTIVE ||
     status === SubscriptionStatus.TRIALING
+  ) {
+    return true;
+  }
+  return (
+    status === SubscriptionStatus.PAST_DUE &&
+    gracePeriodEndsAt instanceof Date &&
+    gracePeriodEndsAt > now
   );
 }
 

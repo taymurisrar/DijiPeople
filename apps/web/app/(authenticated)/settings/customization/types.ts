@@ -72,6 +72,13 @@ export type CustomizationPackage = {
   canEdit: boolean;
   canPublish: boolean;
   canDelete: boolean;
+  /* TASK-0033 — system (DijiPeople Core) | editable | installed. */
+  kind?: CustomizationPackageKind;
+  origin?: "LOCAL" | "IMPORTED";
+  installedVersion?: string | null;
+  isTenantDefault?: boolean;
+  canRelease?: boolean;
+  canUninstall?: boolean;
   deleteDisabledReason?: string | null;
   componentsCount: number;
   draftComponentsCount?: number;
@@ -413,4 +420,195 @@ export type FormLayoutTab = {
 export type FormLayoutJson = {
   columns?: 1 | 2 | 3 | 4;
   tabs: FormLayoutTab[];
+};
+
+/* ---------------------------------------------------------------------------
+ * Package lifecycle — TASK-0033. Mirrors services/api package-alm.service.ts.
+ * ------------------------------------------------------------------------- */
+
+export type CustomizationPackageKind = "system" | "editable" | "installed";
+
+export type PackageIssueSeverity = "error" | "warning" | "info";
+
+export type PackageIssue = {
+  code: string;
+  severity: PackageIssueSeverity;
+  message: string;
+  componentKey?: string | null;
+  remedy?: { action: "addComponent" | "addDependency"; target: string } | null;
+};
+
+export type PackageReleaseReadiness = {
+  valid: boolean;
+  health: "errors" | "warnings" | "healthy";
+  componentCount: number;
+  errors: number;
+  warnings: number;
+  infos: number;
+  issues: PackageIssue[];
+};
+
+export type PackageVersionSummary = {
+  id: string;
+  version: string;
+  checksum: string;
+  componentCount: number;
+  notes: string | null;
+  releasedAt: string;
+  releasedByUserId: string | null;
+};
+
+export type PackageOperationStatus =
+  | "ANALYZING"
+  | "READY"
+  | "BLOCKED"
+  | "IMPORTING"
+  | "COMPLETED"
+  | "FAILED"
+  | "SUPERSEDED";
+
+export type PackageOperationSummary = {
+  id: string;
+  kind: "IMPORT" | "UNINSTALL";
+  status: PackageOperationStatus;
+  packageId: string | null;
+  packageKey: string;
+  packageDisplayName: string;
+  version: string;
+  previousVersion: string | null;
+  correlationId: string;
+  createdCount: number;
+  updatedCount: number;
+  unchangedCount: number;
+  skippedCount: number;
+  conflictCount: number;
+  warningCount: number;
+  actorUserId: string | null;
+  createdAt: string;
+  completedAt: string | null;
+};
+
+export type PackageLifecycle = {
+  packageId: string;
+  packageKey: string;
+  kind: CustomizationPackageKind;
+  version: string;
+  origin: "LOCAL" | "IMPORTED";
+  installedVersion: string | null;
+  installedAt: string | null;
+  sourceEnvironmentType: string | null;
+  publisher: { publisherKey: string; displayName: string; prefix: string } | null;
+  permissions: {
+    kind: CustomizationPackageKind;
+    canEdit: boolean;
+    canRelease: boolean;
+    canExport: boolean;
+    canUninstall: boolean;
+    canDetach: boolean;
+  };
+  dependencies: {
+    packageKey: string;
+    publisherKey: string | null;
+    displayName: string;
+    minVersion: string;
+    maxVersion: string | null;
+    availableVersion: string | null;
+    satisfied: boolean;
+  }[];
+  dependents: {
+    packageId: string;
+    packageKey: string;
+    displayName: string;
+    version: string;
+    minVersion: string;
+  }[];
+  versions: PackageVersionSummary[];
+  recentOperations: PackageOperationSummary[];
+};
+
+export type PackageComparisonStatus =
+  | "NEW"
+  | "MATCHING"
+  | "UPDATE"
+  | "TARGET_MODIFIED"
+  | "CONFLICT"
+  | "MISSING_DEPENDENCY"
+  | "INCOMPATIBLE"
+  | "SKIPPED";
+
+export type PackageImportItem = {
+  key: string;
+  type: string;
+  objectKey: string;
+  layerAction: string;
+  status: PackageComparisonStatus;
+  apply: "create" | "update" | "none";
+  blocking: boolean;
+  messages: string[];
+  changedFields: string[];
+};
+
+export type PackageImportPlan = {
+  mode?: "INSTALL" | "UPGRADE" | "REINSTALL" | "DOWNGRADE";
+  fingerprint?: string;
+  manifest?: {
+    packageKey: string;
+    displayName: string;
+    description: string | null;
+    version: string;
+    publisher: { publisherKey: string; displayName: string; prefix: string };
+    metadataSchemaVersion: string;
+    sourceEnvironmentType: string | null;
+    dependencies: { packageKey: string; displayName: string | null; minVersion: string; maxVersion: string | null }[];
+    componentCount: number;
+  };
+  integrity?: { contentChecksum: string; verified: boolean; signed: boolean; note: string };
+  packageIssues: PackageIssue[];
+  items?: PackageImportItem[];
+  removedFromSource?: { key: string; type: string; objectKey: string }[];
+  summary?: Record<PackageComparisonStatus | "REMOVED_FROM_SOURCE", number>;
+  requiredInputs?: { variableKey: string; displayName: string; type: string; description: string | null }[];
+};
+
+export type PackageOperation = {
+  id: string;
+  kind: "IMPORT" | "UNINSTALL";
+  status: PackageOperationStatus;
+  packageId: string | null;
+  packageKey: string;
+  packageDisplayName: string;
+  version: string;
+  previousVersion: string | null;
+  artifactChecksum: string | null;
+  correlationId: string;
+  counts: { created: number; updated: number; unchanged: number; skipped: number; conflicts: number; warnings: number };
+  plan: PackageImportPlan | null;
+  result: { mode?: string; journal?: { key: string; action: string }[]; snapshotVersion?: number; removedFromSource?: { key: string }[] } | null;
+  error: { message?: string; failedComponent?: string | null; rolledBack?: boolean; problems?: { path: string; message: string }[] } | null;
+  createdAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
+};
+
+export type PackageEnvironmentVariable = {
+  id: string;
+  variableKey: string;
+  displayName: string;
+  description: string | null;
+  type: "text" | "number" | "boolean" | "url" | "secret";
+  isRequired: boolean;
+  defaultValue: string | null;
+  package: { id: string; displayName: string; origin: "LOCAL" | "IMPORTED" } | null;
+  hasValue: boolean;
+  value: string | null;
+  valueUpdatedAt: string | null;
+  effectiveSource: "environment" | "default" | "unset";
+};
+
+export type ComponentDependencyGraph = {
+  componentKey: string;
+  label?: string;
+  packageName?: string;
+  dependsOn: { componentKey: string; label: string; owner: string; missing: boolean }[];
+  usedBy: { componentKey: string; label: string; displayName: string; packageName: string | null }[];
 };

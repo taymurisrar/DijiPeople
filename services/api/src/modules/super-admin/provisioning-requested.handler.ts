@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import {
   CustomerAccountStatus,
   DomainEventType,
+  PaymentProvider,
   SubscriptionStatus,
   TenantStatus,
 } from '@prisma/client';
@@ -13,6 +14,7 @@ import type {
   OutboxHandlerOutcome,
 } from '../outbox/outbox.types';
 import { OrderActivationService } from '../billing/services/order-activation.service';
+import { PaymentSettlementService } from '../billing/services/payment-settlement.service';
 import { PlatformOnboardingService } from './platform-onboarding.service';
 
 /**
@@ -48,6 +50,7 @@ export class ProvisioningRequestedHandler
     private readonly onboarding: PlatformOnboardingService,
     private readonly dispatcher: OutboxDispatcherService,
     private readonly activation: OrderActivationService,
+    private readonly settlement: PaymentSettlementService,
   ) {}
 
   onModuleInit(): void {
@@ -84,6 +87,8 @@ export class ProvisioningRequestedHandler
         currency: true,
         requestedSeats: true,
         requestedSlug: true,
+        paymentProvider: true,
+        stripeCheckoutSessionId: true,
         subscription: { select: { stripeSubscriptionId: true } },
         customer: {
           select: {
@@ -169,10 +174,15 @@ export class ProvisioningRequestedHandler
         currency: order.currency,
         purchasedSeats: order.requestedSeats,
         stripeSubscriptionId: order.subscription?.stripeSubscriptionId ?? null,
+        // Orders opened before the column existed all went to Stripe.
+        paymentProvider:
+          order.paymentProvider ??
+          (order.stripeCheckoutSessionId ? PaymentProvider.STRIPE : null),
         autoRenew: true,
       },
-      // Stripe has already invoiced and will keep invoicing. A second internal
-      // invoice for the same period would double-count revenue.
+      // Never a generic "amount due" invoice: Stripe has already invoiced and
+      // will keep invoicing, and a Safepay payment is recorded below as the
+      // paid invoice it is. Either way a second invoice would double-count.
       generateInitialInvoice: false,
       note: `Workspace provisioned automatically from order ${order.orderNumber}.`,
     });
@@ -202,6 +212,11 @@ export class ProvisioningRequestedHandler
         data: { tenantId: result.tenantId, tenantCreated: true },
       });
     });
+
+    // A Safepay order's payment has no tenant to belong to until now. Idempotent
+    // on the tracker, and a no-op for Stripe orders, whose invoices arrive by
+    // webhook.
+    await this.settlement.recordOrderPayment(order.id);
 
     /*
      * Say that the workspace is usable — the step this handler's own comment

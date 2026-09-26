@@ -231,6 +231,9 @@ export const PERMISSION_KEYS = {
   CUSTOMIZATION_RELATIONSHIPS_MANAGE: 'customization.relationships.manage',
   CUSTOMIZATION_ACTION_BARS_MANAGE: 'customization.action-bars.manage',
   CUSTOMIZATION_PACKAGES_MANAGE: 'customization.packages.manage',
+  CUSTOMIZATION_PACKAGES_RELEASE: 'customization.packages.release',
+  CUSTOMIZATION_PACKAGES_IMPORT: 'customization.packages.import',
+  CUSTOMIZATION_PACKAGES_UNINSTALL: 'customization.packages.uninstall',
   CUSTOMIZATION_PUBLISH_CENTER_READ: 'customization.publish-center.read',
   CUSTOMIZATION_IMPORT_PREVIEW: 'customization.import.preview',
   CUSTOMIZATION_EXPORT: 'customization.export',
@@ -1998,6 +2001,24 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     key: 'customization.packages.manage',
     name: 'Manage customization packages',
     description: 'Manage metadata packages and package components.',
+  },
+  {
+    key: 'customization.packages.release',
+    name: 'Release customization packages',
+    description:
+      'Release immutable versions of customization packages and export them.',
+  },
+  {
+    key: 'customization.packages.import',
+    name: 'Import customization packages',
+    description:
+      'Apply customization packages exported from another environment to this workspace.',
+  },
+  {
+    key: 'customization.packages.uninstall',
+    name: 'Uninstall customization packages',
+    description:
+      'Uninstall or detach customization packages installed from another environment.',
   },
   {
     key: 'customization.publish-center.read',

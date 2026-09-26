@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **0** |
+| Active sessions | **1** |
 | Active parent tasks | 4 |
 | Active work packages | 4 |
 | Blocked work packages | 0 |
@@ -15,9 +15,9 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **6** |
-| Open HIGH | 101 |
+| Open HIGH | 103 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 10 |
+| Owner decisions pending | 11 |
 | QA coverage gaps | 161 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -30,12 +30,12 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 230 |
-| No next action | 230 |
-| Aging — 7d / 30d / 90d | 199 / 15 / 0 |
+| No acceptance criteria | 235 |
+| No next action | 235 |
+| Aging — 7d / 30d / 90d | 199 / 16 / 0 |
 | Architecture and technical debt | 7 |
 | Security gaps | 37 |
-| Database gaps | 22 |
+| Database gaps | 25 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -47,7 +47,9 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-_No session is currently registered as active._
+| Session | Task | Title | Status | Branch | Target | Leases | Schema |
+|---|---|---|---|---|---|---|---|
+| [[SESSION-0111-release-develop-to-main-item-0215-then-full-release-of-item-|SESSION-0111]] | — | Release develop to main: ITEM-0215 then full release of ITEM-0200/0201/0203/0204/0206 | ACTIVE | `agent/item-0215-and-release` | `main` | — | NO |
 
 ## Active Tasks and Work Packages
 
@@ -119,6 +121,7 @@ Questions where the engineering is understood and the **product answer is**
 - [[BUG-3182-no-per-tenant-restore-is-possible-restoring-one-tenant-means|BUG-3182]] — **No per-tenant restore is possible: restoring one tenant means rolling back all of them**
 - [[BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-|BUG-3333]] — **Tenant buyers choose their own currency and the three price schedules are not equivalent**
 - [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] — **No multi-factor authentication exists anywhere, including for platform super admins**
+- [[ITEM-0210-decide-when-pkr-checkout-moves-to-safepay-and-what-happens-t|ITEM-0210]] — **Decide when PKR checkout moves to Safepay and what happens to existing PKR Stripe subscribers**
 - [[ITEM-0193-decide-whether-the-hr-role-may-manage-notification-events|ITEM-0193]] — **Decide whether the hr role may manage notification events**
 - [[ITEM-0207-seed-config-rewrites-version-1-of-system-agreement-templates|ITEM-0207]] — **seed:config rewrites version 1 of system agreement templates in place instead of publishing a new version**
 - [[ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins|ITEM-0191]] — **Decide whether custom modules need their own access keys instead of the shared custom-records privilege**
@@ -296,10 +299,10 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 230 |
-| Blocked | 2 |
-| Deferred | 108 |
-| Awaiting a product decision | 10 |
+| Open total | 235 |
+| Blocked | 3 |
+| Deferred | 117 |
+| Awaiting a product decision | 11 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

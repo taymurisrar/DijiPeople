@@ -244,6 +244,7 @@ export class TenantEntitlementService {
         where: { tenantId },
         select: {
           status: true,
+          gracePeriodEndsAt: true,
           plan: { select: { features: true } },
         },
       }),
@@ -253,7 +254,10 @@ export class TenantEntitlementService {
       }),
     ]);
 
-    const subscriptionLive = isSubscriptionLive(subscription?.status);
+    const subscriptionLive = isSubscriptionLive(
+      subscription?.status,
+      subscription?.gracePeriodEndsAt,
+    );
     const planFeatureByKey = new Map(
       (subscription?.plan?.features ?? []).map((feature) => [
         feature.featureKey,

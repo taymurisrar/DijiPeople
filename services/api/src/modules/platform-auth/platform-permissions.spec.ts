@@ -685,13 +685,13 @@ describe('ADR-0018 platform route authorization', () => {
 });
 
 /*
- * Every route only `platform.*` can reach. The first fifteen repeated
+ * Every route only `platform.*` can reach. The first fourteen repeated
  * `@RequireRoles('system-admin')` (SUPER_ADMIN and PLATFORM_OWNER only) before
  * ADR-0018; their allowed set is unchanged. Adding a route here, or removing
- * one, is an access decision and should be reviewed as one.
+ * one, is an access decision and should be reviewed as one. The legacy
+ * `PATCH /super-admin/tenants/:tenantId/status` was retired (ITEM-0204).
  */
 const SUPER_ADMIN_ONLY_ROUTES = [
-  'PATCH /super-admin/tenants/:tenantId/status -> platform.tenants.administer',
   'GET /super-admin/agent-assignments -> platform.tenants.administer',
   'PATCH /super-admin/tenants/:tenantId/agent-assignment -> platform.tenants.administer',
   'GET /super-admin/tenants/:tenantId/audit-logs -> platform.tenants.administer',
@@ -706,6 +706,8 @@ const SUPER_ADMIN_ONLY_ROUTES = [
   'POST /super-admin/invoices/:invoiceId/email -> platform.billing.administer',
   'PATCH /super-admin/invoices/:invoiceId/status -> platform.billing.administer',
   'POST /super-admin/subscriptions/:subscriptionId/invoices -> platform.billing.administer',
+  // Returns money to a card through the provider; cannot be undone.
+  'POST /super-admin/payments/:paymentId/refund -> platform.billing.administer',
   // SuperAdminService.updateTenantSlug already refused everyone else.
   'PATCH /super-admin/tenants/:tenantId/slug -> platform.tenants.administer',
   // Class-level @RequireRoles('system-admin') before ADR-0018.

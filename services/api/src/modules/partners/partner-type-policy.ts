@@ -42,11 +42,9 @@ export type PartnerTypePolicy = {
    */
   onboardingRequiredFields: string[];
   /**
-   * The counterparty party type a generated agreement should record for this
-   * partner (`ContractPartyType`, `contracts.service.ts`'s default-party
-   * inference). Documented here for the contracts module to adopt; wiring the
-   * default-party inference itself is out of this module's scope — that file
-   * belongs to `contracts`, not `partners`/`partner-experience`.
+   * The counterparty party type an agreement records for this partner. Read by
+   * `contracts.service.ts`'s default-party inference through
+   * `contractPartyTypeForPartner` (ITEM-0203).
    */
   contractPartyType: ContractPartyType;
 };
@@ -95,6 +93,19 @@ export function excludedOnboardingFieldsForType(type: PartnerType): string[] {
   return PARTNER_TYPE_POLICY[other].onboardingRequiredFields.filter(
     (field) => !own.has(field),
   );
+}
+
+/**
+ * ITEM-0203. The party an agreement records for a partner counterparty: an
+ * individual is an INDIVIDUAL party, a company a PARTNER party. A partner whose
+ * type cannot be read keeps the PARTNER default every agreement used before.
+ */
+export function contractPartyTypeForPartner(
+  type: PartnerType | null | undefined,
+): ContractPartyType {
+  return type
+    ? PARTNER_TYPE_POLICY[type].contractPartyType
+    : ContractPartyType.PARTNER;
 }
 
 export function partnerTypeLabel(type: PartnerType): string {

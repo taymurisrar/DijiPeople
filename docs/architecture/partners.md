@@ -195,12 +195,11 @@ performs at lead capture:
   partner+referral-link it already has writes no new
   `LeadAttributionCorrection` row, no `PartnerTimeline` entry and no audit
   row, returning `{ attributionUnchanged: true }` instead.
-- **Still gated by a platform role literal, not a permission** — deliberately
-  kept as `SUPER_ADMIN`/`PLATFORM_OWNER`/`PLATFORM_ADMIN` rather than
-  converted to `platform.*` permission during TASK-0032's ADR-0018 sweep
-  (WP-02), because attribution changes commission ownership and the owner
-  chose to keep it at the platform-admin tier specifically. Confirmed as a
-  deliberate decision, not a residual defect, by TASK-0032 WP-09 QA.
+- **Kept at the platform administrator tier** — attribution changes
+  commission ownership, so only `SUPER_ADMIN`/`PLATFORM_OWNER`/`PLATFORM_ADMIN`
+  may correct it. Since ITEM-0204 that tier is the `platform.administer`
+  permission (`isPlatformAdminTier()`) rather than a role list; the holders
+  are unchanged.
 - **`getLead()` embeds the attributed partner** (`{ id, displayName, type,
   status }`) — REG-622. Before this, the admin's "Referral partner" field and
   the attribution panel's "current partner" state both read blank because the

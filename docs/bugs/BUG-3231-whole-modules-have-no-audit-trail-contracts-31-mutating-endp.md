@@ -135,7 +135,7 @@ outstanding.
 
 ## Related
 
-- Modules — [[contracts-and-agreements]]
+- Modules — [[contracts-and-agreements]], [[customization]]
 - Regression — REG-570 (see the regression register)
 
 <!-- GRAPH:END -->

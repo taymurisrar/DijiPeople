@@ -39,6 +39,12 @@ describe('every public write handler is rate limited', () => {
         'subscription events — the signature check is the correct control.',
     ],
     [
+      'safepay-webhook.controller.ts',
+      'Authenticated by the Safepay X-SFPY-SIGNATURE HMAC, and the body is only ' +
+        'a pointer: settlement re-reads the tracker from the Safepay API. ' +
+        'Throttling it would drop Safepay retries of real payment events.',
+    ],
+    [
       'release-publisher.controller.ts',
       'Guarded by a bearer release token (RELEASE_PUBLISH_TOKEN); not an ' +
         'anonymous surface.',

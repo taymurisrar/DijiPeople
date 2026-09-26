@@ -8,7 +8,7 @@ type RouteContext = {
 async function proxyCustomizationRequest(
   request: Request,
   context: RouteContext,
-  method: "GET" | "POST" | "PATCH" | "DELETE",
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
 ) {
   const { path = [] } = await context.params;
   const url = new URL(request.url);
@@ -36,6 +36,10 @@ export function GET(request: Request, context: RouteContext) {
 
 export function POST(request: Request, context: RouteContext) {
   return proxyCustomizationRequest(request, context, "POST");
+}
+
+export function PUT(request: Request, context: RouteContext) {
+  return proxyCustomizationRequest(request, context, "PUT");
 }
 
 export function PATCH(request: Request, context: RouteContext) {

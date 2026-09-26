@@ -10,6 +10,8 @@ import { OutboxService } from '../src/modules/outbox/outbox.service';
 import { OwnerEmailVerificationService } from '../src/modules/billing/services/owner-email-verification.service';
 import type { PrismaService } from '../src/common/prisma/prisma.service';
 import { PartnerReferralResolverService } from '../src/modules/partner-experience/partner-referral-resolver.service';
+import { PaymentGateways } from '../src/modules/billing/providers/payment-gateways';
+import { SafepayGateway } from '../src/modules/billing/providers/safepay.gateway';
 
 /**
  * Nothing that looks like a live workspace exists before payment — BUG-0077.
@@ -164,6 +166,10 @@ describeWithDatabase()('Payment-authorised provisioning (DB-backed)', () => {
     // resolve a tenant market (there is no tenant yet). Present only so the
     // constructor is satisfied.
     { resolveMarketForTenant: async () => null } as never,
+    // Routed by this suite's own config: Safepay is not enabled here, so the
+    // Stripe path under test is the one taken.
+    new PaymentGateways(new SafepayGateway(config)),
+    {} as never,
   );
 
   const runId = `pap-${Date.now()}`;

@@ -7,7 +7,14 @@ import { AuditModule } from '../audit/audit.module';
 import { BillingController } from './controllers/billing.controller';
 import { PublicBillingController } from './controllers/public-billing.controller';
 import { StripeWebhookController } from './controllers/stripe-webhook.controller';
+import { SafepayWebhookController } from './controllers/safepay-webhook.controller';
 import { STRIPE_CLIENT } from './constants/stripe.constants';
+import { SafepayGateway } from './providers/safepay.gateway';
+import { PaymentGateways } from './providers/payment-gateways';
+import { PaymentSettlementService } from './services/payment-settlement.service';
+import { ManagedCheckoutService } from './services/managed-checkout.service';
+import { ManagedRenewalService } from './services/managed-renewal.service';
+import { ManagedBillingWorker } from './services/managed-billing.worker';
 import { BillingService } from './services/billing.service';
 import { CommercialConfigService } from './services/commercial-config.service';
 import {
@@ -49,6 +56,7 @@ import { ReconciliationService } from './services/reconciliation.service';
     BillingController,
     PublicBillingController,
     StripeWebhookController,
+    SafepayWebhookController,
   ],
   providers: [
     {
@@ -80,6 +88,15 @@ import { ReconciliationService } from './services/reconciliation.service';
     CancellationService,
     RetentionHoldService,
     ReconciliationService,
+    // Payments DijiPeople prices itself and a provider other than Stripe
+    // executes: the Safepay adapter, the currency→provider routing, checkout,
+    // settlement on the provider's own confirmation, and the renewal sweep.
+    SafepayGateway,
+    PaymentGateways,
+    PaymentSettlementService,
+    ManagedCheckoutService,
+    ManagedRenewalService,
+    ManagedBillingWorker,
     // PaymentConfirmedHandler registers itself with the dispatcher in its own
     // onModuleInit. It used to be contributed through an OUTBOX_HANDLERS
     // provider here, which only worked while exactly one module did that: a
@@ -106,6 +123,11 @@ import { ReconciliationService } from './services/reconciliation.service';
      * setup" or offered a link to the workspace they had paid for.
      */
     OrderActivationService,
+    // Provisioning records a paid order's first invoice through this once the
+    // tenant exists; the platform console verifies and refunds through it.
+    PaymentSettlementService,
+    PaymentGateways,
+    ManagedRenewalService,
   ],
 })
 export class BillingModule {}

@@ -245,6 +245,8 @@ A reusable Module page receives a `moduleKey`, resolves published Module metadat
 
 `ModuleRecordPage` is the generic Record surface and contains Record title/Form Selector, Action Bar with Actions, Action Groups, Status Group, and Form Renderer. It supports `mode="create"`, `mode="read"`, and `mode="edit"` for `/<module-route>/new`, `/<module-route>/:recordId`, and `/<module-route>/:recordId/edit`. Back appears on Record pages only.
 
+**Stale edits (platform admin runtime, ITEM-0201).** Every record response carries a `version` — the record's `updatedAt` in epoch milliseconds (`recordVersion` in `platform-runtime.service.ts`). The admin record page sends the version it holds with each update and refreshes it from every save and reload. `PlatformRuntimeService.update` refuses an update whose version no longer matches the stored record with `409 RECORD_CHANGED_SINCE_OPENED`, before the owning service writes anything. An update sent without a version is not checked. This detects a stale copy; it is not a lock.
+
 ## Form/Page Layout Metadata Contract
 
 Forms have at least one tab. Form, Tab, Section, Field, and component metadata support 1 to 4 column layouts. Desktop defaults to 2 columns; mobile collapses to 1 column. Section and component spans must not exceed parent columns. Timeline, Related List, notes, long text, and custom widgets can span full width. This metadata must remain compatible with future drag/drop Form Designer operations.
@@ -391,6 +393,8 @@ Responsibilities:
 - Support detail page right-side status groups for owner, status, and sub-status changes.
 
 ### Solution Layer
+
+> **Implemented (TASK-0033):** packages, publishers, immutable versions, the `.djpkg` artifact, staged import, upgrade and uninstall are documented in [customization-packages.md](customization-packages.md) and decided in ADR-0022. The text below is the original design intent.
 
 The solution runtime packages metadata and configuration into importable/exportable components. It supports managed and unmanaged layering so DijiPeople can ship base modules while tenants or partners customize safely.
 

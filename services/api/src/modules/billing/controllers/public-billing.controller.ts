@@ -26,6 +26,7 @@ import { StartOnboardingDto } from '../dto/start-onboarding.dto';
 import { BillingService } from '../services/billing.service';
 import { CommercialConfigService } from '../services/commercial-config.service';
 import { OwnerEmailVerificationService } from '../services/owner-email-verification.service';
+import { PaymentSettlementService } from '../services/payment-settlement.service';
 import { SubscriptionOrderService } from '../services/subscription-order.service';
 
 /*
@@ -92,6 +93,7 @@ export class PublicBillingController {
     private readonly configService: ConfigService,
     private readonly subscriptionOrders: SubscriptionOrderService,
     private readonly ownerEmailVerification: OwnerEmailVerificationService,
+    private readonly settlement: PaymentSettlementService,
   ) {}
 
   @Public()
@@ -310,6 +312,17 @@ export class PublicBillingController {
     @Param('onboardingId', new ParseUUIDPipe({ version: '4' }))
     onboardingId: string,
   ) {
+    /*
+     * For an order a provider other than Stripe is collecting, ask that
+     * provider before answering, so the page reflects a payment the moment it
+     * lands instead of whenever the webhook does. A no-op for Stripe orders
+     * and for orders already paid. An unreachable provider is not the buyer's
+     * problem: the page keeps polling, and the sweeper and webhook still settle.
+     */
+    await this.settlement
+      .settleOrder(onboardingId, 'RETURN')
+      .catch(() => undefined);
+
     const status =
       await this.subscriptionOrders.getOnboardingStatus(onboardingId);
 

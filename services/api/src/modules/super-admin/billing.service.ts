@@ -10,6 +10,7 @@ import {
   DiscountType,
   InvoiceStatus,
   PaymentMethod,
+  PaymentProvider,
   PaymentStatus,
   Prisma,
   SubscriptionStatus,
@@ -221,6 +222,8 @@ export class BillingService {
       autoRenew?: boolean;
       renewalDate?: Date | null;
       stripeSubscriptionId?: string | null;
+      /** Which provider collects this subscription. Undefined leaves it as is. */
+      paymentProvider?: PaymentProvider | null;
       purchasedSeats?: number;
       actorUserId?: string;
     },
@@ -259,6 +262,7 @@ export class BillingService {
         ...this.resolveInitialPeriod(startDate, pricing.billingCycle),
         autoRenew: input.autoRenew ?? true,
         stripeSubscriptionId: input.stripeSubscriptionId,
+        paymentProvider: input.paymentProvider,
         purchasedSeats: input.purchasedSeats ?? 1,
         createdById: input.actorUserId,
         updatedById: input.actorUserId,
@@ -284,6 +288,7 @@ export class BillingService {
           input.stripeSubscriptionId === undefined
             ? undefined
             : input.stripeSubscriptionId,
+        paymentProvider: input.paymentProvider,
         purchasedSeats: input.purchasedSeats,
         updatedById: input.actorUserId,
       },

@@ -37,6 +37,7 @@ See [[dijipeople-platform-overview|DijiPeople Platform Overview]] for the full p
 - [[contracts-and-agreements|Contracts and Agreements]]
 - [[customer-onboarding|Customer Onboarding]]
 - [[customers|Customers]]
+- [[customization|Customization]]
 - [[employees|Employees]]
 - [[leads|Leads]]
 - [[leave-attendance-approvals|Leave, Attendance and Approvals]]
@@ -78,6 +79,7 @@ Questions where the engineering is understood and the **product answer**
 - [[BUG-3182-no-per-tenant-restore-is-possible-restoring-one-tenant-means|BUG-3182]] — **No per-tenant restore is possible: restoring one tenant means rolling back all of them** (HIGH)
 - [[BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-|BUG-3333]] — **Tenant buyers choose their own currency and the three price schedules are not equivalent** (HIGH)
 - [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] — **No multi-factor authentication exists anywhere, including for platform super admins** (HIGH)
+- [[ITEM-0210-decide-when-pkr-checkout-moves-to-safepay-and-what-happens-t|ITEM-0210]] — **Decide when PKR checkout moves to Safepay and what happens to existing PKR Stripe subscribers** (MEDIUM)
 - [[ITEM-0193-decide-whether-the-hr-role-may-manage-notification-events|ITEM-0193]] — **Decide whether the hr role may manage notification events** (unrated)
 - [[ITEM-0207-seed-config-rewrites-version-1-of-system-agreement-templates|ITEM-0207]] — **seed:config rewrites version 1 of system agreement templates in place instead of publishing a new version** (unrated)
 - [[ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins|ITEM-0191]] — **Decide whether custom modules need their own access keys instead of the shared custom-records privilege** (unrated)
@@ -121,6 +123,8 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-3375-the-notification-rules-screen-edits-preferences-and-cannot-r|BUG-3375]] | The Notification Rules screen edits preferences and cannot reach NotificationRule at all | UX | HIGH | FIXED | notifications, apps/web | PLAN_REQUIRED |
 | [[BUG-3376-runtime-lookups-fetch-one-unpaged-page-and-filter-it-in-the-|BUG-3376]] | Runtime lookups fetch one unpaged page and filter it in the browser, hiding every record past the server page size | DATA_INTEGRITY | HIGH | FIXED | apps/web, apps/admin | PLAN_REQUIRED |
 | [[BUG-3578-deleting-a-partner-or-lead-with-restricted-history-crashes-w|BUG-3578]] | Deleting a partner or lead with restricted history crashes with a 500 | DATA_INTEGRITY | HIGH | FIXED | api:partners, api:leads | DONE |
+| [[BUG-3697-a-custom-field-added-to-a-system-module-has-nowhere-to-store|BUG-3697]] | A custom field added to a system module has nowhere to store its values | DATA_INTEGRITY | HIGH | OPEN | customization, employees | PLAN_REQUIRED |
+| [[BUG-3702-adding-a-field-to-a-package-s-own-custom-module-demoted-the-|BUG-3702]] | Adding a field to a package's own custom module demoted the module to a reference | DATA_INTEGRITY | HIGH | FIXED | customization | DONE |
 | [[BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver|BUG-3501]] | The email provider screen presents a console sink as delivery and offers sink providers in production | UX | MEDIUM | FIXED | notifications, apps/web | PLAN_REQUIRED |
 | [[BUG-1668-tenant-workspace-pages-scroll-horizontally-at-mobile-width|BUG-1668]] | Tenant workspace pages scroll horizontally at mobile width | UX | MEDIUM | FIXED | views | DONE |
 | [[BUG-1950-every-tenant-workspace-screen-renders-the-same-h1-so-no-page|BUG-1950]] | Every tenant workspace screen renders the same h1, so no page announces what it is | UX | MEDIUM | FIXED | apps/web | DONE |
@@ -156,6 +160,8 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-3553-an-agreement-can-be-created-for-an-inactive-partner-or-an-ar|BUG-3553]] | An agreement can be created for an inactive partner or an archived lead or customer, and duplicate submissions create duplicate agreements | DATA_INTEGRITY | MEDIUM | FIXED | api:contracts | DONE |
 | [[BUG-3579-an-attributed-lead-never-shows-its-referral-partner|BUG-3579]] | An attributed lead never shows its referral partner | UX | MEDIUM | FIXED | api:leads, apps/admin | DONE |
 | [[BUG-3587-the-monitoring-overview-raises-a-hydration-error-that-covers|BUG-3587]] | The monitoring overview raises a hydration error that covers the page with the error dialog | UX | MEDIUM | FIXED | apps/admin | DONE |
+| [[BUG-3698-draft-edits-to-custom-fields-take-effect-before-they-are-pub|BUG-3698]] | Draft edits to custom fields take effect before they are published | STATE_MACHINE | MEDIUM | OPEN | customization | PLAN_REQUIRED |
+| [[BUG-3699-deleting-a-field-form-or-view-ignored-references-held-in-oth|BUG-3699]] | Deleting a field, form or view ignored references held in other packages' layers | DATA_INTEGRITY | MEDIUM | FIXED | customization | DONE |
 | [[BUG-1964-record-headings-and-dialog-titles-are-singularised-by-stripp|BUG-1964]] | Record headings and dialog titles are singularised by stripping a trailing s | UX | LOW | FIXED | apps/web | DONE |
 | [[BUG-2010-the-dashboard-recent-changes-list-renders-unformatted-iso-86|BUG-2010]] | The dashboard Recent changes list renders unformatted ISO-8601 timestamps | UX | LOW | FIXED | apps/web | DONE |
 | [[BUG-2017-the-inbox-related-record-column-renders-a-bare-uuid-with-no-|BUG-2017]] | The inbox Related record column renders a bare UUID with no label and no link | UX | LOW | FIXED | apps/web | DONE |

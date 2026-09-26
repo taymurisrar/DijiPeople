@@ -35,7 +35,10 @@ import {
 } from '@prisma/client';
 import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
-import { userHasPlatformPermission } from '../platform-auth/platform-permissions';
+import {
+  isPlatformAdminTier,
+  userHasPlatformPermission,
+} from '../platform-auth/platform-permissions';
 import {
   assertValidTenantSlug,
   normalizeTenantSlug,
@@ -72,7 +75,6 @@ import { UpdatePlatformSettingsDto } from './dto/update-platform-settings.dto';
 import { UpdatePrimaryOwnerDto } from './dto/update-primary-owner.dto';
 import { UpdateTenantCustomerAccountDto } from './dto/update-tenant-customer-account.dto';
 import { UpdateTenantFeaturesDto } from './dto/update-tenant-features.dto';
-import { UpdateTenantStatusDto } from './dto/update-tenant-status.dto';
 import { UpdateTenantSubscriptionDto } from './dto/update-tenant-subscription.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { UpdateTenantSlugDto } from '../tenants/dto/update-tenant-slug.dto';
@@ -1191,51 +1193,6 @@ export class SuperAdminService {
     });
 
     return this.getTenantDetail(tenantId);
-  }
-
-  async updateTenantStatus(
-    actor: AuthenticatedUser,
-    tenantId: string,
-    dto: UpdateTenantStatusDto,
-  ) {
-    const tenant = await this.tenantsRepository.findById(tenantId);
-
-    if (!tenant) {
-      throw new NotFoundException('Tenant not found.');
-    }
-
-    const updatedTenant = await this.tenantsRepository.updateStatus(
-      tenantId,
-      dto.status,
-      actor.userId,
-    );
-
-    if (updatedTenant.customerAccountId) {
-      await this.prisma.customerAccount.update({
-        where: { id: updatedTenant.customerAccountId },
-        data: {
-          status: this.mapCustomerStatusFromTenantStatus(dto.status),
-        },
-      });
-    }
-
-    await this.auditService.log({
-      tenantId,
-      actorUserId: actor.userId,
-      action: 'TENANT_STATUS_CHANGED',
-      entityType: 'Tenant',
-      entityId: tenantId,
-      sourceModule: 'super-admin',
-      beforeSnapshot: { status: tenant.status },
-      afterSnapshot: { status: dto.status },
-    });
-
-    /*
-     * Re-read rather than mapping the update's return value: the detail shape
-     * carries relations the bare update does not select, and returning a
-     * half-populated record here is how the caller ends up rendering blanks.
-     */
-    return this.getTenantDetail(updatedTenant.id);
   }
 
   async listTenantAuditLogs(tenantId: string) {
@@ -3651,6 +3608,54 @@ export class SuperAdminService {
     return this.webhookService.retryStoredEvent(id);
   }
 
+  /**
+   * Webhook deliveries from providers other than Stripe (Safepay today). The
+   * stored payload is already reduced to identifiers and statuses, so nothing
+   * here needs masking beyond what the Stripe list does.
+   */
+  async listPaymentProviderEvents(query: {
+    page?: string;
+    pageSize?: string;
+    status?: string;
+  }) {
+    const page = normalizePositiveInt(query.page, 1);
+    const pageSize = Math.min(normalizePositiveInt(query.pageSize, 25), 100);
+    const where: Prisma.PaymentProviderEventWhereInput = {
+      processingStatus: normalizeWebhookStatus(query.status),
+    };
+
+    const [items, total] = await Promise.all([
+      this.prisma.paymentProviderEvent.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        select: {
+          id: true,
+          provider: true,
+          externalEventId: true,
+          eventType: true,
+          providerPaymentId: true,
+          processingStatus: true,
+          errorMessage: true,
+          createdAt: true,
+          processedAt: true,
+        },
+      }),
+      this.prisma.paymentProviderEvent.count({ where }),
+    ]);
+
+    return {
+      items,
+      meta: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / pageSize)),
+      },
+    };
+  }
+
   async getPlatformSettings() {
     const keys = [
       'platform-defaults',
@@ -3761,11 +3766,7 @@ export class SuperAdminService {
     actor: AuthenticatedUser,
     dto: UpdatePlatformSettingsDto,
   ) {
-    if (
-      !['SUPER_ADMIN', 'PLATFORM_OWNER', 'PLATFORM_ADMIN'].includes(
-        actor.platform?.role ?? '',
-      )
-    ) {
+    if (!isPlatformAdminTier(actor)) {
       throw new ForbiddenException(
         'Platform administrator access is required to change platform settings.',
       );
@@ -5253,22 +5254,6 @@ export class SuperAdminService {
 
     if (invalidKey) {
       throw new ConflictException(`Unsupported feature key: ${invalidKey}.`);
-    }
-  }
-
-  private mapCustomerStatusFromTenantStatus(status: TenantStatus) {
-    switch (status) {
-      case TenantStatus.ACTIVE:
-        return CustomerAccountStatus.ACTIVE;
-      case TenantStatus.INACTIVE:
-      case TenantStatus.SUSPENDED:
-        return CustomerAccountStatus.SUSPENDED;
-      case TenantStatus.ARCHIVED:
-      case TenantStatus.CHURNED:
-        return CustomerAccountStatus.CHURNED;
-      case TenantStatus.PENDING_SETUP:
-      default:
-        return CustomerAccountStatus.ONBOARDING;
     }
   }
 }

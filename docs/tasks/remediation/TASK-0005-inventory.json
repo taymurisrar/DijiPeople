@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 694,
+    "total_records": 716,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -21840,6 +21840,404 @@
       "verification_result": "NOT_VERIFIED"
     },
     {
+      "record_id": "BUG-3668",
+      "type": "BUG",
+      "title": "Saving agreement document fields skips the shared immutability check",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3668-saving-agreement-document-fields-skips-the-shared-immutabili.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "5dda7524",
+        "created_at": "2026-09-26",
+        "updated_at": "2026-09-26",
+        "resolved_at": "2026-09-26"
+      },
+      "affected_modules": [
+        "services/api/src/modules/contracts"
+      ],
+      "regressions": [
+        "REG-634"
+      ],
+      "qa_scenarios": [
+        "QA-CONTRACT-014"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/contracts"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3668-saving-agreement-document-fields-skips-the-shared-immutabili.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3697",
+      "type": "DATA_INTEGRITY",
+      "title": "A custom field added to a system module has nowhere to store its values",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "OPEN",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3697-a-custom-field-added-to-a-system-module-has-nowhere-to-store.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "cb202b99",
+        "created_at": "2026-09-26",
+        "updated_at": "2026-09-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "customization",
+        "employees"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "customization",
+          "employees"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3697-a-custom-field-added-to-a-system-module-has-nowhere-to-store.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3698",
+      "type": "STATE_MACHINE",
+      "title": "Draft edits to custom fields take effect before they are published",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3698-draft-edits-to-custom-fields-take-effect-before-they-are-pub.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "cb202b99",
+        "created_at": "2026-09-26",
+        "updated_at": "2026-09-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "customization"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "customization"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3698-draft-edits-to-custom-fields-take-effect-before-they-are-pub.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3699",
+      "type": "DATA_INTEGRITY",
+      "title": "Deleting a field, form or view ignored references held in other packages' layers",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3699-deleting-a-field-form-or-view-ignored-references-held-in-oth.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "cb202b99",
+        "created_at": "2026-09-26",
+        "updated_at": "2026-09-26",
+        "resolved_at": "2026-09-26"
+      },
+      "affected_modules": [
+        "customization"
+      ],
+      "regressions": [
+        "REG-635"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-033"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "customization"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3699-deleting-a-field-form-or-view-ignored-references-held-in-oth.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3700",
+      "type": "AUTHORIZATION",
+      "title": "Any signed-in user can read the full published customization snapshot",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/bugs/BUG-3700-any-signed-in-user-can-read-the-full-published-customization.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "cb202b99",
+        "created_at": "2026-09-26",
+        "updated_at": "2026-09-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "customization"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "customization"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3700-any-signed-in-user-can-read-the-full-published-customization.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3701",
+      "type": "DATABASE",
+      "title": "Platform-scope customization packages are not unique by key",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/bugs/BUG-3701-platform-scope-customization-packages-are-not-unique-by-key.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "cb202b99",
+        "created_at": "2026-09-26",
+        "updated_at": "2026-09-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "customization"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "customization"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3701-platform-scope-customization-packages-are-not-unique-by-key.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3702",
+      "type": "DATA_INTEGRITY",
+      "title": "Adding a field to a package's own custom module demoted the module to a reference",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3702-adding-a-field-to-a-package-s-own-custom-module-demoted-the-.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "cb202b99",
+        "created_at": "2026-09-26",
+        "updated_at": "2026-09-26",
+        "resolved_at": "2026-09-26"
+      },
+      "affected_modules": [
+        "customization"
+      ],
+      "regressions": [
+        "REG-636"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-033"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "customization"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3702-adding-a-field-to-a-package-s-own-custom-module-demoted-the-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3703",
+      "type": "BUG",
+      "title": "Package export readiness could never report a missing dependency",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-3703-package-export-readiness-could-never-report-a-missing-depend.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "cb202b99",
+        "created_at": "2026-09-26",
+        "updated_at": "2026-09-26",
+        "resolved_at": "2026-09-26"
+      },
+      "affected_modules": [
+        "customization"
+      ],
+      "regressions": [
+        "REG-637"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-033"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "customization"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3703-package-export-readiness-could-never-report-a-missing-depend.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3704",
+      "type": "UX",
+      "title": "Settings pages scroll horizontally at phone width again",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/bugs/BUG-3704-settings-pages-scroll-horizontally-at-phone-width-again.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "cb202b99",
+        "created_at": "2026-09-26",
+        "updated_at": "2026-09-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3704-settings-pages-scroll-horizontally-at-phone-width-again.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3705",
+      "type": "UX",
+      "title": "Package sub-page breadcrumbs end in a second Packages instead of the page",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/bugs/BUG-3705-package-sub-page-breadcrumbs-end-in-a-second-packages-instea.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "cb202b99",
+        "created_at": "2026-09-26",
+        "updated_at": "2026-09-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3705-package-sub-page-breadcrumbs-end-in-a-second-packages-instea.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
       "record_id": "ITEM-0001",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md",
@@ -30392,14 +30790,14 @@
       "title": "Agreements have no end-to-end test coverage and partners/leads have no e2e lifecycle suite",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0200-agreements-have-no-end-to-end-test-coverage-and-partners-lea.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "",
         "created_at": "2026-09-25",
-        "updated_at": "2026-09-25",
+        "updated_at": "2026-09-26",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -30434,22 +30832,26 @@
       "title": "Platform runtime edits ignore the record version, so concurrent edits silently overwrite each other",
       "severity": "LOW",
       "priority": "P2",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0201-platform-runtime-edits-ignore-the-record-version-so-concurre.md",
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-09-25",
-        "updated_at": "2026-09-25",
+        "updated_at": "2026-09-26",
         "resolved_at": ""
       },
       "affected_modules": [
         "services/api/src/modules/platform-runtime",
         "apps/admin"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-633"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-044"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -30514,22 +30916,26 @@
       "title": "An individual partner's agreement still records the counterparty as a PARTNER party, not INDIVIDUAL",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "READY",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0203-an-individual-partner-s-agreement-still-records-the-counterp.md",
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-09-25",
-        "updated_at": "2026-09-25",
+        "updated_at": "2026-09-26",
         "resolved_at": ""
       },
       "affected_modules": [
         "services/api/src/modules/contracts",
         "services/api/src/modules/partners"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-630"
+      ],
+      "qa_scenarios": [
+        "QA-CONTRACT-013"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -30554,14 +30960,14 @@
       "title": "ADR-0018 follow-ups: platform role-literal tier checks and the ungoverned legacy tenant status route",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0204-adr-0018-follow-ups-platform-role-literal-tier-checks-and-th.md",
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-09-25",
-        "updated_at": "2026-09-25",
+        "updated_at": "2026-09-26",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -30571,8 +30977,12 @@
         "services/api/src/modules/leads",
         "services/api/src/modules/platform-monitoring"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-631"
+      ],
+      "qa_scenarios": [
+        "QA-AUTHZ-019"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -30640,14 +31050,14 @@
       "title": "Admin dashboard drill-downs for active users, failed sign-ins and unresolved errors land on approximate pages",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0206-admin-dashboard-drill-downs-for-active-users-failed-sign-ins.md",
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-09-25",
-        "updated_at": "2026-09-25",
+        "updated_at": "2026-09-26",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -30655,8 +31065,12 @@
         "services/api/src/modules/super-admin",
         "services/api/src/modules/platform-monitoring"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-632"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-043"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -30741,6 +31155,474 @@
           "services/api"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0208-production-neon-database-exceeded-its-data-transfer-quota-an.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0209",
+      "type": "TEST_GAP",
+      "title": "Confirm the Safepay refund request body and webhook signing input against a live sandbox run",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "BLOCKED",
+      "architect_disposition": "BLOCKED_EXTERNAL",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0209-confirm-the-safepay-refund-request-body-and-webhook-signing-.md",
+        "provenance": "IMPLEMENTATION",
+        "detected_in_sha": "",
+        "created_at": "2026-09-26",
+        "updated_at": "2026-09-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/billing"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/billing"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0209-confirm-the-safepay-refund-request-body-and-webhook-signing-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0210",
+      "type": "PRODUCT_DECISION",
+      "title": "Decide when PKR checkout moves to Safepay and what happens to existing PKR Stripe subscribers",
+      "severity": "MEDIUM",
+      "priority": "P1",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0210-decide-when-pkr-checkout-moves-to-safepay-and-what-happens-t.md",
+        "provenance": "IMPLEMENTATION",
+        "detected_in_sha": "",
+        "created_at": "2026-09-26",
+        "updated_at": "2026-09-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/billing"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/billing"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0210-decide-when-pkr-checkout-moves-to-safepay-and-what-happens-t.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0211",
+      "type": "FOLLOW_UP",
+      "title": "Safepay renewal invoices are issued but never emailed to the tenant",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0211-safepay-renewal-invoices-are-issued-but-never-emailed-to-the.md",
+        "provenance": "IMPLEMENTATION",
+        "detected_in_sha": "",
+        "created_at": "2026-09-26",
+        "updated_at": "2026-09-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/billing"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/billing"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0211-safepay-renewal-invoices-are-issued-but-never-emailed-to-the.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0212",
+      "type": "FOLLOW_UP",
+      "title": "Public signup offers no promotion code field for Safepay-routed buyers",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0212-public-signup-offers-no-promotion-code-field-for-safepay-rou.md",
+        "provenance": "IMPLEMENTATION",
+        "detected_in_sha": "",
+        "created_at": "2026-09-26",
+        "updated_at": "2026-09-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/billing"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/billing"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0212-public-signup-offers-no-promotion-code-field-for-safepay-rou.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0213",
+      "type": "FOLLOW_UP",
+      "title": "Mid-period seat increases on a Safepay subscription are not charged until renewal",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0213-mid-period-seat-increases-on-a-safepay-subscription-are-not-.md",
+        "provenance": "IMPLEMENTATION",
+        "detected_in_sha": "",
+        "created_at": "2026-09-26",
+        "updated_at": "2026-09-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/billing"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/billing"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0213-mid-period-seat-increases-on-a-safepay-subscription-are-not-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0214",
+      "type": "FOLLOW_UP",
+      "title": "Flipping SAFEPAY_ENABLED while a PKR Stripe checkout is open can let one order be paid twice",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0214-flipping-safepay-enabled-while-a-pkr-stripe-checkout-is-open.md",
+        "provenance": "IMPLEMENTATION",
+        "detected_in_sha": "",
+        "created_at": "2026-09-26",
+        "updated_at": "2026-09-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "services/api/src/modules/billing"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/billing"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0214-flipping-safepay-enabled-while-a-pkr-stripe-checkout-is-open.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0215",
+      "type": "INFRA",
+      "title": "scripts/verify-database.mjs cannot run on Windows and seed:demo runs out of memory at the default heap",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0215-scripts-verify-database-mjs-cannot-run-on-windows-and-seed-d.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-26",
+        "updated_at": "2026-09-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "scripts",
+        "services/api"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "scripts",
+          "services/api"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0215-scripts-verify-database-mjs-cannot-run-on-windows-and-seed-d.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0216",
+      "type": "FOLLOW_UP",
+      "title": "Connection references for customization packages",
+      "severity": "",
+      "priority": "P2",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0216-connection-references-for-customization-packages.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-26",
+        "updated_at": "2026-09-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "customization"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "customization"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0216-connection-references-for-customization-packages.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0217",
+      "type": "FOLLOW_UP",
+      "title": "Platform admin read-only view of tenant package installations",
+      "severity": "",
+      "priority": "P2",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0217-platform-admin-read-only-view-of-tenant-package-installation.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-26",
+        "updated_at": "2026-09-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "customization",
+        "super-admin"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "customization",
+          "super-admin"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0217-platform-admin-read-only-view-of-tenant-package-installation.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0218",
+      "type": "ARCHITECTURE",
+      "title": "Carry module views, navigation, workflows and reports in customization packages",
+      "severity": "",
+      "priority": "P2",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0218-carry-module-views-navigation-workflows-and-reports-in-custo.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-26",
+        "updated_at": "2026-09-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "customization",
+        "views",
+        "navigation",
+        "workflows",
+        "reporting"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "customization",
+          "views",
+          "navigation",
+          "workflows",
+          "reporting"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0218-carry-module-views-navigation-workflows-and-reports-in-custo.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0219",
+      "type": "FOLLOW_UP",
+      "title": "Package CLI and a CI pipeline step for validate, export and import",
+      "severity": "",
+      "priority": "P2",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0219-package-cli-and-a-ci-pipeline-step-for-validate-export-and-i.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-26",
+        "updated_at": "2026-09-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "customization"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "customization"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0219-package-cli-and-a-ci-pipeline-step-for-validate-export-and-i.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0220",
+      "type": "SECURITY",
+      "title": "Publisher signing for customization package artifacts",
+      "severity": "",
+      "priority": "P2",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0220-publisher-signing-for-customization-package-artifacts.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-09-26",
+        "updated_at": "2026-09-26",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "customization"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "customization"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0220-publisher-signing-for-customization-package-artifacts.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

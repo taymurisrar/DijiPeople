@@ -166,3 +166,70 @@ describe('PATCH /contracts/:id immutability after signing begins', () => {
     expect(contractUpdate).toHaveBeenCalled();
   });
 });
+
+/*
+ * BUG-3668. `saveDocumentFields` never consulted the shared rule. An executed
+ * agreement was refused only because its frozen version happened to have no
+ * editable placeholder left; a version that still carries one — the shape used
+ * here — was writable after signing.
+ */
+describe('saveDocumentFields follows the same immutability rule', () => {
+  const { saveDocumentFields } = ContractsService.prototype as unknown as {
+    saveDocumentFields: (
+      user: unknown,
+      id: string,
+      values: Record<string, string>,
+    ) => Promise<unknown>;
+  };
+
+  async function attemptFieldSave(status: string) {
+    const upsert = jest.fn().mockResolvedValue({});
+    const context = {
+      assertWrite: jest.fn(),
+      get: jest.fn().mockResolvedValue({
+        id: 'contract-1',
+        status,
+        currentVersionNumber: 1,
+        versions: [{ version: 1, contentHtml: '<p>{{partner.name}}</p>' }],
+      }),
+      assertAgreementEditable: (
+        ContractsService.prototype as unknown as {
+          assertAgreementEditable: (s: string) => void;
+        }
+      ).assertAgreementEditable,
+      prisma: {
+        contractPlaceholderValue: { upsert },
+        $transaction: jest.fn((operations: unknown[]) =>
+          Promise.all(operations),
+        ),
+      },
+    };
+    const tolerant = new Proxy(context as Record<string, unknown>, {
+      get(target, prop: string) {
+        if (prop in target) return target[prop];
+        return jest.fn().mockResolvedValue(undefined);
+      },
+    });
+    let thrown: unknown = null;
+    try {
+      await saveDocumentFields.call(tolerant, {}, 'contract-1', {
+        'partner.name': 'Renamed after signing',
+      });
+    } catch (error) {
+      thrown = error;
+    }
+    return { thrown, upsert };
+  }
+
+  it('refuses to change a field on an executed agreement', async () => {
+    const { thrown, upsert } = await attemptFieldSave('FULLY_EXECUTED');
+    expect(thrown).toBeInstanceOf(BadRequestException);
+    expect(upsert).not.toHaveBeenCalled();
+  });
+
+  it('still saves a field on a draft', async () => {
+    const { thrown, upsert } = await attemptFieldSave('DRAFT');
+    expect(thrown).toBeNull();
+    expect(upsert).toHaveBeenCalled();
+  });
+});

@@ -315,10 +315,18 @@ describe('packages (BUG-3493, BUG-3495)', () => {
         ...data,
       }),
     );
+    const publisherCreate = jest.fn(
+      ({ data }: { data: Record<string, unknown> }) =>
+        Promise.resolve({ id: 'publisher-1', ...data }),
+    );
     const prisma = {
       customizationSolution: {
         findUnique: jest.fn().mockResolvedValue(null),
         create,
+      },
+      customizationPublisher: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: publisherCreate,
       },
     };
     const service = new CustomizationService(
@@ -338,9 +346,20 @@ describe('packages (BUG-3493, BUG-3495)', () => {
 
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ solutionKey: 'qw_walkthrough' }),
+        data: expect.objectContaining({
+          solutionKey: 'qw_walkthrough',
+          // TASK-0033 — the publisher and the typed version are stored.
+          version: '1.0.0',
+          publisherId: 'publisher-1',
+        }),
       }),
     );
+    expect(publisherCreate).toHaveBeenCalledTimes(1);
+    expect(publisherCreate.mock.calls[0][0].data).toMatchObject({
+      tenantId: 'tenant-1',
+      prefix: 'qw',
+      displayName: 'QA Walkthrough',
+    });
     expect(response.packageKey).toBe('qw_walkthrough');
   });
 
@@ -352,6 +371,12 @@ describe('packages (BUG-3493, BUG-3495)', () => {
       customizationSolution: {
         findFirst: jest.fn().mockResolvedValue(null),
         upsert,
+      },
+      customizationPublisher: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: jest.fn(({ data }: { data: Record<string, unknown> }) =>
+          Promise.resolve({ id: 'publisher-ac', ...data }),
+        ),
       },
     };
     const service = new CustomizationService(
@@ -367,13 +392,17 @@ describe('packages (BUG-3493, BUG-3495)', () => {
         where: expect.objectContaining({ tenantId: 'tenant-1' }),
       }),
     );
+    // TASK-0033 — the same package, now named and flagged as the tenant's
+    // Default Customizations and owned by a stored publisher.
     expect(record).toMatchObject({
       tenantId: 'tenant-1',
       solutionKey: 'ac_tenantCustomizations',
-      displayName: 'Acme Customizations',
+      displayName: 'Default Customizations',
       isDefault: false,
       isSystem: false,
       isManaged: false,
+      isTenantDefault: true,
+      publisherId: 'publisher-ac',
     });
   });
 });

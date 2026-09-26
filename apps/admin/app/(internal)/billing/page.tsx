@@ -20,6 +20,7 @@ import {
   AdminWorkspace,
 } from "@/app/_components/admin-ui";
 import { WebhookEventsClient } from "@/app/_components/billing/webhook-events-client";
+import { ProviderPaymentsClient } from "@/app/_components/billing/provider-payments-client";
 import { EmptyState } from "@/app/_components/ui/empty-state";
 import { TenantStatusBadge } from "@/app/_components/tenant-status-badge";
 import { formatCurrency, formatNumber } from "@/lib/formatters";
@@ -34,7 +35,6 @@ export const metadata: Metadata = {
   title: "Billing",
 };
 
-
 type InvoiceRecord = {
   id: string;
   invoiceNumber: string;
@@ -45,13 +45,8 @@ type InvoiceRecord = {
   tenant: { name: string };
 };
 
-type PaymentRecord = {
-  id: string;
-  amount: number;
-  currency: string;
-  status: string;
+type PaymentRecord = ProviderPaymentsProps["payments"][number] & {
   paymentMethod: string;
-  tenant: { name: string };
 };
 
 type BillingDiagnostics = {
@@ -75,6 +70,8 @@ type WebhookEventsResponse = Parameters<
   typeof WebhookEventsClient
 >[0]["initialData"];
 
+type ProviderPaymentsProps = Parameters<typeof ProviderPaymentsClient>[0];
+
 const tabs = [
   { key: "overview", label: "Overview", href: "/billing", icon: ReceiptText },
   { key: "plans", label: "Plans / Prices", href: "/plans", icon: Package },
@@ -86,8 +83,24 @@ const tabs = [
     href: "/subscriptions",
     icon: Clock3,
   },
-  { key: "webhooks", label: "Webhooks", href: "/billing?tab=webhooks", icon: Webhook },
-  { key: "settings", label: "Settings", href: "/settings/billing", icon: Settings },
+  {
+    key: "webhooks",
+    label: "Webhooks",
+    href: "/billing?tab=webhooks",
+    icon: Webhook,
+  },
+  {
+    key: "safepay",
+    label: "Safepay",
+    href: "/billing?tab=safepay",
+    icon: CircleDollarSign,
+  },
+  {
+    key: "settings",
+    label: "Settings",
+    href: "/settings/billing",
+    icon: Settings,
+  },
 ];
 
 export default async function BillingPage({
@@ -96,21 +109,35 @@ export default async function BillingPage({
   searchParams?: Promise<{ tab?: string }>;
 }) {
   const params = await searchParams;
-  const activeTab = params?.tab === "webhooks" ? "webhooks" : "overview";
+  const activeTab =
+    params?.tab === "webhooks" || params?.tab === "safepay"
+      ? params.tab
+      : "overview";
 
-  const [invoices, payments, diagnostics, webhookEvents, settings] = await Promise.all([
-    apiRequestJson<InvoiceRecord[]>("/super-admin/invoices"),
-    apiRequestJson<PaymentRecord[]>("/super-admin/payments"),
-    apiRequestJson<BillingDiagnostics>("/super-admin/billing/diagnostics"),
-    activeTab === "webhooks"
-      ? apiRequestJson<WebhookEventsResponse>(
-          "/super-admin/billing/stripe-webhook-events?page=1&pageSize=25",
-        )
-      : Promise.resolve(null),
-    apiRequestJson<{ platformDefaults?: { currency?: string; reportingCurrency?: string } }>(
-      "/super-admin/platform-settings",
-    ),
-  ]);
+  const [invoices, payments, diagnostics, webhookEvents, settings, safepay] =
+    await Promise.all([
+      apiRequestJson<InvoiceRecord[]>("/super-admin/invoices"),
+      apiRequestJson<PaymentRecord[]>("/super-admin/payments"),
+      apiRequestJson<BillingDiagnostics>("/super-admin/billing/diagnostics"),
+      activeTab === "webhooks"
+        ? apiRequestJson<WebhookEventsResponse>(
+            "/super-admin/billing/stripe-webhook-events?page=1&pageSize=25",
+          )
+        : Promise.resolve(null),
+      apiRequestJson<{
+        platformDefaults?: { currency?: string; reportingCurrency?: string };
+      }>("/super-admin/platform-settings"),
+      activeTab === "safepay"
+        ? Promise.all([
+            apiRequestJson<ProviderPaymentsProps["providers"]>(
+              "/super-admin/billing/payment-providers",
+            ),
+            apiRequestJson<{ items: ProviderPaymentsProps["events"] }>(
+              "/super-admin/billing/provider-events?page=1&pageSize=50",
+            ),
+          ])
+        : Promise.resolve(null),
+    ]);
   const reportingCurrency =
     settings.platformDefaults?.reportingCurrency ??
     settings.platformDefaults?.currency ??
@@ -119,11 +146,12 @@ export default async function BillingPage({
   const overdue = invoices.filter(
     (invoice) => invoice.status === "OVERDUE",
   ).length;
-  const issued = invoices.filter((invoice) => invoice.status === "ISSUED").length;
+  const issued = invoices.filter(
+    (invoice) => invoice.status === "ISSUED",
+  ).length;
   const successfulPayments = payments.filter(
     (payment) =>
-      payment.status === "SUCCEEDED" &&
-      payment.currency === reportingCurrency,
+      payment.status === "SUCCEEDED" && payment.currency === reportingCurrency,
   );
   const revenue = successfulPayments.reduce(
     (sum, payment) => sum + payment.amount,
@@ -169,7 +197,17 @@ export default async function BillingPage({
         </div>
       </nav>
 
-      {activeTab === "webhooks" && webhookEvents ? (
+      {activeTab === "safepay" && safepay ? (
+        <ProviderPaymentsClient
+          providers={safepay[0]}
+          events={safepay[1].items}
+          payments={payments.filter(
+            (payment) =>
+              payment.paymentProvider !== null &&
+              payment.paymentProvider !== "STRIPE",
+          )}
+        />
+      ) : activeTab === "webhooks" && webhookEvents ? (
         <>
           <section className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
             Retry is available only for events marked FAILED and uses stored
@@ -240,7 +278,9 @@ export default async function BillingPage({
               />
               <DiagnosticTile
                 label="Duplicate risks"
-                value={formatNumber(diagnostics.duplicateCurrencyCycleRisks.length)}
+                value={formatNumber(
+                  diagnostics.duplicateCurrencyCycleRisks.length,
+                )}
                 description="More than one active price in a plan/cycle/currency group"
                 healthy={diagnostics.duplicateCurrencyCycleRisks.length === 0}
               />
@@ -339,7 +379,12 @@ function RecentList({
 }: {
   emptyDescription: string;
   emptyTitle: string;
-  items: Array<{ id: string; title: string; description: string; status: string }>;
+  items: Array<{
+    id: string;
+    title: string;
+    description: string;
+    status: string;
+  }>;
   title: string;
   viewAllHref: string;
 }) {

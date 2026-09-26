@@ -62,8 +62,14 @@
       "requires": ["customization.read", "customization.tables.read"],
       "calls": [
         ["GET", "packages/:packageId"],
-        ["GET", "tables"]
+        ["GET", "tables"],
+        ["GET", "packages/:packageId/lifecycle"],
+        ["GET", "packages/:packageId/release-readiness"]
       ]
+    },
+    "packageImport": {
+      "requires": ["customization.read", "customization.packages.import"],
+      "calls": [["GET", "package-operations"]]
     },
     "publishCenter": {
       "requires": ["customization.read"],

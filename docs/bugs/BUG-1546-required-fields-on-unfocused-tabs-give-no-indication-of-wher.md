@@ -198,6 +198,7 @@ the register was confirmed to exist, and every suite containing one was run.
 
 ## Related
 
+- Modules — [[customization]]
 - Regression — REG-274 (see the regression register)
 
 <!-- GRAPH:END -->

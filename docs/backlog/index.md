@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**694 records** — 486 bugs under [`docs/bugs/`](../bugs/), 208 non-bug items under [`items/`](items/).
+**716 records** — 496 bugs under [`docs/bugs/`](../bugs/), 220 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 230 |
-| Blocked | 2 |
-| Deferred | 108 |
-| Awaiting a product decision | 10 |
-| Completed / closed | 344 |
+| Open (active work) | 235 |
+| Blocked | 3 |
+| Deferred | 117 |
+| Awaiting a product decision | 11 |
+| Completed / closed | 350 |
 | **Open CRITICAL** | **6** |
-| **Open HIGH** | **101** |
+| **Open HIGH** | **103** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,8 +27,8 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 6 |
-| HIGH | 101 |
-| MEDIUM | 101 |
+| HIGH | 103 |
+| MEDIUM | 104 |
 | LOW | 22 |
 
 ## Open by type
@@ -36,17 +36,17 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | AUTHORIZATION | 13 |
-| BUG | 69 |
+| BUG | 71 |
 | DATABASE | 1 |
-| DATA_INTEGRITY | 21 |
+| DATA_INTEGRITY | 24 |
 | DOCUMENTATION | 1 |
-| FOLLOW_UP | 4 |
+| FOLLOW_UP | 3 |
 | INFRA | 8 |
 | INTEGRATION | 5 |
 | PERFORMANCE | 15 |
 | PRODUCT_DECISION | 1 |
 | SECURITY | 22 |
-| STATE_MACHINE | 3 |
+| STATE_MACHINE | 4 |
 | TECH_DEBT | 7 |
 | TENANT_ISOLATION | 2 |
 | TEST_GAP | 9 |
@@ -56,16 +56,16 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 44 |
-| BLOCKED | 2 |
-| DEFERRED | 108 |
-| PRODUCT_DECISION | 10 |
-| FIXED | 162 |
+| OPEN | 46 |
+| BLOCKED | 3 |
+| DEFERRED | 117 |
+| PRODUCT_DECISION | 11 |
+| FIXED | 166 |
 | VERIFIED | 218 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
-| READY | 24 |
-| DONE | 112 |
+| READY | 23 |
+| DONE | 118 |
 
 ## All records
 
@@ -306,6 +306,8 @@ see [`README.md`](README.md) for why.
 | [BUG-3565](../../docs/bugs/BUG-3565-opening-a-contract-template-or-signature-request-from-its-ad.md) | Opening a contract template or signature request from its admin list returns 404 | BUG | HIGH | P1 | FIXED | api:platform-runtime | DONE |
 | [BUG-3578](../../docs/bugs/BUG-3578-deleting-a-partner-or-lead-with-restricted-history-crashes-w.md) | Deleting a partner or lead with restricted history crashes with a 500 | DATA_INTEGRITY | HIGH | P1 | FIXED | api:partners, api:leads | DONE |
 | [BUG-3597](../../docs/bugs/BUG-3597-a-drawn-or-uploaded-signature-inside-a-signature-paragraph-i.md) | A drawn or uploaded signature inside a signature paragraph is dropped from the signed PDF and DOCX | BUG | HIGH | P1 | FIXED | api:contracts | DONE |
+| [BUG-3697](../../docs/bugs/BUG-3697-a-custom-field-added-to-a-system-module-has-nowhere-to-store.md) | A custom field added to a system module has nowhere to store its values | DATA_INTEGRITY | HIGH | P1 | OPEN | customization, employees | PLAN_REQUIRED |
+| [BUG-3702](../../docs/bugs/BUG-3702-adding-a-field-to-a-package-s-own-custom-module-demoted-the-.md) | Adding a field to a package's own custom module demoted the module to a reference | DATA_INTEGRITY | HIGH | P1 | FIXED | customization | DONE |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -321,6 +323,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0124](../../docs/backlog/items/ITEM-0124-production-advisory-gate-blocks-every-release-to-main-and-np.md) | Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile | SECURITY | HIGH | P1 | DONE | scripts/check-production-advisories.mjs | DONE |
 | [ITEM-0172](../../docs/backlog/items/ITEM-0172-wire-debounced-search-and-the-openable-label-into-the-metada.md) | Wire debounced search and the openable label into the metadata-driven record-form lookup call site | FOLLOW_UP | HIGH | P1 | DONE | apps/web | DONE |
 | [ITEM-0208](../../docs/backlog/items/ITEM-0208-production-neon-database-exceeded-its-data-transfer-quota-an.md) | Production Neon database exceeded its data transfer quota and failed two deploys | INFRA | HIGH | P1 | READY | services/api | PLAN_REQUIRED |
+| [ITEM-0209](../../docs/backlog/items/ITEM-0209-confirm-the-safepay-refund-request-body-and-webhook-signing-.md) | Confirm the Safepay refund request body and webhook signing input against a live sandbox run | TEST_GAP | HIGH | P1 | BLOCKED | api:billing | BLOCKED_EXTERNAL |
 | [ITEM-0048](../../docs/backlog/items/ITEM-0048-replace-or-contain-active-win-and-the-xlsx-export-path.md) | Replace or contain active-win and the xlsx export path | SECURITY | HIGH | P2 | BLOCKED | apps/agent-desktop, services/api/src/common/excel, package-lock.json | BLOCKED_EXTERNAL |
 | [ITEM-0086](../../docs/backlog/items/ITEM-0086-smoke-deployment-does-not-assert-that-a-launched-market-has-.md) | smoke:deployment does not assert that a launched market has a purchasable price or a running outbox worker | TEST_GAP | HIGH | P2 | DONE | scripts | DONE |
 | [ITEM-0132](../../docs/backlog/items/ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for.md) | No multi-factor authentication exists anywhere, including for platform super admins | SECURITY | HIGH | P2 | PRODUCT_DECISION | api:auth | PRODUCT_DECISION |
@@ -335,6 +338,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0044](../../docs/backlog/items/ITEM-0044-validate-forwarded-host-before-tenant-web-workspace-resoluti.md) | Validate forwarded host before tenant web workspace resolution | SECURITY | MEDIUM | P1 | DONE | apps/web | DONE |
 | [ITEM-0180](../../docs/backlog/items/ITEM-0180-one-plain-notification-events-page-replacing-rules-and-chann.md) | One plain notification events page replacing Rules and Channel Preferences | UX | MEDIUM | P1 | DONE | apps/web, notifications | DONE |
 | [ITEM-0205](../../docs/backlog/items/ITEM-0205-before-promoting-task-0032-review-agreements-signed-with-a-f.md) | Before promoting TASK-0032: review agreements signed with a fabricated date and partners that fail the new type policy | DATA_MIGRATION | MEDIUM | P1 | DONE | api:contracts, api:partners | DONE |
+| [ITEM-0210](../../docs/backlog/items/ITEM-0210-decide-when-pkr-checkout-moves-to-safepay-and-what-happens-t.md) | Decide when PKR checkout moves to Safepay and what happens to existing PKR Stripe subscribers | PRODUCT_DECISION | MEDIUM | P1 | PRODUCT_DECISION | api:billing | PRODUCT_DECISION |
 | [BUG-0009](../../docs/bugs/BUG-0009-session-revocation-depended-on-the-refresh-cookie.md) | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | P2 | VERIFIED | app:admin, api:auth | DONE |
 | [BUG-0010](../../docs/bugs/BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500.md) | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | P2 | VERIFIED | app:admin | DONE |
 | [BUG-0013](../../docs/bugs/BUG-0013-public-lead-endpoint-had-no-rate-limiting.md) | The public lead endpoint had no rate limiting | SECURITY | MEDIUM | P2 | VERIFIED | api:leads | DONE |
@@ -545,6 +549,10 @@ see [`README.md`](README.md) for why.
 | [BUG-3585](../../docs/bugs/BUG-3585-error-codes-added-for-mfa-platform-authorization-and-agreeme.md) | Error codes added for MFA, platform authorization and agreements reach clients as generic codes | BUG | MEDIUM | P2 | FIXED | services/api/src/common/errors, api:auth, api:contracts | DONE |
 | [BUG-3587](../../docs/bugs/BUG-3587-the-monitoring-overview-raises-a-hydration-error-that-covers.md) | The monitoring overview raises a hydration error that covers the page with the error dialog | UX | MEDIUM | P2 | FIXED | apps/admin | DONE |
 | [BUG-3598](../../docs/bugs/BUG-3598-generate-document-on-an-executed-agreement-renders-from-draf.md) | Generate document on an executed agreement renders from draft values, not the signature evidence | BUG | MEDIUM | P2 | FIXED | api:contracts, apps/admin | DONE |
+| [BUG-3698](../../docs/bugs/BUG-3698-draft-edits-to-custom-fields-take-effect-before-they-are-pub.md) | Draft edits to custom fields take effect before they are published | STATE_MACHINE | MEDIUM | P2 | OPEN | customization | PLAN_REQUIRED |
+| [BUG-3699](../../docs/bugs/BUG-3699-deleting-a-field-form-or-view-ignored-references-held-in-oth.md) | Deleting a field, form or view ignored references held in other packages' layers | DATA_INTEGRITY | MEDIUM | P2 | FIXED | customization | DONE |
+| [BUG-3703](../../docs/bugs/BUG-3703-package-export-readiness-could-never-report-a-missing-depend.md) | Package export readiness could never report a missing dependency | BUG | MEDIUM | P2 | FIXED | customization | DONE |
+| [BUG-3704](../../docs/bugs/BUG-3704-settings-pages-scroll-horizontally-at-phone-width-again.md) | Settings pages scroll horizontally at phone width again | UX | MEDIUM | P2 | DEFERRED | apps/web | DEFER |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -647,7 +655,8 @@ see [`README.md`](README.md) for why.
 | [ITEM-0197](../../docs/backlog/items/ITEM-0197-totp-multi-factor-authentication-for-tenant-and-platform-use.md) | TOTP multi-factor authentication for tenant and platform users | SECURITY | MEDIUM | P2 | DONE | api:auth, apps/web, apps/admin | DONE |
 | [ITEM-0198](../../docs/backlog/items/ITEM-0198-admin-monitoring-platform-health-overview-grouped-error-fiel.md) | Admin monitoring: platform health overview, grouped error fields, module facet and incident-first layout | UX | MEDIUM | P2 | DONE | apps/admin, api:error-logs, api:platform-monitoring | DONE |
 | [ITEM-0199](../../docs/backlog/items/ITEM-0199-admin-dashboard-operational-metrics-for-logins-mfa-adoption-.md) | Admin dashboard: operational metrics for logins, MFA adoption, error rate, job failures, partner funnel and agreements | UX | MEDIUM | P2 | DONE | apps/admin, api:super-admin | DONE |
-| [ITEM-0200](../../docs/backlog/items/ITEM-0200-agreements-have-no-end-to-end-test-coverage-and-partners-lea.md) | Agreements have no end-to-end test coverage and partners/leads have no e2e lifecycle suite | TEST_GAP | MEDIUM | P2 | DEFERRED | api:contracts, api:partners, api:leads | DEFER |
+| [ITEM-0200](../../docs/backlog/items/ITEM-0200-agreements-have-no-end-to-end-test-coverage-and-partners-lea.md) | Agreements have no end-to-end test coverage and partners/leads have no e2e lifecycle suite | TEST_GAP | MEDIUM | P2 | DONE | api:contracts, api:partners, api:leads | DONE |
+| [ITEM-0211](../../docs/backlog/items/ITEM-0211-safepay-renewal-invoices-are-issued-but-never-emailed-to-the.md) | Safepay renewal invoices are issued but never emailed to the tenant | FOLLOW_UP | MEDIUM | P2 | DEFERRED | api:billing | DEFER |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |
@@ -657,7 +666,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0089](../../docs/backlog/items/ITEM-0089-the-contact-form-is-the-only-public-lead-creating-form-with-.md) | The contact form is the only public lead-creating form with no honeypot | SECURITY | LOW | P2 | DEFERRED | apps/landing | DEFER |
 | [ITEM-0098](../../docs/backlog/items/ITEM-0098-753-of-846-shared-frontend-exports-carry-no-doc-comment.md) | 753 of 846 shared frontend exports carry no doc-comment | DOCUMENTATION | LOW | P2 | DEFERRED | admin, web | DEFER |
 | [ITEM-0108](../../docs/backlog/items/ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle.md) | Decide whether the roughly one-hour session lifetime is idle or absolute | PRODUCT_DECISION | LOW | P2 | READY | api:auth | PLAN_REQUIRED |
-| [ITEM-0201](../../docs/backlog/items/ITEM-0201-platform-runtime-edits-ignore-the-record-version-so-concurre.md) | Platform runtime edits ignore the record version, so concurrent edits silently overwrite each other | TECH_DEBT | LOW | P2 | DEFERRED | api:platform-runtime, apps/admin | DEFER |
+| [ITEM-0201](../../docs/backlog/items/ITEM-0201-platform-runtime-edits-ignore-the-record-version-so-concurre.md) | Platform runtime edits ignore the record version, so concurrent edits silently overwrite each other | TECH_DEBT | LOW | P2 | DONE | api:platform-runtime, apps/admin | DONE |
 | [BUG-0018](../../docs/bugs/BUG-0018-bulk-lead-delete-is-unreachable-for-every-role.md) | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | P3 | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [BUG-0023](../../docs/bugs/BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist.md) | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | P3 | VERIFIED | .agent/context | DONE |
 | [BUG-0024](../../docs/bugs/BUG-0024-start-onboarding-api-and-proxy-have-no-caller.md) | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | P3 | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -698,6 +707,10 @@ see [`README.md`](README.md) for why.
 | [BUG-3586](../../docs/bugs/BUG-3586-the-monitoring-health-headline-reads-unknown-when-no-email-h.md) | The monitoring health headline reads Unknown when no email has been sent | BUG | LOW | P3 | FIXED | api:platform-monitoring | DONE |
 | [BUG-3588](../../docs/bugs/BUG-3588-a-signed-in-operator-without-the-users-permission-sees-a-log.md) | A signed-in operator without the users permission sees a login-style Access denied page | UX | LOW | P3 | DEFERRED | apps/admin | DEFER |
 | [BUG-3599](../../docs/bugs/BUG-3599-generating-an-agreement-in-an-unsupported-format-returns-a-5.md) | Generating an agreement in an unsupported format returns a 500 instead of a 400 | BUG | LOW | P3 | FIXED | api:contracts | DONE |
+| [BUG-3668](../../docs/bugs/BUG-3668-saving-agreement-document-fields-skips-the-shared-immutabili.md) | Saving agreement document fields skips the shared immutability check | BUG | LOW | P3 | FIXED | api:contracts | DONE |
+| [BUG-3700](../../docs/bugs/BUG-3700-any-signed-in-user-can-read-the-full-published-customization.md) | Any signed-in user can read the full published customization snapshot | AUTHORIZATION | LOW | P3 | DEFERRED | customization | DEFER |
+| [BUG-3701](../../docs/bugs/BUG-3701-platform-scope-customization-packages-are-not-unique-by-key.md) | Platform-scope customization packages are not unique by key | DATABASE | LOW | P3 | DEFERRED | customization | DEFER |
+| [BUG-3705](../../docs/bugs/BUG-3705-package-sub-page-breadcrumbs-end-in-a-second-packages-instea.md) | Package sub-page breadcrumbs end in a second Packages instead of the page | UX | LOW | P3 | DEFERRED | apps/web | DEFER |
 | [ITEM-0007](../../docs/backlog/items/ITEM-0007-should-duplicate-website-leads-be-deduplicated.md) | Product decision — should duplicate website leads be deduplicated? | PRODUCT_DECISION | LOW | P3 | DONE | api:leads, apps/landing | DONE |
 | [ITEM-0008](../../docs/backlog/items/ITEM-0008-customeraccount-has-no-origin-channel.md) | Product decision — CustomerAccount carries no origin channel | PRODUCT_DECISION | LOW | P3 | DONE | services/api/prisma, api:super-admin | DONE |
 | [ITEM-0011](../../docs/backlog/items/ITEM-0011-framework-validation-should-catch-absence-claims.md) | Framework validation should catch false absence claims in context documents | TECH_DEBT | LOW | P3 | DONE | .agent/context, scripts | DONE |
@@ -738,9 +751,13 @@ see [`README.md`](README.md) for why.
 | [ITEM-0195](../../docs/backlog/items/ITEM-0195-the-legacy-publish-snapshot-shape-can-expose-a-never-publish.md) | The legacy publish snapshot shape can expose a never-published custom module at runtime | FOLLOW_UP | LOW | P3 | DEFERRED | data, customization | DEFER |
 | [ITEM-0196](../../docs/backlog/items/ITEM-0196-the-employee-record-still-shows-a-hardcoded-cnic-field-an-en.md) | The employee record still shows a hardcoded CNIC field, an end-user form selector and a mislabelled Global Administrator role | UX | LOW | P3 | DEFERRED | apps/web, employees, permissions | DEFER |
 | [ITEM-0202](../../docs/backlog/items/ITEM-0202-mfa-status-reads-off-while-new-recovery-codes-are-shown.md) | MFA status reads Off while new recovery codes are shown | UX | LOW | P3 | DONE | apps/web, apps/admin | DONE |
-| [ITEM-0203](../../docs/backlog/items/ITEM-0203-an-individual-partner-s-agreement-still-records-the-counterp.md) | An individual partner's agreement still records the counterparty as a PARTNER party, not INDIVIDUAL | FOLLOW_UP | LOW | P3 | READY | api:contracts, api:partners | PLAN_REQUIRED |
-| [ITEM-0204](../../docs/backlog/items/ITEM-0204-adr-0018-follow-ups-platform-role-literal-tier-checks-and-th.md) | ADR-0018 follow-ups: platform role-literal tier checks and the ungoverned legacy tenant status route | TECH_DEBT | LOW | P3 | DEFERRED | api:platform-runtime, api:tenant-control-plane, api:super-admin, api:leads, api:platform-monitoring | DEFER |
-| [ITEM-0206](../../docs/backlog/items/ITEM-0206-admin-dashboard-drill-downs-for-active-users-failed-sign-ins.md) | Admin dashboard drill-downs for active users, failed sign-ins and unresolved errors land on approximate pages | UX | LOW | P3 | DEFERRED | apps/admin, api:super-admin, api:platform-monitoring | DEFER |
+| [ITEM-0203](../../docs/backlog/items/ITEM-0203-an-individual-partner-s-agreement-still-records-the-counterp.md) | An individual partner's agreement still records the counterparty as a PARTNER party, not INDIVIDUAL | FOLLOW_UP | LOW | P3 | DONE | api:contracts, api:partners | DONE |
+| [ITEM-0204](../../docs/backlog/items/ITEM-0204-adr-0018-follow-ups-platform-role-literal-tier-checks-and-th.md) | ADR-0018 follow-ups: platform role-literal tier checks and the ungoverned legacy tenant status route | TECH_DEBT | LOW | P3 | DONE | api:platform-runtime, api:tenant-control-plane, api:super-admin, api:leads, api:platform-monitoring | DONE |
+| [ITEM-0206](../../docs/backlog/items/ITEM-0206-admin-dashboard-drill-downs-for-active-users-failed-sign-ins.md) | Admin dashboard drill-downs for active users, failed sign-ins and unresolved errors land on approximate pages | UX | LOW | P3 | DONE | apps/admin, api:super-admin, api:platform-monitoring | DONE |
+| [ITEM-0212](../../docs/backlog/items/ITEM-0212-public-signup-offers-no-promotion-code-field-for-safepay-rou.md) | Public signup offers no promotion code field for Safepay-routed buyers | FOLLOW_UP | LOW | P3 | DEFERRED | api:billing | DEFER |
+| [ITEM-0213](../../docs/backlog/items/ITEM-0213-mid-period-seat-increases-on-a-safepay-subscription-are-not-.md) | Mid-period seat increases on a Safepay subscription are not charged until renewal | FOLLOW_UP | LOW | P3 | DEFERRED | api:billing | DEFER |
+| [ITEM-0214](../../docs/backlog/items/ITEM-0214-flipping-safepay-enabled-while-a-pkr-stripe-checkout-is-open.md) | Flipping SAFEPAY_ENABLED while a PKR Stripe checkout is open can let one order be paid twice | FOLLOW_UP | LOW | P3 | DEFERRED | api:billing | DEFER |
+| [ITEM-0215](../../docs/backlog/items/ITEM-0215-scripts-verify-database-mjs-cannot-run-on-windows-and-seed-d.md) | scripts/verify-database.mjs cannot run on Windows and seed:demo runs out of memory at the default heap | INFRA | LOW | P3 | DONE | scripts, services/api | DONE |
 | [ITEM-0126](../../docs/backlog/items/ITEM-0126-decide-which-of-the-41-always-visible-settings-pages-should-.md) | Decide which of the 41 always-visible settings pages should be sold | PRODUCT_DECISION | — | P1 | DONE | apps/web | DONE |
 | [ITEM-0129](../../docs/backlog/items/ITEM-0129-tenants-should-inherit-the-platform-email-provider-by-defaul.md) | Tenants should inherit the platform email provider by default, and may override it | ARCHITECTURE | — | P1 | DONE | services/api, apps/web | DONE |
 | [ITEM-0130](../../docs/backlog/items/ITEM-0130-review-process-missed-four-defects-on-screens-adjacent-to-th.md) | Review process missed four defects on screens adjacent to the change | TEST_GAP | — | P1 | DONE | apps/web, .agent | DONE |
@@ -759,6 +776,11 @@ see [`README.md`](README.md) for why.
 | [ITEM-0173](../../docs/backlog/items/ITEM-0173-wire-notification-coverage-for-the-four-highest-value-remain.md) | Wire notification coverage for the four highest-value remaining silent modules | FOLLOW_UP | — | P2 | DEFERRED | documents, contracts, recruitment, business-trips | DEFER |
 | [ITEM-0193](../../docs/backlog/items/ITEM-0193-decide-whether-the-hr-role-may-manage-notification-events.md) | Decide whether the hr role may manage notification events | PRODUCT_DECISION | — | P2 | PRODUCT_DECISION | notifications, permissions | PRODUCT_DECISION |
 | [ITEM-0207](../../docs/backlog/items/ITEM-0207-seed-config-rewrites-version-1-of-system-agreement-templates.md) | seed:config rewrites version 1 of system agreement templates in place instead of publishing a new version | PRODUCT_DECISION | — | P2 | PRODUCT_DECISION | services/api/prisma | PRODUCT_DECISION |
+| [ITEM-0216](../../docs/backlog/items/ITEM-0216-connection-references-for-customization-packages.md) | Connection references for customization packages | FOLLOW_UP | — | P2 | DEFERRED | customization | DEFER |
+| [ITEM-0217](../../docs/backlog/items/ITEM-0217-platform-admin-read-only-view-of-tenant-package-installation.md) | Platform admin read-only view of tenant package installations | FOLLOW_UP | — | P2 | DEFERRED | customization, super-admin | DEFER |
+| [ITEM-0218](../../docs/backlog/items/ITEM-0218-carry-module-views-navigation-workflows-and-reports-in-custo.md) | Carry module views, navigation, workflows and reports in customization packages | ARCHITECTURE | — | P2 | DEFERRED | customization, views, navigation, workflows, reporting | DEFER |
+| [ITEM-0219](../../docs/backlog/items/ITEM-0219-package-cli-and-a-ci-pipeline-step-for-validate-export-and-i.md) | Package CLI and a CI pipeline step for validate, export and import | FOLLOW_UP | — | P2 | DEFERRED | customization | DEFER |
+| [ITEM-0220](../../docs/backlog/items/ITEM-0220-publisher-signing-for-customization-package-artifacts.md) | Publisher signing for customization package artifacts | SECURITY | — | P2 | DEFERRED | customization | DEFER |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |
 | [ITEM-0114](../../docs/backlog/items/ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-.md) | The workspace shell states the tenant's identity four times and its purpose twice | UX | — | P3 | DONE | views, apps/web | DONE |

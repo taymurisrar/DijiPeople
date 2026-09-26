@@ -75,6 +75,6 @@ Deferred: outside TASK-0031 scope; found during it; owner to schedule.
 
 ## Related
 
-- Modules — [[tenant-application]]
+- Modules — [[tenant-application]], [[customization]]
 
 <!-- GRAPH:END -->

@@ -154,6 +154,13 @@ function RuntimeRecordEditor({
     [moduleKey],
   );
   const isCreate = !record.id;
+  /*
+   * The concurrency token sent with every update (ITEM-0201). It must follow
+   * the record: a save, or a reload after a status change, moves the record's
+   * version, and keeping the one this editor mounted with would refuse the
+   * operator's own next save as a conflict.
+   */
+  const [currentVersion, setCurrentVersion] = useState(version);
   const [mode, setMode] = useState<"create" | "read" | "edit">(
     isCreate ? "create" : "read",
   );
@@ -363,11 +370,12 @@ function RuntimeRecordEditor({
     }
     const response = isCreate
       ? await adapter.createRecord(payload)
-      : await adapter.updateRecord(record.id, payload, version);
+      : await adapter.updateRecord(record.id, payload, currentVersion);
     if (close) router.push(definition.routeBase);
     else if (isCreate)
       router.replace(`${definition.routeBase}/${response.item.id}`);
     else {
+      setCurrentVersion(response.version);
       form.setValues(withContractDocument(response.item));
       setMode("read");
     }
@@ -378,6 +386,7 @@ function RuntimeRecordEditor({
     if (isCreate) return;
     const response = await adapter.getRecord(record.id);
     const next = response.item;
+    setCurrentVersion(response.version);
     form.setValues(withContractDocument(next));
     if (moduleKey === "contracts")
       setTimeline(
@@ -725,8 +734,9 @@ function RuntimeRecordEditor({
             const response = await adapter.updateRecord(
               record.id,
               { featureKeys },
-              version,
+              currentVersion,
             );
+            setCurrentVersion(response.version);
             form.setValues(response.item);
             // Save locks the record back, exactly as saving the form does.
             setMode("read");

@@ -217,7 +217,7 @@ passed on f865ac5e (the merged tree). Scenario QA-SETTINGS-022:
 
 ## Related
 
-- Modules — [[tenant-application]]
+- Modules — [[tenant-application]], [[customization]]
 - Implementation — [[EXECPLAN-0045-customization-end-to-end-for-permission-holders]]
 - Regression — REG-482 (see the regression register)
 

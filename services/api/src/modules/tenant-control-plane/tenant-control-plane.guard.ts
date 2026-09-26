@@ -2,6 +2,7 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import type { PrismaService } from '../../common/prisma/prisma.service';
 import {
+  isPlatformAdminTier,
   type PlatformPermission,
   userHasPlatformPermission,
 } from '../platform-auth/platform-permissions';
@@ -40,11 +41,7 @@ export function assertPlatformAdministrator(user: AuthenticatedUser) {
   if (!user.platform?.id) {
     throw new ForbiddenException('Platform access is required.');
   }
-  if (
-    !['SUPER_ADMIN', 'PLATFORM_OWNER', 'PLATFORM_ADMIN'].includes(
-      user.platform.role ?? '',
-    )
-  ) {
+  if (!isPlatformAdminTier(user)) {
     throw new ForbiddenException('Platform administrator access is required.');
   }
 }

@@ -3,6 +3,9 @@
 import {
   AlertTriangle,
   ArrowLeft,
+  PackageCheck,
+  PackageMinus,
+  GitBranch,
   Download,
   FilePlus2,
   FolderTree,
@@ -29,19 +32,68 @@ import {
 import { EmptyState } from "@/app/components/ui/empty-state";
 import { SelectField } from "@/app/components/ui/form-control";
 import { StatusPill } from "@/app/components/ui/status-pill";
-import { useDialogBehavior } from "@/app/components/ui/dialog";
+import { Dialog, useDialogBehavior } from "@/app/components/ui/dialog";
 import type {
+  ComponentDependencyGraph,
   CustomizationDependencyIssue,
   CustomizationPackageCandidate,
   CustomizationPackageComponent,
   CustomizationPackageDetail,
   CustomizationTable,
+  PackageEnvironmentVariable,
+  PackageIssue,
+  PackageLifecycle,
+  PackageReleaseReadiness,
 } from "../types";
+import {
+  DependenciesPanel,
+  DeploymentsTable,
+  EnvironmentPanel,
+  IssueList,
+  ReleaseDialog,
+  ValidationPanel,
+  VersionsPanel,
+  requestJson,
+} from "./package-lifecycle-panels";
 
 type PackageDetailShellProps = {
   packageDetail: CustomizationPackageDetail;
   modules: CustomizationTable[];
+  lifecycle: PackageLifecycle | null;
+  readiness: PackageReleaseReadiness | null;
+  environmentVariables: PackageEnvironmentVariable[];
 };
+
+type DetailTab =
+  | "components"
+  | "validation"
+  | "dependencies"
+  | "versions"
+  | "deployments"
+  | "environment";
+
+const DETAIL_TABS: { key: DetailTab; label: string }[] = [
+  { key: "components", label: "Components" },
+  { key: "validation", label: "Validation" },
+  { key: "dependencies", label: "Dependencies" },
+  { key: "versions", label: "Versions" },
+  { key: "deployments", label: "Deployments" },
+  { key: "environment", label: "Environment" },
+];
+
+/* TASK-0033 — why a package cannot be changed, by what kind of package it is. */
+function readOnlyReason(packageDetail: CustomizationPackageDetail) {
+  if (packageDetail.kind === "installed" || packageDetail.isManaged) {
+    return "Installed from another environment. Read-only here.";
+  }
+  return "DijiPeople Core is read-only.";
+}
+
+function kindLabel(packageDetail: CustomizationPackageDetail) {
+  if (packageDetail.kind === "installed") return "Installed";
+  if (packageDetail.kind === "system" || packageDetail.isDefault) return "System";
+  return "Editable";
+}
 
 type AddExistingState = {
   moduleKey: string;
@@ -74,8 +126,25 @@ const componentTypeOptions = [
 export function PackageDetailShell({
   packageDetail,
   modules,
+  lifecycle,
+  readiness: initialReadiness,
+  environmentVariables,
 }: PackageDetailShellProps) {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<DetailTab>("components");
+  const [readiness, setReadiness] = useState(initialReadiness);
+  const [releaseOpen, setReleaseOpen] = useState(false);
+  const [pendingDependency, setPendingDependency] = useState<string | null>(
+    null,
+  );
+  const [uninstallState, setUninstallState] = useState<{
+    mode: "uninstall" | "detach";
+    blockers: PackageIssue[];
+  } | null>(null);
+  const [dependencyGraph, setDependencyGraph] =
+    useState<ComponentDependencyGraph | null>(null);
+  const permissions = lifecycle?.permissions;
+  const latestVersion = lifecycle?.versions[0]?.version ?? null;
   const formattingContext = useFormattingContext();
   const [selection, setSelection] = useState<ExplorerSelection>({
     kind: "package",
@@ -486,16 +555,73 @@ export function PackageDetailShell({
     router.refresh();
   }
 
-  async function exportPackage() {
-    const response = await fetch(
-      `/api/customization/packages/${packageDetail.id}/export`,
-    );
-    const data = await response.json();
-    if (!response.ok) {
-      showError(data.message ?? "Unable to export Package.");
+  async function openUninstall() {
+    try {
+      const check = await requestJson<{
+        canUninstall: boolean;
+        blockers: PackageIssue[];
+      }>(`/api/customization/packages/${packageDetail.id}/uninstall-check`);
+      setUninstallState({ mode: "uninstall", blockers: check.blockers });
+    } catch (error) {
+      showError((error as Error).message);
+    }
+  }
+
+  async function confirmUninstall() {
+    if (!uninstallState) return;
+    setIsSaving(true);
+    try {
+      await requestJson(
+        `/api/customization/packages/${packageDetail.id}/${uninstallState.mode}`,
+        { method: "POST" },
+      );
+      setUninstallState(null);
+      if (uninstallState.mode === "uninstall") {
+        router.push(
+          `/settings/customization/packages?message=${encodeURIComponent(
+            `${packageDetail.displayName} was uninstalled.`,
+          )}`,
+        );
+      } else {
+        setMessage({ title: "Package detached", variant: "success" });
+      }
+      router.refresh();
+    } catch (error) {
+      const failure = error as Error & { issues?: PackageIssue[] };
+      setUninstallState((current) =>
+        current ? { ...current, blockers: failure.issues ?? current.blockers } : current,
+      );
+      showError(failure.message);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function showDependencies(componentId: string) {
+    try {
+      setDependencyGraph(
+        await requestJson<ComponentDependencyGraph>(
+          `/api/customization/components/${componentId}/dependencies`,
+        ),
+      );
+    } catch (error) {
+      showError((error as Error).message);
+    }
+  }
+
+  function applyRemedy(issue: PackageIssue) {
+    if (issue.remedy?.action === "addDependency") {
+      setPendingDependency(issue.remedy.target);
+      setActiveTab("dependencies");
       return;
     }
-    downloadJson(data, `${packageDetail.packageKey}.package.json`);
+    const moduleKey = issue.remedy?.target.split(":")[1]?.split(".")[0];
+    setActiveTab("components");
+    setAddExisting({
+      moduleKey: moduleKey ?? modules[0]?.tableKey ?? "",
+      componentType: "module",
+      selectedIds: [],
+    });
   }
 
   function showError(description: string) {
@@ -503,7 +629,7 @@ export function PackageDetailShell({
   }
 
   const publishDisabledReason = packageDetail.isReadOnly
-    ? "Default Package is read-only."
+    ? readOnlyReason(packageDetail)
     : validation && !validation.valid
       ? "Package has validation errors."
       : (validation?.draftComponentsCount ??
@@ -542,13 +668,32 @@ export function PackageDetailShell({
       ) : null}
 
       <section className="grid gap-3 rounded-lg border border-border bg-surface p-4 shadow-sm md:grid-cols-5">
-        <Metric label="Version" value={packageDetail.version} />
+        <Metric
+          label={packageDetail.kind === "installed" ? "Installed version" : "Version"}
+          value={
+            packageDetail.kind === "installed"
+              ? (packageDetail.installedVersion ?? packageDetail.version)
+              : packageDetail.version
+          }
+        />
         <Metric label="Publisher" value={packageDetail.publisherName} />
-        <Metric label="State" value={stateLabel(packageDetail.state)} />
+        <Metric label="Type" value={kindLabel(packageDetail)} />
         <Metric label="Components" value={packageDetail.componentsCount} />
         <Metric
           label="Validation"
-          value={validation?.valid === false ? "Blocked" : "Ready"}
+          value={
+            packageDetail.kind !== "editable"
+              ? "Not applicable"
+              : readiness
+              ? readiness.errors
+                ? `${readiness.errors} error(s)`
+                : readiness.warnings
+                  ? `${readiness.warnings} warning(s)`
+                  : "Healthy"
+              : validation?.valid === false
+                ? "Blocked"
+                : "Ready"
+          }
         />
       </section>
 
@@ -581,7 +726,7 @@ export function PackageDetailShell({
             size="xs"
             title={
               packageDetail.isReadOnly
-                ? "Default Package is read-only."
+                ? readOnlyReason(packageDetail)
                 : "Add existing components"
             }
             variant="ghost"
@@ -630,14 +775,62 @@ export function PackageDetailShell({
         >
           Validate
         </Button>
-        <Button
-          leftIcon={<Download className="h-4 w-4" />}
-          onClick={exportPackage}
-          size="xs"
-          variant="ghost"
-        >
-          Export
-        </Button>
+        {permissions?.canRelease ? (
+          <PermissionGate anyOf={["customization.packages.release"]}>
+            <Button
+              leftIcon={<PackageCheck className="h-4 w-4" />}
+              onClick={() => setReleaseOpen(true)}
+              size="xs"
+              variant="ghost"
+            >
+              Release
+            </Button>
+          </PermissionGate>
+        ) : null}
+        {permissions?.canExport ? (
+          <PermissionGate anyOf={["customization.export"]}>
+            {latestVersion ? (
+              <a
+                className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-accent-soft"
+                download
+                href={`/api/customization/packages/${packageDetail.id}/versions/latest/artifact`}
+              >
+                <Download aria-hidden="true" className="h-4 w-4" />
+                Export {latestVersion}
+              </a>
+            ) : (
+              <Button
+                disabled
+                leftIcon={<Download className="h-4 w-4" />}
+                size="xs"
+                title="Release a version first."
+                variant="ghost"
+              >
+                Export
+              </Button>
+            )}
+          </PermissionGate>
+        ) : null}
+        {permissions?.canUninstall ? (
+          <PermissionGate anyOf={["customization.packages.uninstall"]}>
+            <Button
+              leftIcon={<GitBranch className="h-4 w-4" />}
+              onClick={() => setUninstallState({ mode: "detach", blockers: [] })}
+              size="xs"
+              variant="ghost"
+            >
+              Detach
+            </Button>
+            <Button
+              leftIcon={<PackageMinus className="h-4 w-4" />}
+              onClick={openUninstall}
+              size="xs"
+              variant="danger"
+            >
+              Uninstall
+            </Button>
+          </PermissionGate>
+        ) : null}
         <Button
           leftIcon={<RefreshCw className="h-4 w-4" />}
           onClick={async () => {
@@ -663,9 +856,93 @@ export function PackageDetailShell({
         </PermissionGate>
       </div>
 
+      <div
+        aria-label="Package areas"
+        className="flex flex-wrap gap-2 rounded-lg border border-border bg-surface p-2 shadow-sm"
+        role="tablist"
+      >
+        {DETAIL_TABS.filter(
+          (tab) => tab.key !== "validation" || packageDetail.kind === "editable",
+        ).map((tab) => (
+          <button
+            aria-selected={activeTab === tab.key}
+            className={`rounded-md px-3 py-1.5 text-sm font-semibold transition ${
+              activeTab === tab.key
+                ? "bg-accent text-white"
+                : "text-muted hover:bg-accent-soft hover:text-foreground"
+            }`}
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            role="tab"
+            type="button"
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "validation" ? (
+        <ValidationPanel
+          notify={(title, description, variant = "success") =>
+            setMessage({ title, description, variant })
+          }
+          onReadiness={setReadiness}
+          onRemedy={applyRemedy}
+          packageId={packageDetail.id}
+          readiness={readiness}
+        />
+      ) : null}
+      {activeTab === "dependencies" ? (
+        lifecycle ? (
+          <DependenciesPanel
+            editable={Boolean(permissions?.canEdit)}
+            key={pendingDependency ?? "dependencies"}
+            lifecycle={lifecycle}
+            notify={(title, description, variant = "success") =>
+              setMessage({ title, description, variant })
+            }
+            onSaved={() => {
+              setPendingDependency(null);
+              router.refresh();
+            }}
+            pendingDependency={pendingDependency}
+          />
+        ) : (
+          <EmptyState description="Dependencies could not be loaded." title="Unavailable" />
+        )
+      ) : null}
+      {activeTab === "versions" ? (
+        lifecycle ? (
+          <VersionsPanel lifecycle={lifecycle} />
+        ) : (
+          <EmptyState description="Versions could not be loaded." title="Unavailable" />
+        )
+      ) : null}
+      {activeTab === "deployments" ? (
+        <section className="grid gap-4 rounded-lg border border-border bg-surface p-4 shadow-sm">
+          <h3 className="text-base font-semibold text-foreground">Deployments</h3>
+          <DeploymentsTable operations={lifecycle?.recentOperations ?? []} />
+        </section>
+      ) : null}
+      {activeTab === "environment" ? (
+        <EnvironmentPanel
+          editable={Boolean(permissions?.canEdit)}
+          notify={(title, description, variant = "success") =>
+            setMessage({ title, description, variant })
+          }
+          onChanged={() => router.refresh()}
+          packageId={packageDetail.id}
+          variables={environmentVariables}
+        />
+      ) : null}
+
+      {activeTab === "components" ? (
+      <>
       <DiagnosticsPanel
         diagnostics={validation}
-        isReadOnly={packageDetail.isReadOnly}
+        readOnlyNote={
+          packageDetail.isReadOnly ? readOnlyReason(packageDetail) : null
+        }
       />
 
       <div className="grid min-h-[620px] gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
@@ -684,6 +961,7 @@ export function PackageDetailShell({
             />
           ) : selection.kind === "component" && selectedComponent ? (
             <ComponentDetail
+              onShowDependencies={() => showDependencies(selectedComponent.id)}
               component={selectedComponent}
               deleteReason={deleteComponentReason(selectedComponent)}
               isReadOnly={packageDetail.isReadOnly}
@@ -734,6 +1012,8 @@ export function PackageDetailShell({
           )}
         </section>
       </div>
+      </>
+      ) : null}
 
       {addExisting ? (
         <div
@@ -843,6 +1123,102 @@ export function PackageDetailShell({
             : "Remove from Package"
         }
       />
+      {releaseOpen ? (
+        <ReleaseDialog
+          currentVersion={packageDetail.version}
+          lastVersion={latestVersion}
+          onClose={() => setReleaseOpen(false)}
+          onReleased={(version) => {
+            setReleaseOpen(false);
+            setMessage({
+              title: `Version ${version} released`,
+              variant: "success",
+            });
+          }}
+          packageId={packageDetail.id}
+        />
+      ) : null}
+      <Dialog
+        busy={isSaving}
+        description={
+          uninstallState?.mode === "detach"
+            ? `Keep the components of "${packageDetail.displayName}" and make them editable here? Later versions of this package can no longer be installed over them.`
+            : uninstallState?.blockers.length
+              ? `Cannot uninstall "${packageDetail.displayName}".`
+              : `Remove "${packageDetail.displayName}" and the components it installed? Records are never deleted.`
+        }
+        footer={
+          <>
+            <Button onClick={() => setUninstallState(null)} variant="secondary">
+              Cancel
+            </Button>
+            <Button
+              disabled={
+                uninstallState?.mode === "uninstall" &&
+                uninstallState.blockers.length > 0
+              }
+              loading={isSaving}
+              onClick={confirmUninstall}
+              variant="danger"
+            >
+              {uninstallState?.mode === "detach" ? "Detach" : "Uninstall"}
+            </Button>
+          </>
+        }
+        onClose={() => setUninstallState(null)}
+        open={Boolean(uninstallState)}
+        title={uninstallState?.mode === "detach" ? "Detach Package" : "Uninstall Package"}
+      >
+        {uninstallState?.mode === "uninstall" && uninstallState.blockers.length ? (
+          <IssueList issues={uninstallState.blockers} />
+        ) : null}
+      </Dialog>
+      {dependencyGraph ? (
+        <Dialog
+          footer={
+            <Button onClick={() => setDependencyGraph(null)} variant="secondary">
+              Close
+            </Button>
+          }
+          onClose={() => setDependencyGraph(null)}
+          open
+          size="md"
+          title={dependencyGraph.label ?? dependencyGraph.componentKey}
+        >
+          <div className="grid gap-4 text-sm">
+            <div>
+              <h4 className="font-semibold text-foreground">Depends on</h4>
+              {dependencyGraph.dependsOn.length ? (
+                <ul className="mt-2 grid gap-1">
+                  {dependencyGraph.dependsOn.map((entry) => (
+                    <li className="flex justify-between gap-3" key={entry.componentKey}>
+                      <span>{entry.label}</span>
+                      <StatusPill tone={entry.missing ? "danger" : "muted"}>{entry.owner}</StatusPill>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-1 text-muted">Nothing.</p>
+              )}
+            </div>
+            <div>
+              <h4 className="font-semibold text-foreground">Used by</h4>
+              {dependencyGraph.usedBy.length ? (
+                <ul className="mt-2 grid gap-1">
+                  {dependencyGraph.usedBy.map((entry) => (
+                    <li className="flex justify-between gap-3" key={entry.componentKey}>
+                      <span>{entry.displayName} <span className="text-muted">({entry.label})</span></span>
+                      <span className="text-muted">{entry.packageName ?? ""}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-1 text-muted">Nothing uses it.</p>
+              )}
+            </div>
+          </div>
+        </Dialog>
+      ) : null}
       <ConfirmDialog
         confirmAction={{
           label: "Delete Package",
@@ -987,14 +1363,16 @@ function ComponentDetail({
   isReadOnly,
   onDelete,
   onRemove,
+  onShowDependencies,
 }: {
   component: CustomizationPackageComponent;
   deleteReason: string | null;
   isReadOnly: boolean;
   onDelete: () => void;
   onRemove: () => void;
+  onShowDependencies: () => void;
 }) {
-  const removeReason = isReadOnly ? "Default Package is read-only." : null;
+  const removeReason = isReadOnly ? "This package is read-only." : null;
   const formattingContext = useFormattingContext();
   return (
     <div className="grid gap-5">
@@ -1010,6 +1388,14 @@ function ComponentDetail({
             {component.objectKey ?? component.logicalName}
           </p>
         </div>
+        <Button
+          leftIcon={<FolderTree className="h-4 w-4" />}
+          onClick={onShowDependencies}
+          size="xs"
+          variant="ghost"
+        >
+          Show Dependencies
+        </Button>
         <PermissionGate anyOf={["customization.publish"]}>
           <div className="flex flex-wrap gap-2">
             <Button
@@ -1072,10 +1458,10 @@ function ComponentDetail({
 
 function DiagnosticsPanel({
   diagnostics,
-  isReadOnly,
+  readOnlyNote,
 }: {
   diagnostics: CustomizationPackageDetail["diagnostics"];
-  isReadOnly: boolean;
+  readOnlyNote: string | null;
 }) {
   const issues = diagnostics?.issues ?? [];
   const blocking = issues.filter((issue) => issue.blocking);
@@ -1094,9 +1480,7 @@ function DiagnosticsPanel({
       <div className="mt-3 grid gap-3 md:grid-cols-3">
         <DiagnosticBucket
           items={[
-            ...(isReadOnly
-              ? ["Default/System Package cannot be deleted."]
-              : []),
+            ...(readOnlyNote ? [readOnlyNote] : []),
             ...blocking.map((issue) => issue.message),
           ]}
           label="Blocking errors"
@@ -1275,10 +1659,6 @@ function newComponentRoute(moduleKey: string, componentType: string) {
   return null;
 }
 
-function stateLabel(value: string) {
-  return value.charAt(0).toUpperCase() + value.slice(1);
-}
-
 /* ITEM-0184 — "Layer action: Create/Reference" read as developer jargon. */
 function changeLabel(value: string) {
   const labels: Record<string, string> = {
@@ -1333,14 +1713,3 @@ function emptyDiagnostics() {
   };
 }
 
-function downloadJson(value: unknown, fileName: string) {
-  const blob = new Blob([JSON.stringify(value, null, 2)], {
-    type: "application/json",
-  });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = fileName;
-  link.click();
-  URL.revokeObjectURL(url);
-}

@@ -27,11 +27,34 @@
  */
 
 import { execFileSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const API = join(ROOT, 'services/api');
+
+/*
+ * ITEM-0215. npm is spawned through its own CLI script beside the running Node.
+ * `execFileSync('npm', …)` works on Linux but not on Windows, where `npm` is a
+ * `.cmd` shim Node refuses to spawn without a shell — so this recipe failed at
+ * its first npm stage on every Windows machine. Same resolution as
+ * `scripts/check-production-advisories.mjs`.
+ */
+function npmCliPath() {
+  const fromEnv = process.env.npm_execpath;
+  if (fromEnv && fromEnv.endsWith('.js') && existsSync(fromEnv)) return fromEnv;
+  const nodeDir = dirname(process.execPath);
+  for (const candidate of [
+    join(nodeDir, 'node_modules', 'npm', 'bin', 'npm-cli.js'),
+    join(nodeDir, '..', 'lib', 'node_modules', 'npm', 'bin', 'npm-cli.js'),
+  ]) {
+    if (existsSync(candidate)) return candidate;
+  }
+  throw new Error('could not locate npm-cli.js beside node — set npm_execpath, or run this through npm');
+}
+const NPM_CLI = npmCliPath();
+const npm = (args) => [process.execPath, [NPM_CLI, ...args]];
 
 const argv = process.argv.slice(2);
 const SKIP_SEED = argv.includes('--skip-seed');
@@ -83,19 +106,19 @@ run('Assert the target database is ephemeral', process.execPath, [join(ROOT, 'sc
 
 // --- 1. Generate the client the migrations and seeds will use.
 
-run('Prisma generate', 'npm', ['--workspace', 'api', 'run', 'prisma:generate'], {
+run('Prisma generate', ...npm(['--workspace', 'api', 'run', 'prisma:generate']), {
   failureClass: CLASS.TEST_INFRA_FAILURE,
 });
 
 // --- 2. Apply the entire committed migration history to an empty database.
 
-run('Apply all migrations (migrate deploy)', 'npm', ['--workspace', 'api', 'run', 'prisma:migrate:deploy'], {
+run('Apply all migrations (migrate deploy)', ...npm(['--workspace', 'api', 'run', 'prisma:migrate:deploy']), {
   failureClass: CLASS.MIGRATION_FAILURE,
 });
 
 // --- 3. Confirm the schema actually reached the expected state.
 
-const status = execFileSync('npm', ['--workspace', 'api', 'run', 'prisma:migrate:status'], {
+const status = execFileSync(...npm(['--workspace', 'api', 'run', 'prisma:migrate:status']), {
   cwd: ROOT,
   encoding: 'utf8',
   env: process.env,
@@ -116,11 +139,11 @@ if (/pending|not yet been applied|drift|failed/i.test(status)) {
 // --- 4. Seed the system configuration a deployment requires, then verify it.
 
 if (!SKIP_SEED) {
-  run('Seed system configuration (seed:config)', 'npm', ['--workspace', 'api', 'run', 'seed:config'], {
+  run('Seed system configuration (seed:config)', ...npm(['--workspace', 'api', 'run', 'seed:config']), {
     failureClass: CLASS.SEED_FAILURE,
   });
 
-  run('Verify seed configuration (seed:verify)', 'npm', ['--workspace', 'api', 'run', 'seed:verify'], {
+  run('Verify seed configuration (seed:verify)', ...npm(['--workspace', 'api', 'run', 'seed:verify']), {
     failureClass: CLASS.SEED_FAILURE,
   });
 }

@@ -16,6 +16,9 @@ import {
 import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { PaymentRecheckService } from '../billing/services/payment-recheck.service';
+import { PaymentSettlementService } from '../billing/services/payment-settlement.service';
+import { PaymentGateways } from '../billing/providers/payment-gateways';
+import { RefundProviderPaymentDto } from './dto/refund-provider-payment.dto';
 import { PlatformFxService } from './platform-fx.service';
 import type { PlatformRateView } from './platform-fx.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -49,7 +52,6 @@ import { UpdatePrimaryOwnerDto } from './dto/update-primary-owner.dto';
 import { UpdateTenantCustomerAccountDto } from './dto/update-tenant-customer-account.dto';
 import { UpdateTenantFeaturesDto } from './dto/update-tenant-features.dto';
 import { UpdateTenantSubscriptionDto } from './dto/update-tenant-subscription.dto';
-import { UpdateTenantStatusDto } from './dto/update-tenant-status.dto';
 import { SetAgentAssignmentDto } from './dto/set-agent-assignment.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { UpdateTenantSlugDto } from '../tenants/dto/update-tenant-slug.dto';
@@ -97,6 +99,8 @@ export class SuperAdminController {
     private readonly paymentRecheck: PaymentRecheckService,
     private readonly fx: PlatformFxService,
     private readonly operationsDashboard: OperationsDashboardService,
+    private readonly paymentSettlement: PaymentSettlementService,
+    private readonly paymentGateways: PaymentGateways,
   ) {}
 
   @Get('dashboard-summary')
@@ -332,15 +336,12 @@ export class SuperAdminController {
     );
   }
 
-  @Patch('tenants/:tenantId/status')
-  @RequirePlatformPermission('platform.tenants.administer')
-  updateTenantStatus(
-    @CurrentUser() user: AuthenticatedUser,
-    @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
-    @Body() dto: UpdateTenantStatusDto,
-  ) {
-    return this.superAdminService.updateTenantStatus(user, tenantId, dto);
-  }
+  /*
+   * ITEM-0204. `PATCH tenants/:tenantId/status` was retired: it set any status
+   * with no reason and no lifecycle rules, beside the governed
+   * `POST /platform/tenants/:tenantId/status` (tenant-control-plane), and had
+   * no caller. Status changes go through that one path.
+   */
 
   // Desktop-agent rollout (TASK-0027): which tenants receive a release, and on
   // which channel. Platform-guarded like the rest of this controller.
@@ -801,6 +802,59 @@ export class SuperAdminController {
   @Post('billing/stripe-webhook-events/:id/retry')
   retryStripeWebhookEvent(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.superAdminService.retryStripeWebhookEvent(id);
+  }
+
+  /** Which non-Stripe providers are switched on and configured — never keys. */
+  @Get('billing/payment-providers')
+  getPaymentProviders() {
+    return this.paymentGateways.describe();
+  }
+
+  @Get('billing/provider-events')
+  listPaymentProviderEvents(
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.superAdminService.listPaymentProviderEvents({
+      page,
+      pageSize,
+      status,
+    });
+  }
+
+  /**
+   * Re-read a Safepay payment from Safepay and apply the answer, exactly as the
+   * webhook would. It never marks a payment paid on an operator's word — the
+   * reason `PaymentRecheckService` gives for the Stripe equivalent.
+   */
+  @Post('payments/:paymentId/verify')
+  async verifyProviderPayment(
+    @Param('paymentId', new ParseUUIDPipe()) paymentId: string,
+  ) {
+    return {
+      status: await this.paymentSettlement.settlePayment(paymentId, 'OPERATOR'),
+    };
+  }
+
+  /**
+   * Refund a captured Safepay payment in full through Safepay. Narrower than
+   * `payments.manage` (ADR-0018): it returns money to a card and cannot be
+   * undone.
+   */
+  @Post('payments/:paymentId/refund')
+  @RequirePlatformPermission('platform.billing.administer')
+  refundProviderPayment(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('paymentId', new ParseUUIDPipe()) paymentId: string,
+    @Body() dto: RefundProviderPaymentDto,
+  ) {
+    return this.paymentSettlement.refundPayment({
+      paymentId,
+      reasonCode: dto.reasonCode,
+      reason: dto.reason,
+      platformUserId: user.platform?.id ?? null,
+    });
   }
 
   @Get('platform-settings')

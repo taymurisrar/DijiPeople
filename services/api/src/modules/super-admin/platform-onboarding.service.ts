@@ -10,6 +10,7 @@ import {
   CustomerAccountStatus,
   DiscountType,
   InvoiceStatus,
+  PaymentProvider,
   PlatformUserStatus,
   SubscriptionStatus,
   TenantFeatureSource,
@@ -66,6 +67,7 @@ export type ProvisionTenantForCustomerInput = {
     currency?: string;
     purchasedSeats?: number;
     stripeSubscriptionId?: string | null;
+    paymentProvider?: PaymentProvider | null;
     discountType?: DiscountType;
     discountValue?: number;
     discountReason?: string | null;
@@ -326,6 +328,7 @@ export class PlatformOnboardingService {
           currency: input.subscription.currency,
           purchasedSeats: input.subscription.purchasedSeats,
           stripeSubscriptionId: input.subscription.stripeSubscriptionId,
+          paymentProvider: input.subscription.paymentProvider,
           discountType: input.subscription.discountType,
           discountValue: input.subscription.discountValue,
           discountReason: input.subscription.discountReason,
