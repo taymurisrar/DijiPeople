@@ -16,6 +16,13 @@ import type {
 import { stableRuntimeMetadataId } from "../metadata-id";
 import { createSystemWidgetComponent } from "../system-widget-metadata";
 import { defaultPrimaryNameFieldForEntity } from "./entity-primary-name-field";
+import {
+  buildEmployeeCustomFieldMetadata,
+  employeeCustomFieldsPayload,
+  employeeCustomFieldValues,
+  type EmployeeCustomFieldDefinition,
+  withEmployeeCustomFieldSection,
+} from "./employee-custom-fields";
 import type { ModuleMetadataBundle } from "../module-runtime.types";
 import type { ModuleRuntimeContext } from "../module-runtime.types";
 import type { RuntimePrincipal } from "../security-runtime.types";
@@ -451,6 +458,8 @@ export interface EmployeeMetadataAdapterInput {
   readonly forms?: readonly RuntimeCustomizationForm[];
   readonly views?: readonly RuntimeCustomizationView[];
   readonly employeeSettings?: EmployeeRuntimeSettings | null;
+  /* The tenant's published custom fields (BUG-3697). */
+  readonly customFields?: readonly EmployeeCustomFieldDefinition[];
 }
 
 export interface EmployeeRuntimeContextInput extends EmployeeMetadataAdapterInput {
@@ -464,14 +473,24 @@ export function buildEmployeeMetadataBundle(
   input: EmployeeMetadataAdapterInput = {},
 ): ModuleMetadataBundle {
   const requiredFields = resolveRequiredEmployeeFields(input.employeeSettings);
-  const entity = buildEmployeeEntityMetadata(
+  const systemEntity = buildEmployeeEntityMetadata(
     requiredFields,
     input.employeeSettings,
   );
+  const customFields = input.customFields ?? [];
+  const entity: EntityMetadata = {
+    ...systemEntity,
+    fields: [
+      ...systemEntity.fields,
+      ...buildEmployeeCustomFieldMetadata(customFields),
+    ],
+  };
 
   return {
     entity,
-    forms: mapEmployeeForms(input.forms ?? [], requiredFields),
+    forms: mapEmployeeForms(input.forms ?? [], requiredFields).map((form) =>
+      withEmployeeCustomFieldSection(form, customFields),
+    ),
     views: mapEmployeeViews(input.views ?? []),
     commands: employeeRuntimeCommands,
   };
@@ -1475,6 +1494,7 @@ export function mapEmployeeRecordToRuntimeValues(
      */
     hasLinkedUser: Boolean(stringValue(employee.userId)),
     hasNeverLoggedIn: employee.hasNeverLoggedIn === true,
+    ...(employeeCustomFieldValues(employee) as EmployeeRuntimeFormValues),
   };
 }
 
@@ -1540,6 +1560,7 @@ export function mapEmployeeRuntimeValuesToUpdatePayload(
     emergencyContactAlternatePhone: emptyToNull(
       values.emergencyContactAlternatePhone,
     ),
+    customFields: employeeCustomFieldsPayload(values),
   };
 }
 

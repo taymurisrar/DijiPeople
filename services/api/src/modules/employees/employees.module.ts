@@ -18,6 +18,7 @@ import { EmployeesRepository } from './employees.repository';
 import { EmployeesService } from './employees.service';
 import { EmployeeAccessService } from './employee-access.service';
 import { BenefitsModule } from '../benefits/benefits.module';
+import { CustomFieldValuesModule } from '../customization/custom-field-values.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { BenefitsModule } from '../benefits/benefits.module';
     TenantSettingsModule,
     NotificationsModule,
     BenefitsModule,
+    CustomFieldValuesModule,
   ],
   controllers: [EmployeesController],
   providers: [

@@ -4,6 +4,7 @@ import { getSessionUser } from "@/lib/auth";
 import { getTableForms } from "@/lib/customization-forms";
 import { buildVisibilityPlacement } from "@/lib/runtime/visibility-placement";
 import { getCurrentEmployee } from "../../_lib/current-employee";
+import { loadEmployeeCustomFields } from "../custom-fields";
 import { canManageEmployeeRecord } from "@/lib/employee-profile-access";
 import {
   buildEmployeeRuntimeContext,
@@ -73,7 +74,10 @@ export default async function EmployeeDetailPage({
     throw error;
   }
 
-  const runtimeForms = await getTableForms("employees");
+  const [runtimeForms, customFields] = await Promise.all([
+    getTableForms("employees"),
+    loadEmployeeCustomFields(),
+  ]);
   const { employee: viewerEmployee } = await getCurrentEmployee();
   const employeeRuntimeContext = buildEmployeeRuntimeContext({
     tenant: resolveTenantRuntimeConfig({
@@ -132,6 +136,7 @@ export default async function EmployeeDetailPage({
           ),
     },
     forms: runtimeForms,
+    customFields,
     views: [],
     recordId: employee.id,
     employeeSettings: resolvedSettings?.employee,

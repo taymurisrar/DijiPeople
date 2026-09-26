@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 442** · automated: 366 · manual: 27 · blocked by infrastructure: 0
+**Scenarios: 443** · automated: 367 · manual: 27 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -184,6 +184,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-EMPLOYEE-005](../../../docs/qa/scenarios/QA-EMPLOYEE-005-employee-work-sites-are-managed-in-the-work-sites-tab-and-ma.md) | Employee work sites are managed in the Work Sites tab and Make primary moves Location | employees | BROWSER_E2E | HIGH | PARTIAL | `apps/web/lib/runtime/modules/employee-metadata.work-sites.spec.ts` | ITEM-0179 | REG-500 |
 | [QA-EMPLOYEE-006](../../../docs/qa/scenarios/QA-EMPLOYEE-006-the-primary-work-site-changes-only-through-the-transactional.md) | The primary work site changes only through the transactional work-site endpoint | employees | API | HIGH | PARTIAL | `services/api/src/modules/employees/employees.service.spec.ts` | ITEM-0179 | REG-501, REG-488 |
 | [QA-EMPLOYEE-007](../../../docs/qa/scenarios/QA-EMPLOYEE-007-existing-employee-records-hide-create-time-fields-and-lay-se.md) | Existing employee records hide create-time fields and lay sections out two across at tablet width | employees | BROWSER_E2E | LOW | PARTIAL | `apps/web/lib/runtime/modules/employee-metadata.work-sites.spec.ts` | ITEM-0184 | REG-502, REG-503 |
+| [QA-EMPLOYEES-001](../../../docs/qa/scenarios/QA-EMPLOYEES-001-a-published-custom-field-on-employees-stores-validates-and-s.md) | A published custom field on Employees stores, validates and shows a value per employee | employees | DATABASE | HIGH | AUTOMATED | `services/api/test/custom-field-values.e2e-spec.ts` | BUG-3697 | REG-638 |
 | [QA-FRAMEWORK-001](../../../docs/qa/scenarios/QA-FRAMEWORK-001-the-id-allocator-never-returns-a-plan-number-an-execplan-alr.md) | The id allocator never returns a PLAN number an ExecPlan already holds | framework | UNIT | MEDIUM | AUTOMATED | `scripts/id-allocator.test.mjs` | BUG-2413 | REG-365 |
 | [QA-INFRA-002](../../../docs/qa/scenarios/QA-INFRA-002-repo-health-attributes-main-changes-to-the-right-task.md) | repo-health attributes main changes to the right task | deployment-release | API | HIGH | AUTOMATED | `scripts/task-sha-ref.test.mjs` | BUG-1203 | REG-249 |
 | [QA-INFRA-003](../../../docs/qa/scenarios/QA-INFRA-003-the-component-index-drift-check-is-platform-independent.md) | the component index drift check is platform-independent | deployment-release | API | MEDIUM | AUTOMATED | `scripts/index-drift.test.mjs` | BUG-1208 | REG-250 |

@@ -5,7 +5,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
-  CustomizationColumn,
   CustomizationFieldDataType,
   Prisma,
   SecurityPrivilege,
@@ -21,6 +20,10 @@ import { CUSTOM_RECORDS_METADATA } from './custom-records.metadata';
 import { EntityPermissionResolver } from './entity-permission.resolver';
 import { EntityScopeResolver } from './entity-scope.resolver';
 import { getEntityMetadata } from './entity-registry';
+import {
+  maskValue,
+  validateCustomFieldValue as validateValue,
+} from '../customization/custom-field-values';
 
 type CustomTable = PublishedCustomTable;
 type RelatedQuery = {
@@ -671,30 +674,4 @@ function sameEntity(
       .replace(/s$/i, '')
       .toLowerCase();
   return normalize(left) === normalize(right);
-}
-function maskValue(value: string) {
-  if (value.length <= 4) return '*'.repeat(value.length);
-  return `${'*'.repeat(Math.min(8, value.length - 4))}${value.slice(-4)}`;
-}
-function validateValue(column: CustomizationColumn, value: unknown) {
-  if (value === null || value === undefined || value === '') return null;
-  if (column.dataType === 'boolean' && typeof value !== 'boolean')
-    return 'Must be a boolean.';
-  if (
-    ['number', 'decimal', 'currency'].includes(column.dataType) &&
-    (typeof value !== 'number' || !Number.isFinite(value))
-  )
-    return 'Must be a number.';
-  if (
-    ['date', 'datetime'].includes(column.dataType) &&
-    (typeof value !== 'string' || Number.isNaN(Date.parse(value)))
-  )
-    return 'Must be a valid date.';
-  if (
-    typeof value === 'string' &&
-    column.maxLength &&
-    value.length > column.maxLength
-  )
-    return `Must not exceed ${column.maxLength} characters.`;
-  return null;
 }

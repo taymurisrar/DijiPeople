@@ -6810,3 +6810,17 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — with dependencies empty neither the release issue nor MISSING_DEPENDENCY appears. |
 | **Fixed** | 2026-09-26, branch `agent/packages-alm` |
 | **Active** | yes |
+
+### REG-638 — A custom field on a system module had nowhere to store its values
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-step` |
+| **Module** | `services/api/src/modules/customization` |
+| **Bug record** | BUG-3697 |
+| **Root cause** | Custom-field storage existed only for custom modules (CustomDataRecord); a field published on Employees had a definition and no value store, so no API accepted a value and no form offered one. Values now live in CustomRecordExtension, written and read through EmployeesService after its own access check. |
+| **Regression test** | `services/api/test/custom-field-values.e2e-spec.ts` (publish gating, store and clear, masking, unchanged masked and read-only values, field errors, tenant isolation), `services/api/src/modules/customization/custom-field-values.spec.ts` (the value rules) and `apps/web/lib/runtime/modules/employee-custom-fields.spec.ts` (the employee form reads, places and sends the fields). |
+| **Scenario** | QA-EMPLOYEES-001 — a published custom field on Employees stores, validates and shows a value per employee. |
+| **Fails without the fix** | Yes — without the storage the e2e has no value to read back, and without the web wiring the form carries no custom field and the payload no customFields. |
+| **Fixed** | 2026-09-26, branch `agent/custom-field-values` |
+| **Active** | yes |

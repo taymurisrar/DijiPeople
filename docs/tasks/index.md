@@ -10,7 +10,7 @@ graph and the block reasons. See
 |---|---|
 | [Active](active.md) | 4 |
 | [Blocked](blocked.md) | 0 |
-| [Completed](completed.md) | 28 |
+| [Completed](completed.md) | 29 |
 
 ## Next ready work package
 
@@ -28,6 +28,7 @@ Nothing ready.
 - [TASK-0031](TASK-0031-demo-walkthrough-2-remediation-hierarchy-work-sites-customiz.md) — 9 owner decision(s) outstanding
 - [TASK-0032](TASK-0032-partner-onboarding-agreements-admin-rbac-monitoring-dashboar.md) — 1 owner decision(s) outstanding
 - [TASK-0033](TASK-0033-package-alm-versions-portable-artifact-staged-import-upgrade.md) — 3 owner decision(s) outstanding
+- [TASK-0034](TASK-0034-custom-field-values-on-system-modules-package-import-at-scal.md) — 1 owner decision(s) outstanding
 
 ## All tasks
 
@@ -65,3 +66,4 @@ Nothing ready.
 | [TASK-0031](TASK-0031-demo-walkthrough-2-remediation-hierarchy-work-sites-customiz.md) | Demo walkthrough 2 remediation - hierarchy, work sites, customization, notifications | FEATURE | PROGRAM | P1 | COMPLETE | 9/9 | — |
 | [TASK-0032](TASK-0032-partner-onboarding-agreements-admin-rbac-monitoring-dashboar.md) | Partner onboarding, agreements, admin RBAC, monitoring, dashboard and MFA hardening | FEATURE | PROGRAM | P1 | COMPLETE | 13/13 | — |
 | [TASK-0033](TASK-0033-package-alm-versions-portable-artifact-staged-import-upgrade.md) | Package ALM: versions, portable artifact, staged import, upgrade, uninstall | FEATURE | LARGE | P1 | COMPLETE | 8/8 | — |
+| [TASK-0034](TASK-0034-custom-field-values-on-system-modules-package-import-at-scal.md) | Custom field values on system modules; package import at scale | FEATURE | LARGE | P1 | COMPLETE | 4/4 | — |

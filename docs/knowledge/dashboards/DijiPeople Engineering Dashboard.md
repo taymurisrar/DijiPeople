@@ -12,7 +12,7 @@
 | Open total | 234 |
 | Blocked | 4 |
 | Awaiting a product decision | 9 |
-| Deferred | 117 |
+| Deferred | 118 |
 | Completed | 352 |
 | Awaiting Architect triage | 0 |
 
@@ -127,7 +127,7 @@
 | [[BUG-3565-opening-a-contract-template-or-signature-request-from-its-ad|BUG-3565]] | Opening a contract template or signature request from its admin list returns 404 | BUG | HIGH | FIXED | api:platform-runtime | DONE |
 | [[BUG-3578-deleting-a-partner-or-lead-with-restricted-history-crashes-w|BUG-3578]] | Deleting a partner or lead with restricted history crashes with a 500 | DATA_INTEGRITY | HIGH | FIXED | api:partners, api:leads | DONE |
 | [[BUG-3597-a-drawn-or-uploaded-signature-inside-a-signature-paragraph-i|BUG-3597]] | A drawn or uploaded signature inside a signature paragraph is dropped from the signed PDF and DOCX | BUG | HIGH | FIXED | api:contracts | DONE |
-| [[BUG-3697-a-custom-field-added-to-a-system-module-has-nowhere-to-store|BUG-3697]] | A custom field added to a system module has nowhere to store its values | DATA_INTEGRITY | HIGH | OPEN | customization, employees | PLAN_REQUIRED |
+| [[BUG-3697-a-custom-field-added-to-a-system-module-has-nowhere-to-store|BUG-3697]] | A custom field added to a system module has nowhere to store its values | DATA_INTEGRITY | HIGH | FIXED | customization, employees | FIX_NOW |
 | [[BUG-3702-adding-a-field-to-a-package-s-own-custom-module-demoted-the-|BUG-3702]] | Adding a field to a package's own custom module demoted the module to a reference | DATA_INTEGRITY | HIGH | FIXED | customization | DONE |
 | [[ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no|ITEM-0133]] | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | READY | services/api/test | PLAN_REQUIRED |
 | [[ITEM-0134-the-payroll-run-engine-has-no-tests|ITEM-0134]] | The payroll run engine has no tests | TEST_GAP | HIGH | READY | api:payroll | PLAN_REQUIRED |
@@ -366,6 +366,7 @@
 | [[BUG-3565-opening-a-contract-template-or-signature-request-from-its-ad|BUG-3565]] | Opening a contract template or signature request from its admin list returns 404 | BUG | HIGH | FIXED | api:platform-runtime | DONE |
 | [[BUG-3578-deleting-a-partner-or-lead-with-restricted-history-crashes-w|BUG-3578]] | Deleting a partner or lead with restricted history crashes with a 500 | DATA_INTEGRITY | HIGH | FIXED | api:partners, api:leads | DONE |
 | [[BUG-3597-a-drawn-or-uploaded-signature-inside-a-signature-paragraph-i|BUG-3597]] | A drawn or uploaded signature inside a signature paragraph is dropped from the signed PDF and DOCX | BUG | HIGH | FIXED | api:contracts | DONE |
+| [[BUG-3697-a-custom-field-added-to-a-system-module-has-nowhere-to-store|BUG-3697]] | A custom field added to a system module has nowhere to store its values | DATA_INTEGRITY | HIGH | FIXED | customization, employees | FIX_NOW |
 | [[BUG-3702-adding-a-field-to-a-package-s-own-custom-module-demoted-the-|BUG-3702]] | Adding a field to a package's own custom module demoted the module to a reference | DATA_INTEGRITY | HIGH | FIXED | customization | DONE |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver|BUG-3501]] | The email provider screen presents a console sink as delivery and offers sink providers in production | UX | MEDIUM | FIXED | notifications, apps/web | PLAN_REQUIRED |
@@ -576,12 +577,12 @@
 
 - [[2026-09-26-task-0033-package-alm-b55afdb|QA Run — task-0033-package-alm]]
 - [[2026-09-26-safepay-multi-provider-billing-562dee9|QA Run — safepay-multi-provider-billing]]
+- [[2026-09-26-custom-field-values-cd777b7|QA Run — custom-field-values]]
 - [[2026-09-13-task-0031-demo-walkthrough-2-local-browser-qa-e253306|QA Run — task-0031-demo-walkthrough-2-local-browser-qa]]
 - [[2026-08-31-reports-analytics-platform-96ff155|QA Run — reports-analytics-platform]]
 - [[2026-08-29-starter-plan-e2e-pass-2-8ab1cbf|QA Run — starter-plan-e2e-pass-2]]
 - [[2026-08-29-starter-plan-e2e-eb457d9|QA Run — starter-plan-e2e]]
 - [[2026-08-28-regression-guard-sweep-9e55663|QA Run — regression-guard-sweep]]
-- [[2026-08-28-admin-console-e2e-912f4e6|QA Run — Admin console end-to-end, browser-driven]]
 
 ## Recent Implementations
 
@@ -598,11 +599,11 @@
 - [[2026-09-26-task-0033-package-alm-b55afdb2|Engineering History — TASK-0033 package ALM]]
 - [[2026-09-26-release-backlog-safepay-package-alm-42f597b7|Engineering History — Release backlog safepay package alm]]
 - [[2026-09-26-item-0207-template-versions-9e66d115|Engineering History — Item 0207 template versions]]
+- [[2026-09-26-custom-field-values-and-import-scale-cd777b78|Engineering History — Custom field values and import scale]]
 - [[2026-09-26-billing-safepay-provider-aa2c507e|Engineering History — Safepay for PKR alongside Stripe]]
 - [[2026-09-26-backlog-0203-0204-0206-7866e11e|Engineering History — Backlog 0203 0204 0206]]
 - [[2026-09-26-backlog-0201-0200-856747e7|Engineering History — Backlog 0201 0200]]
 - [[2026-09-25-task-0032-partner-agreements-admin-hardening-dfe42ea9|Engineering History — Task 0032 partner agreements admin hardening]]
-- [[2026-09-13-task-0031-demo-walkthrough-2-remediation-e253306a|Engineering History — Task 0031 demo walkthrough 2 remediation]]
 
 ## Recent Releases
 
@@ -778,10 +779,10 @@
 | Knowledge | Count |
 |---|---|
 | Bug records | 496 |
-| Backlog items | 220 |
+| Backlog items | 221 |
 | Known bug patterns | 35 |
-| QA runs | 35 |
-| Engineering history records | 89 |
+| QA runs | 36 |
+| Engineering history records | 90 |
 | Release records | 10 |
 | Module notes | 31 |
 | Architecture notes | 22 |

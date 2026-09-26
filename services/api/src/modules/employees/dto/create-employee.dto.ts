@@ -16,6 +16,7 @@ import {
   IsInt,
   IsIn,
   IsArray,
+  IsObject,
   IsOptional,
   IsString,
   IsUUID,
@@ -38,6 +39,15 @@ function emptyStringToUndefined({ value }: { value: unknown }) {
 }
 
 export class CreateEmployeeDto {
+  /*
+   * TASK-0034 / BUG-3697 — values of the tenant's published custom fields on
+   * Employees, keyed by field. Each key is validated against its field by
+   * CustomFieldValuesService; unknown keys are ignored, as on custom modules.
+   */
+  @IsOptional()
+  @IsObject()
+  customFields?: Record<string, unknown>;
+
   @IsOptional()
   @Transform(emptyStringToUndefined)
   @IsString()

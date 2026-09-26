@@ -2335,6 +2335,7 @@ model Tenant {
   customizationPackageOperations         CustomizationPackageOperation[]
   customizationEnvironmentVariables      CustomizationEnvironmentVariable[]
   customizationEnvironmentVariableValues CustomizationEnvironmentVariableValue[]
+  customRecordExtensions         CustomRecordExtension[]
   subscription                    Subscription?
   customerAccount                 CustomerAccount                  @relation(fields: [customerAccountId], references: [id], onDelete: Restrict)
   customerOnboardings             CustomerOnboarding[]
@@ -11341,6 +11342,32 @@ model CustomizationTable {
   @@index([tenantId, isActive])
   @@index([tenantId, isCustomizable])
   @@index([tenantId, isVisibleInCustomization])
+}
+
+/// Values of tenant-defined custom fields on a SYSTEM module's records —
+/// "Employee Grade" on an Employee (BUG-3697, TASK-0034).
+///
+/// Custom modules keep their values in CustomDataRecord.values; a system
+/// module's record is a row in its own model, which has no room for fields the
+/// tenant invents. One row here per (tenant, module, record) holds them all,
+/// keyed by the custom column's key, rather than a JSON column added to each
+/// of the ~54 system models. `recordId` is not a foreign key because it points
+/// at a different table per module; the owning module's service is the only
+/// writer and resolves the record (and the caller's access to it) first.
+model CustomRecordExtension {
+  id              String   @id @default(uuid())
+  tenantId        String
+  tableKey        String
+  recordId        String
+  values          Json
+  updatedByUserId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, tableKey, recordId])
+  @@index([tenantId, tableKey])
 }
 
 model CustomDataRecord {

@@ -205,6 +205,18 @@ export class EmployeesController {
     return this.employeesService.getDirectReportsByUser(user);
   }
 
+  /*
+   * TASK-0034 — the tenant's published custom fields on Employees, for the
+   * employee form (including a new employee, which has no record yet). The
+   * same permissions as reading an employee. Declared before :employeeId.
+   */
+  @Get('custom-fields')
+  @Permissions('dashboard.view')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
+  customFieldDefinitions(@CurrentUser() user: AuthenticatedUser) {
+    return this.employeesService.customFieldDefinitions(user);
+  }
+
   @Get(':employeeId')
   @Permissions('dashboard.view')
   @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')

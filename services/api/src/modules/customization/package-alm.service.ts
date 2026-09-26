@@ -34,6 +34,7 @@ import { AuditService } from '../audit/audit.service';
 import { CustomizationService } from './customization.service';
 import {
   CUSTOMIZATION_METADATA_SCHEMA_VERSION,
+  PORTABLE_COMPONENT_TYPES,
   PUBLISHER_PREFIX_PATTERN,
   RESERVED_PUBLISHER_PREFIXES,
   SYSTEM_PUBLISHER_KEY,
@@ -1546,6 +1547,8 @@ export class PackageAlmService {
     const journal: { key: string; action: string }[] = [];
     let failedComponent: string | null = null;
     try {
+      /* Outside the transaction: the Core sync can be thousands of writes. */
+      await this.customization.syncCore(currentUser);
       const result = await this.prisma.$transaction(
         async (tx) => {
           const applied = await this.applyImport(
@@ -1795,28 +1798,60 @@ export class PackageAlmService {
     const statusByKey = new Map(
       plan.comparison.items.map((item) => [item.key, item]),
     );
-    const componentIds: string[] = [];
 
-    for (const component of artifact.components) {
-      onComponent(component.key);
+    /*
+     * Applied type by type, in PORTABLE_COMPONENT_TYPES order, one batch per
+     * step. A component only ever depends on its own or an earlier type (a
+     * field on its module, a form on its fields), so this keeps the ordering
+     * the per-component loop had while turning thousands of sequential round
+     * trips into a handful — which is what keeps a large package inside the
+     * transaction timeout on a remote database.
+     */
+    const resolved = new Map<
+      string,
+      { objectId: string; tableId: string | null }
+    >();
+    const applicable = artifact.components.filter((component) => {
       const item = statusByKey.get(component.key);
-      if (!item) continue;
-      if (item.status === 'SKIPPED') continue;
-
-      const base = await this.applyBaseObject(
+      return item !== undefined && item.status !== 'SKIPPED';
+    });
+    for (const type of PORTABLE_COMPONENT_TYPES) {
+      const batch = applicable.filter((component) => component.type === type);
+      if (!batch.length) continue;
+      onComponent(
+        `${batch[0].key}${batch.length > 1 ? ` (and ${batch.length - 1} more ${type} components)` : ''}`,
+      );
+      const ids = await this.applyBaseObjects(
         tx,
         currentUser,
-        component,
-        item.apply,
+        batch,
+        statusByKey,
         tableIdByKey,
         packageRecord.id,
       );
-      const existing = existingRows.find(
-        (row) =>
-          row.componentType === component.type &&
-          (row.objectId === base.objectId ||
-            row.objectKey === component.objectKey),
-      );
+      for (const [key, value] of ids) resolved.set(key, value);
+    }
+
+    /* Component rows: one createMany for new ones, an update per changed one. */
+    const existingByObject = new Map(
+      existingRows.map((row) => [`${row.componentType}|${row.objectId}`, row]),
+    );
+    const existingByKey = new Map(
+      existingRows.map((row) => [`${row.componentType}|${row.objectKey}`, row]),
+    );
+    const toCreate: Prisma.CustomizationSolutionComponentCreateManyInput[] = [];
+    const toUpdate: {
+      id: string;
+      component: PortableComponent;
+      base: { objectId: string; tableId: string | null };
+    }[] = [];
+    for (const component of applicable) {
+      const item = statusByKey.get(component.key)!;
+      const base = resolved.get(component.key);
+      if (!base) continue;
+      const existing =
+        existingByObject.get(`${component.type}|${base.objectId}`) ??
+        existingByKey.get(`${component.type}|${component.objectKey}`);
       if (
         existing &&
         item.apply === 'none' &&
@@ -1825,71 +1860,91 @@ export class PackageAlmService {
       ) {
         continue;
       }
-      const row = await tx.customizationSolutionComponent.upsert({
-        where: {
-          solutionId_componentType_objectId: {
-            solutionId: packageRecord.id,
-            componentType: component.type as CustomizationSolutionComponentType,
-            objectId: base.objectId,
-          },
-        },
-        create: {
-          tenantId,
-          solutionId: packageRecord.id,
-          componentType: component.type as CustomizationSolutionComponentType,
-          objectId: base.objectId,
-          objectKey: component.objectKey,
-          tableId: base.tableId,
-          baseComponentId:
-            component.layerAction === 'create' ? null : base.objectId,
-          layerAction: component.layerAction,
-          lifecycleState: 'published',
-          /*
-           * Installed layers sit between DijiPeople Core (100) / module
-           * references (200) and this workspace's own unmanaged layers (300),
-           * so a local customization still wins over an installed package.
-           */
-          layerOrder: component.layerAction === 'reference' ? 200 : 250,
-          version: manifest.version,
-          checksum: component.checksum,
-          metadataJson: (component.layer ??
-            Prisma.JsonNull) as Prisma.InputJsonValue,
-          publishedAt: now,
-          publishedByUserId: currentUser.userId,
-          isSystem: component.baseIsSystem,
-          isCustom: !component.baseIsSystem,
-          isManaged: true,
-          createdByUserId: currentUser.userId,
-          updatedByUserId: currentUser.userId,
-        },
-        update: {
-          objectKey: component.objectKey,
-          tableId: base.tableId,
-          layerAction: component.layerAction,
-          lifecycleState: 'published',
-          layerOrder: component.layerAction === 'reference' ? 200 : 250,
-          version: manifest.version,
-          checksum: component.checksum,
-          metadataJson: (component.layer ??
-            Prisma.JsonNull) as Prisma.InputJsonValue,
-          publishedAt: now,
-          publishedByUserId: currentUser.userId,
-          isManaged: true,
-          updatedByUserId: currentUser.userId,
-        },
-      });
-      componentIds.push(row.id);
       journal.push({
         key: component.key,
         action: item.apply === 'none' ? 'ensure' : item.apply,
       });
-    }
-
-    for (const [variableKey, value] of Object.entries(values)) {
-      const variable = await tx.customizationEnvironmentVariable.findFirst({
-        where: { tenantId, variableKey },
+      if (existing) {
+        toUpdate.push({ id: existing.id, component, base });
+        continue;
+      }
+      toCreate.push({
+        tenantId,
+        solutionId: packageRecord.id,
+        componentType: component.type as CustomizationSolutionComponentType,
+        objectId: base.objectId,
+        objectKey: component.objectKey,
+        tableId: base.tableId,
+        baseComponentId:
+          component.layerAction === 'create' ? null : base.objectId,
+        layerAction: component.layerAction,
+        lifecycleState: 'published',
+        /*
+         * Installed layers sit between DijiPeople Core (100) / module
+         * references (200) and this workspace's own unmanaged layers (300),
+         * so a local customization still wins over an installed package.
+         */
+        layerOrder: component.layerAction === 'reference' ? 200 : 250,
+        version: manifest.version,
+        checksum: component.checksum,
+        metadataJson: (component.layer ??
+          Prisma.JsonNull) as Prisma.InputJsonValue,
+        publishedAt: now,
+        publishedByUserId: currentUser.userId,
+        isSystem: component.baseIsSystem,
+        isCustom: !component.baseIsSystem,
+        isManaged: true,
+        createdByUserId: currentUser.userId,
+        updatedByUserId: currentUser.userId,
       });
-      if (!variable || !value.trim()) continue;
+    }
+    if (toCreate.length) {
+      onComponent(`${toCreate.length} component membership row(s)`);
+      await tx.customizationSolutionComponent.createMany({ data: toCreate });
+    }
+    for (const { id, component, base } of toUpdate) {
+      onComponent(component.key);
+      await tx.customizationSolutionComponent.update({
+        where: { id },
+        data: {
+          objectKey: component.objectKey,
+          tableId: base.tableId,
+          layerAction: component.layerAction,
+          lifecycleState: 'published',
+          layerOrder: component.layerAction === 'reference' ? 200 : 250,
+          version: manifest.version,
+          checksum: component.checksum,
+          metadataJson: (component.layer ??
+            Prisma.JsonNull) as Prisma.InputJsonValue,
+          publishedAt: now,
+          publishedByUserId: currentUser.userId,
+          isManaged: true,
+          updatedByUserId: currentUser.userId,
+        },
+      });
+    }
+    const written = await tx.customizationSolutionComponent.findMany({
+      where: {
+        tenantId,
+        solutionId: packageRecord.id,
+        objectKey: {
+          in: journal.map((entry) =>
+            entry.key.slice(entry.key.indexOf(':') + 1),
+          ),
+        },
+      },
+      select: { id: true },
+    });
+    const componentIds = written.map((row) => row.id);
+
+    const variables = Object.keys(values).length
+      ? await tx.customizationEnvironmentVariable.findMany({
+          where: { tenantId, variableKey: { in: Object.keys(values) } },
+        })
+      : [];
+    for (const variable of variables) {
+      const value = values[variable.variableKey];
+      if (!value?.trim()) continue;
       await tx.customizationEnvironmentVariableValue.upsert({
         where: { tenantId_variableId: { tenantId, variableId: variable.id } },
         create: {
@@ -1904,7 +1959,7 @@ export class PackageAlmService {
         },
       });
       journal.push({
-        key: `environmentVariable:${variableKey}`,
+        key: `environmentVariable:${variable.variableKey}`,
         action: 'value-set',
       });
     }
@@ -1913,276 +1968,271 @@ export class PackageAlmService {
   }
 
   /**
-   * Creates or updates the object a component describes, and returns the id
-   * the component row must point at. For a layer over something this package
-   * does not own, nothing is written here — the layer row carries the change.
+   * Creates or updates, in batches, the objects one component type describes,
+   * and returns the ids each component row must point at. New objects are one
+   * createMany plus one read-back; changed ones are updated individually;
+   * layers over objects the package does not own are only looked up.
    */
-  private async applyBaseObject(
+  private async applyBaseObjects(
     tx: Prisma.TransactionClient,
     currentUser: AuthenticatedUser,
-    component: PortableComponent,
-    apply: 'create' | 'update' | 'none',
+    batch: readonly PortableComponent[],
+    statusByKey: ReadonlyMap<string, { apply: 'create' | 'update' | 'none' }>,
     tableIdByKey: Map<string, string>,
     packageId: string,
-  ): Promise<{ objectId: string; tableId: string | null }> {
+  ): Promise<Map<string, { objectId: string; tableId: string | null }>> {
     const tenantId = currentUser.tenantId;
-    const parentTableId = component.parentKey
-      ? (tableIdByKey.get(component.parentKey) ?? null)
-      : null;
-    const writes =
+    const userId = currentUser.userId;
+    const result = new Map<
+      string,
+      { objectId: string; tableId: string | null }
+    >();
+    const type = batch[0].type;
+    const writes = (component: PortableComponent) =>
       component.layerAction === 'create' &&
       !component.baseIsSystem &&
-      apply !== 'none';
-    const definition = component.definition ?? {};
-    const user = {
-      createdByUserId: currentUser.userId,
-      updatedByUserId: currentUser.userId,
+      statusByKey.get(component.key)?.apply !== 'none';
+    const localKey = (component: PortableComponent) =>
+      component.objectKey.slice(component.objectKey.indexOf('.') + 1);
+    const parentId = (component: PortableComponent) => {
+      const id = component.parentKey
+        ? tableIdByKey.get(component.parentKey)
+        : undefined;
+      if (component.parentKey && !id) {
+        throw new Error(`Module ${component.parentKey} does not exist.`);
+      }
+      return id ?? null;
     };
 
-    if (component.type === 'table') {
-      const tableKey = component.objectKey;
-      if (writes) {
-        const data = {
-          systemName: displayValue(definition.systemName),
-          displayName: displayValue(definition.displayName),
-          pluralDisplayName: displayValue(definition.pluralDisplayName),
-          description: nullableString(definition.description),
-          icon: nullableString(definition.icon),
-          ownershipType: nullableString(definition.ownershipType),
-          moduleKey: nullableString(definition.moduleKey),
-          displayOrder: Number(definition.displayOrder ?? 9000),
-          isSystem: false,
-          isCustom: true,
-          isCustomizable: definition.isCustomizable !== false,
-          isVisibleInCustomization:
-            definition.isVisibleInCustomization !== false,
-          isValidForAdvancedFind: definition.isValidForAdvancedFind !== false,
-          isValidForFormDesigner: definition.isValidForFormDesigner !== false,
-          isValidForViewDesigner: definition.isValidForViewDesigner !== false,
-          isActive: definition.isActive !== false,
-          updatedByUserId: currentUser.userId,
-        };
-        const table = await tx.customizationTable.upsert({
-          where: { tenantId_tableKey: { tenantId, tableKey } },
-          create: {
-            tenantId,
-            tableKey,
-            ...data,
-            createdByUserId: currentUser.userId,
-          },
-          update: data,
-        });
-        tableIdByKey.set(tableKey, table.id);
-        return { objectId: table.id, tableId: table.id };
-      }
-      const id = tableIdByKey.get(tableKey);
-      if (!id) throw new Error(`Module ${tableKey} does not exist.`);
-      return { objectId: id, tableId: id };
-    }
-
-    if (
-      component.type === 'column' ||
-      component.type === 'form' ||
-      component.type === 'view'
-    ) {
-      if (!parentTableId)
-        throw new Error(`Module ${component.parentKey} does not exist.`);
-      const localKey = component.objectKey.slice(
-        component.objectKey.indexOf('.') + 1,
+    if (type === 'table') {
+      const keys = batch.map((component) => component.objectKey);
+      const existing = new Map(
+        (
+          await tx.customizationTable.findMany({
+            where: { tenantId, tableKey: { in: keys } },
+            select: { id: true, tableKey: true },
+          })
+        ).map((row) => [row.tableKey, row.id]),
       );
-      if (component.type === 'column') {
-        if (writes) {
-          const data = {
-            systemName: displayValue(definition.systemName ?? localKey),
-            displayName: displayValue(definition.displayName),
-            description: nullableString(definition.description),
-            dataType:
-              definition.dataType as Prisma.CustomizationColumnCreateInput['dataType'],
-            fieldType: (definition.fieldType ??
-              definition.dataType) as Prisma.CustomizationColumnCreateInput['fieldType'],
-            isSystem: false,
-            isCustom: true,
-            isActive: definition.isActive !== false,
-            isRequired: definition.isRequired === true,
-            isSearchable: definition.isSearchable === true,
-            isFilterable: definition.isFilterable === true,
-            isSortable: definition.isSortable === true,
-            isVisible: definition.isVisible !== false,
-            isVisibleInCustomization:
-              definition.isVisibleInCustomization !== false,
-            isValidForFormDesigner: definition.isValidForFormDesigner !== false,
-            isValidForViewDesigner: definition.isValidForViewDesigner !== false,
-            isReadOnly: definition.isReadOnly === true,
-            isPrimaryName: definition.isPrimaryName === true,
-            maxLength:
-              typeof definition.maxLength === 'number'
-                ? definition.maxLength
-                : null,
-            minValue: nullableString(definition.minValue),
-            maxValue: nullableString(definition.maxValue),
-            defaultValue: nullableString(definition.defaultValue),
-            lookupTargetTableKey: nullableString(
-              definition.lookupTargetTableKey,
-            ),
-            optionSetJson: jsonOrNull(definition.optionSetJson),
-            validationJson: jsonOrNull(definition.validationJson),
-            sortOrder: Number(definition.sortOrder ?? 0),
-            updatedByUserId: currentUser.userId,
-          };
-          const column = await tx.customizationColumn.upsert({
-            where: {
-              tenantId_tableId_columnKey: {
-                tenantId,
-                tableId: parentTableId,
-                columnKey: localKey,
-              },
-            },
-            create: {
-              tenantId,
-              tableId: parentTableId,
-              columnKey: localKey,
-              ...data,
-              createdByUserId: currentUser.userId,
-            },
-            update: data,
-          });
-          return { objectId: column.id, tableId: parentTableId };
-        }
-        const column = await tx.customizationColumn.findFirst({
-          where: { tenantId, tableId: parentTableId, columnKey: localKey },
-          select: { id: true },
-        });
-        if (!column)
-          throw new Error(`Field ${component.objectKey} does not exist.`);
-        return { objectId: column.id, tableId: parentTableId };
-      }
-      if (component.type === 'form') {
-        if (writes) {
-          const data = {
-            name: displayValue(definition.name),
-            description: nullableString(definition.description),
-            type: definition.type as Prisma.CustomizationFormCreateInput['type'],
-            isDefault: definition.isDefault === true,
-            isActive: definition.isActive !== false,
-            isSystem: false,
-            isCustom: true,
-            layoutJson: (definition.layoutJson ?? {}) as Prisma.InputJsonValue,
-            updatedByUserId: currentUser.userId,
-          };
-          const form = await tx.customizationForm.upsert({
-            where: {
-              tenantId_tableId_formKey: {
-                tenantId,
-                tableId: parentTableId,
-                formKey: localKey,
-              },
-            },
-            create: {
-              tenantId,
-              tableId: parentTableId,
-              formKey: localKey,
-              ...data,
-              createdByUserId: currentUser.userId,
-            },
-            update: data,
-          });
-          return { objectId: form.id, tableId: parentTableId };
-        }
-        const form = await tx.customizationForm.findFirst({
-          where: { tenantId, tableId: parentTableId, formKey: localKey },
-          select: { id: true },
-        });
-        if (!form)
-          throw new Error(`Form ${component.objectKey} does not exist.`);
-        return { objectId: form.id, tableId: parentTableId };
-      }
-      if (writes) {
-        const data = {
-          name: displayValue(definition.name),
-          description: nullableString(definition.description),
-          type: definition.type as Prisma.CustomizationViewCreateInput['type'],
-          isDefault: definition.isDefault === true,
-          isHidden: definition.isHidden === true,
-          isSystem: false,
-          isCustom: true,
-          columnsJson: (definition.columnsJson ?? []) as Prisma.InputJsonValue,
-          filtersJson: jsonOrNull(definition.filtersJson),
-          sortingJson: jsonOrNull(definition.sortingJson),
-          visibilityScope: (definition.visibilityScope ??
-            'tenant') as Prisma.CustomizationViewCreateInput['visibilityScope'],
-          updatedByUserId: currentUser.userId,
-        };
-        const view = await tx.customizationView.upsert({
-          where: {
-            tenantId_tableId_viewKey: {
-              tenantId,
-              tableId: parentTableId,
-              viewKey: localKey,
-            },
-          },
-          create: {
+      const fresh: Prisma.CustomizationTableCreateManyInput[] = [];
+      for (const component of batch) {
+        if (!writes(component)) continue;
+        const data = tableData(component.definition ?? {}, userId);
+        const id = existing.get(component.objectKey);
+        if (id) {
+          await tx.customizationTable.update({ where: { id }, data });
+        } else {
+          fresh.push({
             tenantId,
-            tableId: parentTableId,
-            viewKey: localKey,
+            tableKey: component.objectKey,
             ...data,
-            createdByUserId: currentUser.userId,
-          },
-          update: data,
-        });
-        return { objectId: view.id, tableId: parentTableId };
+            createdByUserId: userId,
+          });
+        }
       }
-      const view = await tx.customizationView.findFirst({
-        where: { tenantId, tableId: parentTableId, viewKey: localKey },
-        select: { id: true },
-      });
-      if (!view) throw new Error(`View ${component.objectKey} does not exist.`);
-      return { objectId: view.id, tableId: parentTableId };
+      if (fresh.length) {
+        await tx.customizationTable.createMany({ data: fresh });
+        for (const row of await tx.customizationTable.findMany({
+          where: {
+            tenantId,
+            tableKey: { in: fresh.map((entry) => entry.tableKey) },
+          },
+          select: { id: true, tableKey: true },
+        })) {
+          existing.set(row.tableKey, row.id);
+        }
+      }
+      for (const component of batch) {
+        const id = existing.get(component.objectKey);
+        if (!id)
+          throw new Error(`Module ${component.objectKey} does not exist.`);
+        tableIdByKey.set(component.objectKey, id);
+        result.set(component.key, { objectId: id, tableId: id });
+      }
+      return result;
     }
 
-    if (component.type === 'environmentVariable') {
-      const variableKey = component.objectKey;
-      const data = {
-        displayName: displayValue(definition.displayName ?? variableKey),
-        description: nullableString(definition.description),
-        type: (definition.type ??
-          'text') as Prisma.CustomizationEnvironmentVariableCreateInput['type'],
-        isRequired: definition.isRequired === true,
-        defaultValue:
-          definition.type === 'secret'
-            ? null
-            : nullableString(definition.defaultValue),
-        packageId,
-        updatedByUserId: currentUser.userId,
-      };
-      const variable = await tx.customizationEnvironmentVariable.upsert({
-        where: { tenantId_variableKey: { tenantId, variableKey } },
-        create: { tenantId, variableKey, ...data, ...user },
-        update: data,
-      });
-      return { objectId: variable.id, tableId: null };
+    if (type === 'column' || type === 'form' || type === 'view') {
+      const tableIds = [
+        ...new Set(batch.map((component) => parentId(component)!)),
+      ];
+      const keyOf = (tableId: string, key: string) => `${tableId}|${key}`;
+      const rows =
+        type === 'column'
+          ? (
+              await tx.customizationColumn.findMany({
+                where: { tenantId, tableId: { in: tableIds } },
+                select: { id: true, tableId: true, columnKey: true },
+              })
+            ).map((row) => ({
+              id: row.id,
+              key: keyOf(row.tableId, row.columnKey),
+            }))
+          : type === 'form'
+            ? (
+                await tx.customizationForm.findMany({
+                  where: { tenantId, tableId: { in: tableIds } },
+                  select: { id: true, tableId: true, formKey: true },
+                })
+              ).map((row) => ({
+                id: row.id,
+                key: keyOf(row.tableId, row.formKey),
+              }))
+            : (
+                await tx.customizationView.findMany({
+                  where: { tenantId, tableId: { in: tableIds } },
+                  select: { id: true, tableId: true, viewKey: true },
+                })
+              ).map((row) => ({
+                id: row.id,
+                key: keyOf(row.tableId, row.viewKey),
+              }));
+      const existing = new Map(rows.map((row) => [row.key, row.id]));
+      const fresh: {
+        tableId: string;
+        local: string;
+        data: Record<string, unknown>;
+      }[] = [];
+      for (const component of batch) {
+        if (!writes(component)) continue;
+        const tableId = parentId(component)!;
+        const local = localKey(component);
+        const definition = component.definition ?? {};
+        const id = existing.get(keyOf(tableId, local));
+        if (type === 'column') {
+          const data = columnData(definition, local, userId);
+          if (id) await tx.customizationColumn.update({ where: { id }, data });
+          else fresh.push({ tableId, local, data });
+        } else if (type === 'form') {
+          const data = formData(definition, userId);
+          if (id) await tx.customizationForm.update({ where: { id }, data });
+          else fresh.push({ tableId, local, data });
+        } else {
+          const data = viewData(definition, userId);
+          if (id) await tx.customizationView.update({ where: { id }, data });
+          else fresh.push({ tableId, local, data });
+        }
+      }
+      if (fresh.length) {
+        if (type === 'column') {
+          await tx.customizationColumn.createMany({
+            data: fresh.map((entry) => ({
+              tenantId,
+              tableId: entry.tableId,
+              columnKey: entry.local,
+              ...(entry.data as ReturnType<typeof columnData>),
+              createdByUserId: userId,
+            })),
+          });
+          for (const row of await tx.customizationColumn.findMany({
+            where: { tenantId, tableId: { in: tableIds } },
+            select: { id: true, tableId: true, columnKey: true },
+          })) {
+            existing.set(keyOf(row.tableId, row.columnKey), row.id);
+          }
+        } else if (type === 'form') {
+          await tx.customizationForm.createMany({
+            data: fresh.map((entry) => ({
+              tenantId,
+              tableId: entry.tableId,
+              formKey: entry.local,
+              ...(entry.data as ReturnType<typeof formData>),
+              createdByUserId: userId,
+            })),
+          });
+          for (const row of await tx.customizationForm.findMany({
+            where: { tenantId, tableId: { in: tableIds } },
+            select: { id: true, tableId: true, formKey: true },
+          })) {
+            existing.set(keyOf(row.tableId, row.formKey), row.id);
+          }
+        } else {
+          await tx.customizationView.createMany({
+            data: fresh.map((entry) => ({
+              tenantId,
+              tableId: entry.tableId,
+              viewKey: entry.local,
+              ...(entry.data as ReturnType<typeof viewData>),
+              createdByUserId: userId,
+            })),
+          });
+          for (const row of await tx.customizationView.findMany({
+            where: { tenantId, tableId: { in: tableIds } },
+            select: { id: true, tableId: true, viewKey: true },
+          })) {
+            existing.set(keyOf(row.tableId, row.viewKey), row.id);
+          }
+        }
+      }
+      for (const component of batch) {
+        const tableId = parentId(component)!;
+        const id = existing.get(keyOf(tableId, localKey(component)));
+        if (!id) {
+          throw new Error(
+            `${TYPE_NOUNS[type]} ${component.objectKey} does not exist.`,
+          );
+        }
+        result.set(component.key, { objectId: id, tableId });
+      }
+      return result;
+    }
+
+    if (type === 'environmentVariable') {
+      for (const component of batch) {
+        const variableKey = component.objectKey;
+        const data = variableData(
+          component.definition ?? {},
+          variableKey,
+          packageId,
+          userId,
+        );
+        const variable = await tx.customizationEnvironmentVariable.upsert({
+          where: { tenantId_variableKey: { tenantId, variableKey } },
+          create: { tenantId, variableKey, ...data, createdByUserId: userId },
+          update: data,
+        });
+        result.set(component.key, { objectId: variable.id, tableId: null });
+      }
+      return result;
     }
 
     /*
      * JSON-only types. A layer over a Core component points at the Core row's
      * object; a component this package creates gets a stable synthetic id.
      */
-    if (component.layerAction !== 'create' || component.baseIsSystem) {
-      const core = await tx.customizationSolutionComponent.findFirst({
-        where: {
-          tenantId,
-          componentType: component.type as CustomizationSolutionComponentType,
-          objectKey: component.objectKey,
-          NOT: { solutionId: packageId },
-        },
-        orderBy: { layerOrder: 'asc' },
-        select: { objectId: true },
-      });
-      if (core) return { objectId: core.objectId, tableId: parentTableId };
+    const layered = batch.filter(
+      (component) =>
+        component.layerAction !== 'create' || component.baseIsSystem,
+    );
+    const coreRows = layered.length
+      ? await tx.customizationSolutionComponent.findMany({
+          where: {
+            tenantId,
+            componentType: type as CustomizationSolutionComponentType,
+            objectKey: { in: layered.map((component) => component.objectKey) },
+            NOT: { solutionId: packageId },
+          },
+          orderBy: { layerOrder: 'asc' },
+          select: { objectId: true, objectKey: true },
+        })
+      : [];
+    const coreByKey = new Map<string, string>();
+    for (const row of coreRows) {
+      if (!coreByKey.has(row.objectKey))
+        coreByKey.set(row.objectKey, row.objectId);
     }
-    return {
-      objectId: `${component.type}:${component.objectKey}`,
-      tableId: parentTableId,
-    };
+    for (const component of batch) {
+      const tableId = parentId(component);
+      const core =
+        component.layerAction !== 'create' || component.baseIsSystem
+          ? coreByKey.get(component.objectKey)
+          : undefined;
+      result.set(component.key, {
+        objectId: core ?? `${component.type}:${component.objectKey}`,
+        tableId,
+      });
+    }
+    return result;
   }
 
   /* ============================================================ uninstall */
@@ -2219,6 +2269,7 @@ export class PackageAlmService {
         )
         .map((row) => row.objectId);
 
+    await this.customization.syncCore(currentUser);
     const operation = await this.prisma.$transaction(
       async (tx) => {
         await tx.customizationSolutionComponent.deleteMany({
@@ -3090,3 +3141,125 @@ function onlyDowngradeBlocks(plan: Prisma.JsonValue | null) {
 }
 
 export { parseKey };
+
+/* -------------------------------------------- definition → row data (import) */
+
+const TYPE_NOUNS: Record<string, string> = {
+  column: 'Field',
+  form: 'Form',
+  view: 'View',
+};
+
+function tableData(definition: Record<string, unknown>, userId: string) {
+  return {
+    systemName: displayValue(definition.systemName),
+    displayName: displayValue(definition.displayName),
+    pluralDisplayName: displayValue(definition.pluralDisplayName),
+    description: nullableString(definition.description),
+    icon: nullableString(definition.icon),
+    ownershipType: nullableString(definition.ownershipType),
+    moduleKey: nullableString(definition.moduleKey),
+    displayOrder: Number(definition.displayOrder ?? 9000),
+    isSystem: false,
+    isCustom: true,
+    isCustomizable: definition.isCustomizable !== false,
+    isVisibleInCustomization: definition.isVisibleInCustomization !== false,
+    isValidForAdvancedFind: definition.isValidForAdvancedFind !== false,
+    isValidForFormDesigner: definition.isValidForFormDesigner !== false,
+    isValidForViewDesigner: definition.isValidForViewDesigner !== false,
+    isActive: definition.isActive !== false,
+    updatedByUserId: userId,
+  };
+}
+
+function columnData(
+  definition: Record<string, unknown>,
+  localKey: string,
+  userId: string,
+) {
+  return {
+    systemName: displayValue(definition.systemName ?? localKey),
+    displayName: displayValue(definition.displayName),
+    description: nullableString(definition.description),
+    dataType:
+      definition.dataType as Prisma.CustomizationColumnCreateInput['dataType'],
+    fieldType: (definition.fieldType ??
+      definition.dataType) as Prisma.CustomizationColumnCreateInput['fieldType'],
+    isSystem: false,
+    isCustom: true,
+    isActive: definition.isActive !== false,
+    isRequired: definition.isRequired === true,
+    isSearchable: definition.isSearchable === true,
+    isFilterable: definition.isFilterable === true,
+    isSortable: definition.isSortable === true,
+    isVisible: definition.isVisible !== false,
+    isVisibleInCustomization: definition.isVisibleInCustomization !== false,
+    isValidForFormDesigner: definition.isValidForFormDesigner !== false,
+    isValidForViewDesigner: definition.isValidForViewDesigner !== false,
+    isReadOnly: definition.isReadOnly === true,
+    isPrimaryName: definition.isPrimaryName === true,
+    maxLength:
+      typeof definition.maxLength === 'number' ? definition.maxLength : null,
+    minValue: nullableString(definition.minValue),
+    maxValue: nullableString(definition.maxValue),
+    defaultValue: nullableString(definition.defaultValue),
+    lookupTargetTableKey: nullableString(definition.lookupTargetTableKey),
+    optionSetJson: jsonOrNull(definition.optionSetJson),
+    validationJson: jsonOrNull(definition.validationJson),
+    sortOrder: Number(definition.sortOrder ?? 0),
+    updatedByUserId: userId,
+  };
+}
+
+function formData(definition: Record<string, unknown>, userId: string) {
+  return {
+    name: displayValue(definition.name),
+    description: nullableString(definition.description),
+    type: definition.type as Prisma.CustomizationFormCreateInput['type'],
+    isDefault: definition.isDefault === true,
+    isActive: definition.isActive !== false,
+    isSystem: false,
+    isCustom: true,
+    layoutJson: (definition.layoutJson ?? {}) as Prisma.InputJsonValue,
+    updatedByUserId: userId,
+  };
+}
+
+function viewData(definition: Record<string, unknown>, userId: string) {
+  return {
+    name: displayValue(definition.name),
+    description: nullableString(definition.description),
+    type: definition.type as Prisma.CustomizationViewCreateInput['type'],
+    isDefault: definition.isDefault === true,
+    isHidden: definition.isHidden === true,
+    isSystem: false,
+    isCustom: true,
+    columnsJson: (definition.columnsJson ?? []) as Prisma.InputJsonValue,
+    filtersJson: jsonOrNull(definition.filtersJson),
+    sortingJson: jsonOrNull(definition.sortingJson),
+    visibilityScope: (definition.visibilityScope ??
+      'tenant') as Prisma.CustomizationViewCreateInput['visibilityScope'],
+    updatedByUserId: userId,
+  };
+}
+
+function variableData(
+  definition: Record<string, unknown>,
+  variableKey: string,
+  packageId: string,
+  userId: string,
+) {
+  return {
+    displayName: displayValue(definition.displayName ?? variableKey),
+    description: nullableString(definition.description),
+    type: (definition.type ??
+      'text') as Prisma.CustomizationEnvironmentVariableCreateInput['type'],
+    isRequired: definition.isRequired === true,
+    defaultValue:
+      definition.type === 'secret'
+        ? null
+        : nullableString(definition.defaultValue),
+    packageId,
+    updatedByUserId: userId,
+  };
+}
