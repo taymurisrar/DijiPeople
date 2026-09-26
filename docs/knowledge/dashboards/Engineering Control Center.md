@@ -59,7 +59,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 | [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 16/16 | — | — | — |
 | [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 11/11 | — | — | — |
 | [[TASK-0028-enterprise-reports-and-analytics-platform|TASK-0028]] | Enterprise Reports and Analytics platform | FEATURE | LARGE | 5/15 | WP-08 | — | — |
-| [[TASK-0033-package-alm-versions-portable-artifact-staged-import-upgrade|TASK-0033]] | Package ALM: versions, portable artifact, staged import, upgrade, uninstall | FEATURE | LARGE | 0/8 | WP-01 | WP-01 | — |
+| [[TASK-0033-package-alm-versions-portable-artifact-staged-import-upgrade|TASK-0033]] | Package ALM: versions, portable artifact, staged import, upgrade, uninstall | FEATURE | LARGE | 7/8 | WP-08 | — | — |
 
 ## Branch model
 
