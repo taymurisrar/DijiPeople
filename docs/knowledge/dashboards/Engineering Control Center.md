@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **1** |
+| Active sessions | **0** |
 | Active parent tasks | 4 |
 | Active work packages | 4 |
 | Blocked work packages | 0 |
@@ -47,9 +47,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-| Session | Task | Title | Status | Branch | Target | Leases | Schema |
-|---|---|---|---|---|---|---|---|
-| [[SESSION-0111-release-develop-to-main-item-0215-then-full-release-of-item-|SESSION-0111]] | — | Release develop to main: ITEM-0215 then full release of ITEM-0200/0201/0203/0204/0206 | ACTIVE | `agent/item-0215-and-release` | `main` | — | NO |
+_No session is currently registered as active._
 
 ## Active Tasks and Work Packages
 
