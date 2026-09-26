@@ -494,21 +494,15 @@ export class CustomizationService {
      * nothing on the page led anywhere else. Idempotent, and only when there is
      * something to move.
      */
-    const unassignedPackage =
-      await this.findUnassignedDraftPackage(currentUser);
-    if (unassignedPackage) {
-      const pendingDrafts =
-        await this.prisma.customizationSolutionComponent.count({
-          where: {
-            tenantId: currentUser.tenantId,
-            solutionId: unassignedPackage.id,
-            lifecycleState: 'draft',
-          },
-        });
-      if (pendingDrafts > 0) {
-        await this.getOrCreateTenantCustomPackage(currentUser);
-      }
-    }
+    /*
+     * TASK-0033 widened this: every workspace HAS its Default Customizations
+     * package, including one provisioned before the package existed and never
+     * customized since. Provisioning creates it for new workspaces; this makes
+     * it present for the rest on first sight of the Packages list. Idempotent
+     * (a find first, then an upsert) — the same write-on-read shape as the
+     * DijiPeople Core sync above.
+     */
+    await this.getOrCreateTenantCustomPackage(currentUser);
     const packages = await this.prisma.customizationSolution.findMany({
       where: { tenantId: currentUser.tenantId },
       include: {

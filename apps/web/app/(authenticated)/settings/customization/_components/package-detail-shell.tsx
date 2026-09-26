@@ -682,7 +682,9 @@ export function PackageDetailShell({
         <Metric
           label="Validation"
           value={
-            readiness
+            packageDetail.kind !== "editable"
+              ? "Not applicable"
+              : readiness
               ? readiness.errors
                 ? `${readiness.errors} error(s)`
                 : readiness.warnings
@@ -859,7 +861,9 @@ export function PackageDetailShell({
         className="flex flex-wrap gap-2 rounded-lg border border-border bg-surface p-2 shadow-sm"
         role="tablist"
       >
-        {DETAIL_TABS.map((tab) => (
+        {DETAIL_TABS.filter(
+          (tab) => tab.key !== "validation" || packageDetail.kind === "editable",
+        ).map((tab) => (
           <button
             aria-selected={activeTab === tab.key}
             className={`rounded-md px-3 py-1.5 text-sm font-semibold transition ${
@@ -936,7 +940,9 @@ export function PackageDetailShell({
       <>
       <DiagnosticsPanel
         diagnostics={validation}
-        isReadOnly={packageDetail.isReadOnly}
+        readOnlyNote={
+          packageDetail.isReadOnly ? readOnlyReason(packageDetail) : null
+        }
       />
 
       <div className="grid min-h-[620px] gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
@@ -1452,10 +1458,10 @@ function ComponentDetail({
 
 function DiagnosticsPanel({
   diagnostics,
-  isReadOnly,
+  readOnlyNote,
 }: {
   diagnostics: CustomizationPackageDetail["diagnostics"];
-  isReadOnly: boolean;
+  readOnlyNote: string | null;
 }) {
   const issues = diagnostics?.issues ?? [];
   const blocking = issues.filter((issue) => issue.blocking);
@@ -1474,9 +1480,7 @@ function DiagnosticsPanel({
       <div className="mt-3 grid gap-3 md:grid-cols-3">
         <DiagnosticBucket
           items={[
-            ...(isReadOnly
-              ? ["Default/System Package cannot be deleted."]
-              : []),
+            ...(readOnlyNote ? [readOnlyNote] : []),
             ...blocking.map((issue) => issue.message),
           ]}
           label="Blocking errors"
