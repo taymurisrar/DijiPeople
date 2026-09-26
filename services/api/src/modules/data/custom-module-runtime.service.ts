@@ -16,6 +16,7 @@ import {
   readPublishedCustomizationIndex,
   type PublishedCustomizationIndex,
 } from './published-custom-modules';
+import { readOptions } from '../customization/custom-field-values';
 
 export type PublishedCustomTable = CustomizationTable & {
   columns: CustomizationColumn[];
@@ -231,30 +232,6 @@ function resolvePrimaryNameField(
  * `CustomizationService.validateValueRules`; entries have been written with
  * `value`, `key` or only `label`, so all three are read.
  */
-function readOptions(value: unknown) {
-  const list = Array.isArray(value)
-    ? value
-    : Array.isArray(readJson(value).options)
-      ? (readJson(value).options as unknown[])
-      : [];
-  return list.flatMap((entry) => {
-    if (typeof entry === 'string' && entry.trim()) {
-      return [{ value: entry.trim(), label: entry.trim() }];
-    }
-    const option = readJson(entry);
-    const optionValue =
-      stringOrNull(option.value) ??
-      stringOrNull(option.key) ??
-      stringOrNull(option.label);
-    if (!optionValue) return [];
-    return [
-      {
-        value: optionValue,
-        label: stringOrNull(option.label) ?? optionValue,
-      },
-    ];
-  });
-}
 
 function readJson(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)

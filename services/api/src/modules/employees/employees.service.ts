@@ -63,6 +63,7 @@ import {
 import { TenantSettingsService } from '../tenant-settings/tenant-settings.service';
 import { BulkDeleteEmployeesDto } from './dto/bulk-delete-employees.dto';
 import { BenefitsService } from '../benefits/benefits.service';
+import { CustomFieldValuesService } from '../customization/custom-field-values.service';
 import {
   EMPLOYEE_DRAFT_LIFECYCLE,
   EMPLOYEE_RECORD_STATUS,
@@ -313,7 +314,26 @@ export class EmployeesService {
     private readonly tenantSettingsService: TenantSettingsService,
     private readonly employeeAccessService: EmployeeAccessService,
     private readonly benefitsService: BenefitsService,
+    /*
+     * TASK-0034 — last and optional only so the specs that construct this
+     * service by hand keep compiling; Nest always injects it.
+     */
+    private readonly customFieldValues?: CustomFieldValuesService,
   ) {}
+
+  /* Custom field values the user may see on one employee (BUG-3697). */
+  async readCustomFields(currentUser: AuthenticatedUser, employeeId: string) {
+    return this.customFieldValues
+      ? this.customFieldValues.read(currentUser, 'employees', employeeId)
+      : {};
+  }
+
+  /* Published custom field definitions for the employee form. */
+  async customFieldDefinitions(currentUser: AuthenticatedUser) {
+    return this.customFieldValues
+      ? this.customFieldValues.definitions(currentUser, 'employees')
+      : [];
+  }
 
   async findByTenant(currentUser: AuthenticatedUser, query: EmployeeQueryDto) {
     const tenantId = currentUser.tenantId;
@@ -1092,6 +1112,22 @@ export class EmployeesService {
 
     this.validateDateRules(dto);
 
+    /*
+     * Required custom fields are enforced only when the client submits
+     * customFields (the employee form does). Imports, onboarding and hires
+     * create employees without knowing the tenant's custom fields, and must
+     * not start failing because one was made required.
+     */
+    const customFieldValues =
+      dto.customFields !== undefined && this.customFieldValues
+        ? await this.customFieldValues.validate(
+            currentUser,
+            'employees',
+            dto.customFields,
+            'create',
+          )
+        : null;
+
     const maxAttempts = employeeSettings.autoGenerateEmployeeId ? 5 : 1;
     let createdEmployeeId: string | null = null;
 
@@ -1106,7 +1142,7 @@ export class EmployeesService {
               tx,
             );
 
-            return tx.employee.create({
+            const created = await tx.employee.create({
               data: this.buildCreateData(
                 tenantId,
                 {
@@ -1121,6 +1157,16 @@ export class EmployeesService {
                 id: true,
               },
             });
+            if (customFieldValues && this.customFieldValues) {
+              await this.customFieldValues.write(
+                currentUser,
+                'employees',
+                created.id,
+                customFieldValues,
+                tx,
+              );
+            }
+            return created;
           },
           {
             isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
@@ -1163,7 +1209,10 @@ export class EmployeesService {
       new Date(createDto.hireDate),
     );
 
-    const createdEmployee = await this.findById(tenantId, createdEmployeeId);
+    const createdEmployee = {
+      ...(await this.findById(tenantId, createdEmployeeId)),
+      customFields: await this.readCustomFields(currentUser, createdEmployeeId),
+    };
 
     /*
      * BUG-2044 — "who added this person to the system" had no answer. This
@@ -1247,7 +1296,10 @@ export class EmployeesService {
       throw new NotFoundException('Employee was not found for this tenant.');
     }
 
-    const beforeSnapshot = this.mapEmployee(employee);
+    const beforeSnapshot = {
+      ...this.mapEmployee(employee),
+      customFields: await this.readCustomFields(currentUser, employeeId),
+    };
 
     // ADR-0014 — the primary work site (`locationId`) moves only through the
     // attendance work-site endpoint, which updates `Employee.locationId` and
@@ -1342,6 +1394,17 @@ export class EmployeesService {
     );
     this.validateDateRules(dto);
 
+    /* Refused before the employee row is written, never after. */
+    const customFieldValues =
+      dto.customFields !== undefined && this.customFieldValues
+        ? await this.customFieldValues.validate(
+            currentUser,
+            'employees',
+            dto.customFields,
+            'update',
+          )
+        : null;
+
     if (hasNonEmptyString(dto.ownerUserId)) {
       await this.assertAssignableOwner(currentUser, dto.ownerUserId);
     }
@@ -1370,7 +1433,19 @@ export class EmployeesService {
         throw new NotFoundException('Employee was not found for this tenant.');
       }
 
-      const updatedEmployee = await this.findById(tenantId, employeeId);
+      if (customFieldValues && this.customFieldValues) {
+        await this.customFieldValues.write(
+          currentUser,
+          'employees',
+          employeeId,
+          customFieldValues,
+        );
+      }
+
+      const updatedEmployee = {
+        ...(await this.findById(tenantId, employeeId)),
+        customFields: await this.readCustomFields(currentUser, employeeId),
+      };
 
       await this.auditService.log({
         tenantId,

@@ -266,6 +266,7 @@ export const TENANT_ERASURE_DELETE_ORDER: string[] = [
   'claimRequest',
   'currency',
   'customDataRecord',
+  'customRecordExtension',
   'customizationColumn',
   'customizationEnvironmentVariable',
   'customizationEnvironmentVariableValue',

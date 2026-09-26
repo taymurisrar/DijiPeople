@@ -45,6 +45,7 @@ import { UpdateEmergencyContactDto } from './dto/update-emergency-contact.dto';
 import { UpdateEmployeeEducationDto } from './dto/update-employee-education.dto';
 import { UpdatePersonalInfoDto } from './dto/update-personal-info.dto';
 import { UpsertEmployeeCompensationDto } from './dto/upsert-employee-compensation.dto';
+import { CustomFieldValuesService } from '../customization/custom-field-values.service';
 
 type UploadedFile = {
   buffer: Buffer;
@@ -114,6 +115,8 @@ export class EmployeeProfilesService {
     private readonly employeeAccessService: EmployeeAccessService,
     private readonly notificationsService: NotificationsService,
     private readonly secretEncryption: SecretEncryptionService,
+    /* TASK-0034 — optional only for specs that construct this by hand. */
+    private readonly customFieldValues?: CustomFieldValuesService,
   ) {}
 
   async getProfile(currentUser: AuthenticatedUser, employeeId: string) {
@@ -137,6 +140,10 @@ export class EmployeeProfilesService {
       this.listPreviousEmployments(currentUser, employeeId),
       this.getCurrentCompensation(currentUser, employeeId),
     ]);
+    /* BUG-3697 — read after assertEmployeeAccess above, never before it. */
+    const customFields = this.customFieldValues
+      ? await this.customFieldValues.read(currentUser, 'employees', employeeId)
+      : {};
     const fullName = [
       employee.firstName,
       employee.middleName,
@@ -147,6 +154,7 @@ export class EmployeeProfilesService {
     const profileImage = await this.buildProfileImageSummary(employee);
 
     return {
+      customFields,
       id: employee.id,
       tenantId: employee.tenantId,
       employeeCode: employee.employeeCode,
