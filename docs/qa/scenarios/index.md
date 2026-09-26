@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 433** · automated: 357 · manual: 27 · blocked by infrastructure: 0
+**Scenarios: 434** · automated: 358 · manual: 27 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -146,6 +146,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-CONTRACT-011](../../../docs/qa/scenarios/QA-CONTRACT-011-contracts-module-mutations-and-public-signing-events-write-a.md) | Contracts module mutations and public signing events write a platform audit row | legal | API | MEDIUM | AUTOMATED | `services/api/src/modules/contracts/contracts.agreement-guards.spec.ts` | BUG-3231 | REG-570, REG-571 |
 | [QA-CONTRACT-012](../../../docs/qa/scenarios/QA-CONTRACT-012-an-executed-agreement-s-signed-and-regenerated-copies-show-e.md) | An executed agreement's signed and regenerated copies show every signature from the evidence | legal | API | HIGH | AUTOMATED | `services/api/src/modules/contracts/contracts.domain.spec.ts` | BUG-3597, BUG-3598, BUG-3599 | REG-627, REG-628, REG-629 |
 | [QA-CONTRACT-013](../../../docs/qa/scenarios/QA-CONTRACT-013-an-individual-partner-s-agreement-records-an-individual-coun.md) | An individual partner's agreement records an INDIVIDUAL counterparty party | legal | API | MEDIUM | AUTOMATED | `services/api/src/modules/contracts/contracts.partner-source.spec.ts` | ITEM-0203 | REG-630 |
+| [QA-CONTRACT-014](../../../docs/qa/scenarios/QA-CONTRACT-014-changing-a-document-field-on-an-executed-agreement-is-refuse.md) | Changing a document field on an executed agreement is refused by the immutability rule | legal | API | MEDIUM | AUTOMATED | `services/api/src/modules/contracts/contracts.agreement-immutability.spec.ts` | BUG-3668 | REG-634 |
 | [QA-DEPLOY-001](../../../docs/qa/scenarios/QA-DEPLOY-001-deployment-smoke-checks-answer-against-the-deployed-environm.md) | Deployment smoke checks answer against the deployed environment | deployment-release | DEPLOYMENT_SMOKE | HIGH | AUTOMATED | `scripts/smoke-deployment.mjs` | — | — |
 | [QA-DEPLOY-002](../../../docs/qa/scenarios/QA-DEPLOY-002-no-url-is-hardcoded-where-configuration-is-required.md) | No URL is hardcoded where configuration is required | deployment-release | UNIT | HIGH | AUTOMATED | `scripts/check-no-hardcoded-urls.mjs` | BUG-0026 | REG-016 |
 | [QA-DEPLOY-003](../../../docs/qa/scenarios/QA-DEPLOY-003-the-running-api-exposes-the-commit-it-was-built-from.md) | The running API exposes the commit it was built from | deployment-release | UNIT | MEDIUM | AUTOMATED | `services/api/src/config/deployed-commit.spec.ts` | — | — |

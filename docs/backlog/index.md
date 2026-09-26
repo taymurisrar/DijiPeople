@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**694 records** — 486 bugs under [`docs/bugs/`](../bugs/), 208 non-bug items under [`items/`](items/).
+**696 records** — 487 bugs under [`docs/bugs/`](../bugs/), 209 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,11 +13,11 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 229 |
+| Open (active work) | 230 |
 | Blocked | 2 |
 | Deferred | 105 |
 | Awaiting a product decision | 10 |
-| Completed / closed | 348 |
+| Completed / closed | 349 |
 | **Open CRITICAL** | **6** |
 | **Open HIGH** | **101** |
 | **Awaiting Architect triage** | **0** |
@@ -29,14 +29,14 @@ see [`README.md`](README.md) for why.
 | CRITICAL | 6 |
 | HIGH | 101 |
 | MEDIUM | 101 |
-| LOW | 21 |
+| LOW | 22 |
 
 ## Open by type
 
 | Type | Count |
 |---|---|
 | AUTHORIZATION | 13 |
-| BUG | 69 |
+| BUG | 70 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 21 |
 | DOCUMENTATION | 1 |
@@ -60,12 +60,12 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 2 |
 | DEFERRED | 105 |
 | PRODUCT_DECISION | 10 |
-| FIXED | 162 |
+| FIXED | 163 |
 | VERIFIED | 218 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
 | READY | 23 |
-| DONE | 116 |
+| DONE | 117 |
 
 ## All records
 
@@ -647,7 +647,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0197](../../docs/backlog/items/ITEM-0197-totp-multi-factor-authentication-for-tenant-and-platform-use.md) | TOTP multi-factor authentication for tenant and platform users | SECURITY | MEDIUM | P2 | DONE | api:auth, apps/web, apps/admin | DONE |
 | [ITEM-0198](../../docs/backlog/items/ITEM-0198-admin-monitoring-platform-health-overview-grouped-error-fiel.md) | Admin monitoring: platform health overview, grouped error fields, module facet and incident-first layout | UX | MEDIUM | P2 | DONE | apps/admin, api:error-logs, api:platform-monitoring | DONE |
 | [ITEM-0199](../../docs/backlog/items/ITEM-0199-admin-dashboard-operational-metrics-for-logins-mfa-adoption-.md) | Admin dashboard: operational metrics for logins, MFA adoption, error rate, job failures, partner funnel and agreements | UX | MEDIUM | P2 | DONE | apps/admin, api:super-admin | DONE |
-| [ITEM-0200](../../docs/backlog/items/ITEM-0200-agreements-have-no-end-to-end-test-coverage-and-partners-lea.md) | Agreements have no end-to-end test coverage and partners/leads have no e2e lifecycle suite | TEST_GAP | MEDIUM | P2 | DEFERRED | api:contracts, api:partners, api:leads | DEFER |
+| [ITEM-0200](../../docs/backlog/items/ITEM-0200-agreements-have-no-end-to-end-test-coverage-and-partners-lea.md) | Agreements have no end-to-end test coverage and partners/leads have no e2e lifecycle suite | TEST_GAP | MEDIUM | P2 | DONE | api:contracts, api:partners, api:leads | DONE |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |
@@ -698,6 +698,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3586](../../docs/bugs/BUG-3586-the-monitoring-health-headline-reads-unknown-when-no-email-h.md) | The monitoring health headline reads Unknown when no email has been sent | BUG | LOW | P3 | FIXED | api:platform-monitoring | DONE |
 | [BUG-3588](../../docs/bugs/BUG-3588-a-signed-in-operator-without-the-users-permission-sees-a-log.md) | A signed-in operator without the users permission sees a login-style Access denied page | UX | LOW | P3 | DEFERRED | apps/admin | DEFER |
 | [BUG-3599](../../docs/bugs/BUG-3599-generating-an-agreement-in-an-unsupported-format-returns-a-5.md) | Generating an agreement in an unsupported format returns a 500 instead of a 400 | BUG | LOW | P3 | FIXED | api:contracts | DONE |
+| [BUG-3668](../../docs/bugs/BUG-3668-saving-agreement-document-fields-skips-the-shared-immutabili.md) | Saving agreement document fields skips the shared immutability check | BUG | LOW | P3 | FIXED | api:contracts | DONE |
 | [ITEM-0007](../../docs/backlog/items/ITEM-0007-should-duplicate-website-leads-be-deduplicated.md) | Product decision — should duplicate website leads be deduplicated? | PRODUCT_DECISION | LOW | P3 | DONE | api:leads, apps/landing | DONE |
 | [ITEM-0008](../../docs/backlog/items/ITEM-0008-customeraccount-has-no-origin-channel.md) | Product decision — CustomerAccount carries no origin channel | PRODUCT_DECISION | LOW | P3 | DONE | services/api/prisma, api:super-admin | DONE |
 | [ITEM-0011](../../docs/backlog/items/ITEM-0011-framework-validation-should-catch-absence-claims.md) | Framework validation should catch false absence claims in context documents | TECH_DEBT | LOW | P3 | DONE | .agent/context, scripts | DONE |
@@ -741,6 +742,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0203](../../docs/backlog/items/ITEM-0203-an-individual-partner-s-agreement-still-records-the-counterp.md) | An individual partner's agreement still records the counterparty as a PARTNER party, not INDIVIDUAL | FOLLOW_UP | LOW | P3 | DONE | api:contracts, api:partners | DONE |
 | [ITEM-0204](../../docs/backlog/items/ITEM-0204-adr-0018-follow-ups-platform-role-literal-tier-checks-and-th.md) | ADR-0018 follow-ups: platform role-literal tier checks and the ungoverned legacy tenant status route | TECH_DEBT | LOW | P3 | DONE | api:platform-runtime, api:tenant-control-plane, api:super-admin, api:leads, api:platform-monitoring | DONE |
 | [ITEM-0206](../../docs/backlog/items/ITEM-0206-admin-dashboard-drill-downs-for-active-users-failed-sign-ins.md) | Admin dashboard drill-downs for active users, failed sign-ins and unresolved errors land on approximate pages | UX | LOW | P3 | DONE | apps/admin, api:super-admin, api:platform-monitoring | DONE |
+| [ITEM-0215](../../docs/backlog/items/ITEM-0215-scripts-verify-database-mjs-cannot-run-on-windows-and-seed-d.md) | scripts/verify-database.mjs cannot run on Windows and seed:demo runs out of memory at the default heap | INFRA | LOW | P3 | DEFERRED | scripts, services/api | DEFER |
 | [ITEM-0126](../../docs/backlog/items/ITEM-0126-decide-which-of-the-41-always-visible-settings-pages-should-.md) | Decide which of the 41 always-visible settings pages should be sold | PRODUCT_DECISION | — | P1 | DONE | apps/web | DONE |
 | [ITEM-0129](../../docs/backlog/items/ITEM-0129-tenants-should-inherit-the-platform-email-provider-by-defaul.md) | Tenants should inherit the platform email provider by default, and may override it | ARCHITECTURE | — | P1 | DONE | services/api, apps/web | DONE |
 | [ITEM-0130](../../docs/backlog/items/ITEM-0130-review-process-missed-four-defects-on-screens-adjacent-to-th.md) | Review process missed four defects on screens adjacent to the change | TEST_GAP | — | P1 | DONE | apps/web, .agent | DONE |

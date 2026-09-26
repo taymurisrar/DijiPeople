@@ -260,4 +260,5 @@ _None._
 | [BUG-3583](../../docs/bugs/BUG-3583-counterparty-placeholders-are-grouped-under-customer.md) | Counterparty placeholders are grouped under Customer | UX | LOW | P3 | FIXED | api:contracts | DONE |
 | [BUG-3586](../../docs/bugs/BUG-3586-the-monitoring-health-headline-reads-unknown-when-no-email-h.md) | The monitoring health headline reads Unknown when no email has been sent | BUG | LOW | P3 | FIXED | api:platform-monitoring | DONE |
 | [BUG-3599](../../docs/bugs/BUG-3599-generating-an-agreement-in-an-unsupported-format-returns-a-5.md) | Generating an agreement in an unsupported format returns a 500 instead of a 400 | BUG | LOW | P3 | FIXED | api:contracts | DONE |
+| [BUG-3668](../../docs/bugs/BUG-3668-saving-agreement-document-fields-skips-the-shared-immutabili.md) | Saving agreement document fields skips the shared immutability check | BUG | LOW | P3 | FIXED | api:contracts | DONE |
 | [ITEM-0080](../../docs/backlog/items/ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by.md) | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | P3 | READY | services/api | FIX_NOW |

@@ -9,11 +9,11 @@
 |---|---|
 | Open CRITICAL | **6** |
 | Open HIGH | **101** |
-| Open total | 229 |
+| Open total | 230 |
 | Blocked | 2 |
 | Awaiting a product decision | 10 |
 | Deferred | 105 |
-| Completed | 348 |
+| Completed | 349 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -566,6 +566,7 @@
 | [[BUG-3583-counterparty-placeholders-are-grouped-under-customer|BUG-3583]] | Counterparty placeholders are grouped under Customer | UX | LOW | FIXED | api:contracts | DONE |
 | [[BUG-3586-the-monitoring-health-headline-reads-unknown-when-no-email-h|BUG-3586]] | The monitoring health headline reads Unknown when no email has been sent | BUG | LOW | FIXED | api:platform-monitoring | DONE |
 | [[BUG-3599-generating-an-agreement-in-an-unsupported-format-returns-a-5|BUG-3599]] | Generating an agreement in an unsupported format returns a 500 instead of a 400 | BUG | LOW | FIXED | api:contracts | DONE |
+| [[BUG-3668-saving-agreement-document-fields-skips-the-shared-immutabili|BUG-3668]] | Saving agreement document fields skips the shared immutability check | BUG | LOW | FIXED | api:contracts | DONE |
 
 ## Recent QA Runs
 
@@ -732,6 +733,7 @@
 | [[BUG-3583-counterparty-placeholders-are-grouped-under-customer|BUG-3583]] | Counterparty placeholders are grouped under Customer | UX | LOW | FIXED | api:contracts | DONE |
 | [[BUG-3586-the-monitoring-health-headline-reads-unknown-when-no-email-h|BUG-3586]] | The monitoring health headline reads Unknown when no email has been sent | BUG | LOW | FIXED | api:platform-monitoring | DONE |
 | [[BUG-3599-generating-an-agreement-in-an-unsupported-format-returns-a-5|BUG-3599]] | Generating an agreement in an unsupported format returns a 500 instead of a 400 | BUG | LOW | FIXED | api:contracts | DONE |
+| [[BUG-3668-saving-agreement-document-fields-skips-the-shared-immutabili|BUG-3668]] | Saving agreement document fields skips the shared immutability check | BUG | LOW | FIXED | api:contracts | DONE |
 | [[ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by|ITEM-0080]] | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
 
 ## Key Architecture Decisions
@@ -766,8 +768,8 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 486 |
-| Backlog items | 208 |
+| Bug records | 487 |
+| Backlog items | 209 |
 | Known bug patterns | 35 |
 | QA runs | 33 |
 | Engineering history records | 84 |

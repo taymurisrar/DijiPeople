@@ -6754,3 +6754,17 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — without the check the stale update reaches the owning service. |
 | **Fixed** | 2026-09-26, branch `agent/backlog-0201-concurrency` |
 | **Active** | yes |
+
+### REG-634 — Saving agreement document fields skipped the immutability check
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` |
+| **Module** | `services/api/src/modules/contracts` |
+| **Bug record** | BUG-3668 |
+| **Root cause** | `saveDocumentFields` never called the shared `assertAgreementEditable`; an executed agreement was refused only because its frozen version had no editable placeholder left. |
+| **Regression test** | `services/api/src/modules/contracts/contracts.agreement-immutability.spec.ts` — saving a field on an executed agreement is refused and writes nothing; a draft still saves. |
+| **Scenario** | Changing a document field on an executed agreement is refused by the immutability rule. |
+| **Fails without the fix** | Yes — without the guard the field is upserted. |
+| **Fixed** | 2026-09-26, branch `agent/backlog-0200-e2e` |
+| **Active** | yes |
