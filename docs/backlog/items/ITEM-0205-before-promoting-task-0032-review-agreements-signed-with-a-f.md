@@ -3,15 +3,15 @@ ID: ITEM-0205
 aliases: [ITEM-0205]
 Title: Before promoting TASK-0032: review agreements signed with a fabricated date and partners that fail the new type policy
 Type: DATA_MIGRATION
-Status: READY
+Status: DONE
 Priority: P1
 Severity: MEDIUM
 AffectedModules: [services/api/src/modules/contracts, services/api/src/modules/partners]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: FIX_NOW
+ArchitectDisposition: DONE
 CreatedAt: 2026-09-25
-UpdatedAt: 2026-09-25
+UpdatedAt: 2026-09-26
 RelatedBug: BUG-3581
 RelatedQA: 
 RelatedADR: ADR-0021
@@ -73,6 +73,20 @@ without the owner.
 
 [[BUG-3581]], [[BUG-3549]], [[BUG-3550]], [[TASK-0032]], [[partners]], [[contracts-and-agreements]]
 
+## Resolution
+
+Run read-only against production on 2026-09-26, before the release merge
+(owner-approved; `SET default_transaction_read_only = on`):
+
+- Executed agreements: 4 `FULLY_EXECUTED`, 5 `DRAFT`. Every stored
+  `signature.*` value (one agreement, five keys) has `source: signature` —
+  written by the signing flow, none entered by hand. No agreement carries a
+  fabricated signature date.
+- Partners: 2 (both COMPANY). None misses a type-required field; no duplicate
+  email, normalised tax id or company name.
+
+Nothing needed correcting. TASK-0032 was released at `b586ac0a` (PR #81).
+
 ## History
 
 - 2026-09-25 — created at `5496a244`.
@@ -86,3 +100,4 @@ without the owner.
 - Modules — [[contracts-and-agreements]], [[partners]]
 
 <!-- GRAPH:END -->
+- 2026-09-26 — checks run read-only against production before the release: clear. DONE.
