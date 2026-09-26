@@ -3,15 +3,15 @@ ID: ITEM-0210
 aliases: [ITEM-0210]
 Title: Decide when PKR checkout moves to Safepay and what happens to existing PKR Stripe subscribers
 Type: PRODUCT_DECISION
-Status: BLOCKED
+Status: IN_PROGRESS
 Priority: P1
 Severity: MEDIUM
 AffectedModules: [services/api/src/modules/billing]
 Source: IMPLEMENTATION
 OwnerAgent: architect
-ArchitectDisposition: BLOCKED_EXTERNAL
+ArchitectDisposition: FIX_NOW
 CreatedAt: 2026-09-26
-UpdatedAt: 2026-09-26
+UpdatedAt: 2026-09-27
 RelatedBug: 
 RelatedQA: docs/qa/runs/2026-09-26-safepay-multi-provider-billing-562dee9.md
 RelatedADR: ADR-0023
@@ -63,6 +63,27 @@ none of `SAFEPAY_ENVIRONMENT`, `SAFEPAY_API_KEY`, `SAFEPAY_SECRET_KEY`,
 checkout, so the flag stays off until the owner adds them. After that the
 switch is one variable, then a verification of a PKR checkout reaching Safepay.
 
+## Progress — 2026-09-26: on in sandbox mode
+
+The owner added Safepay **sandbox** credentials to the production API service
+and chose to switch Safepay on with them (ADR-0023 update). Set by the
+Architect: `SAFEPAY_ENABLED=true`, `MANAGED_BILLING_WORKER_ENABLED=true`;
+redeployed (Render deploy `dep-das3ahbbc2fs739560sg`, live).
+
+Verified: the boot log shows the managed billing worker started and the
+webhook route mapped; an unsigned POST to
+`https://api.dijipeople.com/api/billing/safepay/webhook` is refused with 400;
+with the configured keys Safepay's sandbox created a PKR tracker
+(`TRACKER_STARTED`) and issued a passport token — the calls a PKR checkout
+makes — without writing any DijiPeople row. Production has 12 published PKR
+prices; the PK market defaults to USD, so a buyer reaches Safepay by choosing
+PKR.
+
+**Remaining:** while the credentials are sandbox, a PKR checkout collects no
+money. Close this item by replacing the three credentials with the live Safepay
+dashboard's, setting `SAFEPAY_ENVIRONMENT=production`, registering the same
+webhook URL in the live dashboard, and verifying one real PKR checkout.
+
 ## History
 
 - 2026-09-26 — created at `562dee91`.
@@ -77,3 +98,4 @@ switch is one variable, then a verification of a PKR checkout reaching Safepay.
 
 <!-- GRAPH:END -->
 - 2026-09-26 — owner chose Safepay for new PKR checkouts (ADR-0023); blocked on merchant credentials.
+- 2026-09-26 — Safepay switched on in production with sandbox credentials (owner choice); live-key cut-over remaining.

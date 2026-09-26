@@ -13,8 +13,8 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 234 |
-| Blocked | 4 |
+| Open (active work) | 235 |
+| Blocked | 3 |
 | Deferred | 118 |
 | Awaiting a product decision | 9 |
 | Completed / closed | 352 |
@@ -28,7 +28,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 6 |
 | HIGH | 102 |
-| MEDIUM | 104 |
+| MEDIUM | 105 |
 | LOW | 22 |
 
 ## Open by type
@@ -44,7 +44,7 @@ see [`README.md`](README.md) for why.
 | INFRA | 7 |
 | INTEGRATION | 5 |
 | PERFORMANCE | 15 |
-| PRODUCT_DECISION | 1 |
+| PRODUCT_DECISION | 2 |
 | SECURITY | 22 |
 | STATE_MACHINE | 4 |
 | TECH_DEBT | 7 |
@@ -57,7 +57,8 @@ see [`README.md`](README.md) for why.
 | Status | Count |
 |---|---|
 | OPEN | 45 |
-| BLOCKED | 4 |
+| IN_PROGRESS | 1 |
+| BLOCKED | 3 |
 | DEFERRED | 118 |
 | PRODUCT_DECISION | 9 |
 | FIXED | 167 |
@@ -338,7 +339,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0044](../../docs/backlog/items/ITEM-0044-validate-forwarded-host-before-tenant-web-workspace-resoluti.md) | Validate forwarded host before tenant web workspace resolution | SECURITY | MEDIUM | P1 | DONE | apps/web | DONE |
 | [ITEM-0180](../../docs/backlog/items/ITEM-0180-one-plain-notification-events-page-replacing-rules-and-chann.md) | One plain notification events page replacing Rules and Channel Preferences | UX | MEDIUM | P1 | DONE | apps/web, notifications | DONE |
 | [ITEM-0205](../../docs/backlog/items/ITEM-0205-before-promoting-task-0032-review-agreements-signed-with-a-f.md) | Before promoting TASK-0032: review agreements signed with a fabricated date and partners that fail the new type policy | DATA_MIGRATION | MEDIUM | P1 | DONE | api:contracts, api:partners | DONE |
-| [ITEM-0210](../../docs/backlog/items/ITEM-0210-decide-when-pkr-checkout-moves-to-safepay-and-what-happens-t.md) | Decide when PKR checkout moves to Safepay and what happens to existing PKR Stripe subscribers | PRODUCT_DECISION | MEDIUM | P1 | BLOCKED | api:billing | BLOCKED_EXTERNAL |
+| [ITEM-0210](../../docs/backlog/items/ITEM-0210-decide-when-pkr-checkout-moves-to-safepay-and-what-happens-t.md) | Decide when PKR checkout moves to Safepay and what happens to existing PKR Stripe subscribers | PRODUCT_DECISION | MEDIUM | P1 | IN_PROGRESS | api:billing | FIX_NOW |
 | [BUG-0009](../../docs/bugs/BUG-0009-session-revocation-depended-on-the-refresh-cookie.md) | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | P2 | VERIFIED | app:admin, api:auth | DONE |
 | [BUG-0010](../../docs/bugs/BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500.md) | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | P2 | VERIFIED | app:admin | DONE |
 | [BUG-0013](../../docs/bugs/BUG-0013-public-lead-endpoint-had-no-rate-limiting.md) | The public lead endpoint had no rate limiting | SECURITY | MEDIUM | P2 | VERIFIED | api:leads | DONE |

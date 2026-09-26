@@ -9,8 +9,8 @@
 |---|---|
 | Open CRITICAL | **6** |
 | Open HIGH | **102** |
-| Open total | 234 |
-| Blocked | 4 |
+| Open total | 235 |
+| Blocked | 3 |
 | Awaiting a product decision | 9 |
 | Deferred | 118 |
 | Completed | 352 |
@@ -154,7 +154,6 @@
 |---|---|---|---|---|---|---|
 | [[ITEM-0209-confirm-the-safepay-refund-request-body-and-webhook-signing-|ITEM-0209]] | Confirm the Safepay refund request body and webhook signing input against a live sandbox run | TEST_GAP | HIGH | BLOCKED | api:billing | BLOCKED_EXTERNAL |
 | [[ITEM-0048-replace-or-contain-active-win-and-the-xlsx-export-path|ITEM-0048]] | Replace or contain active-win and the xlsx export path | SECURITY | HIGH | BLOCKED | apps/agent-desktop, services/api/src/common/excel, package-lock.json | BLOCKED_EXTERNAL |
-| [[ITEM-0210-decide-when-pkr-checkout-moves-to-safepay-and-what-happens-t|ITEM-0210]] | Decide when PKR checkout moves to Safepay and what happens to existing PKR Stripe subscribers | PRODUCT_DECISION | MEDIUM | BLOCKED | api:billing | BLOCKED_EXTERNAL |
 | [[BUG-0084-seven-unique-constraints-in-schema-prisma-are-absent-from-th|BUG-0084]] | Seven unique constraints in schema.prisma are absent from the migration chain | DATA_INTEGRITY | MEDIUM | BLOCKED | contracts, partner-experience, support-cases, approvals, tenant-settings | BLOCKED_EXTERNAL |
 
 ## Current Test Gaps
@@ -618,6 +617,7 @@
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
 | [[BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver|BUG-3501]] | The email provider screen presents a console sink as delivery and offers sink providers in production | UX | MEDIUM | FIXED | notifications, apps/web | PLAN_REQUIRED |
+| [[ITEM-0210-decide-when-pkr-checkout-moves-to-safepay-and-what-happens-t|ITEM-0210]] | Decide when PKR checkout moves to Safepay and what happens to existing PKR Stripe subscribers | PRODUCT_DECISION | MEDIUM | IN_PROGRESS | api:billing | FIX_NOW |
 | [[BUG-1548-customer-onboarding-validate-accepts-payloads-that-create-re|BUG-1548]] | Customer onboarding validate accepts payloads that create rejects | BUG | MEDIUM | FIXED | onboarding | DONE |
 | [[BUG-1551-desktop-agent-auto-update-manifest-returns-404|BUG-1551]] | Desktop agent auto-update manifest returns 404 | INTEGRATION | MEDIUM | FIXED | agent, app-releases | DONE |
 | [[BUG-1668-tenant-workspace-pages-scroll-horizontally-at-mobile-width|BUG-1668]] | Tenant workspace pages scroll horizontally at mobile width | UX | MEDIUM | FIXED | views | DONE |

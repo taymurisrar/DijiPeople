@@ -4,7 +4,7 @@ aliases: [ADR-0023]
 Title: Seeded agreement templates publish new versions; PKR checkout moves to Safepay
 Status: ACCEPTED
 CreatedAt: 2026-09-26
-UpdatedAt: 2026-09-26
+UpdatedAt: 2026-09-27
 ---
 # ADR-0023 — Seeded agreement templates publish new versions; PKR checkout moves to Safepay
 
@@ -51,3 +51,16 @@ Both are `USER_CONFIRMED`. Related: [[ITEM-0207]], [[ITEM-0210]].
   the system text.
 - Safepay is blocked only on the owner supplying the merchant credentials; no
   further code change is required. Stripe remains the PKR provider until then.
+
+## Update — 2026-09-26: switched on in sandbox mode
+
+The owner supplied Safepay **sandbox** merchant credentials and chose to switch
+Safepay on with them in production ("Enable now in sandbox", `USER_CONFIRMED`),
+accepting that until live keys replace them, a PKR checkout runs on Safepay's
+test environment: a buyer can complete it with test card data and no money is
+collected. Set on the production API service: `SAFEPAY_ENVIRONMENT=sandbox`,
+the three credentials, `SAFEPAY_ENABLED=true` and
+`MANAGED_BILLING_WORKER_ENABLED=true` (without the worker, DijiPeople-billed
+renewals are never invoiced). The real cut-over is replacing the credentials
+with the live dashboard's and setting `SAFEPAY_ENVIRONMENT=production`
+(ITEM-0210).
