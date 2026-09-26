@@ -10,8 +10,8 @@ CREATED_AT: 2026-09-26
 AFFECTED_MODULES: [customization, apps/web]
 AGENTS: [database, backend-api, frontend, security, qa, reviewer, integrator, knowledge-graph]
 DEPENDENCIES: WP-02<-WP-01; WP-03<-WP-02; WP-04<-WP-02; WP-05<-WP-03; WP-06<-WP-03,WP-04,WP-05; WP-07<-WP-06; WP-08<-WP-07
-CURRENT_PACKAGE: WP-01
-COMPLETED_PACKAGES: []
+CURRENT_PACKAGE: WP-08
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 3
 FINAL_STATUS:
@@ -31,14 +31,14 @@ A good package can be reviewed on its own and has one owning specialist.
 
 | WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | BUGS | CI_STATUS | MERGE_STATUS |
 |---|---|---|---|---|---|---|---|---|---|---|
-| WP-01 | Schema + migration + backfill | READY | — | database | agent/packages-alm | — | — | — | — | — |
-| WP-02 | Publishers, release, dependencies, serializer, export, RBAC keys | NOT_STARTED | WP-01 | backend-api | agent/packages-alm | — | — | — | — | — |
-| WP-03 | Import engine: analyze, compare, conflicts, atomic apply, history | NOT_STARTED | WP-02 | backend-api | agent/packages-alm | — | — | — | — | — |
-| WP-04 | Dependency graph endpoints, uninstall, delete-safety fix | NOT_STARTED | WP-02 | backend-api | agent/packages-alm | — | — | — | — | — |
-| WP-05 | Environment variables | NOT_STARTED | WP-03 | backend-api | agent/packages-alm | — | — | — | — | — |
-| WP-06 | Web: Packages tabs, release, import wizard, dependency viewer | NOT_STARTED | WP-03, WP-04, WP-05 | frontend | agent/packages-alm | — | — | — | — | — |
-| WP-07 | QA: unit, DB-backed round trip, negatives, browser | NOT_STARTED | WP-06 | qa | agent/packages-alm | — | — | — | — | — |
-| WP-08 | ADR, docs, knowledge, integration into develop | NOT_STARTED | WP-07 | integrator | agent/packages-alm | — | — | — | — | — |
+| WP-01 | Schema + migration + backfill | DONE | — | database | agent/packages-alm | — | — | — | — | — |
+| WP-02 | Publishers, release, dependencies, serializer, export, RBAC keys | DONE | WP-01 | backend-api | agent/packages-alm | — | — | — | — | — |
+| WP-03 | Import engine: analyze, compare, conflicts, atomic apply, history | DONE | WP-02 | backend-api | agent/packages-alm | — | — | — | — | — |
+| WP-04 | Dependency graph endpoints, uninstall, delete-safety fix | DONE | WP-02 | backend-api | agent/packages-alm | — | — | — | — | — |
+| WP-05 | Environment variables | DONE | WP-03 | backend-api | agent/packages-alm | — | — | — | — | — |
+| WP-06 | Web: Packages tabs, release, import wizard, dependency viewer | DONE | WP-03, WP-04, WP-05 | frontend | agent/packages-alm | — | — | — | — | — |
+| WP-07 | QA: unit, DB-backed round trip, negatives, browser | DONE | WP-06 | qa | agent/packages-alm | — | — | — | — | — |
+| WP-08 | ADR, docs, knowledge, integration into develop | IN_PROGRESS | WP-07 | integrator | agent/packages-alm | — | — | — | — | — |
 
 ## Assumptions
 
@@ -75,3 +75,4 @@ PRE_TASK_REPO_HEALTH: PASS with warnings (other sessions dirty worktrees, render
   module. Name one in the record rather than adding a link here by hand.
 
 <!-- GRAPH:END -->
+- 2026-09-26 — WP-01..WP-07 done on `agent/packages-alm`: schema + migration, engine and API, DB-backed round trip (19/19), web UI, browser pass on an isolated stack. Rebased onto develop (Safepay); migration re-ordered to 20260926180000. Records BUG-3697..3705, ITEM-0216..0220, ADR-0022, QA-SETTINGS-033, REG-635..637.

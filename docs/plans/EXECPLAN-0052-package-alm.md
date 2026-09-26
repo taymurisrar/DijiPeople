@@ -298,3 +298,22 @@ Beyond the scenarios:
 - the ADR and docs are filed;
 - the work is integrated into develop;
 - MAIN_CHANGE_STATUS = UNTOUCHED.
+
+## Divergences from the approved plan (recorded 2026-09-26)
+
+- **Semver.** The plan proposed moving `compareSemver` from tenant-apps to
+  common. A strict MAJOR.MINOR.PATCH parser was written in `package-artifact.ts`
+  instead: the tenant-apps one reads pre-release tags as numbers, which would
+  let `1.2.0-beta` compare equal to `1.2.0`. tenant-apps is untouched.
+- **Migration name.** `20260926180000_customization_package_alm` — develop
+  gained a Safepay migration with the plan's original timestamp.
+- **Default Customizations** is also ensured when the Packages list is opened,
+  so workspaces provisioned before this feature have it (found in the browser
+  pass).
+- **Definition values are validated at parse time** (enums pinned to Prisma by
+  a spec), not only at apply time — found writing the DB-backed round trip.
+- **Defects found and fixed in scope:** BUG-3699 (delete safety, planned as B3),
+  BUG-3702 (module demotion, found by the round trip), BUG-3703 (inert export
+  readiness). Everything else found is recorded and triaged, not fixed.
+- **Delete safety** reuses the portable reader rather than
+  `findMetadataDeleteDependencies`: one dependency notion for export and delete.
