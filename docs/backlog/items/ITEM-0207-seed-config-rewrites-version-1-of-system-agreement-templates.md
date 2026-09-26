@@ -3,18 +3,18 @@ ID: ITEM-0207
 aliases: [ITEM-0207]
 Title: seed:config rewrites version 1 of system agreement templates in place instead of publishing a new version
 Type: PRODUCT_DECISION
-Status: PRODUCT_DECISION
+Status: DONE
 Priority: P2
 Severity:
 AffectedModules: [services/api/prisma]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: PRODUCT_DECISION
+ArchitectDisposition: DONE
 CreatedAt: 2026-09-25
-UpdatedAt: 2026-09-25
+UpdatedAt: 2026-09-26
 RelatedBug: BUG-3582
 RelatedQA: 
-RelatedADR:
+RelatedADR: ADR-0023
 RelatedImplementation: TASK-0032
 TargetMilestone: 
 BlockedBy: 
@@ -59,6 +59,19 @@ None.
 
 [[BUG-3582]], [[TASK-0032]], [[contracts-and-agreements]]
 
+## Resolution
+
+Owner decision 2026-09-26: publish new versions (ADR-0023). Implemented on
+`agent/item-0207-template-versions`: `seed:config` never rewrites an existing
+template version. `planSystemContractTemplateWrite` creates version 1 when a
+template has none, writes nothing when the latest version already carries the
+seeded text, publishes the next version (unpublishing the previous one, as an
+operator edit does) when the latest is the seed's own and differs, and keeps an
+operator-authored latest version in place. Covered by
+`services/api/src/modules/contracts/seed-config-template-versions.spec.ts`, which
+fails if the operator-version rule is removed. Production's version 1 already
+matches the seeded text, so the first deploy writes nothing.
+
 ## History
 
 - 2026-09-25 — created at `5496a244`.
@@ -72,3 +85,4 @@ None.
 - Modules — [[database-architecture]]
 
 <!-- GRAPH:END -->
+- 2026-09-26 — owner chose new versions (ADR-0023); implemented; DONE.

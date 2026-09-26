@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 235 |
-| Blocked | 3 |
+| Open (active work) | 234 |
+| Blocked | 4 |
 | Deferred | 117 |
-| Awaiting a product decision | 11 |
-| Completed / closed | 350 |
+| Awaiting a product decision | 9 |
+| Completed / closed | 352 |
 | **Open CRITICAL** | **6** |
-| **Open HIGH** | **103** |
+| **Open HIGH** | **102** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,7 +27,7 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 6 |
-| HIGH | 103 |
+| HIGH | 102 |
 | MEDIUM | 104 |
 | LOW | 22 |
 
@@ -41,7 +41,7 @@ see [`README.md`](README.md) for why.
 | DATA_INTEGRITY | 24 |
 | DOCUMENTATION | 1 |
 | FOLLOW_UP | 3 |
-| INFRA | 8 |
+| INFRA | 7 |
 | INTEGRATION | 5 |
 | PERFORMANCE | 15 |
 | PRODUCT_DECISION | 1 |
@@ -57,15 +57,15 @@ see [`README.md`](README.md) for why.
 | Status | Count |
 |---|---|
 | OPEN | 46 |
-| BLOCKED | 3 |
+| BLOCKED | 4 |
 | DEFERRED | 117 |
-| PRODUCT_DECISION | 11 |
+| PRODUCT_DECISION | 9 |
 | FIXED | 166 |
 | VERIFIED | 218 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
-| READY | 23 |
-| DONE | 118 |
+| READY | 22 |
+| DONE | 120 |
 
 ## All records
 
@@ -322,7 +322,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0123](../../docs/backlog/items/ITEM-0123-multer-carries-three-high-advisories-and-the-override-that-f.md) | multer carries three high advisories and the override that fixes it cannot be applied without a full re-resolve | SECURITY | HIGH | P1 | DEFERRED | dependencies, ci | DEFER |
 | [ITEM-0124](../../docs/backlog/items/ITEM-0124-production-advisory-gate-blocks-every-release-to-main-and-np.md) | Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile | SECURITY | HIGH | P1 | DONE | scripts/check-production-advisories.mjs | DONE |
 | [ITEM-0172](../../docs/backlog/items/ITEM-0172-wire-debounced-search-and-the-openable-label-into-the-metada.md) | Wire debounced search and the openable label into the metadata-driven record-form lookup call site | FOLLOW_UP | HIGH | P1 | DONE | apps/web | DONE |
-| [ITEM-0208](../../docs/backlog/items/ITEM-0208-production-neon-database-exceeded-its-data-transfer-quota-an.md) | Production Neon database exceeded its data transfer quota and failed two deploys | INFRA | HIGH | P1 | READY | services/api | PLAN_REQUIRED |
+| [ITEM-0208](../../docs/backlog/items/ITEM-0208-production-neon-database-exceeded-its-data-transfer-quota-an.md) | Production Neon database exceeded its data transfer quota and failed two deploys | INFRA | HIGH | P1 | DONE | services/api | DONE |
 | [ITEM-0209](../../docs/backlog/items/ITEM-0209-confirm-the-safepay-refund-request-body-and-webhook-signing-.md) | Confirm the Safepay refund request body and webhook signing input against a live sandbox run | TEST_GAP | HIGH | P1 | BLOCKED | api:billing | BLOCKED_EXTERNAL |
 | [ITEM-0048](../../docs/backlog/items/ITEM-0048-replace-or-contain-active-win-and-the-xlsx-export-path.md) | Replace or contain active-win and the xlsx export path | SECURITY | HIGH | P2 | BLOCKED | apps/agent-desktop, services/api/src/common/excel, package-lock.json | BLOCKED_EXTERNAL |
 | [ITEM-0086](../../docs/backlog/items/ITEM-0086-smoke-deployment-does-not-assert-that-a-launched-market-has-.md) | smoke:deployment does not assert that a launched market has a purchasable price or a running outbox worker | TEST_GAP | HIGH | P2 | DONE | scripts | DONE |
@@ -338,7 +338,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0044](../../docs/backlog/items/ITEM-0044-validate-forwarded-host-before-tenant-web-workspace-resoluti.md) | Validate forwarded host before tenant web workspace resolution | SECURITY | MEDIUM | P1 | DONE | apps/web | DONE |
 | [ITEM-0180](../../docs/backlog/items/ITEM-0180-one-plain-notification-events-page-replacing-rules-and-chann.md) | One plain notification events page replacing Rules and Channel Preferences | UX | MEDIUM | P1 | DONE | apps/web, notifications | DONE |
 | [ITEM-0205](../../docs/backlog/items/ITEM-0205-before-promoting-task-0032-review-agreements-signed-with-a-f.md) | Before promoting TASK-0032: review agreements signed with a fabricated date and partners that fail the new type policy | DATA_MIGRATION | MEDIUM | P1 | DONE | api:contracts, api:partners | DONE |
-| [ITEM-0210](../../docs/backlog/items/ITEM-0210-decide-when-pkr-checkout-moves-to-safepay-and-what-happens-t.md) | Decide when PKR checkout moves to Safepay and what happens to existing PKR Stripe subscribers | PRODUCT_DECISION | MEDIUM | P1 | PRODUCT_DECISION | api:billing | PRODUCT_DECISION |
+| [ITEM-0210](../../docs/backlog/items/ITEM-0210-decide-when-pkr-checkout-moves-to-safepay-and-what-happens-t.md) | Decide when PKR checkout moves to Safepay and what happens to existing PKR Stripe subscribers | PRODUCT_DECISION | MEDIUM | P1 | BLOCKED | api:billing | BLOCKED_EXTERNAL |
 | [BUG-0009](../../docs/bugs/BUG-0009-session-revocation-depended-on-the-refresh-cookie.md) | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | P2 | VERIFIED | app:admin, api:auth | DONE |
 | [BUG-0010](../../docs/bugs/BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500.md) | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | P2 | VERIFIED | app:admin | DONE |
 | [BUG-0013](../../docs/bugs/BUG-0013-public-lead-endpoint-had-no-rate-limiting.md) | The public lead endpoint had no rate limiting | SECURITY | MEDIUM | P2 | VERIFIED | api:leads | DONE |
@@ -775,7 +775,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0168](../../docs/backlog/items/ITEM-0168-a-retry-action-on-an-email-delivery-log.md) | A retry action on an email delivery log | FOLLOW_UP | — | P2 | DONE | notifications, apps/web | DONE |
 | [ITEM-0173](../../docs/backlog/items/ITEM-0173-wire-notification-coverage-for-the-four-highest-value-remain.md) | Wire notification coverage for the four highest-value remaining silent modules | FOLLOW_UP | — | P2 | DEFERRED | documents, contracts, recruitment, business-trips | DEFER |
 | [ITEM-0193](../../docs/backlog/items/ITEM-0193-decide-whether-the-hr-role-may-manage-notification-events.md) | Decide whether the hr role may manage notification events | PRODUCT_DECISION | — | P2 | PRODUCT_DECISION | notifications, permissions | PRODUCT_DECISION |
-| [ITEM-0207](../../docs/backlog/items/ITEM-0207-seed-config-rewrites-version-1-of-system-agreement-templates.md) | seed:config rewrites version 1 of system agreement templates in place instead of publishing a new version | PRODUCT_DECISION | — | P2 | PRODUCT_DECISION | services/api/prisma | PRODUCT_DECISION |
+| [ITEM-0207](../../docs/backlog/items/ITEM-0207-seed-config-rewrites-version-1-of-system-agreement-templates.md) | seed:config rewrites version 1 of system agreement templates in place instead of publishing a new version | PRODUCT_DECISION | — | P2 | DONE | services/api/prisma | DONE |
 | [ITEM-0216](../../docs/backlog/items/ITEM-0216-connection-references-for-customization-packages.md) | Connection references for customization packages | FOLLOW_UP | — | P2 | DEFERRED | customization | DEFER |
 | [ITEM-0217](../../docs/backlog/items/ITEM-0217-platform-admin-read-only-view-of-tenant-package-installation.md) | Platform admin read-only view of tenant package installations | FOLLOW_UP | — | P2 | DEFERRED | customization, super-admin | DEFER |
 | [ITEM-0218](../../docs/backlog/items/ITEM-0218-carry-module-views-navigation-workflows-and-reports-in-custo.md) | Carry module views, navigation, workflows and reports in customization packages | ARCHITECTURE | — | P2 | DEFERRED | customization, views, navigation, workflows, reporting | DEFER |

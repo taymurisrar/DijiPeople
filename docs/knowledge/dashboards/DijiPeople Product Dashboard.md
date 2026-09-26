@@ -79,9 +79,7 @@ Questions where the engineering is understood and the **product answer**
 - [[BUG-3182-no-per-tenant-restore-is-possible-restoring-one-tenant-means|BUG-3182]] — **No per-tenant restore is possible: restoring one tenant means rolling back all of them** (HIGH)
 - [[BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-|BUG-3333]] — **Tenant buyers choose their own currency and the three price schedules are not equivalent** (HIGH)
 - [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] — **No multi-factor authentication exists anywhere, including for platform super admins** (HIGH)
-- [[ITEM-0210-decide-when-pkr-checkout-moves-to-safepay-and-what-happens-t|ITEM-0210]] — **Decide when PKR checkout moves to Safepay and what happens to existing PKR Stripe subscribers** (MEDIUM)
 - [[ITEM-0193-decide-whether-the-hr-role-may-manage-notification-events|ITEM-0193]] — **Decide whether the hr role may manage notification events** (unrated)
-- [[ITEM-0207-seed-config-rewrites-version-1-of-system-agreement-templates|ITEM-0207]] — **seed:config rewrites version 1 of system agreement templates in place instead of publishing a new version** (unrated)
 - [[ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins|ITEM-0191]] — **Decide whether custom modules need their own access keys instead of the shared custom-records privilege** (unrated)
 
 ## Recent Product Changes

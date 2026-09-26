@@ -8,12 +8,12 @@
 | | |
 |---|---|
 | Open CRITICAL | **6** |
-| Open HIGH | **103** |
-| Open total | 235 |
-| Blocked | 3 |
-| Awaiting a product decision | 11 |
+| Open HIGH | **102** |
+| Open total | 234 |
+| Blocked | 4 |
+| Awaiting a product decision | 9 |
 | Deferred | 117 |
-| Completed | 350 |
+| Completed | 352 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -129,7 +129,6 @@
 | [[BUG-3597-a-drawn-or-uploaded-signature-inside-a-signature-paragraph-i|BUG-3597]] | A drawn or uploaded signature inside a signature paragraph is dropped from the signed PDF and DOCX | BUG | HIGH | FIXED | api:contracts | DONE |
 | [[BUG-3697-a-custom-field-added-to-a-system-module-has-nowhere-to-store|BUG-3697]] | A custom field added to a system module has nowhere to store its values | DATA_INTEGRITY | HIGH | OPEN | customization, employees | PLAN_REQUIRED |
 | [[BUG-3702-adding-a-field-to-a-package-s-own-custom-module-demoted-the-|BUG-3702]] | Adding a field to a package's own custom module demoted the module to a reference | DATA_INTEGRITY | HIGH | FIXED | customization | DONE |
-| [[ITEM-0208-production-neon-database-exceeded-its-data-transfer-quota-an|ITEM-0208]] | Production Neon database exceeded its data transfer quota and failed two deploys | INFRA | HIGH | READY | services/api | PLAN_REQUIRED |
 | [[ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no|ITEM-0133]] | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | READY | services/api/test | PLAN_REQUIRED |
 | [[ITEM-0134-the-payroll-run-engine-has-no-tests|ITEM-0134]] | The payroll run engine has no tests | TEST_GAP | HIGH | READY | api:payroll | PLAN_REQUIRED |
 | [[ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-|ITEM-0136]] | electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major | SECURITY | HIGH | READY | apps/agent-desktop | FIX_NOW |
@@ -146,9 +145,7 @@
 | [[BUG-3182-no-per-tenant-restore-is-possible-restoring-one-tenant-means|BUG-3182]] | No per-tenant restore is possible: restoring one tenant means rolling back all of them | INFRA | HIGH | PRODUCT_DECISION | api:tenants | PRODUCT_DECISION |
 | [[BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-|BUG-3333]] | Tenant buyers choose their own currency and the three price schedules are not equivalent | DATA_INTEGRITY | HIGH | PRODUCT_DECISION | apps/web, api:billing | PRODUCT_DECISION |
 | [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] | No multi-factor authentication exists anywhere, including for platform super admins | SECURITY | HIGH | PRODUCT_DECISION | api:auth | PRODUCT_DECISION |
-| [[ITEM-0210-decide-when-pkr-checkout-moves-to-safepay-and-what-happens-t|ITEM-0210]] | Decide when PKR checkout moves to Safepay and what happens to existing PKR Stripe subscribers | PRODUCT_DECISION | MEDIUM | PRODUCT_DECISION | api:billing | PRODUCT_DECISION |
 | [[ITEM-0193-decide-whether-the-hr-role-may-manage-notification-events|ITEM-0193]] | Decide whether the hr role may manage notification events | PRODUCT_DECISION | — | PRODUCT_DECISION | notifications, permissions | PRODUCT_DECISION |
-| [[ITEM-0207-seed-config-rewrites-version-1-of-system-agreement-templates|ITEM-0207]] | seed:config rewrites version 1 of system agreement templates in place instead of publishing a new version | PRODUCT_DECISION | — | PRODUCT_DECISION | services/api/prisma | PRODUCT_DECISION |
 | [[ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins|ITEM-0191]] | Decide whether custom modules need their own access keys instead of the shared custom-records privilege | PRODUCT_DECISION | — | PRODUCT_DECISION | data, permissions | PRODUCT_DECISION |
 
 ## Blocked Items
@@ -157,6 +154,7 @@
 |---|---|---|---|---|---|---|
 | [[ITEM-0209-confirm-the-safepay-refund-request-body-and-webhook-signing-|ITEM-0209]] | Confirm the Safepay refund request body and webhook signing input against a live sandbox run | TEST_GAP | HIGH | BLOCKED | api:billing | BLOCKED_EXTERNAL |
 | [[ITEM-0048-replace-or-contain-active-win-and-the-xlsx-export-path|ITEM-0048]] | Replace or contain active-win and the xlsx export path | SECURITY | HIGH | BLOCKED | apps/agent-desktop, services/api/src/common/excel, package-lock.json | BLOCKED_EXTERNAL |
+| [[ITEM-0210-decide-when-pkr-checkout-moves-to-safepay-and-what-happens-t|ITEM-0210]] | Decide when PKR checkout moves to Safepay and what happens to existing PKR Stripe subscribers | PRODUCT_DECISION | MEDIUM | BLOCKED | api:billing | BLOCKED_EXTERNAL |
 | [[BUG-0084-seven-unique-constraints-in-schema-prisma-are-absent-from-th|BUG-0084]] | Seven unique constraints in schema.prisma are absent from the migration chain | DATA_INTEGRITY | MEDIUM | BLOCKED | contracts, partner-experience, support-cases, approvals, tenant-settings | BLOCKED_EXTERNAL |
 
 ## Current Test Gaps
@@ -181,7 +179,6 @@
 | [[BUG-3168-two-required-ci-gates-report-success-while-executing-nothing|BUG-3168]] | Two required CI gates report success while executing nothing | INFRA | HIGH | OPEN | .github/workflows | FIX_NOW |
 | [[BUG-3183-platform-ops-alerts-for-failed-payments-and-provisioning-are|BUG-3183]] | Platform-ops alerts for failed payments and provisioning are written to a log line that is never sent and is suppressed at the production log level | INFRA | HIGH | OPEN | api:platform-monitoring | FIX_NOW |
 | [[BUG-3198-api-health-is-a-static-ok-payload-so-a-broken-deploy-and-a-d|BUG-3198]] | api/health is a static ok payload, so a broken deploy and a dead database both report healthy | INFRA | HIGH | OPEN | services/api/src/common | FIX_NOW |
-| [[ITEM-0208-production-neon-database-exceeded-its-data-transfer-quota-an|ITEM-0208]] | Production Neon database exceeded its data transfer quota and failed two deploys | INFRA | HIGH | READY | services/api | PLAN_REQUIRED |
 | [[BUG-3227-no-access-log-and-traceid-never-reaches-an-application-log-l|BUG-3227]] | No access log, and traceId never reaches an application log line: a successful request leaves no trace at all | INFRA | MEDIUM | FIXED | services/api/src/common | DONE |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0158-public-traffic-that-bypasses-cloudflare-shares-one-rate-limi|ITEM-0158]] | Public traffic that bypasses Cloudflare shares one rate-limit bucket, by design and untested | INFRA | MEDIUM | READY | pkg:config, services/api/src/common/security | PLAN_REQUIRED |
@@ -770,6 +767,7 @@
 - [[ADR-0020-agreement-placeholders-are-offered-by-agreement-context|ADR-0020 — Agreement placeholders are offered and resolved by agreement context]]
 - [[ADR-0021-owner-decisions-countersign-platform-mfa-legal-publishing|ADR-0021 — Owner decisions for TASK-0032: countersign line, platform MFA, legal publishing]]
 - [[ADR-0022-customization-packages-are-the-alm-unit|ADR-0022 — Customization packages are the ALM unit]]
+- [[ADR-0023-seeded-template-versions-and-safepay-cut-over|ADR-0023 — Seeded agreement templates publish new versions; PKR checkout moves to Safepay]]
 - [[decision-a-bug-record-is-its-own-backlog-item|Decision — A bug record **is** its own backlog item]]
 - [[decision-ci-verdict-gates-shared-merges|Decision — A shared-target merge requires a read CI verdict on the exact SHA]]
 - [[decision-platform-admin-is-a-separate-identity|Decision — Platform admin is a separate identity, not an elevated tenant user]]
@@ -787,7 +785,7 @@
 | Release records | 10 |
 | Module notes | 31 |
 | Architecture notes | 22 |
-| Decision notes (ADR + generated) | 26 |
+| Decision notes (ADR + generated) | 27 |
 | Implementation records | 7 |
 
 **Awaiting Architect triage: 0.** A record nobody has

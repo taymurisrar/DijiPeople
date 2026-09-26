@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **0** |
+| Active sessions | **1** |
 | Active parent tasks | 4 |
 | Active work packages | 4 |
 | Blocked work packages | 0 |
@@ -15,9 +15,9 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **6** |
-| Open HIGH | 103 |
+| Open HIGH | 102 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 11 |
+| Owner decisions pending | 9 |
 | QA coverage gaps | 161 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -30,8 +30,8 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 235 |
-| No next action | 235 |
+| No acceptance criteria | 234 |
+| No next action | 234 |
 | Aging — 7d / 30d / 90d | 199 / 16 / 0 |
 | Architecture and technical debt | 7 |
 | Security gaps | 37 |
@@ -47,7 +47,9 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-_No session is currently registered as active._
+| Session | Task | Title | Status | Branch | Target | Leases | Schema |
+|---|---|---|---|---|---|---|---|
+| [[SESSION-0112-item-0207-system-agreement-templates-publish-new-versions-cl|SESSION-0112]] | — | ITEM-0207 system agreement templates publish new versions; close ITEM-0208; record ITEM-0210 decision | ACTIVE | `agent/item-0207-template-versions` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
 
@@ -119,9 +121,7 @@ Questions where the engineering is understood and the **product answer is**
 - [[BUG-3182-no-per-tenant-restore-is-possible-restoring-one-tenant-means|BUG-3182]] — **No per-tenant restore is possible: restoring one tenant means rolling back all of them**
 - [[BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-|BUG-3333]] — **Tenant buyers choose their own currency and the three price schedules are not equivalent**
 - [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] — **No multi-factor authentication exists anywhere, including for platform super admins**
-- [[ITEM-0210-decide-when-pkr-checkout-moves-to-safepay-and-what-happens-t|ITEM-0210]] — **Decide when PKR checkout moves to Safepay and what happens to existing PKR Stripe subscribers**
 - [[ITEM-0193-decide-whether-the-hr-role-may-manage-notification-events|ITEM-0193]] — **Decide whether the hr role may manage notification events**
-- [[ITEM-0207-seed-config-rewrites-version-1-of-system-agreement-templates|ITEM-0207]] — **seed:config rewrites version 1 of system agreement templates in place instead of publishing a new version**
 - [[ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins|ITEM-0191]] — **Decide whether custom modules need their own access keys instead of the shared custom-records privilege**
 
 ## QA Coverage Gaps
@@ -297,10 +297,10 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 235 |
-| Blocked | 3 |
+| Open total | 234 |
+| Blocked | 4 |
 | Deferred | 117 |
-| Awaiting a product decision | 11 |
+| Awaiting a product decision | 9 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

@@ -3,18 +3,18 @@ ID: ITEM-0210
 aliases: [ITEM-0210]
 Title: Decide when PKR checkout moves to Safepay and what happens to existing PKR Stripe subscribers
 Type: PRODUCT_DECISION
-Status: PRODUCT_DECISION
+Status: BLOCKED
 Priority: P1
 Severity: MEDIUM
 AffectedModules: [services/api/src/modules/billing]
 Source: IMPLEMENTATION
 OwnerAgent: architect
-ArchitectDisposition: PRODUCT_DECISION
+ArchitectDisposition: BLOCKED_EXTERNAL
 CreatedAt: 2026-09-26
 UpdatedAt: 2026-09-26
 RelatedBug: 
 RelatedQA: docs/qa/runs/2026-09-26-safepay-multi-provider-billing-562dee9.md
-RelatedADR: 
+RelatedADR: ADR-0023
 RelatedImplementation:
 TargetMilestone: 
 BlockedBy: 
@@ -51,6 +51,18 @@ Owner decides the cut-over date and whether existing PKR Stripe subscribers are 
 
 [[ITEM-0209]] · [[ITEM-0214]] · [[billing]]
 
+## Decision
+
+Owner decision 2026-09-26 (ADR-0023): PKR checkout moves to Safepay for new
+checkouts; existing PKR subscriptions keep renewing through Stripe.
+
+Blocked on the Safepay merchant credentials: the production API service has
+none of `SAFEPAY_ENVIRONMENT`, `SAFEPAY_API_KEY`, `SAFEPAY_SECRET_KEY`,
+`SAFEPAY_WEBHOOK_SECRET` (checked by name, 2026-09-26). Setting
+`SAFEPAY_ENABLED=true` without them would make the gateway refuse every PKR
+checkout, so the flag stays off until the owner adds them. After that the
+switch is one variable, then a verification of a PKR checkout reaching Safepay.
+
 ## History
 
 - 2026-09-26 — created at `562dee91`.
@@ -64,3 +76,4 @@ Owner decides the cut-over date and whether existing PKR Stripe subscribers are 
 - QA run — [[2026-09-26-safepay-multi-provider-billing-562dee9]]
 
 <!-- GRAPH:END -->
+- 2026-09-26 — owner chose Safepay for new PKR checkouts (ADR-0023); blocked on merchant credentials.
