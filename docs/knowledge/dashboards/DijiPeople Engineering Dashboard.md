@@ -597,12 +597,12 @@
 
 - [[2026-09-26-task-0033-package-alm-b55afdb2|Engineering History — TASK-0033 package ALM]]
 - [[2026-09-26-release-backlog-safepay-package-alm-42f597b7|Engineering History — Release backlog safepay package alm]]
+- [[2026-09-26-item-0207-template-versions-9e66d115|Engineering History — Item 0207 template versions]]
 - [[2026-09-26-billing-safepay-provider-aa2c507e|Engineering History — Safepay for PKR alongside Stripe]]
 - [[2026-09-26-backlog-0203-0204-0206-7866e11e|Engineering History — Backlog 0203 0204 0206]]
 - [[2026-09-26-backlog-0201-0200-856747e7|Engineering History — Backlog 0201 0200]]
 - [[2026-09-25-task-0032-partner-agreements-admin-hardening-dfe42ea9|Engineering History — Task 0032 partner agreements admin hardening]]
 - [[2026-09-13-task-0031-demo-walkthrough-2-remediation-e253306a|Engineering History — Task 0031 demo walkthrough 2 remediation]]
-- [[2026-09-12-ux-findings-audit-d5388a4c|Engineering History — Ux findings audit]]
 
 ## Recent Releases
 
@@ -781,7 +781,7 @@
 | Backlog items | 220 |
 | Known bug patterns | 35 |
 | QA runs | 35 |
-| Engineering history records | 88 |
+| Engineering history records | 89 |
 | Release records | 10 |
 | Module notes | 31 |
 | Architecture notes | 22 |
