@@ -14,7 +14,7 @@ CURRENT_PACKAGE:
 COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 1
-FINAL_STATUS: COMPLETE — integrated into develop at cd777b78 (CI 36269897626 PASS); main untouched
+FINAL_STATUS: COMPLETE — integrated into develop at cd777b78 (CI 36269897626 PASS); released to main at 1aeda297 (PR #87) and live in production
 ---
 
 # TASK-0034 — Custom field values on system modules; package import at scale
@@ -74,3 +74,4 @@ Pre-task: develop and main both at `58fc8fad`, nothing else in flight on develop
 
 <!-- GRAPH:END -->
 - 2026-09-26: CI 36268477840 on `680b132f` failed Build and Runtime schema (both from this branch); fixed in `cd777b78`, CI 36269897626 PASS; develop fast-forwarded to `cd777b78`. Browser pass (scripted Playwright) added to the QA run.
+- 2026-09-26: released to main by PR #87 at `1aeda297` (SESSION-0114); Render and Vercel live on it, migration applied.
