@@ -1,7 +1,7 @@
 # Component Index
 
-> **Last verified:** 2026-09-26
-> **Verified against commit:** d055fc71
+> **Last verified:** 2026-09-27
+> **Verified against commit:** 70da5244
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -16,8 +16,8 @@ question an agent can answer by retrieval rather than by reading a directory.
 comment beside it is the reasoning; this document is a route to both. Every row
 carries `file`:`line` for that reason — read the source before changing it.
 
-**An export missing from here is undocumented, not absent.** 849 of
-1115 exports across these kits carry no
+**An export missing from here is undocumented, not absent.** 852 of
+1123 exports across these kits carry no
 doc-comment and are omitted rather than listed as bare names. That ratio is
 itself worth knowing: it is where a UI/UX or Frontend agent is working without
 stated rationale, and where adding one is worth more than a new abstraction.
@@ -132,7 +132,7 @@ re-derived on each run.
 
 Metadata-driven UI is the default. New modules are declared through `lib/runtime/` and rendered by the standard runtime pages; a bespoke page needs a stated reason in the plan.
 
-188 documented export(s); 588 undocumented export(s) omitted.
+193 documented export(s); 591 undocumented export(s) omitted.
 
 | Export | Kind | Used by | Where | What it is |
 |---|---|---|---|---|
@@ -203,6 +203,8 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `composeDashboardNavItems` | function | 1 | `apps/web/lib/runtime/custom-modules/custom-module-navigation.ts`:72 | The full sidebar catalog: the fixed list with custom entries placed just before Settings (the administrative tail), or appended when there is no Settings entry. |
 | `correctionChanges` | function | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:530 | What a correction request is asking to change, and only that. |
 | `donutArcs` | function | 1 | `apps/web/app/components/charts/chart-geometry.ts`:1119 | Arc paths for a donut, in input order. |
+| `employeeCustomFieldsPayload` | function | 1 | `apps/web/lib/runtime/modules/employee-custom-fields.ts`:169 | Form values → the `customFields` part of a create or update payload. |
+| `employeeCustomFieldValues` | function | 1 | `apps/web/lib/runtime/modules/employee-custom-fields.ts`:147 | Record → form values: the API returns them under `customFields`. |
 | `emptyStateMessage` | function | 1 | `apps/web/app/components/data-table/utils.ts`:274 | Which empty state is true. |
 | `fieldValidationErrorsAreVisible` | function | 1 | `apps/web/lib/runtime/command-failure-visibility.ts`:20 | Whether a failed command's field errors will actually appear somewhere the user can see them. |
 | `filterToFormFields` | function | 1 | `apps/web/lib/runtime/related-record-create-values.ts`:76 | Drop anything the child form does not declare, which is what gets posted. |
@@ -233,9 +235,11 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `toLocalDateTimeInput` | function | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:399 | An ISO instant as a `datetime-local` input value, in the viewer's own zone. |
 | `validateDraft` | function | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:206 | Checks a draft before it is sent. |
 | `visibleRowActions` | function | 1 | `apps/web/lib/runtime/related-subgrid-rows.ts`:19 | ITEM-0179 — the declared row actions this viewer may run on this row. |
+| `withEmployeeCustomFieldSection` | function | 1 | `apps/web/lib/runtime/modules/employee-custom-fields.ts`:96 | A form that already places a custom field (the tenant laid it out in the form designer) is left alone for that field; any field no section places is added to one section on the first field tab, so a published field is never invisible just because nobody opened the designer. |
 | `bucketByPeriod` | function | 0 | `apps/web/app/components/charts/chart-geometry.ts`:454 | Group dated measurements into calendar buckets, summing each bucket. |
 | `buildCustomModuleForms` | function | 0 | `apps/web/lib/runtime/custom-modules/custom-module-runtime.ts`:234 | The module's published forms as FormMetadata, through the same mapping system modules use. |
 | `closeListboxOnEscape` | function | 0 | `apps/web/app/components/ui/form-control.tsx`:194 | BUG-3495 — Escape inside an open listbox closes the listbox, not the dialog around it. |
+| `customFieldErrors` | function | 0 | `apps/web/lib/runtime/modules/employee-data.adapter.ts`:895 | BUG-3697 — the API reports a custom field's error as `details["customFields.<field>"]`; on the form the field is `<field>`. |
 | `donutLegendItems` | function | 0 | `apps/web/app/components/charts/donut-chart.tsx`:185 | Legend entries for a donut, in the same order and with the same bucketing the chart used. |
 | `entryAttendanceDate` | function | 0 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:384 | The day the record belongs to, as YYYY-MM-DD. |
 | `fieldsFor` | function | 0 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:100 | The fields a given correction type actually uses. |
@@ -249,6 +253,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `resolveVisibleByRules` | function | 0 | `apps/web/lib/runtime/visibility.resolver.ts`:84 | Filters any list of rule-carrying items. |
 | `sparklineAriaLabel` | function | 0 | `apps/web/app/components/charts/sparkline.tsx`:169 | A ready-made `ariaLabel` for the common case: a metric over a period. |
 | `startOfWeek` | function | 0 | `apps/web/app/components/filters/period.ts`:468 | Start of the week containing `date`. |
+| `supportedEmployeeCustomFields` | function | 0 | `apps/web/lib/runtime/modules/employee-custom-fields.ts`:51 | Lookup custom fields are left off the employee form for now: the employee page loads lookup options through employee-specific code that has no route for a custom lookup's target, and an empty dropdown is worse than none. |
 | `tenantToday` | function | 0 | `apps/web/app/components/filters/period.ts`:237 | The calendar date it is *right now, where the tenant is*. |
 | `truncateLabel` | function | 0 | `apps/web/app/components/charts/chart-chrome.tsx`:276 | SVG has no text overflow, so a long department name runs off the canvas and over the next chart. |
 | `employeeAccountActionCommands` | value | 1 | `apps/web/lib/runtime/modules/employee-account-actions.ts`:11 | The employee record's account actions — Reset Password and Send Invitation. |

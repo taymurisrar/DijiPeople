@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**716 records** — 496 bugs under [`docs/bugs/`](../bugs/), 220 non-bug items under [`items/`](items/).
+**717 records** — 496 bugs under [`docs/bugs/`](../bugs/), 221 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -15,7 +15,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | Open (active work) | 234 |
 | Blocked | 4 |
-| Deferred | 117 |
+| Deferred | 118 |
 | Awaiting a product decision | 9 |
 | Completed / closed | 352 |
 | **Open CRITICAL** | **6** |
@@ -56,11 +56,11 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 46 |
+| OPEN | 45 |
 | BLOCKED | 4 |
-| DEFERRED | 117 |
+| DEFERRED | 118 |
 | PRODUCT_DECISION | 9 |
-| FIXED | 166 |
+| FIXED | 167 |
 | VERIFIED | 218 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
@@ -306,7 +306,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3565](../../docs/bugs/BUG-3565-opening-a-contract-template-or-signature-request-from-its-ad.md) | Opening a contract template or signature request from its admin list returns 404 | BUG | HIGH | P1 | FIXED | api:platform-runtime | DONE |
 | [BUG-3578](../../docs/bugs/BUG-3578-deleting-a-partner-or-lead-with-restricted-history-crashes-w.md) | Deleting a partner or lead with restricted history crashes with a 500 | DATA_INTEGRITY | HIGH | P1 | FIXED | api:partners, api:leads | DONE |
 | [BUG-3597](../../docs/bugs/BUG-3597-a-drawn-or-uploaded-signature-inside-a-signature-paragraph-i.md) | A drawn or uploaded signature inside a signature paragraph is dropped from the signed PDF and DOCX | BUG | HIGH | P1 | FIXED | api:contracts | DONE |
-| [BUG-3697](../../docs/bugs/BUG-3697-a-custom-field-added-to-a-system-module-has-nowhere-to-store.md) | A custom field added to a system module has nowhere to store its values | DATA_INTEGRITY | HIGH | P1 | OPEN | customization, employees | PLAN_REQUIRED |
+| [BUG-3697](../../docs/bugs/BUG-3697-a-custom-field-added-to-a-system-module-has-nowhere-to-store.md) | A custom field added to a system module has nowhere to store its values | DATA_INTEGRITY | HIGH | P1 | FIXED | customization, employees | FIX_NOW |
 | [BUG-3702](../../docs/bugs/BUG-3702-adding-a-field-to-a-package-s-own-custom-module-demoted-the-.md) | Adding a field to a package's own custom module demoted the module to a reference | DATA_INTEGRITY | HIGH | P1 | FIXED | customization | DONE |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
@@ -781,6 +781,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0218](../../docs/backlog/items/ITEM-0218-carry-module-views-navigation-workflows-and-reports-in-custo.md) | Carry module views, navigation, workflows and reports in customization packages | ARCHITECTURE | — | P2 | DEFERRED | customization, views, navigation, workflows, reporting | DEFER |
 | [ITEM-0219](../../docs/backlog/items/ITEM-0219-package-cli-and-a-ci-pipeline-step-for-validate-export-and-i.md) | Package CLI and a CI pipeline step for validate, export and import | FOLLOW_UP | — | P2 | DEFERRED | customization | DEFER |
 | [ITEM-0220](../../docs/backlog/items/ITEM-0220-publisher-signing-for-customization-package-artifacts.md) | Publisher signing for customization package artifacts | SECURITY | — | P2 | DEFERRED | customization | DEFER |
+| [ITEM-0221](../../docs/backlog/items/ITEM-0221-custom-fields-on-employees-lookup-fields-list-view-columns-a.md) | Custom fields on Employees: lookup fields, list-view columns and export; other system modules | FOLLOW_UP | — | P2 | DEFERRED | customization, employees | DEFER |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |
 | [ITEM-0114](../../docs/backlog/items/ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-.md) | The workspace shell states the tenant's identity four times and its purpose twice | UX | — | P3 | DONE | views, apps/web | DONE |

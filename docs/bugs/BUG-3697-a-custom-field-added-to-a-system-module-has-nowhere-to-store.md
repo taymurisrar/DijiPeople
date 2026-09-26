@@ -91,7 +91,7 @@ EXECPLAN-0053.
 
 ## Resolution
 
-Fixed in commits ddcdd911 (API) and 775e2d60 (form) on `agent/custom-field-values`, part of TASK-0034.
+Fixed in commits 6acf88ba (API) and ed67976d (form) on `agent/custom-field-values`, part of TASK-0034.
 
 - **Storage.** A new model, `CustomRecordExtension (tenantId, tableKey, recordId, values Json)`, added by an additive migration. It is unique per record, cascades with its tenant, and is listed in the tenant-erasure order.
 - **Service.** `CustomFieldValuesService` stores, reads and validates values, counting only published fields. It has no controller. `EmployeesService` checks access to the employee first, then:
@@ -120,7 +120,9 @@ Retested 2026-09-26:
 
 ## Related
 
+- Backlog item — [[ITEM-0221]]
 - Modules — [[customization]], [[employees]]
-- Implementation — [[EXECPLAN-0052-package-alm]]
+- Implementation — [[EXECPLAN-0052-package-alm]], [[EXECPLAN-0053-custom-field-values-and-package-import-at-scale]]
+- Regression — REG-638 (see the regression register)
 
 <!-- GRAPH:END -->
