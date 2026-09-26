@@ -2389,6 +2389,13 @@ export class ContractsService {
         details: { keys: signatureKeys },
       });
     const contract = await this.get(user, contractId);
+    /*
+     * BUG-3668. Field values are agreement content like every other edit, so
+     * the shared immutability rule applies here too. Without it an executed
+     * agreement was refused only incidentally — its frozen version has no
+     * editable placeholder left — which a template with one would not be.
+     */
+    this.assertAgreementEditable(contract.status);
     const version = contract.versions.find(
       (item) => item.version === contract.currentVersionNumber,
     );
