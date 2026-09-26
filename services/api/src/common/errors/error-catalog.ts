@@ -891,6 +891,14 @@ export const ERROR_CATALOG = {
     'warning',
     'validation',
   ),
+  // ITEM-0201: an admin record page saved a copy someone else had since changed.
+  RECORD_CHANGED_SINCE_OPENED: entry(
+    409,
+    'Record changed by someone else',
+    'Reload the record to see the latest changes, then make your edit again.',
+    'warning',
+    'validation',
+  ),
   NETWORK_ERROR: entry(
     503,
     'Network error',
