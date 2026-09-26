@@ -1162,8 +1162,9 @@ export class CustomizationService {
   async getEffectiveMetadata(
     currentUser: AuthenticatedUser,
     db: Prisma.TransactionClient | PrismaService = this.prisma,
+    options: { skipCoreSync?: boolean } = {},
   ) {
-    await this.syncDefaultSolution(currentUser);
+    if (!options.skipCoreSync) await this.syncDefaultSolution(currentUser);
     const publishedComponents =
       await db.customizationSolutionComponent.findMany({
         where: {
@@ -1251,12 +1252,25 @@ export class CustomizationService {
    * move in the same transaction: an import that rolled back must not leave a
    * snapshot describing components that no longer exist.
    */
+  /** Materialises DijiPeople Core for the workspace; idempotent, cached per process. */
+  async syncCore(currentUser: AuthenticatedUser) {
+    await this.syncDefaultSolution(currentUser);
+  }
+
   async recordPublishSnapshot(
     currentUser: AuthenticatedUser,
     componentIds: readonly string[],
     db: Prisma.TransactionClient,
   ) {
-    const effectiveMetadata = await this.getEffectiveMetadata(currentUser, db);
+    /*
+     * TASK-0034 — the DijiPeople Core sync runs on the main client and, the
+     * first time per workspace per process, writes thousands of rows. Inside
+     * an import it ran while the import transaction held its connection and
+     * its clock; callers now run `syncCore` first, before the transaction.
+     */
+    const effectiveMetadata = await this.getEffectiveMetadata(currentUser, db, {
+      skipCoreSync: true,
+    });
     const latestSnapshot = await db.customizationPublishSnapshot.findFirst({
       where: { tenantId: currentUser.tenantId },
       orderBy: { version: 'desc' },

@@ -775,9 +775,13 @@ describeWithDatabase()('Customization package ALM (e2e, DB-backed)', () => {
     ).toBe(0);
     const operation = await alm.getOperation(uat, analysis.id);
     expect(operation.status).toBe('FAILED');
+    /*
+     * TASK-0034 — fields are written as one batch, and PostgreSQL does not say
+     * which row of a batch it refused, so the report names the batch.
+     */
     expect(
       (operation.error as { failedComponent: string }).failedComponent,
-    ).toBe('column:misBroken.mis_second');
+    ).toBe('column:misBroken.mis_first (and 1 more column components)');
   });
 
   it('L — environment variables: the definition travels, the value never does', async () => {
