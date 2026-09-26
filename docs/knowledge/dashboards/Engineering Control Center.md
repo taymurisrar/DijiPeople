@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **1** |
+| Active sessions | **0** |
 | Active parent tasks | 4 |
 | Active work packages | 4 |
 | Blocked work packages | 0 |
@@ -47,9 +47,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-| Session | Task | Title | Status | Branch | Target | Leases | Schema |
-|---|---|---|---|---|---|---|---|
-| [[SESSION-0107-backlog-item-0203-individual-party-type-item-0204-platform-p|SESSION-0107]] | — | Backlog: ITEM-0203 individual party type, ITEM-0204 platform permission follow-ups, ITEM-0206 dashboard drill-downs | ACTIVE | `agent/backlog-0203-0204-0206` | `develop` | — | NO |
+_No session is currently registered as active._
 
 ## Active Tasks and Work Packages
 

@@ -6,6 +6,7 @@ Sessions that reached a terminal state. Kept as history: the branch, the base it
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0107](../../docs/sessions/SESSION-0107-backlog-item-0203-individual-party-type-item-0204-platform-p.md) | — | Backlog: ITEM-0203 individual party type, ITEM-0204 platform permission follow-ups, ITEM-0206 dashboard drill-downs | COMPLETE | `agent/backlog-0203-0204-0206` | `develop` | — | 2026-09-26T09:45:46.287Z |
 | [SESSION-0106](../../docs/sessions/SESSION-0106-task-0032-partner-agreements-admin-rbac-monitoring-dashboard.md) | TASK-0032 | TASK-0032 partner/agreements/admin RBAC/monitoring/dashboard/MFA hardening | COMPLETE | `agent/partner-agreements-admin-hardening` | `develop` | — | 2026-09-25T00:07:43.417Z |
 | [SESSION-0105](../../docs/sessions/SESSION-0105-demo-walkthrough-2-hierarchy-work-site-customization-notific.md) | TASK-0031 | Demo walkthrough 2 - hierarchy, work site, customization, notifications findings | COMPLETE | `agent/demo-walkthrough-2-records` | `develop` | — | 2026-09-13T02:04:45.716Z |
 | [SESSION-0104](../../docs/sessions/SESSION-0104-release-promote-the-session-0103-records-to-production.md) | TASK-0030 | Release: promote the SESSION-0103 records to production | COMPLETE | `develop` | `main` | — | 2026-09-12T22:06:44.814Z |

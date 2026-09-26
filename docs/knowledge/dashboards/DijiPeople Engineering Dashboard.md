@@ -590,6 +590,7 @@
 
 ## Recent Engineering History
 
+- [[2026-09-26-backlog-0203-0204-0206-7866e11e|Engineering History — Backlog 0203 0204 0206]]
 - [[2026-09-25-task-0032-partner-agreements-admin-hardening-dfe42ea9|Engineering History — Task 0032 partner agreements admin hardening]]
 - [[2026-09-13-task-0031-demo-walkthrough-2-remediation-e253306a|Engineering History — Task 0031 demo walkthrough 2 remediation]]
 - [[2026-09-12-ux-findings-audit-d5388a4c|Engineering History — Ux findings audit]]
@@ -597,7 +598,6 @@
 - [[2026-09-11-review-subscription-plans-screen-118d22ed|Engineering History — Review subscription plans screen]]
 - [[2026-09-11-closeout-sweep-658eb39c|Engineering History — Closeout sweep]]
 - [[2026-09-11-auth-session-revocation-690cacbc|Engineering History — Auth session revocation]]
-- [[2026-09-10-release-settings-entitlements-254e8d2b|Engineering History — Release settings entitlements]]
 
 ## Recent Releases
 
@@ -770,7 +770,7 @@
 | Backlog items | 208 |
 | Known bug patterns | 35 |
 | QA runs | 33 |
-| Engineering history records | 83 |
+| Engineering history records | 84 |
 | Release records | 10 |
 | Module notes | 30 |
 | Architecture notes | 22 |
