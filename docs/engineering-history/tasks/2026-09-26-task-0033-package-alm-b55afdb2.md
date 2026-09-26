@@ -89,7 +89,7 @@ None — not deployed. Integrated into develop only; main untouched at 562dee91.
 
 ## Obsidian Sync
 
-PENDING
+`node scripts/sync-obsidian.mjs` ran from the worktree at a87d5a57 (config resolved from the primary checkout): 62 notes written, 1687 already current, 6 skipped as empty. `npm run knowledge:verify` read 1749 notes back and failed on 31 findings, **none from this task**: 27 GRAPH_ORPHAN bug notes (BUG-3153..BUG-3228, filed by earlier tasks) and a duplicate-node claim on EXECPLAN-0032. Recorded as a documentation warning (COMPLETE_WITH_DOCUMENTATION_WARNING), not fixed here — other sessions' records.
 
 ## Cleanup
 
@@ -101,6 +101,6 @@ Worktree `D:/My Work/hrm-dijipeople/dp-packages-alm` kept until this record reac
 
 Records this task created, closed or depended on, cited in its own body:
 
-[[ADR-0022]] · [[BUG-3697]] · [[BUG-3698]] · [[BUG-3699]] · [[BUG-3700]] · [[BUG-3701]] · [[BUG-3702]] · [[BUG-3703]] · [[BUG-3704]] · [[BUG-3705]] · [[ITEM-0216]] · [[ITEM-0217]] · [[ITEM-0218]] · [[ITEM-0219]] · [[ITEM-0220]] · [[TASK-0033]]
+[[ADR-0022]] · [[BUG-3153]] · [[BUG-3228]] · [[BUG-3697]] · [[BUG-3698]] · [[BUG-3699]] · [[BUG-3700]] · [[BUG-3701]] · [[BUG-3702]] · [[BUG-3703]] · [[BUG-3704]] · [[BUG-3705]] · [[EXECPLAN-0032]] · [[ITEM-0216]] · [[ITEM-0217]] · [[ITEM-0218]] · [[ITEM-0219]] · [[ITEM-0220]] · [[TASK-0033]]
 
 <!-- GRAPH:END -->
