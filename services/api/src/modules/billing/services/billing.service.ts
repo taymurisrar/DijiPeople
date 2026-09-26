@@ -10,6 +10,8 @@ import {
   BillingModel,
   CommercialPublicationStatus,
   CommercialSalesModel,
+  InvoiceStatus,
+  PaymentProvider,
   Prisma,
   StripeEnvironment,
   StripeSyncStatus,
@@ -39,9 +41,16 @@ import {
   calculateSeatPricing,
   buildRecurringCheckoutLineItem,
   deriveCheckoutReadiness,
+  deriveManagedCheckoutReadiness,
   normalizePurchasedSeats,
   stripeEnvironmentFromMode,
 } from '../billing-seat-pricing';
+import { parseInvoicePurpose } from '../managed-billing.rules';
+import { PaymentGateways } from '../providers/payment-gateways';
+import {
+  ManagedCheckoutService,
+  type ReturnUrls,
+} from './managed-checkout.service';
 
 const RECENT_CHECKOUT_WINDOW_MS = 24 * 60 * 60 * 1000;
 
@@ -55,6 +64,10 @@ export class BillingService {
     private readonly ownerEmailVerification: OwnerEmailVerificationService,
     private readonly legalService: LegalService,
     private readonly commercialConfigService: CommercialConfigService,
+    // Which provider collects a currency, and the checkout path for every
+    // provider other than Stripe. Stripe keeps its own path below unchanged.
+    private readonly paymentGateways: PaymentGateways,
+    private readonly managedCheckout: ManagedCheckoutService,
   ) {}
 
   /**
@@ -74,6 +87,26 @@ export class BillingService {
     if (!isPriceCurrentlySellable(planPrice.plan, planPrice)) {
       throw new AppError('BILLING_PLAN_PRICE_UNAVAILABLE');
     }
+  }
+
+  /**
+   * Whether a price can be checked out, judged against the provider that will
+   * collect it. A Stripe price needs its synced Stripe Price; a price another
+   * provider collects needs only that provider's credentials, because
+   * DijiPeople sends it an amount rather than a price id.
+   */
+  private priceCheckoutReadiness(
+    price: Parameters<typeof deriveCheckoutReadiness>[0],
+    expectedStripeEnvironment: StripeEnvironment,
+  ) {
+    const provider = this.paymentGateways.resolveProvider(price.currency);
+    if (!this.paymentGateways.isManaged(provider)) {
+      return deriveCheckoutReadiness(price, expectedStripeEnvironment);
+    }
+    return deriveManagedCheckoutReadiness(
+      price,
+      this.paymentGateways.get(provider).isConfigured(),
+    );
   }
 
   /**
@@ -242,7 +275,7 @@ export class BillingService {
         annualBasePrice: Number(plan.annualBasePrice),
         prices: sellablePrices.map((price) => {
           const contract = mapSeatPriceContract(price);
-          const readiness = deriveCheckoutReadiness(
+          const readiness = this.priceCheckoutReadiness(
             {
               ...contract,
               isActive: price.isActive,
@@ -491,11 +524,18 @@ export class BillingService {
       input.seatQuantity,
       planPrice,
     );
-    const verifiedPrice = await this.verifyAndPersistPlanPrice(planPrice);
-    if (!verifiedPrice.checkoutReady || !planPrice.stripePriceId) {
-      throw new BadRequestException(
-        `This price is not checkout-ready: ${verifiedPrice.reasons.join(' ')}`,
-      );
+    // Decided once, from the price's currency — never from the request.
+    const provider = this.paymentGateways.resolveProvider(planPrice.currency);
+    if (this.paymentGateways.isManaged(provider)) {
+      // Refuse before an order is opened, not after the buyer verified.
+      this.paymentGateways.require(provider);
+    } else {
+      const verifiedPrice = await this.verifyAndPersistPlanPrice(planPrice);
+      if (!verifiedPrice.checkoutReady || !planPrice.stripePriceId) {
+        throw new BadRequestException(
+          `This price is not checkout-ready: ${verifiedPrice.reasons.join(' ')}`,
+        );
+      }
     }
     const contactName = input.contactName.trim();
     const companyName = input.companyName.trim();
@@ -620,6 +660,39 @@ export class BillingService {
       };
     }
 
+    /*
+     * A provider other than Stripe takes the order's server-computed total
+     * through its hosted checkout. The success page is the same one a Stripe
+     * buyer lands on, and it polls the same order status — which re-verifies
+     * with the provider, so provisioning never waits on a redirect.
+     */
+    if (this.paymentGateways.isManaged(provider)) {
+      const checkout = await this.managedCheckout.startOrderCheckout({
+        orderId: order.orderId,
+        provider,
+        successUrl: this.resolvePublicCheckoutUrl(
+          `/subscribe/success?onboarding=${order.orderId}`,
+        ),
+        cancelUrl: this.resolvePublicCheckoutUrl(
+          `/subscribe/cancel?planPriceId=${planPrice.id}`,
+        ),
+      });
+      return {
+        submitted: true,
+        checkoutSessionId: null,
+        url: checkout.url,
+        tenantId: null,
+        leadId: null,
+        orderNumber: order.orderNumber,
+        reused: checkout.reused,
+      };
+    }
+
+    const stripePriceId = planPrice.stripePriceId;
+    if (!stripePriceId) {
+      throw new BadRequestException('This price is not checkout-ready.');
+    }
+
     // A repeated submission that already has a live Stripe session is sent
     // back to that session rather than being given a second one.
     if (order.reused && order.stripeCheckoutSessionId) {
@@ -701,7 +774,7 @@ export class BillingService {
         customer: stripeCustomer.id,
         line_items: [
           buildRecurringCheckoutLineItem(
-            planPrice.stripePriceId,
+            stripePriceId,
             purchasedSeats,
             planPrice.billingModel,
           ),
@@ -1003,6 +1076,7 @@ export class BillingService {
       where: { id: input.planPriceId },
       include: {
         plan: true,
+        market: true,
       },
     });
 
@@ -1038,6 +1112,22 @@ export class BillingService {
       input.seatQuantity,
       planPrice,
     );
+
+    // The market and currency are settled above; the provider follows from
+    // them. The browser never chooses it and never sends an amount.
+    const provider = this.paymentGateways.resolveProvider(planPrice.currency);
+    if (this.paymentGateways.isManaged(provider)) {
+      return this.managedCheckout.startSubscriptionCheckout({
+        tenantId: input.tenantId,
+        userId: input.userId,
+        provider,
+        planPrice,
+        seats: purchasedSeats,
+        promotionCode: input.promotionCode,
+        returnUrls: this.tenantReturnUrls(),
+      });
+    }
+
     const verifiedPrice = await this.verifyAndPersistPlanPrice(planPrice);
     if (!verifiedPrice.checkoutReady || !planPrice.stripePriceId)
       throw new BadRequestException(
@@ -1095,7 +1185,28 @@ export class BillingService {
       id: session.id,
       url: session.url,
       reused: false,
+      provider: PaymentProvider.STRIPE,
     };
+  }
+
+  /**
+   * Pay an open invoice DijiPeople issued — a renewal, typically — through
+   * the provider that bills the subscription.
+   */
+  payInvoice(input: { tenantId: string; userId: string; invoiceId: string }) {
+    return this.managedCheckout.startInvoicePayment({
+      ...input,
+      returnUrls: this.tenantReturnUrls(),
+    });
+  }
+
+  /** Where the tenant returns from a hosted checkout, carrying the payment. */
+  private tenantReturnUrls(): ReturnUrls {
+    const base = this.requireWebAppUrl();
+    return (paymentId) => ({
+      successUrl: `${base}/settings/subscription/success?payment=${paymentId}`,
+      cancelUrl: `${base}/settings/subscription/cancel?payment=${paymentId}`,
+    });
   }
 
   async createPortalSession(input: { tenantId: string }) {
@@ -1166,6 +1277,12 @@ export class BillingService {
       stripeStatus: subscription.stripeStatus,
       hasStripeCustomer: Boolean(subscription.stripeCustomerId),
       isStripeBacked: Boolean(subscription.stripeSubscriptionId),
+      // True when DijiPeople issues this subscription's invoices itself and
+      // the tenant pays each one — no provider billing portal exists for it.
+      isManagedBilling: this.paymentGateways.isManaged(
+        subscription.paymentProvider,
+      ),
+      gracePeriodEndsAt: subscription.gracePeriodEndsAt,
       billingCycle: subscription.billingCycle,
       basePrice: Number(subscription.basePrice),
       finalPrice: Number(subscription.finalPrice),
@@ -1433,6 +1550,7 @@ export class BillingService {
           id: session.id,
           url: session.url,
           reused: true,
+          provider: PaymentProvider.STRIPE,
           message:
             'Returning the existing incomplete checkout session for this tenant.',
         };
@@ -1571,15 +1689,19 @@ export class BillingService {
       return configuredUrl;
     }
 
+    return `${this.requireWebAppUrl(envKey)}${fallbackPath}`;
+  }
+
+  private requireWebAppUrl(alternativeKey?: string) {
     const webAppUrl = this.configService.get<string>('WEB_APP_URL')?.trim();
     if (!webAppUrl) {
       throw new BadRequestException(
-        `${envKey} or WEB_APP_URL must be configured for checkout.`,
+        `${alternativeKey ? `${alternativeKey} or ` : ''}WEB_APP_URL must be configured for checkout.`,
       );
     }
 
     assertHttpUrl(webAppUrl, 'WEB_APP_URL');
-    return `${webAppUrl.replace(/\/+$/, '')}${fallbackPath}`;
+    return webAppUrl.replace(/\/+$/, '');
   }
 
   private resolvePublicCheckoutUrl(path: string) {
@@ -1679,9 +1801,11 @@ function mapTenantInvoice(invoice: {
   periodEnd: Date | null;
   paidAt: Date | null;
   voidedAt: Date | null;
+  metadataJson: Prisma.JsonValue | null;
   subscription: {
     id: string;
     status: string;
+    paymentProvider: PaymentProvider | null;
     plan: { id: string; key: string; name: string };
   };
   payments: Array<{
@@ -1692,12 +1816,30 @@ function mapTenantInvoice(invoice: {
     status: string;
     stripePaymentIntentId: string | null;
     stripeChargeId: string | null;
+    paymentProvider: PaymentProvider | null;
+    providerPaymentId: string | null;
     paidAt: Date | null;
     createdAt: Date;
   }>;
 }) {
   return {
     id: invoice.id,
+    /*
+     * The tenant can pay this online: DijiPeople issued it for a subscription
+     * a provider other than Stripe collects, and it is still open. Stripe
+     * invoices are paid through Stripe's hosted invoice page instead.
+     */
+    payable:
+      Boolean(invoice.subscription.paymentProvider) &&
+      invoice.subscription.paymentProvider !== PaymentProvider.STRIPE &&
+      parseInvoicePurpose(invoice.metadataJson) !== null &&
+      (
+        [
+          InvoiceStatus.ISSUED,
+          InvoiceStatus.OVERDUE,
+          InvoiceStatus.PAYMENT_FAILED,
+        ] as string[]
+      ).includes(invoice.status),
     invoiceNumber: invoice.invoiceNumber,
     amount: Number(invoice.amount),
     currency: invoice.currency,
@@ -1730,6 +1872,8 @@ function mapTenantInvoice(invoice: {
       status: payment.status,
       stripePaymentIntentId: payment.stripePaymentIntentId,
       stripeChargeId: payment.stripeChargeId,
+      provider: payment.paymentProvider,
+      providerPaymentId: payment.providerPaymentId,
       paidAt: payment.paidAt,
       createdAt: payment.createdAt,
     })),

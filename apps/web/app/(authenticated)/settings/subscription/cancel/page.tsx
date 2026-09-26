@@ -1,8 +1,23 @@
 import { ArrowLeft, XCircle } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { SettingsShell } from "../../_components/settings-shell";
+import { PaymentStatusPanel } from "../_components/payment-status-panel";
 
-export default function SubscriptionCheckoutCancelPage() {
+export default async function SubscriptionCheckoutCancelPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  // Still asks the API: a buyer can cancel one tab and pay in another.
+  const { payment } = await searchParams;
+  if (typeof payment === "string" && payment) {
+    return (
+      <SettingsShell title="Payment" description="The status of your payment.">
+        <PaymentStatusPanel paymentId={payment} returnedFrom="cancel" />
+      </SettingsShell>
+    );
+  }
+
   return (
     <SettingsShell
       title="Checkout cancelled"

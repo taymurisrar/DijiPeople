@@ -1,8 +1,26 @@
 import Link from "next/link";
 import { CheckCircle2, RefreshCcw } from "lucide-react";
 import { SettingsShell } from "../../_components/settings-shell";
+import { PaymentStatusPanel } from "../_components/payment-status-panel";
 
-export default function SubscriptionCheckoutSuccessPage() {
+export default async function SubscriptionCheckoutSuccessPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  // A checkout DijiPeople priced itself returns with its payment id, and the
+  // page shows what the API says about that payment — not what the redirect
+  // implies. A Stripe checkout returns with a session id instead and keeps
+  // the page below.
+  const { payment } = await searchParams;
+  if (typeof payment === "string" && payment) {
+    return (
+      <SettingsShell title="Payment" description="The status of your payment.">
+        <PaymentStatusPanel paymentId={payment} returnedFrom="success" />
+      </SettingsShell>
+    );
+  }
+
   return (
     <SettingsShell
       title="Checkout received"

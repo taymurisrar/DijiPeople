@@ -98,10 +98,15 @@ export function calculateSeatPricing(
   };
 }
 
-export function deriveCheckoutReadiness(
-  price: CheckoutPriceContract,
-  expectedEnvironment: StripeEnvironment,
-  now = new Date(),
+/**
+ * What every price must satisfy to be sold, whichever provider collects it.
+ */
+function priceReadinessReasons(
+  price: Pick<
+    CheckoutPriceContract,
+    'isActive' | 'effectiveFrom' | 'unitAmount' | 'currency' | 'billingModel'
+  >,
+  now: Date,
 ) {
   const reasons: string[] = [];
   if (!price.isActive) reasons.push('Price is inactive.');
@@ -110,6 +115,34 @@ export function deriveCheckoutReadiness(
   if (!price.currency.trim()) reasons.push('Currency is required.');
   if (![BillingModel.PER_SEAT, BillingModel.FLAT].includes(price.billingModel))
     reasons.push('Billing model is not supported for checkout.');
+  return reasons;
+}
+
+/**
+ * Readiness for a price a provider other than Stripe collects. DijiPeople
+ * prices those itself and sends the provider an amount, so nothing needs to
+ * exist on the provider's side beforehand — only the provider's credentials.
+ */
+export function deriveManagedCheckoutReadiness(
+  price: Pick<
+    CheckoutPriceContract,
+    'isActive' | 'effectiveFrom' | 'unitAmount' | 'currency' | 'billingModel'
+  >,
+  providerConfigured: boolean,
+  now = new Date(),
+) {
+  const reasons = priceReadinessReasons(price, now);
+  if (!providerConfigured)
+    reasons.push('The payment provider for this currency is not configured.');
+  return { checkoutReady: reasons.length === 0, reasons };
+}
+
+export function deriveCheckoutReadiness(
+  price: CheckoutPriceContract,
+  expectedEnvironment: StripeEnvironment,
+  now = new Date(),
+) {
+  const reasons = priceReadinessReasons(price, now);
   if (!price.stripeProductId) reasons.push('Stripe Product ID is missing.');
   if (!price.stripePriceId) reasons.push('Stripe Price ID is missing.');
   if (price.stripeEnvironment !== expectedEnvironment)

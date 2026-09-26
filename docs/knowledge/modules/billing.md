@@ -35,6 +35,25 @@ integration.
 - A second health endpoint lives under billing — see
   [[deployment-architecture]].
 
+## Two kinds of payment provider (2026-09-26, SESSION-0108)
+
+Stripe is no longer the only provider. `resolvePaymentProvider` routes PKR to
+Safepay when `SAFEPAY_ENABLED=true`; everything else, and PKR while it is off,
+stays on Stripe. The two are deliberately **not** forced behind one interface:
+
+- **Stripe** runs the subscription — its webhooks project Stripe's state onto
+  `Subscription`, exactly as before.
+- **Safepay** (and any future PayPro/PayFast) only executes payments DijiPeople
+  has priced, behind `PaymentGateway`. DijiPeople issues the invoice, settles
+  on the provider's API answer (never a redirect), runs renewals and grace
+  periods in `ManagedRenewalService`, and decides access.
+
+`Subscription.paymentProvider` says which one owns a subscription; null means
+none (manual, sales-assisted, demo). Before adding billing behaviour, check
+which side it belongs on — a rule added only to the Stripe webhook will not
+reach a Safepay tenant, and vice versa. Operational detail:
+`docs/billing/safepay.md`.
+
 ## Two commercial paths that do not enforce the same rules
 
 There are two ways a price reaches a buyer, and as of 2026-09-11 they disagree.

@@ -706,6 +706,8 @@ const SUPER_ADMIN_ONLY_ROUTES = [
   'POST /super-admin/invoices/:invoiceId/email -> platform.billing.administer',
   'PATCH /super-admin/invoices/:invoiceId/status -> platform.billing.administer',
   'POST /super-admin/subscriptions/:subscriptionId/invoices -> platform.billing.administer',
+  // Returns money to a card through the provider; cannot be undone.
+  'POST /super-admin/payments/:paymentId/refund -> platform.billing.administer',
   // SuperAdminService.updateTenantSlug already refused everyone else.
   'PATCH /super-admin/tenants/:tenantId/slug -> platform.tenants.administer',
   // Class-level @RequireRoles('system-admin') before ADR-0018.

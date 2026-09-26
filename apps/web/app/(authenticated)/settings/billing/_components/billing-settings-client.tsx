@@ -68,6 +68,13 @@ type BillingSubscription = {
   status: string;
   stripeStatus: string | null;
   hasStripeCustomer?: boolean;
+  /*
+   * DijiPeople issues this subscription's invoices itself (Safepay). There is
+   * no provider portal for it: renewals are paid from billing history and
+   * cancellation happens here.
+   */
+  isManagedBilling?: boolean;
+  gracePeriodEndsAt?: string | null;
   billingCycle: BillingCycle;
   currency: string;
   currentPeriodStart: string | null;
@@ -96,6 +103,8 @@ type BillingInvoice = {
   paidAt: string | null;
   hostedInvoiceUrl: string | null;
   invoicePdfUrl: string | null;
+  /** The API's decision that this invoice can be paid online now. */
+  payable?: boolean;
 };
 
 type BillingSettingsClientProps = {
@@ -158,10 +167,12 @@ export function BillingSettingsClient({
       }) ?? "USD",
   );
   const [seatQuantity, setSeatQuantity] = useState(1);
+  const [promotionCode, setPromotionCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [actionId, setActionId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const seatFieldId = useId();
+  const promotionFieldId = useId();
 
   const currencies = useMemo(
     () =>
@@ -176,7 +187,9 @@ export function BillingSettingsClient({
     [plans, currency],
   );
 
-  const hasManageableSubscription = Boolean(subscription?.hasStripeCustomer);
+  const isManagedBilling = Boolean(subscription?.isManagedBilling);
+  const hasManageableSubscription =
+    !isManagedBilling && Boolean(subscription?.hasStripeCustomer);
   const subscriptionState = subscription?.status ?? "NOT_SUBSCRIBED";
   const hasLiveSubscriptionBlock =
     LIVE_SUBSCRIPTION_STATES.includes(subscriptionState);
@@ -224,11 +237,18 @@ export function BillingSettingsClient({
           throw new Error(validation.message);
         }
 
+        // The amount is never sent: the API prices the order, applies the
+        // code, and decides which provider takes the payment.
+        const code = promotionCode.trim();
         const response = await fetchJson<{ url?: string }>(
           "/api/billing/checkout-sessions",
           {
             method: "POST",
-            body: JSON.stringify({ planPriceId, seatQuantity }),
+            body: JSON.stringify({
+              planPriceId,
+              seatQuantity,
+              ...(code ? { promotionCode: code } : {}),
+            }),
           },
         );
 
@@ -239,6 +259,50 @@ export function BillingSettingsClient({
         window.location.assign(response.url);
       } catch (requestError) {
         setError(getErrorMessage(requestError, "Unable to start checkout."));
+        setActionId(null);
+      }
+    });
+  }
+
+  /** Pay an open invoice DijiPeople issued, through its provider's checkout. */
+  function payInvoice(invoiceId: string) {
+    setError(null);
+    setActionId(invoiceId);
+    startTransition(async () => {
+      try {
+        const response = await fetchJson<{ url?: string }>(
+          `/api/billing/invoices/${invoiceId}/pay`,
+          { method: "POST" },
+        );
+        if (!response.url) {
+          throw new Error("Checkout URL was not returned.");
+        }
+        window.location.assign(response.url);
+      } catch (requestError) {
+        setError(getErrorMessage(requestError, "Unable to start payment."));
+        setActionId(null);
+      }
+    });
+  }
+
+  function setRenewal(action: "cancel" | "resume") {
+    setError(null);
+    setActionId(action);
+    startTransition(async () => {
+      try {
+        await fetchJson(`/api/billing/subscription/${action}`, {
+          method: "POST",
+        });
+        setSubscription(
+          await fetchJson<BillingSubscription | null>(
+            "/api/billing/subscription",
+          ),
+        );
+      } catch (requestError) {
+        setError(
+          getErrorMessage(requestError, "Unable to update the subscription."),
+        );
+      } finally {
         setActionId(null);
       }
     });
@@ -319,7 +383,7 @@ export function BillingSettingsClient({
                   </h2>
                   <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
                     {subscription?.plan.description ??
-                      "Choose a public plan below to start Stripe Checkout. Subscription activation is confirmed by Stripe webhook processing."}
+                      "Choose a plan to subscribe. Your subscription is activated once the payment is confirmed."}
                   </p>
                 </div>
 
@@ -365,25 +429,55 @@ export function BillingSettingsClient({
                 Billing actions
               </p>
               <div className="mt-5 grid gap-3">
-                <Button
-                  variant="primary"
-                  onClick={openPortal}
-                  disabled={!hasManageableSubscription || isPending}
-                  loading={actionId === "portal"}
-                  leftIcon={<ArrowUpRight className="h-4 w-4" aria-hidden="true" />}
-                >
-                  Manage in Stripe
-                </Button>
+                {isManagedBilling ? (
+                  subscription?.cancelAtPeriodEnd ? (
+                    <Button
+                      variant="primary"
+                      onClick={() => setRenewal("resume")}
+                      disabled={isPending || subscriptionState !== "ACTIVE"}
+                      loading={actionId === "resume"}
+                    >
+                      Resume renewal
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="secondary"
+                      onClick={() => setRenewal("cancel")}
+                      disabled={
+                        isPending ||
+                        (subscriptionState !== "ACTIVE" &&
+                          subscriptionState !== "PAST_DUE")
+                      }
+                      loading={actionId === "cancel"}
+                    >
+                      Cancel at period end
+                    </Button>
+                  )
+                ) : (
+                  <Button
+                    variant="primary"
+                    onClick={openPortal}
+                    disabled={!hasManageableSubscription || isPending}
+                    loading={actionId === "portal"}
+                    leftIcon={
+                      <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+                    }
+                  >
+                    Manage in Stripe
+                  </Button>
+                )}
                 <Button
                   variant="secondary"
                   onClick={refreshBilling}
                   disabled={isPending}
-                  leftIcon={<RefreshCcw className="h-4 w-4" aria-hidden="true" />}
+                  leftIcon={
+                    <RefreshCcw className="h-4 w-4" aria-hidden="true" />
+                  }
                 >
                   Refresh status
                 </Button>
               </div>
-              {!hasManageableSubscription ? (
+              {!hasManageableSubscription && !isManagedBilling ? (
                 <p className="mt-4 text-sm leading-6 text-muted">
                   Stripe Customer Portal becomes available after a subscription
                   or Stripe customer is created for this tenant.
@@ -394,7 +488,9 @@ export function BillingSettingsClient({
 
           <SubscriptionStateAlert
             status={subscriptionState}
-            hasStripeCustomer={Boolean(subscription?.hasStripeCustomer)}
+            hasStripeCustomer={hasManageableSubscription}
+            isManagedBilling={isManagedBilling}
+            gracePeriodEndsAt={subscription?.gracePeriodEndsAt ?? null}
             onManage={openPortal}
             isPending={isPending}
             actionId={actionId}
@@ -426,6 +522,22 @@ export function BillingSettingsClient({
             Applies to whichever plan you subscribe to below. Minimum and
             maximum seats vary by plan — see each plan&apos;s order summary.
           </p>
+
+          <label
+            htmlFor={promotionFieldId}
+            className="mb-1 block max-w-xs text-sm font-semibold text-foreground"
+          >
+            Promotion code
+          </label>
+          <input
+            id={promotionFieldId}
+            type="text"
+            autoComplete="off"
+            maxLength={120}
+            value={promotionCode}
+            onChange={(event) => setPromotionCode(event.target.value)}
+            className="mb-5 mt-2 w-full max-w-xs rounded-xl border border-border px-3 py-2"
+          />
 
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
@@ -504,9 +616,9 @@ export function BillingSettingsClient({
                  */
                 const isCurrentPlanExact = Boolean(
                   subscription &&
-                    subscription.plan.id === plan.id &&
-                    subscription.billingCycle === billingCycle &&
-                    subscription.currency === currency,
+                  subscription.plan.id === plan.id &&
+                  subscription.billingCycle === billingCycle &&
+                  subscription.currency === currency,
                 );
 
                 const previousPlan = plans[planIndex - 1];
@@ -614,7 +726,9 @@ export function BillingSettingsClient({
                             <div className="flex items-center justify-between gap-2 border-t border-border pt-1">
                               <dt className="font-semibold text-foreground">
                                 Total{" "}
-                                {billingCycle === "MONTHLY" ? "monthly" : "annual"}
+                                {billingCycle === "MONTHLY"
+                                  ? "monthly"
+                                  : "annual"}
                               </dt>
                               <dd className="font-semibold text-foreground">
                                 {formatMoney(
@@ -679,16 +793,18 @@ export function BillingSettingsClient({
                           }
                           loading={actionId === price.id}
                           leftIcon={
-                            <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+                            <ArrowUpRight
+                              className="h-4 w-4"
+                              aria-hidden="true"
+                            />
                           }
                         >
                           Subscribe
                         </Button>
                       ) : hasLiveSubscriptionBlock ? (
                         <div className="rounded-[14px] border border-dashed border-border bg-surface px-4 py-3 text-sm text-muted">
-                          You already have a subscription. Manage or change
-                          your plan from the billing portal on the Overview
-                          tab.
+                          You already have a subscription. Manage or change your
+                          plan from the billing portal on the Overview tab.
                         </div>
                       ) : (
                         <div className="rounded-[14px] border border-dashed border-border bg-surface px-4 py-3 text-sm text-muted">
@@ -725,7 +841,7 @@ export function BillingSettingsClient({
             <div className="p-6">
               <EmptyState
                 title="No invoices yet"
-                description="Invoices created by Stripe webhook processing will appear here."
+                description="Invoices appear here once they are issued."
               />
             </div>
           ) : (
@@ -788,6 +904,17 @@ export function BillingSettingsClient({
                       </td>
                       <td className="px-5 py-4">
                         <div className="flex flex-wrap gap-2">
+                          {invoice.payable ? (
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              onClick={() => payInvoice(invoice.id)}
+                              disabled={isPending}
+                              loading={actionId === invoice.id}
+                            >
+                              Pay now
+                            </Button>
+                          ) : null}
                           {invoice.hostedInvoiceUrl ? (
                             <SafeExternalLink href={invoice.hostedInvoiceUrl}>
                               <ExternalLink
@@ -799,11 +926,15 @@ export function BillingSettingsClient({
                           ) : null}
                           {invoice.invoicePdfUrl ? (
                             <SafeExternalLink href={invoice.invoicePdfUrl}>
-                              <Download className="h-4 w-4" aria-hidden="true" />
+                              <Download
+                                className="h-4 w-4"
+                                aria-hidden="true"
+                              />
                               PDF
                             </SafeExternalLink>
                           ) : null}
-                          {!invoice.hostedInvoiceUrl &&
+                          {!invoice.payable &&
+                          !invoice.hostedInvoiceUrl &&
                           !invoice.invoicePdfUrl ? (
                             <span className="text-muted">No links</span>
                           ) : null}
@@ -855,7 +986,10 @@ function FeatureComparison({ plans }: { plans: BillingPlan[] }) {
   const columnWidth = plans.length > 0 ? 60 / plans.length : 60;
 
   return (
-    <div id="feature-comparison" className="mt-8 min-w-0 scroll-mt-24 space-y-5">
+    <div
+      id="feature-comparison"
+      className="mt-8 min-w-0 scroll-mt-24 space-y-5"
+    >
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
           Feature access
@@ -986,17 +1120,50 @@ function AlertBanner({ message }: { message: string }) {
 function SubscriptionStateAlert({
   status,
   hasStripeCustomer,
+  isManagedBilling,
+  gracePeriodEndsAt,
   onManage,
   isPending,
   actionId,
 }: {
   status: string;
   hasStripeCustomer: boolean;
+  isManagedBilling: boolean;
+  gracePeriodEndsAt: string | null;
   onManage: () => void;
   isPending: boolean;
   actionId: string | null;
 }) {
   if (status === "NOT_SUBSCRIBED") {
+    return null;
+  }
+
+  // Renewals DijiPeople invoices itself are paid from billing history; there
+  // is no provider portal to send the tenant to.
+  if (isManagedBilling && status === "PAST_DUE") {
+    return (
+      <BillingAlert
+        tone="warning"
+        title="Renewal payment due"
+        description={
+          gracePeriodEndsAt
+            ? `Pay the open invoice before ${formatDate(gracePeriodEndsAt)} to keep access.`
+            : "Pay the open invoice to keep access."
+        }
+        action={
+          <Button
+            href="/settings/subscription/billing-history"
+            variant="primary"
+            className="shrink-0"
+          >
+            View invoices
+          </Button>
+        }
+      />
+    );
+  }
+
+  if (isManagedBilling && (status === "ACTIVE" || status === "TRIALING")) {
     return null;
   }
 
@@ -1043,7 +1210,7 @@ function SubscriptionStateAlert({
       <BillingAlert
         tone="warning"
         title="Checkout is incomplete"
-        description="A previous checkout session did not complete. Selecting a plan will reuse a recent open Stripe Checkout session when possible, otherwise a new session is created safely."
+        description="A previous checkout did not complete. Selecting a plan reuses a recent open checkout when possible, otherwise a new one is started safely."
       />
     );
   }
@@ -1053,7 +1220,7 @@ function SubscriptionStateAlert({
       <BillingAlert
         tone="neutral"
         title="Subscription is no longer active"
-        description="Choose a public plan below to start a new Stripe Checkout flow."
+        description="Choose a plan to subscribe again."
       />
     );
   }

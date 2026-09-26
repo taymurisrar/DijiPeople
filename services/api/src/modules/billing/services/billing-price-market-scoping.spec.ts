@@ -12,6 +12,8 @@ import {
 import { AppError } from '../../../common/errors/app-error';
 import { BillingService } from './billing.service';
 import { CommercialConfigService } from './commercial-config.service';
+import { PaymentGateways } from '../providers/payment-gateways';
+import { SafepayGateway } from '../providers/safepay.gateway';
 import {
   isPriceCurrentlySellable,
   resolveCommercialOffer,
@@ -180,6 +182,9 @@ function buildService(options: {
     { issueCode: jest.fn() } as never,
     { acknowledgeMany: jest.fn() } as never,
     commercialConfigService,
+    // Safepay off: every currency routes to Stripe, the path under test.
+    new PaymentGateways(new SafepayGateway({ get: () => undefined } as never)),
+    {} as never,
   );
 
   return { service, prisma, sessionsCreate };

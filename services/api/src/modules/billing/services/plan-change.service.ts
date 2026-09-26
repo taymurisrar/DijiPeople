@@ -1,6 +1,8 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import {
   DomainEventType,
+  InvoiceStatus,
+  PaymentProvider,
   PlanChangeDirection,
   PlanChangeStatus,
   Prisma,
@@ -148,6 +150,24 @@ export class PlanChangeService {
         data: { status: PlanChangeStatus.CANCELLED },
       });
 
+      // A renewal already issued for this subscription was priced at the old
+      // plan. Withdraw it while unpaid so the renewal sweep re-issues it at
+      // the new one; an overdue one is left, since it is what keeps the
+      // subscription payable during grace.
+      if (
+        subscription.paymentProvider &&
+        subscription.paymentProvider !== PaymentProvider.STRIPE
+      ) {
+        await tx.invoice.updateMany({
+          where: {
+            subscriptionId: subscription.id,
+            status: InvoiceStatus.ISSUED,
+            metadataJson: { path: ['kind'], equals: 'RENEWAL' },
+          },
+          data: { status: InvoiceStatus.VOIDED, voidedAt: new Date() },
+        });
+      }
+
       const request = await tx.planChangeRequest.create({
         data: {
           tenantId: input.tenantId,
@@ -169,7 +189,7 @@ export class PlanChangeService {
 
       let status: PlanChangeStatus = PlanChangeStatus.SCHEDULED;
 
-      if (direction === PlanChangeDirection.UPGRADE) {
+      if (this.appliesImmediately(direction, subscription)) {
         await tx.subscription.update({
           where: { id: subscription.id },
           data: {
@@ -359,6 +379,7 @@ export class PlanChangeService {
       purchasedSeats: number;
       currency: string;
       finalPrice: Prisma.Decimal | number;
+      paymentProvider: PaymentProvider | null;
     },
     direction: PlanChangeDirection,
     targetPlanPriceId: string | null,
@@ -391,7 +412,7 @@ export class PlanChangeService {
       Number(targetPrice.unitAmount) * billableSeats,
     );
 
-    if (direction !== PlanChangeDirection.UPGRADE) {
+    if (!this.appliesImmediately(direction, subscription)) {
       // Scheduled at renewal — nothing is charged today regardless of
       // whether this is Stripe-backed.
       return {
@@ -472,6 +493,18 @@ export class PlanChangeService {
       where: {
         status: PlanChangeStatus.SCHEDULED,
         effectiveAt: { lte: now },
+        /*
+         * Not a subscription DijiPeople bills itself (Safepay): there the
+         * change takes effect when the renewal priced at it is PAID
+         * (`PaymentSettlementService.renew`). Applying it here on the date
+         * would switch plans whether or not anything was paid.
+         */
+        subscription: {
+          OR: [
+            { paymentProvider: null },
+            { paymentProvider: PaymentProvider.STRIPE },
+          ],
+        },
       },
       select: {
         id: true,
@@ -700,11 +733,33 @@ export class PlanChangeService {
     };
   }
 
+  /**
+   * An upgrade applies now only where a provider will charge for it now —
+   * Stripe prorates. A subscription DijiPeople bills itself (Safepay) has no
+   * mid-period charge, so applying an upgrade immediately would hand out the
+   * better plan for free; its changes take effect at renewal, and the renewal
+   * invoice is priced at the new plan.
+   */
+  private appliesImmediately(
+    direction: PlanChangeDirection,
+    subscription: { paymentProvider: PaymentProvider | null },
+  ) {
+    return (
+      direction === PlanChangeDirection.UPGRADE &&
+      (!subscription.paymentProvider ||
+        subscription.paymentProvider === PaymentProvider.STRIPE)
+    );
+  }
+
   private resolveEffectiveAt(
     direction: PlanChangeDirection,
-    subscription: { renewalDate: Date | null; currentPeriodEnd: Date | null },
+    subscription: {
+      renewalDate: Date | null;
+      currentPeriodEnd: Date | null;
+      paymentProvider: PaymentProvider | null;
+    },
   ): Date {
-    if (direction === PlanChangeDirection.UPGRADE) {
+    if (this.appliesImmediately(direction, subscription)) {
       return new Date();
     }
     return (
@@ -730,6 +785,7 @@ export class PlanChangeService {
         purchasedSeats: true,
         currency: true,
         finalPrice: true,
+        paymentProvider: true,
       },
     });
 

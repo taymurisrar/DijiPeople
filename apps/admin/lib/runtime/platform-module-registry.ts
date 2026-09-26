@@ -898,22 +898,15 @@ const partnerFields: RuntimeFieldDefinition[] = [
    * itself once converted — an operator opening a partner's own detail page
    * could not see, or correct, which relationship it was taken on under.
    */
-  field(
-    "partnershipModel",
-    "Partnership model",
-    "option",
-    "identity",
-    false,
-    [
-      "REFERRAL",
-      "RESELLER",
-      "IMPLEMENTATION",
-      "TECHNOLOGY",
-      "STRATEGIC",
-      "CONSULTANT",
-      "OTHER",
-    ],
-  ),
+  field("partnershipModel", "Partnership model", "option", "identity", false, [
+    "REFERRAL",
+    "RESELLER",
+    "IMPLEMENTATION",
+    "TECHNOLOGY",
+    "STRATEGIC",
+    "CONSULTANT",
+    "OTHER",
+  ]),
   field(
     "status",
     "Status",
@@ -1060,10 +1053,8 @@ const FORM_EXCLUDED_FIELDS: Partial<Record<PlatformModuleKey, string[]>> = {
  * missing falls back to a bare "Nothing here yet.", which is honest.
  */
 const RECORD_ORIGINS: Partial<Record<PlatformModuleKey, string>> = {
-  invoices:
-    "Invoices are raised automatically when a subscription bills.",
-  payments:
-    "Payments appear when a customer pays an invoice through Stripe.",
+  invoices: "Invoices are raised automatically when a subscription bills.",
+  payments: "Payments appear when a customer pays an invoice through Stripe.",
   commissions:
     "Commissions are calculated when a partner-referred subscription bills.",
   subscriptions:
@@ -3767,6 +3758,7 @@ const definitions: PlatformModuleDefinition[] = [
         col("tenant.name", "Tenant", 200, "lookup"),
         col("plan.name", "Plan", 180, "lookup"),
         col("status", "Status", 140, "status"),
+        col("paymentProvider", "Provider", 120, "status"),
         col("billingCycle", "Cycle", 120),
         col("currentPeriodEnd", "Renewal", 150, "date"),
       ],
@@ -3813,6 +3805,7 @@ const definitions: PlatformModuleDefinition[] = [
       field("trialEnd", "Trial ends", "dateTime", "dates"),
       field("currentPeriodStart", "Period start", "dateTime", "dates"),
       field("currentPeriodEnd", "Period end", "dateTime", "dates"),
+      field("gracePeriodEndsAt", "Grace period ends", "dateTime", "dates"),
     ]),
   }),
   define({
@@ -3909,7 +3902,10 @@ const definitions: PlatformModuleDefinition[] = [
         col("tenant.name", "Tenant", 200, "lookup"),
         col("status", "Status", 130, "status"),
         col("amount", "Amount", 150, "currency"),
+        col("paymentProvider", "Provider", 120, "status"),
+        col("providerPaymentId", "Provider ref", 200),
         col("paymentMethod", "Method", 130),
+        col("failureCode", "Failure", 180),
         col("paidAt", "Paid", 160, "dateTime"),
       ],
     ),
@@ -3920,6 +3916,11 @@ const definitions: PlatformModuleDefinition[] = [
       field("amount", "Amount", "currency", "payment"),
       field("currency", "Currency", "text", "payment"),
       field("paymentMethod", "Payment method", "text", "payment"),
+      field("paymentProvider", "Provider", "text", "payment"),
+      field("providerPaymentId", "Provider reference", "text", "payment"),
+      field("providerReference", "Provider charge", "text", "payment"),
+      field("failureCode", "Failure code", "text", "payment"),
+      field("failureMessage", "Failure", "text", "payment"),
       field("paidAt", "Paid", "dateTime", "dates"),
       field("createdAt", "Created", "dateTime", "dates"),
     ]),

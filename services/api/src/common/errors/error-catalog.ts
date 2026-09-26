@@ -647,6 +647,69 @@ export const ERROR_CATALOG = {
     'Reconcile the Stripe customer account, then retry the stored webhook event.',
     false,
   ),
+  /*
+   * Payments DijiPeople prices itself and a provider such as Safepay executes.
+   * Each names which step failed, because "checkout failed" is not something
+   * support can act on.
+   */
+  PAYMENT_PROVIDER_NOT_CONFIGURED: entry(
+    503,
+    'Payment provider not configured',
+    'Online payment for this currency is not available right now.',
+    'error',
+    'integration',
+    'Contact support to complete your purchase.',
+    false,
+  ),
+  PAYMENT_PROVIDER_REQUEST_FAILED: entry(
+    502,
+    'Payment provider request failed',
+    'The payment provider did not accept the request. No payment was taken.',
+    'error',
+    'integration',
+    'Try again in a few minutes.',
+    true,
+  ),
+  PAYMENT_VERIFICATION_FAILED: entry(
+    502,
+    'Payment could not be verified',
+    'The payment provider could not be reached to confirm this payment.',
+    'warning',
+    'integration',
+    'The payment is re-checked automatically; refresh shortly.',
+    true,
+  ),
+  PAYMENT_NOT_FOUND: entry(
+    404,
+    'Payment not found',
+    'This payment does not exist.',
+    'warning',
+    'tenant',
+  ),
+  BILLING_PROMOTION_INVALID: entry(
+    400,
+    'Promotion code not valid',
+    'This promotion code cannot be applied to this purchase.',
+    'warning',
+    'validation',
+    'Check the code, or continue without it.',
+  ),
+  BILLING_CHECKOUT_IN_PROGRESS: entry(
+    409,
+    'Checkout already starting',
+    'A checkout for this subscription is already being prepared.',
+    'info',
+    'tenant',
+    'Wait a moment, then try again.',
+    true,
+  ),
+  BILLING_INVOICE_NOT_PAYABLE: entry(
+    409,
+    'Invoice cannot be paid online',
+    'This invoice is not open for online payment.',
+    'warning',
+    'tenant',
+  ),
   AGENT_HEARTBEAT_FAILED: entry(
     502,
     'Agent heartbeat failed',

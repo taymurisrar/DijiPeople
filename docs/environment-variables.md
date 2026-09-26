@@ -311,11 +311,33 @@ process* also drains the resulting queue.
 | `SUBSCRIPTION_ORDER_SWEEPER_POLL_INTERVAL_MS` | API | optional | Poll interval. Defaults to 900000 (15 minutes), floored at 60000. |
 | `SUBSCRIPTION_CHANGE_SWEEPER_ENABLED` | API | no — defaults off | `true` starts the poll loop (BUG-3331, EXECPLAN-0037) that applies `PlanChangeRequest` rows scheduled for a past `effectiveAt` — the scheduled-downgrade half of a plan change, which otherwise never runs (`PlanChangeService.applyDueChanges()` had no caller). Deliberately does not also call `SeatChangeService.applyDueChanges()`: that method reduces `purchasedSeats` locally with no matching Stripe quantity update, so wiring it here would start under-billing a tenant whose seat count was scheduled to decrease — a separate, pre-existing gap this plan does not fix. At least one deployed instance must set this, or a scheduled plan downgrade never takes effect at renewal. |
 | `SUBSCRIPTION_CHANGE_SWEEPER_POLL_INTERVAL_MS` | API | optional | Poll interval. Defaults to 900000 (15 minutes), floored at 60000. |
+| `MANAGED_BILLING_WORKER_ENABLED` | API | no — defaults off; **required once Safepay is on** | `true` starts the loop that runs DijiPeople-billed (Safepay) subscriptions: re-verifies unconfirmed payments with the provider (the recovery for a lost webhook or a buyer who never returned), issues renewal invoices ahead of the period end, and moves subscriptions to `PAST_DUE` (grace), `EXPIRED` or `CANCELED` at their boundaries. A no-op while no subscription is Safepay-billed. Without it Safepay renewals are never invoiced and a lapsed subscription never expires. Plan changes on Safepay subscriptions take effect at renewal, so `SUBSCRIPTION_CHANGE_SWEEPER_ENABLED` must be on too. |
+| `MANAGED_BILLING_WORKER_POLL_INTERVAL_MS` | API | optional | Poll interval. Defaults to 900000 (15 minutes), floored at 60000. |
+| `MANAGED_BILLING_GRACE_DAYS` | API | optional | Days a Safepay subscription stays live (`PAST_DUE`, still entitled) after its period ends unpaid, before it expires. Default 7. |
+| `MANAGED_BILLING_RENEWAL_NOTICE_DAYS` | API | optional | How many days before the period end the renewal invoice is issued. Default 7. |
 
 Running the worker on more than one instance is safe — claims use
 `FOR UPDATE SKIP LOCKED`, so each event goes to exactly one dispatcher — but
 running it on none is not, and nothing fails loudly when you do: the events
 accumulate in `PENDING` and the transitions they carry simply never happen.
+
+## Safepay (PKR payments)
+
+Safepay collects PKR once `SAFEPAY_ENABLED=true`; every other currency — and PKR
+while it is off — stays on Stripe. The names below follow Safepay's own
+dashboard (Developers → API keys / Endpoints). Sandbox and production are
+separate Safepay accounts with separate keys. See
+[`docs/billing/safepay.md`](billing/safepay.md).
+
+| Variable | Where | Required | Meaning |
+|---|---|---|---|
+| `SAFEPAY_ENABLED` | API | no — defaults off | Routes PKR checkouts to Safepay. A production-like boot (`APP_ENV`/`NODE_ENV` = production or staging) refuses to start with this `true` and any key below missing. |
+| `SAFEPAY_ENVIRONMENT` | API | when enabled | `sandbox` or `production`. Selects the API and hosted-checkout hosts. |
+| `SAFEPAY_API_KEY` | API | when enabled | The **Public API Key** (`sec_…`), sent as `merchant_api_key` when creating a payment. |
+| `SAFEPAY_SECRET_KEY` | API | when enabled | The **Private API Secret Key**, sent as `X-SFPY-MERCHANT-SECRET`. Secret — Render dashboard only. |
+| `SAFEPAY_WEBHOOK_SECRET` | API | when enabled | The endpoint's **shared secret**, used to verify `X-SFPY-SIGNATURE`. Secret — Render dashboard only. |
+
+None of these is a build input, so none belongs in `turbo.json` `globalEnv`.
 
 ## Request access log
 

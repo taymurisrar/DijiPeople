@@ -149,7 +149,12 @@ void bootstrap();
 function configureBodyParsing(expressApp: {
   use: (...args: unknown[]) => void;
 }) {
-  const stripeWebhookPath = '/api/billing/stripe/webhook';
+  // Provider webhooks are signed over their exact bytes, so they must reach
+  // their controllers unparsed.
+  const rawWebhookPaths = [
+    '/api/billing/stripe/webhook',
+    '/api/billing/safepay/webhook',
+  ];
   const platformEmailTemplatePath = '/api/super-admin/platform-email/templates';
   // DLP screenshot ingest carries base64 image bytes (TASK-0020/TASK-0023). A
   // full-screen PNG easily exceeds the 1 MB default, so this route gets a larger
@@ -159,10 +164,9 @@ function configureBodyParsing(expressApp: {
   const jsonParser = json({ limit: '1mb' });
   const urlencodedParser = urlencoded({ extended: true, limit: '1mb' });
 
-  expressApp.use(
-    stripeWebhookPath,
-    raw({ type: 'application/json', limit: '2mb' }),
-  );
+  for (const path of rawWebhookPaths) {
+    expressApp.use(path, raw({ type: 'application/json', limit: '2mb' }));
+  }
   expressApp.use(
     platformEmailTemplatePath,
     json({ type: 'application/json', limit: '10mb' }),
@@ -174,7 +178,7 @@ function configureBodyParsing(expressApp: {
 
   expressApp.use((req: Request, res: Response, next: NextFunction) => {
     if (
-      isStripeWebhookRequest(req, stripeWebhookPath) ||
+      isRawWebhookRequest(req, rawWebhookPaths) ||
       req.originalUrl.startsWith(platformEmailTemplatePath) ||
       req.originalUrl.startsWith(dlpScreenshotPath)
     ) {
@@ -185,7 +189,7 @@ function configureBodyParsing(expressApp: {
   });
 
   expressApp.use((req: Request, res: Response, next: NextFunction) => {
-    if (isStripeWebhookRequest(req, stripeWebhookPath)) {
+    if (isRawWebhookRequest(req, rawWebhookPaths)) {
       return next();
     }
 
@@ -193,6 +197,6 @@ function configureBodyParsing(expressApp: {
   });
 }
 
-function isStripeWebhookRequest(req: Request, stripeWebhookPath: string) {
-  return (req.originalUrl ?? req.url).split('?')[0] === stripeWebhookPath;
+function isRawWebhookRequest(req: Request, rawWebhookPaths: string[]) {
+  return rawWebhookPaths.includes((req.originalUrl ?? req.url).split('?')[0]);
 }

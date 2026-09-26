@@ -16,6 +16,9 @@ import {
 import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { PaymentRecheckService } from '../billing/services/payment-recheck.service';
+import { PaymentSettlementService } from '../billing/services/payment-settlement.service';
+import { PaymentGateways } from '../billing/providers/payment-gateways';
+import { RefundProviderPaymentDto } from './dto/refund-provider-payment.dto';
 import { PlatformFxService } from './platform-fx.service';
 import type { PlatformRateView } from './platform-fx.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -96,6 +99,8 @@ export class SuperAdminController {
     private readonly paymentRecheck: PaymentRecheckService,
     private readonly fx: PlatformFxService,
     private readonly operationsDashboard: OperationsDashboardService,
+    private readonly paymentSettlement: PaymentSettlementService,
+    private readonly paymentGateways: PaymentGateways,
   ) {}
 
   @Get('dashboard-summary')
@@ -797,6 +802,59 @@ export class SuperAdminController {
   @Post('billing/stripe-webhook-events/:id/retry')
   retryStripeWebhookEvent(@Param('id', new ParseUUIDPipe()) id: string) {
     return this.superAdminService.retryStripeWebhookEvent(id);
+  }
+
+  /** Which non-Stripe providers are switched on and configured — never keys. */
+  @Get('billing/payment-providers')
+  getPaymentProviders() {
+    return this.paymentGateways.describe();
+  }
+
+  @Get('billing/provider-events')
+  listPaymentProviderEvents(
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.superAdminService.listPaymentProviderEvents({
+      page,
+      pageSize,
+      status,
+    });
+  }
+
+  /**
+   * Re-read a Safepay payment from Safepay and apply the answer, exactly as the
+   * webhook would. It never marks a payment paid on an operator's word — the
+   * reason `PaymentRecheckService` gives for the Stripe equivalent.
+   */
+  @Post('payments/:paymentId/verify')
+  async verifyProviderPayment(
+    @Param('paymentId', new ParseUUIDPipe()) paymentId: string,
+  ) {
+    return {
+      status: await this.paymentSettlement.settlePayment(paymentId, 'OPERATOR'),
+    };
+  }
+
+  /**
+   * Refund a captured Safepay payment in full through Safepay. Narrower than
+   * `payments.manage` (ADR-0018): it returns money to a card and cannot be
+   * undone.
+   */
+  @Post('payments/:paymentId/refund')
+  @RequirePlatformPermission('platform.billing.administer')
+  refundProviderPayment(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('paymentId', new ParseUUIDPipe()) paymentId: string,
+    @Body() dto: RefundProviderPaymentDto,
+  ) {
+    return this.paymentSettlement.refundPayment({
+      paymentId,
+      reasonCode: dto.reasonCode,
+      reason: dto.reason,
+      platformUserId: user.platform?.id ?? null,
+    });
   }
 
   @Get('platform-settings')

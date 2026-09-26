@@ -348,6 +348,17 @@ enum WebhookProcessingStatus {
   IGNORED
 }
 
+/// Who executes a payment. DijiPeople owns the subscription either way; this
+/// only says which provider moves the money.
+///
+/// STRIPE runs its own recurring engine and projects its state onto
+/// Subscription through webhooks. SAFEPAY is one-off hosted checkout, so for
+/// those subscriptions DijiPeople issues every renewal invoice itself.
+enum PaymentProvider {
+  STRIPE
+  SAFEPAY
+}
+
 enum DocumentEntityType {
   EMPLOYEE
   PROJECT
@@ -4174,6 +4185,14 @@ model Subscription {
   canceledAt               DateTime?
   trialStart               DateTime?
   trialEnd                 DateTime?
+  /// Which provider collects this subscription's payments. Null for a
+  /// subscription no provider bills — sales-assisted, manual or demo — which
+  /// is what every row that is not Stripe-backed was before this existed.
+  paymentProvider          PaymentProvider?
+  /// Set only while a DijiPeople-billed (non-Stripe) renewal is unpaid: access
+  /// continues until this moment, then the subscription expires. Stripe runs
+  /// its own dunning and never sets it.
+  gracePeriodEndsAt        DateTime?
   createdAt                DateTime                @default(now())
   updatedAt                DateTime                @updatedAt
   createdById              String?
@@ -4198,6 +4217,9 @@ model Subscription {
   @@index([status])
   @@index([planId, status])
   @@index([planPriceId])
+  // The renewal sweep's query: DijiPeople-billed subscriptions by status and
+  // period end.
+  @@index([paymentProvider, status, currentPeriodEnd])
   @@index([stripeCustomerId])
   @@index([stripeSubscriptionId])
   @@index([stripeCheckoutSessionId])
@@ -8479,6 +8501,32 @@ model StripeWebhookEvent {
   @@index([createdAt])
 }
 
+/// Webhook deliveries from every provider except Stripe, which keeps its own
+/// `StripeWebhookEvent` table and the retry tooling built around it.
+///
+/// The row is the idempotency record: a redelivery collides on
+/// `[provider, externalEventId]` and is answered without reprocessing. The
+/// payload is the provider's notification reduced to identifiers and statuses —
+/// no card data and no credentials — kept so a failed event can be replayed.
+model PaymentProviderEvent {
+  id               String                  @id @default(uuid())
+  provider         PaymentProvider
+  externalEventId  String
+  eventType        String
+  providerPaymentId String?
+  processingStatus WebhookProcessingStatus @default(RECEIVED)
+  processedAt      DateTime?
+  errorMessage     String?
+  payloadJson      Json
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+
+  @@unique([provider, externalEventId])
+  @@index([provider, processingStatus])
+  @@index([providerPaymentId])
+  @@index([createdAt])
+}
+
 model Payment {
   id                    String        @id @default(uuid())
   tenantId              String
@@ -8492,6 +8540,20 @@ model Payment {
   stripeChargeId        String?
   stripeFailureCode     String?
   stripeFailureMessage  String?
+  /// Who executed this payment. Null on rows recorded by hand and on Stripe
+  /// rows written before this column existed; Stripe keeps its own
+  /// `stripe*` columns rather than having them copied here.
+  paymentProvider       PaymentProvider?
+  /// The provider's identifier for this attempt (a Safepay tracker token).
+  /// Settlement is always re-read from the provider under this id.
+  providerPaymentId     String?
+  /// The provider's own reference for the captured charge, for reconciliation.
+  providerReference     String?
+  /// The hosted checkout this attempt was sent to, so a repeated click returns
+  /// the same page instead of opening a second chargeable checkout.
+  providerCheckoutUrl   String?
+  failureCode           String?
+  failureMessage        String?
   paidAt                DateTime?
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
@@ -8501,11 +8563,13 @@ model Payment {
   subscription          Subscription  @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
   invoice               Invoice?      @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
 
+  @@unique([paymentProvider, providerPaymentId])
   @@index([tenantId, status])
   @@index([subscriptionId])
   @@index([invoiceId])
   @@index([stripePaymentIntentId])
   @@index([stripeChargeId])
+  @@index([paymentProvider, status, createdAt])
 }
 
 model PayrollCycle {
@@ -13593,6 +13657,14 @@ model SubscriptionOrder {
 
   stripeCustomerId        String?
   stripeCheckoutSessionId String? @unique
+
+  /// Which provider this order was sent to. Null on orders opened before this
+  /// existed, all of which went to Stripe.
+  paymentProvider     PaymentProvider?
+  /// The provider's identifier for the checkout (a Safepay tracker token) —
+  /// what a webhook or a status poll resolves back to this order.
+  providerPaymentId   String?          @unique
+  providerCheckoutUrl String?
 
   /// Business identity of the submission, used to absorb refreshes and double
   /// submits. Unique, so the database — not a pre-check racing itself — is what

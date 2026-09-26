@@ -6,11 +6,13 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 0** · completed: 105
+**Active: 1** · completed: 105
 
 ## Active
 
-_None. No session is currently running._
+| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
+|---|---|---|---|---|---|---|---|
+| [SESSION-0108](../../docs/sessions/SESSION-0108-multi-provider-billing-safepay-for-pkr-alongside-stripe.md) | — | Multi-provider billing: Safepay for PKR alongside Stripe | ACTIVE | `agent/billing-safepay-provider` | `develop` | schema | 2026-09-26T14:30:00.000Z |
 
 ## Completed
 

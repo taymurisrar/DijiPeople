@@ -3608,6 +3608,54 @@ export class SuperAdminService {
     return this.webhookService.retryStoredEvent(id);
   }
 
+  /**
+   * Webhook deliveries from providers other than Stripe (Safepay today). The
+   * stored payload is already reduced to identifiers and statuses, so nothing
+   * here needs masking beyond what the Stripe list does.
+   */
+  async listPaymentProviderEvents(query: {
+    page?: string;
+    pageSize?: string;
+    status?: string;
+  }) {
+    const page = normalizePositiveInt(query.page, 1);
+    const pageSize = Math.min(normalizePositiveInt(query.pageSize, 25), 100);
+    const where: Prisma.PaymentProviderEventWhereInput = {
+      processingStatus: normalizeWebhookStatus(query.status),
+    };
+
+    const [items, total] = await Promise.all([
+      this.prisma.paymentProviderEvent.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        select: {
+          id: true,
+          provider: true,
+          externalEventId: true,
+          eventType: true,
+          providerPaymentId: true,
+          processingStatus: true,
+          errorMessage: true,
+          createdAt: true,
+          processedAt: true,
+        },
+      }),
+      this.prisma.paymentProviderEvent.count({ where }),
+    ]);
+
+    return {
+      items,
+      meta: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / pageSize)),
+      },
+    };
+  }
+
   async getPlatformSettings() {
     const keys = [
       'platform-defaults',

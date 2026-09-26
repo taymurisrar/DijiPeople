@@ -4,6 +4,7 @@ import {
   CustomerAccountStatus,
   CustomerOriginChannel,
   DomainEventType,
+  PaymentProvider,
   Prisma,
   SubscriptionOrderStatus,
 } from '@prisma/client';
@@ -480,6 +481,7 @@ export class SubscriptionOrderService {
       data: {
         stripeCustomerId,
         stripeCheckoutSessionId,
+        paymentProvider: PaymentProvider.STRIPE,
         /*
          * Gaining a checkout session **is** the transition out of DRAFT.
          *

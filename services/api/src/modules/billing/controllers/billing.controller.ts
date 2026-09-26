@@ -25,6 +25,8 @@ import { SeatQuoteQueryDto } from '../dto/seat-quote-query.dto';
 import { PlanChangePreviewQueryDto } from '../dto/plan-change-preview-query.dto';
 import { RequestPlanChangeDto } from '../dto/request-plan-change.dto';
 import { BillingService } from '../services/billing.service';
+import { ManagedCheckoutService } from '../services/managed-checkout.service';
+import { ManagedRenewalService } from '../services/managed-renewal.service';
 import { PlanChangeService } from '../services/plan-change.service';
 
 @Controller('billing')
@@ -33,7 +35,57 @@ export class BillingController {
   constructor(
     private readonly billingService: BillingService,
     private readonly planChangeService: PlanChangeService,
+    private readonly managedCheckout: ManagedCheckoutService,
+    private readonly managedRenewals: ManagedRenewalService,
   ) {}
+
+  /**
+   * The authoritative state of one of this tenant's payments — what the
+   * return page after a hosted checkout shows, instead of trusting the query
+   * string the provider sent the browser back with.
+   */
+  @Get('payments/:paymentId')
+  @Permissions(MISC_PERMISSION_KEYS.BILLING_VIEW)
+  @RequirePermission(ENTITY_KEYS.TENANT_ADMINISTRATION, 'read')
+  getPayment(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('paymentId', new ParseUUIDPipe({ version: '4' })) paymentId: string,
+  ) {
+    return this.managedCheckout.getTenantPayment(user.tenantId, paymentId);
+  }
+
+  /** Pay an open DijiPeople-issued invoice through its provider's checkout. */
+  @Post('invoices/:invoiceId/pay')
+  @Permissions(MISC_PERMISSION_KEYS.BILLING_MANAGE)
+  @RequirePermission(ENTITY_KEYS.TENANT_ADMINISTRATION, 'manage')
+  payInvoice(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('invoiceId', new ParseUUIDPipe({ version: '4' })) invoiceId: string,
+  ) {
+    return this.billingService.payInvoice({
+      tenantId: user.tenantId,
+      userId: user.userId,
+      invoiceId,
+    });
+  }
+
+  /**
+   * Stop renewing at the end of the paid period. For subscriptions DijiPeople
+   * bills itself; a Stripe subscription is managed in Stripe's portal.
+   */
+  @Post('subscription/cancel')
+  @Permissions(MISC_PERMISSION_KEYS.BILLING_MANAGE)
+  @RequirePermission(ENTITY_KEYS.TENANT_ADMINISTRATION, 'manage')
+  cancelAtPeriodEnd(@CurrentUser() user: AuthenticatedUser) {
+    return this.managedRenewals.cancelAtPeriodEnd(user.tenantId, user.userId);
+  }
+
+  @Post('subscription/resume')
+  @Permissions(MISC_PERMISSION_KEYS.BILLING_MANAGE)
+  @RequirePermission(ENTITY_KEYS.TENANT_ADMINISTRATION, 'manage')
+  resumeRenewal(@CurrentUser() user: AuthenticatedUser) {
+    return this.managedRenewals.resumeRenewal(user.tenantId, user.userId);
+  }
 
   @Get('plans')
   @Permissions(MISC_PERMISSION_KEYS.BILLING_VIEW)
