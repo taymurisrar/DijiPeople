@@ -10,6 +10,4 @@ leases actually held this minute, the develop merge queue — comes from
 `node scripts/session.mjs list`, which reads the shared Git directory and
 therefore sees sibling worktrees without anybody having pushed.
 
-| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
-|---|---|---|---|---|---|---|---|
-| [SESSION-0113](../../docs/sessions/SESSION-0113-custom-field-values-on-system-modules-large-package-import-p.md) | — | Custom field values on system modules; large package import performance | ACTIVE | `agent/custom-field-values` | `develop` | — | 2026-09-26T18:52:37.481Z |
+_None. No session is currently running._

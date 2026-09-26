@@ -4,17 +4,17 @@ aliases: [TASK-0034]
 TITLE: Custom field values on system modules; package import at scale
 TYPE: FEATURE
 SIZE: LARGE
-STATUS: IN_PROGRESS
+STATUS: COMPLETE
 PRIORITY: P1
 CREATED_AT: 2026-09-26
 AFFECTED_MODULES: [customization, employees, data, apps/web]
 AGENTS: [database, backend-api, frontend, security, qa, reviewer, integrator, knowledge-graph]
 DEPENDENCIES: WP-03<-WP-02; WP-04<-WP-01,WP-03
-CURRENT_PACKAGE: WP-04
-COMPLETED_PACKAGES: [WP-01, WP-02, WP-03]
+CURRENT_PACKAGE:
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 1
-FINAL_STATUS:
+FINAL_STATUS: COMPLETE — integrated into develop at cd777b78 (CI 36269897626 PASS); main untouched
 ---
 
 # TASK-0034 — Custom field values on system modules; package import at scale
@@ -35,7 +35,7 @@ The task is finished when both are proven by DB-backed tests and integrated into
 | WP-01 | Batched import, Core sync outside the transaction, scale e2e | DONE | — | backend-api | agent/custom-field-values | b69def93 | PASS | — | — | — |
 | WP-02 | CustomRecordExtension, shared value rules, EmployeesService wiring | DONE | — | database, backend-api, security | agent/custom-field-values | 6acf88ba | PASS | BUG-3697 | — | — |
 | WP-03 | Employee form: fields, section, values, payload, field errors | DONE | WP-02 | frontend | agent/custom-field-values | ed67976d | PASS | BUG-3697 | — | — |
-| WP-04 | QA, records, integration | IN_PROGRESS | WP-01, WP-03 | qa, integrator, knowledge-graph | agent/custom-field-values | — | PASS | — | — | — |
+| WP-04 | QA, records, integration | DONE | WP-01, WP-03 | qa, integrator, knowledge-graph | agent/custom-field-values | cd777b78 | PASS | — | PASS | DONE |
 
 ## Assumptions
 
@@ -58,7 +58,7 @@ The task is finished when both are proven by DB-backed tests and integrated into
 
 ## Repository Health
 
-PRE_TASK_REPO_HEALTH and POST_TASK_REPO_HEALTH are recorded in the engineering history for this task.
+Pre-task: develop and main both at `58fc8fad`, nothing else in flight on develop. Post-task: develop at `cd777b78`, main untouched at `58fc8fad`. Full record: docs/engineering-history/tasks/2026-09-26-custom-field-values-and-import-scale-cd777b78.md.
 
 ## History
 
@@ -73,3 +73,4 @@ PRE_TASK_REPO_HEALTH and POST_TASK_REPO_HEALTH are recorded in the engineering h
 - Modules — [[customization]], [[employees]]
 
 <!-- GRAPH:END -->
+- 2026-09-26: CI 36268477840 on `680b132f` failed Build and Runtime schema (both from this branch); fixed in `cd777b78`, CI 36269897626 PASS; develop fast-forwarded to `cd777b78`. Browser pass (scripted Playwright) added to the QA run.

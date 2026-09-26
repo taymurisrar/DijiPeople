@@ -108,7 +108,7 @@ Retested 2026-09-26:
 - The e2e suite passed, 6/6.
 - The web and API unit tests pass.
 - Steps 1–6 and step 8 of QA-EMPLOYEES-001 were driven over HTTP against a booted API on a seeded throwaway database.
-- There was no browser pass: the Playwright MCP server did not connect.
+- In a real browser (scripted Playwright), Employee Grade was set on the edit form, saved, and shown on the detail page after reload.
 
 ## History
 

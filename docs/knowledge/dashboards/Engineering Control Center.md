@@ -7,9 +7,9 @@
 
 | | |
 |---|---|
-| Active sessions | **1** |
-| Active parent tasks | 5 |
-| Active work packages | 5 |
+| Active sessions | **0** |
+| Active parent tasks | 4 |
+| Active work packages | 4 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
@@ -47,9 +47,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-| Session | Task | Title | Status | Branch | Target | Leases | Schema |
-|---|---|---|---|---|---|---|---|
-| [[SESSION-0113-custom-field-values-on-system-modules-large-package-import-p|SESSION-0113]] | — | Custom field values on system modules; large package import performance | ACTIVE | `agent/custom-field-values` | `develop` | — | NO |
+_No session is currently registered as active._
 
 ## Active Tasks and Work Packages
 
@@ -59,7 +57,6 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 | [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 16/16 | — | — | — |
 | [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 11/11 | — | — | — |
 | [[TASK-0028-enterprise-reports-and-analytics-platform|TASK-0028]] | Enterprise Reports and Analytics platform | FEATURE | LARGE | 5/15 | WP-08 | — | — |
-| [[TASK-0034-custom-field-values-on-system-modules-package-import-at-scal|TASK-0034]] | Custom field values on system modules; package import at scale | FEATURE | LARGE | 3/4 | WP-04 | — | — |
 
 ## Branch model
 

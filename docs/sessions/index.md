@@ -6,18 +6,17 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 1** · completed: 109
+**Active: 0** · completed: 110
 
 ## Active
 
-| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
-|---|---|---|---|---|---|---|---|
-| [SESSION-0113](../../docs/sessions/SESSION-0113-custom-field-values-on-system-modules-large-package-import-p.md) | — | Custom field values on system modules; large package import performance | ACTIVE | `agent/custom-field-values` | `develop` | — | 2026-09-26T18:52:37.481Z |
+_None. No session is currently running._
 
 ## Completed
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0113](../../docs/sessions/SESSION-0113-custom-field-values-on-system-modules-large-package-import-p.md) | TASK-0034 | Custom field values on system modules; large package import performance | COMPLETE | `agent/custom-field-values` | `develop` | — | 2026-09-26T18:52:37.481Z |
 | [SESSION-0112](../../docs/sessions/SESSION-0112-item-0207-system-agreement-templates-publish-new-versions-cl.md) | — | ITEM-0207 system agreement templates publish new versions; close ITEM-0208; record ITEM-0210 decision | COMPLETE | `agent/item-0207-template-versions` | `develop` | — | 2026-09-26T18:05:01.097Z |
 | [SESSION-0111](../../docs/sessions/SESSION-0111-release-develop-to-main-item-0215-then-full-release-of-item-.md) | — | Release develop to main: ITEM-0215 then full release of ITEM-0200/0201/0203/0204/0206 | COMPLETE | `agent/item-0215-and-release` | `main` | — | 2026-09-26T16:31:52.473Z |
 | [SESSION-0110](../../docs/sessions/SESSION-0110-package-alm-versions-portable-artifact-staged-import-upgrade.md) | TASK-0033 | Package ALM: versions, portable artifact, staged import, upgrade, uninstall | COMPLETE | `agent/packages-alm` | `develop` | — | 2026-09-26T15:57:04.169Z |
