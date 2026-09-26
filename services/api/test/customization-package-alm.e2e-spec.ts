@@ -309,6 +309,67 @@ describeWithDatabase()('Customization package ALM (e2e, DB-backed)', () => {
     );
   });
 
+  it('delete safety (B3) — a field named only by a layer in another package cannot be deleted', async () => {
+    const scratch = await customization.createPackage(dev, {
+      packageKey: 'mis_scratch',
+      displayName: 'Scratch',
+      publisherName: 'MIS',
+      version: '1.0.0',
+    });
+    await customization.createColumn(dev, 'misAsset', {
+      packageId: scratch.id,
+      columnKey: 'mis_temp',
+      displayName: 'Temp',
+      dataType: 'lookup',
+      lookupTargetTableKey: 'employees',
+    });
+    await customization.ensureCustomizationLayer(dev, {
+      moduleKey: 'misAsset',
+      componentType: 'relationship',
+      componentKey: 'mis_tempLink',
+      packageId: scratch.id,
+      layerAction: 'create',
+      displayName: 'Temp link',
+      metadataJson: {
+        referenceField: 'mis_temp',
+        targetModule: 'employees',
+        relationshipType: 'manyToOne',
+      },
+    });
+    const refused = await codeOf(
+      customization.deleteColumn(dev, 'misAsset', 'mis_temp'),
+    );
+    expect(refused.code).toBe('HTTP_400');
+    expect(refused.message).toContain(
+      'Cannot delete misAsset.mis_temp. It is used by Temp link (Scratch).',
+    );
+    const table = await prisma.customizationTable.findFirstOrThrow({
+      where: { tenantId: dev.tenantId, tableKey: 'misAsset' },
+    });
+    expect(
+      await prisma.customizationColumn.count({
+        where: {
+          tenantId: dev.tenantId,
+          tableId: table.id,
+          columnKey: 'mis_temp',
+        },
+      }),
+    ).toBe(1);
+
+    /* Remove the scratch package so the release below is unaffected. */
+    await prisma.customizationSolutionComponent.deleteMany({
+      where: { tenantId: dev.tenantId, solutionId: scratch.id },
+    });
+    await prisma.customizationColumn.deleteMany({
+      where: {
+        tenantId: dev.tenantId,
+        tableId: table.id,
+        columnKey: 'mis_temp',
+      },
+    });
+    await prisma.customizationSolution.delete({ where: { id: scratch.id } });
+  });
+
   it('G/H — validate, release 1.0.0, and export a deterministic artifact with no secrets or ids', async () => {
     const readiness = await alm.validateForRelease(dev, devPackageId);
     expect(readiness.errors).toBe(0);

@@ -64,6 +64,7 @@ import {
   RESERVED_PUBLISHER_PREFIXES,
 } from './package-artifact';
 import { packageKind } from './package-kind';
+import { PackagePortableReader } from './package-portable.reader';
 
 /*
  * The legacy holding package. New drafts no longer land here (BUG-3493); it is
@@ -108,7 +109,16 @@ export class CustomizationService {
     Promise<CustomizationSolution>
   >();
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    /*
+     * Optional so the many specs that build this service from a Prisma double
+     * keep working; Nest always injects the real one.
+     */
+    private readonly portableReader: PackagePortableReader = new PackagePortableReader(
+      prisma,
+    ),
+  ) {}
 
   async getDefaultSolution(currentUser: AuthenticatedUser) {
     const solution = await this.syncDefaultSolution(currentUser);
@@ -2918,6 +2928,12 @@ export class CustomizationService {
       });
     }
 
+    await this.assertNoLayerReferences(
+      currentUser,
+      table,
+      `column:${table.tableKey}.${columnKey}`,
+      existing.id,
+    );
     await this.prisma.$transaction([
       this.prisma.customizationSolutionComponent.deleteMany({
         where: { tenantId: currentUser.tenantId, objectId: existing.id },
@@ -3177,6 +3193,12 @@ export class CustomizationService {
         );
       }
     }
+    await this.assertNoLayerReferences(
+      currentUser,
+      table,
+      `form:${table.tableKey}.${formKey}`,
+      existing.id,
+    );
     await this.prisma.$transaction([
       this.prisma.customizationSolutionComponent.deleteMany({
         where: { tenantId: currentUser.tenantId, objectId: existing.id },
@@ -3497,6 +3519,12 @@ export class CustomizationService {
       }
     }
 
+    await this.assertNoLayerReferences(
+      currentUser,
+      table,
+      `view:${table.tableKey}.${viewKey}`,
+      existing.id,
+    );
     await this.prisma.$transaction([
       this.prisma.customizationSolutionComponent.deleteMany({
         where: { tenantId: currentUser.tenantId, objectId: existing.id },
@@ -4451,6 +4479,52 @@ export class CustomizationService {
     if (owner) {
       throw new AppError('PACKAGE_READ_ONLY', {
         message: `${owner.objectKey} was installed by ${owner.solution.displayName} and is read-only here. Change it in the environment the package is authored in, or detach the package.`,
+      });
+    }
+  }
+
+  /**
+   * TASK-0033 / B3 — a field, form or view can be named by layers that are not
+   * forms or views: a relationship's reference field, an action bar, an
+   * extension of a DijiPeople Core form. The layout check above cannot see
+   * those, so deleting the component left them pointing at nothing. The
+   * portable reader resolves exactly those references for export; the same
+   * reader decides here, so what blocks a delete is what an export would call
+   * a dependency.
+   */
+  private async assertNoLayerReferences(
+    currentUser: AuthenticatedUser,
+    table: CustomizationTable,
+    componentKey: string,
+    objectId: string,
+  ) {
+    const rows = await this.prisma.customizationSolutionComponent.findMany({
+      where: {
+        tenantId: currentUser.tenantId,
+        tableId: table.id,
+        lifecycleState: { not: 'retired' },
+        NOT: { objectId },
+        solution: { isDefault: false },
+      },
+      include: { solution: { select: { displayName: true } } },
+    });
+    if (!rows.length) return;
+    const read = await this.portableReader.toPortable(
+      currentUser.tenantId,
+      rows,
+    );
+    const users = read.components
+      .filter((component) => component.dependsOn.includes(componentKey))
+      .map((component) => {
+        const row = read.rowByKey.get(component.key);
+        const packageName = rows.find((candidate) => candidate.id === row?.id)
+          ?.solution.displayName;
+        return `${read.displayNames.get(component.key) ?? component.objectKey}${packageName ? ` (${packageName})` : ''}`;
+      });
+    if (users.length) {
+      throw new BadRequestException({
+        message: `Cannot delete ${componentKey.split(':')[1]}. It is used by ${users.join(', ')}. Remove those references first.`,
+        usedBy: users,
       });
     }
   }
