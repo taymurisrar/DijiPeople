@@ -13,7 +13,7 @@
  * field contains an underscore, which is how values are told apart without a
  * second registry.
  */
-import { mapCustomFieldDataType } from "../custom-modules/custom-module-runtime";
+import { mapCustomFieldDataType } from "../custom-modules/custom-field-data-type";
 import type {
   FieldMetadata,
   FormMetadata,

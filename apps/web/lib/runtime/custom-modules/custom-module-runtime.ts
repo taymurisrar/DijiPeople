@@ -4,7 +4,6 @@ import type {
   RuntimeFormLayout,
 } from "@/lib/customization-forms";
 import type {
-  FieldDataType,
   FormMetadata,
   ViewFilterMetadata,
   ViewSortMetadata,
@@ -19,6 +18,7 @@ import type {
   StandardModuleRuntimeSpec,
   StandardModuleViewSpec,
 } from "../modules/standard-module-runtime";
+import { mapCustomFieldDataType } from "./custom-field-data-type";
 import { customModuleHref } from "./custom-module-navigation";
 
 /*
@@ -107,27 +107,6 @@ const SYSTEM_FIELDS: readonly StandardModuleFieldSpec[] = [
 ];
 
 const FALLBACK_VIEW_COLUMN_COUNT = 8;
-
-const FIELD_TYPE_MAP: Readonly<Record<string, FieldDataType>> = {
-  text: "string",
-  textarea: "multiline-string",
-  number: "number",
-  decimal: "decimal",
-  currency: "currency",
-  date: "date",
-  datetime: "datetime",
-  boolean: "boolean",
-  select: "optionset",
-  multiselect: "multi-optionset",
-  lookup: "lookup",
-  email: "email",
-  phone: "phone",
-  url: "url",
-};
-
-export function mapCustomFieldDataType(dataType: string): FieldDataType {
-  return FIELD_TYPE_MAP[dataType] ?? "string";
-}
 
 export function buildCustomModuleRuntimeSpec(
   definition: CustomModuleDefinition,
@@ -446,3 +425,5 @@ function normalizeOperator(value: unknown): string {
   }
   return operator;
 }
+
+export { mapCustomFieldDataType };

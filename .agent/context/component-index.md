@@ -1,7 +1,7 @@
 # Component Index
 
 > **Last verified:** 2026-09-27
-> **Verified against commit:** 70da5244
+> **Verified against commit:** 680b132f
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -170,7 +170,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `activateOnKey` | function | 4 | `apps/web/app/components/charts/chart-chrome.tsx`:392 | Keyboard activation for a plotted point. |
 | `analyticsFilterHref` | function | 4 | `apps/web/app/components/filters/analytics-search-params.ts`:207 | Build an href, omitting the `?` when there is nothing to put after it — `/reports/attendance?` is an ugly URL that also breaks naive link equality checks in navigation highlighting. |
 | `applyAnalyticsFilters` | function | 4 | `apps/web/app/components/filters/analytics-search-params.ts`:149 | Apply changes to a query string, returning a new one. |
-| `buildCustomModuleRuntime` | function | 4 | `apps/web/lib/runtime/custom-modules/custom-module-runtime.ts`:282 | The runtime context a custom-module route renders with. |
+| `buildCustomModuleRuntime` | function | 4 | `apps/web/lib/runtime/custom-modules/custom-module-runtime.ts`:261 | The runtime context a custom-module route renders with. |
 | `defaultPrimaryNameFieldForEntity` | function | 4 | `apps/web/lib/runtime/modules/entity-primary-name-field.ts`:18 | The primary display field for an entity a lookup can point at. |
 | `linearScale` | function | 4 | `apps/web/app/components/charts/chart-geometry.ts`:67 | A linear mapping from a data domain onto a pixel range. |
 | `pointActionAccessibleLabel` | function | 4 | `apps/web/app/components/charts/chart-format.ts`:212 | The accessible name for an interactive point. |
@@ -237,7 +237,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `visibleRowActions` | function | 1 | `apps/web/lib/runtime/related-subgrid-rows.ts`:19 | ITEM-0179 — the declared row actions this viewer may run on this row. |
 | `withEmployeeCustomFieldSection` | function | 1 | `apps/web/lib/runtime/modules/employee-custom-fields.ts`:96 | A form that already places a custom field (the tenant laid it out in the form designer) is left alone for that field; any field no section places is added to one section on the first field tab, so a published field is never invisible just because nobody opened the designer. |
 | `bucketByPeriod` | function | 0 | `apps/web/app/components/charts/chart-geometry.ts`:454 | Group dated measurements into calendar buckets, summing each bucket. |
-| `buildCustomModuleForms` | function | 0 | `apps/web/lib/runtime/custom-modules/custom-module-runtime.ts`:234 | The module's published forms as FormMetadata, through the same mapping system modules use. |
+| `buildCustomModuleForms` | function | 0 | `apps/web/lib/runtime/custom-modules/custom-module-runtime.ts`:213 | The module's published forms as FormMetadata, through the same mapping system modules use. |
 | `closeListboxOnEscape` | function | 0 | `apps/web/app/components/ui/form-control.tsx`:194 | BUG-3495 — Escape inside an open listbox closes the listbox, not the dialog around it. |
 | `customFieldErrors` | function | 0 | `apps/web/lib/runtime/modules/employee-data.adapter.ts`:895 | BUG-3697 — the API reports a custom field's error as `details["customFields.<field>"]`; on the form the field is `<field>`. |
 | `donutLegendItems` | function | 0 | `apps/web/app/components/charts/donut-chart.tsx`:185 | Legend entries for a donut, in the same order and with the same bucketing the chart used. |
