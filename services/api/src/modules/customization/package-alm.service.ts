@@ -643,6 +643,20 @@ export class PackageAlmService {
       }
     }
 
+    for (const component of read.components) {
+      if (component.layerAction !== 'reference' || !component.baseIsSystem) {
+        continue;
+      }
+      issues.push({
+        ...issue(
+          'CORE_DEPENDENCY',
+          'info',
+          `This package extends ${describeKey(component.key)} from DijiPeople Core, which every environment has.`,
+        ),
+        componentKey: component.key,
+      });
+    }
+
     /* Declared dependencies must be present here at a satisfying version. */
     const installed = await this.installedPackageVersions(currentUser, [
       ...declaredKeys,
@@ -726,6 +740,17 @@ export class PackageAlmService {
   ) {
     let record = await this.findPackage(currentUser, packageId);
     this.assertEditable(record);
+    /*
+     * Checked before anything is written: a refused release must leave the
+     * working version exactly where it was.
+     */
+    const requested = dto.version ?? record.version;
+    const latest = await this.latestVersion(currentUser, record.id);
+    if (latest && compareSemver(requested, latest.version) <= 0) {
+      throw new AppError('PACKAGE_VERSION_CONFLICT', {
+        message: `Version ${requested} is not higher than the last release ${latest.version}. A released version is immutable.`,
+      });
+    }
     if (dto.version && dto.version !== record.version) {
       record = await this.prisma.customizationSolution.update({
         where: { id: record.id },
@@ -846,9 +871,22 @@ export class PackageAlmService {
     const packageKeys = new Set(
       read.components.map((component) => component.key),
     );
-    const coreDependencies = read.components
-      .flatMap((component) => component.dependsOn)
-      .filter((key) => !packageKeys.has(key));
+    /*
+     * What the package builds on from outside itself: dependencies it does not
+     * carry, plus the DijiPeople Core components it only references (a field
+     * added to Employees references the Employees module; it never ships it).
+     */
+    const coreDependencies = [
+      ...read.components
+        .flatMap((component) => component.dependsOn)
+        .filter((key) => !packageKeys.has(key)),
+      ...read.components
+        .filter(
+          (component) =>
+            component.layerAction === 'reference' && component.baseIsSystem,
+        )
+        .map((component) => component.key),
+    ];
 
     const manifest: Omit<PackageManifest, 'componentCount' | 'signature'> = {
       packageKey: record.solutionKey,

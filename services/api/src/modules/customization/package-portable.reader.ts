@@ -163,6 +163,12 @@ export class PackagePortableReader {
       columnKeysByTable.set(tableKey, set);
     }
     const knownTableKeys = new Set(allTableKeys.map((row) => row.tableKey));
+    const recoveredOwners = await this.recoverDemotedModuleOwners(
+      tenantId,
+      rows,
+      tableById,
+      db,
+    );
 
     const components: PortableComponentInput[] = [];
     const rowByKey = new Map<string, CustomizationSolutionComponent>();
@@ -194,7 +200,9 @@ export class PackagePortableReader {
         type === 'table' || type === 'environmentVariable'
           ? null
           : objectKey.split('.')[0];
-      const layerAction = toLayerAction(row.layerAction, row.isSystem);
+      const layerAction = recoveredOwners.has(row.id)
+        ? 'create'
+        : toLayerAction(row.layerAction, row.isSystem);
       const baseIsSystem = Boolean(
         base && 'isSystem' in base ? base.isSystem : row.isSystem,
       );
@@ -242,6 +250,50 @@ export class PackagePortableReader {
     }
 
     return { components, rowByKey, displayNames };
+  }
+
+  /**
+   * Module rows that should read `create` but were stored as `reference`.
+   *
+   * Until TASK-0033, adding a field to a custom module rewrote the owning
+   * package's module row to `reference` (ensurePackageModuleMembership), so in
+   * existing workspaces a custom module can have no `create` row anywhere.
+   * Such a module still has exactly one rightful owner: the package whose row
+   * for it is oldest. Only custom modules nobody claims are considered, so a
+   * module another package genuinely created is never taken over.
+   */
+  private async recoverDemotedModuleOwners(
+    tenantId: string,
+    rows: readonly CustomizationSolutionComponent[],
+    tableById: Map<string, CustomizationTable>,
+    db: Db,
+  ) {
+    const candidates = rows.filter(
+      (row) =>
+        row.componentType === 'table' &&
+        row.layerAction === 'reference' &&
+        tableById.get(row.objectId)?.isSystem === false,
+    );
+    if (!candidates.length) return new Set<string>();
+    const all = await db.customizationSolutionComponent.findMany({
+      where: {
+        tenantId,
+        componentType: 'table',
+        objectId: { in: candidates.map((row) => row.objectId) },
+        solution: { isDefault: false },
+      },
+      select: { id: true, objectId: true, layerAction: true, createdAt: true },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
+    const owners = new Set<string>();
+    for (const candidate of candidates) {
+      const forModule = all.filter(
+        (row) => row.objectId === candidate.objectId,
+      );
+      if (forModule.some((row) => row.layerAction === 'create')) continue;
+      if (forModule[0]?.id === candidate.id) owners.add(candidate.id);
+    }
+    return owners;
   }
 
   /**

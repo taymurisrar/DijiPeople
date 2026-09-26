@@ -5253,11 +5253,30 @@ export class CustomizationService {
     });
   }
 
-  private ensurePackageModuleMembership(
+  private async ensurePackageModuleMembership(
     currentUser: AuthenticatedUser,
     solutionId: string,
     table: CustomizationTable,
   ) {
+    /*
+     * TASK-0033 — membership only needs to EXIST. This used to upsert with
+     * `layerAction: 'reference'`, so adding the first field to a module the
+     * package itself created demoted that module from `create` to
+     * `reference`: the package stopped recording that it owns the module, and
+     * an export shipped the field without the module it lives in. An existing
+     * row is left exactly as it is.
+     */
+    const existing =
+      await this.prisma.customizationSolutionComponent.findUnique({
+        where: {
+          solutionId_componentType_objectId: {
+            solutionId,
+            componentType: 'table',
+            objectId: table.id,
+          },
+        },
+      });
+    if (existing) return existing;
     return this.addDefaultSolutionComponent(currentUser, {
       solutionId,
       componentType: 'table',

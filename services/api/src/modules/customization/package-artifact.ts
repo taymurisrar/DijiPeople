@@ -956,6 +956,16 @@ function readComponents(
       });
       return;
     }
+    if (definition) {
+      const invalid = definitionProblem(type, objectKey, definition);
+      if (invalid) {
+        problems.push({
+          path: `${path}.definition`,
+          message: `${key}: ${invalid}`,
+        });
+        return;
+      }
+    }
     const component: PortableComponentInput = {
       key,
       type: type as PortableComponentType,
@@ -979,6 +989,154 @@ function readComponents(
   });
 
   return problems.length > start ? null : components;
+}
+
+/*
+ * The values a definition may carry, mirrored from schema.prisma so this file
+ * stays free of the generated client. `package-artifact.spec.ts` compares each
+ * list against the Prisma enum, so a new field type cannot be exported by one
+ * environment and silently refused here.
+ */
+export const DEFINITION_ENUMS = {
+  fieldType: [
+    'text',
+    'textarea',
+    'number',
+    'decimal',
+    'date',
+    'datetime',
+    'boolean',
+    'select',
+    'multiselect',
+    'lookup',
+    'email',
+    'phone',
+    'url',
+    'currency',
+  ],
+  formType: ['main', 'minimal', 'quick', 'card', 'lookup', 'create', 'edit'],
+  viewType: ['system', 'custom'],
+  visibilityScope: ['tenant', 'role', 'user'],
+  variableType: ['text', 'number', 'boolean', 'url', 'secret'],
+} as const;
+
+const LOCAL_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9_]{0,99}$/;
+const TABLE_KEY_PATTERN = /^[a-z][a-zA-Z0-9]{0,99}$/;
+
+/**
+ * What an import will write, checked before anything is compared. The
+ * definition is untrusted data that becomes database rows: a value the target
+ * cannot store would otherwise surface only as a failed transaction, and a
+ * name longer than any screen can show would be stored without complaint.
+ */
+function definitionProblem(
+  type: string,
+  objectKey: string,
+  definition: Record<string, unknown>,
+): string | null {
+  const local = objectKey.slice(objectKey.indexOf('.') + 1);
+  const text = (field: string, max = 200, required = true) => {
+    const value = definition[field];
+    if (value === null || value === undefined) {
+      return required ? `${field} is required.` : null;
+    }
+    if (typeof value !== 'string' || (required && !value.trim())) {
+      return `${field} must be text.`;
+    }
+    return value.length > max
+      ? `${field} is longer than ${max} characters.`
+      : null;
+  };
+  const oneOf = (
+    field: string,
+    allowed: readonly string[],
+    required = true,
+  ) => {
+    const value = definition[field];
+    if (value === null || value === undefined) {
+      return required ? `${field} is required.` : null;
+    }
+    return typeof value === 'string' && allowed.includes(value)
+      ? null
+      : `${field} "${String(value)}" is not supported by this environment.`;
+  };
+  const first = (...checks: (string | null)[]) => checks.find(Boolean) ?? null;
+
+  if (type === 'table') {
+    if (
+      definition.tableKey !== objectKey ||
+      !TABLE_KEY_PATTERN.test(objectKey)
+    ) {
+      return 'the module key does not match the component.';
+    }
+    return first(
+      text('displayName'),
+      text('pluralDisplayName'),
+      text('systemName'),
+      text('description', 2000, false),
+    );
+  }
+  if (type === 'column') {
+    if (definition.columnKey !== local || !LOCAL_KEY_PATTERN.test(local)) {
+      return 'the field key does not match the component.';
+    }
+    const lookup = definition.lookupTargetTableKey;
+    if (
+      lookup != null &&
+      (typeof lookup !== 'string' || !TABLE_KEY_PATTERN.test(lookup))
+    ) {
+      return 'lookupTargetTableKey is not a module key.';
+    }
+    const maxLength = definition.maxLength;
+    if (
+      maxLength != null &&
+      (!Number.isInteger(maxLength) || (maxLength as number) < 0)
+    ) {
+      return 'maxLength must be a whole number.';
+    }
+    return first(
+      text('displayName'),
+      text('description', 2000, false),
+      oneOf('dataType', DEFINITION_ENUMS.fieldType),
+      oneOf('fieldType', DEFINITION_ENUMS.fieldType, false),
+    );
+  }
+  if (type === 'form') {
+    if (definition.formKey !== local || !LOCAL_KEY_PATTERN.test(local)) {
+      return 'the form key does not match the component.';
+    }
+    if (!isRecord(definition.layoutJson))
+      return 'layoutJson must be an object.';
+    return first(text('name'), oneOf('type', DEFINITION_ENUMS.formType));
+  }
+  if (type === 'view') {
+    if (definition.viewKey !== local || !LOCAL_KEY_PATTERN.test(local)) {
+      return 'the view key does not match the component.';
+    }
+    const columns = definition.columnsJson;
+    if (!Array.isArray(columns) && !isRecord(columns)) {
+      return 'columnsJson must be a list.';
+    }
+    return first(
+      text('name'),
+      oneOf('type', DEFINITION_ENUMS.viewType),
+      oneOf('visibilityScope', DEFINITION_ENUMS.visibilityScope),
+    );
+  }
+  if (type === 'environmentVariable') {
+    if (definition.variableKey !== objectKey) {
+      return 'the variable key does not match the component.';
+    }
+    if (definition.type === 'secret' && definition.defaultValue != null) {
+      return 'a secret cannot carry a default value.';
+    }
+    return first(
+      text('displayName'),
+      oneOf('type', DEFINITION_ENUMS.variableType),
+      text('defaultValue', 2000, false),
+    );
+  }
+  return null;
 }
 
 export function isJsonOnlyType(type: string) {

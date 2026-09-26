@@ -1,4 +1,12 @@
 import {
+  CustomizationEnvironmentVariableType,
+  CustomizationFieldDataType,
+  CustomizationFormType,
+  ModuleViewType,
+  ModuleViewVisibilityScope,
+} from '@prisma/client';
+import {
+  DEFINITION_ENUMS,
   buildPackageArtifact,
   bumpVersion,
   canonicalJson,
@@ -37,7 +45,7 @@ const manifest = (
   ...overrides,
 });
 
-const table = (tableKey = 'mis_asset'): PortableComponentInput => ({
+const table = (tableKey = 'misAsset'): PortableComponentInput => ({
   key: `table:${tableKey}`,
   type: 'table',
   objectKey: tableKey,
@@ -90,6 +98,8 @@ const form = (
   definition: {
     formKey,
     name: 'Main',
+    type: 'main',
+    type: 'main',
     layoutJson: {
       tabs: [
         { sections: [{ fields: fields.map((columnKey) => ({ columnKey })) }] },
@@ -104,9 +114,9 @@ const form = (
 });
 
 const sample = () => [
-  form('mis_asset', 'main', ['mis_grade']),
-  column('mis_asset', 'mis_grade'),
-  table('mis_asset'),
+  form('misAsset', 'main', ['mis_grade']),
+  column('misAsset', 'mis_grade'),
+  table('misAsset'),
 ];
 
 describe('canonical serialization', () => {
@@ -144,9 +154,9 @@ describe('buildPackageArtifact', () => {
       components: sample(),
     });
     expect(artifact.components.map((component) => component.key)).toEqual([
-      'table:mis_asset',
-      'column:mis_asset.mis_grade',
-      'form:mis_asset.main',
+      'table:misAsset',
+      'column:misAsset.mis_grade',
+      'form:misAsset.main',
     ]);
   });
 
@@ -156,7 +166,7 @@ describe('buildPackageArtifact', () => {
       components: sample(),
     });
     const changed = sample();
-    changed[1] = column('mis_asset', 'mis_grade', {
+    changed[1] = column('misAsset', 'mis_grade', {
       definition: {
         columnKey: 'mis_grade',
         displayName: 'Grade Level',
@@ -176,7 +186,7 @@ describe('buildPackageArtifact', () => {
   it('refuses to export anything that looks like a credential', () => {
     const components = sample();
     components[2] = {
-      ...table('mis_asset'),
+      ...table('misAsset'),
       layer: { connection: { apiKey: 'abc' } },
     };
     expect(() =>
@@ -197,18 +207,18 @@ describe('buildPackageArtifact', () => {
 
 describe('orderComponents', () => {
   it('tolerates a schema cycle: two modules that look each other up', () => {
-    const a = table('mis_a');
-    const b = table('mis_b');
-    const aToB = column('mis_a', 'mis_b', {
-      dependsOn: ['table:mis_a', 'table:mis_b'],
+    const a = table('misA');
+    const b = table('misB');
+    const aToB = column('misA', 'misB', {
+      dependsOn: ['table:misA', 'table:misB'],
     });
-    const bToA = column('mis_b', 'mis_a', {
-      dependsOn: ['table:mis_b', 'table:mis_a'],
+    const bToA = column('misB', 'misA', {
+      dependsOn: ['table:misB', 'table:misA'],
     });
     const ordered = orderComponents([bToA, aToB, b, a]).map(
       (component) => component.key,
     );
-    expect(ordered.slice(0, 2).sort()).toEqual(['table:mis_a', 'table:mis_b']);
+    expect(ordered.slice(0, 2).sort()).toEqual(['table:misA', 'table:misB']);
     expect(ordered).toHaveLength(4);
   });
 
@@ -318,8 +328,8 @@ describe('parsePackageArtifact', () => {
 
   it('refuses a created field that does not carry the publisher prefix', () => {
     const parsed = rebuilt((components) => {
-      components[1] = column('mis_asset', 'abc_grade');
-      components[0] = form('mis_asset', 'main', ['abc_grade']);
+      components[1] = column('misAsset', 'abc_grade');
+      components[0] = form('misAsset', 'main', ['abc_grade']);
     });
     expect(parsed.problems.map((problem) => problem.message).join()).toMatch(
       /does not use its prefix mis_/,
@@ -421,12 +431,12 @@ describe('findPackageDependencyCycle', () => {
   it('finds a package dependency loop and names it', () => {
     const cycle = findPackageDependencyCycle(
       new Map([
-        ['mis_a', ['mis_b']],
-        ['mis_b', ['mis_c']],
-        ['mis_c', ['mis_a']],
+        ['misA', ['misB']],
+        ['misB', ['mis_c']],
+        ['mis_c', ['misA']],
       ]),
     );
-    expect(cycle).toEqual(['mis_a', 'mis_b', 'mis_c', 'mis_a']);
+    expect(cycle).toEqual(['misA', 'misB', 'mis_c', 'misA']);
   });
 
   it('accepts a diamond, which is not a cycle', () => {
@@ -439,5 +449,63 @@ describe('findPackageDependencyCycle', () => {
         ]),
       ),
     ).toBeNull();
+  });
+});
+
+describe('definition values (untrusted input that becomes rows)', () => {
+  it('mirrors every Prisma enum a definition can carry', () => {
+    expect([...DEFINITION_ENUMS.fieldType].sort()).toEqual(
+      Object.values(CustomizationFieldDataType).sort(),
+    );
+    expect([...DEFINITION_ENUMS.formType].sort()).toEqual(
+      Object.values(CustomizationFormType).sort(),
+    );
+    expect([...DEFINITION_ENUMS.viewType].sort()).toEqual(
+      Object.values(ModuleViewType).sort(),
+    );
+    expect([...DEFINITION_ENUMS.visibilityScope].sort()).toEqual(
+      Object.values(ModuleViewVisibilityScope).sort(),
+    );
+    expect([...DEFINITION_ENUMS.variableType].sort()).toEqual(
+      Object.values(CustomizationEnvironmentVariableType).sort(),
+    );
+  });
+
+  it('refuses a field type this environment cannot store', () => {
+    const components = sample();
+    components[1] = column('misAsset', 'mis_grade', {
+      definition: {
+        columnKey: 'mis_grade',
+        displayName: 'Grade',
+        dataType: 'hologram',
+      },
+    });
+    const { artifact } = buildPackageArtifact({
+      manifest: manifest(),
+      components,
+    });
+    const parsed = parsePackageArtifact(JSON.stringify(artifact));
+    expect(parsed.problems.map((problem) => problem.message).join()).toMatch(
+      /dataType "hologram" is not supported/,
+    );
+  });
+
+  it('refuses a definition whose key disagrees with its identity', () => {
+    const components = sample();
+    components[1] = column('misAsset', 'mis_grade', {
+      definition: {
+        columnKey: 'mis_other',
+        displayName: 'Grade',
+        dataType: 'text',
+      },
+    });
+    const { artifact } = buildPackageArtifact({
+      manifest: manifest(),
+      components,
+    });
+    const parsed = parsePackageArtifact(JSON.stringify(artifact));
+    expect(parsed.problems.map((problem) => problem.message).join()).toMatch(
+      /field key does not match/,
+    );
   });
 });

@@ -23,10 +23,10 @@ const column = (
   definition: Record<string, unknown> = {},
   extra: Partial<PortableComponentInput> = {},
 ): PortableComponentInput => ({
-  key: `column:mis_asset.${columnKey}`,
+  key: `column:misAsset.${columnKey}`,
   type: 'column',
-  objectKey: `mis_asset.${columnKey}`,
-  parentKey: 'mis_asset',
+  objectKey: `misAsset.${columnKey}`,
+  parentKey: 'misAsset',
   layerAction: 'create',
   baseIsSystem: false,
   definition: {
@@ -38,7 +38,7 @@ const column = (
     ...definition,
   },
   layer: null,
-  dependsOn: ['table:mis_asset'],
+  dependsOn: ['table:misAsset'],
   ...extra,
 });
 
@@ -71,7 +71,7 @@ function compare(
   return comparePackageToTarget({
     components: components.map(withChecksum),
     target: new Map(
-      Object.entries({ 'table:mis_asset': tableEntry, ...target }),
+      Object.entries({ 'table:misAsset': tableEntry, ...target }),
     ),
     ownedByPackageInTarget,
   });
@@ -90,7 +90,7 @@ describe('comparePackageToTarget', () => {
   it('MATCHING — importing the same content again changes nothing (idempotency)', () => {
     const grade = column('mis_grade');
     const result = compare([grade], {
-      'column:mis_asset.mis_grade': entry({
+      'column:misAsset.mis_grade': entry({
         current: grade,
         installedChecksum: componentChecksum(grade),
         definition: grade.definition,
@@ -107,7 +107,7 @@ describe('comparePackageToTarget', () => {
     const before = column('mis_grade');
     const after = column('mis_grade', { displayName: 'Grade Level' });
     const result = compare([after], {
-      'column:mis_asset.mis_grade': entry({
+      'column:misAsset.mis_grade': entry({
         current: before,
         installedChecksum: componentChecksum(before),
         definition: before.definition,
@@ -125,7 +125,7 @@ describe('comparePackageToTarget', () => {
     const locallyEdited = column('mis_grade', { displayName: 'Edited here' });
     const incoming = column('mis_grade', { displayName: 'Grade Level' });
     const result = compare([incoming], {
-      'column:mis_asset.mis_grade': entry({
+      'column:misAsset.mis_grade': entry({
         current: locallyEdited,
         installedChecksum: componentChecksum(installed),
         definition: locallyEdited.definition,
@@ -148,7 +148,7 @@ describe('comparePackageToTarget', () => {
     });
     const incoming = column('mis_grade');
     const result = compare([incoming], {
-      'column:mis_asset.mis_grade': entry({
+      'column:misAsset.mis_grade': entry({
         current: installed,
         definition: installed.definition,
       }),
@@ -159,7 +159,7 @@ describe('comparePackageToTarget', () => {
       blocking: true,
     });
     expect(result.items[0].messages[0]).toBe(
-      "Cannot update field mis_asset.mis_grade. Source type is text, target type is number. Changing a field's type would be destructive.",
+      "Cannot update field misAsset.mis_grade. Source type is text, target type is number. Changing a field's type would be destructive.",
     );
   });
 
@@ -175,7 +175,7 @@ describe('comparePackageToTarget', () => {
       lookupTargetTableKey: 'departments',
     });
     const result = compare([incoming], {
-      'column:mis_asset.mis_owner': entry({
+      'column:misAsset.mis_owner': entry({
         current: installed,
         definition: installed.definition,
       }),
@@ -188,7 +188,7 @@ describe('comparePackageToTarget', () => {
 
   it('CONFLICT — the same logical name belongs to another package here', () => {
     const result = compare([column('mis_grade')], {
-      'column:mis_asset.mis_grade': entry({
+      'column:misAsset.mis_grade': entry({
         ownerPackageKey: 'abc_hr',
         ownerPackageName: 'ABC HR Extensions',
         ownedByImportingPackage: false,
@@ -203,7 +203,7 @@ describe('comparePackageToTarget', () => {
 
   it('CONFLICT — a package may extend DijiPeople Core but never replace it', () => {
     const result = compare([column('mis_grade')], {
-      'column:mis_asset.mis_grade': entry({
+      'column:misAsset.mis_grade': entry({
         ownerKind: 'core',
         ownerPackageKey: null,
         ownerPackageName: 'DijiPeople Core',
@@ -219,7 +219,7 @@ describe('comparePackageToTarget', () => {
         column(
           'mis_dept',
           {},
-          { dependsOn: ['table:mis_asset', 'table:departments'] },
+          { dependsOn: ['table:misAsset', 'table:departments'] },
         ),
       ],
       {},
@@ -288,11 +288,11 @@ describe('comparePackageToTarget', () => {
 
   it('reports components removed from the source but never deletes them', () => {
     const result = compare([column('mis_grade')], {}, [
-      'column:mis_asset.mis_grade',
-      'view:mis_asset.old',
+      'column:misAsset.mis_grade',
+      'view:misAsset.old',
     ]);
     expect(result.removedFromSource).toEqual([
-      { key: 'view:mis_asset.old', type: 'view', objectKey: 'mis_asset.old' },
+      { key: 'view:misAsset.old', type: 'view', objectKey: 'misAsset.old' },
     ]);
     expect(
       result.items.every((item) => item.apply !== ('delete' as string)),
