@@ -1034,6 +1034,68 @@ export const ERROR_CATALOG = {
     'error',
     'validation',
   ),
+  /*
+   * Customization package ALM — TASK-0033. Each carries its full issue list in
+   * `details.issues`, because "import failed" with no reason is the failure
+   * mode the whole import flow exists to prevent.
+   */
+  PACKAGE_READ_ONLY: entry(
+    400,
+    'This package cannot be changed here',
+    'DijiPeople Core and packages installed from another environment are read-only in this workspace.',
+    'warning',
+    'settings',
+    'Make the change in the environment the package is authored in, or detach the installed package first.',
+  ),
+  PACKAGE_VALIDATION_FAILED: entry(
+    400,
+    'Package validation found blocking errors',
+    'The package cannot be released until every error-level validation issue is resolved.',
+    'warning',
+    'validation',
+    'Open the package Validation tab and resolve each error.',
+  ),
+  PACKAGE_VERSION_CONFLICT: entry(
+    409,
+    'This package version already exists',
+    'A released package version is immutable. Releasing it again, or releasing a lower version, is refused.',
+    'warning',
+    'validation',
+    'Choose a higher version number.',
+  ),
+  PACKAGE_IMPORT_BLOCKED: entry(
+    409,
+    'The package cannot be imported',
+    'The import plan contains blocking conflicts, missing dependencies or incompatibilities. Nothing was changed.',
+    'warning',
+    'validation',
+    'Resolve each blocking item in the import plan, then analyze the package again.',
+  ),
+  PACKAGE_IMPORT_STALE: entry(
+    409,
+    'This workspace changed since the package was analyzed',
+    'The import plan no longer matches the workspace. Nothing was changed.',
+    'warning',
+    'validation',
+    'Analyze the package again and review the new plan.',
+    true,
+  ),
+  PACKAGE_IMPORT_FAILED: entry(
+    422,
+    'The package import failed and was rolled back',
+    'A component could not be applied. The whole import was rolled back, so the workspace is unchanged.',
+    'error',
+    'settings',
+    'Review the failed component in the deployment history.',
+  ),
+  PACKAGE_UNINSTALL_BLOCKED: entry(
+    409,
+    'The package cannot be uninstalled',
+    'Another package or customization depends on it, or it owns records that uninstalling would orphan.',
+    'warning',
+    'validation',
+    'Remove what depends on it first, or detach the package to keep its components.',
+  ),
   RELEASE_VERSION_CONFLICT: entry(
     409,
     'Release already published with different content',

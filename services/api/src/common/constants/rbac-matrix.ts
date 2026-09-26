@@ -115,6 +115,9 @@ export const MISC_PERMISSION_KEYS = {
   CUSTOMIZATION_RELATIONSHIPS_MANAGE: 'customization.relationships.manage',
   CUSTOMIZATION_ACTION_BARS_MANAGE: 'customization.action-bars.manage',
   CUSTOMIZATION_PACKAGES_MANAGE: 'customization.packages.manage',
+  CUSTOMIZATION_PACKAGES_RELEASE: 'customization.packages.release',
+  CUSTOMIZATION_PACKAGES_IMPORT: 'customization.packages.import',
+  CUSTOMIZATION_PACKAGES_UNINSTALL: 'customization.packages.uninstall',
   CUSTOMIZATION_PUBLISH_CENTER_READ: 'customization.publish-center.read',
   CUSTOMIZATION_IMPORT_PREVIEW: 'customization.import.preview',
   CUSTOMIZATION_EXPORT: 'customization.export',
@@ -461,6 +464,27 @@ export const MISC_PERMISSION_DEFINITIONS: MiscPermissionDefinition[] = [
     key: MISC_PERMISSION_KEYS.CUSTOMIZATION_PACKAGES_MANAGE,
     label: 'Manage customization packages',
     description: 'Manage metadata packages and package components.',
+    category: 'Customization',
+  },
+  {
+    key: MISC_PERMISSION_KEYS.CUSTOMIZATION_PACKAGES_RELEASE,
+    label: 'Release customization packages',
+    description:
+      'Release immutable versions of customization packages and export them.',
+    category: 'Customization',
+  },
+  {
+    key: MISC_PERMISSION_KEYS.CUSTOMIZATION_PACKAGES_IMPORT,
+    label: 'Import customization packages',
+    description:
+      'Apply customization packages exported from another environment to this workspace.',
+    category: 'Customization',
+  },
+  {
+    key: MISC_PERMISSION_KEYS.CUSTOMIZATION_PACKAGES_UNINSTALL,
+    label: 'Uninstall customization packages',
+    description:
+      'Uninstall or detach customization packages installed from another environment.',
     category: 'Customization',
   },
   {
@@ -1061,6 +1085,9 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
     MISC_PERMISSION_KEYS.CUSTOMIZATION_RELATIONSHIPS_MANAGE,
     MISC_PERMISSION_KEYS.CUSTOMIZATION_ACTION_BARS_MANAGE,
     MISC_PERMISSION_KEYS.CUSTOMIZATION_PACKAGES_MANAGE,
+    MISC_PERMISSION_KEYS.CUSTOMIZATION_PACKAGES_RELEASE,
+    MISC_PERMISSION_KEYS.CUSTOMIZATION_PACKAGES_IMPORT,
+    MISC_PERMISSION_KEYS.CUSTOMIZATION_PACKAGES_UNINSTALL,
     MISC_PERMISSION_KEYS.CUSTOMIZATION_PUBLISH_CENTER_READ,
     MISC_PERMISSION_KEYS.CUSTOMIZATION_IMPORT_PREVIEW,
     MISC_PERMISSION_KEYS.CUSTOMIZATION_EXPORT,

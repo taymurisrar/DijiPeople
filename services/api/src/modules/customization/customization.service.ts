@@ -16,6 +16,7 @@ import {
   CustomizationFieldDataType,
   CustomizationForm,
   CustomizationFormType,
+  CustomizationPublisher,
   CustomizationSolution,
   CustomizationSolutionComponent,
   CustomizationSolutionComponentType,
@@ -53,10 +54,16 @@ import {
 import { validatePackageComponentDependencies } from './dependency-validation';
 import { analyzePackageExport } from './package-export-readiness';
 import { toDisplayString } from '../../common/utils/display-string';
+import { AppError } from '../../common/errors/app-error';
 import {
   buildMetadataInvalidationKeys,
   resolveEffectivePackageComponents,
 } from './package-layer-runtime';
+import {
+  CUSTOMIZATION_METADATA_SCHEMA_VERSION,
+  RESERVED_PUBLISHER_PREFIXES,
+} from './package-artifact';
+import { packageKind } from './package-kind';
 
 /*
  * The legacy holding package. New drafts no longer land here (BUG-3493); it is
@@ -494,7 +501,10 @@ export class CustomizationService {
     }
     const packages = await this.prisma.customizationSolution.findMany({
       where: { tenantId: currentUser.tenantId },
-      include: { components: { select: { lifecycleState: true } } },
+      include: {
+        components: { select: { lifecycleState: true } },
+        publisher: true,
+      },
       orderBy: [{ isDefault: 'desc' }, { displayName: 'asc' }],
     });
     return packages.map((record) =>
@@ -1145,10 +1155,13 @@ export class CustomizationService {
     };
   }
 
-  async getEffectiveMetadata(currentUser: AuthenticatedUser) {
+  async getEffectiveMetadata(
+    currentUser: AuthenticatedUser,
+    db: Prisma.TransactionClient | PrismaService = this.prisma,
+  ) {
     await this.syncDefaultSolution(currentUser);
     const publishedComponents =
-      await this.prisma.customizationSolutionComponent.findMany({
+      await db.customizationSolutionComponent.findMany({
         where: {
           tenantId: currentUser.tenantId,
           lifecycleState: 'published',
@@ -1162,7 +1175,7 @@ export class CustomizationService {
     const components = resolveEffectivePackageComponents(publishedComponents);
 
     const [tables, columns, forms, views] = await Promise.all([
-      this.prisma.customizationTable.findMany({
+      db.customizationTable.findMany({
         where: {
           tenantId: currentUser.tenantId,
           id: {
@@ -1172,7 +1185,7 @@ export class CustomizationService {
           },
         },
       }),
-      this.prisma.customizationColumn.findMany({
+      db.customizationColumn.findMany({
         where: {
           tenantId: currentUser.tenantId,
           id: {
@@ -1182,7 +1195,7 @@ export class CustomizationService {
           },
         },
       }),
-      this.prisma.customizationForm.findMany({
+      db.customizationForm.findMany({
         where: {
           tenantId: currentUser.tenantId,
           id: {
@@ -1192,7 +1205,7 @@ export class CustomizationService {
           },
         },
       }),
-      this.prisma.customizationView.findMany({
+      db.customizationView.findMany({
         where: {
           tenantId: currentUser.tenantId,
           id: {
@@ -1224,6 +1237,43 @@ export class CustomizationService {
       forms,
       views,
     };
+  }
+
+  /**
+   * Writes a new publish snapshot of the tenant's effective metadata.
+   *
+   * TASK-0033 — package import and uninstall change published components
+   * inside their own transaction, and the snapshot the runtime reads must
+   * move in the same transaction: an import that rolled back must not leave a
+   * snapshot describing components that no longer exist.
+   */
+  async recordPublishSnapshot(
+    currentUser: AuthenticatedUser,
+    componentIds: readonly string[],
+    db: Prisma.TransactionClient,
+  ) {
+    const effectiveMetadata = await this.getEffectiveMetadata(currentUser, db);
+    const latestSnapshot = await db.customizationPublishSnapshot.findFirst({
+      where: { tenantId: currentUser.tenantId },
+      orderBy: { version: 'desc' },
+      select: { version: true },
+    });
+    const snapshotVersion = (latestSnapshot?.version ?? 0) + 1;
+    await db.customizationPublishSnapshot.create({
+      data: {
+        tenantId: currentUser.tenantId,
+        version: snapshotVersion,
+        status: 'published',
+        publishedAt: new Date(),
+        publishedByUserId: currentUser.userId,
+        snapshotJson: toJsonValue({
+          ...effectiveMetadata,
+          publishedComponentIds: [...componentIds],
+          effectiveMetadata,
+        }),
+      },
+    });
+    return snapshotVersion;
   }
 
   async getPackage(currentUser: AuthenticatedUser, packageId: string) {
@@ -1606,6 +1656,31 @@ export class CustomizationService {
      * no indication. The DTO has already refused a key of the wrong shape, and
      * the conflict check above has refused a key already in use.
      */
+    /*
+     * TASK-0033 — the publisher is stored, not re-derived on every read. The
+     * key's prefix identifies it; a prefix already registered here keeps its
+     * publisher, and a prefix DijiPeople reserves is refused.
+     */
+    const prefix = extractPackagePrefix(dto.packageKey).replace(/_$/, '');
+    if (RESERVED_PUBLISHER_PREFIXES.includes(prefix)) {
+      throw new BadRequestException(
+        `Prefix ${prefix} is reserved for DijiPeople. Choose a key with your own publisher prefix.`,
+      );
+    }
+    const publisher =
+      (await this.prisma.customizationPublisher.findFirst({
+        where: { tenantId: currentUser.tenantId, prefix },
+      })) ??
+      (await this.prisma.customizationPublisher.create({
+        data: {
+          tenantId: currentUser.tenantId,
+          publisherKey: prefix,
+          displayName: publisherName,
+          prefix,
+          createdByUserId: currentUser.userId,
+          updatedByUserId: currentUser.userId,
+        },
+      }));
     const record = await this.prisma.customizationSolution.create({
       data: {
         tenantId: currentUser.tenantId,
@@ -1617,16 +1692,17 @@ export class CustomizationService {
         isSystem: false,
         isManaged: false,
         isActive: true,
+        version: dto.version,
+        publisherId: publisher.id,
         createdByUserId: currentUser.userId,
         updatedByUserId: currentUser.userId,
       },
+      include: { publisher: true },
     });
     return this.toPackageResponse(
       currentUser,
       record,
       this.summarizePackageComponents([]),
-      dto.version,
-      publisherName,
     );
   }
 
@@ -1637,10 +1713,16 @@ export class CustomizationService {
   ) {
     const record = await this.findPackageOrThrow(currentUser, packageId);
     if (record.isDefault || record.isSystem) {
-      throw new BadRequestException('Default Package is read-only.');
+      throw new BadRequestException('DijiPeople Core is read-only.');
+    }
+    if (record.isManaged || record.origin === 'IMPORTED') {
+      throw new AppError('PACKAGE_READ_ONLY', {
+        message: `${record.displayName} was installed from another environment and is read-only here.`,
+      });
     }
     const updated = await this.prisma.customizationSolution.update({
       where: { id: record.id },
+      include: { publisher: true },
       data: {
         ...(dto.displayName !== undefined
           ? { displayName: dto.displayName.trim() }
@@ -2342,6 +2424,9 @@ export class CustomizationService {
         },
       },
     });
+    // TASK-0033 — what an installed package created is read-only here.
+    if (existing)
+      await this.assertNotInstalledComponent(currentUser, existing.id);
     if (!definition && !existing) {
       throw new NotFoundException('Customization table was not found.');
     }
@@ -2422,6 +2507,7 @@ export class CustomizationService {
       currentUser.tenantId,
       tableKey,
     );
+    await this.assertNotInstalledComponent(currentUser, table.id);
     const dependencies = await this.getTableDependencySummary(
       currentUser.tenantId,
       table,
@@ -2605,6 +2691,9 @@ export class CustomizationService {
         },
       },
     });
+    // TASK-0033 — what an installed package created is read-only here.
+    if (existing)
+      await this.assertNotInstalledComponent(currentUser, existing.id);
 
     if (!systemColumn && !existing) {
       throw new NotFoundException('Customization column was not found.');
@@ -2807,6 +2896,9 @@ export class CustomizationService {
         },
       },
     });
+    // TASK-0033 — what an installed package created is read-only here.
+    if (existing)
+      await this.assertNotInstalledComponent(currentUser, existing.id);
     if (!existing) {
       throw new NotFoundException('Customization column was not found.');
     }
@@ -2948,6 +3040,9 @@ export class CustomizationService {
         },
       },
     });
+    // TASK-0033 — what an installed package created is read-only here.
+    if (existing)
+      await this.assertNotInstalledComponent(currentUser, existing.id);
     if (!existing) {
       const { component: draftLayer } =
         await this.requireExistingCustomizationLayer(
@@ -3058,6 +3153,9 @@ export class CustomizationService {
         },
       },
     });
+    // TASK-0033 — what an installed package created is read-only here.
+    if (existing)
+      await this.assertNotInstalledComponent(currentUser, existing.id);
     if (!existing) {
       throw new NotFoundException('Customization form was not found.');
     }
@@ -3239,6 +3337,9 @@ export class CustomizationService {
         },
       },
     });
+    // TASK-0033 — what an installed package created is read-only here.
+    if (existing)
+      await this.assertNotInstalledComponent(currentUser, existing.id);
     if (!existing) {
       const { component: draftLayer } =
         await this.requireExistingCustomizationLayer(
@@ -3371,6 +3472,9 @@ export class CustomizationService {
         },
       },
     });
+    // TASK-0033 — what an installed package created is read-only here.
+    if (existing)
+      await this.assertNotInstalledComponent(currentUser, existing.id);
     if (!existing) {
       throw new NotFoundException('Customization view was not found.');
     }
@@ -3669,6 +3773,17 @@ export class CustomizationService {
    * customer's own views then layer on top through their custom package.
    */
   async publishTenantDefaults(tenantId: string, actorUserId: string | null) {
+    /*
+     * TASK-0033 — every workspace starts with its Default Customizations
+     * package, so the first customization has a visible home. Idempotent, and
+     * inside the provisioning step's retry.
+     */
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { name: true },
+    });
+    await this.ensureTenantDefaultPackage(tenantId, tenant?.name, actorUserId);
+
     const existing = await this.prisma.customizationPublishSnapshot.findFirst({
       where: { tenantId, status: 'published' },
       select: { id: true },
@@ -4093,9 +4208,13 @@ export class CustomizationService {
 
   private toPackageResponse(
     currentUser: AuthenticatedUser,
-    record: CustomizationSolution,
+    record: CustomizationSolution & {
+      publisher?: CustomizationPublisher | null;
+    },
     componentSummary: PackageComponentSummary,
-    version = '1.0.0',
+    version = record.isDefault
+      ? CUSTOMIZATION_METADATA_SCHEMA_VERSION
+      : record.version,
     publisherName?: string,
   ) {
     const publisher = this.getPackagePublisher(
@@ -4108,6 +4227,14 @@ export class CustomizationService {
       : record.isManaged
         ? 'managed'
         : 'custom';
+    /*
+     * TASK-0033 — the lifecycle classification the Packages screen shows:
+     * SYSTEM (DijiPeople Core), EDITABLE (authored here), INSTALLED (imported
+     * from another environment, read-only). `type` above is kept for existing
+     * callers.
+     */
+    const kind = packageKind(record);
+    const isLegacyHolding = record.solutionKey === UNASSIGNED_DRAFT_PACKAGE_KEY;
     const state = this.packageState(record, componentSummary);
 
     return {
@@ -4121,12 +4248,18 @@ export class CustomizationService {
       prefix: publisher.prefix,
       version,
       type,
+      kind,
+      origin: record.origin,
+      installedVersion: record.installedVersion,
+      isTenantDefault: record.isTenantDefault,
       state,
       isManaged: record.isManaged,
       isDefault: record.isDefault,
-      isReadOnly: record.isDefault || record.isSystem,
-      canEdit: !record.isDefault && !record.isSystem,
-      canPublish: !record.isDefault && !record.isManaged,
+      isReadOnly: kind !== 'editable',
+      canEdit: kind === 'editable',
+      canPublish: kind === 'editable',
+      canRelease: kind === 'editable' && !isLegacyHolding,
+      canUninstall: kind === 'installed',
       canDelete:
         !record.isDefault &&
         !record.isSystem &&
@@ -4163,6 +4296,17 @@ export class CustomizationService {
       };
     }
 
+    const stored = (record as { publisher?: CustomizationPublisher | null })
+      .publisher;
+    if (stored) {
+      return {
+        publisherId: stored.id,
+        displayName: stored.displayName,
+        prefix: `${stored.prefix}_`,
+        isDefault: false,
+        isPrefixLocked: true,
+      };
+    }
     const displayName =
       publisherName?.trim() || currentUser.tenantName?.trim() || 'Custom';
     const prefix =
@@ -4285,6 +4429,32 @@ export class CustomizationService {
     throw new ConflictException('Unable to generate a unique package key.');
   }
 
+  /**
+   * TASK-0033 — a component an installed package created belongs to the
+   * environment that authored it. Editing it here would be overwritten on the
+   * next upgrade and would make this workspace diverge silently, so the edit is
+   * refused with the way out: change it at the source, or detach the package.
+   */
+  private async assertNotInstalledComponent(
+    currentUser: AuthenticatedUser,
+    objectId: string,
+  ) {
+    const owner = await this.prisma.customizationSolutionComponent.findFirst({
+      where: {
+        tenantId: currentUser.tenantId,
+        objectId,
+        layerAction: 'create',
+        solution: { isManaged: true, isDefault: false },
+      },
+      include: { solution: { select: { displayName: true } } },
+    });
+    if (owner) {
+      throw new AppError('PACKAGE_READ_ONLY', {
+        message: `${owner.objectKey} was installed by ${owner.solution.displayName} and is read-only here. Change it in the environment the package is authored in, or detach the package.`,
+      });
+    }
+  }
+
   private async findPackageOrThrow(
     currentUser: AuthenticatedUser,
     packageId: string,
@@ -4294,6 +4464,7 @@ export class CustomizationService {
         tenantId: currentUser.tenantId,
         OR: [{ id: packageId }, { solutionKey: packageId }],
       },
+      include: { publisher: true },
     });
     if (!record) {
       throw new NotFoundException('Customization package was not found.');
@@ -4364,43 +4535,87 @@ export class CustomizationService {
    * tenant name for the holding package, so the logical names generated for
    * drafts before and after this change share one prefix.
    */
-  private async getOrCreateTenantCustomPackage(currentUser: AuthenticatedUser) {
-    const existing = await this.prisma.customizationSolution.findFirst({
-      where: {
-        tenantId: currentUser.tenantId,
-        isDefault: false,
-        isSystem: false,
-        isManaged: false,
-        solutionKey: { endsWith: TENANT_CUSTOM_PACKAGE_KEY_SUFFIX },
-      },
-      orderBy: { createdAt: 'asc' },
-    });
-    if (existing) return existing;
+  private getOrCreateTenantCustomPackage(currentUser: AuthenticatedUser) {
+    return this.ensureTenantDefaultPackage(
+      currentUser.tenantId,
+      currentUser.tenantName,
+      currentUser.userId,
+    );
+  }
 
-    const tenantName = currentUser.tenantName?.trim() || 'Tenant';
-    const prefix = publisherPrefix(tenantName).replace(/_$/, '');
+  /**
+   * "Default Customizations" — where a customization lands when nobody chose a
+   * package. TASK-0033 made it a flagged, first-class package created at
+   * provisioning; before that it was recognised only by its key suffix and
+   * created on first use (BUG-3493). Both lookups are kept: the flag first, the
+   * suffix for a tenant the backfill has not reached.
+   */
+  async ensureTenantDefaultPackage(
+    tenantId: string,
+    tenantNameInput: string | null | undefined,
+    actorUserId: string | null,
+  ) {
+    const existing =
+      (await this.prisma.customizationSolution.findFirst({
+        where: { tenantId, isTenantDefault: true },
+        orderBy: { createdAt: 'asc' },
+      })) ??
+      (await this.prisma.customizationSolution.findFirst({
+        where: {
+          tenantId,
+          isDefault: false,
+          isSystem: false,
+          isManaged: false,
+          solutionKey: { endsWith: TENANT_CUSTOM_PACKAGE_KEY_SUFFIX },
+        },
+        orderBy: { createdAt: 'asc' },
+      }));
+    if (existing) {
+      if (existing.isTenantDefault) return existing;
+      return this.prisma.customizationSolution.update({
+        where: { id: existing.id },
+        data: { isTenantDefault: true },
+      });
+    }
+
+    const tenantName = tenantNameInput?.trim() || 'Tenant';
+    let prefix = publisherPrefix(tenantName).replace(/_$/, '');
+    if (RESERVED_PUBLISHER_PREFIXES.includes(prefix)) prefix = `${prefix}x`;
     const solutionKey = `${prefix}${TENANT_CUSTOM_PACKAGE_KEY_SUFFIX}`;
+    const publisher =
+      (await this.prisma.customizationPublisher.findFirst({
+        where: { tenantId, prefix },
+      })) ??
+      (await this.prisma.customizationPublisher.create({
+        data: {
+          tenantId,
+          publisherKey: prefix,
+          displayName: tenantName,
+          prefix,
+          createdByUserId: actorUserId,
+          updatedByUserId: actorUserId,
+        },
+      }));
 
     return this.prisma.customizationSolution.upsert({
-      where: {
-        tenantId_solutionKey: {
-          tenantId: currentUser.tenantId,
-          solutionKey,
-        },
-      },
+      where: { tenantId_solutionKey: { tenantId, solutionKey } },
       create: {
-        tenantId: currentUser.tenantId,
+        tenantId,
         solutionKey,
-        displayName: `${tenantName} Customizations`,
+        displayName: 'Default Customizations',
+        description:
+          'Customizations made without choosing a package land here. Move them into a named package to release them separately.',
         scope: 'tenant',
         isDefault: false,
         isSystem: false,
         isManaged: false,
         isActive: true,
-        createdByUserId: currentUser.userId,
-        updatedByUserId: currentUser.userId,
+        isTenantDefault: true,
+        publisherId: publisher.id,
+        createdByUserId: actorUserId,
+        updatedByUserId: actorUserId,
       },
-      update: {},
+      update: { isTenantDefault: true },
     });
   }
 
@@ -4904,9 +5119,9 @@ export class CustomizationService {
       create: {
         tenantId: currentUser.tenantId,
         solutionKey: 'default',
-        displayName: 'Default Solution',
+        displayName: 'DijiPeople Core',
         description:
-          'Built-in tenant solution containing all system and custom metadata components.',
+          'DijiPeople out-of-the-box modules, fields, forms, views and widgets. Platform-owned and read-only.',
         scope: 'tenant',
         isDefault: true,
         isSystem: true,
@@ -4916,7 +5131,7 @@ export class CustomizationService {
         updatedByUserId: currentUser.userId,
       },
       update: {
-        displayName: 'Default Solution',
+        displayName: 'DijiPeople Core',
         isDefault: true,
         isSystem: true,
         isActive: true,

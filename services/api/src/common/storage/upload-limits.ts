@@ -27,6 +27,11 @@ export const UPLOAD_LIMITS = {
   spreadsheet: 15 * MB,
   /** Candidate CVs and cover letters. */
   resume: 10 * MB,
+  /**
+   * Customization package artifacts (`.djpkg`, JSON). Matches
+   * PACKAGE_ARTIFACT_MAX_BYTES, which the parser enforces again on the bytes.
+   */
+  customizationPackage: 5 * MB,
   /** Desktop agent installers, published by platform staff only. */
   releaseArtifact: 512 * MB,
 } as const;
