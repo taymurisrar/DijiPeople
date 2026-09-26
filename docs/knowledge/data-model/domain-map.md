@@ -8,7 +8,7 @@ aliases: [Domain Map]
 
 Attribution is by counted Prisma call sites, not by name. A model with no call site anywhere is listed under **Unattributed** — that is a finding, not a gap in the tooling. See [[known-gaps]].
 
-**328 models · 307 enums · 262 tenant-scoped · 13 with an entity note**
+**334 models · 311 enums · 268 tenant-scoped · 13 with an entity note**
 
 Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 
@@ -283,7 +283,7 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `TenantFeature` | yes | `super-admin` | — |
 | `TenantRetention` | yes | `billing` | — |
 
-## Configuration — 33 models
+## Configuration — 39 models
 
 | Model | Tenant | Owning module | Note |
 |---|---|---|---|
@@ -292,7 +292,13 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `Currency` | yes | `lookups` | — |
 | `CustomDataRecord` | yes | `data` | — |
 | `CustomizationColumn` | yes | `customization` | — |
+| `CustomizationEnvironmentVariable` | yes | `customization` | — |
+| `CustomizationEnvironmentVariableValue` | yes | `customization` | — |
 | `CustomizationForm` | yes | `customization` | — |
+| `CustomizationPackageDependency` | yes | `customization` | — |
+| `CustomizationPackageOperation` | yes | `customization` | — |
+| `CustomizationPackageVersion` | yes | `customization` | — |
+| `CustomizationPublisher` | yes | `customization` | — |
 | `CustomizationPublishSnapshot` | yes | `customization` | — |
 | `CustomizationSolution` | yes | `customization` | — |
 | `CustomizationSolutionComponent` | yes | `customization` | — |

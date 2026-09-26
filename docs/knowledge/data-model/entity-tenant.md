@@ -119,7 +119,7 @@ exists to prevent.
 | Prisma accessor | `prisma.tenant` |
 | Owning module | `services/api/src/modules/super-admin` |
 | Domain | Commercial |
-| Also touched by | `tenant-control-plane`, `tenants`, `billing`, `tenant-settings`, `demo-data`, `auth` (reads), `tenant-domains` (reads), `platform-runtime` (reads), and 11 more |
+| Also touched by | `tenant-control-plane`, `tenants`, `billing`, `tenant-settings`, `demo-data`, `auth` (reads), `tenant-domains` (reads), `platform-runtime` (reads), and 12 more |
 
 ### Fields
 

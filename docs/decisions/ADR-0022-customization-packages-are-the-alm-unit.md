@@ -136,7 +136,7 @@ Two existing things looked reusable and are not:
 
 ## Migration / Compatibility Impact
 
-The migration `20260926120000_customization_package_alm` is additive. Its
+The migration `20260926180000_customization_package_alm` is additive. Its
 backfill is idempotent:
 - the Core package is renamed "DijiPeople Core";
 - the earliest `_tenantCustomizations` package is flagged as Default

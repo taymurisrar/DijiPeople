@@ -962,7 +962,7 @@ describeWithDatabase()('Customization package ALM (e2e, DB-backed)', () => {
         '..',
         'prisma',
         'migrations',
-        '20260926120000_customization_package_alm',
+        '20260926180000_customization_package_alm',
         'migration.sql',
       ),
       'utf8',
