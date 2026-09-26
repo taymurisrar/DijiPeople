@@ -3993,6 +3993,13 @@ const definitions: PlatformModuleDefinition[] = [
         roles: ALL_PLATFORM_ROLES,
       },
       {
+        key: "open",
+        label: "Open incidents",
+        description: "Incidents not resolved or set aside.",
+        kind: "team",
+        roles: ALL_PLATFORM_ROLES,
+      },
+      {
         key: "new",
         label: "New support intake",
         description: "Incidents not yet triaged.",

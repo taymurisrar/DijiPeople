@@ -177,7 +177,22 @@ widely-held permission for tenant **profile** fields (`name`, `displayName`,
 `legalName`); a changed `status`/`subStatus` through that same endpoint is
 refused with `400 TENANT_STATUS_REQUIRES_LIFECYCLE_ACTION`, naming the
 governed lifecycle action to use instead — the generic edit and the lifecycle
-transition are two different gates on purpose.
+transition are two different gates on purpose. The legacy
+`PATCH /super-admin/tenants/:tenantId/status`, which set any status with no
+reason, was retired (ITEM-0204); `POST /platform/tenants/:tenantId/status` is
+the one status path.
+
+Tier keys (ITEM-0204), which replaced the last platform role-literal checks:
+
+| Key | Held by | Decides |
+|---|---|---|
+| `platform.administer` | `platform.*` (Super Admin, Owner alias) and `PLATFORM_ADMIN` | `isPlatformAdminTier()`: destructive bulk deletes, lead attribution correction, the contract approval-step override, platform settings, the tenant control plane |
+| `leads.manage` | `leads.*` (`PLATFORM_ADMIN`, `PRESALES_MANAGER`) and `platform.*` | managing any lead, not only one's own |
+| `platform.monitoring.administer` | `platform.*` only | platform log files |
+
+`platform-admin-tier.spec.ts` pins each key's holders to the roles the literal
+lists named. Role lists that pick notification recipients or eligible
+assignees are not authorization and stay role-based.
 
 ### `@AuthenticationOnly()`
 

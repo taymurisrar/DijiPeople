@@ -132,12 +132,7 @@ export class PlatformMonitoringService {
          * miscount that filled the queue — just expressed as a number.
          */
         this.prisma.errorLog.count({
-          where: {
-            AND: [
-              where,
-              { supportStatus: { notIn: ['RESOLVED', NOT_AN_INCIDENT] } },
-            ],
-          },
+          where: { AND: [where, openIncidentWhere()] },
         }),
         this.prisma.errorLog.count({
           where: { AND: [where, { supportStatus: 'RESOLVED' }] },
@@ -464,9 +459,7 @@ export class PlatformMonitoringService {
   }
 
   private assertSuperAdmin(user: AuthenticatedUser) {
-    if (
-      !['SUPER_ADMIN', 'PLATFORM_OWNER'].includes(user.platform?.role ?? '')
-    ) {
+    if (!userHasPlatformPermission(user, 'platform.monitoring.administer')) {
       void this.auditService.log({
         tenantId: 'platform',
         actorUserId: user.platform?.id ?? user.userId ?? null,
@@ -816,8 +809,19 @@ export function investigatingIncidentWhere(): Prisma.ErrorLogWhereInput {
   return { supportStatus: { in: [...INVESTIGATING_SUPPORT_STATUSES] } };
 }
 
+/**
+ * ITEM-0206. Open work: every incident not resolved and not set aside as
+ * NOT_AN_INCIDENT. The overview's "waiting for triage" tile, the operations
+ * dashboard's "Errors needing attention" and the `open` view all read this, so
+ * the count a tile shows is the list its link opens.
+ */
+export function openIncidentWhere(): Prisma.ErrorLogWhereInput {
+  return { supportStatus: { notIn: ['RESOLVED', NOT_AN_INCIDENT] } };
+}
+
 export function incidentViewWhere(viewKey?: string): Prisma.ErrorLogWhereInput {
   if (viewKey === 'critical') return criticalIncidentWhere();
+  if (viewKey === 'open') return openIncidentWhere();
   /* supportStatus is non-nullable and defaults to NEW, so untriaged rows match. */
   if (viewKey === 'new') return { supportStatus: 'NEW' };
   if (viewKey === 'investigating') return investigatingIncidentWhere();

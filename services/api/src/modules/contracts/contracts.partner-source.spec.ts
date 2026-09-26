@@ -92,8 +92,9 @@ describe('partnerPlaceholderValues', () => {
 });
 
 describe('ContractsService — a linked partner feeds partner.*', () => {
-  function createHarness() {
+  function createHarness(partner: Record<string, unknown> | null = northstar) {
     const placeholderCreateMany = jest.fn().mockResolvedValue({ count: 0 });
+    const partyCreateMany = jest.fn().mockResolvedValue({});
     const tx = {
       contract: {
         create: jest.fn().mockResolvedValue({
@@ -104,12 +105,12 @@ describe('ContractsService — a linked partner feeds partner.*', () => {
         }),
       },
       contractVersion: { create: jest.fn().mockResolvedValue({}) },
-      contractParty: { createMany: jest.fn().mockResolvedValue({}) },
+      contractParty: { createMany: partyCreateMany },
       contractRelatedRecord: { createMany: jest.fn().mockResolvedValue({}) },
       contractPlaceholderValue: { createMany: placeholderCreateMany },
     };
     const prisma = {
-      partner: { findUnique: jest.fn().mockResolvedValue(northstar) },
+      partner: { findUnique: jest.fn().mockResolvedValue(partner) },
       contract: { findFirst: jest.fn().mockResolvedValue(null) },
       $transaction: jest.fn((callback: (client: typeof tx) => unknown) =>
         callback(tx),
@@ -132,7 +133,13 @@ describe('ContractsService — a linked partner feeds partner.*', () => {
           >
         )[0][0].data.map((row) => [row.key, row.value]),
       );
-    return { service, stored };
+    const partyTypes = () =>
+      (
+        partyCreateMany.mock.calls as unknown as Array<
+          [{ data: Array<{ partyType: string }> }]
+        >
+      )[0][0].data.map((row) => row.partyType);
+    return { service, stored, partyTypes };
   }
 
   const dto = {
@@ -155,6 +162,25 @@ describe('ContractsService — a linked partner feeds partner.*', () => {
       'partner.contact.email': 'noura@northstar.example',
       'platform.legalName': 'DijiPeople Technologies Ltd.',
     });
+  });
+
+  /*
+   * ITEM-0203. The partner type policy declared that an individual partner's
+   * agreement records an INDIVIDUAL party, but the default-party inference
+   * hard-coded PARTNER for every partner counterparty.
+   */
+  it('records an individual partner as an INDIVIDUAL party and a company as PARTNER', async () => {
+    const individual = createHarness();
+    await individual.service.create(platformAdmin, dto as never);
+    expect(individual.partyTypes()).toEqual(['PLATFORM', 'INDIVIDUAL']);
+
+    const company = createHarness({
+      ...northstar,
+      type: 'COMPANY',
+      companyName: 'Northstar Advisory',
+    });
+    await company.service.create(platformAdmin, dto as never);
+    expect(company.partyTypes()).toEqual(['PLATFORM', 'PARTNER']);
   });
 
   it('an explicitly supplied value still wins over the record', async () => {

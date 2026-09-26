@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { openIncidentWhere } from '../platform-monitoring/platform-monitoring.service';
 
 /**
  * The "Operations" dashboard view (TASK-0032 WP-07 / ITEM-0199).
@@ -111,8 +112,6 @@ export type OperationsDashboardSummary = {
 };
 
 /** Statuses a support agent has already closed out — everything else is unresolved. */
-const RESOLVED_SUPPORT_STATUSES = ['RESOLVED', 'NOT_AN_INCIDENT'];
-
 /** Contract lifecycle statuses that read as "still being drafted". */
 const AGREEMENT_DRAFT_STATUSES = [
   'DRAFT',
@@ -611,7 +610,7 @@ export class OperationsDashboardService {
       recentIncidents,
     ] = await Promise.all([
       this.prisma.errorLog.count({
-        where: { supportStatus: { notIn: RESOLVED_SUPPORT_STATUSES } },
+        where: openIncidentWhere(),
       }),
       this.prisma.errorLogOccurrence.count({
         where: { occurredAt: { gte: last24Hours } },
@@ -625,7 +624,7 @@ export class OperationsDashboardService {
         where: { result: 'FAILED', occurredAt: { gte: last24Hours } },
       }),
       this.prisma.errorLog.findMany({
-        where: { supportStatus: { notIn: RESOLVED_SUPPORT_STATUSES } },
+        where: openIncidentWhere(),
         orderBy: { lastSeenAt: 'desc' },
         take: 8,
         select: {

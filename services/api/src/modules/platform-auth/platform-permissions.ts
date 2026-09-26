@@ -17,6 +17,12 @@ export type PlatformPermission =
   | 'leads.create'
   | 'leads.read'
   | 'leads.update'
+  /*
+   * ITEM-0204. Managing any lead, not only one's own — the whole-domain grant
+   * `leads.*` holds it (PLATFORM_ADMIN, PRESALES_MANAGER), as does `platform.*`.
+   * A role granted only the individual lead verbs does not.
+   */
+  | 'leads.manage'
   | 'customers.create'
   | 'customers.read'
   | 'customers.update'
@@ -80,7 +86,21 @@ export type PlatformPermission =
   | 'platform-users.manage'
   | 'platform.tenants.administer'
   | 'platform.billing.administer'
-  | 'platform.legal.administer';
+  | 'platform.legal.administer'
+  /*
+   * ITEM-0204. The platform administrator tier — SUPER_ADMIN (and the
+   * PLATFORM_OWNER alias) through `platform.*`, and PLATFORM_ADMIN by explicit
+   * grant. Required for destructive or override actions regardless of which
+   * domain permission a route already names. Replaces the role set that
+   * `isPlatformAdminTier` and six hand-written role lists used to compare.
+   */
+  | 'platform.administer'
+  /*
+   * ITEM-0204. Downloading and reading the platform's own log files — SUPER_ADMIN
+   * only (`platform.*`). Previously a literal {SUPER_ADMIN, PLATFORM_OWNER}
+   * check in `PlatformMonitoringService`.
+   */
+  | 'platform.monitoring.administer';
 
 type PlatformAccess = { roleKeys: string[]; permissionKeys: string[] };
 
@@ -123,6 +143,7 @@ const ROLE_PERMISSIONS: Record<PlatformUserRole, string[]> = {
   SUPER_ADMIN: ['platform.*'],
   PLATFORM_OWNER: ['platform.*'],
   PLATFORM_ADMIN: [
+    'platform.administer',
     'dashboard.read',
     'leads.*',
     'customers.*',
@@ -365,8 +386,13 @@ export function userHasPlatformPermission(
 }
 
 /**
- * The three roles a destructive administrative action requires, regardless of
- * which permission key the route or the record itself grants.
+ * The platform administrator tier a destructive or override action requires,
+ * regardless of which permission key the route or the record itself grants.
+ *
+ * ITEM-0204: this is now the `platform.administer` permission rather than a role
+ * set, so the tier is granted and audited like every other platform permission
+ * (ADR-0018). The holders are unchanged — SUPER_ADMIN, the PLATFORM_OWNER alias
+ * and PLATFORM_ADMIN.
  *
  * Extracted from `PlatformRuntimeService.assertAdmin` (BUG-3564 REST
  * bulk-delete-tier follow-up to WP-02). The generic runtime delete path
@@ -381,16 +407,8 @@ export function userHasPlatformPermission(
  * predicate now backs both call sites, so the two paths cannot decide the
  * same action differently again.
  */
-export const PLATFORM_ADMIN_TIER_ROLES: ReadonlySet<PlatformUserRole> = new Set(
-  [
-    PlatformUserRole.SUPER_ADMIN,
-    PlatformUserRole.PLATFORM_OWNER,
-    PlatformUserRole.PLATFORM_ADMIN,
-  ],
-);
-
 export function isPlatformAdminTier(user: AuthenticatedUser): boolean {
-  return PLATFORM_ADMIN_TIER_ROLES.has(user.platform?.role as PlatformUserRole);
+  return userHasPlatformPermission(user, 'platform.administer');
 }
 
 /**

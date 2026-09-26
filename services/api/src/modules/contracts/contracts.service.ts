@@ -45,13 +45,17 @@ import {
 } from './governing-agreement';
 import { StorageService } from '../../common/storage/storage.service';
 import type { StorageScope } from '../../common/storage/object-storage.types';
-import { userHasPlatformPermission } from '../platform-auth/platform-permissions';
+import {
+  isPlatformAdminTier,
+  userHasPlatformPermission,
+} from '../platform-auth/platform-permissions';
 import {
   emailPage,
   PlatformCommunicationsService,
 } from '../platform-communications/platform-communications.service';
 import { PlatformEventsService } from '../platform-events/platform-events.service';
 import { AuditService } from '../audit/audit.service';
+import { contractPartyTypeForPartner } from '../partners/partner-type-policy';
 import { toDisplayString } from '../../common/utils/display-string';
 import {
   ALWAYS_AVAILABLE_SOURCE_ENTITIES,
@@ -1313,13 +1317,14 @@ export class ContractsService {
         'The selected template has no published version.',
       );
     }
-    const [reportingCurrency, companyProfile, agreementTerms, partnerValues] =
+    const [reportingCurrency, companyProfile, agreementTerms, linkedPartner] =
       await Promise.all([
         this.reportingCurrency(),
         this.companyProfile(),
         this.agreementTermValues(),
-        this.linkedPartnerValues(dto.partnerId, dto.commissionPercentage),
+        this.linkedPartner(dto.partnerId, dto.commissionPercentage),
       ]);
+    const partnerValues = linkedPartner.values;
     const contractNumber = reference('CON');
     const values = compactStringRecord({
       ...agreementTerms,
@@ -1464,7 +1469,7 @@ export class ContractsService {
             },
             {
               partyType: dto.partnerId
-                ? 'PARTNER'
+                ? linkedPartner.contractPartyType
                 : dto.customerAccountId
                   ? 'CUSTOMER'
                   : dto.tenantId
@@ -5380,7 +5385,24 @@ export class ContractsService {
     partnerId: string | null | undefined,
     contractCommissionPercentage?: { toString(): string } | number | null,
   ): Promise<Record<string, string>> {
-    if (!partnerId) return {};
+    return (await this.linkedPartner(partnerId, contractCommissionPercentage))
+      .values;
+  }
+
+  /**
+   * The linked partner's placeholder values and the party type its agreement
+   * records (ITEM-0203: an individual partner is an INDIVIDUAL party), from
+   * one read.
+   */
+  private async linkedPartner(
+    partnerId: string | null | undefined,
+    contractCommissionPercentage?: { toString(): string } | number | null,
+  ) {
+    if (!partnerId)
+      return {
+        values: {} as Record<string, string>,
+        contractPartyType: contractPartyTypeForPartner(null),
+      };
     const partner = await this.prisma.partner.findUnique({
       where: { id: partnerId },
       select: {
@@ -5395,9 +5417,12 @@ export class ContractsService {
         defaultCommissionRate: true,
       },
     });
-    return partner
-      ? partnerPlaceholderValues(partner, contractCommissionPercentage)
-      : {};
+    return {
+      values: partner
+        ? partnerPlaceholderValues(partner, contractCommissionPercentage)
+        : ({} as Record<string, string>),
+      contractPartyType: contractPartyTypeForPartner(partner?.type),
+    };
   }
 
   /**
@@ -5734,15 +5759,8 @@ export class ContractsService {
   }
 
   private assertApprovalStep(user: AuthenticatedUser, approverRole: string) {
-    const overrideRoles = new Set([
-      'SUPER_ADMIN',
-      'PLATFORM_OWNER',
-      'PLATFORM_ADMIN',
-    ]);
-    if (
-      overrideRoles.has(user.platform!.role) ||
-      user.platform!.role === approverRole
-    )
+    // The administrator tier may act on any approval step (ITEM-0204).
+    if (isPlatformAdminTier(user) || user.platform!.role === approverRole)
       return;
     throw new ForbiddenException(
       `The pending step requires the ${approverRole.toLowerCase().replaceAll('_', ' ')} role.`,

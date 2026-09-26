@@ -123,8 +123,18 @@ function buildQueryString(searchParams: Record<string, string | string[] | undef
   if (viewId === "critical" && !params.has("severity")) {
     params.set("viewKey", "critical");
   }
-  if (["new", "investigating", "resolved"].includes(viewId ?? "") && !params.has("status")) {
-    params.set("status", String(viewId).toUpperCase());
+  /*
+   * ITEM-0206. Every named view passes its key, so `incidentViewWhere` alone
+   * decides what the view holds. Translating "investigating" to
+   * `status=INVESTIGATING` missed FIX_IN_PROGRESS rows that the overview tile
+   * linking here counts — the BUG-2495 shape again.
+   */
+  if (
+    ["new", "investigating", "resolved", "open"].includes(viewId ?? "") &&
+    !params.has("status") &&
+    !params.has("viewKey")
+  ) {
+    params.set("viewKey", String(viewId));
   }
   if (!params.has("pageSize")) params.set("pageSize", "25");
   return params.toString();

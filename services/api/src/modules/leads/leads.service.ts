@@ -16,6 +16,10 @@ import {
 } from '@prisma/client';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { AuditService } from '../audit/audit.service';
+import {
+  isPlatformAdminTier,
+  userHasPlatformPermission,
+} from '../platform-auth/platform-permissions';
 import { PartnerReferralResolverService } from '../partner-experience/partner-referral-resolver.service';
 import {
   BulkAssignLeadsDto,
@@ -787,13 +791,8 @@ export class LeadsService {
     leadId: string,
     dto: CorrectLeadAttributionDto,
   ) {
-    if (
-      !new Set<PlatformUserRole>([
-        PlatformUserRole.SUPER_ADMIN,
-        PlatformUserRole.PLATFORM_OWNER,
-        PlatformUserRole.PLATFORM_ADMIN,
-      ]).has(currentUser.platform?.role as PlatformUserRole)
-    ) {
+    // Kept at the administrator tier: attribution moves commission ownership.
+    if (!isPlatformAdminTier(currentUser)) {
       throw new ForbiddenException(
         'Only an authorized Platform Admin may correct lead attribution.',
       );
@@ -1022,13 +1021,12 @@ export class LeadsService {
     }
   }
 
+  /**
+   * May this user manage any lead, not only their own? The holders of
+   * `leads.manage` (ITEM-0204) — the same four roles the literal list named.
+   */
   private isPlatformSuperAdmin(currentUser: AuthenticatedUser) {
-    return new Set<PlatformUserRole>([
-      PlatformUserRole.SUPER_ADMIN,
-      PlatformUserRole.PLATFORM_OWNER,
-      PlatformUserRole.PLATFORM_ADMIN,
-      PlatformUserRole.PRESALES_MANAGER,
-    ]).has(currentUser.platform?.role as PlatformUserRole);
+    return userHasPlatformPermission(currentUser, 'leads.manage');
   }
 
   private async resolveLeadAssignee(assignedToUserId?: string | null) {

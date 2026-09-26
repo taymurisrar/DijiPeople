@@ -49,7 +49,6 @@ import { UpdatePrimaryOwnerDto } from './dto/update-primary-owner.dto';
 import { UpdateTenantCustomerAccountDto } from './dto/update-tenant-customer-account.dto';
 import { UpdateTenantFeaturesDto } from './dto/update-tenant-features.dto';
 import { UpdateTenantSubscriptionDto } from './dto/update-tenant-subscription.dto';
-import { UpdateTenantStatusDto } from './dto/update-tenant-status.dto';
 import { SetAgentAssignmentDto } from './dto/set-agent-assignment.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { UpdateTenantSlugDto } from '../tenants/dto/update-tenant-slug.dto';
@@ -332,15 +331,12 @@ export class SuperAdminController {
     );
   }
 
-  @Patch('tenants/:tenantId/status')
-  @RequirePlatformPermission('platform.tenants.administer')
-  updateTenantStatus(
-    @CurrentUser() user: AuthenticatedUser,
-    @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
-    @Body() dto: UpdateTenantStatusDto,
-  ) {
-    return this.superAdminService.updateTenantStatus(user, tenantId, dto);
-  }
+  /*
+   * ITEM-0204. `PATCH tenants/:tenantId/status` was retired: it set any status
+   * with no reason and no lifecycle rules, beside the governed
+   * `POST /platform/tenants/:tenantId/status` (tenant-control-plane), and had
+   * no caller. Status changes go through that one path.
+   */
 
   // Desktop-agent rollout (TASK-0027): which tenants receive a release, and on
   // which channel. Platform-guarded like the rest of this controller.
