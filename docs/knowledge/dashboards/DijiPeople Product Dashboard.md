@@ -37,6 +37,7 @@ See [[dijipeople-platform-overview|DijiPeople Platform Overview]] for the full p
 - [[contracts-and-agreements|Contracts and Agreements]]
 - [[customer-onboarding|Customer Onboarding]]
 - [[customers|Customers]]
+- [[customization|Customization]]
 - [[employees|Employees]]
 - [[leads|Leads]]
 - [[leave-attendance-approvals|Leave, Attendance and Approvals]]

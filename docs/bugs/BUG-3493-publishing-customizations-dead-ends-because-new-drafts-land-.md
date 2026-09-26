@@ -262,7 +262,7 @@ merged tree). Scenario QA-SETTINGS-023:
 
 ## Related
 
-- Modules — [[tenant-application]]
+- Modules — [[tenant-application]], [[customization]]
 - Implementation — [[EXECPLAN-0045-customization-end-to-end-for-permission-holders]]
 - Regression — REG-483 (see the regression register)
 

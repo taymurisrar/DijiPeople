@@ -58,6 +58,7 @@ The first integration that consumes a package-declared connection.
 
 ## Related
 
+- Modules — [[customization]]
 - Implementation — [[EXECPLAN-0052-package-alm]]
 
 <!-- GRAPH:END -->

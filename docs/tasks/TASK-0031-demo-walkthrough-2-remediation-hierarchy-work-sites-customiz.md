@@ -94,6 +94,6 @@ All asked and answered on 2026-09-13; each is `USER_CONFIRMED`.
 ## Related
 
 - Records — [[BUG-3491]], [[BUG-3492]], [[BUG-3493]], [[BUG-3494]], [[BUG-3495]], [[BUG-3496]], [[BUG-3497]], [[BUG-3498]], [[BUG-3499]], [[BUG-3500]], [[BUG-3501]], [[BUG-3506]], [[BUG-3523]], [[ITEM-0179]], [[ITEM-0180]], [[ITEM-0181]], [[ITEM-0182]], [[ITEM-0183]], [[ITEM-0184]], [[ITEM-0185]], [[ITEM-0194]], [[ITEM-0196]]
-- Modules — [[notifications]], [[employees]], [[attendance]]
+- Modules — [[customization]], [[notifications]], [[employees]], [[attendance]]
 
 <!-- GRAPH:END -->

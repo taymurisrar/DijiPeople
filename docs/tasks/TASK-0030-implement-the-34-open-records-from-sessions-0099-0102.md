@@ -154,6 +154,6 @@ from the task branch; the production change belongs to SESSION-0104's release.
 ## Related
 
 - Records — [[BUG-3330]], [[BUG-3331]], [[BUG-3332]], [[BUG-3333]], [[BUG-3334]], [[BUG-3335]], [[BUG-3336]], [[BUG-3345]], [[BUG-3350]], [[BUG-3355]], [[BUG-3356]], [[BUG-3357]], [[BUG-3358]], [[BUG-3359]], [[BUG-3360]], [[BUG-3373]], [[BUG-3374]], [[BUG-3375]], [[BUG-3376]], [[BUG-3377]], [[BUG-3378]], [[BUG-3379]], [[BUG-3412]], [[ITEM-0159]], [[ITEM-0162]], [[ITEM-0163]], [[ITEM-0164]], [[ITEM-0165]], [[ITEM-0166]], [[ITEM-0167]], [[ITEM-0168]], [[ITEM-0169]], [[ITEM-0170]], [[ITEM-0171]]
-- Modules — [[auth]], [[billing]], [[notifications]], [[employees]]
+- Modules — [[auth]], [[billing]], [[notifications]], [[customization]], [[employees]]
 
 <!-- GRAPH:END -->

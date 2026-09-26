@@ -577,6 +577,7 @@
 
 ## Recent QA Runs
 
+- [[2026-09-26-task-0033-package-alm-b55afdb|QA Run — task-0033-package-alm]]
 - [[2026-09-26-safepay-multi-provider-billing-562dee9|QA Run — safepay-multi-provider-billing]]
 - [[2026-09-13-task-0031-demo-walkthrough-2-local-browser-qa-e253306|QA Run — task-0031-demo-walkthrough-2-local-browser-qa]]
 - [[2026-08-31-reports-analytics-platform-96ff155|QA Run — reports-analytics-platform]]
@@ -584,7 +585,6 @@
 - [[2026-08-29-starter-plan-e2e-eb457d9|QA Run — starter-plan-e2e]]
 - [[2026-08-28-regression-guard-sweep-9e55663|QA Run — regression-guard-sweep]]
 - [[2026-08-28-admin-console-e2e-912f4e6|QA Run — Admin console end-to-end, browser-driven]]
-- [[2026-08-26-admin-prod-e2e-8d6be21|QA Run — admin-prod-e2e]]
 
 ## Recent Implementations
 
@@ -598,6 +598,7 @@
 
 ## Recent Engineering History
 
+- [[2026-09-26-task-0033-package-alm-b55afdb2|Engineering History — TASK-0033 package ALM]]
 - [[2026-09-26-billing-safepay-provider-aa2c507e|Engineering History — Safepay for PKR alongside Stripe]]
 - [[2026-09-26-backlog-0203-0204-0206-7866e11e|Engineering History — Backlog 0203 0204 0206]]
 - [[2026-09-26-backlog-0201-0200-856747e7|Engineering History — Backlog 0201 0200]]
@@ -605,7 +606,6 @@
 - [[2026-09-13-task-0031-demo-walkthrough-2-remediation-e253306a|Engineering History — Task 0031 demo walkthrough 2 remediation]]
 - [[2026-09-12-ux-findings-audit-d5388a4c|Engineering History — Ux findings audit]]
 - [[2026-09-12-records-0099-0102-413565f0|Engineering History — Implement the 34 records from sessions 0099–0102]]
-- [[2026-09-11-review-subscription-plans-screen-118d22ed|Engineering History — Review subscription plans screen]]
 
 ## Recent Releases
 
@@ -782,10 +782,10 @@
 | Bug records | 496 |
 | Backlog items | 220 |
 | Known bug patterns | 35 |
-| QA runs | 34 |
-| Engineering history records | 86 |
+| QA runs | 35 |
+| Engineering history records | 87 |
 | Release records | 10 |
-| Module notes | 30 |
+| Module notes | 31 |
 | Architecture notes | 22 |
 | Decision notes (ADR + generated) | 26 |
 | Implementation records | 7 |

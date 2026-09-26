@@ -94,6 +94,7 @@ PASS — DB-backed e2e on a throwaway database, 19/19. Scenario QA-SETTINGS (pac
 
 ## Related
 
+- Modules — [[customization]]
 - Implementation — [[EXECPLAN-0052-package-alm]]
 - Regression — REG-635 (see the regression register)
 

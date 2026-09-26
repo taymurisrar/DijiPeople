@@ -6,18 +6,17 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 1** · completed: 106
+**Active: 0** · completed: 107
 
 ## Active
 
-| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
-|---|---|---|---|---|---|---|---|
-| [SESSION-0110](../../docs/sessions/SESSION-0110-package-alm-versions-portable-artifact-staged-import-upgrade.md) | — | Package ALM: versions, portable artifact, staged import, upgrade, uninstall | ACTIVE | `agent/packages-alm` | `develop` | — | 2026-09-26T12:38:41.080Z |
+_None. No session is currently running._
 
 ## Completed
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0110](../../docs/sessions/SESSION-0110-package-alm-versions-portable-artifact-staged-import-upgrade.md) | TASK-0033 | Package ALM: versions, portable artifact, staged import, upgrade, uninstall | COMPLETE | `agent/packages-alm` | `develop` | — | 2026-09-26T15:57:04.169Z |
 | [SESSION-0109](../../docs/sessions/SESSION-0109-backlog-item-0201-runtime-optimistic-concurrency-item-0200-c.md) | — | Backlog: ITEM-0201 runtime optimistic concurrency, ITEM-0200 contracts and partners API e2e | COMPLETE | `agent/backlog-0201-concurrency` | `develop` | — | 2026-09-26T12:36:53.307Z |
 | [SESSION-0108](../../docs/sessions/SESSION-0108-multi-provider-billing-safepay-for-pkr-alongside-stripe.md) | — | Multi-provider billing: Safepay for PKR alongside Stripe | COMPLETE | `agent/billing-safepay-provider` | `develop` | — | 2026-09-26T17:00:00.000Z |
 | [SESSION-0107](../../docs/sessions/SESSION-0107-backlog-item-0203-individual-party-type-item-0204-platform-p.md) | — | Backlog: ITEM-0203 individual party type, ITEM-0204 platform permission follow-ups, ITEM-0206 dashboard drill-downs | COMPLETE | `agent/backlog-0203-0204-0206` | `develop` | — | 2026-09-26T09:45:46.287Z |

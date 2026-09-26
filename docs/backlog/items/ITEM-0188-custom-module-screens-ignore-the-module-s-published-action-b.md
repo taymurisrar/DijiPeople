@@ -78,7 +78,7 @@ schedule.
 ## Related
 
 - Bug — [[BUG-3494]]
-- Modules — [[tenant-application]]
+- Modules — [[tenant-application]], [[customization]]
 - Decision — [[ADR-0016-published-custom-modules-render-in-the-tenant-runtime]]
 
 <!-- GRAPH:END -->

@@ -238,7 +238,7 @@ against the full row list in this item. CI runs 34732185363, 34732682935 and
 
 ## Related
 
-- Modules — [[tenant-application]], [[employees]]
+- Modules — [[tenant-application]], [[employees]], [[customization]]
 - Implementation — [[EXECPLAN-0045-customization-end-to-end-for-permission-holders]], [[EXECPLAN-0047-employee-record-walkthrough-two-remediation]]
 
 <!-- GRAPH:END -->

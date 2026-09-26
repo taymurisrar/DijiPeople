@@ -80,6 +80,7 @@ outside TASK-0031 scope; found during it; owner to schedule.
 ## Related
 
 - Bug — [[BUG-3494]]
+- Modules — [[customization]]
 - Decision — [[ADR-0016-published-custom-modules-render-in-the-tenant-runtime]]
 
 <!-- GRAPH:END -->

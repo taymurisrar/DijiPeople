@@ -4,17 +4,17 @@ aliases: [TASK-0033]
 TITLE: Package ALM: versions, portable artifact, staged import, upgrade, uninstall
 TYPE: FEATURE
 SIZE: LARGE
-STATUS: IN_PROGRESS
+STATUS: COMPLETE
 PRIORITY: P1
 CREATED_AT: 2026-09-26
 AFFECTED_MODULES: [customization, apps/web]
 AGENTS: [database, backend-api, frontend, security, qa, reviewer, integrator, knowledge-graph]
 DEPENDENCIES: WP-02<-WP-01; WP-03<-WP-02; WP-04<-WP-02; WP-05<-WP-03; WP-06<-WP-03,WP-04,WP-05; WP-07<-WP-06; WP-08<-WP-07
-CURRENT_PACKAGE: WP-08
-COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07]
+CURRENT_PACKAGE:
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 3
-FINAL_STATUS:
+FINAL_STATUS: COMPLETE — integrated into develop at b55afdb2 (CI 36252676338 PASS); main untouched; not deployed
 ---
 
 # TASK-0033 — Package ALM: versions, portable artifact, staged import, upgrade, uninstall
@@ -38,7 +38,7 @@ A good package can be reviewed on its own and has one owning specialist.
 | WP-05 | Environment variables | DONE | WP-03 | backend-api | agent/packages-alm | — | — | — | — | — |
 | WP-06 | Web: Packages tabs, release, import wizard, dependency viewer | DONE | WP-03, WP-04, WP-05 | frontend | agent/packages-alm | — | — | — | — | — |
 | WP-07 | QA: unit, DB-backed round trip, negatives, browser | DONE | WP-06 | qa | agent/packages-alm | — | — | — | — | — |
-| WP-08 | ADR, docs, knowledge, integration into develop | IN_PROGRESS | WP-07 | integrator | agent/packages-alm | — | — | — | — | — |
+| WP-08 | ADR, docs, knowledge, integration into develop | DONE | WP-07 | integrator | agent/packages-alm | — | — | — | — | — |
 
 ## Assumptions
 
@@ -71,8 +71,7 @@ PRE_TASK_REPO_HEALTH: PASS with warnings (other sessions dirty worktrees, render
 
 ## Related
 
-- `STANDALONE_ALLOWED` — this task names no bug, backlog item or known
-  module. Name one in the record rather than adding a link here by hand.
+- Modules — [[customization]]
 
 <!-- GRAPH:END -->
 - 2026-09-26 — WP-01..WP-07 done on `agent/packages-alm`: schema + migration, engine and API, DB-backed round trip (19/19), web UI, browser pass on an isolated stack. Rebased onto develop (Safepay); migration re-ordered to 20260926180000. Records BUG-3697..3705, ITEM-0216..0220, ADR-0022, QA-SETTINGS-033, REG-635..637.

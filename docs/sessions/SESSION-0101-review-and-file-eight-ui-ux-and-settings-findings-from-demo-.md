@@ -95,6 +95,6 @@ Records this session worked on, cited in its own body:
 
 Modules this record declares as affected:
 
-[[employees]] · [[notifications]] · [[platform-admin]] · [[tenant-application]]
+[[customization]] · [[employees]] · [[notifications]] · [[platform-admin]] · [[tenant-application]]
 
 <!-- GRAPH:END -->

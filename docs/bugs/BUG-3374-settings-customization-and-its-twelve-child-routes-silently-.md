@@ -252,7 +252,7 @@ re-run end to end against a live workspace.
 ## Related
 
 - Backlog item — [[ITEM-0104]]
-- Modules — [[tenant-application]]
+- Modules — [[tenant-application]], [[customization]]
 - Regression — REG-420 (see the regression register)
 
 <!-- GRAPH:END -->

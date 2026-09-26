@@ -94,6 +94,7 @@ PASS — DB-backed e2e 19/19; browser round trip DEV → UAT on the isolated sta
 
 ## Related
 
+- Modules — [[customization]]
 - Implementation — [[EXECPLAN-0052-package-alm]]
 - Regression — REG-636 (see the regression register)
 

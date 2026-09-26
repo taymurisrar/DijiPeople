@@ -8,9 +8,9 @@ graph and the block reasons. See
 
 | Bucket | Count |
 |---|---|
-| [Active](active.md) | 5 |
+| [Active](active.md) | 4 |
 | [Blocked](blocked.md) | 0 |
-| [Completed](completed.md) | 27 |
+| [Completed](completed.md) | 28 |
 
 ## Next ready work package
 
@@ -64,4 +64,4 @@ Nothing ready.
 | [TASK-0030](TASK-0030-implement-the-34-open-records-from-sessions-0099-0102.md) | Implement the 34 open records from sessions 0099-0102 | FEATURE | LARGE | P1 | COMPLETE | 8/8 | — |
 | [TASK-0031](TASK-0031-demo-walkthrough-2-remediation-hierarchy-work-sites-customiz.md) | Demo walkthrough 2 remediation - hierarchy, work sites, customization, notifications | FEATURE | PROGRAM | P1 | COMPLETE | 9/9 | — |
 | [TASK-0032](TASK-0032-partner-onboarding-agreements-admin-rbac-monitoring-dashboar.md) | Partner onboarding, agreements, admin RBAC, monitoring, dashboard and MFA hardening | FEATURE | PROGRAM | P1 | COMPLETE | 13/13 | — |
-| [TASK-0033](TASK-0033-package-alm-versions-portable-artifact-staged-import-upgrade.md) | Package ALM: versions, portable artifact, staged import, upgrade, uninstall | FEATURE | LARGE | P1 | IN_PROGRESS | 7/8 | WP-08 |
+| [TASK-0033](TASK-0033-package-alm-versions-portable-artifact-staged-import-upgrade.md) | Package ALM: versions, portable artifact, staged import, upgrade, uninstall | FEATURE | LARGE | P1 | COMPLETE | 8/8 | — |

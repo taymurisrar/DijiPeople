@@ -268,7 +268,7 @@ scenario below was run. Scenario QA-SETTINGS-024:
 
 ## Related
 
-- Modules — [[tenant-application]]
+- Modules — [[tenant-application]], [[customization]]
 - Implementation — [[EXECPLAN-0045-customization-end-to-end-for-permission-holders]]
 - Regression — REG-484 (see the regression register)
 

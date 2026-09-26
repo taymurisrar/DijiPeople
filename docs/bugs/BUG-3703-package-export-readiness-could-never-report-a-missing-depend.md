@@ -93,6 +93,7 @@ PASS — e2e and browser pass.
 
 ## Related
 
+- Modules — [[customization]]
 - Implementation — [[EXECPLAN-0052-package-alm]]
 - Regression — REG-637 (see the regression register)
 

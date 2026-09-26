@@ -306,7 +306,7 @@ form). CI runs 34732185363, 34732682935 and 34732697734 passed on f865ac5e
 ## Related
 
 - Backlog item — [[ITEM-0187]], [[ITEM-0188]], [[ITEM-0189]], [[ITEM-0190]], [[ITEM-0191]], [[ITEM-0195]]
-- Modules — [[tenant-application]]
+- Modules — [[tenant-application]], [[customization]]
 - Implementation — [[EXECPLAN-0046-published-custom-modules-tenant-runtime]]
 - Regression — REG-492 (see the regression register)
 
