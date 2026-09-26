@@ -123,19 +123,28 @@ export function validateCustomFieldValue(
       : 'Must be a valid date.';
   }
   if (type === 'multiselect') {
-    if (!Array.isArray(value) || value.some((item) => typeof item !== 'string')) {
+    if (
+      !Array.isArray(value) ||
+      value.some((item) => typeof item !== 'string')
+    ) {
       return 'Must be a list of choices.';
     }
-    const allowed = new Set(readOptions(column.optionSetJson).map((option) => option.value));
+    const allowed = new Set(
+      readOptions(column.optionSetJson).map((option) => option.value),
+    );
     const unknown = (value as string[]).filter((item) => !allowed.has(item));
-    return unknown.length ? `Not a choice for this field: ${unknown.join(', ')}.` : null;
+    return unknown.length
+      ? `Not a choice for this field: ${unknown.join(', ')}.`
+      : null;
   }
   if (typeof value !== 'string') return 'Must be text.';
   if (column.maxLength && value.length > column.maxLength) {
     return `Must not exceed ${column.maxLength} characters.`;
   }
   if (type === 'select') {
-    const allowed = readOptions(column.optionSetJson).map((option) => option.value);
+    const allowed = readOptions(column.optionSetJson).map(
+      (option) => option.value,
+    );
     return allowed.includes(value) ? null : 'Not a choice for this field.';
   }
   if (type === 'email' && !EMAIL_PATTERN.test(value)) {
@@ -176,6 +185,8 @@ export function validateCustomFieldInput(input: {
       column.isReadOnly ||
       (writePermission && !input.permissionKeys.includes(writePermission))
     ) {
+      /* A form posts its read-only fields back empty; that is not a write. */
+      if (value === null || value === undefined || value === '') continue;
       errors[key] = ['Field is read-only.'];
       continue;
     }
@@ -245,13 +256,33 @@ export function customFieldDefinitions(input: {
         required: column.isRequired,
         readOnly:
           column.isReadOnly ||
-          Boolean(writePermission && !input.permissionKeys.includes(writePermission)),
+          Boolean(
+            writePermission && !input.permissionKeys.includes(writePermission),
+          ),
         isPrimaryName: column.isPrimaryName,
         maxLength: column.maxLength,
         lookupTargetTableKey: column.lookupTargetTableKey,
         options: readOptions(column.optionSetJson),
       };
     });
+}
+
+/**
+ * Drops submitted values identical to what the user reads today. A form posts
+ * every field back on save, so an untouched read-only field would be refused
+ * and an untouched masked field would overwrite the real value with its mask.
+ */
+export function withoutUnchangedValues(
+  submitted: Record<string, unknown>,
+  current: Record<string, unknown>,
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(submitted).filter(
+      ([key, value]) =>
+        !(key in current) ||
+        JSON.stringify(value ?? null) !== JSON.stringify(current[key] ?? null),
+    ),
+  );
 }
 
 export function maskValue(value: string) {

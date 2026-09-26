@@ -5,7 +5,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
-  CustomizationColumn,
   CustomizationFieldDataType,
   Prisma,
   SecurityPrivilege,

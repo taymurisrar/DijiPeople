@@ -831,6 +831,7 @@ async function readResponseError(
         normalizeFieldErrors(data.fieldErrors) ??
         normalizeFieldErrors(readRecord(data.details)?.fields) ??
         normalizeFieldErrors(data.errors) ??
+        customFieldErrors(data.details) ??
         fieldErrorsFromValidationMessages(data.message),
       response: {
         ...data,
@@ -885,6 +886,20 @@ function normalizeFieldErrors(value: unknown) {
     result[field] = [...(result[field] ?? []), message];
   }
   return Object.keys(result).length ? result : undefined;
+}
+
+/*
+ * BUG-3697 — the API reports a custom field's error as
+ * `details["customFields.<field>"]`; on the form the field is `<field>`.
+ */
+export function customFieldErrors(details: unknown) {
+  if (!isRecord(details)) return undefined;
+  const fieldErrors: Record<string, string[]> = {};
+  for (const [key, messages] of Object.entries(details)) {
+    if (!key.startsWith("customFields.") || !Array.isArray(messages)) continue;
+    fieldErrors[key.slice("customFields.".length)] = messages.map(String);
+  }
+  return Object.keys(fieldErrors).length ? fieldErrors : undefined;
 }
 
 function fieldErrorsFromValidationMessages(message: unknown) {

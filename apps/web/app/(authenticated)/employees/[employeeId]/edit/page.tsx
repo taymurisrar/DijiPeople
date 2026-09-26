@@ -17,6 +17,7 @@ import {
 import type { FieldSecurityRule } from "@/lib/runtime/security-runtime.types";
 import { apiRequestJson } from "@/lib/server-api";
 import { TenantResolvedSettingsResponse } from "../../../settings/types";
+import { loadEmployeeCustomFields } from "../../custom-fields";
 import { EmployeeListResponse, EmployeeProfile } from "../../types";
 
 type EditEmployeePageProps = {
@@ -48,18 +49,25 @@ export default async function EditEmployeePage({
     );
   }
 
-  const [employee, managers, resolvedSettings, runtimeForms, fieldSecurityRules] =
-    await Promise.all([
-      apiRequestJson<EmployeeProfile>(`/employees/${employeeId}`),
-      apiRequestJson<EmployeeListResponse>("/employees?pageSize=100"),
-      apiRequestJson<TenantResolvedSettingsResponse>(
-        "/tenant-settings/resolved",
-      ).catch(() => null),
-      getTableForms("employees"),
-      apiRequestJson<readonly FieldSecurityRule[]>(
-        "/field-security-policies/runtime-rules?entityKey=employees",
-      ).catch(() => []),
-    ]);
+  const [
+    employee,
+    managers,
+    resolvedSettings,
+    runtimeForms,
+    fieldSecurityRules,
+    customFields,
+  ] = await Promise.all([
+    apiRequestJson<EmployeeProfile>(`/employees/${employeeId}`),
+    apiRequestJson<EmployeeListResponse>("/employees?pageSize=100"),
+    apiRequestJson<TenantResolvedSettingsResponse>(
+      "/tenant-settings/resolved",
+    ).catch(() => null),
+    getTableForms("employees"),
+    apiRequestJson<readonly FieldSecurityRule[]>(
+      "/field-security-policies/runtime-rules?entityKey=employees",
+    ).catch(() => []),
+    loadEmployeeCustomFields(),
+  ]);
 
   if (!canManageEmployeeRecord(employee.accessMode)) {
     return (
@@ -122,6 +130,7 @@ export default async function EditEmployeePage({
       permissionKeys: sessionUser?.permissionKeys ?? [],
     },
     forms: runtimeForms,
+    customFields,
     views: [],
     recordId: employee.id,
     employeeSettings: resolvedSettings?.employee,

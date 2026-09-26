@@ -14,6 +14,7 @@ import {
   hasBusinessUnitScope,
 } from "../../_lib/business-unit-access";
 import { TenantResolvedSettingsResponse } from "../../settings/types";
+import { loadEmployeeCustomFields } from "../custom-fields";
 import { EmployeeListResponse } from "../types";
 
 export default async function NewEmployeePage({
@@ -37,13 +38,15 @@ export default async function NewEmployeePage({
   }
 
   const sessionUser = await getSessionUser();
-  const [managers, resolvedSettings, runtimeForms] = await Promise.all([
-    apiRequestJson<EmployeeListResponse>("/employees?pageSize=100"),
-    apiRequestJson<TenantResolvedSettingsResponse>(
-      "/tenant-settings/resolved",
-    ).catch(() => null),
-    getTableForms("employees"),
-  ]);
+  const [managers, resolvedSettings, runtimeForms, customFields] =
+    await Promise.all([
+      apiRequestJson<EmployeeListResponse>("/employees?pageSize=100"),
+      apiRequestJson<TenantResolvedSettingsResponse>(
+        "/tenant-settings/resolved",
+      ).catch(() => null),
+      getTableForms("employees"),
+      loadEmployeeCustomFields(),
+    ]);
   const tenantId =
     managers.items[0]?.tenantId ?? sessionUser?.tenantId ?? "current";
   const employeeRuntimeContext = buildEmployeeRuntimeContext({
@@ -96,6 +99,7 @@ export default async function NewEmployeePage({
       permissionKeys: sessionUser?.permissionKeys ?? [],
     },
     forms: runtimeForms,
+    customFields,
     views: [],
     employeeSettings: resolvedSettings?.employee,
   });

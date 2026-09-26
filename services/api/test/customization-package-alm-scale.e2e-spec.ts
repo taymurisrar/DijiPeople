@@ -47,7 +47,7 @@ describeWithDatabase()(
     let moduleRef: TestingModule;
     let prisma: PrismaService;
     let alm: PackageAlmService;
-  let customizationService: CustomizationService;
+    let customizationService: CustomizationService;
     let fixtures: DbFixtures;
     let user: AuthenticatedUser;
     const emails: string[] = [];
@@ -301,11 +301,11 @@ describeWithDatabase()(
           'customization.packages.import',
         ],
       };
-    /*
-     * A real workspace already has DijiPeople Core materialised, and the sync is
-     * cached per process: warm it here so the counts measure the import.
-     */
-    await customizationService.syncCore(user);
+      /*
+       * A real workspace already has DijiPeople Core materialised, and the sync is
+       * cached per process: warm it here so the counts measure the import.
+       */
+      await customizationService.syncCore(user);
     });
 
     afterAll(async () => {

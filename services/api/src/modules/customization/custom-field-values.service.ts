@@ -21,6 +21,7 @@ import {
   readRecord,
   secureCustomFieldValues,
   validateCustomFieldInput,
+  withoutUnchangedValues,
   type CustomFieldColumn,
 } from './custom-field-values';
 
@@ -72,7 +73,11 @@ export class CustomFieldValuesService {
       this.publishedColumns(user.tenantId, tableKey),
       this.prisma.customRecordExtension.findUnique({
         where: {
-          tenantId_tableKey_recordId: { tenantId: user.tenantId, tableKey, recordId },
+          tenantId_tableKey_recordId: {
+            tenantId: user.tenantId,
+            tableKey,
+            recordId,
+          },
         },
         select: { values: true },
       }),
@@ -94,17 +99,27 @@ export class CustomFieldValuesService {
     tableKey: string,
     submitted: unknown,
     mode: 'create' | 'update',
+    /* On update: values equal to what the user reads today are not writes. */
+    recordId?: string,
   ) {
     const columns = await this.publishedColumns(user.tenantId, tableKey);
-    if (submitted !== undefined && submitted !== null && (typeof submitted !== 'object' || Array.isArray(submitted))) {
+    if (
+      submitted !== undefined &&
+      submitted !== null &&
+      (typeof submitted !== 'object' || Array.isArray(submitted))
+    ) {
       throw new BadRequestException({
         message: 'Validation failed.',
         errors: { customFields: ['Must be an object of field values.'] },
       });
     }
+    const current =
+      mode === 'update' && recordId
+        ? await this.read(user, tableKey, recordId)
+        : {};
     const { values, errors } = validateCustomFieldInput({
       columns,
-      values: readRecord(submitted),
+      values: withoutUnchangedValues(readRecord(submitted), current),
       permissionKeys: user.permissionKeys,
       mode,
     });
@@ -112,7 +127,10 @@ export class CustomFieldValuesService {
       throw new BadRequestException({
         message: 'Validation failed.',
         errors: Object.fromEntries(
-          Object.entries(errors).map(([key, messages]) => [`customFields.${key}`, messages]),
+          Object.entries(errors).map(([key, messages]) => [
+            `customFields.${key}`,
+            messages,
+          ]),
         ),
       });
     }
@@ -150,7 +168,10 @@ export class CustomFieldValuesService {
         values: merged as Prisma.InputJsonValue,
         updatedByUserId: user.userId,
       },
-      update: { values: merged as Prisma.InputJsonValue, updatedByUserId: user.userId },
+      update: {
+        values: merged as Prisma.InputJsonValue,
+        updatedByUserId: user.userId,
+      },
     });
   }
 }
