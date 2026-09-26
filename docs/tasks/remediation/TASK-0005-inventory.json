@@ -30514,22 +30514,26 @@
       "title": "An individual partner's agreement still records the counterparty as a PARTNER party, not INDIVIDUAL",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "READY",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0203-an-individual-partner-s-agreement-still-records-the-counterp.md",
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-09-25",
-        "updated_at": "2026-09-25",
+        "updated_at": "2026-09-26",
         "resolved_at": ""
       },
       "affected_modules": [
         "services/api/src/modules/contracts",
         "services/api/src/modules/partners"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-630"
+      ],
+      "qa_scenarios": [
+        "QA-CONTRACT-013"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -30554,14 +30558,14 @@
       "title": "ADR-0018 follow-ups: platform role-literal tier checks and the ungoverned legacy tenant status route",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0204-adr-0018-follow-ups-platform-role-literal-tier-checks-and-th.md",
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-09-25",
-        "updated_at": "2026-09-25",
+        "updated_at": "2026-09-26",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -30571,8 +30575,12 @@
         "services/api/src/modules/leads",
         "services/api/src/modules/platform-monitoring"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-631"
+      ],
+      "qa_scenarios": [
+        "QA-AUTHZ-019"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -30640,14 +30648,14 @@
       "title": "Admin dashboard drill-downs for active users, failed sign-ins and unresolved errors land on approximate pages",
       "severity": "LOW",
       "priority": "P3",
-      "current_status": "DEFERRED",
-      "architect_disposition": "DEFER",
+      "current_status": "DONE",
+      "architect_disposition": "DONE",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0206-admin-dashboard-drill-downs-for-active-users-failed-sign-ins.md",
         "provenance": "ARCHITECT",
         "detected_in_sha": "",
         "created_at": "2026-09-25",
-        "updated_at": "2026-09-25",
+        "updated_at": "2026-09-26",
         "resolved_at": ""
       },
       "affected_modules": [
@@ -30655,8 +30663,12 @@
         "services/api/src/modules/super-admin",
         "services/api/src/modules/platform-monitoring"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-632"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-043"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [

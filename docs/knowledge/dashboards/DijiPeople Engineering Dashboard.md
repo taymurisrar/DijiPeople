@@ -9,11 +9,11 @@
 |---|---|
 | Open CRITICAL | **6** |
 | Open HIGH | **101** |
-| Open total | 230 |
+| Open total | 229 |
 | Blocked | 2 |
 | Awaiting a product decision | 10 |
-| Deferred | 108 |
-| Completed | 344 |
+| Deferred | 106 |
+| Completed | 347 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -733,7 +733,6 @@
 | [[BUG-3586-the-monitoring-health-headline-reads-unknown-when-no-email-h|BUG-3586]] | The monitoring health headline reads Unknown when no email has been sent | BUG | LOW | FIXED | api:platform-monitoring | DONE |
 | [[BUG-3599-generating-an-agreement-in-an-unsupported-format-returns-a-5|BUG-3599]] | Generating an agreement in an unsupported format returns a 500 instead of a 400 | BUG | LOW | FIXED | api:contracts | DONE |
 | [[ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by|ITEM-0080]] | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
-| [[ITEM-0203-an-individual-partner-s-agreement-still-records-the-counterp|ITEM-0203]] | An individual partner's agreement still records the counterparty as a PARTNER party, not INDIVIDUAL | FOLLOW_UP | LOW | READY | api:contracts, api:partners | PLAN_REQUIRED |
 
 ## Key Architecture Decisions
 

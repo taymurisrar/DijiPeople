@@ -6698,3 +6698,45 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — the plain error is not a bad-request exception. |
 | **Fixed** | 2026-09-25, branch `agent/partner-agreements-admin-hardening` (TASK-0032) |
 | **Active** | yes |
+
+### REG-630 — An individual partner's agreement recorded a PARTNER party
+
+| | |
+|---|---|
+| **Bug class** | `declared-policy-not-wired` |
+| **Module** | `services/api/src/modules/contracts` |
+| **Bug record** | ITEM-0203 |
+| **Root cause** | The partner type policy declared the counterparty party type per partner type, but the contracts module's default-party inference hard-coded PARTNER for every partner counterparty and never read it. |
+| **Regression test** | `services/api/src/modules/contracts/contracts.partner-source.spec.ts` — "records an individual partner as an INDIVIDUAL party and a company as PARTNER". |
+| **Scenario** | Creating an agreement for an individual partner records its counterparty party as INDIVIDUAL; for a company partner, PARTNER. |
+| **Fails without the fix** | Yes — with PARTNER hard-coded the individual case records PARTNER. |
+| **Fixed** | 2026-09-26, branch `agent/backlog-0203-0204-0206` |
+| **Active** | yes |
+
+### REG-631 — Platform administrator tiers decided by role literal
+
+| | |
+|---|---|
+| **Bug class** | `role-literal-authorization` |
+| **Module** | `services/api/src/modules/platform-auth` |
+| **Bug record** | ITEM-0204 |
+| **Root cause** | After ADR-0018 moved platform authorization to permission keys, six decisions still compared role names, which cannot be granted or audited like a permission and drift independently. |
+| **Regression test** | `services/api/src/modules/platform-auth/platform-admin-tier.spec.ts` — the holders of the administrator tier, lead management and platform log access are exactly the roles the literal lists named, and a tenant user carrying the same keys is never in the tier. |
+| **Scenario** | Only Super Admin, the Owner alias and Platform Admin pass the administrator tier; Presales Manager additionally manages any lead; only Super Admin reads platform log files. |
+| **Fails without the fix** | Yes — removing Platform Admin's `platform.administer` grant fails the tier test. |
+| **Fixed** | 2026-09-26, branch `agent/backlog-0203-0204-0206` |
+| **Active** | yes |
+
+### REG-632 — The dashboard's unresolved-errors tile opened a smaller list than it counted
+
+| | |
+|---|---|
+| **Bug class** | `tile-and-list-disagree` |
+| **Module** | `services/api/src/modules/platform-monitoring` |
+| **Bug record** | ITEM-0206 |
+| **Root cause** | The operations dashboard counted every incident not resolved or set aside but linked to the "new" view, which lists untriaged incidents only; the error-log page also turned named views into single-status filters, so "investigating" missed FIX_IN_PROGRESS rows its tile counted. |
+| **Regression test** | `services/api/src/modules/platform-monitoring/open-incident-view.spec.ts` — the `open` view and the dashboard count use one predicate. |
+| **Scenario** | The dashboard's "Errors needing attention" tile opens the Open incidents view, whose rows match the tile's count. |
+| **Fails without the fix** | Yes — the dashboard computed its own status list, which the source assertion rejects. |
+| **Fixed** | 2026-09-26, branch `agent/backlog-0203-0204-0206` |
+| **Active** | yes |

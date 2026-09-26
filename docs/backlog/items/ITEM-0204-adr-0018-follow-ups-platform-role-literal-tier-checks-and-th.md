@@ -3,15 +3,15 @@ ID: ITEM-0204
 aliases: [ITEM-0204]
 Title: ADR-0018 follow-ups: platform role-literal tier checks and the ungoverned legacy tenant status route
 Type: TECH_DEBT
-Status: DEFERRED
+Status: DONE
 Priority: P3
 Severity: LOW
 AffectedModules: [services/api/src/modules/platform-runtime, services/api/src/modules/tenant-control-plane, services/api/src/modules/super-admin, services/api/src/modules/leads, services/api/src/modules/platform-monitoring]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: DEFER
+ArchitectDisposition: DONE
 CreatedAt: 2026-09-25
-UpdatedAt: 2026-09-25
+UpdatedAt: 2026-09-26
 RelatedBug: BUG-3544
 RelatedQA: 
 RelatedADR: ADR-0018
@@ -71,6 +71,21 @@ None.
 
 [[BUG-3544]], [[BUG-3547]], [[TASK-0032]], [[platform-auth]], [[super-admin]]
 
+## Resolution
+
+Fixed on `agent/backlog-0203-0204-0206`. New permission keys:
+`platform.administer` (`platform.*` and PLATFORM_ADMIN) behind
+`isPlatformAdminTier()`, now used by lead attribution correction, the contract
+approval-step override, platform settings, the lifecycle service's admin check
+and the tenant control plane guard; `leads.manage` (`leads.*` and
+`platform.*`) for managing any lead; `platform.monitoring.administer`
+(`platform.*`) for platform log files. Holders are unchanged, pinned by
+`platform-admin-tier.spec.ts` (REG-631, QA-AUTHZ-019). The legacy
+`PATCH /super-admin/tenants/:tenantId/status`, its DTO and its unused admin
+proxy were removed; `POST /platform/tenants/:tenantId/status` is the one
+status path. Role lists that choose notification recipients or eligible
+assignees are not authorization and stay role-based.
+
 ## History
 
 - 2026-09-25 — created at `5496a244`.
@@ -84,3 +99,4 @@ None.
 - Modules — [[tenant-control-plane]], [[super-admin]], [[leads]]
 
 <!-- GRAPH:END -->
+- 2026-09-26 — implemented and verified; DONE.

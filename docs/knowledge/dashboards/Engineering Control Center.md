@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **0** |
+| Active sessions | **1** |
 | Active parent tasks | 4 |
 | Active work packages | 4 |
 | Blocked work packages | 0 |
@@ -30,9 +30,9 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 230 |
-| No next action | 230 |
-| Aging — 7d / 30d / 90d | 199 / 15 / 0 |
+| No acceptance criteria | 229 |
+| No next action | 229 |
+| Aging — 7d / 30d / 90d | 199 / 16 / 0 |
 | Architecture and technical debt | 7 |
 | Security gaps | 37 |
 | Database gaps | 22 |
@@ -47,7 +47,9 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-_No session is currently registered as active._
+| Session | Task | Title | Status | Branch | Target | Leases | Schema |
+|---|---|---|---|---|---|---|---|
+| [[SESSION-0107-backlog-item-0203-individual-party-type-item-0204-platform-p|SESSION-0107]] | — | Backlog: ITEM-0203 individual party type, ITEM-0204 platform permission follow-ups, ITEM-0206 dashboard drill-downs | ACTIVE | `agent/backlog-0203-0204-0206` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
 
@@ -296,9 +298,9 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 230 |
+| Open total | 229 |
 | Blocked | 2 |
-| Deferred | 108 |
+| Deferred | 106 |
 | Awaiting a product decision | 10 |
 | Awaiting Architect triage | 0 |
 

@@ -13,11 +13,11 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 230 |
+| Open (active work) | 229 |
 | Blocked | 2 |
-| Deferred | 108 |
+| Deferred | 106 |
 | Awaiting a product decision | 10 |
-| Completed / closed | 344 |
+| Completed / closed | 347 |
 | **Open CRITICAL** | **6** |
 | **Open HIGH** | **101** |
 | **Awaiting Architect triage** | **0** |
@@ -29,7 +29,7 @@ see [`README.md`](README.md) for why.
 | CRITICAL | 6 |
 | HIGH | 101 |
 | MEDIUM | 101 |
-| LOW | 22 |
+| LOW | 21 |
 
 ## Open by type
 
@@ -40,7 +40,7 @@ see [`README.md`](README.md) for why.
 | DATABASE | 1 |
 | DATA_INTEGRITY | 21 |
 | DOCUMENTATION | 1 |
-| FOLLOW_UP | 4 |
+| FOLLOW_UP | 3 |
 | INFRA | 8 |
 | INTEGRATION | 5 |
 | PERFORMANCE | 15 |
@@ -58,14 +58,14 @@ see [`README.md`](README.md) for why.
 |---|---|
 | OPEN | 44 |
 | BLOCKED | 2 |
-| DEFERRED | 108 |
+| DEFERRED | 106 |
 | PRODUCT_DECISION | 10 |
 | FIXED | 162 |
 | VERIFIED | 218 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
-| READY | 24 |
-| DONE | 112 |
+| READY | 23 |
+| DONE | 115 |
 
 ## All records
 
@@ -738,9 +738,9 @@ see [`README.md`](README.md) for why.
 | [ITEM-0195](../../docs/backlog/items/ITEM-0195-the-legacy-publish-snapshot-shape-can-expose-a-never-publish.md) | The legacy publish snapshot shape can expose a never-published custom module at runtime | FOLLOW_UP | LOW | P3 | DEFERRED | data, customization | DEFER |
 | [ITEM-0196](../../docs/backlog/items/ITEM-0196-the-employee-record-still-shows-a-hardcoded-cnic-field-an-en.md) | The employee record still shows a hardcoded CNIC field, an end-user form selector and a mislabelled Global Administrator role | UX | LOW | P3 | DEFERRED | apps/web, employees, permissions | DEFER |
 | [ITEM-0202](../../docs/backlog/items/ITEM-0202-mfa-status-reads-off-while-new-recovery-codes-are-shown.md) | MFA status reads Off while new recovery codes are shown | UX | LOW | P3 | DONE | apps/web, apps/admin | DONE |
-| [ITEM-0203](../../docs/backlog/items/ITEM-0203-an-individual-partner-s-agreement-still-records-the-counterp.md) | An individual partner's agreement still records the counterparty as a PARTNER party, not INDIVIDUAL | FOLLOW_UP | LOW | P3 | READY | api:contracts, api:partners | PLAN_REQUIRED |
-| [ITEM-0204](../../docs/backlog/items/ITEM-0204-adr-0018-follow-ups-platform-role-literal-tier-checks-and-th.md) | ADR-0018 follow-ups: platform role-literal tier checks and the ungoverned legacy tenant status route | TECH_DEBT | LOW | P3 | DEFERRED | api:platform-runtime, api:tenant-control-plane, api:super-admin, api:leads, api:platform-monitoring | DEFER |
-| [ITEM-0206](../../docs/backlog/items/ITEM-0206-admin-dashboard-drill-downs-for-active-users-failed-sign-ins.md) | Admin dashboard drill-downs for active users, failed sign-ins and unresolved errors land on approximate pages | UX | LOW | P3 | DEFERRED | apps/admin, api:super-admin, api:platform-monitoring | DEFER |
+| [ITEM-0203](../../docs/backlog/items/ITEM-0203-an-individual-partner-s-agreement-still-records-the-counterp.md) | An individual partner's agreement still records the counterparty as a PARTNER party, not INDIVIDUAL | FOLLOW_UP | LOW | P3 | DONE | api:contracts, api:partners | DONE |
+| [ITEM-0204](../../docs/backlog/items/ITEM-0204-adr-0018-follow-ups-platform-role-literal-tier-checks-and-th.md) | ADR-0018 follow-ups: platform role-literal tier checks and the ungoverned legacy tenant status route | TECH_DEBT | LOW | P3 | DONE | api:platform-runtime, api:tenant-control-plane, api:super-admin, api:leads, api:platform-monitoring | DONE |
+| [ITEM-0206](../../docs/backlog/items/ITEM-0206-admin-dashboard-drill-downs-for-active-users-failed-sign-ins.md) | Admin dashboard drill-downs for active users, failed sign-ins and unresolved errors land on approximate pages | UX | LOW | P3 | DONE | apps/admin, api:super-admin, api:platform-monitoring | DONE |
 | [ITEM-0126](../../docs/backlog/items/ITEM-0126-decide-which-of-the-41-always-visible-settings-pages-should-.md) | Decide which of the 41 always-visible settings pages should be sold | PRODUCT_DECISION | — | P1 | DONE | apps/web | DONE |
 | [ITEM-0129](../../docs/backlog/items/ITEM-0129-tenants-should-inherit-the-platform-email-provider-by-defaul.md) | Tenants should inherit the platform email provider by default, and may override it | ARCHITECTURE | — | P1 | DONE | services/api, apps/web | DONE |
 | [ITEM-0130](../../docs/backlog/items/ITEM-0130-review-process-missed-four-defects-on-screens-adjacent-to-th.md) | Review process missed four defects on screens adjacent to the change | TEST_GAP | — | P1 | DONE | apps/web, .agent | DONE |

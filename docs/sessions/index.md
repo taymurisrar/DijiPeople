@@ -6,11 +6,13 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 0** · completed: 103
+**Active: 1** · completed: 103
 
 ## Active
 
-_None. No session is currently running._
+| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
+|---|---|---|---|---|---|---|---|
+| [SESSION-0107](../../docs/sessions/SESSION-0107-backlog-item-0203-individual-party-type-item-0204-platform-p.md) | — | Backlog: ITEM-0203 individual party type, ITEM-0204 platform permission follow-ups, ITEM-0206 dashboard drill-downs | ACTIVE | `agent/backlog-0203-0204-0206` | `develop` | — | 2026-09-26T09:45:46.287Z |
 
 ## Completed
 

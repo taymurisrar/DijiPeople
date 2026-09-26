@@ -3,15 +3,15 @@ ID: ITEM-0203
 aliases: [ITEM-0203]
 Title: An individual partner's agreement still records the counterparty as a PARTNER party, not INDIVIDUAL
 Type: FOLLOW_UP
-Status: READY
+Status: DONE
 Priority: P3
 Severity: LOW
 AffectedModules: [services/api/src/modules/contracts, services/api/src/modules/partners]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 CreatedAt: 2026-09-25
-UpdatedAt: 2026-09-25
+UpdatedAt: 2026-09-26
 RelatedBug: BUG-3549
 RelatedQA: 
 RelatedADR: ADR-0020
@@ -65,6 +65,16 @@ None.
 
 [[BUG-3549]], [[TASK-0032]], [[partners]], [[contracts-and-agreements]]
 
+## Resolution
+
+Fixed on `agent/backlog-0203-0204-0206`. `contractPartyTypeForPartner()`
+(`partners/partner-type-policy.ts`) reads the policy; `ContractsService.create`
+takes it from the linked partner it already loads (`linkedPartner`) for the
+default counterparty party. Nothing else branches on the PARTNER value — every
+other reader distinguishes only PLATFORM from the counterparty. Agreements
+created before this keep the PARTNER party they were created with. REG-630,
+QA-CONTRACT-013.
+
 ## History
 
 - 2026-09-25 — created at `5496a244`.
@@ -78,3 +88,4 @@ None.
 - Modules — [[contracts-and-agreements]], [[partners]]
 
 <!-- GRAPH:END -->
+- 2026-09-26 — implemented and verified; DONE.
