@@ -1,0 +1,71 @@
+---
+ID: ITEM-0221
+aliases: [ITEM-0221]
+Title: Custom fields on Employees: lookup fields, list-view columns and export; other system modules
+Type: FOLLOW_UP
+Status: DEFERRED
+Priority: P2
+Severity: 
+AffectedModules: [customization, employees]
+Source: ARCHITECT
+OwnerAgent: architect
+ArchitectDisposition: DEFER
+CreatedAt: 2026-09-26
+UpdatedAt: 2026-09-26
+RelatedBug: BUG-3697
+RelatedQA: 
+RelatedADR: 
+RelatedImplementation: [docs/plans/EXECPLAN-0053-custom-field-values-and-package-import-at-scale.md]
+TargetMilestone: 
+BlockedBy: 
+---
+
+# ITEM-0221 — Custom fields on Employees: lookup fields, list-view columns and export; other system modules
+
+## Summary
+
+TASK-0034 fixed BUG-3697 for storage and for the employee form: a published custom field on Employees stores a value per employee and is shown and edited on the create, edit and detail forms. Four things remain:
+
+1. **Lookup-type custom fields** are left off the employee form.
+2. Custom fields are **not available as columns** in employee list views.
+3. Custom field values are **not in the employee export**.
+4. **Other system modules** (Leave, Attendance, …) do not store custom field values yet. The storage (`CustomRecordExtension`) is generic, but each owning service must opt in.
+
+## Why It Matters
+
+A tenant can add a lookup field to Employees and publish it, and the field is silently absent from the form. A field that cannot be listed, filtered or exported covers only half of what administrators use custom fields for. On every other system module, BUG-3697's original defect still stands: a published field has nowhere to hold a value.
+
+## Evidence
+
+- `apps/web/lib/runtime/modules/employee-custom-fields.ts`: `supportedEmployeeCustomFields` filters out `lookup`. The employee data adapter loads lookup options per built-in field, with no route for a custom lookup's target.
+- The employee list endpoint and export (`services/api/src/modules/employees/`) do not read `CustomRecordExtension`.
+- `services/api/src/modules/customization/custom-field-values.service.ts` is imported only by the employees module.
+
+## Proposed Approach
+
+- **Lookups:** resolve a custom lookup's options through the target table's existing list endpoint in the employee data adapter's `getLookupOptions`, keyed by `lookupTargetTableKey`.
+- **List columns:** batch-read extensions for the page's record ids (one query, keyed by `recordId`) and merge them into the list rows. Filtering and sorting on JSON values needs its own design, and is out of scope for a first pass.
+- **Export:** append the published custom columns after the built-in ones.
+- **Other modules:** follow the `EmployeesService` pattern: resolve access first, then validate before the write and write inside it.
+
+Items 2 and 4 each warrant a short ExecPlan.
+
+## Acceptance Criteria
+
+- A published lookup custom field on Employees appears on the employee form, with options from its target table.
+- A published custom field can be added as a column to an employee view, and shows each employee's value.
+- The employee export includes published custom fields that the user may read, with masked values still masked.
+- At least one other system module stores and shows custom field values.
+
+## Dependencies
+
+None. TASK-0034 is merged.
+
+## Related Items
+
+[[BUG-3697]], [[TASK-0034-custom-field-values-on-system-modules-package-import-at-scal]].
+
+## History
+
+- 2026-09-26 — created at `775e2d60`.
+- 2026-09-26 — deferred by the Architect in TASK-0034: the core of BUG-3697 (storage plus form) ships first.

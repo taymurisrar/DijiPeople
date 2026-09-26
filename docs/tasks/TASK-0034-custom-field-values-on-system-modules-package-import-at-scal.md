@@ -4,16 +4,16 @@ aliases: [TASK-0034]
 TITLE: Custom field values on system modules; package import at scale
 TYPE: FEATURE
 SIZE: LARGE
-STATUS: NOT_STARTED
+STATUS: IN_PROGRESS
 PRIORITY: P1
 CREATED_AT: 2026-09-26
-AFFECTED_MODULES: []
-AGENTS: []
-DEPENDENCIES:
-CURRENT_PACKAGE:
-COMPLETED_PACKAGES: []
+AFFECTED_MODULES: [customization, employees, data, apps/web]
+AGENTS: [database, backend-api, frontend, security, qa, reviewer, integrator, knowledge-graph]
+DEPENDENCIES: WP-03<-WP-02; WP-04<-WP-01,WP-03
+CURRENT_PACKAGE: WP-04
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03]
 BLOCKED_PACKAGES: []
-OWNER_DECISIONS: 0
+OWNER_DECISIONS: 1
 FINAL_STATUS:
 ---
 
@@ -21,39 +21,46 @@ FINAL_STATUS:
 
 ## Objective
 
-What this task achieves, and how a reader knows it is finished. One paragraph.
+This task closes two of the caveats TASK-0033 reported. The third, a read-only check of the production backfill, was verified separately and needs no code.
+
+1. A package of about 1,700 components imports well inside the 120 s transaction timeout against a remote database.
+2. A published custom field on Employees stores, validates and shows a value per employee (BUG-3697).
+
+The task is finished when both are proven by DB-backed tests and integrated into `develop`. Plan: EXECPLAN-0053.
 
 ## Work Packages
 
-Boundaries follow ownership and dependency — schema, backend, frontend, security,
-integration, migration, QA, browser E2E, deployment. Never "files 1-10".
-A good package can be reviewed on its own and has one owning specialist.
-
 | WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | BUGS | CI_STATUS | MERGE_STATUS |
 |---|---|---|---|---|---|---|---|---|---|---|
-| WP-01 | <first package> | NOT_STARTED | — | <agent> | agent/<feature>-<scope> | — | — | — | — | — |
+| WP-01 | Batched import, Core sync outside the transaction, scale e2e | DONE | — | backend-api | agent/custom-field-values | 1e3a3779 | PASS | — | — | — |
+| WP-02 | CustomRecordExtension, shared value rules, EmployeesService wiring | DONE | — | database, backend-api, security | agent/custom-field-values | ddcdd911 | PASS | BUG-3697 | — | — |
+| WP-03 | Employee form: fields, section, values, payload, field errors | DONE | WP-02 | frontend | agent/custom-field-values | 775e2d60 | PASS | BUG-3697 | — | — |
+| WP-04 | QA, records, integration | IN_PROGRESS | WP-01, WP-03 | qa, integrator, knowledge-graph | agent/custom-field-values | — | PASS | — | — | — |
 
 ## Assumptions
 
-One row per material assumption. LOW confidence with high impact must be verified
-before work depends on it.
-
 | ASSUMPTION_ID | STATEMENT | EVIDENCE | CONFIDENCE | IMPACT_IF_WRONG |
 |---|---|---|---|---|
-| A-01 |  |  | HIGH \| MEDIUM \| LOW |  |
+| A-01 | Moving the Core sync out of the import transaction is safe. | Core sync is idempotent and runs on every metadata read. A concurrent change between the sync and the transaction is caught by the stale-plan check. | HIGH | An import could compare against a Core layer one sync old. The stale-plan refusal would catch it. |
+| A-02 | No production tenant has a custom column on a system table, so enabling value storage migrates no data. | Read-only production query, 2026-09-26: 0 rows. | HIGH | Existing definitions would simply start accepting values. There is no loss either way. |
+| A-03 | No built-in employee field name contains an underscore, so the publisher-prefixed key tells custom values apart. | A test asserts it over every built-in employee entity field. | HIGH | A built-in field would be sent as a custom value and ignored by the API. |
 
 ## Owner Decisions
 
-Genuine product or business questions only. Anything an agent can establish by
-reading this repository is an assumption to verify, not a question to ask.
+- 2026-09-26: "DP: Fix them and continue" reverses D-1 of EXECPLAN-0052. Value storage for system-module custom fields is in scope for this task.
 
-None.
+## Results
+
+- **Import at scale.** An install of 60 modules × 25 fields, with a form and a view each, now takes **43** database operations (7,444 before), a reinstall 42, and a 121-component upgrade 246. At 30 ms per round trip, the old count was roughly 223 s, over the 120 s timeout.
+- **Values.** Values are stored in `CustomRecordExtension`, validated by the rules shared with custom modules, masked and permission-filtered on read, and tenant-isolated. They are shown and edited on the employee create, edit and detail forms.
+- **Verification.** The booted API passed an HTTP check against a seeded throwaway database, which also proves the new module's DI wiring.
+- **Deferred to ITEM-0221:** lookup fields, list-view columns, export, and other system modules.
 
 ## Repository Health
 
-PRE_TASK_REPO_HEALTH and POST_TASK_REPO_HEALTH, with MAIN_SYNC_STATUS at each.
-See `node scripts/repo-health.mjs`.
+PRE_TASK_REPO_HEALTH and POST_TASK_REPO_HEALTH are recorded in the engineering history for this task.
 
 ## History
 
-- 2026-09-26 — created at `1e3a3779`.
+- 2026-09-26: created at `1e3a3779`.
+- 2026-09-26: WP-01 at `1e3a3779`, WP-02 at `ddcdd911`, WP-03 at `775e2d60`.
