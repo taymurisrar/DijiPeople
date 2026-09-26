@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **0** |
+| Active sessions | **1** |
 | Active parent tasks | 4 |
 | Active work packages | 4 |
 | Blocked work packages | 0 |
@@ -47,7 +47,9 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-_No session is currently registered as active._
+| Session | Task | Title | Status | Branch | Target | Leases | Schema |
+|---|---|---|---|---|---|---|---|
+| [[SESSION-0109-backlog-item-0201-runtime-optimistic-concurrency-item-0200-c|SESSION-0109]] | — | Backlog: ITEM-0201 runtime optimistic concurrency, ITEM-0200 contracts and partners API e2e | ACTIVE | `agent/backlog-0201-concurrency` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
 
@@ -298,7 +300,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 |---|---|
 | Open total | 229 |
 | Blocked | 2 |
-| Deferred | 106 |
+| Deferred | 105 |
 | Awaiting a product decision | 10 |
 | Awaiting Architect triage | 0 |
 

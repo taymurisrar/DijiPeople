@@ -6,11 +6,13 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 0** · completed: 104
+**Active: 1** · completed: 104
 
 ## Active
 
-_None. No session is currently running._
+| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
+|---|---|---|---|---|---|---|---|
+| [SESSION-0109](../../docs/sessions/SESSION-0109-backlog-item-0201-runtime-optimistic-concurrency-item-0200-c.md) | — | Backlog: ITEM-0201 runtime optimistic concurrency, ITEM-0200 contracts and partners API e2e | ACTIVE | `agent/backlog-0201-concurrency` | `develop` | — | 2026-09-26T12:36:53.307Z |
 
 ## Completed
 

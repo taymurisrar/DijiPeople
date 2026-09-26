@@ -15,9 +15,9 @@ see [`README.md`](README.md) for why.
 |---|---|
 | Open (active work) | 229 |
 | Blocked | 2 |
-| Deferred | 106 |
+| Deferred | 105 |
 | Awaiting a product decision | 10 |
-| Completed / closed | 347 |
+| Completed / closed | 348 |
 | **Open CRITICAL** | **6** |
 | **Open HIGH** | **101** |
 | **Awaiting Architect triage** | **0** |
@@ -58,14 +58,14 @@ see [`README.md`](README.md) for why.
 |---|---|
 | OPEN | 44 |
 | BLOCKED | 2 |
-| DEFERRED | 106 |
+| DEFERRED | 105 |
 | PRODUCT_DECISION | 10 |
 | FIXED | 162 |
 | VERIFIED | 218 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
 | READY | 23 |
-| DONE | 115 |
+| DONE | 116 |
 
 ## All records
 
@@ -657,7 +657,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0089](../../docs/backlog/items/ITEM-0089-the-contact-form-is-the-only-public-lead-creating-form-with-.md) | The contact form is the only public lead-creating form with no honeypot | SECURITY | LOW | P2 | DEFERRED | apps/landing | DEFER |
 | [ITEM-0098](../../docs/backlog/items/ITEM-0098-753-of-846-shared-frontend-exports-carry-no-doc-comment.md) | 753 of 846 shared frontend exports carry no doc-comment | DOCUMENTATION | LOW | P2 | DEFERRED | admin, web | DEFER |
 | [ITEM-0108](../../docs/backlog/items/ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle.md) | Decide whether the roughly one-hour session lifetime is idle or absolute | PRODUCT_DECISION | LOW | P2 | READY | api:auth | PLAN_REQUIRED |
-| [ITEM-0201](../../docs/backlog/items/ITEM-0201-platform-runtime-edits-ignore-the-record-version-so-concurre.md) | Platform runtime edits ignore the record version, so concurrent edits silently overwrite each other | TECH_DEBT | LOW | P2 | DEFERRED | api:platform-runtime, apps/admin | DEFER |
+| [ITEM-0201](../../docs/backlog/items/ITEM-0201-platform-runtime-edits-ignore-the-record-version-so-concurre.md) | Platform runtime edits ignore the record version, so concurrent edits silently overwrite each other | TECH_DEBT | LOW | P2 | DONE | api:platform-runtime, apps/admin | DONE |
 | [BUG-0018](../../docs/bugs/BUG-0018-bulk-lead-delete-is-unreachable-for-every-role.md) | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | P3 | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [BUG-0023](../../docs/bugs/BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist.md) | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | P3 | VERIFIED | .agent/context | DONE |
 | [BUG-0024](../../docs/bugs/BUG-0024-start-onboarding-api-and-proxy-have-no-caller.md) | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | P3 | VERIFIED | apps/admin, api:super-admin | DONE |

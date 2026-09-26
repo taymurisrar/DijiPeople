@@ -3,15 +3,15 @@ ID: ITEM-0201
 aliases: [ITEM-0201]
 Title: Platform runtime edits ignore the record version, so concurrent edits silently overwrite each other
 Type: TECH_DEBT
-Status: DEFERRED
+Status: DONE
 Priority: P2
 Severity: LOW
 AffectedModules: [services/api/src/modules/platform-runtime, apps/admin]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: DEFER
+ArchitectDisposition: DONE
 CreatedAt: 2026-09-25
-UpdatedAt: 2026-09-25
+UpdatedAt: 2026-09-26
 RelatedBug: 
 RelatedQA: 
 RelatedADR: 
@@ -50,6 +50,10 @@ None. Deferred out of TASK-0032 because it changes every runtime module's update
 
 [[BUG-3565]], [[TASK-0032]]
 
+## Resolution
+
+Fixed on `agent/backlog-0201-concurrency`. Runtime responses carry `version` = the record's `updatedAt` in epoch milliseconds (`recordVersion`), since none of the editable models has a version column. `PlatformRuntimeService.update` compares a submitted version with the stored `updatedAt` for leads, partners, customers, customer onboarding, tenants, contracts, support cases and plans, and refuses a stale one with `409 RECORD_CHANGED_SINCE_OPENED` before the owning service writes. The admin record page keeps the version current across its own saves and reloads, so an operator's consecutive saves are never refused. Updates without a version (API clients) are unchecked, as before. Stale-copy detection, not a lock. REG-633, QA-PLATFORM-044.
+
 ## History
 
 - 2026-09-25 — created at `c6fb718d`.
@@ -61,3 +65,4 @@ None. Deferred out of TASK-0032 because it changes every runtime module's update
 - Modules — [[platform-admin]]
 
 <!-- GRAPH:END -->
+- 2026-09-26 — implemented and verified; DONE.

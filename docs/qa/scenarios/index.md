@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 432** · automated: 356 · manual: 27 · blocked by infrastructure: 0
+**Scenarios: 433** · automated: 357 · manual: 27 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -283,6 +283,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-PLATFORM-041](../../../docs/qa/scenarios/QA-PLATFORM-041-the-admin-dashboard-reports-operational-metrics-honestly-nev.md) | The admin dashboard reports operational metrics honestly, never a fabricated zero | platform-admin | API | MEDIUM | AUTOMATED | `services/api/src/modules/super-admin/operations-dashboard.service.spec.ts` | ITEM-0199 | REG-585, REG-586 |
 | [QA-PLATFORM-042](../../../docs/qa/scenarios/QA-PLATFORM-042-the-admin-route-group-has-a-loading-and-error-boundary-pair.md) | The admin route group has a loading and error boundary pair | platform-admin | UNIT | LOW | MANUAL | — | BUG-3220 | REG-587 |
 | [QA-PLATFORM-043](../../../docs/qa/scenarios/QA-PLATFORM-043-the-dashboard-s-errors-needing-attention-tile-opens-a-list-m.md) | The dashboard's errors-needing-attention tile opens a list matching its count | monitoring | API | MEDIUM | AUTOMATED | `services/api/src/modules/platform-monitoring/open-incident-view.spec.ts` | ITEM-0206 | REG-632 |
+| [QA-PLATFORM-044](../../../docs/qa/scenarios/QA-PLATFORM-044-a-stale-admin-record-edit-is-refused-instead-of-overwriting-.md) | A stale admin record edit is refused instead of overwriting another operator's change | platform-admin | API | MEDIUM | AUTOMATED | `services/api/src/modules/platform-runtime/runtime-stale-update.spec.ts` | ITEM-0201 | REG-633 |
 | [QA-PROV-001](../../../docs/qa/scenarios/QA-PROV-001-a-tenant-that-failed-provisioning-can-be-retried.md) | A tenant that failed provisioning can be retried | tenant-provisioning | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/tenant-control-plane/tenant-provisioning-retry.spec.ts` | BUG-0014 | REG-012 |
 | [QA-PROV-002](../../../docs/qa/scenarios/QA-PROV-002-provisioning-is-safe-to-submit-twice.md) | Provisioning is safe to submit twice | tenant-provisioning | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/super-admin/tenant-provisioning-idempotency.spec.ts` | BUG-0022 | REG-030 |
 | [QA-PROV-003](../../../docs/qa/scenarios/QA-PROV-003-issued-tenant-hostnames-honour-the-configured-base-domain.md) | Issued tenant hostnames honour the configured base domain | tenant-provisioning | UNIT | HIGH | AUTOMATED | `services/api/src/common/config/tenant-url.config.spec.ts` | BUG-0017, BUG-0026 | REG-016, REG-027 |

@@ -6740,3 +6740,17 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — the dashboard computed its own status list, which the source assertion rejects. |
 | **Fixed** | 2026-09-26, branch `agent/backlog-0203-0204-0206` |
 | **Active** | yes |
+
+### REG-633 — Concurrent admin edits silently overwrote each other
+
+| | |
+|---|---|
+| **Bug class** | `lost-update` |
+| **Module** | `services/api/src/modules/platform-runtime` |
+| **Bug record** | ITEM-0201 |
+| **Root cause** | The admin record page sent a `version` with every update, but the editable runtime models carry no version column so the token was always undefined, and `PlatformRuntimeService.update` never compared it. Two operators editing one record overwrote each other without a conflict. |
+| **Regression test** | `services/api/src/modules/platform-runtime/runtime-stale-update.spec.ts` — an update from a stale version is refused with 409 and writes nothing; a current one applies and returns the new version; an update without a version is not checked. |
+| **Scenario** | Two operators open the same record; the second to save gets a conflict telling them to reload, and the first operator's change survives. |
+| **Fails without the fix** | Yes — without the check the stale update reaches the owning service. |
+| **Fixed** | 2026-09-26, branch `agent/backlog-0201-concurrency` |
+| **Active** | yes |
