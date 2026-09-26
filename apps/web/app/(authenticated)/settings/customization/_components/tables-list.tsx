@@ -111,7 +111,7 @@ export function TablesList({ tables }: TablesListProps) {
         searchable: true,
         searchAccessor: (row) => row.packageName ?? "",
         render: (row) =>
-          row.packageName ?? (row.isCustomTable ? "Not set" : "Default Package"),
+          row.packageName ?? (row.isCustomTable ? "Not set" : "DijiPeople Core"),
       },
       {
         key: "lifecycle",

@@ -348,7 +348,7 @@ function SettingsTab({
           label="Package"
           value={
             table.packageName ??
-            (table.isCustomTable ? "Not set" : "Default Package")
+            (table.isCustomTable ? "Not set" : "DijiPeople Core")
           }
         />
         <Meta

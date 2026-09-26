@@ -154,7 +154,7 @@ export function ViewsManagement({
       key: "package",
       header: "Package",
       render: (row) =>
-        row.type === "system" ? "Default Package" : "Custom Package",
+        row.type === "system" ? "DijiPeople Core" : "Custom Package",
     },
     {
       key: "lifecycle",

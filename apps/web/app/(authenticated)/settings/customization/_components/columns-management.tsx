@@ -215,12 +215,12 @@ export function ColumnsManagement({
       key: "package",
       header: "Package",
       /*
-       * ITEM-0184 / BUG-3495 — this read "Default Package" or "Custom Package"
+       * ITEM-0184 / BUG-3495 — this read "DijiPeople Core" or "Custom Package"
        * from `isSystem` alone, so one module showed three package names at
        * once. It is the owning package's real name now.
        */
       render: (row) =>
-        row.packageName ?? (row.isSystem ? "Default Package" : "Not set"),
+        row.packageName ?? (row.isSystem ? "DijiPeople Core" : "Not set"),
     },
     {
       key: "lifecycle",

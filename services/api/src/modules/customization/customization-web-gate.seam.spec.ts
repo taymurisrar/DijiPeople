@@ -8,6 +8,7 @@ import type { ExecutionContext } from '@nestjs/common';
 import { REQUIRED_PERMISSIONS_KEY } from '../../common/decorators/require-permissions.decorator';
 import { CustomizationAccessGuard } from './customization-access.guard';
 import { CustomizationController } from './customization.controller';
+import { PackageAlmController } from './package-alm.controller';
 import { CUSTOMIZATION_COMPONENT_WRITE_KEYS } from './customization.service';
 
 /*
@@ -61,24 +62,28 @@ type Route = { name: string; handler: object; keys: string[] };
 
 function routes(): Map<string, Route> {
   const byRoute = new Map<string, Route>();
-  const prototype = CustomizationController.prototype as unknown as Record<
-    string,
-    object
-  >;
-  for (const name of Object.getOwnPropertyNames(prototype)) {
-    if (name === 'constructor') continue;
-    const handler = prototype[name];
-    const method = Reflect.getMetadata(METHOD_METADATA, handler) as
-      | RequestMethod
-      | undefined;
-    if (method === undefined) continue;
-    const path = Reflect.getMetadata(PATH_METADATA, handler) as string;
-    const keys =
-      reflector.getAllAndOverride<string[]>(REQUIRED_PERMISSIONS_KEY, [
-        handler as () => unknown,
-        CustomizationController,
-      ]) ?? [];
-    byRoute.set(`${RequestMethod[method]} ${path}`, { name, handler, keys });
+  /*
+   * TASK-0033 — both controllers mounted on /customization. A page calling a
+   * package-lifecycle route is checked exactly like one calling the original
+   * controller; scanning only one of them let those calls pass unchecked.
+   */
+  for (const controller of [CustomizationController, PackageAlmController]) {
+    const prototype = controller.prototype as unknown as Record<string, object>;
+    for (const name of Object.getOwnPropertyNames(prototype)) {
+      if (name === 'constructor') continue;
+      const handler = prototype[name];
+      const method = Reflect.getMetadata(METHOD_METADATA, handler) as
+        | RequestMethod
+        | undefined;
+      if (method === undefined) continue;
+      const path = Reflect.getMetadata(PATH_METADATA, handler) as string;
+      const keys =
+        reflector.getAllAndOverride<string[]>(REQUIRED_PERMISSIONS_KEY, [
+          handler as () => unknown,
+          CustomizationController,
+        ]) ?? [];
+      byRoute.set(`${RequestMethod[method]} ${path}`, { name, handler, keys });
+    }
   }
   return byRoute;
 }
