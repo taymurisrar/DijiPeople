@@ -9,8 +9,8 @@
 |---|---|
 | Open CRITICAL | **6** |
 | Open HIGH | **102** |
-| Open total | 234 |
-| Blocked | 4 |
+| Open total | 235 |
+| Blocked | 3 |
 | Awaiting a product decision | 9 |
 | Deferred | 118 |
 | Completed | 352 |
@@ -154,7 +154,6 @@
 |---|---|---|---|---|---|---|
 | [[ITEM-0209-confirm-the-safepay-refund-request-body-and-webhook-signing-|ITEM-0209]] | Confirm the Safepay refund request body and webhook signing input against a live sandbox run | TEST_GAP | HIGH | BLOCKED | api:billing | BLOCKED_EXTERNAL |
 | [[ITEM-0048-replace-or-contain-active-win-and-the-xlsx-export-path|ITEM-0048]] | Replace or contain active-win and the xlsx export path | SECURITY | HIGH | BLOCKED | apps/agent-desktop, services/api/src/common/excel, package-lock.json | BLOCKED_EXTERNAL |
-| [[ITEM-0210-decide-when-pkr-checkout-moves-to-safepay-and-what-happens-t|ITEM-0210]] | Decide when PKR checkout moves to Safepay and what happens to existing PKR Stripe subscribers | PRODUCT_DECISION | MEDIUM | BLOCKED | api:billing | BLOCKED_EXTERNAL |
 | [[BUG-0084-seven-unique-constraints-in-schema-prisma-are-absent-from-th|BUG-0084]] | Seven unique constraints in schema.prisma are absent from the migration chain | DATA_INTEGRITY | MEDIUM | BLOCKED | contracts, partner-experience, support-cases, approvals, tenant-settings | BLOCKED_EXTERNAL |
 
 ## Current Test Gaps
@@ -597,13 +596,13 @@
 ## Recent Engineering History
 
 - [[2026-09-26-task-0033-package-alm-b55afdb2|Engineering History — TASK-0033 package ALM]]
+- [[2026-09-26-release-task-0034-custom-field-values-1aeda297|Engineering History — Release task 0034 custom field values]]
 - [[2026-09-26-release-backlog-safepay-package-alm-42f597b7|Engineering History — Release backlog safepay package alm]]
 - [[2026-09-26-item-0207-template-versions-9e66d115|Engineering History — Item 0207 template versions]]
 - [[2026-09-26-custom-field-values-and-import-scale-cd777b78|Engineering History — Custom field values and import scale]]
 - [[2026-09-26-billing-safepay-provider-aa2c507e|Engineering History — Safepay for PKR alongside Stripe]]
 - [[2026-09-26-backlog-0203-0204-0206-7866e11e|Engineering History — Backlog 0203 0204 0206]]
 - [[2026-09-26-backlog-0201-0200-856747e7|Engineering History — Backlog 0201 0200]]
-- [[2026-09-25-task-0032-partner-agreements-admin-hardening-dfe42ea9|Engineering History — Task 0032 partner agreements admin hardening]]
 
 ## Recent Releases
 
@@ -618,6 +617,7 @@
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
 | [[BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver|BUG-3501]] | The email provider screen presents a console sink as delivery and offers sink providers in production | UX | MEDIUM | FIXED | notifications, apps/web | PLAN_REQUIRED |
+| [[ITEM-0210-decide-when-pkr-checkout-moves-to-safepay-and-what-happens-t|ITEM-0210]] | Decide when PKR checkout moves to Safepay and what happens to existing PKR Stripe subscribers | PRODUCT_DECISION | MEDIUM | IN_PROGRESS | api:billing | FIX_NOW |
 | [[BUG-1548-customer-onboarding-validate-accepts-payloads-that-create-re|BUG-1548]] | Customer onboarding validate accepts payloads that create rejects | BUG | MEDIUM | FIXED | onboarding | DONE |
 | [[BUG-1551-desktop-agent-auto-update-manifest-returns-404|BUG-1551]] | Desktop agent auto-update manifest returns 404 | INTEGRATION | MEDIUM | FIXED | agent, app-releases | DONE |
 | [[BUG-1668-tenant-workspace-pages-scroll-horizontally-at-mobile-width|BUG-1668]] | Tenant workspace pages scroll horizontally at mobile width | UX | MEDIUM | FIXED | views | DONE |
@@ -782,7 +782,7 @@
 | Backlog items | 221 |
 | Known bug patterns | 35 |
 | QA runs | 36 |
-| Engineering history records | 90 |
+| Engineering history records | 91 |
 | Release records | 10 |
 | Module notes | 31 |
 | Architecture notes | 22 |
