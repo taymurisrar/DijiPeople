@@ -7,15 +7,15 @@
 
 | | |
 |---|---|
-| Active sessions | **0** |
-| Active parent tasks | 4 |
-| Active work packages | 4 |
+| Active sessions | **1** |
+| Active parent tasks | 5 |
+| Active work packages | 5 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **6** |
-| Open HIGH | 101 |
+| Open HIGH | 103 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 11 |
 | QA coverage gaps | 161 |
@@ -30,12 +30,12 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 230 |
-| No next action | 230 |
+| No acceptance criteria | 235 |
+| No next action | 235 |
 | Aging — 7d / 30d / 90d | 199 / 16 / 0 |
 | Architecture and technical debt | 7 |
 | Security gaps | 37 |
-| Database gaps | 22 |
+| Database gaps | 25 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -47,7 +47,9 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-_No session is currently registered as active._
+| Session | Task | Title | Status | Branch | Target | Leases | Schema |
+|---|---|---|---|---|---|---|---|
+| [[SESSION-0110-package-alm-versions-portable-artifact-staged-import-upgrade|SESSION-0110]] | — | Package ALM: versions, portable artifact, staged import, upgrade, uninstall | ACTIVE | `agent/packages-alm` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
 
@@ -57,6 +59,7 @@ _No session is currently registered as active._
 | [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 16/16 | — | — | — |
 | [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 11/11 | — | — | — |
 | [[TASK-0028-enterprise-reports-and-analytics-platform|TASK-0028]] | Enterprise Reports and Analytics platform | FEATURE | LARGE | 5/15 | WP-08 | — | — |
+| [[TASK-0033-package-alm-versions-portable-artifact-staged-import-upgrade|TASK-0033]] | Package ALM: versions, portable artifact, staged import, upgrade, uninstall | FEATURE | LARGE | 0/8 | WP-01 | WP-01 | — |
 
 ## Branch model
 
@@ -297,9 +300,9 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 230 |
+| Open total | 235 |
 | Blocked | 3 |
-| Deferred | 109 |
+| Deferred | 118 |
 | Awaiting a product decision | 11 |
 | Awaiting Architect triage | 0 |
 

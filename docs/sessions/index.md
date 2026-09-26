@@ -6,11 +6,13 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 0** · completed: 106
+**Active: 1** · completed: 106
 
 ## Active
 
-_None. No session is currently running._
+| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
+|---|---|---|---|---|---|---|---|
+| [SESSION-0110](../../docs/sessions/SESSION-0110-package-alm-versions-portable-artifact-staged-import-upgrade.md) | — | Package ALM: versions, portable artifact, staged import, upgrade, uninstall | ACTIVE | `agent/packages-alm` | `develop` | — | 2026-09-26T12:38:41.080Z |
 
 ## Completed
 

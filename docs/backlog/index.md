@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**702 records** — 487 bugs under [`docs/bugs/`](../bugs/), 215 non-bug items under [`items/`](items/).
+**716 records** — 496 bugs under [`docs/bugs/`](../bugs/), 220 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 230 |
+| Open (active work) | 235 |
 | Blocked | 3 |
-| Deferred | 109 |
+| Deferred | 118 |
 | Awaiting a product decision | 11 |
 | Completed / closed | 349 |
 | **Open CRITICAL** | **6** |
-| **Open HIGH** | **101** |
+| **Open HIGH** | **103** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,8 +27,8 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 6 |
-| HIGH | 101 |
-| MEDIUM | 101 |
+| HIGH | 103 |
+| MEDIUM | 104 |
 | LOW | 22 |
 
 ## Open by type
@@ -36,9 +36,9 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | AUTHORIZATION | 13 |
-| BUG | 70 |
+| BUG | 71 |
 | DATABASE | 1 |
-| DATA_INTEGRITY | 21 |
+| DATA_INTEGRITY | 24 |
 | DOCUMENTATION | 1 |
 | FOLLOW_UP | 3 |
 | INFRA | 8 |
@@ -46,7 +46,7 @@ see [`README.md`](README.md) for why.
 | PERFORMANCE | 15 |
 | PRODUCT_DECISION | 1 |
 | SECURITY | 22 |
-| STATE_MACHINE | 3 |
+| STATE_MACHINE | 4 |
 | TECH_DEBT | 7 |
 | TENANT_ISOLATION | 2 |
 | TEST_GAP | 9 |
@@ -56,11 +56,11 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 44 |
+| OPEN | 46 |
 | BLOCKED | 3 |
-| DEFERRED | 109 |
+| DEFERRED | 118 |
 | PRODUCT_DECISION | 11 |
-| FIXED | 163 |
+| FIXED | 166 |
 | VERIFIED | 218 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
@@ -306,6 +306,8 @@ see [`README.md`](README.md) for why.
 | [BUG-3565](../../docs/bugs/BUG-3565-opening-a-contract-template-or-signature-request-from-its-ad.md) | Opening a contract template or signature request from its admin list returns 404 | BUG | HIGH | P1 | FIXED | api:platform-runtime | DONE |
 | [BUG-3578](../../docs/bugs/BUG-3578-deleting-a-partner-or-lead-with-restricted-history-crashes-w.md) | Deleting a partner or lead with restricted history crashes with a 500 | DATA_INTEGRITY | HIGH | P1 | FIXED | api:partners, api:leads | DONE |
 | [BUG-3597](../../docs/bugs/BUG-3597-a-drawn-or-uploaded-signature-inside-a-signature-paragraph-i.md) | A drawn or uploaded signature inside a signature paragraph is dropped from the signed PDF and DOCX | BUG | HIGH | P1 | FIXED | api:contracts | DONE |
+| [BUG-3697](../../docs/bugs/BUG-3697-a-custom-field-added-to-a-system-module-has-nowhere-to-store.md) | A custom field added to a system module has nowhere to store its values | DATA_INTEGRITY | HIGH | P1 | OPEN | customization, employees | PLAN_REQUIRED |
+| [BUG-3702](../../docs/bugs/BUG-3702-adding-a-field-to-a-package-s-own-custom-module-demoted-the-.md) | Adding a field to a package's own custom module demoted the module to a reference | DATA_INTEGRITY | HIGH | P1 | FIXED | customization | DONE |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -547,6 +549,10 @@ see [`README.md`](README.md) for why.
 | [BUG-3585](../../docs/bugs/BUG-3585-error-codes-added-for-mfa-platform-authorization-and-agreeme.md) | Error codes added for MFA, platform authorization and agreements reach clients as generic codes | BUG | MEDIUM | P2 | FIXED | services/api/src/common/errors, api:auth, api:contracts | DONE |
 | [BUG-3587](../../docs/bugs/BUG-3587-the-monitoring-overview-raises-a-hydration-error-that-covers.md) | The monitoring overview raises a hydration error that covers the page with the error dialog | UX | MEDIUM | P2 | FIXED | apps/admin | DONE |
 | [BUG-3598](../../docs/bugs/BUG-3598-generate-document-on-an-executed-agreement-renders-from-draf.md) | Generate document on an executed agreement renders from draft values, not the signature evidence | BUG | MEDIUM | P2 | FIXED | api:contracts, apps/admin | DONE |
+| [BUG-3698](../../docs/bugs/BUG-3698-draft-edits-to-custom-fields-take-effect-before-they-are-pub.md) | Draft edits to custom fields take effect before they are published | STATE_MACHINE | MEDIUM | P2 | OPEN | customization | PLAN_REQUIRED |
+| [BUG-3699](../../docs/bugs/BUG-3699-deleting-a-field-form-or-view-ignored-references-held-in-oth.md) | Deleting a field, form or view ignored references held in other packages' layers | DATA_INTEGRITY | MEDIUM | P2 | FIXED | customization | DONE |
+| [BUG-3703](../../docs/bugs/BUG-3703-package-export-readiness-could-never-report-a-missing-depend.md) | Package export readiness could never report a missing dependency | BUG | MEDIUM | P2 | FIXED | customization | DONE |
+| [BUG-3704](../../docs/bugs/BUG-3704-settings-pages-scroll-horizontally-at-phone-width-again.md) | Settings pages scroll horizontally at phone width again | UX | MEDIUM | P2 | DEFERRED | apps/web | DEFER |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -702,6 +708,9 @@ see [`README.md`](README.md) for why.
 | [BUG-3588](../../docs/bugs/BUG-3588-a-signed-in-operator-without-the-users-permission-sees-a-log.md) | A signed-in operator without the users permission sees a login-style Access denied page | UX | LOW | P3 | DEFERRED | apps/admin | DEFER |
 | [BUG-3599](../../docs/bugs/BUG-3599-generating-an-agreement-in-an-unsupported-format-returns-a-5.md) | Generating an agreement in an unsupported format returns a 500 instead of a 400 | BUG | LOW | P3 | FIXED | api:contracts | DONE |
 | [BUG-3668](../../docs/bugs/BUG-3668-saving-agreement-document-fields-skips-the-shared-immutabili.md) | Saving agreement document fields skips the shared immutability check | BUG | LOW | P3 | FIXED | api:contracts | DONE |
+| [BUG-3700](../../docs/bugs/BUG-3700-any-signed-in-user-can-read-the-full-published-customization.md) | Any signed-in user can read the full published customization snapshot | AUTHORIZATION | LOW | P3 | DEFERRED | customization | DEFER |
+| [BUG-3701](../../docs/bugs/BUG-3701-platform-scope-customization-packages-are-not-unique-by-key.md) | Platform-scope customization packages are not unique by key | DATABASE | LOW | P3 | DEFERRED | customization | DEFER |
+| [BUG-3705](../../docs/bugs/BUG-3705-package-sub-page-breadcrumbs-end-in-a-second-packages-instea.md) | Package sub-page breadcrumbs end in a second Packages instead of the page | UX | LOW | P3 | DEFERRED | apps/web | DEFER |
 | [ITEM-0007](../../docs/backlog/items/ITEM-0007-should-duplicate-website-leads-be-deduplicated.md) | Product decision — should duplicate website leads be deduplicated? | PRODUCT_DECISION | LOW | P3 | DONE | api:leads, apps/landing | DONE |
 | [ITEM-0008](../../docs/backlog/items/ITEM-0008-customeraccount-has-no-origin-channel.md) | Product decision — CustomerAccount carries no origin channel | PRODUCT_DECISION | LOW | P3 | DONE | services/api/prisma, api:super-admin | DONE |
 | [ITEM-0011](../../docs/backlog/items/ITEM-0011-framework-validation-should-catch-absence-claims.md) | Framework validation should catch false absence claims in context documents | TECH_DEBT | LOW | P3 | DONE | .agent/context, scripts | DONE |
@@ -767,6 +776,11 @@ see [`README.md`](README.md) for why.
 | [ITEM-0173](../../docs/backlog/items/ITEM-0173-wire-notification-coverage-for-the-four-highest-value-remain.md) | Wire notification coverage for the four highest-value remaining silent modules | FOLLOW_UP | — | P2 | DEFERRED | documents, contracts, recruitment, business-trips | DEFER |
 | [ITEM-0193](../../docs/backlog/items/ITEM-0193-decide-whether-the-hr-role-may-manage-notification-events.md) | Decide whether the hr role may manage notification events | PRODUCT_DECISION | — | P2 | PRODUCT_DECISION | notifications, permissions | PRODUCT_DECISION |
 | [ITEM-0207](../../docs/backlog/items/ITEM-0207-seed-config-rewrites-version-1-of-system-agreement-templates.md) | seed:config rewrites version 1 of system agreement templates in place instead of publishing a new version | PRODUCT_DECISION | — | P2 | PRODUCT_DECISION | services/api/prisma | PRODUCT_DECISION |
+| [ITEM-0216](../../docs/backlog/items/ITEM-0216-connection-references-for-customization-packages.md) | Connection references for customization packages | FOLLOW_UP | — | P2 | DEFERRED | customization | DEFER |
+| [ITEM-0217](../../docs/backlog/items/ITEM-0217-platform-admin-read-only-view-of-tenant-package-installation.md) | Platform admin read-only view of tenant package installations | FOLLOW_UP | — | P2 | DEFERRED | customization, super-admin | DEFER |
+| [ITEM-0218](../../docs/backlog/items/ITEM-0218-carry-module-views-navigation-workflows-and-reports-in-custo.md) | Carry module views, navigation, workflows and reports in customization packages | ARCHITECTURE | — | P2 | DEFERRED | customization, views, navigation, workflows, reporting | DEFER |
+| [ITEM-0219](../../docs/backlog/items/ITEM-0219-package-cli-and-a-ci-pipeline-step-for-validate-export-and-i.md) | Package CLI and a CI pipeline step for validate, export and import | FOLLOW_UP | — | P2 | DEFERRED | customization | DEFER |
+| [ITEM-0220](../../docs/backlog/items/ITEM-0220-publisher-signing-for-customization-package-artifacts.md) | Publisher signing for customization package artifacts | SECURITY | — | P2 | DEFERRED | customization | DEFER |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |
 | [ITEM-0114](../../docs/backlog/items/ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-.md) | The workspace shell states the tenant's identity four times and its purpose twice | UX | — | P3 | DONE | views, apps/web | DONE |

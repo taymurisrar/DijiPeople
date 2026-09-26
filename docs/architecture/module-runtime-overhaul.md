@@ -394,6 +394,8 @@ Responsibilities:
 
 ### Solution Layer
 
+> **Implemented (TASK-0033):** packages, publishers, immutable versions, the `.djpkg` artifact, staged import, upgrade and uninstall are documented in [customization-packages.md](customization-packages.md) and decided in ADR-0022. The text below is the original design intent.
+
 The solution runtime packages metadata and configuration into importable/exportable components. It supports managed and unmanaged layering so DijiPeople can ship base modules while tenants or partners customize safely.
 
 Responsibilities:

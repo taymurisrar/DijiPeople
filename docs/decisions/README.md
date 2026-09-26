@@ -64,6 +64,7 @@ plainly what an agent must or must not do as a result of this decision.
 | [ADR-0015](ADR-0015-production-retires-sink-email-providers.md) | Production retires sink email providers, tenants fall back to the platform relay, and default templates ship with real copy | Accepted |
 | [ADR-0016](ADR-0016-published-custom-modules-render-in-the-tenant-runtime.md) | A published custom module renders in the tenant runtime with a sidebar entry and standard list, form and record screens | Accepted |
 | [ADR-0017](ADR-0017-the-hierarchy-viewer-stays-a-chain-scoped-dialog.md) | The reporting hierarchy viewer stays a chain-scoped dialog, drawn as a real branching tree | Accepted |
+| [ADR-0022](ADR-0022-customization-packages-are-the-alm-unit.md) | Customization packages are the ALM unit — built on the existing package layer, separate from ApplicationRelease | Accepted |
 
 > ADR-0008 was written as `ADR-0006` by a parallel stream on 2026-09-11 and
 > renumbered at integration, because a second `ADR-0006` already existed. The

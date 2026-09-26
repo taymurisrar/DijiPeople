@@ -6768,3 +6768,45 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — without the guard the field is upserted. |
 | **Fixed** | 2026-09-26, branch `agent/backlog-0200-e2e` |
 | **Active** | yes |
+
+### REG-635 — Deleting a component another package still names
+
+| | |
+|---|---|
+| **Bug class** | `two-dependency-notions` |
+| **Module** | `services/api/src/modules/customization` |
+| **Bug record** | BUG-3699 |
+| **Root cause** | Deletes checked form layouts and view columns only; references held in other packages' layers (relationships, action bars, Core extensions) were never consulted. |
+| **Regression test** | `services/api/test/customization-package-alm.e2e-spec.ts` — "delete safety (B3)": a field named only by a relationship in another package cannot be deleted, and the refusal names the relationship and its package. |
+| **Scenario** | Deleting a field that a relationship in another package uses is refused and the field still exists. |
+| **Fails without the fix** | Yes — without the layer-reference check the delete succeeds. |
+| **Fixed** | 2026-09-26, branch `agent/packages-alm` |
+| **Active** | yes |
+
+### REG-636 — Adding a field demoted the package's own module to a reference
+
+| | |
+|---|---|
+| **Bug class** | `membership-upsert-overwrites-ownership` |
+| **Module** | `services/api/src/modules/customization` |
+| **Bug record** | BUG-3702 |
+| **Root cause** | Module membership was upserted with layerAction reference, overwriting the create row the package held for its own module, so exports shipped fields without their module. |
+| **Regression test** | `services/api/test/customization-package-alm.e2e-spec.ts` — "C/D": after a field is added, the package's module row is still create; the DEV → UAT import then installs the module. |
+| **Scenario** | A package's own module stays created by the package after fields are added, and the package imports into another environment. |
+| **Fails without the fix** | Yes — mutation-checked: restoring the overwrite fails the C/D assertion even with the reader recovery in place. |
+| **Fixed** | 2026-09-26, branch `agent/packages-alm` |
+| **Active** | yes |
+
+### REG-637 — Export readiness could never report a missing dependency
+
+| | |
+|---|---|
+| **Bug class** | `inert-check` |
+| **Module** | `services/api/src/modules/customization` |
+| **Bug record** | BUG-3703 |
+| **Root cause** | The readiness check compared declared dependencies that were always empty, so it always reported ready; release validation now computes real ones. |
+| **Regression test** | `services/api/test/customization-package-alm.e2e-spec.ts` (release validation reports the Core dependency; import refuses a missing package dependency) and `services/api/src/modules/customization/package-comparison.spec.ts` (MISSING_DEPENDENCY). |
+| **Scenario** | A package that needs something it does not carry is flagged before release and blocked at import. |
+| **Fails without the fix** | Yes — with dependencies empty neither the release issue nor MISSING_DEPENDENCY appears. |
+| **Fixed** | 2026-09-26, branch `agent/packages-alm` |
+| **Active** | yes |

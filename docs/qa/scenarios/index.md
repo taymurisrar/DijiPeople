@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 441** · automated: 365 · manual: 27 · blocked by infrastructure: 0
+**Scenarios: 442** · automated: 366 · manual: 27 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -389,6 +389,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-SETTINGS-030](../../../docs/qa/scenarios/QA-SETTINGS-030-production-refuses-and-ignores-console-and-dev-email-provide.md) | Production refuses and ignores Console and Dev email providers | notifications | SECURITY | HIGH | PARTIAL | `services/api/src/modules/notifications/email/production-sink-retirement.spec.ts` | BUG-3501 | REG-515, REG-516, REG-517 |
 | [QA-SETTINGS-031](../../../docs/qa/scenarios/QA-SETTINGS-031-the-email-providers-screen-states-the-real-delivery-path.md) | The Email Providers screen states the real delivery path | notifications | BROWSER_E2E | MEDIUM | PARTIAL | `apps/web/app/(authenticated)/settings/notifications/_components/email-delivery-path.spec.ts` | BUG-3501 | REG-518 |
 | [QA-SETTINGS-032](../../../docs/qa/scenarios/QA-SETTINGS-032-delivery-logs-show-a-reason-column-an-in-app-channel-and-one.md) | Delivery Logs show a reason column, an In-app channel and one name | notifications | BROWSER_E2E | MEDIUM | PARTIAL | `services/api/src/modules/notifications/in-app-delivery-logs.spec.ts` | ITEM-0182 | REG-519 |
+| [QA-SETTINGS-033](../../../docs/qa/scenarios/QA-SETTINGS-033-customization-package-moves-dev-to-uat-release-export-staged.md) | Customization package moves DEV to UAT: release, export, staged import, upgrade, re-import, rollback, uninstall | settings | DATABASE | HIGH | AUTOMATED | `services/api/test/customization-package-alm.e2e-spec.ts` | BUG-3699, BUG-3702, BUG-3703 | REG-635, REG-636, REG-637 |
 | [QA-TENANT-001](../../../docs/qa/scenarios/QA-TENANT-001-the-two-tenant-isolation-pattern-scoped-read-and-scoped-writ.md) | The two-tenant isolation pattern: scoped read and scoped write | tenant-isolation | SECURITY | CRITICAL | AUTOMATED | `services/api/test/tenant-isolation-pattern.e2e-spec.ts` | — | — |
 | [QA-TENANT-002](../../../docs/qa/scenarios/QA-TENANT-002-a-support-role-cannot-read-another-tenant-s-error-logs.md) | A support role cannot read another tenant's error logs | tenant-isolation | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/error-logs/error-logs.service.spec.ts` | BUG-0005 | REG-005 |
 | [QA-TENANT-003](../../../docs/qa/scenarios/QA-TENANT-003-attendance-integration-credentials-never-cross-a-tenant-boun.md) | Attendance-integration credentials never cross a tenant boundary | tenant-isolation | E2E | CRITICAL | AUTOMATED | `services/api/test/attendance-integrations-isolation.e2e-spec.ts` | — | — |
