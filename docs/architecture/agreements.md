@@ -156,6 +156,12 @@ inserts is a `table` (the one element `cleanContractHtml` allows to carry
 [`docs/knowledge/modules/contracts-and-agreements.md`](../knowledge/modules/contracts-and-agreements.md#authoring-a-template-document)
 for the full allowlist detail; unchanged by TASK-0032.
 
+**System templates are versioned by the seed too (ADR-0023).** `seed:config`
+runs on every production deploy and never rewrites an existing template
+version: a changed seeded template is published as the next version, the way
+an operator edit is, and a version an operator published is left in place
+(`planSystemContractTemplateWrite` in `services/api/prisma/seed-config.ts`).
+
 ## Generation: preview vs frozen (WP-11)
 
 **Before WP-11's fix, a draft preview printed the stored version's raw HTML**,

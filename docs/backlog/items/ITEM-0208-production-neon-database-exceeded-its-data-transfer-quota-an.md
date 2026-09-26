@@ -3,15 +3,15 @@ ID: ITEM-0208
 aliases: [ITEM-0208]
 Title: Production Neon database exceeded its data transfer quota and failed two deploys
 Type: INFRA
-Status: READY
+Status: DONE
 Priority: P1
 Severity: HIGH
 AffectedModules: [services/api]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: DONE
 CreatedAt: 2026-09-25
-UpdatedAt: 2026-09-25
+UpdatedAt: 2026-09-26
 RelatedBug: 
 RelatedQA: 
 RelatedADR: 
@@ -73,6 +73,12 @@ Owner access to the Neon account.
 
 [[TASK-0032]], [[ITEM-0207]]
 
+## Resolution
+
+Resolved by the owner, who confirmed on 2026-09-26 that the Neon quota and
+alerting are handled on their side. The 2026-09-26 releases (`b586ac0a`,
+`42f597b7`) both ran their pre-deploy step successfully against the database.
+
 ## History
 
 - 2026-09-25 — created at `b586ac0a`.
@@ -85,3 +91,4 @@ Owner access to the Neon account.
 - Modules — [[api-architecture]]
 
 <!-- GRAPH:END -->
+- 2026-09-26 — owner confirmed resolved; DONE.

@@ -728,7 +728,7 @@ export const PLATFORM_CONTRACT_TEMPLATES = [
   },
 ];
 
-async function seedPlatformContractTemplates(client: PrismaClient) {
+export async function seedPlatformContractTemplates(client: PrismaClient) {
   for (const item of PLATFORM_CONTRACT_TEMPLATES) {
     const lifecycleGatePurpose = item.contractType.includes('PARTNER')
       ? 'PARTNER_ONBOARDING'
@@ -755,55 +755,103 @@ async function seedPlatformContractTemplates(client: PrismaClient) {
       },
       update: { name: item.name, isActive: true, lifecycleGatePurpose },
     });
-    await client.contractTemplateVersion.upsert({
-      where: { templateId_version: { templateId: template.id, version: 1 } },
-      create: {
-        templateId: template.id,
-        version: 1,
-        title: item.title,
-        contentHtml: item.contentHtml,
-        contentText: item.contentHtml.replace(/<[^>]+>/g, ' '),
-        placeholders: [...item.contentHtml.matchAll(/\{\{([^}]+)\}\}/g)].map(
-          (match) => ({ key: match[1] }),
-        ) as Prisma.InputJsonValue,
-        isPublished: true,
-        publishedAt: new Date(),
-        changeSummary: 'Initial enterprise template version.',
-        fieldDefinitions: [
-          { key: 'effectiveDate', type: 'DATE', required: false },
-          { key: 'signature', type: 'SIGNATURE', required: true },
-        ] as Prisma.InputJsonValue,
-        partyDefinitions: [
-          { partyType: 'PLATFORM', role: 'PROVIDER', signingOrder: 1 },
-          {
-            partyType: 'EXTERNAL_ORGANIZATION',
-            role: 'AUTHORIZED_SIGNATORY',
-            signingOrder: 2,
-          },
-        ] as Prisma.InputJsonValue,
-        signingConfig: {
-          mode: 'MIXED',
-          requiredSignatures: true,
-        } as Prisma.InputJsonValue,
-        lifecycleGatePurpose,
-      },
-      /*
-       * Version 1 of a system template is refreshed on every seed so
-       * placeholder-namespace changes reach existing installs. Operator edits
-       * are unaffected: editing a template publishes a new version rather than
-       * rewriting version 1.
-       */
-      update: {
-        title: item.title,
-        contentHtml: item.contentHtml,
-        contentText: item.contentHtml.replace(/<[^>]+>/g, ' '),
-        placeholders: [...item.contentHtml.matchAll(/\{\{([^}]+)\}\}/g)].map(
-          (match) => ({ key: match[1] }),
-        ) as Prisma.InputJsonValue,
-        lifecycleGatePurpose,
+    const latest = await client.contractTemplateVersion.findFirst({
+      where: { templateId: template.id },
+      orderBy: { version: 'desc' },
+      select: {
+        version: true,
+        title: true,
+        contentHtml: true,
+        createdById: true,
       },
     });
+    const plan = planSystemContractTemplateWrite(latest, item);
+    if (plan.action === 'none' || plan.action === 'keep-operator-version')
+      continue;
+    const data = {
+      templateId: template.id,
+      version: plan.version,
+      title: item.title,
+      contentHtml: item.contentHtml,
+      contentText: item.contentHtml.replace(/<[^>]+>/g, ' '),
+      placeholders: [...item.contentHtml.matchAll(/\{\{([^}]+)\}\}/g)].map(
+        (match) => ({ key: match[1] }),
+      ) as Prisma.InputJsonValue,
+      isPublished: true,
+      publishedAt: new Date(),
+      changeSummary:
+        plan.action === 'create-first'
+          ? 'Initial enterprise template version.'
+          : 'System template update published by seed:config.',
+      fieldDefinitions: [
+        { key: 'effectiveDate', type: 'DATE', required: false },
+        { key: 'signature', type: 'SIGNATURE', required: true },
+      ] as Prisma.InputJsonValue,
+      partyDefinitions: [
+        { partyType: 'PLATFORM', role: 'PROVIDER', signingOrder: 1 },
+        {
+          partyType: 'EXTERNAL_ORGANIZATION',
+          role: 'AUTHORIZED_SIGNATORY',
+          signingOrder: 2,
+        },
+      ] as Prisma.InputJsonValue,
+      signingConfig: {
+        mode: 'MIXED',
+        requiredSignatures: true,
+      } as Prisma.InputJsonValue,
+      lifecycleGatePurpose,
+    };
+    // Publish the new version exactly as an operator edit does: the one
+    // published version is the one new agreements are drafted from.
+    await client.$transaction([
+      client.contractTemplateVersion.updateMany({
+        where: { templateId: template.id, isPublished: true },
+        data: { isPublished: false, publishedAt: null },
+      }),
+      client.contractTemplateVersion.create({ data }),
+    ]);
   }
+}
+
+/**
+ * ADR-0023 (ITEM-0207). How `seed:config` writes a system agreement template.
+ *
+ * It used to rewrite version 1 in place on every deploy, so a template's
+ * history no longer showed what earlier agreements had been drafted from. Now
+ * a seeded change is published as a new version, and every version already
+ * written is left exactly as it was:
+ *
+ * - no version yet → create version 1;
+ * - the latest version already carries the seeded title and content → nothing;
+ * - the latest version is the seed's own (no `createdById`) and differs →
+ *   publish the next version;
+ * - the latest version was written by an operator → keep it. An operator's
+ *   edit of a system template is a deliberate override, and a deploy must not
+ *   silently supersede it.
+ *
+ * Exported for `seed-config-template-versions.spec.ts`.
+ */
+export function planSystemContractTemplateWrite(
+  latest: {
+    version: number;
+    title: string;
+    contentHtml: string;
+    createdById: string | null;
+  } | null,
+  seeded: { title: string; contentHtml: string },
+):
+  | { action: 'create-first'; version: 1 }
+  | { action: 'publish-next'; version: number }
+  | { action: 'none' }
+  | { action: 'keep-operator-version' } {
+  if (!latest) return { action: 'create-first', version: 1 };
+  if (latest.createdById) return { action: 'keep-operator-version' };
+  if (
+    latest.contentHtml === seeded.contentHtml &&
+    latest.title === seeded.title
+  )
+    return { action: 'none' };
+  return { action: 'publish-next', version: latest.version + 1 };
 }
 
 /*
