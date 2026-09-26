@@ -7,13 +7,13 @@
 
 | | |
 |---|---|
-| Active sessions | **1** |
+| Active sessions | **0** |
 | Active parent tasks | 4 |
 | Active work packages | 4 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
-| Sessions declaring a schema write | 1 |
+| Sessions declaring a schema write | 0 |
 | Open CRITICAL | **6** |
 | Open HIGH | 101 |
 | Awaiting Architect triage | 0 |
@@ -47,9 +47,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-| Session | Task | Title | Status | Branch | Target | Leases | Schema |
-|---|---|---|---|---|---|---|---|
-| [[SESSION-0108-multi-provider-billing-safepay-for-pkr-alongside-stripe|SESSION-0108]] | — | Multi-provider billing: Safepay for PKR alongside Stripe | ACTIVE | `agent/billing-safepay-provider` | `develop` | schema | YES |
+_No session is currently registered as active._
 
 ## Active Tasks and Work Packages
 

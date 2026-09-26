@@ -6,19 +6,18 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 1** · completed: 105
+**Active: 0** · completed: 106
 
 ## Active
 
-| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
-|---|---|---|---|---|---|---|---|
-| [SESSION-0108](../../docs/sessions/SESSION-0108-multi-provider-billing-safepay-for-pkr-alongside-stripe.md) | — | Multi-provider billing: Safepay for PKR alongside Stripe | ACTIVE | `agent/billing-safepay-provider` | `develop` | schema | 2026-09-26T14:30:00.000Z |
+_None. No session is currently running._
 
 ## Completed
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
 | [SESSION-0109](../../docs/sessions/SESSION-0109-backlog-item-0201-runtime-optimistic-concurrency-item-0200-c.md) | — | Backlog: ITEM-0201 runtime optimistic concurrency, ITEM-0200 contracts and partners API e2e | COMPLETE | `agent/backlog-0201-concurrency` | `develop` | — | 2026-09-26T12:36:53.307Z |
+| [SESSION-0108](../../docs/sessions/SESSION-0108-multi-provider-billing-safepay-for-pkr-alongside-stripe.md) | — | Multi-provider billing: Safepay for PKR alongside Stripe | COMPLETE | `agent/billing-safepay-provider` | `develop` | — | 2026-09-26T17:00:00.000Z |
 | [SESSION-0107](../../docs/sessions/SESSION-0107-backlog-item-0203-individual-party-type-item-0204-platform-p.md) | — | Backlog: ITEM-0203 individual party type, ITEM-0204 platform permission follow-ups, ITEM-0206 dashboard drill-downs | COMPLETE | `agent/backlog-0203-0204-0206` | `develop` | — | 2026-09-26T09:45:46.287Z |
 | [SESSION-0106](../../docs/sessions/SESSION-0106-task-0032-partner-agreements-admin-rbac-monitoring-dashboard.md) | TASK-0032 | TASK-0032 partner/agreements/admin RBAC/monitoring/dashboard/MFA hardening | COMPLETE | `agent/partner-agreements-admin-hardening` | `develop` | — | 2026-09-25T00:07:43.417Z |
 | [SESSION-0105](../../docs/sessions/SESSION-0105-demo-walkthrough-2-hierarchy-work-site-customization-notific.md) | TASK-0031 | Demo walkthrough 2 - hierarchy, work site, customization, notifications findings | COMPLETE | `agent/demo-walkthrough-2-records` | `develop` | — | 2026-09-13T02:04:45.716Z |

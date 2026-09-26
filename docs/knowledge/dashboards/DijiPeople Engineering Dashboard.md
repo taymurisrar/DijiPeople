@@ -593,6 +593,7 @@
 
 ## Recent Engineering History
 
+- [[2026-09-26-billing-safepay-provider-aa2c507e|Engineering History — Safepay for PKR alongside Stripe]]
 - [[2026-09-26-backlog-0203-0204-0206-7866e11e|Engineering History — Backlog 0203 0204 0206]]
 - [[2026-09-26-backlog-0201-0200-856747e7|Engineering History — Backlog 0201 0200]]
 - [[2026-09-25-task-0032-partner-agreements-admin-hardening-dfe42ea9|Engineering History — Task 0032 partner agreements admin hardening]]
@@ -600,7 +601,6 @@
 - [[2026-09-12-ux-findings-audit-d5388a4c|Engineering History — Ux findings audit]]
 - [[2026-09-12-records-0099-0102-413565f0|Engineering History — Implement the 34 records from sessions 0099–0102]]
 - [[2026-09-11-review-subscription-plans-screen-118d22ed|Engineering History — Review subscription plans screen]]
-- [[2026-09-11-closeout-sweep-658eb39c|Engineering History — Closeout sweep]]
 
 ## Recent Releases
 
@@ -774,7 +774,7 @@
 | Backlog items | 215 |
 | Known bug patterns | 35 |
 | QA runs | 34 |
-| Engineering history records | 85 |
+| Engineering history records | 86 |
 | Release records | 10 |
 | Module notes | 30 |
 | Architecture notes | 22 |
