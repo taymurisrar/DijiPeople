@@ -8,7 +8,7 @@ Priority: P2
 Type: BUG
 Source: QA_RUN
 DetectedDate: 2026-09-27
-DetectedInSha: 98f5fc40
+DetectedInSha: 89d075d0
 AffectedModules: [customization]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
@@ -83,7 +83,7 @@ None.
 
 ## Resolution
 
-Fixed in TASK-0035 (commit 4e6b60f0).
+Fixed in TASK-0035 (commit 1f9e6cf6).
 
 - `lib/runtime/custom-lookup-options.ts` resolves a lookup by its target table key: custom modules through `/api/data/<key>`, system tables through their own list route.
 - `custom-lookup-adapter.ts` gives a record page's adapter that resolver. It applies only when the form has such a field, and every other field keeps its options.
@@ -95,7 +95,7 @@ Retested 2026-09-27. In a browser, the employee form's lookup custom field liste
 
 ## History
 
-- 2026-09-27 — created from qa run at `98f5fc40`.
+- 2026-09-27 — created from qa run at `89d075d0`.
 - 2026-09-27 — triaged FIX_NOW by the Architect in TASK-0035.
 - 2026-09-27 — fixed in TASK-0035 (REG-640).
 
@@ -106,5 +106,6 @@ Retested 2026-09-27. In a browser, the employee form's lookup custom field liste
 - Backlog item — [[ITEM-0221]]
 - Modules — [[customization]]
 - Implementation — [[EXECPLAN-0054-custom-field-values-on-every-system-module]]
+- Regression — REG-640 (see the regression register)
 
 <!-- GRAPH:END -->

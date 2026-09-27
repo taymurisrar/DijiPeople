@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**719 records** — 498 bugs under [`docs/bugs/`](../bugs/), 221 non-bug items under [`items/`](items/).
+**720 records** — 499 bugs under [`docs/bugs/`](../bugs/), 221 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,11 +13,11 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 237 |
+| Open (active work) | 238 |
 | Blocked | 3 |
-| Deferred | 118 |
+| Deferred | 117 |
 | Awaiting a product decision | 9 |
-| Completed / closed | 352 |
+| Completed / closed | 353 |
 | **Open CRITICAL** | **6** |
 | **Open HIGH** | **102** |
 | **Awaiting Architect triage** | **0** |
@@ -28,7 +28,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 6 |
 | HIGH | 102 |
-| MEDIUM | 107 |
+| MEDIUM | 108 |
 | LOW | 22 |
 
 ## Open by type
@@ -36,7 +36,7 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | AUTHORIZATION | 13 |
-| BUG | 73 |
+| BUG | 74 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 24 |
 | DOCUMENTATION | 1 |
@@ -56,17 +56,17 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 47 |
+| OPEN | 46 |
 | IN_PROGRESS | 1 |
 | BLOCKED | 3 |
-| DEFERRED | 118 |
+| DEFERRED | 117 |
 | PRODUCT_DECISION | 9 |
-| FIXED | 167 |
+| FIXED | 169 |
 | VERIFIED | 218 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
 | READY | 22 |
-| DONE | 120 |
+| DONE | 121 |
 
 ## All records
 
@@ -554,8 +554,9 @@ see [`README.md`](README.md) for why.
 | [BUG-3699](../../docs/bugs/BUG-3699-deleting-a-field-form-or-view-ignored-references-held-in-oth.md) | Deleting a field, form or view ignored references held in other packages' layers | DATA_INTEGRITY | MEDIUM | P2 | FIXED | customization | DONE |
 | [BUG-3703](../../docs/bugs/BUG-3703-package-export-readiness-could-never-report-a-missing-depend.md) | Package export readiness could never report a missing dependency | BUG | MEDIUM | P2 | FIXED | customization | DONE |
 | [BUG-3704](../../docs/bugs/BUG-3704-settings-pages-scroll-horizontally-at-phone-width-again.md) | Settings pages scroll horizontally at phone width again | UX | MEDIUM | P2 | DEFERRED | apps/web | DEFER |
-| [BUG-3786](../../docs/bugs/BUG-3786-adding-a-custom-field-ignores-the-table-s-iscustomizable-fla.md) | Adding a custom field ignores the table's isCustomizable flag | BUG | MEDIUM | P2 | OPEN | customization | FIX_NOW |
-| [BUG-3787](../../docs/bugs/BUG-3787-lookup-custom-fields-on-custom-modules-offer-no-options.md) | Lookup custom fields on custom modules offer no options | BUG | MEDIUM | P2 | OPEN | customization | FIX_NOW |
+| [BUG-3786](../../docs/bugs/BUG-3786-adding-a-custom-field-ignores-the-table-s-iscustomizable-fla.md) | Adding a custom field ignores the table's isCustomizable flag | BUG | MEDIUM | P2 | FIXED | customization | FIX_NOW |
+| [BUG-3787](../../docs/bugs/BUG-3787-lookup-custom-fields-on-custom-modules-offer-no-options.md) | Lookup custom fields on custom modules offer no options | BUG | MEDIUM | P2 | FIXED | customization | FIX_NOW |
+| [BUG-3800](../../docs/bugs/BUG-3800-three-entity-lookups-refuse-the-page-size-and-search-the-for.md) | Three entity lookups refuse the page size and search the form sends | BUG | MEDIUM | P2 | OPEN | organization, payroll | PLAN_REQUIRED |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -784,7 +785,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0218](../../docs/backlog/items/ITEM-0218-carry-module-views-navigation-workflows-and-reports-in-custo.md) | Carry module views, navigation, workflows and reports in customization packages | ARCHITECTURE | — | P2 | DEFERRED | customization, views, navigation, workflows, reporting | DEFER |
 | [ITEM-0219](../../docs/backlog/items/ITEM-0219-package-cli-and-a-ci-pipeline-step-for-validate-export-and-i.md) | Package CLI and a CI pipeline step for validate, export and import | FOLLOW_UP | — | P2 | DEFERRED | customization | DEFER |
 | [ITEM-0220](../../docs/backlog/items/ITEM-0220-publisher-signing-for-customization-package-artifacts.md) | Publisher signing for customization package artifacts | SECURITY | — | P2 | DEFERRED | customization | DEFER |
-| [ITEM-0221](../../docs/backlog/items/ITEM-0221-custom-fields-on-employees-lookup-fields-list-view-columns-a.md) | Custom fields on Employees: lookup fields, list-view columns and export; other system modules | FOLLOW_UP | — | P2 | DEFERRED | customization, employees | DEFER |
+| [ITEM-0221](../../docs/backlog/items/ITEM-0221-custom-fields-on-employees-lookup-fields-list-view-columns-a.md) | Custom fields on Employees: lookup fields, list-view columns and export; other system modules | FOLLOW_UP | — | P2 | DONE | customization, employees | DONE |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |
 | [ITEM-0114](../../docs/backlog/items/ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-.md) | The workspace shell states the tenant's identity four times and its purpose twice | UX | — | P3 | DONE | views, apps/web | DONE |

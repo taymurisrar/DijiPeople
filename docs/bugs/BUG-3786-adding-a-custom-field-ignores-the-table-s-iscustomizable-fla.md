@@ -8,7 +8,7 @@ Priority: P2
 Type: BUG
 Source: QA_RUN
 DetectedDate: 2026-09-27
-DetectedInSha: 98f5fc40
+DetectedInSha: 89d075d0
 AffectedModules: [customization]
 OwnerAgent: architect
 ArchitectDisposition: FIX_NOW
@@ -82,7 +82,7 @@ None.
 
 ## Resolution
 
-Fixed in TASK-0035 (branch `agent/custom-fields-followup`, commits a4806c8c and 599af68c).
+Fixed in TASK-0035 (branch `agent/custom-fields-followup`, commits 0a9e643c and 4e32ea28).
 
 - `createColumn` refuses a new custom field on a system table whose `isCustomizable` is false, with 400 `CUSTOMIZATION_TABLE_NOT_CUSTOMIZABLE`.
 - Package import marks such a column INCOMPATIBLE and blocks the import.
@@ -95,7 +95,7 @@ Retested 2026-09-27 in the e2e, whose closed-table case passes, and in `package-
 
 ## History
 
-- 2026-09-27 — created from qa run at `98f5fc40`.
+- 2026-09-27 — created from qa run at `89d075d0`.
 - 2026-09-27 — triaged FIX_NOW by the Architect in TASK-0035.
 - 2026-09-27 — fixed in TASK-0035 (REG-639).
 
@@ -106,5 +106,6 @@ Retested 2026-09-27 in the e2e, whose closed-table case passes, and in `package-
 - Backlog item — [[ITEM-0221]]
 - Modules — [[customization]]
 - Implementation — [[EXECPLAN-0054-custom-field-values-on-every-system-module]]
+- Regression — REG-639 (see the regression register)
 
 <!-- GRAPH:END -->

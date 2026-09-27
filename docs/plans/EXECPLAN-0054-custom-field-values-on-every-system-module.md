@@ -91,6 +91,6 @@ Code only. Reverting removes the decorators and the interceptor. Stored values s
 
 Records this plan addresses or depends on, cited in its own body:
 
-[[ADR-0024]] · [[BUG-3786]] · [[BUG-3787]] · [[ITEM-0221]] · [[TASK-0034]] · [[TASK-0035]]
+[[ADR-0024]] · [[BUG-3786]] · [[BUG-3787]] · [[BUG-3800]] · [[ITEM-0221]] · [[TASK-0034]] · [[TASK-0035]]
 
 <!-- GRAPH:END -->

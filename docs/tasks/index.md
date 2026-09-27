@@ -14,9 +14,7 @@ graph and the block reasons. See
 
 ## Next ready work package
 
-| Task | WP | Title |
-|---|---|---|
-| [TASK-0035](TASK-0035-custom-fields-follow-up-lookups-list-columns-export-other-sy.md) | WP-01 | <first package> |
+Nothing ready.
 
 ## Needs a human
 
@@ -31,6 +29,7 @@ graph and the block reasons. See
 - [TASK-0032](TASK-0032-partner-onboarding-agreements-admin-rbac-monitoring-dashboar.md) — 1 owner decision(s) outstanding
 - [TASK-0033](TASK-0033-package-alm-versions-portable-artifact-staged-import-upgrade.md) — 3 owner decision(s) outstanding
 - [TASK-0034](TASK-0034-custom-field-values-on-system-modules-package-import-at-scal.md) — 1 owner decision(s) outstanding
+- [TASK-0035](TASK-0035-custom-fields-follow-up-lookups-list-columns-export-other-sy.md) — 1 owner decision(s) outstanding
 
 ## All tasks
 
@@ -69,4 +68,4 @@ graph and the block reasons. See
 | [TASK-0032](TASK-0032-partner-onboarding-agreements-admin-rbac-monitoring-dashboar.md) | Partner onboarding, agreements, admin RBAC, monitoring, dashboard and MFA hardening | FEATURE | PROGRAM | P1 | COMPLETE | 13/13 | — |
 | [TASK-0033](TASK-0033-package-alm-versions-portable-artifact-staged-import-upgrade.md) | Package ALM: versions, portable artifact, staged import, upgrade, uninstall | FEATURE | LARGE | P1 | COMPLETE | 8/8 | — |
 | [TASK-0034](TASK-0034-custom-field-values-on-system-modules-package-import-at-scal.md) | Custom field values on system modules; package import at scale | FEATURE | LARGE | P1 | COMPLETE | 4/4 | — |
-| [TASK-0035](TASK-0035-custom-fields-follow-up-lookups-list-columns-export-other-sy.md) | Custom fields follow-up: lookups, list columns, export, other system modules | FEATURE | LARGE | P1 | NOT_STARTED | 0/1 | — |
+| [TASK-0035](TASK-0035-custom-fields-follow-up-lookups-list-columns-export-other-sy.md) | Custom fields follow-up: lookups, list columns, export, other system modules | FEATURE | LARGE | P1 | IN_PROGRESS | 7/8 | WP-08 |

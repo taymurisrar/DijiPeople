@@ -87,6 +87,6 @@ Done in TASK-0035 (EXECPLAN-0054, ADR-0024):
 - Bug — [[BUG-3697]]
 - Referenced by — [[BUG-3786]], [[BUG-3787]]
 - Modules — [[customization]], [[employees]]
-- Implementation — [[EXECPLAN-0053-custom-field-values-and-package-import-at-scale]]
+- Implementation — [[EXECPLAN-0053-custom-field-values-and-package-import-at-scale]], [[EXECPLAN-0054-custom-field-values-on-every-system-module]]
 
 <!-- GRAPH:END -->
