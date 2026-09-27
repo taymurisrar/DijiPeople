@@ -12,4 +12,4 @@ therefore sees sibling worktrees without anybody having pushed.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
-| [SESSION-0116](../../docs/sessions/SESSION-0116-custom-fields-screens-for-api-only-modules-sort-filter-by-cu.md) | — | Custom fields: screens for API-only modules, sort/filter by custom fields, BUG-3800, live QA | ACTIVE | `agent/custom-fields-screens-and-query` | `develop` | — | 2026-09-27T07:38:03.980Z |
+| [SESSION-0117](../../docs/sessions/SESSION-0117-claims-missing-from-the-sidebar-add-claims-my-claims-navigat.md) | — | Claims missing from the sidebar: add Claims / My Claims navigation | ACTIVE | `agent/claims-navigation` | `develop` | — | 2026-09-27T14:35:22.750Z |

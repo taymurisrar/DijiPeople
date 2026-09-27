@@ -8,15 +8,13 @@ graph and the block reasons. See
 
 | Bucket | Count |
 |---|---|
-| [Active](active.md) | 5 |
+| [Active](active.md) | 4 |
 | [Blocked](blocked.md) | 0 |
-| [Completed](completed.md) | 30 |
+| [Completed](completed.md) | 31 |
 
 ## Next ready work package
 
-| Task | WP | Title |
-|---|---|---|
-| [TASK-0036](TASK-0036-custom-fields-screens-for-api-only-modules-sort-and-filter-b.md) | WP-08 | Integrate into develop, release to main, verify the deploy |
+Nothing ready.
 
 ## Needs a human
 
@@ -72,4 +70,4 @@ graph and the block reasons. See
 | [TASK-0033](TASK-0033-package-alm-versions-portable-artifact-staged-import-upgrade.md) | Package ALM: versions, portable artifact, staged import, upgrade, uninstall | FEATURE | LARGE | P1 | COMPLETE | 8/8 | — |
 | [TASK-0034](TASK-0034-custom-field-values-on-system-modules-package-import-at-scal.md) | Custom field values on system modules; package import at scale | FEATURE | LARGE | P1 | COMPLETE | 4/4 | — |
 | [TASK-0035](TASK-0035-custom-fields-follow-up-lookups-list-columns-export-other-sy.md) | Custom fields follow-up: lookups, list columns, export, other system modules | FEATURE | LARGE | P1 | COMPLETE | 8/8 | — |
-| [TASK-0036](TASK-0036-custom-fields-screens-for-api-only-modules-sort-and-filter-b.md) | Custom fields: screens for API-only modules; sort and filter by custom fields; BUG-3800 | FEATURE | LARGE | P1 | IN_PROGRESS | 7/8 | WP-08 |
+| [TASK-0036](TASK-0036-custom-fields-screens-for-api-only-modules-sort-and-filter-b.md) | Custom fields: screens for API-only modules; sort and filter by custom fields; BUG-3800 | FEATURE | LARGE | P1 | COMPLETE | 8/8 | — |

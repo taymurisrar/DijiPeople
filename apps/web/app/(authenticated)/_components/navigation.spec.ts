@@ -160,7 +160,10 @@ describe("resolveVisibleDashboardNavItems plan entitlements", () => {
     "branding",
   ];
 
-  function visibleHrefs(roleKeys: string[], enabledFeatureKeys: string[] | null) {
+  function visibleHrefs(
+    roleKeys: string[],
+    enabledFeatureKeys: string[] | null,
+  ) {
     return resolveVisibleDashboardNavItems({
       enabledFeatureKeys,
       isReportingManager: false,
@@ -204,7 +207,14 @@ describe("resolveVisibleDashboardNavItems plan entitlements", () => {
   it("shows every module once the plan enables them", () => {
     const hrefs = visibleHrefs(
       [ROLE_KEYS.GLOBAL_ADMIN],
-      [...STARTER_KEYS, "timesheets", "projects", "payroll", "recruitment", "onboarding"],
+      [
+        ...STARTER_KEYS,
+        "timesheets",
+        "projects",
+        "payroll",
+        "recruitment",
+        "onboarding",
+      ],
     );
 
     for (const href of UNENTITLED_ON_STARTER) {
@@ -299,5 +309,60 @@ describe("reporting sections are not sidebar entries", () => {
 
     expect(reportRoutes).toHaveLength(1);
     expect(reportRoutes[0].href).toBe("/reports");
+  });
+});
+
+/*
+ * BUG-3830 — Claims had working pages and no sidebar entry, so the create and
+ * edit screens TASK-0036 shipped could only be reached by typing the URL. The
+ * permission keys are literals, as above, so a typo in the security-keys mirror
+ * fails here instead of silently hiding the entry.
+ */
+describe("the Claims navigation entry", () => {
+  function claimsEntry(input: {
+    permissionKeys: string[];
+    roleKeys?: string[];
+    isSelfService?: boolean;
+  }) {
+    return resolveVisibleDashboardNavItems({
+      enabledFeatureKeys: null,
+      isReportingManager: false,
+      isSelfService: input.isSelfService ?? false,
+      permissionKeys: input.permissionKeys,
+      roleKeys: input.roleKeys ?? [],
+      businessUnitAccess: { accessibleBusinessUnitIds: [] } as never,
+    }).find((item) => item.href === "/claims" || item.href === "/me/claims");
+  }
+
+  it("opens the full claims list for someone who reads all claims", () => {
+    const entry = claimsEntry({
+      permissionKeys: ["claims.read-all", "claims.read-own"],
+    });
+    expect(entry).toMatchObject({ href: "/claims", label: "Claims" });
+  });
+
+  it("opens My Claims for someone who reads only their own", () => {
+    const entry = claimsEntry({ permissionKeys: ["claims.read-own"] });
+    expect(entry).toMatchObject({ href: "/me/claims", label: "My Claims" });
+  });
+
+  it("always opens My Claims for a self-service user", () => {
+    const entry = claimsEntry({
+      permissionKeys: ["claims.read-all", "claims.read-own"],
+      isSelfService: true,
+    });
+    expect(entry).toMatchObject({ href: "/me/claims", label: "My Claims" });
+  });
+
+  it("shows the full list to a tenant administrator", () => {
+    const entry = claimsEntry({
+      permissionKeys: [],
+      roleKeys: [ROLE_KEYS.GLOBAL_ADMIN],
+    });
+    expect(entry?.href).toBe("/claims");
+  });
+
+  it("is absent for someone with neither permission", () => {
+    expect(claimsEntry({ permissionKeys: ["leaves.read"] })).toBeUndefined();
   });
 });

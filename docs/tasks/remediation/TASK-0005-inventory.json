@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 721,
+    "total_records": 722,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -22400,6 +22400,48 @@
           "documents"
         ],
         "verification_scope": "See docs/bugs/BUG-3809-a-tenant-admin-can-create-document-types-and-categories-ever.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3830",
+      "type": "UX",
+      "title": "Claims has no sidebar entry, so its screens are reachable only by URL",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3830-claims-has-no-sidebar-entry-so-its-screens-are-reachable-onl.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "2da7725b",
+        "created_at": "2026-09-27",
+        "updated_at": "2026-09-27",
+        "resolved_at": "2026-09-27"
+      },
+      "affected_modules": [
+        "claims"
+      ],
+      "regressions": [
+        "REG-643"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-037"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "claims"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3830-claims-has-no-sidebar-entry-so-its-screens-are-reachable-onl.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

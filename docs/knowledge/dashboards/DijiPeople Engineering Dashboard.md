@@ -9,7 +9,7 @@
 |---|---|
 | Open CRITICAL | **6** |
 | Open HIGH | **103** |
-| Open total | 239 |
+| Open total | 240 |
 | Blocked | 3 |
 | Awaiting a product decision | 9 |
 | Deferred | 117 |
@@ -540,6 +540,7 @@
 | [[BUG-3786-adding-a-custom-field-ignores-the-table-s-iscustomizable-fla|BUG-3786]] | Adding a custom field ignores the table's isCustomizable flag | BUG | MEDIUM | FIXED | customization | FIX_NOW |
 | [[BUG-3787-lookup-custom-fields-on-custom-modules-offer-no-options|BUG-3787]] | Lookup custom fields on custom modules offer no options | BUG | MEDIUM | FIXED | customization | FIX_NOW |
 | [[BUG-3800-three-entity-lookups-refuse-the-page-size-and-search-the-for|BUG-3800]] | Three entity lookups refuse the page size and search the form sends | BUG | MEDIUM | FIXED | organization, payroll | FIX_NOW |
+| [[BUG-3830-claims-has-no-sidebar-entry-so-its-screens-are-reachable-onl|BUG-3830]] | Claims has no sidebar entry, so its screens are reachable only by URL | UX | MEDIUM | FIXED | claims | FIX_NOW |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -600,6 +601,7 @@
 
 ## Recent Engineering History
 
+- [[2026-09-27-custom-fields-screens-and-query-04892def|Engineering History — Custom fields screens and query]]
 - [[2026-09-27-custom-fields-every-module-be7189f7|Engineering History — Custom fields every module]]
 - [[2026-09-26-task-0033-package-alm-b55afdb2|Engineering History — TASK-0033 package ALM]]
 - [[2026-09-26-release-task-0034-custom-field-values-1aeda297|Engineering History — Release task 0034 custom field values]]
@@ -607,7 +609,6 @@
 - [[2026-09-26-item-0207-template-versions-9e66d115|Engineering History — Item 0207 template versions]]
 - [[2026-09-26-custom-field-values-and-import-scale-cd777b78|Engineering History — Custom field values and import scale]]
 - [[2026-09-26-billing-safepay-provider-aa2c507e|Engineering History — Safepay for PKR alongside Stripe]]
-- [[2026-09-26-backlog-0203-0204-0206-7866e11e|Engineering History — Backlog 0203 0204 0206]]
 
 ## Recent Releases
 
@@ -714,6 +715,7 @@
 | [[BUG-3786-adding-a-custom-field-ignores-the-table-s-iscustomizable-fla|BUG-3786]] | Adding a custom field ignores the table's isCustomizable flag | BUG | MEDIUM | FIXED | customization | FIX_NOW |
 | [[BUG-3787-lookup-custom-fields-on-custom-modules-offer-no-options|BUG-3787]] | Lookup custom fields on custom modules offer no options | BUG | MEDIUM | FIXED | customization | FIX_NOW |
 | [[BUG-3800-three-entity-lookups-refuse-the-page-size-and-search-the-for|BUG-3800]] | Three entity lookups refuse the page size and search the form sends | BUG | MEDIUM | FIXED | organization, payroll | FIX_NOW |
+| [[BUG-3830-claims-has-no-sidebar-entry-so-its-screens-are-reachable-onl|BUG-3830]] | Claims has no sidebar entry, so its screens are reachable only by URL | UX | MEDIUM | FIXED | claims | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -788,11 +790,11 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 500 |
+| Bug records | 501 |
 | Backlog items | 221 |
 | Known bug patterns | 35 |
 | QA runs | 38 |
-| Engineering history records | 92 |
+| Engineering history records | 93 |
 | Release records | 10 |
 | Module notes | 31 |
 | Architecture notes | 22 |
