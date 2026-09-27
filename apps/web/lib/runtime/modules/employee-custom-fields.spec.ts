@@ -34,18 +34,35 @@ const manager: EmployeeCustomFieldDefinition = {
   dataType: "lookup",
   required: false,
   lookupTargetTableKey: "employees",
+  lookupTargetIsSystem: true,
   options: [],
+};
+/* A system table with no list source here: its dropdown could never fill. */
+const roleLink: EmployeeCustomFieldDefinition = {
+  ...manager,
+  logicalName: "ad_roleLink",
+  displayName: "Role link",
+  lookupTargetTableKey: "rolePermissions",
 };
 
 describe("employee custom fields", () => {
   const bundle = buildEmployeeMetadataBundle({
-    customFields: [grade, manager],
+    customFields: [grade, manager, roleLink],
   });
 
-  it("adds supported fields to the entity, leaving lookups off for now", () => {
+  it("adds supported fields, lookups to a listable target included (ITEM-0221)", () => {
     const names = bundle.entity.fields.map((field) => field.logicalName);
     expect(names).toContain("ad_grade");
-    expect(names).not.toContain("ad_mentor");
+    expect(names).toContain("ad_mentor");
+    expect(names).not.toContain("ad_roleLink");
+    const mentor = bundle.entity.fields.find(
+      (item) => item.logicalName === "ad_mentor",
+    );
+    expect(mentor).toMatchObject({
+      dataType: "lookup",
+      isCustomField: true,
+      lookupTargets: [{ entityLogicalName: "employees", isSystemTable: true }],
+    });
     const field = bundle.entity.fields.find(
       (item) => item.logicalName === "ad_grade",
     );
@@ -58,6 +75,7 @@ describe("employee custom fields", () => {
       const section = form.sections.find((item) => item.id === "custom-fields");
       expect(section?.fields.map((field) => field.fieldLogicalName)).toEqual([
         "ad_grade",
+        "ad_mentor",
       ]);
     }
   });

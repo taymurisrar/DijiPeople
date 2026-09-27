@@ -42,6 +42,7 @@ import {
 } from "../_lib/delivery-log-channel";
 import { hasAnySettingsPermission } from "../_lib/require-settings-permission";
 import { PERMISSION_KEYS } from "@/lib/security-keys";
+import { withRouteCustomFields } from "@/lib/runtime/custom-fields-server";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -152,11 +153,14 @@ export async function SettingsRuntimeList({
     ? readSettingsListPagination(response)
     : null;
   const spec = { ...adapter.spec, routeBase: item.route };
-  const runtime = buildStandardRouteRuntime({
-    pageKind: "list",
-    sessionUser,
-    spec,
-  });
+  /* TASK-0035: custom field values show as list columns when a view adds them. */
+  const runtime = await withRouteCustomFields(
+    buildStandardRouteRuntime({
+      pageKind: "list",
+      sessionUser,
+      spec,
+    }),
+  );
   const activeView =
     runtime.metadata.views.find(
       (view) => (view.viewId ?? view.id) === first(params.viewId),
@@ -284,12 +288,15 @@ export async function SettingsRuntimeRecord({
     record,
   );
   const spec = { ...adapter.spec, routeBase: item.route };
-  const runtime = buildStandardRouteRuntime({
-    pageKind: mode === "read" ? "detail" : mode,
-    recordId,
-    sessionUser,
-    spec,
-  });
+  /* TASK-0035: the tenant's custom fields on this module, when it takes them. */
+  const runtime = await withRouteCustomFields(
+    buildStandardRouteRuntime({
+      pageKind: mode === "read" ? "detail" : mode,
+      recordId,
+      sessionUser,
+      spec,
+    }),
+  );
   const activeForm = resolveStandardActiveForm(
     runtime.metadata.forms,
     mode === "create" ? "" : first(params.formId),

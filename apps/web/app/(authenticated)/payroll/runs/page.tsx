@@ -2,6 +2,7 @@ import { StandardModuleListPage } from "@/app/components/runtime";
 import { getSessionUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { buildStandardRouteRuntime } from "@/lib/runtime/modules/standard-module-route-helpers";
+import { withRouteCustomFields } from "@/lib/runtime/custom-fields-server";
 import { payrollRunRuntimeSpec } from "@/lib/runtime/modules/payroll-foundation-runtime-specs";
 import { apiRequestJson } from "@/lib/server-api";
 import { PayrollLayoutShell } from "../_components/payroll-layout-shell";
@@ -27,11 +28,14 @@ export default async function PayrollRunsPage() {
       periodName: period.name,
     };
   });
-  const runtime = buildStandardRouteRuntime({
-    pageKind: "list",
-    sessionUser: user,
-    spec: payrollRunRuntimeSpec,
-  });
+  /* TASK-0035: the tenant's custom fields on this module. */
+  const runtime = await withRouteCustomFields(
+    buildStandardRouteRuntime({
+      pageKind: "list",
+      sessionUser: user,
+      spec: payrollRunRuntimeSpec,
+    }),
+  );
   return (
     <PayrollLayoutShell
       title="Payroll Runs"

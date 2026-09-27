@@ -61,9 +61,37 @@ export class CustomFieldValuesService {
 
   /** Field definitions for a form, filtered by the user's read permission. */
   async definitions(user: AuthenticatedUser, tableKey: string) {
+    const columns = await this.publishedColumns(user.tenantId, tableKey);
+    const targets = [
+      ...new Set(
+        columns
+          .map((column) => column.lookupTargetTableKey)
+          .filter((key): key is string => Boolean(key)),
+      ),
+    ];
+    /*
+     * BUG-3787 — a lookup can only label its options by the target's name. For
+     * a custom module that is its primary-name column; one query for all
+     * lookup targets. System targets carry no such column and are resolved
+     * by the client's own map.
+     */
+    const nameColumns = targets.length
+      ? await this.prisma.customizationColumn.findMany({
+          where: {
+            tenantId: user.tenantId,
+            isPrimaryName: true,
+            isActive: true,
+            table: { tableKey: { in: targets }, isSystem: false },
+          },
+          select: { columnKey: true, table: { select: { tableKey: true } } },
+        })
+      : [];
     return customFieldDefinitions({
-      columns: await this.publishedColumns(user.tenantId, tableKey),
+      columns,
       permissionKeys: user.permissionKeys,
+      lookupNameFields: new Map(
+        nameColumns.map((column) => [column.table.tableKey, column.columnKey]),
+      ),
     });
   }
 

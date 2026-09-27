@@ -2,6 +2,11 @@ import type {
   ModuleDataAdapter,
   ModuleListInput,
 } from "../module-data-adapter.types";
+import { withCustomFieldValues } from "../custom-fields";
+import {
+  loadLookupOptions,
+  resolvableLookupTarget,
+} from "../custom-lookup-options";
 import { relatedRecordPaths } from "../related-record-api";
 import { debugRuntime } from "../runtime-debug";
 import {
@@ -32,7 +37,8 @@ export const employeeModuleDataAdapter: ModuleDataAdapter<
     if (input.pageSize) params.set("pageSize", String(input.pageSize));
 
     const data = await requestJson(`/api/employees${queryString(params)}`);
-    const records = readRecordList(data);
+    /* ITEM-0221: custom field values sit beside the columns a view reads. */
+    const records = readRecordList(data).map(withCustomFieldValues);
 
     return {
       records,
@@ -159,7 +165,17 @@ export const employeeModuleDataAdapter: ModuleDataAdapter<
       .filter((item) => item.id && item.name);
   },
 
-  async getLookupOptions(_runtime, field, values) {
+  async getLookupOptions(_runtime, field, values, searchOptions) {
+    /*
+     * ITEM-0221 — a lookup custom field names its target by table key; the
+     * shared resolver reads that target's own list endpoint.
+     */
+    const customTarget = field.isCustomField
+      ? resolvableLookupTarget(field, true)
+      : null;
+    if (customTarget) {
+      return loadLookupOptions(customTarget, searchOptions?.search);
+    }
     const staticLookupPaths: Record<string, string> = {
       bankId: "/api/banks",
       countryCode: "/api/lookups/countries",

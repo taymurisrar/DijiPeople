@@ -73,6 +73,8 @@ export interface OptionSetValueMetadata {
 export interface LookupTargetMetadata {
   readonly entityLogicalName: string;
   readonly primaryNameField?: string;
+  /* A system table rather than a custom module (custom lookup fields, TASK-0035). */
+  readonly isSystemTable?: boolean;
   readonly viewLogicalName?: string;
   readonly relationshipName?: string;
 }
@@ -115,6 +117,12 @@ export interface FieldMetadata extends MetadataIdentity {
   readonly dependsOnFieldId?: string;
   readonly dependencyFilterKey?: string;
   readonly resetOnParentChange?: boolean;
+  /*
+   * A tenant's custom field on a system module (TASK-0035, ADR-0024). Its value
+   * travels in the record's `customFields`, not as a column of the module's own
+   * API, so a save sends it there.
+   */
+  readonly isCustomField?: boolean;
 }
 
 export interface EntityMetadata extends MetadataIdentity {

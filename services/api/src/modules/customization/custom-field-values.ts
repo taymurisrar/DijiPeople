@@ -12,6 +12,7 @@
  * must look like one.
  */
 import type { CustomizationColumn } from '@prisma/client';
+import { findSystemCustomizationTable } from './customization.registry';
 
 export type CustomFieldColumn = Pick<
   CustomizationColumn,
@@ -45,6 +46,10 @@ export type CustomFieldDefinition = {
   isPrimaryName: boolean;
   maxLength: number | null;
   lookupTargetTableKey: string | null;
+  /* The target custom table's primary-name column, so a lookup can label its options. */
+  lookupTargetNameField: string | null;
+  /* A system table rather than a custom module: the client lists it by its own route. */
+  lookupTargetIsSystem: boolean;
   options: CustomFieldOption[];
 };
 
@@ -240,6 +245,8 @@ export function secureCustomFieldValues(input: {
 export function customFieldDefinitions(input: {
   columns: readonly CustomFieldColumn[];
   permissionKeys: readonly string[];
+  /* Primary-name column per lookup target table key, where one is known. */
+  lookupNameFields?: ReadonlyMap<string, string>;
 }): CustomFieldDefinition[] {
   return input.columns
     .filter((column) => column.isActive && column.isVisible)
@@ -262,6 +269,13 @@ export function customFieldDefinitions(input: {
         isPrimaryName: column.isPrimaryName,
         maxLength: column.maxLength,
         lookupTargetTableKey: column.lookupTargetTableKey,
+        lookupTargetNameField: column.lookupTargetTableKey
+          ? (input.lookupNameFields?.get(column.lookupTargetTableKey) ?? null)
+          : null,
+        lookupTargetIsSystem: Boolean(
+          column.lookupTargetTableKey &&
+          findSystemCustomizationTable(column.lookupTargetTableKey),
+        ),
         options: readOptions(column.optionSetJson),
       };
     });

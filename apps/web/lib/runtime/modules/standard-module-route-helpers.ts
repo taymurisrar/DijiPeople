@@ -3,6 +3,7 @@ import {
   getTableForms,
   type RuntimeCustomizationForm,
 } from "@/lib/customization-forms";
+import { withRouteCustomFields } from "../custom-fields-server";
 import type { FormMetadata } from "../metadata-runtime.types";
 import {
   buildStandardModuleRuntimeContext,
@@ -49,10 +50,11 @@ export function buildStandardRouteRuntime({
 export async function buildPublishedStandardRouteRuntime(
   input: Parameters<typeof buildStandardRouteRuntime>[0],
 ) {
-  const runtime = buildStandardRouteRuntime(input);
-  const publishedForms = await getTableForms(
-    input.spec.metadataTableKey ?? input.spec.moduleKey,
-  );
+  /* TASK-0035: the tenant's custom fields, when this module takes them. */
+  const [runtime, publishedForms] = await Promise.all([
+    withRouteCustomFields(buildStandardRouteRuntime(input)),
+    getTableForms(input.spec.metadataTableKey ?? input.spec.moduleKey),
+  ]);
   const widgetForms = publishedForms.filter(hasExplicitWidgetPlacement);
   if (widgetForms.length === 0) return runtime;
 

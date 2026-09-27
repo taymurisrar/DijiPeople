@@ -4,6 +4,7 @@ import {
   buildStandardRouteRuntime,
   resolveStandardActiveForm,
 } from "@/lib/runtime/modules/standard-module-route-helpers";
+import { withRouteCustomFields } from "@/lib/runtime/custom-fields-server";
 import { projectRuntimeSpec } from "@/lib/runtime/modules/standard-module-specs";
 
 type PageProps = {
@@ -15,11 +16,14 @@ export default async function NewProjectPage({ searchParams }: PageProps) {
     searchParams ?? Promise.resolve({} as { formId?: string }),
     getSessionUser(),
   ]);
-  const runtime = buildStandardRouteRuntime({
-    pageKind: "create",
-    sessionUser,
-    spec: projectRuntimeSpec,
-  });
+  /* TASK-0035: the tenant's custom fields on this module. */
+  const runtime = await withRouteCustomFields(
+    buildStandardRouteRuntime({
+      pageKind: "create",
+      sessionUser,
+      spec: projectRuntimeSpec,
+    }),
+  );
   const activeForm = resolveStandardActiveForm(
     runtime.metadata.forms,
     resolvedSearchParams.formId ?? "",

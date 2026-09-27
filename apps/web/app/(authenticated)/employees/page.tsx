@@ -10,6 +10,8 @@ import {
   EntityFilter,
 } from "@/app/components/entity-data/entity-query-types";
 import { getTableViews, withFallbackViews } from "@/lib/customization-views";
+import { withCustomFieldValues } from "@/lib/runtime/custom-fields";
+import { loadEmployeeCustomFields } from "./custom-fields";
 import { AccessDeniedState } from "../_components/access-denied-state";
 import {
   getBusinessUnitAccessSummary,
@@ -103,23 +105,28 @@ export default async function EmployeesPage({
   query.set("page", String(page));
   query.set("pageSize", String(pageSize));
 
-  const [employees, resolvedSettings, publishedViews] = await Promise.all([
-    useEntityDataApi
-      ? fetchEmployeesFromEntityData({
-          search,
-          employmentStatus,
-          reportingManagerEmployeeId,
-          orderBy,
-          columnFilters: columnFilters.tableFilters,
-          page,
-          pageSize,
-        })
-      : apiRequestJson<EmployeeListResponse>(`/employees?${query.toString()}`),
-    apiRequestJson<TenantResolvedSettingsResponse>(
-      "/tenant-settings/resolved",
-    ).catch(() => null),
-    getTableViews("employees"),
-  ]);
+  const [employees, resolvedSettings, publishedViews, customFields] =
+    await Promise.all([
+      useEntityDataApi
+        ? fetchEmployeesFromEntityData({
+            search,
+            employmentStatus,
+            reportingManagerEmployeeId,
+            orderBy,
+            columnFilters: columnFilters.tableFilters,
+            page,
+            pageSize,
+          })
+        : apiRequestJson<EmployeeListResponse>(
+            `/employees?${query.toString()}`,
+          ),
+      apiRequestJson<TenantResolvedSettingsResponse>(
+        "/tenant-settings/resolved",
+      ).catch(() => null),
+      getTableViews("employees"),
+      /* ITEM-0221: custom fields label their view columns. */
+      loadEmployeeCustomFields(),
+    ]);
 
   /*
    * No local fallback list here. The employee metadata adapter already supplies
@@ -183,6 +190,7 @@ export default async function EmployeesPage({
       permissionKeys: user?.permissionKeys ?? [],
     },
     forms: [],
+    customFields,
     views: employeeViews,
   });
 
@@ -198,7 +206,7 @@ export default async function EmployeesPage({
     <div className="dp-theme-scope dp-employees-scope grid gap-3">
       <EmployeeRuntimeListWrapper
         activeView={activeRuntimeView}
-        employees={employees.items}
+        employees={employees.items.map(withCustomFieldValues)}
         formatting={formatting}
         initialFilters={columnFilters.tableFilters}
         pagination={{
@@ -519,8 +527,7 @@ function resolveEmployeeColumnFilters(
 
     // "Is empty" and "Has data" compare nothing, so requiring a value here
     // would silently drop them and the condition would appear to do nothing.
-    const comparesNothing =
-      operator === "isEmpty" || operator === "isNotEmpty";
+    const comparesNothing = operator === "isEmpty" || operator === "isNotEmpty";
 
     if (!value && !comparesNothing) continue;
 

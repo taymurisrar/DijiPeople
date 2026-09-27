@@ -77,6 +77,12 @@ export class EmployeesController {
   }
 
   @Get()
+  /*
+   * ITEM-0221 — list rows carry their custom field values, so a view column
+   * for one shows data. Read-only here: Employees writes its values in
+   * EmployeesService (TASK-0034), inside the create transaction.
+   */
+  @CustomFields('employees', 'list')
   @Permissions('employees.read')
   @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
   findAll(

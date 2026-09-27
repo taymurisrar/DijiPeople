@@ -4,6 +4,7 @@ import {
   buildStandardRouteRuntime,
   resolveStandardActiveForm,
 } from "@/lib/runtime/modules/standard-module-route-helpers";
+import { withRouteCustomFields } from "@/lib/runtime/custom-fields-server";
 import { payrollCycleRuntimeSpec } from "@/lib/runtime/modules/payroll-foundation-runtime-specs";
 import { apiRequestJson } from "@/lib/server-api";
 import { PayrollLayoutShell } from "../../_components/payroll-layout-shell";
@@ -26,12 +27,15 @@ export default async function PayrollCycleRecordPage({
   const record = await apiRequestJson<Record<string, unknown>>(
     `/payroll/cycles/${encodeURIComponent(cycleId)}`,
   );
-  const runtime = buildStandardRouteRuntime({
-    pageKind: "detail",
-    recordId: cycleId,
-    sessionUser: user,
-    spec: payrollCycleRuntimeSpec,
-  });
+  /* TASK-0035: the tenant's custom fields on this module. */
+  const runtime = await withRouteCustomFields(
+    buildStandardRouteRuntime({
+      pageKind: "detail",
+      recordId: cycleId,
+      sessionUser: user,
+      spec: payrollCycleRuntimeSpec,
+    }),
+  );
   const counts = isRecord(record.counts) ? record.counts : {};
 
   return (
@@ -42,7 +46,9 @@ export default async function PayrollCycleRecordPage({
       <PayrollPeriodGenerationAction
         cycleId={cycleId}
         disabled={!record.payrollCalendarId || record.status === "FINALIZED"}
-        existingPeriodCount={typeof counts.periods === "number" ? counts.periods : 0}
+        existingPeriodCount={
+          typeof counts.periods === "number" ? counts.periods : 0
+        }
       />
       <StandardModuleRecordPage
         activeForm={resolveStandardActiveForm(
@@ -61,7 +67,7 @@ export default async function PayrollCycleRecordPage({
 }
 
 function first(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
+  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

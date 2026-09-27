@@ -1,26 +1,29 @@
 import { StandardModuleListPage } from "@/app/components/runtime";
 import { getSessionUser } from "@/lib/auth";
 import { buildStandardRouteRuntime } from "@/lib/runtime/modules/standard-module-route-helpers";
+import { withRouteCustomFields } from "@/lib/runtime/custom-fields-server";
 import { payrollPeriodRuntimeSpec } from "@/lib/runtime/modules/payroll-foundation-runtime-specs";
 import { apiRequestJson } from "@/lib/server-api";
 import { PayrollLayoutShell } from "../_components/payroll-layout-shell";
 
 export default async function PayrollPeriodsPage() {
   const user = await getSessionUser();
-  const periods = await apiRequestJson<Array<Record<string, unknown>>>(
-    "/payroll/periods",
-  );
+  const periods =
+    await apiRequestJson<Array<Record<string, unknown>>>("/payroll/periods");
   const records = periods.map((period) => ({
     ...period,
     calendarName: isRecord(period.payrollCalendar)
       ? stringValue(period.payrollCalendar.name)
       : "",
   }));
-  const runtime = buildStandardRouteRuntime({
-    pageKind: "list",
-    sessionUser: user,
-    spec: payrollPeriodRuntimeSpec,
-  });
+  /* TASK-0035: the tenant's custom fields on this module. */
+  const runtime = await withRouteCustomFields(
+    buildStandardRouteRuntime({
+      pageKind: "list",
+      sessionUser: user,
+      spec: payrollPeriodRuntimeSpec,
+    }),
+  );
 
   return (
     <PayrollLayoutShell
