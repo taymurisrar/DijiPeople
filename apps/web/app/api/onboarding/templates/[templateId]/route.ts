@@ -7,6 +7,15 @@ type RouteContext = {
   }>;
 };
 
+export async function GET(_request: Request, context: RouteContext) {
+  const { templateId } = await context.params;
+  const response = await apiRequest(
+    `/onboarding/templates/${encodeURIComponent(templateId)}`,
+    { method: "GET" },
+  );
+  return proxyApiJsonResponse(response);
+}
+
 export async function PATCH(request: Request, context: RouteContext) {
   const { templateId } = await context.params;
   const body = await request.json();

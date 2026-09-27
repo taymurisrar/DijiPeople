@@ -33,6 +33,8 @@ export type ClaimRecord = {
     lastName: string;
   };
   lineItems: ClaimLineItemRecord[];
+  /* TASK-0035 — the tenant's published custom fields on `claimRequests`. */
+  customFields?: Record<string, unknown>;
 };
 
 export type ClaimLineItemRecord = {
@@ -45,6 +47,7 @@ export type ClaimLineItemRecord = {
   amount: string;
   approvedAmount?: string | null;
   currencyCode: string;
+  receiptDocumentId?: string | null;
   payrollRunEmployeeId?: string | null;
   claimType?: ClaimTypeRecord;
   claimSubType?: ClaimSubTypeRecord | null;
