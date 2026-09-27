@@ -1,0 +1,106 @@
+---
+ID: BUG-3800
+aliases: [BUG-3800]
+Title: Three entity lookups refuse the page size and search the form sends
+Status: OPEN
+Severity: MEDIUM
+Priority: P2
+Type: BUG
+Source: QA_RUN
+DetectedDate: 2026-09-27
+DetectedInSha: 599af68c
+AffectedModules: [organization, payroll]
+OwnerAgent: architect
+ArchitectDisposition: PLAN_REQUIRED
+QAReport: 
+RegressionId: 
+RelatedBacklogItem:
+RelatedDecision:
+RelatedImplementation:
+CreatedAt: 2026-09-27
+UpdatedAt: 2026-09-27
+ResolvedAt:
+---
+
+# BUG-3800 — Three entity lookups refuse the page size and search the form sends
+
+## Summary
+
+On the generic record pages, entity lookups ask their list endpoint for a page of 50, plus the typed search term. BUG-3376 introduced that request shape in `standard-module-data.adapter.ts`. Three list endpoints do not accept these parameters, so the API answers 400 and the dropdown loads nothing:
+
+- `/business-units` refuses `pageSize`.
+- `/payroll/calendars` refuses `pageSize` and `search`.
+- `/payroll/periods` refuses `pageSize` and `search`.
+
+## Expected Behavior
+
+Each lookup lists records of its target (business units, payroll calendars, payroll periods), searchable by the typed term.
+
+## Actual Behavior
+
+The request answers 400 VALIDATION_FAILED ("property pageSize should not exist"), and the dropdown stays empty.
+
+## Reproduction
+
+1. As a tenant admin, open a project's edit page.
+2. Open the Business Unit lookup.
+3. The browser shows `GET /api/business-units?pageSize=50` answering 400, and no options appear.
+
+## Evidence
+
+Found in the TASK-0035 browser pass on 2026-09-27. Every `lookupApiPaths` entry in the runtime specs and settings adapters (20 paths) was then probed against a booted API with `pageSize=50&search=a`. Only these three answered 400:
+
+```
+400 /api/business-units   - property pageSize should not exist
+400 /api/payroll/calendars - property pageSize should not exist, property search should not exist
+400 /api/payroll/periods   - property pageSize should not exist, property search should not exist
+```
+
+The standard adapter adds the parameters for every lookup except small reference sets (`isSmallReferenceLookupEntity`). The three list DTOs whitelist neither parameter, and the global ValidationPipe has `forbidNonWhitelisted`.
+
+## Root Cause
+
+The lookup request shape changed (BUG-3376, c66181d3), and these three list endpoints never gained the matching query parameters.
+
+## Impact
+
+It is reachable in production. On the project form, and on payroll forms that look up a calendar or a period, the affected dropdowns never offer an option. It was not introduced by TASK-0035; that task's browser pass found it.
+
+## Affected Areas
+
+`services/api/src/modules/organization` (business units list DTO) and `services/api/src/modules/payroll` (calendars and periods list DTOs); every generic record page with one of these lookups.
+
+## Proposed Resolution
+
+Give the three list endpoints real `search` and page-size support, matching the other entity lists, so a searched lookup narrows server-side. Merely tolerating the parameters would return unfiltered lists behind a search box. This needs its own plan, because each endpoint's service changes.
+
+## Acceptance Criteria
+
+- Each of the three endpoints accepts `pageSize` and `search`, and search filters by name.
+- The Business Unit lookup on the project form, and the calendar and period lookups on payroll forms, list and search their records.
+- The probe above answers 200 for all 20 lookup paths.
+
+## Regression Coverage
+
+To be written with the fix: the lookup-path probe as a DB-backed e2e.
+
+## Dependencies
+
+None.
+
+## Related Items
+
+[[BUG-3787]] (the lookup resolver for custom fields, found in the same pass).
+
+## Resolution
+
+Not fixed yet.
+
+## QA Retest
+
+Not retested yet.
+
+## History
+
+- 2026-09-27 — created from qa run at `599af68c`.
+- 2026-09-27 — triaged PLAN_REQUIRED by the Architect in TASK-0035: pre-existing, outside this task's change, and a correct fix is per-endpoint search.

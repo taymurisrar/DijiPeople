@@ -27,7 +27,12 @@ There is no shared write path to hook into:
 2. **Validate before the handler, write after it.** Interceptors run before the global `ValidationPipe`. On a write route, the interceptor removes `customFields` from the body, so the module's DTO never sees it and `forbidNonWhitelisted` never refuses it. It then validates the values against the published fields, before the handler runs. Once the handler succeeds, the interceptor writes the values against the record id, audits the change (`CUSTOM_FIELD_VALUES_UPDATED`), and attaches the values the user may read to the response.
 3. **The handler stays the access authority.** The interceptor writes or reads a record's values only after the module's own handler succeeded for that id: the route param for `update` and `read`, and the returned record's id for `create`. For `list`, it adds values only to the rows the handler returned. It never attaches values to a response object whose id differs from the record's.
 4. **The common case costs one indexed query.** The interceptor first asks whether the tenant has any active custom column on the table. The published snapshot is loaded only when the answer is yes.
-5. **Tables with no edit surface stop being customizable.** Thirteen tables have no route through which anyone edits a record: generated rows, join rows, a key/value bag, and three models no code uses. They become `isCustomizable: false`, and `createColumn` now enforces the flag, which it never did (see [[BUG-3786]]). A field that can never hold a value is not offered.
+5. **Tables no route can carry values for stop being customizable.** Fifteen tables qualify:
+   - thirteen have no route through which anyone edits a record: generated rows, join rows, a key/value bag, and three models no code uses;
+   - `attendancePolicies` is a singleton patched without a record id;
+   - `onboardingTasks` are only ever returned nested in their onboarding.
+
+   The last two were found by the bindings spec. They become `isCustomizable: false`, and `createColumn` now enforces the flag, which it never did (see [[BUG-3786]]). A field that can never hold a value is not offered.
 6. **One web integration for the shared record page, one drop-in component for bespoke forms.** The standard runtime adds published custom fields to the entity metadata and the forms, reads record values, and sends `customFields` on save. Bespoke forms embed `CustomFieldsSection`.
 
 ## Reasons
@@ -51,7 +56,7 @@ There is no shared write path to hook into:
 ## Migration / Compatibility Impact
 
 - No schema change: values use the `CustomRecordExtension` table from TASK-0034.
-- The thirteen tables made non-customizable had no custom columns in production when this was decided. That was checked read-only on 2026-09-26 for all system tables. `syncCore` updates the flag on each tenant's `CustomizationTable` rows.
+- The fifteen tables made non-customizable had no custom columns in production when this was decided. That was checked read-only on 2026-09-26 for all system tables. `syncCore` updates the flag on each tenant's `CustomizationTable` rows.
 - The API responses of bound routes gain a `customFields` property, but only when the tenant has custom fields on that table. Clients that ignore unknown properties are unaffected.
 
 ## Security / Tenant Impact
@@ -64,6 +69,7 @@ There is no shared write path to hook into:
 
 - To give a system module custom field values, decorate its routes; do not call `CustomFieldValuesService` from the module's service. Employees is the only exception, and it is documented above.
 - Bind `create` only to a route that answers with the created record. The interceptor spec pins this.
+- `custom-fields.bindings.spec.ts` fails when a customizable table has no storing binding, or when a binding names a param its route lacks. Close the table (`UNSTORABLE_TABLE_KEYS`, with the reason) rather than leave it without storage.
 - Add a table to the registry as customizable only if some route edits its records.
 
 ## Related Modules

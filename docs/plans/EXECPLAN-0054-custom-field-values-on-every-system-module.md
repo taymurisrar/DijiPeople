@@ -74,6 +74,13 @@ Every system table that a tenant can add a custom field to also stores, validate
 - **A route bound with the wrong id param** would write values to the wrong record. Mitigation: the interceptor refuses to attach values to a response whose id differs from the record's. Update writes use the route's own id param, which the handler has just authorised.
 - **Load on list endpoints.** Mitigation: the common case costs one indexed query, and loading values for a list is one query, not one per row.
 
+## Divergences (recorded 2026-09-27)
+
+- **Two more tables closed.** The bindings spec found `attendancePolicies` (a singleton with no record id in its route) and `onboardingTasks` (never returned on their own), so fifteen tables are closed, not thirteen.
+- **Class C was smaller than mapped.** Claim types, pay components and document categories are settings-runtime pages; they joined the table-key map instead of taking the drop-in. Only the policy and assignment forms, the holiday manager and the job-opening edit form are bespoke.
+- **API only.** Claims, education, previous employment, employee compensation, document types and onboarding templates have no create or edit UI on the web. Their values are stored and read through the API.
+- **Found in the browser pass (pre-existing, not changed here):** three entity lookups refuse the paging the form sends, BUG-3800 (PLAN_REQUIRED).
+
 ## Rollback
 
 Code only. Reverting removes the decorators and the interceptor. Stored values stay in `CustomRecordExtension` and become readable again if the change is restored.
