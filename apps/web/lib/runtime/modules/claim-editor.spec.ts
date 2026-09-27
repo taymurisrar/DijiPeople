@@ -5,6 +5,7 @@ import {
   EMPTY_LINE_ITEM_DRAFT,
   hasHeaderChanges,
   isClaimEditable,
+  isClaimFormEditable,
   lineItemToDraft,
   parseAmountInput,
   validateLineItemDraft,
@@ -16,6 +17,18 @@ describe("isClaimEditable", () => {
     expect(isClaimEditable("SUBMITTED")).toBe(false);
     expect(isClaimEditable(null)).toBe(false);
     expect(isClaimEditable(undefined)).toBe(false);
+  });
+});
+
+describe("isClaimFormEditable", () => {
+  it("takes input for a claim not yet created", () => {
+    expect(isClaimFormEditable(null)).toBe(true);
+    expect(isClaimFormEditable(undefined)).toBe(true);
+  });
+
+  it("takes input for a draft only", () => {
+    expect(isClaimFormEditable({ status: "DRAFT" })).toBe(true);
+    expect(isClaimFormEditable({ status: "SUBMITTED" })).toBe(false);
   });
 });
 

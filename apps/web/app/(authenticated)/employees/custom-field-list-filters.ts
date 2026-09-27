@@ -62,3 +62,14 @@ export function resolveCustomFieldListFilters(
     searchParams,
   };
 }
+
+/** Whether the list must sort or filter by a custom field on the server. */
+export function needsCustomFieldQuery(
+  orderBy: string,
+  customFilters: string,
+  fieldNames: readonly string[],
+) {
+  if (customFilters) return true;
+  const field = orderBy.match(/^([A-Za-z][A-Za-z0-9_]*)\s+(asc|desc)$/)?.[1];
+  return Boolean(field && fieldNames.includes(field));
+}

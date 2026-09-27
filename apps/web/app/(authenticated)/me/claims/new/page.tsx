@@ -3,6 +3,7 @@ import { hasPermission } from "@/lib/permissions";
 import { PERMISSION_KEYS } from "@/lib/security-keys";
 import { AccessDeniedState } from "../../../_components/access-denied-state";
 import { ClaimForm } from "../../../claims/_components/claim-form";
+import { loadDefaultClaimCurrency } from "../../../claims/default-claim-currency";
 
 export default async function NewMyClaimPage() {
   const user = await getSessionUser();
@@ -27,6 +28,7 @@ export default async function NewMyClaimPage() {
       </section>
       <ClaimForm
         basePath="/api/me/claims"
+        defaultCurrencyCode={await loadDefaultClaimCurrency()}
         detailBasePath="/me/claims"
         allowEmployeePicker={false}
         canEditHeader

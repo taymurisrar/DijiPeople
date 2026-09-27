@@ -18,6 +18,17 @@ export function isClaimEditable(status: string | null | undefined): boolean {
   return status === CLAIM_EDITABLE_STATUS;
 }
 
+/**
+ * Whether the claim form takes input: always for a claim not yet created (it
+ * has no status), otherwise only while it is a draft. Using isClaimEditable
+ * alone disabled the whole new-claim form, Create button included.
+ */
+export function isClaimFormEditable(
+  claim: { readonly status: string } | null | undefined,
+): boolean {
+  return !claim || isClaimEditable(claim.status);
+}
+
 export type ClaimHeaderDraft = {
   readonly employeeId: string;
   readonly title: string;

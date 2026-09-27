@@ -26,7 +26,7 @@ import {
   buildUpdateClaimPayload,
   EMPTY_LINE_ITEM_DRAFT,
   hasHeaderChanges,
-  isClaimEditable,
+  isClaimFormEditable,
   lineItemToDraft,
   type LineItemDraft,
   validateLineItemDraft,
@@ -44,6 +44,8 @@ type ClaimFormProps = {
   /** Where a saved claim is viewed — "/claims" or "/me/claims". */
   detailBasePath: "/claims" | "/me/claims";
   initialClaim?: ClaimRecord;
+  /** The tenant currency a new claim starts in. */
+  defaultCurrencyCode?: string;
   /** Admin creation may raise the claim on behalf of another employee. */
   allowEmployeePicker: boolean;
   canEditHeader: boolean;
@@ -60,6 +62,7 @@ export function ClaimForm({
   basePath,
   detailBasePath,
   initialClaim,
+  defaultCurrencyCode = "",
   allowEmployeePicker,
   canEditHeader,
   canSubmit,
@@ -70,13 +73,15 @@ export function ClaimForm({
 }: ClaimFormProps) {
   const router = useRouter();
   const [claim, setClaim] = useState<ClaimRecord | null>(initialClaim ?? null);
-  const editable = canEditHeader && isClaimEditable(claim?.status ?? null);
+  const editable = canEditHeader && isClaimFormEditable(claim);
 
   const [employeeId, setEmployeeId] = useState("");
   const [employeeQuery, setEmployeeQuery] = useState<LookupOption[]>([]);
   const [title, setTitle] = useState(claim?.title ?? "");
   const [description, setDescription] = useState(claim?.description ?? "");
-  const [currencyCode, setCurrencyCode] = useState(claim?.currencyCode ?? "");
+  const [currencyCode, setCurrencyCode] = useState(
+    claim?.currencyCode ?? defaultCurrencyCode,
+  );
   const [customFields, setCustomFields] = useState<Record<string, unknown>>(
     () => customFieldValues(claim),
   );
@@ -306,7 +311,6 @@ export function ClaimForm({
             disabled={!editable}
             required
             maxLength={3}
-            placeholder="USD"
           />
           <TextAreaField
             className="md:col-span-2"

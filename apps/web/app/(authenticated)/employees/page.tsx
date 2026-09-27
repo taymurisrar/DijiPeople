@@ -12,7 +12,10 @@ import {
 import { getTableViews, withFallbackViews } from "@/lib/customization-views";
 import { withCustomFieldValues } from "@/lib/runtime/custom-fields";
 import { loadEmployeeCustomFields } from "./custom-fields";
-import { resolveCustomFieldListFilters } from "./custom-field-list-filters";
+import {
+  needsCustomFieldQuery,
+  resolveCustomFieldListFilters,
+} from "./custom-field-list-filters";
 import { AccessDeniedState } from "../_components/access-denied-state";
 import {
   getBusinessUnitAccessSummary,
@@ -85,7 +88,18 @@ export default async function EmployeesPage({
     params,
     customFields.map((field) => field.logicalName),
   );
-  const useEntityDataApi = process.env.USE_ENTITY_DATA_API === "true";
+  /*
+   * TASK-0036 / ADR-0025 — only the REST list sorts and filters by custom
+   * fields, so a request that does either takes it even where the entity data
+   * API is switched on; with the flag on, the filter was silently dropped.
+   */
+  const useEntityDataApi =
+    process.env.USE_ENTITY_DATA_API === "true" &&
+    !needsCustomFieldQuery(
+      orderBy,
+      customFieldFilters.customFilters,
+      customFields.map((field) => field.logicalName),
+    );
 
   const query = new URLSearchParams();
 

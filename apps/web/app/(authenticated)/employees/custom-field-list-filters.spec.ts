@@ -1,4 +1,30 @@
-import { resolveCustomFieldListFilters } from "./custom-field-list-filters";
+import {
+  needsCustomFieldQuery,
+  resolveCustomFieldListFilters,
+} from "./custom-field-list-filters";
+
+/*
+ * With USE_ENTITY_DATA_API on, the page must still take the REST list for a
+ * custom-field sort or filter — the entity data path silently ignored them.
+ */
+describe("needsCustomFieldQuery", () => {
+  const fields = ["bp_score", "bp_region"];
+
+  it("is true for a custom-field sort as the table writes it", () => {
+    expect(needsCustomFieldQuery("bp_score desc", "", fields)).toBe(true);
+  });
+
+  it("is true for any custom filter", () => {
+    expect(needsCustomFieldQuery("", '[{"field":"bp_region"}]', fields)).toBe(
+      true,
+    );
+  });
+
+  it("is false for a system sort or none", () => {
+    expect(needsCustomFieldQuery("hireDate asc", "", fields)).toBe(false);
+    expect(needsCustomFieldQuery("", "", fields)).toBe(false);
+  });
+});
 
 describe("resolveCustomFieldListFilters", () => {
   it("forwards custom column filters as one customFilters value", () => {
