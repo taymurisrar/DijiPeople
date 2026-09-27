@@ -28,6 +28,7 @@ import { ProjectQueryDto } from './dto/project-query.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectsService } from './projects.service';
 import { AuditService } from '../audit/audit.service';
+import { CustomFields } from '../customization/custom-fields.decorator';
 
 @Controller('projects')
 @UseGuards(JwtAuthGuard, PermissionsGuard, EntitlementGuard)
@@ -39,6 +40,7 @@ export class ProjectsController {
   ) {}
 
   @Get()
+  @CustomFields('projects', 'list')
   @Permissions('projects.read')
   @RequirePermission(ENTITY_KEYS.PROJECTS, 'read')
   findAll(
@@ -56,6 +58,7 @@ export class ProjectsController {
   }
 
   @Get(':projectId')
+  @CustomFields('projects', 'read', 'projectId')
   @Permissions('projects.read')
   @RequirePermission(ENTITY_KEYS.PROJECTS, 'read')
   findOne(
@@ -82,6 +85,7 @@ export class ProjectsController {
   }
 
   @Post()
+  @CustomFields('projects', 'create')
   @Permissions('projects.create')
   @RequirePermission(ENTITY_KEYS.PROJECTS, 'create')
   create(
@@ -92,6 +96,7 @@ export class ProjectsController {
   }
 
   @Patch(':projectId')
+  @CustomFields('projects', 'update', 'projectId')
   @Permissions('projects.update')
   @RequirePermission(ENTITY_KEYS.PROJECTS, 'write')
   update(

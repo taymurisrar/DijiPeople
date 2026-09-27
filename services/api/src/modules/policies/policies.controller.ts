@@ -23,6 +23,7 @@ import { ListPoliciesDto } from './dto/list-policies.dto';
 import { UpdatePolicyAssignmentDto } from './dto/update-policy-assignment.dto';
 import { UpdatePolicyDto } from './dto/update-policy.dto';
 import { PoliciesService } from './policies.service';
+import { CustomFields } from '../customization/custom-fields.decorator';
 
 @Controller('policies')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -30,6 +31,7 @@ export class PoliciesController {
   constructor(private readonly policiesService: PoliciesService) {}
 
   @Get()
+  @CustomFields('policies', 'list')
   @Permissions('policies.read')
   @RequirePermission(ENTITY_KEYS.POLICIES, 'read')
   findAll(
@@ -40,6 +42,7 @@ export class PoliciesController {
   }
 
   @Get('assignments')
+  @CustomFields('policyAssignments', 'list')
   @Permissions('policies.read')
   @RequirePermission(ENTITY_KEYS.POLICIES, 'read')
   findAssignments(
@@ -50,6 +53,7 @@ export class PoliciesController {
   }
 
   @Get(':id')
+  @CustomFields('policies', 'read', 'id')
   @Permissions('policies.read')
   @RequirePermission(ENTITY_KEYS.POLICIES, 'read')
   findOne(
@@ -60,6 +64,7 @@ export class PoliciesController {
   }
 
   @Post()
+  @CustomFields('policies', 'create')
   @Permissions('policies.manage')
   @RequirePermission(ENTITY_KEYS.POLICIES, 'manage')
   create(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreatePolicyDto) {
@@ -67,6 +72,7 @@ export class PoliciesController {
   }
 
   @Patch(':id')
+  @CustomFields('policies', 'update', 'id')
   @Permissions('policies.manage')
   @RequirePermission(ENTITY_KEYS.POLICIES, 'manage')
   update(
@@ -88,6 +94,7 @@ export class PoliciesController {
   }
 
   @Post('assignments')
+  @CustomFields('policyAssignments', 'create')
   @Permissions('policies.manage')
   @RequirePermission(ENTITY_KEYS.POLICIES, 'manage')
   createAssignment(
@@ -98,6 +105,7 @@ export class PoliciesController {
   }
 
   @Patch('assignments/:id')
+  @CustomFields('policyAssignments', 'update', 'id')
   @Permissions('policies.manage')
   @RequirePermission(ENTITY_KEYS.POLICIES, 'manage')
   updateAssignment(

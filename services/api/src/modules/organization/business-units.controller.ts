@@ -26,6 +26,7 @@ import { CreateBusinessUnitDto } from './dto/create-business-unit.dto';
 import { ListMasterDataDto } from './dto/list-master-data.dto';
 import { UpdateBusinessUnitDto } from './dto/update-business-unit.dto';
 import { OrganizationService } from './organization.service';
+import { CustomFields } from '../customization/custom-fields.decorator';
 
 /*
  * Business-unit membership is the input to accessContext.accessibleBusinessUnitIds,
@@ -45,6 +46,7 @@ export class BusinessUnitsController {
   constructor(private readonly organizationService: OrganizationService) {}
 
   @Get()
+  @CustomFields('businessUnits', 'list')
   @Permissions('hierarchy.read')
   @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
   findAll(
@@ -55,6 +57,7 @@ export class BusinessUnitsController {
   }
 
   @Get(':id')
+  @CustomFields('businessUnits', 'read', 'id')
   @Permissions('hierarchy.read')
   @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
   findOne(
@@ -95,6 +98,7 @@ export class BusinessUnitsController {
   }
 
   @Post()
+  @CustomFields('businessUnits', 'create')
   @Permissions(MISC_PERMISSION_KEYS.ORGANIZATION_MANAGE)
   @RequirePermission(ENTITY_KEYS.HIERARCHY, 'manage')
   create(
@@ -107,6 +111,7 @@ export class BusinessUnitsController {
   // Reparenting happens through this route: UpdateBusinessUnitDto carries
   // parentBusinessUnitId, so a move is an update and needs the same authority.
   @Patch(':id')
+  @CustomFields('businessUnits', 'update', 'id')
   @Permissions(MISC_PERMISSION_KEYS.ORGANIZATION_MANAGE)
   @RequirePermission(ENTITY_KEYS.HIERARCHY, 'manage')
   update(

@@ -35,6 +35,7 @@ import {
   UpdateClaimRequestDto,
 } from './dto/claim-request.dto';
 import { ClaimsService } from './claims.service';
+import { CustomFields } from '../customization/custom-fields.decorator';
 
 @Controller()
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -42,6 +43,7 @@ export class ClaimsController {
   constructor(private readonly claimsService: ClaimsService) {}
 
   @Post('claims/types')
+  @CustomFields('claimTypes', 'create')
   @Permissions('claim-types.manage')
   @RequirePermission(ENTITY_KEYS.CLAIM_TYPES, 'manage')
   createType(
@@ -52,6 +54,7 @@ export class ClaimsController {
   }
 
   @Get('claims/types')
+  @CustomFields('claimTypes', 'list')
   @Permissions('claim-types.read')
   @RequirePermission(ENTITY_KEYS.CLAIM_TYPES, 'read')
   listTypes(@CurrentUser() user: AuthenticatedUser) {
@@ -59,6 +62,7 @@ export class ClaimsController {
   }
 
   @Get('claims/types/:id')
+  @CustomFields('claimTypes', 'read', 'id')
   @Permissions('claim-types.read')
   @RequirePermission(ENTITY_KEYS.CLAIM_TYPES, 'read')
   getType(
@@ -69,6 +73,7 @@ export class ClaimsController {
   }
 
   @Patch('claims/types/:id')
+  @CustomFields('claimTypes', 'update', 'id')
   @Permissions('claim-types.manage')
   @RequirePermission(ENTITY_KEYS.CLAIM_TYPES, 'manage')
   updateType(
@@ -90,6 +95,7 @@ export class ClaimsController {
   }
 
   @Post('claims/types/:claimTypeId/subtypes')
+  @CustomFields('claimSubTypes', 'create')
   @Permissions('claim-types.manage')
   @RequirePermission(ENTITY_KEYS.CLAIM_TYPES, 'manage')
   createSubType(
@@ -101,6 +107,7 @@ export class ClaimsController {
   }
 
   @Get('claims/types/:claimTypeId/subtypes')
+  @CustomFields('claimSubTypes', 'list')
   @Permissions('claim-types.read')
   @RequirePermission(ENTITY_KEYS.CLAIM_TYPES, 'read')
   listSubTypes(
@@ -111,6 +118,7 @@ export class ClaimsController {
   }
 
   @Patch('claims/subtypes/:id')
+  @CustomFields('claimSubTypes', 'update', 'id')
   @Permissions('claim-types.manage')
   @RequirePermission(ENTITY_KEYS.CLAIM_TYPES, 'manage')
   updateSubType(
@@ -132,6 +140,7 @@ export class ClaimsController {
   }
 
   @Post('claims')
+  @CustomFields('claimRequests', 'create')
   @Permissions('claims.create')
   @RequirePermission(ENTITY_KEYS.CLAIMS, 'create')
   createClaim(
@@ -142,6 +151,7 @@ export class ClaimsController {
   }
 
   @Get('claims')
+  @CustomFields('claimRequests', 'list')
   @Permissions('claims.read-all')
   @RequirePermission(ENTITY_KEYS.CLAIMS, 'read')
   listClaims(
@@ -152,6 +162,7 @@ export class ClaimsController {
   }
 
   @Get('claims/:id')
+  @CustomFields('claimRequests', 'read', 'id')
   @Permissions('claims.read-all')
   @RequirePermission(ENTITY_KEYS.CLAIMS, 'read')
   getClaim(
@@ -162,6 +173,7 @@ export class ClaimsController {
   }
 
   @Patch('claims/:id')
+  @CustomFields('claimRequests', 'update', 'id')
   @Permissions('claims.update')
   @RequirePermission(ENTITY_KEYS.CLAIMS, 'write')
   updateClaim(
@@ -260,6 +272,7 @@ export class ClaimsController {
   }
 
   @Get('me/claims')
+  @CustomFields('claimRequests', 'list')
   @Permissions('claims.read-own')
   @RequirePermission(ENTITY_KEYS.CLAIMS, 'read')
   listMyClaims(@CurrentUser() user: AuthenticatedUser) {
@@ -267,6 +280,7 @@ export class ClaimsController {
   }
 
   @Post('me/claims')
+  @CustomFields('claimRequests', 'create')
   @Permissions('claims.create')
   @RequirePermission(ENTITY_KEYS.CLAIMS, 'create')
   createMyClaim(
@@ -277,6 +291,7 @@ export class ClaimsController {
   }
 
   @Get('me/claims/:id')
+  @CustomFields('claimRequests', 'read', 'id')
   @Permissions('claims.read-own')
   @RequirePermission(ENTITY_KEYS.CLAIMS, 'read')
   getMyClaim(
@@ -287,6 +302,7 @@ export class ClaimsController {
   }
 
   @Patch('me/claims/:id')
+  @CustomFields('claimRequests', 'update', 'id')
   @Permissions('claims.create')
   @RequirePermission(ENTITY_KEYS.CLAIMS, 'create')
   updateMyClaim(

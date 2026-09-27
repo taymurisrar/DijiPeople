@@ -49,6 +49,7 @@ import { EmployeeProfilesService } from './employee-profiles.service';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { EmployeesService } from './employees.service';
 import { BulkDeleteEmployeesDto } from './dto/bulk-delete-employees.dto';
+import { CustomFields } from '../customization/custom-fields.decorator';
 
 type UploadedFile = {
   buffer: Buffer;
@@ -448,6 +449,7 @@ export class EmployeesController {
   }
 
   @Get(':employeeId/education')
+  @CustomFields('employeeEducation', 'list')
   @Permissions('dashboard.view')
   @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
   getEducation(
@@ -458,6 +460,7 @@ export class EmployeesController {
   }
 
   @Get(':employeeId/compensation')
+  @CustomFields('employeeCompensations', 'read')
   @Permissions('dashboard.view')
   @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
   getCompensation(
@@ -471,6 +474,7 @@ export class EmployeesController {
   }
 
   @Put(':employeeId/compensation')
+  @CustomFields('employeeCompensations', 'create')
   @Permissions('payroll.write')
   @RequirePermission(ENTITY_KEYS.PAYROLL, 'write')
   upsertCompensation(
@@ -486,6 +490,7 @@ export class EmployeesController {
   }
 
   @Get(':employeeId/previous-employments')
+  @CustomFields('employeePreviousEmployment', 'list')
   @Permissions('dashboard.view')
   @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
   getPreviousEmployments(
@@ -514,6 +519,7 @@ export class EmployeesController {
   }
 
   @Patch(':employeeId/previous-employments/:previousEmploymentId')
+  @CustomFields('employeePreviousEmployment', 'update', 'previousEmploymentId')
   @Permissions('dashboard.view')
   @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
   updatePreviousEmployment(
@@ -559,6 +565,7 @@ export class EmployeesController {
   }
 
   @Patch(':employeeId/education/:educationId')
+  @CustomFields('employeeEducation', 'update', 'educationId')
   @Permissions('dashboard.view')
   @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
   updateEducation(

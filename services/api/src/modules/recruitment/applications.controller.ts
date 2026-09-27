@@ -27,6 +27,7 @@ import { MoveApplicationStageDto } from './dto/move-application-stage.dto';
 import { SubmitApplicationDto } from './dto/submit-application.dto';
 import { UpsertCandidateEvaluationDto } from './dto/upsert-candidate-evaluation.dto';
 import { RecruitmentService } from './recruitment.service';
+import { CustomFields } from '../customization/custom-fields.decorator';
 
 @Controller('applications')
 @UseGuards(JwtAuthGuard, PermissionsGuard, EntitlementGuard)
@@ -35,6 +36,7 @@ export class ApplicationsController {
   constructor(private readonly recruitmentService: RecruitmentService) {}
 
   @Get()
+  @CustomFields('applications', 'list')
   @Permissions('recruitment.read')
   @RequireAnyPermission(
     { entityKey: ENTITY_KEYS.JOBS, action: 'read' },
@@ -48,6 +50,7 @@ export class ApplicationsController {
   }
 
   @Post()
+  @CustomFields('applications', 'create')
   @Permissions('recruitment.create')
   @RequireAnyPermission(
     { entityKey: ENTITY_KEYS.JOBS, action: 'create' },
@@ -61,6 +64,7 @@ export class ApplicationsController {
   }
 
   @Get(':applicationId')
+  @CustomFields('applications', 'read', 'applicationId')
   @Permissions('recruitment.read')
   @RequireAnyPermission(
     { entityKey: ENTITY_KEYS.JOBS, action: 'read' },

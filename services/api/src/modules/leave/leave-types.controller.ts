@@ -26,6 +26,7 @@ import { CreateLeaveTypeDto } from './dto/create-leave-type.dto';
 import { ListLeaveConfigDto } from './dto/list-leave-config.dto';
 import { UpdateLeaveTypeDto } from './dto/update-leave-type.dto';
 import { LeaveService } from './leave.service';
+import { CustomFields } from '../customization/custom-fields.decorator';
 
 @Controller('leave-types')
 @UseGuards(JwtAuthGuard, PermissionsGuard, EntitlementGuard)
@@ -34,6 +35,7 @@ export class LeaveTypesController {
   constructor(private readonly leaveService: LeaveService) {}
 
   @Get()
+  @CustomFields('leaveTypes', 'list')
   @Permissions('leave-types.read')
   @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'read')
   findAll(
@@ -44,6 +46,7 @@ export class LeaveTypesController {
   }
 
   @Get(':id')
+  @CustomFields('leaveTypes', 'read', 'id')
   @Permissions('leave-types.read')
   @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'read')
   findOne(
@@ -74,6 +77,7 @@ export class LeaveTypesController {
   }
 
   @Post()
+  @CustomFields('leaveTypes', 'create')
   @Permissions('leave-types.create')
   @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'create')
   create(
@@ -84,6 +88,7 @@ export class LeaveTypesController {
   }
 
   @Patch(':id')
+  @CustomFields('leaveTypes', 'update', 'id')
   @Permissions('leave-types.update')
   @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'write')
   update(

@@ -33,6 +33,7 @@ import { PayrollCycleQueryDto } from './dto/payroll-cycle-query.dto';
 import { UpdateEmployeeCompensationDto } from './dto/update-employee-compensation.dto';
 import { PayrollService } from './payroll.service';
 import { PayrollDefaultsService } from './payroll-defaults.service';
+import { CustomFields } from '../customization/custom-fields.decorator';
 
 @Controller('payroll')
 @UseGuards(JwtAuthGuard, PermissionsGuard, EntitlementGuard)
@@ -61,6 +62,7 @@ export class PayrollController {
   }
 
   @Get('cycles')
+  @CustomFields('payrollCycles', 'list')
   @Permissions('payroll.read')
   @RequirePermission(ENTITY_KEYS.PAYROLL, 'read')
   listCycles(
@@ -71,6 +73,7 @@ export class PayrollController {
   }
 
   @Get('cycles/:cycleId')
+  @CustomFields('payrollCycles', 'read', 'cycleId')
   @Permissions('payroll.read')
   @RequirePermission(ENTITY_KEYS.PAYROLL, 'read')
   getCycleById(
@@ -81,6 +84,7 @@ export class PayrollController {
   }
 
   @Post('cycles')
+  @CustomFields('payrollCycles', 'create')
   @Permissions('payroll.write')
   @RequirePermission(ENTITY_KEYS.PAYROLL, 'write')
   createCycle(
@@ -91,6 +95,7 @@ export class PayrollController {
   }
 
   @Patch('cycles/:cycleId')
+  @CustomFields('payrollCycles', 'update', 'cycleId')
   @Permissions('payroll.write')
   @RequirePermission(ENTITY_KEYS.PAYROLL, 'write')
   updateCycle(

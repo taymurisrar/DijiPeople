@@ -25,6 +25,7 @@ import { CreateEmployeeLevelDto } from './dto/create-employee-level.dto';
 import { ListEmployeeLevelsDto } from './dto/list-employee-levels.dto';
 import { UpdateEmployeeLevelDto } from './dto/update-employee-level.dto';
 import { EmployeeLevelsService } from './employee-levels.service';
+import { CustomFields } from '../customization/custom-fields.decorator';
 
 @Controller('employee-levels')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -32,6 +33,7 @@ export class EmployeeLevelsController {
   constructor(private readonly employeeLevelsService: EmployeeLevelsService) {}
 
   @Get()
+  @CustomFields('employeeLevels', 'list')
   @Permissions('dashboard.view')
   @RequirePermission(ENTITY_KEYS.USER_PREFERENCES, 'read')
   findAll(
@@ -45,6 +47,7 @@ export class EmployeeLevelsController {
   }
 
   @Get(':id')
+  @CustomFields('employeeLevels', 'read', 'id')
   @Permissions('employee-levels.read')
   @RequirePermission(ENTITY_KEYS.EMPLOYEE_LEVELS, 'read')
   findOne(
@@ -55,6 +58,7 @@ export class EmployeeLevelsController {
   }
 
   @Post()
+  @CustomFields('employeeLevels', 'create')
   @Permissions('employee-levels.manage')
   @RequireAnyPermission(
     { entityKey: ENTITY_KEYS.EMPLOYEE_LEVELS, action: 'create' },
@@ -70,6 +74,7 @@ export class EmployeeLevelsController {
   }
 
   @Patch(':id')
+  @CustomFields('employeeLevels', 'update', 'id')
   @Permissions('employee-levels.manage')
   @RequireAnyPermission(
     { entityKey: ENTITY_KEYS.EMPLOYEE_LEVELS, action: 'create' },

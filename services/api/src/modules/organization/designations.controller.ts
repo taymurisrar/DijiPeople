@@ -24,6 +24,7 @@ import { CreateDesignationDto } from './dto/create-designation.dto';
 import { ListMasterDataDto } from './dto/list-master-data.dto';
 import { UpdateDesignationDto } from './dto/update-designation.dto';
 import { OrganizationService } from './organization.service';
+import { CustomFields } from '../customization/custom-fields.decorator';
 
 @Controller('designations')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -31,6 +32,7 @@ export class DesignationsController {
   constructor(private readonly organizationService: OrganizationService) {}
 
   @Get()
+  @CustomFields('designations', 'list')
   @Permissions('designations.read')
   @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
   findAll(
@@ -44,6 +46,7 @@ export class DesignationsController {
   }
 
   @Get(':id')
+  @CustomFields('designations', 'read', 'id')
   @Permissions('designations.read')
   @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
   findOne(
@@ -54,6 +57,7 @@ export class DesignationsController {
   }
 
   @Post()
+  @CustomFields('designations', 'create')
   @Permissions('designations.create')
   @RequirePermission(ENTITY_KEYS.HIERARCHY, 'manage')
   create(
@@ -64,6 +68,7 @@ export class DesignationsController {
   }
 
   @Patch(':id')
+  @CustomFields('designations', 'update', 'id')
   @Permissions('designations.update')
   @RequirePermission(ENTITY_KEYS.HIERARCHY, 'manage')
   update(

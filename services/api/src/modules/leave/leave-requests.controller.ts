@@ -30,6 +30,7 @@ import { LeaveRequestQueryDto } from './dto/leave-request-query.dto';
 import { SubmitLeaveRequestDto } from './dto/submit-leave-request.dto';
 import { LeaveService } from './leave.service';
 import { AuditService } from '../audit/audit.service';
+import { CustomFields } from '../customization/custom-fields.decorator';
 
 @Controller('leave-requests')
 @UseGuards(JwtAuthGuard, PermissionsGuard, EntitlementGuard)
@@ -48,6 +49,7 @@ export class LeaveRequestsController {
   }
 
   @Post()
+  @CustomFields('leaveRequests', 'create')
   @Permissions('leave-requests.create')
   @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'create')
   submit(
@@ -81,6 +83,7 @@ export class LeaveRequestsController {
   }
 
   @Get('mine')
+  @CustomFields('leaveRequests', 'list')
   @Permissions('leave-requests.read')
   @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'read')
   listMine(
@@ -91,6 +94,7 @@ export class LeaveRequestsController {
   }
 
   @Get('team')
+  @CustomFields('leaveRequests', 'list')
   @Permissions('leave-requests.read')
   @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'read')
   listTeam(
@@ -101,6 +105,7 @@ export class LeaveRequestsController {
   }
 
   @Get(':id')
+  @CustomFields('leaveRequests', 'read', 'id')
   @Permissions('leave-requests.read')
   @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'read')
   getById(

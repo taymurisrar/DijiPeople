@@ -23,6 +23,7 @@ import { CreateDepartmentDto } from './dto/create-department.dto';
 import { ListDepartmentsDto } from './dto/list-departments.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
 import { OrganizationService } from './organization.service';
+import { CustomFields } from '../customization/custom-fields.decorator';
 
 @Controller('departments')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -30,6 +31,7 @@ export class DepartmentsController {
   constructor(private readonly organizationService: OrganizationService) {}
 
   @Get()
+  @CustomFields('departments', 'list')
   @Permissions('departments.read')
   @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
   findAll(
@@ -40,6 +42,7 @@ export class DepartmentsController {
   }
 
   @Get(':id')
+  @CustomFields('departments', 'read', 'id')
   @Permissions('departments.read')
   @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
   findOne(
@@ -50,6 +53,7 @@ export class DepartmentsController {
   }
 
   @Post()
+  @CustomFields('departments', 'create')
   @Permissions('departments.create')
   @RequirePermission(ENTITY_KEYS.HIERARCHY, 'manage')
   create(
@@ -60,6 +64,7 @@ export class DepartmentsController {
   }
 
   @Patch(':id')
+  @CustomFields('departments', 'update', 'id')
   @Permissions('departments.update')
   @RequirePermission(ENTITY_KEYS.HIERARCHY, 'manage')
   update(

@@ -124,8 +124,15 @@ export class CustomFieldValuesInterceptor implements NestInterceptor {
           return this.attachToRows(user, binding, response);
 
         const record = responseRecord(response);
+        /*
+         * A create has no id until the handler answers. A read bound without
+         * an id param is a route keyed by its parent (GET
+         * /employees/:employeeId/compensation) that answers with the record
+         * itself — the one the handler just authorised the caller to read.
+         */
         const recordId =
-          binding.role === 'create'
+          binding.role === 'create' ||
+          (binding.role === 'read' && !binding.idParam)
             ? (record?.id as string | undefined)
             : paramId;
         if (!recordId) {

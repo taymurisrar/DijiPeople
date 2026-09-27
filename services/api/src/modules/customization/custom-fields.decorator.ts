@@ -16,7 +16,11 @@ export type CustomFieldsRole = 'create' | 'update' | 'read' | 'list';
 export type CustomFieldsBinding = {
   readonly tableKey: string;
   readonly role: CustomFieldsRole;
-  /** Route param holding the record id (`update` and `read`). */
+  /**
+   * Route param holding the record id. Required for `update`. For `read`,
+   * omit it when the route is keyed by a parent and answers with the record:
+   * the id is then taken from the response.
+   */
   readonly idParam?: string;
 };
 

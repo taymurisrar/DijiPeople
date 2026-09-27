@@ -24,6 +24,7 @@ import { CreateLocationDto } from './dto/create-location.dto';
 import { ListMasterDataDto } from './dto/list-master-data.dto';
 import { UpdateLocationDto } from './dto/update-location.dto';
 import { OrganizationService } from './organization.service';
+import { CustomFields } from '../customization/custom-fields.decorator';
 
 @Controller('locations')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -31,6 +32,7 @@ export class LocationsController {
   constructor(private readonly organizationService: OrganizationService) {}
 
   @Get()
+  @CustomFields('locations', 'list')
   @Permissions('locations.read')
   @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
   findAll(
@@ -44,6 +46,7 @@ export class LocationsController {
   }
 
   @Get(':id')
+  @CustomFields('locations', 'read', 'id')
   @Permissions('locations.read')
   @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
   findOne(
@@ -54,6 +57,7 @@ export class LocationsController {
   }
 
   @Post()
+  @CustomFields('locations', 'create')
   @Permissions('locations.create')
   @RequirePermission(ENTITY_KEYS.HIERARCHY, 'manage')
   create(
@@ -64,6 +68,7 @@ export class LocationsController {
   }
 
   @Patch(':id')
+  @CustomFields('locations', 'update', 'id')
   @Permissions('locations.update')
   @RequirePermission(ENTITY_KEYS.HIERARCHY, 'manage')
   update(
