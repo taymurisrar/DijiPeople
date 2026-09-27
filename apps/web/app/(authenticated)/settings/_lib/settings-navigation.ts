@@ -408,6 +408,18 @@ export const settingsNavGroups = [
         ],
       },
       {
+        key: "document-types",
+        href: "/settings/people/documents/types",
+        label: "Document Types",
+        description: "Maintain the document types uploads are classified by.",
+        icon: "file-check",
+        keywords: ["document types", "files", "classification"],
+        requiredAnyPermissions: [
+          NAV_PERMISSION_KEYS.SETTINGS_READ,
+          NAV_PERMISSION_KEYS.DOCUMENTS_READ,
+        ],
+      },
+      {
         key: "document-categories",
         href: "/settings/people/documents/categories",
         label: "Document Categories",

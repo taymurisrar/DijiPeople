@@ -39,6 +39,7 @@ const MODULE_TABLE_KEYS: Readonly<Record<string, string>> = {
   "settings-claim-types": "claimTypes",
   "settings-pay-components": "payComponents",
   "settings-document-categories": "documentCategories",
+  "settings-document-types": "documentTypes",
 };
 
 export function customFieldsTableKey(moduleKey: string) {
