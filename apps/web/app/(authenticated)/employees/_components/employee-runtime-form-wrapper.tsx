@@ -19,6 +19,7 @@ import {
 import { canManageEmployeeAccountActions } from "@/lib/employee-account-actions";
 import type { LookupOption } from "@/app/components/ui/form-control";
 import { useEmployeeLookups } from "./use-employee-lookups";
+import { EmployeePayBankingPanel } from "./employee-pay-banking-panel";
 
 export type EmployeeRuntimeFormMode = "detail" | "edit" | "new";
 
@@ -88,7 +89,10 @@ export function EmployeeRuntimeFormWrapper({
           lookupOptions.stateProvinceId,
           employeeLookups.states,
         ),
-        cityId: mergeLookupOptions(lookupOptions.cityId, employeeLookups.cities),
+        cityId: mergeLookupOptions(
+          lookupOptions.cityId,
+          employeeLookups.cities,
+        ),
         emergencyContactRelationTypeId: mergeLookupOptions(
           lookupOptions.emergencyContactRelationTypeId,
           employeeLookups.relationTypes,
@@ -97,12 +101,38 @@ export function EmployeeRuntimeFormWrapper({
       [employeeLookups, lookupOptions],
     );
   const runtimeWithEmployeeCommands = useEmployeeAccountActionRuntime(runtime);
+  const recordId = runtime.recordId;
+  const principal = runtime.security.principal;
+  /* Presentation only — PUT …/compensation enforces payroll.write itself. */
+  const canEditPay =
+    principal.permissionKeys.includes("payroll.write") ||
+    principal.roleKeys.some((key) =>
+      ["global-admin", "system-admin"].includes(key),
+    );
+  const tabContent = useMemo(
+    () =>
+      mode !== "new" && recordId
+        ? {
+            "pay-setup": (
+              <EmployeePayBankingPanel
+                canEdit={canEditPay}
+                employeeId={recordId}
+              />
+            ),
+          }
+        : undefined,
+    [canEditPay, mode, recordId],
+  );
   // ITEM-0184 (H9) — create-time instructions are not fields of a saved record.
   const displayedForm = useMemo(
     () =>
       activeForm && mode !== "new"
         ? withoutCreateOnlyEmployeeFields(activeForm)
-        : activeForm,
+        : activeForm && {
+            /* TASK-0036 — pay setup belongs to a saved employee. */
+            ...activeForm,
+            tabs: activeForm.tabs?.filter((tab) => tab.tabKey !== "pay-setup"),
+          },
     [activeForm, mode],
   );
 
@@ -149,6 +179,7 @@ export function EmployeeRuntimeFormWrapper({
         );
       }}
       runtime={runtimeWithEmployeeCommands}
+      tabContent={tabContent}
       tabsSlot={tabsSlot}
       title={recordTitle ?? titleByMode[mode]}
     />

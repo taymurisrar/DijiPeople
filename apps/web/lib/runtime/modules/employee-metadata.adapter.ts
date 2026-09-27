@@ -803,6 +803,11 @@ function fallbackEmployeeForm(
         "employee_compensation",
         PAY_DATA_ROLES,
       ),
+      /*
+       * TASK-0036 — the current payroll setup (EmployeeCompensation). No
+       * sections: the wrapper supplies the whole panel as tab content.
+       */
+      formFieldTab("pay-setup", "Pay setup", 65, [], PAY_DATA_ROLES),
       formRelatedTab(
         "banking-details",
         "Banking Details",

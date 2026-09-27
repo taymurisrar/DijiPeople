@@ -693,9 +693,16 @@ export class EmployeeProfilesService {
       select: employeeCompensationSelect,
     });
 
+    /*
+     * BUG-3154 / EXECPLAN-0036 requirement 4: the encrypted copy wins when it
+     * exists, and the ciphertext columns never leave this service.
+     */
     return compensation
       ? {
-          ...compensation,
+          ...decryptEmployeeCompensationFields(
+            this.secretEncryption,
+            compensation,
+          ),
           basicSalary: compensation.basicSalary.toString(),
         }
       : null;
@@ -739,6 +746,13 @@ export class EmployeeProfilesService {
         bankIban: dto.bankIban?.trim(),
         bankRoutingNumber: dto.bankRoutingNumber?.trim(),
         taxIdentifier: dto.taxIdentifier?.trim(),
+        /* BUG-3154 / EXECPLAN-0036 requirement 3: dual-write. */
+        ...encryptEmployeeCompensationFields(this.secretEncryption, {
+          bankAccountNumber: dto.bankAccountNumber?.trim(),
+          bankIban: dto.bankIban?.trim(),
+          bankRoutingNumber: dto.bankRoutingNumber?.trim(),
+          taxIdentifier: dto.taxIdentifier?.trim(),
+        }),
         notes: dto.notes?.trim(),
         createdById: currentUser.userId,
         updatedById: currentUser.userId,
@@ -753,10 +767,24 @@ export class EmployeeProfilesService {
         paymentMode: dto.paymentMode ?? null,
         bankName: dto.bankName?.trim() ?? null,
         bankAccountTitle: dto.bankAccountTitle?.trim() ?? null,
-        bankAccountNumber: dto.bankAccountNumber?.trim() ?? null,
-        bankIban: dto.bankIban?.trim() ?? null,
-        bankRoutingNumber: dto.bankRoutingNumber?.trim() ?? null,
-        taxIdentifier: dto.taxIdentifier?.trim() ?? null,
+        /*
+         * TASK-0036 — the Pay & banking screen shows these masked and does not
+         * post them back unless the user types a new value. Omitted keeps what
+         * is stored (it used to wipe it); null or '' clears it; a value is
+         * dual-written (BUG-3154 / EXECPLAN-0036 requirement 3).
+         */
+        ...keptOrReplaced({
+          bankAccountNumber: dto.bankAccountNumber,
+          bankIban: dto.bankIban,
+          bankRoutingNumber: dto.bankRoutingNumber,
+          taxIdentifier: dto.taxIdentifier,
+        }),
+        ...encryptEmployeeCompensationFields(this.secretEncryption, {
+          bankAccountNumber: secretInput(dto.bankAccountNumber),
+          bankIban: secretInput(dto.bankIban),
+          bankRoutingNumber: secretInput(dto.bankRoutingNumber),
+          taxIdentifier: secretInput(dto.taxIdentifier),
+        }),
         notes: dto.notes?.trim() ?? null,
         updatedById: currentUser.userId,
       },
@@ -2161,6 +2189,27 @@ export class EmployeeProfilesService {
       );
     }
   }
+}
+
+/* undefined: leave the stored value; null or '': clear it; text: the trimmed text. */
+function secretInput(value: string | null | undefined) {
+  if (value === undefined) return undefined;
+  const trimmed = value?.trim() ?? '';
+  return trimmed ? trimmed : null;
+}
+
+function keptOrReplaced<K extends string>(
+  fields: Record<K, string | null | undefined>,
+): Partial<Record<K, string | null>> {
+  const out: Partial<Record<K, string | null>> = {};
+  for (const [key, value] of Object.entries(fields) as [
+    K,
+    string | null | undefined,
+  ][]) {
+    const next = secretInput(value);
+    if (next !== undefined) out[key] = next;
+  }
+  return out;
 }
 
 function buildDerivedStats(hireDate: Date, dateOfBirth: Date | null) {
