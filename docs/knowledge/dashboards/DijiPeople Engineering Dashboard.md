@@ -597,6 +597,7 @@
 
 ## Recent Engineering History
 
+- [[2026-09-27-custom-fields-every-module-be7189f7|Engineering History — Custom fields every module]]
 - [[2026-09-26-task-0033-package-alm-b55afdb2|Engineering History — TASK-0033 package ALM]]
 - [[2026-09-26-release-task-0034-custom-field-values-1aeda297|Engineering History — Release task 0034 custom field values]]
 - [[2026-09-26-release-backlog-safepay-package-alm-42f597b7|Engineering History — Release backlog safepay package alm]]
@@ -604,7 +605,6 @@
 - [[2026-09-26-custom-field-values-and-import-scale-cd777b78|Engineering History — Custom field values and import scale]]
 - [[2026-09-26-billing-safepay-provider-aa2c507e|Engineering History — Safepay for PKR alongside Stripe]]
 - [[2026-09-26-backlog-0203-0204-0206-7866e11e|Engineering History — Backlog 0203 0204 0206]]
-- [[2026-09-26-backlog-0201-0200-856747e7|Engineering History — Backlog 0201 0200]]
 
 ## Recent Releases
 
@@ -788,7 +788,7 @@
 | Backlog items | 221 |
 | Known bug patterns | 35 |
 | QA runs | 37 |
-| Engineering history records | 91 |
+| Engineering history records | 92 |
 | Release records | 10 |
 | Module notes | 31 |
 | Architecture notes | 22 |

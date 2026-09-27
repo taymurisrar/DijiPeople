@@ -6,18 +6,17 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 1** · completed: 111
+**Active: 0** · completed: 112
 
 ## Active
 
-| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
-|---|---|---|---|---|---|---|---|
-| [SESSION-0115](../../docs/sessions/SESSION-0115-custom-fields-follow-up-employee-lookups-list-columns-export.md) | — | Custom fields follow-up: Employee lookups, list columns, export; other system modules; Obsidian verify | ACTIVE | `agent/custom-fields-followup` | `develop` | — | 2026-09-26T22:19:57.666Z |
+_None. No session is currently running._
 
 ## Completed
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0115](../../docs/sessions/SESSION-0115-custom-fields-follow-up-employee-lookups-list-columns-export.md) | TASK-0035 | Custom fields follow-up: Employee lookups, list columns, export; other system modules; Obsidian verify | COMPLETE | `agent/custom-fields-followup` | `develop` | — | 2026-09-26T22:19:57.666Z |
 | [SESSION-0114](../../docs/sessions/SESSION-0114-release-develop-to-main-task-0034-custom-field-values-and-pa.md) | TASK-0034 | Release develop to main: TASK-0034 custom field values and package import at scale | COMPLETE | `agent/custom-field-values` | `main` | — | 2026-09-26T21:18:01.842Z |
 | [SESSION-0113](../../docs/sessions/SESSION-0113-custom-field-values-on-system-modules-large-package-import-p.md) | TASK-0034 | Custom field values on system modules; large package import performance | COMPLETE | `agent/custom-field-values` | `develop` | — | 2026-09-26T18:52:37.481Z |
 | [SESSION-0112](../../docs/sessions/SESSION-0112-item-0207-system-agreement-templates-publish-new-versions-cl.md) | — | ITEM-0207 system agreement templates publish new versions; close ITEM-0208; record ITEM-0210 decision | COMPLETE | `agent/item-0207-template-versions` | `develop` | — | 2026-09-26T18:05:01.097Z |
