@@ -57,6 +57,16 @@ const CATEGORIES = [
     label: 'history',
     lead: 'Records this task created, closed or depended on, cited in its own body:',
   },
+  /*
+   * ExecPlans cite the bugs and items they resolve in prose, but nothing turned
+   * those citations into edges, so a plan with no hand-written wikilink was a
+   * GRAPH_ORPHAN in the vault (five were, 2026-09-27).
+   */
+  {
+    dir: 'docs/plans',
+    label: 'plan',
+    lead: 'Records this plan addresses or depends on, cited in its own body:',
+  },
 ];
 
 /*
@@ -201,6 +211,13 @@ for (const category of CATEGORIES) {
     const prose = authored.replace(/^(?:STANDALONE_ALLOWED_BY|OwnerAgent|UpdatedBy):.*$/gm, '');
 
     const self = selfIds(authored);
+    /*
+     * An ExecPlan's number lives in its filename, not its frontmatter, and two
+     * plans can share one (EXECPLAN-0032 names two different plans). Without
+     * this, a plan's own heading would link it to its same-numbered sibling.
+     */
+    const ownNumber = /^(EXECPLAN-\d{4})-/.exec(basename(file));
+    if (ownNumber) self.add(ownNumber[1]);
     const cited = [...new Set([...prose.matchAll(RECORD_ID)].map((m) => m[1]))]
       .filter((id) => !self.has(id) && names.has(id))
       .sort();

@@ -194,6 +194,7 @@ invariant through `test-api`, and the API suite passes unexcluded: 178 suites,
 
 - Backlog item — [[ITEM-0043]]
 - Referenced by — [[ITEM-0047]]
+- Modules — [[ci-architecture]]
 - Regression — REG-047 (see the regression register)
 
 <!-- GRAPH:END -->

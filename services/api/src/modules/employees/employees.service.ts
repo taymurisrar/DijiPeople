@@ -240,6 +240,15 @@ function emergencyContactFieldErrors(input: {
   return errors;
 }
 
+/* A custom field value as one CSV cell: lists joined, empty when unset. */
+function exportCellValue(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  if (Array.isArray(value)) return value.map((item) => String(item)).join('; ');
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value as string | number);
+}
+
 function formatDateForFilename(date: Date) {
   return date.toISOString().slice(0, 10);
 }
@@ -2021,8 +2030,34 @@ export class EmployeesService {
       pageSize: 10000,
     });
 
-    const selectedColumns = this.resolveExportColumns(query.columns);
+    /*
+     * ITEM-0221 — custom fields follow the report-only rule: emitted only when
+     * the view shows them, never part of the re-import contract. Values are
+     * the ones the user may read, masked where the field is masked.
+     */
+    const customColumns = await this.exportCustomFieldColumns(
+      currentUser,
+      query.columns,
+    );
+    const customValues =
+      customColumns.length && this.customFieldValues
+        ? await this.customFieldValues.readMany(
+            currentUser,
+            'employees',
+            response.items.map((employee) => employee.id),
+          )
+        : new Map<string, Record<string, unknown>>();
+    const selectedColumns = [
+      ...this.resolveExportColumns(query.columns),
+      ...customColumns,
+    ];
     const rows = response.items.map((employee) => ({
+      ...Object.fromEntries(
+        customColumns.map((column) => [
+          column,
+          exportCellValue(customValues.get(employee.id)?.[column]),
+        ]),
+      ),
       // Import-contract columns, in template order.
       employeeCode: employee.employeeCode ?? '',
       firstName: employee.firstName ?? '',
@@ -2102,6 +2137,22 @@ export class EmployeesService {
     ];
   }
 
+  /** Custom field keys the view asked for that the user may read. */
+  private async exportCustomFieldColumns(
+    currentUser: AuthenticatedUser,
+    columns: readonly string[] | undefined,
+  ) {
+    const requested = new Set((columns ?? []).map((column) => column.trim()));
+    if (!requested.size || !this.customFieldValues) return [];
+    const definitions = await this.customFieldValues.definitions(
+      currentUser,
+      'employees',
+    );
+    return definitions
+      .map((definition) => definition.logicalName)
+      .filter((key) => requested.has(key));
+  }
+
   exportEmployeeTemplate(): CsvFile {
     return {
       filename: 'employees-import-template.csv',
@@ -2174,12 +2225,30 @@ export class EmployeesService {
         field: 'Owner email',
         value: employee.ownerUser?.email ?? '',
       },
+      ...(await this.exportCustomFieldRows(currentUser, employee.id)),
     ];
 
     return {
       filename: `employee-${sanitizeFilename(employee.employeeCode || employee.id)}-export-${formatDateForFilename(new Date())}.csv`,
       buffer: Buffer.from(toCsv(rows), 'utf8'),
     };
+  }
+
+  /* ITEM-0221 — the profile export's Custom fields section, as the user reads them. */
+  private async exportCustomFieldRows(
+    currentUser: AuthenticatedUser,
+    employeeId: string,
+  ) {
+    if (!this.customFieldValues) return [];
+    const [definitions, values] = await Promise.all([
+      this.customFieldValues.definitions(currentUser, 'employees'),
+      this.customFieldValues.read(currentUser, 'employees', employeeId),
+    ]);
+    return definitions.map((definition) => ({
+      section: 'Custom fields',
+      field: definition.displayName,
+      value: exportCellValue(values[definition.logicalName]),
+    }));
   }
 
   async resendInvitation(currentUser: AuthenticatedUser, employeeId: string) {

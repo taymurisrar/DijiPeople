@@ -38,6 +38,46 @@ type ExposedPrismaModelConfig = Omit<SystemTableDefinition, 'columns'> & {
   curatedColumns?: SystemColumnDefinition[];
 };
 
+/*
+ * TASK-0035 / ADR-0024 — tables no route can carry custom field values for, so
+ * a custom field on them could never hold a value. They stay visible (views,
+ * advanced find) but take no new custom fields.
+ *
+ * - Generated or state-only: leaveBalances (accrual), timesheets and
+ *   timesheetEntries (period generation), payrollRunEmployees and
+ *   payrollRecords (calculation), payslips (generation + publish/void).
+ * - Join rows: userRoles, rolePermissions.
+ * - Agent telemetry: workSessions. A key/value bag: tenantSettings.
+ * - No code uses them at all: emergencyContacts (the employee's contact is on
+ *   Employee), employeeDocumentReferences (documents use Document), and
+ *   salaryComponents (superseded by PayComponent).
+ * - A per-tenant singleton edited without a record id: attendancePolicies
+ *   (PATCH /attendance/policy). Values are validated against the record they
+ *   will be written to; a route that names no record cannot be bound safely.
+ * - Rows no route returns on their own: onboardingTasks come only nested in
+ *   their onboarding, so a value written to one could never be shown.
+ *
+ * Declared before EXPOSED_PRISMA_MODELS because `table()` reads it while that
+ * array is built.
+ */
+const UNSTORABLE_TABLE_KEYS = new Set([
+  'leaveBalances',
+  'timesheets',
+  'timesheetEntries',
+  'payrollRunEmployees',
+  'payrollRecords',
+  'payslips',
+  'userRoles',
+  'rolePermissions',
+  'workSessions',
+  'tenantSettings',
+  'emergencyContacts',
+  'employeeDocumentReferences',
+  'salaryComponents',
+  'attendancePolicies',
+  'onboardingTasks',
+]);
+
 const EXPOSED_PRISMA_MODELS: ExposedPrismaModelConfig[] = [
   table('Employee', 'employees', 'Core HR', 'Employee', 'Employees', 10, {
     icon: 'users',
@@ -569,7 +609,8 @@ function table(
       overrides.description ??
       `${displayName} metadata exposed through the tenant Default Solution.`,
     ownershipType: overrides.ownershipType ?? 'tenant',
-    isCustomizable: overrides.isCustomizable ?? true,
+    isCustomizable:
+      overrides.isCustomizable ?? !UNSTORABLE_TABLE_KEYS.has(tableKey),
     isValidForAdvancedFind: overrides.isValidForAdvancedFind ?? true,
     isValidForFormDesigner: overrides.isValidForFormDesigner ?? true,
     isValidForViewDesigner: overrides.isValidForViewDesigner ?? true,

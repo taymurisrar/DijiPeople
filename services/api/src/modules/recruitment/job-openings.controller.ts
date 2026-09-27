@@ -25,6 +25,7 @@ import { CreateJobOpeningDto } from './dto/create-job-opening.dto';
 import { JobOpeningQueryDto } from './dto/job-opening-query.dto';
 import { UpdateJobOpeningDto } from './dto/update-job-opening.dto';
 import { RecruitmentService } from './recruitment.service';
+import { CustomFields } from '../customization/custom-fields.decorator';
 
 @Controller('job-openings')
 @UseGuards(JwtAuthGuard, PermissionsGuard, EntitlementGuard)
@@ -33,6 +34,7 @@ export class JobOpeningsController {
   constructor(private readonly recruitmentService: RecruitmentService) {}
 
   @Get()
+  @CustomFields('jobOpenings', 'list')
   @Permissions('recruitment.read')
   @RequireAnyPermission(
     { entityKey: ENTITY_KEYS.JOBS, action: 'read' },
@@ -46,6 +48,7 @@ export class JobOpeningsController {
   }
 
   @Get(':jobOpeningId')
+  @CustomFields('jobOpenings', 'read', 'jobOpeningId')
   @Permissions('recruitment.read')
   @RequireAnyPermission(
     { entityKey: ENTITY_KEYS.JOBS, action: 'read' },
@@ -62,6 +65,7 @@ export class JobOpeningsController {
   }
 
   @Post()
+  @CustomFields('jobOpenings', 'create')
   @Permissions('recruitment.create')
   @RequireAnyPermission(
     { entityKey: ENTITY_KEYS.JOBS, action: 'create' },
@@ -75,6 +79,7 @@ export class JobOpeningsController {
   }
 
   @Patch(':jobOpeningId')
+  @CustomFields('jobOpenings', 'update', 'jobOpeningId')
   @Permissions('recruitment.update')
   @RequireAnyPermission(
     { entityKey: ENTITY_KEYS.JOBS, action: 'write' },

@@ -56,6 +56,6 @@ Engineering history for `agent/r2-durable-storage`:
 
 Modules this record declares as affected:
 
-[[attendance]] · [[contracts-and-agreements]] · [[employees]] · [[payroll]] · [[platform-communications]] · [[reporting]] · [[settings]] · [[super-admin]] · [[tenant-control-plane]]
+[[attendance]] · [[contracts-and-agreements]] · [[desktop-agent-architecture]] · [[employees]] · [[payroll]] · [[platform-communications]] · [[reporting]] · [[settings]] · [[super-admin]] · [[tenant-control-plane]]
 
 <!-- GRAPH:END -->

@@ -37,6 +37,7 @@ import {
   UpdatePayrollAdjustmentDto,
 } from './dto/payroll-adjustment.dto';
 import { PayrollRunService } from './payroll-run.service';
+import { CustomFields } from '../customization/custom-fields.decorator';
 
 @Controller('payroll')
 @UseGuards(JwtAuthGuard, PermissionsGuard, EntitlementGuard)
@@ -86,6 +87,7 @@ export class PayrollRunController {
   }
 
   @Post('periods')
+  @CustomFields('payrollPeriods', 'create')
   @Permissions('payroll-periods.manage')
   @RequirePermission(ENTITY_KEYS.PAYROLL_PERIODS, 'manage')
   createPeriod(
@@ -96,6 +98,7 @@ export class PayrollRunController {
   }
 
   @Get('periods')
+  @CustomFields('payrollPeriods', 'list')
   @Permissions('payroll-periods.read')
   @RequirePermission(ENTITY_KEYS.PAYROLL_PERIODS, 'read')
   listPeriods(
@@ -106,6 +109,7 @@ export class PayrollRunController {
   }
 
   @Get('periods/:id')
+  @CustomFields('payrollPeriods', 'read', 'id')
   @Permissions('payroll-periods.read')
   @RequirePermission(ENTITY_KEYS.PAYROLL_PERIODS, 'read')
   getPeriod(
@@ -116,6 +120,7 @@ export class PayrollRunController {
   }
 
   @Patch('periods/:id')
+  @CustomFields('payrollPeriods', 'update', 'id')
   @Permissions('payroll-periods.manage')
   @RequirePermission(ENTITY_KEYS.PAYROLL_PERIODS, 'manage')
   updatePeriod(
@@ -127,6 +132,7 @@ export class PayrollRunController {
   }
 
   @Post('runs')
+  @CustomFields('payrollRuns', 'create')
   @Permissions('payroll-runs.create')
   @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'create')
   createPayrollRun(
@@ -137,6 +143,7 @@ export class PayrollRunController {
   }
 
   @Get('runs')
+  @CustomFields('payrollRuns', 'list')
   @Permissions('payroll-runs.read')
   @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'read')
   listPayrollRuns(
@@ -147,6 +154,7 @@ export class PayrollRunController {
   }
 
   @Get('runs/:id')
+  @CustomFields('payrollRuns', 'read', 'id')
   @Permissions('payroll-runs.read')
   @RequirePermission(ENTITY_KEYS.PAYROLL_RUNS, 'read')
   getPayrollRun(

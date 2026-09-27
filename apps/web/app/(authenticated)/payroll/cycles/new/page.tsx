@@ -4,6 +4,7 @@ import {
   buildStandardRouteRuntime,
   resolveStandardActiveForm,
 } from "@/lib/runtime/modules/standard-module-route-helpers";
+import { withRouteCustomFields } from "@/lib/runtime/custom-fields-server";
 import { payrollCycleRuntimeSpec } from "@/lib/runtime/modules/payroll-foundation-runtime-specs";
 import { apiRequestJson } from "@/lib/server-api";
 import type { TenantResolvedSettingsResponse } from "@/app/(authenticated)/settings/types";
@@ -29,11 +30,14 @@ export default async function NewPayrollCyclePage({ searchParams }: Props) {
     apiRequestJson<TenantResolvedSettingsResponse>("/tenant-settings/resolved"),
     apiRequestJson<unknown>("/payroll/employer-bank-accounts?pageSize=100"),
   ]);
-  const runtime = buildStandardRouteRuntime({
-    pageKind: "create",
-    sessionUser: user,
-    spec: payrollCycleRuntimeSpec,
-  });
+  /* TASK-0035: the tenant's custom fields on this module. */
+  const runtime = await withRouteCustomFields(
+    buildStandardRouteRuntime({
+      pageKind: "create",
+      sessionUser: user,
+      spec: payrollCycleRuntimeSpec,
+    }),
+  );
   const formId = first(params?.formId);
   const employerBankAccounts = readEmployerBankAccounts(bankAccountsResponse);
   const defaultEmployerBankAccountId =
@@ -86,7 +90,7 @@ export default async function NewPayrollCyclePage({ searchParams }: Props) {
 }
 
 function first(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
+  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
 }
 
 function readEmployerBankAccounts(value: unknown): EmployerBankAccount[] {

@@ -369,6 +369,7 @@ None blocking. Independent of the authorization packages.
 ## Related
 
 - Bug — [[BUG-0049]]
+- Modules — [[ci-architecture]]
 - QA run — [[2026-08-17-record-state-reconciliation-d919e1a]]
 
 <!-- GRAPH:END -->

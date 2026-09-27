@@ -119,6 +119,7 @@ Post-deploy validation of the fix, in production, at four viewport widths.
 
 ## Related
 
+- Modules — [[reporting]]
 - Regression — REG-383 (see the regression register)
 
 <!-- GRAPH:END -->

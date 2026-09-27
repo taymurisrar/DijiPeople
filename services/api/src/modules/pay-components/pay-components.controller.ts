@@ -24,6 +24,7 @@ import { CreatePayComponentDto } from './dto/create-pay-component.dto';
 import { ListPayComponentsDto } from './dto/list-pay-components.dto';
 import { UpdatePayComponentDto } from './dto/update-pay-component.dto';
 import { PayComponentsService } from './pay-components.service';
+import { CustomFields } from '../customization/custom-fields.decorator';
 
 @Controller('pay-components')
 @UseGuards(JwtAuthGuard, PermissionsGuard, EntitlementGuard)
@@ -32,6 +33,7 @@ export class PayComponentsController {
   constructor(private readonly payComponentsService: PayComponentsService) {}
 
   @Get()
+  @CustomFields('payComponents', 'list')
   @Permissions('pay-components.read')
   @RequirePermission(ENTITY_KEYS.PAY_COMPONENTS, 'read')
   findAll(
@@ -42,6 +44,7 @@ export class PayComponentsController {
   }
 
   @Get(':id')
+  @CustomFields('payComponents', 'read', 'id')
   @Permissions('pay-components.read')
   @RequirePermission(ENTITY_KEYS.PAY_COMPONENTS, 'read')
   findOne(
@@ -52,6 +55,7 @@ export class PayComponentsController {
   }
 
   @Post()
+  @CustomFields('payComponents', 'create')
   @Permissions('pay-components.manage')
   @RequirePermission(ENTITY_KEYS.PAY_COMPONENTS, 'manage')
   create(
@@ -62,6 +66,7 @@ export class PayComponentsController {
   }
 
   @Patch(':id')
+  @CustomFields('payComponents', 'update', 'id')
   @Permissions('pay-components.manage')
   @RequirePermission(ENTITY_KEYS.PAY_COMPONENTS, 'manage')
   update(

@@ -108,6 +108,7 @@ Post-deploy validation of the fix, in production, comparing server HTML against 
 
 ## Related
 
+- Modules — [[reporting]]
 - Regression — REG-384 (see the regression register)
 
 <!-- GRAPH:END -->

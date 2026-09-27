@@ -52,6 +52,20 @@ export const MODULE_NOTE_ALIASES = new Map([
   ['e2e', 'qa-and-ci-architecture'],
   ['ci', 'ci-architecture'],
   ['config', 'deployment-architecture'],
+
+  /*
+   * Directories whose owning note has a different name. Each pairing was checked
+   * against the note's text (2026-09-27): without them, 15 audit records naming
+   * these paths had no edge at all and showed as GRAPH_ORPHAN in the vault.
+   */
+  ['modules', 'api-architecture'],
+  ['common', 'api-architecture'],
+  ['roles', 'rbac'],
+  ['reports', 'reporting'],
+  ['payslips', 'payroll'],
+  ['agent', 'desktop-agent-architecture'],
+  ['workflows', 'ci-architecture'],
+  ['render.yaml', 'deployment-architecture'],
 ]);
 
 /*

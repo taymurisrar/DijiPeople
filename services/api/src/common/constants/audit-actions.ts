@@ -140,6 +140,13 @@ export const AUDIT_ACTIONS = {
   AUTH_MFA_RESET: 'AUTH_MFA_RESET',
   AUTH_MFA_RECOVERY_CODES_REGENERATED: 'AUTH_MFA_RECOVERY_CODES_REGENERATED',
   AUTH_MFA_RECOVERY_CODE_USED: 'AUTH_MFA_RECOVERY_CODE_USED',
+
+  /*
+   * TASK-0035 / ADR-0024 — custom field values changed on a system module's
+   * record. `entityType` is the customization table key (`leaveRequests`,
+   * `projects`, …), the snapshots hold only the custom field values.
+   */
+  CUSTOM_FIELD_VALUES_UPDATED: 'CUSTOM_FIELD_VALUES_UPDATED',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];

@@ -4,6 +4,7 @@ import {
   buildStandardRouteRuntime,
   resolveStandardActiveForm,
 } from "@/lib/runtime/modules/standard-module-route-helpers";
+import { withRouteCustomFields } from "@/lib/runtime/custom-fields-server";
 import { payrollPeriodRuntimeSpec } from "@/lib/runtime/modules/payroll-foundation-runtime-specs";
 import { apiRequestJson } from "@/lib/server-api";
 import { PayrollLayoutShell } from "../../_components/payroll-layout-shell";
@@ -25,12 +26,15 @@ export default async function PayrollPeriodRecordPage({
   const record = await apiRequestJson<Record<string, unknown>>(
     `/payroll/periods/${encodeURIComponent(periodId)}`,
   );
-  const runtime = buildStandardRouteRuntime({
-    pageKind: "detail",
-    recordId: periodId,
-    sessionUser: user,
-    spec: payrollPeriodRuntimeSpec,
-  });
+  /* TASK-0035: the tenant's custom fields on this module. */
+  const runtime = await withRouteCustomFields(
+    buildStandardRouteRuntime({
+      pageKind: "detail",
+      recordId: periodId,
+      sessionUser: user,
+      spec: payrollPeriodRuntimeSpec,
+    }),
+  );
 
   return (
     <PayrollLayoutShell
@@ -63,7 +67,7 @@ function withDisplayFields(record: Record<string, unknown>) {
 }
 
 function first(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
+  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

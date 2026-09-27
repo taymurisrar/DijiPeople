@@ -28,6 +28,7 @@ import { OnboardingQueryDto } from './dto/onboarding-query.dto';
 import { UpdateOnboardingTaskDto } from './dto/update-onboarding-task.dto';
 import { UpdateOnboardingTemplateDto } from './dto/update-onboarding-template.dto';
 import { OnboardingService } from './onboarding.service';
+import { CustomFields } from '../customization/custom-fields.decorator';
 
 @Controller('onboarding')
 @UseGuards(JwtAuthGuard, PermissionsGuard, EntitlementGuard)
@@ -46,6 +47,7 @@ export class OnboardingController {
   }
 
   @Get('templates')
+  @CustomFields('onboardingTemplates', 'list')
   @Permissions('onboarding.read')
   @RequirePermission(ENTITY_KEYS.ONBOARDING, 'read')
   findTemplates(@CurrentUser() user: AuthenticatedUser) {
@@ -66,6 +68,7 @@ export class OnboardingController {
   }
 
   @Post('templates')
+  @CustomFields('onboardingTemplates', 'create')
   @Permissions('onboarding.create')
   @RequirePermission(ENTITY_KEYS.ONBOARDING, 'create')
   createTemplate(
@@ -76,6 +79,7 @@ export class OnboardingController {
   }
 
   @Patch('templates/:templateId')
+  @CustomFields('onboardingTemplates', 'update', 'templateId')
   @Permissions('onboarding.update')
   @RequirePermission(ENTITY_KEYS.ONBOARDING, 'write')
   updateTemplate(

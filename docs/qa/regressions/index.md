@@ -6824,3 +6824,31 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — without the storage the e2e has no value to read back, and without the web wiring the form carries no custom field and the payload no customFields. |
 | **Fixed** | 2026-09-26, branch `agent/custom-field-values` |
 | **Active** | yes |
+
+### REG-639 — A custom field could be added where nothing would ever store it
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-step` |
+| **Module** | `services/api/src/modules/customization` |
+| **Bug record** | BUG-3786 |
+| **Root cause** | The registry declared isCustomizable per system table and nothing read it, and about forty modules had no path that stored a custom field value. Every customizable table now has a bound route that stores values (ADR-0024); fifteen that cannot are no longer customizable, and createColumn and package import both refuse a new field on them. |
+| **Regression test** | `services/api/src/modules/customization/custom-fields.bindings.spec.ts` (every customizable table has a storing binding; every binding names a real route param), `services/api/test/custom-fields-system-modules.e2e-spec.ts` (the full app over HTTP, including the refusal on a closed table) and `services/api/src/modules/customization/package-comparison.spec.ts` (INCOMPATIBLE on import). |
+| **Scenario** | QA-SETTINGS-034 — a custom field on any customizable system module stores, shows and saves its value. |
+| **Fails without the fix** | Yes — the bindings spec found two customizable tables with no storing route on its first run, and disabling the interceptor's body rewrite fails 4 of the e2e's 8 cases. |
+| **Fixed** | 2026-09-27, branch `agent/custom-fields-followup` |
+| **Active** | yes |
+
+### REG-640 — A lookup custom field offered no options
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-step` |
+| **Module** | `apps/web/lib/runtime` |
+| **Bug record** | BUG-3787 |
+| **Root cause** | A custom lookup names its target by table key and nothing resolved that key to records; custom modules' adapters had no getLookupOptions at all. A shared resolver now reads the target's own list endpoint, and the API tells it whether the target is a system table and how to label a custom module's rows. |
+| **Regression test** | `apps/web/lib/runtime/custom-fields.spec.ts` (source paths, labels, search, and the page wrapper leaving other fields untouched) and `services/api/src/modules/customization/custom-field-values.spec.ts` (lookupTargetIsSystem and the name field). |
+| **Scenario** | QA-SETTINGS-035 — a lookup custom field lists and saves a record of its target. |
+| **Fails without the fix** | Yes — without the resolver the wrapper returns the adapter unchanged and a custom lookup has no getLookupOptions; the browser pass showed Engineering, Finance and Human Resources where there had been nothing. |
+| **Fixed** | 2026-09-27, branch `agent/custom-fields-followup` |
+| **Active** | yes |

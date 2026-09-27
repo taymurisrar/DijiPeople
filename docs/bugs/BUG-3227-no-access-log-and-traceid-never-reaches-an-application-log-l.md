@@ -136,6 +136,7 @@ screens.
 
 ## Related
 
+- Modules — [[api-architecture]]
 - Regression — REG-579 (see the regression register)
 
 <!-- GRAPH:END -->

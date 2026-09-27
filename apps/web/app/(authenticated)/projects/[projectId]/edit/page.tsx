@@ -4,6 +4,7 @@ import {
   buildStandardRouteRuntime,
   resolveStandardActiveForm,
 } from "@/lib/runtime/modules/standard-module-route-helpers";
+import { withRouteCustomFields } from "@/lib/runtime/custom-fields-server";
 import { projectRuntimeSpec } from "@/lib/runtime/modules/standard-module-specs";
 import { apiRequestJson } from "@/lib/server-api";
 import type { ProjectRecord } from "../../types";
@@ -23,12 +24,15 @@ export default async function EditProjectPage({
     getSessionUser(),
   ]);
   const project = await apiRequestJson<ProjectRecord>(`/projects/${projectId}`);
-  const runtime = buildStandardRouteRuntime({
-    pageKind: "edit",
-    recordId: project.id,
-    sessionUser,
-    spec: projectRuntimeSpec,
-  });
+  /* TASK-0035: the tenant's custom fields on this module. */
+  const runtime = await withRouteCustomFields(
+    buildStandardRouteRuntime({
+      pageKind: "edit",
+      recordId: project.id,
+      sessionUser,
+      spec: projectRuntimeSpec,
+    }),
+  );
   const activeForm = resolveStandardActiveForm(
     runtime.metadata.forms,
     resolvedSearchParams.formId ?? "",

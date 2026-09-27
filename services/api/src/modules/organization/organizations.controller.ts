@@ -24,6 +24,7 @@ import type { AuthenticatedUser } from '../../common/interfaces/authenticated-re
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { OrganizationService } from './organization.service';
+import { CustomFields } from '../customization/custom-fields.decorator';
 
 /*
  * Mutations here reshape the organization hierarchy, and business-unit
@@ -48,6 +49,7 @@ export class OrganizationsController {
   constructor(private readonly organizationService: OrganizationService) {}
 
   @Get()
+  @CustomFields('organizations', 'list')
   @Permissions('hierarchy.read')
   @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
   findAll(@CurrentUser() user: AuthenticatedUser) {
@@ -55,6 +57,7 @@ export class OrganizationsController {
   }
 
   @Get(':id')
+  @CustomFields('organizations', 'read', 'id')
   @Permissions('hierarchy.read')
   @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
   findOne(
@@ -95,6 +98,7 @@ export class OrganizationsController {
   }
 
   @Post()
+  @CustomFields('organizations', 'create')
   @Permissions(MISC_PERMISSION_KEYS.ORGANIZATION_MANAGE)
   @RequirePermission(ENTITY_KEYS.HIERARCHY, 'manage')
   create(
@@ -105,6 +109,7 @@ export class OrganizationsController {
   }
 
   @Patch(':id')
+  @CustomFields('organizations', 'update', 'id')
   @Permissions(MISC_PERMISSION_KEYS.ORGANIZATION_MANAGE)
   @RequirePermission(ENTITY_KEYS.HIERARCHY, 'manage')
   update(

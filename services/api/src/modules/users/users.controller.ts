@@ -28,6 +28,7 @@ import { UpdateUserBusinessUnitDto } from './dto/update-user-business-unit.dto';
 import { UpdateUserPermissionsDto } from './dto/update-user-permissions.dto';
 import { UsersService } from './users.service';
 import { MfaService } from '../auth/mfa/mfa.service';
+import { CustomFields } from '../customization/custom-fields.decorator';
 
 type DeleteUserResponse = {
   deleted: boolean;
@@ -43,6 +44,7 @@ export class UsersController {
   ) {}
 
   @Get()
+  @CustomFields('users', 'list')
   @Permissions('users.read')
   @RequirePermission(ENTITY_KEYS.USERS, 'read')
   findAll(@CurrentUser() currentUser: AuthenticatedUser): Promise<unknown> {
@@ -60,6 +62,7 @@ export class UsersController {
   }
 
   @Get(':userId')
+  @CustomFields('users', 'read', 'userId')
   @Permissions('users.read')
   @RequirePermission(ENTITY_KEYS.USERS, 'read')
   findOne(
@@ -70,6 +73,7 @@ export class UsersController {
   }
 
   @Post()
+  @CustomFields('users', 'create')
   @Permissions('users.create')
   @RequirePermission(ENTITY_KEYS.USERS, 'create')
   create(
@@ -84,6 +88,7 @@ export class UsersController {
   }
 
   @Put(':userId')
+  @CustomFields('users', 'update', 'userId')
   @Permissions('users.update')
   @RequirePermission(ENTITY_KEYS.USERS, 'write')
   update(
@@ -100,6 +105,7 @@ export class UsersController {
   }
 
   @Patch(':userId')
+  @CustomFields('users', 'update', 'userId')
   @Permissions('users.update')
   @RequirePermission(ENTITY_KEYS.USERS, 'write')
   patch(

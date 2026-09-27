@@ -66,6 +66,6 @@ Engineering history for `agent/partner-agreements-admin-hardening`:
 
 Modules this record declares as affected:
 
-[[auth]] · [[contracts-and-agreements]] · [[leads]] · [[legal]] · [[partners]] · [[platform-auth]] · [[super-admin]]
+[[auth]] · [[contracts-and-agreements]] · [[leads]] · [[legal]] · [[partners]] · [[platform-auth]] · [[rbac]] · [[super-admin]]
 
 <!-- GRAPH:END -->

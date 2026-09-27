@@ -118,6 +118,7 @@ None identified beyond the fix itself.
 
 ## Related Items
 
+- [[BUG-2043]] — the Audit Log screen truncation rated HIGH, cited above as the same failure shape.
 - Audit finding `DBQ-08` — `docs/engineering/audits/2026-09-10-full-technical-audit/raw/DBQ.md`
 
 ## Resolution

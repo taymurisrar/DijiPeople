@@ -222,4 +222,31 @@ describe('secureCustomFieldValues and definitions', () => {
       ['mis_salaryBand', true],
     ]);
   });
+
+  it('tells a lookup whether its target is a system table and how to label it (BUG-3787)', () => {
+    const [toSystem, toCustom] = customFieldDefinitions({
+      columns: [
+        column({
+          columnKey: 'mis_manager',
+          dataType: 'lookup',
+          lookupTargetTableKey: 'employees',
+        }),
+        column({
+          columnKey: 'mis_asset',
+          dataType: 'lookup',
+          lookupTargetTableKey: 'misAsset',
+        }),
+      ],
+      permissionKeys: [],
+      lookupNameFields: new Map([['misAsset', 'mis_tag']]),
+    });
+    expect(toSystem).toMatchObject({
+      lookupTargetIsSystem: true,
+      lookupTargetNameField: null,
+    });
+    expect(toCustom).toMatchObject({
+      lookupTargetIsSystem: false,
+      lookupTargetNameField: 'mis_tag',
+    });
+  });
 });

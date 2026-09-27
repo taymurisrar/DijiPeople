@@ -21,6 +21,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { EnterpriseConfigurationService } from './enterprise-configuration.service';
+import { CustomFields } from '../customization/custom-fields.decorator';
 
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller()
@@ -30,6 +31,7 @@ export class EnterpriseConfigurationController {
   ) {}
 
   @Get('holiday-calendars')
+  @CustomFields('holidayCalendars', 'list')
   @Permissions('settings.read')
   @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   listHolidayCalendars(
@@ -43,6 +45,7 @@ export class EnterpriseConfigurationController {
   }
 
   @Post('holiday-calendars')
+  @CustomFields('holidayCalendars', 'create')
   @Permissions('settings.update')
   @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   createHolidayCalendar(
@@ -56,6 +59,7 @@ export class EnterpriseConfigurationController {
   }
 
   @Get('holiday-calendars/:id')
+  @CustomFields('holidayCalendars', 'read', 'id')
   @Permissions('settings.read')
   @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   getHolidayCalendar(
@@ -69,6 +73,7 @@ export class EnterpriseConfigurationController {
   }
 
   @Patch('holiday-calendars/:id')
+  @CustomFields('holidayCalendars', 'update', 'id')
   @Permissions('settings.update')
   @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   updateHolidayCalendar(
@@ -94,6 +99,7 @@ export class EnterpriseConfigurationController {
   }
 
   @Get('holiday-calendars/:id/holidays')
+  @CustomFields('holidays', 'list')
   @Permissions('settings.read')
   @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   listHolidays(
@@ -109,6 +115,7 @@ export class EnterpriseConfigurationController {
   }
 
   @Post('holiday-calendars/:id/holidays')
+  @CustomFields('holidays', 'create')
   @Permissions('settings.update')
   @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   createHoliday(
@@ -120,6 +127,7 @@ export class EnterpriseConfigurationController {
   }
 
   @Patch('holiday-calendars/:id/holidays/:holidayId')
+  @CustomFields('holidays', 'update', 'holidayId')
   @Permissions('settings.update')
   @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   updateHoliday(
@@ -167,6 +175,7 @@ export class EnterpriseConfigurationController {
   }
 
   @Get('work-schedules')
+  @CustomFields('workSchedules', 'list')
   @Permissions('settings.read')
   @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   listWorkSchedules(
@@ -180,6 +189,7 @@ export class EnterpriseConfigurationController {
   }
 
   @Post('work-schedules')
+  @CustomFields('workSchedules', 'create')
   @Permissions('settings.update')
   @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   createWorkSchedule(
@@ -190,6 +200,7 @@ export class EnterpriseConfigurationController {
   }
 
   @Get('work-schedules/:id')
+  @CustomFields('workSchedules', 'read', 'id')
   @Permissions('settings.read')
   @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   getWorkSchedule(
@@ -203,6 +214,7 @@ export class EnterpriseConfigurationController {
   }
 
   @Patch('work-schedules/:id')
+  @CustomFields('workSchedules', 'update', 'id')
   @Permissions('settings.update')
   @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   updateWorkSchedule(

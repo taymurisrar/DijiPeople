@@ -371,6 +371,13 @@ async function collectRouteHandlers(): Promise<RouteHandler[]> {
 const AUTHENTICATION_ONLY_HANDLERS = [
   // BUG-3545: the session heartbeat, sent by the tenant and admin consoles.
   'AuthController.activity',
+  /*
+   * TASK-0035 / ADR-0024: a system module's published custom field definitions.
+   * Takes a table key, not a record or user id; returns the tenant's own field
+   * metadata (already published to every signed-in user) with per-field read
+   * permissions applied.
+   */
+  'CustomFieldsController.definitions',
 ] as const;
 
 describe('permission wiring invariants', () => {

@@ -5,6 +5,7 @@ import {
   buildStandardRouteRuntime,
   resolveStandardActiveForm,
 } from "@/lib/runtime/modules/standard-module-route-helpers";
+import { withRouteCustomFields } from "@/lib/runtime/custom-fields-server";
 import { leaveRuntimeSpec } from "@/lib/runtime/modules/standard-module-specs";
 import { apiRequestJson } from "@/lib/server-api";
 import type { AvailableLeaveTypesResponse } from "../types";
@@ -29,11 +30,14 @@ export default async function NewLeavePage({ searchParams }: PageProps) {
             : "Leave Types could not be loaded.",
       })),
     ]);
-  const runtime = buildStandardRouteRuntime({
-    pageKind: "create",
-    sessionUser,
-    spec: leaveRuntimeSpec,
-  });
+  /* TASK-0035: the tenant's custom fields on this module. */
+  const runtime = await withRouteCustomFields(
+    buildStandardRouteRuntime({
+      pageKind: "create",
+      sessionUser,
+      spec: leaveRuntimeSpec,
+    }),
+  );
   const activeForm = resolveStandardActiveForm(
     runtime.metadata.forms,
     resolvedSearchParams.formId ?? "",

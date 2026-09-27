@@ -11,6 +11,11 @@ import {
   TextField,
 } from "@/app/components/ui/form-control";
 import { StatusPill } from "@/app/components/ui/status-pill";
+import { CustomFieldsSection } from "@/app/components/runtime/custom-fields-section";
+import {
+  customFieldErrors,
+  customFieldValues,
+} from "@/lib/runtime/custom-fields";
 import { formatEnumLabel } from "@/lib/common";
 import { formatDate } from "@/lib/formatting-context";
 
@@ -105,7 +110,8 @@ export function PoliciesManager({
   const router = useRouter();
 
   const [editingPolicy, setEditingPolicy] = useState<PolicyRecord | null>(null);
-  const [policyForm, setPolicyForm] = useState<PolicyFormState>(emptyPolicyForm);
+  const [policyForm, setPolicyForm] =
+    useState<PolicyFormState>(emptyPolicyForm);
   const [assignmentForm, setAssignmentForm] =
     useState<AssignmentFormState>(emptyAssignmentForm);
 
@@ -113,6 +119,19 @@ export function PoliciesManager({
   const [assignmentError, setAssignmentError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
+  /* TASK-0035: the tenant's custom fields on policies and their assignments. */
+  const [policyCustomFields, setPolicyCustomFields] = useState<
+    Record<string, unknown>
+  >({});
+  const [policyFieldErrors, setPolicyFieldErrors] = useState<
+    Record<string, string[]>
+  >({});
+  const [assignmentCustomFields, setAssignmentCustomFields] = useState<
+    Record<string, unknown>
+  >({});
+  const [assignmentFieldErrors, setAssignmentFieldErrors] = useState<
+    Record<string, string[]>
+  >({});
 
   const policyColumns: DataTableColumn<PolicyRecord>[] = [
     {
@@ -144,7 +163,8 @@ export function PoliciesManager({
       header: "Effective",
       sortable: true,
       render: (policy) =>
-        `${formatDate(policy.effectiveFrom)}${policy.effectiveTo ? ` - ${formatDate(policy.effectiveTo)}` : ""
+        `${formatDate(policy.effectiveFrom)}${
+          policy.effectiveTo ? ` - ${formatDate(policy.effectiveTo)}` : ""
         }`,
     },
     {
@@ -209,6 +229,8 @@ export function PoliciesManager({
   function startPolicyEdit(policy: PolicyRecord) {
     setEditingPolicy(policy);
     setError(null);
+    setPolicyCustomFields(customFieldValues(policy));
+    setPolicyFieldErrors({});
 
     setPolicyForm({
       policyType: policy.policyType,
@@ -226,6 +248,8 @@ export function PoliciesManager({
     setEditingPolicy(null);
     setError(null);
     setPolicyForm(emptyPolicyForm);
+    setPolicyCustomFields({});
+    setPolicyFieldErrors({});
   }
 
   async function handlePolicySubmit(event: FormEvent<HTMLFormElement>) {
@@ -261,16 +285,21 @@ export function PoliciesManager({
           effectiveFrom: policyForm.effectiveFrom,
           effectiveTo: policyForm.effectiveTo || undefined,
           isActive: policyForm.isActive,
+          customFields: policyCustomFields,
         }),
       },
     );
 
-    const data = (await response.json()) as { message?: string };
+    const data = (await response.json()) as {
+      message?: string;
+      details?: unknown;
+    };
 
     setIsSubmitting(false);
 
     if (!response.ok) {
       setError(data.message ?? "Unable to save policy.");
+      setPolicyFieldErrors(customFieldErrors(data.details) ?? {});
       return;
     }
 
@@ -316,19 +345,26 @@ export function PoliciesManager({
             : assignmentForm.scopeId.trim(),
         priority,
         isActive: assignmentForm.isActive,
+        customFields: assignmentCustomFields,
       }),
     });
 
-    const data = (await response.json()) as { message?: string };
+    const data = (await response.json()) as {
+      message?: string;
+      details?: unknown;
+    };
 
     setIsAssigning(false);
 
     if (!response.ok) {
       setAssignmentError(data.message ?? "Unable to assign policy.");
+      setAssignmentFieldErrors(customFieldErrors(data.details) ?? {});
       return;
     }
 
     setAssignmentForm(emptyAssignmentForm);
+    setAssignmentCustomFields({});
+    setAssignmentFieldErrors({});
     router.refresh();
   }
 
@@ -458,6 +494,12 @@ export function PoliciesManager({
           />
         </div>
 
+        <CustomFieldsSection
+          errors={policyFieldErrors}
+          tableKey="policies"
+          value={policyCustomFields}
+          onChange={setPolicyCustomFields}
+        />
         {error ? (
           <p className="rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
             {error}
@@ -583,6 +625,12 @@ export function PoliciesManager({
           />
         </div>
 
+        <CustomFieldsSection
+          errors={assignmentFieldErrors}
+          tableKey="policyAssignments"
+          value={assignmentCustomFields}
+          onChange={setAssignmentCustomFields}
+        />
         {assignmentError ? (
           <p className="rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
             {assignmentError}
@@ -622,4 +670,3 @@ function getPolicyStatusTone(
   if (status === "RETIRED") return "danger";
   return "muted";
 }
-

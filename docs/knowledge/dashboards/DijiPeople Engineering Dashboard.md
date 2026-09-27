@@ -9,11 +9,11 @@
 |---|---|
 | Open CRITICAL | **6** |
 | Open HIGH | **102** |
-| Open total | 235 |
+| Open total | 238 |
 | Blocked | 3 |
 | Awaiting a product decision | 9 |
-| Deferred | 118 |
-| Completed | 352 |
+| Deferred | 117 |
+| Completed | 353 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -535,6 +535,8 @@
 | [[BUG-3598-generate-document-on-an-executed-agreement-renders-from-draf|BUG-3598]] | Generate document on an executed agreement renders from draft values, not the signature evidence | BUG | MEDIUM | FIXED | api:contracts, apps/admin | DONE |
 | [[BUG-3699-deleting-a-field-form-or-view-ignored-references-held-in-oth|BUG-3699]] | Deleting a field, form or view ignored references held in other packages' layers | DATA_INTEGRITY | MEDIUM | FIXED | customization | DONE |
 | [[BUG-3703-package-export-readiness-could-never-report-a-missing-depend|BUG-3703]] | Package export readiness could never report a missing dependency | BUG | MEDIUM | FIXED | customization | DONE |
+| [[BUG-3786-adding-a-custom-field-ignores-the-table-s-iscustomizable-fla|BUG-3786]] | Adding a custom field ignores the table's isCustomizable flag | BUG | MEDIUM | FIXED | customization | FIX_NOW |
+| [[BUG-3787-lookup-custom-fields-on-custom-modules-offer-no-options|BUG-3787]] | Lookup custom fields on custom modules offer no options | BUG | MEDIUM | FIXED | customization | FIX_NOW |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -574,6 +576,7 @@
 
 ## Recent QA Runs
 
+- [[2026-09-27-custom-fields-every-module-4e32ea2|QA Run — custom-fields-every-module]]
 - [[2026-09-26-task-0033-package-alm-b55afdb|QA Run — task-0033-package-alm]]
 - [[2026-09-26-safepay-multi-provider-billing-562dee9|QA Run — safepay-multi-provider-billing]]
 - [[2026-09-26-custom-field-values-cd777b7|QA Run — custom-field-values]]
@@ -581,7 +584,6 @@
 - [[2026-08-31-reports-analytics-platform-96ff155|QA Run — reports-analytics-platform]]
 - [[2026-08-29-starter-plan-e2e-pass-2-8ab1cbf|QA Run — starter-plan-e2e-pass-2]]
 - [[2026-08-29-starter-plan-e2e-eb457d9|QA Run — starter-plan-e2e]]
-- [[2026-08-28-regression-guard-sweep-9e55663|QA Run — regression-guard-sweep]]
 
 ## Recent Implementations
 
@@ -706,6 +708,9 @@
 | [[BUG-3698-draft-edits-to-custom-fields-take-effect-before-they-are-pub|BUG-3698]] | Draft edits to custom fields take effect before they are published | STATE_MACHINE | MEDIUM | OPEN | customization | PLAN_REQUIRED |
 | [[BUG-3699-deleting-a-field-form-or-view-ignored-references-held-in-oth|BUG-3699]] | Deleting a field, form or view ignored references held in other packages' layers | DATA_INTEGRITY | MEDIUM | FIXED | customization | DONE |
 | [[BUG-3703-package-export-readiness-could-never-report-a-missing-depend|BUG-3703]] | Package export readiness could never report a missing dependency | BUG | MEDIUM | FIXED | customization | DONE |
+| [[BUG-3786-adding-a-custom-field-ignores-the-table-s-iscustomizable-fla|BUG-3786]] | Adding a custom field ignores the table's isCustomizable flag | BUG | MEDIUM | FIXED | customization | FIX_NOW |
+| [[BUG-3787-lookup-custom-fields-on-custom-modules-offer-no-options|BUG-3787]] | Lookup custom fields on custom modules offer no options | BUG | MEDIUM | FIXED | customization | FIX_NOW |
+| [[BUG-3800-three-entity-lookups-refuse-the-page-size-and-search-the-for|BUG-3800]] | Three entity lookups refuse the page size and search the form sends | BUG | MEDIUM | OPEN | organization, payroll | PLAN_REQUIRED |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -769,6 +774,7 @@
 - [[ADR-0021-owner-decisions-countersign-platform-mfa-legal-publishing|ADR-0021 — Owner decisions for TASK-0032: countersign line, platform MFA, legal publishing]]
 - [[ADR-0022-customization-packages-are-the-alm-unit|ADR-0022 — Customization packages are the ALM unit]]
 - [[ADR-0023-seeded-template-versions-and-safepay-cut-over|ADR-0023 — Seeded agreement templates publish new versions; PKR checkout moves to Safepay]]
+- [[ADR-0024-custom-field-values-on-every-system-module-via-one-interceptor|ADR-0024 — Custom field values on every system module via one interceptor]]
 - [[decision-a-bug-record-is-its-own-backlog-item|Decision — A bug record **is** its own backlog item]]
 - [[decision-ci-verdict-gates-shared-merges|Decision — A shared-target merge requires a read CI verdict on the exact SHA]]
 - [[decision-platform-admin-is-a-separate-identity|Decision — Platform admin is a separate identity, not an elevated tenant user]]
@@ -778,15 +784,15 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 496 |
+| Bug records | 499 |
 | Backlog items | 221 |
 | Known bug patterns | 35 |
-| QA runs | 36 |
+| QA runs | 37 |
 | Engineering history records | 91 |
 | Release records | 10 |
 | Module notes | 31 |
 | Architecture notes | 22 |
-| Decision notes (ADR + generated) | 27 |
+| Decision notes (ADR + generated) | 28 |
 | Implementation records | 7 |
 
 **Awaiting Architect triage: 0.** A record nobody has

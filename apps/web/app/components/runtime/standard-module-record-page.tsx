@@ -10,6 +10,8 @@ import type {
 } from "@/lib/runtime/metadata-runtime.types";
 import { defaultPrimaryNameFieldForEntity } from "@/lib/runtime/modules/entity-primary-name-field";
 import type { ModuleRuntimeContext } from "@/lib/runtime/module-runtime.types";
+import { withCustomFieldValues } from "@/lib/runtime/custom-fields";
+import { withTargetLookupOptions } from "@/lib/runtime/custom-lookup-adapter";
 import { createStandardModuleDataAdapter } from "@/lib/runtime/modules/standard-module-data.adapter";
 import type { StandardModuleRuntimeSpec } from "@/lib/runtime/modules/standard-module-runtime";
 import type { RuntimeRecordData } from "./module-runtime-ui.types";
@@ -55,13 +57,18 @@ export function StandardModuleRecordPage({
   return (
     <ModuleRecordPage
       activeForm={activeForm}
-      dataAdapter={dataAdapter ?? createStandardModuleDataAdapter(spec)}
+      dataAdapter={withTargetLookupOptions(
+        dataAdapter ?? createStandardModuleDataAdapter(spec),
+        runtime.metadata.entity.fields,
+        lookupOptions,
+      )}
       formSlot={formSlot}
       lookupDisplayValues={resolvedLookupDisplayValues}
       lookupOptions={lookupOptions}
       mode={mode}
       moduleKey={runtime.module.key}
-      record={record}
+      /* TASK-0035: custom field values arrive under `customFields`. */
+      record={withCustomFieldValues(record)}
       recordId={recordId}
       runtime={runtime}
       tabContent={tabContent}

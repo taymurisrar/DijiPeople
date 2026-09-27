@@ -4,6 +4,7 @@ import {
   buildStandardRouteRuntime,
   resolveStandardActiveForm,
 } from "@/lib/runtime/modules/standard-module-route-helpers";
+import { withRouteCustomFields } from "@/lib/runtime/custom-fields-server";
 import { payrollRunRuntimeSpec } from "@/lib/runtime/modules/payroll-foundation-runtime-specs";
 import { PayrollLayoutShell } from "../../_components/payroll-layout-shell";
 import { apiRequestJson } from "@/lib/server-api";
@@ -19,11 +20,14 @@ export default async function NewPayrollRunPage({ searchParams }: Props) {
     searchParams,
     apiRequestJson<TenantResolvedSettingsResponse>("/tenant-settings/resolved"),
   ]);
-  const runtime = buildStandardRouteRuntime({
-    pageKind: "create",
-    sessionUser: user,
-    spec: payrollRunRuntimeSpec,
-  });
+  /* TASK-0035: the tenant's custom fields on this module. */
+  const runtime = await withRouteCustomFields(
+    buildStandardRouteRuntime({
+      pageKind: "create",
+      sessionUser: user,
+      spec: payrollRunRuntimeSpec,
+    }),
+  );
   const formId = first(params?.formId);
 
   return (
@@ -54,5 +58,5 @@ export default async function NewPayrollRunPage({ searchParams }: Props) {
 }
 
 function first(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
+  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
 }

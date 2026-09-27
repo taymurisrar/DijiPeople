@@ -350,6 +350,7 @@ the same defect again.
 | [ITEM-0167](../../docs/backlog/items/ITEM-0167-adopt-the-employee-record-shell-across-the-record-pages-that.md) | Adopt the employee record shell across the record pages that still hand-roll their own | ARCHITECTURE | — | P2 | DONE | apps/web | DONE |
 | [ITEM-0168](../../docs/backlog/items/ITEM-0168-a-retry-action-on-an-email-delivery-log.md) | A retry action on an email delivery log | FOLLOW_UP | — | P2 | DONE | notifications, apps/web | DONE |
 | [ITEM-0207](../../docs/backlog/items/ITEM-0207-seed-config-rewrites-version-1-of-system-agreement-templates.md) | seed:config rewrites version 1 of system agreement templates in place instead of publishing a new version | PRODUCT_DECISION | — | P2 | DONE | services/api/prisma | DONE |
+| [ITEM-0221](../../docs/backlog/items/ITEM-0221-custom-fields-on-employees-lookup-fields-list-view-columns-a.md) | Custom fields on Employees: lookup fields, list-view columns and export; other system modules | FOLLOW_UP | — | P2 | DONE | customization, employees | DONE |
 | [ITEM-0114](../../docs/backlog/items/ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-.md) | The workspace shell states the tenant's identity four times and its purpose twice | UX | — | P3 | DONE | views, apps/web | DONE |
 
 ## Accepted risk

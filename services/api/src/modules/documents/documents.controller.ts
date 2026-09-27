@@ -35,6 +35,7 @@ import { DocumentQueryDto } from './dto/document-query.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
 import { UploadDocumentDto } from './dto/upload-document.dto';
 import { DocumentsService } from './documents.service';
+import { CustomFields } from '../customization/custom-fields.decorator';
 
 type UploadedFile = {
   buffer: Buffer;
@@ -49,6 +50,7 @@ export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
 
   @Get()
+  @CustomFields('documents', 'list')
   @Permissions('documents.read')
   @RequirePermission(ENTITY_KEYS.DOCUMENTS, 'read')
   findAll(
@@ -59,6 +61,7 @@ export class DocumentsController {
   }
 
   @Get('entity/:entityType/:entityId')
+  @CustomFields('documents', 'list')
   @Permissions('documents.read')
   @RequirePermission(ENTITY_KEYS.DOCUMENTS, 'read')
   findByEntity(
@@ -71,6 +74,7 @@ export class DocumentsController {
   }
 
   @Get('types')
+  @CustomFields('documentTypes', 'list')
   @Permissions('documents.read')
   @RequirePermission(ENTITY_KEYS.DOCUMENTS, 'read')
   listTypes(@CurrentUser() user: AuthenticatedUser) {
@@ -78,6 +82,7 @@ export class DocumentsController {
   }
 
   @Post('types')
+  @CustomFields('documentTypes', 'create')
   @Permissions('documents.types.manage')
   @RequirePermission(ENTITY_KEYS.DOCUMENTS, 'configure')
   createType(
@@ -88,6 +93,7 @@ export class DocumentsController {
   }
 
   @Get('categories')
+  @CustomFields('documentCategories', 'list')
   @Permissions('documents.read')
   @RequirePermission(ENTITY_KEYS.DOCUMENTS, 'read')
   listCategories(@CurrentUser() user: AuthenticatedUser) {
@@ -95,6 +101,7 @@ export class DocumentsController {
   }
 
   @Get('categories/:id')
+  @CustomFields('documentCategories', 'read', 'id')
   @Permissions('documents.read')
   @RequirePermission(ENTITY_KEYS.DOCUMENTS, 'read')
   findCategory(
@@ -105,6 +112,7 @@ export class DocumentsController {
   }
 
   @Post('categories')
+  @CustomFields('documentCategories', 'create')
   @Permissions('documents.categories.manage')
   @RequirePermission(ENTITY_KEYS.DOCUMENTS, 'configure')
   createCategory(
@@ -115,6 +123,7 @@ export class DocumentsController {
   }
 
   @Patch('categories/:id')
+  @CustomFields('documentCategories', 'update', 'id')
   @Permissions('documents.categories.manage')
   @RequirePermission(ENTITY_KEYS.DOCUMENTS, 'configure')
   updateCategory(
@@ -148,6 +157,7 @@ export class DocumentsController {
   }
 
   @Get(':documentId')
+  @CustomFields('documents', 'read', 'documentId')
   @Permissions('documents.read')
   @RequirePermission(ENTITY_KEYS.DOCUMENTS, 'read')
   findOne(
@@ -204,6 +214,7 @@ export class DocumentsController {
   }
 
   @Patch(':documentId')
+  @CustomFields('documents', 'update', 'documentId')
   @Permissions('documents.update')
   @RequirePermission(ENTITY_KEYS.DOCUMENTS, 'write')
   update(

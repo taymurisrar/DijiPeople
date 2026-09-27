@@ -2650,6 +2650,18 @@ export class CustomizationService {
       dto.packageId,
     );
     const definition = findSystemCustomizationTable(tableKey);
+    /*
+     * BUG-3786 — the flag was declared on every system table and never read,
+     * so Permission and Country took custom fields too. A system table that is
+     * not customizable has no route that edits its records (ADR-0024), so a
+     * field there could never hold a value.
+     */
+    if (definition && !definition.isCustomizable) {
+      throw new BadRequestException({
+        code: 'CUSTOMIZATION_TABLE_NOT_CUSTOMIZABLE',
+        message: `${definition.pluralName} do not take custom fields.`,
+      });
+    }
     if (
       definition?.columns.some((column) => column.columnKey === dto.columnKey)
     ) {

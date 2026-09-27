@@ -36,6 +36,7 @@ import { RegisterCandidateDocumentDto } from './dto/register-candidate-document.
 import { TriggerDocumentParseDto } from './dto/trigger-document-parse.dto';
 import { UpdateCandidateDto } from './dto/update-candidate.dto';
 import { RecruitmentService } from './recruitment.service';
+import { CustomFields } from '../customization/custom-fields.decorator';
 
 type UploadedResumeFile = {
   buffer: Buffer;
@@ -51,6 +52,7 @@ export class CandidatesController {
   constructor(private readonly recruitmentService: RecruitmentService) {}
 
   @Get()
+  @CustomFields('candidates', 'list')
   @Permissions('recruitment.read')
   @RequireAnyPermission(
     { entityKey: ENTITY_KEYS.JOBS, action: 'read' },
@@ -64,6 +66,7 @@ export class CandidatesController {
   }
 
   @Get(':candidateId')
+  @CustomFields('candidates', 'read', 'candidateId')
   @Permissions('recruitment.read')
   @RequireAnyPermission(
     { entityKey: ENTITY_KEYS.JOBS, action: 'read' },
@@ -80,6 +83,7 @@ export class CandidatesController {
   }
 
   @Post()
+  @CustomFields('candidates', 'create')
   @Permissions('recruitment.create')
   @RequireAnyPermission(
     { entityKey: ENTITY_KEYS.JOBS, action: 'create' },
@@ -107,6 +111,7 @@ export class CandidatesController {
   }
 
   @Patch(':candidateId')
+  @CustomFields('candidates', 'update', 'candidateId')
   @Permissions('recruitment.update')
   @RequireAnyPermission(
     { entityKey: ENTITY_KEYS.JOBS, action: 'write' },

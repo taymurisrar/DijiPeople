@@ -28,6 +28,7 @@ import { UpdateTeamMembersDto } from './dto/update-team-members.dto';
 import { UpdateTeamRolesDto } from './dto/update-team-roles.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
 import { TeamsService } from './teams.service';
+import { CustomFields } from '../customization/custom-fields.decorator';
 
 @Controller('teams')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -35,6 +36,7 @@ export class TeamsController {
   constructor(private readonly teamsService: TeamsService) {}
 
   @Get()
+  @CustomFields('teams', 'list')
   @Permissions('teams.read')
   @RequirePermission(ENTITY_KEYS.TEAMS, 'read')
   findAll(
@@ -51,6 +53,7 @@ export class TeamsController {
   }
 
   @Get(':teamId')
+  @CustomFields('teams', 'read', 'teamId')
   @Permissions('teams.read')
   @RequirePermission(ENTITY_KEYS.TEAMS, 'read')
   findOne(
@@ -61,6 +64,7 @@ export class TeamsController {
   }
 
   @Post()
+  @CustomFields('teams', 'create')
   @Permissions('teams.create')
   @RequirePermission(ENTITY_KEYS.TEAMS, 'create')
   create(
@@ -71,6 +75,7 @@ export class TeamsController {
   }
 
   @Patch(':teamId')
+  @CustomFields('teams', 'update', 'teamId')
   @Permissions('teams.update')
   @RequirePermission(ENTITY_KEYS.TEAMS, 'write')
   update(

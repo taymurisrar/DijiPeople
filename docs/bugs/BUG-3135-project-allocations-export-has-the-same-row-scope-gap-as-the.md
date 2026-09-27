@@ -102,6 +102,7 @@ None identified beyond the fix itself.
 
 ## Related Items
 
+- [[BUG-3241]] — the employee export row-scope gap this one repeats, fixed there (reported as BUG-3134, a duplicate of it).
 - Audit finding `AUTHZ-04` — `docs/engineering/audits/2026-09-10-full-technical-audit/raw/AUTHZ.md`
 
 ## Resolution

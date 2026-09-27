@@ -102,6 +102,6 @@ Records this session worked on, cited in its own body:
 
 Modules this record declares as affected:
 
-[[api-architecture]] · [[deployment-architecture]] · [[desktop-agent-architecture]] · [[landing-architecture]] · [[platform-admin]] · [[tenant-application]]
+[[api-architecture]] · [[ci-architecture]] · [[deployment-architecture]] · [[desktop-agent-architecture]] · [[landing-architecture]] · [[platform-admin]] · [[tenant-application]]
 
 <!-- GRAPH:END -->

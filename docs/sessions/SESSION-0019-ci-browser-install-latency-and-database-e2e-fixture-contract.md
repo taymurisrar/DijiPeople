@@ -86,6 +86,6 @@ Records this session worked on, cited in its own body:
 
 Modules this record declares as affected:
 
-[[database-architecture]] · [[qa-and-ci-architecture]]
+[[ci-architecture]] · [[database-architecture]] · [[qa-and-ci-architecture]]
 
 <!-- GRAPH:END -->

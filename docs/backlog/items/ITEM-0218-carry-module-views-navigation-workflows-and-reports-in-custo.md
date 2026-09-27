@@ -58,7 +58,7 @@ None.
 
 ## Related
 
-- Modules — [[customization]], [[reporting]]
+- Modules — [[customization]], [[ci-architecture]], [[reporting]]
 - Implementation — [[EXECPLAN-0052-package-alm]]
 
 <!-- GRAPH:END -->

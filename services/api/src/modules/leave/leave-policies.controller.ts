@@ -30,6 +30,7 @@ import { UpdateLeavePolicyDto } from './dto/update-leave-policy.dto';
 import { UpdateLeavePolicyRuleDto } from './dto/update-leave-policy-rule.dto';
 import { UpdateLeavePolicyAssignmentDto } from './dto/update-leave-policy-assignment.dto';
 import { LeaveService } from './leave.service';
+import { CustomFields } from '../customization/custom-fields.decorator';
 
 @Controller('leave-policies')
 @UseGuards(JwtAuthGuard, PermissionsGuard, EntitlementGuard)
@@ -38,6 +39,7 @@ export class LeavePoliciesController {
   constructor(private readonly leaveService: LeaveService) {}
 
   @Get()
+  @CustomFields('leavePolicies', 'list')
   @Permissions('leave-policies.read')
   @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'read')
   findAll(
@@ -90,6 +92,7 @@ export class LeavePoliciesController {
   }
 
   @Get(':id')
+  @CustomFields('leavePolicies', 'read', 'id')
   @Permissions('leave-policies.read')
   @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'read')
   findOne(
@@ -100,6 +103,7 @@ export class LeavePoliciesController {
   }
 
   @Post()
+  @CustomFields('leavePolicies', 'create')
   @Permissions('leave-policies.create')
   @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'create')
   create(
@@ -110,6 +114,7 @@ export class LeavePoliciesController {
   }
 
   @Patch(':id')
+  @CustomFields('leavePolicies', 'update', 'id')
   @Permissions('leave-policies.update')
   @RequirePermission(ENTITY_KEYS.LEAVE_REQUESTS, 'write')
   update(

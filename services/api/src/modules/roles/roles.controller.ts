@@ -27,6 +27,7 @@ import { UpdateRoleMatrixDto } from './dto/update-role-matrix.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { UpdateRolePermissionsDto } from './dto/update-role-permissions.dto';
 import { RolesService } from './roles.service';
+import { CustomFields } from '../customization/custom-fields.decorator';
 
 @Controller('roles')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -34,6 +35,7 @@ export class RolesController {
   constructor(private readonly rolesService: RolesService) {}
 
   @Get()
+  @CustomFields('roles', 'list')
   @Permissions('roles.read')
   @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   findAll(@CurrentUser() user: AuthenticatedUser) {
@@ -52,6 +54,7 @@ export class RolesController {
   }
 
   @Get(':roleId')
+  @CustomFields('roles', 'read', 'roleId')
   @Permissions('roles.read')
   @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   findOne(
@@ -62,6 +65,7 @@ export class RolesController {
   }
 
   @Post()
+  @CustomFields('roles', 'create')
   @Permissions('roles.create')
   @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   create(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateRoleDto) {
@@ -79,6 +83,7 @@ export class RolesController {
   }
 
   @Put(':roleId')
+  @CustomFields('roles', 'update', 'roleId')
   @Permissions('roles.update')
   @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   update(

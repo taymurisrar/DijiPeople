@@ -9,6 +9,8 @@ import type {
   FieldMetadata,
   RelatedSubgridMetadata,
 } from "../metadata-runtime.types";
+import { customFieldsPayload, withCustomFieldValues } from "../custom-fields";
+import type { ModuleRuntimeContext } from "../module-runtime.types";
 import { relatedRecordPaths } from "../related-record-api";
 import { debugRuntime } from "../runtime-debug";
 import { normalizeRuntimeDateValue } from "../runtime-date-value";
@@ -244,7 +246,7 @@ export function createStandardModuleDataAdapter(
       const data = await requestJson(
         `${baseResourcePath}${queryString(params)}`,
       );
-      const records = readRecordList(data);
+      const records = readRecordList(data).map(withCustomFieldValues);
 
       return {
         records,
@@ -262,15 +264,20 @@ export function createStandardModuleDataAdapter(
     },
 
     async getById(_runtime, recordId) {
-      return readRecord(
+      const record = readRecord(
         await requestJson(
           `${baseResourcePath}/${encodeURIComponent(recordId)}`,
         ),
       );
+      return record ? withCustomFieldValues(record) : record;
     },
 
-    async create(_runtime, values) {
-      const payload = sanitizeStandardMutationValues(values, spec, "create");
+    async create(runtime, values) {
+      const payload = withCustomFieldsPayload(
+        sanitizeStandardMutationValues(values, spec, "create"),
+        values,
+        runtime,
+      );
       debugRuntime("Standard adapter create request", {
         moduleKey: spec.moduleKey,
         path: createPath,
@@ -287,12 +294,16 @@ export function createStandardModuleDataAdapter(
         moduleKey: spec.moduleKey,
         record,
       });
-      return record;
+      return withCustomFieldValues(record);
     },
 
-    async update(_runtime, recordId, values) {
+    async update(runtime, recordId, values) {
       const path = recordPath(baseResourcePath, recordId, updatePath);
-      const payload = sanitizeStandardMutationValues(values, spec, "update");
+      const payload = withCustomFieldsPayload(
+        sanitizeStandardMutationValues(values, spec, "update"),
+        values,
+        runtime,
+      );
       debugRuntime("Standard adapter update request", {
         moduleKey: spec.moduleKey,
         recordId,
@@ -311,7 +322,7 @@ export function createStandardModuleDataAdapter(
         recordId,
         record,
       });
-      return record;
+      return withCustomFieldValues(record);
     },
 
     async softDelete(_runtime, recordIds) {
@@ -837,6 +848,24 @@ function withLookupRequestContext(
     lookupPath: context.path,
   };
   return contextualError;
+}
+
+/*
+ * TASK-0035 / ADR-0024 — a tenant's custom fields on this module travel as
+ * `customFields`; the fields are the ones the runtime marked `isCustomField`,
+ * so a module without custom fields sends exactly what it sent before.
+ */
+function withCustomFieldsPayload(
+  payload: Record<string, unknown>,
+  values: Readonly<Record<string, unknown>>,
+  runtime: ModuleRuntimeContext,
+) {
+  /* A caller without metadata (a spec exercising the payload alone) has none. */
+  const customFields = customFieldsPayload(
+    values,
+    runtime?.metadata?.entity?.fields ?? [],
+  );
+  return customFields ? { ...payload, customFields } : payload;
 }
 
 function readRecordList(data: unknown): readonly RuntimeRecord[] {

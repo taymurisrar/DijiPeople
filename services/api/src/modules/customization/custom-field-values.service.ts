@@ -61,10 +61,85 @@ export class CustomFieldValuesService {
 
   /** Field definitions for a form, filtered by the user's read permission. */
   async definitions(user: AuthenticatedUser, tableKey: string) {
+    const columns = await this.publishedColumns(user.tenantId, tableKey);
+    const targets = [
+      ...new Set(
+        columns
+          .map((column) => column.lookupTargetTableKey)
+          .filter((key): key is string => Boolean(key)),
+      ),
+    ];
+    /*
+     * BUG-3787 — a lookup can only label its options by the target's name. For
+     * a custom module that is its primary-name column; one query for all
+     * lookup targets. System targets carry no such column and are resolved
+     * by the client's own map.
+     */
+    const nameColumns = targets.length
+      ? await this.prisma.customizationColumn.findMany({
+          where: {
+            tenantId: user.tenantId,
+            isPrimaryName: true,
+            isActive: true,
+            table: { tableKey: { in: targets }, isSystem: false },
+          },
+          select: { columnKey: true, table: { select: { tableKey: true } } },
+        })
+      : [];
     return customFieldDefinitions({
-      columns: await this.publishedColumns(user.tenantId, tableKey),
+      columns,
       permissionKeys: user.permissionKeys,
+      lookupNameFields: new Map(
+        nameColumns.map((column) => [column.table.tableKey, column.columnKey]),
+      ),
     });
+  }
+
+  /**
+   * Whether the tenant has any active custom field on this system table, in
+   * one indexed query. Every decorated route asks this first, so the common
+   * case — no custom fields at all — never loads the published snapshot.
+   */
+  async hasCustomColumns(tenantId: string, tableKey: string) {
+    const column = await this.prisma.customizationColumn.findFirst({
+      where: {
+        tenantId,
+        isActive: true,
+        isCustom: true,
+        isSystem: false,
+        table: { tableKey, isSystem: true },
+      },
+      select: { id: true },
+    });
+    return column !== null;
+  }
+
+  /** `read` for a page of records: one extension query, not one per row. */
+  async readMany(
+    user: AuthenticatedUser,
+    tableKey: string,
+    recordIds: readonly string[],
+  ): Promise<Map<string, Record<string, unknown>>> {
+    const ids = [...new Set(recordIds.filter(Boolean))];
+    if (!ids.length) return new Map();
+    const [columns, rows] = await Promise.all([
+      this.publishedColumns(user.tenantId, tableKey),
+      this.prisma.customRecordExtension.findMany({
+        where: { tenantId: user.tenantId, tableKey, recordId: { in: ids } },
+        select: { recordId: true, values: true },
+      }),
+    ]);
+    const stored = new Map(rows.map((row) => [row.recordId, row.values]));
+    return new Map(
+      ids.map((id) => [
+        id,
+        secureCustomFieldValues({
+          columns,
+          values: stored.get(id) ?? {},
+          permissionKeys: user.permissionKeys,
+        }),
+      ]),
+    );
   }
 
   /** The values a user may see on one record (every field present, null if unset). */

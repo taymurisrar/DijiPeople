@@ -50,6 +50,7 @@ import { OverrideAttendanceEntryDto } from './dto/override-attendance-entry.dto'
 import { UpdateAttendanceIntegrationDto } from './dto/update-attendance-integration.dto';
 import { UpdateAttendancePolicyDto } from './dto/update-attendance-policy.dto';
 import { UpdateManualAttendanceEntryDto } from './dto/update-manual-attendance-entry.dto';
+import { CustomFields } from '../customization/custom-fields.decorator';
 
 type UploadedFileShape = {
   buffer: Buffer;
@@ -99,6 +100,7 @@ export class AttendanceController {
   }
 
   @Get('mine')
+  @CustomFields('attendanceEntries', 'list')
   @Permissions('attendance.read')
   @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   listMine(
@@ -169,6 +171,7 @@ export class AttendanceController {
   }
 
   @Get('team')
+  @CustomFields('attendanceEntries', 'list')
   @Permissions('attendance.read')
   @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   listTeam(
@@ -189,6 +192,7 @@ export class AttendanceController {
   }
 
   @Post('manual')
+  @CustomFields('attendanceEntries', 'create')
   @Permissions('attendance.manage')
   @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   createManualEntry(
@@ -199,6 +203,7 @@ export class AttendanceController {
   }
 
   @Patch('manual/:entryId')
+  @CustomFields('attendanceEntries', 'update', 'entryId')
   @Permissions('attendance.manage')
   @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'manage')
   updateManualEntry(
@@ -391,6 +396,7 @@ export class AttendanceController {
   }
 
   @Get(':entryId')
+  @CustomFields('attendanceEntries', 'read', 'entryId')
   @Permissions('attendance.read')
   @RequirePermission(ENTITY_KEYS.ATTENDANCE, 'read')
   getAttendanceEntry(
@@ -401,6 +407,7 @@ export class AttendanceController {
   }
 
   @Patch(':entryId/override')
+  @CustomFields('attendanceEntries', 'update', 'entryId')
   @Permissions('attendance.override')
   @RequireAnyPermission(
     { entityKey: ENTITY_KEYS.ATTENDANCE, action: 'write' },

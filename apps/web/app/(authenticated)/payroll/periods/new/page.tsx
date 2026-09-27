@@ -4,15 +4,19 @@ import {
   buildStandardRouteRuntime,
   resolveStandardActiveForm,
 } from "@/lib/runtime/modules/standard-module-route-helpers";
+import { withRouteCustomFields } from "@/lib/runtime/custom-fields-server";
 import { payrollPeriodRuntimeSpec } from "@/lib/runtime/modules/payroll-foundation-runtime-specs";
 import { PayrollLayoutShell } from "../../_components/payroll-layout-shell";
 
 export default async function NewPayrollPeriodPage() {
-  const runtime = buildStandardRouteRuntime({
-    pageKind: "create",
-    sessionUser: await getSessionUser(),
-    spec: payrollPeriodRuntimeSpec,
-  });
+  /* TASK-0035: the tenant's custom fields on this module. */
+  const runtime = await withRouteCustomFields(
+    buildStandardRouteRuntime({
+      pageKind: "create",
+      sessionUser: await getSessionUser(),
+      spec: payrollPeriodRuntimeSpec,
+    }),
+  );
 
   return (
     <PayrollLayoutShell
@@ -20,7 +24,11 @@ export default async function NewPayrollPeriodPage() {
       description="Create a payroll period under a payroll calendar."
     >
       <StandardModuleRecordPage
-        activeForm={resolveStandardActiveForm(runtime.metadata.forms, "", "main")}
+        activeForm={resolveStandardActiveForm(
+          runtime.metadata.forms,
+          "",
+          "main",
+        )}
         mode="create"
         record={{
           name: "",

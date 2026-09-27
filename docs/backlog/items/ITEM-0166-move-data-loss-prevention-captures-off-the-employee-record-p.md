@@ -167,6 +167,6 @@ to the guard.
 
 ## Related
 
-- Modules — [[tenant-application]]
+- Modules — [[tenant-application]], [[desktop-agent-architecture]]
 
 <!-- GRAPH:END -->

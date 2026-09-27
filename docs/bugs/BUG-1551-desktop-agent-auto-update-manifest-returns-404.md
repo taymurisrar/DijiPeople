@@ -282,6 +282,7 @@ header. The six-hour tick after sign-in carries one.
 
 ## Related
 
+- Modules — [[desktop-agent-architecture]]
 - Regression — REG-358 (see the regression register)
 
 <!-- GRAPH:END -->

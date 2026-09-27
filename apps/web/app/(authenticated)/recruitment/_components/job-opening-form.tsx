@@ -2,6 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { CustomFieldsSection } from "@/app/components/runtime/custom-fields-section";
+import {
+  customFieldErrors,
+  customFieldValues,
+} from "@/lib/runtime/custom-fields";
 import {
   JobOpeningMatchCriteria,
   JobOpeningRecord,
@@ -31,6 +36,13 @@ const EDUCATION_OPTIONS = [
 const WORK_MODE_OPTIONS = ["Onsite", "Hybrid", "Remote"];
 
 export function JobOpeningForm({ mode, jobOpening }: JobOpeningFormProps) {
+  /* TASK-0035: the tenant's custom fields on job openings. */
+  const [customFields, setCustomFields] = useState<Record<string, unknown>>(
+    () => customFieldValues(jobOpening),
+  );
+  const [customFieldErrorsByKey, setCustomFieldErrorsByKey] = useState<
+    Record<string, string[]>
+  >({});
   const router = useRouter();
 
   const [form, setForm] = useState({
@@ -40,7 +52,8 @@ export function JobOpeningForm({ mode, jobOpening }: JobOpeningFormProps) {
     status: jobOpening?.status ?? "DRAFT",
     pipelineId: jobOpening?.pipelineId ?? jobOpening?.pipeline?.id ?? "",
     requiredSkills: jobOpening?.matchCriteria?.requiredSkills?.join(", ") ?? "",
-    preferredSkills: jobOpening?.matchCriteria?.preferredSkills?.join(", ") ?? "",
+    preferredSkills:
+      jobOpening?.matchCriteria?.preferredSkills?.join(", ") ?? "",
     minimumYearsExperience:
       jobOpening?.matchCriteria?.minimumYearsExperience?.toString() ?? "",
     educationLevels: jobOpening?.matchCriteria?.educationLevels ?? [],
@@ -54,7 +67,8 @@ export function JobOpeningForm({ mode, jobOpening }: JobOpeningFormProps) {
       experienceFit: jobOpening?.matchCriteria?.weights?.experienceFit ?? 20,
       educationFit: jobOpening?.matchCriteria?.weights?.educationFit ?? 10,
       locationFit: jobOpening?.matchCriteria?.weights?.locationFit ?? 15,
-      availabilityFit: jobOpening?.matchCriteria?.weights?.availabilityFit ?? 15,
+      availabilityFit:
+        jobOpening?.matchCriteria?.weights?.availabilityFit ?? 15,
     },
     knockoutRules: {
       requireAllMandatorySkills:
@@ -141,7 +155,9 @@ export function JobOpeningForm({ mode, jobOpening }: JobOpeningFormProps) {
     }
 
     if (isScoringConfigured && totalWeight !== 100) {
-      setError("Scoring weights must total 100 when match criteria is configured.");
+      setError(
+        "Scoring weights must total 100 when match criteria is configured.",
+      );
       return;
     }
 
@@ -152,7 +168,9 @@ export function JobOpeningForm({ mode, jobOpening }: JobOpeningFormProps) {
         form.minimumYearsExperience,
       );
       const noticePeriodDays = parseOptionalInteger(form.noticePeriodDays);
-      const hasAnyKnockoutRule = Object.values(form.knockoutRules).some(Boolean);
+      const hasAnyKnockoutRule = Object.values(form.knockoutRules).some(
+        Boolean,
+      );
       const matchCriteriaPayload: JobOpeningMatchCriteria | null =
         isScoringConfigured
           ? {
@@ -164,7 +182,9 @@ export function JobOpeningForm({ mode, jobOpening }: JobOpeningFormProps) {
               allowedLocations: parsedAllowedLocations,
               noticePeriodDays,
               weights: form.weights,
-              knockoutRules: hasAnyKnockoutRule ? form.knockoutRules : undefined,
+              knockoutRules: hasAnyKnockoutRule
+                ? form.knockoutRules
+                : undefined,
             }
           : null;
 
@@ -184,14 +204,20 @@ export function JobOpeningForm({ mode, jobOpening }: JobOpeningFormProps) {
             status: form.status,
             pipelineId: form.pipelineId || undefined,
             matchCriteria: matchCriteriaPayload,
+            customFields,
           }),
         },
       );
 
-      const data = (await response.json()) as { id?: string; message?: string };
+      const data = (await response.json()) as {
+        id?: string;
+        message?: string;
+        details?: unknown;
+      };
 
       if (!response.ok) {
         setError(data.message ?? `Unable to ${mode} job opening.`);
+        setCustomFieldErrorsByKey(customFieldErrors(data.details) ?? {});
         setIsSubmitting(false);
         return;
       }
@@ -546,6 +572,13 @@ export function JobOpeningForm({ mode, jobOpening }: JobOpeningFormProps) {
           />
         </div>
       </section>
+
+      <CustomFieldsSection
+        errors={customFieldErrorsByKey}
+        tableKey="jobOpenings"
+        value={customFields}
+        onChange={setCustomFields}
+      />
 
       {error ? (
         <p className="rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">

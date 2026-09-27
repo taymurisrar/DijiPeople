@@ -100,6 +100,7 @@ None identified beyond the fix itself.
 
 ## Related Items
 
+- [[BUG-3209]] — the other documents-module storage defect from the same audit.
 - Audit finding `FILE-08` — `docs/engineering/audits/2026-09-10-full-technical-audit/raw/FILE.md`
 
 ## Resolution

@@ -140,6 +140,7 @@ keep returning zero.
 ## Related
 
 - Bug — [[BUG-0036]]
+- Modules — [[desktop-agent-architecture]]
 
 <!-- GRAPH:END -->
 
