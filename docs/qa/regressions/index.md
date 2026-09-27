@@ -6880,3 +6880,17 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — with the refusal removed the shared-type case answers 201 and the row is written with no tenant (mutation-checked). |
 | **Fixed** | 2026-09-27, branch `agent/custom-fields-screens-and-query` |
 | **Active** | yes |
+
+### REG-643 — Claims had no sidebar entry
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-step` |
+| **Module** | `apps/web/app/(authenticated)/_components` |
+| **Bug record** | BUG-3830 |
+| **Root cause** | The claims pages (list, detail, and since TASK-0036 create and edit, admin and self-service) were never added to the sidebar catalog in navigation.ts, so they were reachable only by typing the URL. The entry now opens /claims for holders of claims.read-all and My Claims (/me/claims) for claims.read-own holders and self-service users. |
+| **Regression test** | `apps/web/app/(authenticated)/_components/navigation.spec.ts` (the Claims navigation entry: full list, own claims, self-service, tenant administrator, neither permission). |
+| **Scenario** | QA-SETTINGS-037 — Claims is reachable from the sidebar for each kind of user. |
+| **Fails without the fix** | Yes — without the catalog entry every case that expects an entry finds none. |
+| **Fixed** | 2026-09-27, branch `agent/claims-navigation` |
+| **Active** | yes |

@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**721 records** — 500 bugs under [`docs/bugs/`](../bugs/), 221 non-bug items under [`items/`](items/).
+**722 records** — 501 bugs under [`docs/bugs/`](../bugs/), 221 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,7 +13,7 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 239 |
+| Open (active work) | 240 |
 | Blocked | 3 |
 | Deferred | 117 |
 | Awaiting a product decision | 9 |
@@ -28,7 +28,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 6 |
 | HIGH | 103 |
-| MEDIUM | 108 |
+| MEDIUM | 109 |
 | LOW | 22 |
 
 ## Open by type
@@ -50,7 +50,7 @@ see [`README.md`](README.md) for why.
 | TECH_DEBT | 7 |
 | TENANT_ISOLATION | 3 |
 | TEST_GAP | 9 |
-| UX | 49 |
+| UX | 50 |
 
 ## All records by status
 
@@ -61,7 +61,7 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 3 |
 | DEFERRED | 117 |
 | PRODUCT_DECISION | 9 |
-| FIXED | 171 |
+| FIXED | 172 |
 | VERIFIED | 218 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
@@ -558,6 +558,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3786](../../docs/bugs/BUG-3786-adding-a-custom-field-ignores-the-table-s-iscustomizable-fla.md) | Adding a custom field ignores the table's isCustomizable flag | BUG | MEDIUM | P2 | FIXED | customization | FIX_NOW |
 | [BUG-3787](../../docs/bugs/BUG-3787-lookup-custom-fields-on-custom-modules-offer-no-options.md) | Lookup custom fields on custom modules offer no options | BUG | MEDIUM | P2 | FIXED | customization | FIX_NOW |
 | [BUG-3800](../../docs/bugs/BUG-3800-three-entity-lookups-refuse-the-page-size-and-search-the-for.md) | Three entity lookups refuse the page size and search the form sends | BUG | MEDIUM | P2 | FIXED | organization, payroll | FIX_NOW |
+| [BUG-3830](../../docs/bugs/BUG-3830-claims-has-no-sidebar-entry-so-its-screens-are-reachable-onl.md) | Claims has no sidebar entry, so its screens are reachable only by URL | UX | MEDIUM | P2 | FIXED | claims | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |

@@ -6,11 +6,13 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 0** · completed: 113
+**Active: 1** · completed: 113
 
 ## Active
 
-_None. No session is currently running._
+| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
+|---|---|---|---|---|---|---|---|
+| [SESSION-0117](../../docs/sessions/SESSION-0117-claims-missing-from-the-sidebar-add-claims-my-claims-navigat.md) | — | Claims missing from the sidebar: add Claims / My Claims navigation | ACTIVE | `agent/claims-navigation` | `develop` | — | 2026-09-27T14:35:22.750Z |
 
 ## Completed
 

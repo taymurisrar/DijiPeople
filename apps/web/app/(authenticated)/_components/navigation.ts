@@ -27,6 +27,16 @@ export type DashboardNavItem = {
   requiresBusinessUnitScope?: boolean;
   selfServiceHref?: string;
   selfServiceLabel?: string;
+  /*
+   * BUG-3830 — where the entry points for someone who cannot see the whole
+   * module but holds one of these permissions for their own records (Claims →
+   * My Claims). Self-service users always get this form of the entry.
+   */
+  ownScope?: {
+    readonly href: string;
+    readonly label: string;
+    readonly requiredAnyPermissions: readonly string[];
+  };
   description: string;
 };
 
@@ -127,6 +137,22 @@ export const dashboardNavItems: DashboardNavItem[] = [
       "reports.attendance.read",
       PERMISSION_KEYS.RECRUITMENT_READ,
     ],
+  },
+  /*
+   * BUG-3830 — Claims had pages (list, detail, and since TASK-0036 create and
+   * edit) but no sidebar entry, so nobody could reach them without typing the
+   * URL. Not plan-gated: no feature key sells claims (tenant-features.ts).
+   */
+  {
+    href: "/claims",
+    label: "Claims",
+    description: "Expense claims, line items, approvals and reimbursement.",
+    requiredAnyPermissions: [PERMISSION_KEYS.CLAIMS_READ_ALL],
+    ownScope: {
+      href: "/me/claims",
+      label: "My Claims",
+      requiredAnyPermissions: [PERMISSION_KEYS.CLAIMS_READ_OWN],
+    },
   },
   {
     href: "/payroll/cycles",
@@ -355,6 +381,19 @@ export function resolveVisibleDashboardNavItems(
       return [];
     }
 
+    if (item.ownScope) {
+      const holdsAny = (keys: readonly string[]) =>
+        keys.some((key) => input.permissionKeys.includes(key));
+      if (!input.isSelfService && holdsAny(item.requiredAnyPermissions ?? [])) {
+        return [item];
+      }
+      if (holdsAny(item.ownScope.requiredAnyPermissions)) {
+        return [
+          { ...item, href: item.ownScope.href, label: item.ownScope.label },
+        ];
+      }
+      return [];
+    }
 
     const isEmployeesItem = item.href === "/employees";
 

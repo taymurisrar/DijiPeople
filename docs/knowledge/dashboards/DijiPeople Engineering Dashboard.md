@@ -9,7 +9,7 @@
 |---|---|
 | Open CRITICAL | **6** |
 | Open HIGH | **103** |
-| Open total | 239 |
+| Open total | 240 |
 | Blocked | 3 |
 | Awaiting a product decision | 9 |
 | Deferred | 117 |
@@ -540,6 +540,7 @@
 | [[BUG-3786-adding-a-custom-field-ignores-the-table-s-iscustomizable-fla|BUG-3786]] | Adding a custom field ignores the table's isCustomizable flag | BUG | MEDIUM | FIXED | customization | FIX_NOW |
 | [[BUG-3787-lookup-custom-fields-on-custom-modules-offer-no-options|BUG-3787]] | Lookup custom fields on custom modules offer no options | BUG | MEDIUM | FIXED | customization | FIX_NOW |
 | [[BUG-3800-three-entity-lookups-refuse-the-page-size-and-search-the-for|BUG-3800]] | Three entity lookups refuse the page size and search the form sends | BUG | MEDIUM | FIXED | organization, payroll | FIX_NOW |
+| [[BUG-3830-claims-has-no-sidebar-entry-so-its-screens-are-reachable-onl|BUG-3830]] | Claims has no sidebar entry, so its screens are reachable only by URL | UX | MEDIUM | FIXED | claims | FIX_NOW |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -714,6 +715,7 @@
 | [[BUG-3786-adding-a-custom-field-ignores-the-table-s-iscustomizable-fla|BUG-3786]] | Adding a custom field ignores the table's isCustomizable flag | BUG | MEDIUM | FIXED | customization | FIX_NOW |
 | [[BUG-3787-lookup-custom-fields-on-custom-modules-offer-no-options|BUG-3787]] | Lookup custom fields on custom modules offer no options | BUG | MEDIUM | FIXED | customization | FIX_NOW |
 | [[BUG-3800-three-entity-lookups-refuse-the-page-size-and-search-the-for|BUG-3800]] | Three entity lookups refuse the page size and search the form sends | BUG | MEDIUM | FIXED | organization, payroll | FIX_NOW |
+| [[BUG-3830-claims-has-no-sidebar-entry-so-its-screens-are-reachable-onl|BUG-3830]] | Claims has no sidebar entry, so its screens are reachable only by URL | UX | MEDIUM | FIXED | claims | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -788,7 +790,7 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 500 |
+| Bug records | 501 |
 | Backlog items | 221 |
 | Known bug patterns | 35 |
 | QA runs | 38 |
