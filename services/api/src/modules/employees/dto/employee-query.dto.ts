@@ -132,6 +132,15 @@ export class EmployeeQueryDto {
   @IsIn(TEXT_FILTER_OPERATORS)
   contactFilterOperator?: (typeof TEXT_FILTER_OPERATORS)[number];
 
+  /*
+   * TASK-0036 / ADR-0025 — filters on custom fields, as a JSON list of
+   * { field, operator, value, valueTo }; parsed by parseCustomFieldFilters.
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(4000)
+  customFilters?: string;
+
   @IsOptional()
   @Type(() => Number)
   @IsInt()

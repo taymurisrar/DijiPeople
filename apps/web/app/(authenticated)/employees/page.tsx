@@ -12,6 +12,7 @@ import {
 import { getTableViews, withFallbackViews } from "@/lib/customization-views";
 import { withCustomFieldValues } from "@/lib/runtime/custom-fields";
 import { loadEmployeeCustomFields } from "./custom-fields";
+import { resolveCustomFieldListFilters } from "./custom-field-list-filters";
 import { AccessDeniedState } from "../_components/access-denied-state";
 import {
   getBusinessUnitAccessSummary,
@@ -78,6 +79,12 @@ export default async function EmployeesPage({
   const pageSize = getPositiveNumberParam(params.pageSize, 10);
   const orderBy = getSearchParam(params.orderBy);
   const columnFilters = resolveEmployeeColumnFilters(params);
+  /* ITEM-0221: custom fields label their view columns; TASK-0036: and filter. */
+  const customFields = await loadEmployeeCustomFields();
+  const customFieldFilters = resolveCustomFieldListFilters(
+    params,
+    customFields.map((field) => field.logicalName),
+  );
   const useEntityDataApi = process.env.USE_ENTITY_DATA_API === "true";
 
   const query = new URLSearchParams();
@@ -98,6 +105,10 @@ export default async function EmployeesPage({
     query.set(filter.key, filter.value);
   }
 
+  if (customFieldFilters.customFilters) {
+    query.set("customFilters", customFieldFilters.customFilters);
+  }
+
   if (orderBy) {
     query.set("orderBy", orderBy);
   }
@@ -105,28 +116,23 @@ export default async function EmployeesPage({
   query.set("page", String(page));
   query.set("pageSize", String(pageSize));
 
-  const [employees, resolvedSettings, publishedViews, customFields] =
-    await Promise.all([
-      useEntityDataApi
-        ? fetchEmployeesFromEntityData({
-            search,
-            employmentStatus,
-            reportingManagerEmployeeId,
-            orderBy,
-            columnFilters: columnFilters.tableFilters,
-            page,
-            pageSize,
-          })
-        : apiRequestJson<EmployeeListResponse>(
-            `/employees?${query.toString()}`,
-          ),
-      apiRequestJson<TenantResolvedSettingsResponse>(
-        "/tenant-settings/resolved",
-      ).catch(() => null),
-      getTableViews("employees"),
-      /* ITEM-0221: custom fields label their view columns. */
-      loadEmployeeCustomFields(),
-    ]);
+  const [employees, resolvedSettings, publishedViews] = await Promise.all([
+    useEntityDataApi
+      ? fetchEmployeesFromEntityData({
+          search,
+          employmentStatus,
+          reportingManagerEmployeeId,
+          orderBy,
+          columnFilters: columnFilters.tableFilters,
+          page,
+          pageSize,
+        })
+      : apiRequestJson<EmployeeListResponse>(`/employees?${query.toString()}`),
+    apiRequestJson<TenantResolvedSettingsResponse>(
+      "/tenant-settings/resolved",
+    ).catch(() => null),
+    getTableViews("employees"),
+  ]);
 
   /*
    * No local fallback list here. The employee metadata adapter already supplies
@@ -208,7 +214,10 @@ export default async function EmployeesPage({
         activeView={activeRuntimeView}
         employees={employees.items.map(withCustomFieldValues)}
         formatting={formatting}
-        initialFilters={columnFilters.tableFilters}
+        initialFilters={[
+          ...columnFilters.tableFilters,
+          ...customFieldFilters.tableFilters,
+        ]}
         pagination={{
           page: employees.meta?.page ?? page,
           pageSize: employees.meta?.pageSize ?? pageSize,
@@ -221,6 +230,7 @@ export default async function EmployeesPage({
             orderBy,
             viewId: activeRuntimeView?.viewId ?? activeRuntimeView?.id,
             ...columnFilters.searchParams,
+            ...customFieldFilters.searchParams,
           },
         }}
         runtime={employeeRuntimeContext}

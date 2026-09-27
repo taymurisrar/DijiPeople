@@ -17,7 +17,15 @@ import type { AuthenticatedUser } from '../../common/interfaces/authenticated-re
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { readPublishedCustomizationIndex } from '../data/published-custom-modules';
 import {
+  customFieldCondition,
+  isSortableCustomFieldType,
+  matchingRecordIdsSql,
+  orderedRecordIdsSql,
+  type CustomFieldFilter,
+} from './custom-field-query';
+import {
   customFieldDefinitions,
+  isQueryableCustomField,
   readRecord,
   secureCustomFieldValues,
   validateCustomFieldInput,
@@ -112,6 +120,80 @@ export class CustomFieldValuesService {
       select: { id: true },
     });
     return column !== null;
+  }
+
+  /**
+   * TASK-0036 / ADR-0025 — each filter as the record ids it admits: `in` for
+   * the positive operators, `notIn` for the negated ones (whose matches
+   * include records with no extension row). A field the user may not query,
+   * or a value the operator cannot use, is refused: ignoring it would show an
+   * unfiltered list that looks filtered.
+   */
+  async recordIdConstraints(
+    user: AuthenticatedUser,
+    tableKey: string,
+    filters: readonly CustomFieldFilter[],
+  ): Promise<{ in?: string[]; notIn?: string[] }[]> {
+    if (!filters.length) return [];
+    const columns = new Map(
+      (await this.publishedColumns(user.tenantId, tableKey))
+        .filter((column) => isQueryableCustomField(column, user.permissionKeys))
+        .map((column) => [column.columnKey, column]),
+    );
+    const constraints: { in?: string[]; notIn?: string[] }[] = [];
+    for (const filter of filters) {
+      const column = columns.get(filter.field);
+      const resolved = column
+        ? customFieldCondition(filter, column.dataType)
+        : null;
+      if (!resolved) {
+        throw new BadRequestException({
+          code: 'CUSTOM_FIELD_FILTER_INVALID',
+          message: `Cannot filter by "${filter.field}" with "${filter.operator}".`,
+        });
+      }
+      const rows = await this.prisma.$queryRaw<{ recordId: string }[]>(
+        matchingRecordIdsSql(user.tenantId, tableKey, resolved.condition),
+      );
+      const ids = rows.map((row) => row.recordId);
+      constraints.push(resolved.negate ? { notIn: ids } : { in: ids });
+    }
+    return constraints;
+  }
+
+  /**
+   * TASK-0036 / ADR-0025 — of `recordIds`, those with a value for `field`, in
+   * value order; null when the field is not one this user may sort by, so the
+   * caller keeps its own order.
+   */
+  async orderedRecordIds(
+    user: AuthenticatedUser,
+    tableKey: string,
+    field: string,
+    direction: 'asc' | 'desc',
+    recordIds: readonly string[],
+  ): Promise<string[] | null> {
+    const column = (await this.publishedColumns(user.tenantId, tableKey)).find(
+      (candidate) => candidate.columnKey === field,
+    );
+    if (
+      !column ||
+      !isQueryableCustomField(column, user.permissionKeys) ||
+      !isSortableCustomFieldType(column.dataType)
+    ) {
+      return null;
+    }
+    if (!recordIds.length) return [];
+    const rows = await this.prisma.$queryRaw<{ recordId: string }[]>(
+      orderedRecordIdsSql({
+        tenantId: user.tenantId,
+        tableKey,
+        field,
+        direction,
+        recordIds,
+      }),
+    );
+    return rows.map((row) => row.recordId);
   }
 
   /** `read` for a page of records: one extension query, not one per row. */
