@@ -75,6 +75,7 @@ None. TASK-0034 is merged.
 ## Related
 
 - Bug — [[BUG-3697]]
+- Referenced by — [[BUG-3786]], [[BUG-3787]]
 - Modules — [[customization]], [[employees]]
 - Implementation — [[EXECPLAN-0053-custom-field-values-and-package-import-at-scale]]
 

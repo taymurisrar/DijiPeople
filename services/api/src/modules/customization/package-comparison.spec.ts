@@ -78,6 +78,35 @@ function compare(
 }
 
 describe('comparePackageToTarget', () => {
+  const onSystemTable = (tableKey: string) =>
+    column(
+      'mis_note',
+      {},
+      {
+        key: `column:${tableKey}.mis_note`,
+        objectKey: `${tableKey}.mis_note`,
+        parentKey: tableKey,
+        dependsOn: [`table:${tableKey}`],
+      },
+    );
+
+  it('INCOMPATIBLE — a new custom field on a system table that takes none (BUG-3786)', () => {
+    const result = compare([onSystemTable('payslips')], {
+      'table:payslips': tableEntry,
+    });
+    expect(result.items[0]).toMatchObject({
+      status: 'INCOMPATIBLE',
+      blocking: true,
+    });
+  });
+
+  it('a new custom field on a customizable system table is still NEW', () => {
+    const result = compare([onSystemTable('projects')], {
+      'table:projects': tableEntry,
+    });
+    expect(result.items[0]).toMatchObject({ status: 'NEW', blocking: false });
+  });
+
   it('NEW — a component the target does not have', () => {
     const result = compare([column('mis_grade')], {});
     expect(result.items[0]).toMatchObject({

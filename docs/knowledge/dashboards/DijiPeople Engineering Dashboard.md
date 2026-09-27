@@ -9,7 +9,7 @@
 |---|---|
 | Open CRITICAL | **6** |
 | Open HIGH | **102** |
-| Open total | 235 |
+| Open total | 237 |
 | Blocked | 3 |
 | Awaiting a product decision | 9 |
 | Deferred | 118 |
@@ -706,6 +706,8 @@
 | [[BUG-3698-draft-edits-to-custom-fields-take-effect-before-they-are-pub|BUG-3698]] | Draft edits to custom fields take effect before they are published | STATE_MACHINE | MEDIUM | OPEN | customization | PLAN_REQUIRED |
 | [[BUG-3699-deleting-a-field-form-or-view-ignored-references-held-in-oth|BUG-3699]] | Deleting a field, form or view ignored references held in other packages' layers | DATA_INTEGRITY | MEDIUM | FIXED | customization | DONE |
 | [[BUG-3703-package-export-readiness-could-never-report-a-missing-depend|BUG-3703]] | Package export readiness could never report a missing dependency | BUG | MEDIUM | FIXED | customization | DONE |
+| [[BUG-3786-adding-a-custom-field-ignores-the-table-s-iscustomizable-fla|BUG-3786]] | Adding a custom field ignores the table's isCustomizable flag | BUG | MEDIUM | OPEN | customization | FIX_NOW |
+| [[BUG-3787-lookup-custom-fields-on-custom-modules-offer-no-options|BUG-3787]] | Lookup custom fields on custom modules offer no options | BUG | MEDIUM | OPEN | customization | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -769,6 +771,7 @@
 - [[ADR-0021-owner-decisions-countersign-platform-mfa-legal-publishing|ADR-0021 — Owner decisions for TASK-0032: countersign line, platform MFA, legal publishing]]
 - [[ADR-0022-customization-packages-are-the-alm-unit|ADR-0022 — Customization packages are the ALM unit]]
 - [[ADR-0023-seeded-template-versions-and-safepay-cut-over|ADR-0023 — Seeded agreement templates publish new versions; PKR checkout moves to Safepay]]
+- [[ADR-0024-custom-field-values-on-every-system-module-via-one-interceptor|ADR-0024 — Custom field values on every system module via one interceptor]]
 - [[decision-a-bug-record-is-its-own-backlog-item|Decision — A bug record **is** its own backlog item]]
 - [[decision-ci-verdict-gates-shared-merges|Decision — A shared-target merge requires a read CI verdict on the exact SHA]]
 - [[decision-platform-admin-is-a-separate-identity|Decision — Platform admin is a separate identity, not an elevated tenant user]]
@@ -778,7 +781,7 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 496 |
+| Bug records | 498 |
 | Backlog items | 221 |
 | Known bug patterns | 35 |
 | QA runs | 36 |
@@ -786,7 +789,7 @@
 | Release records | 10 |
 | Module notes | 31 |
 | Architecture notes | 22 |
-| Decision notes (ADR + generated) | 27 |
+| Decision notes (ADR + generated) | 28 |
 | Implementation records | 7 |
 
 **Awaiting Architect triage: 0.** A record nobody has

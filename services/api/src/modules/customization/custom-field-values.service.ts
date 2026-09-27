@@ -67,6 +67,53 @@ export class CustomFieldValuesService {
     });
   }
 
+  /**
+   * Whether the tenant has any active custom field on this system table, in
+   * one indexed query. Every decorated route asks this first, so the common
+   * case — no custom fields at all — never loads the published snapshot.
+   */
+  async hasCustomColumns(tenantId: string, tableKey: string) {
+    const column = await this.prisma.customizationColumn.findFirst({
+      where: {
+        tenantId,
+        isActive: true,
+        isCustom: true,
+        isSystem: false,
+        table: { tableKey, isSystem: true },
+      },
+      select: { id: true },
+    });
+    return column !== null;
+  }
+
+  /** `read` for a page of records: one extension query, not one per row. */
+  async readMany(
+    user: AuthenticatedUser,
+    tableKey: string,
+    recordIds: readonly string[],
+  ): Promise<Map<string, Record<string, unknown>>> {
+    const ids = [...new Set(recordIds.filter(Boolean))];
+    if (!ids.length) return new Map();
+    const [columns, rows] = await Promise.all([
+      this.publishedColumns(user.tenantId, tableKey),
+      this.prisma.customRecordExtension.findMany({
+        where: { tenantId: user.tenantId, tableKey, recordId: { in: ids } },
+        select: { recordId: true, values: true },
+      }),
+    ]);
+    const stored = new Map(rows.map((row) => [row.recordId, row.values]));
+    return new Map(
+      ids.map((id) => [
+        id,
+        secureCustomFieldValues({
+          columns,
+          values: stored.get(id) ?? {},
+          permissionKeys: user.permissionKeys,
+        }),
+      ]),
+    );
+  }
+
   /** The values a user may see on one record (every field present, null if unset). */
   async read(user: AuthenticatedUser, tableKey: string, recordId: string) {
     const [columns, row] = await Promise.all([

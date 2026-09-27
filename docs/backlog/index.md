@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**717 records** — 496 bugs under [`docs/bugs/`](../bugs/), 221 non-bug items under [`items/`](items/).
+**719 records** — 498 bugs under [`docs/bugs/`](../bugs/), 221 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,7 +13,7 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 235 |
+| Open (active work) | 237 |
 | Blocked | 3 |
 | Deferred | 118 |
 | Awaiting a product decision | 9 |
@@ -28,7 +28,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 6 |
 | HIGH | 102 |
-| MEDIUM | 105 |
+| MEDIUM | 107 |
 | LOW | 22 |
 
 ## Open by type
@@ -36,7 +36,7 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | AUTHORIZATION | 13 |
-| BUG | 71 |
+| BUG | 73 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 24 |
 | DOCUMENTATION | 1 |
@@ -56,7 +56,7 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 45 |
+| OPEN | 47 |
 | IN_PROGRESS | 1 |
 | BLOCKED | 3 |
 | DEFERRED | 118 |
@@ -554,6 +554,8 @@ see [`README.md`](README.md) for why.
 | [BUG-3699](../../docs/bugs/BUG-3699-deleting-a-field-form-or-view-ignored-references-held-in-oth.md) | Deleting a field, form or view ignored references held in other packages' layers | DATA_INTEGRITY | MEDIUM | P2 | FIXED | customization | DONE |
 | [BUG-3703](../../docs/bugs/BUG-3703-package-export-readiness-could-never-report-a-missing-depend.md) | Package export readiness could never report a missing dependency | BUG | MEDIUM | P2 | FIXED | customization | DONE |
 | [BUG-3704](../../docs/bugs/BUG-3704-settings-pages-scroll-horizontally-at-phone-width-again.md) | Settings pages scroll horizontally at phone width again | UX | MEDIUM | P2 | DEFERRED | apps/web | DEFER |
+| [BUG-3786](../../docs/bugs/BUG-3786-adding-a-custom-field-ignores-the-table-s-iscustomizable-fla.md) | Adding a custom field ignores the table's isCustomizable flag | BUG | MEDIUM | P2 | OPEN | customization | FIX_NOW |
+| [BUG-3787](../../docs/bugs/BUG-3787-lookup-custom-fields-on-custom-modules-offer-no-options.md) | Lookup custom fields on custom modules offer no options | BUG | MEDIUM | P2 | OPEN | customization | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |

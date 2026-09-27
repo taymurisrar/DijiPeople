@@ -19,6 +19,7 @@ import {
   type PortableComponent,
   type PortableComponentInput,
 } from './package-artifact';
+import { findSystemCustomizationTable } from './customization.registry';
 
 export type ComparisonStatus =
   | 'NEW'
@@ -207,6 +208,27 @@ function classify(
   }
 
   /* layerAction === 'create' */
+  /*
+   * BUG-3786 — import must not be the back door createColumn now closes: a new
+   * custom field on a system table that takes none (ADR-0024) is refused here,
+   * before anything is applied.
+   */
+  if (component.type === 'column' && !entry) {
+    const systemTable = findSystemCustomizationTable(
+      component.objectKey.split('.')[0] ?? '',
+    );
+    if (systemTable && !systemTable.isCustomizable) {
+      return {
+        ...base,
+        status: 'INCOMPATIBLE',
+        apply: 'none',
+        blocking: true,
+        messages: [
+          `${component.objectKey}: ${systemTable.pluralName} do not take custom fields in this workspace.`,
+        ],
+      };
+    }
+  }
   if (!entry) {
     return {
       ...base,
