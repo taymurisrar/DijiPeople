@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 445** · automated: 369 · manual: 27 · blocked by infrastructure: 0
+**Scenarios: 447** · automated: 371 · manual: 27 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -393,6 +393,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-SETTINGS-033](../../../docs/qa/scenarios/QA-SETTINGS-033-customization-package-moves-dev-to-uat-release-export-staged.md) | Customization package moves DEV to UAT: release, export, staged import, upgrade, re-import, rollback, uninstall | settings | DATABASE | HIGH | AUTOMATED | `services/api/test/customization-package-alm.e2e-spec.ts` | BUG-3699, BUG-3702, BUG-3703 | REG-635, REG-636, REG-637 |
 | [QA-SETTINGS-034](../../../docs/qa/scenarios/QA-SETTINGS-034-a-custom-field-on-any-customizable-system-module-stores-show.md) | A custom field on any customizable system module stores, shows and saves its value | settings | E2E | HIGH | AUTOMATED | `services/api/test/custom-fields-system-modules.e2e-spec.ts` | BUG-3786 | REG-639 |
 | [QA-SETTINGS-035](../../../docs/qa/scenarios/QA-SETTINGS-035-a-lookup-custom-field-lists-and-saves-a-record-of-its-target.md) | A lookup custom field lists and saves a record of its target | settings | UNIT | MEDIUM | AUTOMATED | `apps/web/lib/runtime/custom-fields.spec.ts` | BUG-3787 | REG-640 |
+| [QA-SETTINGS-036](../../../docs/qa/scenarios/QA-SETTINGS-036-a-lookup-to-business-units-payroll-calendars-or-payroll-peri.md) | A lookup to business units, payroll calendars or payroll periods lists and searches its records | settings | E2E | MEDIUM | AUTOMATED | `services/api/test/lookup-paging.e2e-spec.ts` | BUG-3800 | REG-641 |
 | [QA-TENANT-001](../../../docs/qa/scenarios/QA-TENANT-001-the-two-tenant-isolation-pattern-scoped-read-and-scoped-writ.md) | The two-tenant isolation pattern: scoped read and scoped write | tenant-isolation | SECURITY | CRITICAL | AUTOMATED | `services/api/test/tenant-isolation-pattern.e2e-spec.ts` | — | — |
 | [QA-TENANT-002](../../../docs/qa/scenarios/QA-TENANT-002-a-support-role-cannot-read-another-tenant-s-error-logs.md) | A support role cannot read another tenant's error logs | tenant-isolation | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/error-logs/error-logs.service.spec.ts` | BUG-0005 | REG-005 |
 | [QA-TENANT-003](../../../docs/qa/scenarios/QA-TENANT-003-attendance-integration-credentials-never-cross-a-tenant-boun.md) | Attendance-integration credentials never cross a tenant boundary | tenant-isolation | E2E | CRITICAL | AUTOMATED | `services/api/test/attendance-integrations-isolation.e2e-spec.ts` | — | — |
@@ -458,4 +459,5 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-TENANT-063](../../../docs/qa/scenarios/QA-TENANT-063-the-workspace-switcher-truncates-rather-than-scrolling-horiz.md) | The workspace switcher truncates rather than scrolling horizontally | runtime-modules | UNIT | LOW | AUTOMATED | `apps/web/app/components/workspace-switcher-overflow.spec.ts` | BUG-3021 | REG-400 |
 | [QA-TENANT-064](../../../docs/qa/scenarios/QA-TENANT-064-a-seeded-provisioning-interval-is-exact-on-every-run.md) | A seeded provisioning interval is exact on every run | tenant-provisioning | DATABASE | LOW | AUTOMATED | `services/api/test/provisioning-queue.e2e-spec.ts` | BUG-3263 | REG-410 |
 | [QA-TENANT-065](../../../docs/qa/scenarios/QA-TENANT-065-notification-settings-timestamps-survive-hydration-in-a-non-.md) | Notification settings timestamps survive hydration in a non-UTC tenant | settings | MANUAL_VISUAL | MEDIUM | MANUAL | — | BUG-3316 | REG-412 |
+| [QA-TENANT-066](../../../docs/qa/scenarios/QA-TENANT-066-a-tenant-admin-cannot-publish-a-document-type-or-category-to.md) | A tenant admin cannot publish a document type or category to every tenant | tenant-isolation | SECURITY | HIGH | AUTOMATED | `services/api/test/document-types.e2e-spec.ts` | BUG-3809 | REG-642 |
 | [QA-UI-001](../../../docs/qa/scenarios/QA-UI-001-admin-lookup-controls-are-keyboard-operable-and-expose-no-ne.md) | Admin lookup controls are keyboard-operable and expose no nested-interactive listbox | platform-admin | MANUAL_VISUAL | MEDIUM | MANUAL | `apps/admin/lib/a11y/listbox-navigation.spec.ts` | BUG-3377 | REG-418 |

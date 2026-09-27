@@ -6,11 +6,13 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 0** · completed: 112
+**Active: 1** · completed: 112
 
 ## Active
 
-_None. No session is currently running._
+| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
+|---|---|---|---|---|---|---|---|
+| [SESSION-0116](../../docs/sessions/SESSION-0116-custom-fields-screens-for-api-only-modules-sort-filter-by-cu.md) | — | Custom fields: screens for API-only modules, sort/filter by custom fields, BUG-3800, live QA | ACTIVE | `agent/custom-fields-screens-and-query` | `develop` | — | 2026-09-27T07:38:03.980Z |
 
 ## Completed
 

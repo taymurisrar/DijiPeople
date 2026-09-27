@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 720,
+    "total_records": 721,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -22331,22 +22331,26 @@
       "title": "Three entity lookups refuse the page size and search the form sends",
       "severity": "MEDIUM",
       "priority": "P2",
-      "current_status": "OPEN",
-      "architect_disposition": "PLAN_REQUIRED",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/bugs/BUG-3800-three-entity-lookups-refuse-the-page-size-and-search-the-for.md",
         "provenance": "QA_RUN",
         "detected_in_sha": "4e32ea28",
         "created_at": "2026-09-27",
         "updated_at": "2026-09-27",
-        "resolved_at": ""
+        "resolved_at": "2026-09-27"
       },
       "affected_modules": [
         "organization",
         "payroll"
       ],
-      "regressions": [],
-      "qa_scenarios": [],
+      "regressions": [
+        "REG-641"
+      ],
+      "qa_scenarios": [
+        "QA-SETTINGS-036"
+      ],
       "test_plan": [],
       "current_evidence": {
         "paths": [
@@ -22354,6 +22358,48 @@
           "payroll"
         ],
         "verification_scope": "See docs/bugs/BUG-3800-three-entity-lookups-refuse-the-page-size-and-search-the-for.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3809",
+      "type": "TENANT_ISOLATION",
+      "title": "A tenant admin can create document types and categories every tenant sees",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3809-a-tenant-admin-can-create-document-types-and-categories-ever.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "92386e1a",
+        "created_at": "2026-09-27",
+        "updated_at": "2026-09-27",
+        "resolved_at": "2026-09-27"
+      },
+      "affected_modules": [
+        "documents"
+      ],
+      "regressions": [
+        "REG-642"
+      ],
+      "qa_scenarios": [
+        "QA-TENANT-066"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "documents"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3809-a-tenant-admin-can-create-document-types-and-categories-ever.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

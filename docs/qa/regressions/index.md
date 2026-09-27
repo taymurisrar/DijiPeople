@@ -6852,3 +6852,31 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — without the resolver the wrapper returns the adapter unchanged and a custom lookup has no getLookupOptions; the browser pass showed Engineering, Finance and Human Resources where there had been nothing. |
 | **Fixed** | 2026-09-27, branch `agent/custom-fields-followup` |
 | **Active** | yes |
+
+### REG-641 — Three entity lookups refused the page size and search the form sends
+
+| | |
+|---|---|
+| **Bug class** | `contract-drift` |
+| **Module** | `services/api/src/modules/organization` |
+| **Bug record** | BUG-3800 |
+| **Root cause** | The generic record pages ask a lookup's list endpoint for `pageSize` and `search` (BUG-3376), but the business unit list and the payroll calendar and period lists took DTOs without those fields, and the global pipe forbids unknown fields, so every lookup to them answered 400. They now accept both; the response keeps its bare-array shape unless paging is asked for, because the payroll list pages map over it. |
+| **Regression test** | `services/api/test/lookup-paging.e2e-spec.ts` (all three endpoints over HTTP with the pipe as in main.ts) and `services/api/src/modules/payroll/payroll-catalog-query.spec.ts` (paging and the unpaged array). |
+| **Scenario** | QA-SETTINGS-036 — a lookup to business units, payroll calendars or payroll periods lists and searches its records. |
+| **Fails without the fix** | Yes — against the old DTOs each request in the e2e answers 400 with "property pageSize should not exist". |
+| **Fixed** | 2026-09-27, branch `agent/custom-fields-screens-and-query` |
+| **Active** | yes |
+
+### REG-642 — A tenant admin could create document types and categories every tenant sees
+
+| | |
+|---|---|
+| **Bug class** | `client-trusted-authority` |
+| **Module** | `services/api/src/modules/documents` |
+| **Bug record** | BUG-3809 |
+| **Root cause** | The tenant create routes for document types and categories honoured an `isGlobal` flag from the request body and wrote the row with no tenant, and every tenant reads global rows. A tenant route may never write shared data: the flag is now refused with 403 and the row always carries the caller's tenant. |
+| **Regression test** | `services/api/test/document-types.e2e-spec.ts` (a tenant cannot create a shared type or category, cannot edit a shared type, and cannot read another tenant's type). |
+| **Scenario** | QA-TENANT-066 — a tenant admin cannot publish a document type or category to every tenant. |
+| **Fails without the fix** | Yes — with the refusal removed the shared-type case answers 201 and the row is written with no tenant (mutation-checked). |
+| **Fixed** | 2026-09-27, branch `agent/custom-fields-screens-and-query` |
+| **Active** | yes |

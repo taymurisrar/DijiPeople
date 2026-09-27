@@ -1,7 +1,7 @@
 # Component Index
 
 > **Last verified:** 2026-09-27
-> **Verified against commit:** f731d747
+> **Verified against commit:** c13fe597
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -16,8 +16,8 @@ question an agent can answer by retrieval rather than by reading a directory.
 comment beside it is the reasoning; this document is a route to both. Every row
 carries `file`:`line` for that reason — read the source before changing it.
 
-**An export missing from here is undocumented, not absent.** 861 of
-1143 exports across these kits carry no
+**An export missing from here is undocumented, not absent.** 872 of
+1161 exports across these kits carry no
 doc-comment and are omitted rather than listed as bare names. That ratio is
 itself worth knowing: it is where a UI/UX or Frontend agent is working without
 stated rationale, and where adding one is worth more than a new abstraction.
@@ -132,16 +132,16 @@ re-derived on each run.
 
 Metadata-driven UI is the default. New modules are declared through `lib/runtime/` and rendered by the standard runtime pages; a bespoke page needs a stated reason in the plan.
 
-204 documented export(s); 600 undocumented export(s) omitted.
+211 documented export(s); 611 undocumented export(s) omitted.
 
 | Export | Kind | Used by | Where | What it is |
 |---|---|---|---|---|
 | `ConfirmDialog` | component | 9 | `apps/web/app/components/feedback/confirm-dialog.tsx`:41 | This handled Escape but declared neither `role="dialog"` nor `aria-modal`, so it was not announced as a dialog, and Tab walked out of it into the page behind. |
 | `ChartEmpty` | component | 7 | `apps/web/app/components/charts/chart-chrome.tsx`:364 | What a chart shows when it has nothing to show. |
+| `CustomFieldsSection` | component | 6 | `apps/web/app/components/runtime/custom-fields-section.tsx`:30 | A system module's custom fields inside a bespoke form — TASK-0035, ADR-0024. |
 | `ChartSurface` | component | 4 | `apps/web/app/components/charts/chart-chrome.tsx`:146 | The SVG canvas. `role` is deliberately conditional. |
 | `ChartCategoryAxis` | component | 3 | `apps/web/app/components/charts/chart-chrome.tsx`:238 | Category labels along the bottom. |
 | `ChartValueGrid` | component | 3 | `apps/web/app/components/charts/chart-chrome.tsx`:182 | Horizontal gridlines and their value labels. |
-| `CustomFieldsSection` | component | 3 | `apps/web/app/components/runtime/custom-fields-section.tsx`:30 | A system module's custom fields inside a bespoke form — TASK-0035, ADR-0024. |
 | `AttendanceCorrectionForm` | component | 2 | `apps/web/app/components/attendance-corrections/attendance-correction-form.tsx`:38 | The employee's correction request form. |
 | `ChartPatternDefs` | component | 2 | `apps/web/app/components/charts/chart-chrome.tsx`:69 | One `<pattern>` per series: the series colour, overlaid with a hatch whose geometry differs per index. |
 | `DialogCloseButton` | component | 2 | `apps/web/app/components/ui/dialog.tsx`:374 | The close affordance most dialogs want in their footer or header. |
@@ -163,24 +163,24 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `WorkspaceContextLabel` | component | 0 | `apps/web/app/components/workspace-environment-banner.tsx`:66 | The workspace label for the app shell. |
 | `useFormattingContext` | function | 26 | `apps/web/app/components/filters/use-formatting-context.ts`:28 | The tenant's formatting context, safe to use during render. |
 | `useDialogBehavior` | function | 16 | `apps/web/app/components/ui/dialog.tsx`:130 | The behaviour half of {@link Dialog}, on its own. |
-| `withRouteCustomFields` | function | 15 | `apps/web/lib/runtime/custom-fields-server.ts`:59 | A generic record page's runtime, with its tenant's custom fields merged in. |
+| `withRouteCustomFields` | function | 15 | `apps/web/lib/runtime/custom-fields-server.ts`:60 | A generic record page's runtime, with its tenant's custom fields merged in. |
 | `useSideToast` | function | 11 | `apps/web/app/components/notifications/use-side-toast.tsx`:19 | Local toast state plus the element that renders it. |
 | `formatChartValue` | function | 10 | `apps/web/app/components/charts/chart-format.ts`:47 | Render one measured number the way the tenant has asked for numbers to be rendered. |
 | `hasChartData` | function | 8 | `apps/web/app/components/charts/chart-types.ts`:97 | `true` when there is nothing to draw: no series, or every series empty. |
+| `customFieldErrors` | function | 7 | `apps/web/lib/runtime/custom-fields.ts`:164 | BUG-3697 — the API reports a custom field's error as `details["customFields.<field>"]`; on a form the field is `<field>`. |
+| `customFieldValues` | function | 7 | `apps/web/lib/runtime/custom-fields.ts`:179 | The `customFields` object the API attached to a record, or {}. |
 | `pointAccessibleLabel` | function | 6 | `apps/web/app/components/charts/chart-format.ts`:176 | The accessible name for a single plotted point — the BUG-2148 countermeasure. |
 | `seriesColor` | function | 6 | `apps/web/app/components/charts/chart-tokens.ts`:62 | Colour for the series (or slice) at `index`, wrapping when there are more series than colours. |
 | `activateOnKey` | function | 4 | `apps/web/app/components/charts/chart-chrome.tsx`:392 | Keyboard activation for a plotted point. |
 | `analyticsFilterHref` | function | 4 | `apps/web/app/components/filters/analytics-search-params.ts`:207 | Build an href, omitting the `?` when there is nothing to put after it — `/reports/attendance?` is an ugly URL that also breaks naive link equality checks in navigation highlighting. |
 | `applyAnalyticsFilters` | function | 4 | `apps/web/app/components/filters/analytics-search-params.ts`:149 | Apply changes to a query string, returning a new one. |
 | `buildCustomModuleRuntime` | function | 4 | `apps/web/lib/runtime/custom-modules/custom-module-runtime.ts`:261 | The runtime context a custom-module route renders with. |
-| `customFieldErrors` | function | 4 | `apps/web/lib/runtime/custom-fields.ts`:162 | BUG-3697 — the API reports a custom field's error as `details["customFields.<field>"]`; on a form the field is `<field>`. |
-| `customFieldValues` | function | 4 | `apps/web/lib/runtime/custom-fields.ts`:177 | The `customFields` object the API attached to a record, or {}. |
 | `defaultPrimaryNameFieldForEntity` | function | 4 | `apps/web/lib/runtime/modules/entity-primary-name-field.ts`:18 | The primary display field for an entity a lookup can point at. |
 | `linearScale` | function | 4 | `apps/web/app/components/charts/chart-geometry.ts`:67 | A linear mapping from a data domain onto a pixel range. |
 | `pointActionAccessibleLabel` | function | 4 | `apps/web/app/components/charts/chart-format.ts`:212 | The accessible name for an interactive point. |
 | `readAnalyticsFilters` | function | 4 | `apps/web/app/components/filters/analytics-search-params.ts`:115 | Read the recognised filters out of a URL, ignoring everything else. |
 | `seriesExtent` | function | 4 | `apps/web/app/components/charts/chart-geometry.ts`:1197 | The `[min, max]` across every point of every series, always including zero. |
-| `withCustomFieldValues` | function | 4 | `apps/web/lib/runtime/custom-fields.ts`:194 | A record with its custom field values lifted to the top level, where the form and the list read every field by its logical name. |
+| `withCustomFieldValues` | function | 4 | `apps/web/lib/runtime/custom-fields.ts`:196 | A record with its custom field values lifted to the top level, where the form and the list read every field by its logical name. |
 | `buildLinePath` | function | 3 | `apps/web/app/components/charts/chart-geometry.ts`:552 | An SVG `d` for a polyline through `points`, in data space, mapped by the given scales. |
 | `computeShares` | function | 3 | `apps/web/app/components/charts/chart-geometry.ts`:876 | Percentage shares that add up. |
 | `createDebouncedCallback` | function | 3 | `apps/web/lib/runtime/lookup-search.ts`:64 | A debounced wrapper around a callback that takes a single string. |
@@ -200,20 +200,23 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `periodLengthInDays` | function | 2 | `apps/web/app/components/filters/period.ts`:404 | Inclusive day count. A single-day period is 1, never 0. |
 | `readMfaError` | function | 2 | `apps/web/app/components/security/mfa-panels.tsx`:309 | Reads `message` from a JSON error body, whatever shape the proxy used. |
 | `resolvableLookupTarget` | function | 2 | `apps/web/lib/runtime/custom-lookup-options.ts`:65 | The lookup target this module resolves for a field: always for a custom field, and for any lookup when the page's own adapter has no resolver (a custom module's fields). |
-| `supportedCustomFields` | function | 2 | `apps/web/lib/runtime/custom-fields.ts`:46 | A lookup whose target has no list source here would render a dropdown that can never fill; it is left off rather than shown empty. |
+| `supportedCustomFields` | function | 2 | `apps/web/lib/runtime/custom-fields.ts`:48 | A lookup whose target has no list source here would render a dropdown that can never fill; it is left off rather than shown empty. |
 | `activeAnalyticsFilterCount` | function | 1 | `apps/web/app/components/filters/analytics-search-params.ts`:196 | How many scope filters are narrowing the data. |
+| `buildCreateClaimPayload` | function | 1 | `apps/web/lib/runtime/modules/claim-editor.ts`:40 | `CreateClaimRequestDto` never accepts an empty optional string — omit it. |
+| `buildLineItemPayload` | function | 1 | `apps/web/lib/runtime/modules/claim-editor.ts`:169 | `claimCurrencyCode` is always the claim request's own currency — every line must match it (`buildLineItemData` throws `BadRequestException` otherwise), so the form never lets the user pick a different one. |
 | `buildQuickCreateValues` | function | 1 | `apps/web/lib/runtime/related-record-create-values.ts`:56 | The dialog's value map, in precedence order: declared inheritance from the parent, then the record being edited, then whatever the user has typed, then the parent foreign key — which is not the user's to change. |
 | `buildSubgridQuickCreate` | function | 1 | `apps/web/lib/runtime/quick-create-metadata.ts`:23 | Quick-create metadata and the gate in front of it. |
+| `buildUpdateClaimPayload` | function | 1 | `apps/web/lib/runtime/modules/claim-editor.ts`:73 | Only the fields the draft actually changed — `UpdateClaimRequestDto` fields are all optional, and `forbidNonWhitelisted` means every key sent must be one it declares, never a computed total or a status. |
 | `buildWorkSiteAssignPayload` | function | 1 | `apps/web/lib/runtime/modules/employee-work-sites.ts`:112 | Body for `POST …/work-sites` (`AssignWorkSiteDto`). |
 | `clearAnalyticsFilters` | function | 1 | `apps/web/app/components/filters/analytics-search-params.ts`:175 | Drop every filter this module owns, keeping anything it does not. |
 | `commandContextSubtitle` | function | 1 | `apps/web/lib/runtime/command-context-labels.ts`:25 | A shift is only ever called a shift, and a work site only ever a work site. |
 | `commandsForPlacement` | function | 1 | `apps/web/lib/runtime/command-catalog.ts`:191 | Commands that make sense on a given bar, for filtering the picker. |
 | `composeDashboardNavItems` | function | 1 | `apps/web/lib/runtime/custom-modules/custom-module-navigation.ts`:72 | The full sidebar catalog: the fixed list with custom entries placed just before Settings (the administrative tail), or appended when there is no Settings entry. |
 | `correctionChanges` | function | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:530 | What a correction request is asking to change, and only that. |
-| `customFieldsPayload` | function | 1 | `apps/web/lib/runtime/custom-fields.ts`:207 | Form values → the `customFields` part of a save, taken from the fields the runtime marked as custom — never guessed from key shapes, so a module whose own fields contain underscores is unaffected. |
+| `customFieldsPayload` | function | 1 | `apps/web/lib/runtime/custom-fields.ts`:209 | Form values → the `customFields` part of a save, taken from the fields the runtime marked as custom — never guessed from key shapes, so a module whose own fields contain underscores is unaffected. |
 | `donutArcs` | function | 1 | `apps/web/app/components/charts/chart-geometry.ts`:1119 | Arc paths for a donut, in input order. |
-| `employeeCustomFieldsPayload` | function | 1 | `apps/web/lib/runtime/modules/employee-custom-fields.ts`:65 | Form values → the `customFields` part of a create or update payload. |
-| `employeeCustomFieldValues` | function | 1 | `apps/web/lib/runtime/modules/employee-custom-fields.ts`:54 | Record → form values: the API returns them under `customFields`. |
+| `employeeCustomFieldsPayload` | function | 1 | `apps/web/lib/runtime/modules/employee-custom-fields.ts`:84 | Form values → the `customFields` part of a create or update payload. |
+| `employeeCustomFieldValues` | function | 1 | `apps/web/lib/runtime/modules/employee-custom-fields.ts`:73 | Record → form values: the API returns them under `customFields`. |
 | `emptyStateMessage` | function | 1 | `apps/web/app/components/data-table/utils.ts`:274 | Which empty state is true. |
 | `fieldValidationErrorsAreVisible` | function | 1 | `apps/web/lib/runtime/command-failure-visibility.ts`:20 | Whether a failed command's field errors will actually appear somewhere the user can see them. |
 | `filterToFormFields` | function | 1 | `apps/web/lib/runtime/related-record-create-values.ts`:76 | Drop anything the child form does not declare, which is what gets posted. |
@@ -222,6 +225,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `hasRequestedChange` | function | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:478 | Whether a seeded draft actually asks for anything. |
 | `isLookupResultTruncated` | function | 1 | `apps/web/lib/runtime/lookup-search.ts`:129 | Whether a lookup's result list should say it is incomplete. |
 | `isReadOnlyLookupReferenceModule` | function | 1 | `apps/web/app/components/metadata/lookup-reference-route.ts`:54 | A destination whose selected value is rendered as `?reference=<value>` rather than `/<basePath>/<recordId>` — these settings screens navigate by the value itself (an ISO code, an IANA name), not a database id. |
+| `lineItemToDraft` | function | 1 | `apps/web/lib/runtime/modules/claim-editor.ts`:204 | An existing line item, as the values an edit-in-place form starts from. |
 | `mapEmployeeWorkSiteRows` | function | 1 | `apps/web/lib/runtime/modules/employee-work-sites.ts`:40 | Maps `GET …/work-sites` (`listEmployeeWorkSites`) to subgrid rows. |
 | `mapPublishedForm` | function | 1 | `apps/web/lib/runtime/modules/standard-module-route-helpers.ts`:131 | Exported so the custom-module runtime (BUG-3494) turns a published form layout into FormMetadata through this one mapping rather than a second copy that would drift from what system modules render. |
 | `omitPrimaryLocationFromEmployeeUpdate` | function | 1 | `apps/web/lib/runtime/modules/employee-work-sites.ts`:130 | ADR-0014 — the employee update request never carries `locationId`: the primary site changes only through Make primary. |
@@ -243,9 +247,10 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `timestampFieldFor` | function | 1 | `apps/web/lib/runtime/related-subgrid-rows.ts`:40 | ITEM-0184 (C4) — a column with no field metadata printed its raw value, so the Assign Roles tab's "Assigned On" read `2026-09-12T22:36:04.512Z`. |
 | `toLocalDateTimeInput` | function | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:399 | An ISO instant as a `datetime-local` input value, in the viewer's own zone. |
 | `validateDraft` | function | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:206 | Checks a draft before it is sent. |
+| `validateLineItemDraft` | function | 1 | `apps/web/lib/runtime/modules/claim-editor.ts`:136 | Mirrors the server checks a line-item save will make (`buildLineItemData` in `claims.service.ts`) so the user sees the same rejection before a round trip rather than after one. |
 | `visibleRowActions` | function | 1 | `apps/web/lib/runtime/related-subgrid-rows.ts`:19 | ITEM-0179 — the declared row actions this viewer may run on this row. |
-| `withCustomFields` | function | 1 | `apps/web/lib/runtime/custom-fields.ts`:220 | Entity and forms of a runtime bundle, with the custom fields merged in. |
-| `withCustomFieldSection` | function | 1 | `apps/web/lib/runtime/custom-fields.ts`:108 | A form that already places a custom field (the tenant laid it out in the form designer) is left alone for that field; any field no section places is added to one section on the first field tab, so a published field is never invisible just because nobody opened the designer. |
+| `withCustomFields` | function | 1 | `apps/web/lib/runtime/custom-fields.ts`:222 | Entity and forms of a runtime bundle, with the custom fields merged in. |
+| `withCustomFieldSection` | function | 1 | `apps/web/lib/runtime/custom-fields.ts`:110 | A form that already places a custom field (the tenant laid it out in the form designer) is left alone for that field; any field no section places is added to one section on the first field tab, so a published field is never invisible just because nobody opened the designer. |
 | `bucketByPeriod` | function | 0 | `apps/web/app/components/charts/chart-geometry.ts`:454 | Group dated measurements into calendar buckets, summing each bucket. |
 | `buildCustomModuleForms` | function | 0 | `apps/web/lib/runtime/custom-modules/custom-module-runtime.ts`:213 | The module's published forms as FormMetadata, through the same mapping system modules use. |
 | `closeListboxOnEscape` | function | 0 | `apps/web/app/components/ui/form-control.tsx`:194 | BUG-3495 — Escape inside an open listbox closes the listbox, not the dialog around it. |
@@ -255,10 +260,11 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `formatTimeBucketLabel` | function | 0 | `apps/web/app/components/charts/chart-format.ts`:230 | A time bucket's axis label, in the tenant's date format where that is meaningful. |
 | `formatValue` | function | 0 | `apps/web/app/components/dashboard/dashboard-widget-renderer.tsx`:540 | Exported only for `dashboard-widget-formatting.spec.ts` — `apps/web` has no jsdom, so this is the widest surface this app's jest can reach directly rather than reading the source for a string. |
 | `inferCorrectionType` | function | 0 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:435 | The correction this record most likely needs. |
-| `loadCustomFieldDefinitions` | function | 0 | `apps/web/lib/runtime/custom-fields-server.ts`:52 | A failure leaves the page as it was before custom fields existed rather than failing it: nothing built into the module depends on them. |
+| `loadCustomFieldDefinitions` | function | 0 | `apps/web/lib/runtime/custom-fields-server.ts`:53 | A failure leaves the page as it was before custom fields existed rather than failing it: nothing built into the module depends on them. |
 | `lookupLabel` | function | 0 | `apps/web/lib/runtime/custom-lookup-options.ts`:98 | A row's label: the target's own name field first, then the common ones. |
 | `lookupSourcePath` | function | 0 | `apps/web/lib/runtime/custom-lookup-options.ts`:53 | Where a target's records are listed. |
 | `normalizeRange` | function | 0 | `apps/web/app/components/filters/period.ts`:298 | Put a pair of dates the right way round. |
+| `parseAmountInput` | function | 0 | `apps/web/lib/runtime/modules/claim-editor.ts`:119 | `null` when the input is blank or not a finite number — never `NaN`. |
 | `polarToCartesian` | function | 0 | `apps/web/app/components/charts/chart-geometry.ts`:1046 | Polar to Cartesian in SVG's coordinate space: `y` grows downward, so a clockwise sweep from twelve o'clock is `(cx + r·sin a, cy − r·cos a)`. |
 | `readFieldErrorNames` | function | 0 | `apps/web/lib/runtime/command-failure-visibility.ts`:39 | Field names from either supported error shape, at the root or under `details`. |
 | `resolveNextTabIndex` | function | 0 | `apps/web/app/components/runtime/responsive-runtime-tabs.tsx`:44 | The roving-tabindex arrow-key math, pulled out as a pure function so the wrap-around and Home/End cases have a regression test that does not need a rendered DOM (`apps/web`'s jest has no jsdom — see `jest.config.js`). |
@@ -293,6 +299,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `BAR_CHART_MARGINS` | constant | 0 | `apps/web/app/components/charts/bar-chart.tsx`:46 | Vertical bars, grouped or stacked. |
 | `CHART_PATTERN_GEOMETRIES` | constant | 0 | `apps/web/app/components/charts/chart-tokens.ts`:93 | BUG-2148 — severity was conveyed by colour alone and hidden from assistive technology. |
 | `CHART_SERIES_COLORS` | constant | 0 | `apps/web/app/components/charts/chart-tokens.ts`:44 | The one palette every chart in the Reports & Analytics workspace draws from. |
+| `CLAIM_EDITABLE_STATUS` | constant | 0 | `apps/web/lib/runtime/modules/claim-editor.ts`:15 | Pure logic for the claim request editor (TASK-0036) — payload building, line-item normalisation and editability, kept out of the client component so it can run under this app's node-only jest (see jest.config.js's own comment: no jsdom, so anything worth asserting on has to be plain functions). |
 | `CUSTOM_MODULE_ROUTE_BASE` | constant | 0 | `apps/web/lib/runtime/custom-modules/custom-module-navigation.ts`:19 | Sidebar entries for published custom modules (BUG-3494 / ADR-0016). |
 | `DEFAULT_WEEK_STARTS_ON` | constant | 0 | `apps/web/app/components/charts/chart-geometry.ts`:345 | `weekStartsOn` is a parameter and not a constant on purpose. |
 | `DEFAULT_WEEK_STARTS_ON` | constant | 0 | `apps/web/app/components/filters/period.ts`:130 | Sunday. This product's default weekend is **Friday/Saturday**, so the working week begins on Sunday and not on Monday. |

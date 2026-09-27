@@ -7,15 +7,15 @@
 
 | | |
 |---|---|
-| Active sessions | **0** |
-| Active parent tasks | 4 |
-| Active work packages | 4 |
+| Active sessions | **1** |
+| Active parent tasks | 5 |
+| Active work packages | 5 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **6** |
-| Open HIGH | 102 |
+| Open HIGH | 103 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 9 |
 | QA coverage gaps | 161 |
@@ -30,11 +30,11 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 238 |
-| No next action | 238 |
+| No acceptance criteria | 239 |
+| No next action | 239 |
 | Aging — 7d / 30d / 90d | 199 / 16 / 0 |
 | Architecture and technical debt | 7 |
-| Security gaps | 37 |
+| Security gaps | 38 |
 | Database gaps | 25 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
@@ -47,7 +47,9 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-_No session is currently registered as active._
+| Session | Task | Title | Status | Branch | Target | Leases | Schema |
+|---|---|---|---|---|---|---|---|
+| [[SESSION-0116-custom-fields-screens-for-api-only-modules-sort-filter-by-cu|SESSION-0116]] | — | Custom fields: screens for API-only modules, sort/filter by custom fields, BUG-3800, live QA | ACTIVE | `agent/custom-fields-screens-and-query` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
 
@@ -57,6 +59,7 @@ _No session is currently registered as active._
 | [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 16/16 | — | — | — |
 | [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 11/11 | — | — | — |
 | [[TASK-0028-enterprise-reports-and-analytics-platform|TASK-0028]] | Enterprise Reports and Analytics platform | FEATURE | LARGE | 5/15 | WP-08 | — | — |
+| [[TASK-0036-custom-fields-screens-for-api-only-modules-sort-and-filter-b|TASK-0036]] | Custom fields: screens for API-only modules; sort and filter by custom fields; BUG-3800 | FEATURE | LARGE | 6/8 | WP-07 | — | — |
 
 ## Branch model
 
@@ -295,7 +298,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 238 |
+| Open total | 239 |
 | Blocked | 3 |
 | Deferred | 117 |
 | Awaiting a product decision | 9 |

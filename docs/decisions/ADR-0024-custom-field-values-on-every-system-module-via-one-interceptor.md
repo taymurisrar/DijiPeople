@@ -51,7 +51,7 @@ There is no shared write path to hook into:
 
 - **Not atomic with the module's own write.** The module commits first, then the values are written. Validation happens up front, so only a database failure can still separate the two. In that case the request fails, and the record exists without its custom values; saving again fixes it. This is recorded, not hidden.
 - **A create route that answers without the created record** (education and previous employment return the whole list) cannot be bound as `create`. The interceptor logs an error and stores nothing. Those routes are bound for `update` and `list` only, and their create is tracked separately.
-- **Custom fields are not sortable or filterable server-side.** They appear in list rows and in exports, but not in `orderBy` or filters.
+- **Custom fields are not sortable or filterable server-side.** They appear in list rows and in exports, but not in `orderBy` or filters. Superseded for the employee list by ADR-0025 (2026-09-27), which adds both there; other modules sort and filter in the browser.
 
 ## Migration / Compatibility Impact
 

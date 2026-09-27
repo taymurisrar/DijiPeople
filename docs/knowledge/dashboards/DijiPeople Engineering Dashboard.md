@@ -8,8 +8,8 @@
 | | |
 |---|---|
 | Open CRITICAL | **6** |
-| Open HIGH | **102** |
-| Open total | 238 |
+| Open HIGH | **103** |
+| Open total | 239 |
 | Blocked | 3 |
 | Awaiting a product decision | 9 |
 | Deferred | 117 |
@@ -129,6 +129,7 @@
 | [[BUG-3597-a-drawn-or-uploaded-signature-inside-a-signature-paragraph-i|BUG-3597]] | A drawn or uploaded signature inside a signature paragraph is dropped from the signed PDF and DOCX | BUG | HIGH | FIXED | api:contracts | DONE |
 | [[BUG-3697-a-custom-field-added-to-a-system-module-has-nowhere-to-store|BUG-3697]] | A custom field added to a system module has nowhere to store its values | DATA_INTEGRITY | HIGH | FIXED | customization, employees | FIX_NOW |
 | [[BUG-3702-adding-a-field-to-a-package-s-own-custom-module-demoted-the-|BUG-3702]] | Adding a field to a package's own custom module demoted the module to a reference | DATA_INTEGRITY | HIGH | FIXED | customization | DONE |
+| [[BUG-3809-a-tenant-admin-can-create-document-types-and-categories-ever|BUG-3809]] | A tenant admin can create document types and categories every tenant sees | TENANT_ISOLATION | HIGH | FIXED | documents | FIX_NOW |
 | [[ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no|ITEM-0133]] | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | READY | services/api/test | PLAN_REQUIRED |
 | [[ITEM-0134-the-payroll-run-engine-has-no-tests|ITEM-0134]] | The payroll run engine has no tests | TEST_GAP | HIGH | READY | api:payroll | PLAN_REQUIRED |
 | [[ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-|ITEM-0136]] | electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major | SECURITY | HIGH | READY | apps/agent-desktop | FIX_NOW |
@@ -367,6 +368,7 @@
 | [[BUG-3597-a-drawn-or-uploaded-signature-inside-a-signature-paragraph-i|BUG-3597]] | A drawn or uploaded signature inside a signature paragraph is dropped from the signed PDF and DOCX | BUG | HIGH | FIXED | api:contracts | DONE |
 | [[BUG-3697-a-custom-field-added-to-a-system-module-has-nowhere-to-store|BUG-3697]] | A custom field added to a system module has nowhere to store its values | DATA_INTEGRITY | HIGH | FIXED | customization, employees | FIX_NOW |
 | [[BUG-3702-adding-a-field-to-a-package-s-own-custom-module-demoted-the-|BUG-3702]] | Adding a field to a package's own custom module demoted the module to a reference | DATA_INTEGRITY | HIGH | FIXED | customization | DONE |
+| [[BUG-3809-a-tenant-admin-can-create-document-types-and-categories-ever|BUG-3809]] | A tenant admin can create document types and categories every tenant sees | TENANT_ISOLATION | HIGH | FIXED | documents | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver|BUG-3501]] | The email provider screen presents a console sink as delivery and offers sink providers in production | UX | MEDIUM | FIXED | notifications, apps/web | PLAN_REQUIRED |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
@@ -537,6 +539,7 @@
 | [[BUG-3703-package-export-readiness-could-never-report-a-missing-depend|BUG-3703]] | Package export readiness could never report a missing dependency | BUG | MEDIUM | FIXED | customization | DONE |
 | [[BUG-3786-adding-a-custom-field-ignores-the-table-s-iscustomizable-fla|BUG-3786]] | Adding a custom field ignores the table's isCustomizable flag | BUG | MEDIUM | FIXED | customization | FIX_NOW |
 | [[BUG-3787-lookup-custom-fields-on-custom-modules-offer-no-options|BUG-3787]] | Lookup custom fields on custom modules offer no options | BUG | MEDIUM | FIXED | customization | FIX_NOW |
+| [[BUG-3800-three-entity-lookups-refuse-the-page-size-and-search-the-for|BUG-3800]] | Three entity lookups refuse the page size and search the form sends | BUG | MEDIUM | FIXED | organization, payroll | FIX_NOW |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -710,7 +713,7 @@
 | [[BUG-3703-package-export-readiness-could-never-report-a-missing-depend|BUG-3703]] | Package export readiness could never report a missing dependency | BUG | MEDIUM | FIXED | customization | DONE |
 | [[BUG-3786-adding-a-custom-field-ignores-the-table-s-iscustomizable-fla|BUG-3786]] | Adding a custom field ignores the table's isCustomizable flag | BUG | MEDIUM | FIXED | customization | FIX_NOW |
 | [[BUG-3787-lookup-custom-fields-on-custom-modules-offer-no-options|BUG-3787]] | Lookup custom fields on custom modules offer no options | BUG | MEDIUM | FIXED | customization | FIX_NOW |
-| [[BUG-3800-three-entity-lookups-refuse-the-page-size-and-search-the-for|BUG-3800]] | Three entity lookups refuse the page size and search the form sends | BUG | MEDIUM | OPEN | organization, payroll | PLAN_REQUIRED |
+| [[BUG-3800-three-entity-lookups-refuse-the-page-size-and-search-the-for|BUG-3800]] | Three entity lookups refuse the page size and search the form sends | BUG | MEDIUM | FIXED | organization, payroll | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -775,6 +778,7 @@
 - [[ADR-0022-customization-packages-are-the-alm-unit|ADR-0022 — Customization packages are the ALM unit]]
 - [[ADR-0023-seeded-template-versions-and-safepay-cut-over|ADR-0023 — Seeded agreement templates publish new versions; PKR checkout moves to Safepay]]
 - [[ADR-0024-custom-field-values-on-every-system-module-via-one-interceptor|ADR-0024 — Custom field values on every system module via one interceptor]]
+- [[ADR-0025-employee-list-sorts-and-filters-by-custom-fields-through-record-id-sets|ADR-0025 — Employee list sort and filter by custom fields through record-id sets]]
 - [[decision-a-bug-record-is-its-own-backlog-item|Decision — A bug record **is** its own backlog item]]
 - [[decision-ci-verdict-gates-shared-merges|Decision — A shared-target merge requires a read CI verdict on the exact SHA]]
 - [[decision-platform-admin-is-a-separate-identity|Decision — Platform admin is a separate identity, not an elevated tenant user]]
@@ -784,7 +788,7 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 499 |
+| Bug records | 500 |
 | Backlog items | 221 |
 | Known bug patterns | 35 |
 | QA runs | 37 |
@@ -792,7 +796,7 @@
 | Release records | 10 |
 | Module notes | 31 |
 | Architecture notes | 22 |
-| Decision notes (ADR + generated) | 28 |
+| Decision notes (ADR + generated) | 29 |
 | Implementation records | 7 |
 
 **Awaiting Architect triage: 0.** A record nobody has
