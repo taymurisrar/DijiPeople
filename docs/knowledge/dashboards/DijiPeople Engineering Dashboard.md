@@ -579,6 +579,7 @@
 
 ## Recent QA Runs
 
+- [[2026-09-27-custom-fields-screens-and-query-e21b757|QA Run — custom-fields-screens-and-query]]
 - [[2026-09-27-custom-fields-every-module-4e32ea2|QA Run — custom-fields-every-module]]
 - [[2026-09-26-task-0033-package-alm-b55afdb|QA Run — task-0033-package-alm]]
 - [[2026-09-26-safepay-multi-provider-billing-562dee9|QA Run — safepay-multi-provider-billing]]
@@ -586,7 +587,6 @@
 - [[2026-09-13-task-0031-demo-walkthrough-2-local-browser-qa-e253306|QA Run — task-0031-demo-walkthrough-2-local-browser-qa]]
 - [[2026-08-31-reports-analytics-platform-96ff155|QA Run — reports-analytics-platform]]
 - [[2026-08-29-starter-plan-e2e-pass-2-8ab1cbf|QA Run — starter-plan-e2e-pass-2]]
-- [[2026-08-29-starter-plan-e2e-eb457d9|QA Run — starter-plan-e2e]]
 
 ## Recent Implementations
 
@@ -791,7 +791,7 @@
 | Bug records | 500 |
 | Backlog items | 221 |
 | Known bug patterns | 35 |
-| QA runs | 37 |
+| QA runs | 38 |
 | Engineering history records | 92 |
 | Release records | 10 |
 | Module notes | 31 |

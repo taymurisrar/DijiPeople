@@ -45,13 +45,18 @@ columns already behave like any other column.
    mask hides. Lookups and multiselects filter but do not sort: an id and a
    list have no meaningful order.
 4. **Refuse rather than ignore.** An unknown or unqueryable field, or a value
-   its operator cannot use, answers 400 `CUSTOM_FIELD_FILTER_INVALID`. An
-   ignored filter would show an unfiltered list that looks filtered.
+   its operator cannot use, answers 400 `VALIDATION_FAILED` with a message
+   naming the field and operator. An ignored filter would show an unfiltered
+   list that looks filtered.
 5. **Transport.** `GET /employees` takes `customFilters`, a JSON list of
    `{ field, operator, value, valueTo }`, and a custom field name in
    `orderBy`. Custom field names are the tenant's, so they cannot be DTO
    properties. The web page maps the table's `<field>Filter` URL parameters
    onto `customFilters`.
+6. **Both list paths.** The web employee page uses the REST list for any
+   request that sorts or filters by a custom field, even where
+   `USE_ENTITY_DATA_API` sends other requests to the entity data API, which
+   does not implement them.
 
 ## Reasons
 

@@ -10,8 +10,8 @@ CREATED_AT: 2026-09-27
 AFFECTED_MODULES: [customization, employees, documents, claims, onboarding, organization, payroll, apps/web]
 AGENTS: [backend-api, frontend, security, qa, reviewer, integrator, knowledge-graph, release-devops]
 DEPENDENCIES: WP-07<-WP-01,WP-02,WP-03,WP-04,WP-05,WP-06; WP-08<-WP-07
-CURRENT_PACKAGE: WP-07
-COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06]
+CURRENT_PACKAGE: WP-08
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 1
 FINAL_STATUS:
@@ -40,10 +40,10 @@ Decision: ADR-0025.
 | WP-01 | Lookups accept paging and search (BUG-3800) | DONE | — | backend-api | agent/custom-fields-screens-and-query | 92386e1a | PASS | BUG-3800 | — | — |
 | WP-02 | Document types: edit route and settings screen; tenants cannot write shared rows | DONE | — | backend-api, frontend, security | agent/custom-fields-screens-and-query | 06cdfab5 | PASS | BUG-3809 | — | — |
 | WP-03 | Employee Pay setup tab; EmployeeCompensation secrets encrypted | DONE | — | backend-api, frontend, security | agent/custom-fields-screens-and-query | a636b7db | PASS | BUG-3154 | — | — |
-| WP-04 | Employee list sort and filter by custom fields | DONE | — | backend-api, frontend, security | agent/custom-fields-screens-and-query | 32b5b42c | PASS | — | — | — |
-| WP-05 | Claims create/edit with line items (admin and self-service) | DONE | — | frontend | agent/custom-fields-screens-and-query | c13fe597 | PASS | — | — | — |
+| WP-04 | Employee list sort and filter by custom fields | DONE | — | backend-api, frontend, security | agent/custom-fields-screens-and-query | e21b7574 | PASS | — | — | — |
+| WP-05 | Claims create/edit with line items (admin and self-service) | DONE | — | frontend | agent/custom-fields-screens-and-query | e21b7574 | PASS | — | — | — |
 | WP-06 | Onboarding template editor; GET template by id | DONE | — | backend-api, frontend | agent/custom-fields-screens-and-query | c13fe597 | PASS | — | — | — |
-| WP-07 | QA: bound modules live over HTTP, records | IN_PROGRESS | WP-01, WP-02, WP-03, WP-04, WP-05, WP-06 | qa | agent/custom-fields-screens-and-query | — | — | — | — | — |
+| WP-07 | QA: bound modules live over HTTP, browser pass, records | DONE | WP-01, WP-02, WP-03, WP-04, WP-05, WP-06 | qa | agent/custom-fields-screens-and-query | e21b7574 | PASS | BUG-3809 | — | — |
 | WP-08 | Integrate into develop, release to main, verify the deploy | NOT_STARTED | WP-07 | integrator, release-devops | agent/custom-fields-screens-and-query | — | — | — | — | — |
 
 ## Assumptions
@@ -61,7 +61,13 @@ Decision: ADR-0025.
 
 ## Results
 
-To be completed at integration.
+- **BUG-3800 fixed:** business unit, payroll calendar and payroll period lookups accept paging and search (REG-641).
+- **BUG-3809 found and fixed (HIGH, tenant isolation):** tenants can no longer write shared document types or categories (REG-642).
+- **BUG-3154 partly fixed:** EmployeeCompensation's tenant path dual-writes and reads its secrets encrypted, and an omitted secret is kept rather than wiped.
+- **New screens:** employee Pay setup tab, document types settings, claims create/edit with line items (admin and self-service), onboarding template editor — each with the table's custom fields.
+- **The employee list sorts and filters by custom fields** on the server (ADR-0025), on both list paths.
+- **Live test:** custom fields verified on the 13 bound tables with no demo data (13/13), plus a browser pass that found and fixed three defects in this task's own screens before integration.
+- QA run 2026-09-27-custom-fields-screens-and-query-e21b757: PASS WITH RISKS (document types not browser-verified; the page is plan-gated for the demo tenant).
 
 ## Repository Health
 

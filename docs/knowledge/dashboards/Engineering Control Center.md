@@ -9,7 +9,7 @@
 |---|---|
 | Active sessions | **1** |
 | Active parent tasks | 5 |
-| Active work packages | 5 |
+| Active work packages | 4 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
@@ -59,7 +59,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 | [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 16/16 | — | — | — |
 | [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 11/11 | — | — | — |
 | [[TASK-0028-enterprise-reports-and-analytics-platform|TASK-0028]] | Enterprise Reports and Analytics platform | FEATURE | LARGE | 5/15 | WP-08 | — | — |
-| [[TASK-0036-custom-fields-screens-for-api-only-modules-sort-and-filter-b|TASK-0036]] | Custom fields: screens for API-only modules; sort and filter by custom fields; BUG-3800 | FEATURE | LARGE | 6/8 | WP-07 | — | — |
+| [[TASK-0036-custom-fields-screens-for-api-only-modules-sort-and-filter-b|TASK-0036]] | Custom fields: screens for API-only modules; sort and filter by custom fields; BUG-3800 | FEATURE | LARGE | 7/8 | WP-08 | WP-08 | — |
 
 ## Branch model
 

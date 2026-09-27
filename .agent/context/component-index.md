@@ -1,7 +1,7 @@
 # Component Index
 
 > **Last verified:** 2026-09-27
-> **Verified against commit:** c13fe597
+> **Verified against commit:** e21b7574
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -17,7 +17,7 @@ comment beside it is the reasoning; this document is a route to both. Every row
 carries `file`:`line` for that reason — read the source before changing it.
 
 **An export missing from here is undocumented, not absent.** 872 of
-1161 exports across these kits carry no
+1162 exports across these kits carry no
 doc-comment and are omitted rather than listed as bare names. That ratio is
 itself worth knowing: it is where a UI/UX or Frontend agent is working without
 stated rationale, and where adding one is worth more than a new abstraction.
@@ -132,7 +132,7 @@ re-derived on each run.
 
 Metadata-driven UI is the default. New modules are declared through `lib/runtime/` and rendered by the standard runtime pages; a bespoke page needs a stated reason in the plan.
 
-211 documented export(s); 611 undocumented export(s) omitted.
+212 documented export(s); 611 undocumented export(s) omitted.
 
 | Export | Kind | Used by | Where | What it is |
 |---|---|---|---|---|
@@ -202,11 +202,11 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `resolvableLookupTarget` | function | 2 | `apps/web/lib/runtime/custom-lookup-options.ts`:65 | The lookup target this module resolves for a field: always for a custom field, and for any lookup when the page's own adapter has no resolver (a custom module's fields). |
 | `supportedCustomFields` | function | 2 | `apps/web/lib/runtime/custom-fields.ts`:48 | A lookup whose target has no list source here would render a dropdown that can never fill; it is left off rather than shown empty. |
 | `activeAnalyticsFilterCount` | function | 1 | `apps/web/app/components/filters/analytics-search-params.ts`:196 | How many scope filters are narrowing the data. |
-| `buildCreateClaimPayload` | function | 1 | `apps/web/lib/runtime/modules/claim-editor.ts`:40 | `CreateClaimRequestDto` never accepts an empty optional string — omit it. |
-| `buildLineItemPayload` | function | 1 | `apps/web/lib/runtime/modules/claim-editor.ts`:169 | `claimCurrencyCode` is always the claim request's own currency — every line must match it (`buildLineItemData` throws `BadRequestException` otherwise), so the form never lets the user pick a different one. |
+| `buildCreateClaimPayload` | function | 1 | `apps/web/lib/runtime/modules/claim-editor.ts`:51 | `CreateClaimRequestDto` never accepts an empty optional string — omit it. |
+| `buildLineItemPayload` | function | 1 | `apps/web/lib/runtime/modules/claim-editor.ts`:180 | `claimCurrencyCode` is always the claim request's own currency — every line must match it (`buildLineItemData` throws `BadRequestException` otherwise), so the form never lets the user pick a different one. |
 | `buildQuickCreateValues` | function | 1 | `apps/web/lib/runtime/related-record-create-values.ts`:56 | The dialog's value map, in precedence order: declared inheritance from the parent, then the record being edited, then whatever the user has typed, then the parent foreign key — which is not the user's to change. |
 | `buildSubgridQuickCreate` | function | 1 | `apps/web/lib/runtime/quick-create-metadata.ts`:23 | Quick-create metadata and the gate in front of it. |
-| `buildUpdateClaimPayload` | function | 1 | `apps/web/lib/runtime/modules/claim-editor.ts`:73 | Only the fields the draft actually changed — `UpdateClaimRequestDto` fields are all optional, and `forbidNonWhitelisted` means every key sent must be one it declares, never a computed total or a status. |
+| `buildUpdateClaimPayload` | function | 1 | `apps/web/lib/runtime/modules/claim-editor.ts`:84 | Only the fields the draft actually changed — `UpdateClaimRequestDto` fields are all optional, and `forbidNonWhitelisted` means every key sent must be one it declares, never a computed total or a status. |
 | `buildWorkSiteAssignPayload` | function | 1 | `apps/web/lib/runtime/modules/employee-work-sites.ts`:112 | Body for `POST …/work-sites` (`AssignWorkSiteDto`). |
 | `clearAnalyticsFilters` | function | 1 | `apps/web/app/components/filters/analytics-search-params.ts`:175 | Drop every filter this module owns, keeping anything it does not. |
 | `commandContextSubtitle` | function | 1 | `apps/web/lib/runtime/command-context-labels.ts`:25 | A shift is only ever called a shift, and a work site only ever a work site. |
@@ -223,9 +223,10 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `funnelStages` | function | 1 | `apps/web/app/components/charts/chart-geometry.ts`:980 | Per-stage width and step-to-step conversion for a funnel. |
 | `getResponsiveTabId` | function | 1 | `apps/web/app/components/runtime/responsive-runtime-tabs.tsx`:27 | BUG-3378 — id contract with the panel this strip controls. |
 | `hasRequestedChange` | function | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:478 | Whether a seeded draft actually asks for anything. |
+| `isClaimFormEditable` | function | 1 | `apps/web/lib/runtime/modules/claim-editor.ts`:26 | Whether the claim form takes input: always for a claim not yet created (it has no status), otherwise only while it is a draft. |
 | `isLookupResultTruncated` | function | 1 | `apps/web/lib/runtime/lookup-search.ts`:129 | Whether a lookup's result list should say it is incomplete. |
 | `isReadOnlyLookupReferenceModule` | function | 1 | `apps/web/app/components/metadata/lookup-reference-route.ts`:54 | A destination whose selected value is rendered as `?reference=<value>` rather than `/<basePath>/<recordId>` — these settings screens navigate by the value itself (an ISO code, an IANA name), not a database id. |
-| `lineItemToDraft` | function | 1 | `apps/web/lib/runtime/modules/claim-editor.ts`:204 | An existing line item, as the values an edit-in-place form starts from. |
+| `lineItemToDraft` | function | 1 | `apps/web/lib/runtime/modules/claim-editor.ts`:215 | An existing line item, as the values an edit-in-place form starts from. |
 | `mapEmployeeWorkSiteRows` | function | 1 | `apps/web/lib/runtime/modules/employee-work-sites.ts`:40 | Maps `GET …/work-sites` (`listEmployeeWorkSites`) to subgrid rows. |
 | `mapPublishedForm` | function | 1 | `apps/web/lib/runtime/modules/standard-module-route-helpers.ts`:131 | Exported so the custom-module runtime (BUG-3494) turns a published form layout into FormMetadata through this one mapping rather than a second copy that would drift from what system modules render. |
 | `omitPrimaryLocationFromEmployeeUpdate` | function | 1 | `apps/web/lib/runtime/modules/employee-work-sites.ts`:130 | ADR-0014 — the employee update request never carries `locationId`: the primary site changes only through Make primary. |
@@ -247,7 +248,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `timestampFieldFor` | function | 1 | `apps/web/lib/runtime/related-subgrid-rows.ts`:40 | ITEM-0184 (C4) — a column with no field metadata printed its raw value, so the Assign Roles tab's "Assigned On" read `2026-09-12T22:36:04.512Z`. |
 | `toLocalDateTimeInput` | function | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:399 | An ISO instant as a `datetime-local` input value, in the viewer's own zone. |
 | `validateDraft` | function | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:206 | Checks a draft before it is sent. |
-| `validateLineItemDraft` | function | 1 | `apps/web/lib/runtime/modules/claim-editor.ts`:136 | Mirrors the server checks a line-item save will make (`buildLineItemData` in `claims.service.ts`) so the user sees the same rejection before a round trip rather than after one. |
+| `validateLineItemDraft` | function | 1 | `apps/web/lib/runtime/modules/claim-editor.ts`:147 | Mirrors the server checks a line-item save will make (`buildLineItemData` in `claims.service.ts`) so the user sees the same rejection before a round trip rather than after one. |
 | `visibleRowActions` | function | 1 | `apps/web/lib/runtime/related-subgrid-rows.ts`:19 | ITEM-0179 — the declared row actions this viewer may run on this row. |
 | `withCustomFields` | function | 1 | `apps/web/lib/runtime/custom-fields.ts`:222 | Entity and forms of a runtime bundle, with the custom fields merged in. |
 | `withCustomFieldSection` | function | 1 | `apps/web/lib/runtime/custom-fields.ts`:110 | A form that already places a custom field (the tenant laid it out in the form designer) is left alone for that field; any field no section places is added to one section on the first field tab, so a published field is never invisible just because nobody opened the designer. |
@@ -264,7 +265,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `lookupLabel` | function | 0 | `apps/web/lib/runtime/custom-lookup-options.ts`:98 | A row's label: the target's own name field first, then the common ones. |
 | `lookupSourcePath` | function | 0 | `apps/web/lib/runtime/custom-lookup-options.ts`:53 | Where a target's records are listed. |
 | `normalizeRange` | function | 0 | `apps/web/app/components/filters/period.ts`:298 | Put a pair of dates the right way round. |
-| `parseAmountInput` | function | 0 | `apps/web/lib/runtime/modules/claim-editor.ts`:119 | `null` when the input is blank or not a finite number — never `NaN`. |
+| `parseAmountInput` | function | 0 | `apps/web/lib/runtime/modules/claim-editor.ts`:130 | `null` when the input is blank or not a finite number — never `NaN`. |
 | `polarToCartesian` | function | 0 | `apps/web/app/components/charts/chart-geometry.ts`:1046 | Polar to Cartesian in SVG's coordinate space: `y` grows downward, so a clockwise sweep from twelve o'clock is `(cx + r·sin a, cy − r·cos a)`. |
 | `readFieldErrorNames` | function | 0 | `apps/web/lib/runtime/command-failure-visibility.ts`:39 | Field names from either supported error shape, at the root or under `details`. |
 | `resolveNextTabIndex` | function | 0 | `apps/web/app/components/runtime/responsive-runtime-tabs.tsx`:44 | The roving-tabindex arrow-key math, pulled out as a pure function so the wrap-around and Home/End cases have a regression test that does not need a rendered DOM (`apps/web`'s jest has no jsdom — see `jest.config.js`). |

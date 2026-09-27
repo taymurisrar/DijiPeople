@@ -6857,7 +6857,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 
 | | |
 |---|---|
-| **Bug class** | `contract-drift` |
+| **Bug class** | `client-payload-drifts-from-its-dto` |
 | **Module** | `services/api/src/modules/organization` |
 | **Bug record** | BUG-3800 |
 | **Root cause** | The generic record pages ask a lookup's list endpoint for `pageSize` and `search` (BUG-3376), but the business unit list and the payroll calendar and period lists took DTOs without those fields, and the global pipe forbids unknown fields, so every lookup to them answered 400. They now accept both; the response keeps its bare-array shape unless paging is asked for, because the payroll list pages map over it. |
@@ -6871,7 +6871,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 
 | | |
 |---|---|
-| **Bug class** | `client-trusted-authority` |
+| **Bug class** | `tenant-filter-missing` |
 | **Module** | `services/api/src/modules/documents` |
 | **Bug record** | BUG-3809 |
 | **Root cause** | The tenant create routes for document types and categories honoured an `isGlobal` flag from the request body and wrote the row with no tenant, and every tenant reads global rows. A tenant route may never write shared data: the flag is now refused with 403 and the row always carries the caller's tenant. |
