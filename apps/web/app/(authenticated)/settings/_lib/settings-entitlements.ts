@@ -93,6 +93,7 @@ export const SETTINGS_ITEM_ENTITLEMENTS: Record<string, SettingsEntitlement> = {
   attendance: FEATURE_KEYS.ATTENDANCE,
   timesheets: FEATURE_KEYS.TIMESHEETS,
   "document-categories": FEATURE_KEYS.DOCUMENTS,
+  "document-types": FEATURE_KEYS.DOCUMENTS,
   documents: FEATURE_KEYS.DOCUMENTS,
   /*
    * Moved out of Payroll & Finance by ADR-0005 Decision 4. It reads generic document
