@@ -146,6 +146,9 @@ describeWithDatabase()(
 
     let departmentId: string;
 
+    type Row = { id: string; customFields?: unknown };
+    const record = (response: { body: unknown }) => response.body as Row;
+
     it('a strict DTO accepts customFields, and the created record answers with them', async () => {
       const created = await as(admin).post('departments', {
         businessUnitId,
@@ -153,11 +156,11 @@ describeWithDatabase()(
         customFields: { ad_costCenter: 'CC1' },
       });
       expect(created.status).toBe(201);
-      expect(created.body.customFields).toEqual({ ad_costCenter: 'CC1' });
-      departmentId = created.body.id;
+      expect(record(created).customFields).toEqual({ ad_costCenter: 'CC1' });
+      departmentId = record(created).id;
 
       const read = await as(admin).get(`departments/${departmentId}`);
-      expect(read.body.customFields).toEqual({ ad_costCenter: 'CC1' });
+      expect(record(read).customFields).toEqual({ ad_costCenter: 'CC1' });
     });
 
     it('refuses a bad value with a field error, before the module writes anything', async () => {
@@ -183,12 +186,12 @@ describeWithDatabase()(
         customFields: { ad_costCenter: 'CC2' },
       });
       expect(updated.status).toBe(200);
-      expect(updated.body.customFields).toEqual({ ad_costCenter: 'CC2' });
+      expect(record(updated).customFields).toEqual({ ad_costCenter: 'CC2' });
 
       const renamed = await as(admin).patch(`departments/${departmentId}`, {
         description: 'no custom fields sent',
       });
-      expect(renamed.body.customFields).toEqual({ ad_costCenter: 'CC2' });
+      expect(record(renamed).customFields).toEqual({ ad_costCenter: 'CC2' });
 
       const audit = await prisma.auditLog.findFirst({
         where: {
@@ -203,11 +206,8 @@ describeWithDatabase()(
 
     it('attaches values to the rows of a list', async () => {
       const list = await as(admin).get('departments');
-      const rows: Array<{ id: string; customFields?: unknown }> = Array.isArray(
-        list.body,
-      )
-        ? list.body
-        : list.body.items;
+      const body = list.body as Row[] | { items: Row[] };
+      const rows = Array.isArray(body) ? body : body.items;
       expect(rows.find((row) => row.id === departmentId)?.customFields).toEqual(
         { ad_costCenter: 'CC2' },
       );
@@ -219,7 +219,7 @@ describeWithDatabase()(
       });
       expect(calendar.status).toBe(201);
       const holiday = await as(admin).post(
-        `holiday-calendars/${calendar.body.id}/holidays`,
+        `holiday-calendars/${record(calendar).id}/holidays`,
         {
           name: 'Founders day',
           holidayDate: '2026-12-01',
@@ -227,9 +227,9 @@ describeWithDatabase()(
         },
       );
       expect(holiday.status).toBe(201);
-      expect(holiday.body.customFields).toEqual({ ad_region: 'North' });
+      expect(record(holiday).customFields).toEqual({ ad_region: 'North' });
       const stored = await prisma.customRecordExtension.findFirst({
-        where: { tableKey: 'holidays', recordId: holiday.body.id },
+        where: { tableKey: 'holidays', recordId: record(holiday).id },
       });
       expect(stored?.values).toEqual({ ad_region: 'North' });
     });
@@ -245,8 +245,8 @@ describeWithDatabase()(
     it('serves definitions to the tenant, and refuses a table that takes none', async () => {
       const definitions = await as(admin).get('custom-fields/departments');
       expect(
-        definitions.body.map(
-          (field: { logicalName: string }) => field.logicalName,
+        (definitions.body as Array<{ logicalName: string }>).map(
+          (field) => field.logicalName,
         ),
       ).toEqual(['ad_costCenter']);
       const closed = await as(admin).get('custom-fields/payslips');
