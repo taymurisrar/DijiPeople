@@ -155,6 +155,24 @@ export function withCustomFieldSection(
   };
 }
 
+/*
+ * BUG-3697 — the API reports a custom field's error as
+ * `details["customFields.<field>"]`; on a form the field is `<field>`.
+ */
+export function customFieldErrors(
+  details: unknown,
+): Record<string, string[]> | undefined {
+  if (!details || typeof details !== "object" || Array.isArray(details)) {
+    return undefined;
+  }
+  const fieldErrors: Record<string, string[]> = {};
+  for (const [key, messages] of Object.entries(details)) {
+    if (!key.startsWith("customFields.") || !Array.isArray(messages)) continue;
+    fieldErrors[key.slice("customFields.".length)] = messages.map(String);
+  }
+  return Object.keys(fieldErrors).length ? fieldErrors : undefined;
+}
+
 /** The `customFields` object the API attached to a record, or {}. */
 export function customFieldValues(record: unknown): Record<string, unknown> {
   const customFields =

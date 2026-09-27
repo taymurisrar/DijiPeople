@@ -2,7 +2,7 @@ import type {
   ModuleDataAdapter,
   ModuleListInput,
 } from "../module-data-adapter.types";
-import { withCustomFieldValues } from "../custom-fields";
+import { customFieldErrors, withCustomFieldValues } from "../custom-fields";
 import {
   loadLookupOptions,
   resolvableLookupTarget,
@@ -343,7 +343,9 @@ export const employeeModuleDataAdapter: ModuleDataAdapter<
         await requestJson(workSitesPath(input.parentRecordId)),
       ).find((row) => row.locationId === locationId);
       if (!existing) {
-        throw new Error("This work site is no longer assigned to the employee.");
+        throw new Error(
+          "This work site is no longer assigned to the employee.",
+        );
       }
       await requestJson(workSitesPath(input.parentRecordId), {
         body: JSON.stringify(
@@ -630,7 +632,9 @@ function mapReportingTreeNode(value: unknown): ReportingTreeNode | null {
     workEmail: stringValue(value.workEmail) || null,
     workSiteName: stringValue(value.workSiteName) || null,
     children: Array.isArray(value.children)
-      ? value.children.map(mapReportingTreeNode).filter((child) => child !== null)
+      ? value.children
+          .map(mapReportingTreeNode)
+          .filter((child) => child !== null)
       : [],
   };
 }
@@ -904,19 +908,8 @@ function normalizeFieldErrors(value: unknown) {
   return Object.keys(result).length ? result : undefined;
 }
 
-/*
- * BUG-3697 — the API reports a custom field's error as
- * `details["customFields.<field>"]`; on the form the field is `<field>`.
- */
-export function customFieldErrors(details: unknown) {
-  if (!isRecord(details)) return undefined;
-  const fieldErrors: Record<string, string[]> = {};
-  for (const [key, messages] of Object.entries(details)) {
-    if (!key.startsWith("customFields.") || !Array.isArray(messages)) continue;
-    fieldErrors[key.slice("customFields.".length)] = messages.map(String);
-  }
-  return Object.keys(fieldErrors).length ? fieldErrors : undefined;
-}
+/* Shared with every record page since TASK-0035; re-exported for existing callers. */
+export { customFieldErrors };
 
 function fieldErrorsFromValidationMessages(message: unknown) {
   if (!Array.isArray(message)) return undefined;

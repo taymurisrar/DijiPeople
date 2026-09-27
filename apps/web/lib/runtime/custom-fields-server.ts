@@ -36,6 +36,9 @@ const MODULE_TABLE_KEYS: Readonly<Record<string, string>> = {
   "settings-leave-policies": "leavePolicies",
   "settings-work-calendars": "holidayCalendars",
   "settings-work-schedules": "workSchedules",
+  "settings-claim-types": "claimTypes",
+  "settings-pay-components": "payComponents",
+  "settings-document-categories": "documentCategories",
 };
 
 export function customFieldsTableKey(moduleKey: string) {

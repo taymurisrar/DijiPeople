@@ -3,6 +3,11 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { DataTable } from "@/app/components/data-table/data-table";
 import type { DataTableColumn } from "@/app/components/data-table/types";
+import { CustomFieldsSection } from "@/app/components/runtime/custom-fields-section";
+import {
+  customFieldErrors,
+  customFieldValues,
+} from "@/lib/runtime/custom-fields";
 import {
   CheckboxField,
   DateField,
@@ -84,9 +89,13 @@ type HolidayFormState = {
   halfDayPeriod: string;
 };
 
-const holidayTypeOptions = ["PUBLIC", "COMPANY", "OPTIONAL", "RELIGIOUS", "REGIONAL"].map(
-  (type) => ({ id: type, name: titleCase(type) }),
-);
+const holidayTypeOptions = [
+  "PUBLIC",
+  "COMPANY",
+  "OPTIONAL",
+  "RELIGIOUS",
+  "REGIONAL",
+].map((type) => ({ id: type, name: titleCase(type) }));
 
 const holidayScopeOptions = [
   { id: "TENANT", name: "Everyone" },
@@ -120,6 +129,13 @@ export function HolidayCalendarManager() {
   const [items, setItems] = useState<Record<string, HolidayItem[]>>({});
   const [editing, setEditing] = useState<HolidayItem | null>(null);
   const [holiday, setHoliday] = useState<HolidayFormState>(initialHoliday);
+  /* TASK-0035: the tenant's custom fields on holidays. */
+  const [holidayCustomFields, setHolidayCustomFields] = useState<
+    Record<string, unknown>
+  >({});
+  const [holidayFieldErrors, setHolidayFieldErrors] = useState<
+    Record<string, string[]>
+  >({});
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -238,7 +254,8 @@ export function HolidayCalendarManager() {
       {
         key: "defaultShiftTemplateId",
         header: "Default shift",
-        render: (row) => (row.defaultShiftTemplateId ? "Configured" : "Not set"),
+        render: (row) =>
+          row.defaultShiftTemplateId ? "Configured" : "Not set",
       },
       {
         key: "actions",
@@ -259,15 +276,12 @@ export function HolidayCalendarManager() {
   );
 
   async function loadSupportingData(commit: (next: () => void) => void) {
-    const [
-      departmentResult,
-      locationResult,
-      workScheduleResult,
-    ] = await Promise.allSettled([
-      fetchJsonList<ApiLookupOption>("/api/departments"),
-      fetchJsonList<ApiLookupOption>("/api/locations"),
-      fetchJsonList<WorkScheduleItem>("/api/work-schedules"),
-    ]);
+    const [departmentResult, locationResult, workScheduleResult] =
+      await Promise.allSettled([
+        fetchJsonList<ApiLookupOption>("/api/departments"),
+        fetchJsonList<ApiLookupOption>("/api/locations"),
+        fetchJsonList<WorkScheduleItem>("/api/work-schedules"),
+      ]);
 
     commit(() => {
       if (departmentResult.status === "fulfilled") {
@@ -290,8 +304,9 @@ export function HolidayCalendarManager() {
       setError(null);
 
       try {
-        const calendarPayload =
-          await fetchJsonList<HolidayCalendarItem>("/api/holiday-calendars");
+        const calendarPayload = await fetchJsonList<HolidayCalendarItem>(
+          "/api/holiday-calendars",
+        );
         const activeCalendars = calendarPayload.filter(
           (calendar) => !hasArchivedStatus(calendar),
         );
@@ -336,10 +351,14 @@ export function HolidayCalendarManager() {
   function resetHoliday() {
     setEditing(null);
     setHoliday(initialHoliday);
+    setHolidayCustomFields({});
+    setHolidayFieldErrors({});
   }
 
   function startEdit(item: HolidayItem) {
     setEditing(item);
+    setHolidayCustomFields(customFieldValues(item));
+    setHolidayFieldErrors({});
     setHoliday({
       name: item.name,
       description: item.description ?? "",
@@ -387,7 +406,10 @@ export function HolidayCalendarManager() {
         }));
         setMessage("Holiday updated.");
       } else {
-        const dates = enumerateDates(holiday.startDate, holiday.endDate || holiday.startDate);
+        const dates = enumerateDates(
+          holiday.startDate,
+          holiday.endDate || holiday.startDate,
+        );
         const created: HolidayItem[] = [];
 
         for (const date of dates) {
@@ -414,14 +436,20 @@ export function HolidayCalendarManager() {
       resetHoliday();
     } catch (saveError) {
       setError(
-        saveError instanceof Error ? saveError.message : "Unable to save holiday.",
+        saveError instanceof Error
+          ? saveError.message
+          : "Unable to save holiday.",
       );
     } finally {
       setIsSavingHoliday(false);
     }
   }
 
-  async function persistHoliday(path: string, method: "POST" | "PATCH", date: string) {
+  async function persistHoliday(
+    path: string,
+    method: "POST" | "PATCH",
+    date: string,
+  ) {
     const response = await fetch(path, {
       method,
       headers: { "Content-Type": "application/json" },
@@ -433,7 +461,8 @@ export function HolidayCalendarManager() {
         scopeType: holiday.scopeType,
         departmentId:
           holiday.scopeType === "DEPARTMENT" ? holiday.departmentId : null,
-        locationId: holiday.scopeType === "WORK_SITE" ? holiday.locationId : null,
+        locationId:
+          holiday.scopeType === "WORK_SITE" ? holiday.locationId : null,
         isPaid: holiday.isPaid,
         isActive: holiday.isActive,
         isRecurring: holiday.isRecurring,
@@ -441,10 +470,20 @@ export function HolidayCalendarManager() {
         halfDayPeriod: holiday.isHalfDay ? holiday.halfDayPeriod || null : null,
         appliesToAll: holiday.scopeType === "TENANT",
         status: "ACTIVE",
+        customFields: holidayCustomFields,
       }),
     });
     const payload = await readJson(response);
 
+    if (!response.ok) {
+      setHolidayFieldErrors(
+        customFieldErrors(
+          payload && typeof payload === "object"
+            ? (payload as { details?: unknown }).details
+            : undefined,
+        ) ?? {},
+      );
+    }
     if (!response.ok || !isHoliday(payload)) {
       throw new Error(readError(payload, "Unable to save holiday."));
     }
@@ -464,7 +503,9 @@ export function HolidayCalendarManager() {
     }
     setItems((current) => ({
       ...current,
-      [calendarId]: (current[calendarId] ?? []).filter((item) => item.id !== id),
+      [calendarId]: (current[calendarId] ?? []).filter(
+        (item) => item.id !== id,
+      ),
     }));
   }
 
@@ -519,7 +560,8 @@ export function HolidayCalendarManager() {
                 holidayCalendar: nextCalendarId
                   ? {
                       id: nextCalendarId,
-                      name: selected?.name ?? schedule.holidayCalendar?.name ?? "",
+                      name:
+                        selected?.name ?? schedule.holidayCalendar?.name ?? "",
                       code: selected?.code ?? schedule.holidayCalendar?.code,
                     }
                   : null,
@@ -699,6 +741,14 @@ export function HolidayCalendarManager() {
               onChange={(value) => setHolidayValue("description", value)}
               value={holiday.description}
             />
+            <div className="xl:col-span-4">
+              <CustomFieldsSection
+                errors={holidayFieldErrors}
+                tableKey="holidays"
+                value={holidayCustomFields}
+                onChange={setHolidayCustomFields}
+              />
+            </div>
             <div className="flex gap-3 xl:col-span-4">
               <button
                 className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
@@ -725,7 +775,11 @@ export function HolidayCalendarManager() {
 
           <DataTable
             columns={holidayColumns}
-            emptyState={<p className="p-5 text-sm text-muted">No holidays in this calendar.</p>}
+            emptyState={
+              <p className="p-5 text-sm text-muted">
+                No holidays in this calendar.
+              </p>
+            }
             enableSearch
             entityLogicalName="holiday-calendar-holidays"
             getRowKey={(row) => row.id}
@@ -831,8 +885,10 @@ async function fetchJsonList<T>(path: string) {
     throw new Error(readError(payload, `Unable to load ${path}.`));
   }
   if (Array.isArray(payload)) return payload as T[];
-  if (isRecord(payload) && Array.isArray(payload.items)) return payload.items as T[];
-  if (isRecord(payload) && Array.isArray(payload.data)) return payload.data as T[];
+  if (isRecord(payload) && Array.isArray(payload.items))
+    return payload.items as T[];
+  if (isRecord(payload) && Array.isArray(payload.data))
+    return payload.data as T[];
   return [];
 }
 
@@ -868,9 +924,9 @@ function readError(payload: unknown, fallback: string) {
 function isHoliday(value: unknown): value is HolidayItem {
   return Boolean(
     isRecord(value) &&
-      typeof value.id === "string" &&
-      typeof value.name === "string" &&
-      typeof value.holidayDate === "string",
+    typeof value.id === "string" &&
+    typeof value.name === "string" &&
+    typeof value.holidayDate === "string",
   );
 }
 

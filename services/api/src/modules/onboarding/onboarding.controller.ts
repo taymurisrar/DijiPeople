@@ -124,7 +124,6 @@ export class OnboardingController {
   }
 
   @Patch(':onboardingId/tasks/:taskId')
-  @CustomFields('onboardingTasks', 'update', 'taskId')
   @Permissions('onboarding.update')
   @RequirePermission(ENTITY_KEYS.ONBOARDING, 'write')
   updateTask(
