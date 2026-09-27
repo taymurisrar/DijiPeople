@@ -27,6 +27,7 @@ import { ListMasterDataDto } from './dto/list-master-data.dto';
 import { UpdateBusinessUnitDto } from './dto/update-business-unit.dto';
 import { OrganizationService } from './organization.service';
 import { CustomFields } from '../customization/custom-fields.decorator';
+import { ListBusinessUnitsDto } from './dto/list-business-units.dto';
 
 /*
  * Business-unit membership is the input to accessContext.accessibleBusinessUnitIds,
@@ -51,9 +52,9 @@ export class BusinessUnitsController {
   @RequirePermission(ENTITY_KEYS.HIERARCHY, 'read')
   findAll(
     @CurrentUser() user: AuthenticatedUser,
-    @Query() query: ListMasterDataDto,
+    @Query() query: ListBusinessUnitsDto,
   ) {
-    return this.organizationService.findBusinessUnitsForUser(user, query);
+    return this.organizationService.listBusinessUnitsForUser(user, query);
   }
 
   @Get(':id')

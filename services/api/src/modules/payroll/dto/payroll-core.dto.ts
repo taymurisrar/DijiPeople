@@ -8,6 +8,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Max,
   MaxLength,
   Min,
 } from 'class-validator';
@@ -157,6 +158,39 @@ export class CreatePayrollRunDto {
   @IsOptional()
   @IsUUID()
   employerBankAccountId?: string;
+}
+
+/**
+ * BUG-3800 — calendars and periods, with the search and opt-in paging the
+ * generic lookups send. Absent, the list is the bare array the calendar and
+ * period list pages map over; present, the `{items, meta}` envelope.
+ */
+export class PayrollCatalogQueryDto {
+  @IsOptional()
+  @IsUUID()
+  payrollCalendarId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  businessUnitId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  search?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  pageSize?: number;
 }
 
 export class PayrollCoreQueryDto {

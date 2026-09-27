@@ -21,6 +21,7 @@ import { CreateDesignationDto } from './dto/create-designation.dto';
 import { CreateLocationDto } from './dto/create-location.dto';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { ListDepartmentsDto } from './dto/list-departments.dto';
+import { ListBusinessUnitsDto } from './dto/list-business-units.dto';
 import { ListMasterDataDto } from './dto/list-master-data.dto';
 import { UpdateBusinessUnitDto } from './dto/update-business-unit.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
@@ -358,6 +359,33 @@ export class OrganizationService {
 
   findBusinessUnits(tenantId: string, query: ListMasterDataDto = {}) {
     return this.organizationRepository.findBusinessUnits(tenantId, query);
+  }
+
+  /*
+   * BUG-3800 — paging after the visibility filter, as for departments: business
+   * unit visibility is resolved in memory, so a Prisma take/skip would page the
+   * wrong set. Without page/pageSize the answer is the bare array, unchanged.
+   */
+  async listBusinessUnitsForUser(
+    currentUser: AuthenticatedUser,
+    query: ListBusinessUnitsDto,
+  ) {
+    const businessUnits = await this.findBusinessUnitsForUser(
+      currentUser,
+      query,
+    );
+    if (query.page === undefined && query.pageSize === undefined) {
+      return businessUnits;
+    }
+    const pageSize = query.pageSize ?? DEFAULT_DEPARTMENT_PAGE_SIZE;
+    const total = businessUnits.length;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const page = Math.min(Math.max(query.page ?? 1, 1), totalPages);
+    const start = (page - 1) * pageSize;
+    return {
+      items: businessUnits.slice(start, start + pageSize),
+      meta: { page, pageSize, total, totalPages },
+    };
   }
 
   async findBusinessUnitsForUser(

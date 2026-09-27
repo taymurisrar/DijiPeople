@@ -26,6 +26,7 @@ import {
   CreatePayrollCalendarDto,
   CreatePayrollPeriodDto,
   CreatePayrollRunDto,
+  PayrollCatalogQueryDto,
   PayrollCoreQueryDto,
   UpdatePayrollCalendarDto,
   UpdatePayrollPeriodDto,
@@ -60,7 +61,7 @@ export class PayrollRunController {
   @RequirePermission(ENTITY_KEYS.PAYROLL_CALENDARS, 'read')
   listCalendars(
     @CurrentUser() user: AuthenticatedUser,
-    @Query() query: PayrollCoreQueryDto,
+    @Query() query: PayrollCatalogQueryDto,
   ) {
     return this.payrollRunService.listCalendars(user, query);
   }
@@ -103,7 +104,7 @@ export class PayrollRunController {
   @RequirePermission(ENTITY_KEYS.PAYROLL_PERIODS, 'read')
   listPeriods(
     @CurrentUser() user: AuthenticatedUser,
-    @Query() query: PayrollCoreQueryDto,
+    @Query() query: PayrollCatalogQueryDto,
   ) {
     return this.payrollRunService.listPeriods(user, query);
   }

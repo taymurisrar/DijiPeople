@@ -104,13 +104,22 @@ export class OrganizationRepository {
     tenantId: string,
     query: Pick<
       ListMasterDataDto,
-      'organizationId' | 'businessUnitId' | 'isActive'
+      'organizationId' | 'businessUnitId' | 'isActive' | 'search'
     > = {},
     db: PrismaDb = this.prisma,
   ) {
+    const search = query.search?.trim();
     return db.businessUnit.findMany({
       where: {
         tenantId,
+        /* BUG-3800 — `search` was whitelisted and never applied. */
+        ...(search
+          ? {
+              OR: (['name', 'code', 'description'] as const).map((field) => ({
+                [field]: { contains: search, mode: 'insensitive' as const },
+              })),
+            }
+          : {}),
         ...(query.organizationId
           ? { organizationId: query.organizationId }
           : {}),
