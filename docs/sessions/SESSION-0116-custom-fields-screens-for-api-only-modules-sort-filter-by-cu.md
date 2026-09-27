@@ -1,10 +1,10 @@
 ---
 SESSION_ID: SESSION-0116
 aliases: [SESSION-0116]
-TASK_ID:
+TASK_ID: TASK-0036
 TITLE: Custom fields: screens for API-only modules, sort/filter by custom fields, BUG-3800, live QA
 ARCHITECT_INTENT: Custom fields: screens for API-only modules, sort/filter by custom fields, BUG-3800, live QA
-STATUS: ACTIVE
+STATUS: COMPLETE
 TASK_TYPE: FEATURE
 TASK_SIZE: LARGE
 BASE_BRANCH: origin/develop
@@ -12,12 +12,12 @@ BASE_SHA: 7d81099922023b77c205e68456831f44f880c8ef
 TASK_BRANCH: agent/custom-fields-screens-and-query
 TARGET_BRANCH: develop
 WORKTREE: D:/My Work/hrm-dijipeople/dp-cf-screens
-AFFECTED_MODULES: []
+AFFECTED_MODULES: [customization, employees, documents, claims, onboarding, organization, payroll, apps/web]
 WRITE_LEASES: []
 ACTIVE_WORK_PACKAGES: []
 SCHEMA_WRITE: NO
-CI_STATUS: NOT_RUN
-MERGE_STATUS: NOT_STARTED
+CI_STATUS: PASS
+MERGE_STATUS: MERGED
 STARTED_AT: 2026-09-27T07:38:03.980Z
 LAST_HEARTBEAT: 2026-09-27T07:38:03.980Z
 BLOCKERS: none
@@ -47,8 +47,16 @@ anything this session deliberately serialised behind another. Live state:
 
 ## Related
 
+Engineering history for `agent/custom-fields-screens-and-query`:
+
+[[2026-09-27-custom-fields-screens-and-query-04892def]]
+
 Records this session worked on, cited in its own body:
 
 [[BUG-3800]]
+
+Modules this record declares as affected:
+
+[[customization]] · [[employees]] · [[organization]] · [[payroll]] · [[tenant-application]]
 
 <!-- GRAPH:END -->
