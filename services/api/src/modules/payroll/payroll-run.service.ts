@@ -39,6 +39,7 @@ import {
   CreatePayrollCalendarDto,
   CreatePayrollPeriodDto,
   CreatePayrollRunDto,
+  PayrollCatalogQueryDto,
   PayrollCoreQueryDto,
   UpdatePayrollCalendarDto,
   UpdatePayrollPeriodDto,
@@ -49,6 +50,7 @@ import {
   PayrollExceptionActionDto,
   UpdatePayrollAdjustmentDto,
 } from './dto/payroll-adjustment.dto';
+import { catalogPage, catalogSearch } from './payroll-catalog-query';
 
 const runDetailInclude = {
   payrollPeriod: { include: { payrollCalendar: true } },
@@ -130,17 +132,22 @@ export class PayrollRunService {
     return this.findCalendarOrThrow(user.tenantId, calendar.id);
   }
 
-  listCalendars(user: AuthenticatedUser, query: PayrollCoreQueryDto) {
-    return this.prisma.payrollCalendar.findMany({
-      where: {
-        tenantId: user.tenantId,
-        ...(query.businessUnitId
-          ? { businessUnitId: query.businessUnitId }
-          : {}),
-      },
-      include: { businessUnit: { select: { id: true, name: true } } },
-      orderBy: [{ isActive: 'desc' }, { isDefault: 'desc' }, { name: 'asc' }],
-    });
+  async listCalendars(user: AuthenticatedUser, query: PayrollCatalogQueryDto) {
+    const where = {
+      tenantId: user.tenantId,
+      ...(query.businessUnitId ? { businessUnitId: query.businessUnitId } : {}),
+      ...catalogSearch(query.search),
+    };
+    const find = (page?: { skip: number; take: number }) =>
+      this.prisma.payrollCalendar.findMany({
+        where,
+        include: { businessUnit: { select: { id: true, name: true } } },
+        orderBy: [{ isActive: 'desc' }, { isDefault: 'desc' }, { name: 'asc' }],
+        ...(page ?? {}),
+      });
+    return catalogPage(query, find, () =>
+      this.prisma.payrollCalendar.count({ where }),
+    );
   }
 
   async getCalendar(user: AuthenticatedUser, id: string) {
@@ -236,17 +243,24 @@ export class PayrollRunService {
     return period;
   }
 
-  listPeriods(user: AuthenticatedUser, query: PayrollCoreQueryDto) {
-    return this.prisma.payrollPeriod.findMany({
-      where: {
-        tenantId: user.tenantId,
-        ...(query.payrollCalendarId
-          ? { payrollCalendarId: query.payrollCalendarId }
-          : {}),
-      },
-      include: { payrollCalendar: true },
-      orderBy: [{ periodStart: 'desc' }],
-    });
+  async listPeriods(user: AuthenticatedUser, query: PayrollCatalogQueryDto) {
+    const where = {
+      tenantId: user.tenantId,
+      ...(query.payrollCalendarId
+        ? { payrollCalendarId: query.payrollCalendarId }
+        : {}),
+      ...catalogSearch(query.search),
+    };
+    const find = (page?: { skip: number; take: number }) =>
+      this.prisma.payrollPeriod.findMany({
+        where,
+        include: { payrollCalendar: true },
+        orderBy: [{ periodStart: 'desc' }],
+        ...(page ?? {}),
+      });
+    return catalogPage(query, find, () =>
+      this.prisma.payrollPeriod.count({ where }),
+    );
   }
 
   async getPeriod(user: AuthenticatedUser, id: string) {

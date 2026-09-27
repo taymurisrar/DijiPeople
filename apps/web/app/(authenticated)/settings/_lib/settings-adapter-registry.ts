@@ -6895,6 +6895,55 @@ const adapters: readonly SettingsRuntimeAdapter[] = [
       },
     ],
   }),
+  /*
+   * TASK-0036 — document types had a create route and nothing to edit them
+   * with. A shared (global) type is listed but read-only: the API refuses to
+   * edit one (BUG-3809).
+   */
+  adapter({
+    key: "document-types",
+    label: "Document Types",
+    singular: "Document Type",
+    serverApiPath: "/documents/types",
+    clientApiPath: "/api/documents/types",
+    primaryId: "id",
+    primaryName: "name",
+    fields: [
+      field("name", "Type Name", "string", { isPrimaryName: true }),
+      field("key", "Key", "string"),
+      field("description", "Description", "multiline-string"),
+      field("sortOrder", "Sort Order", "number"),
+      field("isActive", "Active", "boolean", { isStatus: true }),
+      field("updatedAt", "Modified On", "datetime", { isReadOnly: true }),
+    ],
+    formSections: [
+      formSection({
+        id: "document-type-summary",
+        label: "Summary",
+        order: 10,
+        fields: [
+          { key: "name", label: "Type Name", required: true },
+          { key: "key", label: "Key", required: true },
+          "description",
+          "sortOrder",
+          "isActive",
+        ],
+      }),
+    ],
+    columns: ["name", "key", "isActive", "updatedAt"],
+    permissions: {
+      read: "documents.read",
+      create: "documents.types.manage",
+      update: "documents.types.manage",
+    },
+    initialValues: {
+      name: "",
+      key: "",
+      description: "",
+      sortOrder: 0,
+      isActive: true,
+    },
+  }),
   recordAdapter(
     "employee-settings",
     "Employee Settings",

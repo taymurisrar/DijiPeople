@@ -87,6 +87,31 @@ export class OnboardingService {
     }));
   }
 
+  async findTemplateById(tenantId: string, templateId: string) {
+    const template = await this.onboardingRepository.findTemplateById(
+      tenantId,
+      templateId,
+    );
+
+    if (!template) {
+      throw new NotFoundException(
+        'Onboarding template was not found for this tenant.',
+      );
+    }
+
+    return {
+      id: template.id,
+      tenantId: template.tenantId,
+      name: template.name,
+      description: template.description,
+      taskBlueprints: template.taskBlueprints,
+      isDefault: template.isDefault,
+      isActive: template.isActive,
+      createdAt: template.createdAt,
+      updatedAt: template.updatedAt,
+    };
+  }
+
   async createTemplate(
     currentUser: AuthenticatedUser,
     dto: CreateOnboardingTemplateDto,

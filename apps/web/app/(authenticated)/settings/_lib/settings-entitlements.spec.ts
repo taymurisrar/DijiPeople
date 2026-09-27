@@ -342,9 +342,10 @@ describe("every shipped plan resolves to the right shape", () => {
     const enterprise = shapeOf(ENTERPRISE);
 
     expect(none.items).toBe(35);
-    expect(starter.items).toBe(54);
-    expect(growth.items).toBe(66);
-    expect(enterprise.items).toBe(87);
+    /* +1 each from TASK-0036's Document Types page (Documents entitlement). */
+    expect(starter.items).toBe(55);
+    expect(growth.items).toBe(67);
+    expect(enterprise.items).toBe(88);
 
     expect(none.categories).toBe(7);
     expect(starter.categories).toBe(8);

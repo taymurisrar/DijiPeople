@@ -218,6 +218,21 @@ export function validateCustomFieldInput(input: {
 }
 
 /** The stored values a user may see: read permission applied, masks applied. */
+/**
+ * TASK-0036 / ADR-0025 — whether a list may sort or filter by this field for
+ * this user: exactly the fields the user would see on the record, less masked
+ * ones, since an order or a match would disclose what the mask hides.
+ */
+export function isQueryableCustomField(
+  column: CustomFieldColumn,
+  permissionKeys: readonly string[],
+) {
+  if (!column.isActive || !column.isVisible) return false;
+  if (readRecord(column.validationJson).mask === true) return false;
+  const readPermission = permission(column, 'read');
+  return !readPermission || permissionKeys.includes(readPermission);
+}
+
 export function secureCustomFieldValues(input: {
   columns: readonly CustomFieldColumn[];
   values: unknown;
@@ -267,6 +282,8 @@ export function customFieldDefinitions(input: {
             writePermission && !input.permissionKeys.includes(writePermission),
           ),
         isPrimaryName: column.isPrimaryName,
+        /* TASK-0036 — a masked field cannot be sorted or filtered by (ADR-0025). */
+        isMasked: readRecord(column.validationJson).mask === true,
         maxLength: column.maxLength,
         lookupTargetTableKey: column.lookupTargetTableKey,
         lookupTargetNameField: column.lookupTargetTableKey

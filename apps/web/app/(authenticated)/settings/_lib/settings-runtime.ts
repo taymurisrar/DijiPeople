@@ -130,6 +130,7 @@ const itemPlacement: Record<
   "employee-settings": ["people", "workforce", "Workforce Structure"],
   "employee-levels": ["people", "workforce", "Workforce Structure"],
   "document-categories": ["people", "documents", "Document Rules"],
+  "document-types": ["people", "documents", "Document Rules"],
   documents: ["people", "documents", "Document Rules"],
   "leave-types": ["people", "leave", "Leave Configuration"],
   "leave-policies": ["people", "leave", "Leave Configuration"],
@@ -316,6 +317,7 @@ const routeKeys: Record<string, string> = {
   // Without this the nav links to /people/documents/categories while the item
   // is keyed document-categories, so the route resolver returns not-found.
   "document-categories": "categories",
+  "document-types": "types",
   locations: "work-sites",
   "holiday-calendars": "holiday-calendars",
   "payroll-settings": "payroll-settings",

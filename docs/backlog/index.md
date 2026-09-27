@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**720 records** — 499 bugs under [`docs/bugs/`](../bugs/), 221 non-bug items under [`items/`](items/).
+**721 records** — 500 bugs under [`docs/bugs/`](../bugs/), 221 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 238 |
+| Open (active work) | 239 |
 | Blocked | 3 |
 | Deferred | 117 |
 | Awaiting a product decision | 9 |
 | Completed / closed | 353 |
 | **Open CRITICAL** | **6** |
-| **Open HIGH** | **102** |
+| **Open HIGH** | **103** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,7 +27,7 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 6 |
-| HIGH | 102 |
+| HIGH | 103 |
 | MEDIUM | 108 |
 | LOW | 22 |
 
@@ -48,7 +48,7 @@ see [`README.md`](README.md) for why.
 | SECURITY | 22 |
 | STATE_MACHINE | 4 |
 | TECH_DEBT | 7 |
-| TENANT_ISOLATION | 2 |
+| TENANT_ISOLATION | 3 |
 | TEST_GAP | 9 |
 | UX | 49 |
 
@@ -56,12 +56,12 @@ see [`README.md`](README.md) for why.
 
 | Status | Count |
 |---|---|
-| OPEN | 46 |
+| OPEN | 45 |
 | IN_PROGRESS | 1 |
 | BLOCKED | 3 |
 | DEFERRED | 117 |
 | PRODUCT_DECISION | 9 |
-| FIXED | 169 |
+| FIXED | 171 |
 | VERIFIED | 218 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
@@ -309,6 +309,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3597](../../docs/bugs/BUG-3597-a-drawn-or-uploaded-signature-inside-a-signature-paragraph-i.md) | A drawn or uploaded signature inside a signature paragraph is dropped from the signed PDF and DOCX | BUG | HIGH | P1 | FIXED | api:contracts | DONE |
 | [BUG-3697](../../docs/bugs/BUG-3697-a-custom-field-added-to-a-system-module-has-nowhere-to-store.md) | A custom field added to a system module has nowhere to store its values | DATA_INTEGRITY | HIGH | P1 | FIXED | customization, employees | FIX_NOW |
 | [BUG-3702](../../docs/bugs/BUG-3702-adding-a-field-to-a-package-s-own-custom-module-demoted-the-.md) | Adding a field to a package's own custom module demoted the module to a reference | DATA_INTEGRITY | HIGH | P1 | FIXED | customization | DONE |
+| [BUG-3809](../../docs/bugs/BUG-3809-a-tenant-admin-can-create-document-types-and-categories-ever.md) | A tenant admin can create document types and categories every tenant sees | TENANT_ISOLATION | HIGH | P1 | FIXED | documents | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -556,7 +557,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3704](../../docs/bugs/BUG-3704-settings-pages-scroll-horizontally-at-phone-width-again.md) | Settings pages scroll horizontally at phone width again | UX | MEDIUM | P2 | DEFERRED | apps/web | DEFER |
 | [BUG-3786](../../docs/bugs/BUG-3786-adding-a-custom-field-ignores-the-table-s-iscustomizable-fla.md) | Adding a custom field ignores the table's isCustomizable flag | BUG | MEDIUM | P2 | FIXED | customization | FIX_NOW |
 | [BUG-3787](../../docs/bugs/BUG-3787-lookup-custom-fields-on-custom-modules-offer-no-options.md) | Lookup custom fields on custom modules offer no options | BUG | MEDIUM | P2 | FIXED | customization | FIX_NOW |
-| [BUG-3800](../../docs/bugs/BUG-3800-three-entity-lookups-refuse-the-page-size-and-search-the-for.md) | Three entity lookups refuse the page size and search the form sends | BUG | MEDIUM | P2 | OPEN | organization, payroll | PLAN_REQUIRED |
+| [BUG-3800](../../docs/bugs/BUG-3800-three-entity-lookups-refuse-the-page-size-and-search-the-for.md) | Three entity lookups refuse the page size and search the form sends | BUG | MEDIUM | P2 | FIXED | organization, payroll | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |

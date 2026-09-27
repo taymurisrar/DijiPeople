@@ -1,4 +1,5 @@
 import { StandardModuleListPage } from "@/app/components/runtime";
+import { Button } from "@/app/components/ui/button";
 import { getSessionUser } from "@/lib/auth";
 import { buildPublishedStandardRouteRuntime } from "@/lib/runtime/modules/standard-module-route-helpers";
 import { onboardingRuntimeSpec } from "@/lib/runtime/modules/standard-module-specs";
@@ -48,6 +49,12 @@ export default async function OnboardingPage({
 
   return (
     <div className="grid gap-6">
+      <div className="flex justify-end">
+        <Button href="/onboarding/templates" variant="secondary">
+          Manage templates
+        </Button>
+      </div>
+
       <StandardModuleListPage
         commandRecord={{
           onboardingCount: onboardings.meta.total,

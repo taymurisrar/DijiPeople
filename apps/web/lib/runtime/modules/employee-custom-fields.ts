@@ -37,17 +37,36 @@ export function supportedEmployeeCustomFields(
 export function buildEmployeeCustomFieldMetadata(
   definitions: readonly EmployeeCustomFieldDefinition[],
 ): readonly FieldMetadata[] {
-  return buildCustomFieldMetadata(
-    supportedEmployeeCustomFields(definitions),
-    "employee",
-  );
+  const supported = supportedEmployeeCustomFields(definitions);
+  const byName = new Map(supported.map((field) => [field.logicalName, field]));
+  /*
+   * TASK-0036 / ADR-0025 — the employee list sorts and filters on the server,
+   * which now does both for custom fields (GET /employees `orderBy` and
+   * `customFilters`). Not for a masked field, and a lookup or multiselect has
+   * no order. Other modules keep the default: their lists are not paged by
+   * these fields.
+   */
+  return buildCustomFieldMetadata(supported, "employee").map((field) => {
+    const definition = byName.get(field.logicalName);
+    if (!definition || definition.isMasked) return field;
+    return {
+      ...field,
+      isSearchable: true,
+      isSortable: !UNSORTABLE_TYPES.has(definition.dataType),
+    };
+  });
 }
+
+const UNSORTABLE_TYPES = new Set(["lookup", "multiselect"]);
 
 export function withEmployeeCustomFieldSection(
   form: FormMetadata,
   definitions: readonly EmployeeCustomFieldDefinition[],
 ): FormMetadata {
-  return withCustomFieldSection(form, supportedEmployeeCustomFields(definitions));
+  return withCustomFieldSection(
+    form,
+    supportedEmployeeCustomFields(definitions),
+  );
 }
 
 /** Record → form values: the API returns them under `customFields`. */

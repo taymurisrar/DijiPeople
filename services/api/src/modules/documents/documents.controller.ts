@@ -31,6 +31,7 @@ import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { CreateDocumentCategoryDto } from './dto/create-document-category.dto';
 import { CreateDocumentTypeDto } from './dto/create-document-type.dto';
+import { UpdateDocumentTypeDto } from './dto/update-document-type.dto';
 import { DocumentQueryDto } from './dto/document-query.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
 import { UploadDocumentDto } from './dto/upload-document.dto';
@@ -90,6 +91,29 @@ export class DocumentsController {
     @Body() dto: CreateDocumentTypeDto,
   ) {
     return this.documentsService.createDocumentType(user, dto);
+  }
+
+  @Get('types/:id')
+  @CustomFields('documentTypes', 'read', 'id')
+  @Permissions('documents.read')
+  @RequirePermission(ENTITY_KEYS.DOCUMENTS, 'read')
+  findType(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.documentsService.findDocumentTypeById(user.tenantId, id);
+  }
+
+  @Patch('types/:id')
+  @CustomFields('documentTypes', 'update', 'id')
+  @Permissions('documents.types.manage')
+  @RequirePermission(ENTITY_KEYS.DOCUMENTS, 'configure')
+  updateType(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: UpdateDocumentTypeDto,
+  ) {
+    return this.documentsService.updateDocumentType(user, id, dto);
   }
 
   @Get('categories')

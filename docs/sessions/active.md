@@ -12,4 +12,4 @@ therefore sees sibling worktrees without anybody having pushed.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
-| [SESSION-0115](../../docs/sessions/SESSION-0115-custom-fields-follow-up-employee-lookups-list-columns-export.md) | — | Custom fields follow-up: Employee lookups, list columns, export; other system modules; Obsidian verify | ACTIVE | `agent/custom-fields-followup` | `develop` | — | 2026-09-26T22:19:57.666Z |
+| [SESSION-0116](../../docs/sessions/SESSION-0116-custom-fields-screens-for-api-only-modules-sort-filter-by-cu.md) | — | Custom fields: screens for API-only modules, sort/filter by custom fields, BUG-3800, live QA | ACTIVE | `agent/custom-fields-screens-and-query` | `develop` | — | 2026-09-27T07:38:03.980Z |

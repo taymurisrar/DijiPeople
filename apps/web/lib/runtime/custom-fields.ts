@@ -26,6 +26,8 @@ export type CustomFieldDefinition = {
   readonly required: boolean;
   readonly readOnly: boolean;
   readonly isPrimaryName: boolean;
+  /* TASK-0036 — masked values can be neither sorted nor filtered by. */
+  readonly isMasked?: boolean;
   readonly maxLength: number | null;
   readonly lookupTargetTableKey: string | null;
   /* The target custom module's primary-name column, when the API knows it. */

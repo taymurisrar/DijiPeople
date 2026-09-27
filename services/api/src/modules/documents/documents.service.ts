@@ -24,6 +24,7 @@ import { AuditService } from '../audit/audit.service';
 import { TenantSettingsResolverService } from '../tenant-settings/tenant-settings-resolver.service';
 import { CreateDocumentCategoryDto } from './dto/create-document-category.dto';
 import { CreateDocumentTypeDto } from './dto/create-document-type.dto';
+import { UpdateDocumentTypeDto } from './dto/update-document-type.dto';
 import { DocumentQueryDto } from './dto/document-query.dto';
 import {
   DocumentsRepository,
@@ -607,9 +608,10 @@ export class DocumentsService {
     currentUser: AuthenticatedUser,
     dto: CreateDocumentTypeDto,
   ) {
+    refuseGlobalFromTenant(dto.isGlobal);
     const created = await this.prisma.documentType.create({
       data: {
-        tenantId: dto.isGlobal ? null : currentUser.tenantId,
+        tenantId: currentUser.tenantId,
         key: dto.key.trim().toLowerCase(),
         name: dto.name.trim(),
         description: dto.description?.trim(),
@@ -624,6 +626,66 @@ export class DocumentsService {
     });
 
     return created;
+  }
+
+  async findDocumentTypeById(tenantId: string, id: string) {
+    const type = await this.prisma.documentType.findFirst({
+      where: { id, OR: [{ tenantId }, { tenantId: null }] },
+    });
+    if (!type) throw new NotFoundException('Document type was not found.');
+    return type;
+  }
+
+  /*
+   * TASK-0036 — document types had no update route at all. A global type is
+   * shared by every tenant and edited only by the platform, as categories are.
+   */
+  async updateDocumentType(
+    currentUser: AuthenticatedUser,
+    id: string,
+    dto: UpdateDocumentTypeDto,
+  ) {
+    const existing = await this.findDocumentTypeById(currentUser.tenantId, id);
+    if (existing.tenantId === null) {
+      throw new BadRequestException('Global document types cannot be edited.');
+    }
+    if (
+      dto.key !== undefined &&
+      dto.key.trim().toLowerCase() !== existing.key
+    ) {
+      throw new BadRequestException({
+        code: 'DOCUMENT_TYPE_KEY_IMMUTABLE',
+        message:
+          'The key of a document type cannot be changed; documents reference it.',
+      });
+    }
+    const updated = await this.prisma.documentType.update({
+      where: { id: existing.id },
+      data: {
+        ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
+        ...(dto.description !== undefined
+          ? { description: dto.description?.trim() ?? null }
+          : {}),
+        ...(dto.allowedMimeTypes !== undefined
+          ? {
+              allowedMimeTypes: dto.allowedMimeTypes.map((item) => item.trim()),
+            }
+          : {}),
+        ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
+        ...(dto.sortOrder !== undefined ? { sortOrder: dto.sortOrder } : {}),
+        updatedById: currentUser.userId,
+      },
+    });
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action: 'DOCUMENT_TYPE_UPDATED',
+      entityType: 'DocumentType',
+      entityId: updated.id,
+      beforeSnapshot: existing,
+      afterSnapshot: updated,
+    });
+    return updated;
   }
 
   listDocumentCategories(tenantId: string) {
@@ -648,9 +710,10 @@ export class DocumentsService {
     currentUser: AuthenticatedUser,
     dto: CreateDocumentCategoryDto,
   ) {
+    refuseGlobalFromTenant(dto.isGlobal);
     const created = await this.prisma.documentCategory.create({
       data: {
-        tenantId: dto.isGlobal ? null : currentUser.tenantId,
+        tenantId: currentUser.tenantId,
         code: normalizeCategoryCode(dto.code ?? dto.name),
         name: dto.name.trim(),
         description: dto.description?.trim(),
@@ -1042,6 +1105,21 @@ export class DocumentsService {
       viewPath: `/api/documents/${document.id}/view`,
       downloadPath: `/api/documents/${document.id}/download`,
     };
+  }
+}
+
+/*
+ * BUG-3809 — a tenant route honoured `isGlobal` and wrote a type or category
+ * with no tenant, which every tenant then saw. Global rows are seeded by the
+ * platform (seed-config); a tenant may only create its own.
+ */
+function refuseGlobalFromTenant(isGlobal: boolean | undefined) {
+  if (isGlobal) {
+    throw new ForbiddenException({
+      code: 'DOCUMENT_GLOBAL_FORBIDDEN',
+      message:
+        'Shared document types and categories are managed by DijiPeople.',
+    });
   }
 }
 

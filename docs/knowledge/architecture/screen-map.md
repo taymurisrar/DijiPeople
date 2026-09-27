@@ -14,13 +14,13 @@ A screen marked **bespoke** is a hand-written page whose API calls and underlyin
 
 **`apiPath` is called by the server, not the browser.** Loading `/leaves` on that tenant issued no client-side request to `/api/leave-requests`; the list arrives already rendered, and the only client calls were notifications and settings. Runtime list and record screens fetch through `apps/web/lib/server-api.ts` in a server component. Watching the browser network log to discover which endpoint a screen uses will therefore find nothing, and concluding the screen calls no API would be wrong.
 
-**357 screens** across 3 applications · 11 runtime modules declare an API path and entity
+**364 screens** across 3 applications · 11 runtime modules declare an API path and entity
 
 Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[known-gaps]]
 
 ## Tenant product — `apps/web` (port 3001)
 
-254 screens, 32 runtime-driven.
+261 screens, 35 runtime-driven.
 
 | Route | Source | API | Entity |
 |---|---|---|---|
@@ -48,6 +48,8 @@ Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[
 | `/business-trips/[tripId]` | `apps/web/app/(authenticated)/business-trips/[tripId]/page.tsx` | _bespoke_ | — |
 | `/claims` | `apps/web/app/(authenticated)/claims/page.tsx` | _bespoke_ | — |
 | `/claims/[claimId]` | `apps/web/app/(authenticated)/claims/[claimId]/page.tsx` | _bespoke_ | — |
+| `/claims/[claimId]/edit` | `apps/web/app/(authenticated)/claims/[claimId]/edit/page.tsx` | _bespoke_ | — |
+| `/claims/new` | `apps/web/app/(authenticated)/claims/new/page.tsx` | _bespoke_ | — |
 | `/custom-modules/[moduleKey]` | `apps/web/app/(authenticated)/custom-modules/[moduleKey]/page.tsx` | _bespoke_ | — |
 | `/custom-modules/[moduleKey]/[recordId]` | `apps/web/app/(authenticated)/custom-modules/[moduleKey]/[recordId]/page.tsx` | _bespoke_ | — |
 | `/custom-modules/[moduleKey]/[recordId]/edit` | `apps/web/app/(authenticated)/custom-modules/[moduleKey]/[recordId]/edit/page.tsx` | _bespoke_ | — |
@@ -85,6 +87,8 @@ Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[
 | `/me/business-trips/[tripId]` | `apps/web/app/(authenticated)/me/business-trips/[tripId]/page.tsx` | _bespoke_ | — |
 | `/me/claims` | `apps/web/app/(authenticated)/me/claims/page.tsx` | _bespoke_ | — |
 | `/me/claims/[claimId]` | `apps/web/app/(authenticated)/me/claims/[claimId]/page.tsx` | _bespoke_ | — |
+| `/me/claims/[claimId]/edit` | `apps/web/app/(authenticated)/me/claims/[claimId]/edit/page.tsx` | _bespoke_ | — |
+| `/me/claims/new` | `apps/web/app/(authenticated)/me/claims/new/page.tsx` | _bespoke_ | — |
 | `/me/dashboard` | `apps/web/app/(authenticated)/me/dashboard/page.tsx` | _bespoke_ | — |
 | `/me/payslips` | `apps/web/app/(authenticated)/me/payslips/page.tsx` | _bespoke_ | — |
 | `/me/payslips/[payslipId]` | `apps/web/app/(authenticated)/me/payslips/[payslipId]/page.tsx` | _bespoke_ | — |
@@ -92,6 +96,9 @@ Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[
 | `/my-profile` | `apps/web/app/(authenticated)/my-profile/page.tsx` | _bespoke_ | — |
 | `/onboarding` | `apps/web/app/(authenticated)/onboarding/page.tsx` | `/api/onboarding` | `employeeOnboarding` |
 | `/onboarding/[onboardingId]` | `apps/web/app/(authenticated)/onboarding/[onboardingId]/page.tsx` | `/api/onboarding` | `employeeOnboarding` |
+| `/onboarding/templates` | `apps/web/app/(authenticated)/onboarding/templates/page.tsx` | `/api/onboarding` | `employeeOnboarding` |
+| `/onboarding/templates/[templateId]/edit` | `apps/web/app/(authenticated)/onboarding/templates/[templateId]/edit/page.tsx` | `/api/onboarding` | `employeeOnboarding` |
+| `/onboarding/templates/new` | `apps/web/app/(authenticated)/onboarding/templates/new/page.tsx` | `/api/onboarding` | `employeeOnboarding` |
 | `/partner` | `apps/web/app/partner/page.tsx` | _bespoke_ | — |
 | `/partner-login` | `apps/web/app/(public)/partner-login/page.tsx` | _bespoke_ | — |
 | `/partner/contracts` | `apps/web/app/partner/contracts/page.tsx` | _bespoke_ | — |

@@ -5,6 +5,37 @@ import { EmployeeQueryDto } from './dto/employee-query.dto';
 
 type PrismaDb = PrismaService | Prisma.TransactionClient;
 
+/*
+ * TASK-0036 / ADR-0025 — the custom-field part of a list query, resolved by
+ * EmployeesService through CustomFieldValuesService: id constraints from the
+ * filters, and for a custom-field sort the ids that have a value, in order.
+ */
+export type EmployeeCustomListQuery = {
+  readonly idConstraints?: readonly { in?: string[]; notIn?: string[] }[];
+  readonly sortIds?: (recordIds: string[]) => Promise<string[] | null>;
+};
+
+/* The orderBy names buildOrderBy understands; anything else may be custom. */
+const SYSTEM_SORT_FIELDS = new Set([
+  'firstName',
+  'fullName',
+  'lastName',
+  'employeeCode',
+  'employmentStatus',
+  'managerEmployeeId',
+  'reportingManagerEmployeeId',
+  'hireDate',
+  'email',
+  'workEmail',
+]);
+
+/** A sort on something other than a system column, or null. */
+export function customSortField(orderBy: string | undefined) {
+  const match = orderBy?.match(/^([A-Za-z][A-Za-z0-9_]*)\s+(asc|desc)$/);
+  if (!match || SYSTEM_SORT_FIELDS.has(match[1])) return null;
+  return { field: match[1], direction: match[2] as 'asc' | 'desc' };
+}
+
 const employeeInclude = {
   manager: {
     select: {
@@ -211,11 +242,32 @@ export class EmployeesRepository {
     query: EmployeeQueryDto,
     accessWhere: Prisma.EmployeeWhereInput = {},
     db: PrismaDb = this.prisma,
+    custom: EmployeeCustomListQuery = {},
   ) {
     const where = {
-      AND: [this.buildWhereClause(tenantId, query), accessWhere],
+      AND: [
+        this.buildWhereClause(tenantId, query),
+        accessWhere,
+        ...(custom.idConstraints ?? []).map((constraint) => ({
+          id: constraint.in
+            ? { in: constraint.in }
+            : { notIn: constraint.notIn },
+        })),
+      ],
     } satisfies Prisma.EmployeeWhereInput;
     const skip = (query.page - 1) * query.pageSize;
+
+    if (custom.sortIds) {
+      const sorted = await this.findPageByIdOrder(
+        tenantId,
+        where,
+        skip,
+        query.pageSize,
+        custom.sortIds,
+        db,
+      );
+      if (sorted) return sorted;
+    }
 
     const [items, total] = await Promise.all([
       db.employee.findMany({
@@ -229,6 +281,45 @@ export class EmployeesRepository {
     ]);
 
     return { items, total };
+  }
+
+  /**
+   * A page ordered by a custom field (ADR-0025): every matching id in the
+   * fallback order, the ones with a value moved to the front in value order,
+   * then one query for the page. Null when the field is not sortable, so the
+   * caller keeps the ordinary path.
+   */
+  private async findPageByIdOrder(
+    tenantId: string,
+    where: Prisma.EmployeeWhereInput,
+    skip: number,
+    take: number,
+    sortIds: (recordIds: string[]) => Promise<string[] | null>,
+    db: PrismaDb,
+  ) {
+    const matching = (
+      await db.employee.findMany({
+        where,
+        select: { id: true },
+        orderBy: this.buildOrderBy({} as EmployeeQueryDto),
+      })
+    ).map((row) => row.id);
+    const withValue = await sortIds(matching);
+    if (!withValue) return null;
+    const first = new Set(withValue);
+    const pageIds = [
+      ...withValue,
+      ...matching.filter((id) => !first.has(id)),
+    ].slice(skip, skip + take);
+    const rows = await db.employee.findMany({
+      where: { id: { in: pageIds }, tenantId },
+      include: employeeInclude,
+    });
+    const byId = new Map(rows.map((row) => [row.id, row]));
+    return {
+      items: pageIds.flatMap((id) => byId.get(id) ?? []),
+      total: matching.length,
+    };
   }
 
   findByIdAndTenant(

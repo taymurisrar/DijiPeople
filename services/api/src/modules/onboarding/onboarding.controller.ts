@@ -54,6 +54,17 @@ export class OnboardingController {
     return this.onboardingService.findTemplates(user.tenantId);
   }
 
+  @Get('templates/:templateId')
+  @CustomFields('onboardingTemplates', 'read', 'templateId')
+  @Permissions('onboarding.read')
+  @RequirePermission(ENTITY_KEYS.ONBOARDING, 'read')
+  findTemplate(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('templateId', new ParseUUIDPipe()) templateId: string,
+  ) {
+    return this.onboardingService.findTemplateById(user.tenantId, templateId);
+  }
+
   @Get(':onboardingId')
   @Permissions('onboarding.read')
   @RequirePermission(ENTITY_KEYS.ONBOARDING, 'read')

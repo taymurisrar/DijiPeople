@@ -46,10 +46,13 @@ import { TerminateEmployeeDto } from './dto/terminate-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { DuplicateRuleEngine } from '../../common/validation/duplicate-rule-engine';
 import {
+  customSortField,
   EmployeeHierarchyNode,
   EmployeesRepository,
   EmployeeWithRelations,
+  type EmployeeCustomListQuery,
 } from './employees.repository';
+import { parseCustomFieldFilters } from '../customization/custom-field-query';
 import { AuditService } from '../audit/audit.service';
 import {
   AUDIT_ACTIONS,
@@ -330,6 +333,34 @@ export class EmployeesService {
     private readonly customFieldValues?: CustomFieldValuesService,
   ) {}
 
+  /* TASK-0036 / ADR-0025 — the custom-field part of a list query. */
+  private async customListQuery(
+    currentUser: AuthenticatedUser,
+    query: EmployeeQueryDto,
+  ): Promise<EmployeeCustomListQuery> {
+    const values = this.customFieldValues;
+    const filters = parseCustomFieldFilters(query.customFilters);
+    const sort = customSortField(query.orderBy);
+    if (!values || (!filters.length && !sort)) return {};
+    return {
+      idConstraints: await values.recordIdConstraints(
+        currentUser,
+        'employees',
+        filters,
+      ),
+      sortIds: sort
+        ? (recordIds) =>
+            values.orderedRecordIds(
+              currentUser,
+              'employees',
+              sort.field,
+              sort.direction,
+              recordIds,
+            )
+        : undefined,
+    };
+  }
+
   /* Custom field values the user may see on one employee (BUG-3697). */
   async readCustomFields(currentUser: AuthenticatedUser, employeeId: string) {
     return this.customFieldValues
@@ -369,6 +400,8 @@ export class EmployeesService {
                 reportingManagerEmployeeId: employee.id,
               },
               { managerEmployeeId: employee.id },
+              undefined,
+              await this.customListQuery(currentUser, query),
             )
           : { items: employee ? [employee] : [], total: employee ? 1 : 0 };
       const items = directReports.items.map((item) => this.mapEmployee(item));
@@ -412,6 +445,8 @@ export class EmployeesService {
       tenantId,
       effectiveQuery,
       employeeReadScope,
+      undefined,
+      await this.customListQuery(currentUser, effectiveQuery),
     );
 
     return {
