@@ -125,6 +125,6 @@ Not yet retested.
 
 ## Related
 
-- Modules — [[auth]]
+- Modules — [[auth]], [[desktop-agent-architecture]]
 
 <!-- GRAPH:END -->

@@ -214,7 +214,7 @@ REG-229 — `draft-self-declaration.spec.ts` passes, and the production deploy l
 
 - Backlog item — [[ITEM-0053]]
 - Referenced by — [[ITEM-0084]]
-- Modules — [[database-architecture]]
+- Modules — [[deployment-architecture]], [[database-architecture]]
 - Regression — REG-229 (see the regression register)
 
 <!-- GRAPH:END -->

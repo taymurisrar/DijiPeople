@@ -136,6 +136,6 @@ No retest while the record is deferred.
 ## Related
 
 - Backlog item — [[ITEM-0181]]
-- Modules — [[notifications]]
+- Modules — [[payroll]], [[notifications]]
 
 <!-- GRAPH:END -->

@@ -180,6 +180,6 @@ Pending.
 
 ## Related
 
-- Modules — [[super-admin]]
+- Modules — [[super-admin]], [[api-architecture]]
 
 <!-- GRAPH:END -->

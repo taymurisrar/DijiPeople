@@ -6,11 +6,13 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 0** · completed: 111
+**Active: 1** · completed: 111
 
 ## Active
 
-_None. No session is currently running._
+| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
+|---|---|---|---|---|---|---|---|
+| [SESSION-0115](../../docs/sessions/SESSION-0115-custom-fields-follow-up-employee-lookups-list-columns-export.md) | — | Custom fields follow-up: Employee lookups, list columns, export; other system modules; Obsidian verify | ACTIVE | `agent/custom-fields-followup` | `develop` | — | 2026-09-26T22:19:57.666Z |
 
 ## Completed
 

@@ -250,7 +250,7 @@ PostgreSQL 16. API 159 suites / 1131 tests passing.
 ## Related
 
 - Referenced by — [[ITEM-0027]], [[ITEM-0032]], [[ITEM-0033]]
-- Modules — [[database-architecture]], [[desktop-agent-architecture]]
+- Modules — [[desktop-agent-architecture]], [[database-architecture]]
 - Regression — REG-031 (see the regression register)
 
 <!-- GRAPH:END -->

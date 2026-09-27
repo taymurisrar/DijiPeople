@@ -145,5 +145,6 @@ None. [[BUG-0767]] is fixed; this stops it recurring.
 ## Related
 
 - Bug — [[BUG-0767]]
+- Modules — [[deployment-architecture]]
 
 <!-- GRAPH:END -->

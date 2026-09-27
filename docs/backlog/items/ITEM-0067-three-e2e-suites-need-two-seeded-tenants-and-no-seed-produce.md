@@ -72,6 +72,6 @@ other way round.
 
 ## Related
 
-- Modules — [[attendance]]
+- Modules — [[attendance]], [[desktop-agent-architecture]]
 
 <!-- GRAPH:END -->

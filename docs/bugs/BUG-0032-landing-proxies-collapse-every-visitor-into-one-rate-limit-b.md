@@ -224,7 +224,7 @@ spread from the one place it mattered left the check green.
 
 ## Related
 
-- Modules — [[landing-architecture]]
+- Modules — [[landing-architecture]], [[api-architecture]]
 - Regression — REG-024 (see the regression register)
 
 <!-- GRAPH:END -->

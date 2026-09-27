@@ -182,7 +182,7 @@ Pending.
 
 ## Related
 
-- Modules — [[auth]]
+- Modules — [[auth]], [[api-architecture]]
 - Regression — REG-367 (see the regression register)
 
 <!-- GRAPH:END -->

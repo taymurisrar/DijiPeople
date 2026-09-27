@@ -8,13 +8,15 @@ graph and the block reasons. See
 
 | Bucket | Count |
 |---|---|
-| [Active](active.md) | 4 |
+| [Active](active.md) | 5 |
 | [Blocked](blocked.md) | 0 |
 | [Completed](completed.md) | 29 |
 
 ## Next ready work package
 
-Nothing ready.
+| Task | WP | Title |
+|---|---|---|
+| [TASK-0035](TASK-0035-custom-fields-follow-up-lookups-list-columns-export-other-sy.md) | WP-01 | <first package> |
 
 ## Needs a human
 
@@ -67,3 +69,4 @@ Nothing ready.
 | [TASK-0032](TASK-0032-partner-onboarding-agreements-admin-rbac-monitoring-dashboar.md) | Partner onboarding, agreements, admin RBAC, monitoring, dashboard and MFA hardening | FEATURE | PROGRAM | P1 | COMPLETE | 13/13 | — |
 | [TASK-0033](TASK-0033-package-alm-versions-portable-artifact-staged-import-upgrade.md) | Package ALM: versions, portable artifact, staged import, upgrade, uninstall | FEATURE | LARGE | P1 | COMPLETE | 8/8 | — |
 | [TASK-0034](TASK-0034-custom-field-values-on-system-modules-package-import-at-scal.md) | Custom field values on system modules; package import at scale | FEATURE | LARGE | P1 | COMPLETE | 4/4 | — |
+| [TASK-0035](TASK-0035-custom-fields-follow-up-lookups-list-columns-export-other-sy.md) | Custom fields follow-up: lookups, list columns, export, other system modules | FEATURE | LARGE | P1 | NOT_STARTED | 0/1 | — |

@@ -250,7 +250,7 @@ node <script>   PASS
 
 ## Related
 
-- Modules — [[qa-and-ci-architecture]]
+- Modules — [[ci-architecture]], [[qa-and-ci-architecture]]
 - Regression — REG-069 (see the regression register)
 
 <!-- GRAPH:END -->

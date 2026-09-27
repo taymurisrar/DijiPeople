@@ -19,6 +19,10 @@ RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-09-10
 UpdatedAt: 2026-09-11
+STANDALONE_ALLOWED: true
+STANDALONE_ALLOWED_REASON: The onboarding module has no knowledge note and this finding cites no other record; it is reachable from the backlog indexes.
+STANDALONE_ALLOWED_BY: SESSION-0115
+STANDALONE_ALLOWED_AT: 2026-09-27
 ResolvedAt:
 ---
 
