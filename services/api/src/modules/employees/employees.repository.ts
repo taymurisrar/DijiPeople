@@ -31,7 +31,7 @@ const SYSTEM_SORT_FIELDS = new Set([
 
 /** A sort on something other than a system column, or null. */
 export function customSortField(orderBy: string | undefined) {
-  const match = orderBy?.match(/^([A-Za-z][A-Za-z0-9_]*)s+(asc|desc)$/);
+  const match = orderBy?.match(/^([A-Za-z][A-Za-z0-9_]*)\s+(asc|desc)$/);
   if (!match || SYSTEM_SORT_FIELDS.has(match[1])) return null;
   return { field: match[1], direction: match[2] as 'asc' | 'desc' };
 }
