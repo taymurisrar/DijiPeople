@@ -8,10 +8,10 @@
 | | |
 |---|---|
 | Open CRITICAL | **8** |
-| Open HIGH | **107** |
-| Open total | 262 |
+| Open HIGH | **108** |
+| Open total | 265 |
 | Blocked | 4 |
-| Awaiting a product decision | 13 |
+| Awaiting a product decision | 14 |
 | Deferred | 124 |
 | Completed | 354 |
 | Awaiting Architect triage | 0 |
@@ -136,6 +136,7 @@
 | [[BUG-3929-admin-record-actions-post-to-the-id-less-runtime-route-so-se|BUG-3929]] | Admin record actions post to the id-less runtime route, so Send onboarding link and 13 other actions always fail as not available | BUG | HIGH | FIXED | apps/admin, platform-runtime | FIX_NOW |
 | [[BUG-3930-partner-delete-hides-its-refusal-reason-and-silently-erases-|BUG-3930]] | Partner delete hides its refusal reason and silently erases customer and tenant attribution | DATA_INTEGRITY | HIGH | FIXED | partners, apps/admin | FIX_NOW |
 | [[BUG-3955-partner-save-persists-no-field-but-reports-partner-saved-bec|BUG-3955]] | Partner Save persists no field but reports Partner saved, because the write contract misreads PartialType | BUG | HIGH | FIXED | apps/admin, partners | FIX_NOW |
+| [[BUG-3981-partner-onboarding-invitation-resends-never-arrive-kill-the-|BUG-3981]] | Partner onboarding invitation resends never arrive, kill the old link, return the raw token and report failed sends as success | SECURITY | HIGH | FIXED | partner-experience | FIX_NOW |
 | [[ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no|ITEM-0133]] | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | READY | services/api/test | PLAN_REQUIRED |
 | [[ITEM-0134-the-payroll-run-engine-has-no-tests|ITEM-0134]] | The payroll run engine has no tests | TEST_GAP | HIGH | READY | api:payroll | PLAN_REQUIRED |
 | [[ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-|ITEM-0136]] | electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major | SECURITY | HIGH | READY | apps/agent-desktop | FIX_NOW |
@@ -157,6 +158,7 @@
 | [[ITEM-0222-triage-the-monitoring-incident-queue-bulk-resolve-incidents-|ITEM-0222]] | Triage the monitoring incident queue: bulk-resolve incidents covered by fixed records, and add bulk triage by fingerprint | FOLLOW_UP | — | PRODUCT_DECISION | platform-monitoring | PRODUCT_DECISION |
 | [[ITEM-0223-decide-which-lifecycle-events-the-platform-must-emit-to-the-|ITEM-0223]] | Decide which lifecycle events the platform must emit to the Events stream | PRODUCT_DECISION | — | PRODUCT_DECISION | platform-events | PRODUCT_DECISION |
 | [[ITEM-0224-decide-whether-business-rule-rejections-should-be-recorded-b|ITEM-0224]] | Decide whether business-rule rejections should be recorded but not queued as incidents | PRODUCT_DECISION | — | PRODUCT_DECISION | error-logs | PRODUCT_DECISION |
+| [[ITEM-0227-automatic-commission-accrual-from-collected-invoices|ITEM-0227]] | Automatic commission accrual from collected invoices | PRODUCT_DECISION | — | PRODUCT_DECISION | partners, billing | PRODUCT_DECISION |
 | [[ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins|ITEM-0191]] | Decide whether custom modules need their own access keys instead of the shared custom-records privilege | PRODUCT_DECISION | — | PRODUCT_DECISION | data, permissions | PRODUCT_DECISION |
 
 ## Blocked Items
@@ -386,6 +388,7 @@
 | [[BUG-3929-admin-record-actions-post-to-the-id-less-runtime-route-so-se|BUG-3929]] | Admin record actions post to the id-less runtime route, so Send onboarding link and 13 other actions always fail as not available | BUG | HIGH | FIXED | apps/admin, platform-runtime | FIX_NOW |
 | [[BUG-3930-partner-delete-hides-its-refusal-reason-and-silently-erases-|BUG-3930]] | Partner delete hides its refusal reason and silently erases customer and tenant attribution | DATA_INTEGRITY | HIGH | FIXED | partners, apps/admin | FIX_NOW |
 | [[BUG-3955-partner-save-persists-no-field-but-reports-partner-saved-bec|BUG-3955]] | Partner Save persists no field but reports Partner saved, because the write contract misreads PartialType | BUG | HIGH | FIXED | apps/admin, partners | FIX_NOW |
+| [[BUG-3981-partner-onboarding-invitation-resends-never-arrive-kill-the-|BUG-3981]] | Partner onboarding invitation resends never arrive, kill the old link, return the raw token and report failed sends as success | SECURITY | HIGH | FIXED | partner-experience | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver|BUG-3501]] | The email provider screen presents a console sink as delivery and offers sink providers in production | UX | MEDIUM | FIXED | notifications, apps/web | PLAN_REQUIRED |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
@@ -560,6 +563,7 @@
 | [[BUG-3830-claims-has-no-sidebar-entry-so-its-screens-are-reachable-onl|BUG-3830]] | Claims has no sidebar entry, so its screens are reachable only by URL | UX | MEDIUM | FIXED | claims | FIX_NOW |
 | [[BUG-3844-two-factor-authentication-cannot-be-found-in-the-tenant-web-|BUG-3844]] | Two-factor authentication cannot be found in the tenant web app or the platform admin app | UX | MEDIUM | FIXED | apps/web, apps/admin, auth | FIX_NOW |
 | [[BUG-3956-changing-partner-status-from-the-record-header-always-fails-|BUG-3956]] | Changing Partner status from the record header always fails and would bypass the partner state machine | STATE_MACHINE | MEDIUM | FIXED | partners, apps/admin | FIX_NOW |
+| [[BUG-3982-partner-commissions-accept-any-status-jump-and-unverified-li|BUG-3982]] | Partner commissions accept any status jump and unverified links, and agreements change when the partner default commission is edited | DATA_INTEGRITY | MEDIUM | FIXED | partners, contracts | FIX_NOW |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -745,6 +749,7 @@
 | [[BUG-3894-the-tenant-error-boundary-shows-the-react-digest-as-the-erro|BUG-3894]] | The tenant error boundary shows the React digest as the error reference, which support cannot find and Download log 404s on | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
 | [[BUG-3897-public-signature-link-tokens-are-stored-verbatim-in-errorlog|BUG-3897]] | Public signature-link tokens are stored verbatim in ErrorLog.path and readable by monitoring.read holders | SECURITY | MEDIUM | OPEN | error-logs | FIX_NOW |
 | [[BUG-3956-changing-partner-status-from-the-record-header-always-fails-|BUG-3956]] | Changing Partner status from the record header always fails and would bypass the partner state machine | STATE_MACHINE | MEDIUM | FIXED | partners, apps/admin | FIX_NOW |
+| [[BUG-3982-partner-commissions-accept-any-status-jump-and-unverified-li|BUG-3982]] | Partner commissions accept any status jump and unverified links, and agreements change when the partner default commission is edited | DATA_INTEGRITY | MEDIUM | FIXED | partners, contracts | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -761,6 +766,7 @@
 | [[ITEM-0175-wire-the-plans-screen-onto-the-seat-quote-and-plan-change-en|ITEM-0175]] | Wire the plans screen onto the seat-quote and plan-change endpoints that now exist | FOLLOW_UP | MEDIUM | READY | apps/web, api:billing | FIX_NOW |
 | [[ITEM-0177-the-recruitment-draft-form-s-reporting-manager-lookup-still-|ITEM-0177]] | The recruitment draft form's Reporting manager lookup still filters one page in the browser | TECH_DEBT | MEDIUM | READY | apps/web | FIX_NOW |
 | [[ITEM-0226-foreign-key-violations-from-the-prisma-7-pg-adapter-carry-no|ITEM-0226]] | Foreign-key violations from the Prisma 7 pg adapter carry no P2003 code and surface as generic errors | TECH_DEBT | MEDIUM | READY | common, platform-runtime | PLAN_REQUIRED |
+| [[ITEM-0228-onboarding-and-activation-links-are-stored-verbatim-in-platf|ITEM-0228]] | Onboarding and activation links are stored verbatim in PlatformOutboundEmail.htmlBody for retries | SECURITY | MEDIUM | READY | platform-communications, partner-experience | PLAN_REQUIRED |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [[ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle|ITEM-0108]] | Decide whether the roughly one-hour session lifetime is idle or absolute | PRODUCT_DECISION | LOW | READY | api:auth | PLAN_REQUIRED |
 | [[BUG-1964-record-headings-and-dialog-titles-are-singularised-by-stripp|BUG-1964]] | Record headings and dialog titles are singularised by stripping a trailing s | UX | LOW | FIXED | apps/web | DONE |
@@ -828,8 +834,8 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 531 |
-| Backlog items | 226 |
+| Bug records | 533 |
+| Backlog items | 228 |
 | Known bug patterns | 35 |
 | QA runs | 38 |
 | Engineering history records | 95 |

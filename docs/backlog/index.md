@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**757 records** — 531 bugs under [`docs/bugs/`](../bugs/), 226 non-bug items under [`items/`](items/).
+**761 records** — 533 bugs under [`docs/bugs/`](../bugs/), 228 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 262 |
+| Open (active work) | 265 |
 | Blocked | 4 |
 | Deferred | 124 |
-| Awaiting a product decision | 13 |
+| Awaiting a product decision | 14 |
 | Completed / closed | 354 |
 | **Open CRITICAL** | **8** |
-| **Open HIGH** | **107** |
+| **Open HIGH** | **108** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,8 +27,8 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 8 |
-| HIGH | 107 |
-| MEDIUM | 119 |
+| HIGH | 108 |
+| MEDIUM | 121 |
 | LOW | 27 |
 
 ## Open by type
@@ -38,14 +38,14 @@ see [`README.md`](README.md) for why.
 | AUTHORIZATION | 15 |
 | BUG | 80 |
 | DATABASE | 1 |
-| DATA_INTEGRITY | 26 |
+| DATA_INTEGRITY | 27 |
 | DOCUMENTATION | 1 |
 | FOLLOW_UP | 4 |
 | INFRA | 7 |
 | INTEGRATION | 6 |
 | PERFORMANCE | 15 |
 | PRODUCT_DECISION | 2 |
-| SECURITY | 25 |
+| SECURITY | 27 |
 | STATE_MACHINE | 5 |
 | TECH_DEBT | 8 |
 | TENANT_ISOLATION | 3 |
@@ -60,12 +60,12 @@ see [`README.md`](README.md) for why.
 | IN_PROGRESS | 1 |
 | BLOCKED | 4 |
 | DEFERRED | 124 |
-| PRODUCT_DECISION | 13 |
-| FIXED | 181 |
+| PRODUCT_DECISION | 14 |
+| FIXED | 183 |
 | VERIFIED | 218 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
-| READY | 24 |
+| READY | 25 |
 | DONE | 122 |
 
 ## All records
@@ -317,6 +317,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3929](../../docs/bugs/BUG-3929-admin-record-actions-post-to-the-id-less-runtime-route-so-se.md) | Admin record actions post to the id-less runtime route, so Send onboarding link and 13 other actions always fail as not available | BUG | HIGH | P1 | FIXED | apps/admin, platform-runtime | FIX_NOW |
 | [BUG-3930](../../docs/bugs/BUG-3930-partner-delete-hides-its-refusal-reason-and-silently-erases-.md) | Partner delete hides its refusal reason and silently erases customer and tenant attribution | DATA_INTEGRITY | HIGH | P1 | FIXED | partners, apps/admin | FIX_NOW |
 | [BUG-3955](../../docs/bugs/BUG-3955-partner-save-persists-no-field-but-reports-partner-saved-bec.md) | Partner Save persists no field but reports Partner saved, because the write contract misreads PartialType | BUG | HIGH | P1 | FIXED | apps/admin, partners | FIX_NOW |
+| [BUG-3981](../../docs/bugs/BUG-3981-partner-onboarding-invitation-resends-never-arrive-kill-the-.md) | Partner onboarding invitation resends never arrive, kill the old link, return the raw token and report failed sends as success | SECURITY | HIGH | P1 | FIXED | partner-experience | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -576,6 +577,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3894](../../docs/bugs/BUG-3894-the-tenant-error-boundary-shows-the-react-digest-as-the-erro.md) | The tenant error boundary shows the React digest as the error reference, which support cannot find and Download log 404s on | UX | MEDIUM | P2 | OPEN | apps/web | FIX_NOW |
 | [BUG-3897](../../docs/bugs/BUG-3897-public-signature-link-tokens-are-stored-verbatim-in-errorlog.md) | Public signature-link tokens are stored verbatim in ErrorLog.path and readable by monitoring.read holders | SECURITY | MEDIUM | P2 | OPEN | error-logs | FIX_NOW |
 | [BUG-3956](../../docs/bugs/BUG-3956-changing-partner-status-from-the-record-header-always-fails-.md) | Changing Partner status from the record header always fails and would bypass the partner state machine | STATE_MACHINE | MEDIUM | P2 | FIXED | partners, apps/admin | FIX_NOW |
+| [BUG-3982](../../docs/bugs/BUG-3982-partner-commissions-accept-any-status-jump-and-unverified-li.md) | Partner commissions accept any status jump and unverified links, and agreements change when the partner default commission is edited | DATA_INTEGRITY | MEDIUM | P2 | FIXED | partners, contracts | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -681,6 +683,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0200](../../docs/backlog/items/ITEM-0200-agreements-have-no-end-to-end-test-coverage-and-partners-lea.md) | Agreements have no end-to-end test coverage and partners/leads have no e2e lifecycle suite | TEST_GAP | MEDIUM | P2 | DONE | api:contracts, api:partners, api:leads | DONE |
 | [ITEM-0211](../../docs/backlog/items/ITEM-0211-safepay-renewal-invoices-are-issued-but-never-emailed-to-the.md) | Safepay renewal invoices are issued but never emailed to the tenant | FOLLOW_UP | MEDIUM | P2 | DEFERRED | api:billing | DEFER |
 | [ITEM-0226](../../docs/backlog/items/ITEM-0226-foreign-key-violations-from-the-prisma-7-pg-adapter-carry-no.md) | Foreign-key violations from the Prisma 7 pg adapter carry no P2003 code and surface as generic errors | TECH_DEBT | MEDIUM | P2 | READY | common, platform-runtime | PLAN_REQUIRED |
+| [ITEM-0228](../../docs/backlog/items/ITEM-0228-onboarding-and-activation-links-are-stored-verbatim-in-platf.md) | Onboarding and activation links are stored verbatim in PlatformOutboundEmail.htmlBody for retries | SECURITY | MEDIUM | P2 | READY | platform-communications, partner-experience | PLAN_REQUIRED |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |
@@ -823,6 +826,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0223](../../docs/backlog/items/ITEM-0223-decide-which-lifecycle-events-the-platform-must-emit-to-the-.md) | Decide which lifecycle events the platform must emit to the Events stream | PRODUCT_DECISION | — | P2 | PRODUCT_DECISION | platform-events | PRODUCT_DECISION |
 | [ITEM-0224](../../docs/backlog/items/ITEM-0224-decide-whether-business-rule-rejections-should-be-recorded-b.md) | Decide whether business-rule rejections should be recorded but not queued as incidents | PRODUCT_DECISION | — | P2 | PRODUCT_DECISION | error-logs | PRODUCT_DECISION |
 | [ITEM-0225](../../docs/backlog/items/ITEM-0225-re-verify-historical-frontend-dto-contract-drift-400s-agains.md) | Re-verify historical frontend/DTO contract-drift 400s against current DTOs before resolving them | FOLLOW_UP | — | P2 | READY | error-logs | PLAN_REQUIRED |
+| [ITEM-0227](../../docs/backlog/items/ITEM-0227-automatic-commission-accrual-from-collected-invoices.md) | Automatic commission accrual from collected invoices | PRODUCT_DECISION | — | P2 | PRODUCT_DECISION | partners, billing | PRODUCT_DECISION |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |
 | [ITEM-0114](../../docs/backlog/items/ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-.md) | The workspace shell states the tenant's identity four times and its purpose twice | UX | — | P3 | DONE | views, apps/web | DONE |

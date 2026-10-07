@@ -19,5 +19,11 @@
     "terminate-agreement",
     "void-agreement"
   ],
-  "plans": []
+  "plans": [],
+  "commissions": [
+    "approve-commission",
+    "mark-commission-paid",
+    "mark-commission-payable",
+    "void-commission"
+  ]
 }

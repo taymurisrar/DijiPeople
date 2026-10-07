@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 757,
+    "total_records": 761,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -23654,6 +23654,92 @@
       "verification_result": "NOT_VERIFIED"
     },
     {
+      "record_id": "BUG-3981",
+      "type": "SECURITY",
+      "title": "Partner onboarding invitation resends never arrive, kill the old link, return the raw token and report failed sends as success",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3981-partner-onboarding-invitation-resends-never-arrive-kill-the-.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "898a6ac3",
+        "created_at": "2026-10-07",
+        "updated_at": "2026-10-07",
+        "resolved_at": "2026-10-08"
+      },
+      "affected_modules": [
+        "partner-experience"
+      ],
+      "regressions": [
+        "REG-653"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-051"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "partner-experience"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3981-partner-onboarding-invitation-resends-never-arrive-kill-the-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3982",
+      "type": "DATA_INTEGRITY",
+      "title": "Partner commissions accept any status jump and unverified links, and agreements change when the partner default commission is edited",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3982-partner-commissions-accept-any-status-jump-and-unverified-li.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "898a6ac3",
+        "created_at": "2026-10-07",
+        "updated_at": "2026-10-07",
+        "resolved_at": "2026-10-08"
+      },
+      "affected_modules": [
+        "partners",
+        "contracts"
+      ],
+      "regressions": [
+        "REG-654"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-052"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "partners",
+          "contracts"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3982-partner-commissions-accept-any-status-jump-and-unverified-li.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
       "record_id": "ITEM-0001",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md",
@@ -33271,6 +33357,86 @@
           "platform-runtime"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0226-foreign-key-violations-from-the-prisma-7-pg-adapter-carry-no.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0227",
+      "type": "PRODUCT_DECISION",
+      "title": "Automatic commission accrual from collected invoices",
+      "severity": "",
+      "priority": "P2",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0227-automatic-commission-accrual-from-collected-invoices.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-10-07",
+        "updated_at": "2026-10-07",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "partners",
+        "billing"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "partners",
+          "billing"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0227-automatic-commission-accrual-from-collected-invoices.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0228",
+      "type": "SECURITY",
+      "title": "Onboarding and activation links are stored verbatim in PlatformOutboundEmail.htmlBody for retries",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "READY",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0228-onboarding-and-activation-links-are-stored-verbatim-in-platf.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-10-07",
+        "updated_at": "2026-10-07",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "platform-communications",
+        "partner-experience"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "platform-communications",
+          "partner-experience"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0228-onboarding-and-activation-links-are-stored-verbatim-in-platf.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

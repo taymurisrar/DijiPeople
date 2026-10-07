@@ -847,6 +847,36 @@ export const ERROR_CATALOG = {
     'validation',
     'Use Suspend, Deactivate or Reactivate instead.',
   ),
+  /*
+   * ADR-0026 D3 — partner commissions are operator-created ledger entries
+   * (EXECPLAN-0055 WP-06): their status moves Pending → Approved → Payable →
+   * Paid (Void until paid), a linked lead/customer/invoice must belong to the
+   * partner, and an entry needs a rate of its own or a configured default.
+   */
+  PARTNER_COMMISSION_TRANSITION_NOT_ALLOWED: entry(
+    409,
+    'Commission status change not allowed',
+    'A commission moves Pending → Approved → Payable → Paid, and can be voided until it is paid.',
+    'warning',
+    'validation',
+    'Refresh the commission to see the actions available now.',
+  ),
+  PARTNER_COMMISSION_LINK_INVALID: entry(
+    400,
+    'Linked record does not belong to this partner',
+    'A commission can cite only a lead, customer or invoice that exists and is attributed to the same partner.',
+    'warning',
+    'validation',
+    'Choose a record this partner referred, or leave the link empty.',
+  ),
+  PARTNER_COMMISSION_RATE_REQUIRED: entry(
+    400,
+    'Commission rate required',
+    'This partner has no default commission configured, so the commission needs a rate of its own.',
+    'warning',
+    'validation',
+    'Enter a commission rate, or set the partner’s default commission first.',
+  ),
   PLATFORM_CURRENCY_NOT_ENABLED: entry(
     400,
     'Currency not enabled',
@@ -1459,6 +1489,95 @@ export const ERROR_CATALOG = {
     'A recipient cannot receive this report because they lack access to its data.',
     'warning',
     'access',
+  ),
+  /*
+   * EXECPLAN-0055 WP-05 (D6) — the partner onboarding invitation. Each refusal
+   * names its own cause, because the operator's next step differs: reactivate,
+   * fix the contact email, wait, or check the platform email provider.
+   */
+  PARTNER_ALREADY_ONBOARDED: entry(
+    409,
+    'Partner already onboarded',
+    'This partner has already submitted onboarding or been activated, so an onboarding link is not needed.',
+    'warning',
+    'validation',
+  ),
+  PARTNER_INVITATION_NOT_ALLOWED: entry(
+    409,
+    'Onboarding link not available',
+    'An onboarding link cannot be sent to a partner that is suspended, inactive, terminated or rejected.',
+    'warning',
+    'validation',
+    'Reactivate the partner first if it should continue.',
+  ),
+  PARTNER_ONBOARDING_AGREEMENT_REQUIRED: entry(
+    400,
+    'Agreement not executed',
+    'The required partner agreement must be fully executed before the onboarding link is sent.',
+    'warning',
+    'validation',
+  ),
+  PARTNER_ONBOARDING_CONTACT_MISSING: entry(
+    400,
+    'No onboarding contact email',
+    'The partner has no contact email to send the onboarding link to.',
+    'warning',
+    'validation',
+    'Add the partner’s email address, then send the link again.',
+  ),
+  PARTNER_ONBOARDING_CONTACT_INVALID: entry(
+    400,
+    'Invalid onboarding contact email',
+    'The partner’s contact email is not a valid email address.',
+    'warning',
+    'validation',
+    'Correct the partner’s email address, then send the link again.',
+  ),
+  PARTNER_INVITATION_COOLDOWN: entry(
+    429,
+    'Onboarding link sent recently',
+    'An onboarding link was sent to this partner moments ago.',
+    'warning',
+    'validation',
+    'Wait a minute before sending another link.',
+    true,
+  ),
+  PARTNER_INVITATION_DELIVERY_FAILED: entry(
+    502,
+    'Onboarding email not delivered',
+    'The onboarding email could not be delivered by the platform email provider. The partner was not marked as invited.',
+    'error',
+    'notification',
+    'Check the platform email settings, then send the link again.',
+    true,
+  ),
+  /*
+   * The public side of the same link. An unknown, replaced and never-issued
+   * link read identically, so the page reveals nothing about which partners
+   * exist; expired and closed only ever reach someone holding a real link.
+   */
+  PARTNER_ONBOARDING_LINK_INVALID: entry(
+    404,
+    'Onboarding link not valid',
+    'This onboarding link is not valid. It may have been replaced by a newer link.',
+    'warning',
+    'validation',
+    'Use the most recent onboarding email, or ask the DijiPeople partner team for a new link.',
+  ),
+  PARTNER_ONBOARDING_LINK_EXPIRED: entry(
+    410,
+    'Onboarding link expired',
+    'This onboarding link has expired.',
+    'warning',
+    'validation',
+    'Ask the DijiPeople partner team to send a new link.',
+  ),
+  PARTNER_ONBOARDING_CLOSED: entry(
+    409,
+    'Onboarding already decided',
+    'This onboarding application has already been approved or rejected, so the link no longer accepts changes.',
+    'warning',
+    'validation',
   ),
 } as const satisfies Record<string, ErrorCatalogEntry>;
 

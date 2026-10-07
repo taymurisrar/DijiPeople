@@ -18,8 +18,16 @@ import {
   PartnerType,
   Prisma,
 } from '@prisma/client';
+import {
+  canApplyPartnerAction,
+  PARTNER_LIFECYCLE_ACTIONS,
+  PARTNER_ONBOARDED_STATUSES,
+} from '@repo/config';
 import * as bcrypt from 'bcryptjs';
+import { isEmail } from 'class-validator';
 import { createHash, randomBytes } from 'crypto';
+import { AUDIT_ACTIONS } from '../../common/constants/audit-actions';
+import { AppError } from '../../common/errors/app-error';
 import { buildPublicSiteUrl } from '../../common/config/public-site-url.config';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -41,6 +49,7 @@ import {
 } from '../partners/partner-duplicate-detection';
 import {
   assertPartnerNotLive,
+  partnerStatusLabel,
   partnerTransition,
 } from '../partners/partner-lifecycle';
 import {
@@ -533,11 +542,34 @@ export class PartnerExperienceService {
     return rejected;
   }
 
+  /**
+   * Send — or resend — the partner onboarding link (EXECPLAN-0055 WP-05, D6).
+   *
+   * The recipient is the partner's onboarding contact: `Partner.email`, the
+   * primary contact the agreement was signed with. No portal user exists yet
+   * at this stage (activation creates it), so there is no other candidate.
+   *
+   * Each send issues a fresh 32-byte token and stores only its SHA-256 hash on
+   * the open application, which revokes the previous link. The email's
+   * idempotency key carries that hash: without it every resend produced the
+   * same key, the outbox answered "already SENT", and the partner received
+   * nothing while the link they already held had just been revoked.
+   *
+   * The token is never returned, logged or audited. It exists only in the
+   * emailed link (and so in the outbound email row the retry worker reads).
+   */
   async sendOnboardingInvitation(user: AuthenticatedUser, partnerId: string) {
     this.assertWrite(user);
     const partner = await this.prisma.partner.findUnique({
       where: { id: partnerId },
-      include: { agreements: true },
+      include: {
+        agreements: true,
+        onboardingApplications: {
+          where: { status: { notIn: ['APPROVED', 'REJECTED'] } },
+          orderBy: { updatedAt: 'desc' },
+          take: 1,
+        },
+      },
     });
     if (!partner) throw new NotFoundException('Partner was not found.');
     const settings = await this.setting('partner-settings');
@@ -559,10 +591,25 @@ export class PartnerExperienceService {
             ),
         )
       : [];
+    const current = partner.onboardingApplications[0] ?? null;
+    assertOnboardingInvitationAllowed(partner.status, current?.status ?? null, {
+      agreementsRequired,
+      missingAgreements: missing,
+    });
+    const recipient = onboardingContactEmail(partner.email);
     if (missing.length)
-      throw new BadRequestException(
-        `Partner onboarding is blocked until these agreements are fully executed: ${missing.join(', ')}.`,
+      throw new AppError('PARTNER_ONBOARDING_AGREEMENT_REQUIRED', {
+        message: `Partner onboarding is blocked until these agreements are fully executed: ${missing.join(', ')}.`,
+      });
+    const now = new Date();
+    const sinceLastIssue = current
+      ? now.getTime() - current.updatedAt.getTime()
+      : Number.POSITIVE_INFINITY;
+    if (sinceLastIssue < ONBOARDING_INVITATION_COOLDOWN_MS)
+      throw invitationCooldown(
+        ONBOARDING_INVITATION_COOLDOWN_MS - sinceLastIssue,
       );
+
     const expiryDays = boundedNumber(
       settings.onboardingLinkExpiryDays,
       14,
@@ -570,32 +617,140 @@ export class PartnerExperienceService {
       90,
     );
     const token = randomBytes(32).toString('base64url');
-    const expiresAt = addDays(new Date(), expiryDays);
+    const tokenHash = sha256(token);
+    const expiresAt = addDays(now, expiryDays);
+    // Built before anything is written: a missing production URL must fail
+    // the request, not leave a rotated token behind it.
+    const onboardingUrl = buildPublicSiteUrl(`/partners/onboarding/${token}`);
+    const resend = Boolean(current);
+
     const application = await this.prisma.$transaction(async (tx) => {
-      const current = await tx.partnerOnboardingApplication.findFirst({
-        where: { partnerId, status: { notIn: ['APPROVED', 'REJECTED'] } },
-        orderBy: { updatedAt: 'desc' },
+      /*
+       * Optimistic claims on the partner and on the open application. Two
+       * presses of the button read the same `updatedAt`; only one may rotate
+       * the token, or the second would revoke the link the first is about to
+       * deliver. The loser is told to wait, exactly as the cooldown would.
+       */
+      const claimed = await tx.partner.updateMany({
+        where: {
+          id: partnerId,
+          status: partner.status,
+          updatedAt: partner.updatedAt,
+        },
+        data: { updatedAt: now },
       });
-      const item = current
-        ? await tx.partnerOnboardingApplication.update({
-            where: { id: current.id },
-            data: {
-              invitationTokenHash: sha256(token),
-              tokenExpiresAt: expiresAt,
-              status: PartnerOnboardingStatus.INVITED,
-            },
-          })
-        : await tx.partnerOnboardingApplication.create({
-            data: {
-              partnerId,
-              invitationTokenHash: sha256(token),
-              tokenExpiresAt: expiresAt,
-              status: PartnerOnboardingStatus.INVITED,
-            },
-          });
-      await tx.partner.update({
-        where: { id: partnerId },
-        data: { status: PartnerStatus.ONBOARDING_PENDING },
+      if (claimed.count !== 1)
+        throw invitationCooldown(ONBOARDING_INVITATION_COOLDOWN_MS);
+      if (current) {
+        const rotated = await tx.partnerOnboardingApplication.updateMany({
+          where: { id: current.id, updatedAt: current.updatedAt },
+          data: {
+            invitationTokenHash: tokenHash,
+            tokenExpiresAt: expiresAt,
+            // A resend after "changes requested" keeps that status; the
+            // reviewer's request still stands and the partner still owes it.
+            status: KEEP_ON_RESEND.has(current.status)
+              ? current.status
+              : PartnerOnboardingStatus.INVITED,
+          },
+        });
+        if (rotated.count !== 1)
+          throw invitationCooldown(ONBOARDING_INVITATION_COOLDOWN_MS);
+        return { id: current.id };
+      }
+      return tx.partnerOnboardingApplication.create({
+        data: {
+          partnerId,
+          invitationTokenHash: tokenHash,
+          tokenExpiresAt: expiresAt,
+          status: PartnerOnboardingStatus.INVITED,
+        },
+        select: { id: true },
+      });
+    });
+
+    let delivery: Awaited<
+      ReturnType<PlatformCommunicationsService['sendEmail']>
+    >;
+    try {
+      delivery = await this.communications.sendEmail({
+        eventCode: 'PARTNER_ONBOARDING_INVITATION',
+        recipient,
+        subject: 'Complete your DijiPeople partner onboarding',
+        html: emailPage(
+          'Complete partner onboarding',
+          `Your required agreement is complete. Submit onboarding information within ${expiryDays} days.`,
+          { label: 'Complete partner onboarding', url: onboardingUrl },
+        ),
+        text: `Complete partner onboarding: ${onboardingUrl}`,
+        entityType: 'Partner',
+        entityId: partnerId,
+        requestedById: user.userId,
+        idempotencyKey: `partner-onboarding:${application.id}:${tokenHash}`,
+      });
+    } catch (error) {
+      await this.revokeUndeliveredInvitation(current, application.id, null);
+      throw error;
+    }
+
+    /*
+     * `sendEmail` never throws for a provider failure: it records FAILED or
+     * REJECTED and returns the row. That return value used to be ignored, so
+     * an undelivered invitation was reported to the operator as sent and the
+     * partner moved on to the invited state.
+     */
+    if (delivery.status !== 'SENT') {
+      await this.revokeUndeliveredInvitation(
+        current,
+        application.id,
+        delivery.id,
+      );
+      await this.prisma.partnerTimeline.create({
+        data: {
+          partnerId,
+          eventType: 'PARTNER_ONBOARDING_INVITATION_FAILED',
+          actorType: 'PLATFORM_USER',
+          actorId: user.userId,
+          message: `Onboarding link could not be delivered to ${recipient}.`,
+          metadata: {
+            applicationId: application.id,
+            deliveryStatus: delivery.status,
+            resend,
+          },
+        },
+      });
+      await this.auditService.log({
+        tenantId: 'platform',
+        actorUserId: user.userId,
+        action: AUDIT_ACTIONS.PARTNER_ONBOARDING_INVITATION_FAILED,
+        entityType: 'PartnerOnboardingApplication',
+        entityId: application.id,
+        beforeSnapshot: { partnerStatus: partner.status },
+        afterSnapshot: {
+          partnerId,
+          partnerStatus: partner.status,
+          recipient,
+          deliveryStatus: delivery.status,
+          errorMessage: delivery.errorMessage ?? null,
+          resend,
+        },
+      });
+      throw new AppError('PARTNER_INVITATION_DELIVERY_FAILED', {
+        message: `The onboarding email to ${recipient} could not be delivered${delivery.errorMessage ? `: ${delivery.errorMessage}` : '.'} The partner was not marked as invited${resend ? ', and the previous link still works' : ''}.`,
+      });
+    }
+
+    const rule = PARTNER_LIFECYCLE_ACTIONS['send-onboarding-link'];
+    const nextStatus =
+      partner.status === PartnerStatus.ONBOARDING_IN_PROGRESS
+        ? partner.status
+        : (rule.to as PartnerStatus);
+    await this.prisma.$transaction(async (tx) => {
+      // Conditional: a partner suspended while the email was in flight keeps
+      // the status it was given rather than being moved back into onboarding.
+      await tx.partner.updateMany({
+        where: { id: partnerId, status: partner.status },
+        data: { status: nextStatus },
       });
       await tx.partnerTimeline.create({
         data: {
@@ -603,55 +758,92 @@ export class PartnerExperienceService {
           eventType: 'PARTNER_ONBOARDING_INVITED',
           actorType: 'PLATFORM_USER',
           actorId: user.userId,
-          message:
-            'Partner onboarding invitation was sent after agreement requirements were verified.',
+          message: resend
+            ? `Onboarding link was resent to ${recipient}; the previous link no longer works.`
+            : `Onboarding link was sent to ${recipient} after agreement requirements were verified.`,
           metadata: {
-            applicationId: item.id,
+            applicationId: application.id,
+            recipient,
+            expiresAt: expiresAt.toISOString(),
+            resend,
             requiredAgreementTypes: requiredTypes,
           },
         },
       });
-      return item;
-    });
-    const onboardingUrl = buildPublicSiteUrl(`/partners/onboarding/${token}`);
-    await this.communications.sendEmail({
-      eventCode: 'PARTNER_ONBOARDING_INVITATION',
-      recipient: partner.email,
-      subject: 'Complete your DijiPeople partner onboarding',
-      html: emailPage(
-        'Complete partner onboarding',
-        `Your required agreement is complete. Submit onboarding information within ${expiryDays} days.`,
-        { label: 'Complete partner onboarding', url: onboardingUrl },
-      ),
-      text: `Complete partner onboarding: ${onboardingUrl}`,
-      entityType: 'Partner',
-      entityId: partnerId,
-      requestedById: user.userId,
     });
     await this.auditService.log({
       tenantId: 'platform',
       actorUserId: user.userId,
-      action: 'PARTNER_ONBOARDING_INVITATION_SENT',
+      action: AUDIT_ACTIONS.PARTNER_ONBOARDING_INVITATION_SENT,
       entityType: 'PartnerOnboardingApplication',
       entityId: application.id,
+      beforeSnapshot: {
+        partnerStatus: partner.status,
+        applicationStatus: current?.status ?? null,
+      },
       afterSnapshot: {
         partnerId,
+        partnerStatus: nextStatus,
+        recipient,
         expiresAt,
+        resend,
         requiredAgreementTypes: requiredTypes,
       },
     });
     return {
       applicationId: application.id,
-      onboardingToken: token,
-      onboardingPath: `/partners/onboarding/${token}`,
+      sentTo: recipient,
       expiresAt,
+      resend,
+      partnerStatus: nextStatus,
+      message: `Onboarding link ${resend ? 'resent' : 'sent'} to ${recipient}. It expires on ${formatInvitationDate(expiresAt)}.`,
     };
+  }
+
+  /*
+   * Undo the token rotation of an invitation that was never delivered. The
+   * partner keeps the link they already had (if any), the cooldown does not
+   * start, and the failed outbound row is taken off the retry schedule — its
+   * link is now dead, so a later automatic retry would deliver a link that
+   * cannot work.
+   */
+  private async revokeUndeliveredInvitation(
+    previous: {
+      id: string;
+      invitationTokenHash: string;
+      tokenExpiresAt: Date;
+      status: PartnerOnboardingStatus;
+      updatedAt: Date;
+    } | null,
+    applicationId: string,
+    deliveryId: string | null,
+  ) {
+    await this.prisma.$transaction(async (tx) => {
+      if (previous)
+        await tx.partnerOnboardingApplication.update({
+          where: { id: previous.id },
+          data: {
+            invitationTokenHash: previous.invitationTokenHash,
+            tokenExpiresAt: previous.tokenExpiresAt,
+            status: previous.status,
+            updatedAt: previous.updatedAt,
+          },
+        });
+      else
+        await tx.partnerOnboardingApplication.deleteMany({
+          where: { id: applicationId, submittedAt: null },
+        });
+      if (deliveryId)
+        await tx.platformOutboundEmail.updateMany({
+          where: { id: deliveryId, status: 'FAILED' },
+          data: { nextRetryAt: null },
+        });
+    });
   }
 
   async getOnboarding(token: string) {
     const application = await this.findOnboarding(token);
-    if (application.tokenExpiresAt < new Date())
-      throw new BadRequestException('Onboarding link has expired.');
+    assertOnboardingLinkUsable(application);
     return {
       id: application.id,
       status: application.status,
@@ -671,15 +863,7 @@ export class PartnerExperienceService {
     ipAddress?: string,
   ) {
     const application = await this.findOnboarding(token);
-    if (application.tokenExpiresAt < new Date())
-      throw new BadRequestException('Onboarding link has expired.');
-    if (
-      new Set<PartnerOnboardingStatus>([
-        PartnerOnboardingStatus.APPROVED,
-        PartnerOnboardingStatus.REJECTED,
-      ]).has(application.status)
-    )
-      throw new BadRequestException('This onboarding application is closed.');
+    assertOnboardingLinkUsable(application);
     const settings = await this.setting('partner-settings');
     validatePartnerOnboardingData(dto.data, settings, application.partner.type);
     /*
@@ -997,11 +1181,16 @@ export class PartnerExperienceService {
       requestedById: user.userId,
       idempotencyKey: `partner-activation:${portalUser.id}:${portalUser.invitationTokenHash}`,
     });
+    /*
+     * EXECPLAN-0055 WP-05 — the raw invitation token is no longer returned. It
+     * is a credential for the partner's portal account; the operator's console
+     * never needed it, and returning it put it in browser history and proxies.
+     */
     return {
       partnerId,
       portalUserId: portalUser.id,
-      invitationToken,
-      activationPath: `/partners/activate/${invitationToken}`,
+      sentTo: partner.email,
+      expiresAt: portalUser.invitationExpiresAt,
     };
   }
 
@@ -1504,10 +1693,12 @@ export class PartnerExperienceService {
           submissions: { orderBy: { version: 'desc' }, take: 1 },
         },
       });
+    // Unknown, replaced (resent) and never-issued links are indistinguishable.
     if (!application)
-      throw new NotFoundException(
-        'Partner onboarding invitation was not found.',
-      );
+      throw new AppError('PARTNER_ONBOARDING_LINK_INVALID', {
+        message:
+          'This onboarding link is not valid. It may have been replaced by a newer link — use the most recent onboarding email.',
+      });
     return application;
   }
 
@@ -1596,6 +1787,132 @@ function readRequiredAgreementTypes(
       )
     : [];
   return values.length ? [...new Set(values)] : fallback;
+}
+
+/*
+ * Why 60 seconds: every send rotates the token, so a second press while the
+ * first email is still in flight revokes the link that email carries. A minute
+ * absorbs double-clicks and impatient retries without holding up an operator
+ * who has just corrected a mistyped contact email and wants to resend.
+ */
+const ONBOARDING_INVITATION_COOLDOWN_MS = 60_000;
+
+/** Application statuses a resend preserves instead of resetting to INVITED. */
+const KEEP_ON_RESEND = new Set<PartnerOnboardingStatus>([
+  PartnerOnboardingStatus.IN_PROGRESS,
+  PartnerOnboardingStatus.CHANGES_REQUESTED,
+]);
+
+/** An application in these statuses is waiting on a reviewer, not the partner. */
+const AWAITING_REVIEW = new Set<PartnerOnboardingStatus>([
+  PartnerOnboardingStatus.SUBMITTED,
+  PartnerOnboardingStatus.UNDER_REVIEW,
+]);
+
+const INVITATION_CLOSED_STATUSES = new Set<string>([
+  'SUSPENDED',
+  'INACTIVE',
+  'TERMINATED',
+  'REJECTED',
+]);
+
+/*
+ * The contracting statuses before the agreement is executed. The shared table
+ * does not offer the link here, because the default configuration requires an
+ * executed agreement. With `agreementRequiredForOnboarding: false` (a platform
+ * setting, not exposed in the console) the link may go out from these too.
+ */
+const PRE_AGREEMENT_STATUSES = new Set<string>([
+  'APPROVED_AWAITING_AGREEMENT',
+  'AGREEMENT_DRAFTING',
+  'INTERNAL_APPROVAL',
+  'AGREEMENT_IN_PROGRESS',
+  'AWAITING_SIGNATURE',
+]);
+
+/**
+ * Whether the onboarding link may be sent from `status`, refused with the
+ * domain code that names the reason. Exported for its spec.
+ */
+export function assertOnboardingInvitationAllowed(
+  status: PartnerStatus,
+  applicationStatus: PartnerOnboardingStatus | null,
+  agreements: { agreementsRequired: boolean; missingAgreements: string[] },
+): void {
+  const label = partnerStatusLabel(status);
+  if (
+    (PARTNER_ONBOARDED_STATUSES as readonly string[]).includes(status) ||
+    (applicationStatus && AWAITING_REVIEW.has(applicationStatus))
+  )
+    throw new AppError('PARTNER_ALREADY_ONBOARDED', {
+      message: `An onboarding link is not needed: the partner is ${label} and has already submitted onboarding.`,
+    });
+  if (INVITATION_CLOSED_STATUSES.has(status))
+    throw new AppError('PARTNER_INVITATION_NOT_ALLOWED', {
+      message: `An onboarding link cannot be sent while the partner is ${label}.`,
+    });
+  if (canApplyPartnerAction('send-onboarding-link', status)) return;
+  if (PRE_AGREEMENT_STATUSES.has(status)) {
+    if (!agreements.agreementsRequired) return;
+    throw new AppError('PARTNER_ONBOARDING_AGREEMENT_REQUIRED', {
+      message: `Partner onboarding is blocked until these agreements are fully executed: ${agreements.missingAgreements.join(', ') || 'the partner agreement'}.`,
+    });
+  }
+  throw new AppError('PARTNER_ACTION_NOT_AVAILABLE', {
+    message: `The onboarding link is available once the partner agreement is executed. The partner is ${label}.`,
+  });
+}
+
+/** The onboarding contact's address, normalised, or a refusal naming why not. */
+export function onboardingContactEmail(email: string | null | undefined) {
+  const normalized = (email ?? '').trim().toLowerCase();
+  if (!normalized)
+    throw new AppError('PARTNER_ONBOARDING_CONTACT_MISSING', {
+      message:
+        'The partner has no contact email to send the onboarding link to. Add one, then send the link again.',
+    });
+  if (!isEmail(normalized))
+    throw new AppError('PARTNER_ONBOARDING_CONTACT_INVALID', {
+      message: `The partner's contact email "${normalized}" is not a valid email address. Correct it, then send the link again.`,
+    });
+  return normalized;
+}
+
+function invitationCooldown(remainingMs: number) {
+  const seconds = Math.max(1, Math.ceil(remainingMs / 1000));
+  return new AppError('PARTNER_INVITATION_COOLDOWN', {
+    message: `An onboarding link was sent to this partner moments ago. Wait ${seconds} seconds before sending another.`,
+    details: { retryAfterSeconds: seconds },
+  });
+}
+
+/** Refuse a link whose application is decided or whose token has expired. */
+function assertOnboardingLinkUsable(application: {
+  status: PartnerOnboardingStatus;
+  tokenExpiresAt: Date;
+}) {
+  if (
+    application.status === PartnerOnboardingStatus.APPROVED ||
+    application.status === PartnerOnboardingStatus.REJECTED
+  )
+    throw new AppError('PARTNER_ONBOARDING_CLOSED', {
+      message:
+        'This onboarding application has already been decided, so the link no longer accepts changes.',
+    });
+  if (application.tokenExpiresAt < new Date())
+    throw new AppError('PARTNER_ONBOARDING_LINK_EXPIRED', {
+      message:
+        'This onboarding link has expired. Ask the DijiPeople partner team to send a new link.',
+    });
+}
+
+function formatInvitationDate(date: Date) {
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(date);
 }
 
 function addDays(date: Date, days: number) {

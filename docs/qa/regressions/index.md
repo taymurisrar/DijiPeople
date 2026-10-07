@@ -7020,3 +7020,31 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — six mutants (create honouring status, activate from-states, qualify guard, header write, signing guard) are each killed. |
 | **Fixed** | 2026-10-08, branch `agent/partner-module-completion` |
 | **Active** | yes |
+
+### REG-653 — Partner onboarding invitations resent nothing and exposed tokens
+
+| | |
+|---|---|
+| **Bug class** | `silent-degradation` |
+| **Module** | `services/api/src/modules/partner-experience` |
+| **Bug record** | BUG-3981 |
+| **Root cause** | The invitation email had no token-aware idempotency key so resends were deduplicated after the token rotated, failures were reported as success, the token was returned to the UI and any state could invite. Now keyed on the token hash, state-guarded by the shared lifecycle table, failure rolls back, no token leaves the server, resends are rate-limited. |
+| **Regression test** | `services/api/src/modules/partner-experience/partner-onboarding-invitation.spec.ts` and `services/api/test/partner-onboarding-invitation.e2e-spec.ts`. |
+| **Scenario** | QA-PLATFORM-051 — Partner onboarding invitation sends, resends and fails safely. |
+| **Fails without the fix** | Yes — removing the token-hash key, ignoring delivery status or the closed-state refusal each fails cases. |
+| **Fixed** | 2026-10-08, branch `agent/partner-module-completion` |
+| **Active** | yes |
+
+### REG-654 — Partner commissions and agreement terms could be rewritten
+
+| | |
+|---|---|
+| **Bug class** | `silent-degradation` |
+| **Module** | `services/api/src/modules/partners` |
+| **Bug record** | BUG-3982 |
+| **Root cause** | Commissions were editable rows with any status jump and unverified links, and agreements read the partner default at render time so later edits changed agreed terms. Commissions are now a ledger with an enforced lifecycle and server-computed amounts; agreements snapshot commission and currency at creation. |
+| **Regression test** | `services/api/src/modules/partners/partner-commission-lifecycle.spec.ts` and `services/api/src/modules/partners/partner-commissions.service.spec.ts` and `services/api/src/modules/contracts/contracts.commission-snapshot.spec.ts`. |
+| **Scenario** | QA-PLATFORM-052 — Partner commissions follow their ledger lifecycle and agreements keep their snapshot. |
+| **Fails without the fix** | Yes — reverting the snapshot write fails 2 cases; letting PAID be re-approved fails 2. |
+| **Fixed** | 2026-10-08, branch `agent/partner-module-completion` |
+| **Active** | yes |

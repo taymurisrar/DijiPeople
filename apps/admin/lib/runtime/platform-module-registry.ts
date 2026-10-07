@@ -388,7 +388,7 @@ const DELETE_REFUSALS: Partial<Record<PlatformModuleKey, string>> = {
   payments:
     "A payment is a record of money moving, reconciled against Stripe. Refund it instead — deleting it would leave the reconciliation permanently short.",
   commissions:
-    "A commission is what a partner is owed or was paid. Adjust or reverse it instead; deleting one removes the explanation for a payment that already happened.",
+    "A commission is what a partner is owed or was paid. Void it instead (until it is paid); deleting one removes the explanation for a payment that already happened.",
   "monitoring-incidents":
     "Incidents are the support trail for what customers experienced. Resolve them instead — resolved incidents leave the default queue and stay searchable by reference.",
   dashboard: "The dashboard is not a list of records.",
@@ -414,7 +414,8 @@ const MODULE_CAPABILITIES: Record<
   plans: { create: false, update: true, delete: false },
   invoices: { create: false, update: false, delete: false },
   payments: { create: false, update: false, delete: false },
-  commissions: { create: false, update: false, delete: false },
+  // Created as a ledger entry, never edited: corrections are Void + a new one.
+  commissions: { create: true, update: false, delete: false },
   "monitoring-incidents": { create: false, update: false, delete: false },
 };
 
@@ -1098,8 +1099,12 @@ const FORM_EXCLUDED_FIELDS: Partial<Record<PlatformModuleKey, string[]>> = {
 const RECORD_ORIGINS: Partial<Record<PlatformModuleKey, string>> = {
   invoices: "Invoices are raised automatically when a subscription bills.",
   payments: "Payments appear when a customer pays an invoice through Stripe.",
-  commissions:
-    "Commissions are calculated when a partner-referred subscription bills.",
+  /*
+   * No `commissions` entry. It said commissions were "calculated when a
+   * partner-referred subscription bills", which nothing does (ADR-0026 D3;
+   * accrual is ITEM-0227). They are operator-created now, so the module can
+   * create and the standard "create one" wording applies.
+   */
   subscriptions:
     "Subscriptions are created by checkout, or from a customer onboarding.",
   tenants:
@@ -1800,11 +1805,18 @@ const definitions: PlatformModuleDefinition[] = [
       },
       {
         key: "send-onboarding-link",
+        /*
+         * One label for first send and resend: a command's label is static.
+         * The API's notice says which it was ("Onboarding link resent to …,
+         * expires …"), and a resend revokes the previous link.
+         */
         label: "Send onboarding link",
         placement: "primary",
         scope: "record",
         selection: "none",
-        states: ["AGREEMENT_EXECUTED"],
+        // EXECPLAN-0055 WP-05: from agreement executed until onboarding is
+        // submitted, so a lost or expired link can be replaced.
+        states: partnerActionStates("send-onboarding-link"),
       },
       {
         key: "activate",
@@ -1935,10 +1947,25 @@ const definitions: PlatformModuleDefinition[] = [
         tab: "summary",
         module: "commissions",
         foreignKey: "partnerId",
+        /*
+         * Every column is a field the partner read returns per commission
+         * (`PartnersService.describeCommissions`): `sourceLabel` names the
+         * lead, customer or invoice the entry cites, and the amounts render in
+         * the entry's own `currencyCode`.
+         */
         columns: [
-          col("commissionNumber", "Commission", 170),
+          col("commissionNumber", "Commission", 170, "text", {
+            route: "/commissions",
+            idField: "id",
+          }),
+          col("sourceLabel", "Source", 200),
+          col("commissionRate", "Rate", 100, "percentage"),
+          col("baseAmount", "Commissionable amount", 170, "currency"),
+          col("commissionAmount", "Commission", 140, "currency"),
+          col("currencyCode", "Currency", 100),
           col("status", "Status", 130, "status"),
-          col("commissionAmount", "Amount", 140, "currency"),
+          col("createdAt", "Created", 140, "date"),
+          col("paidAt", "Paid", 140, "date"),
         ],
       },
     ],
@@ -4017,23 +4044,101 @@ const definitions: PlatformModuleDefinition[] = [
       [
         col("commissionNumber", "Commission", 170),
         col("partner.displayName", "Partner", 210, "lookup"),
+        col("commissionRate", "Rate", 100, "percentage"),
         col("status", "Status", 130, "status"),
         col("commissionAmount", "Amount", 150, "currency"),
         col("dueAt", "Due", 140, "date"),
       ],
     ),
+    /*
+     * ADR-0026 D3. A commission's status moves only through these actions —
+     * Pending → Approved → Payable → Paid, Void until paid — which the API
+     * holds to the same machine (`partner-commission-lifecycle.ts`). The
+     * header status is read-only for the same reason the partner's is.
+     */
+    actions: [
+      ...READ_ONLY_ACTIONS,
+      {
+        key: "approve-commission",
+        label: "Approve",
+        scope: "record",
+        placement: "primary",
+        selection: "none",
+        states: ["PENDING"],
+      },
+      {
+        key: "mark-commission-payable",
+        label: "Mark payable",
+        scope: "record",
+        placement: "primary",
+        selection: "none",
+        states: ["APPROVED"],
+      },
+      {
+        key: "mark-commission-paid",
+        label: "Mark paid",
+        scope: "record",
+        placement: "primary",
+        selection: "none",
+        states: ["PAYABLE"],
+        confirmTitle: "Mark this commission as paid?",
+      },
+      {
+        key: "void-commission",
+        label: "Void",
+        scope: "record",
+        placement: "overflow",
+        selection: "none",
+        states: ["PENDING", "APPROVED", "PAYABLE"],
+        destructive: true,
+        reasonPrompt: {
+          title: "Void commission",
+          label: "Reason for voiding",
+        },
+      },
+    ],
     forms: form("commissions", [
-      field("commissionNumber", "Commission number", "text", "commission"),
-      field("partnerId", "Partner ID", "text", "commission"),
-      field("status", "Status", "text", "commission"),
-      field("baseAmount", "Base amount", "currency", "commercial"),
-      field("commissionRate", "Commission rate", "percentage", "commercial"),
-      field("commissionAmount", "Commission amount", "currency", "commercial"),
+      {
+        ...field("commissionNumber", "Commission number", "text", "commission"),
+        readOnly: true,
+      },
+      {
+        ...field("partnerId", "Partner", "lookup", "commission", true),
+        lookupPath: "/partners?pageSize=100",
+      },
+      { ...field("status", "Status", "text", "commission"), readOnly: true },
+      /*
+       * What the entry was recorded against. The API refuses a lead, customer
+       * or invoice this partner did not refer (ADR-0026 D3).
+       */
+      {
+        ...field("leadId", "Lead", "lookup", "commission"),
+        lookupPath: "/super-admin/leads?pageSize=100",
+      },
+      {
+        ...field("customerAccountId", "Customer", "lookup", "commission"),
+        lookupPath: "/super-admin/customers",
+      },
+      field("invoiceId", "Invoice ID", "text", "commission"),
+      {
+        ...field("baseAmount", "Commissionable amount", "currency", "commercial", true),
+        min: 0,
+      },
+      {
+        ...field("commissionRate", "Commission rate", "percentage", "commercial"),
+        min: 0,
+        max: 100,
+      },
+      {
+        ...field("commissionAmount", "Commission amount", "currency", "commercial"),
+        readOnly: true,
+      },
       // A code, like the two above — see the note on the partner declaration.
       currencyField("commercial"),
+      field("description", "Description", "longText", "commercial"),
       field("earnedAt", "Earned", "dateTime", "dates"),
       field("dueAt", "Due", "dateTime", "dates"),
-      field("paidAt", "Paid", "dateTime", "dates"),
+      { ...field("paidAt", "Paid", "dateTime", "dates"), readOnly: true },
     ]),
   }),
   define({

@@ -163,7 +163,7 @@ export class CreateContractDto {
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) contractValue?: number;
   @IsOptional()
   @Type(() => Number)
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   @Max(100)
   commissionPercentage?: number;
@@ -270,7 +270,7 @@ export class UpdateContractDto {
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) contractValue?: number;
   @IsOptional()
   @Type(() => Number)
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   @Max(100)
   commissionPercentage?: number;

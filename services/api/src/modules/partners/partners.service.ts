@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import {
   PartnerAccountStatus,
+  PartnerCommissionStatus,
   PartnerStatus,
   PartnerType,
   Prisma,
@@ -18,6 +19,17 @@ import { toDisplayString } from '../../common/utils/display-string';
 import { AuditService } from '../audit/audit.service';
 import { PlatformNumberingService } from '../../common/numbering/platform-numbering.service';
 import { assertCurrencyEnabled } from '../../common/reference-data/platform-enabled-currencies';
+import { AppError } from '../../common/errors/app-error';
+import {
+  assertCommissionLinksBelongToPartner,
+  commissionActionForTarget,
+  commissionSourceLabel,
+  commissionTransition,
+  computeCommissionAmount,
+  normalizeCommission,
+  resolveCommissionRate,
+  type PartnerCommissionActionKey,
+} from './partner-commission-lifecycle';
 import {
   assertNoPartnerDuplicate,
   findPartnerDuplicate,
@@ -273,7 +285,10 @@ export class PartnersService {
       },
     });
     if (!item) throw new NotFoundException('Partner was not found.');
-    return normalizePartner(item);
+    return normalizePartner({
+      ...item,
+      commissions: await this.describeCommissions(item.commissions),
+    });
   }
 
   async lifecycleAction(
@@ -567,48 +582,102 @@ export class PartnersService {
     return normalizePartner(updated);
   }
 
+  /**
+   * Record a commission against a partner (ADR-0026 D3; EXECPLAN-0055 WP-06).
+   *
+   * An operator-created ledger entry — nothing accrues these from billing.
+   * Every column is picked explicitly: the DTO used to be spread into the
+   * create, so whatever it gained reached the row. The rate defaults to the
+   * partner's configured default, the amount is computed here, the currency
+   * defaults to the partner's own, and a linked lead, customer or invoice must
+   * be one this partner referred.
+   */
   async createCommission(
     partnerId: string,
     dto: CreatePartnerCommissionDto,
     actorId?: string,
   ) {
-    const partner = await this.get(partnerId);
+    const partner = await this.prisma.partner.findUnique({
+      where: { id: partnerId },
+      select: {
+        id: true,
+        displayName: true,
+        currencyCode: true,
+        defaultCommissionRate: true,
+      },
+    });
+    if (!partner) throw new NotFoundException('Partner was not found.');
+    const rate = resolveCommissionRate(
+      dto.commissionRate,
+      partner.defaultCommissionRate,
+    );
+    const requestedCurrency = dto.currencyCode?.toUpperCase();
     // ADR-0026 D4: an explicitly chosen currency other than the partner's own.
-    if (dto.currencyCode && dto.currencyCode !== partner.currencyCode)
-      await assertCurrencyEnabled(this.prisma, dto.currencyCode);
-    const amount = Math.round(dto.baseAmount * dto.commissionRate) / 100;
-    const created = await this.prisma.partnerCommission.create({
-      data: {
-        partnerId,
-        ...dto,
-        currencyCode:
-          dto.currencyCode ??
-          partner.currencyCode ??
-          (await this.reportingCurrency()),
-        commissionNumber: createReference('COM'),
-        commissionAmount: amount,
-        earnedAt: dto.earnedAt ? new Date(dto.earnedAt) : null,
-        dueAt: dto.dueAt ? new Date(dto.dueAt) : null,
-      },
+    if (requestedCurrency && requestedCurrency !== partner.currencyCode)
+      await assertCurrencyEnabled(this.prisma, requestedCurrency);
+    await assertCommissionLinksBelongToPartner(this.prisma, partnerId, {
+      leadId: dto.leadId,
+      customerAccountId: dto.customerAccountId,
+      invoiceId: dto.invoiceId,
     });
-    await this.auditService.log({
-      tenantId: 'platform',
-      actorUserId: actorId ?? null,
-      action: 'PARTNER_COMMISSION_CREATED',
-      entityType: 'PartnerCommission',
-      entityId: created.id,
-      afterSnapshot: {
-        partnerId,
-        commissionNumber: created.commissionNumber,
-        baseAmount: Number(created.baseAmount),
-        commissionRate: Number(created.commissionRate),
-        commissionAmount: Number(created.commissionAmount),
-        currencyCode: created.currencyCode,
-        status: created.status,
-      },
+    const currencyCode =
+      requestedCurrency ??
+      partner.currencyCode ??
+      (await this.reportingCurrency());
+    const commissionAmount = computeCommissionAmount(dto.baseAmount, rate);
+    const created = await this.prisma.$transaction(async (tx) => {
+      const row = await tx.partnerCommission.create({
+        data: {
+          partnerId,
+          leadId: dto.leadId ?? null,
+          customerAccountId: dto.customerAccountId ?? null,
+          invoiceId: dto.invoiceId ?? null,
+          commissionNumber: createReference('COM'),
+          status: PartnerCommissionStatus.PENDING,
+          baseAmount: dto.baseAmount,
+          commissionRate: rate,
+          commissionAmount,
+          currencyCode,
+          description: dto.description?.trim() || null,
+          earnedAt: dto.earnedAt ? new Date(dto.earnedAt) : null,
+          dueAt: dto.dueAt ? new Date(dto.dueAt) : null,
+        },
+      });
+      await tx.partnerTimeline.create({
+        data: {
+          partnerId,
+          eventType: 'COMMISSION_CREATED',
+          actorType: 'PLATFORM_USER',
+          actorId,
+          message: `Commission ${row.commissionNumber} of ${currencyCode} ${commissionAmount.toFixed(2)} (${rate.toString()}% of ${currencyCode} ${Number(dto.baseAmount).toFixed(2)}) was recorded.`,
+          metadata: {
+            commissionId: row.id,
+            commissionNumber: row.commissionNumber,
+          },
+        },
+      });
+      await this.auditService.log(
+        {
+          tenantId: 'platform',
+          actorUserId: actorId ?? null,
+          action: 'PARTNER_COMMISSION_CREATED',
+          entityType: 'PartnerCommission',
+          entityId: row.id,
+          afterSnapshot: commissionAuditSnapshot(row),
+        },
+        tx,
+      );
+      return row;
     });
-    return created;
+    return normalizeCommission(created);
   }
+
+  /**
+   * `PATCH /partners/:id/commissions/:commissionId { status }` — kept for
+   * existing callers, and held to the same machine as the actions: the target
+   * status is translated to the one action that reaches it from the current
+   * status, or refused.
+   */
   async updateCommission(
     partnerId: string,
     id: string,
@@ -617,25 +686,149 @@ export class PartnersService {
   ) {
     const item = await this.prisma.partnerCommission.findFirst({
       where: { id, partnerId },
+      select: { id: true, status: true },
     });
     if (!item) throw new NotFoundException('Commission was not found.');
-    const updated = await this.prisma.partnerCommission.update({
-      where: { id },
-      data: {
-        status: dto.status,
-        ...(dto.status === 'PAID' ? { paidAt: new Date() } : {}),
-      },
+    return this.commissionAction(
+      id,
+      commissionActionForTarget(item.status, dto.status),
+      actorId,
+      dto.reason,
+      partnerId,
+    );
+  }
+
+  /**
+   * Move a commission one step through its status machine. Approve, mark
+   * payable, mark paid, or void (until paid). Paid stamps `paidAt`; nothing
+   * else about the entry changes. Audited with the actor and written to the
+   * partner's timeline in the same transaction.
+   */
+  async commissionAction(
+    id: string,
+    action: PartnerCommissionActionKey,
+    actorId?: string,
+    reason?: string | null,
+    partnerId?: string,
+  ) {
+    const item = await this.prisma.partnerCommission.findFirst({
+      where: { id, ...(partnerId ? { partnerId } : {}) },
     });
-    await this.auditService.log({
-      tenantId: 'platform',
-      actorUserId: actorId ?? null,
-      action: 'PARTNER_COMMISSION_UPDATED',
-      entityType: 'PartnerCommission',
-      entityId: id,
-      beforeSnapshot: { status: item.status },
-      afterSnapshot: { status: updated.status, paidAt: updated.paidAt },
+    if (!item) throw new NotFoundException('Commission was not found.');
+    const next = commissionTransition(item.status, action);
+    const updated = await this.prisma.$transaction(async (tx) => {
+      /*
+       * Conditional on the status read above, so two operators pressing
+       * different buttons at once cannot both succeed — the second matches no
+       * row and is told to refresh.
+       */
+      const changed = await tx.partnerCommission.updateMany({
+        where: { id, status: item.status },
+        data: {
+          status: next,
+          ...(next === PartnerCommissionStatus.PAID
+            ? { paidAt: new Date() }
+            : {}),
+        },
+      });
+      if (changed.count !== 1)
+        throw new AppError('PARTNER_COMMISSION_TRANSITION_NOT_ALLOWED', {
+          message:
+            'The commission was changed by someone else. Refresh it to see its current status.',
+        });
+      const row = await tx.partnerCommission.findUniqueOrThrow({
+        where: { id },
+      });
+      await tx.partnerTimeline.create({
+        data: {
+          partnerId: item.partnerId,
+          eventType: `COMMISSION_${next}`,
+          actorType: 'PLATFORM_USER',
+          actorId,
+          message: `Commission ${item.commissionNumber} moved from ${item.status} to ${next}.`,
+          metadata: {
+            commissionId: id,
+            commissionNumber: item.commissionNumber,
+            ...(reason ? { reason } : {}),
+          },
+        },
+      });
+      await this.auditService.log(
+        {
+          tenantId: 'platform',
+          actorUserId: actorId ?? null,
+          action: `PARTNER_COMMISSION_${next}`,
+          entityType: 'PartnerCommission',
+          entityId: id,
+          beforeSnapshot: commissionAuditSnapshot(item),
+          afterSnapshot: {
+            ...commissionAuditSnapshot(row),
+            reason: reason ?? null,
+          },
+        },
+        tx,
+      );
+      return row;
     });
-    return updated;
+    return normalizeCommission(updated);
+  }
+
+  /**
+   * Commissions as reads return them: decimals as numbers, plus a
+   * `sourceLabel` naming the lead, customer or invoice each was recorded
+   * against (the ids are plain columns, so the names are looked up here).
+   */
+  async describeCommissions<
+    T extends {
+      leadId: string | null;
+      customerAccountId: string | null;
+      invoiceId: string | null;
+      baseAmount: unknown;
+      commissionRate: unknown;
+      commissionAmount: unknown;
+    },
+  >(commissions: T[]) {
+    const ids = (pick: (row: T) => string | null) => [
+      ...new Set(commissions.map(pick).filter((v): v is string => !!v)),
+    ];
+    const leadIds = ids((c) => c.leadId);
+    const customerIds = ids((c) => c.customerAccountId);
+    const invoiceIds = ids((c) => c.invoiceId);
+    const [leads, customers, invoices] = await Promise.all([
+      leadIds.length
+        ? this.prisma.lead.findMany({
+            where: { id: { in: leadIds } },
+            select: { id: true, companyName: true },
+          })
+        : ([] as Array<{ id: string; companyName: string }>),
+      customerIds.length
+        ? this.prisma.customerAccount.findMany({
+            where: { id: { in: customerIds } },
+            select: { id: true, companyName: true },
+          })
+        : ([] as Array<{ id: string; companyName: string }>),
+      invoiceIds.length
+        ? this.prisma.invoice.findMany({
+            where: { id: { in: invoiceIds } },
+            select: { id: true, invoiceNumber: true },
+          })
+        : ([] as Array<{ id: string; invoiceNumber: string }>),
+    ]);
+    const names = {
+      leads: new Map<string, string>(
+        leads.map((row): [string, string] => [row.id, row.companyName]),
+      ),
+      customers: new Map<string, string>(
+        customers.map((row): [string, string] => [row.id, row.companyName]),
+      ),
+      invoices: new Map<string, string>(
+        invoices.map((row): [string, string] => [row.id, row.invoiceNumber]),
+      ),
+    };
+    return commissions.map((commission) => ({
+      ...normalizeCommission(commission),
+      sourceLabel: commissionSourceLabel(commission, names),
+    }));
   }
   private async validateOwner(id?: string) {
     if (!id) return;
@@ -1060,6 +1253,35 @@ function partnerAuditSnapshot(partner: {
     assignedToUserId: partner.assignedToUserId,
     defaultCommissionRate: Number(partner.defaultCommissionRate),
     currencyCode: partner.currencyCode,
+  };
+}
+
+/** The money terms and state of a commission, for its audit rows. */
+function commissionAuditSnapshot(commission: {
+  partnerId: string;
+  commissionNumber: string;
+  status: string;
+  baseAmount: unknown;
+  commissionRate: unknown;
+  commissionAmount: unknown;
+  currencyCode: string;
+  leadId: string | null;
+  customerAccountId: string | null;
+  invoiceId: string | null;
+  paidAt: Date | null;
+}) {
+  return {
+    partnerId: commission.partnerId,
+    commissionNumber: commission.commissionNumber,
+    status: commission.status,
+    baseAmount: Number(commission.baseAmount),
+    commissionRate: Number(commission.commissionRate),
+    commissionAmount: Number(commission.commissionAmount),
+    currencyCode: commission.currencyCode,
+    leadId: commission.leadId,
+    customerAccountId: commission.customerAccountId,
+    invoiceId: commission.invoiceId,
+    paidAt: commission.paidAt,
   };
 }
 

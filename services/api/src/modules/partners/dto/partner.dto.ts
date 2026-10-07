@@ -118,8 +118,23 @@ export class CreatePartnerCommissionDto {
   @IsOptional() @IsUUID() leadId?: string;
   @IsOptional() @IsUUID() customerAccountId?: string;
   @IsOptional() @IsUUID() invoiceId?: string;
-  @Type(() => Number) @IsNumber() @Min(0) baseAmount!: number;
-  @Type(() => Number) @IsNumber() @Min(0) @Max(100) commissionRate!: number;
+  /** The amount the commission is a percentage of, in `currencyCode`. */
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  baseAmount!: number;
+  /*
+   * A percentage 0–100 with two decimals, like the partner default it falls
+   * back to when omitted (ADR-0026 D3). There is no amount field: the server
+   * computes it from these two, so a caller cannot record an amount that
+   * disagrees with its own base and rate.
+   */
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(100)
+  commissionRate?: number;
   /*
    * A currency, not a three-character string (BUG-1425).
    *
@@ -133,12 +148,26 @@ export class CreatePartnerCommissionDto {
     message: 'currencyCode must be a supported currency code.',
   })
   currencyCode?: string;
-  @IsOptional() @IsString() description?: string;
+  @IsOptional() @IsString() @MaxLength(1000) description?: string;
   @IsOptional() @IsDateString() earnedAt?: string;
   @IsOptional() @IsDateString() dueAt?: string;
 }
+/*
+ * The runtime create (`POST /platform-runtime/commissions`) has no partner in
+ * its route, so the body names it. `POST /partners/:id/commissions` keeps the
+ * base DTO and takes the partner from the path only.
+ */
+export class CreateRuntimePartnerCommissionDto extends CreatePartnerCommissionDto {
+  @IsUUID() partnerId!: string;
+}
+/*
+ * A status change only, held to the commission machine (Pending → Approved →
+ * Payable → Paid, Void until paid). The money terms have no update path: a
+ * wrong entry is voided and a correct one added.
+ */
 export class UpdatePartnerCommissionDto {
   @IsEnum(PartnerCommissionStatus) status!: PartnerCommissionStatus;
+  @IsOptional() @IsString() @MaxLength(1000) reason?: string;
 }
 
 export class CreatePartnerReferralLinkDto {

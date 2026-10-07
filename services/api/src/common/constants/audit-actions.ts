@@ -157,6 +157,15 @@ export const AUDIT_ACTIONS = {
    * number is audited by its own module.
    */
   PLATFORM_NUMBER_SEQUENCE_UPDATED: 'PLATFORM_NUMBER_SEQUENCE_UPDATED',
+
+  /*
+   * EXECPLAN-0055 WP-05 (D6) — every onboarding link send, delivered or not.
+   * Platform log, entity `PartnerOnboardingApplication`. Snapshots carry the
+   * recipient, expiry and statuses; never the token, its hash or the link.
+   * `…_SENT` predates this catalog entry and keeps its spelling.
+   */
+  PARTNER_ONBOARDING_INVITATION_SENT: 'PARTNER_ONBOARDING_INVITATION_SENT',
+  PARTNER_ONBOARDING_INVITATION_FAILED: 'PARTNER_ONBOARDING_INVITATION_FAILED',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];

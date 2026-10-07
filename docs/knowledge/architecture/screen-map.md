@@ -14,7 +14,7 @@ A screen marked **bespoke** is a hand-written page whose API calls and underlyin
 
 **`apiPath` is called by the server, not the browser.** Loading `/leaves` on that tenant issued no client-side request to `/api/leave-requests`; the list arrives already rendered, and the only client calls were notifications and settings. Runtime list and record screens fetch through `apps/web/lib/server-api.ts` in a server component. Watching the browser network log to discover which endpoint a screen uses will therefore find nothing, and concluding the screen calls no API would be wrong.
 
-**365 screens** across 3 applications · 11 runtime modules declare an API path and entity
+**366 screens** across 3 applications · 11 runtime modules declare an API path and entity
 
 Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[known-gaps]]
 
@@ -288,7 +288,7 @@ Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[
 
 ## Platform admin — `apps/admin` (port 3002)
 
-90 screens, 6 runtime-driven.
+91 screens, 6 runtime-driven.
 
 | Route | Source | API | Entity |
 |---|---|---|---|
@@ -301,6 +301,7 @@ Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[
 | `/billing/webhooks` | `apps/admin/app/(internal)/billing/webhooks/page.tsx` | _bespoke_ | — |
 | `/commissions` | `apps/admin/app/(internal)/commissions/page.tsx` | _bespoke_ | — |
 | `/commissions/[commissionId]` | `apps/admin/app/(internal)/commissions/[commissionId]/page.tsx` | _bespoke_ | — |
+| `/commissions/new` | `apps/admin/app/(internal)/commissions/new/page.tsx` | _bespoke_ | — |
 | `/contract-templates` | `apps/admin/app/(internal)/contract-templates/page.tsx` | _bespoke_ | — |
 | `/contract-templates/[templateId]` | `apps/admin/app/(internal)/contract-templates/[templateId]/page.tsx` | _bespoke_ | — |
 | `/contract-templates/new` | `apps/admin/app/(internal)/contract-templates/new/page.tsx` | _bespoke_ | — |

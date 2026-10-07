@@ -11,6 +11,7 @@ const {
   PARTNER_LIFECYCLE_ACTIONS,
   PARTNER_ACCOUNT_STATUS_DEFINITIONS,
   PARTNER_POST_ACTIVATION_STATUSES,
+  PARTNER_ONBOARDED_STATUSES,
   partnerPhaseOf,
   canApplyPartnerAction,
 } = require("./partner-lifecycle");
@@ -84,4 +85,24 @@ test("activation is offered where onboarding approval leaves the partner", () =>
   assert.equal(canApplyPartnerAction("activate", "ONBOARDING_PENDING"), false);
   assert.equal(canApplyPartnerAction("activate", "ACTIVE"), false);
   assert.equal(canApplyPartnerAction("no-such-action", "ACTIVE"), false);
+});
+
+test("the onboarding link is sent after the agreement and never to a live or closed partner", () => {
+  // EXECPLAN-0055 WP-05: it once demoted an ACTIVE partner to ONBOARDING_PENDING.
+  const rule = PARTNER_LIFECYCLE_ACTIONS["send-onboarding-link"];
+  assert.equal(rule.admin, "send-onboarding-link");
+  assert.equal(rule.to, "ONBOARDING_INVITED");
+  assert.equal(canApplyPartnerAction("send-onboarding-link", "AGREEMENT_EXECUTED"), true);
+  // A resend from the invited state replaces a lost or expired link.
+  assert.equal(canApplyPartnerAction("send-onboarding-link", "ONBOARDING_INVITED"), true);
+  for (const status of [
+    ...PARTNER_POST_ACTIVATION_STATUSES,
+    ...PARTNER_ONBOARDED_STATUSES,
+    "REJECTED",
+    "DRAFT",
+    "APPROVED_AWAITING_AGREEMENT",
+  ])
+    assert.equal(canApplyPartnerAction("send-onboarding-link", status), false, status);
+  for (const status of PARTNER_ONBOARDED_STATUSES)
+    assert.equal(partnerPhaseOf(status) === "PROSPECT", false, status);
 });

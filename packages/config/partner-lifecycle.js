@@ -181,7 +181,39 @@ const PARTNER_LIFECYCLE_ACTIONS = Object.freeze({
     from: Object.freeze(["ACTIVE", "SUSPENDED"]),
     to: "INACTIVE",
   }),
+  /*
+   * EXECPLAN-0055 WP-05 (D6). Sending — or resending — the onboarding link.
+   * It starts once the partner agreement is executed and stays available until
+   * the partner submits onboarding, so an expired or lost link can be replaced.
+   * It used to have no guard at all and demoted an ACTIVE partner to
+   * ONBOARDING_PENDING. A resend never moves a partner backwards: one already
+   * in ONBOARDING_IN_PROGRESS (changes requested) keeps that status, which the
+   * API applies on top of `to`.
+   */
+  "send-onboarding-link": Object.freeze({
+    admin: "send-onboarding-link",
+    from: Object.freeze([
+      "AGREEMENT_EXECUTED",
+      "FULLY_SIGNED",
+      "ONBOARDING_PENDING",
+      "ONBOARDING_INVITED",
+      "ONBOARDING_IN_PROGRESS",
+    ]),
+    to: "ONBOARDING_INVITED",
+  }),
 });
+
+/*
+ * Statuses in which the partner has already completed onboarding (submitted,
+ * approved or live). Sending an onboarding link there is refused as "already
+ * onboarded" rather than as a generic unavailable action.
+ */
+const PARTNER_ONBOARDED_STATUSES = Object.freeze([
+  "SUBMITTED",
+  "INFORMATION_APPROVED",
+  "APPROVED_FOR_ACTIVATION",
+  "ACTIVE",
+]);
 
 const PARTNER_ACCOUNT_STATUS_DEFINITIONS = Object.freeze([
   {
@@ -251,6 +283,7 @@ module.exports = {
   PARTNER_STATUS_LABELS,
   PARTNER_POST_ACTIVATION_STATUSES,
   PARTNER_LIFECYCLE_ACTIONS,
+  PARTNER_ONBOARDED_STATUSES,
   PARTNER_ACCOUNT_STATUS_DEFINITIONS,
   PARTNER_ACCOUNT_STATUS_LABELS,
   PARTNER_ACCOUNT_STATUS_HELP,

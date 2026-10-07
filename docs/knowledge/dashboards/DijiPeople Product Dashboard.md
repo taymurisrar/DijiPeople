@@ -84,6 +84,7 @@ Questions where the engineering is understood and the **product answer**
 - [[ITEM-0222-triage-the-monitoring-incident-queue-bulk-resolve-incidents-|ITEM-0222]] — **Triage the monitoring incident queue: bulk-resolve incidents covered by fixed records, and add bulk triage by fingerprint** (unrated)
 - [[ITEM-0223-decide-which-lifecycle-events-the-platform-must-emit-to-the-|ITEM-0223]] — **Decide which lifecycle events the platform must emit to the Events stream** (unrated)
 - [[ITEM-0224-decide-whether-business-rule-rejections-should-be-recorded-b|ITEM-0224]] — **Decide whether business-rule rejections should be recorded but not queued as incidents** (unrated)
+- [[ITEM-0227-automatic-commission-accrual-from-collected-invoices|ITEM-0227]] — **Automatic commission accrual from collected invoices** (unrated)
 - [[ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins|ITEM-0191]] — **Decide whether custom modules need their own access keys instead of the shared custom-records privilege** (unrated)
 
 ## Recent Product Changes
@@ -170,6 +171,7 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-3893-a-generated-contract-pdf-was-missing-from-storage-when-downl|BUG-3893]] | A generated contract PDF was missing from storage when downloaded, suggesting non-durable file storage | DATA_INTEGRITY | MEDIUM | OPEN | contracts | PLAN_REQUIRED |
 | [[BUG-3894-the-tenant-error-boundary-shows-the-react-digest-as-the-erro|BUG-3894]] | The tenant error boundary shows the React digest as the error reference, which support cannot find and Download log 404s on | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
 | [[BUG-3956-changing-partner-status-from-the-record-header-always-fails-|BUG-3956]] | Changing Partner status from the record header always fails and would bypass the partner state machine | STATE_MACHINE | MEDIUM | FIXED | partners, apps/admin | FIX_NOW |
+| [[BUG-3982-partner-commissions-accept-any-status-jump-and-unverified-li|BUG-3982]] | Partner commissions accept any status jump and unverified links, and agreements change when the partner default commission is edited | DATA_INTEGRITY | MEDIUM | FIXED | partners, contracts | FIX_NOW |
 | [[BUG-1964-record-headings-and-dialog-titles-are-singularised-by-stripp|BUG-1964]] | Record headings and dialog titles are singularised by stripping a trailing s | UX | LOW | FIXED | apps/web | DONE |
 | [[BUG-2010-the-dashboard-recent-changes-list-renders-unformatted-iso-86|BUG-2010]] | The dashboard Recent changes list renders unformatted ISO-8601 timestamps | UX | LOW | FIXED | apps/web | DONE |
 | [[BUG-2017-the-inbox-related-record-column-renders-a-bare-uuid-with-no-|BUG-2017]] | The inbox Related record column renders a bare UUID with no label and no link | UX | LOW | FIXED | apps/web | DONE |

@@ -94,6 +94,7 @@ import {
   CreateDerivedContractDto,
 } from './dto/contracts.dto';
 import { PARTNER_POST_ACTIVATION_STATUSES } from '@repo/config';
+import { agreementCommercialDefaults } from './agreement-commercial-defaults';
 
 /*
  * Partners who have been live (ADR-0026). Agreement activity never moves one of
@@ -1334,6 +1335,12 @@ export class ContractsService {
         this.linkedPartner(dto.partnerId, dto.commissionPercentage),
       ]);
     const partnerValues = linkedPartner.values;
+    // ADR-0026 D3: the agreement keeps its own commission and currency.
+    const commercial = agreementCommercialDefaults(
+      dto,
+      linkedPartner.commercial,
+      reportingCurrency,
+    );
     const contractNumber = reference('CON');
     const values = compactStringRecord({
       ...agreementTerms,
@@ -1363,9 +1370,9 @@ export class ContractsService {
       'contract.title': dto.title.trim(),
       'contract.effectiveDate': dto.effectiveDate,
       'contract.expiryDate': dto.expiryDate,
-      'contract.currency': dto.currencyCode?.toUpperCase() ?? reportingCurrency,
+      'contract.currency': commercial.currencyCode,
       'contract.value': dto.contractValue,
-      'contract.commissionPercentage': dto.commissionPercentage,
+      'contract.commissionPercentage': commercial.commissionPercentage,
       'contract.paymentTerms': dto.paymentTerms,
       'contract.governingLaw': dto.governingLaw,
       'contract.jurisdiction': dto.jurisdiction,
@@ -1421,9 +1428,9 @@ export class ContractsService {
           counterpartyEmail: dto.counterpartyEmail?.trim().toLowerCase(),
           documentSource:
             dto.documentSource ?? (templateVersion ? 'TEMPLATE' : 'EDITOR'),
-          currencyCode: dto.currencyCode?.toUpperCase() ?? reportingCurrency,
+          currencyCode: commercial.currencyCode,
           contractValue: dto.contractValue,
-          commissionPercentage: dto.commissionPercentage,
+          commissionPercentage: commercial.commissionPercentage,
           commissionBasis: dto.commissionBasis,
           paymentTerms: dto.paymentTerms,
           governingLaw: dto.governingLaw,
@@ -1829,6 +1836,11 @@ export class ContractsService {
         contractValue: source.contractValue
           ? Number(source.contractValue)
           : undefined,
+        // A copy keeps the source's own commission, not today's partner default.
+        commissionPercentage:
+          source.commissionPercentage == null
+            ? undefined
+            : Number(source.commissionPercentage),
         effectiveDate: source.effectiveDate?.toISOString(),
         expiryDate: source.expiryDate?.toISOString(),
         renewalNoticeDays: source.renewalNoticeDays ?? undefined,
@@ -3430,6 +3442,16 @@ export class ContractsService {
       tenantId: source.tenantId ?? undefined,
       relatedLeadId: source.relatedLeadId ?? undefined,
       parentContractId: source.parentContractId ?? source.id,
+      /*
+       * ADR-0026 D3. An amendment or renewal carries the agreed terms of the
+       * agreement it derives from — not whatever the partner's default has
+       * become since, which `create` would otherwise snapshot.
+       */
+      currencyCode: source.currencyCode ?? undefined,
+      commissionPercentage:
+        source.commissionPercentage == null
+          ? undefined
+          : Number(source.commissionPercentage),
       amendsContractId: kind === 'AMENDMENT' ? source.id : undefined,
       renewsContractId: kind === 'RENEWAL' ? source.id : undefined,
       agreementCategory: source.agreementCategory ?? undefined,
@@ -5431,6 +5453,7 @@ export class ContractsService {
       return {
         values: {} as Record<string, string>,
         contractPartyType: contractPartyTypeForPartner(null),
+        commercial: null,
       };
     const partner = await this.prisma.partner.findUnique({
       where: { id: partnerId },
@@ -5444,6 +5467,7 @@ export class ContractsService {
         email: true,
         taxId: true,
         defaultCommissionRate: true,
+        currencyCode: true,
       },
     });
     return {
@@ -5451,6 +5475,13 @@ export class ContractsService {
         ? partnerPlaceholderValues(partner, contractCommissionPercentage)
         : ({} as Record<string, string>),
       contractPartyType: contractPartyTypeForPartner(partner?.type),
+      /* What `create` snapshots into a new agreement (ADR-0026 D3). */
+      commercial: partner
+        ? {
+            defaultCommissionRate: partner.defaultCommissionRate,
+            currencyCode: partner.currencyCode,
+          }
+        : null,
     };
   }
 
@@ -6832,6 +6863,12 @@ export function decodeSignatureDataUrl(value: string) {
  * company name; never invented. The commission is the agreement's own, else
  * the partner's configured default when one was actually set (the column
  * defaults to 0, which means "not configured", not "0%").
+ *
+ * Since ADR-0026 D3 a new agreement snapshots that default into its own
+ * `commissionPercentage` at create (`agreementCommercialDefaults`), so the
+ * fallback here matters only for agreements created before the snapshot —
+ * which, unsigned, still follow the partner's current default when
+ * re-rendered.
  */
 export function partnerPlaceholderValues(
   partner: {

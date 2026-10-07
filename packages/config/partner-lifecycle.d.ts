@@ -50,7 +50,8 @@ export type PartnerLifecycleActionKey =
   | "activate"
   | "suspend"
   | "reactivate"
-  | "deactivate";
+  | "deactivate"
+  | "send-onboarding-link";
 
 export interface PartnerLifecycleActionRule {
   /** The admin runtime command key that triggers this action. */
@@ -77,6 +78,7 @@ export declare const PARTNER_POST_ACTIVATION_STATUSES: readonly PartnerStatusVal
 export declare const PARTNER_LIFECYCLE_ACTIONS: Readonly<
   Record<PartnerLifecycleActionKey, PartnerLifecycleActionRule>
 >;
+export declare const PARTNER_ONBOARDED_STATUSES: readonly PartnerStatusValue[];
 export declare const PARTNER_ACCOUNT_STATUS_DEFINITIONS: readonly {
   readonly value: PartnerAccountStatusValue;
   readonly label: string;

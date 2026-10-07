@@ -26,7 +26,13 @@ const CONTRACT = JSON.parse(
   readFileSync(join(__dirname, 'record-actions.contract.json'), 'utf8'),
 ) as Record<string, unknown>;
 
-const MODULES = ['partners', 'leads', 'contracts', 'plans'] as const;
+const MODULES = [
+  'partners',
+  'leads',
+  'contracts',
+  'plans',
+  'commissions',
+] as const;
 const RECORD_ID = 'rec-1';
 
 const CASES = MODULES.flatMap((moduleKey) => {
@@ -70,7 +76,10 @@ function buildService() {
       },
     },
   };
-  const partners = { lifecycleAction: record(0) };
+  const partners = {
+    lifecycleAction: record(0),
+    commissionAction: record(0),
+  };
   const partnerExperience = {
     activatePartner: record(1),
     qualifyInquiry: () => Promise.resolve({}),

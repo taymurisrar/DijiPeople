@@ -20,11 +20,14 @@ import {
 import { PartnersService } from '../partners/partners.service';
 import {
   CreatePartnerDto,
+  CreateRuntimePartnerCommissionDto,
   PartnerQueryDto,
   UpdatePartnerDto,
 } from '../partners/dto/partner.dto';
 import { PartnerDeletionService } from '../partners/partner-deletion.service';
 import { partnerStatusRequiresAction } from '../partners/partner-lifecycle';
+import { isPartnerCommissionAction } from '../partners/partner-commission-lifecycle';
+import { AppError } from '../../common/errors/app-error';
 import { SuperAdminService } from '../super-admin/super-admin.service';
 import {
   CreateCustomerDto,
@@ -262,7 +265,7 @@ export class PlatformRuntimeService {
           orderBy: { createdAt: 'desc' },
         });
         return paginateRuntimeRecords(
-          items,
+          await this.partners.describeCommissions(items),
           page,
           pageSize,
           query.search,
@@ -419,7 +422,8 @@ export class PlatformRuntimeService {
         });
         if (!item)
           throw new NotFoundException('Partner commission was not found.');
-        return envelope(item);
+        const [described] = await this.partners.describeCommissions([item]);
+        return envelope(described);
       }
       default: {
         const item = await this.findGeneric(this.key(moduleKey), id);
@@ -472,6 +476,30 @@ export class PlatformRuntimeService {
             await dto(CreateContractDto, values),
           ),
         );
+      case 'commissions': {
+        /*
+         * ADR-0026 D3. A commission is recorded against one partner, named in
+         * the values; the rest is the same DTO `POST /partners/:id/commissions`
+         * validates, so the quick-create on the partner record and the API
+         * agree on what an entry may carry. Everything derived — number,
+         * status, amount, default rate and currency — is the service's.
+         */
+        if (!textOrNull(values.partnerId))
+          throw new BadRequestException(
+            'Choose the partner this commission is for.',
+          );
+        const { partnerId, ...commission } = await dto(
+          CreateRuntimePartnerCommissionDto,
+          values,
+        );
+        return envelope(
+          await this.partners.createCommission(
+            partnerId,
+            commission,
+            user.userId,
+          ),
+        );
+      }
       case 'support-cases':
         return envelope(
           await this.supportCases.create(
@@ -812,11 +840,30 @@ export class PlatformRuntimeService {
             reason: textOrNull(input.reason) ?? undefined,
           }),
         );
-      if (action === 'send-onboarding-link')
-        return result(
-          await this.partnerExperience.sendOnboardingInvitation(user, id),
+      if (action === 'send-onboarding-link') {
+        // The sentence the command bar shows ("Onboarding link sent to …,
+        // expires …") is lifted to where the admin reads a notice from.
+        const sent = await this.partnerExperience.sendOnboardingInvitation(
+          user,
+          id,
         );
+        return { ...result(sent), message: sent.message };
+      }
     }
+    /*
+     * ADR-0026 D3 — a commission's status moves only through these actions,
+     * which the service holds to Pending → Approved → Payable → Paid, Void
+     * until paid. Same shape as the partner lifecycle actions above.
+     */
+    if (id && key === 'commissions' && isPartnerCommissionAction(action))
+      return envelope(
+        await this.partners.commissionAction(
+          id,
+          action,
+          user.userId,
+          textOrNull(input.reason),
+        ),
+      );
     if (id && key === 'contracts') {
       if (action === 'void-agreement')
         return envelope(
@@ -1184,6 +1231,12 @@ export class PlatformRuntimeService {
       const existing = await this.partners.get(id);
       throw partnerStatusRequiresAction(existing.status);
     }
+    // Same rule for a commission: its actions are the only way to move it.
+    if (key === 'commissions')
+      throw new AppError('PARTNER_COMMISSION_TRANSITION_NOT_ALLOWED', {
+        message:
+          'A commission’s status changes only through its actions: Approve, Mark payable, Mark paid or Void.',
+      });
     if (key === 'support-cases') {
       return envelope(
         await this.supportCases.update(user, id, {

@@ -23,7 +23,13 @@ import { executeRuntimeRecordAction } from "./runtime-record-action-handler";
  * captured, and the assertion is on the URL that would have gone out.
  */
 
-const MODULES = ["partners", "leads", "contracts", "plans"] as const;
+const MODULES = [
+  "partners",
+  "leads",
+  "contracts",
+  "plans",
+  "commissions",
+] as const;
 const RECORD_ID = "rec-1";
 
 /*
