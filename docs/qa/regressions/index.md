@@ -6936,3 +6936,17 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — at 9714f85b it exits 1 naming next and proxy-addr as critical. |
 | **Fixed** | 2026-10-07, branch `agent/security-advisories-2026-10` |
 | **Active** | yes |
+
+### REG-647 — Employee responses carried the linked User row whole
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` |
+| **Module** | `services/api/src/modules/employees` |
+| **Bug record** | BUG-3883 |
+| **Root cause** | The employee profile passed `employee.user` through raw while the list response mapped it by hand, and the shared include loaded every User column — so the password hash and MFA secrets reached the response, and the BigInt `mfaLastUsedStep` made it 500 for MFA-enrolled users. Now one safe select and one summary mapper. |
+| **Regression test** | `services/api/src/modules/employees/employee-user-summary.spec.ts` (select excludes secret columns; summary drops them and serialises with a BigInt present; repository uses the safe select; no raw employee.user passthrough in the module). |
+| **Scenario** | QA-TENANT-068 — Employee responses never carry login secrets and load for MFA-enrolled users. |
+| **Fails without the fix** | Yes — reverting either the profile mapping or the repository select fails a case. |
+| **Fixed** | 2026-10-07, branch `agent/crm-plugin-release-close` |
+| **Active** | yes |

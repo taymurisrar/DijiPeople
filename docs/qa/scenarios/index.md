@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 452** · automated: 374 · manual: 27 · blocked by infrastructure: 0
+**Scenarios: 453** · automated: 375 · manual: 27 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -465,4 +465,5 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-TENANT-065](../../../docs/qa/scenarios/QA-TENANT-065-notification-settings-timestamps-survive-hydration-in-a-non-.md) | Notification settings timestamps survive hydration in a non-UTC tenant | settings | MANUAL_VISUAL | MEDIUM | MANUAL | — | BUG-3316 | REG-412 |
 | [QA-TENANT-066](../../../docs/qa/scenarios/QA-TENANT-066-a-tenant-admin-cannot-publish-a-document-type-or-category-to.md) | A tenant admin cannot publish a document type or category to every tenant | tenant-isolation | SECURITY | HIGH | AUTOMATED | `services/api/test/document-types.e2e-spec.ts` | BUG-3809 | REG-642 |
 | [QA-TENANT-067](../../../docs/qa/scenarios/QA-TENANT-067-claims-run-on-the-module-runtime-with-every-original-permiss.md) | Claims run on the module runtime with every original permission and status gate | runtime-modules | UNIT | HIGH | PARTIAL | `apps/web/lib/runtime/modules/claims-runtime.spec.ts` | — | — |
+| [QA-TENANT-068](../../../docs/qa/scenarios/QA-TENANT-068-employee-responses-never-carry-login-secrets-and-load-for-mf.md) | Employee responses never carry login secrets and load for MFA-enrolled users | employees | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/employees/employee-user-summary.spec.ts` | BUG-3883 | REG-647 |
 | [QA-UI-001](../../../docs/qa/scenarios/QA-UI-001-admin-lookup-controls-are-keyboard-operable-and-expose-no-ne.md) | Admin lookup controls are keyboard-operable and expose no nested-interactive listbox | platform-admin | MANUAL_VISUAL | MEDIUM | MANUAL | `apps/admin/lib/a11y/listbox-navigation.spec.ts` | BUG-3377 | REG-418 |

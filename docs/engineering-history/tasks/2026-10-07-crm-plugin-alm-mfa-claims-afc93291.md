@@ -109,15 +109,23 @@ The same tree was also checked locally, in a worktree with a real install:
 
 ## Release / Deployment Impact
 
-None — not deployed. `main` remains at `cea41518`. Production therefore still
-runs these vulnerable versions:
+Released to production on 2026-10-07 through PR #98, merged as `94f65fa4`.
+CI on the PR head `d5adbe3b` passed in runs 37602414139, 37604068385 and
+37605589653.
 
-- the Next.js 16.3.4 RCE
-- proxy-addr 2.0.7
-- nodemailer 9.1.1
+- **Vercel:** web, admin and landing were READY on `94f65fa4` at 10:24 UTC.
+- **Render:** the API deploy, including the pre-deploy `release` step, went
+  live at 10:32 UTC. `/api/health` reports `commitShort` 94f65fa, and
+  `/api/public/legal` returns 200.
 
-BUG-3862 is fixed on `develop` only, and promoting it is a release decision.
-Rollback class: CODE_ONLY (revert `1e8761eb`).
+No migrations or seed changes were included.
+
+A post-deploy browser check on the demo tenant reached the new two-factor login
+challenge: the owner account now has MFA on. It went no further without the
+owner's authentication code, so the Customization tiles and the Claims screens
+were not clicked through in production.
+
+Rollback class: CODE_ONLY. Revert the merge `94f65fa4`.
 
 ## Knowledge Capture
 

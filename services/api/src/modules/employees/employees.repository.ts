@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { EmployeeEmploymentStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { EmployeeQueryDto } from './dto/employee-query.dto';
+import { EMPLOYEE_USER_SELECT } from './employee-user-summary';
 
 type PrismaDb = PrismaService | Prisma.TransactionClient;
 
@@ -48,20 +49,10 @@ const employeeInclude = {
       userId: true,
     },
   },
+  // BUG-3883: never `include` the User row — it carries the password hash and
+  // MFA secrets. Only the columns in EMPLOYEE_USER_SELECT are loaded.
   user: {
-    include: {
-      userRoles: {
-        include: {
-          role: {
-            select: {
-              id: true,
-              key: true,
-              name: true,
-            },
-          },
-        },
-      },
-    },
+    select: EMPLOYEE_USER_SELECT,
   },
   ownerUser: {
     select: {

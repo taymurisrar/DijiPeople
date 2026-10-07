@@ -34,6 +34,7 @@ import { EmailService } from '../notifications/email/email.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { TenantSettingsResolverService } from '../tenant-settings/tenant-settings-resolver.service';
 import { EmployeesRepository } from './employees.repository';
+import { toEmployeeUserSummary } from './employee-user-summary';
 import { EmployeeAccessService } from './employee-access.service';
 import { CreateEmployeePreviousEmploymentDto } from './dto/create-employee-previous-employment.dto';
 import { CreateEmployeeEducationDto } from './dto/create-employee-education.dto';
@@ -235,7 +236,7 @@ export class EmployeeProfilesService {
             employmentStatus: employee.manager.employmentStatus,
           }
         : null,
-      user: employee.user ?? null,
+      user: toEmployeeUserSummary(employee.user),
       ownerUser: employee.ownerUser
         ? {
             id: employee.ownerUser.id,

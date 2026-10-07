@@ -14,7 +14,7 @@
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
-| Open CRITICAL | **7** |
+| Open CRITICAL | **8** |
 | Open HIGH | 104 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 10 |
@@ -30,11 +30,11 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 243 |
-| No next action | 243 |
+| No acceptance criteria | 244 |
+| No next action | 244 |
 | Aging — 7d / 30d / 90d | 240 / 100 / 0 |
 | Architecture and technical debt | 7 |
-| Security gaps | 40 |
+| Security gaps | 41 |
 | Database gaps | 25 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
@@ -107,6 +107,7 @@ what they own, and what the backlog and QA systems currently say.
 | [[BUG-3580-agreement-preview-documents-print-unresolved-placeholders|BUG-3580]] | Agreement preview documents print unresolved placeholders | BUG | CRITICAL | FIXED | api:contracts | DONE |
 | [[BUG-3581-signature-date-placeholders-block-sending-and-freeze-a-fabri|BUG-3581]] | Signature-date placeholders block sending and freeze a fabricated date into signed agreements | BUG | CRITICAL | FIXED | api:contracts | DONE |
 | [[BUG-3862-new-critical-advisories-in-next-js-and-proxy-addr-and-a-cros|BUG-3862]] | New critical advisories in Next.js and proxy-addr, and a cross-tenant nodemailer advisory, block every develop integration | SECURITY | CRITICAL | FIXED | apps/web, apps/admin, apps/landing, notifications | FIX_NOW |
+| [[BUG-3883-employee-profile-returns-the-linked-user-s-password-hash-and|BUG-3883]] | Employee profile returns the linked user's password hash and MFA secrets, and 500s for MFA-enrolled users | SECURITY | CRITICAL | FIXED | employees, apps/web | FIX_NOW |
 
 ## Owner Decisions Pending
 
@@ -297,7 +298,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 243 |
+| Open total | 244 |
 | Blocked | 3 |
 | Deferred | 116 |
 | Awaiting a product decision | 10 |
