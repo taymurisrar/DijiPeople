@@ -130,6 +130,15 @@ Every other page named in [[ITEM-0167]]'s Evidence section (`timesheets/[timeshe
 structural reason to stay bespoke, and is tracked for migration in
 `EXECPLAN-0044`'s waves rather than listed here as an exception.
 
+Claims (`claims/[claimId]`, `me/claims/[claimId]`) migrated on 2026-10-07: both
+render `StandardModuleRecordPage` through `ClaimRecordPage`, with a dedicated
+`claims-data.adapter.ts`. One part stays bespoke inside the shell. The **line-item
+editor** renders in the Line Items tab through `tabContent`. Its subtype
+choices depend on the chosen type, a receipt is required only when the subtype
+says so, and the line currency is inherited from the claim; the runtime
+subgrid's quick-create can express none of these. Everywhere lines are read-only,
+the runtime subgrid shows them.
+
 ## Conformance check
 
 `apps/web/app/(authenticated)/_components/record-page-shell.conformance.spec.ts`

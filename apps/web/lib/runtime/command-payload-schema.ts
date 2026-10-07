@@ -95,6 +95,19 @@ const schemas: Readonly<Record<string, CommandPayloadSchema>> = {
       { key: "comment", label: "Reason", type: "multiline", required: true },
     ],
   },
+  /*
+   * A claim rejection from the claim record itself (EXECPLAN-0044). The field
+   * is `reason`, not `comment`, because it is posted straight to
+   * `POST /claims/:id/reject`, whose `RejectClaimDto.reason` is required.
+   */
+  "claim.reject": {
+    key: "claim.reject",
+    title: "Reject claim",
+    submitLabel: "Reject",
+    fields: [
+      { key: "reason", label: "Reason", type: "multiline", required: true },
+    ],
+  },
   "approval.cancel": {
     key: "approval.cancel",
     title: "Withdraw request",
