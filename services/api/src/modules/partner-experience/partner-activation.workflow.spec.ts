@@ -17,6 +17,8 @@ describe('partner activation workflow', () => {
         partner: {
           findUnique: jest.fn(async () => ({
             id: 'partner-1',
+            // The one state activation starts from after onboarding approval.
+            status: 'INFORMATION_APPROVED',
             onboardingApplications: [{ status: 'SUBMITTED' }],
             agreements: [{ status: 'FULLY_SIGNED' }],
           })),
@@ -43,6 +45,8 @@ describe('partner activation workflow', () => {
         partner: {
           findUnique: jest.fn(async () => ({
             id: 'partner-1',
+            // The one state activation starts from after onboarding approval.
+            status: 'INFORMATION_APPROVED',
             onboardingApplications: [{ status: 'APPROVED' }],
             agreements: [{ status: 'READY_FOR_SIGNATURE' }],
           })),

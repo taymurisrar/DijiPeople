@@ -19,6 +19,7 @@ import {
   PartnerCommissionStatus,
   PartnerStatus,
   PartnerType,
+  PartnershipModel,
 } from '@prisma/client';
 import { PLATFORM_CURRENCY_CODES } from '@repo/config';
 
@@ -55,8 +56,17 @@ export class CreatePartnerDto {
   @IsOptional() @IsString() country?: string;
   @IsOptional() @IsString() website?: string;
   @IsOptional() @IsString() taxId?: string;
+  /*
+   * ADR-0026 D1. The admin form has always shown this field, and the DTO never
+   * declared it, so it was dropped on every create and edit (BUG-1743 lineage).
+   */
+  @IsOptional() @IsEnum(PartnershipModel) partnershipModel?: PartnershipModel;
+  /*
+   * ADR-0026 D3: a percentage 0–100 with at most two decimals, matching the
+   * Decimal(5,2) column, so 12.345 is refused rather than silently rounded.
+   */
   @Type(() => Number)
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   @Max(100)
   defaultCommissionRate!: number;
@@ -73,7 +83,15 @@ export class CreatePartnerDto {
     message: 'currencyCode must be a supported currency code.',
   })
   currencyCode?: string;
-  @IsOptional() @IsEnum(PartnerStatus) status?: PartnerStatus;
+  /*
+   * No `status`, `accountStatus`, `partnerNumber` or `code` (ADR-0026 D1,
+   * ADR-0027). A partner is created at DRAFT and moves only through the
+   * lifecycle actions the server validates; `status` here let an operator
+   * create a partner directly as ACTIVE, past every agreement and onboarding
+   * gate, and — through `PartialType` below — PATCH one between any two
+   * non-ACTIVE states with no timeline entry. With `forbidNonWhitelisted`, a
+   * body carrying any of them is now refused rather than honoured.
+   */
   @IsOptional() @IsUUID() assignedToUserId?: string;
   @IsOptional() @IsString() @MaxLength(4000) notes?: string;
 }

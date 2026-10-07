@@ -8,8 +8,8 @@
 | | |
 |---|---|
 | Open CRITICAL | **8** |
-| Open HIGH | **106** |
-| Open total | 260 |
+| Open HIGH | **107** |
+| Open total | 262 |
 | Blocked | 4 |
 | Awaiting a product decision | 13 |
 | Deferred | 124 |
@@ -135,6 +135,7 @@
 | [[BUG-3843-customization-hides-packages-modules-sidebar-designer-and-pu|BUG-3843]] | Customization hides Packages, Modules, Sidebar Designer and Publish Center behind a role gate ADR-0013 removed | AUTHORIZATION | HIGH | FIXED | apps/web, customization | FIX_NOW |
 | [[BUG-3929-admin-record-actions-post-to-the-id-less-runtime-route-so-se|BUG-3929]] | Admin record actions post to the id-less runtime route, so Send onboarding link and 13 other actions always fail as not available | BUG | HIGH | FIXED | apps/admin, platform-runtime | FIX_NOW |
 | [[BUG-3930-partner-delete-hides-its-refusal-reason-and-silently-erases-|BUG-3930]] | Partner delete hides its refusal reason and silently erases customer and tenant attribution | DATA_INTEGRITY | HIGH | FIXED | partners, apps/admin | FIX_NOW |
+| [[BUG-3955-partner-save-persists-no-field-but-reports-partner-saved-bec|BUG-3955]] | Partner Save persists no field but reports Partner saved, because the write contract misreads PartialType | BUG | HIGH | FIXED | apps/admin, partners | FIX_NOW |
 | [[ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no|ITEM-0133]] | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | READY | services/api/test | PLAN_REQUIRED |
 | [[ITEM-0134-the-payroll-run-engine-has-no-tests|ITEM-0134]] | The payroll run engine has no tests | TEST_GAP | HIGH | READY | api:payroll | PLAN_REQUIRED |
 | [[ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-|ITEM-0136]] | electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major | SECURITY | HIGH | READY | apps/agent-desktop | FIX_NOW |
@@ -384,6 +385,7 @@
 | [[BUG-3843-customization-hides-packages-modules-sidebar-designer-and-pu|BUG-3843]] | Customization hides Packages, Modules, Sidebar Designer and Publish Center behind a role gate ADR-0013 removed | AUTHORIZATION | HIGH | FIXED | apps/web, customization | FIX_NOW |
 | [[BUG-3929-admin-record-actions-post-to-the-id-less-runtime-route-so-se|BUG-3929]] | Admin record actions post to the id-less runtime route, so Send onboarding link and 13 other actions always fail as not available | BUG | HIGH | FIXED | apps/admin, platform-runtime | FIX_NOW |
 | [[BUG-3930-partner-delete-hides-its-refusal-reason-and-silently-erases-|BUG-3930]] | Partner delete hides its refusal reason and silently erases customer and tenant attribution | DATA_INTEGRITY | HIGH | FIXED | partners, apps/admin | FIX_NOW |
+| [[BUG-3955-partner-save-persists-no-field-but-reports-partner-saved-bec|BUG-3955]] | Partner Save persists no field but reports Partner saved, because the write contract misreads PartialType | BUG | HIGH | FIXED | apps/admin, partners | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver|BUG-3501]] | The email provider screen presents a console sink as delivery and offers sink providers in production | UX | MEDIUM | FIXED | notifications, apps/web | PLAN_REQUIRED |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
@@ -557,6 +559,7 @@
 | [[BUG-3800-three-entity-lookups-refuse-the-page-size-and-search-the-for|BUG-3800]] | Three entity lookups refuse the page size and search the form sends | BUG | MEDIUM | FIXED | organization, payroll | FIX_NOW |
 | [[BUG-3830-claims-has-no-sidebar-entry-so-its-screens-are-reachable-onl|BUG-3830]] | Claims has no sidebar entry, so its screens are reachable only by URL | UX | MEDIUM | FIXED | claims | FIX_NOW |
 | [[BUG-3844-two-factor-authentication-cannot-be-found-in-the-tenant-web-|BUG-3844]] | Two-factor authentication cannot be found in the tenant web app or the platform admin app | UX | MEDIUM | FIXED | apps/web, apps/admin, auth | FIX_NOW |
+| [[BUG-3956-changing-partner-status-from-the-record-header-always-fails-|BUG-3956]] | Changing Partner status from the record header always fails and would bypass the partner state machine | STATE_MACHINE | MEDIUM | FIXED | partners, apps/admin | FIX_NOW |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -741,6 +744,7 @@
 | [[BUG-3893-a-generated-contract-pdf-was-missing-from-storage-when-downl|BUG-3893]] | A generated contract PDF was missing from storage when downloaded, suggesting non-durable file storage | DATA_INTEGRITY | MEDIUM | OPEN | contracts | PLAN_REQUIRED |
 | [[BUG-3894-the-tenant-error-boundary-shows-the-react-digest-as-the-erro|BUG-3894]] | The tenant error boundary shows the React digest as the error reference, which support cannot find and Download log 404s on | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
 | [[BUG-3897-public-signature-link-tokens-are-stored-verbatim-in-errorlog|BUG-3897]] | Public signature-link tokens are stored verbatim in ErrorLog.path and readable by monitoring.read holders | SECURITY | MEDIUM | OPEN | error-logs | FIX_NOW |
+| [[BUG-3956-changing-partner-status-from-the-record-header-always-fails-|BUG-3956]] | Changing Partner status from the record header always fails and would bypass the partner state machine | STATE_MACHINE | MEDIUM | FIXED | partners, apps/admin | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -824,7 +828,7 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 529 |
+| Bug records | 531 |
 | Backlog items | 226 |
 | Known bug patterns | 35 |
 | QA runs | 38 |

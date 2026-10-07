@@ -530,6 +530,11 @@ jobs:
         # `@MaxLength(3)` accepted "5" as a currency, and partners in production
         # carry it. BUG-1425, reachable through the console via BUG-1747.
         run: npm run test:platform-currencies
+      - name: Partner lifecycle phases cover every status
+        # ADR-0026. The API enforces partner transitions and the admin offers
+        # commands from one shared table; a PartnerStatus added to the schema
+        # without a phase would fall out of every header and process bar.
+        run: npm run test:partner-lifecycle
       - name: Empty lists say which kind of empty they are
         # "Adjust the current view and filters" on a screen with no filters set
         # told a new workspace that a search nobody ran was hiding data that did

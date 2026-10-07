@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 456** · automated: 376 · manual: 27 · blocked by infrastructure: 0
+**Scenarios: 458** · automated: 376 · manual: 27 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -298,6 +298,8 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-PLATFORM-046](../../../docs/qa/scenarios/QA-PLATFORM-046-lead-partner-attribution-lives-in-its-own-partner-tab.md) | Lead Partner attribution lives in its own Partner tab | platform-admin | UNIT | LOW | PARTIAL | `apps/admin/lib/runtime/runtime-record-panels.spec.ts` | BUG-3916 | REG-648 |
 | [QA-PLATFORM-047](../../../docs/qa/scenarios/QA-PLATFORM-047-admin-record-actions-reach-their-server-handler-on-the-id-ro.md) | Admin record actions reach their server handler on the id route | platform-admin | UNIT | HIGH | AUTOMATED | `apps/admin/lib/runtime/record-action-routing.spec.ts` | BUG-3929 | REG-649 |
 | [QA-PLATFORM-048](../../../docs/qa/scenarios/QA-PLATFORM-048-partner-delete-shows-every-dependency-and-never-erases-attri.md) | Partner delete shows every dependency and never erases attribution | platform-admin | INTEGRATION | HIGH | PARTIAL | `services/api/src/modules/partners/partner-dependencies.spec.ts` | BUG-3930 | REG-650 |
+| [QA-PLATFORM-049](../../../docs/qa/scenarios/QA-PLATFORM-049-partner-edits-persist-and-an-empty-edit-says-no-changes-to-s.md) | Partner edits persist and an empty edit says No changes to save | platform-admin | UNIT | HIGH | PARTIAL | `scripts/runtime-write-contract.test.mjs` | BUG-3955 | REG-651 |
+| [QA-PLATFORM-050](../../../docs/qa/scenarios/QA-PLATFORM-050-partner-status-changes-only-through-lifecycle-actions-the-se.md) | Partner status changes only through lifecycle actions the server enforces | platform-admin | UNIT | HIGH | PARTIAL | `services/api/src/modules/partners/partner-status-lifecycle.spec.ts` | BUG-3956 | REG-652 |
 | [QA-PROV-001](../../../docs/qa/scenarios/QA-PROV-001-a-tenant-that-failed-provisioning-can-be-retried.md) | A tenant that failed provisioning can be retried | tenant-provisioning | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/tenant-control-plane/tenant-provisioning-retry.spec.ts` | BUG-0014 | REG-012 |
 | [QA-PROV-002](../../../docs/qa/scenarios/QA-PROV-002-provisioning-is-safe-to-submit-twice.md) | Provisioning is safe to submit twice | tenant-provisioning | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/super-admin/tenant-provisioning-idempotency.spec.ts` | BUG-0022 | REG-030 |
 | [QA-PROV-003](../../../docs/qa/scenarios/QA-PROV-003-issued-tenant-hostnames-honour-the-configured-base-domain.md) | Issued tenant hostnames honour the configured base domain | tenant-provisioning | UNIT | HIGH | AUTOMATED | `services/api/src/common/config/tenant-url.config.spec.ts` | BUG-0017, BUG-0026 | REG-016, REG-027 |

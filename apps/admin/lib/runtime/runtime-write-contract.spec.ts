@@ -126,13 +126,73 @@ function declaredProperties(
     if (nesting < 0) nesting = 0;
   }
 
-  const base = found.heritage.match(/extends\s+(\w+)/);
-  if (base) {
-    const file2 = importMap(source, file).get(base[1]!) ?? file;
-    for (const inherited of declaredProperties(file2, base[1]!, seen))
+  /*
+   * `extends\s+(\w+)` read `PartialType` out of
+   * `UpdatePartnerDto extends PartialType(CreatePartnerDto)` — in this spec and
+   * in the generator alike — so both agreed the DTO declared nothing, and the
+   * partner edit form saved `values: {}` (EXECPLAN-0055 D2). The mapped types
+   * are evaluated here independently of the generator's parser.
+   */
+  const heritage = /\bextends\s+([\s\S]*?)(?:\bimplements\b[\s\S]*)?$/.exec(
+    found.heritage,
+  )?.[1];
+  if (heritage) {
+    const imports = importMap(source, file);
+    const resolveClass = (name: string) =>
+      declaredProperties(imports.get(name) ?? file, name, seen);
+    for (const inherited of mappedTypeFields(heritage.trim(), resolveClass))
       properties.add(inherited);
   }
   return properties;
+}
+
+/** Top-level arguments of a call's argument text. */
+function callArguments(text: string): string[] {
+  const args: string[] = [];
+  let depth = 0;
+  let current = "";
+  for (const character of text) {
+    if (character === "," && depth === 0) {
+      args.push(current.trim());
+      current = "";
+      continue;
+    }
+    if ("([{".includes(character)) depth += 1;
+    if (")]}".includes(character)) depth -= 1;
+    current += character;
+  }
+  if (current.trim()) args.push(current.trim());
+  return args;
+}
+
+function mappedTypeFields(
+  expression: string,
+  resolveClass: (name: string) => Set<string>,
+): Set<string> {
+  const open = expression.indexOf("(");
+  if (open === -1 || !expression.endsWith(")"))
+    return new Set(resolveClass(expression.match(/^\w+/)?.[0] ?? ""));
+  const wrapper = expression.slice(0, open).trim();
+  const args = callArguments(expression.slice(open + 1, -1));
+  const keys = (text = "") =>
+    new Set([...text.matchAll(/["'](\w+)["']/g)].map((match) => match[1]!));
+  const inner = () => mappedTypeFields(args[0] ?? "", resolveClass);
+  if (wrapper === "PartialType") return inner();
+  if (wrapper === "OmitType") {
+    const omitted = keys(args[1]);
+    return new Set([...inner()].filter((key) => !omitted.has(key)));
+  }
+  if (wrapper === "PickType") {
+    const picked = keys(args[1]);
+    return new Set([...inner()].filter((key) => picked.has(key)));
+  }
+  if (wrapper === "IntersectionType")
+    return new Set(
+      args.flatMap((argument) => [
+        ...mappedTypeFields(argument, resolveClass),
+      ]),
+    );
+  return new Set();
 }
 
 function methodBody(source: string, name: string) {
@@ -196,6 +256,21 @@ describe("runtime write contract", () => {
     expect(updateDtos.customers).toBe("UpdateCustomerDto");
     expect(updateDtos.partners).toBe("UpdatePartnerDto");
     expect(acceptedKeys("customers", false)!.has("companyName")).toBe(true);
+    // PartialType(CreatePartnerDto): this set was empty, in the generator too.
+    expect(acceptedKeys("partners", false)!.has("displayName")).toBe(true);
+    expect(acceptedKeys("partners", false)!.has("status")).toBe(false);
+  });
+
+  it("lets a partner edit carry the partner's own fields (EXECPLAN-0055 D2)", () => {
+    const schema = getRuntimeSchema("partners")!;
+    const editable = Object.values(schema.fields)
+      .filter((field) => (field as { editable?: boolean }).editable)
+      .map((field) => field.key);
+    expect(editable).toEqual(
+      expect.arrayContaining(["displayName", "email", "partnershipModel"]),
+    );
+    for (const systemField of ["status", "accountStatus", "partnerNumber"])
+      expect(editable).not.toContain(systemField);
   });
 
   const moduleKeys = Object.keys(

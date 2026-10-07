@@ -60,7 +60,23 @@ describe("record header status group", () => {
       )
       .map((definition) => definition.key)
       .sort();
-    expect(transitional).toEqual(["leads", "partners", "support-cases"]);
+    /*
+     * Partners used to be here, and the slot was the bug: change-status spread
+     * the whole record into the update DTO, so it always 400d, and would have
+     * bypassed every lifecycle guard had it passed (ADR-0026). Partner status
+     * moves only through its lifecycle commands now.
+     */
+    expect(transitional).toEqual(["leads", "support-cases"]);
+  });
+
+  it("shows partner status read-only, naming the lifecycle actions", () => {
+    const status = getPlatformModuleDefinition("partners").recordHeader?.status;
+    expect(status?.field).toBe("status");
+    expect(status?.write).toBeUndefined();
+    expect(status?.readOnlyReason).toMatch(/lifecycle actions/);
+    // All 24 PartnerStatus values are labelled options, so no stored status
+    // reads as a missing option.
+    expect(status?.options).toHaveLength(24);
   });
 
   it("explains every read-only slot rather than leaving it looking broken", () => {

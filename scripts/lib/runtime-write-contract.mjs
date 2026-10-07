@@ -24,7 +24,7 @@ import path from "node:path";
 /** `import { A, B } from './x.dto'` → { A: '<abs>/x.dto.ts', B: ... }. */
 function readDtoImports(source, fromFile) {
   const map = new Map();
-  const importRe = /import\s+(?:type\s+)?\{([^}]*)\}\s*from\s*'([^']+)'/g;
+  const importRe = /import\s+(?:type\s+)?\{([^}]*)\}\s*from\s*['"]([^'"]+)['"]/g;
   let match;
   while ((match = importRe.exec(source))) {
     const [, names, specifier] = match;
@@ -169,18 +169,133 @@ function readClassProperties(file, className, seen = new Set()) {
     if (nesting < 0) nesting = 0;
   }
 
-  // `UpdatePartnerDto extends CreatePartnerDto {}` — inherit the base's fields.
-  const base = declaration[1].match(/extends\s+(\w+)/);
-  if (base) {
+  // `UpdatePartnerDto extends CreatePartnerDto {}` — inherit the base's fields,
+  // through any `@nestjs/mapped-types` wrapper around it.
+  const heritage = readExtendsExpression(declaration[1]);
+  if (heritage) {
     const imports = readDtoImports(source, file);
-    for (const inherited of readClassProperties(
-      imports.get(base[1]) ?? file,
-      base[1],
-      seen,
-    ))
+    const resolveClass = (name) =>
+      readClassProperties(imports.get(name) ?? file, name, seen);
+    for (const inherited of resolveHeritage(heritage, resolveClass))
       properties.add(inherited);
   }
   return properties;
+}
+
+/**
+ * The expression after `extends`, up to `implements` or the end of the
+ * heritage clause. `class A extends PartialType(B) implements C` → `PartialType(B)`.
+ */
+export function readExtendsExpression(heritage) {
+  const at = heritage.search(/\bextends\b/);
+  if (at === -1) return null;
+  let rest = heritage.slice(at + "extends".length);
+  const implementsAt = findTopLevelKeyword(rest, "implements");
+  if (implementsAt !== -1) rest = rest.slice(0, implementsAt);
+  return rest.trim() || null;
+}
+
+function findTopLevelKeyword(text, keyword) {
+  let depth = 0;
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    if ("([".includes(character)) depth += 1;
+    else if (")]".includes(character)) depth -= 1;
+    else if (
+      depth === 0 &&
+      text.startsWith(keyword, index) &&
+      !/\w/.test(text[index - 1] ?? "") &&
+      !/\w/.test(text[index + keyword.length] ?? "")
+    )
+      return index;
+  }
+  return -1;
+}
+
+/** Split `a, f(b, c), ['x', 'y'] as const` at its top-level commas. */
+function splitTopLevel(text) {
+  const parts = [];
+  let depth = 0;
+  let start = 0;
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    if ("([{".includes(character)) depth += 1;
+    else if (")]}".includes(character)) depth -= 1;
+    else if (character === "," && depth === 0) {
+      parts.push(text.slice(start, index).trim());
+      start = index + 1;
+    }
+  }
+  const last = text.slice(start).trim();
+  if (last) parts.push(last);
+  return parts;
+}
+
+/** `['a', "b"] as const` → ['a', 'b']. */
+function readKeyList(text) {
+  return [...text.matchAll(/(['"`])([A-Za-z_$][\w$]*)\1/g)].map(
+    (match) => match[2],
+  );
+}
+
+/*
+ * The field set a heritage expression contributes.
+ *
+ * `extends\s+(\w+)` captured `PartialType` out of
+ * `UpdatePartnerDto extends PartialType(CreatePartnerDto)`, found no class of
+ * that name, and returned nothing — so the manifest declared zero partner
+ * fields editable and every partner Save sent `values: {}` while reporting
+ * success (EXECPLAN-0055 D2). The mapped types change *which* fields a class
+ * has, not just whether they are optional, so each is resolved by its own
+ * rule rather than by unwrapping to the innermost name:
+ *
+ *   PartialType(X)            → fields of X
+ *   OmitType(X, [keys])       → fields of X minus keys
+ *   PickType(X, [keys])       → only those keys of X
+ *   IntersectionType(A, B, …) → union of every argument
+ *
+ * and they nest. An unknown wrapper resolves to nothing — the conservative
+ * answer, since advertising a field the DTO rejects fails the whole save.
+ */
+export function resolveHeritage(expression, resolveClass) {
+  const text = expression.trim();
+  const call = /^([A-Za-z_$][\w$]*)\s*(?:<[^()]*>)?\s*\(([\s\S]*)\)$/.exec(
+    text,
+  );
+  if (!call) {
+    const name = /^([A-Za-z_$][\w$]*)/.exec(text);
+    return name ? new Set(resolveClass(name[1])) : new Set();
+  }
+  const [, wrapper, inner] = call;
+  const args = splitTopLevel(inner);
+  switch (wrapper) {
+    case "PartialType":
+      return args[0] ? resolveHeritage(args[0], resolveClass) : new Set();
+    case "OmitType": {
+      const base = args[0] ? resolveHeritage(args[0], resolveClass) : new Set();
+      for (const key of readKeyList(args[1] ?? "")) base.delete(key);
+      return base;
+    }
+    case "PickType": {
+      const base = args[0] ? resolveHeritage(args[0], resolveClass) : new Set();
+      const picked = new Set(readKeyList(args[1] ?? ""));
+      return new Set([...base].filter((key) => picked.has(key)));
+    }
+    case "IntersectionType": {
+      const union = new Set();
+      for (const argument of args)
+        for (const key of resolveHeritage(argument, resolveClass))
+          union.add(key);
+      return union;
+    }
+    default:
+      return new Set();
+  }
+}
+
+/** The field set of one DTO class — exported for the parser's own tests. */
+export function readDtoClassProperties(file, className) {
+  return readClassProperties(file, className);
 }
 
 /**

@@ -16,7 +16,7 @@ graph and the block reasons. See
 
 | Task | WP | Title |
 |---|---|---|
-| [TASK-0037](TASK-0037-partner-module-completion-delete-numbering-status-lifecycle-.md) | WP-04 | Partner write path and status lifecycle |
+| [TASK-0037](TASK-0037-partner-module-completion-delete-numbering-status-lifecycle-.md) | WP-05 | Onboarding invitation hardening |
 
 ## Needs a human
 
@@ -74,4 +74,4 @@ graph and the block reasons. See
 | [TASK-0034](TASK-0034-custom-field-values-on-system-modules-package-import-at-scal.md) | Custom field values on system modules; package import at scale | FEATURE | LARGE | P1 | COMPLETE | 4/4 | — |
 | [TASK-0035](TASK-0035-custom-fields-follow-up-lookups-list-columns-export-other-sy.md) | Custom fields follow-up: lookups, list columns, export, other system modules | FEATURE | LARGE | P1 | COMPLETE | 8/8 | — |
 | [TASK-0036](TASK-0036-custom-fields-screens-for-api-only-modules-sort-and-filter-b.md) | Custom fields: screens for API-only modules; sort and filter by custom fields; BUG-3800 | FEATURE | LARGE | P1 | COMPLETE | 8/8 | — |
-| [TASK-0037](TASK-0037-partner-module-completion-delete-numbering-status-lifecycle-.md) | Partner module completion — delete, numbering, status lifecycle, commission, currency, onboarding, tabs | FEATURE | LARGE | P1 | IN_PROGRESS | 4/8 | WP-04 |
+| [TASK-0037](TASK-0037-partner-module-completion-delete-numbering-status-lifecycle-.md) | Partner module completion — delete, numbering, status lifecycle, commission, currency, onboarding, tabs | FEATURE | LARGE | P1 | IN_PROGRESS | 5/8 | WP-05 |

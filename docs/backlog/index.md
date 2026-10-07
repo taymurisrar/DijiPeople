@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**755 records** — 529 bugs under [`docs/bugs/`](../bugs/), 226 non-bug items under [`items/`](items/).
+**757 records** — 531 bugs under [`docs/bugs/`](../bugs/), 226 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 260 |
+| Open (active work) | 262 |
 | Blocked | 4 |
 | Deferred | 124 |
 | Awaiting a product decision | 13 |
 | Completed / closed | 354 |
 | **Open CRITICAL** | **8** |
-| **Open HIGH** | **106** |
+| **Open HIGH** | **107** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,8 +27,8 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 8 |
-| HIGH | 106 |
-| MEDIUM | 118 |
+| HIGH | 107 |
+| MEDIUM | 119 |
 | LOW | 27 |
 
 ## Open by type
@@ -36,7 +36,7 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | AUTHORIZATION | 15 |
-| BUG | 79 |
+| BUG | 80 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 26 |
 | DOCUMENTATION | 1 |
@@ -46,7 +46,7 @@ see [`README.md`](README.md) for why.
 | PERFORMANCE | 15 |
 | PRODUCT_DECISION | 2 |
 | SECURITY | 25 |
-| STATE_MACHINE | 4 |
+| STATE_MACHINE | 5 |
 | TECH_DEBT | 8 |
 | TENANT_ISOLATION | 3 |
 | TEST_GAP | 9 |
@@ -61,7 +61,7 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 4 |
 | DEFERRED | 124 |
 | PRODUCT_DECISION | 13 |
-| FIXED | 179 |
+| FIXED | 181 |
 | VERIFIED | 218 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
@@ -316,6 +316,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3888](../../docs/bugs/BUG-3888-safepay-webhooks-fail-because-safepay-webhook-secret-is-not-.md) | Safepay webhooks fail because SAFEPAY_WEBHOOK_SECRET is not configured in production | INTEGRATION | HIGH | P1 | BLOCKED | billing | BLOCKED_EXTERNAL |
 | [BUG-3929](../../docs/bugs/BUG-3929-admin-record-actions-post-to-the-id-less-runtime-route-so-se.md) | Admin record actions post to the id-less runtime route, so Send onboarding link and 13 other actions always fail as not available | BUG | HIGH | P1 | FIXED | apps/admin, platform-runtime | FIX_NOW |
 | [BUG-3930](../../docs/bugs/BUG-3930-partner-delete-hides-its-refusal-reason-and-silently-erases-.md) | Partner delete hides its refusal reason and silently erases customer and tenant attribution | DATA_INTEGRITY | HIGH | P1 | FIXED | partners, apps/admin | FIX_NOW |
+| [BUG-3955](../../docs/bugs/BUG-3955-partner-save-persists-no-field-but-reports-partner-saved-bec.md) | Partner Save persists no field but reports Partner saved, because the write contract misreads PartialType | BUG | HIGH | P1 | FIXED | apps/admin, partners | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -574,6 +575,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3893](../../docs/bugs/BUG-3893-a-generated-contract-pdf-was-missing-from-storage-when-downl.md) | A generated contract PDF was missing from storage when downloaded, suggesting non-durable file storage | DATA_INTEGRITY | MEDIUM | P2 | OPEN | contracts | PLAN_REQUIRED |
 | [BUG-3894](../../docs/bugs/BUG-3894-the-tenant-error-boundary-shows-the-react-digest-as-the-erro.md) | The tenant error boundary shows the React digest as the error reference, which support cannot find and Download log 404s on | UX | MEDIUM | P2 | OPEN | apps/web | FIX_NOW |
 | [BUG-3897](../../docs/bugs/BUG-3897-public-signature-link-tokens-are-stored-verbatim-in-errorlog.md) | Public signature-link tokens are stored verbatim in ErrorLog.path and readable by monitoring.read holders | SECURITY | MEDIUM | P2 | OPEN | error-logs | FIX_NOW |
+| [BUG-3956](../../docs/bugs/BUG-3956-changing-partner-status-from-the-record-header-always-fails-.md) | Changing Partner status from the record header always fails and would bypass the partner state machine | STATE_MACHINE | MEDIUM | P2 | FIXED | partners, apps/admin | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |

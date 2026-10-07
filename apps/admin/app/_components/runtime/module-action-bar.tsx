@@ -203,7 +203,8 @@ export function ModuleActionBar({
   );
 
   function execute(action: RuntimeActionDefinition) {
-    if (action.destructive && !confirmAction) {
+    // A reason-prompted action is confirmed by its reason dialog instead.
+    if (action.destructive && !action.reasonPrompt && !confirmAction) {
       setConfirmAction(action);
       setDependencyCheck(dependencyCheckFor(action, context));
       return;

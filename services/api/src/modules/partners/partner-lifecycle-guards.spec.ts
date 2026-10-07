@@ -1,4 +1,3 @@
-import { BadRequestException } from '@nestjs/common';
 import { PartnerStatus } from '@prisma/client';
 import { PartnersService } from './partners.service';
 
@@ -15,7 +14,12 @@ import { PartnersService } from './partners.service';
  *
  * This suite pins BOTH directions. Pinning only the new one would let a future
  * edit "simplify" the guard by dropping the original.
+ *
+ * ADR-0026 (EXECPLAN-0055 WP-04) widened both into one rule: update never
+ * changes status at all. The DTO no longer declares the field; these cases
+ * exercise the service guard that catches an internal caller still passing it.
  */
+const refused = { errorCode: 'PARTNER_STATUS_ACTION_REQUIRED' };
 describe('partner lifecycle guards on the generic update', () => {
   /*
    * Taken off the prototype through a structural cast, the same shape
@@ -53,7 +57,7 @@ describe('partner lifecycle guards on the generic update', () => {
       update.call(context as never, 'partner-1', {
         status: PartnerStatus.ACTIVE,
       } as never),
-    ).rejects.toThrow(BadRequestException);
+    ).rejects.toMatchObject(refused);
     expect(context.prisma.partner.update).not.toHaveBeenCalled();
   });
 
@@ -68,7 +72,7 @@ describe('partner lifecycle guards on the generic update', () => {
       const context = contextFor(PartnerStatus.ACTIVE);
       await expect(
         update.call(context as never, 'partner-1', { status } as never),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toMatchObject(refused);
       expect(context.prisma.partner.update).not.toHaveBeenCalled();
     },
   );
@@ -79,7 +83,7 @@ describe('partner lifecycle guards on the generic update', () => {
       update.call(context as never, 'partner-1', {
         status: PartnerStatus.REJECTED,
       } as never),
-    ).rejects.toThrow(/suspend/i);
+    ).rejects.toThrow(/Suspend/);
   });
 
   it('still allows an ordinary edit that does not change status', async () => {
@@ -99,16 +103,28 @@ describe('partner lifecycle guards on the generic update', () => {
     expect(context.validateOwner).toHaveBeenCalled();
   });
 
-  it('still allows an early-stage status move that no governed action owns', async () => {
+  it('refuses an early-stage status move too — no status is edited (ADR-0026)', async () => {
     /*
-     * DRAFT -> INQUIRY has no entry in `partnerTransition`. Routing every
-     * transition through that table would refuse legitimate edits in the name
-     * of governance, which is why the guard is scoped to leaving ACTIVE.
+     * This case used to assert the opposite: DRAFT -> INQUIRY went through a
+     * plain PATCH with no from-set check and no timeline entry. Every status
+     * now moves through an action, so it is refused like any other.
      */
     const context = contextFor(PartnerStatus.DRAFT);
+    await expect(
+      update.call(context as never, 'partner-1', {
+        status: PartnerStatus.INQUIRY,
+      }),
+    ).rejects.toMatchObject(refused);
+    expect(context.validateOwner).not.toHaveBeenCalled();
+    expect(context.prisma.partner.update).not.toHaveBeenCalled();
+  });
+
+  it('lets an unchanged status through without writing it', async () => {
+    const context = contextFor(PartnerStatus.UNDER_REVIEW);
     try {
       await update.call(context as never, 'partner-1', {
-        status: PartnerStatus.INQUIRY,
+        status: PartnerStatus.UNDER_REVIEW,
+        displayName: 'Renamed',
       });
     } catch {
       /* The write collaborator is a stub; only the guard is under test. */

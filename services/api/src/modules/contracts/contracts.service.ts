@@ -93,6 +93,15 @@ import {
   ContractFieldPlacementDto,
   CreateDerivedContractDto,
 } from './dto/contracts.dto';
+import { PARTNER_POST_ACTIVATION_STATUSES } from '@repo/config';
+
+/*
+ * Partners who have been live (ADR-0026). Agreement activity never moves one of
+ * these back into the agreement funnel; the shared list is the one the partner
+ * lifecycle uses everywhere else.
+ */
+const PARTNER_LIVE_STATUSES =
+  PARTNER_POST_ACTIVATION_STATUSES as readonly PartnerStatus[];
 
 const contractInclude = {
   template: true,
@@ -3681,8 +3690,12 @@ export class ContractsService {
           contract.contractType,
         )
       ) {
-        await tx.partner.update({
-          where: { id: contract.partnerId },
+        // ADR-0026 — a renewal sent to a live partner must not demote it.
+        await tx.partner.updateMany({
+          where: {
+            id: contract.partnerId,
+            status: { notIn: [...PARTNER_LIVE_STATUSES] },
+          },
           data: { status: PartnerStatus.AGREEMENT_IN_PROGRESS },
         });
         await tx.partnerTimeline.create({
@@ -4310,8 +4323,17 @@ export class ContractsService {
             recipient.signatureRequest.contract.contractType,
           )
         ) {
-          await tx.partner.update({
-            where: { id: recipient.signatureRequest.contract.partnerId },
+          /*
+           * ADR-0026. Signing set AGREEMENT_EXECUTED unconditionally, so a
+           * re-signed or renewed master agreement took an ACTIVE partner back
+           * to the onboarding funnel. Only a partner still before activation
+           * moves; the timeline entry below records the signing either way.
+           */
+          await tx.partner.updateMany({
+            where: {
+              id: recipient.signatureRequest.contract.partnerId,
+              status: { notIn: [...PARTNER_LIVE_STATUSES] },
+            },
             data: { status: PartnerStatus.AGREEMENT_EXECUTED },
           });
           await tx.partnerTimeline.create({

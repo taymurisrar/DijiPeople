@@ -24,6 +24,7 @@ import {
   UpdatePartnerDto,
 } from '../partners/dto/partner.dto';
 import { PartnerDeletionService } from '../partners/partner-deletion.service';
+import { partnerStatusRequiresAction } from '../partners/partner-lifecycle';
 import { SuperAdminService } from '../super-admin/super-admin.service';
 import {
   CreateCustomerDto,
@@ -443,8 +444,12 @@ export class PlatformRuntimeService {
           ),
         );
       case 'partners':
+        // BUG-3551: the actor is passed so PARTNER_CREATED names who did it.
         return envelope(
-          await this.partners.create(await dto(CreatePartnerDto, values)),
+          await this.partners.create(
+            await dto(CreatePartnerDto, values),
+            user.userId,
+          ),
         );
       case 'customers':
         return envelope(
@@ -499,10 +504,27 @@ export class PlatformRuntimeService {
             await dto(UpdateAdminLeadDto, values),
           ),
         );
-      case 'partners':
+      case 'partners': {
+        /*
+         * An older admin bundle still sends the status field on save. Refuse a
+         * change with the domain reason rather than the whitelist's "property
+         * status should not exist", which reads as a form bug; an unchanged
+         * value is simply not forwarded.
+         */
+        const { status: sentStatus, ...partnerValues } = values;
+        if (sentStatus !== undefined && sentStatus !== null) {
+          const existing = await this.partners.get(id);
+          if (sentStatus !== existing.status)
+            throw partnerStatusRequiresAction(existing.status);
+        }
         return envelope(
-          await this.partners.update(id, await dto(UpdatePartnerDto, values)),
+          await this.partners.update(
+            id,
+            await dto(UpdatePartnerDto, partnerValues),
+            user.userId,
+          ),
         );
+      }
       case 'customers':
         return envelope(
           await this.superAdmin.updateCustomer(
@@ -1149,18 +1171,18 @@ export class PlatformRuntimeService {
           }),
         ),
       );
+    /*
+     * ADR-0026 D1. This spread the whole GET record — id, code, relations —
+     * into UpdatePartnerDto, so every header status change failed whitelist
+     * validation with the generic "Review the highlighted fields" message; had
+     * it passed, it would have bypassed every lifecycle guard. A partner's
+     * status moves only through its actions, which check the from-state, write
+     * the timeline and audit the reason, so the header path refuses with the
+     * domain reason instead of guessing which action was meant.
+     */
     if (key === 'partners') {
       const existing = await this.partners.get(id);
-      return envelope(
-        await this.partners.update(
-          id,
-          await dto(UpdatePartnerDto, {
-            ...existing,
-            status,
-            notes: reason ?? existing.notes,
-          }),
-        ),
-      );
+      throw partnerStatusRequiresAction(existing.status);
     }
     if (key === 'support-cases') {
       return envelope(

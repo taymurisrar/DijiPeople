@@ -6992,3 +6992,31 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — reclassifying attributed customers as DETACH fails 4 cases. |
 | **Fixed** | 2026-10-07, branch `agent/partner-module-completion` |
 | **Active** | yes |
+
+### REG-651 — Partner Save persisted nothing behind a success message
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-step` |
+| **Module** | `scripts/lib` |
+| **Bug record** | BUG-3955 |
+| **Root cause** | The write-contract generator captured PartialType instead of the wrapped DTO, so partners had zero editable fields and Save sent an empty payload the API accepted. Mapped types are now resolved and an empty edit says No changes to save. |
+| **Regression test** | `scripts/runtime-write-contract.test.mjs` and `apps/admin/lib/runtime/runtime-write-contract.spec.ts`. |
+| **Scenario** | QA-PLATFORM-049 — Partner edits persist and an empty edit says No changes to save. |
+| **Fails without the fix** | Yes — restoring the old regex fails 6 parser tests. |
+| **Fixed** | 2026-10-08, branch `agent/partner-module-completion` |
+| **Active** | yes |
+
+### REG-652 — Partner status could be written around its state machine
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` |
+| **Module** | `packages/config` |
+| **Bug record** | BUG-3956 |
+| **Root cause** | The admin header, the generic runtime status path and four services each decided partner transitions; the header path spread the GET record into the update DTO (400) and would have bypassed partnerTransition. One shared lifecycle table now drives server guards and admin visibility. |
+| **Regression test** | `packages/config/partner-lifecycle.test.js` and `services/api/src/modules/partners/partner-status-lifecycle.spec.ts` and `services/api/src/modules/platform-runtime/partner-runtime-status.spec.ts` and `apps/admin/lib/runtime/partner-lifecycle-registry.spec.ts`. |
+| **Scenario** | QA-PLATFORM-050 — Partner status changes only through lifecycle actions the server enforces. |
+| **Fails without the fix** | Yes — six mutants (create honouring status, activate from-states, qualify guard, header write, signing guard) are each killed. |
+| **Fixed** | 2026-10-08, branch `agent/partner-module-completion` |
+| **Active** | yes |

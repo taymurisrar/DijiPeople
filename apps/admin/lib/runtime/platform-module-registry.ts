@@ -11,6 +11,13 @@ import type {
 } from "./platform-runtime.types";
 import {
   AGREEMENT_CATEGORY_OPTIONS,
+  PARTNER_ACCOUNT_STATUS_DEFINITIONS,
+  PARTNER_ACCOUNT_STATUS_HELP,
+  PARTNER_LIFECYCLE_ACTIONS,
+  PARTNER_PHASES,
+  PARTNER_PHASE_LABELS,
+  PARTNER_STATUS_DEFINITIONS,
+  type PartnerLifecycleActionKey,
   getRuntimeSchema,
   listRuntimeViewKeys,
   runtimeViewLabel,
@@ -293,7 +300,6 @@ const ASSIGNABLE_MODULES = new Set<PlatformModuleKey>([
 /** Modules `PlatformRuntimeService.changeStatus` implements a transition for. */
 const STATUS_TRANSITION_MODULES = new Set<PlatformModuleKey>([
   "leads",
-  "partners",
   "support-cases",
 ]);
 /**
@@ -309,6 +315,13 @@ const RECORD_HEADER_READ_ONLY_REASON: Partial<
     "Tenant lifecycle changes go through the Operations tab so the provisioning transition rules apply.",
   customers:
     "Customer status follows onboarding and tenant provisioning rather than a direct edit.",
+  /*
+   * ADR-0026. Partners were a status-transition module, and the header's
+   * change-status spread the whole record into the update DTO: every attempt
+   * 400'd with "Review the highlighted fields". The API now refuses it outright.
+   */
+  partners:
+    "Partner status changes through lifecycle actions, such as Start review, Activate partner, Suspend or Deactivate.",
 };
 
 /**
@@ -835,21 +848,34 @@ const LEAD_STATUSES: RuntimeStatusDefinition[] = [
           : "neutral",
   terminal: ["CONVERTED", "CLOSED_LOST", "ARCHIVED"].includes(value),
 }));
-const PARTNER_STATUSES: RuntimeStatusDefinition[] = [
-  "INQUIRY",
-  "NEW_INQUIRY",
-  "UNDER_REVIEW",
-  "MORE_INFORMATION_REQUIRED",
-  "REJECTED",
-  "APPROVED_AWAITING_AGREEMENT",
-  "AGREEMENT_IN_PROGRESS",
-  "AGREEMENT_EXECUTED",
-  "ONBOARDING_PENDING",
-  "ACTIVE",
-  "SUSPENDED",
-  "INACTIVE",
-  "TERMINATED",
-].map(status);
+/*
+ * All 24 `PartnerStatus` values, from the shared lifecycle module (ADR-0026).
+ * This listed 13, so a partner in any of the other 11 — DRAFT, the column
+ * default, among them — had a status no option matched and no process stage.
+ * Tone follows the phase rather than the spelling: `status()` reads any value
+ * containing "ACTIVE" as success, which painted INACTIVE green.
+ */
+const PARTNER_PHASE_TONES: Record<string, RuntimeStatusDefinition["tone"]> = {
+  PROSPECT: "info",
+  ONBOARDING: "warning",
+  ACTIVE: "success",
+  SUSPENDED: "danger",
+  CLOSED: "neutral",
+};
+const PARTNER_STATUSES: RuntimeStatusDefinition[] =
+  PARTNER_STATUS_DEFINITIONS.map((definition) => ({
+    value: definition.value,
+    label: definition.label,
+    tone:
+      definition.value === "REJECTED" || definition.value === "TERMINATED"
+        ? "danger"
+        : (PARTNER_PHASE_TONES[definition.phase] ?? "neutral"),
+    terminal: definition.phase === "CLOSED",
+  }));
+/** A governed partner command is offered only in the statuses the API accepts it from. */
+function partnerActionStates(action: PartnerLifecycleActionKey): string[] {
+  return [...PARTNER_LIFECYCLE_ACTIONS[action].from];
+}
 const CONTRACT_STATUSES: RuntimeStatusDefinition[] = [
   "DRAFT",
   "INTERNAL_REVIEW",
@@ -923,23 +949,27 @@ const partnerFields: RuntimeFieldDefinition[] = [
     "CONSULTANT",
     "OTHER",
   ]),
-  field(
-    "status",
-    "Status",
-    "option",
-    "identity",
-    true,
-    PARTNER_STATUSES.map((item) => item.value),
-  ),
+  /*
+   * ADR-0026. Status is read-only everywhere: a partner is created at DRAFT and
+   * moves only through the lifecycle commands, which the API validates. The
+   * form used to offer it (and the API to accept it), so a partner could be
+   * created ACTIVE past every agreement and onboarding gate.
+   */
   {
-    ...field("accountStatus", "Account status", "option", "identity", false, [
-      "NOT_PROVISIONED",
-      "INVITED",
-      "ACTIVE",
-      "SUSPENDED",
-      "DISABLED",
-    ]),
+    ...field("status", "Status", "option", "identity"),
+    options: PARTNER_STATUSES.map(({ value, label }) => ({ value, label })),
     readOnly: true,
+    renderAs: "status",
+  },
+  {
+    ...field("accountStatus", "Account status", "option", "identity"),
+    options: PARTNER_ACCOUNT_STATUS_DEFINITIONS.map(({ value, label }) => ({
+      value,
+      label,
+    })),
+    readOnly: true,
+    renderAs: "status",
+    description: PARTNER_ACCOUNT_STATUS_HELP,
   },
   /*
    * BUG-3549. `type` now drives which identity fields are required
@@ -1721,7 +1751,9 @@ const definitions: PlatformModuleDefinition[] = [
         placement: "primary",
         scope: "record",
         selection: "none",
-        states: ["INQUIRY", "NEW_INQUIRY", "MORE_INFORMATION_REQUIRED"],
+        // ADR-0026: each lifecycle command's states come from the table the
+        // API enforces (@repo/config partner-lifecycle), never a local list.
+        states: partnerActionStates("start-review"),
       },
       {
         key: "approve-partner",
@@ -1729,7 +1761,7 @@ const definitions: PlatformModuleDefinition[] = [
         placement: "primary",
         scope: "record",
         selection: "none",
-        states: ["UNDER_REVIEW"],
+        states: partnerActionStates("approve"),
       },
       {
         key: "request-information",
@@ -1737,7 +1769,7 @@ const definitions: PlatformModuleDefinition[] = [
         placement: "secondary",
         scope: "record",
         selection: "none",
-        states: ["INQUIRY", "NEW_INQUIRY", "UNDER_REVIEW"],
+        states: partnerActionStates("request-information"),
       },
       {
         key: "reject-partner",
@@ -1745,14 +1777,18 @@ const definitions: PlatformModuleDefinition[] = [
         placement: "overflow",
         scope: "record",
         selection: "none",
-        states: [
-          "INQUIRY",
-          "NEW_INQUIRY",
-          "UNDER_REVIEW",
-          "APPROVED_AWAITING_AGREEMENT",
-        ],
+        states: partnerActionStates("reject"),
         destructive: true,
         confirmTitle: "Reject this partner application?",
+        /*
+         * The reason is emailed to the applicant and kept on the inquiry; the
+         * API's fallback text ("Rejected from the Partner runtime.") was what
+         * applicants received without it.
+         */
+        reasonPrompt: {
+          title: "Reject partner application",
+          label: "Reason for rejection",
+        },
       },
       {
         key: "create-agreement",
@@ -1776,7 +1812,13 @@ const definitions: PlatformModuleDefinition[] = [
         placement: "primary",
         scope: "record",
         selection: "none",
-        states: ["ONBOARDING_PENDING", "APPROVED_FOR_ACTIVATION"],
+        /*
+         * Offered where onboarding approval leaves the partner
+         * (INFORMATION_APPROVED). It used to be ONBOARDING_PENDING — before
+         * onboarding is approved, where activation must fail — and hidden in
+         * the one state where it succeeds.
+         */
+        states: partnerActionStates("activate"),
       },
       {
         key: "suspend-partner",
@@ -1784,8 +1826,25 @@ const definitions: PlatformModuleDefinition[] = [
         placement: "overflow",
         scope: "record",
         selection: "none",
-        states: ["ACTIVE"],
+        states: partnerActionStates("suspend"),
         destructive: true,
+        reasonPrompt: {
+          title: "Suspend partner",
+          label: "Reason for suspension",
+        },
+      },
+      {
+        key: "deactivate-partner",
+        label: "Deactivate",
+        placement: "overflow",
+        scope: "record",
+        selection: "none",
+        states: partnerActionStates("deactivate"),
+        destructive: true,
+        reasonPrompt: {
+          title: "Deactivate partner",
+          label: "Reason for deactivation",
+        },
       },
       {
         key: "reactivate-partner",
@@ -1793,14 +1852,18 @@ const definitions: PlatformModuleDefinition[] = [
         placement: "primary",
         scope: "record",
         selection: "none",
-        states: ["SUSPENDED", "INACTIVE"],
+        states: partnerActionStates("reactivate"),
       },
     ],
+    /*
+     * The derived phase (ADR-0026), not the 24 detailed statuses: the record
+     * page maps the partner status to its phase to mark the current stage.
+     */
     process: {
       key: "partner-lifecycle",
-      stages: PARTNER_STATUSES.slice(0, 15).map((item) => ({
-        key: item.value,
-        label: item.label,
+      stages: PARTNER_PHASES.map((phase) => ({
+        key: phase,
+        label: PARTNER_PHASE_LABELS[phase],
       })),
     },
     relatedRecords: [
@@ -4776,8 +4839,14 @@ function partnerForms(fields: RuntimeFieldDefinition[]) {
       tab: sectionTabs[section] ?? "summary",
     }),
   );
+  /*
+   * A read-only field has nothing to enter on create — partner number, status
+   * and the system fields are assigned by the server — so the create form no
+   * longer draws them as blank disabled controls.
+   */
   const tabbedFields = fields.map((item) => ({
     ...item,
+    hideOnCreate: item.hideOnCreate ?? item.readOnly,
     tab: sectionTabs[item.section] ?? "summary",
   }));
   return (["create", "detail", "edit"] as const).map((key) => ({

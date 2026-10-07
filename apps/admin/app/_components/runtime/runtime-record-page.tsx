@@ -22,7 +22,11 @@ import type {
   RuntimeColumnDefinition,
   RuntimeRecord,
 } from "@/lib/runtime/platform-runtime.types";
-import { buildWritePayload } from "@/lib/runtime/runtime-write-payload";
+import {
+  buildWritePayload,
+  emptyEditOutcome,
+} from "@/lib/runtime/runtime-write-payload";
+import { partnerPhaseOf } from "@repo/config";
 import {
   describeBlockedSave,
   firstFailingTab,
@@ -356,6 +360,8 @@ function RuntimeRecordEditor({
       form.values,
       isCreate,
     );
+    const nothingToSave = emptyEditOutcome(payload, isCreate);
+    if (nothingToSave) return nothingToSave;
     const validation = await adapter.validateRecord(
       payload,
       isCreate ? "create" : "edit",
@@ -1645,6 +1651,9 @@ function resolveProcessStage(
     record.contracts.length > 0
   )
     return "AGREEMENT";
+  // A partner's process stages are its derived phases (ADR-0026).
+  if (moduleKey === "partners")
+    return partnerPhaseOf(String(record.status ?? "")) ?? "";
   return String(record.processStage ?? record.status ?? "");
 }
 

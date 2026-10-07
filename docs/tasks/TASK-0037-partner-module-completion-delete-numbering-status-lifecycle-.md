@@ -10,8 +10,8 @@ CREATED_AT: 2026-10-07
 AFFECTED_MODULES: [partners, partner-experience, platform-runtime, contracts, super-admin, apps/admin]
 AGENTS: [architect, database, backend-api, frontend, security, qa, reviewer, integrator]
 DEPENDENCIES: WP-03 after WP-02; WP-04 after WP-01; WP-05 after WP-01 and WP-04; WP-06 after WP-03 and WP-04; WP-07 after WP-01; WP-08 after WP-03 to WP-07
-CURRENT_PACKAGE: WP-04
-COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-07]
+CURRENT_PACKAGE: WP-05
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-07]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 1
 FINAL_STATUS:
@@ -54,7 +54,7 @@ Plan: EXECPLAN-0055. Decisions: ADR-0026, ADR-0027.
 | WP-01 | Runtime record-action routing and error surfacing | DONE | — | backend-api, frontend | agent/partner-module-completion | — | — | — | — | — |
 | WP-02 | Schema: PlatformNumberSequence, Partner.partnerNumber + backfill | DONE | — | database | agent/partner-module-completion | — | — | — | — | — |
 | WP-03 | Numbering service + Admin Settings Numbering; enabled currencies | DONE | WP-02 | backend-api, frontend | agent/partner-module-completion | — | — | — | — | — |
-| WP-04 | Partner write path and status lifecycle | NOT_STARTED | WP-01 | backend-api, frontend | agent/partner-module-completion | — | — | — | — | — |
+| WP-04 | Partner write path and status lifecycle | DONE | WP-01 | backend-api, frontend | agent/partner-module-completion | — | — | — | — | — |
 | WP-05 | Onboarding invitation hardening | NOT_STARTED | WP-01, WP-04 | backend-api, security | agent/partner-module-completion | — | — | — | — | — |
 | WP-06 | Commission and agreement inheritance | NOT_STARTED | WP-03, WP-04 | backend-api | agent/partner-module-completion | — | — | — | — | — |
 | WP-07 | Generic dependency-aware delete | DONE | WP-01 | backend-api, frontend | agent/partner-module-completion | — | — | — | — | — |

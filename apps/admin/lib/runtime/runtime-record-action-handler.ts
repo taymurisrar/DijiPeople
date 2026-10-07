@@ -252,7 +252,22 @@ export async function executeRuntimeRecordAction(input: {
    * server-side; without it the header kept showing the state the action had
    * just left, and the command bar kept offering the command just run.
    */
-  const result = await adapter.executeRecordAction(record.id, action.key);
+  let body: Record<string, unknown> = {};
+  if (action.reasonPrompt) {
+    const reason = await requestReason({
+      title: action.reasonPrompt.title,
+      label: action.reasonPrompt.label,
+      confirmLabel: action.label,
+      tone: action.destructive ? "danger" : "default",
+    });
+    if (!reason) return;
+    body = { reason };
+  }
+  const result = await adapter.executeRecordAction(
+    record.id,
+    action.key,
+    body,
+  );
   await reloadRecord();
   return describeRecordActionOutcome(result, action.label);
 }

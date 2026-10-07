@@ -817,6 +817,36 @@ export const ERROR_CATALOG = {
     'warning',
     'validation',
   ),
+  /*
+   * ADR-0026 — partner status moves only through lifecycle actions. The first
+   * code is a status sent as a field (an edit, or the record header); the
+   * second is an action that would move a partner who has already been live
+   * back into the application or agreement funnel.
+   */
+  PARTNER_STATUS_ACTION_REQUIRED: entry(
+    400,
+    'Status changes through actions',
+    'A partner’s status changes only through its lifecycle actions, such as Start review, Activate partner, Suspend or Deactivate.',
+    'warning',
+    'validation',
+    'Use the action for the change you want from the record’s command bar.',
+  ),
+  PARTNER_ACTION_NOT_AVAILABLE: entry(
+    409,
+    'Action not available',
+    'This action is not available in the partner’s current status.',
+    'warning',
+    'validation',
+    'Refresh the record to see the actions available now.',
+  ),
+  PARTNER_ALREADY_LIVE: entry(
+    409,
+    'Partner is already live',
+    'This partner has already been activated, so this step would move it back into the application funnel.',
+    'warning',
+    'validation',
+    'Use Suspend, Deactivate or Reactivate instead.',
+  ),
   PLATFORM_CURRENCY_NOT_ENABLED: entry(
     400,
     'Currency not enabled',

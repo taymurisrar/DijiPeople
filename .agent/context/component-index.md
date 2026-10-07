@@ -1,7 +1,7 @@
 # Component Index
 
-> **Last verified:** 2026-10-07
-> **Verified against commit:** f0a7e249
+> **Last verified:** 2026-10-08
+> **Verified against commit:** 6439fa00
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -17,7 +17,7 @@ comment beside it is the reasoning; this document is a route to both. Every row
 carries `file`:`line` for that reason — read the source before changing it.
 
 **An export missing from here is undocumented, not absent.** 887 of
-1196 exports across these kits carry no
+1197 exports across these kits carry no
 doc-comment and are omitted rather than listed as bare names. That ratio is
 itself worth knowing: it is where a UI/UX or Frontend agent is working without
 stated rationale, and where adding one is worth more than a new abstraction.
@@ -45,7 +45,7 @@ re-derived on each run.
 
 `ProDataTable` (`crm/data-table.tsx`) is the required table for every production admin screen. A hand-rolled table here is a review failure.
 
-88 documented export(s); 263 undocumented export(s) omitted.
+89 documented export(s); 263 undocumented export(s) omitted.
 
 | Export | Kind | Used by | Where | What it is |
 |---|---|---|---|---|
@@ -101,6 +101,7 @@ re-derived on each run.
 | `describeDestructiveConfirm` | function | 1 | `apps/admin/lib/runtime/destructive-confirm.ts`:47 | Title, description and names for a destructive confirmation. |
 | `describeRecordActionOutcome` | function | 1 | `apps/admin/lib/runtime/runtime-action-outcome.ts`:88 | The outcome of a record action the API handled, phrased for the command bar. |
 | `editEntryTab` | function | 1 | `apps/admin/lib/runtime/edit-tab-selection.ts`:104 | The tab Edit should switch to, or `null` when the current tab already has something editable and no switch is needed. |
+| `emptyEditOutcome` | function | 1 | `apps/admin/lib/runtime/runtime-write-payload.ts`:103 | The save outcome when an edit has nothing to send, or null when it does. |
 | `errorCountByTab` | function | 1 | `apps/admin/lib/runtime/blocked-save-feedback.ts`:33 | How many failures sit on each tab, for the tab strip's badges. |
 | `firstFailingTab` | function | 1 | `apps/admin/lib/runtime/blocked-save-feedback.ts`:22 | The tab holding the first failure, or null when none of them declare one. |
 | `humanizeFieldError` | function | 1 | `apps/admin/lib/runtime/humanize-field-error.ts`:24 | Replace a leading DTO property name with the label the operator sees. |
@@ -129,7 +130,7 @@ re-derived on each run.
 | `DASHBOARD_WIDGET_REGISTRY` | constant | 0 | `apps/admin/app/_components/dashboard/platform-dashboard.tsx`:295 | Canonical widget capability registry. |
 | `MODULES_WITH_DEPENDENCY_CHECK` | constant | 0 | `apps/admin/lib/runtime/http-module-runtime-adapter.ts`:19 | Modules whose API answers `GET :id/dependencies` (EXECPLAN-0055 D5) — the mirror of `dependencyProviders()` in `PlatformRuntimeService`. |
 | `RUNTIME_ELEVATED_ROLES` | constant | 0 | `apps/admin/lib/runtime/runtime-permissions.ts`:21 | Roles that reach every platform module regardless of the granted key set. |
-| `RecordDependencyPolicy` | type | 1 | `apps/admin/lib/runtime/platform-runtime.types.ts`:493 | What deleting a record would do, relation by relation — the answer of `GET /platform-runtime/:moduleKey/:id/dependencies` (EXECPLAN-0055 D5). |
+| `RecordDependencyPolicy` | type | 1 | `apps/admin/lib/runtime/platform-runtime.types.ts`:499 | What deleting a record would do, relation by relation — the answer of `GET /platform-runtime/:moduleKey/:id/dependencies` (EXECPLAN-0055 D5). |
 | `AdminMfaChallenge` | type | 0 | `apps/admin/app/_components/security/mfa-security.tsx`:138 | ------------------------------------------------------------------ |
 | `DependencyDeleteTarget` | type | 0 | `apps/admin/lib/runtime/dependency-delete-model.ts`:20 | What a dependency-aware delete dialog shows, and whether it lets the operator confirm (EXECPLAN-0055 D5). |
 | `Notification` | type | 0 | `apps/admin/app/_components/notifications/notification-model.ts`:11 | One row of the feed, as `platform-notifications.ts` projects it. |

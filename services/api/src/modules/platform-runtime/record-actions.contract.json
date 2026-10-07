@@ -3,6 +3,7 @@
   "partners": [
     "activate",
     "approve-partner",
+    "deactivate-partner",
     "reactivate-partner",
     "reject-partner",
     "request-information",

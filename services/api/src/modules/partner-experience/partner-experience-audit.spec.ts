@@ -73,6 +73,10 @@ describe('PartnerExperienceService — audit coverage', () => {
       },
       platformSetting: { findUnique: jest.fn(async () => null) },
       partner: {
+        // The linked partner is still in the funnel (ADR-0026 live guard).
+        findUnique: jest.fn(async () => ({
+          status: PartnerStatus.UNDER_REVIEW,
+        })),
         update: jest.fn(async () => ({
           id: 'partner-1',
           email: 'a@example.test',

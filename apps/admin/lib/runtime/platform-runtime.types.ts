@@ -275,6 +275,12 @@ export type RuntimeActionDefinition = {
   confirmDescription?: string;
   disabledReason?: string;
   href?: string;
+  /**
+   * Collect a reason through the shared reason dialog before a record action
+   * is dispatched, and send it as `reason`. For a destructive action the
+   * dialog is the confirmation, so the generic confirm is not shown as well.
+   */
+  reasonPrompt?: { title: string; label: string };
 };
 
 export type RuntimeStatusDefinition = {

@@ -40,6 +40,10 @@ import {
   findPartnerDuplicate,
 } from '../partners/partner-duplicate-detection';
 import {
+  assertPartnerNotLive,
+  partnerTransition,
+} from '../partners/partner-lifecycle';
+import {
   missingAdminIdentityFields,
   missingOnboardingFields,
 } from '../partners/partner-type-policy';
@@ -310,6 +314,15 @@ export class PartnerExperienceService {
     if (!inquiry) throw new NotFoundException('Partner inquiry was not found.');
     if (inquiry.status === PartnerInquiryStatus.REJECTED)
       throw new BadRequestException('Rejected inquiry cannot be qualified.');
+    /*
+     * ADR-0026 D1. Re-qualifying an inquiry linked to a live partner reset it
+     * to APPROVED_AWAITING_AGREEMENT — a working partner pushed back to the
+     * start of contracting by a stale application.
+     */
+    await this.assertLinkedPartnerNotLive(
+      inquiry.partnerId,
+      'Approving the application',
+    );
     const [partnerSettings, platformDefaults] = await Promise.all([
       this.setting('partner-settings'),
       this.setting('platform-defaults'),
@@ -467,6 +480,11 @@ export class PartnerExperienceService {
       where: { id: inquiryId },
     });
     if (!inquiry) throw new NotFoundException('Partner inquiry was not found.');
+    // ADR-0026 D1 — rejecting a stale application must not end a live partner.
+    await this.assertLinkedPartnerNotLive(
+      inquiry.partnerId,
+      'Rejecting the application',
+    );
     const rejected = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.partnerInquiry.update({
         where: { id: inquiryId },
@@ -866,6 +884,12 @@ export class PartnerExperienceService {
       },
     });
     if (!partner) throw new NotFoundException('Partner was not found.');
+    /*
+     * ADR-0026. Activation had no status guard: run against an ACTIVE partner
+     * it re-sent the portal invitation and reset a live account to INVITED.
+     * The from-states are the shared table the admin uses to offer the button.
+     */
+    partnerTransition(partner.status, 'activate');
     if (
       partner.onboardingApplications[0]?.status !==
       PartnerOnboardingStatus.APPROVED
@@ -1004,8 +1028,13 @@ export class PartnerExperienceService {
           invitationExpiresAt: null,
         },
       }),
-      this.prisma.partner.update({
-        where: { id: user.partnerId },
+      /*
+       * ADR-0026 D2 — only an INVITED account becomes ACTIVE here. A partner
+       * suspended or deactivated after the invitation was sent keeps that
+       * account status when the contact later accepts the stale link.
+       */
+      this.prisma.partner.updateMany({
+        where: { id: user.partnerId, accountStatus: 'INVITED' },
         data: { accountStatus: 'ACTIVE' },
       }),
       this.prisma.partnerTimeline.create({
@@ -1397,6 +1426,18 @@ export class PartnerExperienceService {
         'Partner portal access is no longer active.',
       );
     return user;
+  }
+
+  private async assertLinkedPartnerNotLive(
+    partnerId: string | null,
+    step: string,
+  ) {
+    if (!partnerId) return;
+    const partner = await this.prisma.partner.findUnique({
+      where: { id: partnerId },
+      select: { status: true },
+    });
+    if (partner) assertPartnerNotLive(partner.status, step);
   }
 
   private async setting(key: string) {

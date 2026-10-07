@@ -4,7 +4,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PartnerStatus, PartnerType, Prisma } from '@prisma/client';
+import {
+  PartnerAccountStatus,
+  PartnerStatus,
+  PartnerType,
+  Prisma,
+} from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -18,6 +23,11 @@ import {
   findPartnerDuplicate,
 } from './partner-duplicate-detection';
 import { missingAdminIdentityFields } from './partner-type-policy';
+import {
+  accountStatusAfterAction,
+  partnerStatusRequiresAction,
+  partnerTransition,
+} from './partner-lifecycle';
 import {
   CreatePartnerCommissionDto,
   CreatePartnerDto,
@@ -273,20 +283,17 @@ export class PartnersService {
   ) {
     const partner = await this.get(id);
     const next = partnerTransition(partner.status, dto.action);
+    const accountStatus = accountStatusAfterAction(
+      dto.action,
+      partner.portalUsers.some(
+        (portalUser: { status: string }) => portalUser.status === 'ACTIVE',
+      ),
+    );
     const eventType = `PARTNER_${dto.action.toUpperCase().replaceAll('-', '_')}`;
     await this.prisma.$transaction([
       this.prisma.partner.update({
         where: { id },
-        data: {
-          status: next,
-          ...(dto.action === 'suspend'
-            ? { accountStatus: 'SUSPENDED' }
-            : dto.action === 'reactivate'
-              ? { accountStatus: 'ACTIVE' }
-              : dto.action === 'deactivate'
-                ? { accountStatus: 'DISABLED' }
-                : {}),
-        },
+        data: { status: next, ...(accountStatus ? { accountStatus } : {}) },
       }),
       this.prisma.partnerTimeline.create({
         data: {
@@ -325,7 +332,11 @@ export class PartnersService {
         status: partner.status,
         accountStatus: partner.accountStatus,
       },
-      afterSnapshot: { status: next, reason: dto.reason ?? null },
+      afterSnapshot: {
+        status: next,
+        accountStatus: accountStatus ?? partner.accountStatus,
+        reason: dto.reason ?? null,
+      },
     });
     return this.get(id);
   }
@@ -502,29 +513,21 @@ export class PartnersService {
   }
   async update(id: string, dto: UpdatePartnerDto, actorId?: string) {
     const existing = await this.get(id);
-    if (
-      dto.status === PartnerStatus.ACTIVE &&
-      existing.status !== PartnerStatus.ACTIVE
-    )
-      throw new BadRequestException(
-        'Activate partners through the governed activation action after onboarding and agreement verification.',
-      );
     /*
-     * The mirror of the guard above, which was missing. Entering ACTIVE was
-     * governed; leaving it was not, so a generic PATCH could take a live
-     * partner — signed agreement, working referral link — straight to
-     * REJECTED or TERMINATED with no timeline entry and no from-set check,
-     * bypassing `partnerTransition` entirely. Suspension, deactivation and
-     * reactivation already have governed actions that record why.
+     * ADR-0026 D1 — update never changes status. The DTO no longer declares it,
+     * so an HTTP body carrying it is refused by `forbidNonWhitelisted` before
+     * reaching here; this is the guard for an internal caller handing over an
+     * object that still has one (the runtime header status once spread the
+     * whole GET record into this method).
+     *
+     * REG-015 pinned two directions — into ACTIVE and out of ACTIVE. Both are
+     * now one rule: any status other than the current one is a lifecycle
+     * action's job, because only an action checks the from-state, records a
+     * timeline entry and audits the reason.
      */
-    if (
-      existing.status === PartnerStatus.ACTIVE &&
-      dto.status !== undefined &&
-      dto.status !== PartnerStatus.ACTIVE
-    )
-      throw new BadRequestException(
-        'A live partner’s status is changed through the governed lifecycle actions — suspend, deactivate or reactivate — so the reason is recorded.',
-      );
+    const requestedStatus = (dto as { status?: unknown }).status;
+    if (requestedStatus !== undefined && requestedStatus !== existing.status)
+      throw partnerStatusRequiresAction(existing.status);
     await this.validateOwner(dto.assignedToUserId);
     /*
      * WP-08 finding 3. `dto` may now be a genuinely partial patch — validate
@@ -739,67 +742,6 @@ function partnerViewWhere(viewKey?: string): Prisma.PartnerWhereInput {
   return values ? { status: { in: values } } : {};
 }
 
-function partnerTransition(
-  current: PartnerStatus,
-  action: PartnerLifecycleActionDto['action'],
-) {
-  const allowed: Record<
-    PartnerLifecycleActionDto['action'],
-    { from: PartnerStatus[]; to: PartnerStatus }
-  > = {
-    'start-review': {
-      from: [
-        PartnerStatus.INQUIRY,
-        PartnerStatus.NEW_INQUIRY,
-        PartnerStatus.MORE_INFORMATION_REQUIRED,
-      ],
-      to: PartnerStatus.UNDER_REVIEW,
-    },
-    approve: {
-      from: [
-        PartnerStatus.INQUIRY,
-        PartnerStatus.NEW_INQUIRY,
-        PartnerStatus.UNDER_REVIEW,
-        PartnerStatus.MORE_INFORMATION_REQUIRED,
-      ],
-      to: PartnerStatus.APPROVED_AWAITING_AGREEMENT,
-    },
-    reject: {
-      from: [
-        PartnerStatus.INQUIRY,
-        PartnerStatus.NEW_INQUIRY,
-        PartnerStatus.UNDER_REVIEW,
-        PartnerStatus.MORE_INFORMATION_REQUIRED,
-        PartnerStatus.APPROVED_AWAITING_AGREEMENT,
-      ],
-      to: PartnerStatus.REJECTED,
-    },
-    'request-information': {
-      from: [
-        PartnerStatus.INQUIRY,
-        PartnerStatus.NEW_INQUIRY,
-        PartnerStatus.UNDER_REVIEW,
-      ],
-      to: PartnerStatus.MORE_INFORMATION_REQUIRED,
-    },
-    suspend: { from: [PartnerStatus.ACTIVE], to: PartnerStatus.SUSPENDED },
-    reactivate: {
-      from: [PartnerStatus.SUSPENDED, PartnerStatus.INACTIVE],
-      to: PartnerStatus.ACTIVE,
-    },
-    deactivate: {
-      from: [PartnerStatus.ACTIVE, PartnerStatus.SUSPENDED],
-      to: PartnerStatus.INACTIVE,
-    },
-  };
-  const rule = allowed[action];
-  if (!rule.from.includes(current))
-    throw new BadRequestException(
-      `Action ${action} is not available while the partner is ${current}.`,
-    );
-  return rule.to;
-}
-
 function partnerActionMessage(
   action: PartnerLifecycleActionDto['action'],
   name: string,
@@ -956,14 +898,33 @@ function assertPartnerIdentityFields(identity: {
     );
 }
 
+/*
+ * Fields are picked, not spread (ADR-0026 D1). `...dto` carried `status`
+ * straight into the insert, so a partner could be created ACTIVE; and a spread
+ * writes whatever an internal caller's object happens to hold. Every partner
+ * starts at DRAFT with no portal account — both move only through lifecycle
+ * actions.
+ */
 function partnerData(dto: CreatePartnerDto, currencyCode: string) {
   return {
-    ...dto,
+    type: dto.type,
     displayName: dto.displayName.trim(),
+    legalName: dto.legalName,
+    companyName: dto.companyName,
+    contactFirstName: dto.contactFirstName,
+    contactLastName: dto.contactLastName,
     email: dto.email.trim().toLowerCase(),
-    currencyCode: currencyCode.toUpperCase(),
-    status: dto.status ?? PartnerStatus.DRAFT,
+    phone: dto.phone,
+    country: dto.country,
+    website: dto.website,
+    taxId: dto.taxId,
+    partnershipModel: dto.partnershipModel,
     defaultCommissionRate: dto.defaultCommissionRate,
+    currencyCode: currencyCode.toUpperCase(),
+    assignedToUserId: dto.assignedToUserId,
+    notes: dto.notes,
+    status: PartnerStatus.DRAFT,
+    accountStatus: PartnerAccountStatus.NOT_PROVISIONED,
   };
 }
 
@@ -997,11 +958,12 @@ function partnerUpdateData(dto: UpdatePartnerDto) {
   if (dto.country !== undefined) data.country = dto.country;
   if (dto.website !== undefined) data.website = dto.website;
   if (dto.taxId !== undefined) data.taxId = dto.taxId;
+  if (dto.partnershipModel !== undefined)
+    data.partnershipModel = dto.partnershipModel;
   if (dto.defaultCommissionRate !== undefined)
     data.defaultCommissionRate = dto.defaultCommissionRate;
   if (dto.currencyCode !== undefined)
     data.currencyCode = dto.currencyCode.toUpperCase();
-  if (dto.status !== undefined) data.status = dto.status;
   if (dto.assignedToUserId !== undefined)
     data.assignedToUserId = dto.assignedToUserId;
   if (dto.notes !== undefined) data.notes = dto.notes;
