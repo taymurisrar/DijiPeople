@@ -607,6 +607,7 @@
 
 ## Recent Engineering History
 
+- [[2026-10-07-crm-plugin-alm-mfa-claims-afc93291|Engineering History — CRM plugin: package ALM and MFA discoverability, Claims on the runtime, advisory fix]]
 - [[2026-09-27-custom-fields-screens-and-query-04892def|Engineering History — Custom fields screens and query]]
 - [[2026-09-27-custom-fields-every-module-be7189f7|Engineering History — Custom fields every module]]
 - [[2026-09-27-claims-navigation-cea41518|Engineering History — Claims navigation]]
@@ -614,7 +615,6 @@
 - [[2026-09-26-release-task-0034-custom-field-values-1aeda297|Engineering History — Release task 0034 custom field values]]
 - [[2026-09-26-release-backlog-safepay-package-alm-42f597b7|Engineering History — Release backlog safepay package alm]]
 - [[2026-09-26-item-0207-template-versions-9e66d115|Engineering History — Item 0207 template versions]]
-- [[2026-09-26-custom-field-values-and-import-scale-cd777b78|Engineering History — Custom field values and import scale]]
 
 ## Recent Releases
 
@@ -801,7 +801,7 @@
 | Backlog items | 221 |
 | Known bug patterns | 35 |
 | QA runs | 38 |
-| Engineering history records | 94 |
+| Engineering history records | 95 |
 | Release records | 10 |
 | Module notes | 31 |
 | Architecture notes | 22 |
