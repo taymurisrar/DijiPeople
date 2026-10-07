@@ -47,7 +47,17 @@ export function RecordStatusGroup({
   write,
   onChanged,
   disabled = false,
+  slots: visibleSlots,
+  compact = false,
 }: {
+  /**
+   * Draw only these slots. The record highlight header shows Status and
+   * Sub-status as values of its own and takes just the Owner control from
+   * here, so the assignment route and its permission check stay in one place.
+   */
+  slots?: Array<"owner" | "status" | "subStatus">;
+  /** Size to content, for use inside another header strip. */
+  compact?: boolean;
   definition: PlatformModuleDefinition;
   record: RuntimeRecord | Record<string, unknown>;
   roleKeys: string[];
@@ -63,12 +73,22 @@ export function RecordStatusGroup({
   /** Create mode — there is no record to own or transition yet. */
   disabled?: boolean;
 }) {
-  const header = definition.recordHeader;
+  const declared = definition.recordHeader;
   const [notice, setNotice] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   const [pendingSlot, setPendingSlot] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  const header =
+    declared && visibleSlots
+      ? {
+          owner: visibleSlots.includes("owner") ? declared.owner : undefined,
+          status: visibleSlots.includes("status") ? declared.status : undefined,
+          subStatus: visibleSlots.includes("subStatus")
+            ? declared.subStatus
+            : undefined,
+        }
+      : declared;
   if (!header) return null;
   const slots = [header.owner, header.status, header.subStatus].filter(
     (slot): slot is RuntimeRecordHeaderSlot => Boolean(slot),
@@ -117,8 +137,18 @@ export function RecordStatusGroup({
   }
 
   return (
-    <div className="w-full lg:w-auto lg:min-w-[26rem]">
-      <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-3">
+    <div
+      className={
+        compact ? "min-w-[12rem] max-w-xs" : "w-full lg:w-auto lg:min-w-[26rem]"
+      }
+    >
+      <dl
+        className={
+          compact
+            ? "grid grid-cols-1 gap-3"
+            : "grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-3"
+        }
+      >
         {header.owner ? (
           <OwnerSlot
             slot={header.owner}

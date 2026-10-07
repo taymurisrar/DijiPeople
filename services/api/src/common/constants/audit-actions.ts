@@ -166,6 +166,15 @@ export const AUDIT_ACTIONS = {
    */
   PARTNER_ONBOARDING_INVITATION_SENT: 'PARTNER_ONBOARDING_INVITATION_SENT',
   PARTNER_ONBOARDING_INVITATION_FAILED: 'PARTNER_ONBOARDING_INVITATION_FAILED',
+
+  /*
+   * EXECPLAN-0055 WP-08 — the partner record's quick-create and note paths.
+   * Platform log, entity `Partner` (contact, note) or `PartnerReferralLink`.
+   * A contact snapshot carries its email and status, never a credential.
+   */
+  PARTNER_CONTACT_CREATED: 'PARTNER_CONTACT_CREATED',
+  PARTNER_NOTE_ADDED: 'PARTNER_NOTE_ADDED',
+  PARTNER_REFERRAL_LINK_CREATED: 'PARTNER_REFERRAL_LINK_CREATED',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];

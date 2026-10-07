@@ -31,6 +31,26 @@ Verified by scenario:
   retained and no partner attached; a public submitter cannot set `partnerId`.
 - Attribution survives conversion into `CustomerAccount` — see [[customers]].
 
+Added by EXECPLAN-0055 (TASK-0037, 2026-10-08); the full account is in
+`docs/architecture/partners.md`:
+
+- **Status moves only through lifecycle actions.** A partner is created at
+  DRAFT. The record shows Status as a derived phase (Prospect, Onboarding,
+  Active, Suspended, Closed), Sub-status as the exact status, and Account as
+  portal access. One shared table, `packages/config/partner-lifecycle.js`,
+  drives both the API guards and the admin.
+- **Partners have a sequential number** (`PART-000001`) besides the legacy
+  `code`.
+- **Contacts are uninvited portal users.** Adding one sends nothing, and the
+  email must be unused by any partner's portal user.
+- **Notes live on the partner timeline.** Before this, they were written to the
+  audit log, which the tab never read.
+- **Referral link URLs are built by the API** from the configured public site.
+- **Commissions are a manual ledger** with a status machine, and agreements
+  snapshot the partner's commission when they are created.
+- **Deletion is dependency-checked.** Attribution, agreements, contacts and
+  history keep the partner.
+
 ## Authorization
 
 `partner-experience/*` authorizes **inside the service** rather than through

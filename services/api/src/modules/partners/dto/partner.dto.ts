@@ -178,6 +178,20 @@ export class CreatePartnerReferralLinkDto {
   @IsOptional() @IsDateString() expiresAt?: string;
 }
 
+/*
+ * EXECPLAN-0055 WP-08. A partner contact is a `PartnerPortalUser` row that has
+ * not been invited (status NOT_INVITED, an unusable password hash). Creating
+ * one never sends anything: portal access is granted by Activate partner, which
+ * invites the partner's business email, and by the portal's own flows. Only the
+ * three columns a contact is made of are accepted — no status, password,
+ * token or partner id, which comes from the route.
+ */
+export class CreatePartnerContactDto {
+  @IsString() @MaxLength(100) firstName!: string;
+  @IsString() @MaxLength(100) lastName!: string;
+  @IsEmail() @MaxLength(254) email!: string;
+}
+
 export class PartnerReferralLinkActionDto {
   @IsIn(['enable', 'disable', 'expire', 'regenerate'])
   action!: 'enable' | 'disable' | 'expire' | 'regenerate';

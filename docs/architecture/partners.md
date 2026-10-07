@@ -5,13 +5,17 @@ classification axes actually control, how a partner moves from a public
 inquiry to an active, revenue-eligible account, and where its data intersects
 leads, agreements and customers.
 
-> **Last verified:** 2026-09-25
+> **Last verified:** 2026-10-08
 > **Verified against:** `services/api/src/modules/partners/`,
-> `services/api/src/modules/partner-experience/`, `prisma/schema.prisma`
-> (`Partner`, `PartnerType`, `PartnerStatus`, `PartnershipModel`), commit
-> `0a84a58e` (TASK-0032, WP-04 and the Architect's post-QA fix). Scenario
-> verdicts confirmed by TASK-0032 WP-09 live QA
-> (`docs/tasks/TASK-0032-streams/QA-summary.md`).
+> `services/api/src/modules/partner-experience/`,
+> `packages/config/partner-lifecycle.js`, `prisma/schema.prisma`
+> (`Partner`, `PartnerType`, `PartnerStatus`, `PartnerAccountStatus`,
+> `PartnershipModel`, `PartnerCommission`), branch
+> `agent/partner-module-completion` after EXECPLAN-0055 WP-01..WP-08
+> (TASK-0037). The sections on lifecycle, account status, commissions,
+> agreements, invitations, contacts, referral links, timeline, deletion and the
+> admin record page were rewritten then; the type, duplicate-detection and
+> attribution sections date from TASK-0032 (`0a84a58e`).
 
 ---
 
@@ -114,26 +118,209 @@ same commit**, or the policy and the code drift apart the way
 | Duplicate detection | Email + tax id are hard-blocking; company name is never checked (the field does not apply). | Email + tax id + company name (case-insensitive) are all hard-blocking. |
 | Commission, portal, leads/referral relations | Identical code paths — no `type` branch anywhere in either service. | Identical. |
 
-### Lifecycle
+### Lifecycle (ADR-0026)
 
-`PartnerStatus` (`prisma/schema.prisma`) — the same 24-state machine for both
-types, driven by `partnerTransition()`:
+`PartnerStatus` (`prisma/schema.prisma`) has 24 values, the same for both
+types. They are listed, labelled and grouped into phases in **one shared
+module**, `packages/config/partner-lifecycle.js`. The API imports it to enforce
+transitions and the admin imports it to decide which commands to offer and how
+to label the header, so the two cannot disagree. `partner-lifecycle.test.js`
+fails if a status is added to the schema without a phase.
 
-```
-DRAFT -> INQUIRY -> NEW_INQUIRY -> MORE_INFORMATION_REQUIRED -> QUALIFIED
-      -> APPROVED_AWAITING_AGREEMENT -> AGREEMENT_IN_PROGRESS -> AGREEMENT_EXECUTED
-      -> ONBOARDING_PENDING -> ONBOARDING_INVITED -> ONBOARDING_IN_PROGRESS
-      -> SUBMITTED -> UNDER_REVIEW -> INFORMATION_APPROVED
-      -> AGREEMENT_DRAFTING -> INTERNAL_APPROVAL -> AWAITING_SIGNATURE -> FULLY_SIGNED
-      -> APPROVED_FOR_ACTIVATION -> ACTIVE
-                                  -> SUSPENDED / INACTIVE / TERMINATED / REJECTED
-```
+**Status changes only through lifecycle actions.** A partner is created at
+`DRAFT`. Neither the create nor the update DTO accepts `status`,
+`accountStatus`, `partnerNumber` or `code`, and the header status is read-only
+for partners (the API refuses `change-status` with
+`PARTNER_STATUS_ACTION_REQUIRED`).
 
-`REJECTED` and `TERMINATED` are practical dead ends — no code path re-opens
-either. Every review/decision transition (inquiry qualify/reject, onboarding
-review approve/reject) throws *before* any write when the record is not in an
-eligible from-state (the `partner-onboarding.state-machine.ts` pattern named
-by BUG-0016, applied consistently to every new check TASK-0032 added).
+The record shows three values, never a 24-option dropdown:
+
+| Header label | Source | Values |
+|---|---|---|
+| **Status** | the *phase* derived from `PartnerStatus` (`partnerPhaseOf`), never stored | Prospect, Onboarding, Active, Suspended, Closed |
+| **Sub-status** | the exact `PartnerStatus`, labelled from the shared table | e.g. "Approved, awaiting agreement", "Onboarding invited" |
+| **Account** | `PartnerAccountStatus` (portal access) | Not provisioned, Invited, Active, Suspended, Disabled |
+
+The phases are:
+
+- **Prospect:** DRAFT, INQUIRY, NEW_INQUIRY, UNDER_REVIEW,
+  MORE_INFORMATION_REQUIRED, QUALIFIED.
+- **Onboarding:** APPROVED_AWAITING_AGREEMENT through APPROVED_FOR_ACTIVATION
+  (agreement drafting and signing, the onboarding invitation, submission and
+  approval).
+- **Active:** ACTIVE.
+- **Suspended:** SUSPENDED.
+- **Closed:** INACTIVE, TERMINATED, REJECTED.
+
+The record's process bar draws the five phases.
+
+Lifecycle actions (`PARTNER_LIFECYCLE_ACTIONS`). The API enforces the
+from-states; the admin offers each command only in them.
+
+| Admin command | API action | Allowed from | Result |
+|---|---|---|---|
+| Start review | `start-review` | INQUIRY, NEW_INQUIRY, MORE_INFORMATION_REQUIRED | UNDER_REVIEW |
+| Approve application | `approve` | INQUIRY, NEW_INQUIRY, UNDER_REVIEW, MORE_INFORMATION_REQUIRED | APPROVED_AWAITING_AGREEMENT |
+| Request information | `request-information` | INQUIRY, NEW_INQUIRY, UNDER_REVIEW | MORE_INFORMATION_REQUIRED |
+| Reject (reason required) | `reject` | the approve states and APPROVED_AWAITING_AGREEMENT | REJECTED |
+| Create agreement | none (opens the agreement form) | APPROVED_AWAITING_AGREEMENT, ACTIVE | — |
+| Send onboarding link | `send-onboarding-link` | AGREEMENT_EXECUTED, FULLY_SIGNED, ONBOARDING_PENDING, ONBOARDING_INVITED, ONBOARDING_IN_PROGRESS | ONBOARDING_INVITED (a resend from IN_PROGRESS keeps IN_PROGRESS) |
+| Activate partner | `activate` | INFORMATION_APPROVED, APPROVED_FOR_ACTIVATION | ACTIVE, account INVITED |
+| Suspend (reason required) | `suspend` | ACTIVE | SUSPENDED, account SUSPENDED |
+| Deactivate (reason required) | `deactivate` | ACTIVE, SUSPENDED | INACTIVE, account DISABLED |
+| Reactivate | `reactivate` | SUSPENDED, INACTIVE | ACTIVE |
+
+Every action writes a `PartnerTimeline` entry and a `PlatformAuditLog` row with
+the operator as actor. Inquiry qualification and rejection, and contract
+signing, never move a partner that has already been live
+(`PARTNER_POST_ACTIVATION_STATUSES`) back into the funnel. `REJECTED` and
+`TERMINATED` are dead ends: no code path re-opens either.
+
+### Account status
+
+`PartnerAccountStatus` records **portal access** and is system-controlled. The
+form shows it read-only, with the action that sets each value:
+
+| Value | Set by |
+|---|---|
+| NOT_PROVISIONED | the default: no portal account yet |
+| INVITED | Activate partner, which sends the portal activation invitation |
+| ACTIVE | the partner contact accepting that invitation |
+| SUSPENDED | Suspend; Reactivate restores access |
+| DISABLED | Deactivate; Reactivate restores access |
+
+### Onboarding invitation (EXECPLAN-0055 D6)
+
+Send onboarding link creates or rotates the partner's
+`PartnerOnboardingApplication` and emails the link.
+
+- **States.** The application moves INVITED → IN_PROGRESS → SUBMITTED →
+  UNDER_REVIEW → APPROVED, with CHANGES_REQUESTED and REJECTED from review. A
+  send is refused as "already onboarded" once the partner is SUBMITTED,
+  INFORMATION_APPROVED, APPROVED_FOR_ACTIVATION or ACTIVE.
+- **Resend.** The email idempotency key includes the token hash, so a resend
+  delivers a new link and the previous one stops working. Resends have a
+  60-second cooldown (`PARTNER_INVITATION_COOLDOWN`).
+- **No token leaves the server.** It is never returned to the console, logged,
+  audited or written to the timeline.
+- **A failed send is a failure.** A provider error rolls the send back and
+  returns `PARTNER_INVITATION_DELIVERY_FAILED`. Every send, delivered or not, is
+  audited (`PARTNER_ONBOARDING_INVITATION_SENT` / `_FAILED`).
+
+### Commissions (ADR-0026 D3)
+
+- **Rate.** A percentage from 0 to 100 with two decimals, stored as
+  `Decimal(5,2)` on `Partner.defaultCommissionRate`,
+  `Contract.commissionPercentage` and `PartnerCommission.commissionRate`, and
+  shown as `n%`.
+- **Commission records are an operator-created ledger.** Add commission (on
+  the partner's Summary tab, or Commissions → New) records a base amount, rate,
+  currency and, optionally, the lead, customer or invoice it is for.
+  - The server computes `amount = base × rate / 100`.
+  - A blank rate takes the partner's default and a blank currency the partner's
+    currency. A partner with no default needs an explicit rate
+    (`PARTNER_COMMISSION_RATE_REQUIRED`).
+  - A linked lead, customer or invoice must belong to the partner
+    (`PARTNER_COMMISSION_LINK_INVALID`).
+  - Money terms are immutable: a wrong entry is voided and re-created.
+- **Status machine.** PENDING → APPROVED → PAYABLE → PAID, with VOID allowed
+  from any state except PAID. Each change is conditional on the current state,
+  audited and written to the timeline.
+- **No automatic accrual.** Nothing generates commissions from collected
+  invoices; that is ITEM-0227, a product decision.
+
+### Agreements and the commission snapshot
+
+A new partner agreement **snapshots** the partner's default commission (when it
+is above zero) and currency into its own `commissionPercentage` and currency
+when it is created. Later edits to the partner never change an existing
+agreement, and an explicit agreement rate is never overwritten. Agreements
+created before this keep their render-time fallback until they are next saved.
+
+### Contacts
+
+The record's Contacts tab shows the partner's **primary contact** (the
+`contactFirstName`, `contactLastName`, `email` and `phone` columns) and a grid
+of **contacts**, which are `PartnerPortalUser` rows.
+
+`POST /partners/:id/contacts` (`partners.manage`) adds a contact (first name,
+last name, email) as a portal user with status `NOT_INVITED` and an unusable
+password hash.
+
+- **Nothing is sent.** Sign-in requires `ACTIVE`. Portal access is still
+  granted only by Activate partner, which invites the partner's business email
+  (and finds an existing contact by that email), and by the portal's own flows.
+- **Email is unique across all partners**, because portal sign-in is keyed on
+  it. An email any portal user already holds is refused with
+  `PARTNER_CONTACT_EMAIL_IN_USE` on the email field.
+- **Audited.** Each add writes a `CONTACT_ADDED` timeline entry and a
+  `PARTNER_CONTACT_CREATED` audit row.
+- A contact is a portal-user row, so it blocks deleting the partner (see
+  Deletion rules).
+
+### Referral links
+
+- `GET /partners/:id` returns each referral link with `url`, built on the
+  server from the configured public site (`PUBLIC_SITE_URL` /
+  `LANDING_APP_URL`, `buildPublicSiteUrl`) as `<site><targetPath>?ref=<code>`.
+  `ref` is the parameter `apps/landing/lib/referral.ts` captures. The URL is
+  null when production has no public site configured, never a loopback link.
+- `POST /partners/:id/referral-links` creates a link for an ACTIVE partner,
+  audited as `PARTNER_REFERRAL_LINK_CREATED`.
+- `POST /partners/:id/referral-links/:linkId/action` enables, disables, expires
+  or regenerates one.
+- `submissionCount` and `lastUsedAt` are maintained by the referral resolver as
+  leads arrive.
+
+### Timeline
+
+`PartnerTimeline` is the partner's readable history. `GET
+/platform-runtime/partners/:id/timeline` returns it newest first, with each
+actor's name.
+
+A note added from the Timeline tab is written there as a `NOTE` entry, with the
+operator as actor, and audited as `PARTNER_NOTE_ADDED`. EXECPLAN-0055 D5: notes
+used to go only to the platform audit log, which the tab never read. Those
+older notes are read back from the audit log, so none is lost.
+
+### The admin record page
+
+`/partners/:id` is the runtime record page, with the partner's declarations in
+`apps/admin/lib/runtime/platform-module-registry.ts`.
+
+- **Highlight header** (`RecordHighlightHeader`, from the `highlight`
+  declaration). It shows the name, Partner number, Owner, Status (phase),
+  Sub-status, Account, Type and Partnership. Owner is the only control and
+  reassigns through the governed `assign` route. Status and Sub-status are
+  read-only values that carry their reason.
+- **Tabs and what each reads.** Every subgrid reads
+  `GET /platform-runtime/partners/:id/related/<key>`, which serves the arrays
+  `PartnersService.get()` returns.
+
+| Tab | Content | Add |
+|---|---|---|
+| Summary | identity, commercial terms, owner, internal notes; Commissions grid (`commissions`) | Add commission → runtime `POST /platform-runtime/commissions` with `partnerId` |
+| Application | application details; Partner application (`inquiries`, opens `/partner-inquiries/:id`); Onboarding applications (`onboardingApplications`, opens `/partner-onboarding/:id`) | — |
+| Contacts | primary contact; Contacts (`portalUsers`) | Add contact → `POST /partners/:id/contacts` |
+| Agreements | Partner agreements (`agreements`) | Create agreement command |
+| Referral Links | `referralLinks` with code, URL, status, leads, last used; Copy link, Disable, Enable, Regenerate | Add referral link → `POST /partners/:id/referral-links` (active partners) |
+| Referred Leads | `leads`: company, contact, status, attribution (referral link code or manual correction), referred date, converted customer | — |
+| Customers | `attributedCustomers` | — |
+| Tenants | `attributedTenants`: tenant, workspace slug, customer, status | — |
+| Timeline | `PartnerTimeline` with notes | Add note |
+| System | id, created, updated | — |
+
+- **No Documents tab.** A partner has no document relation, so the tab is not
+  declared.
+- **Quick create.** Add opens `RuntimeQuickCreatePanel`, a right-edge sheet
+  driven by the subgrid's `quickCreate` declaration. It renders the child
+  module's own runtime fields, attaches the partner itself, refuses a second
+  submission while one is in flight, shows field errors beside their fields,
+  and reloads the grid without leaving the record.
+- **Gating.** Add buttons and the referral-link commands are shown only to
+  holders of `partners.manage`. That is a convenience; the API enforces it.
+
+### Unusable partners
 
 Lead attribution and agreement source guards (see [`agreements.md`](agreements.md))
 treat `TERMINATED`, `REJECTED`, `SUSPENDED` and `INACTIVE` as **unusable** —
@@ -215,8 +402,9 @@ the tenant `AuditLog`):
 lifecycle transition, `PARTNER_APPLICATION_APPROVED`/`_REJECTED`,
 `PARTNER_ONBOARDING_INVITATION_SENT`, `PARTNER_ONBOARDING_SUBMITTED`,
 `PARTNER_COMMISSION_CREATED`/`_UPDATED`, referral-link
-create/enable/disable/expire/`PARTNER_REFERRAL_LINK_REGENERATED`, and
-`PLATFORM_LEAD_ATTRIBUTION_CORRECTED` (below). Snapshots exclude
+`PARTNER_REFERRAL_LINK_CREATED`/enable/disable/expire/`_REGENERATED`,
+`PARTNER_CONTACT_CREATED`, `PARTNER_NOTE_ADDED`, partner deletion and delete
+refusal, and `PLATFORM_LEAD_ATTRIBUTION_CORRECTED` (below). Snapshots exclude
 `applicationSnapshot` (the raw original submission — duplicative) and
 `notes`. `PartnerTimeline` — the partner's own readable history — is
 unchanged and still written alongside, distinct from the audit log the same
@@ -269,43 +457,48 @@ unimplemented in WP-05's agreement scenario matrix (see
 [`agreements.md`](agreements.md), scenarios 5–6) and remain open follow-ups,
 not implemented here.
 
-### Deletion rules
+### Deletion rules (EXECPLAN-0055 D5)
 
-`PartnerDeletionService` (`services/api/src/modules/partners/partner-deletion.service.ts`)
-performs the same batch-delete pattern every platform-runtime module uses
-(`_count` a fixed relation set, refuse by name if any is non-zero, delete
-otherwise). Before commit `0a84a58e`, this check covered only leads,
-commissions, agreements, referral links and portal users — five of eleven
-`onDelete: Restrict` relations into `Partner`. The missing six (`inquiries`,
-`onboardingApplications`, `previousAttributions`, `correctedAttributions`,
-`leadReviews`, `supportCases`) meant a delete could still reach PostgreSQL and
-fail as a raw foreign-key violation — surfaced to the operator as a bare
-`500 Unexpected error` — for **almost every real partner**, since nearly all
-of them originate from a public inquiry, and any partner ever re-attributed
-to a lead appears in the attribution history (REG-620, found live by TASK-0032
-WP-09 QA).
+Deleting a partner asks what depends on it first.
+`GET /platform-runtime/partners/:id/dependencies` returns one entry per related
+area, `{ area, count, policy, reason, href }`, and the admin delete dialog (on
+the record and on the list) shows them with links to the tab that lists them.
+The classification lives in
+`services/api/src/modules/partners/partner-dependencies.ts`, and
+`partner-dependencies.spec.ts` fails on any relation into `Partner` that it
+does not classify.
 
-Every `onDelete: Restrict` relation into `Partner` is now checked and named in
-the refusal:
+The schema's `onDelete` is **not** the policy. Several relations are `SetNull`
+or `Cascade` in the schema and are still kept, because deleting would erase a
+business fact:
 
-| Relation | Refusal names |
-|---|---|
-| `leads` | lead(s) |
-| `commissions` | commission(s) |
-| `agreements` | agreement(s) |
-| `referralLinks` | referral link(s) |
-| `portalUsers` | portal user(s) |
-| `inquiries` | "the partner application it came from" |
-| `onboardingApplications` | onboarding application(s) |
-| `previousAttributions` + `correctedAttributions` | lead attribution change(s) (combined count) |
-| `leadReviews` | lead review(s) |
-| `supportCases` | support case(s) |
+| Relation | Schema | Policy | Why |
+|---|---|---|---|
+| `commissions` | Cascade | BLOCKS | Financial records; never deleted with a partner |
+| `leads` | SetNull | RETAIN (blocks) | Deleting would erase lead attribution |
+| `attributedCustomers` | SetNull | RETAIN (blocks) | The attribution commission is computed from |
+| `attributedTenants` | SetNull | RETAIN (blocks) | As above |
+| `agreements` | Restrict | BLOCKS | Contract evidence with its own retention |
+| `inquiries` | Restrict | BLOCKS | The partner's origin record |
+| `onboardingApplications` | Restrict | BLOCKS | Remove onboarding deliberately |
+| `portalUsers` (contacts) | Restrict | BLOCKS | Portal accounts and contacts |
+| `referralLinks` | Restrict | BLOCKS | Leads and customers cite them |
+| attribution corrections (previous and corrected) | Restrict | BLOCKS | Attribution history |
+| `leadReviews`, `supportCases` | Restrict | BLOCKS | Business history |
+| `timeline` | Restrict | CASCADE | The partner's own diary, removed with it |
 
-`PartnerTimeline` is also `onDelete: Restrict`, but it is the partner's own
-diary rather than business history anything else depends on: when no relation
-above blocks the delete, the timeline is removed together with the partner in
-one transaction (`prisma.$transaction`), rather than being a second reason to
-refuse.
+- **The delete re-checks inside its transaction**, under a row lock, so a
+  dependency added between the dialog and the confirmation still refuses.
+- **A refusal is named.** It is returned in `data.message` (for example
+  "Nothing was deleted. Kept 1: Acme — it still has the partner application it
+  came from") and shown in red. A foreign-key failure that slips past the check
+  becomes the same named refusal, never a bare 500.
+- **Both outcomes are audited.** Deletions and refusals each write a
+  `PlatformAuditLog` row.
+
+In practice, almost every real partner is kept: nearly all originate from a
+public inquiry. Deletion is for partners created in error that nothing has
+touched yet.
 
 `LeadsService.bulkDeleteLeads` gained the equivalent check for leads
 (REG-621): `LeadAttributionCorrection`, `Contract.relatedLeadId` and
@@ -314,8 +507,9 @@ unchecked (only a converted customer blocked the delete before this fix). A
 lead with any of those is refused with a `400` naming what blocks it and
 suggesting archiving instead; a lead with none is deleted.
 
-Both fixes, and the `getLead()` partner-embedding fix above, are proven by
-`services/api/src/modules/partners/partner-deletion.service.spec.ts` and
+The partner rules are proven by `partner-deletion.service.spec.ts` and
+`partner-dependencies.spec.ts`; the lead rule and the `getLead()`
+partner-embedding fix by
 `services/api/src/modules/leads/lead-delete-and-partner.spec.ts`
 (REG-620, REG-621, REG-622 — `docs/qa/regressions/_incoming/architect.md`).
 

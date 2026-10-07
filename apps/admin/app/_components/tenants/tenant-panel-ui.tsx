@@ -275,6 +275,7 @@ export function PanelDialog({
   footer,
   tone = "default",
   wide = false,
+  variant = "center",
 }: {
   title: string;
   description?: string;
@@ -283,9 +284,23 @@ export function PanelDialog({
   footer?: ReactNode;
   tone?: "default" | "danger";
   wide?: boolean;
+  /**
+   * `sheet` slides in from the right edge at full height — the quick-create
+   * panel, which keeps the record visible beside it (EXECPLAN-0055 D8).
+   */
+  variant?: "center" | "sheet";
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const previouslyFocused = useRef<Element | null>(null);
+  /*
+   * Read through a ref so the focus effect runs once per open. Keyed on
+   * `onClose`, a caller passing an inline arrow re-ran it on every render,
+   * moving focus back to the first control while the operator typed.
+   */
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     previouslyFocused.current = document.activeElement;
@@ -296,7 +311,7 @@ export function PanelDialog({
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.stopPropagation();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (event.key !== "Tab" || !containerRef.current) return;
@@ -321,20 +336,31 @@ export function PanelDialog({
       document.removeEventListener("keydown", onKeyDown, true);
       (previouslyFocused.current as HTMLElement | null)?.focus?.();
     };
-  }, [onClose]);
+  }, []);
 
+  const sheet = variant === "sheet";
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-label={title}
-      className="fixed inset-0 z-[120] grid place-items-center overflow-y-auto bg-slate-950/50 p-4"
+      className={
+        sheet
+          ? "fixed inset-0 z-[120] flex justify-end bg-slate-950/40"
+          : "fixed inset-0 z-[120] grid place-items-center overflow-y-auto bg-slate-950/50 p-4"
+      }
     >
       <div
         ref={containerRef}
-        className={`w-full ${wide ? "max-w-3xl" : "max-w-lg"} rounded-2xl border bg-white shadow-2xl ${
-          tone === "danger" ? "border-rose-200" : "border-slate-200"
-        }`}
+        className={
+          sheet
+            ? `flex h-full w-full max-w-md flex-col border-l bg-white shadow-2xl ${
+                tone === "danger" ? "border-rose-200" : "border-slate-200"
+              }`
+            : `w-full ${wide ? "max-w-3xl" : "max-w-lg"} rounded-2xl border bg-white shadow-2xl ${
+                tone === "danger" ? "border-rose-200" : "border-slate-200"
+              }`
+        }
       >
         <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
           <div>
@@ -358,7 +384,15 @@ export function PanelDialog({
             <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="max-h-[65vh] overflow-y-auto px-5 py-4">{children}</div>
+        <div
+          className={
+            sheet
+              ? "min-h-0 flex-1 overflow-y-auto px-5 py-4"
+              : "max-h-[65vh] overflow-y-auto px-5 py-4"
+          }
+        >
+          {children}
+        </div>
         {footer ? (
           <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 px-5 py-4">
             {footer}

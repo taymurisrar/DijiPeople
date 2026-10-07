@@ -24,7 +24,10 @@ describe("BUG-1423 — runtime form controls are labelled", () => {
   const source = readFileSync(FORM, "utf8");
 
   it("renders a real label bound to a real id", () => {
-    expect(source).toContain("const controlId = `field-${field.key}`");
+    // Prefixed so a second form on the page (the quick-create panel) gets
+    // distinct ids; the record form keeps `field-<key>` by default.
+    expect(source).toContain("const controlId = `${idPrefix}-${field.key}`");
+    expect(source).toContain('idPrefix = "field"');
     // Two separate checks rather than one contiguous string: ITEM-0163 added
     // an openable-label link between `<label` and `htmlFor`'s neighbouring
     // attributes, which prettier then wraps across lines — the association

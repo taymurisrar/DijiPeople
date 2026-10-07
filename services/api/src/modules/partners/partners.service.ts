@@ -20,6 +20,16 @@ import { AuditService } from '../audit/audit.service';
 import { PlatformNumberingService } from '../../common/numbering/platform-numbering.service';
 import { assertCurrencyEnabled } from '../../common/reference-data/platform-enabled-currencies';
 import { AppError } from '../../common/errors/app-error';
+import { AUDIT_ACTIONS } from '../../common/constants/audit-actions';
+import {
+  describeAttributedTenant,
+  describePartnerTimeline,
+  describePortalContact,
+  describeReferredLead,
+  partnerReferralLinkUrl,
+  personName,
+  withFullName,
+} from './partner-related-records';
 import {
   assertCommissionLinksBelongToPartner,
   commissionActionForTarget,
@@ -42,6 +52,7 @@ import {
 } from './partner-lifecycle';
 import {
   CreatePartnerCommissionDto,
+  CreatePartnerContactDto,
   CreatePartnerDto,
   CreatePartnerReferralLinkDto,
   PartnerLifecycleActionDto,
@@ -88,13 +99,51 @@ export class PartnersService {
     return this.lifecycleAction(id, user.userId, dto);
   }
 
-  createReferralLinkForUser(
+  async createReferralLinkForUser(
     user: AuthenticatedUser,
     id: string,
     dto: CreatePartnerReferralLinkDto,
   ) {
     this.assertWrite(user);
-    return this.createReferralLink(id, dto, user.userId);
+    const link = await this.createReferralLink(id, dto, user.userId);
+    /*
+     * Audited here, on the operator's path, rather than inside
+     * `createReferralLink`, which regeneration and activation also reach and
+     * which are audited as those actions (EXECPLAN-0055 audit list).
+     */
+    await this.auditService.log({
+      tenantId: 'platform',
+      actorUserId: user.userId,
+      action: AUDIT_ACTIONS.PARTNER_REFERRAL_LINK_CREATED,
+      entityType: 'PartnerReferralLink',
+      entityId: link.id,
+      afterSnapshot: {
+        partnerId: id,
+        code: link.code,
+        name: link.name,
+        status: link.status,
+      },
+    });
+    return { ...link, url: partnerReferralLinkUrl(link) };
+  }
+
+  createContactForUser(
+    user: AuthenticatedUser,
+    id: string,
+    dto: CreatePartnerContactDto,
+  ) {
+    this.assertWrite(user);
+    return this.createContact(id, dto, user.userId);
+  }
+
+  timelineForUser(user: AuthenticatedUser, id: string) {
+    this.assertRead(user);
+    return this.timeline(id);
+  }
+
+  addNoteForUser(user: AuthenticatedUser, id: string, message: string) {
+    this.assertWrite(user);
+    return this.addNote(id, message, user.userId);
   }
 
   referralLinkActionForUser(
@@ -213,6 +262,8 @@ export class PartnersService {
     return {
       items: items.map((item) => ({
         ...item,
+        // The list's Owner column reads `assignedToUser.fullName`.
+        assignedToUser: withFullName(item.assignedToUser),
         defaultCommissionRate: Number(item.defaultCommissionRate),
         onboardingStatus: item.onboardingApplications[0]?.status ?? null,
         agreementStatus: item.agreements[0]?.status ?? null,
@@ -235,10 +286,34 @@ export class PartnersService {
         assignedToUser: {
           select: { id: true, firstName: true, lastName: true, email: true },
         },
+        /*
+         * EXECPLAN-0055 WP-08. Each relation selects what its record tab
+         * shows — the Referred Leads tab reads the referral date, how the lead
+         * was attributed and the customer it converted into; Tenants reads the
+         * slug and the customer; Contacts reads when a contact was added.
+         */
         leads: {
-          select: { id: true, companyName: true, fullName: true, status: true },
+          select: {
+            id: true,
+            companyName: true,
+            fullName: true,
+            workEmail: true,
+            status: true,
+            createdAt: true,
+            referredAt: true,
+            convertedAt: true,
+            attributionStatus: true,
+            referralCodeSnapshot: true,
+            referralSource: true,
+            partnerReferralLink: { select: { id: true, code: true } },
+            convertedCustomers: {
+              select: { id: true, companyName: true },
+              orderBy: { createdAt: 'asc' },
+              take: 1,
+            },
+          },
           orderBy: { createdAt: 'desc' },
-          take: 20,
+          take: 100,
         },
         agreements: {
           include: {
@@ -249,8 +324,23 @@ export class PartnersService {
         },
         commissions: { orderBy: { createdAt: 'desc' } },
         inquiries: { orderBy: { submittedAt: 'desc' } },
+        /*
+         * Selected rather than included: the full row carries
+         * `invitationTokenHash`, which the console never needs and no
+         * response should carry.
+         */
         onboardingApplications: {
-          include: { submissions: { orderBy: { version: 'desc' }, take: 1 } },
+          select: {
+            id: true,
+            status: true,
+            tokenExpiresAt: true,
+            submittedAt: true,
+            reviewedAt: true,
+            reviewNotes: true,
+            version: true,
+            createdAt: true,
+            updatedAt: true,
+          },
           orderBy: { updatedAt: 'desc' },
         },
         portalUsers: {
@@ -262,6 +352,7 @@ export class PartnersService {
             status: true,
             activatedAt: true,
             lastActiveAt: true,
+            createdAt: true,
           },
           orderBy: { createdAt: 'asc' },
         },
@@ -273,12 +364,22 @@ export class PartnersService {
             id: true,
             companyName: true,
             status: true,
+            country: true,
+            referralCodeSnapshot: true,
             createdAt: true,
           },
           orderBy: { createdAt: 'desc' },
         },
         attributedTenants: {
-          select: { id: true, name: true, status: true, createdAt: true },
+          select: {
+            id: true,
+            name: true,
+            displayName: true,
+            slug: true,
+            status: true,
+            createdAt: true,
+            customerAccount: { select: { id: true, companyName: true } },
+          },
           orderBy: { createdAt: 'desc' },
         },
         timeline: { orderBy: { createdAt: 'desc' }, take: 100 },
@@ -287,8 +388,281 @@ export class PartnersService {
     if (!item) throw new NotFoundException('Partner was not found.');
     return normalizePartner({
       ...item,
+      assignedToUser: withFullName(item.assignedToUser),
+      leads: item.leads?.map(describeReferredLead),
+      portalUsers: item.portalUsers?.map(describePortalContact),
+      referralLinks: item.referralLinks?.map((link) => ({
+        ...link,
+        url: partnerReferralLinkUrl(link),
+      })),
+      attributedTenants: item.attributedTenants?.map(describeAttributedTenant),
       commissions: await this.describeCommissions(item.commissions),
     });
+  }
+
+  /**
+   * The partner's timeline, newest first, with the name of whoever acted.
+   *
+   * EXECPLAN-0055 D5. Notes added from the record were written to the platform
+   * audit log while this tab read `PartnerTimeline`, so a note never appeared.
+   * Notes are now written here (`addNote`); the ones written to the audit log
+   * before that are read back from it so none is lost.
+   */
+  async timeline(partnerId: string) {
+    const partner = await this.prisma.partner.findUnique({
+      where: { id: partnerId },
+      select: { id: true },
+    });
+    if (!partner) throw new NotFoundException('Partner was not found.');
+    const [rows, legacyNotes] = await Promise.all([
+      this.prisma.partnerTimeline.findMany({
+        where: { partnerId },
+        select: {
+          id: true,
+          eventType: true,
+          actorType: true,
+          actorId: true,
+          message: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 200,
+      }),
+      this.prisma.platformAuditLog.findMany({
+        where: {
+          action: 'TIMELINE_ACTIVITY_ADDED',
+          entityType: { in: ['Partners', 'Partner'] },
+          entityId: partnerId,
+        },
+        select: {
+          id: true,
+          platformActorUserId: true,
+          afterSnapshot: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 200,
+      }),
+    ]);
+    const entries = [
+      ...rows,
+      ...legacyNotes.map((note) => ({
+        id: note.id,
+        eventType: 'NOTE',
+        actorType: 'PLATFORM_USER',
+        actorId: note.platformActorUserId,
+        message: readSnapshotText(note.afterSnapshot, 'message'),
+        createdAt: note.createdAt,
+      })),
+    ].sort(
+      (left, right) =>
+        new Date(right.createdAt).getTime() -
+        new Date(left.createdAt).getTime(),
+    );
+    const idsOf = (type: string) => [
+      ...new Set(
+        entries
+          .filter((entry) => entry.actorType === type && entry.actorId)
+          .map((entry) => entry.actorId as string),
+      ),
+    ];
+    const platformIds = idsOf('PLATFORM_USER');
+    const portalIds = idsOf('PARTNER_USER');
+    const [platformUsers, portalUsers] = await Promise.all([
+      platformIds.length
+        ? this.prisma.platformUser.findMany({
+            where: { id: { in: platformIds } },
+            select: { id: true, firstName: true, lastName: true, email: true },
+          })
+        : [],
+      portalIds.length
+        ? this.prisma.partnerPortalUser.findMany({
+            where: { id: { in: portalIds }, partnerId },
+            select: { id: true, firstName: true, lastName: true, email: true },
+          })
+        : [],
+    ]);
+    const names = (
+      people: Array<{ id: string } & Parameters<typeof personName>[0]>,
+    ) =>
+      new Map(
+        people.flatMap((person) => {
+          const name = personName(person);
+          return name ? [[person.id, name] as [string, string]] : [];
+        }),
+      );
+    return {
+      items: describePartnerTimeline(entries, {
+        platform: names(platformUsers),
+        portal: names(portalUsers),
+      }),
+    };
+  }
+
+  /**
+   * Add an operator's note to the partner's timeline, with the operator as
+   * its actor, and audit it. The note is the timeline entry itself, so the
+   * Timeline tab shows it the moment it is saved.
+   */
+  async addNote(partnerId: string, message: string, actorId: string) {
+    const text = message.trim();
+    if (!text)
+      throw new AppError('VALIDATION_FAILED', {
+        message: 'Enter a note.',
+        details: {
+          fieldErrors: [{ field: 'message', message: 'Enter a note.' }],
+        },
+      });
+    if (text.length > 4000)
+      throw new AppError('VALIDATION_FAILED', {
+        message: 'A note can be at most 4000 characters.',
+        details: {
+          fieldErrors: [
+            {
+              field: 'message',
+              message: 'A note can be at most 4000 characters.',
+            },
+          ],
+        },
+      });
+    const partner = await this.prisma.partner.findUnique({
+      where: { id: partnerId },
+      select: { id: true },
+    });
+    if (!partner) throw new NotFoundException('Partner was not found.');
+    const entry = await this.prisma.partnerTimeline.create({
+      data: {
+        partnerId,
+        eventType: 'NOTE',
+        actorType: 'PLATFORM_USER',
+        actorId,
+        message: text,
+      },
+    });
+    await this.auditService.log({
+      tenantId: 'platform',
+      actorUserId: actorId,
+      action: AUDIT_ACTIONS.PARTNER_NOTE_ADDED,
+      entityType: 'Partner',
+      entityId: partnerId,
+      afterSnapshot: { timelineEntryId: entry.id, message: text },
+    });
+    return entry;
+  }
+
+  /**
+   * Add a contact to the partner (EXECPLAN-0055 WP-08).
+   *
+   * A contact is a `PartnerPortalUser` that has not been invited: status
+   * NOT_INVITED, no invitation token and an unusable password hash, so it can
+   * neither sign in (sign-in requires ACTIVE) nor accept an invitation. Nothing
+   * is sent — portal access is still granted only by Activate partner and the
+   * portal's own flows, which find this row by email and invite it.
+   *
+   * Portal sign-in is keyed on email across all partners, so an email already
+   * held by any portal user is refused: with this partner's name when it is
+   * already a contact here, without naming the other partner otherwise.
+   */
+  async createContact(
+    partnerId: string,
+    dto: CreatePartnerContactDto,
+    actorId: string,
+  ) {
+    const email = dto.email.trim().toLowerCase();
+    const firstName = dto.firstName.trim();
+    const lastName = dto.lastName.trim();
+    const fieldErrors = [
+      ...(firstName
+        ? []
+        : [{ field: 'firstName', message: 'Enter a first name.' }]),
+      ...(lastName
+        ? []
+        : [{ field: 'lastName', message: 'Enter a last name.' }]),
+    ];
+    if (fieldErrors.length)
+      throw new AppError('VALIDATION_FAILED', {
+        message: fieldErrors[0].message,
+        details: { fieldErrors },
+      });
+    const partner = await this.prisma.partner.findUnique({
+      where: { id: partnerId },
+      select: { id: true, displayName: true },
+    });
+    if (!partner) throw new NotFoundException('Partner was not found.');
+    const existing = await this.prisma.partnerPortalUser.findUnique({
+      where: { email },
+      select: { id: true, partnerId: true },
+    });
+    if (existing) {
+      const message =
+        existing.partnerId === partnerId
+          ? `${email} is already a contact of ${partner.displayName}.`
+          : `${email} is already used by another partner's contact.`;
+      throw new AppError('PARTNER_CONTACT_EMAIL_IN_USE', {
+        message,
+        details: { fieldErrors: [{ field: 'email', message }] },
+      });
+    }
+    const contact = await this.prisma
+      .$transaction(async (tx) => {
+        const created = await tx.partnerPortalUser.create({
+          data: {
+            partnerId,
+            email,
+            firstName,
+            lastName,
+            passwordHash: '!NOT_INVITED!',
+            status: 'NOT_INVITED',
+          },
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            status: true,
+            activatedAt: true,
+            lastActiveAt: true,
+            createdAt: true,
+          },
+        });
+        await tx.partnerTimeline.create({
+          data: {
+            partnerId,
+            eventType: 'CONTACT_ADDED',
+            actorType: 'PLATFORM_USER',
+            actorId,
+            message: `Contact ${firstName} ${lastName} was added.`,
+          },
+        });
+        return created;
+      })
+      .catch((error: unknown) => {
+        // A concurrent create of the same email loses on the unique index.
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002'
+        ) {
+          const message = `${email} is already used by a partner contact.`;
+          throw new AppError('PARTNER_CONTACT_EMAIL_IN_USE', {
+            message,
+            details: { fieldErrors: [{ field: 'email', message }] },
+          });
+        }
+        throw error;
+      });
+    await this.auditService.log({
+      tenantId: 'platform',
+      actorUserId: actorId,
+      action: AUDIT_ACTIONS.PARTNER_CONTACT_CREATED,
+      entityType: 'Partner',
+      entityId: partnerId,
+      afterSnapshot: {
+        contactId: contact.id,
+        email: contact.email,
+        status: contact.status,
+      },
+    });
+    return describePortalContact(contact);
   }
 
   async lifecycleAction(
@@ -970,6 +1344,8 @@ function partnerRuntimeWhere(
     if (filter.field === 'type') clauses.push({ type: value as never });
     else if (filter.field === 'status')
       clauses.push({ status: value as never });
+    else if (filter.field === 'accountStatus')
+      clauses.push({ accountStatus: value as never });
     else if (filter.field === 'displayName')
       clauses.push({ displayName: stringCondition(filter.operator, value) });
     else if (filter.field === 'email')
@@ -1016,6 +1392,7 @@ function partnerRuntimeOrder(
     'displayName',
     'type',
     'status',
+    'accountStatus',
     'email',
     'country',
     'defaultCommissionRate',
@@ -1287,4 +1664,11 @@ function commissionAuditSnapshot(commission: {
 
 function createReference(prefix: string) {
   return `${prefix}-${new Date().getFullYear()}-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+}
+
+function readSnapshotText(snapshot: unknown, key: string) {
+  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot))
+    return '';
+  const value = (snapshot as Record<string, unknown>)[key];
+  return typeof value === 'string' ? value : '';
 }

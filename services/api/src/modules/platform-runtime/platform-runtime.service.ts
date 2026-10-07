@@ -932,10 +932,8 @@ export class PlatformRuntimeService {
       const contract = await this.contracts.get(user, id);
       return { items: contract.timeline };
     }
-    if (key === 'partners') {
-      const partner = await this.partners.get(id);
-      return { items: partner.timeline };
-    }
+    // EXECPLAN-0055 D5: PartnerTimeline plus pre-fix notes, with actor names.
+    if (key === 'partners') return this.partners.timeline(id);
     if (key === 'support-cases') {
       const supportCase = await this.supportCases.get(user, id);
       return { items: supportCase.timeline };
@@ -970,6 +968,20 @@ export class PlatformRuntimeService {
         message: toDisplayString(input.message ?? ''),
       });
       return { success: true, message: 'Timeline activity added.' };
+    }
+    /*
+     * EXECPLAN-0055 D5. A partner note used to fall through to the audit write
+     * below, while the partner's Timeline tab reads `PartnerTimeline` — so the
+     * note was saved and never shown. It is now a timeline entry of its own,
+     * with the operator as actor, and audited by the partners service.
+     */
+    if (key === 'partners') {
+      await this.partners.addNote(
+        id,
+        toDisplayString(input.message ?? ''),
+        user.userId,
+      );
+      return { success: true, message: 'Note added.' };
     }
     await this.audit.log({
       /* Same reason as the read path: the note belongs to the tenant's history. */

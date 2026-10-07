@@ -10,6 +10,7 @@ import type {
 import { ContractDocumentEditor } from "@/app/_components/documents/contract-document-editor";
 import type { RuntimeLookupOption } from "@/lib/runtime/runtime-lookups";
 import { buildLookupRecordHref } from "@/lib/runtime/lookup-record-href";
+import { lookupDisplayFallback } from "@/lib/runtime/lookup-display-fallback";
 import { errorCountByTab } from "@/lib/runtime/blocked-save-feedback";
 import { humanizeLabel } from "@/lib/runtime/humanize-label";
 import { useRuntimeLookupOptions } from "@/lib/runtime/use-runtime-lookup-options";
@@ -36,7 +37,20 @@ export function RuntimeForm({
   childrenByField = {},
   activeTab: controlledActiveTab,
   onTabChange,
+  bare = false,
+  fieldIdPrefix = "field",
 }: {
+  /**
+   * Prefix for each control's id. A second form on the same page — the
+   * quick-create panel over a record that has a field of the same name —
+   * needs its own, or its labels point at the record's controls.
+   */
+  fieldIdPrefix?: string;
+  /**
+   * Fields only — no section cards or headings. For a form that already sits
+   * inside its own container, such as the quick-create panel.
+   */
+  bare?: boolean;
   definition: RuntimeFormDefinition;
   values: RuntimeValues;
   mode: "create" | "read" | "edit";
@@ -129,18 +143,24 @@ export function RuntimeForm({
         return (
           <section
             key={section.key}
-            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+            className={
+              bare
+                ? ""
+                : "rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+            }
           >
-            <div className="mb-3">
-              <h2 className="text-base font-semibold text-slate-950">
-                {section.label}
-              </h2>
-              {section.description ? (
-                <p className="mt-1 text-sm text-slate-500">
-                  {section.description}
-                </p>
-              ) : null}
-            </div>
+            {section.label ? (
+              <div className="mb-3">
+                <h2 className="text-base font-semibold text-slate-950">
+                  {section.label}
+                </h2>
+                {section.description ? (
+                  <p className="mt-1 text-sm text-slate-500">
+                    {section.description}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
             <div
               className={`grid gap-3 ${section.columns === 3 ? "md:grid-cols-2 xl:grid-cols-3" : section.columns === 2 ? "md:grid-cols-2" : "grid-cols-1"}`}
             >
@@ -184,6 +204,7 @@ export function RuntimeForm({
                     }
                   }}
                   custom={childrenByField[field.key]}
+                  idPrefix={fieldIdPrefix}
                 />
               ))}
             </div>
@@ -202,6 +223,7 @@ function RuntimeField({
   readOnly,
   onChange,
   custom,
+  idPrefix = "field",
 }: {
   field: RuntimeFieldDefinition;
   value: unknown;
@@ -210,6 +232,7 @@ function RuntimeField({
   readOnly: boolean;
   onChange: (value: unknown) => void;
   custom?: React.ReactNode;
+  idPrefix?: string;
 }) {
   const required =
     !readOnly &&
@@ -262,12 +285,14 @@ function RuntimeField({
    * `id` or `name` — a second thing that looked like a preference and was a
    * missing attribute.
    */
-  const controlId = `field-${field.key}`;
+  const controlId = `${idPrefix}-${field.key}`;
   const errorId = error ? `${controlId}-error` : undefined;
 
   return (
     <div
       data-field-key={field.key}
+      // Why a locked field is locked, as its tooltip rather than more text.
+      title={readOnly && field.readOnlyReason ? field.readOnlyReason : undefined}
       className={`flex flex-col gap-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 ${span}`}
     >
       <label
@@ -394,7 +419,9 @@ function FieldDisplay({
   }
 
   if (isLookupField(field)) {
-    const label = resolveLookupLabel(field, value, values);
+    const label =
+      resolveLookupLabel(field, value, values) ??
+      lookupDisplayFallback(field, value);
     if (!label) return <span className={`${base} text-slate-400`}>Not set</span>;
     const href = resolveDisplayHref(field, values, value);
     return (
@@ -1061,7 +1088,10 @@ function RuntimeLookup({
    * inside the first page of options.
    */
   const currentOption = useMemo(() => {
-    const label = resolveLookupLabel(field, value, values);
+    // A stored code outside the catalog stays visible while editing too.
+    const label =
+      resolveLookupLabel(field, value, values) ??
+      lookupDisplayFallback(field, value);
     return value && label ? { value, label } : undefined;
   }, [field, value, values]);
   const resolvedOptions = useMemo(

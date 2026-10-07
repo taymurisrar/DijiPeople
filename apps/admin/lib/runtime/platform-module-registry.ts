@@ -6,6 +6,8 @@ import type {
   RuntimeFieldDefinition,
   RuntimeModuleCapabilities,
   RuntimeRecordHeaderSlot,
+  RuntimeRecordHighlightDefinition,
+  RuntimeRelatedRecordDefinition,
   RuntimeStatusDefinition,
   RuntimeViewDefinition,
 } from "./platform-runtime.types";
@@ -13,10 +15,13 @@ import {
   AGREEMENT_CATEGORY_OPTIONS,
   PARTNER_ACCOUNT_STATUS_DEFINITIONS,
   PARTNER_ACCOUNT_STATUS_HELP,
+  PARTNER_ACCOUNT_STATUS_LABELS,
   PARTNER_LIFECYCLE_ACTIONS,
   PARTNER_PHASES,
   PARTNER_PHASE_LABELS,
   PARTNER_STATUS_DEFINITIONS,
+  PARTNER_STATUS_LABELS,
+  PARTNER_STATUS_PHASES,
   type PartnerLifecycleActionKey,
   getRuntimeSchema,
   listRuntimeViewKeys,
@@ -915,6 +920,357 @@ const SUPPORT_STATUSES: RuntimeStatusDefinition[] = [
   "CANCELLED",
 ].map(status);
 
+/*
+ * EXECPLAN-0055 D8 — the partner highlight header. Status is the derived phase
+ * and Sub-status the exact lifecycle status, both read-only with the reason;
+ * Account is the portal-access status with the action that sets each value.
+ */
+const PARTNER_STATUS_TONES: Record<string, RuntimeStatusDefinition["tone"]> =
+  Object.fromEntries(PARTNER_STATUSES.map((item) => [item.value, item.tone]));
+const PARTNER_HIGHLIGHT: RuntimeRecordHighlightDefinition = {
+  eyebrow: "Partner",
+  titleFields: ["displayName", "companyName", "legalName"],
+  owner: { after: "partnerNumber" },
+  items: [
+    {
+      key: "partnerNumber",
+      label: "Partner number",
+      field: "partnerNumber",
+      format: "code",
+    },
+    {
+      key: "phase",
+      label: "Status",
+      field: "status",
+      valueMap: { ...PARTNER_STATUS_PHASES },
+      labels: { ...PARTNER_PHASE_LABELS },
+      tones: PARTNER_PHASE_TONES,
+      format: "status",
+      hint: RECORD_HEADER_READ_ONLY_REASON.partners,
+    },
+    {
+      key: "subStatus",
+      label: "Sub-status",
+      field: "status",
+      labels: { ...PARTNER_STATUS_LABELS },
+      tones: PARTNER_STATUS_TONES,
+      format: "status",
+    },
+    {
+      key: "accountStatus",
+      label: "Account",
+      field: "accountStatus",
+      labels: { ...PARTNER_ACCOUNT_STATUS_LABELS },
+      hints: Object.fromEntries(
+        PARTNER_ACCOUNT_STATUS_DEFINITIONS.map((item) => [
+          item.value,
+          item.explanation,
+        ]),
+      ),
+      format: "status",
+    },
+    {
+      key: "type",
+      label: "Type",
+      field: "type",
+      labels: { COMPANY: "Company", INDIVIDUAL: "Individual" },
+    },
+    {
+      key: "partnershipModel",
+      label: "Partnership",
+      field: "partnershipModel",
+      hideWhenEmpty: true,
+    },
+  ],
+};
+
+/*
+ * EXECPLAN-0055 WP-08 — the partner record's subgrids. Each lists columns the
+ * related payload carries (`PartnersService.get`), says what an empty grid
+ * means, and offers Add where the API can create the record.
+ */
+const PARTNER_REFERRAL_LINK_ACTION = "/partners/{parentId}/referral-links/{id}/action";
+const PARTNER_RELATED_RECORDS: RuntimeRelatedRecordDefinition[] = [
+  {
+    key: "commissions",
+    label: "Commissions",
+    tab: "summary",
+    module: "commissions",
+    foreignKey: "partnerId",
+    emptyTitle: "No commissions yet",
+    emptyDescription: "Commissions recorded for this partner appear here.",
+    /*
+     * ADR-0026 D3: an operator-recorded ledger entry. The amount is computed
+     * by the server from the base and rate; a blank rate takes the partner's
+     * default there. The partner is the record this panel was opened from.
+     */
+    quickCreate: {
+      actionLabel: "Add commission",
+      title: "New commission",
+      fields: [
+        "baseAmount",
+        "commissionRate",
+        "currencyCode",
+        "leadId",
+        "customerAccountId",
+        "description",
+        "earnedAt",
+        "dueAt",
+      ],
+      submit: { path: "/platform-runtime/commissions", envelope: "values" },
+      parentField: "partnerId",
+      defaultsFromParent: { currencyCode: "currencyCode" },
+    },
+    /*
+     * Every column is a field the partner read returns per commission
+     * (`PartnersService.describeCommissions`): `sourceLabel` names the
+     * lead, customer or invoice the entry cites, and the amounts render in
+     * the entry's own `currencyCode`.
+     */
+    columns: [
+      col("commissionNumber", "Commission", 170, "text", {
+        route: "/commissions",
+        idField: "id",
+      }),
+      col("sourceLabel", "Source", 200),
+      col("commissionRate", "Rate", 100, "percentage"),
+      col("baseAmount", "Commissionable amount", 170, "currency"),
+      col("commissionAmount", "Commission", 140, "currency"),
+      col("status", "Status", 130, "status"),
+      col("createdAt", "Created", 140, "date"),
+      col("paidAt", "Paid", 140, "date"),
+    ],
+  },
+  {
+    key: "inquiries",
+    label: "Partner application",
+    tab: "application",
+    module: "partner-inquiries",
+    foreignKey: "partnerId",
+    viewAll: false,
+    emptyTitle: "No partner application",
+    emptyDescription:
+      "This partner was added directly, not from a partner application.",
+    columns: [
+      col("referenceNumber", "Application", 160),
+      col("partnershipModel", "Partnership", 150, "status"),
+      col("status", "Status", 140, "status"),
+      col("submittedAt", "Submitted", 170, "dateTime"),
+    ],
+  },
+  {
+    key: "onboardingApplications",
+    label: "Onboarding applications",
+    tab: "application",
+    module: "partner-onboarding",
+    foreignKey: "partnerId",
+    viewAll: false,
+    emptyTitle: "No onboarding application yet",
+    emptyDescription:
+      "Send onboarding link creates one once the partner agreement is executed.",
+    columns: [
+      col("status", "Stage", 150, "status"),
+      col("submittedAt", "Submitted", 170, "dateTime"),
+      col("reviewedAt", "Reviewed", 170, "dateTime"),
+      col("tokenExpiresAt", "Link expires", 170, "dateTime"),
+      col("updatedAt", "Updated", 170, "dateTime"),
+    ],
+  },
+  {
+    key: "portalUsers",
+    label: "Contacts",
+    tab: "contacts",
+    foreignKey: "partnerId",
+    emptyTitle: "No contacts yet",
+    emptyDescription: "Add the people you work with at this partner.",
+    columns: [
+      col("fullName", "Name", 200),
+      col("email", "Email", 240),
+      col("status", "Portal access", 150, "status"),
+      col("activatedAt", "Activated", 170, "dateTime"),
+      col("lastActiveAt", "Last active", 170, "dateTime"),
+      col("createdAt", "Added", 170, "dateTime"),
+    ],
+    /*
+     * A contact is an uninvited portal user (`POST /partners/:id/contacts`).
+     * Saving one sends nothing; portal access is still granted by Activate
+     * partner and the portal's own invitation.
+     */
+    quickCreate: {
+      actionLabel: "Add contact",
+      title: "New contact",
+      fields: [
+        { ...field("firstName", "First name", "text", "contact", true), maxLength: 100 },
+        { ...field("lastName", "Last name", "text", "contact", true), maxLength: 100 },
+        { ...field("email", "Email", "email", "contact", true), maxLength: 254 },
+      ],
+      submit: { path: "/partners/{parentId}/contacts", envelope: "body" },
+    },
+  },
+  {
+    key: "agreements",
+    label: "Partner agreements",
+    tab: "agreements",
+    emptyTitle: "No partner agreements yet",
+    emptyDescription:
+      "Use Create agreement to draft the partner agreement. It must be executed before onboarding.",
+    module: "contracts",
+    foreignKey: "partnerId",
+    columns: [
+      col("contractNumber", "Contract", 170),
+      col("title", "Title", 220),
+      col("status", "Status", 160, "status"),
+      col("commissionPercentage", "Commission", 120, "percentage"),
+      col("effectiveDate", "Effective", 140, "date"),
+      col("createdAt", "Created", 160, "dateTime"),
+    ],
+  },
+  {
+    key: "referralLinks",
+    label: "Referral links",
+    tab: "referral-links",
+    foreignKey: "partnerId",
+    emptyTitle: "No referral links yet",
+    emptyDescription:
+      "An active partner gets a default link; add campaign links here.",
+    /*
+     * `url` is built by the API from the configured public site
+     * (`partnerReferralLinkUrl`); `submissionCount` and `lastUsedAt` are
+     * kept by the referral resolver as leads arrive through the link.
+     */
+    columns: [
+      col("name", "Name", 200),
+      col("code", "Code", 150),
+      col("url", "Link", 300),
+      col("status", "Status", 120, "status"),
+      col("submissionCount", "Leads", 90, "number"),
+      col("lastUsedAt", "Last used", 160, "dateTime"),
+      col("expiresAt", "Expires", 140, "date"),
+      col("createdAt", "Created", 160, "dateTime"),
+    ],
+    quickCreate: {
+      actionLabel: "Add referral link",
+      title: "New referral link",
+      fields: [
+        { ...field("name", "Link name", "text", "link", true), maxLength: 160 },
+        { ...field("campaignName", "Campaign", "text", "link"), maxLength: 160 },
+        field("expiresAt", "Expires", "date", "link"),
+      ],
+      submit: { path: "/partners/{parentId}/referral-links", envelope: "body" },
+      // The API creates links for active partners only.
+      availableWhen: {
+        field: "status",
+        in: ["ACTIVE"],
+        reason: "Referral links can be added once the partner is active.",
+      },
+    },
+    rowActions: [
+      {
+        key: "copy-link",
+        label: "Copy link",
+        kind: "copy",
+        field: "url",
+        successMessage: "Link copied.",
+      },
+      {
+        key: "disable-link",
+        label: "Disable",
+        kind: "post",
+        path: PARTNER_REFERRAL_LINK_ACTION,
+        body: { action: "disable" },
+        visibleWhen: { field: "status", in: ["ACTIVE"] },
+        permission: "partners.manage",
+        destructive: true,
+        confirmTitle: "Disable this referral link?",
+        successMessage: "Referral link disabled.",
+      },
+      {
+        key: "enable-link",
+        label: "Enable",
+        kind: "post",
+        path: PARTNER_REFERRAL_LINK_ACTION,
+        body: { action: "enable" },
+        visibleWhen: { field: "status", in: ["DISABLED", "EXPIRED"] },
+        permission: "partners.manage",
+        successMessage: "Referral link enabled.",
+      },
+      {
+        key: "regenerate-link",
+        label: "Regenerate",
+        kind: "post",
+        path: PARTNER_REFERRAL_LINK_ACTION,
+        body: { action: "regenerate" },
+        visibleWhen: { field: "status", in: ["ACTIVE"] },
+        permission: "partners.manage",
+        destructive: true,
+        confirmTitle: "Replace this link with a new code?",
+        successMessage: "A new link replaced the old one.",
+      },
+    ],
+  },
+  {
+    key: "leads",
+    label: "Referred leads",
+    tab: "referred-leads",
+    module: "leads",
+    foreignKey: "partnerId",
+    emptyTitle: "No referred leads yet",
+    emptyDescription:
+      "Leads submitted through this partner's referral links, or credited to it by an attribution correction, appear here.",
+    columns: [
+      col("companyName", "Company", 200),
+      col("fullName", "Contact", 170),
+      col("status", "Status", 130, "status"),
+      col("attributionSource", "Attribution", 200),
+      col("referredOn", "Referred", 160, "dateTime"),
+      col("convertedCustomerName", "Customer", 180, "text", {
+        route: "/customers",
+        idField: "convertedCustomerId",
+      }),
+    ],
+  },
+  {
+    key: "attributedCustomers",
+    label: "Customers",
+    tab: "customers",
+    module: "customers",
+    foreignKey: "originatingPartnerId",
+    // The customer list cannot filter by originating partner.
+    viewAll: false,
+    emptyTitle: "No customers yet",
+    emptyDescription:
+      "Customers this partner brought in appear here once a referred lead converts.",
+    columns: [
+      col("companyName", "Customer", 220),
+      col("status", "Status", 130, "status"),
+      col("country", "Country", 140),
+      col("referralCodeSnapshot", "Referral code", 150),
+      col("createdAt", "Created", 160, "dateTime"),
+    ],
+  },
+  {
+    key: "attributedTenants",
+    label: "Tenants",
+    tab: "tenants",
+    module: "tenants",
+    foreignKey: "originatingPartnerId",
+    viewAll: false,
+    emptyTitle: "No tenants yet",
+    emptyDescription:
+      "Workspaces provisioned for this partner's customers appear here.",
+    columns: [
+      col("displayName", "Tenant", 200),
+      col("slug", "Workspace", 160),
+      col("customerName", "Customer", 200, "text", {
+        route: "/customers",
+        idField: "customerAccountId",
+      }),
+      col("status", "Status", 130, "status"),
+      col("createdAt", "Created", 160, "dateTime"),
+    ],
+  },
+];
+
 const partnerFields: RuntimeFieldDefinition[] = [
   { ...field("id", "Partner ID", "text", "system"), readOnly: true },
   /*
@@ -926,8 +1282,13 @@ const partnerFields: RuntimeFieldDefinition[] = [
   {
     ...field("partnerNumber", "Partner number", "text", "identity"),
     readOnly: true,
+    readOnlyReason: "Issued from the partner number sequence when the partner is created.",
   },
-  { ...field("code", "Partner code", "text", "identity"), readOnly: true },
+  {
+    ...field("code", "Partner code", "text", "identity"),
+    readOnly: true,
+    readOnlyReason: "The internal reference existing agreements quote.",
+  },
   field("displayName", "Partner name", "text", "identity", true),
   field("legalName", "Legal name", "text", "identity"),
   field("type", "Partner type", "option", "identity", true, [
@@ -960,6 +1321,7 @@ const partnerFields: RuntimeFieldDefinition[] = [
     ...field("status", "Status", "option", "identity"),
     options: PARTNER_STATUSES.map(({ value, label }) => ({ value, label })),
     readOnly: true,
+    readOnlyReason: RECORD_HEADER_READ_ONLY_REASON.partners,
     renderAs: "status",
   },
   {
@@ -1731,21 +2093,28 @@ const definitions: PlatformModuleDefinition[] = [
     ]),
     defaultView: "all",
     statuses: PARTNER_STATUSES,
+    /*
+     * EXECPLAN-0055 WP-08. Every column is one the list response fills.
+     * "Onboarding" and "Agreements" counted arrays the list query caps at one
+     * row (so they read 0 or 1), "Portal users" read an array the list never
+     * returns, and Owner read a `fullName` the API did not send. The
+     * onboarding stage is the Status column's sub-status.
+     */
     columns: [
-      col("partnerNumber", "Number", 140),
+      { ...col("partnerNumber", "Number", 140), essential: true },
       col("displayName", "Partner", 230),
-      col("type", "Type", 120),
+      col("type", "Type", 120, "status"),
       col("partnershipModel", "Partnership", 160, "status"),
       col("status", "Status", 170, "status"),
-      col("onboardingApplications", "Onboarding", 170, "number"),
-      col("agreements", "Agreements", 170, "number"),
-      col("portalUsers", "Portal users", 150, "number"),
+      col("accountStatus", "Account", 140, "status"),
+      col("_count.agreements", "Agreements", 120, "number"),
+      col("_count.leads", "Leads", 90, "number"),
       col("defaultCommissionRate", "Commission", 130, "percentage"),
       col("assignedToUser.fullName", "Owner", 180, "lookup"),
-      col("_count.leads", "Leads", 90, "number"),
       col("createdAt", "Created", 160, "dateTime"),
     ],
     forms: partnerForms(partnerFields),
+    highlight: PARTNER_HIGHLIGHT,
     actions: [
       ...CREATE_LIST_ACTIONS,
       ACTION.bulkAssign,
@@ -1878,97 +2247,7 @@ const definitions: PlatformModuleDefinition[] = [
         label: PARTNER_PHASE_LABELS[phase],
       })),
     },
-    relatedRecords: [
-      {
-        key: "leads",
-        label: "Attributed leads",
-        tab: "referred-leads",
-        emptyTitle: "No referred leads yet",
-        emptyDescription:
-          "Leads submitted through this partner's referral links will appear here.",
-        module: "leads",
-        foreignKey: "partnerId",
-        columns: [
-          col("companyName", "Company", 220),
-          col("status", "Status", 140, "status"),
-          col("createdAt", "Created", 160, "dateTime"),
-        ],
-      },
-      {
-        key: "agreements",
-        label: "Partner agreements",
-        tab: "agreements",
-        emptyTitle: "No partner agreements yet",
-        emptyDescription:
-          "Create and execute the required partner agreement before activation.",
-        module: "contracts",
-        foreignKey: "partnerId",
-        columns: [
-          col("contractNumber", "Contract", 170),
-          col("title", "Title", 220),
-          col("status", "Status", 160, "status"),
-        ],
-      },
-      {
-        key: "referralLinks",
-        label: "Referral links",
-        tab: "referral-links",
-        foreignKey: "partnerId",
-      },
-      {
-        key: "inquiries",
-        label: "Application submissions",
-        tab: "application",
-        foreignKey: "partnerId",
-      },
-      {
-        key: "portalUsers",
-        label: "Contacts and users",
-        tab: "contacts",
-        foreignKey: "partnerId",
-      },
-      {
-        key: "attributedCustomers",
-        label: "Converted customers",
-        tab: "customers",
-        module: "customers",
-        foreignKey: "originatingPartnerId",
-      },
-      {
-        key: "attributedTenants",
-        label: "Attributed tenants",
-        tab: "tenants",
-        module: "tenants",
-        foreignKey: "originatingPartnerId",
-      },
-      {
-        key: "commissions",
-        label: "Commissions",
-        tab: "summary",
-        module: "commissions",
-        foreignKey: "partnerId",
-        /*
-         * Every column is a field the partner read returns per commission
-         * (`PartnersService.describeCommissions`): `sourceLabel` names the
-         * lead, customer or invoice the entry cites, and the amounts render in
-         * the entry's own `currencyCode`.
-         */
-        columns: [
-          col("commissionNumber", "Commission", 170, "text", {
-            route: "/commissions",
-            idField: "id",
-          }),
-          col("sourceLabel", "Source", 200),
-          col("commissionRate", "Rate", 100, "percentage"),
-          col("baseAmount", "Commissionable amount", 170, "currency"),
-          col("commissionAmount", "Commission", 140, "currency"),
-          col("currencyCode", "Currency", 100),
-          col("status", "Status", 130, "status"),
-          col("createdAt", "Created", 140, "date"),
-          col("paidAt", "Paid", 140, "date"),
-        ],
-      },
-    ],
+    relatedRecords: PARTNER_RELATED_RECORDS,
   }),
   define({
     ...simple(
@@ -4918,13 +5197,16 @@ function partnerForms(fields: RuntimeFieldDefinition[]) {
   const tabs = [
     { key: "summary", label: "Summary" },
     { key: "application", label: "Application" },
-    { key: "contacts", label: "Contacts and Users" },
+    { key: "contacts", label: "Contacts" },
     { key: "agreements", label: "Agreements" },
     { key: "referral-links", label: "Referral Links" },
     { key: "referred-leads", label: "Referred Leads" },
     { key: "customers", label: "Customers" },
     { key: "tenants", label: "Tenants" },
-    { key: "documents", label: "Documents" },
+    /*
+     * No Documents tab: a partner has no document relation (the schema has
+     * none), so the tab was declared and never rendered (EXECPLAN-0055 WP-08).
+     */
     { key: "timeline", label: "Timeline" },
     { key: "system", label: "System" },
   ];
@@ -4932,14 +5214,25 @@ function partnerForms(fields: RuntimeFieldDefinition[]) {
     identity: "summary",
     contact: "contacts",
     commercial: "summary",
-    notes: "application",
+    ownership: "summary",
+    // Internal notes are about the partner, not its application.
+    notes: "summary",
     application: "application",
     system: "system",
+  };
+  /*
+   * The contact section holds the partner's primary business contact; the
+   * Contacts grid below it lists everyone else. "Contact" over "Contacts" read
+   * as the same heading twice.
+   */
+  const sectionLabels: Record<string, string> = {
+    contact: "Primary contact",
+    application: "Application details",
   };
   const sections = [...new Set(fields.map((item) => item.section))].map(
     (section) => ({
       key: section,
-      label: title(section),
+      label: sectionLabels[section] ?? title(section),
       columns: 2 as const,
       tab: sectionTabs[section] ?? "summary",
     }),

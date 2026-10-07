@@ -869,6 +869,18 @@ export const ERROR_CATALOG = {
     'validation',
     'Choose a record this partner referred, or leave the link empty.',
   ),
+  /*
+   * EXECPLAN-0055 WP-08. Partner contacts are portal-user rows, and portal
+   * sign-in is keyed on email across every partner.
+   */
+  PARTNER_CONTACT_EMAIL_IN_USE: entry(
+    409,
+    'Email already in use',
+    'This email already belongs to a partner contact.',
+    'warning',
+    'validation',
+    'Use a different email address for this contact.',
+  ),
   PARTNER_COMMISSION_RATE_REQUIRED: entry(
     400,
     'Commission rate required',
