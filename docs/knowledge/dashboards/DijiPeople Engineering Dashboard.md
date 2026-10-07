@@ -7,9 +7,9 @@
 
 | | |
 |---|---|
-| Open CRITICAL | **7** |
+| Open CRITICAL | **8** |
 | Open HIGH | **104** |
-| Open total | 243 |
+| Open total | 244 |
 | Blocked | 3 |
 | Awaiting a product decision | 10 |
 | Deferred | 116 |
@@ -27,6 +27,7 @@
 | [[BUG-3580-agreement-preview-documents-print-unresolved-placeholders|BUG-3580]] | Agreement preview documents print unresolved placeholders | BUG | CRITICAL | FIXED | api:contracts | DONE |
 | [[BUG-3581-signature-date-placeholders-block-sending-and-freeze-a-fabri|BUG-3581]] | Signature-date placeholders block sending and freeze a fabricated date into signed agreements | BUG | CRITICAL | FIXED | api:contracts | DONE |
 | [[BUG-3862-new-critical-advisories-in-next-js-and-proxy-addr-and-a-cros|BUG-3862]] | New critical advisories in Next.js and proxy-addr, and a cross-tenant nodemailer advisory, block every develop integration | SECURITY | CRITICAL | FIXED | apps/web, apps/admin, apps/landing, notifications | FIX_NOW |
+| [[BUG-3883-employee-profile-returns-the-linked-user-s-password-hash-and|BUG-3883]] | Employee profile returns the linked user's password hash and MFA secrets, and 500s for MFA-enrolled users | SECURITY | CRITICAL | FIXED | employees, apps/web | FIX_NOW |
 
 ## Open High Bugs
 
@@ -212,6 +213,7 @@
 | [[BUG-3580-agreement-preview-documents-print-unresolved-placeholders|BUG-3580]] | Agreement preview documents print unresolved placeholders | BUG | CRITICAL | FIXED | api:contracts | DONE |
 | [[BUG-3581-signature-date-placeholders-block-sending-and-freeze-a-fabri|BUG-3581]] | Signature-date placeholders block sending and freeze a fabricated date into signed agreements | BUG | CRITICAL | FIXED | api:contracts | DONE |
 | [[BUG-3862-new-critical-advisories-in-next-js-and-proxy-addr-and-a-cros|BUG-3862]] | New critical advisories in Next.js and proxy-addr, and a cross-tenant nodemailer advisory, block every develop integration | SECURITY | CRITICAL | FIXED | apps/web, apps/admin, apps/landing, notifications | FIX_NOW |
+| [[BUG-3883-employee-profile-returns-the-linked-user-s-password-hash-and|BUG-3883]] | Employee profile returns the linked user's password hash and MFA secrets, and 500s for MFA-enrolled users | SECURITY | CRITICAL | FIXED | employees, apps/web | FIX_NOW |
 | [[BUG-1494-git-worktree-remove-follows-node-modules-junctions-and-delet|BUG-1494]] | git worktree remove follows node_modules junctions and deletes the primary checkout | INFRA | CRITICAL | VERIFIED | scripts | DONE |
 | [[BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur|BUG-0049]] | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | VERIFIED | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | DONE |
 | [[BUG-0052-production-dependency-graph-carries-critical-and-high-securi|BUG-0052]] | Production dependency graph carries critical and high security advisories | SECURITY | HIGH | VERIFIED | package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api | DONE |
@@ -797,7 +799,7 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 505 |
+| Bug records | 506 |
 | Backlog items | 221 |
 | Known bug patterns | 35 |
 | QA runs | 38 |

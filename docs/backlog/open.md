@@ -24,6 +24,7 @@ _None._
 | [BUG-3580](../../docs/bugs/BUG-3580-agreement-preview-documents-print-unresolved-placeholders.md) | Agreement preview documents print unresolved placeholders | BUG | CRITICAL | P0 | FIXED | api:contracts | DONE |
 | [BUG-3581](../../docs/bugs/BUG-3581-signature-date-placeholders-block-sending-and-freeze-a-fabri.md) | Signature-date placeholders block sending and freeze a fabricated date into signed agreements | BUG | CRITICAL | P0 | FIXED | api:contracts | DONE |
 | [BUG-3862](../../docs/bugs/BUG-3862-new-critical-advisories-in-next-js-and-proxy-addr-and-a-cros.md) | New critical advisories in Next.js and proxy-addr, and a cross-tenant nodemailer advisory, block every develop integration | SECURITY | CRITICAL | P0 | FIXED | apps/web, apps/admin, apps/landing, notifications | FIX_NOW |
+| [BUG-3883](../../docs/bugs/BUG-3883-employee-profile-returns-the-linked-user-s-password-hash-and.md) | Employee profile returns the linked user's password hash and MFA secrets, and 500s for MFA-enrolled users | SECURITY | CRITICAL | P0 | FIXED | employees, apps/web | FIX_NOW |
 
 ## HIGH
 

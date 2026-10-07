@@ -52,6 +52,7 @@ import {
   EmployeeWithRelations,
   type EmployeeCustomListQuery,
 } from './employees.repository';
+import { toEmployeeUserSummary } from './employee-user-summary';
 import { parseCustomFieldFilters } from '../customization/custom-field-query';
 import { AuditService } from '../audit/audit.service';
 import {
@@ -3932,21 +3933,7 @@ export class EmployeesService {
        * there is no user account at all, since there is nothing to invite to.
        */
       hasNeverLoggedIn: Boolean(employee.user && !employee.user.lastLoginAt),
-      user: employee.user
-        ? {
-            id: employee.user.id,
-            email: employee.user.email,
-            lastLoginAt: employee.user.lastLoginAt,
-            firstName: employee.user.firstName,
-            lastName: employee.user.lastName,
-            status: employee.user.status,
-            roles: employee.user.userRoles.map((userRole) => ({
-              id: userRole.role.id,
-              key: userRole.role.key,
-              name: userRole.role.name,
-            })),
-          }
-        : null,
+      user: toEmployeeUserSummary(employee.user),
       ownerUser: employee.ownerUser
         ? {
             id: employee.ownerUser.id,
