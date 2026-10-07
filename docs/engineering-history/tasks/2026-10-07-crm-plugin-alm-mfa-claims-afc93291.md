@@ -127,6 +127,30 @@ were not clicked through in production.
 
 Rollback class: CODE_ONLY. Revert the merge `94f65fa4`.
 
+### Follow-up releases on the same day
+
+**PR #100, merged as `a95a3378` — CRITICAL hotfix BUG-3883.**
+
+The owner turned on MFA, and then My Profile failed. The cause was that
+`GET /api/employees/:id` returned the linked User row raw, including
+`passwordHash` and the MFA secrets. A BigInt in that row crashed the response
+for MFA-enrolled users. The release did not cause this: the same 500 appears in
+the logs before `94f65fa4` reached the API.
+
+The fix:
+
+- the user relation is loaded with a safe `select`;
+- the profile and list responses share one mapper.
+
+The API was live on `a95a337` at 11:39 UTC. The owner still has to decide on
+credentials for the accounts that were exposed (BUG-3883, Dependencies).
+
+**PR #101, merged as `2d728cf9` — BUG-3916 lead Partner tab, plus the monitoring triage records.**
+
+These records are BUG-3888 to BUG-3907 and ITEM-0222 to ITEM-0225. Admin and
+web were READY on `2d728cf9`. This release has no API change, so the API stays
+on `a95a337`.
+
 ## Knowledge Capture
 
 Nothing needed a new `docs/knowledge/` note. The lessons are recorded in these
@@ -159,6 +183,6 @@ places instead:
 
 Records this task created, closed or depended on, cited in its own body:
 
-[[ADR-0013]] · [[BUG-3843]] · [[BUG-3844]] · [[BUG-3845]] · [[BUG-3862]] · [[ITEM-0123]] · [[QA-AUTH-021]] · [[QA-PLATFORM-045]] · [[QA-SETTINGS-038]] · [[QA-TENANT-067]]
+[[ADR-0013]] · [[BUG-3843]] · [[BUG-3844]] · [[BUG-3845]] · [[BUG-3862]] · [[BUG-3883]] · [[BUG-3888]] · [[BUG-3907]] · [[BUG-3916]] · [[ITEM-0123]] · [[ITEM-0222]] · [[ITEM-0225]] · [[QA-AUTH-021]] · [[QA-PLATFORM-045]] · [[QA-SETTINGS-038]] · [[QA-TENANT-067]]
 
 <!-- GRAPH:END -->
