@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**752 records** — 527 bugs under [`docs/bugs/`](../bugs/), 225 non-bug items under [`items/`](items/).
+**753 records** — 528 bugs under [`docs/bugs/`](../bugs/), 225 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 257 |
+| Open (active work) | 258 |
 | Blocked | 4 |
 | Deferred | 124 |
 | Awaiting a product decision | 13 |
 | Completed / closed | 354 |
 | **Open CRITICAL** | **8** |
-| **Open HIGH** | **104** |
+| **Open HIGH** | **105** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,7 +27,7 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 8 |
-| HIGH | 104 |
+| HIGH | 105 |
 | MEDIUM | 117 |
 | LOW | 27 |
 
@@ -36,7 +36,7 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | AUTHORIZATION | 15 |
-| BUG | 78 |
+| BUG | 79 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 25 |
 | DOCUMENTATION | 1 |
@@ -61,7 +61,7 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 4 |
 | DEFERRED | 124 |
 | PRODUCT_DECISION | 13 |
-| FIXED | 177 |
+| FIXED | 178 |
 | VERIFIED | 218 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
@@ -314,6 +314,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3809](../../docs/bugs/BUG-3809-a-tenant-admin-can-create-document-types-and-categories-ever.md) | A tenant admin can create document types and categories every tenant sees | TENANT_ISOLATION | HIGH | P1 | FIXED | documents | FIX_NOW |
 | [BUG-3843](../../docs/bugs/BUG-3843-customization-hides-packages-modules-sidebar-designer-and-pu.md) | Customization hides Packages, Modules, Sidebar Designer and Publish Center behind a role gate ADR-0013 removed | AUTHORIZATION | HIGH | P1 | FIXED | apps/web, customization | FIX_NOW |
 | [BUG-3888](../../docs/bugs/BUG-3888-safepay-webhooks-fail-because-safepay-webhook-secret-is-not-.md) | Safepay webhooks fail because SAFEPAY_WEBHOOK_SECRET is not configured in production | INTEGRATION | HIGH | P1 | BLOCKED | billing | BLOCKED_EXTERNAL |
+| [BUG-3929](../../docs/bugs/BUG-3929-admin-record-actions-post-to-the-id-less-runtime-route-so-se.md) | Admin record actions post to the id-less runtime route, so Send onboarding link and 13 other actions always fail as not available | BUG | HIGH | P1 | FIXED | apps/admin, platform-runtime | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |

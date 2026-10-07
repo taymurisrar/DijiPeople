@@ -189,9 +189,13 @@ function ErrorModal({
           <h2 className="mt-2 text-xl font-semibold text-slate-950">
             {error.message}
           </h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            {error.description}
-          </p>
+          {/* Empty when the heading already is the whole message — see
+              `withoutPhantomFieldHint` in lib/api-error.ts. */}
+          {error.description ? (
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              {error.description}
+            </p>
+          ) : null}
         </div>
         <div className="grid gap-3 px-6 py-5 text-sm">
           <p>

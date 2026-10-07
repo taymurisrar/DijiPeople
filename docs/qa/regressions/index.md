@@ -6964,3 +6964,17 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — reverting the registry or the record page fails a case. |
 | **Fixed** | 2026-10-07, branch `agent/crm-plugin-release-close` |
 | **Active** | yes |
+
+### REG-649 — Admin record actions were posted to the id-less runtime route
+
+| | |
+|---|---|
+| **Bug class** | `cross-workspace-contract-drift` |
+| **Module** | `apps/admin/lib/runtime` |
+| **Bug record** | BUG-3929 |
+| **Root cause** | The admin sent the record id in the body to /<module>/actions/<key>; the API dispatches record actions only from the /<module>/:id/actions/:action route parameter, so 14 actions fell through to "not available". Admin now uses the id route, the API also accepts a body id, and one contract file pins the action set on both sides. |
+| **Regression test** | `apps/admin/lib/runtime/record-action-routing.spec.ts` and `services/api/src/modules/platform-runtime/record-action-dispatch.spec.ts` (both read `services/api/src/modules/platform-runtime/record-actions.contract.json`). |
+| **Scenario** | QA-PLATFORM-047 — Admin record actions reach their server handler on the id route. |
+| **Fails without the fix** | Yes — 17/62 admin and 14/44 API cases fail on the reverted code. |
+| **Fixed** | 2026-10-07, branch `agent/partner-module-completion` |
+| **Active** | yes |

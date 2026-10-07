@@ -29,6 +29,7 @@ import {
 } from "@/lib/formatters";
 import { createHttpModuleRuntimeAdapter } from "@/lib/runtime/http-module-runtime-adapter";
 import { getPlatformModuleDefinition } from "@/lib/runtime/platform-module-registry";
+import { readDeleteOutcome } from "@/lib/runtime/runtime-action-outcome";
 import type {
   PlatformModuleKey,
   RuntimeActionDefinition,
@@ -360,7 +361,9 @@ export function RuntimeModuleList({
       return { success: true, message: "Export downloaded." };
     }
     if (action.key === "bulk-delete") {
-      const result = await adapter.bulkDelete(selectedIds);
+      // Refresh either way — some rows may have gone — but report what the
+      // API kept and why, which `readDeleteOutcome` digs out of `data`.
+      const result = readDeleteOutcome(await adapter.bulkDelete(selectedIds));
       setRefreshKey((value) => value + 1);
       return result;
     }

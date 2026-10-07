@@ -30,7 +30,7 @@ export function createHttpModuleRuntimeAdapter<
           `Unable to complete ${definition.displayName.toLowerCase()} request.`,
         response.status,
         payload?.traceId,
-        payload?.errors,
+        readFieldErrors(payload),
       );
     return payload as R;
   }
@@ -96,9 +96,30 @@ export function createHttpModuleRuntimeAdapter<
         { method: "POST", body: JSON.stringify({ status, reason, subStatus }) },
       );
     },
+    /*
+     * Module-level actions only — those that act on a selection or on the
+     * module as a whole, and so have no record in the URL.
+     */
     async executeAction(actionKey, input) {
       return json<RuntimeActionResult>(
         `/actions/${encodeURIComponent(actionKey)}`,
+        { method: "POST", body: JSON.stringify(input) },
+      );
+    },
+    /*
+     * Actions on one record go to the record's own route.
+     *
+     * Every record command used to be sent through `executeAction` with the id
+     * tucked into the body. The API's id-less route never read it, so each
+     * partner lifecycle command, lead conversion and agreement amendment
+     * answered 400 "Action <key> is not available for <module>" — the dispatch
+     * in `PlatformRuntimeService.execute` only matched when it was given the
+     * positional id. `record-action-routing.spec.ts` pins every registry record
+     * command to this route.
+     */
+    async executeRecordAction(id, actionKey, input = {}) {
+      return json<RuntimeActionResult>(
+        `/${encodeURIComponent(id)}/actions/${encodeURIComponent(actionKey)}`,
         { method: "POST", body: JSON.stringify(input) },
       );
     },
@@ -162,6 +183,40 @@ function queryString(query: RuntimeQuery) {
   if (query.selectedColumns?.length)
     params.set("selectedColumns", query.selectedColumns.join(","));
   return params.toString();
+}
+
+/**
+ * The field errors an API failure carries.
+ *
+ * The error contract names them `fieldErrors` (`HttpExceptionFilter`), but this
+ * adapter only ever read `errors` — so a DTO rejection that named the exact
+ * field reached the form as a bare message and highlighted nothing. `errors`
+ * stays as the fallback because `/validate` answers with that key, in a 200
+ * body rather than an error contract.
+ */
+export function readFieldErrors(
+  payload: unknown,
+): Array<{ field?: string; message: string }> | undefined {
+  if (!payload || typeof payload !== "object") return undefined;
+  const record = payload as Record<string, unknown>;
+  const source = Array.isArray(record.fieldErrors)
+    ? record.fieldErrors
+    : Array.isArray(record.errors)
+      ? record.errors
+      : undefined;
+  if (!source) return undefined;
+  const items = source.flatMap((item: unknown) => {
+    if (!item || typeof item !== "object") return [];
+    const entry = item as Record<string, unknown>;
+    if (typeof entry.message !== "string" || !entry.message) return [];
+    return [
+      {
+        field: typeof entry.field === "string" ? entry.field : undefined,
+        message: entry.message,
+      },
+    ];
+  });
+  return items.length ? items : undefined;
 }
 
 export class RuntimeApiError extends Error {

@@ -23,6 +23,7 @@ import type { LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import type { RuntimeActionDefinition } from "@/lib/runtime/platform-runtime.types";
 import { hasRuntimePermission } from "@/lib/runtime/runtime-permissions";
+import { describeActionNotice } from "@/lib/runtime/runtime-action-outcome";
 import {
   describeDestructiveConfirm,
   recordDisplayName,
@@ -96,7 +97,16 @@ export function ModuleActionBar({
   className?: string;
 }) {
   const [pendingKey, setPendingKey] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  /*
+   * The notice carries its own outcome. Its colour used to be guessed from the
+   * text — red only if it contained "could not" or "Unable" — so the API's
+   * "Action reject-partner is not available for partners." rendered green, as
+   * did every refusal phrased any other way.
+   */
+  const [notice, setNotice] = useState<{
+    text: string;
+    failed: boolean;
+  } | null>(null);
   const [confirmAction, setConfirmAction] =
     useState<RuntimeActionDefinition | null>(null);
   const [overflowOpen, setOverflowOpen] = useState(false);
@@ -165,18 +175,15 @@ export function ModuleActionBar({
     startTransition(async () => {
       try {
         const result = await onAction(action, context);
-        setNotice(
-          result?.message ??
-            (result?.success === false
-              ? "Action could not be completed."
-              : null),
-        );
+        setNotice(describeActionNotice(result));
       } catch (error) {
-        setNotice(
-          error instanceof Error
-            ? error.message
-            : "Action could not be completed.",
-        );
+        setNotice({
+          text:
+            error instanceof Error
+              ? error.message
+              : "Action could not be completed.",
+          failed: true,
+        });
       } finally {
         setPendingKey(null);
       }
@@ -243,9 +250,9 @@ export function ModuleActionBar({
           {notice ? (
             <span
               role="status"
-              className={`text-xs font-medium ${notice.includes("could not") || notice.includes("Unable") ? "text-rose-600" : "text-emerald-700"}`}
+              className={`text-xs font-medium ${notice.failed ? "text-rose-600" : "text-emerald-700"}`}
             >
-              {notice}
+              {notice.text}
             </span>
           ) : null}
           {statusSlot}

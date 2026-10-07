@@ -646,10 +646,24 @@ export class PlatformRuntimeService {
     moduleKey: string,
     action: string,
     input: Record<string, unknown>,
-    id?: string,
+    routeId?: string,
   ) {
     const key = this.key(moduleKey);
     this.assertModuleWrite(user, key);
+    /*
+     * The record an action is about: the `/:id/actions/:action` route
+     * parameter, or — only when that is absent — an `id` in the body.
+     *
+     * The admin console sent every record command to the id-less route with
+     * the id in the body, and nothing here read it, so each one fell through to
+     * "Action <key> is not available" (EXECPLAN-0055 WP-01). The client now
+     * uses the record route; this fallback keeps an older bundle, or any other
+     * caller still on the body form, from failing the same way. It is one
+     * resolution feeding the single dispatch below, not a second dispatch, and
+     * every downstream service still authorises the record itself — the body
+     * id is no more trusted than the path one.
+     */
+    const id = routeId ?? textOrNull(input?.id) ?? undefined;
     if (action === 'bulk-delete')
       return this.deleteRecords(user, key, toIds(input.ids));
     if (action === 'bulk-assign')

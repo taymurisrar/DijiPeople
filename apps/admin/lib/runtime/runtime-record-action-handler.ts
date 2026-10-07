@@ -1,6 +1,10 @@
 "use client";
 
 import type { createHttpModuleRuntimeAdapter } from "./http-module-runtime-adapter";
+import {
+  describeRecordActionOutcome,
+  readDeleteOutcome,
+} from "./runtime-action-outcome";
 import type {
   PlatformModuleKey,
   RuntimeActionDefinition,
@@ -81,7 +85,12 @@ export async function executeRuntimeRecordAction(input: {
     return { success: true, message: "Record reloaded." };
   }
   if (action.key === "delete") {
-    const result = await adapter.deleteRecord(record.id);
+    /*
+     * Leave the record only when it is gone. A refused delete keeps the
+     * operator on it, with the API's reason in the command bar — navigating
+     * away is what made a kept partner look deleted (see `readDeleteOutcome`).
+     */
+    const result = readDeleteOutcome(await adapter.deleteRecord(record.id));
     if (result.success) router.push(routeBase);
     return result;
   }
@@ -126,7 +135,7 @@ export async function executeRuntimeRecordAction(input: {
     return result;
   }
   if (moduleKey === "leads" && action.key === "convert") {
-    const result = await adapter.executeAction("convert", { id: record.id });
+    const result = await adapter.executeRecordAction(record.id, "convert");
     const converted = result.data as Record<string, unknown> | undefined;
     const customerId = String(converted?.id ?? converted?.customerId ?? "");
     if (customerId) router.push(`/customers/${customerId}`);
@@ -237,7 +246,15 @@ export async function executeRuntimeRecordAction(input: {
     };
   }
 
-  return adapter.executeAction(action.key, { id: record.id });
+  /*
+   * Every other record command is dispatched by the API on the record route.
+   * The record is reloaded afterwards because these commands change its status
+   * server-side; without it the header kept showing the state the action had
+   * just left, and the command bar kept offering the command just run.
+   */
+  const result = await adapter.executeRecordAction(record.id, action.key);
+  await reloadRecord();
+  return describeRecordActionOutcome(result, action.label);
 }
 
 function agreementSourceType(moduleKey: PlatformModuleKey) {

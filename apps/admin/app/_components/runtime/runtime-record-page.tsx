@@ -9,7 +9,10 @@ import {
   type ProDataTableColumn,
 } from "@/app/_components/crm/data-table";
 import { PageHeader } from "@/app/_components/ui/page-header";
-import { createHttpModuleRuntimeAdapter } from "@/lib/runtime/http-module-runtime-adapter";
+import {
+  createHttpModuleRuntimeAdapter,
+  RuntimeApiError,
+} from "@/lib/runtime/http-module-runtime-adapter";
 import { getPlatformModuleDefinition } from "@/lib/runtime/platform-module-registry";
 import { planEntitlementKeys } from "@/lib/runtime/plan-entitlement-keys";
 import { planSubscriptionCount } from "@/lib/runtime/plan-subscription-count";
@@ -339,19 +342,21 @@ function RuntimeRecordEditor({
       isCreate ? "create" : "edit",
       record.id || undefined,
     );
-    if (!validation.success) {
-      /*
-       * The API names fields as the DTO does — `primaryContactFirstName must be
-       * shorter than or equal to 100 characters` — which corresponds to nothing
-       * the operator can see on screen (BUG-1549). The form knows what it calls
-       * that field, so the property name is swapped for the label and the
-       * constraint half is left exactly as it arrived.
-       */
+    /*
+     * The API names fields as the DTO does — `primaryContactFirstName must be
+     * shorter than or equal to 100 characters` — which corresponds to nothing
+     * the operator can see on screen (BUG-1549). The form knows what it calls
+     * that field, so the property name is swapped for the label and the
+     * constraint half is left exactly as it arrived.
+     */
+    const applyServerFieldErrors = (
+      items: Array<{ field?: string; message: string }>,
+    ) => {
       const labels = new Map(
         formDefinition.fields.map((field) => [field.key, field.label]),
       );
       const serverErrors = Object.fromEntries(
-        (validation.errors ?? [])
+        items
           .filter((item) => item.field)
           .map((item) => [
             item.field!,
@@ -369,11 +374,29 @@ function RuntimeRecordEditor({
       // as easily as a blank required one, so the server's verdict gets the
       // same treatment as the client's.
       revealFailures(serverErrors);
+    };
+    if (!validation.success) {
+      applyServerFieldErrors(validation.errors ?? []);
       return validation;
     }
-    const response = isCreate
-      ? await adapter.createRecord(payload)
-      : await adapter.updateRecord(record.id, payload, currentVersion);
+    let response: Awaited<ReturnType<typeof adapter.createRecord>>;
+    try {
+      response = isCreate
+        ? await adapter.createRecord(payload)
+        : await adapter.updateRecord(record.id, payload, currentVersion);
+    } catch (error) {
+      /*
+       * `/validate` does not run every rule the write does, so the write itself
+       * can still reject a field. Its `fieldErrors` now reach the form the same
+       * way the pre-flight's do; anything without a field still throws, to the
+       * command bar and the error dialog, exactly as before.
+       */
+      if (error instanceof RuntimeApiError && error.fieldErrors?.length) {
+        applyServerFieldErrors(error.fieldErrors);
+        return { success: false, message: error.message };
+      }
+      throw error;
+    }
     if (close) router.push(definition.routeBase);
     else if (isCreate)
       router.replace(`${definition.routeBase}/${response.item.id}`);

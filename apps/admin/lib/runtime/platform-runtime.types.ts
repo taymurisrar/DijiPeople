@@ -516,9 +516,19 @@ export interface ModuleRuntimeAdapter<T extends RuntimeRecord = RuntimeRecord> {
      */
     subStatus?: string,
   ): Promise<RuntimeActionResult>;
+  /** A module-level action: no record in the route (bulk, selection). */
   executeAction(
     actionKey: string,
     input: Record<string, unknown>,
+  ): Promise<RuntimeActionResult>;
+  /**
+   * An action on one record, posted to `/:id/actions/:action` — the only route
+   * on which the API dispatches record actions.
+   */
+  executeRecordAction(
+    id: string,
+    actionKey: string,
+    input?: Record<string, unknown>,
   ): Promise<RuntimeActionResult>;
   getFormDefinition(
     mode: "create" | "detail" | "edit",

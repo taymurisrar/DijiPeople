@@ -1,0 +1,22 @@
+{
+  "$comment": "Record commands the admin console dispatches through POST /platform-runtime/:moduleKey/:id/actions/:action, per module. Shared by two specs because neither workspace can import the other: apps/admin/lib/runtime/record-action-routing.spec.ts derives this list from the admin module registry and the record action handler and fails if it differs; services/api/src/modules/platform-runtime/record-action-dispatch.spec.ts proves PlatformRuntimeService.execute dispatches every entry. A command added to the registry that reaches the API therefore has to be added here, and then has to be implemented. EXECPLAN-0055 WP-01.",
+  "partners": [
+    "activate",
+    "approve-partner",
+    "reactivate-partner",
+    "reject-partner",
+    "request-information",
+    "send-onboarding-link",
+    "start-review",
+    "suspend-partner"
+  ],
+  "leads": ["convert"],
+  "contracts": [
+    "amend",
+    "new-version",
+    "renew",
+    "terminate-agreement",
+    "void-agreement"
+  ],
+  "plans": []
+}
