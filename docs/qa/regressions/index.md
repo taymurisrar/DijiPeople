@@ -6950,3 +6950,17 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — reverting either the profile mapping or the repository select fails a case. |
 | **Fixed** | 2026-10-07, branch `agent/crm-plugin-release-close` |
 | **Active** | yes |
+
+### REG-648 — Lead Partner attribution rendered above the record tabs
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-control` |
+| **Module** | `apps/admin/app/_components/runtime` |
+| **Bug record** | BUG-3916 |
+| **Root cause** | The lead attribution panel was mounted before RuntimeForm with no activeTab gate, so it sat above the tab strip on every tab. It now has its own Partner tab with the referral fields, mounted only there. |
+| **Regression test** | `apps/admin/lib/runtime/runtime-record-panels.spec.ts` (leads detail has a Partner tab holding partnerId; the tab is in the panel allowance; exactly one LeadAttributionPanel mount, gated on the Partner tab). |
+| **Scenario** | QA-PLATFORM-046 — Lead Partner attribution lives in its own Partner tab. |
+| **Fails without the fix** | Yes — reverting the registry or the record page fails a case. |
+| **Fixed** | 2026-10-07, branch `agent/crm-plugin-release-close` |
+| **Active** | yes |

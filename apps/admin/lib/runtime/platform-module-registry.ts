@@ -1357,7 +1357,7 @@ const definitions: PlatformModuleDefinition[] = [
           "Other",
         ]),
         {
-          ...field("partnerId", "Referral partner", "lookup", "acquisition"),
+          ...field("partnerId", "Referral partner", "lookup", "partner-attribution"),
           /*
            * TASK-0032 WP-04, item 4. Filtered to `status=ACTIVE` so the picker
            * itself cannot offer a suspended/inactive/terminated/rejected
@@ -1386,7 +1386,7 @@ const definitions: PlatformModuleDefinition[] = [
             "partnerReferralLinkId",
             "Referral link",
             "text",
-            "acquisition",
+            "partner-attribution",
           ),
           readOnly: true,
           hideOnCreate: true,
@@ -1399,7 +1399,7 @@ const definitions: PlatformModuleDefinition[] = [
             "referralCodeSnapshot",
             "Referral code",
             "text",
-            "acquisition",
+            "partner-attribution",
           ),
           readOnly: true,
           hideOnCreate: true,
@@ -1407,13 +1407,13 @@ const definitions: PlatformModuleDefinition[] = [
           visibleWhen: { field: "partnerId", hasValue: true },
         },
         {
-          ...field("referralSource", "Referral source", "text", "acquisition"),
+          ...field("referralSource", "Referral source", "text", "partner-attribution"),
           readOnly: true,
           hideWhenEmpty: true,
           visibleWhen: { field: "partnerId", hasValue: true },
         },
         {
-          ...field("referredAt", "Referred at", "dateTime", "acquisition"),
+          ...field("referredAt", "Referred at", "dateTime", "partner-attribution"),
           readOnly: true,
           hideWhenEmpty: true,
           visibleWhen: { field: "partnerId", hasValue: true },
@@ -1423,7 +1423,7 @@ const definitions: PlatformModuleDefinition[] = [
             "attributionStatus",
             "Attribution status",
             "option",
-            "acquisition",
+            "partner-attribution",
             false,
             [
               "DIRECT",
@@ -1548,9 +1548,15 @@ const definitions: PlatformModuleDefinition[] = [
           readOnly: true,
         },
       ],
-      ["Summary", "Commercial", "Agreements", "Activities", "System"],
+      ["Summary", "Partner", "Commercial", "Agreements", "Activities", "System"],
       {
         "lead-information": "summary",
+        /*
+         * The referral facts and the audited reassignment panel live together on
+         * their own tab. The panel used to render above the tab strip on every
+         * tab, a placement no record chose (it was mounted before RuntimeForm).
+         */
+        "partner-attribution": "partner",
         contact: "summary",
         company: "commercial",
         requirement: "commercial",

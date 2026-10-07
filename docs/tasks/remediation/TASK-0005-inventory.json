@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 727,
+    "total_records": 752,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -8214,7 +8214,7 @@
         "provenance": "QA_RUN",
         "detected_in_sha": "8d6be21b",
         "created_at": "2026-08-26",
-        "updated_at": "2026-08-29",
+        "updated_at": "2026-10-07",
         "resolved_at": "2026-08-29"
       },
       "affected_modules": [
@@ -22674,6 +22674,810 @@
       "verification_result": "NOT_VERIFIED"
     },
     {
+      "record_id": "BUG-3888",
+      "type": "INTEGRATION",
+      "title": "Safepay webhooks fail because SAFEPAY_WEBHOOK_SECRET is not configured in production",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "BLOCKED",
+      "architect_disposition": "BLOCKED_EXTERNAL",
+      "source": {
+        "record_path": "docs/bugs/BUG-3888-safepay-webhooks-fail-because-safepay-webhook-secret-is-not-.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "94f65fa4",
+        "created_at": "2026-10-07",
+        "updated_at": "2026-10-07",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "billing"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "billing"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3888-safepay-webhooks-fail-because-safepay-webhook-secret-is-not-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3889",
+      "type": "BUG",
+      "title": "The incident fingerprint includes the query string, so cache-busting parameters open a new incident per request",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3889-the-incident-fingerprint-includes-the-query-string-so-cache-.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "94f65fa4",
+        "created_at": "2026-10-07",
+        "updated_at": "2026-10-07",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "error-logs"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "error-logs"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3889-the-incident-fingerprint-includes-the-query-string-so-cache-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3890",
+      "type": "BUG",
+      "title": "The incident drawer's Diagnostics download calls the tenant endpoint and 404s for platform admins",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3890-the-incident-drawer-s-diagnostics-download-calls-the-tenant-.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "94f65fa4",
+        "created_at": "2026-10-07",
+        "updated_at": "2026-10-07",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "platform-monitoring"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "platform-monitoring"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3890-the-incident-drawer-s-diagnostics-download-calls-the-tenant-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3891",
+      "type": "INTEGRATION",
+      "title": "The desktop agent's first update check runs before the session is restored, so it 401s on every launch",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3891-the-desktop-agent-s-first-update-check-runs-before-the-sessi.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "94f65fa4",
+        "created_at": "2026-10-07",
+        "updated_at": "2026-10-07",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "agent-desktop"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "agent-desktop"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3891-the-desktop-agent-s-first-update-check-runs-before-the-sessi.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3892",
+      "type": "AUTHORIZATION",
+      "title": "Admin route-handler token refresh may discard the rotated tokens, leaving a revoked refresh token in the cookie",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3892-admin-route-handler-token-refresh-may-discard-the-rotated-to.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "94f65fa4",
+        "created_at": "2026-10-07",
+        "updated_at": "2026-10-07",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3892-admin-route-handler-token-refresh-may-discard-the-rotated-to.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3893",
+      "type": "DATA_INTEGRITY",
+      "title": "A generated contract PDF was missing from storage when downloaded, suggesting non-durable file storage",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/bugs/BUG-3893-a-generated-contract-pdf-was-missing-from-storage-when-downl.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "94f65fa4",
+        "created_at": "2026-10-07",
+        "updated_at": "2026-10-07",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "contracts"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "contracts"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3893-a-generated-contract-pdf-was-missing-from-storage-when-downl.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3894",
+      "type": "UX",
+      "title": "The tenant error boundary shows the React digest as the error reference, which support cannot find and Download log 404s on",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3894-the-tenant-error-boundary-shows-the-react-digest-as-the-erro.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "94f65fa4",
+        "created_at": "2026-10-07",
+        "updated_at": "2026-10-07",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3894-the-tenant-error-boundary-shows-the-react-digest-as-the-erro.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3895",
+      "type": "BUG",
+      "title": "The admin notification bell keeps polling every five minutes after sign-out",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3895-the-admin-notification-bell-keeps-polling-every-five-minutes.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "94f65fa4",
+        "created_at": "2026-10-07",
+        "updated_at": "2026-10-07",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3895-the-admin-notification-bell-keeps-polling-every-five-minutes.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3896",
+      "type": "BUG",
+      "title": "Unmatched-route 404s are categorised DATABASE_RECORD_NOT_FOUND in the incident queue",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3896-unmatched-route-404s-are-categorised-database-record-not-fou.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "94f65fa4",
+        "created_at": "2026-10-07",
+        "updated_at": "2026-10-07",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "error-logs"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "error-logs"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3896-unmatched-route-404s-are-categorised-database-record-not-fou.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3897",
+      "type": "SECURITY",
+      "title": "Public signature-link tokens are stored verbatim in ErrorLog.path and readable by monitoring.read holders",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3897-public-signature-link-tokens-are-stored-verbatim-in-errorlog.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "94f65fa4",
+        "created_at": "2026-10-07",
+        "updated_at": "2026-10-07",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "error-logs"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "error-logs"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3897-public-signature-link-tokens-are-stored-verbatim-in-errorlog.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3898",
+      "type": "UX",
+      "title": "Platform health tile drill-downs land on panels that do not show the signal the tile measures",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3898-platform-health-tile-drill-downs-land-on-panels-that-do-not-.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "94f65fa4",
+        "created_at": "2026-10-07",
+        "updated_at": "2026-10-07",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "platform-monitoring"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "platform-monitoring"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3898-platform-health-tile-drill-downs-land-on-panels-that-do-not-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3899",
+      "type": "UX",
+      "title": "The monitoring Integrations tab is static and its platform email badge is hard-coded",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "OPEN",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3899-the-monitoring-integrations-tab-is-static-and-its-platform-e.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "94f65fa4",
+        "created_at": "2026-10-07",
+        "updated_at": "2026-10-07",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "platform-monitoring"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "platform-monitoring"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3899-the-monitoring-integrations-tab-is-static-and-its-platform-e.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3900",
+      "type": "BUG",
+      "title": "Handled business errors from client actions are reported as SYSTEM_UNEXPECTED_ERROR 500",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/bugs/BUG-3900-handled-business-errors-from-client-actions-are-reported-as-.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "94f65fa4",
+        "created_at": "2026-10-07",
+        "updated_at": "2026-10-07",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "apps/web"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/web"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3900-handled-business-errors-from-client-actions-are-reported-as-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3901",
+      "type": "BUG",
+      "title": "The generic exception filter maps any connection or timeout message to DATABASE_TIMEOUT",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/bugs/BUG-3901-the-generic-exception-filter-maps-any-connection-or-timeout-.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "94f65fa4",
+        "created_at": "2026-10-07",
+        "updated_at": "2026-10-07",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "error-logs"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "error-logs"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3901-the-generic-exception-filter-maps-any-connection-or-timeout-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3902",
+      "type": "BUG",
+      "title": "A wrong-password 401 is queued as a NEW incident",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/bugs/BUG-3902-a-wrong-password-401-is-queued-as-a-new-incident.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "94f65fa4",
+        "created_at": "2026-10-07",
+        "updated_at": "2026-10-07",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "auth"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "auth"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3902-a-wrong-password-401-is-queued-as-a-new-incident.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3903",
+      "type": "INFRA",
+      "title": "Something probes /api/health/ready, which does not exist",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/bugs/BUG-3903-something-probes-api-health-ready-which-does-not-exist.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "94f65fa4",
+        "created_at": "2026-10-07",
+        "updated_at": "2026-10-07",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "platform-monitoring"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "platform-monitoring"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3903-something-probes-api-health-ready-which-does-not-exist.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3904",
+      "type": "BUG",
+      "title": "Public tenant logo 404s and reserved-slug 400s are queued as NEW incidents",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/bugs/BUG-3904-public-tenant-logo-404s-and-reserved-slug-400s-are-queued-as.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "94f65fa4",
+        "created_at": "2026-10-07",
+        "updated_at": "2026-10-07",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "tenants"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "tenants"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3904-public-tenant-logo-404s-and-reserved-slug-400s-are-queued-as.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3905",
+      "type": "STATE_MACHINE",
+      "title": "Tenant erasure failed on a reference from a record outside the tenant",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/bugs/BUG-3905-tenant-erasure-failed-on-a-reference-from-a-record-outside-t.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "94f65fa4",
+        "created_at": "2026-10-07",
+        "updated_at": "2026-10-07",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "tenants"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "tenants"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3905-tenant-erasure-failed-on-a-reference-from-a-record-outside-t.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3906",
+      "type": "AUTHORIZATION",
+      "title": "The Payslips screen was offered while the tenant was not entitled to it",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/bugs/BUG-3906-the-payslips-screen-was-offered-while-the-tenant-was-not-ent.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "94f65fa4",
+        "created_at": "2026-10-07",
+        "updated_at": "2026-10-07",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "payslips"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "payslips"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3906-the-payslips-screen-was-offered-while-the-tenant-was-not-ent.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3907",
+      "type": "UX",
+      "title": "The monitoring overview fails as a whole when any one of its three endpoints fails",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/bugs/BUG-3907-the-monitoring-overview-fails-as-a-whole-when-any-one-of-its.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "94f65fa4",
+        "created_at": "2026-10-07",
+        "updated_at": "2026-10-07",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "platform-monitoring"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "platform-monitoring"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3907-the-monitoring-overview-fails-as-a-whole-when-any-one-of-its.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-3916",
+      "type": "UX",
+      "title": "Lead Partner attribution renders above the record tabs on every tab instead of in a tab",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-3916-lead-partner-attribution-renders-above-the-record-tabs-on-ev.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "94f65fa4",
+        "created_at": "2026-10-07",
+        "updated_at": "2026-10-07",
+        "resolved_at": "2026-10-07"
+      },
+      "affected_modules": [
+        "apps/admin",
+        "leads"
+      ],
+      "regressions": [
+        "REG-648"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-046"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin",
+          "leads"
+        ],
+        "verification_scope": "See docs/bugs/BUG-3916-lead-partner-attribution-renders-above-the-record-tabs-on-ev.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
       "record_id": "ITEM-0001",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md",
@@ -32099,6 +32903,158 @@
           "employees"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0221-custom-fields-on-employees-lookup-fields-list-view-columns-a.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0222",
+      "type": "FOLLOW_UP",
+      "title": "Triage the monitoring incident queue: bulk-resolve incidents covered by fixed records, and add bulk triage by fingerprint",
+      "severity": "",
+      "priority": "P2",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0222-triage-the-monitoring-incident-queue-bulk-resolve-incidents-.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "",
+        "created_at": "2026-10-07",
+        "updated_at": "2026-10-07",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "platform-monitoring"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "platform-monitoring"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0222-triage-the-monitoring-incident-queue-bulk-resolve-incidents-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0223",
+      "type": "PRODUCT_DECISION",
+      "title": "Decide which lifecycle events the platform must emit to the Events stream",
+      "severity": "",
+      "priority": "P2",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0223-decide-which-lifecycle-events-the-platform-must-emit-to-the-.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "",
+        "created_at": "2026-10-07",
+        "updated_at": "2026-10-07",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "platform-events"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "platform-events"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0223-decide-which-lifecycle-events-the-platform-must-emit-to-the-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0224",
+      "type": "PRODUCT_DECISION",
+      "title": "Decide whether business-rule rejections should be recorded but not queued as incidents",
+      "severity": "",
+      "priority": "P2",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0224-decide-whether-business-rule-rejections-should-be-recorded-b.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "",
+        "created_at": "2026-10-07",
+        "updated_at": "2026-10-07",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "error-logs"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "error-logs"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0224-decide-whether-business-rule-rejections-should-be-recorded-b.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0225",
+      "type": "FOLLOW_UP",
+      "title": "Re-verify historical frontend/DTO contract-drift 400s against current DTOs before resolving them",
+      "severity": "",
+      "priority": "P2",
+      "current_status": "READY",
+      "architect_disposition": "PLAN_REQUIRED",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0225-re-verify-historical-frontend-dto-contract-drift-400s-agains.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "",
+        "created_at": "2026-10-07",
+        "updated_at": "2026-10-07",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "error-logs"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "error-logs"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0225-re-verify-historical-frontend-dto-contract-drift-400s-agains.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

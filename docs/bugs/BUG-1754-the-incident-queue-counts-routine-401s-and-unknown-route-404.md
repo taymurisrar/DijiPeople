@@ -220,6 +220,7 @@ the register was confirmed to exist, and every suite containing one was run.
 
 ## Related
 
+- Referenced by — [[ITEM-0224]]
 - Regression — REG-282 (see the regression register)
 
 <!-- GRAPH:END -->
