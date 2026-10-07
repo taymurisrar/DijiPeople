@@ -1,0 +1,87 @@
+---
+TASK_ID: TASK-0037
+aliases: [TASK-0037]
+TITLE: Partner module completion — delete, numbering, status lifecycle, commission, currency, onboarding, tabs
+TYPE: FEATURE
+SIZE: LARGE
+STATUS: IN_PROGRESS
+PRIORITY: P1
+CREATED_AT: 2026-10-07
+AFFECTED_MODULES: [partners, partner-experience, platform-runtime, contracts, super-admin, apps/admin]
+AGENTS: [architect, database, backend-api, frontend, security, qa, reviewer, integrator]
+DEPENDENCIES: WP-03 after WP-02; WP-04 after WP-01; WP-05 after WP-01 and WP-04; WP-06 after WP-03 and WP-04; WP-07 after WP-01; WP-08 after WP-03 to WP-07
+CURRENT_PACKAGE: WP-01
+COMPLETED_PACKAGES: []
+BLOCKED_PACKAGES: []
+OWNER_DECISIONS: 1
+FINAL_STATUS:
+---
+
+# TASK-0037 — Partner module completion — delete, numbering, status lifecycle, commission, currency, onboarding, tabs
+
+## Objective
+
+The platform-admin Partner module works end to end as one lifecycle:
+
+- create, edit and delete, with dependency messaging;
+- a configurable partner number;
+- action-driven status;
+- commission and currency;
+- onboarding invitations;
+- every tab and every action.
+
+Along the way it fixes the runtime defects the module exposed:
+
+- record-action routing;
+- write contract;
+- delete feedback;
+- reusable header, quick-create and delete-dialog building blocks.
+
+Done means:
+
+- every item in the owner's 26-point brief is either implemented or recorded
+  with a reason;
+- validation passes;
+- the browser scenario passes on an isolated stack;
+- the release reaches production.
+
+Plan: EXECPLAN-0055. Decisions: ADR-0026, ADR-0027.
+
+## Work Packages
+
+| WP_ID | TITLE | STATUS | DEPENDENCIES | AGENTS | BRANCH | SHA | QA_STATUS | BUGS | CI_STATUS | MERGE_STATUS |
+|---|---|---|---|---|---|---|---|---|---|---|
+| WP-01 | Runtime record-action routing and error surfacing | IN_PROGRESS | — | backend-api, frontend | agent/partner-module-completion | — | — | — | — | — |
+| WP-02 | Schema: PlatformNumberSequence, Partner.partnerNumber + backfill | IN_PROGRESS | — | database | agent/partner-module-completion | — | — | — | — | — |
+| WP-03 | Numbering service + Admin Settings Numbering; enabled currencies | NOT_STARTED | WP-02 | backend-api, frontend | agent/partner-module-completion | — | — | — | — | — |
+| WP-04 | Partner write path and status lifecycle | NOT_STARTED | WP-01 | backend-api, frontend | agent/partner-module-completion | — | — | — | — | — |
+| WP-05 | Onboarding invitation hardening | NOT_STARTED | WP-01, WP-04 | backend-api, security | agent/partner-module-completion | — | — | — | — | — |
+| WP-06 | Commission and agreement inheritance | NOT_STARTED | WP-03, WP-04 | backend-api | agent/partner-module-completion | — | — | — | — | — |
+| WP-07 | Generic dependency-aware delete | NOT_STARTED | WP-01 | backend-api, frontend | agent/partner-module-completion | — | — | — | — | — |
+| WP-08 | Admin UX (header, quick-create, tabs) and browser E2E | NOT_STARTED | WP-03, WP-04, WP-05, WP-06, WP-07 | frontend, qa | agent/partner-module-completion | — | — | — | — | — |
+
+## Assumptions
+
+| ASSUMPTION_ID | STATEMENT | EVIDENCE | CONFIDENCE | IMPACT_IF_WRONG |
+|---|---|---|---|---|
+| A-01 | Partner number `PART-000001` is a new column; `code` stays as the internal and legacy identifier | Two code formats exist (`PTR-` and `DP-P-`); `code` is unique and used in references | HIGH | Low: the column could become the code later |
+| A-02 | Existing partners are backfilled in creation order | No other ordering is meaningful | HIGH | Cosmetic |
+| A-03 | Commissions stay operator-created; payment accrual is out of scope | Billing has no commission hook; PartnerCommission ids are scalars | HIGH | Owner may want accrual, recorded as a backlog item |
+| A-04 | The enabled currency subset defaults to the full catalog | No subset exists today | HIGH | None: behaviour is unchanged until narrowed |
+| A-05 | The supplied PDF and screenshots were not received; the text brief is the specification | Only text arrived | MEDIUM | Header layout may need a visual pass |
+
+## Owner Decisions
+
+- 2026-10-07 — The local throwaway Postgres database is approved for the
+  browser E2E (`dijipeople_partner_e2e_test`).
+
+## Repository Health
+
+PRE_TASK_REPO_HEALTH: PASS. Primary is clean on develop `898a6ac3`;
+`MAIN_SYNC_STATUS` is SYNCED (`2d728cf9`).
+
+## History
+
+- 2026-10-07 — created at `898a6ac3`. Four read-only investigations covered
+  admin UI, backend, frameworks and test stack. EXECPLAN-0055, ADR-0026 and
+  ADR-0027 were written, and WP-01 and WP-02 started.

@@ -100,6 +100,7 @@ rates must never be settable by a partner-portal caller.
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `code` | `String` | yes | unique |
+| `partnerNumber` | `String` | no | unique |
 | `type` | `PartnerType` (enum) | yes | default `COMPANY` |
 | `partnershipModel` | `PartnershipModel` (enum) | no | — |
 | `displayName` | `String` | yes | — |
@@ -154,7 +155,7 @@ rates must never be settable by a partner-portal caller.
 
 ### Constraints and indexes
 
-- Unique: `code`
+- Unique: `code`, `partnerNumber`
 - Indexes: 6
 <!-- /GENERATED:schema-facts -->
 

@@ -377,6 +377,7 @@ export async function runSeedConfig() {
   await seedNotificationConfig(prisma);
   await seedSystemEmailTemplates(prisma);
   await seedPlatformOperationalSettings(prisma);
+  await seedPlatformNumberSequences(prisma);
   await seedPlatformContractTemplates(prisma);
   const referenceDataCount = await seedCoreReferenceData(prisma);
   const permissionBootstrapService = new PermissionBootstrapService(
@@ -556,6 +557,63 @@ async function seedPlatformOperationalSettings(client: PrismaClient) {
       where: { key },
       create: { key, value: merged },
       update: { value: merged },
+    });
+  }
+}
+
+/*
+ * Platform number sequences (ADR-0027). The migration that introduced
+ * `PlatformNumberSequence` already inserts the `partner` row; this exists so a
+ * database that somehow lacks it — a restore, a hand-cleaned table — still
+ * comes up able to create partners.
+ *
+ * Create-only, never update. seed:config runs on every deployment, and both
+ * the format (edited under Admin Settings -> Numbering) and `nextValue` (which
+ * only ever rises as numbers are issued) belong to the running platform. An
+ * upsert that wrote either would reset an operator's format on every deploy,
+ * or worse, rewind the counter and reissue numbers partners already carry.
+ *
+ * When the row is absent, numbering continues after the highest `PART-<n>`
+ * already on a partner rather than at 1, for the same reason.
+ */
+export const PLATFORM_NUMBER_SEQUENCE_DEFAULTS = [
+  {
+    key: 'partner',
+    label: 'Partner number',
+    prefix: 'PART-',
+    padding: 6,
+    issuedPattern: '^PART-([0-9]+)$',
+  },
+] as const;
+
+async function seedPlatformNumberSequences(client: PrismaClient) {
+  for (const sequence of PLATFORM_NUMBER_SEQUENCE_DEFAULTS) {
+    const existing = await client.platformNumberSequence.findUnique({
+      where: { key: sequence.key },
+      select: { id: true },
+    });
+    if (existing) continue;
+
+    const [highest] = await client.$queryRaw<Array<{ value: number | null }>>`
+      SELECT MAX(substring("partnerNumber" FROM ${sequence.issuedPattern})::INTEGER) AS value
+      FROM "Partner"
+      WHERE "partnerNumber" ~ ${sequence.issuedPattern}
+    `;
+    const nextValue = Number(highest?.value ?? 0) + 1;
+
+    // createMany + skipDuplicates keeps a concurrent seed run from failing on
+    // the unique key; whichever run lands first wins and neither updates.
+    await client.platformNumberSequence.createMany({
+      data: [
+        {
+          key: sequence.key,
+          label: sequence.label,
+          prefix: sequence.prefix,
+          padding: sequence.padding,
+          nextValue,
+        },
+      ],
+      skipDuplicates: true,
     });
   }
 }
@@ -2122,6 +2180,23 @@ export async function verifyRequiredSeedData(
   if (documentCategoryCount < DEFAULT_DOCUMENT_CATEGORIES.length) {
     failures.push(
       `Employee document category data incomplete (${documentCategoryCount}/${DEFAULT_DOCUMENT_CATEGORIES.length}).`,
+    );
+  }
+
+  // ADR-0027: partner create allocates from these rows and fails without them.
+  const numberSequenceKeys = PLATFORM_NUMBER_SEQUENCE_DEFAULTS.map(
+    (sequence) => sequence.key,
+  );
+  const presentSequences = await client.platformNumberSequence.findMany({
+    where: { key: { in: [...numberSequenceKeys] } },
+    select: { key: true },
+  });
+  const missingSequences = numberSequenceKeys.filter(
+    (key) => !presentSequences.some((row) => row.key === key),
+  );
+  if (missingSequences.length > 0) {
+    failures.push(
+      `Platform number sequence(s) missing: ${missingSequences.join(', ')}.`,
     );
   }
 
