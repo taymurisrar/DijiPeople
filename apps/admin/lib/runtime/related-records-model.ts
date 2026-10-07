@@ -159,7 +159,24 @@ export function isRowActionVisible(
   );
 }
 
-/** The `/api` path a `post` row command calls, with its tokens substituted. */
+/**
+ * The request a `post` or `delete` row command sends: POST with its JSON
+ * `body`, or DELETE with none.
+ */
+export function rowActionRequest(action: RuntimeRelatedRowAction): {
+  method: "POST" | "DELETE";
+  headers?: Record<string, string>;
+  body?: string;
+} {
+  if (action.kind === "delete") return { method: "DELETE" };
+  return {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(action.body ?? {}),
+  };
+}
+
+/** The `/api` path a `post` or `delete` row command calls, with its tokens substituted. */
 export function resolveRowActionPath(
   action: RuntimeRelatedRowAction,
   parentId: string,

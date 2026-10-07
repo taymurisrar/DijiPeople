@@ -5,6 +5,7 @@ import {
   isRowActionVisible,
   relatedCellValue,
   resolveRowActionPath,
+  rowActionRequest,
   shareableUrl,
 } from "./related-records-model";
 import { lookupDisplayFallback } from "./lookup-display-fallback";
@@ -147,6 +148,81 @@ describe("referral link copy", () => {
     );
     expect(action("disable-link").body).toEqual({ action: "disable" });
     expect(action("regenerate-link").body).toEqual({ action: "regenerate" });
+  });
+});
+
+/*
+ * TASK-0037 browser pass — a contact could not be removed by anything. The
+ * Contacts tab now offers Remove, only on a contact the API says never
+ * activated portal access (`canRemove`), as a DELETE on the contact's route.
+ */
+describe("Contacts tab — Remove contact", () => {
+  const contacts = partners.relatedRecords!.find(
+    (item) => item.key === "portalUsers",
+  )!;
+  const remove = contacts.rowActions!.find(
+    (item) => item.key === "remove-contact",
+  )!;
+  const contactRow = {
+    id: "contact-1",
+    fullName: "Grace Hopper",
+    status: "NOT_INVITED",
+    canRemove: true,
+  };
+
+  it("is a destructive, confirmed command gated on partners.manage", () => {
+    expect(remove).toMatchObject({
+      label: "Remove",
+      kind: "delete",
+      destructive: true,
+      permission: "partners.manage",
+    });
+    expect(remove.confirmTitle).toBeTruthy();
+  });
+
+  it("shows only for a contact that never activated portal access", () => {
+    expect(isRowActionVisible(remove, contactRow)).toBe(true);
+    expect(
+      isRowActionVisible(remove, { ...contactRow, status: "INVITED" }),
+    ).toBe(true);
+    expect(
+      isRowActionVisible(remove, {
+        ...contactRow,
+        status: "ACTIVE",
+        canRemove: false,
+      }),
+    ).toBe(false);
+    // Activated, then re-invited: the status reads INVITED, the API says no.
+    expect(
+      isRowActionVisible(remove, {
+        ...contactRow,
+        status: "INVITED",
+        canRemove: false,
+      }),
+    ).toBe(false);
+    // A row from an API that does not say is not offered the command.
+    expect(
+      isRowActionVisible(remove, {
+        id: contactRow.id,
+        fullName: contactRow.fullName,
+        status: "NOT_INVITED",
+      }),
+    ).toBe(false);
+  });
+
+  it("sends DELETE, with no body, to the contact on its own partner", () => {
+    expect(resolveRowActionPath(remove, "partner-1", contactRow)).toBe(
+      "/api/partners/partner-1/contacts/contact-1",
+    );
+    expect(rowActionRequest(remove)).toEqual({ method: "DELETE" });
+  });
+
+  it("still POSTs a post command's JSON body", () => {
+    expect(rowActionRequest(action("disable-link"))).toEqual({
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "disable" }),
+    });
   });
 });
 

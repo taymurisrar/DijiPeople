@@ -58,6 +58,11 @@ export interface PartnerLifecycleActionRule {
   readonly admin: string;
   readonly from: readonly PartnerStatusValue[];
   readonly to: PartnerStatusValue;
+  /**
+   * An application-review action: it applies only to a partner that came from
+   * a partner inquiry. A console-created partner has none (ADR-0026).
+   */
+  readonly requiresInquiry?: boolean;
 }
 
 export declare const PARTNER_PHASES: readonly PartnerPhase[];

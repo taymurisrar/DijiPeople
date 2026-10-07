@@ -882,6 +882,35 @@ const PARTNER_STATUSES: RuntimeStatusDefinition[] =
 function partnerActionStates(action: PartnerLifecycleActionKey): string[] {
   return [...PARTNER_LIFECYCLE_ACTIONS[action].from];
 }
+/*
+ * ADR-0026 — two ways into the partner lifecycle. A partner from the public
+ * inquiry form has a PartnerInquiry, and the application-review commands
+ * (`requiresInquiry` in the shared table) decide it. A partner created in the
+ * console starts at DRAFT with none and takes the agreement-first path, so it
+ * is never offered a review of an application it did not send. The API
+ * refuses those commands for it (PARTNER_INQUIRY_REQUIRED); `hasInquiry` is
+ * on the partner record the API returns.
+ */
+const PARTNER_HAS_INQUIRY = { field: "hasInquiry", equals: true } as const;
+/*
+ * Where Create agreement is offered. A console partner contracts first, from
+ * DRAFT. The agreement-stage statuses stay in the list because voiding an
+ * agreement leaves the partner where it was (contracts.service changes the
+ * partner status only when an agreement is sent and when it is signed), and a
+ * partner in AGREEMENT_IN_PROGRESS whose agreement was voided needs a new one.
+ * From AGREEMENT_EXECUTED on the agreement is signed; ACTIVE keeps it for
+ * renewals and additional agreements. The API places no partner-status guard
+ * on creating an agreement — this is a usability rule, not the authority.
+ */
+const PARTNER_AGREEMENT_CREATABLE_STATUSES = [
+  "DRAFT",
+  "APPROVED_AWAITING_AGREEMENT",
+  "AGREEMENT_DRAFTING",
+  "INTERNAL_APPROVAL",
+  "AGREEMENT_IN_PROGRESS",
+  "AWAITING_SIGNATURE",
+  "ACTIVE",
+];
 const CONTRACT_STATUSES: RuntimeStatusDefinition[] = [
   "DRAFT",
   "INTERNAL_REVIEW",
@@ -1106,6 +1135,26 @@ const PARTNER_RELATED_RECORDS: RuntimeRelatedRecordDefinition[] = [
       ],
       submit: { path: "/partners/{parentId}/contacts", envelope: "body" },
     },
+    /*
+     * TASK-0037 — a contact that never activated portal access can be
+     * removed. `canRemove` is the API's own rule (`isContactRemovable`):
+     * status alone cannot tell an INVITED contact that never accepted from
+     * one that activated before being re-invited. A contact with portal
+     * access is ended by suspending or deactivating the partner instead.
+     */
+    rowActions: [
+      {
+        key: "remove-contact",
+        label: "Remove",
+        kind: "delete",
+        path: "/partners/{parentId}/contacts/{id}",
+        visibleWhen: { field: "canRemove", in: [true] },
+        permission: "partners.manage",
+        destructive: true,
+        confirmTitle: "Remove this contact?",
+        successMessage: "Contact removed.",
+      },
+    ],
   },
   {
     key: "agreements",
@@ -2128,6 +2177,7 @@ const definitions: PlatformModuleDefinition[] = [
         // ADR-0026: each lifecycle command's states come from the table the
         // API enforces (@repo/config partner-lifecycle), never a local list.
         states: partnerActionStates("start-review"),
+        visibleWhen: PARTNER_HAS_INQUIRY,
       },
       {
         key: "approve-partner",
@@ -2136,6 +2186,7 @@ const definitions: PlatformModuleDefinition[] = [
         scope: "record",
         selection: "none",
         states: partnerActionStates("approve"),
+        visibleWhen: PARTNER_HAS_INQUIRY,
       },
       {
         key: "request-information",
@@ -2144,6 +2195,7 @@ const definitions: PlatformModuleDefinition[] = [
         scope: "record",
         selection: "none",
         states: partnerActionStates("request-information"),
+        visibleWhen: PARTNER_HAS_INQUIRY,
       },
       {
         key: "reject-partner",
@@ -2152,6 +2204,7 @@ const definitions: PlatformModuleDefinition[] = [
         scope: "record",
         selection: "none",
         states: partnerActionStates("reject"),
+        visibleWhen: PARTNER_HAS_INQUIRY,
         destructive: true,
         confirmTitle: "Reject this partner application?",
         /*
@@ -2170,7 +2223,7 @@ const definitions: PlatformModuleDefinition[] = [
         placement: "primary",
         scope: "record",
         selection: "none",
-        states: ["APPROVED_AWAITING_AGREEMENT", "ACTIVE"],
+        states: PARTNER_AGREEMENT_CREATABLE_STATUSES,
       },
       {
         key: "send-onboarding-link",

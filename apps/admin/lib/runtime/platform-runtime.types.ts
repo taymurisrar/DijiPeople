@@ -272,6 +272,19 @@ export type RuntimeActionDefinition = {
   roles?: string[];
   selection?: "none" | "one" | "many" | "any";
   states?: string[];
+  /**
+   * A record command is offered only when the record also meets this
+   * condition — the same shape as a form field's `visibleWhen`, checked
+   * against the loaded record alongside `states`. Partners use it to offer the
+   * application-review commands only to a partner that came from an inquiry
+   * (`hasInquiry`). Like `states`, it is a usability rule; the API decides.
+   */
+  visibleWhen?: {
+    field: string;
+    equals?: unknown;
+    in?: unknown[];
+    hasValue?: boolean;
+  };
   destructive?: boolean;
   confirmTitle?: string;
   confirmDescription?: string;
@@ -460,9 +473,10 @@ export type RuntimeRelatedRowAction = {
   /**
    * `copy` puts the row's `field` on the clipboard; `post` calls `path`
    * (relative to `/api`, with `{parentId}` and `{id}` substituted) with `body`
-   * and reloads the subgrid.
+   * and reloads the subgrid; `delete` sends DELETE to `path` (no body) and
+   * reloads the subgrid.
    */
-  kind: "copy" | "post";
+  kind: "copy" | "post" | "delete";
   field?: string;
   path?: string;
   body?: Record<string, unknown>;
@@ -623,6 +637,11 @@ export type RecordDependency = {
   key: string;
   label: string;
   count: number;
+  /**
+   * The count with its pluralised noun, built by the API — "1 contact",
+   * "2 referral links". Optional so an older API still renders.
+   */
+  countLabel?: string;
   policy: RecordDependencyPolicy;
   reason: string;
   /** Admin route to the related records, when one exists. */

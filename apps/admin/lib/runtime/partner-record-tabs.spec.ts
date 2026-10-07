@@ -118,13 +118,17 @@ describe("partner record tabs", () => {
     ]);
   });
 
-  it("gates Add and the referral-link commands on partners.manage", () => {
+  it("gates Add and every writing row command on partners.manage", () => {
     expect(partners.permissions.update).toBe("partners.manage");
     for (const item of related)
       expect(item.quickCreate?.permission ?? partners.permissions.update).toBe(
         "partners.manage",
       );
-    for (const action of related.flatMap((item) => item.rowActions ?? []))
-      if (action.kind === "post") expect(action.permission).toBe("partners.manage");
+    const writing = related
+      .flatMap((item) => item.rowActions ?? [])
+      .filter((action) => action.kind !== "copy");
+    expect(writing.some((action) => action.kind === "delete")).toBe(true);
+    for (const action of writing)
+      expect(action.permission).toBe("partners.manage");
   });
 });

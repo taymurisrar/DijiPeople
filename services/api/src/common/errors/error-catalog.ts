@@ -848,6 +848,20 @@ export const ERROR_CATALOG = {
     'Use Suspend, Deactivate or Reactivate instead.',
   ),
   /*
+   * ADR-0026. Start review, Approve, Reject and Request information decide a
+   * partner application. A partner an operator created in the console has none
+   * and takes the agreement-first path; these used to fail for it with a bare
+   * 400 the console showed as a generic validation failure.
+   */
+  PARTNER_INQUIRY_REQUIRED: entry(
+    409,
+    'No partner application to review',
+    'This partner was created by an operator and has no partner application to review. Create an agreement to continue.',
+    'warning',
+    'validation',
+    'Use Create agreement on the partner record to continue.',
+  ),
+  /*
    * ADR-0026 D3 — partner commissions are operator-created ledger entries
    * (EXECPLAN-0055 WP-06): their status moves Pending → Approved → Payable →
    * Paid (Void until paid), a linked lead/customer/invoice must belong to the
@@ -880,6 +894,18 @@ export const ERROR_CATALOG = {
     'warning',
     'validation',
     'Use a different email address for this contact.',
+  ),
+  /*
+   * TASK-0037. Only a contact that never activated portal access can be
+   * removed; one that did is a login with an access history, which is kept.
+   */
+  PARTNER_CONTACT_HAS_PORTAL_ACCESS: entry(
+    409,
+    'Contact has portal access',
+    'This contact has activated partner portal access and cannot be removed.',
+    'warning',
+    'validation',
+    'Suspend or deactivate the partner to end portal access.',
   ),
   PARTNER_COMMISSION_RATE_REQUIRED: entry(
     400,

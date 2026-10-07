@@ -154,16 +154,46 @@ The phases are:
 
 The record's process bar draws the five phases.
 
+**Two entry paths.** A partner enters the lifecycle one of two ways, and they
+converge once an agreement is executed:
+
+- **Inquiry path.** The public partner form (`submitInquiry`) creates the
+  partner at `INQUIRY` together with an immutable
+  `PartnerInquiry`. The application-review commands decide that inquiry:
+  Start review → (Request information) → Approve application →
+  `APPROVED_AWAITING_AGREEMENT` → Create agreement → signing → onboarding →
+  Activate. Reject ends it.
+- **Console (agreement-first) path.** A partner an operator creates in the
+  console starts at `DRAFT` and has **no** inquiry, so there is no
+  application to review. The path is Create agreement (offered from `DRAFT`)
+  → send for signature (`AGREEMENT_IN_PROGRESS`) → signed
+  (`AGREEMENT_EXECUTED`, set by contract signing through a guarded
+  `updateMany` that never moves a live partner) → Send onboarding link →
+  onboarding submitted and approved (`INFORMATION_APPROVED`) → Activate. A
+  console partner created in error is deleted, not rejected (see Deletion
+  rules); Delete stays available in `DRAFT`.
+
+The four application-review actions carry `requiresInquiry: true` in the
+shared table. The partner record the API returns carries `hasInquiry`, and the
+admin offers those commands only when it is true (the command's
+`visibleWhen: { field: "hasInquiry", equals: true }`, evaluated beside
+`states` by `lib/runtime/command-visibility.ts`). The API is the authority:
+Start review, Request information, Approve and Reject on a partner with no
+inquiry answer `PARTNER_INQUIRY_REQUIRED` (409, "Create an agreement to
+continue.") — before the status rule, so the operator is told why. Approve and
+Reject used to answer a bare 400 the console showed as a generic validation
+failure, and a console partner had no command it could use.
+
 Lifecycle actions (`PARTNER_LIFECYCLE_ACTIONS`). The API enforces the
 from-states; the admin offers each command only in them.
 
 | Admin command | API action | Allowed from | Result |
 |---|---|---|---|
-| Start review | `start-review` | INQUIRY, NEW_INQUIRY, MORE_INFORMATION_REQUIRED | UNDER_REVIEW |
-| Approve application | `approve` | INQUIRY, NEW_INQUIRY, UNDER_REVIEW, MORE_INFORMATION_REQUIRED | APPROVED_AWAITING_AGREEMENT |
-| Request information | `request-information` | INQUIRY, NEW_INQUIRY, UNDER_REVIEW | MORE_INFORMATION_REQUIRED |
-| Reject (reason required) | `reject` | the approve states and APPROVED_AWAITING_AGREEMENT | REJECTED |
-| Create agreement | none (opens the agreement form) | APPROVED_AWAITING_AGREEMENT, ACTIVE | — |
+| Start review (inquiry partners only) | `start-review` | INQUIRY, NEW_INQUIRY, MORE_INFORMATION_REQUIRED | UNDER_REVIEW |
+| Approve application (inquiry partners only) | `approve` | INQUIRY, NEW_INQUIRY, UNDER_REVIEW, MORE_INFORMATION_REQUIRED | APPROVED_AWAITING_AGREEMENT |
+| Request information (inquiry partners only) | `request-information` | INQUIRY, NEW_INQUIRY, UNDER_REVIEW | MORE_INFORMATION_REQUIRED |
+| Reject, reason required (inquiry partners only) | `reject` | the approve states and APPROVED_AWAITING_AGREEMENT | REJECTED |
+| Create agreement | none (opens the agreement form; the API places no partner-status guard on it) | DRAFT, APPROVED_AWAITING_AGREEMENT, AGREEMENT_DRAFTING, INTERNAL_APPROVAL, AGREEMENT_IN_PROGRESS, AWAITING_SIGNATURE, ACTIVE — the in-flight agreement states stay because voiding an agreement does not move the partner back | — |
 | Send onboarding link | `send-onboarding-link` | AGREEMENT_EXECUTED, FULLY_SIGNED, ONBOARDING_PENDING, ONBOARDING_INVITED, ONBOARDING_IN_PROGRESS | ONBOARDING_INVITED (a resend from IN_PROGRESS keeps IN_PROGRESS) |
 | Activate partner | `activate` | INFORMATION_APPROVED, APPROVED_FOR_ACTIVATION | ACTIVE, account INVITED |
 | Suspend (reason required) | `suspend` | ACTIVE | SUSPENDED, account SUSPENDED |
@@ -255,8 +285,23 @@ password hash.
   `PARTNER_CONTACT_EMAIL_IN_USE` on the email field.
 - **Audited.** Each add writes a `CONTACT_ADDED` timeline entry and a
   `PARTNER_CONTACT_CREATED` audit row.
-- A contact is a portal-user row, so it blocks deleting the partner (see
-  Deletion rules).
+- **Removable until it activates portal access.**
+  `DELETE /partners/:id/contacts/:contactId` (`partners.manage`) removes a
+  contact that never activated portal access: status `NOT_INVITED` or
+  `INVITED`, with no `activatedAt`, no `lastActiveAt` and no refresh tokens
+  (`NEVER_ACTIVATED_CONTACT_WHERE` in `partner-contacts.ts`). Deleting the row
+  also revokes a pending invitation, because the token hash lives on it. A
+  contact that activated is refused with `PARTNER_CONTACT_HAS_PORTAL_ACCESS`
+  (409): it is a login with an access history, ended by suspending or
+  deactivating the partner. Another partner's contact is a 404. Each removal
+  writes a `CONTACT_REMOVED` timeline entry and a `PARTNER_CONTACT_REMOVED`
+  audit row in the same transaction, with the contact's id, email, status and
+  whether an invitation was pending. No credential is recorded.
+  The Contacts tab offers **Remove** as a confirmed row command on rows whose
+  `canRemove` is true. The API sets that flag with the same rule
+  (`isContactRemovable`).
+- Deleting the partner deletes its never-activated contacts with it. A contact
+  with portal access blocks the delete (see Deletion rules).
 
 ### Referral links
 
@@ -301,7 +346,7 @@ older notes are read back from the audit log, so none is lost.
 |---|---|---|
 | Summary | identity, commercial terms, owner, internal notes; Commissions grid (`commissions`) | Add commission → runtime `POST /platform-runtime/commissions` with `partnerId` |
 | Application | application details; Partner application (`inquiries`, opens `/partner-inquiries/:id`); Onboarding applications (`onboardingApplications`, opens `/partner-onboarding/:id`) | — |
-| Contacts | primary contact; Contacts (`portalUsers`) | Add contact → `POST /partners/:id/contacts` |
+| Contacts | primary contact; Contacts (`portalUsers`); Remove on contacts that never activated portal access | Add contact → `POST /partners/:id/contacts` |
 | Agreements | Partner agreements (`agreements`) | Create agreement command |
 | Referral Links | `referralLinks` with code, URL, status, leads, last used; Copy link, Disable, Enable, Regenerate | Add referral link → `POST /partners/:id/referral-links` (active partners) |
 | Referred Leads | `leads`: company, contact, status, attribution (referral link code or manual correction), referred date, converted customer | — |
@@ -403,7 +448,7 @@ lifecycle transition, `PARTNER_APPLICATION_APPROVED`/`_REJECTED`,
 `PARTNER_ONBOARDING_INVITATION_SENT`, `PARTNER_ONBOARDING_SUBMITTED`,
 `PARTNER_COMMISSION_CREATED`/`_UPDATED`, referral-link
 `PARTNER_REFERRAL_LINK_CREATED`/enable/disable/expire/`_REGENERATED`,
-`PARTNER_CONTACT_CREATED`, `PARTNER_NOTE_ADDED`, partner deletion and delete
+`PARTNER_CONTACT_CREATED`/`_REMOVED`, `PARTNER_NOTE_ADDED`, partner deletion and delete
 refusal, and `PLATFORM_LEAD_ATTRIBUTION_CORRECTED` (below). Snapshots exclude
 `applicationSnapshot` (the raw original submission — duplicative) and
 `notes`. `PartnerTimeline` — the partner's own readable history — is
@@ -461,7 +506,7 @@ not implemented here.
 
 Deleting a partner asks what depends on it first.
 `GET /platform-runtime/partners/:id/dependencies` returns one entry per related
-area, `{ area, count, policy, reason, href }`, and the admin delete dialog (on
+area, `{ key, label, count, countLabel, policy, reason, href }`, and the admin delete dialog (on
 the record and on the list) shows them with links to the tab that lists them.
 The classification lives in
 `services/api/src/modules/partners/partner-dependencies.ts`, and
@@ -481,14 +526,27 @@ business fact:
 | `agreements` | Restrict | BLOCKS | Contract evidence with its own retention |
 | `inquiries` | Restrict | BLOCKS | The partner's origin record |
 | `onboardingApplications` | Restrict | BLOCKS | Remove onboarding deliberately |
-| `portalUsers` (contacts) | Restrict | BLOCKS | Portal accounts and contacts |
+| `portalUsers`, never activated (`contacts`) | Restrict | CASCADE | A name and an email, with no access history. Deleted with the partner in the same transaction |
+| `portalUsers`, activated (`portalUsers`) | Restrict | BLOCKS | Logins with an access history. Suspend or deactivate the partner instead |
 | `referralLinks` | Restrict | BLOCKS | Leads and customers cite them |
 | attribution corrections (previous and corrected) | Restrict | BLOCKS | Attribution history |
 | `leadReviews`, `supportCases` | Restrict | BLOCKS | Business history |
 | `timeline` | Restrict | CASCADE | The partner's own diary, removed with it |
 
+- **`portalUsers` is classified by two rules.** `_count` gives the total,
+  and a second count (`NEVER_ACTIVATED_CONTACT_WHERE`) gives the contacts that
+  never activated. If the second count is missing, every portal user is
+  treated as activated, so the delete is refused rather than cascading into a
+  login.
+- **Counts carry their own wording.** `countLabel` is the count with a
+  correctly pluralised noun ("1 contact", "2 referral links", "1 contact with
+  portal access"). The dialog prints it as-is. Before this fix it lowercased
+  the plural label, which produced "1 portal users".
 - **The delete re-checks inside its transaction**, under a row lock, so a
   dependency added between the dialog and the confirmation still refuses.
+  The partner's contact rows are locked too. A contact that accepts its
+  invitation during the delete therefore waits, and is then counted as
+  activated.
 - **A refusal is named.** It is returned in `data.message` (for example
   "Nothing was deleted. Kept 1: Acme — it still has the partner application it
   came from") and shown in red. A foreign-key failure that slips past the check

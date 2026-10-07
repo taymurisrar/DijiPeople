@@ -7048,3 +7048,31 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — reverting the snapshot write fails 2 cases; letting PAID be re-approved fails 2. |
 | **Fixed** | 2026-10-08, branch `agent/partner-module-completion` |
 | **Active** | yes |
+
+### REG-655 — Console-created partners had no usable lifecycle action
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-step` |
+| **Module** | `packages/config` |
+| **Bug record** | BUG-3995 |
+| **Root cause** | Create always starts at DRAFT but Create agreement was hidden there and the review actions only work for inquiry partners (they failed with an opaque submission error). Review actions now require an inquiry (shared table + command visibleWhen), Create agreement is offered from DRAFT, and the API returns PARTNER_INQUIRY_REQUIRED. |
+| **Regression test** | `packages/config/partner-lifecycle.test.js` and `apps/admin/lib/runtime/command-visibility.spec.ts` and `services/api/src/modules/partners/partner-inquiry-required.spec.ts`. |
+| **Scenario** | QA-PLATFORM-053 — Console-created partners follow the agreement-first path and offer no dead review actions. |
+| **Fails without the fix** | Yes — disabling the visibleWhen check fails 4 cases; removing the inquiry guard fails 5. |
+| **Fixed** | 2026-10-08, branch `agent/partner-module-completion` |
+| **Active** | yes |
+
+### REG-656 — A never-invited contact made a partner undeletable
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` |
+| **Module** | `services/api/src/modules/partners` |
+| **Bug record** | BUG-3996 |
+| **Root cause** | Delete treated every portal user as blocking while plain contacts are stored as NOT_INVITED portal users, and contacts had no remove action. Never-activated contacts are now removable and cascade with the partner; activated ones still block; labels are pluralised. |
+| **Regression test** | `services/api/src/modules/partners/partner-contact-removal.spec.ts` and `services/api/src/modules/partners/partner-dependencies.spec.ts` and `apps/admin/lib/runtime/related-records-model.spec.ts`. |
+| **Scenario** | QA-PLATFORM-054 — Never-activated partner contacts can be removed and do not block partner deletion. |
+| **Fails without the fix** | Yes — dropping the never-activated filter fails 4 cases; removing the cascade fails 2. |
+| **Fixed** | 2026-10-08, branch `agent/partner-module-completion` |
+| **Active** | yes |

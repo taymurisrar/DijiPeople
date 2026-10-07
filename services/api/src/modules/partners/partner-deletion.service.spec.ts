@@ -1,6 +1,7 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 import { PartnerDeletionService } from './partner-deletion.service';
+import { NEVER_ACTIVATED_CONTACT_WHERE } from './partner-contacts';
 import type { PrismaService } from '../../common/prisma/prisma.service';
 import type { AuditService } from '../audit/audit.service';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -42,6 +43,8 @@ const partner = (id: string, counts: Partial<Record<string, number>> = {}) => ({
 function service(
   prisma: Record<string, unknown> = {},
   rows: Record<string, ReturnType<typeof partner> | null> = {},
+  /** Per partner: how many of its portal users never activated access. */
+  neverActivated: Record<string, number> = {},
 ) {
   const log = jest.fn().mockResolvedValue(undefined);
   const events: string[] = [];
@@ -66,13 +69,32 @@ function service(
         return Promise.resolve({ count: 0 });
       }),
     },
+    partnerPortalUser: {
+      count: jest.fn(({ where }: { where: { partnerId: string } }) =>
+        Promise.resolve(neverActivated[where.partnerId] ?? 0),
+      ),
+      deleteMany: jest.fn(({ where }: { where: { partnerId: string } }) => {
+        events.push('contacts');
+        return Promise.resolve({
+          count: neverActivated[where.partnerId] ?? 0,
+        });
+      }),
+    },
   };
   const transaction = jest.fn(async (work: unknown) =>
     typeof work === 'function'
       ? (work as (client: typeof tx) => Promise<unknown>)(tx)
       : Promise.all(work as Array<Promise<unknown>>),
   );
-  const client = { $transaction: transaction, ...prisma };
+  const client = {
+    $transaction: transaction,
+    partnerPortalUser: {
+      count: jest.fn(({ where }: { where: { partnerId: string } }) =>
+        Promise.resolve(neverActivated[where.partnerId] ?? 0),
+      ),
+    },
+    ...prisma,
+  };
   return {
     log,
     tx,
@@ -93,18 +115,18 @@ function service(
 describe('partner deletion — every blocking relation refuses by name', () => {
   it.each([
     ['inquiries', 'the partner application it came from'],
-    ['onboardingApplications', '1 onboarding application(s)'],
-    ['previousAttributions', '1 lead attribution change(s)'],
-    ['correctedAttributions', '1 lead attribution change(s)'],
-    ['leadReviews', '1 lead review(s)'],
-    ['supportCases', '1 support case(s)'],
-    ['agreements', '1 agreement(s)'],
-    ['portalUsers', '1 portal user(s)'],
-    ['referralLinks', '1 referral link(s)'],
-    ['commissions', '1 commission record(s)'],
-    ['leads', '1 attributed lead(s)'],
-    ['attributedCustomers', '1 attributed customer(s)'],
-    ['attributedTenants', '1 attributed tenant(s)'],
+    ['onboardingApplications', '1 onboarding application'],
+    ['previousAttributions', '1 lead attribution change'],
+    ['correctedAttributions', '1 lead attribution change'],
+    ['leadReviews', '1 lead review'],
+    ['supportCases', '1 support case'],
+    ['agreements', '1 agreement'],
+    ['portalUsers', '1 contact with portal access'],
+    ['referralLinks', '1 referral link'],
+    ['commissions', '1 commission record'],
+    ['leads', '1 attributed lead'],
+    ['attributedCustomers', '1 attributed customer'],
+    ['attributedTenants', '1 attributed tenant'],
   ])('refuses a partner with %s, naming it', async (relation, expected) => {
     const { subject, tx } = service({}, { a: partner('a', { [relation]: 1 }) });
 
@@ -135,7 +157,15 @@ describe('partner deletion — transaction', () => {
     await subject.deletePartners(user, ['a']);
 
     expect(transaction).toHaveBeenCalledTimes(1);
-    expect(events).toEqual(['lock', 'count:a', 'timeline', 'delete:a']);
+    // Partner row, then its contacts, are locked before anything is counted.
+    expect(events).toEqual([
+      'lock',
+      'lock',
+      'count:a',
+      'timeline',
+      'contacts',
+      'delete:a',
+    ]);
   });
 
   it('decides on the count taken inside the transaction, not before it', async () => {
@@ -157,7 +187,7 @@ describe('partner deletion — transaction', () => {
     const result = await subject.deletePartners(user, ['a']);
 
     expect(result.deleted).toBe(0);
-    expect(result.refused[0].reason).toContain('1 attributed customer(s)');
+    expect(result.refused[0].reason).toContain('1 attributed customer');
     expect(tx.partner.delete).not.toHaveBeenCalled();
   });
 
@@ -307,8 +337,8 @@ describe('partner deletion', () => {
       const result = await subject.deletePartners(user, ['a']);
 
       expect(result.deleted).toBe(0);
-      expect(result.refused[0]?.reason).toContain('2 commission record(s)');
-      expect(result.refused[0]?.reason).toContain('5 attributed lead(s)');
+      expect(result.refused[0]?.reason).toContain('2 commission records');
+      expect(result.refused[0]?.reason).toContain('5 attributed leads');
       /*
        * The partner's name, not its id. A refusal an operator has to look up is
        * a refusal they will re-attempt.
@@ -473,5 +503,106 @@ describe('partner deletion', () => {
       expect(result.deleted).toBe(0);
       expect(result.refused[0]?.reason).toContain('activated the partner');
     });
+  });
+});
+
+/**
+ * TASK-0037 browser pass — a partner with one never-invited contact could not
+ * be deleted ("1 portal users — Deactivate and remove the partner portal
+ * users first.") and nothing could remove the contact. Portal users are now
+ * split: contacts that never activated portal access go with the partner;
+ * contacts that did are logins with history, and still block.
+ */
+describe('partner deletion — contacts and portal access', () => {
+  it('deletes a partner whose only contact never activated, cascading the contact in the transaction', async () => {
+    const { subject, tx, log, events } = service(
+      {},
+      { a: partner('a', { portalUsers: 1 }) },
+      { a: 1 },
+    );
+
+    const result = await subject.deletePartners(user, ['a']);
+
+    expect(result.deleted).toBe(1);
+    expect(tx.partnerPortalUser.deleteMany).toHaveBeenCalledWith({
+      where: { partnerId: 'a', ...NEVER_ACTIVATED_CONTACT_WHERE },
+    });
+    // Contacts go before the partner, so its Restrict foreign key is clear.
+    expect(events.indexOf('contacts')).toBeLessThan(events.indexOf('delete:a'));
+    expect(log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'PARTNER_DELETED',
+        afterSnapshot: {
+          deleted: true,
+          cascaded: [{ key: 'contacts', count: 1 }],
+        },
+      }),
+      tx,
+    );
+  });
+
+  it('refuses a partner with a contact that activated portal access, saying what to do instead', async () => {
+    const { subject, tx } = service(
+      {},
+      { a: partner('a', { portalUsers: 2 }) },
+      { a: 1 },
+    );
+
+    const result = await subject.deletePartners(user, ['a']);
+
+    expect(result.deleted).toBe(0);
+    expect(result.refused[0].reason).toBe(
+      'it still has 1 contact with portal access',
+    );
+    expect(tx.partnerPortalUser.deleteMany).not.toHaveBeenCalled();
+    expect(tx.partner.delete).not.toHaveBeenCalled();
+  });
+
+  it('re-counts inside the transaction: a contact that activated after the dialog opened blocks', async () => {
+    const { subject, tx } = service(
+      {
+        partner: {
+          findUnique: jest
+            .fn()
+            .mockResolvedValue(partner('a', { portalUsers: 1 })),
+        },
+        partnerPortalUser: { count: jest.fn().mockResolvedValue(1) },
+      },
+      { a: partner('a', { portalUsers: 1 }) },
+      // Inside the transaction the contact has since activated.
+      { a: 0 },
+    );
+
+    expect((await subject.describeDependencies('a')).canDelete).toBe(true);
+    const result = await subject.deletePartners(user, ['a']);
+
+    expect(result.deleted).toBe(0);
+    expect(result.refused[0].reason).toContain('1 contact with portal access');
+    expect(tx.partner.delete).not.toHaveBeenCalled();
+  });
+
+  it('reports never-activated contacts as "will also be deleted" and signed-in ones as blocking', async () => {
+    const { subject } = service({
+      partner: {
+        findUnique: jest
+          .fn()
+          .mockResolvedValue(partner('a', { portalUsers: 3 })),
+      },
+      partnerPortalUser: { count: jest.fn().mockResolvedValue(2) },
+    });
+
+    const report = await subject.describeDependencies('a');
+
+    expect(report.canDelete).toBe(false);
+    expect(
+      report.dependencies.map((item) => [
+        item.key,
+        item.policy,
+        item.countLabel,
+      ]),
+    ).toEqual([
+      ['contacts', 'CASCADE', '2 contacts'],
+      ['portalUsers', 'BLOCKS', '1 contact with portal access'],
+    ]);
   });
 });

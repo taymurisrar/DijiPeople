@@ -33,6 +33,7 @@ import type {
   RuntimeActionDefinition,
 } from "@/lib/runtime/platform-runtime.types";
 import { hasRuntimePermission } from "@/lib/runtime/runtime-permissions";
+import { commandMatchesRecord } from "@/lib/runtime/command-visibility";
 import { describeActionNotice } from "@/lib/runtime/runtime-action-outcome";
 import {
   describeDestructiveConfirm,
@@ -431,11 +432,7 @@ function isVisible(
   )
     return false;
   if (!hasRuntimePermission(action.permission, context)) return false;
-  if (
-    action.states?.length &&
-    !action.states.includes(String(context.record?.status ?? ""))
-  )
-    return false;
+  if (!commandMatchesRecord(action, context.record)) return false;
   const count = context.selectedIds?.length ?? 0;
   if (action.selection === "one" && count !== 1) return false;
   if (action.selection === "many" && count < 2) return false;

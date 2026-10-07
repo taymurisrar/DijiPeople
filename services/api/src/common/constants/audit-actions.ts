@@ -173,6 +173,11 @@ export const AUDIT_ACTIONS = {
    * A contact snapshot carries its email and status, never a credential.
    */
   PARTNER_CONTACT_CREATED: 'PARTNER_CONTACT_CREATED',
+  /*
+   * TASK-0037 — Remove on the Contacts tab, for a contact that never
+   * activated portal access. Same snapshot rules as CREATED.
+   */
+  PARTNER_CONTACT_REMOVED: 'PARTNER_CONTACT_REMOVED',
   PARTNER_NOTE_ADDED: 'PARTNER_NOTE_ADDED',
   PARTNER_REFERRAL_LINK_CREATED: 'PARTNER_REFERRAL_LINK_CREATED',
 } as const;

@@ -50,6 +50,28 @@ export function partnerTransition(
   return rule.to as PartnerStatus;
 }
 
+/**
+ * Refuse an application-review action (`requiresInquiry` in the shared table)
+ * for a partner with no partner inquiry — one an operator created in the
+ * console, which starts at DRAFT and takes the agreement-first path. Checked
+ * before the status rule so the operator is told why, not merely that the
+ * action is unavailable.
+ */
+export function assertPartnerInquiryFor(
+  action: PartnerLifecycleActionKey,
+  hasInquiry: boolean,
+): void {
+  if (PARTNER_LIFECYCLE_ACTIONS[action]?.requiresInquiry && !hasInquiry)
+    throw partnerInquiryRequired();
+}
+
+export function partnerInquiryRequired(): AppError {
+  return new AppError('PARTNER_INQUIRY_REQUIRED', {
+    message:
+      'This partner was created by an operator and has no partner application to review. Create an agreement to continue.',
+  });
+}
+
 /*
  * `accountStatus` is system-controlled (ADR-0026 D2) and follows the action:
  * suspend → SUSPENDED, deactivate → DISABLED, and reactivate → whatever access

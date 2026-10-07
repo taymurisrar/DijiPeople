@@ -33,6 +33,13 @@ export type RecordDependency = {
   /** Plural noun an operator reads, e.g. "Referral links". */
   label: string;
   count: number;
+  /**
+   * The count with its correctly pluralised noun, as the dialog prints it —
+   * "1 contact", "2 referral links". Built by the provider because only it
+   * knows the singular: the console used to lowercase `label`, which read
+   * "1 portal users".
+   */
+  countLabel: string;
   policy: RecordDependencyPolicy;
   /** Why this policy, and what to do about it — one sentence. */
   reason: string;

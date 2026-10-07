@@ -152,4 +152,22 @@ describe("dependency-aware delete model", () => {
       }),
     ).toBe("2 referral links");
   });
+
+  it("prints the API's pluralised count label over the lowercased plural", () => {
+    // The browser pass read "1 portal users" for one contact.
+    expect(
+      describeDependencyCount({
+        ...dep("contacts", "CASCADE", 1),
+        label: "Contacts",
+        countLabel: "1 contact",
+      }),
+    ).toBe("1 contact");
+    expect(
+      describeDependencyCount({
+        ...dep("portalUsers", "BLOCKS", 2),
+        label: "Contacts with portal access",
+        countLabel: "2 contacts with portal access",
+      }),
+    ).toBe("2 contacts with portal access");
+  });
 });

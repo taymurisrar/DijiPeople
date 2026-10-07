@@ -128,15 +128,25 @@ const PARTNER_POST_ACTIVATION_STATUSES = Object.freeze([
  * statuses each may start from and the status it produces. `admin` is the
  * runtime command key the admin console declares for it. The API enforces
  * `from`; the admin shows the command only in those statuses.
+ *
+ * `requiresInquiry` marks the application-review actions. They decide a
+ * partner application (a PartnerInquiry), so they apply only to a partner that
+ * came in through the public inquiry form. A partner an operator creates in the
+ * console starts at DRAFT with no inquiry and takes the agreement-first path
+ * instead (create agreement, sign, onboard, activate); the API refuses these
+ * actions for it with PARTNER_INQUIRY_REQUIRED and the console does not offer
+ * them.
  */
 const PARTNER_LIFECYCLE_ACTIONS = Object.freeze({
   "start-review": Object.freeze({
     admin: "start-review",
+    requiresInquiry: true,
     from: Object.freeze(["INQUIRY", "NEW_INQUIRY", "MORE_INFORMATION_REQUIRED"]),
     to: "UNDER_REVIEW",
   }),
   approve: Object.freeze({
     admin: "approve-partner",
+    requiresInquiry: true,
     from: Object.freeze([
       "INQUIRY",
       "NEW_INQUIRY",
@@ -147,6 +157,7 @@ const PARTNER_LIFECYCLE_ACTIONS = Object.freeze({
   }),
   reject: Object.freeze({
     admin: "reject-partner",
+    requiresInquiry: true,
     from: Object.freeze([
       "INQUIRY",
       "NEW_INQUIRY",
@@ -158,6 +169,7 @@ const PARTNER_LIFECYCLE_ACTIONS = Object.freeze({
   }),
   "request-information": Object.freeze({
     admin: "request-information",
+    requiresInquiry: true,
     from: Object.freeze(["INQUIRY", "NEW_INQUIRY", "UNDER_REVIEW"]),
     to: "MORE_INFORMATION_REQUIRED",
   }),

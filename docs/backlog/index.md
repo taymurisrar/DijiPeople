@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**761 records** — 533 bugs under [`docs/bugs/`](../bugs/), 228 non-bug items under [`items/`](items/).
+**763 records** — 535 bugs under [`docs/bugs/`](../bugs/), 228 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 265 |
+| Open (active work) | 267 |
 | Blocked | 4 |
 | Deferred | 124 |
 | Awaiting a product decision | 14 |
 | Completed / closed | 354 |
 | **Open CRITICAL** | **8** |
-| **Open HIGH** | **108** |
+| **Open HIGH** | **109** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,8 +27,8 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 8 |
-| HIGH | 108 |
-| MEDIUM | 121 |
+| HIGH | 109 |
+| MEDIUM | 122 |
 | LOW | 27 |
 
 ## Open by type
@@ -36,7 +36,7 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | AUTHORIZATION | 15 |
-| BUG | 80 |
+| BUG | 81 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 27 |
 | DOCUMENTATION | 1 |
@@ -46,7 +46,7 @@ see [`README.md`](README.md) for why.
 | PERFORMANCE | 15 |
 | PRODUCT_DECISION | 2 |
 | SECURITY | 27 |
-| STATE_MACHINE | 5 |
+| STATE_MACHINE | 6 |
 | TECH_DEBT | 8 |
 | TENANT_ISOLATION | 3 |
 | TEST_GAP | 9 |
@@ -61,7 +61,7 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 4 |
 | DEFERRED | 124 |
 | PRODUCT_DECISION | 14 |
-| FIXED | 183 |
+| FIXED | 185 |
 | VERIFIED | 218 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
@@ -318,6 +318,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3930](../../docs/bugs/BUG-3930-partner-delete-hides-its-refusal-reason-and-silently-erases-.md) | Partner delete hides its refusal reason and silently erases customer and tenant attribution | DATA_INTEGRITY | HIGH | P1 | FIXED | partners, apps/admin | FIX_NOW |
 | [BUG-3955](../../docs/bugs/BUG-3955-partner-save-persists-no-field-but-reports-partner-saved-bec.md) | Partner Save persists no field but reports Partner saved, because the write contract misreads PartialType | BUG | HIGH | P1 | FIXED | apps/admin, partners | FIX_NOW |
 | [BUG-3981](../../docs/bugs/BUG-3981-partner-onboarding-invitation-resends-never-arrive-kill-the-.md) | Partner onboarding invitation resends never arrive, kill the old link, return the raw token and report failed sends as success | SECURITY | HIGH | P1 | FIXED | partner-experience | FIX_NOW |
+| [BUG-3995](../../docs/bugs/BUG-3995-console-created-partners-had-no-usable-lifecycle-action-and-.md) | Console-created partners had no usable lifecycle action and the review actions failed with an opaque submission error | STATE_MACHINE | HIGH | P1 | FIXED | partners, apps/admin | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -578,6 +579,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3897](../../docs/bugs/BUG-3897-public-signature-link-tokens-are-stored-verbatim-in-errorlog.md) | Public signature-link tokens are stored verbatim in ErrorLog.path and readable by monitoring.read holders | SECURITY | MEDIUM | P2 | OPEN | error-logs | FIX_NOW |
 | [BUG-3956](../../docs/bugs/BUG-3956-changing-partner-status-from-the-record-header-always-fails-.md) | Changing Partner status from the record header always fails and would bypass the partner state machine | STATE_MACHINE | MEDIUM | P2 | FIXED | partners, apps/admin | FIX_NOW |
 | [BUG-3982](../../docs/bugs/BUG-3982-partner-commissions-accept-any-status-jump-and-unverified-li.md) | Partner commissions accept any status jump and unverified links, and agreements change when the partner default commission is edited | DATA_INTEGRITY | MEDIUM | P2 | FIXED | partners, contracts | FIX_NOW |
+| [BUG-3996](../../docs/bugs/BUG-3996-a-partner-with-a-never-invited-contact-could-not-be-deleted-.md) | A partner with a never-invited contact could not be deleted and the contact could not be removed | BUG | MEDIUM | P2 | FIXED | partners, apps/admin | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |

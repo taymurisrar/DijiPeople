@@ -69,6 +69,10 @@ function buildService() {
     };
 
   const prisma = {
+    partner: {
+      findUnique: (query: { where: { id: string } }) =>
+        Promise.resolve({ id: query.where.id }),
+    },
     partnerInquiry: {
       findFirst: (query: { where: { partnerId: string } }) => {
         seen.push(query.where.partnerId);

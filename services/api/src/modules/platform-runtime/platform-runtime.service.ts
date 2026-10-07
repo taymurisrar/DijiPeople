@@ -25,7 +25,10 @@ import {
   UpdatePartnerDto,
 } from '../partners/dto/partner.dto';
 import { PartnerDeletionService } from '../partners/partner-deletion.service';
-import { partnerStatusRequiresAction } from '../partners/partner-lifecycle';
+import {
+  partnerInquiryRequired,
+  partnerStatusRequiresAction,
+} from '../partners/partner-lifecycle';
 import { isPartnerCommissionAction } from '../partners/partner-commission-lifecycle';
 import { AppError } from '../../common/errors/app-error';
 import { SuperAdminService } from '../super-admin/super-admin.service';
@@ -788,14 +791,26 @@ export class PlatformRuntimeService {
       return this.partnerExperience.activatePartner(user, id);
     if (id && key === 'partners') {
       if (action === 'approve-partner' || action === 'reject-partner') {
+        /*
+         * The partner first: a nonexistent id would otherwise be answered with
+         * "no partner application to review" — a statement about a partner
+         * that does not exist.
+         */
+        const partner = await this.prisma.partner.findUnique({
+          where: { id },
+          select: { id: true },
+        });
+        if (!partner) throw new NotFoundException('Partner was not found.');
         const inquiry = await this.prisma.partnerInquiry.findFirst({
           where: { partnerId: id },
           orderBy: { createdAt: 'desc' },
         });
-        if (!inquiry)
-          throw new BadRequestException(
-            'The immutable partner application submission was not found.',
-          );
+        /*
+         * A partner created in the console has no application to decide; it
+         * takes the agreement-first path (ADR-0026). This was a bare 400 that
+         * the console showed as a generic validation failure.
+         */
+        if (!inquiry) throw partnerInquiryRequired();
         const review = {
           notes:
             textOrNull(input.reason) ??

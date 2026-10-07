@@ -19,6 +19,7 @@ import {
   PARTNER_DEPENDENCY_COUNT_SELECT,
   type ClassifiedPartnerDependency,
 } from './partner-dependencies';
+import { NEVER_ACTIVATED_CONTACT_WHERE } from './partner-contacts';
 
 const NO_LONGER_EXISTS = 'it no longer exists';
 
@@ -71,8 +72,14 @@ export class PartnerDeletionService implements RecordDependencyProvider {
       select: { id: true, _count: { select: PARTNER_DEPENDENCY_COUNT_SELECT } },
     });
     if (!row) throw new NotFoundException('Partner was not found.');
+    const neverActivatedContacts = await this.prisma.partnerPortalUser.count({
+      where: { partnerId: id, ...NEVER_ACTIVATED_CONTACT_WHERE },
+    });
     return buildDependencyReport(
-      classifyPartnerDependencies(row.id, row._count).map(stripPhrase),
+      classifyPartnerDependencies(row.id, {
+        ...row._count,
+        neverActivatedContacts,
+      }).map(stripPhrase),
     );
   }
 
@@ -162,6 +169,13 @@ export class PartnerDeletionService implements RecordDependencyProvider {
          * own foreign key instead of having its reference nulled by ours.
          */
         await tx.$queryRaw`SELECT "id" FROM "Partner" WHERE "id" = ${id} FOR UPDATE`;
+        /*
+         * The contacts too: a contact accepting its invitation between the
+         * count and the cascade below would otherwise be deleted as "never
+         * activated" moments after it activated. Locked, the acceptance waits
+         * for this decision.
+         */
+        await tx.$queryRaw`SELECT "id" FROM "PartnerPortalUser" WHERE "partnerId" = ${id} FOR UPDATE`;
         const row = await tx.partner.findUnique({
           where: { id },
           select: {
@@ -180,7 +194,13 @@ export class PartnerDeletionService implements RecordDependencyProvider {
           };
         label = row.displayName;
 
-        const dependencies = classifyPartnerDependencies(row.id, row._count);
+        const neverActivatedContacts = await tx.partnerPortalUser.count({
+          where: { partnerId: id, ...NEVER_ACTIVATED_CONTACT_WHERE },
+        });
+        const dependencies = classifyPartnerDependencies(row.id, {
+          ...row._count,
+          neverActivatedContacts,
+        });
         const blocking = dependencies.filter(blocksDelete);
         if (blocking.length) {
           return {
@@ -194,6 +214,15 @@ export class PartnerDeletionService implements RecordDependencyProvider {
           (item) => item.policy === 'CASCADE' && item.count > 0,
         );
         await tx.partnerTimeline.deleteMany({ where: { partnerId: id } });
+        /*
+         * Contacts that never activated portal access go with the partner. The
+         * filter is repeated rather than trusted from the count: if anything
+         * else were left, the partner delete below fails its foreign key and
+         * the whole transaction is reported as a refusal.
+         */
+        await tx.partnerPortalUser.deleteMany({
+          where: { partnerId: id, ...NEVER_ACTIVATED_CONTACT_WHERE },
+        });
         await tx.partner.delete({ where: { id } });
         /*
          * In the transaction: a partner is never gone without the row saying

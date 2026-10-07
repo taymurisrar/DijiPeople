@@ -241,10 +241,10 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `PartnerLeadReview` | no | `partner-experience` | — |
 | `PartnerOnboardingApplication` | no | `partner-experience` | — |
 | `PartnerOnboardingSubmission` | no | `partner-experience` | — |
-| `PartnerPortalUser` | no | `partner-experience` | — |
+| `PartnerPortalUser` | no | `partners` | — |
 | `PartnerReferralLink` | no | `partners` | — |
 | `PartnerRefreshToken` | no | `partner-experience` | — |
-| `PartnerTimeline` | no | `partner-experience` | — |
+| `PartnerTimeline` | no | `partners` | — |
 | `Payment` | yes | `billing` | — |
 | `PaymentProviderEvent` | no | `billing` | — |
 | `Plan` | yes | `super-admin` | — |

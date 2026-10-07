@@ -8,8 +8,8 @@
 | | |
 |---|---|
 | Open CRITICAL | **8** |
-| Open HIGH | **108** |
-| Open total | 265 |
+| Open HIGH | **109** |
+| Open total | 267 |
 | Blocked | 4 |
 | Awaiting a product decision | 14 |
 | Deferred | 124 |
@@ -137,6 +137,7 @@
 | [[BUG-3930-partner-delete-hides-its-refusal-reason-and-silently-erases-|BUG-3930]] | Partner delete hides its refusal reason and silently erases customer and tenant attribution | DATA_INTEGRITY | HIGH | FIXED | partners, apps/admin | FIX_NOW |
 | [[BUG-3955-partner-save-persists-no-field-but-reports-partner-saved-bec|BUG-3955]] | Partner Save persists no field but reports Partner saved, because the write contract misreads PartialType | BUG | HIGH | FIXED | apps/admin, partners | FIX_NOW |
 | [[BUG-3981-partner-onboarding-invitation-resends-never-arrive-kill-the-|BUG-3981]] | Partner onboarding invitation resends never arrive, kill the old link, return the raw token and report failed sends as success | SECURITY | HIGH | FIXED | partner-experience | FIX_NOW |
+| [[BUG-3995-console-created-partners-had-no-usable-lifecycle-action-and-|BUG-3995]] | Console-created partners had no usable lifecycle action and the review actions failed with an opaque submission error | STATE_MACHINE | HIGH | FIXED | partners, apps/admin | FIX_NOW |
 | [[ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no|ITEM-0133]] | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | READY | services/api/test | PLAN_REQUIRED |
 | [[ITEM-0134-the-payroll-run-engine-has-no-tests|ITEM-0134]] | The payroll run engine has no tests | TEST_GAP | HIGH | READY | api:payroll | PLAN_REQUIRED |
 | [[ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-|ITEM-0136]] | electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major | SECURITY | HIGH | READY | apps/agent-desktop | FIX_NOW |
@@ -389,6 +390,7 @@
 | [[BUG-3930-partner-delete-hides-its-refusal-reason-and-silently-erases-|BUG-3930]] | Partner delete hides its refusal reason and silently erases customer and tenant attribution | DATA_INTEGRITY | HIGH | FIXED | partners, apps/admin | FIX_NOW |
 | [[BUG-3955-partner-save-persists-no-field-but-reports-partner-saved-bec|BUG-3955]] | Partner Save persists no field but reports Partner saved, because the write contract misreads PartialType | BUG | HIGH | FIXED | apps/admin, partners | FIX_NOW |
 | [[BUG-3981-partner-onboarding-invitation-resends-never-arrive-kill-the-|BUG-3981]] | Partner onboarding invitation resends never arrive, kill the old link, return the raw token and report failed sends as success | SECURITY | HIGH | FIXED | partner-experience | FIX_NOW |
+| [[BUG-3995-console-created-partners-had-no-usable-lifecycle-action-and-|BUG-3995]] | Console-created partners had no usable lifecycle action and the review actions failed with an opaque submission error | STATE_MACHINE | HIGH | FIXED | partners, apps/admin | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver|BUG-3501]] | The email provider screen presents a console sink as delivery and offers sink providers in production | UX | MEDIUM | FIXED | notifications, apps/web | PLAN_REQUIRED |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
@@ -564,6 +566,7 @@
 | [[BUG-3844-two-factor-authentication-cannot-be-found-in-the-tenant-web-|BUG-3844]] | Two-factor authentication cannot be found in the tenant web app or the platform admin app | UX | MEDIUM | FIXED | apps/web, apps/admin, auth | FIX_NOW |
 | [[BUG-3956-changing-partner-status-from-the-record-header-always-fails-|BUG-3956]] | Changing Partner status from the record header always fails and would bypass the partner state machine | STATE_MACHINE | MEDIUM | FIXED | partners, apps/admin | FIX_NOW |
 | [[BUG-3982-partner-commissions-accept-any-status-jump-and-unverified-li|BUG-3982]] | Partner commissions accept any status jump and unverified links, and agreements change when the partner default commission is edited | DATA_INTEGRITY | MEDIUM | FIXED | partners, contracts | FIX_NOW |
+| [[BUG-3996-a-partner-with-a-never-invited-contact-could-not-be-deleted-|BUG-3996]] | A partner with a never-invited contact could not be deleted and the contact could not be removed | BUG | MEDIUM | FIXED | partners, apps/admin | FIX_NOW |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -750,6 +753,7 @@
 | [[BUG-3897-public-signature-link-tokens-are-stored-verbatim-in-errorlog|BUG-3897]] | Public signature-link tokens are stored verbatim in ErrorLog.path and readable by monitoring.read holders | SECURITY | MEDIUM | OPEN | error-logs | FIX_NOW |
 | [[BUG-3956-changing-partner-status-from-the-record-header-always-fails-|BUG-3956]] | Changing Partner status from the record header always fails and would bypass the partner state machine | STATE_MACHINE | MEDIUM | FIXED | partners, apps/admin | FIX_NOW |
 | [[BUG-3982-partner-commissions-accept-any-status-jump-and-unverified-li|BUG-3982]] | Partner commissions accept any status jump and unverified links, and agreements change when the partner default commission is edited | DATA_INTEGRITY | MEDIUM | FIXED | partners, contracts | FIX_NOW |
+| [[BUG-3996-a-partner-with-a-never-invited-contact-could-not-be-deleted-|BUG-3996]] | A partner with a never-invited contact could not be deleted and the contact could not be removed | BUG | MEDIUM | FIXED | partners, apps/admin | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -834,7 +838,7 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 533 |
+| Bug records | 535 |
 | Backlog items | 228 |
 | Known bug patterns | 35 |
 | QA runs | 38 |

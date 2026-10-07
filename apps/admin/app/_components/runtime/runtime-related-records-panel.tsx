@@ -24,6 +24,7 @@ import {
   isRowActionVisible,
   relatedCellValue,
   resolveRowActionPath,
+  rowActionRequest,
   shareableUrl,
 } from "@/lib/runtime/related-records-model";
 import { hasRuntimePermission } from "@/lib/runtime/runtime-permissions";
@@ -161,11 +162,7 @@ export function RuntimeRelatedRecordsPanel({
     try {
       const response = await fetch(
         resolveRowActionPath(action, recordId, row),
-        backgroundRequestInit({
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(action.body ?? {}),
-        }),
+        backgroundRequestInit(rowActionRequest(action)),
       );
       const payload = (await response.json().catch(() => null)) as {
         message?: unknown;
@@ -422,6 +419,7 @@ export function RuntimeRelatedRecordsPanel({
           <p className="text-sm text-slate-700">
             {String(
               pendingConfirm.row.name ??
+                pendingConfirm.row.fullName ??
                 pendingConfirm.row.code ??
                 pendingConfirm.row.displayName ??
                 "",

@@ -106,3 +106,24 @@ test("the onboarding link is sent after the agreement and never to a live or clo
   for (const status of PARTNER_ONBOARDED_STATUSES)
     assert.equal(partnerPhaseOf(status) === "PROSPECT", false, status);
 });
+
+test("exactly the application-review actions require a partner inquiry", () => {
+  /*
+   * A console-created partner starts at DRAFT with no inquiry. Marking any
+   * other action would strand it (it could never be onboarded or activated);
+   * marking fewer would offer it a review of an application it never sent.
+   */
+  const requiring = Object.entries(PARTNER_LIFECYCLE_ACTIONS)
+    .filter(([, rule]) => rule.requiresInquiry === true)
+    .map(([action]) => action)
+    .sort();
+  assert.deepEqual(requiring, [
+    "approve",
+    "reject",
+    "request-information",
+    "start-review",
+  ]);
+  // None of them starts from DRAFT, where a console partner begins.
+  for (const action of requiring)
+    assert.equal(canApplyPartnerAction(action, "DRAFT"), false, action);
+});

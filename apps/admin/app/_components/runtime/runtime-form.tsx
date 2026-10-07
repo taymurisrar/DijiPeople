@@ -13,6 +13,7 @@ import { buildLookupRecordHref } from "@/lib/runtime/lookup-record-href";
 import { lookupDisplayFallback } from "@/lib/runtime/lookup-display-fallback";
 import { errorCountByTab } from "@/lib/runtime/blocked-save-feedback";
 import { humanizeLabel } from "@/lib/runtime/humanize-label";
+import { matchesVisibility } from "@/lib/runtime/visibility-condition";
 import { useRuntimeLookupOptions } from "@/lib/runtime/use-runtime-lookup-options";
 import {
   createDebouncedCallback,
@@ -847,10 +848,10 @@ function FieldControl({
                   )
                 ? "number"
                 : "text";
-  return (
+  const input = (
     <input
       {...a11y}
-      className={className}
+      className={field.type === "percentage" ? `${className} pr-9` : className}
       disabled={readOnly}
       required={required}
       type={type}
@@ -886,6 +887,23 @@ function FieldControl({
         )
       }
     />
+  );
+  if (field.type !== "percentage") return input;
+  /*
+   * Percentages are stored and entered as 0-100 (ADR-0026), so "10" means 10%.
+   * The visible % inside the control removes the 10 / 10% / 0.10 ambiguity at
+   * the point of entry, where the read view already renders "10%".
+   */
+  return (
+    <div className="relative">
+      {input}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-slate-500"
+      >
+        %
+      </span>
+    </div>
   );
 }
 
@@ -1465,24 +1483,12 @@ function isVisible(
     return false;
   if (field.visibleWhenAny?.length)
     return field.visibleWhenAny.some((condition) =>
-      matchesVisibilityCondition(condition, values),
+      matchesVisibility(condition, values),
     );
   if (!field.visibleWhen) return true;
-  return matchesVisibilityCondition(field.visibleWhen, values);
+  return matchesVisibility(field.visibleWhen, values);
 }
 
-function matchesVisibilityCondition(
-  condition: NonNullable<RuntimeFieldDefinition["visibleWhen"]>,
-  values: RuntimeValues,
-) {
-  const value = readRuntimeValue(values, condition.field);
-  if (condition.hasValue !== undefined)
-    return condition.hasValue
-      ? value != null && value !== ""
-      : value == null || value === "";
-  if (condition.in) return condition.in.includes(value);
-  return value === condition.equals;
-}
 function isConditionallyReadOnly(
   field: RuntimeFieldDefinition,
   values: RuntimeValues,

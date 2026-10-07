@@ -1,4 +1,8 @@
 import { buildPublicSiteUrl } from '../../common/config/public-site-url.config';
+import {
+  isContactRemovable,
+  type ContactAccessFields,
+} from './partner-contacts';
 
 /*
  * EXECPLAN-0055 WP-08 — what the partner record's tabs are given to show.
@@ -109,10 +113,22 @@ export function describeAttributedTenant<
   };
 }
 
+/**
+ * A contact as the Contacts tab shows it. `canRemove` drives the tab's Remove
+ * row action: only a contact that never activated portal access can be
+ * removed (`isContactRemovable`); the API decides again on the request.
+ */
 export function describePortalContact<
-  T extends { firstName?: string | null; lastName?: string | null },
+  T extends {
+    firstName?: string | null;
+    lastName?: string | null;
+  } & ContactAccessFields,
 >(contact: T) {
-  return { ...contact, fullName: personName(contact) };
+  return {
+    ...contact,
+    fullName: personName(contact),
+    canRemove: isContactRemovable(contact),
+  };
 }
 
 export type PartnerTimelineRow = {

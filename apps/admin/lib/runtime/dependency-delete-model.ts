@@ -146,7 +146,14 @@ export function buildDependencyDeleteModel(
   };
 }
 
-/** "2 referral links" style count line for one dependency. */
+/**
+ * "2 referral links" style count line for one dependency.
+ *
+ * The API's `countLabel` when it sends one: only the provider knows the
+ * singular, and lowercasing the plural `label` printed "1 portal users"
+ * (TASK-0037 browser pass). The fallback is for a provider that predates it.
+ */
 export function describeDependencyCount(item: RecordDependency) {
+  if (item.countLabel?.trim()) return item.countLabel;
   return `${item.count.toLocaleString()} ${item.label.toLowerCase()}`;
 }

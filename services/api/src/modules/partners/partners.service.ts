@@ -45,8 +45,10 @@ import {
   findPartnerDuplicate,
 } from './partner-duplicate-detection';
 import { missingAdminIdentityFields } from './partner-type-policy';
+import { NEVER_ACTIVATED_CONTACT_WHERE } from './partner-contacts';
 import {
   accountStatusAfterAction,
+  assertPartnerInquiryFor,
   partnerStatusRequiresAction,
   partnerTransition,
 } from './partner-lifecycle';
@@ -134,6 +136,15 @@ export class PartnersService {
   ) {
     this.assertWrite(user);
     return this.createContact(id, dto, user.userId);
+  }
+
+  removeContactForUser(
+    user: AuthenticatedUser,
+    partnerId: string,
+    contactId: string,
+  ) {
+    this.assertWrite(user);
+    return this.removeContact(partnerId, contactId, user.userId);
   }
 
   timelineForUser(user: AuthenticatedUser, id: string) {
@@ -388,6 +399,13 @@ export class PartnersService {
     if (!item) throw new NotFoundException('Partner was not found.');
     return normalizePartner({
       ...item,
+      /*
+       * Whether the partner came from a partner inquiry. The console offers the
+       * application-review commands (start review, approve, reject, request
+       * information) only when it did; a partner created in the console has
+       * none and takes the agreement-first path (ADR-0026).
+       */
+      hasInquiry: item.inquiries.length > 0,
       assignedToUser: withFullName(item.assignedToUser),
       leads: item.leads?.map(describeReferredLead),
       portalUsers: item.portalUsers?.map(describePortalContact),
@@ -665,12 +683,81 @@ export class PartnersService {
     return describePortalContact(contact);
   }
 
+  /**
+   * Remove a contact that never activated portal access (TASK-0037).
+   *
+   * Only such a contact qualifies (`NEVER_ACTIVATED_CONTACT_WHERE`): it has
+   * no password, no sessions and no access history, so removing it erases
+   * nothing anyone relies on. Deleting the row also revokes a pending
+   * invitation — the token hash lives on the row, so the emailed link stops
+   * resolving. A contact that activated is a login whose history is kept; it
+   * is refused with the way to end its access instead.
+   *
+   * The delete carries the rule in its own filter, so a contact accepting its
+   * invitation concurrently is either deleted before it activates or refused
+   * after — never deleted once it is a login.
+   */
+  async removeContact(partnerId: string, contactId: string, actorId: string) {
+    await this.prisma.$transaction(async (tx) => {
+      const contact = await tx.partnerPortalUser.findFirst({
+        where: { id: contactId, partnerId },
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          status: true,
+          invitationExpiresAt: true,
+        },
+      });
+      // Another partner's contact is "not found" here, never "forbidden".
+      if (!contact) throw new NotFoundException('Contact was not found.');
+      const { count } = await tx.partnerPortalUser.deleteMany({
+        where: { id: contactId, partnerId, ...NEVER_ACTIVATED_CONTACT_WHERE },
+      });
+      if (count === 0)
+        throw new AppError('PARTNER_CONTACT_HAS_PORTAL_ACCESS', {
+          message: `${personName(contact)} has activated partner portal access and cannot be removed. Suspend or deactivate the partner to end portal access.`,
+        });
+      await tx.partnerTimeline.create({
+        data: {
+          partnerId,
+          eventType: 'CONTACT_REMOVED',
+          actorType: 'PLATFORM_USER',
+          actorId,
+          message: `Contact ${personName(contact)} was removed.`,
+        },
+      });
+      // In the transaction: a contact is never gone without the row saying who removed it.
+      await this.auditService.log(
+        {
+          tenantId: 'platform',
+          actorUserId: actorId,
+          action: AUDIT_ACTIONS.PARTNER_CONTACT_REMOVED,
+          entityType: 'Partner',
+          entityId: partnerId,
+          // Who and in what state — never the password or invitation hash.
+          beforeSnapshot: {
+            contactId: contact.id,
+            email: contact.email,
+            status: contact.status,
+            pendingInvitation: Boolean(contact.invitationExpiresAt),
+          },
+          afterSnapshot: { removed: true },
+        },
+        tx,
+      );
+    });
+    return { success: true, message: 'Contact removed.' };
+  }
+
   async lifecycleAction(
     id: string,
     actorId: string,
     dto: PartnerLifecycleActionDto,
   ) {
     const partner = await this.get(id);
+    assertPartnerInquiryFor(dto.action, partner.hasInquiry);
     const next = partnerTransition(partner.status, dto.action);
     const accountStatus = accountStatusAfterAction(
       dto.action,

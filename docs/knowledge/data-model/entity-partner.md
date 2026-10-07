@@ -93,7 +93,7 @@ rates must never be settable by a partner-portal caller.
 | Prisma accessor | `prisma.partner` |
 | Owning module | `services/api/src/modules/partner-experience` |
 | Domain | Commercial |
-| Also touched by | `partners`, `contracts`, `super-admin` (reads), `leads` (reads), `platform-runtime` (reads) |
+| Also touched by | `partners`, `contracts`, `super-admin` (reads), `platform-runtime` (reads), `leads` (reads) |
 
 ### Fields
 

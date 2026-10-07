@@ -162,7 +162,9 @@ describe('PartnersService — audit coverage', () => {
           leads: [],
           agreements: [],
           commissions: [],
-          inquiries: [],
+          // An INQUIRY partner came from the public form, so it has its
+          // inquiry: Start review is refused without one (ADR-0026).
+          inquiries: [{ id: 'inquiry-1' }],
           onboardingApplications: [],
           portalUsers: [],
           referralLinks: [],

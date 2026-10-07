@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 460** · automated: 377 · manual: 27 · blocked by infrastructure: 0
+**Scenarios: 462** · automated: 377 · manual: 27 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -302,6 +302,8 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-PLATFORM-050](../../../docs/qa/scenarios/QA-PLATFORM-050-partner-status-changes-only-through-lifecycle-actions-the-se.md) | Partner status changes only through lifecycle actions the server enforces | platform-admin | UNIT | HIGH | PARTIAL | `services/api/src/modules/partners/partner-status-lifecycle.spec.ts` | BUG-3956 | REG-652 |
 | [QA-PLATFORM-051](../../../docs/qa/scenarios/QA-PLATFORM-051-partner-onboarding-invitation-sends-resends-and-fails-safely.md) | Partner onboarding invitation sends, resends and fails safely | platform-admin | INTEGRATION | HIGH | AUTOMATED | `services/api/src/modules/partner-experience/partner-onboarding-invitation.spec.ts` | BUG-3981 | REG-653 |
 | [QA-PLATFORM-052](../../../docs/qa/scenarios/QA-PLATFORM-052-partner-commissions-follow-their-ledger-lifecycle-and-agreem.md) | Partner commissions follow their ledger lifecycle and agreements keep their snapshot | platform-admin | UNIT | MEDIUM | PARTIAL | `services/api/src/modules/partners/partner-commission-lifecycle.spec.ts` | BUG-3982 | REG-654 |
+| [QA-PLATFORM-053](../../../docs/qa/scenarios/QA-PLATFORM-053-console-created-partners-follow-the-agreement-first-path-and.md) | Console-created partners follow the agreement-first path and offer no dead review actions | platform-admin | UNIT | HIGH | PARTIAL | `apps/admin/lib/runtime/command-visibility.spec.ts` | BUG-3995 | REG-655 |
+| [QA-PLATFORM-054](../../../docs/qa/scenarios/QA-PLATFORM-054-never-activated-partner-contacts-can-be-removed-and-do-not-b.md) | Never-activated partner contacts can be removed and do not block partner deletion | platform-admin | UNIT | MEDIUM | PARTIAL | `services/api/src/modules/partners/partner-contact-removal.spec.ts` | BUG-3996 | REG-656 |
 | [QA-PROV-001](../../../docs/qa/scenarios/QA-PROV-001-a-tenant-that-failed-provisioning-can-be-retried.md) | A tenant that failed provisioning can be retried | tenant-provisioning | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/tenant-control-plane/tenant-provisioning-retry.spec.ts` | BUG-0014 | REG-012 |
 | [QA-PROV-002](../../../docs/qa/scenarios/QA-PROV-002-provisioning-is-safe-to-submit-twice.md) | Provisioning is safe to submit twice | tenant-provisioning | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/super-admin/tenant-provisioning-idempotency.spec.ts` | BUG-0022 | REG-030 |
 | [QA-PROV-003](../../../docs/qa/scenarios/QA-PROV-003-issued-tenant-hostnames-honour-the-configured-base-domain.md) | Issued tenant hostnames honour the configured base domain | tenant-provisioning | UNIT | HIGH | AUTOMATED | `services/api/src/common/config/tenant-url.config.spec.ts` | BUG-0017, BUG-0026 | REG-016, REG-027 |
