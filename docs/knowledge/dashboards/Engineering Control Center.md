@@ -17,7 +17,7 @@
 | Open CRITICAL | **8** |
 | Open HIGH | 104 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 10 |
+| Owner decisions pending | 13 |
 | QA coverage gaps | 161 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -30,12 +30,12 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 244 |
-| No next action | 244 |
+| No acceptance criteria | 257 |
+| No next action | 257 |
 | Aging — 7d / 30d / 90d | 240 / 100 / 0 |
 | Architecture and technical debt | 7 |
-| Security gaps | 41 |
-| Database gaps | 25 |
+| Security gaps | 43 |
+| Database gaps | 26 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -123,6 +123,9 @@ Questions where the engineering is understood and the **product answer is**
 - [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] — **No multi-factor authentication exists anywhere, including for platform super admins**
 - [[BUG-3845-admin-security-policies-settings-page-is-a-static-mock-that-|BUG-3845]] — **Admin Security policies settings page is a static mock that saves nothing**
 - [[ITEM-0193-decide-whether-the-hr-role-may-manage-notification-events|ITEM-0193]] — **Decide whether the hr role may manage notification events**
+- [[ITEM-0222-triage-the-monitoring-incident-queue-bulk-resolve-incidents-|ITEM-0222]] — **Triage the monitoring incident queue: bulk-resolve incidents covered by fixed records, and add bulk triage by fingerprint**
+- [[ITEM-0223-decide-which-lifecycle-events-the-platform-must-emit-to-the-|ITEM-0223]] — **Decide which lifecycle events the platform must emit to the Events stream**
+- [[ITEM-0224-decide-whether-business-rule-rejections-should-be-recorded-b|ITEM-0224]] — **Decide whether business-rule rejections should be recorded but not queued as incidents**
 - [[ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins|ITEM-0191]] — **Decide whether custom modules need their own access keys instead of the shared custom-records privilege**
 
 ## QA Coverage Gaps
@@ -298,10 +301,10 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 244 |
-| Blocked | 3 |
-| Deferred | 116 |
-| Awaiting a product decision | 10 |
+| Open total | 257 |
+| Blocked | 4 |
+| Deferred | 124 |
+| Awaiting a product decision | 13 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

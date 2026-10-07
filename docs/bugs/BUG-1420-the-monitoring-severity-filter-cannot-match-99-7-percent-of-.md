@@ -18,7 +18,7 @@ RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-26
-UpdatedAt: 2026-08-29
+UpdatedAt: 2026-10-07
 ResolvedAt: 2026-08-29
 ---
 
@@ -223,6 +223,7 @@ matches nothing and renders "Showing 0 of 0".
 
 - 2026-08-26 — created from qa run at `8d6be21b`.
 - 2026-08-28 — view fix confirmed present; the overview metric still carries the original case-sensitivity defect, recorded as [[BUG-1750]].
+- 2026-10-07 — the production monitoring triage at `94f65fa4` (read-only queries) found the stored values still mixed-case: `warning` 2,161, `WARNING` 27, `ERROR` 25, `error` 17 incidents. The read-side workaround holds; nothing normalises on write and no backfill has run. Filed against this record as a duplicate (triage id MON-17), not as a new one.
 
 ## Verification — 2026-08-29
 

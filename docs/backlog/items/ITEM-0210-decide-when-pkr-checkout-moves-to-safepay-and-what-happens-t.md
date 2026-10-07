@@ -93,6 +93,7 @@ webhook URL in the live dashboard, and verifying one real PKR checkout.
 
 ## Related
 
+- Referenced by — [[BUG-3888]]
 - Modules — [[billing]]
 - QA run — [[2026-09-26-safepay-multi-provider-billing-562dee9]]
 

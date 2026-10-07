@@ -261,7 +261,10 @@ function RuntimeRecordEditor({
            * name it here fails there instead of in somebody's browser.
            */
           (moduleKey === "plans" &&
-            ["pricing", "entitlements"].includes(tab.key)));
+            ["pricing", "entitlements"].includes(tab.key)) ||
+          // A direct lead hides every referral field, so the reassignment
+          // panel is the only content the Partner tab is guaranteed to have.
+          (moduleKey === "leads" && tab.key === "partner"));
       return hasFields || hasRelationship || hasTimeline || hasRuntimePanel;
     });
     return { ...baseFormDefinition, tabs };
@@ -509,7 +512,8 @@ function RuntimeRecordEditor({
      * empty-tab message that would have shown the tab was dead.
      */
     (moduleKey === "plans" &&
-      ["overview", "pricing", "entitlements"].includes(activeTab));
+      ["overview", "pricing", "entitlements"].includes(activeTab)) ||
+    (moduleKey === "leads" && activeTab === "partner");
 
   const planPrices = useMemo(
     () =>
@@ -640,9 +644,6 @@ function RuntimeRecordEditor({
           onComplete={reloadRecord}
         />
       ) : null}
-      {moduleKey === "leads" && !isCreate ? (
-        <LeadAttributionPanel record={form.values} onComplete={reloadRecord} />
-      ) : null}
       {moduleKey === "contracts" && !isCreate && activeTab === "versions" ? (
         <ContractVersionHistory
           record={form.values}
@@ -674,6 +675,14 @@ function RuntimeRecordEditor({
           locked={isAgreementLocked(String(form.values.status ?? ""))}
           onComplete={reloadRecord}
         />
+      ) : null}
+      {/*
+       * Inside the Partner tab, after the referral facts it acts on. It used to
+       * mount before RuntimeForm with no tab gate, so it sat between the command
+       * bar and the tab strip on every tab.
+       */}
+      {moduleKey === "leads" && !isCreate && activeTab === "partner" ? (
+        <LeadAttributionPanel record={form.values} onComplete={reloadRecord} />
       ) : null}
       {!isCreate &&
       formDefinition.tabs?.length &&

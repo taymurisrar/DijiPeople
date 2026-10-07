@@ -9,10 +9,10 @@
 |---|---|
 | Open CRITICAL | **8** |
 | Open HIGH | **104** |
-| Open total | 244 |
-| Blocked | 3 |
-| Awaiting a product decision | 10 |
-| Deferred | 116 |
+| Open total | 257 |
+| Blocked | 4 |
+| Awaiting a product decision | 13 |
+| Deferred | 124 |
 | Completed | 354 |
 | Awaiting Architect triage | 0 |
 
@@ -151,12 +151,16 @@
 | [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] | No multi-factor authentication exists anywhere, including for platform super admins | SECURITY | HIGH | PRODUCT_DECISION | api:auth | PRODUCT_DECISION |
 | [[BUG-3845-admin-security-policies-settings-page-is-a-static-mock-that-|BUG-3845]] | Admin Security policies settings page is a static mock that saves nothing | BUG | MEDIUM | PRODUCT_DECISION | apps/admin | PRODUCT_DECISION |
 | [[ITEM-0193-decide-whether-the-hr-role-may-manage-notification-events|ITEM-0193]] | Decide whether the hr role may manage notification events | PRODUCT_DECISION | — | PRODUCT_DECISION | notifications, permissions | PRODUCT_DECISION |
+| [[ITEM-0222-triage-the-monitoring-incident-queue-bulk-resolve-incidents-|ITEM-0222]] | Triage the monitoring incident queue: bulk-resolve incidents covered by fixed records, and add bulk triage by fingerprint | FOLLOW_UP | — | PRODUCT_DECISION | platform-monitoring | PRODUCT_DECISION |
+| [[ITEM-0223-decide-which-lifecycle-events-the-platform-must-emit-to-the-|ITEM-0223]] | Decide which lifecycle events the platform must emit to the Events stream | PRODUCT_DECISION | — | PRODUCT_DECISION | platform-events | PRODUCT_DECISION |
+| [[ITEM-0224-decide-whether-business-rule-rejections-should-be-recorded-b|ITEM-0224]] | Decide whether business-rule rejections should be recorded but not queued as incidents | PRODUCT_DECISION | — | PRODUCT_DECISION | error-logs | PRODUCT_DECISION |
 | [[ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins|ITEM-0191]] | Decide whether custom modules need their own access keys instead of the shared custom-records privilege | PRODUCT_DECISION | — | PRODUCT_DECISION | data, permissions | PRODUCT_DECISION |
 
 ## Blocked Items
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
+| [[BUG-3888-safepay-webhooks-fail-because-safepay-webhook-secret-is-not-|BUG-3888]] | Safepay webhooks fail because SAFEPAY_WEBHOOK_SECRET is not configured in production | INTEGRATION | HIGH | BLOCKED | billing | BLOCKED_EXTERNAL |
 | [[ITEM-0209-confirm-the-safepay-refund-request-body-and-webhook-signing-|ITEM-0209]] | Confirm the Safepay refund request body and webhook signing input against a live sandbox run | TEST_GAP | HIGH | BLOCKED | api:billing | BLOCKED_EXTERNAL |
 | [[ITEM-0048-replace-or-contain-active-win-and-the-xlsx-export-path|ITEM-0048]] | Replace or contain active-win and the xlsx export path | SECURITY | HIGH | BLOCKED | apps/agent-desktop, services/api/src/common/excel, package-lock.json | BLOCKED_EXTERNAL |
 | [[BUG-0084-seven-unique-constraints-in-schema-prisma-are-absent-from-th|BUG-0084]] | Seven unique constraints in schema.prisma are absent from the migration chain | DATA_INTEGRITY | MEDIUM | BLOCKED | contracts, partner-experience, support-cases, approvals, tenant-settings | BLOCKED_EXTERNAL |
@@ -585,6 +589,7 @@
 | [[BUG-3586-the-monitoring-health-headline-reads-unknown-when-no-email-h|BUG-3586]] | The monitoring health headline reads Unknown when no email has been sent | BUG | LOW | FIXED | api:platform-monitoring | DONE |
 | [[BUG-3599-generating-an-agreement-in-an-unsupported-format-returns-a-5|BUG-3599]] | Generating an agreement in an unsupported format returns a 500 instead of a 400 | BUG | LOW | FIXED | api:contracts | DONE |
 | [[BUG-3668-saving-agreement-document-fields-skips-the-shared-immutabili|BUG-3668]] | Saving agreement document fields skips the shared immutability check | BUG | LOW | FIXED | api:contracts | DONE |
+| [[BUG-3916-lead-partner-attribution-renders-above-the-record-tabs-on-ev|BUG-3916]] | Lead Partner attribution renders above the record tabs on every tab instead of in a tab | UX | LOW | FIXED | apps/admin, leads | FIX_NOW |
 
 ## Recent QA Runs
 
@@ -725,6 +730,13 @@
 | [[BUG-3800-three-entity-lookups-refuse-the-page-size-and-search-the-for|BUG-3800]] | Three entity lookups refuse the page size and search the form sends | BUG | MEDIUM | FIXED | organization, payroll | FIX_NOW |
 | [[BUG-3830-claims-has-no-sidebar-entry-so-its-screens-are-reachable-onl|BUG-3830]] | Claims has no sidebar entry, so its screens are reachable only by URL | UX | MEDIUM | FIXED | claims | FIX_NOW |
 | [[BUG-3844-two-factor-authentication-cannot-be-found-in-the-tenant-web-|BUG-3844]] | Two-factor authentication cannot be found in the tenant web app or the platform admin app | UX | MEDIUM | FIXED | apps/web, apps/admin, auth | FIX_NOW |
+| [[BUG-3889-the-incident-fingerprint-includes-the-query-string-so-cache-|BUG-3889]] | The incident fingerprint includes the query string, so cache-busting parameters open a new incident per request | BUG | MEDIUM | OPEN | error-logs | FIX_NOW |
+| [[BUG-3890-the-incident-drawer-s-diagnostics-download-calls-the-tenant-|BUG-3890]] | The incident drawer's Diagnostics download calls the tenant endpoint and 404s for platform admins | BUG | MEDIUM | OPEN | platform-monitoring | FIX_NOW |
+| [[BUG-3891-the-desktop-agent-s-first-update-check-runs-before-the-sessi|BUG-3891]] | The desktop agent's first update check runs before the session is restored, so it 401s on every launch | INTEGRATION | MEDIUM | OPEN | agent-desktop | FIX_NOW |
+| [[BUG-3892-admin-route-handler-token-refresh-may-discard-the-rotated-to|BUG-3892]] | Admin route-handler token refresh may discard the rotated tokens, leaving a revoked refresh token in the cookie | AUTHORIZATION | MEDIUM | OPEN | apps/admin | PLAN_REQUIRED |
+| [[BUG-3893-a-generated-contract-pdf-was-missing-from-storage-when-downl|BUG-3893]] | A generated contract PDF was missing from storage when downloaded, suggesting non-durable file storage | DATA_INTEGRITY | MEDIUM | OPEN | contracts | PLAN_REQUIRED |
+| [[BUG-3894-the-tenant-error-boundary-shows-the-react-digest-as-the-erro|BUG-3894]] | The tenant error boundary shows the React digest as the error reference, which support cannot find and Download log 404s on | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
+| [[BUG-3897-public-signature-link-tokens-are-stored-verbatim-in-errorlog|BUG-3897]] | Public signature-link tokens are stored verbatim in ErrorLog.path and readable by monitoring.read holders | SECURITY | MEDIUM | OPEN | error-logs | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -761,7 +773,13 @@
 | [[BUG-3586-the-monitoring-health-headline-reads-unknown-when-no-email-h|BUG-3586]] | The monitoring health headline reads Unknown when no email has been sent | BUG | LOW | FIXED | api:platform-monitoring | DONE |
 | [[BUG-3599-generating-an-agreement-in-an-unsupported-format-returns-a-5|BUG-3599]] | Generating an agreement in an unsupported format returns a 500 instead of a 400 | BUG | LOW | FIXED | api:contracts | DONE |
 | [[BUG-3668-saving-agreement-document-fields-skips-the-shared-immutabili|BUG-3668]] | Saving agreement document fields skips the shared immutability check | BUG | LOW | FIXED | api:contracts | DONE |
+| [[BUG-3895-the-admin-notification-bell-keeps-polling-every-five-minutes|BUG-3895]] | The admin notification bell keeps polling every five minutes after sign-out | BUG | LOW | OPEN | apps/admin | FIX_NOW |
+| [[BUG-3896-unmatched-route-404s-are-categorised-database-record-not-fou|BUG-3896]] | Unmatched-route 404s are categorised DATABASE_RECORD_NOT_FOUND in the incident queue | BUG | LOW | OPEN | error-logs | FIX_NOW |
+| [[BUG-3898-platform-health-tile-drill-downs-land-on-panels-that-do-not-|BUG-3898]] | Platform health tile drill-downs land on panels that do not show the signal the tile measures | UX | LOW | OPEN | platform-monitoring | FIX_NOW |
+| [[BUG-3899-the-monitoring-integrations-tab-is-static-and-its-platform-e|BUG-3899]] | The monitoring Integrations tab is static and its platform email badge is hard-coded | UX | LOW | OPEN | platform-monitoring | FIX_NOW |
+| [[BUG-3916-lead-partner-attribution-renders-above-the-record-tabs-on-ev|BUG-3916]] | Lead Partner attribution renders above the record tabs on every tab instead of in a tab | UX | LOW | FIXED | apps/admin, leads | FIX_NOW |
 | [[ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by|ITEM-0080]] | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
+| [[ITEM-0225-re-verify-historical-frontend-dto-contract-drift-400s-agains|ITEM-0225]] | Re-verify historical frontend/DTO contract-drift 400s against current DTOs before resolving them | FOLLOW_UP | — | READY | error-logs | PLAN_REQUIRED |
 
 ## Key Architecture Decisions
 
@@ -799,8 +817,8 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 506 |
-| Backlog items | 221 |
+| Bug records | 527 |
+| Backlog items | 225 |
 | Known bug patterns | 35 |
 | QA runs | 38 |
 | Engineering history records | 95 |

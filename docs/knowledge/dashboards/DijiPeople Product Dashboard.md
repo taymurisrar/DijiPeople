@@ -81,6 +81,9 @@ Questions where the engineering is understood and the **product answer**
 - [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] — **No multi-factor authentication exists anywhere, including for platform super admins** (HIGH)
 - [[BUG-3845-admin-security-policies-settings-page-is-a-static-mock-that-|BUG-3845]] — **Admin Security policies settings page is a static mock that saves nothing** (MEDIUM)
 - [[ITEM-0193-decide-whether-the-hr-role-may-manage-notification-events|ITEM-0193]] — **Decide whether the hr role may manage notification events** (unrated)
+- [[ITEM-0222-triage-the-monitoring-incident-queue-bulk-resolve-incidents-|ITEM-0222]] — **Triage the monitoring incident queue: bulk-resolve incidents covered by fixed records, and add bulk triage by fingerprint** (unrated)
+- [[ITEM-0223-decide-which-lifecycle-events-the-platform-must-emit-to-the-|ITEM-0223]] — **Decide which lifecycle events the platform must emit to the Events stream** (unrated)
+- [[ITEM-0224-decide-whether-business-rule-rejections-should-be-recorded-b|ITEM-0224]] — **Decide whether business-rule rejections should be recorded but not queued as incidents** (unrated)
 - [[ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins|ITEM-0191]] — **Decide whether custom modules need their own access keys instead of the shared custom-records privilege** (unrated)
 
 ## Recent Product Changes
@@ -163,6 +166,8 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-3699-deleting-a-field-form-or-view-ignored-references-held-in-oth|BUG-3699]] | Deleting a field, form or view ignored references held in other packages' layers | DATA_INTEGRITY | MEDIUM | FIXED | customization | DONE |
 | [[BUG-3830-claims-has-no-sidebar-entry-so-its-screens-are-reachable-onl|BUG-3830]] | Claims has no sidebar entry, so its screens are reachable only by URL | UX | MEDIUM | FIXED | claims | FIX_NOW |
 | [[BUG-3844-two-factor-authentication-cannot-be-found-in-the-tenant-web-|BUG-3844]] | Two-factor authentication cannot be found in the tenant web app or the platform admin app | UX | MEDIUM | FIXED | apps/web, apps/admin, auth | FIX_NOW |
+| [[BUG-3893-a-generated-contract-pdf-was-missing-from-storage-when-downl|BUG-3893]] | A generated contract PDF was missing from storage when downloaded, suggesting non-durable file storage | DATA_INTEGRITY | MEDIUM | OPEN | contracts | PLAN_REQUIRED |
+| [[BUG-3894-the-tenant-error-boundary-shows-the-react-digest-as-the-erro|BUG-3894]] | The tenant error boundary shows the React digest as the error reference, which support cannot find and Download log 404s on | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
 | [[BUG-1964-record-headings-and-dialog-titles-are-singularised-by-stripp|BUG-1964]] | Record headings and dialog titles are singularised by stripping a trailing s | UX | LOW | FIXED | apps/web | DONE |
 | [[BUG-2010-the-dashboard-recent-changes-list-renders-unformatted-iso-86|BUG-2010]] | The dashboard Recent changes list renders unformatted ISO-8601 timestamps | UX | LOW | FIXED | apps/web | DONE |
 | [[BUG-2017-the-inbox-related-record-column-renders-a-bare-uuid-with-no-|BUG-2017]] | The inbox Related record column renders a bare UUID with no label and no link | UX | LOW | FIXED | apps/web | DONE |
@@ -175,6 +180,9 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-3546-tenant-record-edit-leaves-the-operator-on-a-tab-with-nothing|BUG-3546]] | Tenant record Edit leaves the operator on a tab with nothing editable | UX | LOW | FIXED | apps/admin | DONE |
 | [[BUG-3554-the-typed-signature-style-selector-is-cosmetic-the-chosen-st|BUG-3554]] | The typed-signature style selector is cosmetic: the chosen style never reaches the signed document | UX | LOW | FIXED | apps/landing, api:contracts | DONE |
 | [[BUG-3583-counterparty-placeholders-are-grouped-under-customer|BUG-3583]] | Counterparty placeholders are grouped under Customer | UX | LOW | FIXED | api:contracts | DONE |
+| [[BUG-3898-platform-health-tile-drill-downs-land-on-panels-that-do-not-|BUG-3898]] | Platform health tile drill-downs land on panels that do not show the signal the tile measures | UX | LOW | OPEN | platform-monitoring | FIX_NOW |
+| [[BUG-3899-the-monitoring-integrations-tab-is-static-and-its-platform-e|BUG-3899]] | The monitoring Integrations tab is static and its platform email badge is hard-coded | UX | LOW | OPEN | platform-monitoring | FIX_NOW |
+| [[BUG-3916-lead-partner-attribution-renders-above-the-record-tabs-on-ev|BUG-3916]] | Lead Partner attribution renders above the record tabs on every tab instead of in a tab | UX | LOW | FIXED | apps/admin, leads | FIX_NOW |
 
 ## How to read this
 

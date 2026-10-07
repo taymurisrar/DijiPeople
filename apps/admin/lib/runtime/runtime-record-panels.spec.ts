@@ -123,4 +123,25 @@ describe("runtime record page panels are reachable", () => {
     expect(detail.tabs?.map((tab) => tab.key)).toContain("pricing");
     expect(allowance).toContain("pricing");
   });
+
+  it("puts lead Partner attribution in its own tab, not above the tab strip", () => {
+    /*
+     * The reassignment panel used to mount before RuntimeForm with no tab gate,
+     * so it rendered between the command bar and the tabs on every lead tab.
+     * It now lives on a Partner tab beside the referral facts it acts on.
+     */
+    const definition = getPlatformModuleDefinition("leads");
+    const detail = definition.forms.find((form) => form.key === "detail")!;
+    expect(detail.tabs?.map((tab) => tab.key)).toContain("partner");
+    expect(
+      detail.fields.find((field) => field.key === "partnerId")?.tab,
+    ).toBe("partner");
+    expect(allowance).toContain("partner");
+
+    // Line endings normalised: CRLF locally, LF on CI.
+    const page = readFileSync(RECORD_PAGE, "utf8").replace(/\r\n/g, "\n");
+    const mounts = page.match(/[^\n]*\n\s*<LeadAttributionPanel\b/g) ?? [];
+    expect(mounts).toHaveLength(1);
+    expect(mounts[0]).toContain('activeTab === "partner"');
+  });
 });

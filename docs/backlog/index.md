@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**727 records** — 506 bugs under [`docs/bugs/`](../bugs/), 221 non-bug items under [`items/`](items/).
+**752 records** — 527 bugs under [`docs/bugs/`](../bugs/), 225 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,10 +13,10 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 244 |
-| Blocked | 3 |
-| Deferred | 116 |
-| Awaiting a product decision | 10 |
+| Open (active work) | 257 |
+| Blocked | 4 |
+| Deferred | 124 |
+| Awaiting a product decision | 13 |
 | Completed / closed | 354 |
 | **Open CRITICAL** | **8** |
 | **Open HIGH** | **104** |
@@ -28,44 +28,44 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 8 |
 | HIGH | 104 |
-| MEDIUM | 110 |
-| LOW | 22 |
+| MEDIUM | 117 |
+| LOW | 27 |
 
 ## Open by type
 
 | Type | Count |
 |---|---|
-| AUTHORIZATION | 14 |
-| BUG | 74 |
+| AUTHORIZATION | 15 |
+| BUG | 78 |
 | DATABASE | 1 |
-| DATA_INTEGRITY | 24 |
+| DATA_INTEGRITY | 25 |
 | DOCUMENTATION | 1 |
-| FOLLOW_UP | 3 |
+| FOLLOW_UP | 4 |
 | INFRA | 7 |
-| INTEGRATION | 5 |
+| INTEGRATION | 6 |
 | PERFORMANCE | 15 |
 | PRODUCT_DECISION | 2 |
-| SECURITY | 24 |
+| SECURITY | 25 |
 | STATE_MACHINE | 4 |
 | TECH_DEBT | 7 |
 | TENANT_ISOLATION | 3 |
 | TEST_GAP | 9 |
-| UX | 51 |
+| UX | 55 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 45 |
+| OPEN | 56 |
 | IN_PROGRESS | 1 |
-| BLOCKED | 3 |
-| DEFERRED | 116 |
-| PRODUCT_DECISION | 10 |
-| FIXED | 176 |
+| BLOCKED | 4 |
+| DEFERRED | 124 |
+| PRODUCT_DECISION | 13 |
+| FIXED | 177 |
 | VERIFIED | 218 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
-| READY | 22 |
+| READY | 23 |
 | DONE | 122 |
 
 ## All records
@@ -313,6 +313,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3702](../../docs/bugs/BUG-3702-adding-a-field-to-a-package-s-own-custom-module-demoted-the-.md) | Adding a field to a package's own custom module demoted the module to a reference | DATA_INTEGRITY | HIGH | P1 | FIXED | customization | DONE |
 | [BUG-3809](../../docs/bugs/BUG-3809-a-tenant-admin-can-create-document-types-and-categories-ever.md) | A tenant admin can create document types and categories every tenant sees | TENANT_ISOLATION | HIGH | P1 | FIXED | documents | FIX_NOW |
 | [BUG-3843](../../docs/bugs/BUG-3843-customization-hides-packages-modules-sidebar-designer-and-pu.md) | Customization hides Packages, Modules, Sidebar Designer and Publish Center behind a role gate ADR-0013 removed | AUTHORIZATION | HIGH | P1 | FIXED | apps/web, customization | FIX_NOW |
+| [BUG-3888](../../docs/bugs/BUG-3888-safepay-webhooks-fail-because-safepay-webhook-secret-is-not-.md) | Safepay webhooks fail because SAFEPAY_WEBHOOK_SECRET is not configured in production | INTEGRATION | HIGH | P1 | BLOCKED | billing | BLOCKED_EXTERNAL |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -564,6 +565,13 @@ see [`README.md`](README.md) for why.
 | [BUG-3830](../../docs/bugs/BUG-3830-claims-has-no-sidebar-entry-so-its-screens-are-reachable-onl.md) | Claims has no sidebar entry, so its screens are reachable only by URL | UX | MEDIUM | P2 | FIXED | claims | FIX_NOW |
 | [BUG-3844](../../docs/bugs/BUG-3844-two-factor-authentication-cannot-be-found-in-the-tenant-web-.md) | Two-factor authentication cannot be found in the tenant web app or the platform admin app | UX | MEDIUM | P2 | FIXED | apps/web, apps/admin, auth | FIX_NOW |
 | [BUG-3845](../../docs/bugs/BUG-3845-admin-security-policies-settings-page-is-a-static-mock-that-.md) | Admin Security policies settings page is a static mock that saves nothing | BUG | MEDIUM | P2 | PRODUCT_DECISION | apps/admin | PRODUCT_DECISION |
+| [BUG-3889](../../docs/bugs/BUG-3889-the-incident-fingerprint-includes-the-query-string-so-cache-.md) | The incident fingerprint includes the query string, so cache-busting parameters open a new incident per request | BUG | MEDIUM | P2 | OPEN | error-logs | FIX_NOW |
+| [BUG-3890](../../docs/bugs/BUG-3890-the-incident-drawer-s-diagnostics-download-calls-the-tenant-.md) | The incident drawer's Diagnostics download calls the tenant endpoint and 404s for platform admins | BUG | MEDIUM | P2 | OPEN | platform-monitoring | FIX_NOW |
+| [BUG-3891](../../docs/bugs/BUG-3891-the-desktop-agent-s-first-update-check-runs-before-the-sessi.md) | The desktop agent's first update check runs before the session is restored, so it 401s on every launch | INTEGRATION | MEDIUM | P2 | OPEN | agent-desktop | FIX_NOW |
+| [BUG-3892](../../docs/bugs/BUG-3892-admin-route-handler-token-refresh-may-discard-the-rotated-to.md) | Admin route-handler token refresh may discard the rotated tokens, leaving a revoked refresh token in the cookie | AUTHORIZATION | MEDIUM | P2 | OPEN | apps/admin | PLAN_REQUIRED |
+| [BUG-3893](../../docs/bugs/BUG-3893-a-generated-contract-pdf-was-missing-from-storage-when-downl.md) | A generated contract PDF was missing from storage when downloaded, suggesting non-durable file storage | DATA_INTEGRITY | MEDIUM | P2 | OPEN | contracts | PLAN_REQUIRED |
+| [BUG-3894](../../docs/bugs/BUG-3894-the-tenant-error-boundary-shows-the-react-digest-as-the-erro.md) | The tenant error boundary shows the React digest as the error reference, which support cannot find and Download log 404s on | UX | MEDIUM | P2 | OPEN | apps/web | FIX_NOW |
+| [BUG-3897](../../docs/bugs/BUG-3897-public-signature-link-tokens-are-stored-verbatim-in-errorlog.md) | Public signature-link tokens are stored verbatim in ErrorLog.path and readable by monitoring.read holders | SECURITY | MEDIUM | P2 | OPEN | error-logs | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -722,6 +730,19 @@ see [`README.md`](README.md) for why.
 | [BUG-3700](../../docs/bugs/BUG-3700-any-signed-in-user-can-read-the-full-published-customization.md) | Any signed-in user can read the full published customization snapshot | AUTHORIZATION | LOW | P3 | DEFERRED | customization | DEFER |
 | [BUG-3701](../../docs/bugs/BUG-3701-platform-scope-customization-packages-are-not-unique-by-key.md) | Platform-scope customization packages are not unique by key | DATABASE | LOW | P3 | DEFERRED | customization | DEFER |
 | [BUG-3705](../../docs/bugs/BUG-3705-package-sub-page-breadcrumbs-end-in-a-second-packages-instea.md) | Package sub-page breadcrumbs end in a second Packages instead of the page | UX | LOW | P3 | DEFERRED | apps/web | DEFER |
+| [BUG-3895](../../docs/bugs/BUG-3895-the-admin-notification-bell-keeps-polling-every-five-minutes.md) | The admin notification bell keeps polling every five minutes after sign-out | BUG | LOW | P3 | OPEN | apps/admin | FIX_NOW |
+| [BUG-3896](../../docs/bugs/BUG-3896-unmatched-route-404s-are-categorised-database-record-not-fou.md) | Unmatched-route 404s are categorised DATABASE_RECORD_NOT_FOUND in the incident queue | BUG | LOW | P3 | OPEN | error-logs | FIX_NOW |
+| [BUG-3898](../../docs/bugs/BUG-3898-platform-health-tile-drill-downs-land-on-panels-that-do-not-.md) | Platform health tile drill-downs land on panels that do not show the signal the tile measures | UX | LOW | P3 | OPEN | platform-monitoring | FIX_NOW |
+| [BUG-3899](../../docs/bugs/BUG-3899-the-monitoring-integrations-tab-is-static-and-its-platform-e.md) | The monitoring Integrations tab is static and its platform email badge is hard-coded | UX | LOW | P3 | OPEN | platform-monitoring | FIX_NOW |
+| [BUG-3900](../../docs/bugs/BUG-3900-handled-business-errors-from-client-actions-are-reported-as-.md) | Handled business errors from client actions are reported as SYSTEM_UNEXPECTED_ERROR 500 | BUG | LOW | P3 | DEFERRED | apps/web | DEFER |
+| [BUG-3901](../../docs/bugs/BUG-3901-the-generic-exception-filter-maps-any-connection-or-timeout-.md) | The generic exception filter maps any connection or timeout message to DATABASE_TIMEOUT | BUG | LOW | P3 | DEFERRED | error-logs | DEFER |
+| [BUG-3902](../../docs/bugs/BUG-3902-a-wrong-password-401-is-queued-as-a-new-incident.md) | A wrong-password 401 is queued as a NEW incident | BUG | LOW | P3 | DEFERRED | auth | DEFER |
+| [BUG-3903](../../docs/bugs/BUG-3903-something-probes-api-health-ready-which-does-not-exist.md) | Something probes /api/health/ready, which does not exist | INFRA | LOW | P3 | DEFERRED | platform-monitoring | DEFER |
+| [BUG-3904](../../docs/bugs/BUG-3904-public-tenant-logo-404s-and-reserved-slug-400s-are-queued-as.md) | Public tenant logo 404s and reserved-slug 400s are queued as NEW incidents | BUG | LOW | P3 | DEFERRED | tenants | DEFER |
+| [BUG-3905](../../docs/bugs/BUG-3905-tenant-erasure-failed-on-a-reference-from-a-record-outside-t.md) | Tenant erasure failed on a reference from a record outside the tenant | STATE_MACHINE | LOW | P3 | DEFERRED | tenants | DEFER |
+| [BUG-3906](../../docs/bugs/BUG-3906-the-payslips-screen-was-offered-while-the-tenant-was-not-ent.md) | The Payslips screen was offered while the tenant was not entitled to it | AUTHORIZATION | LOW | P3 | DEFERRED | payslips | DEFER |
+| [BUG-3907](../../docs/bugs/BUG-3907-the-monitoring-overview-fails-as-a-whole-when-any-one-of-its.md) | The monitoring overview fails as a whole when any one of its three endpoints fails | UX | LOW | P3 | DEFERRED | platform-monitoring | DEFER |
+| [BUG-3916](../../docs/bugs/BUG-3916-lead-partner-attribution-renders-above-the-record-tabs-on-ev.md) | Lead Partner attribution renders above the record tabs on every tab instead of in a tab | UX | LOW | P3 | FIXED | apps/admin, leads | FIX_NOW |
 | [ITEM-0007](../../docs/backlog/items/ITEM-0007-should-duplicate-website-leads-be-deduplicated.md) | Product decision — should duplicate website leads be deduplicated? | PRODUCT_DECISION | LOW | P3 | DONE | api:leads, apps/landing | DONE |
 | [ITEM-0008](../../docs/backlog/items/ITEM-0008-customeraccount-has-no-origin-channel.md) | Product decision — CustomerAccount carries no origin channel | PRODUCT_DECISION | LOW | P3 | DONE | services/api/prisma, api:super-admin | DONE |
 | [ITEM-0011](../../docs/backlog/items/ITEM-0011-framework-validation-should-catch-absence-claims.md) | Framework validation should catch false absence claims in context documents | TECH_DEBT | LOW | P3 | DONE | .agent/context, scripts | DONE |
@@ -793,6 +814,10 @@ see [`README.md`](README.md) for why.
 | [ITEM-0219](../../docs/backlog/items/ITEM-0219-package-cli-and-a-ci-pipeline-step-for-validate-export-and-i.md) | Package CLI and a CI pipeline step for validate, export and import | FOLLOW_UP | — | P2 | DEFERRED | customization | DEFER |
 | [ITEM-0220](../../docs/backlog/items/ITEM-0220-publisher-signing-for-customization-package-artifacts.md) | Publisher signing for customization package artifacts | SECURITY | — | P2 | DEFERRED | customization | DEFER |
 | [ITEM-0221](../../docs/backlog/items/ITEM-0221-custom-fields-on-employees-lookup-fields-list-view-columns-a.md) | Custom fields on Employees: lookup fields, list-view columns and export; other system modules | FOLLOW_UP | — | P2 | DONE | customization, employees | DONE |
+| [ITEM-0222](../../docs/backlog/items/ITEM-0222-triage-the-monitoring-incident-queue-bulk-resolve-incidents-.md) | Triage the monitoring incident queue: bulk-resolve incidents covered by fixed records, and add bulk triage by fingerprint | FOLLOW_UP | — | P2 | PRODUCT_DECISION | platform-monitoring | PRODUCT_DECISION |
+| [ITEM-0223](../../docs/backlog/items/ITEM-0223-decide-which-lifecycle-events-the-platform-must-emit-to-the-.md) | Decide which lifecycle events the platform must emit to the Events stream | PRODUCT_DECISION | — | P2 | PRODUCT_DECISION | platform-events | PRODUCT_DECISION |
+| [ITEM-0224](../../docs/backlog/items/ITEM-0224-decide-whether-business-rule-rejections-should-be-recorded-b.md) | Decide whether business-rule rejections should be recorded but not queued as incidents | PRODUCT_DECISION | — | P2 | PRODUCT_DECISION | error-logs | PRODUCT_DECISION |
+| [ITEM-0225](../../docs/backlog/items/ITEM-0225-re-verify-historical-frontend-dto-contract-drift-400s-agains.md) | Re-verify historical frontend/DTO contract-drift 400s against current DTOs before resolving them | FOLLOW_UP | — | P2 | READY | error-logs | PLAN_REQUIRED |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |
 | [ITEM-0114](../../docs/backlog/items/ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-.md) | The workspace shell states the tenant's identity four times and its purpose twice | UX | — | P3 | DONE | views, apps/web | DONE |
