@@ -483,6 +483,30 @@ export type RuntimeActionResult<T = unknown> = {
   errors?: Array<{ field?: string; message: string }>;
 };
 
+/**
+ * What deleting a record would do, relation by relation — the answer of
+ * `GET /platform-runtime/:moduleKey/:id/dependencies` (EXECPLAN-0055 D5).
+ *
+ * BLOCKS and RETAIN with a count stop the delete; CASCADE rows go with the
+ * record; DETACH rows survive with their reference cleared.
+ */
+export type RecordDependencyPolicy = "BLOCKS" | "CASCADE" | "DETACH" | "RETAIN";
+
+export type RecordDependency = {
+  key: string;
+  label: string;
+  count: number;
+  policy: RecordDependencyPolicy;
+  reason: string;
+  /** Admin route to the related records, when one exists. */
+  href: string | null;
+};
+
+export type RecordDependencyReport = {
+  canDelete: boolean;
+  dependencies: RecordDependency[];
+};
+
 export interface ModuleRuntimeAdapter<T extends RuntimeRecord = RuntimeRecord> {
   getModuleDefinition(): Promise<PlatformModuleDefinition>;
   getViews(): Promise<RuntimeViewDefinition[]>;
@@ -499,6 +523,12 @@ export interface ModuleRuntimeAdapter<T extends RuntimeRecord = RuntimeRecord> {
   ): Promise<RuntimeRecordResponse<T>>;
   deleteRecord(id: string): Promise<RuntimeActionResult>;
   bulkDelete(ids: string[]): Promise<RuntimeActionResult>;
+  /**
+   * What deleting the record would do. Resolves `null` for a module the API
+   * has no dependency provider for (404), so callers fall back to the plain
+   * confirmation rather than failing the delete.
+   */
+  getDependencies?(id: string): Promise<RecordDependencyReport | null>;
   assign(id: string, ownerId: string | null): Promise<RuntimeActionResult>;
   bulkAssign(
     ids: string[],

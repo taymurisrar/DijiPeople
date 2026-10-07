@@ -64,6 +64,7 @@ import { runtimeViewWhere } from './runtime-view-where';
 import { PlatformRuntimeRelationsService } from './platform-runtime-relations.service';
 import { TenantControlPlaneService } from '../tenant-control-plane/tenant-control-plane.service';
 import { toDisplayString } from '../../common/utils/display-string';
+import type { RecordDependencyProvider } from '../../common/deletion/record-dependencies';
 
 @Injectable()
 export class PlatformRuntimeService {
@@ -639,6 +640,46 @@ export class PlatformRuntimeService {
 
   async remove(user: AuthenticatedUser, moduleKey: string, id: string) {
     return this.deleteRecords(user, this.key(moduleKey), [id]);
+  }
+
+  /**
+   * What deleting this record would do, before anybody confirms it
+   * (`GET :moduleKey/:id/dependencies`, EXECPLAN-0055 D5).
+   *
+   * Exactly the checks the delete itself makes — module write and platform
+   * administrator — because the answer describes the delete: somebody who may
+   * not delete the record has no use for its dependency map, and partner
+   * attribution is not something to enumerate for every reader.
+   *
+   * A module with no provider answers 404, and the console falls back to its
+   * plain confirmation for it. That is not a refusal to delete: whether a
+   * module permits deletion at all is still decided by `deleteRecords`.
+   */
+  async dependencies(user: AuthenticatedUser, moduleKey: string, id: string) {
+    const key = this.key(moduleKey);
+    this.assertModuleWrite(user, key);
+    this.assertAdmin(user);
+    const provider = this.dependencyProviders()[key];
+    if (!provider)
+      throw new NotFoundException(
+        'A dependency check is not available for this module.',
+      );
+    return result(await provider.describeDependencies(id));
+  }
+
+  /**
+   * The modules that implement the dependency contract.
+   *
+   * One entry per module, keyed like every other runtime switch. Partners are
+   * first; a module joins by implementing `RecordDependencyProvider` in its own
+   * deletion service and appearing here — and its delete path should then read
+   * the same rules inside its transaction, as `PartnerDeletionService` does, or
+   * the dialog and the delete will disagree.
+   */
+  private dependencyProviders(): Partial<
+    Record<PlatformRuntimeModuleKey, RecordDependencyProvider>
+  > {
+    return { partners: this.partnerDeletion };
   }
 
   async execute(

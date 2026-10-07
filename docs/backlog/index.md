@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**753 records** — 528 bugs under [`docs/bugs/`](../bugs/), 225 non-bug items under [`items/`](items/).
+**755 records** — 529 bugs under [`docs/bugs/`](../bugs/), 226 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 258 |
+| Open (active work) | 260 |
 | Blocked | 4 |
 | Deferred | 124 |
 | Awaiting a product decision | 13 |
 | Completed / closed | 354 |
 | **Open CRITICAL** | **8** |
-| **Open HIGH** | **105** |
+| **Open HIGH** | **106** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,8 +27,8 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 8 |
-| HIGH | 105 |
-| MEDIUM | 117 |
+| HIGH | 106 |
+| MEDIUM | 118 |
 | LOW | 27 |
 
 ## Open by type
@@ -38,7 +38,7 @@ see [`README.md`](README.md) for why.
 | AUTHORIZATION | 15 |
 | BUG | 79 |
 | DATABASE | 1 |
-| DATA_INTEGRITY | 25 |
+| DATA_INTEGRITY | 26 |
 | DOCUMENTATION | 1 |
 | FOLLOW_UP | 4 |
 | INFRA | 7 |
@@ -47,7 +47,7 @@ see [`README.md`](README.md) for why.
 | PRODUCT_DECISION | 2 |
 | SECURITY | 25 |
 | STATE_MACHINE | 4 |
-| TECH_DEBT | 7 |
+| TECH_DEBT | 8 |
 | TENANT_ISOLATION | 3 |
 | TEST_GAP | 9 |
 | UX | 55 |
@@ -61,11 +61,11 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 4 |
 | DEFERRED | 124 |
 | PRODUCT_DECISION | 13 |
-| FIXED | 178 |
+| FIXED | 179 |
 | VERIFIED | 218 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
-| READY | 23 |
+| READY | 24 |
 | DONE | 122 |
 
 ## All records
@@ -315,6 +315,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3843](../../docs/bugs/BUG-3843-customization-hides-packages-modules-sidebar-designer-and-pu.md) | Customization hides Packages, Modules, Sidebar Designer and Publish Center behind a role gate ADR-0013 removed | AUTHORIZATION | HIGH | P1 | FIXED | apps/web, customization | FIX_NOW |
 | [BUG-3888](../../docs/bugs/BUG-3888-safepay-webhooks-fail-because-safepay-webhook-secret-is-not-.md) | Safepay webhooks fail because SAFEPAY_WEBHOOK_SECRET is not configured in production | INTEGRATION | HIGH | P1 | BLOCKED | billing | BLOCKED_EXTERNAL |
 | [BUG-3929](../../docs/bugs/BUG-3929-admin-record-actions-post-to-the-id-less-runtime-route-so-se.md) | Admin record actions post to the id-less runtime route, so Send onboarding link and 13 other actions always fail as not available | BUG | HIGH | P1 | FIXED | apps/admin, platform-runtime | FIX_NOW |
+| [BUG-3930](../../docs/bugs/BUG-3930-partner-delete-hides-its-refusal-reason-and-silently-erases-.md) | Partner delete hides its refusal reason and silently erases customer and tenant attribution | DATA_INTEGRITY | HIGH | P1 | FIXED | partners, apps/admin | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -677,6 +678,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0199](../../docs/backlog/items/ITEM-0199-admin-dashboard-operational-metrics-for-logins-mfa-adoption-.md) | Admin dashboard: operational metrics for logins, MFA adoption, error rate, job failures, partner funnel and agreements | UX | MEDIUM | P2 | DONE | apps/admin, api:super-admin | DONE |
 | [ITEM-0200](../../docs/backlog/items/ITEM-0200-agreements-have-no-end-to-end-test-coverage-and-partners-lea.md) | Agreements have no end-to-end test coverage and partners/leads have no e2e lifecycle suite | TEST_GAP | MEDIUM | P2 | DONE | api:contracts, api:partners, api:leads | DONE |
 | [ITEM-0211](../../docs/backlog/items/ITEM-0211-safepay-renewal-invoices-are-issued-but-never-emailed-to-the.md) | Safepay renewal invoices are issued but never emailed to the tenant | FOLLOW_UP | MEDIUM | P2 | DEFERRED | api:billing | DEFER |
+| [ITEM-0226](../../docs/backlog/items/ITEM-0226-foreign-key-violations-from-the-prisma-7-pg-adapter-carry-no.md) | Foreign-key violations from the Prisma 7 pg adapter carry no P2003 code and surface as generic errors | TECH_DEBT | MEDIUM | P2 | READY | common, platform-runtime | PLAN_REQUIRED |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |

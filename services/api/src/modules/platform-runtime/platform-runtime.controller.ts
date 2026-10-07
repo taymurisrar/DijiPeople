@@ -67,6 +67,18 @@ export class PlatformRuntimeController {
   ) {
     return this.service.addTimeline(user, moduleKey, id, body);
   }
+  /*
+   * What deleting the record would do, relation by relation, so the console
+   * can show it before the operator confirms. Same permission checks as the
+   * delete; 404 for modules without a dependency provider.
+   */
+  @Get(':moduleKey/:id/dependencies') dependencies(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('moduleKey') moduleKey: string,
+    @Param('id') id: string,
+  ) {
+    return this.service.dependencies(user, moduleKey, id);
+  }
   @Get(':moduleKey/:id/process') process(
     @CurrentUser() user: AuthenticatedUser,
     @Param('moduleKey') moduleKey: string,

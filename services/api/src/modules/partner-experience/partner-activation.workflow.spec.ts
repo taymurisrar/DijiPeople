@@ -30,6 +30,7 @@ describe('partner activation workflow', () => {
         acknowledge: jest.fn(),
       } as never,
       { log: jest.fn() } as never,
+      { next: jest.fn(async () => 'PART-000001') } as never,
     );
     await expect(
       service.activatePartner(platformAdmin, 'partner-1'),
@@ -55,6 +56,7 @@ describe('partner activation workflow', () => {
         acknowledge: jest.fn(),
       } as never,
       { log: jest.fn() } as never,
+      { next: jest.fn(async () => 'PART-000001') } as never,
     );
     await expect(
       service.activatePartner(platformAdmin, 'partner-1'),

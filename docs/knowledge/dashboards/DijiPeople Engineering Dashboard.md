@@ -8,8 +8,8 @@
 | | |
 |---|---|
 | Open CRITICAL | **8** |
-| Open HIGH | **104** |
-| Open total | 257 |
+| Open HIGH | **106** |
+| Open total | 260 |
 | Blocked | 4 |
 | Awaiting a product decision | 13 |
 | Deferred | 124 |
@@ -133,6 +133,8 @@
 | [[BUG-3702-adding-a-field-to-a-package-s-own-custom-module-demoted-the-|BUG-3702]] | Adding a field to a package's own custom module demoted the module to a reference | DATA_INTEGRITY | HIGH | FIXED | customization | DONE |
 | [[BUG-3809-a-tenant-admin-can-create-document-types-and-categories-ever|BUG-3809]] | A tenant admin can create document types and categories every tenant sees | TENANT_ISOLATION | HIGH | FIXED | documents | FIX_NOW |
 | [[BUG-3843-customization-hides-packages-modules-sidebar-designer-and-pu|BUG-3843]] | Customization hides Packages, Modules, Sidebar Designer and Publish Center behind a role gate ADR-0013 removed | AUTHORIZATION | HIGH | FIXED | apps/web, customization | FIX_NOW |
+| [[BUG-3929-admin-record-actions-post-to-the-id-less-runtime-route-so-se|BUG-3929]] | Admin record actions post to the id-less runtime route, so Send onboarding link and 13 other actions always fail as not available | BUG | HIGH | FIXED | apps/admin, platform-runtime | FIX_NOW |
+| [[BUG-3930-partner-delete-hides-its-refusal-reason-and-silently-erases-|BUG-3930]] | Partner delete hides its refusal reason and silently erases customer and tenant attribution | DATA_INTEGRITY | HIGH | FIXED | partners, apps/admin | FIX_NOW |
 | [[ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no|ITEM-0133]] | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | READY | services/api/test | PLAN_REQUIRED |
 | [[ITEM-0134-the-payroll-run-engine-has-no-tests|ITEM-0134]] | The payroll run engine has no tests | TEST_GAP | HIGH | READY | api:payroll | PLAN_REQUIRED |
 | [[ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-|ITEM-0136]] | electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major | SECURITY | HIGH | READY | apps/agent-desktop | FIX_NOW |
@@ -380,6 +382,8 @@
 | [[BUG-3702-adding-a-field-to-a-package-s-own-custom-module-demoted-the-|BUG-3702]] | Adding a field to a package's own custom module demoted the module to a reference | DATA_INTEGRITY | HIGH | FIXED | customization | DONE |
 | [[BUG-3809-a-tenant-admin-can-create-document-types-and-categories-ever|BUG-3809]] | A tenant admin can create document types and categories every tenant sees | TENANT_ISOLATION | HIGH | FIXED | documents | FIX_NOW |
 | [[BUG-3843-customization-hides-packages-modules-sidebar-designer-and-pu|BUG-3843]] | Customization hides Packages, Modules, Sidebar Designer and Publish Center behind a role gate ADR-0013 removed | AUTHORIZATION | HIGH | FIXED | apps/web, customization | FIX_NOW |
+| [[BUG-3929-admin-record-actions-post-to-the-id-less-runtime-route-so-se|BUG-3929]] | Admin record actions post to the id-less runtime route, so Send onboarding link and 13 other actions always fail as not available | BUG | HIGH | FIXED | apps/admin, platform-runtime | FIX_NOW |
+| [[BUG-3930-partner-delete-hides-its-refusal-reason-and-silently-erases-|BUG-3930]] | Partner delete hides its refusal reason and silently erases customer and tenant attribution | DATA_INTEGRITY | HIGH | FIXED | partners, apps/admin | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver|BUG-3501]] | The email provider screen presents a console sink as delivery and offers sink providers in production | UX | MEDIUM | FIXED | notifications, apps/web | PLAN_REQUIRED |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
@@ -752,6 +756,7 @@
 | [[ITEM-0158-public-traffic-that-bypasses-cloudflare-shares-one-rate-limi|ITEM-0158]] | Public traffic that bypasses Cloudflare shares one rate-limit bucket, by design and untested | INFRA | MEDIUM | READY | pkg:config, services/api/src/common/security | PLAN_REQUIRED |
 | [[ITEM-0175-wire-the-plans-screen-onto-the-seat-quote-and-plan-change-en|ITEM-0175]] | Wire the plans screen onto the seat-quote and plan-change endpoints that now exist | FOLLOW_UP | MEDIUM | READY | apps/web, api:billing | FIX_NOW |
 | [[ITEM-0177-the-recruitment-draft-form-s-reporting-manager-lookup-still-|ITEM-0177]] | The recruitment draft form's Reporting manager lookup still filters one page in the browser | TECH_DEBT | MEDIUM | READY | apps/web | FIX_NOW |
+| [[ITEM-0226-foreign-key-violations-from-the-prisma-7-pg-adapter-carry-no|ITEM-0226]] | Foreign-key violations from the Prisma 7 pg adapter carry no P2003 code and surface as generic errors | TECH_DEBT | MEDIUM | READY | common, platform-runtime | PLAN_REQUIRED |
 | [[ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning|ITEM-0023]] | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [[ITEM-0108-decide-whether-the-roughly-one-hour-session-lifetime-is-idle|ITEM-0108]] | Decide whether the roughly one-hour session lifetime is idle or absolute | PRODUCT_DECISION | LOW | READY | api:auth | PLAN_REQUIRED |
 | [[BUG-1964-record-headings-and-dialog-titles-are-singularised-by-stripp|BUG-1964]] | Record headings and dialog titles are singularised by stripping a trailing s | UX | LOW | FIXED | apps/web | DONE |
@@ -808,6 +813,8 @@
 - [[ADR-0023-seeded-template-versions-and-safepay-cut-over|ADR-0023 — Seeded agreement templates publish new versions; PKR checkout moves to Safepay]]
 - [[ADR-0024-custom-field-values-on-every-system-module-via-one-interceptor|ADR-0024 — Custom field values on every system module via one interceptor]]
 - [[ADR-0025-employee-list-sorts-and-filters-by-custom-fields-through-record-id-sets|ADR-0025 — Employee list sort and filter by custom fields through record-id sets]]
+- [[ADR-0026-partner-lifecycle-commission-and-currency|ADR-0026 — Partner status is action-driven, commission is a snapshotted percentage, and currency comes from an enabled platform subset]]
+- [[ADR-0027-generic-platform-number-sequences|ADR-0027 — Human-readable platform numbers come from one configurable, transactional sequence service]]
 - [[decision-a-bug-record-is-its-own-backlog-item|Decision — A bug record **is** its own backlog item]]
 - [[decision-ci-verdict-gates-shared-merges|Decision — A shared-target merge requires a read CI verdict on the exact SHA]]
 - [[decision-platform-admin-is-a-separate-identity|Decision — Platform admin is a separate identity, not an elevated tenant user]]
@@ -817,15 +824,15 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 527 |
-| Backlog items | 225 |
+| Bug records | 529 |
+| Backlog items | 226 |
 | Known bug patterns | 35 |
 | QA runs | 38 |
 | Engineering history records | 95 |
 | Release records | 10 |
 | Module notes | 31 |
 | Architecture notes | 22 |
-| Decision notes (ADR + generated) | 29 |
+| Decision notes (ADR + generated) | 31 |
 | Implementation records | 7 |
 
 **Awaiting Architect triage: 0.** A record nobody has

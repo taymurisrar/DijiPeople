@@ -782,6 +782,48 @@ export const ERROR_CATALOG = {
     'critical',
     'settings',
   ),
+  /*
+   * ADR-0027 — platform number sequences. NOT_CONFIGURED is the allocation
+   * path (a record could not be numbered because its sequence row is absent,
+   * which seed:config should have prevented); NOT_FOUND is the settings
+   * screen asking for a key that does not exist.
+   */
+  NUMBER_SEQUENCE_NOT_CONFIGURED: entry(
+    500,
+    'Numbering not configured',
+    'The number sequence for this record type is not configured, so the record was not created.',
+    'critical',
+    'settings',
+    'Contact the platform administrator.',
+  ),
+  NUMBER_SEQUENCE_NOT_FOUND: entry(
+    404,
+    'Number sequence not found',
+    'This number sequence does not exist.',
+    'warning',
+    'settings',
+  ),
+  NUMBER_SEQUENCE_INVALID: entry(
+    400,
+    'Invalid number format',
+    'Check the prefix, separator, suffix and padding, then save again.',
+    'warning',
+    'validation',
+  ),
+  NUMBER_SEQUENCE_NEXT_VALUE_LOWERED: entry(
+    400,
+    'Next number can only increase',
+    'The next number cannot be lower than the number the sequence would issue now, because that would reuse a number already issued.',
+    'warning',
+    'validation',
+  ),
+  PLATFORM_CURRENCY_NOT_ENABLED: entry(
+    400,
+    'Currency not enabled',
+    'This currency is not enabled for the platform. Choose an enabled currency.',
+    'warning',
+    'validation',
+  ),
   RATE_LIMIT_EXCEEDED: entry(
     429,
     'Rate limit exceeded',

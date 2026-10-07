@@ -28,6 +28,7 @@ function serviceWith(prisma: Record<string, unknown>) {
       acknowledge: jest.fn(),
     } as never,
     { log: jest.fn() } as never,
+    { next: jest.fn(async () => 'PART-000001') } as never,
   );
 }
 

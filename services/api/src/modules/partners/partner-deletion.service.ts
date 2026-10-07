@@ -1,7 +1,34 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
+import {
+  blocksDelete,
+  buildDependencyReport,
+  isForeignKeyViolation,
+  type RecordDependency,
+  type RecordDependencyProvider,
+  type RecordDependencyReport,
+} from '../../common/deletion/record-dependencies';
+import {
+  classifyPartnerDependencies,
+  PARTNER_DEPENDENCY_COUNT_SELECT,
+  type ClassifiedPartnerDependency,
+} from './partner-dependencies';
+
+const NO_LONGER_EXISTS = 'it no longer exists';
+
+/** The API contract carries no refusal phrase; that is for the message only. */
+function stripPhrase({
+  phrase: _phrase,
+  ...dependency
+}: ClassifiedPartnerDependency): RecordDependency {
+  return dependency;
+}
 
 /**
  * What may be deleted from the partner modules, and what may not.
@@ -24,11 +51,30 @@ import type { AuthenticatedUser } from '../../common/interfaces/authenticated-re
  * about.
  */
 @Injectable()
-export class PartnerDeletionService {
+export class PartnerDeletionService implements RecordDependencyProvider {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
   ) {}
+
+  /**
+   * What deleting this partner would do, relation by relation
+   * (`GET /platform-runtime/partners/:id/dependencies`).
+   *
+   * The same rules the delete applies, read in advance, so the console can show
+   * the operator what blocks the delete — with a link to it — before they
+   * confirm rather than after.
+   */
+  async describeDependencies(id: string): Promise<RecordDependencyReport> {
+    const row = await this.prisma.partner.findUnique({
+      where: { id },
+      select: { id: true, _count: { select: PARTNER_DEPENDENCY_COUNT_SELECT } },
+    });
+    if (!row) throw new NotFoundException('Partner was not found.');
+    return buildDependencyReport(
+      classifyPartnerDependencies(row.id, row._count).map(stripPhrase),
+    );
+  }
 
   /**
    * Partners with no commercial history.
@@ -37,89 +83,161 @@ export class PartnerDeletionService {
    * back to a partner. Deleting one of those partners does not tidy a list; it
    * detaches revenue from the person who is owed for it, and the audit trail
    * that would explain the discrepancy goes with it.
+   *
+   * Each partner is decided **inside its own transaction**: the row is locked,
+   * its dependencies are counted, and it is deleted — or refused — in that one
+   * transaction. The counts used to run before the transaction, so a lead or
+   * customer attributed between the count and the delete was either nulled
+   * silently (`SetNull`) or failed as a raw foreign-key error. The row lock
+   * makes a concurrent insert that references the partner wait for the
+   * decision, and a foreign-key failure that still gets through is reported as
+   * the same named refusal rather than a database error.
+   *
+   * The response keeps the bulk shape `{deleted, refused, message}` for one
+   * record as for many: the console reads that shape for both
+   * (`readDeleteOutcome`), and a refused single delete keeps the operator on
+   * the record with this message (EXECPLAN-0055 WP-01).
    */
   async deletePartners(user: AuthenticatedUser, ids: string[]) {
-    return this.deleteGuarded(user, {
-      entity: 'Partner',
-      ids,
-      load: (batch) =>
-        this.prisma.partner.findMany({
-          where: { id: { in: batch } },
+    const unique = [...new Set(ids.filter(Boolean))];
+    if (!unique.length)
+      throw new BadRequestException('Select at least one record to delete.');
+
+    const refused: Array<{ id: string; label: string; reason: string }> = [];
+    let deleted = 0;
+
+    for (const id of unique) {
+      const outcome = await this.deleteOnePartner(user, id);
+      if (outcome.kind === 'deleted') deleted += 1;
+      else refused.push({ id, label: outcome.label, reason: outcome.reason });
+    }
+
+    const dependencyRefusals = refused.filter(
+      (item) => item.reason !== NO_LONGER_EXISTS,
+    );
+    if (dependencyRefusals.length) {
+      /*
+       * A refusal changes nothing, and is still audited: an operator who tried
+       * to delete a partner with live attribution is a fact an auditor asks
+       * about, and the reason recorded is the one the operator was shown.
+       */
+      await this.auditService.log({
+        tenantId: 'platform',
+        actorUserId: user.userId,
+        action: 'PARTNER_DELETE_REFUSED',
+        entityType: 'Partner',
+        entityId: dependencyRefusals[0].id,
+        beforeSnapshot: { requested: unique },
+        afterSnapshot: {
+          deletedCount: deleted,
+          refused: dependencyRefusals.map((item) => ({
+            id: item.id,
+            reason: item.reason,
+          })),
+        },
+      });
+    }
+
+    return {
+      deleted,
+      refused,
+      message: describeOutcome(deleted, refused),
+    };
+  }
+
+  private async deleteOnePartner(
+    user: AuthenticatedUser,
+    id: string,
+  ): Promise<
+    { kind: 'deleted' } | { kind: 'refused'; label: string; reason: string }
+  > {
+    let label = id;
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        /*
+         * Lock first, count second. Under READ COMMITTED a row inserted after
+         * the count would otherwise reference a partner about to vanish; with
+         * the lock, an insert or update that points at this partner takes a
+         * key-share lock that waits for this transaction, and then fails its
+         * own foreign key instead of having its reference nulled by ours.
+         */
+        await tx.$queryRaw`SELECT "id" FROM "Partner" WHERE "id" = ${id} FOR UPDATE`;
+        const row = await tx.partner.findUnique({
+          where: { id },
           select: {
             id: true,
             displayName: true,
             status: true,
-            _count: {
-              select: {
-                leads: true,
-                commissions: true,
-                agreements: true,
-                referralLinks: true,
-                portalUsers: true,
-                /*
-                 * Every relation below points at Partner with
-                 * `onDelete: Restrict`. Unchecked, the delete reached Postgres
-                 * and failed as a raw foreign-key error — a 500 "Unexpected
-                 * error" for almost every real partner, because nearly all of
-                 * them originate from a public inquiry, and any partner ever
-                 * re-attributed to a lead appears in the attribution history
-                 * (TASK-0032 WP-09 QA). Each is business history the delete
-                 * must not erase, so each is a named refusal.
-                 */
-                inquiries: true,
-                onboardingApplications: true,
-                previousAttributions: true,
-                correctedAttributions: true,
-                leadReviews: true,
-                supportCases: true,
-              },
+            partnerNumber: true,
+            _count: { select: PARTNER_DEPENDENCY_COUNT_SELECT },
+          },
+        });
+        if (!row)
+          return {
+            kind: 'refused' as const,
+            label: id,
+            reason: NO_LONGER_EXISTS,
+          };
+        label = row.displayName;
+
+        const dependencies = classifyPartnerDependencies(row.id, row._count);
+        const blocking = dependencies.filter(blocksDelete);
+        if (blocking.length) {
+          return {
+            kind: 'refused' as const,
+            label: row.displayName,
+            reason: `it still has ${blocking.map((item) => item.phrase).join(', ')}`,
+          };
+        }
+
+        const cascaded = dependencies.filter(
+          (item) => item.policy === 'CASCADE' && item.count > 0,
+        );
+        await tx.partnerTimeline.deleteMany({ where: { partnerId: id } });
+        await tx.partner.delete({ where: { id } });
+        /*
+         * In the transaction: a partner is never gone without the row saying
+         * who removed it and what went with it.
+         */
+        await this.auditService.log(
+          {
+            tenantId: 'platform',
+            actorUserId: user.userId,
+            action: 'PARTNER_DELETED',
+            entityType: 'Partner',
+            entityId: id,
+            beforeSnapshot: {
+              displayName: row.displayName,
+              partnerNumber: row.partnerNumber,
+              status: row.status,
+            },
+            afterSnapshot: {
+              deleted: true,
+              cascaded: cascaded.map((item) => ({
+                key: item.key,
+                count: item.count,
+              })),
             },
           },
-        }),
-      blockers: (row) => {
-        const reasons: string[] = [];
-        if (row._count.leads)
-          reasons.push(`${row._count.leads} attributed lead(s)`);
-        if (row._count.commissions)
-          reasons.push(`${row._count.commissions} commission record(s)`);
-        if (row._count.agreements)
-          reasons.push(`${row._count.agreements} agreement(s)`);
-        if (row._count.portalUsers)
-          reasons.push(`${row._count.portalUsers} portal user(s)`);
-        if (row._count.referralLinks)
-          reasons.push(`${row._count.referralLinks} referral link(s)`);
-        if (row._count.inquiries)
-          reasons.push(`the partner application it came from`);
-        if (row._count.onboardingApplications)
-          reasons.push(
-            `${row._count.onboardingApplications} onboarding application(s)`,
-          );
-        const attributionHistory =
-          row._count.previousAttributions + row._count.correctedAttributions;
-        if (attributionHistory)
-          reasons.push(`${attributionHistory} lead attribution change(s)`);
-        if (row._count.leadReviews)
-          reasons.push(`${row._count.leadReviews} lead review(s)`);
-        if (row._count.supportCases)
-          reasons.push(`${row._count.supportCases} support case(s)`);
-        return reasons;
-      },
+          tx,
+        );
+        return { kind: 'deleted' as const };
+      });
+    } catch (error) {
+      if (!isForeignKeyViolation(error)) throw error;
       /*
-       * PartnerTimeline is Restrict too, but it is the partner's own diary, not
-       * business history anything else depends on: when nothing above blocks
-       * the delete, the timeline goes with the partner, in one transaction.
+       * Something started referencing the partner that the rules above do not
+       * see — a relation added to the schema without a rule, or a write the
+       * lock did not cover. The transaction rolled back, so nothing was
+       * deleted; report it as the refusal it is, never as a database error.
        */
-      remove: async (batch) => {
-        const [, removed] = await this.prisma.$transaction([
-          this.prisma.partnerTimeline.deleteMany({
-            where: { partnerId: { in: batch } },
-          }),
-          this.prisma.partner.deleteMany({ where: { id: { in: batch } } }),
-        ]);
-        return removed;
-      },
-      label: (row) => row.displayName,
-    });
+      return {
+        kind: 'refused',
+        label,
+        reason:
+          'it is still referenced by other records (the database refused the delete); nothing was deleted',
+      };
+    }
   }
 
   /**
@@ -229,7 +347,7 @@ export class PartnerDeletionService {
         refused.push({
           id,
           label: id,
-          reason: 'it no longer exists',
+          reason: NO_LONGER_EXISTS,
         });
       }
     }

@@ -32,6 +32,8 @@ import type { PartnerActor } from './partner-auth.guard';
 import { partnerOnboardingReviewRefusal } from './partner-onboarding.state-machine';
 import { PlatformEventsService } from '../platform-events/platform-events.service';
 import { AuditService } from '../audit/audit.service';
+import { PlatformNumberingService } from '../../common/numbering/platform-numbering.service';
+import { assertCurrencyEnabled } from '../../common/reference-data/platform-enabled-currencies';
 import {
   assertNoPartnerDuplicate,
   findOnboardingIdentifierDuplicate,
@@ -64,6 +66,7 @@ export class PartnerExperienceService {
     private readonly events: PlatformEventsService,
     private readonly legalService: LegalService,
     private readonly auditService: AuditService,
+    private readonly numbering: PlatformNumberingService,
   ) {}
 
   async submitInquiry(dto: CreatePartnerInquiryDto, correlationId?: string) {
@@ -158,6 +161,8 @@ export class PartnerExperienceService {
         : await tx.partner.create({
             data: {
               code: partnerReference(),
+              // ADR-0027 — numbered on this transaction; never from input.
+              partnerNumber: await this.numbering.next('partner', tx),
               type: dto.type,
               // ITEM-0030 — the proposed relationship survives conversion.
               partnershipModel: dto.partnershipModel ?? null,
@@ -349,6 +354,9 @@ export class PartnerExperienceService {
           type: inquiry.type,
         }),
       );
+      // ADR-0026 D4 — the currency is only chosen on this (create) branch.
+      if (dto.currencyCode)
+        await assertCurrencyEnabled(this.prisma, dto.currencyCode);
     }
     const partner = await this.prisma.$transaction(async (tx) => {
       const created = inquiry.partnerId
@@ -363,6 +371,8 @@ export class PartnerExperienceService {
         : await tx.partner.create({
             data: {
               code: partnerReference(),
+              // ADR-0027 — numbered on this transaction; never from input.
+              partnerNumber: await this.numbering.next('partner', tx),
               type: inquiry.type,
               // ITEM-0030 — carried from the inquiry rather than dropped.
               partnershipModel: inquiry.partnershipModel ?? null,

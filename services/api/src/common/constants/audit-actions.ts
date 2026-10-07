@@ -147,6 +147,16 @@ export const AUDIT_ACTIONS = {
    * `projects`, …), the snapshots hold only the custom field values.
    */
   CUSTOM_FIELD_VALUES_UPDATED: 'CUSTOM_FIELD_VALUES_UPDATED',
+
+  /*
+   * ADR-0027 — an operator changed a platform number sequence's format or
+   * raised its next number (Admin Settings -> Numbering). Platform log
+   * (`tenantId: 'platform'`); both snapshots carry the whole configuration so
+   * "why did partner numbers change shape on this date?" has an answer.
+   * Allocating a number is not audited here — the record that receives the
+   * number is audited by its own module.
+   */
+  PLATFORM_NUMBER_SEQUENCE_UPDATED: 'PLATFORM_NUMBER_SEQUENCE_UPDATED',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];

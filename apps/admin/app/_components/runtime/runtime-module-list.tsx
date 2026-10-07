@@ -153,6 +153,23 @@ export function RuntimeModuleList({
       .map((item) => recordDisplayName(item as Record<string, unknown>))
       .filter((label): label is string => Boolean(label));
   }, [data, selectedIds]);
+  /*
+   * The same selection as id and name pairs, in selection order, for the
+   * dependency-aware delete dialog (EXECPLAN-0055 D5), which has to say which
+   * record each blocking dependency belongs to.
+   */
+  const selectedTargets = useMemo(() => {
+    const byId = new Map(
+      (data?.items ?? []).map((item) => [String(item.id), item]),
+    );
+    return selectedIds.map((id) => ({
+      id,
+      label:
+        recordDisplayName(
+          byId.get(id) as Record<string, unknown> | undefined,
+        ) ?? id,
+    }));
+  }, [data, selectedIds]);
 
   const hasActiveSearchOrFilters = Boolean(
     (searchParams.get("search") ?? "").trim() ||
@@ -509,10 +526,13 @@ export function RuntimeModuleList({
           scope: "list",
           selectedIds,
           selectedLabels,
+          selectedTargets,
           displayName: definition.displayName,
           pluralDisplayName: definition.pluralDisplayName,
           roleKeys,
           permissionKeys,
+          // Bulk delete asks the API what it would do first (EXECPLAN-0055 D5).
+          getDependencies: adapter.getDependencies,
         }}
         onAction={handleAction}
         statusSlot={

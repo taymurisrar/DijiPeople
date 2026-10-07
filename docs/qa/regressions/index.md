@@ -6978,3 +6978,17 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — 17/62 admin and 14/44 API cases fail on the reverted code. |
 | **Fixed** | 2026-10-07, branch `agent/partner-module-completion` |
 | **Active** | yes |
+
+### REG-650 — Partner delete hid its refusal and erased attribution
+
+| | |
+|---|---|
+| **Bug class** | `silent-degradation` |
+| **Module** | `services/api/src/modules/partners` |
+| **Bug record** | BUG-3930 |
+| **Root cause** | Admin read the delete refusal from the wrong level of the response, and the deletion rules counted only Restrict relations, so SetNull customer/tenant attribution was erased silently. A generic dependency contract now classifies every Partner relation (a spec fails on an unclassified one), the delete re-checks under a row lock in its transaction, and an admin dialog shows blockers with links. |
+| **Regression test** | `services/api/src/modules/partners/partner-dependencies.spec.ts` and `apps/admin/lib/runtime/dependency-delete-model.spec.ts`. |
+| **Scenario** | QA-PLATFORM-048 — Partner delete shows every dependency and never erases attribution. |
+| **Fails without the fix** | Yes — reclassifying attributed customers as DETACH fails 4 cases. |
+| **Fixed** | 2026-10-07, branch `agent/partner-module-completion` |
+| **Active** | yes |

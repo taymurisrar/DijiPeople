@@ -14,9 +14,16 @@ import { PartnerReferralResolverService } from './partner-referral-resolver.serv
 import { PlatformCommunicationsModule } from '../platform-communications/platform-communications.module';
 import { LegalModule } from '../legal/legal.module';
 import { AuditModule } from '../audit/audit.module';
+import { NumberingModule } from '../../common/numbering/numbering.module';
 
 @Module({
-  imports: [AuthModule, PlatformCommunicationsModule, LegalModule, AuditModule],
+  imports: [
+    AuthModule,
+    PlatformCommunicationsModule,
+    LegalModule,
+    AuditModule,
+    NumberingModule,
+  ],
   controllers: [
     PublicPartnersController,
     PartnerAuthController,

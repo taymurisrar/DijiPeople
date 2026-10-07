@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Clock3 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   ProDataTable,
@@ -282,6 +282,25 @@ function RuntimeRecordEditor({
   const [activeTab, setActiveTab] = useState(
     formDefinition.tabs?.[0]?.key ?? "",
   );
+  /*
+   * `?tab=<key>` opens the record on that tab. The delete dialog links each
+   * blocking dependency to the tab that lists it (EXECPLAN-0055 D5) — e.g. a
+   * partner's referral links — and a link that landed on Summary would leave
+   * the operator hunting for what they were sent to fix. Watched rather than
+   * read once, because following such a link from this same record changes
+   * only the query string and does not remount the page.
+   */
+  const requestedTab = useSearchParams().get("tab");
+  // Applied once per requested value, so a record reload that rebuilds the
+  // form definition does not pull the operator back off a tab they chose.
+  const appliedTab = useRef<string | null>(null);
+  useEffect(() => {
+    if (!requestedTab || appliedTab.current === requestedTab) return;
+    if (formDefinition.tabs?.some((item) => item.key === requestedTab)) {
+      appliedTab.current = requestedTab;
+      setActiveTab(requestedTab);
+    }
+  }, [formDefinition.tabs, requestedTab]);
 
   async function reloadTimeline() {
     if (isCreate) return;
@@ -644,6 +663,9 @@ function RuntimeRecordEditor({
           permissionKeys,
           isDirty: form.isDirty,
           mode,
+          recordId: isCreate ? undefined : record.id,
+          // Delete asks the API what it would do first (EXECPLAN-0055 D5).
+          getDependencies: isCreate ? undefined : adapter.getDependencies,
         }}
         onAction={handleAction}
       />

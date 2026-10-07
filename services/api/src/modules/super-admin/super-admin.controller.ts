@@ -47,6 +47,8 @@ import { UpdatePlanDto } from './dto/update-plan.dto';
 import { UpdatePlanPriceDto } from './dto/update-plan-price.dto';
 import { CreatePromotionDto, UpdatePromotionDto } from './dto/promotion.dto';
 import { UpdatePlatformSettingsDto } from './dto/update-platform-settings.dto';
+import { UpdateNumberSequenceDto } from '../../common/numbering/update-number-sequence.dto';
+import { PlatformNumberingService } from '../../common/numbering/platform-numbering.service';
 import { SetExchangeRateDto } from './dto/exchange-rate.dto';
 import { UpdatePrimaryOwnerDto } from './dto/update-primary-owner.dto';
 import { UpdateTenantCustomerAccountDto } from './dto/update-tenant-customer-account.dto';
@@ -101,6 +103,7 @@ export class SuperAdminController {
     private readonly operationsDashboard: OperationsDashboardService,
     private readonly paymentSettlement: PaymentSettlementService,
     private readonly paymentGateways: PaymentGateways,
+    private readonly numbering: PlatformNumberingService,
   ) {}
 
   @Get('dashboard-summary')
@@ -868,6 +871,51 @@ export class SuperAdminController {
     @Body() dto: UpdatePlatformSettingsDto,
   ) {
     return this.superAdminService.updatePlatformSettings(user, dto);
+  }
+
+  /*
+   * ADR-0026 D4 — the enabled platform currencies, as lookup options for the
+   * partner, agreement and commission currency fields.
+   *
+   * `dashboard.read` rather than the path-derived `settings.read`: the list is
+   * reference data (the same catalog `@repo/config` ships to every app), and
+   * the roles that pick a partner's currency — PARTNER_MANAGER above all —
+   * hold no settings permission. Every platform role holds `dashboard.read`,
+   * exactly as for `lifecycle-options`. Platform identity is still required by
+   * the guard.
+   */
+  @Get('platform-settings/currencies')
+  @RequirePlatformPermission('dashboard.read')
+  getEnabledCurrencies(
+    @Query('include') include?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.superAdminService.getEnabledCurrencies({ include, search });
+  }
+
+  /*
+   * ADR-0027 — platform number sequences (Admin Settings -> Numbering).
+   * Under `platform-settings/` so the existing rule governs them: GET is
+   * `settings.read`, PATCH is `settings.manage`; the service additionally
+   * requires the administrator tier for a change, as platform settings do.
+   */
+  @Get('platform-settings/numbering')
+  listNumberSequences() {
+    return this.numbering.list();
+  }
+
+  @Get('platform-settings/numbering/:key')
+  getNumberSequence(@Param('key') key: string) {
+    return this.numbering.get(key);
+  }
+
+  @Patch('platform-settings/numbering/:key')
+  updateNumberSequence(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('key') key: string,
+    @Body() dto: UpdateNumberSequenceDto,
+  ) {
+    return this.numbering.update(user, key, dto);
   }
 
   /*

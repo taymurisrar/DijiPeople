@@ -7,15 +7,15 @@
 
 | | |
 |---|---|
-| Active sessions | **0** |
-| Active parent tasks | 4 |
+| Active sessions | **1** |
+| Active parent tasks | 5 |
 | Active work packages | 4 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **8** |
-| Open HIGH | 104 |
+| Open HIGH | 106 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 13 |
 | QA coverage gaps | 161 |
@@ -30,12 +30,12 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 257 |
-| No next action | 257 |
+| No acceptance criteria | 260 |
+| No next action | 260 |
 | Aging — 7d / 30d / 90d | 240 / 100 / 0 |
-| Architecture and technical debt | 7 |
+| Architecture and technical debt | 8 |
 | Security gaps | 43 |
-| Database gaps | 26 |
+| Database gaps | 27 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -47,7 +47,9 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-_No session is currently registered as active._
+| Session | Task | Title | Status | Branch | Target | Leases | Schema |
+|---|---|---|---|---|---|---|---|
+| SESSION-0119 | — | Partner module completion | ACTIVE | `agent/partner-module-completion` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
 
@@ -57,6 +59,7 @@ _No session is currently registered as active._
 | [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 16/16 | — | — | — |
 | [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 11/11 | — | — | — |
 | [[TASK-0028-enterprise-reports-and-analytics-platform|TASK-0028]] | Enterprise Reports and Analytics platform | FEATURE | LARGE | 5/15 | WP-08 | — | — |
+| [[TASK-0037-partner-module-completion-delete-numbering-status-lifecycle-|TASK-0037]] | Partner module completion — delete, numbering, status lifecycle, commission, currency, onboarding, tabs | FEATURE | LARGE | 4/8 | WP-04 | WP-04 | — |
 
 ## Branch model
 
@@ -301,7 +304,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 257 |
+| Open total | 260 |
 | Blocked | 4 |
 | Deferred | 124 |
 | Awaiting a product decision | 13 |

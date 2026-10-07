@@ -11,6 +11,8 @@ import type { AuthenticatedUser } from '../../common/interfaces/authenticated-re
 import { userHasPlatformPermission } from '../platform-auth/platform-permissions';
 import { toDisplayString } from '../../common/utils/display-string';
 import { AuditService } from '../audit/audit.service';
+import { PlatformNumberingService } from '../../common/numbering/platform-numbering.service';
+import { assertCurrencyEnabled } from '../../common/reference-data/platform-enabled-currencies';
 import {
   assertNoPartnerDuplicate,
   findPartnerDuplicate,
@@ -32,6 +34,7 @@ export class PartnersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
+    private readonly numbering: PlatformNumberingService,
   ) {}
 
   listForUser(user: AuthenticatedUser, query: PartnerQueryDto) {
@@ -131,6 +134,12 @@ export class PartnersService {
             OR: [
               { displayName: { contains: query.search, mode: 'insensitive' } },
               { code: { contains: query.search, mode: 'insensitive' } },
+              {
+                partnerNumber: {
+                  contains: query.search,
+                  mode: 'insensitive',
+                },
+              },
               { email: { contains: query.search, mode: 'insensitive' } },
             ],
           }
@@ -456,20 +465,38 @@ export class PartnersService {
      * which neither path checked before.
      */
     assertNoPartnerDuplicate(await findPartnerDuplicate(this.prisma, dto));
+    // ADR-0026 D4: a chosen currency must be enabled; the fallback always is.
+    if (dto.currencyCode)
+      await assertCurrencyEnabled(this.prisma, dto.currencyCode);
     const currencyCode = dto.currencyCode ?? (await this.reportingCurrency());
-    const created = await this.prisma.partner.create({
-      data: {
-        ...partnerData(dto, currencyCode),
-        code: createReference('PTR'),
-      },
-    });
-    await this.auditService.log({
-      tenantId: 'platform',
-      actorUserId: actorId ?? null,
-      action: 'PARTNER_CREATED',
-      entityType: 'Partner',
-      entityId: created.id,
-      afterSnapshot: partnerAuditSnapshot(created),
+    /*
+     * ADR-0027. The partner number is allocated on the create's own
+     * transaction, last, so the sequence row is locked only for the insert and
+     * a refused create (a unique clash, say) hands its number back. It is set
+     * after the DTO spread so nothing a caller sends can supply it, and no
+     * update path writes it — `partnerUpdateData` does not know the field.
+     */
+    const created = await this.prisma.$transaction(async (tx) => {
+      const partnerNumber = await this.numbering.next('partner', tx);
+      const row = await tx.partner.create({
+        data: {
+          ...partnerData(dto, currencyCode),
+          code: createReference('PTR'),
+          partnerNumber,
+        },
+      });
+      await this.auditService.log(
+        {
+          tenantId: 'platform',
+          actorUserId: actorId ?? null,
+          action: 'PARTNER_CREATED',
+          entityType: 'Partner',
+          entityId: row.id,
+          afterSnapshot: partnerAuditSnapshot(row),
+        },
+        tx,
+      );
+      return row;
     });
     return normalizePartner(created);
   }
@@ -511,6 +538,16 @@ export class PartnersService {
     assertNoPartnerDuplicate(
       await findPartnerDuplicate(this.prisma, merged, id),
     );
+    /*
+     * ADR-0026 D4. Only a *change* of currency is checked against the enabled
+     * set: a partner whose currency was disabled after it was chosen keeps it
+     * through every unrelated edit (the runtime form resubmits the field).
+     */
+    if (
+      dto.currencyCode !== undefined &&
+      dto.currencyCode.toUpperCase() !== existing.currencyCode
+    )
+      await assertCurrencyEnabled(this.prisma, dto.currencyCode);
     const updated = await this.prisma.partner.update({
       where: { id },
       data: partnerUpdateData(dto),
@@ -533,6 +570,9 @@ export class PartnersService {
     actorId?: string,
   ) {
     const partner = await this.get(partnerId);
+    // ADR-0026 D4: an explicitly chosen currency other than the partner's own.
+    if (dto.currencyCode && dto.currencyCode !== partner.currencyCode)
+      await assertCurrencyEnabled(this.prisma, dto.currencyCode);
     const amount = Math.round(dto.baseAmount * dto.commissionRate) / 100;
     const created = await this.prisma.partnerCommission.create({
       data: {
@@ -799,6 +839,10 @@ function partnerRuntimeWhere(
       clauses.push({ displayName: stringCondition(filter.operator, value) });
     else if (filter.field === 'email')
       clauses.push({ email: stringCondition(filter.operator, value) });
+    else if (filter.field === 'partnerNumber')
+      clauses.push({
+        partnerNumber: nullableStringCondition(filter.operator, value),
+      });
     else if (filter.field === 'country')
       clauses.push({
         country: nullableStringCondition(filter.operator, value),
@@ -833,6 +877,7 @@ function partnerRuntimeOrder(
   sort: Array<{ field: string; direction: 'asc' | 'desc' }>,
 ): Prisma.PartnerOrderByWithRelationInput[] {
   const supported = new Set([
+    'partnerNumber',
     'displayName',
     'type',
     'status',
@@ -1029,6 +1074,7 @@ function normalizePartner<T extends Record<string, any>>(item: T) {
 function partnerAuditSnapshot(partner: {
   id: string;
   code: string;
+  partnerNumber?: string | null;
   type: string;
   displayName: string;
   companyName: string | null;
@@ -1042,6 +1088,7 @@ function partnerAuditSnapshot(partner: {
   return {
     id: partner.id,
     code: partner.code,
+    partnerNumber: partner.partnerNumber ?? null,
     type: partner.type,
     displayName: partner.displayName,
     companyName: partner.companyName,

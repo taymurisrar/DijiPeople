@@ -14,7 +14,7 @@ A screen marked **bespoke** is a hand-written page whose API calls and underlyin
 
 **`apiPath` is called by the server, not the browser.** Loading `/leaves` on that tenant issued no client-side request to `/api/leave-requests`; the list arrives already rendered, and the only client calls were notifications and settings. Runtime list and record screens fetch through `apps/web/lib/server-api.ts` in a server component. Watching the browser network log to discover which endpoint a screen uses will therefore find nothing, and concluding the screen calls no API would be wrong.
 
-**364 screens** across 3 applications · 11 runtime modules declare an API path and entity
+**365 screens** across 3 applications · 11 runtime modules declare an API path and entity
 
 Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[known-gaps]]
 
@@ -288,7 +288,7 @@ Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[
 
 ## Platform admin — `apps/admin` (port 3002)
 
-89 screens, 6 runtime-driven.
+90 screens, 6 runtime-driven.
 
 | Route | Source | API | Entity |
 |---|---|---|---|
@@ -361,6 +361,7 @@ Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[
 | `/settings/monitoring/error-logs` | `apps/admin/app/(internal)/settings/monitoring/error-logs/page.tsx` | _bespoke_ | — |
 | `/settings/monitoring/events` | `apps/admin/app/(internal)/settings/monitoring/events/page.tsx` | _bespoke_ | — |
 | `/settings/monitoring/integrations` | `apps/admin/app/(internal)/settings/monitoring/integrations/page.tsx` | _bespoke_ | — |
+| `/settings/numbering` | `apps/admin/app/(internal)/settings/numbering/page.tsx` | _bespoke_ | — |
 | `/settings/onboarding-definitions` | `apps/admin/app/(internal)/settings/onboarding-definitions/page.tsx` | _bespoke_ | — |
 | `/settings/partners` | `apps/admin/app/(internal)/settings/partners/page.tsx` | _bespoke_ | — |
 | `/settings/plans` | `apps/admin/app/(internal)/settings/plans/page.tsx` | _bespoke_ | — |

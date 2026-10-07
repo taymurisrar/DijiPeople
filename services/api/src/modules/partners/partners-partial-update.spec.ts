@@ -66,7 +66,11 @@ describe('PartnersService.update — genuinely partial patches', () => {
   it('accepts a single-field patch that never mentions type, displayName or email', async () => {
     const existing = existingCompanyPartner();
     const prisma = prismaStub(existing);
-    const service = new PartnersService(prisma, { log: jest.fn() } as never);
+    const service = new PartnersService(
+      prisma,
+      { log: jest.fn() } as never,
+      {} as never,
+    );
 
     const result = await service.update('partner-1', {
       notes: 'Follow up next week',
@@ -89,7 +93,11 @@ describe('PartnersService.update — genuinely partial patches', () => {
   it('does not reset status to DRAFT when a patch omits it', async () => {
     const existing = existingCompanyPartner({ status: 'ACTIVE' });
     const prisma = prismaStub(existing);
-    const service = new PartnersService(prisma, { log: jest.fn() } as never);
+    const service = new PartnersService(
+      prisma,
+      { log: jest.fn() } as never,
+      {} as never,
+    );
 
     await service.update('partner-1', { notes: 'x' } as never);
 
@@ -103,7 +111,11 @@ describe('PartnersService.update — genuinely partial patches', () => {
   it('refuses a patch that clears the company name a COMPANY partner needs', async () => {
     const existing = existingCompanyPartner();
     const prisma = prismaStub(existing);
-    const service = new PartnersService(prisma, { log: jest.fn() } as never);
+    const service = new PartnersService(
+      prisma,
+      { log: jest.fn() } as never,
+      {} as never,
+    );
 
     await expect(
       service.update('partner-1', { companyName: '' } as never),
@@ -118,7 +130,11 @@ describe('PartnersService.update — genuinely partial patches', () => {
     // it is missing a field it was never asked to change.
     const existing = existingCompanyPartner();
     const prisma = prismaStub(existing);
-    const service = new PartnersService(prisma, { log: jest.fn() } as never);
+    const service = new PartnersService(
+      prisma,
+      { log: jest.fn() } as never,
+      {} as never,
+    );
 
     await expect(
       service.update('partner-1', { phone: '+974-5555-0100' } as never),
@@ -128,7 +144,11 @@ describe('PartnersService.update — genuinely partial patches', () => {
   it('lets a patch switch type to INDIVIDUAL only when it also supplies a contact name', async () => {
     const existing = existingCompanyPartner();
     const prisma = prismaStub(existing);
-    const service = new PartnersService(prisma, { log: jest.fn() } as never);
+    const service = new PartnersService(
+      prisma,
+      { log: jest.fn() } as never,
+      {} as never,
+    );
 
     await expect(
       service.update('partner-1', { type: PartnerType.INDIVIDUAL } as never),

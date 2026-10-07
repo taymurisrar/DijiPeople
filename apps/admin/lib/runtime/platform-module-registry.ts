@@ -264,6 +264,12 @@ const EDIT_RECORD_ACTIONS: RuntimeActionDefinition[] = [
  */
 const COUNTRY_LOOKUP_PATH = "/public/geography/countries";
 
+/*
+ * ADR-0026 D4 — the currencies the platform has enabled (Settings > General).
+ * Read through the platform-settings route, governed for every platform role.
+ */
+const CURRENCY_LOOKUP_PATH = "/super-admin/platform-settings/currencies";
+
 const OWNER_LOOKUP_PATH = "/platform-users/owner-candidates";
 /**
  * Owner is not spelled the same way twice in this schema. The order matters:
@@ -884,7 +890,17 @@ const SUPPORT_STATUSES: RuntimeStatusDefinition[] = [
 
 const partnerFields: RuntimeFieldDefinition[] = [
   { ...field("id", "Partner ID", "text", "system"), readOnly: true },
-  { ...field("code", "Partner number", "text", "identity"), readOnly: true },
+  /*
+   * ADR-0027. `partnerNumber` (PART-000001) is the human-readable number,
+   * issued by the platform sequence at create and never editable. `code` is
+   * the older internal reference, in two historical formats; it stays visible
+   * because agreements and correspondence already quote it.
+   */
+  {
+    ...field("partnerNumber", "Partner number", "text", "identity"),
+    readOnly: true,
+  },
+  { ...field("code", "Partner code", "text", "identity"), readOnly: true },
   field("displayName", "Partner name", "text", "identity", true),
   field("legalName", "Legal name", "text", "identity"),
   field("type", "Partner type", "option", "identity", true, [
@@ -968,13 +984,10 @@ const partnerFields: RuntimeFieldDefinition[] = [
    * a partner created through the console carries `currencyCode: "5"`
    * (BUG-1747).
    *
-   * Contracts already declares this field as an option over
-   * `PLATFORM_CURRENCY_OPTIONS`. Partners now says the same thing the same way.
+   * Partners, contracts and commissions declare it the same way, through
+   * `currencyField()` — a lookup over the platform's enabled currencies.
    */
-  {
-    ...field("currencyCode", "Currency", "option", "commercial", true),
-    options: PLATFORM_CURRENCY_OPTIONS,
-  },
+  currencyField("commercial", true),
   {
     ...field("assignedToUserId", "Internal owner", "userLookup", "ownership"),
     lookupPath: "/platform-users/owner-candidates",
@@ -1684,6 +1697,7 @@ const definitions: PlatformModuleDefinition[] = [
     defaultView: "all",
     statuses: PARTNER_STATUSES,
     columns: [
+      col("partnerNumber", "Number", 140),
       col("displayName", "Partner", 230),
       col("type", "Type", 120),
       col("partnershipModel", "Partnership", 160, "status"),
@@ -3169,10 +3183,7 @@ const definitions: PlatformModuleDefinition[] = [
         lookupPath: "/contracts?pageSize=100",
       },
       field("amendmentNumber", "Amendment number", "integer", "ownership"),
-      {
-        ...field("currencyCode", "Currency", "option", "commercial"),
-        options: PLATFORM_CURRENCY_OPTIONS,
-      },
+      currencyField("commercial"),
       {
         ...field("contractValue", "Contract value", "currency", "commercial"),
         min: 0,
@@ -3956,10 +3967,7 @@ const definitions: PlatformModuleDefinition[] = [
       field("commissionRate", "Commission rate", "percentage", "commercial"),
       field("commissionAmount", "Commission amount", "currency", "commercial"),
       // A code, like the two above — see the note on the partner declaration.
-      {
-        ...field("currencyCode", "Currency", "option", "commercial"),
-        options: PLATFORM_CURRENCY_OPTIONS,
-      },
+      currencyField("commercial"),
       field("earnedAt", "Earned", "dateTime", "dates"),
       field("dueAt", "Due", "dateTime", "dates"),
       field("paidAt", "Paid", "dateTime", "dates"),
@@ -4600,6 +4608,27 @@ function countryField(
      * agree with it.
      */
     submitsLabel: true,
+  };
+}
+
+/**
+ * A currency code chosen from the platform's ENABLED currencies (ADR-0026 D4).
+ *
+ * The picker reads the enabled list from the API. `options` keeps the whole
+ * catalog as well, and that is deliberate: the form resolves the label of the
+ * value a record already holds from `options`, so a partner whose currency was
+ * disabled after it was chosen still shows "USD - US Dollar" — selected and
+ * readable — instead of a bare code or a blank picker. The server refuses a
+ * disabled currency only when one is newly chosen.
+ */
+function currencyField(
+  section: string,
+  required = false,
+): RuntimeFieldDefinition {
+  return {
+    ...field("currencyCode", "Currency", "lookup", section, required),
+    lookupPath: CURRENCY_LOOKUP_PATH,
+    options: PLATFORM_CURRENCY_OPTIONS,
   };
 }
 

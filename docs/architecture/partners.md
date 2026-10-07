@@ -25,6 +25,50 @@ record — `AuditService.log()` calls for it always pass `tenantId: 'platform'`,
 routing to `PlatformAuditLog` — not a tenant-owned entity; it exists to be
 DijiPeople's own commercial counterparty, independent of any tenant.
 
+### Partner number
+
+Every partner carries `partnerNumber` (`PART-000001`), the human-readable
+number (ADR-0027, EXECPLAN-0055 WP-03).
+
+- **Issued by the server only.** `PlatformNumberingService.next('partner', tx)`
+  (`services/api/src/common/numbering/`) runs a single
+  `UPDATE "PlatformNumberSequence" … RETURNING` on the create's own
+  transaction. Concurrent creates serialise on the row lock, a rolled-back
+  create releases its number, and duplicates are impossible (proven against
+  PostgreSQL by `test/platform-numbering.e2e-spec.ts`). All three creation
+  paths allocate this way: the admin create (`PartnersService.create`), the
+  public inquiry (`submitInquiry`) and inquiry qualification
+  (`qualifyInquiry`).
+- **Immutable.** No DTO accepts it and no update writes it
+  (`partner-number-assignment.spec.ts`).
+- **Format** is `prefix + separator + lpad(n, padding) + suffix`, configured
+  under Admin Settings → Numbering. A change only affects numbers issued
+  afterwards. The next number may only be raised, because every lower value
+  has already been issued.
+- Existing partners were numbered by the WP-02 migration in creation order.
+- `code` (`PTR-…` / `DP-P-…`) is unchanged. It stays as the internal and
+  legacy reference, shown as "Partner code".
+
+Endpoints (`super-admin/platform-settings/…`, so `settings.read` for GET and
+`settings.manage` for PATCH; a change also needs the administrator tier, and
+each one is audited as `PLATFORM_NUMBER_SEQUENCE_UPDATED`):
+
+| Method | Path |
+|---|---|
+| `GET` | `/super-admin/platform-settings/numbering` |
+| `GET` | `/super-admin/platform-settings/numbering/:key` |
+| `PATCH` | `/super-admin/platform-settings/numbering/:key` — `prefix`, `separator`, `suffix` (`[A-Z0-9-_/.]`, up to 12), `padding` (1–12), `nextValue` (raise only) |
+
+Every response carries `preview`, the next number as it will be issued.
+
+### Partner currency
+
+A partner's `currencyCode` must be an **enabled** platform currency
+(`platform-defaults.enabledCurrencies`, ADR-0026 D4) when it is chosen: on
+create, on inquiry qualification, and on an update that changes it. A currency
+disabled later stays valid on the partners that already carry it, and the
+admin form still shows it.
+
 ### `PartnerType` vs `PartnershipModel` — two different questions
 
 These are separate columns answering separate questions, and until TASK-0032

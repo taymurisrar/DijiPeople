@@ -19,7 +19,6 @@ export const metadata: Metadata = {
   title: "Platform Defaults",
 };
 
-
 export default async function PlatformDefaultsPage() {
   const sessionUser = await getSessionUser();
   /*
@@ -33,7 +32,9 @@ export default async function PlatformDefaultsPage() {
   }
 
   const settings = await apiRequestJson<{
-    platformDefaults?: Partial<PlatformDefaults>;
+    platformDefaults?: Partial<PlatformDefaults> & {
+      enabledCurrencies?: string[];
+    };
   }>("/super-admin/platform-settings");
   const platformDefaults = {
     ...DEFAULT_PLATFORM_DEFAULTS,
@@ -49,7 +50,12 @@ export default async function PlatformDefaultsPage() {
         title="Regional defaults"
         description="These values are used as the default configuration when new tenants or commercial records are created."
       >
-        <PlatformDefaultsForm initialDefaults={platformDefaults} />
+        <PlatformDefaultsForm
+          initialDefaults={platformDefaults}
+          initialEnabledCurrencies={
+            settings.platformDefaults?.enabledCurrencies
+          }
+        />
       </SettingsFormCard>
     </SettingsShell>
   );

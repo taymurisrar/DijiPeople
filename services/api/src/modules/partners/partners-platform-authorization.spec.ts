@@ -17,7 +17,11 @@ function platformUser(role: PlatformUserRole): AuthenticatedUser {
 
 describe('PartnersService platform authorization', () => {
   function service() {
-    return new PartnersService({} as never, { log: jest.fn() } as never);
+    return new PartnersService(
+      {} as never,
+      { log: jest.fn() } as never,
+      {} as never,
+    );
   }
 
   it('denies a platform MEMBER despite its system-customizer alias', async () => {

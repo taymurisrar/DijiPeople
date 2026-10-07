@@ -2,12 +2,22 @@ import { getPlatformModuleDefinition } from "./platform-module-registry";
 import type {
   ModuleRuntimeAdapter,
   PlatformModuleKey,
+  RecordDependencyReport,
   RuntimeActionResult,
   RuntimeListResponse,
   RuntimeQuery,
   RuntimeRecord,
   RuntimeRecordResponse,
 } from "./platform-runtime.types";
+
+/**
+ * Modules whose API answers `GET :id/dependencies` (EXECPLAN-0055 D5) — the
+ * mirror of `dependencyProviders()` in `PlatformRuntimeService`. Listed here
+ * rather than probed so a bulk delete on any other module costs no requests.
+ * It belongs on the module registry as a capability; see the WP-07 report.
+ */
+export const MODULES_WITH_DEPENDENCY_CHECK: ReadonlySet<PlatformModuleKey> =
+  new Set<PlatformModuleKey>(["partners"]);
 
 export function createHttpModuleRuntimeAdapter<
   T extends RuntimeRecord = RuntimeRecord,
@@ -33,6 +43,20 @@ export function createHttpModuleRuntimeAdapter<
         readFieldErrors(payload),
       );
     return payload as R;
+  }
+
+  async function getDependencies(
+    id: string,
+  ): Promise<RecordDependencyReport | null> {
+    try {
+      const payload = await json<RuntimeActionResult<RecordDependencyReport>>(
+        `/${encodeURIComponent(id)}/dependencies`,
+      );
+      return payload?.data ?? null;
+    } catch (error) {
+      if (error instanceof RuntimeApiError && error.status === 404) return null;
+      throw error;
+    }
   }
 
   return {
@@ -72,6 +96,17 @@ export function createHttpModuleRuntimeAdapter<
         method: "DELETE",
       });
     },
+    /*
+     * Only for modules the API has a dependency provider for; the rest leave
+     * it undefined and keep the plain confirmation without a request per
+     * selected row. A 404 still resolves null — a record deleted meanwhile, or
+     * a provider withdrawn — so the console shows its plain confirmation. Any
+     * other failure is thrown: a check that could not run must not read as
+     * "nothing depends on this".
+     */
+    getDependencies: MODULES_WITH_DEPENDENCY_CHECK.has(moduleKey)
+      ? getDependencies
+      : undefined,
     async bulkDelete(ids) {
       return json<RuntimeActionResult>("/actions/bulk-delete", {
         method: "POST",

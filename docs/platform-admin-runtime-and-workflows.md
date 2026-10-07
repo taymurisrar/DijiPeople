@@ -37,6 +37,12 @@ Platform Owner, Platform Admin, and Super Admin receive the governed administrat
 
 `platform-defaults` is the authoritative source for reporting currency and global currency fallback. Dashboards aggregate only the configured reporting currency. New partner, commission, contract, onboarding, subscription, and billing workflows use the setting or a persisted record-specific override. UI formatters read the same settings provider.
 
+`platform-defaults.enabledCurrencies` (ADR-0026 D4) is the subset of the `@repo/config` currency catalog that operators may choose. When it is absent, every catalog currency is enabled. It must always include the default and reporting currencies. Edit it under Settings → General.
+
+`GET /super-admin/platform-settings/currencies` returns the enabled currencies as `{ items: [{ value, code, name, symbol, decimals, displayName, enabled }] }`. It accepts `?search=` and `?include=<code>`; `include` adds one supported but disabled currency, marked `enabled: false`, so a historical value stays readable. The route requires `dashboard.read`, which every platform role holds, because the partner, contract and commission currency fields read it as a runtime lookup. The partner server path refuses a disabled currency only when one is newly chosen.
+
+Platform number sequences (ADR-0027) are listed and edited at `super-admin/platform-settings/numbering`, through Settings → Numbering. See `docs/architecture/partners.md#partner-number`.
+
 Appearance is persisted in platform branding settings. Ocean, Emerald, Violet, and Sunset presets provide primary, accent, navigation, and surface colors; validated custom hex colors are also supported. The admin shell applies the selection through CSS variables.
 
 ## Contracts, templates, approvals, and signatures

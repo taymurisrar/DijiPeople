@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 import { PartnerDeletionService } from './partner-deletion.service';
 import type { PrismaService } from '../../common/prisma/prisma.service';
@@ -7,94 +7,269 @@ import type { AuthenticatedUser } from '../../common/interfaces/authenticated-re
 
 const user = { userId: 'op-1' } as AuthenticatedUser;
 
-function service(prisma: Record<string, unknown>) {
-  const log = jest.fn().mockResolvedValue(undefined);
-  const withTransaction = {
-    // The partner delete runs its timeline cleanup and the delete as one
-    // transaction; an array transaction resolves its operations in order.
-    $transaction: (operations: Array<Promise<unknown>>) =>
-      Promise.all(operations),
-    partnerTimeline: {
-      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
-    },
-    ...prisma,
-  };
-  return {
-    log,
-    prisma: withTransaction,
-    subject: new PartnerDeletionService(
-      withTransaction as unknown as PrismaService,
-      { log } as unknown as AuditService,
-    ),
-  };
-}
+const NO_COUNTS = {
+  leads: 0,
+  commissions: 0,
+  agreements: 0,
+  referralLinks: 0,
+  portalUsers: 0,
+  inquiries: 0,
+  onboardingApplications: 0,
+  previousAttributions: 0,
+  correctedAttributions: 0,
+  leadReviews: 0,
+  supportCases: 0,
+  attributedCustomers: 0,
+  attributedTenants: 0,
+  timeline: 0,
+};
 
 const partner = (id: string, counts: Partial<Record<string, number>> = {}) => ({
   id,
   displayName: `Partner ${id}`,
   status: 'DRAFT',
-  _count: {
-    leads: 0,
-    commissions: 0,
-    agreements: 0,
-    referralLinks: 0,
-    portalUsers: 0,
-    inquiries: 0,
-    onboardingApplications: 0,
-    previousAttributions: 0,
-    correctedAttributions: 0,
-    leadReviews: 0,
-    supportCases: 0,
-    ...counts,
-  },
+  partnerNumber: `PART-${id}`,
+  _count: { ...NO_COUNTS, ...counts },
 });
 
 /**
- * TASK-0032 WP-09 QA: every relation that points at Partner with
- * `onDelete: Restrict` must be a named refusal. Unchecked, the delete reached
- * Postgres and came back as a 500 "Unexpected error" — for nearly every real
- * partner, because almost all of them originate from a public inquiry.
+ * A Prisma double whose partner delete runs in an interactive transaction.
+ *
+ * `rows` is what `findUnique` answers *inside* the transaction; `outside` is
+ * what a read before it would have seen. Tests that need the two to disagree
+ * — the race the in-transaction count closes — pass different values.
  */
-describe('partner deletion — restricted relations refuse by name', () => {
+function service(
+  prisma: Record<string, unknown> = {},
+  rows: Record<string, ReturnType<typeof partner> | null> = {},
+) {
+  const log = jest.fn().mockResolvedValue(undefined);
+  const events: string[] = [];
+  const tx = {
+    $queryRaw: jest.fn(() => {
+      events.push('lock');
+      return Promise.resolve([]);
+    }),
+    partner: {
+      findUnique: jest.fn(({ where }: { where: { id: string } }) => {
+        events.push(`count:${where.id}`);
+        return Promise.resolve(rows[where.id] ?? null);
+      }),
+      delete: jest.fn(({ where }: { where: { id: string } }) => {
+        events.push(`delete:${where.id}`);
+        return Promise.resolve({ id: where.id });
+      }),
+    },
+    partnerTimeline: {
+      deleteMany: jest.fn(() => {
+        events.push('timeline');
+        return Promise.resolve({ count: 0 });
+      }),
+    },
+  };
+  const transaction = jest.fn(async (work: unknown) =>
+    typeof work === 'function'
+      ? (work as (client: typeof tx) => Promise<unknown>)(tx)
+      : Promise.all(work as Array<Promise<unknown>>),
+  );
+  const client = { $transaction: transaction, ...prisma };
+  return {
+    log,
+    tx,
+    events,
+    transaction,
+    prisma: client,
+    subject: new PartnerDeletionService(
+      client as unknown as PrismaService,
+      { log } as unknown as AuditService,
+    ),
+  };
+}
+
+/**
+ * EXECPLAN-0055 D5. Every relation that would stop a delete is a named
+ * refusal, decided inside the delete's own transaction.
+ */
+describe('partner deletion — every blocking relation refuses by name', () => {
   it.each([
     ['inquiries', 'the partner application it came from'],
-    ['onboardingApplications', 'onboarding application'],
-    ['previousAttributions', 'lead attribution change'],
-    ['correctedAttributions', 'lead attribution change'],
-    ['leadReviews', 'lead review'],
-    ['supportCases', 'support case'],
+    ['onboardingApplications', '1 onboarding application(s)'],
+    ['previousAttributions', '1 lead attribution change(s)'],
+    ['correctedAttributions', '1 lead attribution change(s)'],
+    ['leadReviews', '1 lead review(s)'],
+    ['supportCases', '1 support case(s)'],
+    ['agreements', '1 agreement(s)'],
+    ['portalUsers', '1 portal user(s)'],
+    ['referralLinks', '1 referral link(s)'],
+    ['commissions', '1 commission record(s)'],
+    ['leads', '1 attributed lead(s)'],
+    ['attributedCustomers', '1 attributed customer(s)'],
+    ['attributedTenants', '1 attributed tenant(s)'],
   ])('refuses a partner with %s, naming it', async (relation, expected) => {
-    const deleteMany = jest.fn();
-    const { subject } = service({
-      partner: {
-        findMany: jest
-          .fn()
-          .mockResolvedValue([partner('a', { [relation]: 1 })]),
-        deleteMany,
-      },
-    });
+    const { subject, tx } = service({}, { a: partner('a', { [relation]: 1 }) });
 
     const result = await subject.deletePartners(user, ['a']);
 
     expect(result.deleted).toBe(0);
     expect(result.refused[0].reason).toContain(expected);
-    expect(deleteMany).not.toHaveBeenCalled();
+    expect(tx.partner.delete).not.toHaveBeenCalled();
+    expect(tx.partnerTimeline.deleteMany).not.toHaveBeenCalled();
   });
 
-  it('removes a deletable partner together with its own timeline', async () => {
-    const { subject, prisma } = service({
-      partner: {
-        findMany: jest.fn().mockResolvedValue([partner('a')]),
-        deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
-      },
-    });
+  it('does not count the timeline as a blocker — it is deleted with the partner', async () => {
+    const { subject, tx } = service({}, { a: partner('a', { timeline: 7 }) });
 
     const result = await subject.deletePartners(user, ['a']);
 
     expect(result.deleted).toBe(1);
-    expect(prisma.partnerTimeline.deleteMany).toHaveBeenCalledWith({
-      where: { partnerId: { in: ['a'] } },
+    expect(tx.partnerTimeline.deleteMany).toHaveBeenCalledWith({
+      where: { partnerId: 'a' },
     });
+  });
+});
+
+describe('partner deletion — transaction', () => {
+  it('locks the row, counts, then deletes — all inside one transaction', async () => {
+    const { subject, events, transaction } = service({}, { a: partner('a') });
+
+    await subject.deletePartners(user, ['a']);
+
+    expect(transaction).toHaveBeenCalledTimes(1);
+    expect(events).toEqual(['lock', 'count:a', 'timeline', 'delete:a']);
+  });
+
+  it('decides on the count taken inside the transaction, not before it', async () => {
+    /*
+     * The race: nothing blocked when the operator opened the dialog, and a
+     * customer was attributed to the partner before they confirmed. Only the
+     * in-transaction count sees it.
+     */
+    const { subject, tx } = service(
+      {
+        partner: {
+          findUnique: jest.fn().mockResolvedValue(partner('a')),
+        },
+      },
+      { a: partner('a', { attributedCustomers: 1 }) },
+    );
+
+    expect((await subject.describeDependencies('a')).canDelete).toBe(true);
+    const result = await subject.deletePartners(user, ['a']);
+
+    expect(result.deleted).toBe(0);
+    expect(result.refused[0].reason).toContain('1 attributed customer(s)');
+    expect(tx.partner.delete).not.toHaveBeenCalled();
+  });
+
+  it('reports a foreign-key failure mid-delete as a named refusal, not a database error', async () => {
+    const { subject, tx } = service({}, { a: partner('a') });
+    tx.partner.delete.mockRejectedValueOnce(
+      Object.assign(new Error('Foreign key constraint violated'), {
+        code: 'P2003',
+      }),
+    );
+
+    const result = await subject.deletePartners(user, ['a']);
+
+    expect(result.deleted).toBe(0);
+    expect(result.refused).toHaveLength(1);
+    expect(result.refused[0].label).toBe('Partner a');
+    expect(result.refused[0].reason).toContain(
+      'still referenced by other records',
+    );
+  });
+
+  it('rethrows an error that is not a foreign-key refusal', async () => {
+    const { subject, tx } = service({}, { a: partner('a') });
+    tx.partner.delete.mockRejectedValueOnce(new Error('connection reset'));
+
+    await expect(subject.deletePartners(user, ['a'])).rejects.toThrow(
+      'connection reset',
+    );
+  });
+});
+
+describe('partner deletion — audit', () => {
+  it('audits each deleted partner inside its transaction, with what cascaded', async () => {
+    const { subject, log, tx } = service(
+      {},
+      { a: partner('a', { timeline: 3 }) },
+    );
+
+    await subject.deletePartners(user, ['a']);
+
+    expect(log).toHaveBeenCalledTimes(1);
+    expect(log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'PARTNER_DELETED',
+        entityId: 'a',
+        actorUserId: 'op-1',
+        afterSnapshot: {
+          deleted: true,
+          cascaded: [{ key: 'timeline', count: 3 }],
+        },
+      }),
+      tx,
+    );
+  });
+
+  it('audits a refusal with the reason the operator was shown', async () => {
+    const { subject, log } = service(
+      {},
+      { a: partner('a', { referralLinks: 2 }) },
+    );
+
+    const result = await subject.deletePartners(user, ['a']);
+
+    expect(log).toHaveBeenCalledTimes(1);
+    expect(log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'PARTNER_DELETE_REFUSED',
+        afterSnapshot: {
+          deletedCount: 0,
+          refused: [{ id: 'a', reason: result.refused[0].reason }],
+        },
+      }),
+    );
+  });
+
+  it('does not audit a request whose only id no longer exists', async () => {
+    const { subject, log } = service({}, {});
+    await subject.deletePartners(user, ['ghost']);
+    expect(log).not.toHaveBeenCalled();
+  });
+});
+
+describe('partner dependencies endpoint', () => {
+  it('answers the classification for a partner', async () => {
+    const { subject } = service({
+      partner: {
+        findUnique: jest
+          .fn()
+          .mockResolvedValue(
+            partner('a', { referralLinks: 1, attributedCustomers: 1 }),
+          ),
+      },
+    });
+
+    const report = await subject.describeDependencies('a');
+
+    expect(report.canDelete).toBe(false);
+    expect(report.dependencies.map((item) => item.key)).toEqual([
+      'attributedCustomers',
+      'referralLinks',
+    ]);
+    // The refusal phrase is an internal detail of the message.
+    expect(report.dependencies[0]).not.toHaveProperty('phrase');
+  });
+
+  it('is a 404 for a partner that does not exist', async () => {
+    const { subject } = service({
+      partner: { findUnique: jest.fn().mockResolvedValue(null) },
+    });
+    await expect(subject.describeDependencies('x')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 });
 
@@ -114,33 +289,20 @@ describe('partner deletion — restricted relations refuse by name', () => {
 describe('partner deletion', () => {
   describe('partners', () => {
     it('deletes a partner nothing depends on', async () => {
-      const deleteMany = jest.fn().mockResolvedValue({ count: 1 });
-      const { subject, log } = service({
-        partner: {
-          findMany: jest.fn().mockResolvedValue([partner('a')]),
-          deleteMany,
-        },
-      });
+      const { subject, tx } = service({}, { a: partner('a') });
 
       const result = await subject.deletePartners(user, ['a']);
 
       expect(result.deleted).toBe(1);
       expect(result.refused).toEqual([]);
-      expect(deleteMany).toHaveBeenCalledWith({ where: { id: { in: ['a'] } } });
-      // A destructive bulk operation that leaves no audit row is one nobody can
-      // explain afterwards.
-      expect(log).toHaveBeenCalledTimes(1);
+      expect(tx.partner.delete).toHaveBeenCalledWith({ where: { id: 'a' } });
     });
 
     it('refuses a partner that has traded, and names what stopped it', async () => {
-      const { subject } = service({
-        partner: {
-          findMany: jest
-            .fn()
-            .mockResolvedValue([partner('a', { commissions: 2, leads: 5 })]),
-          deleteMany: jest.fn(),
-        },
-      });
+      const { subject } = service(
+        {},
+        { a: partner('a', { commissions: 2, leads: 5 }) },
+      );
 
       const result = await subject.deletePartners(user, ['a']);
 
@@ -160,48 +322,37 @@ describe('partner deletion', () => {
        * has a commission, so none were deleted" makes the operator bisect the
        * selection by hand — the same information, and all of the work.
        */
-      const deleteMany = jest.fn().mockResolvedValue({ count: 2 });
-      const { subject } = service({
-        partner: {
-          findMany: jest
-            .fn()
-            .mockResolvedValue([
-              partner('a'),
-              partner('b', { agreements: 1 }),
-              partner('c'),
-            ]),
-          deleteMany,
+      const { subject, tx } = service(
+        {},
+        {
+          a: partner('a'),
+          b: partner('b', { agreements: 1 }),
+          c: partner('c'),
         },
-      });
+      );
 
       const result = await subject.deletePartners(user, ['a', 'b', 'c']);
 
       expect(result.deleted).toBe(2);
-      expect(deleteMany).toHaveBeenCalledWith({
-        where: { id: { in: ['a', 'c'] } },
-      });
+      expect(tx.partner.delete.mock.calls.map(([arg]) => arg)).toEqual([
+        { where: { id: 'a' } },
+        { where: { id: 'c' } },
+      ]);
       expect(result.refused.map((item) => item.id)).toEqual(['b']);
       expect(result.message).toContain('Deleted 2');
       expect(result.message).toContain('Kept 1');
     });
 
     it('never deletes when the whole selection is blocked', async () => {
-      const deleteMany = jest.fn();
-      const { subject, log } = service({
-        partner: {
-          findMany: jest
-            .fn()
-            .mockResolvedValue([partner('a', { portalUsers: 1 })]),
-          deleteMany,
-        },
-      });
+      const { subject, tx } = service(
+        {},
+        { a: partner('a', { portalUsers: 1 }) },
+      );
 
       const result = await subject.deletePartners(user, ['a']);
 
-      expect(deleteMany).not.toHaveBeenCalled();
+      expect(tx.partner.delete).not.toHaveBeenCalled();
       expect(result.message).toContain('Nothing was deleted');
-      // Nothing happened, so nothing is audited as having happened.
-      expect(log).not.toHaveBeenCalled();
     });
 
     it('reports an id that no longer exists rather than counting it deleted', async () => {
@@ -209,12 +360,7 @@ describe('partner deletion', () => {
        * An operator told "20 deleted" when two were already gone has been told
        * something false about what their click did.
        */
-      const { subject } = service({
-        partner: {
-          findMany: jest.fn().mockResolvedValue([partner('a')]),
-          deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
-        },
-      });
+      const { subject } = service({}, { a: partner('a') });
 
       const result = await subject.deletePartners(user, ['a', 'ghost']);
 
@@ -225,31 +371,19 @@ describe('partner deletion', () => {
     });
 
     it('refuses an empty selection instead of deleting everything', async () => {
-      /*
-       * A `deleteMany` with an empty `in` clause is harmless; a future change
-       * that dropped the clause would not be. This is the guard for that, and
-       * it costs one line.
-       */
-      const { subject } = service({ partner: { findMany: jest.fn() } });
+      const { subject } = service();
       await expect(subject.deletePartners(user, [])).rejects.toBeInstanceOf(
         BadRequestException,
       );
     });
 
     it('collapses duplicate ids so a count cannot be inflated', async () => {
-      const findMany = jest.fn().mockResolvedValue([partner('a')]);
-      const { subject } = service({
-        partner: {
-          findMany,
-          deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
-        },
-      });
+      const { subject, transaction } = service({}, { a: partner('a') });
 
-      await subject.deletePartners(user, ['a', 'a', 'a']);
+      const result = await subject.deletePartners(user, ['a', 'a', 'a']);
 
-      expect(findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { id: { in: ['a'] } } }),
-      );
+      expect(transaction).toHaveBeenCalledTimes(1);
+      expect(result.deleted).toBe(1);
     });
   });
 

@@ -4,6 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { AuditModule } from '../audit/audit.module';
+import { NumberingModule } from '../../common/numbering/numbering.module';
 import { AuthModule } from '../auth/auth.module';
 import { BillingModule as StripeBillingModule } from '../billing/billing.module';
 import { PermissionsModule } from '../permissions/permissions.module';
@@ -41,6 +42,7 @@ import { TenantIdentitiesProvisioningService } from './tenant-identities-provisi
     NotificationsModule,
     PlatformCommunicationsModule,
     AuditModule,
+    NumberingModule,
     StripeBillingModule,
     TenantProvisioningRunModule,
   ],

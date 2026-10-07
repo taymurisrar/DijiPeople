@@ -20,14 +20,25 @@ import {
   UserRoundCheck,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import type { RuntimeActionDefinition } from "@/lib/runtime/platform-runtime.types";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
+import type {
+  RecordDependencyReport,
+  RuntimeActionDefinition,
+} from "@/lib/runtime/platform-runtime.types";
 import { hasRuntimePermission } from "@/lib/runtime/runtime-permissions";
 import { describeActionNotice } from "@/lib/runtime/runtime-action-outcome";
 import {
   describeDestructiveConfirm,
   recordDisplayName,
 } from "@/lib/runtime/destructive-confirm";
+import { DependencyAwareDeleteDialog } from "./dependency-aware-delete-dialog";
 
 export type ModuleActionContext = {
   scope: "list" | "record";
@@ -43,10 +54,25 @@ export type ModuleActionContext = {
   displayName?: string;
   pluralDisplayName?: string;
   record?: Record<string, unknown>;
+  /** The record's id, for record scope — form values need not carry it. */
+  recordId?: string;
   roleKeys?: string[];
   permissionKeys?: string[];
   isDirty?: boolean;
   mode?: "create" | "read" | "edit";
+  /*
+   * The selection as id and name pairs, in selection order. `selectedLabels`
+   * is filtered to names that resolved, so it cannot be zipped with the ids.
+   */
+  selectedTargets?: Array<{ id: string; label: string }>;
+  /*
+   * Asks the API what deleting a record would do (EXECPLAN-0055 D5). When set,
+   * Delete and Bulk delete confirm through `DependencyAwareDeleteDialog`, which
+   * shows what blocks the delete and what goes with it before the operator
+   * confirms. Resolving null for a record means the module has no provider,
+   * and the dialog is the plain confirmation.
+   */
+  getDependencies?: (id: string) => Promise<RecordDependencyReport | null>;
 };
 export type ModuleActionHandler = (
   action: RuntimeActionDefinition,
@@ -109,6 +135,19 @@ export function ModuleActionBar({
   } | null>(null);
   const [confirmAction, setConfirmAction] =
     useState<RuntimeActionDefinition | null>(null);
+  /*
+   * Snapshotted when the confirmation opens, not derived on each render: the
+   * context object is rebuilt by every parent render, and a dialog keyed on it
+   * would re-run its dependency requests each time.
+   */
+  const [dependencyCheck, setDependencyCheck] = useState<{
+    targets: Array<{ id: string; label: string }>;
+    getDependencies: (id: string) => Promise<RecordDependencyReport | null>;
+  } | null>(null);
+  const cancelConfirm = useCallback(() => {
+    setConfirmAction(null);
+    setDependencyCheck(null);
+  }, []);
   const [overflowOpen, setOverflowOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const overflowRef = useRef<HTMLDivElement | null>(null);
@@ -166,9 +205,11 @@ export function ModuleActionBar({
   function execute(action: RuntimeActionDefinition) {
     if (action.destructive && !confirmAction) {
       setConfirmAction(action);
+      setDependencyCheck(dependencyCheckFor(action, context));
       return;
     }
     setConfirmAction(null);
+    setDependencyCheck(null);
     setOverflowOpen(false);
     setPendingKey(action.key);
     setNotice(null);
@@ -258,7 +299,17 @@ export function ModuleActionBar({
           {statusSlot}
         </div>
       </div>
-      {confirmAction ? (
+      {confirmAction && dependencyCheck ? (
+        <DependencyAwareDeleteDialog
+          title={confirmCopy.title}
+          description={confirmCopy.description}
+          names={confirmCopy.names}
+          targets={dependencyCheck.targets}
+          getDependencies={dependencyCheck.getDependencies}
+          onCancel={cancelConfirm}
+          onConfirm={() => execute(confirmAction)}
+        />
+      ) : confirmAction ? (
         <div
           role="dialog"
           aria-modal="true"
@@ -290,7 +341,7 @@ export function ModuleActionBar({
             <div className="mt-6 flex justify-end gap-2">
               <button
                 type="button"
-                onClick={() => setConfirmAction(null)}
+                onClick={cancelConfirm}
                 className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
               >
                 Cancel
@@ -339,6 +390,35 @@ function ActionButton({
     </button>
   );
 }
+/**
+ * The records a delete confirmation should check, or null for an action that
+ * is not a delete or a context with no dependency lookup.
+ */
+function dependencyCheckFor(
+  action: RuntimeActionDefinition,
+  context: ModuleActionContext,
+) {
+  const getDependencies = context.getDependencies;
+  if (!getDependencies) return null;
+  if (action.key !== "delete" && action.key !== "bulk-delete") return null;
+  const recordId =
+    context.recordId ??
+    (context.record?.id ? String(context.record.id) : undefined);
+  const targets =
+    context.scope === "record"
+      ? recordId
+        ? [
+            {
+              id: recordId,
+              label: recordDisplayName(context.record) ?? recordId,
+            },
+          ]
+        : []
+      : (context.selectedTargets ??
+        (context.selectedIds ?? []).map((id) => ({ id, label: id })));
+  return targets.length ? { targets, getDependencies } : null;
+}
+
 function isVisible(
   action: RuntimeActionDefinition,
   context: ModuleActionContext,
