@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**722 records** — 501 bugs under [`docs/bugs/`](../bugs/), 221 non-bug items under [`items/`](items/).
+**723 records** — 502 bugs under [`docs/bugs/`](../bugs/), 221 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,12 +13,12 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 240 |
+| Open (active work) | 241 |
 | Blocked | 3 |
-| Deferred | 117 |
+| Deferred | 116 |
 | Awaiting a product decision | 9 |
-| Completed / closed | 353 |
-| **Open CRITICAL** | **6** |
+| Completed / closed | 354 |
+| **Open CRITICAL** | **7** |
 | **Open HIGH** | **103** |
 | **Awaiting Architect triage** | **0** |
 
@@ -26,7 +26,7 @@ see [`README.md`](README.md) for why.
 
 | Severity | Count |
 |---|---|
-| CRITICAL | 6 |
+| CRITICAL | 7 |
 | HIGH | 103 |
 | MEDIUM | 109 |
 | LOW | 22 |
@@ -45,7 +45,7 @@ see [`README.md`](README.md) for why.
 | INTEGRATION | 5 |
 | PERFORMANCE | 15 |
 | PRODUCT_DECISION | 2 |
-| SECURITY | 22 |
+| SECURITY | 23 |
 | STATE_MACHINE | 4 |
 | TECH_DEBT | 7 |
 | TENANT_ISOLATION | 3 |
@@ -59,14 +59,14 @@ see [`README.md`](README.md) for why.
 | OPEN | 45 |
 | IN_PROGRESS | 1 |
 | BLOCKED | 3 |
-| DEFERRED | 117 |
+| DEFERRED | 116 |
 | PRODUCT_DECISION | 9 |
-| FIXED | 172 |
+| FIXED | 173 |
 | VERIFIED | 218 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
 | READY | 22 |
-| DONE | 121 |
+| DONE | 122 |
 
 ## All records
 
@@ -99,6 +99,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3155](../../docs/bugs/BUG-3155-fieldsecurityrule-masking-is-enforced-only-in-the-browser-th.md) | FieldSecurityRule masking is enforced only in the browser; the API sends the unmasked value | AUTHORIZATION | CRITICAL | P0 | OPEN | api:employees | FIX_NOW |
 | [BUG-3580](../../docs/bugs/BUG-3580-agreement-preview-documents-print-unresolved-placeholders.md) | Agreement preview documents print unresolved placeholders | BUG | CRITICAL | P0 | FIXED | api:contracts | DONE |
 | [BUG-3581](../../docs/bugs/BUG-3581-signature-date-placeholders-block-sending-and-freeze-a-fabri.md) | Signature-date placeholders block sending and freeze a fabricated date into signed agreements | BUG | CRITICAL | P0 | FIXED | api:contracts | DONE |
+| [BUG-3862](../../docs/bugs/BUG-3862-new-critical-advisories-in-next-js-and-proxy-addr-and-a-cros.md) | New critical advisories in Next.js and proxy-addr, and a cross-tenant nodemailer advisory, block every develop integration | SECURITY | CRITICAL | P0 | FIXED | apps/web, apps/admin, apps/landing, notifications | FIX_NOW |
 | [ITEM-0131](../../docs/backlog/items/ITEM-0131-production-hr-and-payroll-data-has-no-backup-the-database-is.md) | Production HR and payroll data has no backup: the database is on the Neon free plan | INFRA | CRITICAL | P0 | PRODUCT_DECISION | services/api | PRODUCT_DECISION |
 | [BUG-1494](../../docs/bugs/BUG-1494-git-worktree-remove-follows-node-modules-junctions-and-delet.md) | git worktree remove follows node_modules junctions and deletes the primary checkout | INFRA | CRITICAL | P1 | VERIFIED | scripts | DONE |
 | [BUG-0049](../../docs/bugs/BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur.md) | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | P0 | VERIFIED | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | DONE |
@@ -321,7 +322,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0097](../../docs/backlog/items/ITEM-0097-a-saved-column-preference-could-hide-the-column-that-identif.md) | A saved column preference could hide the column that identifies the row | UX | HIGH | P1 | DONE | apps/admin, e2e | DONE |
 | [ITEM-0103](../../docs/backlog/items/ITEM-0103-deployment-check-the-composed-tenant-workspace-host-must-res.md) | Deployment check: the composed tenant workspace host must resolve | TEST_GAP | HIGH | P1 | DONE | web, tenant-domains | DONE |
 | [ITEM-0122](../../docs/backlog/items/ITEM-0122-fifteen-production-advisories-have-no-disposition-so-the-ci-.md) | Fifteen production advisories have no disposition, so the CI advisory gate fails on every branch including main | SECURITY | HIGH | P1 | DONE | ci, dependencies | DONE |
-| [ITEM-0123](../../docs/backlog/items/ITEM-0123-multer-carries-three-high-advisories-and-the-override-that-f.md) | multer carries three high advisories and the override that fixes it cannot be applied without a full re-resolve | SECURITY | HIGH | P1 | DEFERRED | dependencies, ci | DEFER |
+| [ITEM-0123](../../docs/backlog/items/ITEM-0123-multer-carries-three-high-advisories-and-the-override-that-f.md) | multer carries three high advisories and the override that fixes it cannot be applied without a full re-resolve | SECURITY | HIGH | P1 | DONE | dependencies, ci | DONE |
 | [ITEM-0124](../../docs/backlog/items/ITEM-0124-production-advisory-gate-blocks-every-release-to-main-and-np.md) | Production advisory gate blocks every release to main, and npm overrides are not honoured in the lockfile | SECURITY | HIGH | P1 | DONE | scripts/check-production-advisories.mjs | DONE |
 | [ITEM-0172](../../docs/backlog/items/ITEM-0172-wire-debounced-search-and-the-openable-label-into-the-metada.md) | Wire debounced search and the openable label into the metadata-driven record-form lookup call site | FOLLOW_UP | HIGH | P1 | DONE | apps/web | DONE |
 | [ITEM-0208](../../docs/backlog/items/ITEM-0208-production-neon-database-exceeded-its-data-transfer-quota-an.md) | Production Neon database exceeded its data transfer quota and failed two deploys | INFRA | HIGH | P1 | DONE | services/api | DONE |

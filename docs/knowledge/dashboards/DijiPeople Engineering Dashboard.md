@@ -7,13 +7,13 @@
 
 | | |
 |---|---|
-| Open CRITICAL | **6** |
+| Open CRITICAL | **7** |
 | Open HIGH | **103** |
-| Open total | 240 |
+| Open total | 241 |
 | Blocked | 3 |
 | Awaiting a product decision | 9 |
-| Deferred | 117 |
-| Completed | 353 |
+| Deferred | 116 |
+| Completed | 354 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -26,6 +26,7 @@
 | [[BUG-3155-fieldsecurityrule-masking-is-enforced-only-in-the-browser-th|BUG-3155]] | FieldSecurityRule masking is enforced only in the browser; the API sends the unmasked value | AUTHORIZATION | CRITICAL | OPEN | api:employees | FIX_NOW |
 | [[BUG-3580-agreement-preview-documents-print-unresolved-placeholders|BUG-3580]] | Agreement preview documents print unresolved placeholders | BUG | CRITICAL | FIXED | api:contracts | DONE |
 | [[BUG-3581-signature-date-placeholders-block-sending-and-freeze-a-fabri|BUG-3581]] | Signature-date placeholders block sending and freeze a fabricated date into signed agreements | BUG | CRITICAL | FIXED | api:contracts | DONE |
+| [[BUG-3862-new-critical-advisories-in-next-js-and-proxy-addr-and-a-cros|BUG-3862]] | New critical advisories in Next.js and proxy-addr, and a cross-tenant nodemailer advisory, block every develop integration | SECURITY | CRITICAL | FIXED | apps/web, apps/admin, apps/landing, notifications | FIX_NOW |
 
 ## Open High Bugs
 
@@ -208,6 +209,7 @@
 | [[BUG-3152-post-users-userid-roles-lets-a-delegated-role-assignment-adm|BUG-3152]] | POST /users/:userId/roles lets a delegated role-assignment admin self-grant GLOBAL_ADMIN | AUTHORIZATION | CRITICAL | FIXED | api:users/users.service.ts, api:users/users.controller.ts | DONE |
 | [[BUG-3580-agreement-preview-documents-print-unresolved-placeholders|BUG-3580]] | Agreement preview documents print unresolved placeholders | BUG | CRITICAL | FIXED | api:contracts | DONE |
 | [[BUG-3581-signature-date-placeholders-block-sending-and-freeze-a-fabri|BUG-3581]] | Signature-date placeholders block sending and freeze a fabricated date into signed agreements | BUG | CRITICAL | FIXED | api:contracts | DONE |
+| [[BUG-3862-new-critical-advisories-in-next-js-and-proxy-addr-and-a-cros|BUG-3862]] | New critical advisories in Next.js and proxy-addr, and a cross-tenant nodemailer advisory, block every develop integration | SECURITY | CRITICAL | FIXED | apps/web, apps/admin, apps/landing, notifications | FIX_NOW |
 | [[BUG-1494-git-worktree-remove-follows-node-modules-junctions-and-delet|BUG-1494]] | git worktree remove follows node_modules junctions and deletes the primary checkout | INFRA | CRITICAL | VERIFIED | scripts | DONE |
 | [[BUG-0049-report-only-ci-jobs-swallow-security-and-database-e2e-failur|BUG-0049]] | Report-only CI jobs swallow security and database E2E failures | INFRA | HIGH | VERIFIED | .github/workflows, services/api/src/common/constants, services/api/test, docs/qa | DONE |
 | [[BUG-0052-production-dependency-graph-carries-critical-and-high-securi|BUG-0052]] | Production dependency graph carries critical and high security advisories | SECURITY | HIGH | VERIFIED | package-lock.json, apps/agent-desktop, apps/web, apps/admin, apps/landing, services/api | DONE |
@@ -790,7 +792,7 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 501 |
+| Bug records | 502 |
 | Backlog items | 221 |
 | Known bug patterns | 35 |
 | QA runs | 38 |

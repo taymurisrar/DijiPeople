@@ -3,16 +3,16 @@ ID: ITEM-0123
 aliases: [ITEM-0123]
 Title: multer carries three high advisories and the override that fixes it cannot be applied without a full re-resolve
 Type: SECURITY
-Status: DEFERRED
+Status: DONE
 Priority: P1
 Severity: HIGH
 AffectedModules: [dependencies, ci]
 Source: ARCHITECT
 OwnerAgent: architect
-ArchitectDisposition: DEFER
+ArchitectDisposition: DONE
 CreatedAt: 2026-09-09
-UpdatedAt: 2026-09-09
-RelatedBug: 
+UpdatedAt: 2026-10-07
+RelatedBug: BUG-3862
 RelatedQA: 
 RelatedADR: 
 RelatedImplementation:
@@ -134,6 +134,7 @@ and cleared 40 advisories.
 
 ## History
 
+- 2026-10-07 — DONE. The removal trigger fired: @nestjs/platform-express 11.2.7 pins multer 2.4.0. Upgraded under BUG-3862, and the multer and @nestjs/platform-express dispositions were removed from scripts/check-production-advisories.mjs.
 - 2026-09-09 — created at `aff47c47`, when three high advisories were published
   between a branch's CI run and its release PR's run, sixteen minutes apart.
 
@@ -141,6 +142,7 @@ and cleared 40 advisories.
 
 ## Related
 
+- Bug — [[BUG-3862]]
 - Modules — [[ci-architecture]]
 
 <!-- GRAPH:END -->

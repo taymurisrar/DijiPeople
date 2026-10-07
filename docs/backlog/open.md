@@ -23,6 +23,7 @@ _None._
 | [BUG-3155](../../docs/bugs/BUG-3155-fieldsecurityrule-masking-is-enforced-only-in-the-browser-th.md) | FieldSecurityRule masking is enforced only in the browser; the API sends the unmasked value | AUTHORIZATION | CRITICAL | P0 | OPEN | api:employees | FIX_NOW |
 | [BUG-3580](../../docs/bugs/BUG-3580-agreement-preview-documents-print-unresolved-placeholders.md) | Agreement preview documents print unresolved placeholders | BUG | CRITICAL | P0 | FIXED | api:contracts | DONE |
 | [BUG-3581](../../docs/bugs/BUG-3581-signature-date-placeholders-block-sending-and-freeze-a-fabri.md) | Signature-date placeholders block sending and freeze a fabricated date into signed agreements | BUG | CRITICAL | P0 | FIXED | api:contracts | DONE |
+| [BUG-3862](../../docs/bugs/BUG-3862-new-critical-advisories-in-next-js-and-proxy-addr-and-a-cros.md) | New critical advisories in Next.js and proxy-addr, and a cross-tenant nodemailer advisory, block every develop integration | SECURITY | CRITICAL | P0 | FIXED | apps/web, apps/admin, apps/landing, notifications | FIX_NOW |
 
 ## HIGH
 

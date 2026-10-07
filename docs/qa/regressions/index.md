@@ -6894,3 +6894,17 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — without the catalog entry every case that expects an entry finds none. |
 | **Fixed** | 2026-09-27, branch `agent/claims-navigation` |
 | **Active** | yes |
+
+### REG-646 — Critical advisories reached the production dependency graph
+
+| | |
+|---|---|
+| **Bug class** | `dependency-advisory-drift` |
+| **Module** | `scripts` |
+| **Bug record** | BUG-3862 |
+| **Root cause** | Advisories published after the lockfile was committed: a Next.js RCE in next/og, proxy-addr IP spoofing, cross-tenant nodemailer SMTP credential disclosure and new multer DoS. Fixed by upgrading within semver without re-resolving the lockfile, and dispositioning the unfixable mammoth chain at call-site level. |
+| **Regression test** | `scripts/check-production-advisories.mjs` (run by CI on every push; fails on any critical or undocumented production advisory, or a stale disposition). |
+| **Scenario** | QA-PLATFORM-045 — Production dependency graph has no critical or undocumented advisory. |
+| **Fails without the fix** | Yes — at 9714f85b it exits 1 naming next and proxy-addr as critical. |
+| **Fixed** | 2026-10-07, branch `agent/security-advisories-2026-10` |
+| **Active** | yes |
