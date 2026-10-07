@@ -23,6 +23,7 @@ _None._
 | [BUG-3155](../../docs/bugs/BUG-3155-fieldsecurityrule-masking-is-enforced-only-in-the-browser-th.md) | FieldSecurityRule masking is enforced only in the browser; the API sends the unmasked value | AUTHORIZATION | CRITICAL | P0 | OPEN | api:employees | FIX_NOW |
 | [BUG-3580](../../docs/bugs/BUG-3580-agreement-preview-documents-print-unresolved-placeholders.md) | Agreement preview documents print unresolved placeholders | BUG | CRITICAL | P0 | FIXED | api:contracts | DONE |
 | [BUG-3581](../../docs/bugs/BUG-3581-signature-date-placeholders-block-sending-and-freeze-a-fabri.md) | Signature-date placeholders block sending and freeze a fabricated date into signed agreements | BUG | CRITICAL | P0 | FIXED | api:contracts | DONE |
+| [BUG-3862](../../docs/bugs/BUG-3862-new-critical-advisories-in-next-js-and-proxy-addr-and-a-cros.md) | New critical advisories in Next.js and proxy-addr, and a cross-tenant nodemailer advisory, block every develop integration | SECURITY | CRITICAL | P0 | FIXED | apps/web, apps/admin, apps/landing, notifications | FIX_NOW |
 
 ## HIGH
 
@@ -127,6 +128,7 @@ _None._
 | [BUG-3697](../../docs/bugs/BUG-3697-a-custom-field-added-to-a-system-module-has-nowhere-to-store.md) | A custom field added to a system module has nowhere to store its values | DATA_INTEGRITY | HIGH | P1 | FIXED | customization, employees | FIX_NOW |
 | [BUG-3702](../../docs/bugs/BUG-3702-adding-a-field-to-a-package-s-own-custom-module-demoted-the-.md) | Adding a field to a package's own custom module demoted the module to a reference | DATA_INTEGRITY | HIGH | P1 | FIXED | customization | DONE |
 | [BUG-3809](../../docs/bugs/BUG-3809-a-tenant-admin-can-create-document-types-and-categories-ever.md) | A tenant admin can create document types and categories every tenant sees | TENANT_ISOLATION | HIGH | P1 | FIXED | documents | FIX_NOW |
+| [BUG-3843](../../docs/bugs/BUG-3843-customization-hides-packages-modules-sidebar-designer-and-pu.md) | Customization hides Packages, Modules, Sidebar Designer and Publish Center behind a role gate ADR-0013 removed | AUTHORIZATION | HIGH | P1 | FIXED | apps/web, customization | FIX_NOW |
 | [ITEM-0133](../../docs/backlog/items/ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no.md) | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | P2 | READY | services/api/test | PLAN_REQUIRED |
 | [ITEM-0134](../../docs/backlog/items/ITEM-0134-the-payroll-run-engine-has-no-tests.md) | The payroll run engine has no tests | TEST_GAP | HIGH | P2 | READY | api:payroll | PLAN_REQUIRED |
 | [ITEM-0136](../../docs/backlog/items/ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-.md) | electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major | SECURITY | HIGH | P2 | READY | apps/agent-desktop | FIX_NOW |
@@ -230,6 +232,7 @@ _None._
 | [BUG-3787](../../docs/bugs/BUG-3787-lookup-custom-fields-on-custom-modules-offer-no-options.md) | Lookup custom fields on custom modules offer no options | BUG | MEDIUM | P2 | FIXED | customization | FIX_NOW |
 | [BUG-3800](../../docs/bugs/BUG-3800-three-entity-lookups-refuse-the-page-size-and-search-the-for.md) | Three entity lookups refuse the page size and search the form sends | BUG | MEDIUM | P2 | FIXED | organization, payroll | FIX_NOW |
 | [BUG-3830](../../docs/bugs/BUG-3830-claims-has-no-sidebar-entry-so-its-screens-are-reachable-onl.md) | Claims has no sidebar entry, so its screens are reachable only by URL | UX | MEDIUM | P2 | FIXED | claims | FIX_NOW |
+| [BUG-3844](../../docs/bugs/BUG-3844-two-factor-authentication-cannot-be-found-in-the-tenant-web-.md) | Two-factor authentication cannot be found in the tenant web app or the platform admin app | UX | MEDIUM | P2 | FIXED | apps/web, apps/admin, auth | FIX_NOW |
 | [ITEM-0009](../../docs/backlog/items/ITEM-0009-no-observability-platform-exists.md) | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | P2 | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [ITEM-0020](../../docs/backlog/items/ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns.md) | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | P2 | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [ITEM-0022](../../docs/backlog/items/ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur.md) | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | P2 | READY | api:super-admin, apps/admin | PLAN_REQUIRED |

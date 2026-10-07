@@ -1,11 +1,15 @@
-import Link from "next/link";
+import { StandardModuleListPage } from "@/app/components/runtime";
 import { getSessionUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
+import { buildStandardRouteRuntime } from "@/lib/runtime/modules/standard-module-route-helpers";
+import {
+  claimRuntimeSpec,
+  toClaimRuntimeRecord,
+} from "@/lib/runtime/modules/claims-runtime-specs";
 import { PERMISSION_KEYS } from "@/lib/security-keys";
 import { apiRequestJson } from "@/lib/server-api";
-import { Button } from "@/app/components/ui/button";
 import { AccessDeniedState } from "../_components/access-denied-state";
-import { ClaimRecord } from "./claim-types";
+import type { ClaimRecord } from "./claim-types";
 
 export default async function ClaimsPage() {
   const user = await getSessionUser();
@@ -21,55 +25,19 @@ export default async function ClaimsPage() {
     );
   }
   const claims = await apiRequestJson<ClaimRecord[]>("/claims");
-  const canCreate = hasPermission(
-    user.permissionKeys,
-    PERMISSION_KEYS.CLAIMS_CREATE,
-  );
+  const runtime = buildStandardRouteRuntime({
+    pageKind: "list",
+    sessionUser: user,
+    spec: claimRuntimeSpec,
+  });
   return (
     <div className="grid gap-6">
-      <section className="rounded-[28px] border border-border bg-surface p-8 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-sm uppercase tracking-[0.18em] text-muted">
-              Claims
-            </p>
-            <h2 className="mt-3 font-serif text-4xl text-foreground">
-              Claims & Reimbursements
-            </h2>
-            <p className="mt-3 max-w-3xl text-muted">
-              Review employee claims and move approved reimbursements into
-              payroll.
-            </p>
-          </div>
-          {canCreate ? <Button href="/claims/new">New claim</Button> : null}
-        </div>
-      </section>
-      <section className="grid gap-3">
-        {claims.length ? (
-          claims.map((claim) => (
-            <Link
-              className="rounded-2xl border border-border bg-white p-4 transition hover:border-accent/40"
-              href={`/claims/${claim.id}`}
-              key={claim.id}
-            >
-              <div className="flex flex-wrap justify-between gap-3">
-                <div>
-                  <p className="font-semibold text-foreground">{claim.title}</p>
-                  <p className="text-sm text-muted">
-                    {claim.employee?.firstName} {claim.employee?.lastName} /{" "}
-                    {claim.status}
-                  </p>
-                </div>
-                <p className="font-semibold">
-                  {claim.currencyCode} {claim.approvedAmount}
-                </p>
-              </div>
-            </Link>
-          ))
-        ) : (
-          <p className="text-sm text-muted">No claims found.</p>
-        )}
-      </section>
+      <StandardModuleListPage
+        records={claims.map(toClaimRuntimeRecord)}
+        runtime={runtime}
+        spec={claimRuntimeSpec}
+        title="Claims & Reimbursements"
+      />
     </div>
   );
 }

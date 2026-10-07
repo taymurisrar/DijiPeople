@@ -98,8 +98,7 @@ claims). Branch `agent/claims-navigation`.
 
 ## QA Retest
 
-QA-SETTINGS-037 — navigation spec PASS (5 cases); production check after
-release.
+QA-SETTINGS-037 — navigation spec PASS (5 cases). Production, 2026-09-27, after release PR #92 (`cea41518`): the sidebar shows Claims between Reports & Analytics and Payroll, and it opens `/claims`.
 
 ## History
 

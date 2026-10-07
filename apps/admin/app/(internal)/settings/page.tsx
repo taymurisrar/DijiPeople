@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ArrowRight, Building2, Bug, CreditCard, DatabaseBackup, FileSignature, Handshake, Headphones, Mail, MonitorSmartphone, Palette, Scale, Search, Settings, ShieldCheck, SlidersHorizontal, Tags, Users, Workflow } from "lucide-react";
+import { ArrowRight, Building2, Bug, CreditCard, DatabaseBackup, FileSignature, Handshake, Headphones, KeyRound, Mail, MonitorSmartphone, Palette, Scale, Search, Settings, ShieldCheck, SlidersHorizontal, Tags, Users, Workflow } from "lucide-react";
 import { PageHeader } from "@/app/_components/ui/page-header";
 import type { SettingsCardProps } from "@/app/_components/settings/settings-card";
 
@@ -42,6 +42,8 @@ const groups: Group[] = [
   { title: "Security", description: "Platform users, roles, and policies.", items: [
     { title: "Users & access", description: "Platform administrators, roles, and account state.", href: "/settings/users", icon: Users },
     { title: "Security policies", description: "Authentication and administrative access rules.", href: "/settings/security", icon: ShieldCheck },
+    // The operator's own MFA lives on /security, which only the avatar menu reached; people looking for it under Settings found nothing.
+    { title: "Two-factor authentication", description: "Turn on, replace recovery codes for, or turn off your own two-factor sign-in.", href: "/security", icon: KeyRound },
   ]},
   { title: "Integrations", description: "External service connectivity.", items: [
     { title: "Stripe", description: "Connection, synchronization, and webhooks.", href: "/settings/integrations/stripe", icon: CreditCard },

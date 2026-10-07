@@ -35,6 +35,13 @@ const SHELL_MARKERS = [
   "StandardModuleRecordPage",
   "ModuleRecordPage",
   "EmployeeRuntimeFormWrapper",
+  /*
+   * EXECPLAN-0044 wave 2 — every claim record route (/claims and /me/claims)
+   * renders this wrapper, which renders StandardModuleRecordPage itself; it
+   * exists only to build the claims data adapter on the client.
+   * See claims/_components/claim-record-page.tsx.
+   */
+  "ClaimRecordPage",
 ] as const;
 
 /**
@@ -44,6 +51,7 @@ const SHELL_MARKERS = [
 const CONFORMING_ROUTES = [
   "approvals/[approvalId]/page.tsx",
   "attendance/[entryId]/page.tsx",
+  "claims/[claimId]/page.tsx",
   "benefits/assignments/[id]/page.tsx",
   "customers/[customerId]/page.tsx",
   // BUG-3494 — one route for every published custom module.
@@ -52,6 +60,7 @@ const CONFORMING_ROUTES = [
   "employees/[employeeId]/page.tsx",
   "leaves/[id]/page.tsx",
   "loans/[id]/page.tsx",
+  "me/claims/[claimId]/page.tsx",
   "payroll/calendars/[calendarId]/page.tsx",
   "payroll/cycles/[cycleId]/page.tsx",
   "payroll/employee-compensation/[compensationId]/page.tsx",
@@ -78,13 +87,9 @@ const JUSTIFIED_EXCEPTIONS: Record<string, string> = {
     "Structural exception (record-page-layout-contract.md): a single-decision approval screen, not a browsable record with tabs.",
   "business-trips/[tripId]/page.tsx":
     "Not yet migrated — EXECPLAN-0044 wave 2 (claims, loans and business trips).",
-  "claims/[claimId]/page.tsx":
-    "Not yet migrated — EXECPLAN-0044 wave 2 (claims, loans and business trips).",
   "inbox/[notificationId]/page.tsx":
     "Not yet migrated — EXECPLAN-0044 wave 5 (inbox).",
   "me/business-trips/[tripId]/page.tsx":
-    "Not yet migrated — EXECPLAN-0044 wave 2 (claims, loans and business trips).",
-  "me/claims/[claimId]/page.tsx":
     "Not yet migrated — EXECPLAN-0044 wave 2 (claims, loans and business trips).",
   "me/payslips/[payslipId]/page.tsx":
     "Structural exception (record-page-layout-contract.md): a generated, immutable document view, not a field-and-tab record.",

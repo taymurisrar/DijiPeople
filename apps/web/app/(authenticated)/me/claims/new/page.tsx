@@ -1,8 +1,14 @@
 import { getSessionUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
+import { withRouteCustomFields } from "@/lib/runtime/custom-fields-server";
+import {
+  buildStandardRouteRuntime,
+  resolveStandardActiveForm,
+} from "@/lib/runtime/modules/standard-module-route-helpers";
+import { myClaimRuntimeSpec } from "@/lib/runtime/modules/claims-runtime-specs";
 import { PERMISSION_KEYS } from "@/lib/security-keys";
 import { AccessDeniedState } from "../../../_components/access-denied-state";
-import { ClaimForm } from "../../../claims/_components/claim-form";
+import { ClaimRecordPage } from "../../../claims/_components/claim-record-page";
 import { loadDefaultClaimCurrency } from "../../../claims/default-claim-currency";
 
 export default async function NewMyClaimPage() {
@@ -18,28 +24,29 @@ export default async function NewMyClaimPage() {
       />
     );
   }
+  const [runtime, currencyCode] = await Promise.all([
+    withRouteCustomFields(
+      buildStandardRouteRuntime({
+        pageKind: "create",
+        sessionUser: user,
+        spec: myClaimRuntimeSpec,
+      }),
+    ),
+    loadDefaultClaimCurrency(),
+  ]);
   return (
     <div className="grid gap-6">
-      <section className="rounded-[28px] border border-border bg-surface p-8 shadow-sm">
-        <p className="text-sm uppercase tracking-[0.18em] text-muted">
-          Self Service
-        </p>
-        <h2 className="mt-3 font-serif text-4xl text-foreground">New claim</h2>
-      </section>
-      <ClaimForm
-        basePath="/api/me/claims"
-        defaultCurrencyCode={await loadDefaultClaimCurrency()}
-        detailBasePath="/me/claims"
-        allowEmployeePicker={false}
-        canEditHeader
-        canSubmit={hasPermission(
-          user.permissionKeys,
-          PERMISSION_KEYS.CLAIMS_CREATE,
+      <ClaimRecordPage
+        activeForm={resolveStandardActiveForm(
+          runtime.metadata.forms,
+          "",
+          "quickCreate",
         )}
-        canManagerApprove={false}
-        canPayrollApprove={false}
-        canReject={false}
-        canCancel={false}
+        mode="create"
+        record={{ currencyCode }}
+        runtime={runtime}
+        surface="self"
+        title="New claim"
       />
     </div>
   );

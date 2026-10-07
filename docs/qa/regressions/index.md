@@ -6894,3 +6894,45 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — without the catalog entry every case that expects an entry finds none. |
 | **Fixed** | 2026-09-27, branch `agent/claims-navigation` |
 | **Active** | yes |
+
+### REG-644 — Customization tiles were hidden behind a role gate
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-step` |
+| **Module** | `apps/web/app/(authenticated)/settings/_lib` |
+| **Bug record** | BUG-3843 |
+| **Root cause** | ADR-0013 moved Customization to permission-only authorization in the layout, pages and API, but the settings navigation catalog kept a Global Administrator / System Customizer role gate on Modules, Sidebar Designer, Packages and Publish Center. A System Admin holding every customization key never saw them, so package ALM looked absent. Each item now asks for the key its page gate requires and no role. |
+| **Regression test** | `apps/web/app/(authenticated)/settings/_lib/customization-navigation-access.spec.ts` (shown to a non-customizer role holding exactly the page keys; hidden without the page key even for a Global Administrator; no item role-gated). |
+| **Scenario** | QA-SETTINGS-038 — Customization tiles follow page permissions, not roles. |
+| **Fails without the fix** | Yes — 9 of 10 cases fail against the original catalog. |
+| **Fixed** | 2026-10-07, branch `agent/crm-plugin-alm-mfa-claims` |
+| **Active** | yes |
+
+### REG-645 — Two-factor authentication had no entry point
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-step` |
+| **Module** | `apps/web/app/components/security` |
+| **Bug record** | BUG-3844 |
+| **Root cause** | The self-service MFA card was rendered only at the bottom of My Profile beneath the employee form, and nothing linked to it. The account menu now has a Security entry that deep-links to an anchor every My Profile branch wraps the card in. |
+| **Regression test** | `apps/web/app/components/security/account-security-discoverability.spec.ts` (menu link targets the anchor; every card on My Profile sits inside it). |
+| **Scenario** | QA-AUTH-021 — Two-factor authentication is reachable from the account menu and admin Settings. |
+| **Fails without the fix** | Yes — reverting either the menu or My Profile fails one case. |
+| **Fixed** | 2026-10-07, branch `agent/crm-plugin-alm-mfa-claims` |
+| **Active** | yes |
+
+### REG-646 — Critical advisories reached the production dependency graph
+
+| | |
+|---|---|
+| **Bug class** | `dependency-advisory-drift` |
+| **Module** | `scripts` |
+| **Bug record** | BUG-3862 |
+| **Root cause** | Advisories published after the lockfile was committed: a Next.js RCE in next/og, proxy-addr IP spoofing, cross-tenant nodemailer SMTP credential disclosure and new multer DoS. Fixed by upgrading within semver without re-resolving the lockfile, and dispositioning the unfixable mammoth chain at call-site level. |
+| **Regression test** | `scripts/check-production-advisories.mjs` (run by CI on every push; fails on any critical or undocumented production advisory, or a stale disposition). |
+| **Scenario** | QA-PLATFORM-045 — Production dependency graph has no critical or undocumented advisory. |
+| **Fails without the fix** | Yes — at 9714f85b it exits 1 naming next and proxy-addr as critical. |
+| **Fixed** | 2026-10-07, branch `agent/security-advisories-2026-10` |
+| **Active** | yes |

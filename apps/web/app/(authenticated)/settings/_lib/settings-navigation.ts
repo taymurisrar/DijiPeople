@@ -325,7 +325,16 @@ export const settingsNavGroups = [
         description:
           "Configure tenant password, session, invitation, and MFA rules.",
         icon: "lock-keyhole",
-        keywords: ["password", "login", "session", "mfa", "invitation"],
+        keywords: [
+          "password",
+          "login",
+          "session",
+          "mfa",
+          "two-factor",
+          "2fa",
+          "authenticator",
+          "invitation",
+        ],
         requiredAnyPermissions: [NAV_PERMISSION_KEYS.SETTINGS_READ],
       },
       {
@@ -848,6 +857,17 @@ export const settingsNavGroups = [
     summary:
       "Manage modules, packages, and publishing for tenant-specific metadata.",
     icon: "sliders-horizontal",
+    /*
+     * ADR-0013: Customization is authorized by `customization.*` keys, never by
+     * role membership. These four items kept a Global Administrator / System
+     * Customizer role gate after the layout and API dropped theirs (BUG-3374,
+     * BUG-3491), so a System Admin holding every customization key could open
+     * Packages by URL but never saw it — the package ALM screens were
+     * undiscoverable. Each item now asks for the key its page gate adds on top
+     * of the section's `customization.read`
+     * (customization/_lib/customization-page-permissions.json), so a tile is
+     * shown exactly when its page will open.
+     */
     items: [
       {
         key: "tables",
@@ -857,15 +877,7 @@ export const settingsNavGroups = [
           "Configure module labels, icons, descriptions, ownership behavior, and active state.",
         icon: "table-2",
         keywords: ["modules", "tables", "entities", "metadata"],
-        requiredAnyPermissions: [
-          NAV_PERMISSION_KEYS.CUSTOMIZATION_TABLES_READ,
-          PERMISSION_KEYS.CUSTOMIZATION_ACCESS,
-          NAV_PERMISSION_KEYS.SETTINGS_READ,
-        ],
-        requiredAnyRoles: [
-          ROLE_KEYS.GLOBAL_ADMIN,
-          ROLE_KEYS.SYSTEM_CUSTOMIZER,
-        ],
+        requiredAnyPermissions: [PERMISSION_KEYS.CUSTOMIZATION_TABLES_READ],
       },
       {
         key: "sidebar",
@@ -883,15 +895,7 @@ export const settingsNavGroups = [
           "rename",
           "audience",
         ],
-        requiredAnyPermissions: [
-          NAV_PERMISSION_KEYS.CUSTOMIZATION_READ,
-          PERMISSION_KEYS.CUSTOMIZATION_ACCESS,
-          NAV_PERMISSION_KEYS.SETTINGS_READ,
-        ],
-        requiredAnyRoles: [
-          ROLE_KEYS.GLOBAL_ADMIN,
-          ROLE_KEYS.SYSTEM_CUSTOMIZER,
-        ],
+        requiredAnyPermissions: [PERMISSION_KEYS.CUSTOMIZATION_MODULES_MANAGE],
       },
       {
         key: "packages",
@@ -908,15 +912,7 @@ export const settingsNavGroups = [
           "import",
           "export",
         ],
-        requiredAnyPermissions: [
-          NAV_PERMISSION_KEYS.CUSTOMIZATION_READ,
-          PERMISSION_KEYS.CUSTOMIZATION_ACCESS,
-          NAV_PERMISSION_KEYS.SETTINGS_READ,
-        ],
-        requiredAnyRoles: [
-          ROLE_KEYS.GLOBAL_ADMIN,
-          ROLE_KEYS.SYSTEM_CUSTOMIZER,
-        ],
+        requiredAnyPermissions: [PERMISSION_KEYS.CUSTOMIZATION_READ],
       },
       {
         key: "publish-center",
@@ -926,15 +922,7 @@ export const settingsNavGroups = [
           "Validate draft package metadata before publishing. Publish selected is disabled until dependency validation is complete.",
         icon: "send",
         keywords: ["publish", "draft", "metadata", "validation", "packages"],
-        requiredAnyPermissions: [
-          NAV_PERMISSION_KEYS.CUSTOMIZATION_READ,
-          PERMISSION_KEYS.CUSTOMIZATION_ACCESS,
-          NAV_PERMISSION_KEYS.SETTINGS_READ,
-        ],
-        requiredAnyRoles: [
-          ROLE_KEYS.GLOBAL_ADMIN,
-          ROLE_KEYS.SYSTEM_CUSTOMIZER,
-        ],
+        requiredAnyPermissions: [PERMISSION_KEYS.CUSTOMIZATION_READ],
       },
     ],
   },

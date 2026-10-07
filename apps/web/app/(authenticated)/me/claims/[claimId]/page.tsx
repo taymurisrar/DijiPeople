@@ -1,17 +1,24 @@
 import { getSessionUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
+import { withRouteCustomFields } from "@/lib/runtime/custom-fields-server";
+import {
+  buildStandardRouteRuntime,
+  resolveStandardActiveForm,
+} from "@/lib/runtime/modules/standard-module-route-helpers";
+import {
+  myClaimRuntimeSpec,
+  toClaimRuntimeRecord,
+} from "@/lib/runtime/modules/claims-runtime-specs";
 import { PERMISSION_KEYS } from "@/lib/security-keys";
 import { apiRequestJson } from "@/lib/server-api";
-import { Button } from "@/app/components/ui/button";
 import { AccessDeniedState } from "../../../_components/access-denied-state";
-import { isClaimEditable } from "@/lib/runtime/modules/claim-editor";
-import { ClaimRecord } from "../../../claims/claim-types";
+import { ClaimRecordPage } from "../../../claims/_components/claim-record-page";
+import type { ClaimRecord } from "../../../claims/claim-types";
 
 type PageProps = { params: Promise<{ claimId: string }> };
 
 export default async function MyClaimDetailPage({ params }: PageProps) {
-  const { claimId } = await params;
-  const user = await getSessionUser();
+  const [{ claimId }, user] = await Promise.all([params, getSessionUser()]);
   if (
     !user ||
     !hasPermission(user.permissionKeys, PERMISSION_KEYS.CLAIMS_READ_OWN)
@@ -23,49 +30,28 @@ export default async function MyClaimDetailPage({ params }: PageProps) {
       />
     );
   }
-  const claim = await apiRequestJson<ClaimRecord>(`/me/claims/${claimId}`);
-  const canEdit =
-    hasPermission(user.permissionKeys, PERMISSION_KEYS.CLAIMS_CREATE) &&
-    isClaimEditable(claim.status);
+  const claim = await apiRequestJson<ClaimRecord>(
+    `/me/claims/${encodeURIComponent(claimId)}`,
+  );
+  const runtime = await withRouteCustomFields(
+    buildStandardRouteRuntime({
+      pageKind: "detail",
+      recordId: claim.id,
+      sessionUser: user,
+      spec: myClaimRuntimeSpec,
+    }),
+  );
   return (
     <div className="grid gap-6">
-      <section className="rounded-[28px] border border-border bg-surface p-8 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-sm uppercase tracking-[0.18em] text-muted">
-              {claim.status}
-            </p>
-            <h2 className="mt-3 font-serif text-4xl text-foreground">
-              {claim.title}
-            </h2>
-            <p className="mt-3 text-muted">
-              {claim.currencyCode} {claim.approvedAmount}
-            </p>
-          </div>
-          {canEdit ? (
-            <Button href={`/me/claims/${claim.id}/edit`} variant="secondary">
-              Edit
-            </Button>
-          ) : null}
-        </div>
-      </section>
-      <section className="grid gap-3">
-        {claim.lineItems.map((line) => (
-          <div
-            className="rounded-2xl border border-border bg-white p-4"
-            key={line.id}
-          >
-            <div className="flex flex-wrap justify-between gap-3">
-              <p className="font-medium">
-                {line.claimSubType?.name ?? line.claimType?.name}
-              </p>
-              <p>
-                {line.currencyCode} {line.approvedAmount ?? line.amount}
-              </p>
-            </div>
-          </div>
-        ))}
-      </section>
+      <ClaimRecordPage
+        activeForm={resolveStandardActiveForm(runtime.metadata.forms, "")}
+        mode="read"
+        record={toClaimRuntimeRecord(claim)}
+        recordId={claim.id}
+        runtime={runtime}
+        surface="self"
+        title={claim.title}
+      />
     </div>
   );
 }

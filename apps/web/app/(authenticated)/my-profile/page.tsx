@@ -12,6 +12,7 @@ import {
 } from "@/lib/runtime";
 import type { FieldSecurityRule } from "@/lib/runtime/security-runtime.types";
 import { apiRequestJson } from "@/lib/server-api";
+import { ACCOUNT_SECURITY_ANCHOR } from "@/app/components/security/account-security-anchor";
 import { MfaSettingsCard } from "@/app/components/security/mfa-settings-card";
 import { getCurrentEmployee } from "../_lib/current-employee";
 import type { TenantResolvedSettingsResponse } from "../settings/types";
@@ -65,7 +66,9 @@ export default async function MyProfilePage({
           description="An administrator must link this account to an Employee record."
           title="Employee profile not linked."
         />
-        <MfaSettingsCard />
+        <div className="scroll-mt-24" id={ACCOUNT_SECURITY_ANCHOR}>
+          <MfaSettingsCard />
+        </div>
       </div>
     );
   }
@@ -151,7 +154,9 @@ export default async function MyProfilePage({
         record={mapEmployeeRecordToRuntimeValues(employee)}
         runtime={runtime}
       />
-      <MfaSettingsCard />
+      <div className="scroll-mt-24" id={ACCOUNT_SECURITY_ANCHOR}>
+        <MfaSettingsCard />
+      </div>
     </div>
   );
 }

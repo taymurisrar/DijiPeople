@@ -239,6 +239,12 @@ None — all five waves below are independent of each other.
    `me/claims/[claimId]`, `business-trips/[tripId]`,
    `me/business-trips/[tripId]`. (`loans/[id]` is already migrated — this
    wave is the two domains ITEM-0167 grouped it with that are not.)
+   **Claims: DONE 2026-10-07** (branch
+   `agent/crm-plugin-alm-mfa-claims`). The work covers all eight claims
+   routes, admin and self-service, and is spec-driven through
+   `lib/runtime/modules/claims-runtime-specs.ts` and `claims-data.adapter.ts`.
+   The line-item editor stays inside the shell via `tabContent`; see the
+   contract. Business trips remain.
 3. **Payroll runs and payslips** — no migration task: both are structural
    exceptions (see the contract's table). This wave is a no-op by design,
    named here so a future reader does not wonder why "payroll runs and

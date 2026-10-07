@@ -13,7 +13,6 @@ or `BLOCKED_EXTERNAL` with an explicit reason. See
 
 | ID | Title | Type | Severity | Priority | Status | Affected | Architect |
 |---|---|---|---|---|---|---|---|
-| [ITEM-0123](../../docs/backlog/items/ITEM-0123-multer-carries-three-high-advisories-and-the-override-that-f.md) | multer carries three high advisories and the override that fixes it cannot be applied without a full re-resolve | SECURITY | HIGH | P1 | DEFERRED | dependencies, ci | DEFER |
 | [BUG-2626](../../docs/bugs/BUG-2626-dashboard-numbers-render-in-the-visitor-s-browser-locale-ins.md) | Dashboard numbers render in the visitor's browser locale instead of the tenant's | UX | MEDIUM | P2 | DEFERRED | app:web | DEFER |
 | [BUG-3135](../../docs/bugs/BUG-3135-project-allocations-export-has-the-same-row-scope-gap-as-the.md) | Project-allocations export has the same row-scope gap as the employee export, gated by a different permission | AUTHORIZATION | MEDIUM | P2 | DEFERRED | api:projects | DEFER |
 | [BUG-3136](../../docs/bugs/BUG-3136-five-public-read-routes-carry-no-publicratelimitguard.md) | Five public read routes carry no PublicRateLimitGuard | SECURITY | MEDIUM | P2 | DEFERRED | services/api/src/common | DEFER |

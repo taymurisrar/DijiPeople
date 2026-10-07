@@ -7,17 +7,17 @@
 
 | | |
 |---|---|
-| Active sessions | **1** |
+| Active sessions | **0** |
 | Active parent tasks | 4 |
 | Active work packages | 4 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
-| Open CRITICAL | **6** |
-| Open HIGH | 103 |
+| Open CRITICAL | **7** |
+| Open HIGH | 104 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 9 |
+| Owner decisions pending | 10 |
 | QA coverage gaps | 161 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -30,11 +30,11 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 240 |
-| No next action | 240 |
-| Aging — 7d / 30d / 90d | 199 / 16 / 0 |
+| No acceptance criteria | 243 |
+| No next action | 243 |
+| Aging — 7d / 30d / 90d | 240 / 100 / 0 |
 | Architecture and technical debt | 7 |
-| Security gaps | 38 |
+| Security gaps | 40 |
 | Database gaps | 25 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
@@ -47,9 +47,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-| Session | Task | Title | Status | Branch | Target | Leases | Schema |
-|---|---|---|---|---|---|---|---|
-| [[SESSION-0117-claims-missing-from-the-sidebar-add-claims-my-claims-navigat|SESSION-0117]] | — | Claims missing from the sidebar: add Claims / My Claims navigation | ACTIVE | `agent/claims-navigation` | `develop` | — | NO |
+_No session is currently registered as active._
 
 ## Active Tasks and Work Packages
 
@@ -108,6 +106,7 @@ what they own, and what the backlog and QA systems currently say.
 | [[BUG-3155-fieldsecurityrule-masking-is-enforced-only-in-the-browser-th|BUG-3155]] | FieldSecurityRule masking is enforced only in the browser; the API sends the unmasked value | AUTHORIZATION | CRITICAL | OPEN | api:employees | FIX_NOW |
 | [[BUG-3580-agreement-preview-documents-print-unresolved-placeholders|BUG-3580]] | Agreement preview documents print unresolved placeholders | BUG | CRITICAL | FIXED | api:contracts | DONE |
 | [[BUG-3581-signature-date-placeholders-block-sending-and-freeze-a-fabri|BUG-3581]] | Signature-date placeholders block sending and freeze a fabricated date into signed agreements | BUG | CRITICAL | FIXED | api:contracts | DONE |
+| [[BUG-3862-new-critical-advisories-in-next-js-and-proxy-addr-and-a-cros|BUG-3862]] | New critical advisories in Next.js and proxy-addr, and a cross-tenant nodemailer advisory, block every develop integration | SECURITY | CRITICAL | FIXED | apps/web, apps/admin, apps/landing, notifications | FIX_NOW |
 
 ## Owner Decisions Pending
 
@@ -121,6 +120,7 @@ Questions where the engineering is understood and the **product answer is**
 - [[BUG-3182-no-per-tenant-restore-is-possible-restoring-one-tenant-means|BUG-3182]] — **No per-tenant restore is possible: restoring one tenant means rolling back all of them**
 - [[BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-|BUG-3333]] — **Tenant buyers choose their own currency and the three price schedules are not equivalent**
 - [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] — **No multi-factor authentication exists anywhere, including for platform super admins**
+- [[BUG-3845-admin-security-policies-settings-page-is-a-static-mock-that-|BUG-3845]] — **Admin Security policies settings page is a static mock that saves nothing**
 - [[ITEM-0193-decide-whether-the-hr-role-may-manage-notification-events|ITEM-0193]] — **Decide whether the hr role may manage notification events**
 - [[ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins|ITEM-0191]] — **Decide whether custom modules need their own access keys instead of the shared custom-records privilege**
 
@@ -297,10 +297,10 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 240 |
+| Open total | 243 |
 | Blocked | 3 |
-| Deferred | 117 |
-| Awaiting a product decision | 9 |
+| Deferred | 116 |
+| Awaiting a product decision | 10 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

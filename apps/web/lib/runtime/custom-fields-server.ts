@@ -13,6 +13,9 @@ import type { ModuleRuntimeContext } from "./module-runtime.types";
  */
 const MODULE_TABLE_KEYS: Readonly<Record<string, string>> = {
   leaves: "leaveRequests",
+  /* EXECPLAN-0044 — both claim surfaces bind the same `claimRequests` table. */
+  claims: "claimRequests",
+  "me-claims": "claimRequests",
   attendance: "attendanceEntries",
   "payroll-cycles": "payrollCycles",
   "payroll-periods": "payrollPeriods",
