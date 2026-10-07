@@ -8,10 +8,10 @@
 | | |
 |---|---|
 | Open CRITICAL | **7** |
-| Open HIGH | **103** |
-| Open total | 241 |
+| Open HIGH | **104** |
+| Open total | 243 |
 | Blocked | 3 |
-| Awaiting a product decision | 9 |
+| Awaiting a product decision | 10 |
 | Deferred | 116 |
 | Completed | 354 |
 | Awaiting Architect triage | 0 |
@@ -131,6 +131,7 @@
 | [[BUG-3697-a-custom-field-added-to-a-system-module-has-nowhere-to-store|BUG-3697]] | A custom field added to a system module has nowhere to store its values | DATA_INTEGRITY | HIGH | FIXED | customization, employees | FIX_NOW |
 | [[BUG-3702-adding-a-field-to-a-package-s-own-custom-module-demoted-the-|BUG-3702]] | Adding a field to a package's own custom module demoted the module to a reference | DATA_INTEGRITY | HIGH | FIXED | customization | DONE |
 | [[BUG-3809-a-tenant-admin-can-create-document-types-and-categories-ever|BUG-3809]] | A tenant admin can create document types and categories every tenant sees | TENANT_ISOLATION | HIGH | FIXED | documents | FIX_NOW |
+| [[BUG-3843-customization-hides-packages-modules-sidebar-designer-and-pu|BUG-3843]] | Customization hides Packages, Modules, Sidebar Designer and Publish Center behind a role gate ADR-0013 removed | AUTHORIZATION | HIGH | FIXED | apps/web, customization | FIX_NOW |
 | [[ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no|ITEM-0133]] | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | READY | services/api/test | PLAN_REQUIRED |
 | [[ITEM-0134-the-payroll-run-engine-has-no-tests|ITEM-0134]] | The payroll run engine has no tests | TEST_GAP | HIGH | READY | api:payroll | PLAN_REQUIRED |
 | [[ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-|ITEM-0136]] | electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major | SECURITY | HIGH | READY | apps/agent-desktop | FIX_NOW |
@@ -147,6 +148,7 @@
 | [[BUG-3182-no-per-tenant-restore-is-possible-restoring-one-tenant-means|BUG-3182]] | No per-tenant restore is possible: restoring one tenant means rolling back all of them | INFRA | HIGH | PRODUCT_DECISION | api:tenants | PRODUCT_DECISION |
 | [[BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-|BUG-3333]] | Tenant buyers choose their own currency and the three price schedules are not equivalent | DATA_INTEGRITY | HIGH | PRODUCT_DECISION | apps/web, api:billing | PRODUCT_DECISION |
 | [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] | No multi-factor authentication exists anywhere, including for platform super admins | SECURITY | HIGH | PRODUCT_DECISION | api:auth | PRODUCT_DECISION |
+| [[BUG-3845-admin-security-policies-settings-page-is-a-static-mock-that-|BUG-3845]] | Admin Security policies settings page is a static mock that saves nothing | BUG | MEDIUM | PRODUCT_DECISION | apps/admin | PRODUCT_DECISION |
 | [[ITEM-0193-decide-whether-the-hr-role-may-manage-notification-events|ITEM-0193]] | Decide whether the hr role may manage notification events | PRODUCT_DECISION | — | PRODUCT_DECISION | notifications, permissions | PRODUCT_DECISION |
 | [[ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins|ITEM-0191]] | Decide whether custom modules need their own access keys instead of the shared custom-records privilege | PRODUCT_DECISION | — | PRODUCT_DECISION | data, permissions | PRODUCT_DECISION |
 
@@ -371,6 +373,7 @@
 | [[BUG-3697-a-custom-field-added-to-a-system-module-has-nowhere-to-store|BUG-3697]] | A custom field added to a system module has nowhere to store its values | DATA_INTEGRITY | HIGH | FIXED | customization, employees | FIX_NOW |
 | [[BUG-3702-adding-a-field-to-a-package-s-own-custom-module-demoted-the-|BUG-3702]] | Adding a field to a package's own custom module demoted the module to a reference | DATA_INTEGRITY | HIGH | FIXED | customization | DONE |
 | [[BUG-3809-a-tenant-admin-can-create-document-types-and-categories-ever|BUG-3809]] | A tenant admin can create document types and categories every tenant sees | TENANT_ISOLATION | HIGH | FIXED | documents | FIX_NOW |
+| [[BUG-3843-customization-hides-packages-modules-sidebar-designer-and-pu|BUG-3843]] | Customization hides Packages, Modules, Sidebar Designer and Publish Center behind a role gate ADR-0013 removed | AUTHORIZATION | HIGH | FIXED | apps/web, customization | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver|BUG-3501]] | The email provider screen presents a console sink as delivery and offers sink providers in production | UX | MEDIUM | FIXED | notifications, apps/web | PLAN_REQUIRED |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
@@ -543,6 +546,7 @@
 | [[BUG-3787-lookup-custom-fields-on-custom-modules-offer-no-options|BUG-3787]] | Lookup custom fields on custom modules offer no options | BUG | MEDIUM | FIXED | customization | FIX_NOW |
 | [[BUG-3800-three-entity-lookups-refuse-the-page-size-and-search-the-for|BUG-3800]] | Three entity lookups refuse the page size and search the form sends | BUG | MEDIUM | FIXED | organization, payroll | FIX_NOW |
 | [[BUG-3830-claims-has-no-sidebar-entry-so-its-screens-are-reachable-onl|BUG-3830]] | Claims has no sidebar entry, so its screens are reachable only by URL | UX | MEDIUM | FIXED | claims | FIX_NOW |
+| [[BUG-3844-two-factor-authentication-cannot-be-found-in-the-tenant-web-|BUG-3844]] | Two-factor authentication cannot be found in the tenant web app or the platform admin app | UX | MEDIUM | FIXED | apps/web, apps/admin, auth | FIX_NOW |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -718,6 +722,7 @@
 | [[BUG-3787-lookup-custom-fields-on-custom-modules-offer-no-options|BUG-3787]] | Lookup custom fields on custom modules offer no options | BUG | MEDIUM | FIXED | customization | FIX_NOW |
 | [[BUG-3800-three-entity-lookups-refuse-the-page-size-and-search-the-for|BUG-3800]] | Three entity lookups refuse the page size and search the form sends | BUG | MEDIUM | FIXED | organization, payroll | FIX_NOW |
 | [[BUG-3830-claims-has-no-sidebar-entry-so-its-screens-are-reachable-onl|BUG-3830]] | Claims has no sidebar entry, so its screens are reachable only by URL | UX | MEDIUM | FIXED | claims | FIX_NOW |
+| [[BUG-3844-two-factor-authentication-cannot-be-found-in-the-tenant-web-|BUG-3844]] | Two-factor authentication cannot be found in the tenant web app or the platform admin app | UX | MEDIUM | FIXED | apps/web, apps/admin, auth | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -792,7 +797,7 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 502 |
+| Bug records | 505 |
 | Backlog items | 221 |
 | Known bug patterns | 35 |
 | QA runs | 38 |

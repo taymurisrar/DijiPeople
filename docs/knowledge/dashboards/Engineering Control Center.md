@@ -15,9 +15,9 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **7** |
-| Open HIGH | 103 |
+| Open HIGH | 104 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 9 |
+| Owner decisions pending | 10 |
 | QA coverage gaps | 161 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -30,11 +30,11 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 241 |
-| No next action | 241 |
+| No acceptance criteria | 243 |
+| No next action | 243 |
 | Aging — 7d / 30d / 90d | 240 / 100 / 0 |
 | Architecture and technical debt | 7 |
-| Security gaps | 39 |
+| Security gaps | 40 |
 | Database gaps | 25 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
@@ -120,6 +120,7 @@ Questions where the engineering is understood and the **product answer is**
 - [[BUG-3182-no-per-tenant-restore-is-possible-restoring-one-tenant-means|BUG-3182]] — **No per-tenant restore is possible: restoring one tenant means rolling back all of them**
 - [[BUG-3333-tenant-buyers-choose-their-own-currency-and-the-three-price-|BUG-3333]] — **Tenant buyers choose their own currency and the three price schedules are not equivalent**
 - [[ITEM-0132-no-multi-factor-authentication-exists-anywhere-including-for|ITEM-0132]] — **No multi-factor authentication exists anywhere, including for platform super admins**
+- [[BUG-3845-admin-security-policies-settings-page-is-a-static-mock-that-|BUG-3845]] — **Admin Security policies settings page is a static mock that saves nothing**
 - [[ITEM-0193-decide-whether-the-hr-role-may-manage-notification-events|ITEM-0193]] — **Decide whether the hr role may manage notification events**
 - [[ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins|ITEM-0191]] — **Decide whether custom modules need their own access keys instead of the shared custom-records privilege**
 
@@ -296,10 +297,10 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 241 |
+| Open total | 243 |
 | Blocked | 3 |
 | Deferred | 116 |
-| Awaiting a product decision | 9 |
+| Awaiting a product decision | 10 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

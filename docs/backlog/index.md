@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**723 records** — 502 bugs under [`docs/bugs/`](../bugs/), 221 non-bug items under [`items/`](items/).
+**726 records** — 505 bugs under [`docs/bugs/`](../bugs/), 221 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 241 |
+| Open (active work) | 243 |
 | Blocked | 3 |
 | Deferred | 116 |
-| Awaiting a product decision | 9 |
+| Awaiting a product decision | 10 |
 | Completed / closed | 354 |
 | **Open CRITICAL** | **7** |
-| **Open HIGH** | **103** |
+| **Open HIGH** | **104** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,15 +27,15 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 7 |
-| HIGH | 103 |
-| MEDIUM | 109 |
+| HIGH | 104 |
+| MEDIUM | 110 |
 | LOW | 22 |
 
 ## Open by type
 
 | Type | Count |
 |---|---|
-| AUTHORIZATION | 13 |
+| AUTHORIZATION | 14 |
 | BUG | 74 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 24 |
@@ -50,7 +50,7 @@ see [`README.md`](README.md) for why.
 | TECH_DEBT | 7 |
 | TENANT_ISOLATION | 3 |
 | TEST_GAP | 9 |
-| UX | 50 |
+| UX | 51 |
 
 ## All records by status
 
@@ -60,8 +60,8 @@ see [`README.md`](README.md) for why.
 | IN_PROGRESS | 1 |
 | BLOCKED | 3 |
 | DEFERRED | 116 |
-| PRODUCT_DECISION | 9 |
-| FIXED | 173 |
+| PRODUCT_DECISION | 10 |
+| FIXED | 175 |
 | VERIFIED | 218 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
@@ -311,6 +311,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3697](../../docs/bugs/BUG-3697-a-custom-field-added-to-a-system-module-has-nowhere-to-store.md) | A custom field added to a system module has nowhere to store its values | DATA_INTEGRITY | HIGH | P1 | FIXED | customization, employees | FIX_NOW |
 | [BUG-3702](../../docs/bugs/BUG-3702-adding-a-field-to-a-package-s-own-custom-module-demoted-the-.md) | Adding a field to a package's own custom module demoted the module to a reference | DATA_INTEGRITY | HIGH | P1 | FIXED | customization | DONE |
 | [BUG-3809](../../docs/bugs/BUG-3809-a-tenant-admin-can-create-document-types-and-categories-ever.md) | A tenant admin can create document types and categories every tenant sees | TENANT_ISOLATION | HIGH | P1 | FIXED | documents | FIX_NOW |
+| [BUG-3843](../../docs/bugs/BUG-3843-customization-hides-packages-modules-sidebar-designer-and-pu.md) | Customization hides Packages, Modules, Sidebar Designer and Publish Center behind a role gate ADR-0013 removed | AUTHORIZATION | HIGH | P1 | FIXED | apps/web, customization | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -560,6 +561,8 @@ see [`README.md`](README.md) for why.
 | [BUG-3787](../../docs/bugs/BUG-3787-lookup-custom-fields-on-custom-modules-offer-no-options.md) | Lookup custom fields on custom modules offer no options | BUG | MEDIUM | P2 | FIXED | customization | FIX_NOW |
 | [BUG-3800](../../docs/bugs/BUG-3800-three-entity-lookups-refuse-the-page-size-and-search-the-for.md) | Three entity lookups refuse the page size and search the form sends | BUG | MEDIUM | P2 | FIXED | organization, payroll | FIX_NOW |
 | [BUG-3830](../../docs/bugs/BUG-3830-claims-has-no-sidebar-entry-so-its-screens-are-reachable-onl.md) | Claims has no sidebar entry, so its screens are reachable only by URL | UX | MEDIUM | P2 | FIXED | claims | FIX_NOW |
+| [BUG-3844](../../docs/bugs/BUG-3844-two-factor-authentication-cannot-be-found-in-the-tenant-web-.md) | Two-factor authentication cannot be found in the tenant web app or the platform admin app | UX | MEDIUM | P2 | FIXED | apps/web, apps/admin, auth | FIX_NOW |
+| [BUG-3845](../../docs/bugs/BUG-3845-admin-security-policies-settings-page-is-a-static-mock-that-.md) | Admin Security policies settings page is a static mock that saves nothing | BUG | MEDIUM | P2 | PRODUCT_DECISION | apps/admin | PRODUCT_DECISION |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |

@@ -6,14 +6,14 @@ One evergreen plan per product area: scope, risks, the cases that must always
 be covered, and the declared coverage per dimension. QA loads the plan for
 every area a change touches **before** designing anything new.
 
-**Plans: 30** · scenarios across them: 449
+**Plans: 30** · scenarios across them: 451
 
 | Plan | Area | Risk | Status | Scenarios | Related bugs | Verified against |
 |---|---|---|---|---|---|---|
 | [PLAN-008](../../../docs/qa/test-plans/PLAN-008-agent-desktop.md) | agent-desktop | HIGH | CURRENT | 8 | BUG-0033, BUG-0034, BUG-0035, BUG-0036 | `287612d` |
 | [PLAN-022](../../../docs/qa/test-plans/PLAN-022-approvals.md) | approvals | HIGH | CURRENT | 5 | BUG-1968, BUG-2015, BUG-1970, BUG-1969 | `a86362cf` |
 | [PLAN-009](../../../docs/qa/test-plans/PLAN-009-attendance.md) | attendance | CRITICAL | CURRENT | 27 | BUG-0002, BUG-0047 | `287612d` |
-| [PLAN-001](../../../docs/qa/test-plans/PLAN-001-authentication.md) | authentication | CRITICAL | CURRENT | 21 | BUG-0008, BUG-0009, BUG-0010, BUG-0627 | `0c61b7e` |
+| [PLAN-001](../../../docs/qa/test-plans/PLAN-001-authentication.md) | authentication | CRITICAL | CURRENT | 22 | BUG-0008, BUG-0009, BUG-0010, BUG-0627 | `0c61b7e` |
 | [PLAN-002](../../../docs/qa/test-plans/PLAN-002-authorization.md) | authorization | CRITICAL | CURRENT | 29 | BUG-0003, BUG-0004, BUG-0006, BUG-0007, BUG-0047, BUG-0071, BUG-0072 | `287612d` |
 | [PLAN-020](../../../docs/qa/test-plans/PLAN-020-billing.md) | billing | CRITICAL | CURRENT | 31 | BUG-0531, BUG-0533, BUG-0534, BUG-0027, BUG-0030 | `99dc70a` |
 | [PLAN-004](../../../docs/qa/test-plans/PLAN-004-commercial-onboarding.md) | commercial-onboarding | HIGH | CURRENT | 10 | BUG-0011, BUG-0012, BUG-0024, BUG-0027, BUG-0028, BUG-0029, BUG-0030 | `287612d` |
@@ -35,7 +35,7 @@ every area a change touches **before** designing anything new.
 | [PLAN-031](../../../docs/qa/test-plans/PLAN-031-routing.md) | routing | MEDIUM | CURRENT | 1 | BUG-2461 | `39d8ddc4` |
 | [PLAN-011](../../../docs/qa/test-plans/PLAN-011-runtime-modules.md) | runtime-modules | HIGH | CURRENT | 42 | BUG-0019, BUG-0020, BUG-0044 | `287612d` |
 | [PLAN-016](../../../docs/qa/test-plans/PLAN-016-seat-billing.md) | seat-billing | CRITICAL | CURRENT | 5 | — | `39bd665` |
-| [PLAN-021](../../../docs/qa/test-plans/PLAN-021-settings.md) | settings | HIGH | CURRENT | 27 | BUG-0668, BUG-0669 | `d5d9ce7` |
+| [PLAN-021](../../../docs/qa/test-plans/PLAN-021-settings.md) | settings | HIGH | CURRENT | 28 | BUG-0668, BUG-0669 | `d5d9ce7` |
 | [PLAN-018](../../../docs/qa/test-plans/PLAN-018-subscription-changes.md) | subscription-changes | CRITICAL | CURRENT | 2 | — | `ce9bb56` |
 | [PLAN-017](../../../docs/qa/test-plans/PLAN-017-subscription-orders.md) | subscription-orders | CRITICAL | CURRENT | 5 | — | `2051133` |
 | [PLAN-003](../../../docs/qa/test-plans/PLAN-003-tenant-isolation.md) | tenant-isolation | CRITICAL | CURRENT | 14 | BUG-0005 | `0c61b7e` |

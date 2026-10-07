@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { accountSecurityHref } from "@/app/components/security/account-security-anchor";
 
 import { LogoutButton } from "../logout-button";
 import { UserAvatar } from "./user-avatar";
@@ -221,27 +222,31 @@ export function UserMenuDropdown({
             <Link
               href={profileHref}
               onClick={closeMenu}
-              className="
-                group/item
-                flex min-h-11 w-full
-                items-center gap-3
-                rounded-xl
-                px-3 py-2.5
-                text-sm font-medium
-                text-foreground
-                outline-none
-                transition-colors
-                hover:bg-surface
-                hover:text-accent
-                focus-visible:bg-surface
-                focus-visible:ring-2
-                focus-visible:ring-accent
-              "
+              className={ACCOUNT_MENU_LINK_CLASS}
             >
               <ProfileIcon />
 
               <span className="min-w-0 flex-1">
                 My Profile
+              </span>
+
+              <ChevronRightIcon />
+            </Link>
+
+            {/*
+             * Two-factor authentication is self-service but sat at the bottom
+             * of My Profile with nothing pointing at it, so users could not find
+             * it. This goes straight to the card.
+             */}
+            <Link
+              href={accountSecurityHref(profileHref)}
+              onClick={closeMenu}
+              className={ACCOUNT_MENU_LINK_CLASS}
+            >
+              <SecurityIcon />
+
+              <span className="min-w-0 flex-1">
+                Security
               </span>
 
               <ChevronRightIcon />
@@ -409,6 +414,63 @@ function ChevronRightIcon() {
         strokeWidth="1.6"
       />
     </svg>
+  );
+}
+
+const ACCOUNT_MENU_LINK_CLASS = `
+  group/item
+  flex min-h-11 w-full
+  items-center gap-3
+  rounded-xl
+  px-3 py-2.5
+  text-sm font-medium
+  text-foreground
+  outline-none
+  transition-colors
+  hover:bg-surface
+  hover:text-accent
+  focus-visible:bg-surface
+  focus-visible:ring-2
+  focus-visible:ring-accent
+`;
+
+function SecurityIcon() {
+  return (
+    <span
+      aria-hidden="true"
+      className="
+        flex h-8 w-8 shrink-0
+        items-center justify-center
+        rounded-lg
+        border border-border
+        bg-background
+        text-muted
+        transition-colors
+        group-hover/item:border-accent/20
+        group-hover/item:text-accent
+      "
+    >
+      <svg
+        className="h-4 w-4"
+        fill="none"
+        viewBox="0 0 20 20"
+      >
+        <path
+          d="M10 2.75 4.25 5v4.6c0 3.55 2.4 6.55 5.75 7.65 3.35-1.1 5.75-4.1 5.75-7.65V5L10 2.75Z"
+          stroke="currentColor"
+          strokeLinejoin="round"
+          strokeWidth="1.5"
+        />
+
+        <path
+          d="m7.5 10 1.75 1.75L12.75 8.25"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1.5"
+        />
+      </svg>
+    </span>
   );
 }
 
