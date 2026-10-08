@@ -188,6 +188,8 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-3898-platform-health-tile-drill-downs-land-on-panels-that-do-not-|BUG-3898]] | Platform health tile drill-downs land on panels that do not show the signal the tile measures | UX | LOW | OPEN | platform-monitoring | FIX_NOW |
 | [[BUG-3899-the-monitoring-integrations-tab-is-static-and-its-platform-e|BUG-3899]] | The monitoring Integrations tab is static and its platform email badge is hard-coded | UX | LOW | OPEN | platform-monitoring | FIX_NOW |
 | [[BUG-3916-lead-partner-attribution-renders-above-the-record-tabs-on-ev|BUG-3916]] | Lead Partner attribution renders above the record tabs on every tab instead of in a tab | UX | LOW | FIXED | apps/admin, leads | FIX_NOW |
+| [[BUG-4006-expected-domain-refusals-on-record-actions-open-the-technica|BUG-4006]] | Expected domain refusals on record actions open the technical error dialog because the adapter drops request headers | UX | LOW | FIXED | apps/admin | FIX_NOW |
+| [[BUG-4019-partner-record-polish-empty-application-card-clipped-subgrid|BUG-4019]] | Partner record polish: empty application card, clipped subgrid row actions, unfiltered commission lookups, raw ids on commission record | UX | LOW | FIXED | partners, super-admin, apps/admin | FIX_NOW |
 
 ## How to read this
 

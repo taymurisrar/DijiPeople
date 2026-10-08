@@ -12,7 +12,7 @@ see [`README.md`](README.md) for how they stay out of each other's way.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
-| [SESSION-0119](../../docs/sessions/SESSION-0119-partner-module-completion.md) | — | Partner module completion | ACTIVE | `agent/partner-module-completion` | `develop` | — | 2026-10-07T17:43:40.674Z |
+| [SESSION-0119](../../docs/sessions/SESSION-0119-partner-module-completion.md) | TASK-0037 | Partner module completion | ACTIVE | `agent/partner-module-completion` | `develop` | — | 2026-10-08T14:31:27.000Z |
 
 ## Completed
 

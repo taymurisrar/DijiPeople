@@ -241,7 +241,7 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `PartnerLeadReview` | no | `partner-experience` | — |
 | `PartnerOnboardingApplication` | no | `partner-experience` | — |
 | `PartnerOnboardingSubmission` | no | `partner-experience` | — |
-| `PartnerPortalUser` | no | `partners` | — |
+| `PartnerPortalUser` | no | `partner-experience` | — |
 | `PartnerReferralLink` | no | `partners` | — |
 | `PartnerRefreshToken` | no | `partner-experience` | — |
 | `PartnerTimeline` | no | `partners` | — |

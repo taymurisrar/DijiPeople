@@ -8,12 +8,12 @@
 | | |
 |---|---|
 | Open CRITICAL | **8** |
-| Open HIGH | **109** |
-| Open total | 267 |
+| Open HIGH | **110** |
+| Open total | 270 |
 | Blocked | 4 |
 | Awaiting a product decision | 14 |
-| Deferred | 124 |
-| Completed | 354 |
+| Deferred | 125 |
+| Completed | 357 |
 | Awaiting Architect triage | 0 |
 
 ## Open Critical Bugs
@@ -138,6 +138,7 @@
 | [[BUG-3955-partner-save-persists-no-field-but-reports-partner-saved-bec|BUG-3955]] | Partner Save persists no field but reports Partner saved, because the write contract misreads PartialType | BUG | HIGH | FIXED | apps/admin, partners | FIX_NOW |
 | [[BUG-3981-partner-onboarding-invitation-resends-never-arrive-kill-the-|BUG-3981]] | Partner onboarding invitation resends never arrive, kill the old link, return the raw token and report failed sends as success | SECURITY | HIGH | FIXED | partner-experience | FIX_NOW |
 | [[BUG-3995-console-created-partners-had-no-usable-lifecycle-action-and-|BUG-3995]] | Console-created partners had no usable lifecycle action and the review actions failed with an opaque submission error | STATE_MACHINE | HIGH | FIXED | partners, apps/admin | FIX_NOW |
+| [[BUG-4005-reason-prompted-record-commands-suspend-deactivate-reject-le|BUG-4005]] | Reason-prompted record commands (Suspend, Deactivate, Reject, lead Disqualify, contract stage-back) silently do nothing | BUG | HIGH | FIXED | apps/admin | FIX_NOW |
 | [[ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no|ITEM-0133]] | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | READY | services/api/test | PLAN_REQUIRED |
 | [[ITEM-0134-the-payroll-run-engine-has-no-tests|ITEM-0134]] | The payroll run engine has no tests | TEST_GAP | HIGH | READY | api:payroll | PLAN_REQUIRED |
 | [[ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-|ITEM-0136]] | electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major | SECURITY | HIGH | READY | apps/agent-desktop | FIX_NOW |
@@ -391,6 +392,9 @@
 | [[BUG-3955-partner-save-persists-no-field-but-reports-partner-saved-bec|BUG-3955]] | Partner Save persists no field but reports Partner saved, because the write contract misreads PartialType | BUG | HIGH | FIXED | apps/admin, partners | FIX_NOW |
 | [[BUG-3981-partner-onboarding-invitation-resends-never-arrive-kill-the-|BUG-3981]] | Partner onboarding invitation resends never arrive, kill the old link, return the raw token and report failed sends as success | SECURITY | HIGH | FIXED | partner-experience | FIX_NOW |
 | [[BUG-3995-console-created-partners-had-no-usable-lifecycle-action-and-|BUG-3995]] | Console-created partners had no usable lifecycle action and the review actions failed with an opaque submission error | STATE_MACHINE | HIGH | FIXED | partners, apps/admin | FIX_NOW |
+| [[BUG-4005-reason-prompted-record-commands-suspend-deactivate-reject-le|BUG-4005]] | Reason-prompted record commands (Suspend, Deactivate, Reject, lead Disqualify, contract stage-back) silently do nothing | BUG | HIGH | FIXED | apps/admin | FIX_NOW |
+| [[BUG-4007-partner-activation-reports-failed-delivery-as-success-and-ca|BUG-4007]] | Partner activation reports failed delivery as success and cannot retry | STATE_MACHINE | HIGH | VERIFIED | api:partner-experience | DONE |
+| [[BUG-4008-partner-activation-reassigns-a-different-partners-portal-con|BUG-4008]] | Partner activation reassigns a different partners portal contact by email | AUTHORIZATION | HIGH | VERIFIED | api:partner-experience | DONE |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver|BUG-3501]] | The email provider screen presents a console sink as delivery and offers sink providers in production | UX | MEDIUM | FIXED | notifications, apps/web | PLAN_REQUIRED |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
@@ -567,6 +571,7 @@
 | [[BUG-3956-changing-partner-status-from-the-record-header-always-fails-|BUG-3956]] | Changing Partner status from the record header always fails and would bypass the partner state machine | STATE_MACHINE | MEDIUM | FIXED | partners, apps/admin | FIX_NOW |
 | [[BUG-3982-partner-commissions-accept-any-status-jump-and-unverified-li|BUG-3982]] | Partner commissions accept any status jump and unverified links, and agreements change when the partner default commission is edited | DATA_INTEGRITY | MEDIUM | FIXED | partners, contracts | FIX_NOW |
 | [[BUG-3996-a-partner-with-a-never-invited-contact-could-not-be-deleted-|BUG-3996]] | A partner with a never-invited contact could not be deleted and the contact could not be removed | BUG | MEDIUM | FIXED | partners, apps/admin | FIX_NOW |
+| [[BUG-4009-failed-onboarding-resend-overwrites-a-newer-invitation-durin|BUG-4009]] | Failed onboarding resend overwrites a newer invitation during compensation | STATE_MACHINE | MEDIUM | VERIFIED | api:partner-experience | DONE |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -604,9 +609,12 @@
 | [[BUG-3599-generating-an-agreement-in-an-unsupported-format-returns-a-5|BUG-3599]] | Generating an agreement in an unsupported format returns a 500 instead of a 400 | BUG | LOW | FIXED | api:contracts | DONE |
 | [[BUG-3668-saving-agreement-document-fields-skips-the-shared-immutabili|BUG-3668]] | Saving agreement document fields skips the shared immutability check | BUG | LOW | FIXED | api:contracts | DONE |
 | [[BUG-3916-lead-partner-attribution-renders-above-the-record-tabs-on-ev|BUG-3916]] | Lead Partner attribution renders above the record tabs on every tab instead of in a tab | UX | LOW | FIXED | apps/admin, leads | FIX_NOW |
+| [[BUG-4006-expected-domain-refusals-on-record-actions-open-the-technica|BUG-4006]] | Expected domain refusals on record actions open the technical error dialog because the adapter drops request headers | UX | LOW | FIXED | apps/admin | FIX_NOW |
+| [[BUG-4019-partner-record-polish-empty-application-card-clipped-subgrid|BUG-4019]] | Partner record polish: empty application card, clipped subgrid row actions, unfiltered commission lookups, raw ids on commission record | UX | LOW | FIXED | partners, super-admin, apps/admin | FIX_NOW |
 
 ## Recent QA Runs
 
+- [[2026-10-08-partner-module-completion-952b7b58|QA Run — partner module completion]]
 - [[2026-09-27-custom-fields-screens-and-query-e21b757|QA Run — custom-fields-screens-and-query]]
 - [[2026-09-27-custom-fields-every-module-4e32ea2|QA Run — custom-fields-every-module]]
 - [[2026-09-26-task-0033-package-alm-b55afdb|QA Run — task-0033-package-alm]]
@@ -614,7 +622,6 @@
 - [[2026-09-26-custom-field-values-cd777b7|QA Run — custom-field-values]]
 - [[2026-09-13-task-0031-demo-walkthrough-2-local-browser-qa-e253306|QA Run — task-0031-demo-walkthrough-2-local-browser-qa]]
 - [[2026-08-31-reports-analytics-platform-96ff155|QA Run — reports-analytics-platform]]
-- [[2026-08-29-starter-plan-e2e-pass-2-8ab1cbf|QA Run — starter-plan-e2e-pass-2]]
 
 ## Recent Implementations
 
@@ -797,6 +804,8 @@
 | [[BUG-3898-platform-health-tile-drill-downs-land-on-panels-that-do-not-|BUG-3898]] | Platform health tile drill-downs land on panels that do not show the signal the tile measures | UX | LOW | OPEN | platform-monitoring | FIX_NOW |
 | [[BUG-3899-the-monitoring-integrations-tab-is-static-and-its-platform-e|BUG-3899]] | The monitoring Integrations tab is static and its platform email badge is hard-coded | UX | LOW | OPEN | platform-monitoring | FIX_NOW |
 | [[BUG-3916-lead-partner-attribution-renders-above-the-record-tabs-on-ev|BUG-3916]] | Lead Partner attribution renders above the record tabs on every tab instead of in a tab | UX | LOW | FIXED | apps/admin, leads | FIX_NOW |
+| [[BUG-4006-expected-domain-refusals-on-record-actions-open-the-technica|BUG-4006]] | Expected domain refusals on record actions open the technical error dialog because the adapter drops request headers | UX | LOW | FIXED | apps/admin | FIX_NOW |
+| [[BUG-4019-partner-record-polish-empty-application-card-clipped-subgrid|BUG-4019]] | Partner record polish: empty application card, clipped subgrid row actions, unfiltered commission lookups, raw ids on commission record | UX | LOW | FIXED | partners, super-admin, apps/admin | FIX_NOW |
 | [[ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by|ITEM-0080]] | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
 | [[ITEM-0225-re-verify-historical-frontend-dto-contract-drift-400s-agains|ITEM-0225]] | Re-verify historical frontend/DTO contract-drift 400s against current DTOs before resolving them | FOLLOW_UP | — | READY | error-logs | PLAN_REQUIRED |
 
@@ -838,10 +847,10 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 535 |
+| Bug records | 542 |
 | Backlog items | 228 |
 | Known bug patterns | 35 |
-| QA runs | 38 |
+| QA runs | 39 |
 | Engineering history records | 95 |
 | Release records | 10 |
 | Module notes | 31 |

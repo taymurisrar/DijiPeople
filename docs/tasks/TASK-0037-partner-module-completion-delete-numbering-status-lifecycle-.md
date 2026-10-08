@@ -10,8 +10,8 @@ CREATED_AT: 2026-10-07
 AFFECTED_MODULES: [partners, partner-experience, platform-runtime, contracts, super-admin, apps/admin]
 AGENTS: [architect, database, backend-api, frontend, security, qa, reviewer, integrator]
 DEPENDENCIES: WP-03 after WP-02; WP-04 after WP-01; WP-05 after WP-01 and WP-04; WP-06 after WP-03 and WP-04; WP-07 after WP-01; WP-08 after WP-03 to WP-07
-CURRENT_PACKAGE: WP-08
-COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07]
+CURRENT_PACKAGE: FINALIZATION
+COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 1
 FINAL_STATUS:
@@ -58,7 +58,7 @@ Plan: EXECPLAN-0055. Decisions: ADR-0026, ADR-0027.
 | WP-05 | Onboarding invitation hardening | DONE | WP-01, WP-04 | backend-api, security | agent/partner-module-completion | — | — | — | — | — |
 | WP-06 | Commission and agreement inheritance | DONE | WP-03, WP-04 | backend-api | agent/partner-module-completion | — | — | — | — | — |
 | WP-07 | Generic dependency-aware delete | DONE | WP-01 | backend-api, frontend | agent/partner-module-completion | — | — | — | — | — |
-| WP-08 | Admin UX (header, quick-create, tabs) and browser E2E | NOT_STARTED | WP-03, WP-04, WP-05, WP-06, WP-07 | frontend, qa | agent/partner-module-completion | — | — | — | — | — |
+| WP-08 | Admin UX (header, quick-create, tabs) and browser E2E | DONE | WP-03, WP-04, WP-05, WP-06, WP-07 | frontend, qa | agent/partner-module-completion | pending final SHA | PASS | BUG-4005, BUG-4006, BUG-4007, BUG-4008, BUG-4009, BUG-4019 | LOCAL_PASS | PENDING |
 
 ## Assumptions
 
@@ -91,7 +91,29 @@ PRE_TASK_REPO_HEALTH: PASS. Primary is clean on develop `898a6ac3`;
 
 ## Related
 
-- Records — [[BUG-3929]], [[BUG-3930]], [[ITEM-0226]]
+- Records — [[BUG-3929]], [[BUG-3930]], [[BUG-4005]], [[BUG-4006]], [[BUG-4007]], [[BUG-4008]], [[BUG-4009]], [[BUG-4019]], [[ITEM-0226]]
 - Modules — [[partners]], [[super-admin]]
 
 <!-- GRAPH:END -->
+
+## Continuation — 2026-10-08
+
+- Resumed SESSION-0119 at 952b7b58; preserved its 15 dirty paths.
+- Classification remains LARGE FEATURE + UI/UX + SECURITY + DATABASE; current package WP-08.
+- Overlap SAFE_PARALLEL; primary checkout clean, develop 898a6ac3 and main 2d728cf9 synchronized with origin.
+- Frontend completes interrupted field visibility and action-error fixes; QA reuses prior isolated-stack scripts and browser evidence; Security reviews backend boundaries independently.
+- Security findings: activation email delivery failure can strand the new lifecycle, and activation can reassign a contact owned by another partner. Architect disposition FIX_NOW; Backend rework and negative-path QA required before acceptance.
+- Integration target remains develop. Saved plan includes a later production release; release gates and authorization will be evaluated after integration.
+- WP-08 passed fresh strict browser validation, Admin 69/803, API 427/7959,
+  affected builds, type checks, Prisma validation and database preflight.
+- Reviewer status PASS after fixing delivery failure, cross-partner identity
+  reassignment, stale invitation compensation and final-commit compensation.
+- User explicitly authorized the planned production promotion to `main`.
+- Record polish (BUG-4019, REG-662, QA-PARTNER-016):
+  - empty-field hiding;
+  - reachable subgrid row actions;
+  - partner-bound commission lookups;
+  - named commission references.
+
+  Verified in the browser after restarting a stale isolated API, and
+  mutation-tested on both the admin and API sides.

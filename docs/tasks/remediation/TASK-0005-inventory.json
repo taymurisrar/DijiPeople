@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 763,
+    "total_records": 770,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -23816,6 +23816,300 @@
           "apps/admin"
         ],
         "verification_scope": "See docs/bugs/BUG-3996-a-partner-with-a-never-invited-contact-could-not-be-deleted-.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-4005",
+      "type": "BUG",
+      "title": "Reason-prompted record commands (Suspend, Deactivate, Reject, lead Disqualify, contract stage-back) silently do nothing",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-4005-reason-prompted-record-commands-suspend-deactivate-reject-le.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "952b7b58",
+        "created_at": "2026-10-07",
+        "updated_at": "2026-10-08",
+        "resolved_at": "2026-10-08"
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "regressions": [
+        "REG-657"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-055"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-4005-reason-prompted-record-commands-suspend-deactivate-reject-le.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-4006",
+      "type": "UX",
+      "title": "Expected domain refusals on record actions open the technical error dialog because the adapter drops request headers",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-4006-expected-domain-refusals-on-record-actions-open-the-technica.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "952b7b58",
+        "created_at": "2026-10-07",
+        "updated_at": "2026-10-08",
+        "resolved_at": "2026-10-08"
+      },
+      "affected_modules": [
+        "apps/admin"
+      ],
+      "regressions": [
+        "REG-658"
+      ],
+      "qa_scenarios": [
+        "QA-PLATFORM-056"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-4006-expected-domain-refusals-on-record-actions-open-the-technica.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-4007",
+      "type": "STATE_MACHINE",
+      "title": "Partner activation reports failed delivery as success and cannot retry",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-4007-partner-activation-reports-failed-delivery-as-success-and-ca.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "952b7b58",
+        "created_at": "2026-10-08",
+        "updated_at": "2026-10-08",
+        "resolved_at": "2026-10-08"
+      },
+      "affected_modules": [
+        "services/api/src/modules/partner-experience"
+      ],
+      "regressions": [
+        "REG-659"
+      ],
+      "qa_scenarios": [
+        "QA-PARTNER-013"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/partner-experience"
+        ],
+        "verification_scope": "See docs/bugs/BUG-4007-partner-activation-reports-failed-delivery-as-success-and-ca.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-4008",
+      "type": "AUTHORIZATION",
+      "title": "Partner activation reassigns a different partners portal contact by email",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-4008-partner-activation-reassigns-a-different-partners-portal-con.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "952b7b58",
+        "created_at": "2026-10-08",
+        "updated_at": "2026-10-08",
+        "resolved_at": "2026-10-08"
+      },
+      "affected_modules": [
+        "services/api/src/modules/partner-experience"
+      ],
+      "regressions": [
+        "REG-660"
+      ],
+      "qa_scenarios": [
+        "QA-PARTNER-014"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/partner-experience"
+        ],
+        "verification_scope": "See docs/bugs/BUG-4008-partner-activation-reassigns-a-different-partners-portal-con.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-4009",
+      "type": "STATE_MACHINE",
+      "title": "Failed onboarding resend overwrites a newer invitation during compensation",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "VERIFIED",
+      "architect_disposition": "DONE",
+      "source": {
+        "record_path": "docs/bugs/BUG-4009-failed-onboarding-resend-overwrites-a-newer-invitation-durin.md",
+        "provenance": "REVIEWER",
+        "detected_in_sha": "952b7b58",
+        "created_at": "2026-10-08",
+        "updated_at": "2026-10-08",
+        "resolved_at": "2026-10-08"
+      },
+      "affected_modules": [
+        "services/api/src/modules/partner-experience"
+      ],
+      "regressions": [
+        "REG-661"
+      ],
+      "qa_scenarios": [
+        "QA-PARTNER-015"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "services/api/src/modules/partner-experience"
+        ],
+        "verification_scope": "See docs/bugs/BUG-4009-failed-onboarding-resend-overwrites-a-newer-invitation-durin.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-4014",
+      "type": "INFRA",
+      "title": "Regression ID allocator emits four-digit IDs that QA validators truncate",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "DEFERRED",
+      "architect_disposition": "DEFER",
+      "source": {
+        "record_path": "docs/bugs/BUG-4014-regression-id-allocator-emits-four-digit-ids-that-qa-validat.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "952b7b58",
+        "created_at": "2026-10-08",
+        "updated_at": "2026-10-08",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "agent-framework"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "agent-framework"
+        ],
+        "verification_scope": "See docs/bugs/BUG-4014-regression-id-allocator-emits-four-digit-ids-that-qa-validat.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-4019",
+      "type": "UX",
+      "title": "Partner record polish: empty application card, clipped subgrid row actions, unfiltered commission lookups, raw ids on commission record",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-4019-partner-record-polish-empty-application-card-clipped-subgrid.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "952b7b58",
+        "created_at": "2026-10-08",
+        "updated_at": "2026-10-08",
+        "resolved_at": "2026-10-08"
+      },
+      "affected_modules": [
+        "partners",
+        "super-admin",
+        "apps/admin"
+      ],
+      "regressions": [
+        "REG-662"
+      ],
+      "qa_scenarios": [
+        "QA-PARTNER-016"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "partners",
+          "super-admin",
+          "apps/admin"
+        ],
+        "verification_scope": "See docs/bugs/BUG-4019-partner-record-polish-empty-application-card-clipped-subgrid.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

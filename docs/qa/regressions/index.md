@@ -7076,3 +7076,87 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — dropping the never-activated filter fails 4 cases; removing the cascade fails 2. |
 | **Fixed** | 2026-10-08, branch `agent/partner-module-completion` |
 | **Active** | yes |
+
+### REG-657 — Reason-prompted record commands deadlocked in a React transition
+
+| | |
+|---|---|
+| **Bug class** | `silent-degradation` |
+| **Module** | `apps/admin/app/_components/runtime` |
+| **Bug record** | BUG-4005 |
+| **Root cause** | The command bar ran commands inside a React 19 async transition, which withholds state updates until the action resolves; a command awaiting its reason prompt never showed it. Commands now run as plain async with pendingKey as the busy state. |
+| **Regression test** | `apps/admin/lib/runtime/action-bar-no-transition.spec.ts`. |
+| **Scenario** | QA-PLATFORM-055 — Reason-prompted record commands open their prompt and run. |
+| **Fails without the fix** | Yes — restoring the transition-wrapped command bar fails both cases. |
+| **Fixed** | 2026-10-08, branch `agent/partner-module-completion` |
+| **Active** | yes |
+
+### REG-658 — Domain refusals on record actions raised the technical error dialog
+
+| | |
+|---|---|
+| **Bug class** | `silent-degradation` |
+| **Module** | `apps/admin/lib` |
+| **Bug record** | BUG-4006 |
+| **Root cause** | Every failed request raised the blocking dialog unless background-marked, and the runtime adapter dropped any Headers-instance mark by object-spreading it. Reported requests now suppress the dialog for 4xx only; headers merge through Headers. |
+| **Regression test** | `apps/admin/lib/reported-request.spec.ts`. |
+| **Scenario** | QA-PLATFORM-056 — Domain refusals on record actions stay inline without the technical error dialog. |
+| **Fails without the fix** | Yes — restoring the object-spread header merge fails the adapter case. |
+| **Fixed** | 2026-10-08, branch `agent/partner-module-completion` |
+| **Active** | yes |
+
+### REG-659 — Failed partner activation could not be retried
+
+| | |
+|---|---|
+| **Bug class** | `incorrect-state-transition` |
+| **Module** | `services/api/src/modules/partner-experience` |
+| **Bug record** | BUG-4007 |
+| **Root cause** | Activation committed ACTIVE and ignored the delivery result. It now stages a credential, compensates a failed send, and commits lifecycle state only after SENT. |
+| **Regression test** | `services/api/src/modules/partner-experience/partner-activation.workflow.spec.ts`. |
+| **Scenario** | QA-PARTNER-013 — Activation delivery failure keeps the partner retryable. |
+| **Fails without the fix** | Yes — the first attempt leaves ACTIVE and the retry is refused. |
+| **Fixed** | 2026-10-08, branch `agent/partner-module-completion` |
+| **Active** | yes |
+
+### REG-660 — Activation reassigned a different partner's portal identity
+
+| | |
+|---|---|
+| **Bug class** | `authorization-bypass` |
+| **Module** | `services/api/src/modules/partner-experience` |
+| **Bug record** | BUG-4008 |
+| **Root cause** | An email-keyed upsert treated uniqueness as permission to replace partner ownership. Activation now checks ownership first and constrains credential writes to the owning partner. |
+| **Regression test** | `services/api/src/modules/partner-experience/partner-activation.workflow.spec.ts`. |
+| **Scenario** | QA-PARTNER-014 — Activation refuses an email owned by another partner. |
+| **Fails without the fix** | Yes — the original identity's partnerId and credential change. |
+| **Fixed** | 2026-10-08, branch `agent/partner-module-completion` |
+| **Active** | yes |
+
+### REG-661 — Stale onboarding compensation invalidated a newer invitation
+
+| | |
+|---|---|
+| **Bug class** | `lost-update` |
+| **Module** | `services/api/src/modules/partner-experience` |
+| **Bug record** | BUG-4009 |
+| **Root cause** | Failure compensation matched only the application id. It now also matches the token hash issued by that request. |
+| **Regression test** | `services/api/src/modules/partner-experience/partner-onboarding-invitation.spec.ts`. |
+| **Scenario** | QA-PARTNER-015 — Stale onboarding compensation preserves a newer invitation. |
+| **Fails without the fix** | Yes — an older failed request restores its token over the newer delivered token. |
+| **Fixed** | 2026-10-08, branch `agent/partner-module-completion` |
+| **Active** | yes |
+
+### REG-662 — Partner record polish: empty sections, reachable row actions, partner-scoped lookups, named references
+
+| | |
+|---|---|
+| **Bug class** | `UX` |
+| **Module** | `apps/admin` |
+| **Bug record** | BUG-4019 |
+| **Root cause** | The runtime had no empty-field rule, no row-actions column and no record-bound lookups, and the commission payload carried ids without names. |
+| **Regression test** | `apps/admin/lib/runtime/partner-commission-polish.spec.ts` and `services/api/src/modules/partners/partner-commission-reference-labels.spec.ts`. |
+| **Scenario** | QA-PARTNER-016 — Partner record polish. |
+| **Fails without the fix** | Yes. Dropping `bind.` from the lookup query or removing `commissionReferenceLabels` fails the specs. |
+| **Fixed** | 2026-10-08, branch `agent/partner-module-completion` |
+| **Active** | yes |
