@@ -56,6 +56,39 @@ export function isBackgroundRequest(
 }
 
 /**
+ * Reported requests: an operator started them, and the control that started them
+ * shows the outcome itself (the record action bar notice, a quick-create panel
+ * error). An expected domain refusal - a 4xx carrying a catalog code such as
+ * PARTNER_INVITATION_COOLDOWN - is then already explained where the operator is
+ * looking, and the blocking dialog with Technical details and Download log on
+ * top of it turns a business rule into an apparent crash. A 5xx is unexpected and
+ * the dialog's log is how it gets reported, so it still raises the dialog. A
+ * background request, by contrast, never raises it.
+ */
+export const REPORTED_REQUEST_HEADER = "x-dijipeople-reported";
+
+/** `init` with the reported mark added, keeping any headers it had. */
+export function reportedRequestInit(init: RequestInit = {}): RequestInit {
+  const headers = new Headers(init.headers);
+  headers.set(REPORTED_REQUEST_HEADER, "1");
+  return { ...init, headers };
+}
+
+/** Was this fetch call marked as reported? Reads `init` and a `Request`. */
+export function isReportedRequest(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+) {
+  if (init?.headers && new Headers(init.headers).has(REPORTED_REQUEST_HEADER))
+    return true;
+  return (
+    typeof Request !== "undefined" &&
+    input instanceof Request &&
+    input.headers.has(REPORTED_REQUEST_HEADER)
+  );
+}
+
+/**
  * Should a finished `/api/` request raise the blocking error dialog?
  *
  * Kept pure so the rule is testable without a DOM; `ErrorProvider` calls it.
@@ -64,12 +97,18 @@ export function shouldRaiseErrorDialog({
   url,
   ok,
   background,
+  reported = false,
+  status,
 }: {
   url: string;
   ok: boolean;
   background: boolean;
+  reported?: boolean;
+  status?: number;
 }) {
   if (ok || background) return false;
+  if (reported && status !== undefined && status >= 400 && status < 500)
+    return false;
   if (!url.includes("/api/")) return false;
   // The client error log reports failures; it must never raise one itself.
   if (url.includes("/api/error-logs/")) return false;

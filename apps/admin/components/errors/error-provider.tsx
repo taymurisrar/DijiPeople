@@ -17,6 +17,7 @@ import {
 } from "@/lib/api-error";
 import {
   isBackgroundRequest,
+  isReportedRequest,
   shouldRaiseErrorDialog,
 } from "@/lib/background-request";
 import type { PlatformRole } from "@/lib/platform-rbac";
@@ -98,6 +99,8 @@ export function ErrorProvider({
           url,
           ok: response.ok,
           background: isBackgroundRequest(args[0], args[1]),
+          reported: isReportedRequest(args[0], args[1]),
+          status: response.status,
         })
       )
         return response;

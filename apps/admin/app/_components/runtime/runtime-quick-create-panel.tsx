@@ -5,7 +5,7 @@ import {
   PanelButton,
   PanelDialog,
 } from "@/app/_components/tenants/tenant-panel-ui";
-import { backgroundRequestInit } from "@/lib/background-request";
+import { reportedRequestInit } from "@/lib/background-request";
 import { readFieldErrors } from "@/lib/runtime/http-module-runtime-adapter";
 import {
   humanizeErrorMessage,
@@ -74,7 +74,7 @@ export function RuntimeQuickCreatePanel({
   );
   // The starting values are taken once, when the panel opens.
   const [initialValues] = useState(() =>
-    quickCreateInitialValues(config, parent),
+    quickCreateInitialValues(config, parent, parentId),
   );
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -99,7 +99,7 @@ export function RuntimeQuickCreatePanel({
         if (Object.keys(clientErrors).length) return;
         const response = await fetch(
           resolveQuickCreatePath(config, parentId),
-          backgroundRequestInit({
+          reportedRequestInit({
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(

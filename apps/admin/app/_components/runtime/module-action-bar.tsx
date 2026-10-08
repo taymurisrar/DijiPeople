@@ -26,7 +26,6 @@ import {
   useMemo,
   useRef,
   useState,
-  useTransition,
 } from "react";
 import type {
   RecordDependencyReport,
@@ -150,7 +149,6 @@ export function ModuleActionBar({
     setDependencyCheck(null);
   }, []);
   const [overflowOpen, setOverflowOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
   const overflowRef = useRef<HTMLDivElement | null>(null);
   const available = useMemo(
     () => actions.filter((action) => isVisible(action, context)),
@@ -215,7 +213,15 @@ export function ModuleActionBar({
     setOverflowOpen(false);
     setPendingKey(action.key);
     setNotice(null);
-    startTransition(async () => {
+    /*
+     * Not a React transition. In React 19 every state update made inside an
+     * async transition is held until the whole action resolves; an action that
+     * awaits a prompt (useReasonPrompt sets its dialog state and waits for the
+     * operator) therefore never showed the prompt and never finished, so
+     * Suspend, Deactivate, Reject and every other reason-prompted command did
+     * nothing at all. `pendingKey` already carries the busy state.
+     */
+    void (async () => {
       try {
         const result = await onAction(action, context);
         setNotice(describeActionNotice(result));
@@ -230,7 +236,7 @@ export function ModuleActionBar({
       } finally {
         setPendingKey(null);
       }
-    });
+    })();
   }
   return (
     <>
@@ -247,7 +253,7 @@ export function ModuleActionBar({
             <ActionButton
               key={action.key}
               action={action}
-              busy={isPending && pendingKey === action.key}
+              busy={pendingKey === action.key}
               disabledReason={disabledReason(action, context)}
               onClick={() => execute(action)}
             />

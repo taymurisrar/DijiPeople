@@ -8,7 +8,7 @@ import {
   ProDataTable,
   type ProDataTableColumn,
 } from "@/app/_components/crm/data-table";
-import { backgroundRequestInit } from "@/lib/background-request";
+import { reportedRequestInit } from "@/lib/background-request";
 import type { createHttpModuleRuntimeAdapter } from "@/lib/runtime/http-module-runtime-adapter";
 import { getPlatformModuleDefinition } from "@/lib/runtime/platform-module-registry";
 import type {
@@ -22,8 +22,10 @@ import { quickCreateAvailability } from "@/lib/runtime/quick-create-model";
 import {
   copyText,
   isRowActionVisible,
+  RELATED_PANEL_CLASS,
   relatedCellValue,
   resolveRowActionPath,
+  ROW_ACTIONS_COLUMN_LAYOUT,
   rowActionRequest,
   shareableUrl,
 } from "@/lib/runtime/related-records-model";
@@ -162,7 +164,7 @@ export function RuntimeRelatedRecordsPanel({
     try {
       const response = await fetch(
         resolveRowActionPath(action, recordId, row),
-        backgroundRequestInit(rowActionRequest(action)),
+        reportedRequestInit(rowActionRequest(action)),
       );
       const payload = (await response.json().catch(() => null)) as {
         message?: unknown;
@@ -209,10 +211,10 @@ export function RuntimeRelatedRecordsPanel({
     columns.push({
       key: "__actions",
       header: "",
-      minWidth: 160,
       align: "right",
+      ...ROW_ACTIONS_COLUMN_LAYOUT,
       render: (row) => (
-        <span className="inline-flex flex-wrap justify-end gap-1.5">
+        <span className="inline-flex flex-nowrap justify-end gap-1.5">
           {rowActions
             .filter((action) => isRowActionVisible(action, row))
             .map((action) => (
@@ -262,7 +264,7 @@ export function RuntimeRelatedRecordsPanel({
   const rowHrefBase = target?.routeBase;
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <section className={RELATED_PANEL_CLASS}>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
         <div className="min-w-0">
           <h2 className="text-base font-semibold text-slate-950">
@@ -347,6 +349,7 @@ export function RuntimeRelatedRecordsPanel({
           loading={loading}
           loadingRowCount={3}
           compact
+          getRowClassName={rowActions.length ? () => "group" : undefined}
           emptyState={
             <div className="mx-auto max-w-md">
               <div className="text-base font-semibold text-slate-900">

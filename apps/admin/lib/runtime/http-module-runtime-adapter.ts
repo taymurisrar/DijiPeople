@@ -1,3 +1,4 @@
+import { reportedRequestInit } from "@/lib/background-request";
 import { getPlatformModuleDefinition } from "./platform-module-registry";
 import type {
   ModuleRuntimeAdapter,
@@ -26,13 +27,15 @@ export function createHttpModuleRuntimeAdapter<
   const base = `/api/platform-runtime/${moduleKey}`;
 
   async function json<R>(path: string, init?: RequestInit): Promise<R> {
-    const response = await fetch(`${base}${path}`, {
-      ...init,
-      headers: {
-        ...(init?.body ? { "Content-Type": "application/json" } : {}),
-        ...init?.headers,
-      },
-    });
+    /*
+     * Merge through `Headers`, never an object spread: `init.headers` may be a
+     * `Headers` instance (reportedRequestInit returns one), and spreading a
+     * `Headers` yields `{}` — which silently dropped the reported mark.
+     */
+    const headers = new Headers(init?.headers);
+    if (init?.body && !headers.has("Content-Type"))
+      headers.set("Content-Type", "application/json");
+    const response = await fetch(`${base}${path}`, { ...init, headers });
     const payload = await response.json().catch(() => null);
     if (!response.ok)
       throw new RuntimeApiError(
@@ -155,7 +158,9 @@ export function createHttpModuleRuntimeAdapter<
     async executeRecordAction(id, actionKey, input = {}) {
       return json<RuntimeActionResult>(
         `/${encodeURIComponent(id)}/actions/${encodeURIComponent(actionKey)}`,
-        { method: "POST", body: JSON.stringify(input) },
+        // The action bar shows the outcome, so a domain refusal stays inline
+        // rather than also raising the blocking dialog.
+        reportedRequestInit({ method: "POST", body: JSON.stringify(input) }),
       );
     },
     async getFormDefinition(mode) {
