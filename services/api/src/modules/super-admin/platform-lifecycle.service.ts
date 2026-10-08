@@ -432,6 +432,9 @@ export class PlatformLifecycleService {
         ? { assignedToUserId: query.assignedToUserId }
         : {}),
       ...(query.selectedPlanId ? { selectedPlanId: query.selectedPlanId } : {}),
+      ...(query.originatingPartnerId
+        ? { originatingPartnerId: query.originatingPartnerId }
+        : {}),
       ...(query.search?.trim()
         ? {
             OR: [

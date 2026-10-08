@@ -8,12 +8,15 @@ import type {
   RuntimeFormDefinition,
 } from "@/lib/runtime/platform-runtime.types";
 import { ContractDocumentEditor } from "@/app/_components/documents/contract-document-editor";
-import type { RuntimeLookupOption } from "@/lib/runtime/runtime-lookups";
+import {
+  resolveLookupBindings,
+  type RuntimeLookupOption,
+} from "@/lib/runtime/runtime-lookups";
 import { buildLookupRecordHref } from "@/lib/runtime/lookup-record-href";
 import { lookupDisplayFallback } from "@/lib/runtime/lookup-display-fallback";
 import { errorCountByTab } from "@/lib/runtime/blocked-save-feedback";
 import { humanizeLabel } from "@/lib/runtime/humanize-label";
-import { matchesVisibility } from "@/lib/runtime/visibility-condition";
+import { isRuntimeFieldVisible } from "@/lib/runtime/field-visibility";
 import { useRuntimeLookupOptions } from "@/lib/runtime/use-runtime-lookup-options";
 import {
   createDebouncedCallback,
@@ -1077,7 +1080,17 @@ function RuntimeLookup({
     debouncedSearchRef.current?.run(nextQuery);
   }
 
-  const lookup = useRuntimeLookupOptions(field.lookupPath, debouncedQuery);
+  /*
+   * A path with `{field}` placeholders scopes itself to this record (the
+   * commission Lead picker lists the chosen partner's leads). Until every
+   * placeholder has a value it loads nothing rather than the unscoped list.
+   */
+  const lookupBindings = resolveLookupBindings(field.lookupPath, values);
+  const lookup = useRuntimeLookupOptions(
+    lookupBindings ? field.lookupPath : undefined,
+    debouncedQuery,
+    lookupBindings ?? undefined,
+  );
   /*
    * A lookup-backed field takes its options from the endpoint; one that
    * declares a static list keeps that list. Memoised because it feeds the
@@ -1473,20 +1486,8 @@ function isVisible(
   values: RuntimeValues,
   mode?: "create" | "read" | "edit",
 ) {
-  if (field.hidden || (mode === "create" && field.hideOnCreate)) return false;
-  if (
-    mode === "read" &&
-    field.hideWhenEmpty &&
-    (readRuntimeValue(values, field.key) == null ||
-      readRuntimeValue(values, field.key) === "")
-  )
-    return false;
-  if (field.visibleWhenAny?.length)
-    return field.visibleWhenAny.some((condition) =>
-      matchesVisibility(condition, values),
-    );
-  if (!field.visibleWhen) return true;
-  return matchesVisibility(field.visibleWhen, values);
+  // Pure and specced in `field-visibility.ts` (no jsdom for this component).
+  return isRuntimeFieldVisible(field, values, mode);
 }
 
 function isConditionallyReadOnly(

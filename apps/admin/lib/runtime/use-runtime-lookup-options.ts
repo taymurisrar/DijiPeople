@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { RuntimeLookupOption } from "./runtime-lookups";
+import {
+  LOOKUP_BINDING_PREFIX,
+  type RuntimeLookupOption,
+} from "./runtime-lookups";
 
 /**
  * Read an allowlisted runtime lookup.
@@ -31,7 +34,18 @@ import type { RuntimeLookupOption } from "./runtime-lookups";
 export function useRuntimeLookupOptions(
   path: string | undefined,
   search?: string,
+  /** Values for a templated path's `{field}` placeholders (`runtime-lookups.ts`). */
+  bindings?: Record<string, string>,
 ) {
+  /*
+   * Serialised once so the effect depends on a string, not on an object the
+   * caller may rebuild every render.
+   */
+  const bindingQuery = new URLSearchParams(
+    Object.entries(bindings ?? {})
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([name, value]) => [`${LOOKUP_BINDING_PREFIX}${name}`, value]),
+  ).toString();
   /*
    * One state object keyed by the request it answers, rather than separate
    * `options` / `error` / `loading` slices. Loading is then derived — the
@@ -39,7 +53,9 @@ export function useRuntimeLookupOptions(
    * instead of set synchronously inside the effect, which cascades a render
    * on every mount and is what `react-hooks/set-state-in-effect` objects to.
    */
-  const requestKey = path ? `${path}::${search?.trim() ?? ""}` : undefined;
+  const requestKey = path
+    ? `${path}::${bindingQuery}::${search?.trim() ?? ""}`
+    : undefined;
   const [result, setResult] = useState<{
     requestKey: string | undefined;
     options: RuntimeLookupOption[];
@@ -51,6 +67,8 @@ export function useRuntimeLookupOptions(
     const controller = new AbortController();
     let active = true;
     const params = new URLSearchParams({ path });
+    for (const [name, value] of new URLSearchParams(bindingQuery))
+      params.set(name, value);
     const trimmedSearch = search?.trim();
     if (trimmedSearch) params.set("search", trimmedSearch);
     fetch(`/api/platform-runtime/lookups?${params.toString()}`, {
@@ -90,7 +108,7 @@ export function useRuntimeLookupOptions(
       active = false;
       controller.abort();
     };
-  }, [path, requestKey, search]);
+  }, [bindingQuery, path, requestKey, search]);
 
   const settled = result.requestKey === requestKey;
   return {

@@ -5,6 +5,7 @@ import {
   buildRuntimeLookupPath,
   collectRuntimeLookupPaths,
   normalizeRuntimeLookupPayload,
+  resolveAllowedLookupSource,
 } from "@/lib/runtime/runtime-lookups";
 
 const ALLOWED_LOOKUPS = collectRuntimeLookupPaths(
@@ -13,8 +14,8 @@ const ALLOWED_LOOKUPS = collectRuntimeLookupPaths(
 
 export async function GET(request: Request) {
   const parameters = new URL(request.url).searchParams;
-  const source = parameters.get("path") ?? "";
-  if (!ALLOWED_LOOKUPS.has(source)) {
+  const source = resolveAllowedLookupSource(ALLOWED_LOOKUPS, parameters);
+  if (!source) {
     return NextResponse.json(
       { message: "Lookup is not available." },
       { status: 400 },

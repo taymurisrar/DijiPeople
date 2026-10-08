@@ -847,7 +847,9 @@ function RuntimeRecordEditor({
         />
       ) : null}
       {!isCreate && relatedRecords.length ? (
-        <section className="grid gap-5">
+        // `grid-cols-1` is minmax(0, 1fr): a wide subgrid scrolls in its card
+        // instead of widening the page (see RELATED_PANEL_CLASS).
+        <section className="grid min-w-0 grid-cols-1 gap-5">
           {relatedRecords.map((relationship) => (
             <RuntimeRelatedRecordsPanel
               key={relationship.key}

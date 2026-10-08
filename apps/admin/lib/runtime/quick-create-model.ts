@@ -64,10 +64,19 @@ export function quickCreateFormDefinition(
   };
 }
 
-/** Where the panel starts: fixed defaults, then values taken from the parent. */
+/**
+ * Where the panel starts: fixed defaults, then values taken from the parent,
+ * then the parent id under `parentField`.
+ *
+ * The parent id is not a rendered field and `buildQuickCreatePayload` sets it
+ * again regardless, but holding it in the values lets a field's lookup scope
+ * itself to the parent: the commission Lead picker reads
+ * `partnerId={partnerId}` exactly as it does on the full commission form.
+ */
 export function quickCreateInitialValues(
   config: RuntimeQuickCreateDefinition,
   parent: Record<string, unknown>,
+  parentId?: string,
 ): Record<string, unknown> {
   const values: Record<string, unknown> = { ...(config.defaults ?? {}) };
   for (const [childField, source] of Object.entries(
@@ -77,6 +86,7 @@ export function quickCreateInitialValues(
     if (value === null || value === undefined || value === "") continue;
     values[childField] = value;
   }
+  if (config.parentField && parentId) values[config.parentField] = parentId;
   return values;
 }
 

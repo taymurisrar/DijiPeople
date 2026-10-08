@@ -146,6 +146,36 @@ function objectLabel(record: Record<string, unknown>) {
   return found ? String(found) : null;
 }
 
+/*
+ * Wide subgrids scroll inside their card, and their row commands stay in view.
+ *
+ * At 1440px the Referral links grid (eight columns plus Copy link / Disable /
+ * Regenerate) was wider than the record page, and the commands sat past the
+ * card's clipped edge with nothing to scroll. Two causes, both layout:
+ *
+ *  - The card is a grid item, and a grid item's automatic minimum width is its
+ *    content's, so the card grew to the table's width and `overflow-hidden`
+ *    clipped it — ProDataTable's own `overflow-x-auto` never had anything to
+ *    scroll. `min-w-0` lets the card take the track's width; the record page's
+ *    subgrid stack is `grid-cols-1` (`minmax(0, 1fr)`) for the same reason.
+ *  - The commands column is pinned to the right edge of the scrolling table
+ *    and kept on one line, so at 1440, 1024 and 768 the data columns scroll
+ *    beneath it while every command stays reachable. It carries its own
+ *    background (ProDataTable's `sticky` option uses `bg-inherit`, which is
+ *    transparent on an unhovered row) and follows the row hover through the
+ *    row's `group` class.
+ */
+export const RELATED_PANEL_CLASS =
+  "min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm";
+
+export const ROW_ACTIONS_COLUMN_LAYOUT = {
+  minWidth: 120,
+  headerClassName:
+    "sticky right-0 z-10 bg-slate-50 shadow-[-8px_0_8px_-8px_rgba(15,23,42,0.18)]",
+  cellClassName:
+    "sticky right-0 z-[5] whitespace-nowrap bg-white shadow-[-8px_0_8px_-8px_rgba(15,23,42,0.18)] group-hover:bg-slate-50",
+} as const;
+
 /** Whether a row command applies to this row. */
 export function isRowActionVisible(
   action: RuntimeRelatedRowAction,

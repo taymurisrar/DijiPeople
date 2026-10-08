@@ -33,6 +33,7 @@ import {
 import {
   assertCommissionLinksBelongToPartner,
   commissionActionForTarget,
+  commissionReferenceLabels,
   commissionSourceLabel,
   commissionTransition,
   computeCommissionAmount,
@@ -1289,6 +1290,7 @@ export class PartnersService {
     return commissions.map((commission) => ({
       ...normalizeCommission(commission),
       sourceLabel: commissionSourceLabel(commission, names),
+      ...commissionReferenceLabels(commission, names),
     }));
   }
   private async validateOwner(id?: string) {

@@ -833,6 +833,15 @@ export const DASHBOARD_VIEWS: RuntimeViewDefinition[] = [
   },
 ];
 
+/** `PartnerCommissionStatus`, in lifecycle order (ADR-0026 D3). */
+const COMMISSION_STATUS_VALUES = [
+  "PENDING",
+  "APPROVED",
+  "PAYABLE",
+  "PAID",
+  "VOID",
+];
+
 const LEAD_STATUSES: RuntimeStatusDefinition[] = [
   "NEW",
   "CONTACTED",
@@ -1435,9 +1444,16 @@ const partnerFields: RuntimeFieldDefinition[] = [
     lookupPath: "/platform-users/owner-candidates",
   },
   field("notes", "Internal notes", "longText", "notes"),
+  /*
+   * Set only by a partner application. A partner added in the console has none
+   * of them, so each hides when empty and the "Application details" card goes
+   * with them (`isRuntimeFieldVisible`; a section with no visible field is not
+   * rendered) instead of showing three "Not set" values.
+   */
   {
     ...field("applicationSource", "Application source", "text", "application"),
     readOnly: true,
+    hideWhenEmpty: true,
   },
   {
     ...field(
@@ -1447,6 +1463,7 @@ const partnerFields: RuntimeFieldDefinition[] = [
       "application",
     ),
     readOnly: true,
+    hideWhenEmpty: true,
   },
   {
     ...field(
@@ -1456,6 +1473,7 @@ const partnerFields: RuntimeFieldDefinition[] = [
       "application",
     ),
     readOnly: true,
+    hideWhenEmpty: true,
   },
   { ...field("createdAt", "Created", "dateTime", "system"), readOnly: true },
   {
@@ -4438,18 +4456,38 @@ const definitions: PlatformModuleDefinition[] = [
         ...field("partnerId", "Partner", "lookup", "commission", true),
         lookupPath: "/partners?pageSize=100",
       },
-      { ...field("status", "Status", "text", "commission"), readOnly: true },
+      // Option labels, so the field reads "Paid" as the header does, not "PAID".
+      {
+        ...field(
+          "status",
+          "Status",
+          "option",
+          "commission",
+          false,
+          COMMISSION_STATUS_VALUES,
+        ),
+        readOnly: true,
+        renderAs: "status",
+      },
       /*
        * What the entry was recorded against. The API refuses a lead, customer
-       * or invoice this partner did not refer (ADR-0026 D3).
+       * or invoice this partner did not refer (ADR-0026 D3), so each picker
+       * lists only the chosen partner's own records: `{partnerId}` is bound
+       * from the form (`resolveLookupBindings`), and nothing loads until a
+       * partner is chosen. The record read carries `leadLabel` and
+       * `customerLabel` (`PartnersService.describeCommissions`), because a
+       * read-only lookup has no option list to name an id from.
        */
       {
         ...field("leadId", "Lead", "lookup", "commission"),
-        lookupPath: "/super-admin/leads?pageSize=100",
+        lookupPath: "/super-admin/leads?pageSize=100&partnerId={partnerId}",
+        displayValueField: "leadLabel",
       },
       {
         ...field("customerAccountId", "Customer", "lookup", "commission"),
-        lookupPath: "/super-admin/customers",
+        lookupPath:
+          "/super-admin/customers?pageSize=100&originatingPartnerId={partnerId}",
+        displayValueField: "customerLabel",
       },
       field("invoiceId", "Invoice ID", "text", "commission"),
       {

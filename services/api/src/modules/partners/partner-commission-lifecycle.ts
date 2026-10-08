@@ -249,6 +249,31 @@ export function commissionSourceLabel(
   return 'Manual entry';
 }
 
+/**
+ * The names the commission record's Lead and Customer fields display.
+ *
+ * The record read returned only `leadId`/`customerAccountId`, and a read-only
+ * lookup has no option list to resolve an id against, so the commission page
+ * showed "Not set" beside a lead the partner grid named in the same breath.
+ * Null when the entry cites nothing, or the cited row is gone.
+ */
+export function commissionReferenceLabels(
+  commission: { leadId?: string | null; customerAccountId?: string | null },
+  names: {
+    leads?: Map<string, string>;
+    customers?: Map<string, string>;
+  } = {},
+): { leadLabel: string | null; customerLabel: string | null } {
+  return {
+    leadLabel: commission.leadId
+      ? (names.leads?.get(commission.leadId) ?? null)
+      : null,
+    customerLabel: commission.customerAccountId
+      ? (names.customers?.get(commission.customerAccountId) ?? null)
+      : null,
+  };
+}
+
 /** Decimals as numbers, the way every other partner read returns them. */
 export function normalizeCommission<
   T extends {
