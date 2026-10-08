@@ -29,6 +29,99 @@ export function collectRuntimeLookupPaths(
   );
 }
 
+/*
+ * Lookup paths that depend on the record being edited.
+ *
+ * A `lookupPath` may name a value of the current form as `{field}`: the
+ * commission Lead picker is `/super-admin/leads?pageSize=100&partnerId={partnerId}`,
+ * so it offers the partner's own leads instead of every lead on the platform.
+ * The template itself stays the allowlisted key. The browser sends the
+ * template plus a `bind.<field>` parameter per placeholder, and the route
+ * substitutes them. Bound values are record ids, so anything that is not a
+ * short id-shaped token is refused rather than spliced into an API path.
+ */
+const LOOKUP_PLACEHOLDER = /\{([A-Za-z][A-Za-z0-9_.]*)\}/g;
+const LOOKUP_BINDING_VALUE = /^[A-Za-z0-9_-]{1,64}$/;
+export const LOOKUP_BINDING_PREFIX = "bind.";
+
+/** The `{field}` names a lookup path depends on, in order, without repeats. */
+export function lookupPathPlaceholders(template: string | undefined): string[] {
+  if (!template) return [];
+  return [
+    ...new Set(
+      Array.from(template.matchAll(LOOKUP_PLACEHOLDER), (match) => match[1]!),
+    ),
+  ];
+}
+
+/**
+ * The values a templated lookup needs, read from the form. Null while any of
+ * them is missing or not id-shaped: the picker then loads nothing, rather
+ * than falling back to the unscoped list the template exists to avoid.
+ * An empty object for a path with no placeholders.
+ */
+export function resolveLookupBindings(
+  template: string | undefined,
+  values: Record<string, unknown>,
+): Record<string, string> | null {
+  const bindings: Record<string, string> = {};
+  for (const name of lookupPathPlaceholders(template)) {
+    const value = readPath(values, name);
+    if (typeof value !== "string" && typeof value !== "number") return null;
+    const text = String(value).trim();
+    if (!LOOKUP_BINDING_VALUE.test(text)) return null;
+    bindings[name] = text;
+  }
+  return bindings;
+}
+
+/**
+ * The API path for an allowlisted template and its bindings, or null when a
+ * placeholder is unbound or a value is not id-shaped. Used by the lookup
+ * route, so a hand-made request cannot widen or redirect the call.
+ */
+export function bindRuntimeLookupPath(
+  template: string,
+  bindings: Record<string, string | null | undefined>,
+): string | null {
+  let invalid = false;
+  const bound = template.replace(LOOKUP_PLACEHOLDER, (_match, name: string) => {
+    const value = bindings[name]?.trim();
+    if (!value || !LOOKUP_BINDING_VALUE.test(value)) {
+      invalid = true;
+      return "";
+    }
+    return encodeURIComponent(value);
+  });
+  return invalid ? null : bound;
+}
+
+/**
+ * The API path a lookup request may call: the `path` parameter must be an
+ * allowlisted template, and each of its placeholders is filled from the
+ * matching `bind.<field>` parameter. Null for anything else.
+ */
+export function resolveAllowedLookupSource(
+  allowed: ReadonlySet<string>,
+  parameters: URLSearchParams,
+): string | null {
+  const template = parameters.get("path") ?? "";
+  if (!allowed.has(template)) return null;
+  const bindings: Record<string, string | null> = {};
+  for (const name of lookupPathPlaceholders(template))
+    bindings[name] = parameters.get(`${LOOKUP_BINDING_PREFIX}${name}`);
+  return bindRuntimeLookupPath(template, bindings);
+}
+
+function readPath(values: Record<string, unknown>, path: string): unknown {
+  if (path in values) return values[path];
+  return path.split(".").reduce<unknown>((current, part) => {
+    if (!current || typeof current !== "object" || Array.isArray(current))
+      return undefined;
+    return (current as Record<string, unknown>)[part];
+  }, values);
+}
+
 export function buildRuntimeLookupPath(source: string, search?: string) {
   const url = new URL(source, "http://runtime.local");
   const normalizedSearch = search?.trim();

@@ -181,6 +181,8 @@ export type RuntimeFieldDefinition = {
   placeholder?: string;
   required?: boolean;
   readOnly?: boolean;
+  /** Why the field cannot be edited here — the locked control's tooltip. */
+  readOnlyReason?: string;
   hidden?: boolean;
   hideOnCreate?: boolean;
   hideWhenEmpty?: boolean;
@@ -270,11 +272,30 @@ export type RuntimeActionDefinition = {
   roles?: string[];
   selection?: "none" | "one" | "many" | "any";
   states?: string[];
+  /**
+   * A record command is offered only when the record also meets this
+   * condition — the same shape as a form field's `visibleWhen`, checked
+   * against the loaded record alongside `states`. Partners use it to offer the
+   * application-review commands only to a partner that came from an inquiry
+   * (`hasInquiry`). Like `states`, it is a usability rule; the API decides.
+   */
+  visibleWhen?: {
+    field: string;
+    equals?: unknown;
+    in?: unknown[];
+    hasValue?: boolean;
+  };
   destructive?: boolean;
   confirmTitle?: string;
   confirmDescription?: string;
   disabledReason?: string;
   href?: string;
+  /**
+   * Collect a reason through the shared reason dialog before a record action
+   * is dispatched, and send it as `reason`. For a destructive action the
+   * dialog is the confirmation, so the generic confirm is not shown as well.
+   */
+  reasonPrompt?: { title: string; label: string };
 };
 
 export type RuntimeStatusDefinition = {
@@ -333,18 +354,7 @@ export type PlatformModuleDefinition = {
   actions: RuntimeActionDefinition[];
   statuses?: RuntimeStatusDefinition[];
   process?: RuntimeProcessDefinition;
-  relatedRecords?: Array<{
-    key: string;
-    label: string;
-    tab?: string;
-    description?: string;
-    emptyTitle?: string;
-    emptyDescription?: string;
-    createHref?: string;
-    module?: PlatformModuleKey;
-    foreignKey: string;
-    columns?: RuntimeColumnDefinition[];
-  }>;
+  relatedRecords?: RuntimeRelatedRecordDefinition[];
   permissions: {
     read: string;
     create?: string;
@@ -381,6 +391,137 @@ export type PlatformModuleDefinition = {
    * assignment.
    */
   recordHeader?: RuntimeRecordHeaderDefinition;
+  /**
+   * A compact Dynamics-style highlight header for the record page
+   * (EXECPLAN-0055 D8). Opt-in: a module without it keeps the page header and
+   * status group. See `RecordHighlightHeader` and `resolveRecordHighlights`.
+   */
+  highlight?: RuntimeRecordHighlightDefinition;
+};
+
+/**
+ * One subgrid on a record page — the records related to the one being viewed,
+ * read from `GET /platform-runtime/<module>/:id/related/<key>`.
+ */
+export type RuntimeRelatedRecordDefinition = {
+  key: string;
+  label: string;
+  tab?: string;
+  description?: string;
+  emptyTitle?: string;
+  emptyDescription?: string;
+  createHref?: string;
+  module?: PlatformModuleKey;
+  foreignKey: string;
+  columns?: RuntimeColumnDefinition[];
+  /**
+   * Whether to link to the target module's list filtered to this record.
+   * Defaults to true when `module` is set; off for a target list that cannot
+   * filter by `foreignKey`, where the link would open every record instead.
+   */
+  viewAll?: boolean;
+  /** Create a child record in a side panel without leaving the record. */
+  quickCreate?: RuntimeQuickCreateDefinition;
+  /** Per-row commands, such as copying a link or disabling it. */
+  rowActions?: RuntimeRelatedRowAction[];
+};
+
+/**
+ * A quick-create side panel for a subgrid (EXECPLAN-0055 D8).
+ *
+ * The panel renders the same runtime field controls as the record form and
+ * posts to an existing create endpoint. The parent record is attached by
+ * `parentField` (sent, never shown) or by the `{parentId}` token in the path —
+ * an operator never picks the record they are standing on.
+ */
+export type RuntimeQuickCreateDefinition = {
+  /** The subgrid's Add button, e.g. "Add contact". */
+  actionLabel: string;
+  /** The panel title, e.g. "New contact". */
+  title: string;
+  /**
+   * The fields to collect: a key of the child module's create-form field, or
+   * a full definition where the child has no runtime module.
+   */
+  fields: Array<string | RuntimeFieldDefinition>;
+  /**
+   * Where the record is created, relative to the admin `/api` proxy, with
+   * `{parentId}` substituted. `values` wraps the body as the platform runtime
+   * expects (`{ values }`); `body` sends the fields as the body itself.
+   */
+  submit: { path: string; envelope: "values" | "body" };
+  /** The child field that holds the parent's id. */
+  parentField?: string;
+  /** Child field → parent field whose value pre-fills it. */
+  defaultsFromParent?: Record<string, string>;
+  /** Fixed starting values. */
+  defaults?: Record<string, unknown>;
+  /**
+   * The permission that gates the Add button. A usability affordance only —
+   * the API checks again. Defaults to the parent module's update permission.
+   */
+  permission?: string;
+  /** Offered only while the parent's `field` holds one of `in`. */
+  availableWhen?: { field: string; in: string[]; reason: string };
+  /** Offer "Save and add another". Default true. */
+  addAnother?: boolean;
+};
+
+export type RuntimeRelatedRowAction = {
+  key: string;
+  label: string;
+  /**
+   * `copy` puts the row's `field` on the clipboard; `post` calls `path`
+   * (relative to `/api`, with `{parentId}` and `{id}` substituted) with `body`
+   * and reloads the subgrid; `delete` sends DELETE to `path` (no body) and
+   * reloads the subgrid.
+   */
+  kind: "copy" | "post" | "delete";
+  field?: string;
+  path?: string;
+  body?: Record<string, unknown>;
+  /** Shown only for rows whose `field` holds one of `in`. */
+  visibleWhen?: { field: string; in: unknown[] };
+  permission?: string;
+  destructive?: boolean;
+  confirmTitle?: string;
+  successMessage?: string;
+};
+
+/**
+ * The record highlight header: the record's name and the handful of values an
+ * operator reads first, in one compact strip.
+ */
+export type RuntimeRecordHighlightDefinition = {
+  /** The small label above the title, e.g. "Partner". */
+  eyebrow?: string;
+  /** The first non-empty of these fields is the title. */
+  titleFields: string[];
+  items: RuntimeRecordHighlightItem[];
+  /**
+   * Include the `recordHeader.owner` slot, after the item with this key (or
+   * last). It stays an editable control where the module allows reassignment.
+   */
+  owner?: { after?: string };
+};
+
+export type RuntimeRecordHighlightItem = {
+  key: string;
+  label: string;
+  /** Dot path of the value on the record. */
+  field: string;
+  /** Maps the stored value to the value labelled — e.g. a status to its phase. */
+  valueMap?: Record<string, string>;
+  labels?: Record<string, string>;
+  tones?: Record<string, RuntimeStatusDefinition["tone"]>;
+  /** Explanation per (mapped) value, shown as its tooltip. */
+  hints?: Record<string, string>;
+  /** Explanation for the item whatever its value — e.g. why it is read-only. */
+  hint?: string;
+  /** `status` draws a labelled pill; `code` a monospace identifier. */
+  format?: "text" | "status" | "code";
+  /** Leave the item out entirely when it has no value. */
+  hideWhenEmpty?: boolean;
 };
 
 export type RuntimeModuleCapabilities = {
@@ -483,6 +624,35 @@ export type RuntimeActionResult<T = unknown> = {
   errors?: Array<{ field?: string; message: string }>;
 };
 
+/**
+ * What deleting a record would do, relation by relation — the answer of
+ * `GET /platform-runtime/:moduleKey/:id/dependencies` (EXECPLAN-0055 D5).
+ *
+ * BLOCKS and RETAIN with a count stop the delete; CASCADE rows go with the
+ * record; DETACH rows survive with their reference cleared.
+ */
+export type RecordDependencyPolicy = "BLOCKS" | "CASCADE" | "DETACH" | "RETAIN";
+
+export type RecordDependency = {
+  key: string;
+  label: string;
+  count: number;
+  /**
+   * The count with its pluralised noun, built by the API — "1 contact",
+   * "2 referral links". Optional so an older API still renders.
+   */
+  countLabel?: string;
+  policy: RecordDependencyPolicy;
+  reason: string;
+  /** Admin route to the related records, when one exists. */
+  href: string | null;
+};
+
+export type RecordDependencyReport = {
+  canDelete: boolean;
+  dependencies: RecordDependency[];
+};
+
 export interface ModuleRuntimeAdapter<T extends RuntimeRecord = RuntimeRecord> {
   getModuleDefinition(): Promise<PlatformModuleDefinition>;
   getViews(): Promise<RuntimeViewDefinition[]>;
@@ -499,6 +669,12 @@ export interface ModuleRuntimeAdapter<T extends RuntimeRecord = RuntimeRecord> {
   ): Promise<RuntimeRecordResponse<T>>;
   deleteRecord(id: string): Promise<RuntimeActionResult>;
   bulkDelete(ids: string[]): Promise<RuntimeActionResult>;
+  /**
+   * What deleting the record would do. Resolves `null` for a module the API
+   * has no dependency provider for (404), so callers fall back to the plain
+   * confirmation rather than failing the delete.
+   */
+  getDependencies?(id: string): Promise<RecordDependencyReport | null>;
   assign(id: string, ownerId: string | null): Promise<RuntimeActionResult>;
   bulkAssign(
     ids: string[],
@@ -516,9 +692,19 @@ export interface ModuleRuntimeAdapter<T extends RuntimeRecord = RuntimeRecord> {
      */
     subStatus?: string,
   ): Promise<RuntimeActionResult>;
+  /** A module-level action: no record in the route (bulk, selection). */
   executeAction(
     actionKey: string,
     input: Record<string, unknown>,
+  ): Promise<RuntimeActionResult>;
+  /**
+   * An action on one record, posted to `/:id/actions/:action` — the only route
+   * on which the API dispatches record actions.
+   */
+  executeRecordAction(
+    id: string,
+    actionKey: string,
+    input?: Record<string, unknown>,
   ): Promise<RuntimeActionResult>;
   getFormDefinition(
     mode: "create" | "detail" | "edit",

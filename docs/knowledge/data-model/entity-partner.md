@@ -93,13 +93,14 @@ rates must never be settable by a partner-portal caller.
 | Prisma accessor | `prisma.partner` |
 | Owning module | `services/api/src/modules/partner-experience` |
 | Domain | Commercial |
-| Also touched by | `partners`, `contracts`, `super-admin` (reads), `leads` (reads), `platform-runtime` (reads) |
+| Also touched by | `partners`, `contracts`, `super-admin` (reads), `platform-runtime` (reads), `leads` (reads) |
 
 ### Fields
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `code` | `String` | yes | unique |
+| `partnerNumber` | `String` | no | unique |
 | `type` | `PartnerType` (enum) | yes | default `COMPANY` |
 | `partnershipModel` | `PartnershipModel` (enum) | no | — |
 | `displayName` | `String` | yes | — |
@@ -154,7 +155,7 @@ rates must never be settable by a partner-portal caller.
 
 ### Constraints and indexes
 
-- Unique: `code`
+- Unique: `code`, `partnerNumber`
 - Indexes: 6
 <!-- /GENERATED:schema-facts -->
 

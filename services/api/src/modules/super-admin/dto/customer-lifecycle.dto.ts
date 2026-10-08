@@ -74,6 +74,15 @@ export class CustomerQueryDto {
   @IsUUID()
   selectedPlanId?: string;
 
+  /*
+   * The partner a customer is attributed to. The commission form's Customer
+   * picker lists only the partner's own customers through this; the commission
+   * write still refuses a customer the partner did not refer (ADR-0026 D3).
+   */
+  @IsOptional()
+  @IsUUID()
+  originatingPartnerId?: string;
+
   @IsOptional()
   @Transform(trimString)
   @IsString()

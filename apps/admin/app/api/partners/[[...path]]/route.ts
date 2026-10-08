@@ -10,7 +10,8 @@ async function forward(request: Request, context: Context, method: string) {
       `/partners${path.length ? `/${path.map(encodeURIComponent).join("/")}` : ""}${url.search}`,
       {
         method,
-        ...(method === "GET"
+        // GET and DELETE carry no body (DELETE /partners/:id/contacts/:contactId).
+        ...(method === "GET" || method === "DELETE"
           ? {}
           : {
               body: await request.text(),
@@ -37,3 +38,5 @@ export const POST = (request: Request, context: Context) =>
   forward(request, context, "POST");
 export const PATCH = (request: Request, context: Context) =>
   forward(request, context, "PATCH");
+export const DELETE = (request: Request, context: Context) =>
+  forward(request, context, "DELETE");

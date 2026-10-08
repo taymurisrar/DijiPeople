@@ -392,7 +392,10 @@ describe('QA agreements DEFECT-2 — signature.* is resolved at signing, never b
         }),
       },
       contract: { update: jest.fn().mockResolvedValue({}) },
-      partner: { update: jest.fn().mockResolvedValue({}) },
+      partner: {
+        update: jest.fn().mockResolvedValue({}),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
       partnerTimeline: { create: jest.fn().mockResolvedValue({}) },
     };
     const prisma = {

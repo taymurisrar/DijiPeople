@@ -23,7 +23,7 @@ export default async function Page({
   }>;
 }) {
   const params = await searchParams;
-  const [settings, templates] = await Promise.all([
+  const [settings, templates, partner] = await Promise.all([
     apiRequestJson<{
       platformDefaults?: { reportingCurrency?: string; currency?: string };
     }>("/super-admin/platform-settings"),
@@ -35,7 +35,26 @@ export default async function Page({
         versions: Array<{ title: string }>;
       }>;
     }>("/contract-templates"),
+    /*
+     * ADR-0026 D3. "Create agreement" from a partner opens with that partner's
+     * currency and configured default commission, so the operator sees the
+     * terms the API would otherwise snapshot on save. A partner that cannot be
+     * read leaves the form on the platform defaults rather than failing it.
+     */
+    params.partnerId
+      ? apiRequestJson<{
+          currencyCode?: string | null;
+          defaultCommissionRate?: number | null;
+        }>(`/partners/${encodeURIComponent(params.partnerId)}`).catch(
+          () => null,
+        )
+      : Promise.resolve(null),
   ]);
+  const partnerCommission =
+    typeof partner?.defaultCommissionRate === "number" &&
+    partner.defaultCommissionRate > 0
+      ? partner.defaultCommissionRate
+      : undefined;
   const template = templates.items.find(
     (item) => item.id === params.templateId,
   );
@@ -64,9 +83,13 @@ export default async function Page({
             counterpartyName: params.counterpartyName ?? "",
             counterpartyEmail: params.counterpartyEmail ?? "",
             currencyCode:
+              partner?.currencyCode ??
               settings.platformDefaults?.reportingCurrency ??
               settings.platformDefaults?.currency ??
               "USD",
+            ...(partnerCommission !== undefined
+              ? { commissionPercentage: partnerCommission }
+              : {}),
             contentHtml: template
               ? undefined
               : "<h1>Agreement</h1><p>This agreement is between {{platform.legalName}} and {{counterparty.name}}.</p>",

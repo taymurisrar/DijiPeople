@@ -79,7 +79,7 @@ never be derived from anything the client sends.
 | Prisma accessor | `prisma.customerAccount` |
 | Owning module | `services/api/src/modules/super-admin` |
 | Domain | Commercial |
-| Also touched by | `billing`, `leads`, `demo-data`, `platform-runtime` (reads), `contracts` (reads), `notifications` (reads), `payroll` (reads), `tenant-control-plane` (reads) |
+| Also touched by | `billing`, `leads`, `demo-data`, `platform-runtime` (reads), `contracts` (reads), `partners` (reads), `notifications` (reads), `payroll` (reads), and 1 more |
 
 ### Fields
 

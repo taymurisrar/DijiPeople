@@ -29,6 +29,7 @@ import {
 } from "@/lib/formatters";
 import { createHttpModuleRuntimeAdapter } from "@/lib/runtime/http-module-runtime-adapter";
 import { getPlatformModuleDefinition } from "@/lib/runtime/platform-module-registry";
+import { readDeleteOutcome } from "@/lib/runtime/runtime-action-outcome";
 import type {
   PlatformModuleKey,
   RuntimeActionDefinition,
@@ -151,6 +152,23 @@ export function RuntimeModuleList({
       .filter((item) => selected.has(String(item.id)))
       .map((item) => recordDisplayName(item as Record<string, unknown>))
       .filter((label): label is string => Boolean(label));
+  }, [data, selectedIds]);
+  /*
+   * The same selection as id and name pairs, in selection order, for the
+   * dependency-aware delete dialog (EXECPLAN-0055 D5), which has to say which
+   * record each blocking dependency belongs to.
+   */
+  const selectedTargets = useMemo(() => {
+    const byId = new Map(
+      (data?.items ?? []).map((item) => [String(item.id), item]),
+    );
+    return selectedIds.map((id) => ({
+      id,
+      label:
+        recordDisplayName(
+          byId.get(id) as Record<string, unknown> | undefined,
+        ) ?? id,
+    }));
   }, [data, selectedIds]);
 
   const hasActiveSearchOrFilters = Boolean(
@@ -360,7 +378,9 @@ export function RuntimeModuleList({
       return { success: true, message: "Export downloaded." };
     }
     if (action.key === "bulk-delete") {
-      const result = await adapter.bulkDelete(selectedIds);
+      // Refresh either way — some rows may have gone — but report what the
+      // API kept and why, which `readDeleteOutcome` digs out of `data`.
+      const result = readDeleteOutcome(await adapter.bulkDelete(selectedIds));
       setRefreshKey((value) => value + 1);
       return result;
     }
@@ -506,10 +526,13 @@ export function RuntimeModuleList({
           scope: "list",
           selectedIds,
           selectedLabels,
+          selectedTargets,
           displayName: definition.displayName,
           pluralDisplayName: definition.pluralDisplayName,
           roleKeys,
           permissionKeys,
+          // Bulk delete asks the API what it would do first (EXECPLAN-0055 D5).
+          getDependencies: adapter.getDependencies,
         }}
         onAction={handleAction}
         statusSlot={

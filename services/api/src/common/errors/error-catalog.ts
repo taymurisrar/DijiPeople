@@ -782,6 +782,146 @@ export const ERROR_CATALOG = {
     'critical',
     'settings',
   ),
+  /*
+   * ADR-0027 — platform number sequences. NOT_CONFIGURED is the allocation
+   * path (a record could not be numbered because its sequence row is absent,
+   * which seed:config should have prevented); NOT_FOUND is the settings
+   * screen asking for a key that does not exist.
+   */
+  NUMBER_SEQUENCE_NOT_CONFIGURED: entry(
+    500,
+    'Numbering not configured',
+    'The number sequence for this record type is not configured, so the record was not created.',
+    'critical',
+    'settings',
+    'Contact the platform administrator.',
+  ),
+  NUMBER_SEQUENCE_NOT_FOUND: entry(
+    404,
+    'Number sequence not found',
+    'This number sequence does not exist.',
+    'warning',
+    'settings',
+  ),
+  NUMBER_SEQUENCE_INVALID: entry(
+    400,
+    'Invalid number format',
+    'Check the prefix, separator, suffix and padding, then save again.',
+    'warning',
+    'validation',
+  ),
+  NUMBER_SEQUENCE_NEXT_VALUE_LOWERED: entry(
+    400,
+    'Next number can only increase',
+    'The next number cannot be lower than the number the sequence would issue now, because that would reuse a number already issued.',
+    'warning',
+    'validation',
+  ),
+  /*
+   * ADR-0026 — partner status moves only through lifecycle actions. The first
+   * code is a status sent as a field (an edit, or the record header); the
+   * second is an action that would move a partner who has already been live
+   * back into the application or agreement funnel.
+   */
+  PARTNER_STATUS_ACTION_REQUIRED: entry(
+    400,
+    'Status changes through actions',
+    'A partner’s status changes only through its lifecycle actions, such as Start review, Activate partner, Suspend or Deactivate.',
+    'warning',
+    'validation',
+    'Use the action for the change you want from the record’s command bar.',
+  ),
+  PARTNER_ACTION_NOT_AVAILABLE: entry(
+    409,
+    'Action not available',
+    'This action is not available in the partner’s current status.',
+    'warning',
+    'validation',
+    'Refresh the record to see the actions available now.',
+  ),
+  PARTNER_ALREADY_LIVE: entry(
+    409,
+    'Partner is already live',
+    'This partner has already been activated, so this step would move it back into the application funnel.',
+    'warning',
+    'validation',
+    'Use Suspend, Deactivate or Reactivate instead.',
+  ),
+  /*
+   * ADR-0026. Start review, Approve, Reject and Request information decide a
+   * partner application. A partner an operator created in the console has none
+   * and takes the agreement-first path; these used to fail for it with a bare
+   * 400 the console showed as a generic validation failure.
+   */
+  PARTNER_INQUIRY_REQUIRED: entry(
+    409,
+    'No partner application to review',
+    'This partner was created by an operator and has no partner application to review. Create an agreement to continue.',
+    'warning',
+    'validation',
+    'Use Create agreement on the partner record to continue.',
+  ),
+  /*
+   * ADR-0026 D3 — partner commissions are operator-created ledger entries
+   * (EXECPLAN-0055 WP-06): their status moves Pending → Approved → Payable →
+   * Paid (Void until paid), a linked lead/customer/invoice must belong to the
+   * partner, and an entry needs a rate of its own or a configured default.
+   */
+  PARTNER_COMMISSION_TRANSITION_NOT_ALLOWED: entry(
+    409,
+    'Commission status change not allowed',
+    'A commission moves Pending → Approved → Payable → Paid, and can be voided until it is paid.',
+    'warning',
+    'validation',
+    'Refresh the commission to see the actions available now.',
+  ),
+  PARTNER_COMMISSION_LINK_INVALID: entry(
+    400,
+    'Linked record does not belong to this partner',
+    'A commission can cite only a lead, customer or invoice that exists and is attributed to the same partner.',
+    'warning',
+    'validation',
+    'Choose a record this partner referred, or leave the link empty.',
+  ),
+  /*
+   * EXECPLAN-0055 WP-08. Partner contacts are portal-user rows, and portal
+   * sign-in is keyed on email across every partner.
+   */
+  PARTNER_CONTACT_EMAIL_IN_USE: entry(
+    409,
+    'Email already in use',
+    'This email already belongs to a partner contact.',
+    'warning',
+    'validation',
+    'Use a different email address for this contact.',
+  ),
+  /*
+   * TASK-0037. Only a contact that never activated portal access can be
+   * removed; one that did is a login with an access history, which is kept.
+   */
+  PARTNER_CONTACT_HAS_PORTAL_ACCESS: entry(
+    409,
+    'Contact has portal access',
+    'This contact has activated partner portal access and cannot be removed.',
+    'warning',
+    'validation',
+    'Suspend or deactivate the partner to end portal access.',
+  ),
+  PARTNER_COMMISSION_RATE_REQUIRED: entry(
+    400,
+    'Commission rate required',
+    'This partner has no default commission configured, so the commission needs a rate of its own.',
+    'warning',
+    'validation',
+    'Enter a commission rate, or set the partner’s default commission first.',
+  ),
+  PLATFORM_CURRENCY_NOT_ENABLED: entry(
+    400,
+    'Currency not enabled',
+    'This currency is not enabled for the platform. Choose an enabled currency.',
+    'warning',
+    'validation',
+  ),
   RATE_LIMIT_EXCEEDED: entry(
     429,
     'Rate limit exceeded',
@@ -1387,6 +1527,95 @@ export const ERROR_CATALOG = {
     'A recipient cannot receive this report because they lack access to its data.',
     'warning',
     'access',
+  ),
+  /*
+   * EXECPLAN-0055 WP-05 (D6) — the partner onboarding invitation. Each refusal
+   * names its own cause, because the operator's next step differs: reactivate,
+   * fix the contact email, wait, or check the platform email provider.
+   */
+  PARTNER_ALREADY_ONBOARDED: entry(
+    409,
+    'Partner already onboarded',
+    'This partner has already submitted onboarding or been activated, so an onboarding link is not needed.',
+    'warning',
+    'validation',
+  ),
+  PARTNER_INVITATION_NOT_ALLOWED: entry(
+    409,
+    'Onboarding link not available',
+    'An onboarding link cannot be sent to a partner that is suspended, inactive, terminated or rejected.',
+    'warning',
+    'validation',
+    'Reactivate the partner first if it should continue.',
+  ),
+  PARTNER_ONBOARDING_AGREEMENT_REQUIRED: entry(
+    400,
+    'Agreement not executed',
+    'The required partner agreement must be fully executed before the onboarding link is sent.',
+    'warning',
+    'validation',
+  ),
+  PARTNER_ONBOARDING_CONTACT_MISSING: entry(
+    400,
+    'No onboarding contact email',
+    'The partner has no contact email to send the onboarding link to.',
+    'warning',
+    'validation',
+    'Add the partner’s email address, then send the link again.',
+  ),
+  PARTNER_ONBOARDING_CONTACT_INVALID: entry(
+    400,
+    'Invalid onboarding contact email',
+    'The partner’s contact email is not a valid email address.',
+    'warning',
+    'validation',
+    'Correct the partner’s email address, then send the link again.',
+  ),
+  PARTNER_INVITATION_COOLDOWN: entry(
+    429,
+    'Onboarding link sent recently',
+    'An onboarding link was sent to this partner moments ago.',
+    'warning',
+    'validation',
+    'Wait a minute before sending another link.',
+    true,
+  ),
+  PARTNER_INVITATION_DELIVERY_FAILED: entry(
+    502,
+    'Onboarding email not delivered',
+    'The onboarding email could not be delivered by the platform email provider. The partner was not marked as invited.',
+    'error',
+    'notification',
+    'Check the platform email settings, then send the link again.',
+    true,
+  ),
+  /*
+   * The public side of the same link. An unknown, replaced and never-issued
+   * link read identically, so the page reveals nothing about which partners
+   * exist; expired and closed only ever reach someone holding a real link.
+   */
+  PARTNER_ONBOARDING_LINK_INVALID: entry(
+    404,
+    'Onboarding link not valid',
+    'This onboarding link is not valid. It may have been replaced by a newer link.',
+    'warning',
+    'validation',
+    'Use the most recent onboarding email, or ask the DijiPeople partner team for a new link.',
+  ),
+  PARTNER_ONBOARDING_LINK_EXPIRED: entry(
+    410,
+    'Onboarding link expired',
+    'This onboarding link has expired.',
+    'warning',
+    'validation',
+    'Ask the DijiPeople partner team to send a new link.',
+  ),
+  PARTNER_ONBOARDING_CLOSED: entry(
+    409,
+    'Onboarding already decided',
+    'This onboarding application has already been approved or rejected, so the link no longer accepts changes.',
+    'warning',
+    'validation',
   ),
 } as const satisfies Record<string, ErrorCatalogEntry>;
 

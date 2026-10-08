@@ -38,6 +38,7 @@ function service(prisma: Record<string, unknown>, auditLog = jest.fn()) {
       acknowledge: jest.fn(),
     } as never,
     { log: auditLog } as never,
+    { next: jest.fn(async () => 'PART-000001') } as never,
   );
   return { instance, auditLog };
 }
@@ -72,6 +73,10 @@ describe('PartnerExperienceService — audit coverage', () => {
       },
       platformSetting: { findUnique: jest.fn(async () => null) },
       partner: {
+        // The linked partner is still in the funnel (ADR-0026 live guard).
+        findUnique: jest.fn(async () => ({
+          status: PartnerStatus.UNDER_REVIEW,
+        })),
         update: jest.fn(async () => ({
           id: 'partner-1',
           email: 'a@example.test',

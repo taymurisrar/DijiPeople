@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ArrowRight, Building2, Bug, CreditCard, DatabaseBackup, FileSignature, Handshake, Headphones, KeyRound, Mail, MonitorSmartphone, Palette, Scale, Search, Settings, ShieldCheck, SlidersHorizontal, Tags, Users, Workflow } from "lucide-react";
+import { ArrowRight, Building2, Bug, CreditCard, DatabaseBackup, FileSignature, Handshake, Hash, Headphones, KeyRound, Mail, MonitorSmartphone, Palette, Scale, Search, Settings, ShieldCheck, SlidersHorizontal, Tags, Users, Workflow } from "lucide-react";
 import { PageHeader } from "@/app/_components/ui/page-header";
 import type { SettingsCardProps } from "@/app/_components/settings/settings-card";
 
@@ -13,6 +13,7 @@ const groups: Group[] = [
     { title: "Company profile", description: "Legal and public company identity.", href: "/settings/company-profile", icon: Building2 },
     { title: "Appearance", description: "Admin colors and supported design tokens.", href: "/settings/appearance", icon: Palette },
     { title: "Feature catalog", description: "Platform capabilities available to plans and tenants.", href: "/settings/features", icon: SlidersHorizontal },
+    { title: "Numbering", description: "Number formats and next numbers for platform records.", href: "/settings/numbering", icon: Hash },
   ]},
   { title: "Customers & Lifecycle", description: "Lead-to-customer and provisioning rules.", items: [
     { title: "Lead definitions", description: "Sources, qualification, statuses, and pipeline rules.", href: "/settings/lead-definitions", icon: Workflow },

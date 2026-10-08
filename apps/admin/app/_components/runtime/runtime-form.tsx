@@ -8,10 +8,15 @@ import type {
   RuntimeFormDefinition,
 } from "@/lib/runtime/platform-runtime.types";
 import { ContractDocumentEditor } from "@/app/_components/documents/contract-document-editor";
-import type { RuntimeLookupOption } from "@/lib/runtime/runtime-lookups";
+import {
+  resolveLookupBindings,
+  type RuntimeLookupOption,
+} from "@/lib/runtime/runtime-lookups";
 import { buildLookupRecordHref } from "@/lib/runtime/lookup-record-href";
+import { lookupDisplayFallback } from "@/lib/runtime/lookup-display-fallback";
 import { errorCountByTab } from "@/lib/runtime/blocked-save-feedback";
 import { humanizeLabel } from "@/lib/runtime/humanize-label";
+import { isRuntimeFieldVisible } from "@/lib/runtime/field-visibility";
 import { useRuntimeLookupOptions } from "@/lib/runtime/use-runtime-lookup-options";
 import {
   createDebouncedCallback,
@@ -36,7 +41,20 @@ export function RuntimeForm({
   childrenByField = {},
   activeTab: controlledActiveTab,
   onTabChange,
+  bare = false,
+  fieldIdPrefix = "field",
 }: {
+  /**
+   * Prefix for each control's id. A second form on the same page — the
+   * quick-create panel over a record that has a field of the same name —
+   * needs its own, or its labels point at the record's controls.
+   */
+  fieldIdPrefix?: string;
+  /**
+   * Fields only — no section cards or headings. For a form that already sits
+   * inside its own container, such as the quick-create panel.
+   */
+  bare?: boolean;
   definition: RuntimeFormDefinition;
   values: RuntimeValues;
   mode: "create" | "read" | "edit";
@@ -129,18 +147,24 @@ export function RuntimeForm({
         return (
           <section
             key={section.key}
-            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+            className={
+              bare
+                ? ""
+                : "rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+            }
           >
-            <div className="mb-3">
-              <h2 className="text-base font-semibold text-slate-950">
-                {section.label}
-              </h2>
-              {section.description ? (
-                <p className="mt-1 text-sm text-slate-500">
-                  {section.description}
-                </p>
-              ) : null}
-            </div>
+            {section.label ? (
+              <div className="mb-3">
+                <h2 className="text-base font-semibold text-slate-950">
+                  {section.label}
+                </h2>
+                {section.description ? (
+                  <p className="mt-1 text-sm text-slate-500">
+                    {section.description}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
             <div
               className={`grid gap-3 ${section.columns === 3 ? "md:grid-cols-2 xl:grid-cols-3" : section.columns === 2 ? "md:grid-cols-2" : "grid-cols-1"}`}
             >
@@ -184,6 +208,7 @@ export function RuntimeForm({
                     }
                   }}
                   custom={childrenByField[field.key]}
+                  idPrefix={fieldIdPrefix}
                 />
               ))}
             </div>
@@ -202,6 +227,7 @@ function RuntimeField({
   readOnly,
   onChange,
   custom,
+  idPrefix = "field",
 }: {
   field: RuntimeFieldDefinition;
   value: unknown;
@@ -210,6 +236,7 @@ function RuntimeField({
   readOnly: boolean;
   onChange: (value: unknown) => void;
   custom?: React.ReactNode;
+  idPrefix?: string;
 }) {
   const required =
     !readOnly &&
@@ -262,12 +289,14 @@ function RuntimeField({
    * `id` or `name` — a second thing that looked like a preference and was a
    * missing attribute.
    */
-  const controlId = `field-${field.key}`;
+  const controlId = `${idPrefix}-${field.key}`;
   const errorId = error ? `${controlId}-error` : undefined;
 
   return (
     <div
       data-field-key={field.key}
+      // Why a locked field is locked, as its tooltip rather than more text.
+      title={readOnly && field.readOnlyReason ? field.readOnlyReason : undefined}
       className={`flex flex-col gap-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 ${span}`}
     >
       <label
@@ -394,7 +423,9 @@ function FieldDisplay({
   }
 
   if (isLookupField(field)) {
-    const label = resolveLookupLabel(field, value, values);
+    const label =
+      resolveLookupLabel(field, value, values) ??
+      lookupDisplayFallback(field, value);
     if (!label) return <span className={`${base} text-slate-400`}>Not set</span>;
     const href = resolveDisplayHref(field, values, value);
     return (
@@ -820,10 +851,10 @@ function FieldControl({
                   )
                 ? "number"
                 : "text";
-  return (
+  const input = (
     <input
       {...a11y}
-      className={className}
+      className={field.type === "percentage" ? `${className} pr-9` : className}
       disabled={readOnly}
       required={required}
       type={type}
@@ -859,6 +890,23 @@ function FieldControl({
         )
       }
     />
+  );
+  if (field.type !== "percentage") return input;
+  /*
+   * Percentages are stored and entered as 0-100 (ADR-0026), so "10" means 10%.
+   * The visible % inside the control removes the 10 / 10% / 0.10 ambiguity at
+   * the point of entry, where the read view already renders "10%".
+   */
+  return (
+    <div className="relative">
+      {input}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-slate-500"
+      >
+        %
+      </span>
+    </div>
   );
 }
 
@@ -1032,7 +1080,17 @@ function RuntimeLookup({
     debouncedSearchRef.current?.run(nextQuery);
   }
 
-  const lookup = useRuntimeLookupOptions(field.lookupPath, debouncedQuery);
+  /*
+   * A path with `{field}` placeholders scopes itself to this record (the
+   * commission Lead picker lists the chosen partner's leads). Until every
+   * placeholder has a value it loads nothing rather than the unscoped list.
+   */
+  const lookupBindings = resolveLookupBindings(field.lookupPath, values);
+  const lookup = useRuntimeLookupOptions(
+    lookupBindings ? field.lookupPath : undefined,
+    debouncedQuery,
+    lookupBindings ?? undefined,
+  );
   /*
    * A lookup-backed field takes its options from the endpoint; one that
    * declares a static list keeps that list. Memoised because it feeds the
@@ -1061,7 +1119,10 @@ function RuntimeLookup({
    * inside the first page of options.
    */
   const currentOption = useMemo(() => {
-    const label = resolveLookupLabel(field, value, values);
+    // A stored code outside the catalog stays visible while editing too.
+    const label =
+      resolveLookupLabel(field, value, values) ??
+      lookupDisplayFallback(field, value);
     return value && label ? { value, label } : undefined;
   }, [field, value, values]);
   const resolvedOptions = useMemo(
@@ -1425,34 +1486,10 @@ function isVisible(
   values: RuntimeValues,
   mode?: "create" | "read" | "edit",
 ) {
-  if (field.hidden || (mode === "create" && field.hideOnCreate)) return false;
-  if (
-    mode === "read" &&
-    field.hideWhenEmpty &&
-    (readRuntimeValue(values, field.key) == null ||
-      readRuntimeValue(values, field.key) === "")
-  )
-    return false;
-  if (field.visibleWhenAny?.length)
-    return field.visibleWhenAny.some((condition) =>
-      matchesVisibilityCondition(condition, values),
-    );
-  if (!field.visibleWhen) return true;
-  return matchesVisibilityCondition(field.visibleWhen, values);
+  // Pure and specced in `field-visibility.ts` (no jsdom for this component).
+  return isRuntimeFieldVisible(field, values, mode);
 }
 
-function matchesVisibilityCondition(
-  condition: NonNullable<RuntimeFieldDefinition["visibleWhen"]>,
-  values: RuntimeValues,
-) {
-  const value = readRuntimeValue(values, condition.field);
-  if (condition.hasValue !== undefined)
-    return condition.hasValue
-      ? value != null && value !== ""
-      : value == null || value === "";
-  if (condition.in) return condition.in.includes(value);
-  return value === condition.equals;
-}
 function isConditionallyReadOnly(
   field: RuntimeFieldDefinition,
   values: RuntimeValues,

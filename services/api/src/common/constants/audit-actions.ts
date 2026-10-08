@@ -147,6 +147,39 @@ export const AUDIT_ACTIONS = {
    * `projects`, …), the snapshots hold only the custom field values.
    */
   CUSTOM_FIELD_VALUES_UPDATED: 'CUSTOM_FIELD_VALUES_UPDATED',
+
+  /*
+   * ADR-0027 — an operator changed a platform number sequence's format or
+   * raised its next number (Admin Settings -> Numbering). Platform log
+   * (`tenantId: 'platform'`); both snapshots carry the whole configuration so
+   * "why did partner numbers change shape on this date?" has an answer.
+   * Allocating a number is not audited here — the record that receives the
+   * number is audited by its own module.
+   */
+  PLATFORM_NUMBER_SEQUENCE_UPDATED: 'PLATFORM_NUMBER_SEQUENCE_UPDATED',
+
+  /*
+   * EXECPLAN-0055 WP-05 (D6) — every onboarding link send, delivered or not.
+   * Platform log, entity `PartnerOnboardingApplication`. Snapshots carry the
+   * recipient, expiry and statuses; never the token, its hash or the link.
+   * `…_SENT` predates this catalog entry and keeps its spelling.
+   */
+  PARTNER_ONBOARDING_INVITATION_SENT: 'PARTNER_ONBOARDING_INVITATION_SENT',
+  PARTNER_ONBOARDING_INVITATION_FAILED: 'PARTNER_ONBOARDING_INVITATION_FAILED',
+
+  /*
+   * EXECPLAN-0055 WP-08 — the partner record's quick-create and note paths.
+   * Platform log, entity `Partner` (contact, note) or `PartnerReferralLink`.
+   * A contact snapshot carries its email and status, never a credential.
+   */
+  PARTNER_CONTACT_CREATED: 'PARTNER_CONTACT_CREATED',
+  /*
+   * TASK-0037 — Remove on the Contacts tab, for a contact that never
+   * activated portal access. Same snapshot rules as CREATED.
+   */
+  PARTNER_CONTACT_REMOVED: 'PARTNER_CONTACT_REMOVED',
+  PARTNER_NOTE_ADDED: 'PARTNER_NOTE_ADDED',
+  PARTNER_REFERRAL_LINK_CREATED: 'PARTNER_REFERRAL_LINK_CREATED',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];

@@ -6,11 +6,23 @@ import type {
   RuntimeFieldDefinition,
   RuntimeModuleCapabilities,
   RuntimeRecordHeaderSlot,
+  RuntimeRecordHighlightDefinition,
+  RuntimeRelatedRecordDefinition,
   RuntimeStatusDefinition,
   RuntimeViewDefinition,
 } from "./platform-runtime.types";
 import {
   AGREEMENT_CATEGORY_OPTIONS,
+  PARTNER_ACCOUNT_STATUS_DEFINITIONS,
+  PARTNER_ACCOUNT_STATUS_HELP,
+  PARTNER_ACCOUNT_STATUS_LABELS,
+  PARTNER_LIFECYCLE_ACTIONS,
+  PARTNER_PHASES,
+  PARTNER_PHASE_LABELS,
+  PARTNER_STATUS_DEFINITIONS,
+  PARTNER_STATUS_LABELS,
+  PARTNER_STATUS_PHASES,
+  type PartnerLifecycleActionKey,
   getRuntimeSchema,
   listRuntimeViewKeys,
   runtimeViewLabel,
@@ -264,6 +276,12 @@ const EDIT_RECORD_ACTIONS: RuntimeActionDefinition[] = [
  */
 const COUNTRY_LOOKUP_PATH = "/public/geography/countries";
 
+/*
+ * ADR-0026 D4 — the currencies the platform has enabled (Settings > General).
+ * Read through the platform-settings route, governed for every platform role.
+ */
+const CURRENCY_LOOKUP_PATH = "/super-admin/platform-settings/currencies";
+
 const OWNER_LOOKUP_PATH = "/platform-users/owner-candidates";
 /**
  * Owner is not spelled the same way twice in this schema. The order matters:
@@ -287,7 +305,6 @@ const ASSIGNABLE_MODULES = new Set<PlatformModuleKey>([
 /** Modules `PlatformRuntimeService.changeStatus` implements a transition for. */
 const STATUS_TRANSITION_MODULES = new Set<PlatformModuleKey>([
   "leads",
-  "partners",
   "support-cases",
 ]);
 /**
@@ -303,6 +320,13 @@ const RECORD_HEADER_READ_ONLY_REASON: Partial<
     "Tenant lifecycle changes go through the Operations tab so the provisioning transition rules apply.",
   customers:
     "Customer status follows onboarding and tenant provisioning rather than a direct edit.",
+  /*
+   * ADR-0026. Partners were a status-transition module, and the header's
+   * change-status spread the whole record into the update DTO: every attempt
+   * 400'd with "Review the highlighted fields". The API now refuses it outright.
+   */
+  partners:
+    "Partner status changes through lifecycle actions, such as Start review, Activate partner, Suspend or Deactivate.",
 };
 
 /**
@@ -369,7 +393,7 @@ const DELETE_REFUSALS: Partial<Record<PlatformModuleKey, string>> = {
   payments:
     "A payment is a record of money moving, reconciled against Stripe. Refund it instead — deleting it would leave the reconciliation permanently short.",
   commissions:
-    "A commission is what a partner is owed or was paid. Adjust or reverse it instead; deleting one removes the explanation for a payment that already happened.",
+    "A commission is what a partner is owed or was paid. Void it instead (until it is paid); deleting one removes the explanation for a payment that already happened.",
   "monitoring-incidents":
     "Incidents are the support trail for what customers experienced. Resolve them instead — resolved incidents leave the default queue and stay searchable by reference.",
   dashboard: "The dashboard is not a list of records.",
@@ -395,7 +419,8 @@ const MODULE_CAPABILITIES: Record<
   plans: { create: false, update: true, delete: false },
   invoices: { create: false, update: false, delete: false },
   payments: { create: false, update: false, delete: false },
-  commissions: { create: false, update: false, delete: false },
+  // Created as a ledger entry, never edited: corrections are Void + a new one.
+  commissions: { create: true, update: false, delete: false },
   "monitoring-incidents": { create: false, update: false, delete: false },
 };
 
@@ -808,6 +833,15 @@ export const DASHBOARD_VIEWS: RuntimeViewDefinition[] = [
   },
 ];
 
+/** `PartnerCommissionStatus`, in lifecycle order (ADR-0026 D3). */
+const COMMISSION_STATUS_VALUES = [
+  "PENDING",
+  "APPROVED",
+  "PAYABLE",
+  "PAID",
+  "VOID",
+];
+
 const LEAD_STATUSES: RuntimeStatusDefinition[] = [
   "NEW",
   "CONTACTED",
@@ -829,21 +863,63 @@ const LEAD_STATUSES: RuntimeStatusDefinition[] = [
           : "neutral",
   terminal: ["CONVERTED", "CLOSED_LOST", "ARCHIVED"].includes(value),
 }));
-const PARTNER_STATUSES: RuntimeStatusDefinition[] = [
-  "INQUIRY",
-  "NEW_INQUIRY",
-  "UNDER_REVIEW",
-  "MORE_INFORMATION_REQUIRED",
-  "REJECTED",
+/*
+ * All 24 `PartnerStatus` values, from the shared lifecycle module (ADR-0026).
+ * This listed 13, so a partner in any of the other 11 — DRAFT, the column
+ * default, among them — had a status no option matched and no process stage.
+ * Tone follows the phase rather than the spelling: `status()` reads any value
+ * containing "ACTIVE" as success, which painted INACTIVE green.
+ */
+const PARTNER_PHASE_TONES: Record<string, RuntimeStatusDefinition["tone"]> = {
+  PROSPECT: "info",
+  ONBOARDING: "warning",
+  ACTIVE: "success",
+  SUSPENDED: "danger",
+  CLOSED: "neutral",
+};
+const PARTNER_STATUSES: RuntimeStatusDefinition[] =
+  PARTNER_STATUS_DEFINITIONS.map((definition) => ({
+    value: definition.value,
+    label: definition.label,
+    tone:
+      definition.value === "REJECTED" || definition.value === "TERMINATED"
+        ? "danger"
+        : (PARTNER_PHASE_TONES[definition.phase] ?? "neutral"),
+    terminal: definition.phase === "CLOSED",
+  }));
+/** A governed partner command is offered only in the statuses the API accepts it from. */
+function partnerActionStates(action: PartnerLifecycleActionKey): string[] {
+  return [...PARTNER_LIFECYCLE_ACTIONS[action].from];
+}
+/*
+ * ADR-0026 — two ways into the partner lifecycle. A partner from the public
+ * inquiry form has a PartnerInquiry, and the application-review commands
+ * (`requiresInquiry` in the shared table) decide it. A partner created in the
+ * console starts at DRAFT with none and takes the agreement-first path, so it
+ * is never offered a review of an application it did not send. The API
+ * refuses those commands for it (PARTNER_INQUIRY_REQUIRED); `hasInquiry` is
+ * on the partner record the API returns.
+ */
+const PARTNER_HAS_INQUIRY = { field: "hasInquiry", equals: true } as const;
+/*
+ * Where Create agreement is offered. A console partner contracts first, from
+ * DRAFT. The agreement-stage statuses stay in the list because voiding an
+ * agreement leaves the partner where it was (contracts.service changes the
+ * partner status only when an agreement is sent and when it is signed), and a
+ * partner in AGREEMENT_IN_PROGRESS whose agreement was voided needs a new one.
+ * From AGREEMENT_EXECUTED on the agreement is signed; ACTIVE keeps it for
+ * renewals and additional agreements. The API places no partner-status guard
+ * on creating an agreement — this is a usability rule, not the authority.
+ */
+const PARTNER_AGREEMENT_CREATABLE_STATUSES = [
+  "DRAFT",
   "APPROVED_AWAITING_AGREEMENT",
+  "AGREEMENT_DRAFTING",
+  "INTERNAL_APPROVAL",
   "AGREEMENT_IN_PROGRESS",
-  "AGREEMENT_EXECUTED",
-  "ONBOARDING_PENDING",
+  "AWAITING_SIGNATURE",
   "ACTIVE",
-  "SUSPENDED",
-  "INACTIVE",
-  "TERMINATED",
-].map(status);
+];
 const CONTRACT_STATUSES: RuntimeStatusDefinition[] = [
   "DRAFT",
   "INTERNAL_REVIEW",
@@ -882,9 +958,395 @@ const SUPPORT_STATUSES: RuntimeStatusDefinition[] = [
   "CANCELLED",
 ].map(status);
 
+/*
+ * EXECPLAN-0055 D8 — the partner highlight header. Status is the derived phase
+ * and Sub-status the exact lifecycle status, both read-only with the reason;
+ * Account is the portal-access status with the action that sets each value.
+ */
+const PARTNER_STATUS_TONES: Record<string, RuntimeStatusDefinition["tone"]> =
+  Object.fromEntries(PARTNER_STATUSES.map((item) => [item.value, item.tone]));
+const PARTNER_HIGHLIGHT: RuntimeRecordHighlightDefinition = {
+  eyebrow: "Partner",
+  titleFields: ["displayName", "companyName", "legalName"],
+  owner: { after: "partnerNumber" },
+  items: [
+    {
+      key: "partnerNumber",
+      label: "Partner number",
+      field: "partnerNumber",
+      format: "code",
+    },
+    {
+      key: "phase",
+      label: "Status",
+      field: "status",
+      valueMap: { ...PARTNER_STATUS_PHASES },
+      labels: { ...PARTNER_PHASE_LABELS },
+      tones: PARTNER_PHASE_TONES,
+      format: "status",
+      hint: RECORD_HEADER_READ_ONLY_REASON.partners,
+    },
+    {
+      key: "subStatus",
+      label: "Sub-status",
+      field: "status",
+      labels: { ...PARTNER_STATUS_LABELS },
+      tones: PARTNER_STATUS_TONES,
+      format: "status",
+    },
+    {
+      key: "accountStatus",
+      label: "Account",
+      field: "accountStatus",
+      labels: { ...PARTNER_ACCOUNT_STATUS_LABELS },
+      hints: Object.fromEntries(
+        PARTNER_ACCOUNT_STATUS_DEFINITIONS.map((item) => [
+          item.value,
+          item.explanation,
+        ]),
+      ),
+      format: "status",
+    },
+    {
+      key: "type",
+      label: "Type",
+      field: "type",
+      labels: { COMPANY: "Company", INDIVIDUAL: "Individual" },
+    },
+    {
+      key: "partnershipModel",
+      label: "Partnership",
+      field: "partnershipModel",
+      hideWhenEmpty: true,
+    },
+  ],
+};
+
+/*
+ * EXECPLAN-0055 WP-08 — the partner record's subgrids. Each lists columns the
+ * related payload carries (`PartnersService.get`), says what an empty grid
+ * means, and offers Add where the API can create the record.
+ */
+const PARTNER_REFERRAL_LINK_ACTION = "/partners/{parentId}/referral-links/{id}/action";
+const PARTNER_RELATED_RECORDS: RuntimeRelatedRecordDefinition[] = [
+  {
+    key: "commissions",
+    label: "Commissions",
+    tab: "summary",
+    module: "commissions",
+    foreignKey: "partnerId",
+    emptyTitle: "No commissions yet",
+    emptyDescription: "Commissions recorded for this partner appear here.",
+    /*
+     * ADR-0026 D3: an operator-recorded ledger entry. The amount is computed
+     * by the server from the base and rate; a blank rate takes the partner's
+     * default there. The partner is the record this panel was opened from.
+     */
+    quickCreate: {
+      actionLabel: "Add commission",
+      title: "New commission",
+      fields: [
+        "baseAmount",
+        "commissionRate",
+        "currencyCode",
+        "leadId",
+        "customerAccountId",
+        "description",
+        "earnedAt",
+        "dueAt",
+      ],
+      submit: { path: "/platform-runtime/commissions", envelope: "values" },
+      parentField: "partnerId",
+      defaultsFromParent: { currencyCode: "currencyCode" },
+    },
+    /*
+     * Every column is a field the partner read returns per commission
+     * (`PartnersService.describeCommissions`): `sourceLabel` names the
+     * lead, customer or invoice the entry cites, and the amounts render in
+     * the entry's own `currencyCode`.
+     */
+    columns: [
+      col("commissionNumber", "Commission", 170, "text", {
+        route: "/commissions",
+        idField: "id",
+      }),
+      col("sourceLabel", "Source", 200),
+      col("commissionRate", "Rate", 100, "percentage"),
+      col("baseAmount", "Commissionable amount", 170, "currency"),
+      col("commissionAmount", "Commission", 140, "currency"),
+      col("status", "Status", 130, "status"),
+      col("createdAt", "Created", 140, "date"),
+      col("paidAt", "Paid", 140, "date"),
+    ],
+  },
+  {
+    key: "inquiries",
+    label: "Partner application",
+    tab: "application",
+    module: "partner-inquiries",
+    foreignKey: "partnerId",
+    viewAll: false,
+    emptyTitle: "No partner application",
+    emptyDescription:
+      "This partner was added directly, not from a partner application.",
+    columns: [
+      col("referenceNumber", "Application", 160),
+      col("partnershipModel", "Partnership", 150, "status"),
+      col("status", "Status", 140, "status"),
+      col("submittedAt", "Submitted", 170, "dateTime"),
+    ],
+  },
+  {
+    key: "onboardingApplications",
+    label: "Onboarding applications",
+    tab: "application",
+    module: "partner-onboarding",
+    foreignKey: "partnerId",
+    viewAll: false,
+    emptyTitle: "No onboarding application yet",
+    emptyDescription:
+      "Send onboarding link creates one once the partner agreement is executed.",
+    columns: [
+      col("status", "Stage", 150, "status"),
+      col("submittedAt", "Submitted", 170, "dateTime"),
+      col("reviewedAt", "Reviewed", 170, "dateTime"),
+      col("tokenExpiresAt", "Link expires", 170, "dateTime"),
+      col("updatedAt", "Updated", 170, "dateTime"),
+    ],
+  },
+  {
+    key: "portalUsers",
+    label: "Contacts",
+    tab: "contacts",
+    foreignKey: "partnerId",
+    emptyTitle: "No contacts yet",
+    emptyDescription: "Add the people you work with at this partner.",
+    columns: [
+      col("fullName", "Name", 200),
+      col("email", "Email", 240),
+      col("status", "Portal access", 150, "status"),
+      col("activatedAt", "Activated", 170, "dateTime"),
+      col("lastActiveAt", "Last active", 170, "dateTime"),
+      col("createdAt", "Added", 170, "dateTime"),
+    ],
+    /*
+     * A contact is an uninvited portal user (`POST /partners/:id/contacts`).
+     * Saving one sends nothing; portal access is still granted by Activate
+     * partner and the portal's own invitation.
+     */
+    quickCreate: {
+      actionLabel: "Add contact",
+      title: "New contact",
+      fields: [
+        { ...field("firstName", "First name", "text", "contact", true), maxLength: 100 },
+        { ...field("lastName", "Last name", "text", "contact", true), maxLength: 100 },
+        { ...field("email", "Email", "email", "contact", true), maxLength: 254 },
+      ],
+      submit: { path: "/partners/{parentId}/contacts", envelope: "body" },
+    },
+    /*
+     * TASK-0037 — a contact that never activated portal access can be
+     * removed. `canRemove` is the API's own rule (`isContactRemovable`):
+     * status alone cannot tell an INVITED contact that never accepted from
+     * one that activated before being re-invited. A contact with portal
+     * access is ended by suspending or deactivating the partner instead.
+     */
+    rowActions: [
+      {
+        key: "remove-contact",
+        label: "Remove",
+        kind: "delete",
+        path: "/partners/{parentId}/contacts/{id}",
+        visibleWhen: { field: "canRemove", in: [true] },
+        permission: "partners.manage",
+        destructive: true,
+        confirmTitle: "Remove this contact?",
+        successMessage: "Contact removed.",
+      },
+    ],
+  },
+  {
+    key: "agreements",
+    label: "Partner agreements",
+    tab: "agreements",
+    emptyTitle: "No partner agreements yet",
+    emptyDescription:
+      "Use Create agreement to draft the partner agreement. It must be executed before onboarding.",
+    module: "contracts",
+    foreignKey: "partnerId",
+    columns: [
+      col("contractNumber", "Contract", 170),
+      col("title", "Title", 220),
+      col("status", "Status", 160, "status"),
+      col("commissionPercentage", "Commission", 120, "percentage"),
+      col("effectiveDate", "Effective", 140, "date"),
+      col("createdAt", "Created", 160, "dateTime"),
+    ],
+  },
+  {
+    key: "referralLinks",
+    label: "Referral links",
+    tab: "referral-links",
+    foreignKey: "partnerId",
+    emptyTitle: "No referral links yet",
+    emptyDescription:
+      "An active partner gets a default link; add campaign links here.",
+    /*
+     * `url` is built by the API from the configured public site
+     * (`partnerReferralLinkUrl`); `submissionCount` and `lastUsedAt` are
+     * kept by the referral resolver as leads arrive through the link.
+     */
+    columns: [
+      col("name", "Name", 200),
+      col("code", "Code", 150),
+      col("url", "Link", 300),
+      col("status", "Status", 120, "status"),
+      col("submissionCount", "Leads", 90, "number"),
+      col("lastUsedAt", "Last used", 160, "dateTime"),
+      col("expiresAt", "Expires", 140, "date"),
+      col("createdAt", "Created", 160, "dateTime"),
+    ],
+    quickCreate: {
+      actionLabel: "Add referral link",
+      title: "New referral link",
+      fields: [
+        { ...field("name", "Link name", "text", "link", true), maxLength: 160 },
+        { ...field("campaignName", "Campaign", "text", "link"), maxLength: 160 },
+        field("expiresAt", "Expires", "date", "link"),
+      ],
+      submit: { path: "/partners/{parentId}/referral-links", envelope: "body" },
+      // The API creates links for active partners only.
+      availableWhen: {
+        field: "status",
+        in: ["ACTIVE"],
+        reason: "Referral links can be added once the partner is active.",
+      },
+    },
+    rowActions: [
+      {
+        key: "copy-link",
+        label: "Copy link",
+        kind: "copy",
+        field: "url",
+        successMessage: "Link copied.",
+      },
+      {
+        key: "disable-link",
+        label: "Disable",
+        kind: "post",
+        path: PARTNER_REFERRAL_LINK_ACTION,
+        body: { action: "disable" },
+        visibleWhen: { field: "status", in: ["ACTIVE"] },
+        permission: "partners.manage",
+        destructive: true,
+        confirmTitle: "Disable this referral link?",
+        successMessage: "Referral link disabled.",
+      },
+      {
+        key: "enable-link",
+        label: "Enable",
+        kind: "post",
+        path: PARTNER_REFERRAL_LINK_ACTION,
+        body: { action: "enable" },
+        visibleWhen: { field: "status", in: ["DISABLED", "EXPIRED"] },
+        permission: "partners.manage",
+        successMessage: "Referral link enabled.",
+      },
+      {
+        key: "regenerate-link",
+        label: "Regenerate",
+        kind: "post",
+        path: PARTNER_REFERRAL_LINK_ACTION,
+        body: { action: "regenerate" },
+        visibleWhen: { field: "status", in: ["ACTIVE"] },
+        permission: "partners.manage",
+        destructive: true,
+        confirmTitle: "Replace this link with a new code?",
+        successMessage: "A new link replaced the old one.",
+      },
+    ],
+  },
+  {
+    key: "leads",
+    label: "Referred leads",
+    tab: "referred-leads",
+    module: "leads",
+    foreignKey: "partnerId",
+    emptyTitle: "No referred leads yet",
+    emptyDescription:
+      "Leads submitted through this partner's referral links, or credited to it by an attribution correction, appear here.",
+    columns: [
+      col("companyName", "Company", 200),
+      col("fullName", "Contact", 170),
+      col("status", "Status", 130, "status"),
+      col("attributionSource", "Attribution", 200),
+      col("referredOn", "Referred", 160, "dateTime"),
+      col("convertedCustomerName", "Customer", 180, "text", {
+        route: "/customers",
+        idField: "convertedCustomerId",
+      }),
+    ],
+  },
+  {
+    key: "attributedCustomers",
+    label: "Customers",
+    tab: "customers",
+    module: "customers",
+    foreignKey: "originatingPartnerId",
+    // The customer list cannot filter by originating partner.
+    viewAll: false,
+    emptyTitle: "No customers yet",
+    emptyDescription:
+      "Customers this partner brought in appear here once a referred lead converts.",
+    columns: [
+      col("companyName", "Customer", 220),
+      col("status", "Status", 130, "status"),
+      col("country", "Country", 140),
+      col("referralCodeSnapshot", "Referral code", 150),
+      col("createdAt", "Created", 160, "dateTime"),
+    ],
+  },
+  {
+    key: "attributedTenants",
+    label: "Tenants",
+    tab: "tenants",
+    module: "tenants",
+    foreignKey: "originatingPartnerId",
+    viewAll: false,
+    emptyTitle: "No tenants yet",
+    emptyDescription:
+      "Workspaces provisioned for this partner's customers appear here.",
+    columns: [
+      col("displayName", "Tenant", 200),
+      col("slug", "Workspace", 160),
+      col("customerName", "Customer", 200, "text", {
+        route: "/customers",
+        idField: "customerAccountId",
+      }),
+      col("status", "Status", 130, "status"),
+      col("createdAt", "Created", 160, "dateTime"),
+    ],
+  },
+];
+
 const partnerFields: RuntimeFieldDefinition[] = [
   { ...field("id", "Partner ID", "text", "system"), readOnly: true },
-  { ...field("code", "Partner number", "text", "identity"), readOnly: true },
+  /*
+   * ADR-0027. `partnerNumber` (PART-000001) is the human-readable number,
+   * issued by the platform sequence at create and never editable. `code` is
+   * the older internal reference, in two historical formats; it stays visible
+   * because agreements and correspondence already quote it.
+   */
+  {
+    ...field("partnerNumber", "Partner number", "text", "identity"),
+    readOnly: true,
+    readOnlyReason: "Issued from the partner number sequence when the partner is created.",
+  },
+  {
+    ...field("code", "Partner code", "text", "identity"),
+    readOnly: true,
+    readOnlyReason: "The internal reference existing agreements quote.",
+  },
   field("displayName", "Partner name", "text", "identity", true),
   field("legalName", "Legal name", "text", "identity"),
   field("type", "Partner type", "option", "identity", true, [
@@ -907,23 +1369,28 @@ const partnerFields: RuntimeFieldDefinition[] = [
     "CONSULTANT",
     "OTHER",
   ]),
-  field(
-    "status",
-    "Status",
-    "option",
-    "identity",
-    true,
-    PARTNER_STATUSES.map((item) => item.value),
-  ),
+  /*
+   * ADR-0026. Status is read-only everywhere: a partner is created at DRAFT and
+   * moves only through the lifecycle commands, which the API validates. The
+   * form used to offer it (and the API to accept it), so a partner could be
+   * created ACTIVE past every agreement and onboarding gate.
+   */
   {
-    ...field("accountStatus", "Account status", "option", "identity", false, [
-      "NOT_PROVISIONED",
-      "INVITED",
-      "ACTIVE",
-      "SUSPENDED",
-      "DISABLED",
-    ]),
+    ...field("status", "Status", "option", "identity"),
+    options: PARTNER_STATUSES.map(({ value, label }) => ({ value, label })),
     readOnly: true,
+    readOnlyReason: RECORD_HEADER_READ_ONLY_REASON.partners,
+    renderAs: "status",
+  },
+  {
+    ...field("accountStatus", "Account status", "option", "identity"),
+    options: PARTNER_ACCOUNT_STATUS_DEFINITIONS.map(({ value, label }) => ({
+      value,
+      label,
+    })),
+    readOnly: true,
+    renderAs: "status",
+    description: PARTNER_ACCOUNT_STATUS_HELP,
   },
   /*
    * BUG-3549. `type` now drives which identity fields are required
@@ -968,21 +1435,25 @@ const partnerFields: RuntimeFieldDefinition[] = [
    * a partner created through the console carries `currencyCode: "5"`
    * (BUG-1747).
    *
-   * Contracts already declares this field as an option over
-   * `PLATFORM_CURRENCY_OPTIONS`. Partners now says the same thing the same way.
+   * Partners, contracts and commissions declare it the same way, through
+   * `currencyField()` — a lookup over the platform's enabled currencies.
    */
-  {
-    ...field("currencyCode", "Currency", "option", "commercial", true),
-    options: PLATFORM_CURRENCY_OPTIONS,
-  },
+  currencyField("commercial", true),
   {
     ...field("assignedToUserId", "Internal owner", "userLookup", "ownership"),
     lookupPath: "/platform-users/owner-candidates",
   },
   field("notes", "Internal notes", "longText", "notes"),
+  /*
+   * Set only by a partner application. A partner added in the console has none
+   * of them, so each hides when empty and the "Application details" card goes
+   * with them (`isRuntimeFieldVisible`; a section with no visible field is not
+   * rendered) instead of showing three "Not set" values.
+   */
   {
     ...field("applicationSource", "Application source", "text", "application"),
     readOnly: true,
+    hideWhenEmpty: true,
   },
   {
     ...field(
@@ -992,6 +1463,7 @@ const partnerFields: RuntimeFieldDefinition[] = [
       "application",
     ),
     readOnly: true,
+    hideWhenEmpty: true,
   },
   {
     ...field(
@@ -1001,6 +1473,7 @@ const partnerFields: RuntimeFieldDefinition[] = [
       "application",
     ),
     readOnly: true,
+    hideWhenEmpty: true,
   },
   { ...field("createdAt", "Created", "dateTime", "system"), readOnly: true },
   {
@@ -1055,8 +1528,12 @@ const FORM_EXCLUDED_FIELDS: Partial<Record<PlatformModuleKey, string[]>> = {
 const RECORD_ORIGINS: Partial<Record<PlatformModuleKey, string>> = {
   invoices: "Invoices are raised automatically when a subscription bills.",
   payments: "Payments appear when a customer pays an invoice through Stripe.",
-  commissions:
-    "Commissions are calculated when a partner-referred subscription bills.",
+  /*
+   * No `commissions` entry. It said commissions were "calculated when a
+   * partner-referred subscription bills", which nothing does (ADR-0026 D3;
+   * accrual is ITEM-0227). They are operator-created now, so the module can
+   * create and the standard "create one" wording applies.
+   */
   subscriptions:
     "Subscriptions are created by checkout, or from a customer onboarding.",
   tenants:
@@ -1683,20 +2160,28 @@ const definitions: PlatformModuleDefinition[] = [
     ]),
     defaultView: "all",
     statuses: PARTNER_STATUSES,
+    /*
+     * EXECPLAN-0055 WP-08. Every column is one the list response fills.
+     * "Onboarding" and "Agreements" counted arrays the list query caps at one
+     * row (so they read 0 or 1), "Portal users" read an array the list never
+     * returns, and Owner read a `fullName` the API did not send. The
+     * onboarding stage is the Status column's sub-status.
+     */
     columns: [
+      { ...col("partnerNumber", "Number", 140), essential: true },
       col("displayName", "Partner", 230),
-      col("type", "Type", 120),
+      col("type", "Type", 120, "status"),
       col("partnershipModel", "Partnership", 160, "status"),
       col("status", "Status", 170, "status"),
-      col("onboardingApplications", "Onboarding", 170, "number"),
-      col("agreements", "Agreements", 170, "number"),
-      col("portalUsers", "Portal users", 150, "number"),
+      col("accountStatus", "Account", 140, "status"),
+      col("_count.agreements", "Agreements", 120, "number"),
+      col("_count.leads", "Leads", 90, "number"),
       col("defaultCommissionRate", "Commission", 130, "percentage"),
       col("assignedToUser.fullName", "Owner", 180, "lookup"),
-      col("_count.leads", "Leads", 90, "number"),
       col("createdAt", "Created", 160, "dateTime"),
     ],
     forms: partnerForms(partnerFields),
+    highlight: PARTNER_HIGHLIGHT,
     actions: [
       ...CREATE_LIST_ACTIONS,
       ACTION.bulkAssign,
@@ -1707,7 +2192,10 @@ const definitions: PlatformModuleDefinition[] = [
         placement: "primary",
         scope: "record",
         selection: "none",
-        states: ["INQUIRY", "NEW_INQUIRY", "MORE_INFORMATION_REQUIRED"],
+        // ADR-0026: each lifecycle command's states come from the table the
+        // API enforces (@repo/config partner-lifecycle), never a local list.
+        states: partnerActionStates("start-review"),
+        visibleWhen: PARTNER_HAS_INQUIRY,
       },
       {
         key: "approve-partner",
@@ -1715,7 +2203,8 @@ const definitions: PlatformModuleDefinition[] = [
         placement: "primary",
         scope: "record",
         selection: "none",
-        states: ["UNDER_REVIEW"],
+        states: partnerActionStates("approve"),
+        visibleWhen: PARTNER_HAS_INQUIRY,
       },
       {
         key: "request-information",
@@ -1723,7 +2212,8 @@ const definitions: PlatformModuleDefinition[] = [
         placement: "secondary",
         scope: "record",
         selection: "none",
-        states: ["INQUIRY", "NEW_INQUIRY", "UNDER_REVIEW"],
+        states: partnerActionStates("request-information"),
+        visibleWhen: PARTNER_HAS_INQUIRY,
       },
       {
         key: "reject-partner",
@@ -1731,14 +2221,19 @@ const definitions: PlatformModuleDefinition[] = [
         placement: "overflow",
         scope: "record",
         selection: "none",
-        states: [
-          "INQUIRY",
-          "NEW_INQUIRY",
-          "UNDER_REVIEW",
-          "APPROVED_AWAITING_AGREEMENT",
-        ],
+        states: partnerActionStates("reject"),
+        visibleWhen: PARTNER_HAS_INQUIRY,
         destructive: true,
         confirmTitle: "Reject this partner application?",
+        /*
+         * The reason is emailed to the applicant and kept on the inquiry; the
+         * API's fallback text ("Rejected from the Partner runtime.") was what
+         * applicants received without it.
+         */
+        reasonPrompt: {
+          title: "Reject partner application",
+          label: "Reason for rejection",
+        },
       },
       {
         key: "create-agreement",
@@ -1746,15 +2241,22 @@ const definitions: PlatformModuleDefinition[] = [
         placement: "primary",
         scope: "record",
         selection: "none",
-        states: ["APPROVED_AWAITING_AGREEMENT", "ACTIVE"],
+        states: PARTNER_AGREEMENT_CREATABLE_STATUSES,
       },
       {
         key: "send-onboarding-link",
+        /*
+         * One label for first send and resend: a command's label is static.
+         * The API's notice says which it was ("Onboarding link resent to …,
+         * expires …"), and a resend revokes the previous link.
+         */
         label: "Send onboarding link",
         placement: "primary",
         scope: "record",
         selection: "none",
-        states: ["AGREEMENT_EXECUTED"],
+        // EXECPLAN-0055 WP-05: from agreement executed until onboarding is
+        // submitted, so a lost or expired link can be replaced.
+        states: partnerActionStates("send-onboarding-link"),
       },
       {
         key: "activate",
@@ -1762,7 +2264,13 @@ const definitions: PlatformModuleDefinition[] = [
         placement: "primary",
         scope: "record",
         selection: "none",
-        states: ["ONBOARDING_PENDING", "APPROVED_FOR_ACTIVATION"],
+        /*
+         * Offered where onboarding approval leaves the partner
+         * (INFORMATION_APPROVED). It used to be ONBOARDING_PENDING — before
+         * onboarding is approved, where activation must fail — and hidden in
+         * the one state where it succeeds.
+         */
+        states: partnerActionStates("activate"),
       },
       {
         key: "suspend-partner",
@@ -1770,8 +2278,25 @@ const definitions: PlatformModuleDefinition[] = [
         placement: "overflow",
         scope: "record",
         selection: "none",
-        states: ["ACTIVE"],
+        states: partnerActionStates("suspend"),
         destructive: true,
+        reasonPrompt: {
+          title: "Suspend partner",
+          label: "Reason for suspension",
+        },
+      },
+      {
+        key: "deactivate-partner",
+        label: "Deactivate",
+        placement: "overflow",
+        scope: "record",
+        selection: "none",
+        states: partnerActionStates("deactivate"),
+        destructive: true,
+        reasonPrompt: {
+          title: "Deactivate partner",
+          label: "Reason for deactivation",
+        },
       },
       {
         key: "reactivate-partner",
@@ -1779,92 +2304,21 @@ const definitions: PlatformModuleDefinition[] = [
         placement: "primary",
         scope: "record",
         selection: "none",
-        states: ["SUSPENDED", "INACTIVE"],
+        states: partnerActionStates("reactivate"),
       },
     ],
+    /*
+     * The derived phase (ADR-0026), not the 24 detailed statuses: the record
+     * page maps the partner status to its phase to mark the current stage.
+     */
     process: {
       key: "partner-lifecycle",
-      stages: PARTNER_STATUSES.slice(0, 15).map((item) => ({
-        key: item.value,
-        label: item.label,
+      stages: PARTNER_PHASES.map((phase) => ({
+        key: phase,
+        label: PARTNER_PHASE_LABELS[phase],
       })),
     },
-    relatedRecords: [
-      {
-        key: "leads",
-        label: "Attributed leads",
-        tab: "referred-leads",
-        emptyTitle: "No referred leads yet",
-        emptyDescription:
-          "Leads submitted through this partner's referral links will appear here.",
-        module: "leads",
-        foreignKey: "partnerId",
-        columns: [
-          col("companyName", "Company", 220),
-          col("status", "Status", 140, "status"),
-          col("createdAt", "Created", 160, "dateTime"),
-        ],
-      },
-      {
-        key: "agreements",
-        label: "Partner agreements",
-        tab: "agreements",
-        emptyTitle: "No partner agreements yet",
-        emptyDescription:
-          "Create and execute the required partner agreement before activation.",
-        module: "contracts",
-        foreignKey: "partnerId",
-        columns: [
-          col("contractNumber", "Contract", 170),
-          col("title", "Title", 220),
-          col("status", "Status", 160, "status"),
-        ],
-      },
-      {
-        key: "referralLinks",
-        label: "Referral links",
-        tab: "referral-links",
-        foreignKey: "partnerId",
-      },
-      {
-        key: "inquiries",
-        label: "Application submissions",
-        tab: "application",
-        foreignKey: "partnerId",
-      },
-      {
-        key: "portalUsers",
-        label: "Contacts and users",
-        tab: "contacts",
-        foreignKey: "partnerId",
-      },
-      {
-        key: "attributedCustomers",
-        label: "Converted customers",
-        tab: "customers",
-        module: "customers",
-        foreignKey: "originatingPartnerId",
-      },
-      {
-        key: "attributedTenants",
-        label: "Attributed tenants",
-        tab: "tenants",
-        module: "tenants",
-        foreignKey: "originatingPartnerId",
-      },
-      {
-        key: "commissions",
-        label: "Commissions",
-        tab: "summary",
-        module: "commissions",
-        foreignKey: "partnerId",
-        columns: [
-          col("commissionNumber", "Commission", 170),
-          col("status", "Status", 130, "status"),
-          col("commissionAmount", "Amount", 140, "currency"),
-        ],
-      },
-    ],
+    relatedRecords: PARTNER_RELATED_RECORDS,
   }),
   define({
     ...simple(
@@ -3169,10 +3623,7 @@ const definitions: PlatformModuleDefinition[] = [
         lookupPath: "/contracts?pageSize=100",
       },
       field("amendmentNumber", "Amendment number", "integer", "ownership"),
-      {
-        ...field("currencyCode", "Currency", "option", "commercial"),
-        options: PLATFORM_CURRENCY_OPTIONS,
-      },
+      currencyField("commercial"),
       {
         ...field("contractValue", "Contract value", "currency", "commercial"),
         min: 0,
@@ -3943,26 +4394,121 @@ const definitions: PlatformModuleDefinition[] = [
       [
         col("commissionNumber", "Commission", 170),
         col("partner.displayName", "Partner", 210, "lookup"),
+        col("commissionRate", "Rate", 100, "percentage"),
         col("status", "Status", 130, "status"),
         col("commissionAmount", "Amount", 150, "currency"),
         col("dueAt", "Due", 140, "date"),
       ],
     ),
-    forms: form("commissions", [
-      field("commissionNumber", "Commission number", "text", "commission"),
-      field("partnerId", "Partner ID", "text", "commission"),
-      field("status", "Status", "text", "commission"),
-      field("baseAmount", "Base amount", "currency", "commercial"),
-      field("commissionRate", "Commission rate", "percentage", "commercial"),
-      field("commissionAmount", "Commission amount", "currency", "commercial"),
-      // A code, like the two above — see the note on the partner declaration.
+    /*
+     * ADR-0026 D3. A commission's status moves only through these actions —
+     * Pending → Approved → Payable → Paid, Void until paid — which the API
+     * holds to the same machine (`partner-commission-lifecycle.ts`). The
+     * header status is read-only for the same reason the partner's is.
+     */
+    actions: [
+      ...READ_ONLY_ACTIONS,
       {
-        ...field("currencyCode", "Currency", "option", "commercial"),
-        options: PLATFORM_CURRENCY_OPTIONS,
+        key: "approve-commission",
+        label: "Approve",
+        scope: "record",
+        placement: "primary",
+        selection: "none",
+        states: ["PENDING"],
       },
+      {
+        key: "mark-commission-payable",
+        label: "Mark payable",
+        scope: "record",
+        placement: "primary",
+        selection: "none",
+        states: ["APPROVED"],
+      },
+      {
+        key: "mark-commission-paid",
+        label: "Mark paid",
+        scope: "record",
+        placement: "primary",
+        selection: "none",
+        states: ["PAYABLE"],
+        confirmTitle: "Mark this commission as paid?",
+      },
+      {
+        key: "void-commission",
+        label: "Void",
+        scope: "record",
+        placement: "overflow",
+        selection: "none",
+        states: ["PENDING", "APPROVED", "PAYABLE"],
+        destructive: true,
+        reasonPrompt: {
+          title: "Void commission",
+          label: "Reason for voiding",
+        },
+      },
+    ],
+    forms: form("commissions", [
+      {
+        ...field("commissionNumber", "Commission number", "text", "commission"),
+        readOnly: true,
+      },
+      {
+        ...field("partnerId", "Partner", "lookup", "commission", true),
+        lookupPath: "/partners?pageSize=100",
+      },
+      // Option labels, so the field reads "Paid" as the header does, not "PAID".
+      {
+        ...field(
+          "status",
+          "Status",
+          "option",
+          "commission",
+          false,
+          COMMISSION_STATUS_VALUES,
+        ),
+        readOnly: true,
+        renderAs: "status",
+      },
+      /*
+       * What the entry was recorded against. The API refuses a lead, customer
+       * or invoice this partner did not refer (ADR-0026 D3), so each picker
+       * lists only the chosen partner's own records: `{partnerId}` is bound
+       * from the form (`resolveLookupBindings`), and nothing loads until a
+       * partner is chosen. The record read carries `leadLabel` and
+       * `customerLabel` (`PartnersService.describeCommissions`), because a
+       * read-only lookup has no option list to name an id from.
+       */
+      {
+        ...field("leadId", "Lead", "lookup", "commission"),
+        lookupPath: "/super-admin/leads?pageSize=100&partnerId={partnerId}",
+        displayValueField: "leadLabel",
+      },
+      {
+        ...field("customerAccountId", "Customer", "lookup", "commission"),
+        lookupPath:
+          "/super-admin/customers?pageSize=100&originatingPartnerId={partnerId}",
+        displayValueField: "customerLabel",
+      },
+      field("invoiceId", "Invoice ID", "text", "commission"),
+      {
+        ...field("baseAmount", "Commissionable amount", "currency", "commercial", true),
+        min: 0,
+      },
+      {
+        ...field("commissionRate", "Commission rate", "percentage", "commercial"),
+        min: 0,
+        max: 100,
+      },
+      {
+        ...field("commissionAmount", "Commission amount", "currency", "commercial"),
+        readOnly: true,
+      },
+      // A code, like the two above — see the note on the partner declaration.
+      currencyField("commercial"),
+      field("description", "Description", "longText", "commercial"),
       field("earnedAt", "Earned", "dateTime", "dates"),
       field("dueAt", "Due", "dateTime", "dates"),
-      field("paidAt", "Paid", "dateTime", "dates"),
+      { ...field("paidAt", "Paid", "dateTime", "dates"), readOnly: true },
     ]),
   }),
   define({
@@ -4603,6 +5149,27 @@ function countryField(
   };
 }
 
+/**
+ * A currency code chosen from the platform's ENABLED currencies (ADR-0026 D4).
+ *
+ * The picker reads the enabled list from the API. `options` keeps the whole
+ * catalog as well, and that is deliberate: the form resolves the label of the
+ * value a record already holds from `options`, so a partner whose currency was
+ * disabled after it was chosen still shows "USD - US Dollar" — selected and
+ * readable — instead of a bare code or a blank picker. The server refuses a
+ * disabled currency only when one is newly chosen.
+ */
+function currencyField(
+  section: string,
+  required = false,
+): RuntimeFieldDefinition {
+  return {
+    ...field("currencyCode", "Currency", "lookup", section, required),
+    lookupPath: CURRENCY_LOOKUP_PATH,
+    options: PLATFORM_CURRENCY_OPTIONS,
+  };
+}
+
 function field(
   key: string,
   label: string,
@@ -4721,13 +5288,16 @@ function partnerForms(fields: RuntimeFieldDefinition[]) {
   const tabs = [
     { key: "summary", label: "Summary" },
     { key: "application", label: "Application" },
-    { key: "contacts", label: "Contacts and Users" },
+    { key: "contacts", label: "Contacts" },
     { key: "agreements", label: "Agreements" },
     { key: "referral-links", label: "Referral Links" },
     { key: "referred-leads", label: "Referred Leads" },
     { key: "customers", label: "Customers" },
     { key: "tenants", label: "Tenants" },
-    { key: "documents", label: "Documents" },
+    /*
+     * No Documents tab: a partner has no document relation (the schema has
+     * none), so the tab was declared and never rendered (EXECPLAN-0055 WP-08).
+     */
     { key: "timeline", label: "Timeline" },
     { key: "system", label: "System" },
   ];
@@ -4735,20 +5305,37 @@ function partnerForms(fields: RuntimeFieldDefinition[]) {
     identity: "summary",
     contact: "contacts",
     commercial: "summary",
-    notes: "application",
+    ownership: "summary",
+    // Internal notes are about the partner, not its application.
+    notes: "summary",
     application: "application",
     system: "system",
+  };
+  /*
+   * The contact section holds the partner's primary business contact; the
+   * Contacts grid below it lists everyone else. "Contact" over "Contacts" read
+   * as the same heading twice.
+   */
+  const sectionLabels: Record<string, string> = {
+    contact: "Primary contact",
+    application: "Application details",
   };
   const sections = [...new Set(fields.map((item) => item.section))].map(
     (section) => ({
       key: section,
-      label: title(section),
+      label: sectionLabels[section] ?? title(section),
       columns: 2 as const,
       tab: sectionTabs[section] ?? "summary",
     }),
   );
+  /*
+   * A read-only field has nothing to enter on create — partner number, status
+   * and the system fields are assigned by the server — so the create form no
+   * longer draws them as blank disabled controls.
+   */
   const tabbedFields = fields.map((item) => ({
     ...item,
+    hideOnCreate: item.hideOnCreate ?? item.readOnly,
     tab: sectionTabs[item.section] ?? "summary",
   }));
   return (["create", "detail", "edit"] as const).map((key) => ({

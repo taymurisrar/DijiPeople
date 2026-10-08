@@ -91,6 +91,12 @@ import {
   DEFAULT_PLATFORM_DEFAULTS,
   validatePlatformDefaults,
 } from '../../common/reference-data/platform-reference-data';
+import {
+  assertValidEnabledCurrencies,
+  describeEnabledCurrencies,
+  readPlatformDefaults,
+  resolveEnabledCurrencyCodes,
+} from '../../common/reference-data/platform-enabled-currencies';
 import { validatePlatformBranding } from './platform-appearance-settings';
 import { UserInvitationsService } from '../auth/user-invitations.service';
 import {
@@ -3686,10 +3692,20 @@ export class SuperAdminService {
 
     const byKey = new Map(rows.map((row) => [row.key, row.value]));
 
+    const platformDefaults = {
+      ...DEFAULT_PLATFORM_DEFAULTS,
+      ...((byKey.get('platform-defaults') as Record<string, unknown>) ?? {}),
+    };
+
     return {
       platformDefaults: {
-        ...DEFAULT_PLATFORM_DEFAULTS,
-        ...((byKey.get('platform-defaults') as Record<string, unknown>) ?? {}),
+        ...platformDefaults,
+        /*
+         * ADR-0026 D4. Always the effective list — the whole catalog when the
+         * operator has never narrowed it — so the settings form shows what is
+         * actually enabled rather than an empty selection meaning "all".
+         */
+        enabledCurrencies: resolveEnabledCurrencyCodes(platformDefaults),
       },
       publicPlanVisibility: byKey.get('public-plan-visibility') ?? {},
       billingDefaults: byKey.get('billing-defaults') ?? {},
@@ -3762,6 +3778,24 @@ export class SuperAdminService {
     };
   }
 
+  /**
+   * The currencies operators may choose on partners, agreements and
+   * commissions (ADR-0026 D4), as lookup options. `include` keeps a
+   * since-disabled currency readable on the record that still carries it.
+   */
+  async getEnabledCurrencies(query: { include?: string; search?: string }) {
+    const platformDefaults = {
+      ...DEFAULT_PLATFORM_DEFAULTS,
+      ...(await readPlatformDefaults(this.prisma)),
+    };
+    return {
+      items: describeEnabledCurrencies(platformDefaults, {
+        include: typeof query.include === 'string' ? query.include : undefined,
+        search: typeof query.search === 'string' ? query.search : undefined,
+      }),
+    };
+  }
+
   async updatePlatformSettings(
     actor: AuthenticatedUser,
     dto: UpdatePlatformSettingsDto,
@@ -3779,11 +3813,23 @@ export class SuperAdminService {
     }
 
     if (dto.platformDefaults) {
+      /*
+       * Validate what will be stored, not the patch alone. With `merge` (the
+       * default) a patch that only changes `currency` lands on top of a stored
+       * `enabledCurrencies` that may not contain it — ADR-0026 D4 requires the
+       * default and reporting currencies to be enabled, so the merged value is
+       * the one that has to pass.
+       */
+      const stored =
+        dto.merge !== false ? await readPlatformDefaults(this.prisma) : {};
+      const merged = {
+        ...DEFAULT_PLATFORM_DEFAULTS,
+        ...stored,
+        ...dto.platformDefaults,
+      };
       try {
-        validatePlatformDefaults({
-          ...DEFAULT_PLATFORM_DEFAULTS,
-          ...dto.platformDefaults,
-        });
+        validatePlatformDefaults(merged);
+        assertValidEnabledCurrencies(merged);
       } catch (error) {
         throw new BadRequestException(
           error instanceof Error ? error.message : 'Invalid platform defaults.',

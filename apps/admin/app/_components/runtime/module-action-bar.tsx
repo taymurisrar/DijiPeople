@@ -20,13 +20,25 @@ import {
   UserRoundCheck,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import type { RuntimeActionDefinition } from "@/lib/runtime/platform-runtime.types";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import type {
+  RecordDependencyReport,
+  RuntimeActionDefinition,
+} from "@/lib/runtime/platform-runtime.types";
 import { hasRuntimePermission } from "@/lib/runtime/runtime-permissions";
+import { commandMatchesRecord } from "@/lib/runtime/command-visibility";
+import { describeActionNotice } from "@/lib/runtime/runtime-action-outcome";
 import {
   describeDestructiveConfirm,
   recordDisplayName,
 } from "@/lib/runtime/destructive-confirm";
+import { DependencyAwareDeleteDialog } from "./dependency-aware-delete-dialog";
 
 export type ModuleActionContext = {
   scope: "list" | "record";
@@ -42,10 +54,25 @@ export type ModuleActionContext = {
   displayName?: string;
   pluralDisplayName?: string;
   record?: Record<string, unknown>;
+  /** The record's id, for record scope — form values need not carry it. */
+  recordId?: string;
   roleKeys?: string[];
   permissionKeys?: string[];
   isDirty?: boolean;
   mode?: "create" | "read" | "edit";
+  /*
+   * The selection as id and name pairs, in selection order. `selectedLabels`
+   * is filtered to names that resolved, so it cannot be zipped with the ids.
+   */
+  selectedTargets?: Array<{ id: string; label: string }>;
+  /*
+   * Asks the API what deleting a record would do (EXECPLAN-0055 D5). When set,
+   * Delete and Bulk delete confirm through `DependencyAwareDeleteDialog`, which
+   * shows what blocks the delete and what goes with it before the operator
+   * confirms. Resolving null for a record means the module has no provider,
+   * and the dialog is the plain confirmation.
+   */
+  getDependencies?: (id: string) => Promise<RecordDependencyReport | null>;
 };
 export type ModuleActionHandler = (
   action: RuntimeActionDefinition,
@@ -96,11 +123,32 @@ export function ModuleActionBar({
   className?: string;
 }) {
   const [pendingKey, setPendingKey] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  /*
+   * The notice carries its own outcome. Its colour used to be guessed from the
+   * text — red only if it contained "could not" or "Unable" — so the API's
+   * "Action reject-partner is not available for partners." rendered green, as
+   * did every refusal phrased any other way.
+   */
+  const [notice, setNotice] = useState<{
+    text: string;
+    failed: boolean;
+  } | null>(null);
   const [confirmAction, setConfirmAction] =
     useState<RuntimeActionDefinition | null>(null);
+  /*
+   * Snapshotted when the confirmation opens, not derived on each render: the
+   * context object is rebuilt by every parent render, and a dialog keyed on it
+   * would re-run its dependency requests each time.
+   */
+  const [dependencyCheck, setDependencyCheck] = useState<{
+    targets: Array<{ id: string; label: string }>;
+    getDependencies: (id: string) => Promise<RecordDependencyReport | null>;
+  } | null>(null);
+  const cancelConfirm = useCallback(() => {
+    setConfirmAction(null);
+    setDependencyCheck(null);
+  }, []);
   const [overflowOpen, setOverflowOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
   const overflowRef = useRef<HTMLDivElement | null>(null);
   const available = useMemo(
     () => actions.filter((action) => isVisible(action, context)),
@@ -154,33 +202,41 @@ export function ModuleActionBar({
   );
 
   function execute(action: RuntimeActionDefinition) {
-    if (action.destructive && !confirmAction) {
+    // A reason-prompted action is confirmed by its reason dialog instead.
+    if (action.destructive && !action.reasonPrompt && !confirmAction) {
       setConfirmAction(action);
+      setDependencyCheck(dependencyCheckFor(action, context));
       return;
     }
     setConfirmAction(null);
+    setDependencyCheck(null);
     setOverflowOpen(false);
     setPendingKey(action.key);
     setNotice(null);
-    startTransition(async () => {
+    /*
+     * Not a React transition. In React 19 every state update made inside an
+     * async transition is held until the whole action resolves; an action that
+     * awaits a prompt (useReasonPrompt sets its dialog state and waits for the
+     * operator) therefore never showed the prompt and never finished, so
+     * Suspend, Deactivate, Reject and every other reason-prompted command did
+     * nothing at all. `pendingKey` already carries the busy state.
+     */
+    void (async () => {
       try {
         const result = await onAction(action, context);
-        setNotice(
-          result?.message ??
-            (result?.success === false
-              ? "Action could not be completed."
-              : null),
-        );
+        setNotice(describeActionNotice(result));
       } catch (error) {
-        setNotice(
-          error instanceof Error
-            ? error.message
-            : "Action could not be completed.",
-        );
+        setNotice({
+          text:
+            error instanceof Error
+              ? error.message
+              : "Action could not be completed.",
+          failed: true,
+        });
       } finally {
         setPendingKey(null);
       }
-    });
+    })();
   }
   return (
     <>
@@ -197,7 +253,7 @@ export function ModuleActionBar({
             <ActionButton
               key={action.key}
               action={action}
-              busy={isPending && pendingKey === action.key}
+              busy={pendingKey === action.key}
               disabledReason={disabledReason(action, context)}
               onClick={() => execute(action)}
             />
@@ -243,15 +299,25 @@ export function ModuleActionBar({
           {notice ? (
             <span
               role="status"
-              className={`text-xs font-medium ${notice.includes("could not") || notice.includes("Unable") ? "text-rose-600" : "text-emerald-700"}`}
+              className={`text-xs font-medium ${notice.failed ? "text-rose-600" : "text-emerald-700"}`}
             >
-              {notice}
+              {notice.text}
             </span>
           ) : null}
           {statusSlot}
         </div>
       </div>
-      {confirmAction ? (
+      {confirmAction && dependencyCheck ? (
+        <DependencyAwareDeleteDialog
+          title={confirmCopy.title}
+          description={confirmCopy.description}
+          names={confirmCopy.names}
+          targets={dependencyCheck.targets}
+          getDependencies={dependencyCheck.getDependencies}
+          onCancel={cancelConfirm}
+          onConfirm={() => execute(confirmAction)}
+        />
+      ) : confirmAction ? (
         <div
           role="dialog"
           aria-modal="true"
@@ -283,7 +349,7 @@ export function ModuleActionBar({
             <div className="mt-6 flex justify-end gap-2">
               <button
                 type="button"
-                onClick={() => setConfirmAction(null)}
+                onClick={cancelConfirm}
                 className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
               >
                 Cancel
@@ -332,6 +398,35 @@ function ActionButton({
     </button>
   );
 }
+/**
+ * The records a delete confirmation should check, or null for an action that
+ * is not a delete or a context with no dependency lookup.
+ */
+function dependencyCheckFor(
+  action: RuntimeActionDefinition,
+  context: ModuleActionContext,
+) {
+  const getDependencies = context.getDependencies;
+  if (!getDependencies) return null;
+  if (action.key !== "delete" && action.key !== "bulk-delete") return null;
+  const recordId =
+    context.recordId ??
+    (context.record?.id ? String(context.record.id) : undefined);
+  const targets =
+    context.scope === "record"
+      ? recordId
+        ? [
+            {
+              id: recordId,
+              label: recordDisplayName(context.record) ?? recordId,
+            },
+          ]
+        : []
+      : (context.selectedTargets ??
+        (context.selectedIds ?? []).map((id) => ({ id, label: id })));
+  return targets.length ? { targets, getDependencies } : null;
+}
+
 function isVisible(
   action: RuntimeActionDefinition,
   context: ModuleActionContext,
@@ -343,11 +438,7 @@ function isVisible(
   )
     return false;
   if (!hasRuntimePermission(action.permission, context)) return false;
-  if (
-    action.states?.length &&
-    !action.states.includes(String(context.record?.status ?? ""))
-  )
-    return false;
+  if (!commandMatchesRecord(action, context.record)) return false;
   const count = context.selectedIds?.length ?? 0;
   if (action.selection === "one" && count !== 1) return false;
   if (action.selection === "many" && count < 2) return false;

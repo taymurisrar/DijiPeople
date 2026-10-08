@@ -19,6 +19,7 @@ import {
   PartnerCommissionStatus,
   PartnerStatus,
   PartnerType,
+  PartnershipModel,
 } from '@prisma/client';
 import { PLATFORM_CURRENCY_CODES } from '@repo/config';
 
@@ -55,8 +56,17 @@ export class CreatePartnerDto {
   @IsOptional() @IsString() country?: string;
   @IsOptional() @IsString() website?: string;
   @IsOptional() @IsString() taxId?: string;
+  /*
+   * ADR-0026 D1. The admin form has always shown this field, and the DTO never
+   * declared it, so it was dropped on every create and edit (BUG-1743 lineage).
+   */
+  @IsOptional() @IsEnum(PartnershipModel) partnershipModel?: PartnershipModel;
+  /*
+   * ADR-0026 D3: a percentage 0–100 with at most two decimals, matching the
+   * Decimal(5,2) column, so 12.345 is refused rather than silently rounded.
+   */
   @Type(() => Number)
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   @Max(100)
   defaultCommissionRate!: number;
@@ -73,7 +83,15 @@ export class CreatePartnerDto {
     message: 'currencyCode must be a supported currency code.',
   })
   currencyCode?: string;
-  @IsOptional() @IsEnum(PartnerStatus) status?: PartnerStatus;
+  /*
+   * No `status`, `accountStatus`, `partnerNumber` or `code` (ADR-0026 D1,
+   * ADR-0027). A partner is created at DRAFT and moves only through the
+   * lifecycle actions the server validates; `status` here let an operator
+   * create a partner directly as ACTIVE, past every agreement and onboarding
+   * gate, and — through `PartialType` below — PATCH one between any two
+   * non-ACTIVE states with no timeline entry. With `forbidNonWhitelisted`, a
+   * body carrying any of them is now refused rather than honoured.
+   */
   @IsOptional() @IsUUID() assignedToUserId?: string;
   @IsOptional() @IsString() @MaxLength(4000) notes?: string;
 }
@@ -100,8 +118,23 @@ export class CreatePartnerCommissionDto {
   @IsOptional() @IsUUID() leadId?: string;
   @IsOptional() @IsUUID() customerAccountId?: string;
   @IsOptional() @IsUUID() invoiceId?: string;
-  @Type(() => Number) @IsNumber() @Min(0) baseAmount!: number;
-  @Type(() => Number) @IsNumber() @Min(0) @Max(100) commissionRate!: number;
+  /** The amount the commission is a percentage of, in `currencyCode`. */
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  baseAmount!: number;
+  /*
+   * A percentage 0–100 with two decimals, like the partner default it falls
+   * back to when omitted (ADR-0026 D3). There is no amount field: the server
+   * computes it from these two, so a caller cannot record an amount that
+   * disagrees with its own base and rate.
+   */
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(100)
+  commissionRate?: number;
   /*
    * A currency, not a three-character string (BUG-1425).
    *
@@ -115,12 +148,26 @@ export class CreatePartnerCommissionDto {
     message: 'currencyCode must be a supported currency code.',
   })
   currencyCode?: string;
-  @IsOptional() @IsString() description?: string;
+  @IsOptional() @IsString() @MaxLength(1000) description?: string;
   @IsOptional() @IsDateString() earnedAt?: string;
   @IsOptional() @IsDateString() dueAt?: string;
 }
+/*
+ * The runtime create (`POST /platform-runtime/commissions`) has no partner in
+ * its route, so the body names it. `POST /partners/:id/commissions` keeps the
+ * base DTO and takes the partner from the path only.
+ */
+export class CreateRuntimePartnerCommissionDto extends CreatePartnerCommissionDto {
+  @IsUUID() partnerId!: string;
+}
+/*
+ * A status change only, held to the commission machine (Pending → Approved →
+ * Payable → Paid, Void until paid). The money terms have no update path: a
+ * wrong entry is voided and a correct one added.
+ */
 export class UpdatePartnerCommissionDto {
   @IsEnum(PartnerCommissionStatus) status!: PartnerCommissionStatus;
+  @IsOptional() @IsString() @MaxLength(1000) reason?: string;
 }
 
 export class CreatePartnerReferralLinkDto {
@@ -129,6 +176,20 @@ export class CreatePartnerReferralLinkDto {
   @IsOptional() @IsString() @MaxLength(300) targetPath?: string;
   @IsOptional() @IsBoolean() isDefault?: boolean;
   @IsOptional() @IsDateString() expiresAt?: string;
+}
+
+/*
+ * EXECPLAN-0055 WP-08. A partner contact is a `PartnerPortalUser` row that has
+ * not been invited (status NOT_INVITED, an unusable password hash). Creating
+ * one never sends anything: portal access is granted by Activate partner, which
+ * invites the partner's business email, and by the portal's own flows. Only the
+ * three columns a contact is made of are accepted — no status, password,
+ * token or partner id, which comes from the route.
+ */
+export class CreatePartnerContactDto {
+  @IsString() @MaxLength(100) firstName!: string;
+  @IsString() @MaxLength(100) lastName!: string;
+  @IsEmail() @MaxLength(254) email!: string;
 }
 
 export class PartnerReferralLinkActionDto {

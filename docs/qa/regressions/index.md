@@ -6964,3 +6964,199 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — reverting the registry or the record page fails a case. |
 | **Fixed** | 2026-10-07, branch `agent/crm-plugin-release-close` |
 | **Active** | yes |
+
+### REG-649 — Admin record actions were posted to the id-less runtime route
+
+| | |
+|---|---|
+| **Bug class** | `cross-workspace-contract-drift` |
+| **Module** | `apps/admin/lib/runtime` |
+| **Bug record** | BUG-3929 |
+| **Root cause** | The admin sent the record id in the body to /<module>/actions/<key>; the API dispatches record actions only from the /<module>/:id/actions/:action route parameter, so 14 actions fell through to "not available". Admin now uses the id route, the API also accepts a body id, and one contract file pins the action set on both sides. |
+| **Regression test** | `apps/admin/lib/runtime/record-action-routing.spec.ts` and `services/api/src/modules/platform-runtime/record-action-dispatch.spec.ts` (both read `services/api/src/modules/platform-runtime/record-actions.contract.json`). |
+| **Scenario** | QA-PLATFORM-047 — Admin record actions reach their server handler on the id route. |
+| **Fails without the fix** | Yes — 17/62 admin and 14/44 API cases fail on the reverted code. |
+| **Fixed** | 2026-10-07, branch `agent/partner-module-completion` |
+| **Active** | yes |
+
+### REG-650 — Partner delete hid its refusal and erased attribution
+
+| | |
+|---|---|
+| **Bug class** | `silent-degradation` |
+| **Module** | `services/api/src/modules/partners` |
+| **Bug record** | BUG-3930 |
+| **Root cause** | Admin read the delete refusal from the wrong level of the response, and the deletion rules counted only Restrict relations, so SetNull customer/tenant attribution was erased silently. A generic dependency contract now classifies every Partner relation (a spec fails on an unclassified one), the delete re-checks under a row lock in its transaction, and an admin dialog shows blockers with links. |
+| **Regression test** | `services/api/src/modules/partners/partner-dependencies.spec.ts` and `apps/admin/lib/runtime/dependency-delete-model.spec.ts`. |
+| **Scenario** | QA-PLATFORM-048 — Partner delete shows every dependency and never erases attribution. |
+| **Fails without the fix** | Yes — reclassifying attributed customers as DETACH fails 4 cases. |
+| **Fixed** | 2026-10-07, branch `agent/partner-module-completion` |
+| **Active** | yes |
+
+### REG-651 — Partner Save persisted nothing behind a success message
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-step` |
+| **Module** | `scripts/lib` |
+| **Bug record** | BUG-3955 |
+| **Root cause** | The write-contract generator captured PartialType instead of the wrapped DTO, so partners had zero editable fields and Save sent an empty payload the API accepted. Mapped types are now resolved and an empty edit says No changes to save. |
+| **Regression test** | `scripts/runtime-write-contract.test.mjs` and `apps/admin/lib/runtime/runtime-write-contract.spec.ts`. |
+| **Scenario** | QA-PLATFORM-049 — Partner edits persist and an empty edit says No changes to save. |
+| **Fails without the fix** | Yes — restoring the old regex fails 6 parser tests. |
+| **Fixed** | 2026-10-08, branch `agent/partner-module-completion` |
+| **Active** | yes |
+
+### REG-652 — Partner status could be written around its state machine
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` |
+| **Module** | `packages/config` |
+| **Bug record** | BUG-3956 |
+| **Root cause** | The admin header, the generic runtime status path and four services each decided partner transitions; the header path spread the GET record into the update DTO (400) and would have bypassed partnerTransition. One shared lifecycle table now drives server guards and admin visibility. |
+| **Regression test** | `packages/config/partner-lifecycle.test.js` and `services/api/src/modules/partners/partner-status-lifecycle.spec.ts` and `services/api/src/modules/platform-runtime/partner-runtime-status.spec.ts` and `apps/admin/lib/runtime/partner-lifecycle-registry.spec.ts`. |
+| **Scenario** | QA-PLATFORM-050 — Partner status changes only through lifecycle actions the server enforces. |
+| **Fails without the fix** | Yes — six mutants (create honouring status, activate from-states, qualify guard, header write, signing guard) are each killed. |
+| **Fixed** | 2026-10-08, branch `agent/partner-module-completion` |
+| **Active** | yes |
+
+### REG-653 — Partner onboarding invitations resent nothing and exposed tokens
+
+| | |
+|---|---|
+| **Bug class** | `silent-degradation` |
+| **Module** | `services/api/src/modules/partner-experience` |
+| **Bug record** | BUG-3981 |
+| **Root cause** | The invitation email had no token-aware idempotency key so resends were deduplicated after the token rotated, failures were reported as success, the token was returned to the UI and any state could invite. Now keyed on the token hash, state-guarded by the shared lifecycle table, failure rolls back, no token leaves the server, resends are rate-limited. |
+| **Regression test** | `services/api/src/modules/partner-experience/partner-onboarding-invitation.spec.ts` and `services/api/test/partner-onboarding-invitation.e2e-spec.ts`. |
+| **Scenario** | QA-PLATFORM-051 — Partner onboarding invitation sends, resends and fails safely. |
+| **Fails without the fix** | Yes — removing the token-hash key, ignoring delivery status or the closed-state refusal each fails cases. |
+| **Fixed** | 2026-10-08, branch `agent/partner-module-completion` |
+| **Active** | yes |
+
+### REG-654 — Partner commissions and agreement terms could be rewritten
+
+| | |
+|---|---|
+| **Bug class** | `silent-degradation` |
+| **Module** | `services/api/src/modules/partners` |
+| **Bug record** | BUG-3982 |
+| **Root cause** | Commissions were editable rows with any status jump and unverified links, and agreements read the partner default at render time so later edits changed agreed terms. Commissions are now a ledger with an enforced lifecycle and server-computed amounts; agreements snapshot commission and currency at creation. |
+| **Regression test** | `services/api/src/modules/partners/partner-commission-lifecycle.spec.ts` and `services/api/src/modules/partners/partner-commissions.service.spec.ts` and `services/api/src/modules/contracts/contracts.commission-snapshot.spec.ts`. |
+| **Scenario** | QA-PLATFORM-052 — Partner commissions follow their ledger lifecycle and agreements keep their snapshot. |
+| **Fails without the fix** | Yes — reverting the snapshot write fails 2 cases; letting PAID be re-approved fails 2. |
+| **Fixed** | 2026-10-08, branch `agent/partner-module-completion` |
+| **Active** | yes |
+
+### REG-655 — Console-created partners had no usable lifecycle action
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-step` |
+| **Module** | `packages/config` |
+| **Bug record** | BUG-3995 |
+| **Root cause** | Create always starts at DRAFT but Create agreement was hidden there and the review actions only work for inquiry partners (they failed with an opaque submission error). Review actions now require an inquiry (shared table + command visibleWhen), Create agreement is offered from DRAFT, and the API returns PARTNER_INQUIRY_REQUIRED. |
+| **Regression test** | `packages/config/partner-lifecycle.test.js` and `apps/admin/lib/runtime/command-visibility.spec.ts` and `services/api/src/modules/partners/partner-inquiry-required.spec.ts`. |
+| **Scenario** | QA-PLATFORM-053 — Console-created partners follow the agreement-first path and offer no dead review actions. |
+| **Fails without the fix** | Yes — disabling the visibleWhen check fails 4 cases; removing the inquiry guard fails 5. |
+| **Fixed** | 2026-10-08, branch `agent/partner-module-completion` |
+| **Active** | yes |
+
+### REG-656 — A never-invited contact made a partner undeletable
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` |
+| **Module** | `services/api/src/modules/partners` |
+| **Bug record** | BUG-3996 |
+| **Root cause** | Delete treated every portal user as blocking while plain contacts are stored as NOT_INVITED portal users, and contacts had no remove action. Never-activated contacts are now removable and cascade with the partner; activated ones still block; labels are pluralised. |
+| **Regression test** | `services/api/src/modules/partners/partner-contact-removal.spec.ts` and `services/api/src/modules/partners/partner-dependencies.spec.ts` and `apps/admin/lib/runtime/related-records-model.spec.ts`. |
+| **Scenario** | QA-PLATFORM-054 — Never-activated partner contacts can be removed and do not block partner deletion. |
+| **Fails without the fix** | Yes — dropping the never-activated filter fails 4 cases; removing the cascade fails 2. |
+| **Fixed** | 2026-10-08, branch `agent/partner-module-completion` |
+| **Active** | yes |
+
+### REG-657 — Reason-prompted record commands deadlocked in a React transition
+
+| | |
+|---|---|
+| **Bug class** | `silent-degradation` |
+| **Module** | `apps/admin/app/_components/runtime` |
+| **Bug record** | BUG-4005 |
+| **Root cause** | The command bar ran commands inside a React 19 async transition, which withholds state updates until the action resolves; a command awaiting its reason prompt never showed it. Commands now run as plain async with pendingKey as the busy state. |
+| **Regression test** | `apps/admin/lib/runtime/action-bar-no-transition.spec.ts`. |
+| **Scenario** | QA-PLATFORM-055 — Reason-prompted record commands open their prompt and run. |
+| **Fails without the fix** | Yes — restoring the transition-wrapped command bar fails both cases. |
+| **Fixed** | 2026-10-08, branch `agent/partner-module-completion` |
+| **Active** | yes |
+
+### REG-658 — Domain refusals on record actions raised the technical error dialog
+
+| | |
+|---|---|
+| **Bug class** | `silent-degradation` |
+| **Module** | `apps/admin/lib` |
+| **Bug record** | BUG-4006 |
+| **Root cause** | Every failed request raised the blocking dialog unless background-marked, and the runtime adapter dropped any Headers-instance mark by object-spreading it. Reported requests now suppress the dialog for 4xx only; headers merge through Headers. |
+| **Regression test** | `apps/admin/lib/reported-request.spec.ts`. |
+| **Scenario** | QA-PLATFORM-056 — Domain refusals on record actions stay inline without the technical error dialog. |
+| **Fails without the fix** | Yes — restoring the object-spread header merge fails the adapter case. |
+| **Fixed** | 2026-10-08, branch `agent/partner-module-completion` |
+| **Active** | yes |
+
+### REG-659 — Failed partner activation could not be retried
+
+| | |
+|---|---|
+| **Bug class** | `incorrect-state-transition` |
+| **Module** | `services/api/src/modules/partner-experience` |
+| **Bug record** | BUG-4007 |
+| **Root cause** | Activation committed ACTIVE and ignored the delivery result. It now stages a credential, compensates a failed send, and commits lifecycle state only after SENT. |
+| **Regression test** | `services/api/src/modules/partner-experience/partner-activation.workflow.spec.ts`. |
+| **Scenario** | QA-PARTNER-013 — Activation delivery failure keeps the partner retryable. |
+| **Fails without the fix** | Yes — the first attempt leaves ACTIVE and the retry is refused. |
+| **Fixed** | 2026-10-08, branch `agent/partner-module-completion` |
+| **Active** | yes |
+
+### REG-660 — Activation reassigned a different partner's portal identity
+
+| | |
+|---|---|
+| **Bug class** | `authorization-bypass` |
+| **Module** | `services/api/src/modules/partner-experience` |
+| **Bug record** | BUG-4008 |
+| **Root cause** | An email-keyed upsert treated uniqueness as permission to replace partner ownership. Activation now checks ownership first and constrains credential writes to the owning partner. |
+| **Regression test** | `services/api/src/modules/partner-experience/partner-activation.workflow.spec.ts`. |
+| **Scenario** | QA-PARTNER-014 — Activation refuses an email owned by another partner. |
+| **Fails without the fix** | Yes — the original identity's partnerId and credential change. |
+| **Fixed** | 2026-10-08, branch `agent/partner-module-completion` |
+| **Active** | yes |
+
+### REG-661 — Stale onboarding compensation invalidated a newer invitation
+
+| | |
+|---|---|
+| **Bug class** | `lost-update` |
+| **Module** | `services/api/src/modules/partner-experience` |
+| **Bug record** | BUG-4009 |
+| **Root cause** | Failure compensation matched only the application id. It now also matches the token hash issued by that request. |
+| **Regression test** | `services/api/src/modules/partner-experience/partner-onboarding-invitation.spec.ts`. |
+| **Scenario** | QA-PARTNER-015 — Stale onboarding compensation preserves a newer invitation. |
+| **Fails without the fix** | Yes — an older failed request restores its token over the newer delivered token. |
+| **Fixed** | 2026-10-08, branch `agent/partner-module-completion` |
+| **Active** | yes |
+
+### REG-662 — Partner record polish: empty sections, reachable row actions, partner-scoped lookups, named references
+
+| | |
+|---|---|
+| **Bug class** | `UX` |
+| **Module** | `apps/admin` |
+| **Bug record** | BUG-4019 |
+| **Root cause** | The runtime had no empty-field rule, no row-actions column and no record-bound lookups, and the commission payload carried ids without names. |
+| **Regression test** | `apps/admin/lib/runtime/partner-commission-polish.spec.ts` and `services/api/src/modules/partners/partner-commission-reference-labels.spec.ts`. |
+| **Scenario** | QA-PARTNER-016 — Partner record polish. |
+| **Fails without the fix** | Yes. Dropping `bind.` from the lookup query or removing `commissionReferenceLabels` fails the specs. |
+| **Fixed** | 2026-10-08, branch `agent/partner-module-completion` |
+| **Active** | yes |

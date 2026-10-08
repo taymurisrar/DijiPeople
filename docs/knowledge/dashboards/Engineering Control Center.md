@@ -7,17 +7,17 @@
 
 | | |
 |---|---|
-| Active sessions | **0** |
-| Active parent tasks | 4 |
+| Active sessions | **1** |
+| Active parent tasks | 5 |
 | Active work packages | 4 |
 | Blocked work packages | 0 |
 | Work packages waiting on the user | 0 |
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **8** |
-| Open HIGH | 104 |
+| Open HIGH | 110 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 13 |
+| Owner decisions pending | 14 |
 | QA coverage gaps | 161 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -30,12 +30,12 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 257 |
-| No next action | 257 |
-| Aging — 7d / 30d / 90d | 240 / 100 / 0 |
-| Architecture and technical debt | 7 |
-| Security gaps | 43 |
-| Database gaps | 26 |
+| No acceptance criteria | 270 |
+| No next action | 270 |
+| Aging — 7d / 30d / 90d | 240 / 102 / 0 |
+| Architecture and technical debt | 8 |
+| Security gaps | 45 |
+| Database gaps | 28 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -47,7 +47,9 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-_No session is currently registered as active._
+| Session | Task | Title | Status | Branch | Target | Leases | Schema |
+|---|---|---|---|---|---|---|---|
+| [[SESSION-0119-partner-module-completion|SESSION-0119]] | TASK-0037 | Partner module completion | ACTIVE | `agent/partner-module-completion` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
 
@@ -57,6 +59,7 @@ _No session is currently registered as active._
 | [[TASK-0007-commercial-platform-completion-transactional-legal-and-lifec|TASK-0007]] | Commercial platform completion — transactional, legal and lifecycle half | FEATURE | PROGRAM | 16/16 | — | — | — |
 | [[TASK-0008-self-service-customer-onboarding-tenant-provisioning-domain-|TASK-0008]] | Self-service customer onboarding, tenant provisioning, domain routing and central login | FEATURE | LARGE | 11/11 | — | — | — |
 | [[TASK-0028-enterprise-reports-and-analytics-platform|TASK-0028]] | Enterprise Reports and Analytics platform | FEATURE | LARGE | 5/15 | WP-08 | — | — |
+| [[TASK-0037-partner-module-completion-delete-numbering-status-lifecycle-|TASK-0037]] | Partner module completion — delete, numbering, status lifecycle, commission, currency, onboarding, tabs | FEATURE | LARGE | 8/8 | FINALIZATION | — | — |
 
 ## Branch model
 
@@ -126,6 +129,7 @@ Questions where the engineering is understood and the **product answer is**
 - [[ITEM-0222-triage-the-monitoring-incident-queue-bulk-resolve-incidents-|ITEM-0222]] — **Triage the monitoring incident queue: bulk-resolve incidents covered by fixed records, and add bulk triage by fingerprint**
 - [[ITEM-0223-decide-which-lifecycle-events-the-platform-must-emit-to-the-|ITEM-0223]] — **Decide which lifecycle events the platform must emit to the Events stream**
 - [[ITEM-0224-decide-whether-business-rule-rejections-should-be-recorded-b|ITEM-0224]] — **Decide whether business-rule rejections should be recorded but not queued as incidents**
+- [[ITEM-0227-automatic-commission-accrual-from-collected-invoices|ITEM-0227]] — **Automatic commission accrual from collected invoices**
 - [[ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins|ITEM-0191]] — **Decide whether custom modules need their own access keys instead of the shared custom-records privilege**
 
 ## QA Coverage Gaps
@@ -301,10 +305,10 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 257 |
+| Open total | 270 |
 | Blocked | 4 |
-| Deferred | 124 |
-| Awaiting a product decision | 13 |
+| Deferred | 125 |
+| Awaiting a product decision | 14 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

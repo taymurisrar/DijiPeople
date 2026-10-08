@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
@@ -14,6 +15,7 @@ import type { AuthenticatedUser } from '../../common/interfaces/authenticated-re
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import {
   CreatePartnerCommissionDto,
+  CreatePartnerContactDto,
   CreatePartnerDto,
   CreatePartnerReferralLinkDto,
   PartnerLifecycleActionDto,
@@ -84,6 +86,31 @@ export class PartnersController {
     @Body() dto: PartnerReferralLinkActionDto,
   ) {
     return this.service.referralLinkActionForUser(user, id, linkId, dto.action);
+  }
+  /*
+   * EXECPLAN-0055 WP-08 — Add Contact on the partner record. Creates an
+   * uninvited contact; nothing is emailed. `partners.manage`, enforced in the
+   * service like every other write here.
+   */
+  @Post(':partnerId/contacts')
+  contact(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('partnerId', new ParseUUIDPipe()) id: string,
+    @Body() dto: CreatePartnerContactDto,
+  ) {
+    return this.service.createContactForUser(user, id, dto);
+  }
+  /*
+   * TASK-0037 — Remove on the Contacts tab. Only a contact that never
+   * activated portal access; `partners.manage`, enforced in the service.
+   */
+  @Delete(':partnerId/contacts/:contactId')
+  removeContact(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('partnerId', new ParseUUIDPipe()) id: string,
+    @Param('contactId', new ParseUUIDPipe()) contactId: string,
+  ) {
+    return this.service.removeContactForUser(user, id, contactId);
   }
   @Post(':partnerId/commissions') commission(
     @CurrentUser() user: AuthenticatedUser,

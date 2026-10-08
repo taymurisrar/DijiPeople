@@ -1,13 +1,24 @@
+import { reportedRequestInit } from "@/lib/background-request";
 import { getPlatformModuleDefinition } from "./platform-module-registry";
 import type {
   ModuleRuntimeAdapter,
   PlatformModuleKey,
+  RecordDependencyReport,
   RuntimeActionResult,
   RuntimeListResponse,
   RuntimeQuery,
   RuntimeRecord,
   RuntimeRecordResponse,
 } from "./platform-runtime.types";
+
+/**
+ * Modules whose API answers `GET :id/dependencies` (EXECPLAN-0055 D5) — the
+ * mirror of `dependencyProviders()` in `PlatformRuntimeService`. Listed here
+ * rather than probed so a bulk delete on any other module costs no requests.
+ * It belongs on the module registry as a capability; see the WP-07 report.
+ */
+export const MODULES_WITH_DEPENDENCY_CHECK: ReadonlySet<PlatformModuleKey> =
+  new Set<PlatformModuleKey>(["partners"]);
 
 export function createHttpModuleRuntimeAdapter<
   T extends RuntimeRecord = RuntimeRecord,
@@ -16,13 +27,15 @@ export function createHttpModuleRuntimeAdapter<
   const base = `/api/platform-runtime/${moduleKey}`;
 
   async function json<R>(path: string, init?: RequestInit): Promise<R> {
-    const response = await fetch(`${base}${path}`, {
-      ...init,
-      headers: {
-        ...(init?.body ? { "Content-Type": "application/json" } : {}),
-        ...init?.headers,
-      },
-    });
+    /*
+     * Merge through `Headers`, never an object spread: `init.headers` may be a
+     * `Headers` instance (reportedRequestInit returns one), and spreading a
+     * `Headers` yields `{}` — which silently dropped the reported mark.
+     */
+    const headers = new Headers(init?.headers);
+    if (init?.body && !headers.has("Content-Type"))
+      headers.set("Content-Type", "application/json");
+    const response = await fetch(`${base}${path}`, { ...init, headers });
     const payload = await response.json().catch(() => null);
     if (!response.ok)
       throw new RuntimeApiError(
@@ -30,9 +43,23 @@ export function createHttpModuleRuntimeAdapter<
           `Unable to complete ${definition.displayName.toLowerCase()} request.`,
         response.status,
         payload?.traceId,
-        payload?.errors,
+        readFieldErrors(payload),
       );
     return payload as R;
+  }
+
+  async function getDependencies(
+    id: string,
+  ): Promise<RecordDependencyReport | null> {
+    try {
+      const payload = await json<RuntimeActionResult<RecordDependencyReport>>(
+        `/${encodeURIComponent(id)}/dependencies`,
+      );
+      return payload?.data ?? null;
+    } catch (error) {
+      if (error instanceof RuntimeApiError && error.status === 404) return null;
+      throw error;
+    }
   }
 
   return {
@@ -72,6 +99,17 @@ export function createHttpModuleRuntimeAdapter<
         method: "DELETE",
       });
     },
+    /*
+     * Only for modules the API has a dependency provider for; the rest leave
+     * it undefined and keep the plain confirmation without a request per
+     * selected row. A 404 still resolves null — a record deleted meanwhile, or
+     * a provider withdrawn — so the console shows its plain confirmation. Any
+     * other failure is thrown: a check that could not run must not read as
+     * "nothing depends on this".
+     */
+    getDependencies: MODULES_WITH_DEPENDENCY_CHECK.has(moduleKey)
+      ? getDependencies
+      : undefined,
     async bulkDelete(ids) {
       return json<RuntimeActionResult>("/actions/bulk-delete", {
         method: "POST",
@@ -96,10 +134,33 @@ export function createHttpModuleRuntimeAdapter<
         { method: "POST", body: JSON.stringify({ status, reason, subStatus }) },
       );
     },
+    /*
+     * Module-level actions only — those that act on a selection or on the
+     * module as a whole, and so have no record in the URL.
+     */
     async executeAction(actionKey, input) {
       return json<RuntimeActionResult>(
         `/actions/${encodeURIComponent(actionKey)}`,
         { method: "POST", body: JSON.stringify(input) },
+      );
+    },
+    /*
+     * Actions on one record go to the record's own route.
+     *
+     * Every record command used to be sent through `executeAction` with the id
+     * tucked into the body. The API's id-less route never read it, so each
+     * partner lifecycle command, lead conversion and agreement amendment
+     * answered 400 "Action <key> is not available for <module>" — the dispatch
+     * in `PlatformRuntimeService.execute` only matched when it was given the
+     * positional id. `record-action-routing.spec.ts` pins every registry record
+     * command to this route.
+     */
+    async executeRecordAction(id, actionKey, input = {}) {
+      return json<RuntimeActionResult>(
+        `/${encodeURIComponent(id)}/actions/${encodeURIComponent(actionKey)}`,
+        // The action bar shows the outcome, so a domain refusal stays inline
+        // rather than also raising the blocking dialog.
+        reportedRequestInit({ method: "POST", body: JSON.stringify(input) }),
       );
     },
     async getFormDefinition(mode) {
@@ -162,6 +223,40 @@ function queryString(query: RuntimeQuery) {
   if (query.selectedColumns?.length)
     params.set("selectedColumns", query.selectedColumns.join(","));
   return params.toString();
+}
+
+/**
+ * The field errors an API failure carries.
+ *
+ * The error contract names them `fieldErrors` (`HttpExceptionFilter`), but this
+ * adapter only ever read `errors` — so a DTO rejection that named the exact
+ * field reached the form as a bare message and highlighted nothing. `errors`
+ * stays as the fallback because `/validate` answers with that key, in a 200
+ * body rather than an error contract.
+ */
+export function readFieldErrors(
+  payload: unknown,
+): Array<{ field?: string; message: string }> | undefined {
+  if (!payload || typeof payload !== "object") return undefined;
+  const record = payload as Record<string, unknown>;
+  const source = Array.isArray(record.fieldErrors)
+    ? record.fieldErrors
+    : Array.isArray(record.errors)
+      ? record.errors
+      : undefined;
+  if (!source) return undefined;
+  const items = source.flatMap((item: unknown) => {
+    if (!item || typeof item !== "object") return [];
+    const entry = item as Record<string, unknown>;
+    if (typeof entry.message !== "string" || !entry.message) return [];
+    return [
+      {
+        field: typeof entry.field === "string" ? entry.field : undefined,
+        message: entry.message,
+      },
+    ];
+  });
+  return items.length ? items : undefined;
 }
 
 export class RuntimeApiError extends Error {

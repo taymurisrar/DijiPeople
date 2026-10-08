@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**752 records** — 527 bugs under [`docs/bugs/`](../bugs/), 225 non-bug items under [`items/`](items/).
+**770 records** — 542 bugs under [`docs/bugs/`](../bugs/), 228 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 257 |
+| Open (active work) | 270 |
 | Blocked | 4 |
-| Deferred | 124 |
-| Awaiting a product decision | 13 |
-| Completed / closed | 354 |
+| Deferred | 125 |
+| Awaiting a product decision | 14 |
+| Completed / closed | 357 |
 | **Open CRITICAL** | **8** |
-| **Open HIGH** | **104** |
+| **Open HIGH** | **110** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,30 +27,30 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 8 |
-| HIGH | 104 |
-| MEDIUM | 117 |
-| LOW | 27 |
+| HIGH | 110 |
+| MEDIUM | 122 |
+| LOW | 29 |
 
 ## Open by type
 
 | Type | Count |
 |---|---|
 | AUTHORIZATION | 15 |
-| BUG | 78 |
+| BUG | 82 |
 | DATABASE | 1 |
-| DATA_INTEGRITY | 25 |
+| DATA_INTEGRITY | 27 |
 | DOCUMENTATION | 1 |
 | FOLLOW_UP | 4 |
 | INFRA | 7 |
 | INTEGRATION | 6 |
 | PERFORMANCE | 15 |
 | PRODUCT_DECISION | 2 |
-| SECURITY | 25 |
-| STATE_MACHINE | 4 |
-| TECH_DEBT | 7 |
+| SECURITY | 27 |
+| STATE_MACHINE | 6 |
+| TECH_DEBT | 8 |
 | TENANT_ISOLATION | 3 |
 | TEST_GAP | 9 |
-| UX | 55 |
+| UX | 57 |
 
 ## All records by status
 
@@ -59,13 +59,13 @@ see [`README.md`](README.md) for why.
 | OPEN | 56 |
 | IN_PROGRESS | 1 |
 | BLOCKED | 4 |
-| DEFERRED | 124 |
-| PRODUCT_DECISION | 13 |
-| FIXED | 177 |
-| VERIFIED | 218 |
+| DEFERRED | 125 |
+| PRODUCT_DECISION | 14 |
+| FIXED | 188 |
+| VERIFIED | 221 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
-| READY | 23 |
+| READY | 25 |
 | DONE | 122 |
 
 ## All records
@@ -314,6 +314,14 @@ see [`README.md`](README.md) for why.
 | [BUG-3809](../../docs/bugs/BUG-3809-a-tenant-admin-can-create-document-types-and-categories-ever.md) | A tenant admin can create document types and categories every tenant sees | TENANT_ISOLATION | HIGH | P1 | FIXED | documents | FIX_NOW |
 | [BUG-3843](../../docs/bugs/BUG-3843-customization-hides-packages-modules-sidebar-designer-and-pu.md) | Customization hides Packages, Modules, Sidebar Designer and Publish Center behind a role gate ADR-0013 removed | AUTHORIZATION | HIGH | P1 | FIXED | apps/web, customization | FIX_NOW |
 | [BUG-3888](../../docs/bugs/BUG-3888-safepay-webhooks-fail-because-safepay-webhook-secret-is-not-.md) | Safepay webhooks fail because SAFEPAY_WEBHOOK_SECRET is not configured in production | INTEGRATION | HIGH | P1 | BLOCKED | billing | BLOCKED_EXTERNAL |
+| [BUG-3929](../../docs/bugs/BUG-3929-admin-record-actions-post-to-the-id-less-runtime-route-so-se.md) | Admin record actions post to the id-less runtime route, so Send onboarding link and 13 other actions always fail as not available | BUG | HIGH | P1 | FIXED | apps/admin, platform-runtime | FIX_NOW |
+| [BUG-3930](../../docs/bugs/BUG-3930-partner-delete-hides-its-refusal-reason-and-silently-erases-.md) | Partner delete hides its refusal reason and silently erases customer and tenant attribution | DATA_INTEGRITY | HIGH | P1 | FIXED | partners, apps/admin | FIX_NOW |
+| [BUG-3955](../../docs/bugs/BUG-3955-partner-save-persists-no-field-but-reports-partner-saved-bec.md) | Partner Save persists no field but reports Partner saved, because the write contract misreads PartialType | BUG | HIGH | P1 | FIXED | apps/admin, partners | FIX_NOW |
+| [BUG-3981](../../docs/bugs/BUG-3981-partner-onboarding-invitation-resends-never-arrive-kill-the-.md) | Partner onboarding invitation resends never arrive, kill the old link, return the raw token and report failed sends as success | SECURITY | HIGH | P1 | FIXED | partner-experience | FIX_NOW |
+| [BUG-3995](../../docs/bugs/BUG-3995-console-created-partners-had-no-usable-lifecycle-action-and-.md) | Console-created partners had no usable lifecycle action and the review actions failed with an opaque submission error | STATE_MACHINE | HIGH | P1 | FIXED | partners, apps/admin | FIX_NOW |
+| [BUG-4005](../../docs/bugs/BUG-4005-reason-prompted-record-commands-suspend-deactivate-reject-le.md) | Reason-prompted record commands (Suspend, Deactivate, Reject, lead Disqualify, contract stage-back) silently do nothing | BUG | HIGH | P1 | FIXED | apps/admin | FIX_NOW |
+| [BUG-4007](../../docs/bugs/BUG-4007-partner-activation-reports-failed-delivery-as-success-and-ca.md) | Partner activation reports failed delivery as success and cannot retry | STATE_MACHINE | HIGH | P1 | VERIFIED | api:partner-experience | DONE |
+| [BUG-4008](../../docs/bugs/BUG-4008-partner-activation-reassigns-a-different-partners-portal-con.md) | Partner activation reassigns a different partners portal contact by email | AUTHORIZATION | HIGH | P1 | VERIFIED | api:partner-experience | DONE |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -572,6 +580,11 @@ see [`README.md`](README.md) for why.
 | [BUG-3893](../../docs/bugs/BUG-3893-a-generated-contract-pdf-was-missing-from-storage-when-downl.md) | A generated contract PDF was missing from storage when downloaded, suggesting non-durable file storage | DATA_INTEGRITY | MEDIUM | P2 | OPEN | contracts | PLAN_REQUIRED |
 | [BUG-3894](../../docs/bugs/BUG-3894-the-tenant-error-boundary-shows-the-react-digest-as-the-erro.md) | The tenant error boundary shows the React digest as the error reference, which support cannot find and Download log 404s on | UX | MEDIUM | P2 | OPEN | apps/web | FIX_NOW |
 | [BUG-3897](../../docs/bugs/BUG-3897-public-signature-link-tokens-are-stored-verbatim-in-errorlog.md) | Public signature-link tokens are stored verbatim in ErrorLog.path and readable by monitoring.read holders | SECURITY | MEDIUM | P2 | OPEN | error-logs | FIX_NOW |
+| [BUG-3956](../../docs/bugs/BUG-3956-changing-partner-status-from-the-record-header-always-fails-.md) | Changing Partner status from the record header always fails and would bypass the partner state machine | STATE_MACHINE | MEDIUM | P2 | FIXED | partners, apps/admin | FIX_NOW |
+| [BUG-3982](../../docs/bugs/BUG-3982-partner-commissions-accept-any-status-jump-and-unverified-li.md) | Partner commissions accept any status jump and unverified links, and agreements change when the partner default commission is edited | DATA_INTEGRITY | MEDIUM | P2 | FIXED | partners, contracts | FIX_NOW |
+| [BUG-3996](../../docs/bugs/BUG-3996-a-partner-with-a-never-invited-contact-could-not-be-deleted-.md) | A partner with a never-invited contact could not be deleted and the contact could not be removed | BUG | MEDIUM | P2 | FIXED | partners, apps/admin | FIX_NOW |
+| [BUG-4009](../../docs/bugs/BUG-4009-failed-onboarding-resend-overwrites-a-newer-invitation-durin.md) | Failed onboarding resend overwrites a newer invitation during compensation | STATE_MACHINE | MEDIUM | P2 | VERIFIED | api:partner-experience | DONE |
+| [BUG-4014](../../docs/bugs/BUG-4014-regression-id-allocator-emits-four-digit-ids-that-qa-validat.md) | Regression ID allocator emits four-digit IDs that QA validators truncate | INFRA | MEDIUM | P2 | DEFERRED | agent-framework | DEFER |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -676,6 +689,8 @@ see [`README.md`](README.md) for why.
 | [ITEM-0199](../../docs/backlog/items/ITEM-0199-admin-dashboard-operational-metrics-for-logins-mfa-adoption-.md) | Admin dashboard: operational metrics for logins, MFA adoption, error rate, job failures, partner funnel and agreements | UX | MEDIUM | P2 | DONE | apps/admin, api:super-admin | DONE |
 | [ITEM-0200](../../docs/backlog/items/ITEM-0200-agreements-have-no-end-to-end-test-coverage-and-partners-lea.md) | Agreements have no end-to-end test coverage and partners/leads have no e2e lifecycle suite | TEST_GAP | MEDIUM | P2 | DONE | api:contracts, api:partners, api:leads | DONE |
 | [ITEM-0211](../../docs/backlog/items/ITEM-0211-safepay-renewal-invoices-are-issued-but-never-emailed-to-the.md) | Safepay renewal invoices are issued but never emailed to the tenant | FOLLOW_UP | MEDIUM | P2 | DEFERRED | api:billing | DEFER |
+| [ITEM-0226](../../docs/backlog/items/ITEM-0226-foreign-key-violations-from-the-prisma-7-pg-adapter-carry-no.md) | Foreign-key violations from the Prisma 7 pg adapter carry no P2003 code and surface as generic errors | TECH_DEBT | MEDIUM | P2 | READY | common, platform-runtime | PLAN_REQUIRED |
+| [ITEM-0228](../../docs/backlog/items/ITEM-0228-onboarding-and-activation-links-are-stored-verbatim-in-platf.md) | Onboarding and activation links are stored verbatim in PlatformOutboundEmail.htmlBody for retries | SECURITY | MEDIUM | P2 | READY | platform-communications, partner-experience | PLAN_REQUIRED |
 | [ITEM-0021](../../docs/backlog/items/ITEM-0021-mechanical-guard-against-country-and-currency-literals-in-fr.md) | Mechanical guard against country and currency literals in frontends | TEST_GAP | LOW | P2 | DONE | scripts, apps/landing, apps/web, apps/admin | DONE |
 | [ITEM-0023](../../docs/backlog/items/ITEM-0023-tenant-dataregion-populated-from-market-at-provisioning.md) | Tenant.dataRegion populated from market at provisioning | FOLLOW_UP | LOW | P2 | READY | services/api/prisma, api:tenant-control-plane | PLAN_REQUIRED |
 | [ITEM-0024](../../docs/backlog/items/ITEM-0024-landing-depends-on-lucide-react-without-declaring-it.md) | Landing depends on lucide-react without declaring it | TECH_DEBT | LOW | P2 | DONE | apps/landing | DONE |
@@ -743,6 +758,8 @@ see [`README.md`](README.md) for why.
 | [BUG-3906](../../docs/bugs/BUG-3906-the-payslips-screen-was-offered-while-the-tenant-was-not-ent.md) | The Payslips screen was offered while the tenant was not entitled to it | AUTHORIZATION | LOW | P3 | DEFERRED | payslips | DEFER |
 | [BUG-3907](../../docs/bugs/BUG-3907-the-monitoring-overview-fails-as-a-whole-when-any-one-of-its.md) | The monitoring overview fails as a whole when any one of its three endpoints fails | UX | LOW | P3 | DEFERRED | platform-monitoring | DEFER |
 | [BUG-3916](../../docs/bugs/BUG-3916-lead-partner-attribution-renders-above-the-record-tabs-on-ev.md) | Lead Partner attribution renders above the record tabs on every tab instead of in a tab | UX | LOW | P3 | FIXED | apps/admin, leads | FIX_NOW |
+| [BUG-4006](../../docs/bugs/BUG-4006-expected-domain-refusals-on-record-actions-open-the-technica.md) | Expected domain refusals on record actions open the technical error dialog because the adapter drops request headers | UX | LOW | P3 | FIXED | apps/admin | FIX_NOW |
+| [BUG-4019](../../docs/bugs/BUG-4019-partner-record-polish-empty-application-card-clipped-subgrid.md) | Partner record polish: empty application card, clipped subgrid row actions, unfiltered commission lookups, raw ids on commission record | UX | LOW | P3 | FIXED | partners, super-admin, apps/admin | FIX_NOW |
 | [ITEM-0007](../../docs/backlog/items/ITEM-0007-should-duplicate-website-leads-be-deduplicated.md) | Product decision — should duplicate website leads be deduplicated? | PRODUCT_DECISION | LOW | P3 | DONE | api:leads, apps/landing | DONE |
 | [ITEM-0008](../../docs/backlog/items/ITEM-0008-customeraccount-has-no-origin-channel.md) | Product decision — CustomerAccount carries no origin channel | PRODUCT_DECISION | LOW | P3 | DONE | services/api/prisma, api:super-admin | DONE |
 | [ITEM-0011](../../docs/backlog/items/ITEM-0011-framework-validation-should-catch-absence-claims.md) | Framework validation should catch false absence claims in context documents | TECH_DEBT | LOW | P3 | DONE | .agent/context, scripts | DONE |
@@ -818,6 +835,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0223](../../docs/backlog/items/ITEM-0223-decide-which-lifecycle-events-the-platform-must-emit-to-the-.md) | Decide which lifecycle events the platform must emit to the Events stream | PRODUCT_DECISION | — | P2 | PRODUCT_DECISION | platform-events | PRODUCT_DECISION |
 | [ITEM-0224](../../docs/backlog/items/ITEM-0224-decide-whether-business-rule-rejections-should-be-recorded-b.md) | Decide whether business-rule rejections should be recorded but not queued as incidents | PRODUCT_DECISION | — | P2 | PRODUCT_DECISION | error-logs | PRODUCT_DECISION |
 | [ITEM-0225](../../docs/backlog/items/ITEM-0225-re-verify-historical-frontend-dto-contract-drift-400s-agains.md) | Re-verify historical frontend/DTO contract-drift 400s against current DTOs before resolving them | FOLLOW_UP | — | P2 | READY | error-logs | PLAN_REQUIRED |
+| [ITEM-0227](../../docs/backlog/items/ITEM-0227-automatic-commission-accrual-from-collected-invoices.md) | Automatic commission accrual from collected invoices | PRODUCT_DECISION | — | P2 | PRODUCT_DECISION | partners, billing | PRODUCT_DECISION |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |
 | [ITEM-0114](../../docs/backlog/items/ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-.md) | The workspace shell states the tenant's identity four times and its purpose twice | UX | — | P3 | DONE | views, apps/web | DONE |

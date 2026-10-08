@@ -2,24 +2,26 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Clock3 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import {
-  ProDataTable,
-  type ProDataTableColumn,
-} from "@/app/_components/crm/data-table";
 import { PageHeader } from "@/app/_components/ui/page-header";
-import { createHttpModuleRuntimeAdapter } from "@/lib/runtime/http-module-runtime-adapter";
+import {
+  createHttpModuleRuntimeAdapter,
+  RuntimeApiError,
+} from "@/lib/runtime/http-module-runtime-adapter";
 import { getPlatformModuleDefinition } from "@/lib/runtime/platform-module-registry";
 import { planEntitlementKeys } from "@/lib/runtime/plan-entitlement-keys";
 import { planSubscriptionCount } from "@/lib/runtime/plan-subscription-count";
 import type {
   PlatformModuleKey,
   RuntimeActionDefinition,
-  RuntimeColumnDefinition,
   RuntimeRecord,
 } from "@/lib/runtime/platform-runtime.types";
-import { buildWritePayload } from "@/lib/runtime/runtime-write-payload";
+import {
+  buildWritePayload,
+  emptyEditOutcome,
+} from "@/lib/runtime/runtime-write-payload";
+import { partnerPhaseOf } from "@repo/config";
 import {
   describeBlockedSave,
   firstFailingTab,
@@ -31,6 +33,8 @@ import {
 } from "@/lib/runtime/humanize-field-error";
 import { executeRuntimeRecordAction } from "@/lib/runtime/runtime-record-action-handler";
 import { ModuleActionBar } from "./module-action-bar";
+import { RecordHighlightHeader } from "./record-highlight-header";
+import { RuntimeRelatedRecordsPanel } from "./runtime-related-records-panel";
 import {
   RecordStatusGroup,
   type RecordStatusGroupWrite,
@@ -166,6 +170,12 @@ function RuntimeRecordEditor({
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [timeline, setTimeline] = useState<Array<Record<string, unknown>>>([]);
+  /*
+   * Bumped whenever the record is reloaded, so its subgrids reload with it.
+   * A lifecycle action, a save or a quick create changes what they list; they
+   * used to keep showing what they had loaded when the page opened.
+   */
+  const [relatedRefreshKey, setRelatedRefreshKey] = useState(0);
   const [signatureOpen, setSignatureOpen] = useState(false);
   /*
    * Governed reasons are collected here rather than by `window.prompt` in the
@@ -279,6 +289,25 @@ function RuntimeRecordEditor({
   const [activeTab, setActiveTab] = useState(
     formDefinition.tabs?.[0]?.key ?? "",
   );
+  /*
+   * `?tab=<key>` opens the record on that tab. The delete dialog links each
+   * blocking dependency to the tab that lists it (EXECPLAN-0055 D5) — e.g. a
+   * partner's referral links — and a link that landed on Summary would leave
+   * the operator hunting for what they were sent to fix. Watched rather than
+   * read once, because following such a link from this same record changes
+   * only the query string and does not remount the page.
+   */
+  const requestedTab = useSearchParams().get("tab");
+  // Applied once per requested value, so a record reload that rebuilds the
+  // form definition does not pull the operator back off a tab they chose.
+  const appliedTab = useRef<string | null>(null);
+  useEffect(() => {
+    if (!requestedTab || appliedTab.current === requestedTab) return;
+    if (formDefinition.tabs?.some((item) => item.key === requestedTab)) {
+      appliedTab.current = requestedTab;
+      setActiveTab(requestedTab);
+    }
+  }, [formDefinition.tabs, requestedTab]);
 
   async function reloadTimeline() {
     if (isCreate) return;
@@ -334,24 +363,28 @@ function RuntimeRecordEditor({
       form.values,
       isCreate,
     );
+    const nothingToSave = emptyEditOutcome(payload, isCreate);
+    if (nothingToSave) return nothingToSave;
     const validation = await adapter.validateRecord(
       payload,
       isCreate ? "create" : "edit",
       record.id || undefined,
     );
-    if (!validation.success) {
-      /*
-       * The API names fields as the DTO does — `primaryContactFirstName must be
-       * shorter than or equal to 100 characters` — which corresponds to nothing
-       * the operator can see on screen (BUG-1549). The form knows what it calls
-       * that field, so the property name is swapped for the label and the
-       * constraint half is left exactly as it arrived.
-       */
+    /*
+     * The API names fields as the DTO does — `primaryContactFirstName must be
+     * shorter than or equal to 100 characters` — which corresponds to nothing
+     * the operator can see on screen (BUG-1549). The form knows what it calls
+     * that field, so the property name is swapped for the label and the
+     * constraint half is left exactly as it arrived.
+     */
+    const applyServerFieldErrors = (
+      items: Array<{ field?: string; message: string }>,
+    ) => {
       const labels = new Map(
         formDefinition.fields.map((field) => [field.key, field.label]),
       );
       const serverErrors = Object.fromEntries(
-        (validation.errors ?? [])
+        items
           .filter((item) => item.field)
           .map((item) => [
             item.field!,
@@ -369,11 +402,29 @@ function RuntimeRecordEditor({
       // as easily as a blank required one, so the server's verdict gets the
       // same treatment as the client's.
       revealFailures(serverErrors);
+    };
+    if (!validation.success) {
+      applyServerFieldErrors(validation.errors ?? []);
       return validation;
     }
-    const response = isCreate
-      ? await adapter.createRecord(payload)
-      : await adapter.updateRecord(record.id, payload, currentVersion);
+    let response: Awaited<ReturnType<typeof adapter.createRecord>>;
+    try {
+      response = isCreate
+        ? await adapter.createRecord(payload)
+        : await adapter.updateRecord(record.id, payload, currentVersion);
+    } catch (error) {
+      /*
+       * `/validate` does not run every rule the write does, so the write itself
+       * can still reject a field. Its `fieldErrors` now reach the form the same
+       * way the pre-flight's do; anything without a field still throws, to the
+       * command bar and the error dialog, exactly as before.
+       */
+      if (error instanceof RuntimeApiError && error.fieldErrors?.length) {
+        applyServerFieldErrors(error.fieldErrors);
+        return { success: false, message: error.message };
+      }
+      throw error;
+    }
     if (close) router.push(definition.routeBase);
     else if (isCreate)
       router.replace(`${definition.routeBase}/${response.item.id}`);
@@ -385,18 +436,32 @@ function RuntimeRecordEditor({
     return { success: true, message: `${definition.displayName} saved.` };
   }
 
+  /*
+   * After a quick create or a row command: the record's counts, header and
+   * timeline follow. The form is only refreshed in read mode — an operator
+   * part-way through an edit keeps their draft.
+   */
+  async function refreshAfterRelatedChange() {
+    const response = await adapter.getRecord(record.id);
+    setCurrentVersion(response.version);
+    if (mode === "read") form.setValues(withContractDocument(response.item));
+    void reloadTimeline();
+  }
+
   async function reloadRecord() {
     if (isCreate) return;
     const response = await adapter.getRecord(record.id);
     const next = response.item;
     setCurrentVersion(response.version);
     form.setValues(withContractDocument(next));
+    setRelatedRefreshKey((value) => value + 1);
     if (moduleKey === "contracts")
       setTimeline(
         Array.isArray(next.timeline)
           ? (next.timeline as Array<Record<string, unknown>>)
           : [],
       );
+    else void reloadTimeline();
   }
 
   /**
@@ -558,6 +623,32 @@ function RuntimeRecordEditor({
     <main className="space-y-5">
       {moduleKey === "tenants" && !isCreate ? (
         <TenantRecordHeader record={form.values} statusGroup={statusGroup} />
+      ) : definition.highlight && !isCreate ? (
+        /*
+         * EXECPLAN-0055 D8 — a module that declares a highlight gets the
+         * compact header: its key values in one band, with Owner as the only
+         * control (from the status group, so assignment is governed as
+         * before). Status and Sub-status are values there, not dropdowns.
+         */
+        <RecordHighlightHeader
+          definition={definition}
+          highlight={definition.highlight}
+          record={form.values}
+          ownerControl={
+            definition.highlight.owner ? (
+              <RecordStatusGroup
+                definition={definition}
+                record={form.values}
+                roleKeys={roleKeys}
+                permissionKeys={permissionKeys}
+                write={headerWrite}
+                onChanged={reloadRecord}
+                slots={["owner"]}
+                compact
+              />
+            ) : undefined
+          }
+        />
       ) : (
         <PageHeader
           eyebrow={definition.navigationGroup}
@@ -621,6 +712,9 @@ function RuntimeRecordEditor({
           permissionKeys,
           isDirty: form.isDirty,
           mode,
+          recordId: isCreate ? undefined : record.id,
+          // Delete asks the API what it would do first (EXECPLAN-0055 D5).
+          getDependencies: isCreate ? undefined : adapter.getDependencies,
         }}
         onAction={handleAction}
       />
@@ -753,13 +847,21 @@ function RuntimeRecordEditor({
         />
       ) : null}
       {!isCreate && relatedRecords.length ? (
-        <section className="grid gap-5">
+        // `grid-cols-1` is minmax(0, 1fr): a wide subgrid scrolls in its card
+        // instead of widening the page (see RELATED_PANEL_CLASS).
+        <section className="grid min-w-0 grid-cols-1 gap-5">
           {relatedRecords.map((relationship) => (
             <RuntimeRelatedRecordsPanel
               key={relationship.key}
               adapter={adapter}
               recordId={record.id}
+              record={form.values}
               relationship={relationship}
+              parentDefinition={definition}
+              roleKeys={roleKeys}
+              permissionKeys={permissionKeys}
+              refreshKey={relatedRefreshKey}
+              onChanged={refreshAfterRelatedChange}
             />
           ))}
         </section>
@@ -1600,6 +1702,9 @@ function resolveProcessStage(
     record.contracts.length > 0
   )
     return "AGREEMENT";
+  // A partner's process stages are its derived phases (ADR-0026).
+  if (moduleKey === "partners")
+    return partnerPhaseOf(String(record.status ?? "")) ?? "";
   return String(record.processStage ?? record.status ?? "");
 }
 
@@ -1638,13 +1743,6 @@ function readRecordLabel(value: unknown) {
         "",
     ) || null
   );
-}
-
-function formatRecordValue(value: unknown) {
-  return String(value)
-    .toLowerCase()
-    .replaceAll("_", " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function formatRecordDate(value: unknown) {
@@ -2781,206 +2879,6 @@ function ProcessBar({
       </ol>
     </section>
   );
-}
-
-function RuntimeRelatedRecordsPanel({
-  adapter,
-  recordId,
-  relationship,
-}: {
-  adapter: ReturnType<typeof createHttpModuleRuntimeAdapter>;
-  recordId: string;
-  relationship: {
-    key: string;
-    label: string;
-    tab?: string;
-    description?: string;
-    emptyTitle?: string;
-    emptyDescription?: string;
-    createHref?: string;
-    module?: PlatformModuleKey;
-    foreignKey: string;
-    columns?: RuntimeColumnDefinition[];
-  };
-}) {
-  const router = useRouter();
-  const [items, setItems] = useState<RuntimeRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    const controller = new AbortController();
-    adapter
-      .getRelatedRecords(recordId, relationship.key, {
-        page: 1,
-        pageSize: 10,
-        signal: controller.signal,
-      })
-      .then((response) => {
-        setItems(response.items);
-        setError(null);
-      })
-      .catch((reason) => {
-        if (!controller.signal.aborted)
-          setError(
-            reason instanceof Error
-              ? reason.message
-              : "Unable to load related records.",
-          );
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
-      });
-    return () => controller.abort();
-  }, [adapter, recordId, relationship.key]);
-  const target = relationship.module
-    ? getPlatformModuleDefinition(relationship.module)
-    : null;
-  const configuredColumns =
-    relationship.columns ??
-    target?.columns.slice(0, 4) ??
-    relatedFallbackColumns(relationship.key);
-  const columns = configuredColumns.map<ProDataTableColumn<RuntimeRecord>>(
-    (column) => ({
-      key: column.key,
-      header: column.label,
-      minWidth: column.minWidth ?? 120,
-      width: column.width,
-      render: (row) => relatedValue(row, column.field),
-    }),
-  );
-  return (
-    <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
-        <div>
-          <h2 className="text-base font-semibold text-slate-950">
-            {relationship.label}
-          </h2>
-          {relationship.description ? (
-            <p className="mt-1 text-xs text-slate-500">
-              {relationship.description}
-            </p>
-          ) : null}
-        </div>
-        <div className="flex items-center gap-2">
-          {relationship.createHref ? (
-            <Link
-              href={relationship.createHref}
-              className="rounded-lg bg-slate-950 px-3 py-2 text-xs font-semibold text-white"
-            >
-              Add
-            </Link>
-          ) : null}
-          {target ? (
-            /*
-             * "View all" carries the relationship's own foreign key through to
-             * the target list, so it opens that module already filtered to this
-             * record instead of dropping the operator into every row in the
-             * platform.
-             */
-            <Link
-              href={`${target.routeBase}?filters=${encodeURIComponent(
-                JSON.stringify([
-                  {
-                    field: relationship.foreignKey,
-                    operator: "eq",
-                    value: recordId,
-                  },
-                ]),
-              )}`}
-              className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700"
-            >
-              View all
-            </Link>
-          ) : null}
-        </div>
-      </div>
-      {error ? (
-        <p className="p-5 text-sm text-rose-700" role="alert">
-          {error}
-        </p>
-      ) : (
-        <ProDataTable
-          rows={items}
-          columns={columns}
-          rowKey={(row) => row.id}
-          loading={loading}
-          loadingRowCount={3}
-          compact
-          emptyTitle={
-            relationship.emptyTitle ?? `No ${relationship.label.toLowerCase()}`
-          }
-          emptyDescription={
-            relationship.emptyDescription ??
-            `Nothing has been linked to this record yet.`
-          }
-          onRowClick={
-            target
-              ? (row) => router.push(`${target.routeBase}/${row.id}`)
-              : undefined
-          }
-        />
-      )}
-    </section>
-  );
-}
-
-function relatedFallbackColumns(key: string): RuntimeColumnDefinition[] {
-  if (key === "documents" || key === "attachments")
-    return [
-      { key: "fileName", field: "fileName", label: "File" },
-      { key: "mimeType", field: "mimeType", label: "Type" },
-      { key: "createdAt", field: "createdAt", label: "Created" },
-    ];
-  if (key === "approvalRequests")
-    return [
-      { key: "requestNumber", field: "requestNumber", label: "Approval" },
-      { key: "status", field: "status", label: "Status" },
-      { key: "createdAt", field: "createdAt", label: "Created" },
-    ];
-  return [
-    { key: "reference", field: "displayName", label: "Record" },
-    { key: "status", field: "status", label: "Status" },
-    { key: "createdAt", field: "createdAt", label: "Created" },
-  ];
-}
-
-function relatedValue(record: RuntimeRecord, field: string) {
-  const resolved = field
-    .split(".")
-    .reduce<unknown>(
-      (current, key) =>
-        current && typeof current === "object"
-          ? (current as Record<string, unknown>)[key]
-          : undefined,
-      record,
-    );
-  const value =
-    field === "displayName" && (resolved == null || resolved === "")
-      ? (record.title ??
-        record.name ??
-        record.companyName ??
-        record.contractNumber ??
-        record.requestNumber ??
-        record.fileName)
-      : resolved;
-  if (value == null || value === "")
-    return <span className="text-slate-400">—</span>;
-  if (field.endsWith("At") || field.endsWith("Date")) {
-    const date = new Date(String(value));
-    if (!Number.isNaN(date.getTime())) return date.toLocaleString();
-  }
-  /*
-   * A related row often carries the whole relation object rather than a label.
-   * Falling straight to "—" is what made user columns read as a dash next to a
-   * status and a date — the name was there, one level down.
-   */
-  if (typeof value === "object") {
-    const label = readRecordLabel(value);
-    return label ?? <span className="text-slate-400">—</span>;
-  }
-  const text = String(value);
-  /* SCREAMING_SNAKE only ever comes from an enum column. */
-  return /^[A-Z][A-Z0-9_]*$/.test(text) ? formatRecordValue(text) : text;
 }
 
 function TimelinePanel({

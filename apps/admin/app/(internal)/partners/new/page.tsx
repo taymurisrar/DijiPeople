@@ -19,7 +19,6 @@ export default async function Page() {
       moduleKey="partners"
       initialValues={{
         type: "COMPANY",
-        status: "NEW_INQUIRY",
         defaultCommissionRate: 0,
         currencyCode:
           settings.platformDefaults?.reportingCurrency ??

@@ -20,10 +20,17 @@ import {
 import { PartnersService } from '../partners/partners.service';
 import {
   CreatePartnerDto,
+  CreateRuntimePartnerCommissionDto,
   PartnerQueryDto,
   UpdatePartnerDto,
 } from '../partners/dto/partner.dto';
 import { PartnerDeletionService } from '../partners/partner-deletion.service';
+import {
+  partnerInquiryRequired,
+  partnerStatusRequiresAction,
+} from '../partners/partner-lifecycle';
+import { isPartnerCommissionAction } from '../partners/partner-commission-lifecycle';
+import { AppError } from '../../common/errors/app-error';
 import { SuperAdminService } from '../super-admin/super-admin.service';
 import {
   CreateCustomerDto,
@@ -64,6 +71,7 @@ import { runtimeViewWhere } from './runtime-view-where';
 import { PlatformRuntimeRelationsService } from './platform-runtime-relations.service';
 import { TenantControlPlaneService } from '../tenant-control-plane/tenant-control-plane.service';
 import { toDisplayString } from '../../common/utils/display-string';
+import type { RecordDependencyProvider } from '../../common/deletion/record-dependencies';
 
 @Injectable()
 export class PlatformRuntimeService {
@@ -260,7 +268,7 @@ export class PlatformRuntimeService {
           orderBy: { createdAt: 'desc' },
         });
         return paginateRuntimeRecords(
-          items,
+          await this.partners.describeCommissions(items),
           page,
           pageSize,
           query.search,
@@ -417,7 +425,8 @@ export class PlatformRuntimeService {
         });
         if (!item)
           throw new NotFoundException('Partner commission was not found.');
-        return envelope(item);
+        const [described] = await this.partners.describeCommissions([item]);
+        return envelope(described);
       }
       default: {
         const item = await this.findGeneric(this.key(moduleKey), id);
@@ -442,8 +451,12 @@ export class PlatformRuntimeService {
           ),
         );
       case 'partners':
+        // BUG-3551: the actor is passed so PARTNER_CREATED names who did it.
         return envelope(
-          await this.partners.create(await dto(CreatePartnerDto, values)),
+          await this.partners.create(
+            await dto(CreatePartnerDto, values),
+            user.userId,
+          ),
         );
       case 'customers':
         return envelope(
@@ -466,6 +479,30 @@ export class PlatformRuntimeService {
             await dto(CreateContractDto, values),
           ),
         );
+      case 'commissions': {
+        /*
+         * ADR-0026 D3. A commission is recorded against one partner, named in
+         * the values; the rest is the same DTO `POST /partners/:id/commissions`
+         * validates, so the quick-create on the partner record and the API
+         * agree on what an entry may carry. Everything derived — number,
+         * status, amount, default rate and currency — is the service's.
+         */
+        if (!textOrNull(values.partnerId))
+          throw new BadRequestException(
+            'Choose the partner this commission is for.',
+          );
+        const { partnerId, ...commission } = await dto(
+          CreateRuntimePartnerCommissionDto,
+          values,
+        );
+        return envelope(
+          await this.partners.createCommission(
+            partnerId,
+            commission,
+            user.userId,
+          ),
+        );
+      }
       case 'support-cases':
         return envelope(
           await this.supportCases.create(
@@ -498,10 +535,27 @@ export class PlatformRuntimeService {
             await dto(UpdateAdminLeadDto, values),
           ),
         );
-      case 'partners':
+      case 'partners': {
+        /*
+         * An older admin bundle still sends the status field on save. Refuse a
+         * change with the domain reason rather than the whitelist's "property
+         * status should not exist", which reads as a form bug; an unchanged
+         * value is simply not forwarded.
+         */
+        const { status: sentStatus, ...partnerValues } = values;
+        if (sentStatus !== undefined && sentStatus !== null) {
+          const existing = await this.partners.get(id);
+          if (sentStatus !== existing.status)
+            throw partnerStatusRequiresAction(existing.status);
+        }
         return envelope(
-          await this.partners.update(id, await dto(UpdatePartnerDto, values)),
+          await this.partners.update(
+            id,
+            await dto(UpdatePartnerDto, partnerValues),
+            user.userId,
+          ),
         );
+      }
       case 'customers':
         return envelope(
           await this.superAdmin.updateCustomer(
@@ -641,15 +695,69 @@ export class PlatformRuntimeService {
     return this.deleteRecords(user, this.key(moduleKey), [id]);
   }
 
+  /**
+   * What deleting this record would do, before anybody confirms it
+   * (`GET :moduleKey/:id/dependencies`, EXECPLAN-0055 D5).
+   *
+   * Exactly the checks the delete itself makes — module write and platform
+   * administrator — because the answer describes the delete: somebody who may
+   * not delete the record has no use for its dependency map, and partner
+   * attribution is not something to enumerate for every reader.
+   *
+   * A module with no provider answers 404, and the console falls back to its
+   * plain confirmation for it. That is not a refusal to delete: whether a
+   * module permits deletion at all is still decided by `deleteRecords`.
+   */
+  async dependencies(user: AuthenticatedUser, moduleKey: string, id: string) {
+    const key = this.key(moduleKey);
+    this.assertModuleWrite(user, key);
+    this.assertAdmin(user);
+    const provider = this.dependencyProviders()[key];
+    if (!provider)
+      throw new NotFoundException(
+        'A dependency check is not available for this module.',
+      );
+    return result(await provider.describeDependencies(id));
+  }
+
+  /**
+   * The modules that implement the dependency contract.
+   *
+   * One entry per module, keyed like every other runtime switch. Partners are
+   * first; a module joins by implementing `RecordDependencyProvider` in its own
+   * deletion service and appearing here — and its delete path should then read
+   * the same rules inside its transaction, as `PartnerDeletionService` does, or
+   * the dialog and the delete will disagree.
+   */
+  private dependencyProviders(): Partial<
+    Record<PlatformRuntimeModuleKey, RecordDependencyProvider>
+  > {
+    return { partners: this.partnerDeletion };
+  }
+
   async execute(
     user: AuthenticatedUser,
     moduleKey: string,
     action: string,
     input: Record<string, unknown>,
-    id?: string,
+    routeId?: string,
   ) {
     const key = this.key(moduleKey);
     this.assertModuleWrite(user, key);
+    /*
+     * The record an action is about: the `/:id/actions/:action` route
+     * parameter, or — only when that is absent — an `id` in the body.
+     *
+     * The admin console sent every record command to the id-less route with
+     * the id in the body, and nothing here read it, so each one fell through to
+     * "Action <key> is not available" (EXECPLAN-0055 WP-01). The client now
+     * uses the record route; this fallback keeps an older bundle, or any other
+     * caller still on the body form, from failing the same way. It is one
+     * resolution feeding the single dispatch below, not a second dispatch, and
+     * every downstream service still authorises the record itself — the body
+     * id is no more trusted than the path one.
+     */
+    const id = routeId ?? textOrNull(input?.id) ?? undefined;
     if (action === 'bulk-delete')
       return this.deleteRecords(user, key, toIds(input.ids));
     if (action === 'bulk-assign')
@@ -683,14 +791,26 @@ export class PlatformRuntimeService {
       return this.partnerExperience.activatePartner(user, id);
     if (id && key === 'partners') {
       if (action === 'approve-partner' || action === 'reject-partner') {
+        /*
+         * The partner first: a nonexistent id would otherwise be answered with
+         * "no partner application to review" — a statement about a partner
+         * that does not exist.
+         */
+        const partner = await this.prisma.partner.findUnique({
+          where: { id },
+          select: { id: true },
+        });
+        if (!partner) throw new NotFoundException('Partner was not found.');
         const inquiry = await this.prisma.partnerInquiry.findFirst({
           where: { partnerId: id },
           orderBy: { createdAt: 'desc' },
         });
-        if (!inquiry)
-          throw new BadRequestException(
-            'The immutable partner application submission was not found.',
-          );
+        /*
+         * A partner created in the console has no application to decide; it
+         * takes the agreement-first path (ADR-0026). This was a bare 400 that
+         * the console showed as a generic validation failure.
+         */
+        if (!inquiry) throw partnerInquiryRequired();
         const review = {
           notes:
             textOrNull(input.reason) ??
@@ -735,11 +855,30 @@ export class PlatformRuntimeService {
             reason: textOrNull(input.reason) ?? undefined,
           }),
         );
-      if (action === 'send-onboarding-link')
-        return result(
-          await this.partnerExperience.sendOnboardingInvitation(user, id),
+      if (action === 'send-onboarding-link') {
+        // The sentence the command bar shows ("Onboarding link sent to …,
+        // expires …") is lifted to where the admin reads a notice from.
+        const sent = await this.partnerExperience.sendOnboardingInvitation(
+          user,
+          id,
         );
+        return { ...result(sent), message: sent.message };
+      }
     }
+    /*
+     * ADR-0026 D3 — a commission's status moves only through these actions,
+     * which the service holds to Pending → Approved → Payable → Paid, Void
+     * until paid. Same shape as the partner lifecycle actions above.
+     */
+    if (id && key === 'commissions' && isPartnerCommissionAction(action))
+      return envelope(
+        await this.partners.commissionAction(
+          id,
+          action,
+          user.userId,
+          textOrNull(input.reason),
+        ),
+      );
     if (id && key === 'contracts') {
       if (action === 'void-agreement')
         return envelope(
@@ -808,10 +947,8 @@ export class PlatformRuntimeService {
       const contract = await this.contracts.get(user, id);
       return { items: contract.timeline };
     }
-    if (key === 'partners') {
-      const partner = await this.partners.get(id);
-      return { items: partner.timeline };
-    }
+    // EXECPLAN-0055 D5: PartnerTimeline plus pre-fix notes, with actor names.
+    if (key === 'partners') return this.partners.timeline(id);
     if (key === 'support-cases') {
       const supportCase = await this.supportCases.get(user, id);
       return { items: supportCase.timeline };
@@ -846,6 +983,20 @@ export class PlatformRuntimeService {
         message: toDisplayString(input.message ?? ''),
       });
       return { success: true, message: 'Timeline activity added.' };
+    }
+    /*
+     * EXECPLAN-0055 D5. A partner note used to fall through to the audit write
+     * below, while the partner's Timeline tab reads `PartnerTimeline` — so the
+     * note was saved and never shown. It is now a timeline entry of its own,
+     * with the operator as actor, and audited by the partners service.
+     */
+    if (key === 'partners') {
+      await this.partners.addNote(
+        id,
+        toDisplayString(input.message ?? ''),
+        user.userId,
+      );
+      return { success: true, message: 'Note added.' };
     }
     await this.audit.log({
       /* Same reason as the read path: the note belongs to the tenant's history. */
@@ -1094,19 +1245,25 @@ export class PlatformRuntimeService {
           }),
         ),
       );
+    /*
+     * ADR-0026 D1. This spread the whole GET record — id, code, relations —
+     * into UpdatePartnerDto, so every header status change failed whitelist
+     * validation with the generic "Review the highlighted fields" message; had
+     * it passed, it would have bypassed every lifecycle guard. A partner's
+     * status moves only through its actions, which check the from-state, write
+     * the timeline and audit the reason, so the header path refuses with the
+     * domain reason instead of guessing which action was meant.
+     */
     if (key === 'partners') {
       const existing = await this.partners.get(id);
-      return envelope(
-        await this.partners.update(
-          id,
-          await dto(UpdatePartnerDto, {
-            ...existing,
-            status,
-            notes: reason ?? existing.notes,
-          }),
-        ),
-      );
+      throw partnerStatusRequiresAction(existing.status);
     }
+    // Same rule for a commission: its actions are the only way to move it.
+    if (key === 'commissions')
+      throw new AppError('PARTNER_COMMISSION_TRANSITION_NOT_ALLOWED', {
+        message:
+          'A commission’s status changes only through its actions: Approve, Mark payable, Mark paid or Void.',
+      });
     if (key === 'support-cases') {
       return envelope(
         await this.supportCases.update(user, id, {

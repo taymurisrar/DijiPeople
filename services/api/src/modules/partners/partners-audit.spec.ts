@@ -15,7 +15,7 @@ import type { AuditService } from '../audit/audit.service';
  */
 
 function prismaStub(overrides: Record<string, unknown> = {}) {
-  return {
+  const stub: Record<string, unknown> = {
     partner: {
       create: jest.fn(async ({ data }: { data: Record<string, unknown> }) => ({
         id: 'partner-new',
@@ -58,12 +58,22 @@ function prismaStub(overrides: Record<string, unknown> = {}) {
       })),
     },
     platformSetting: { findUnique: jest.fn(async () => null) },
-    $transaction: jest.fn(async (ops: unknown[]) => Promise.all(ops as never)),
+    // Array form (lifecycle actions) and interactive form (create, ADR-0027).
+    $transaction: jest.fn(async (ops: unknown) =>
+      typeof ops === 'function'
+        ? (ops as (tx: unknown) => unknown)(stub)
+        : Promise.all(ops as never),
+    ),
     partnerTimeline: { create: jest.fn(async () => ({})) },
     partnerInquiry: { updateMany: jest.fn(async () => ({ count: 0 })) },
     ...overrides,
-  } as never;
+  };
+  return stub as never;
 }
+
+/* The sequence is a real-database concern (platform-numbering.e2e-spec.ts). */
+const numberingStub = () =>
+  ({ next: jest.fn(async () => 'PART-000042') }) as never;
 
 describe('PartnersService — audit coverage', () => {
   it('audits partner creation to the platform log', async () => {
@@ -72,7 +82,11 @@ describe('PartnersService — audit coverage', () => {
       Parameters<AuditService['log']>
     >();
     const prisma = prismaStub();
-    const service = new PartnersService(prisma, { log: auditLog } as never);
+    const service = new PartnersService(
+      prisma,
+      { log: auditLog } as never,
+      numberingStub(),
+    );
 
     await service.create(
       {
@@ -92,9 +106,11 @@ describe('PartnersService — audit coverage', () => {
         action: 'PARTNER_CREATED',
         entityType: 'Partner',
       }),
+      expect.anything(),
     );
     const snapshot = auditLog.mock.calls[0][0].afterSnapshot;
     expect(snapshot).not.toHaveProperty('applicationSnapshot');
+    expect(snapshot).toHaveProperty('partnerNumber', 'PART-000042');
   });
 
   it('audits partner update with a before/after snapshot', async () => {
@@ -103,7 +119,11 @@ describe('PartnersService — audit coverage', () => {
       Parameters<AuditService['log']>
     >();
     const prisma = prismaStub();
-    const service = new PartnersService(prisma, { log: auditLog } as never);
+    const service = new PartnersService(
+      prisma,
+      { log: auditLog } as never,
+      {} as never,
+    );
 
     await service.update(
       'partner-1',
@@ -142,7 +162,9 @@ describe('PartnersService — audit coverage', () => {
           leads: [],
           agreements: [],
           commissions: [],
-          inquiries: [],
+          // An INQUIRY partner came from the public form, so it has its
+          // inquiry: Start review is refused without one (ADR-0026).
+          inquiries: [{ id: 'inquiry-1' }],
           onboardingApplications: [],
           portalUsers: [],
           referralLinks: [],
@@ -153,7 +175,11 @@ describe('PartnersService — audit coverage', () => {
         update: jest.fn(async () => ({})),
       },
     });
-    const service = new PartnersService(prisma, { log: auditLog } as never);
+    const service = new PartnersService(
+      prisma,
+      { log: auditLog } as never,
+      {} as never,
+    );
 
     await service.lifecycleAction('partner-1', 'actor-1', {
       action: 'start-review',

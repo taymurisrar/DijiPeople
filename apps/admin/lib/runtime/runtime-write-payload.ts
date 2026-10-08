@@ -90,3 +90,20 @@ export function buildWritePayload(
   }
   return payload;
 }
+
+/**
+ * The save outcome when an edit has nothing to send, or null when it does.
+ *
+ * EXECPLAN-0055 D2. A manifest that declared no partner field editable made
+ * every partner Save send `values: {}`; the API changed nothing and the form
+ * still reported "Partner saved." An empty edit payload is never a save, so it
+ * is said plainly rather than dressed up as one. A create is left alone: its
+ * DTO's own required fields make an empty body fail loudly on the server.
+ */
+export function emptyEditOutcome(
+  payload: Record<string, unknown>,
+  isCreate: boolean,
+): { success: false; message: string } | null {
+  if (isCreate || Object.keys(payload).length > 0) return null;
+  return { success: false, message: "No changes to save." };
+}

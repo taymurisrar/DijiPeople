@@ -17,6 +17,7 @@ import {
 } from "@/lib/api-error";
 import {
   isBackgroundRequest,
+  isReportedRequest,
   shouldRaiseErrorDialog,
 } from "@/lib/background-request";
 import type { PlatformRole } from "@/lib/platform-rbac";
@@ -98,6 +99,8 @@ export function ErrorProvider({
           url,
           ok: response.ok,
           background: isBackgroundRequest(args[0], args[1]),
+          reported: isReportedRequest(args[0], args[1]),
+          status: response.status,
         })
       )
         return response;
@@ -189,9 +192,13 @@ function ErrorModal({
           <h2 className="mt-2 text-xl font-semibold text-slate-950">
             {error.message}
           </h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            {error.description}
-          </p>
+          {/* Empty when the heading already is the whole message — see
+              `withoutPhantomFieldHint` in lib/api-error.ts. */}
+          {error.description ? (
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              {error.description}
+            </p>
+          ) : null}
         </div>
         <div className="grid gap-3 px-6 py-5 text-sm">
           <p>

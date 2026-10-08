@@ -1,0 +1,150 @@
+---
+ID: BUG-3929
+aliases: [BUG-3929]
+Title: Admin record actions post to the id-less runtime route, so Send onboarding link and 13 other actions always fail as not available
+Status: FIXED
+Severity: HIGH
+Priority: P1
+Type: BUG
+Source: USER_REPORT
+DetectedDate: 2026-10-07
+DetectedInSha: 898a6ac3
+AffectedModules: [apps/admin, platform-runtime]
+OwnerAgent: architect
+ArchitectDisposition: FIX_NOW
+QAReport: 
+RegressionId: REG-649
+RelatedBacklogItem:
+RelatedDecision:
+RelatedImplementation: [apps/admin/lib/runtime/http-module-runtime-adapter.ts, apps/admin/lib/runtime/runtime-record-action-handler.ts, services/api/src/modules/platform-runtime/platform-runtime.service.ts, services/api/src/modules/platform-runtime/record-actions.contract.json]
+CreatedAt: 2026-10-07
+UpdatedAt: 2026-10-07
+ResolvedAt: 2026-10-07
+---
+
+# BUG-3929 — Admin record actions post to the id-less runtime route, so Send onboarding link and 13 other actions always fail as not available
+
+## Summary
+
+Every record-scoped runtime action in platform admin failed with
+`400 VALIDATION_FAILED "Action <key> is not available for <module>"`. The owner
+captured this in production for `POST /api/platform-runtime/partners/actions/send-onboarding-link`.
+
+## Expected Behavior
+
+A record action button reaches the server handler for that record.
+
+## Actual Behavior
+
+The admin record-action handler called `adapter.executeAction(key, { id })`.
+That call posts to `/<module>/actions/<key>` and sends the id only in the
+request body. On the server, `PlatformRuntimeService.execute` dispatches record
+actions only when the id arrives as the route parameter of
+`/<module>/:id/actions/:action`. With no route id, the request fell through to
+the "not available" error.
+
+The failing actions were:
+
+- **Partners:** start-review, approve-partner, request-information,
+  reject-partner, send-onboarding-link, activate, suspend-partner and
+  reactivate-partner.
+- **Leads:** convert.
+- **Contracts:** new-version, amend, renew, terminate-agreement and
+  void-agreement.
+
+## Reproduction
+
+1. Open any partner in admin.
+2. Click Send onboarding link.
+3. The request goes to the id-less route and returns 400.
+
+## Evidence
+
+- `http-module-runtime-adapter.ts:99-104` built the id-less URL.
+- `runtime-record-action-handler.ts:129` and `:240` called it.
+- `platform-runtime.controller.ts:38-54` defines both routes.
+- `platform-runtime.service.ts:644-803` dispatches only when it has a route id.
+- The production log shows the stack ending at `PlatformRuntimeService.execute`.
+
+## Root Cause
+
+The client and the server disagreed on where the record id travels. The only
+test that exercised these actions (`partner-lead-funnel.e2e-spec.ts`) called the
+id route directly, so the admin's URL was never tested.
+
+## Impact
+
+Platform operators could not run any partner lifecycle action, lead
+conversion, or contract amend, renew, terminate or void from the record page.
+
+## Affected Areas
+
+The apps/admin runtime record pages for partners, leads and contracts.
+
+## Proposed Resolution
+
+Post record actions to the id route. Have the server also accept a body `id`
+as a fallback. Add a shared contract test so that the two sides cannot
+disagree again.
+
+## Acceptance Criteria
+
+- Every record command declared in the admin registry posts to
+  `/<id>/actions/<key>`.
+- The server dispatches each such command with the id.
+- The set of commands on both sides is pinned by one contract file.
+
+## Regression Coverage
+
+REG-649, covered by two specs:
+
+- `apps/admin/lib/runtime/record-action-routing.spec.ts`
+- `services/api/src/modules/platform-runtime/record-action-dispatch.spec.ts`
+
+## Dependencies
+
+None.
+
+## Related Items
+
+Found while working on [[TASK-0037-partner-module-completion-delete-numbering-status-lifecycle-]].
+
+## Resolution
+
+- Added the adapter method `executeRecordAction(id, key)`. The handler uses it
+  for lead convert and for the generic fallthrough, then reloads the record.
+- `execute()` now resolves `routeId ?? body.id` and runs a single dispatch.
+- Added `record-actions.contract.json`, which both specs read.
+- Error surfacing changes, made in the same package:
+  - Delete refusals are read from `data`, and the record page no longer
+    navigates away after a refused delete.
+  - Field errors are read from `fieldErrors` and mapped onto the form fields.
+  - The colour of an action notice now comes from an explicit success flag.
+  - A domain 400 with no field errors now shows its own message instead of the
+    generic "Review the highlighted fields".
+
+## QA Retest
+
+QA-PLATFORM-047 was mutation-checked:
+
+- With the handler reverted, 17 of 62 admin routing tests fail.
+- With the server fallback removed, 14 of 44 API tests fail.
+
+Full suite results:
+
+- Admin: 559 of 559 tests pass.
+- API platform-runtime: 116 of 116 tests pass.
+
+## History
+
+- 2026-10-07 — created from the owner's production capture. Fixed in
+  TASK-0037 WP-01.
+
+<!-- GRAPH:BEGIN — generated by scripts/rebuild-backlog.mjs; edit the frontmatter, not this block -->
+
+## Related
+
+- Modules — [[platform-admin]]
+- Regression — REG-649 (see the regression register)
+
+<!-- GRAPH:END -->

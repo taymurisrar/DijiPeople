@@ -78,6 +78,10 @@ export function normalizeApiError(
       readString(nested.code) ??
       statusToCode(status);
     const defaults = DEFAULTS[errorCode] ?? DEFAULTS.SYSTEM_UNEXPECTED_ERROR;
+    const message =
+      readString(record.message) ??
+      readString(nested.message) ??
+      defaults.message;
     return {
       success: false,
       traceId:
@@ -88,14 +92,13 @@ export function normalizeApiError(
       statusCode:
         typeof record.statusCode === "number" ? record.statusCode : status,
       errorCode,
-      message:
-        readString(record.message) ??
-        readString(nested.message) ??
-        defaults.message,
-      description:
+      message,
+      description: withoutPhantomFieldHint(
         readString(record.description) ??
-        readString(nested.description) ??
-        defaults.description,
+          readString(nested.description) ??
+          defaults.description,
+        { errorCode, message, fieldErrors: record.fieldErrors },
+      ),
       details: record.details ?? nested.details,
       path: readString(record.path) ?? readString(nested.path) ?? undefined,
       method:
@@ -127,6 +130,39 @@ export function isSessionExpiredError(
       error.errorCode,
     )
   );
+}
+
+/**
+ * The catalog's generic VALIDATION_FAILED description promises highlighted
+ * fields. The API attaches it to every `BadRequestException`, including domain
+ * refusals that name no field at all — "Action reject-partner is not available
+ * for partners.", "The immutable partner application submission was not
+ * found." — so the dialog told the operator to review fields that were not
+ * there, under a heading that already said what was wrong.
+ *
+ * When the API sent a message of its own and no `fieldErrors`, that message is
+ * the whole story: the misleading line is dropped and the dialog shows the
+ * domain message alone. A genuine DTO rejection carries `fieldErrors` and keeps
+ * the description, because there the fields really are highlighted.
+ */
+const GENERIC_VALIDATION_MESSAGE = "Validation failed";
+const GENERIC_VALIDATION_DESCRIPTION =
+  "Review the highlighted fields and submit again.";
+
+function withoutPhantomFieldHint(
+  description: string,
+  context: { errorCode: string; message: string; fieldErrors: unknown },
+) {
+  const hasFieldErrors =
+    Array.isArray(context.fieldErrors) && context.fieldErrors.length > 0;
+  if (
+    context.errorCode === "VALIDATION_FAILED" &&
+    description === GENERIC_VALIDATION_DESCRIPTION &&
+    !hasFieldErrors &&
+    context.message !== GENERIC_VALIDATION_MESSAGE
+  )
+    return "";
+  return description;
 }
 
 function readString(value: unknown) {

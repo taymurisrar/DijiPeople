@@ -2887,6 +2887,19 @@ model Lead {
 model Partner {
   id                     String                         @id @default(uuid())
   code                   String                         @unique
+  /// The human-readable partner number operators quote, e.g. `PART-000001`
+  /// (ADR-0027, EXECPLAN-0055).
+  ///
+  /// Server-generated from the `partner` row of `PlatformNumberSequence` inside
+  /// the create transaction, and immutable once assigned: no DTO accepts it and
+  /// no update path writes it. `code` stays the internal/legacy identifier — it
+  /// came from two random generators (`PTR-…`, `DP-P-…`) and is still what
+  /// referral resolution and older integrations key on, so it is not replaced.
+  ///
+  /// Nullable only so the column could be added to a populated table; the
+  /// migration that introduced it numbered every existing partner in creation
+  /// order, and every partner created afterwards is assigned one.
+  partnerNumber          String?                        @unique
   type                   PartnerType                    @default(COMPANY)
   /// The commercial relationship this partner was taken on under (ITEM-0030).
   ///
@@ -8376,6 +8389,50 @@ model PlatformSetting {
   updatedById String?
 
   @@index([key])
+}
+
+/// When a number sequence starts again from its first value (ADR-0027).
+///
+/// Only `NEVER` exists. Periodic resets (yearly invoice numbers and the like)
+/// change what "unique" means for every consumer, so a member is added when a
+/// real business need for one exists, not speculatively.
+enum NumberSequenceResetPolicy {
+  NEVER
+}
+
+/// One configurable counter per human-readable platform number (ADR-0027).
+///
+/// Deliberately NOT tenant-owned. The concepts it numbers — partners first,
+/// then customers, invoices and contracts — are platform records with no
+/// tenant, so a `tenantId` here would have no honest value. Tenant numbering
+/// (employee codes and the like) keeps its own tenant-settings mechanism. This
+/// sits beside `PlatformSetting`, which is tenant-free for the same reason.
+///
+/// Allocation is `UPDATE … SET "nextValue" = "nextValue" + 1 … RETURNING`
+/// inside the caller's transaction: concurrent creators serialise on the row
+/// lock, a rolled-back create releases its number, and a duplicate is
+/// impossible. `nextValue` is the number the NEXT allocation returns, and the
+/// settings screen may only raise it — lowering it would reissue a number a
+/// record already carries.
+///
+/// The formatted number is `prefix + separator + lpad(value, padding, '0') +
+/// suffix`. Changing the format affects only numbers issued afterwards; numbers
+/// already stored on records are never rewritten.
+model PlatformNumberSequence {
+  id          String                    @id @default(uuid())
+  /// The numbered concept, e.g. `partner`. One row per concept.
+  key         String                    @unique
+  label       String
+  prefix      String                    @default("")
+  separator   String                    @default("")
+  suffix      String                    @default("")
+  /// Minimum digit count; a value longer than this is never truncated.
+  padding     Int                       @default(6)
+  nextValue   Int                       @default(1)
+  resetPolicy NumberSequenceResetPolicy @default(NEVER)
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
+  updatedById String?
 }
 
 /// Platform-level FX rates, used to report money the platform collected in one

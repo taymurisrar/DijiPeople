@@ -446,23 +446,50 @@ describeWithDatabase()('Partner and lead commercial funnel (e2e)', () => {
         .expect(201);
       const invitation = (
         invited.body as {
-          data: { applicationId: string; onboardingToken: string };
+          data: Record<string, unknown> & {
+            applicationId: string;
+            sentTo: string;
+          };
         }
       ).data;
       onboardingApplicationId = invitation.applicationId;
+      expect(invitation.sentTo).toBe(funnelEmail);
+      expect((await getPartner(funnelPartnerId)).status).toBe(
+        'ONBOARDING_INVITED',
+      );
+      /*
+       * EXECPLAN-0055 WP-05: the token is no longer returned to the operator.
+       * The suite reads it where the partner does — the emailed link.
+       */
+      expect(JSON.stringify(invited.body)).not.toMatch(
+        /partners\/onboarding\/|onboardingToken/,
+      );
+      const email = await prisma.platformOutboundEmail.findFirst({
+        where: {
+          eventCode: 'PARTNER_ONBOARDING_INVITATION',
+          entityId: funnelPartnerId,
+          status: 'SENT',
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+      const onboardingToken = /\/partners\/onboarding\/([A-Za-z0-9_-]+)/.exec(
+        email?.htmlBody ?? '',
+      )?.[1];
+      expect(onboardingToken).toBeTruthy();
 
       await http()
-        .get(`/api/public/partners/onboarding/${invitation.onboardingToken}`)
+        .get(`/api/public/partners/onboarding/${onboardingToken}`)
         .expect(200);
 
-      // Activation is refused while onboarding is unapproved.
+      // Activation is refused while onboarding is unapproved: ONBOARDING_INVITED
+      // is not a status activation starts from (ADR-0026), so 409.
       await http()
         .post(`/api/partner-experience/partners/${funnelPartnerId}/activate`)
         .set(as(admin))
-        .expect(400);
+        .expect(409);
 
       await http()
-        .post(`/api/public/partners/onboarding/${invitation.onboardingToken}`)
+        .post(`/api/public/partners/onboarding/${onboardingToken}`)
         .send({
           data: {
             legalName: `${funnelCompany} LLC`,

@@ -1,9 +1,7 @@
-type VisibilityCondition = {
-  field: string;
-  equals?: unknown;
-  in?: unknown[];
-  hasValue?: boolean;
-};
+import {
+  matchesVisibility,
+  type VisibilityCondition,
+} from "./visibility-condition";
 
 type FormField = {
   key: string;
@@ -42,19 +40,6 @@ type FormTab = { key: string };
  * `readOnlyWhen`.
  */
 const NON_INPUT_TYPES = new Set(["timeline", "relatedRecords", "process"]);
-
-function matchesVisibility(
-  condition: VisibilityCondition,
-  values: Record<string, unknown>,
-): boolean {
-  const value = values[condition.field];
-  if (condition.hasValue !== undefined)
-    return condition.hasValue
-      ? value != null && value !== ""
-      : value == null || value === "";
-  if (condition.in) return condition.in.includes(value);
-  return value === condition.equals;
-}
 
 function isFieldVisible(
   field: FormField,

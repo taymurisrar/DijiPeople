@@ -4,20 +4,58 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PartnerStatus, PartnerType, Prisma } from '@prisma/client';
+import {
+  PartnerAccountStatus,
+  PartnerCommissionStatus,
+  PartnerStatus,
+  PartnerType,
+  Prisma,
+} from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { userHasPlatformPermission } from '../platform-auth/platform-permissions';
 import { toDisplayString } from '../../common/utils/display-string';
 import { AuditService } from '../audit/audit.service';
+import { PlatformNumberingService } from '../../common/numbering/platform-numbering.service';
+import { assertCurrencyEnabled } from '../../common/reference-data/platform-enabled-currencies';
+import { AppError } from '../../common/errors/app-error';
+import { AUDIT_ACTIONS } from '../../common/constants/audit-actions';
+import {
+  describeAttributedTenant,
+  describePartnerTimeline,
+  describePortalContact,
+  describeReferredLead,
+  partnerReferralLinkUrl,
+  personName,
+  withFullName,
+} from './partner-related-records';
+import {
+  assertCommissionLinksBelongToPartner,
+  commissionActionForTarget,
+  commissionReferenceLabels,
+  commissionSourceLabel,
+  commissionTransition,
+  computeCommissionAmount,
+  normalizeCommission,
+  resolveCommissionRate,
+  type PartnerCommissionActionKey,
+} from './partner-commission-lifecycle';
 import {
   assertNoPartnerDuplicate,
   findPartnerDuplicate,
 } from './partner-duplicate-detection';
 import { missingAdminIdentityFields } from './partner-type-policy';
+import { NEVER_ACTIVATED_CONTACT_WHERE } from './partner-contacts';
+import {
+  accountStatusAfterAction,
+  assertPartnerInquiryFor,
+  partnerStatusRequiresAction,
+  partnerTransition,
+} from './partner-lifecycle';
 import {
   CreatePartnerCommissionDto,
+  CreatePartnerContactDto,
   CreatePartnerDto,
   CreatePartnerReferralLinkDto,
   PartnerLifecycleActionDto,
@@ -32,6 +70,7 @@ export class PartnersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
+    private readonly numbering: PlatformNumberingService,
   ) {}
 
   listForUser(user: AuthenticatedUser, query: PartnerQueryDto) {
@@ -63,13 +102,60 @@ export class PartnersService {
     return this.lifecycleAction(id, user.userId, dto);
   }
 
-  createReferralLinkForUser(
+  async createReferralLinkForUser(
     user: AuthenticatedUser,
     id: string,
     dto: CreatePartnerReferralLinkDto,
   ) {
     this.assertWrite(user);
-    return this.createReferralLink(id, dto, user.userId);
+    const link = await this.createReferralLink(id, dto, user.userId);
+    /*
+     * Audited here, on the operator's path, rather than inside
+     * `createReferralLink`, which regeneration and activation also reach and
+     * which are audited as those actions (EXECPLAN-0055 audit list).
+     */
+    await this.auditService.log({
+      tenantId: 'platform',
+      actorUserId: user.userId,
+      action: AUDIT_ACTIONS.PARTNER_REFERRAL_LINK_CREATED,
+      entityType: 'PartnerReferralLink',
+      entityId: link.id,
+      afterSnapshot: {
+        partnerId: id,
+        code: link.code,
+        name: link.name,
+        status: link.status,
+      },
+    });
+    return { ...link, url: partnerReferralLinkUrl(link) };
+  }
+
+  createContactForUser(
+    user: AuthenticatedUser,
+    id: string,
+    dto: CreatePartnerContactDto,
+  ) {
+    this.assertWrite(user);
+    return this.createContact(id, dto, user.userId);
+  }
+
+  removeContactForUser(
+    user: AuthenticatedUser,
+    partnerId: string,
+    contactId: string,
+  ) {
+    this.assertWrite(user);
+    return this.removeContact(partnerId, contactId, user.userId);
+  }
+
+  timelineForUser(user: AuthenticatedUser, id: string) {
+    this.assertRead(user);
+    return this.timeline(id);
+  }
+
+  addNoteForUser(user: AuthenticatedUser, id: string, message: string) {
+    this.assertWrite(user);
+    return this.addNote(id, message, user.userId);
   }
 
   referralLinkActionForUser(
@@ -131,6 +217,12 @@ export class PartnersService {
             OR: [
               { displayName: { contains: query.search, mode: 'insensitive' } },
               { code: { contains: query.search, mode: 'insensitive' } },
+              {
+                partnerNumber: {
+                  contains: query.search,
+                  mode: 'insensitive',
+                },
+              },
               { email: { contains: query.search, mode: 'insensitive' } },
             ],
           }
@@ -182,6 +274,8 @@ export class PartnersService {
     return {
       items: items.map((item) => ({
         ...item,
+        // The list's Owner column reads `assignedToUser.fullName`.
+        assignedToUser: withFullName(item.assignedToUser),
         defaultCommissionRate: Number(item.defaultCommissionRate),
         onboardingStatus: item.onboardingApplications[0]?.status ?? null,
         agreementStatus: item.agreements[0]?.status ?? null,
@@ -204,10 +298,34 @@ export class PartnersService {
         assignedToUser: {
           select: { id: true, firstName: true, lastName: true, email: true },
         },
+        /*
+         * EXECPLAN-0055 WP-08. Each relation selects what its record tab
+         * shows — the Referred Leads tab reads the referral date, how the lead
+         * was attributed and the customer it converted into; Tenants reads the
+         * slug and the customer; Contacts reads when a contact was added.
+         */
         leads: {
-          select: { id: true, companyName: true, fullName: true, status: true },
+          select: {
+            id: true,
+            companyName: true,
+            fullName: true,
+            workEmail: true,
+            status: true,
+            createdAt: true,
+            referredAt: true,
+            convertedAt: true,
+            attributionStatus: true,
+            referralCodeSnapshot: true,
+            referralSource: true,
+            partnerReferralLink: { select: { id: true, code: true } },
+            convertedCustomers: {
+              select: { id: true, companyName: true },
+              orderBy: { createdAt: 'asc' },
+              take: 1,
+            },
+          },
           orderBy: { createdAt: 'desc' },
-          take: 20,
+          take: 100,
         },
         agreements: {
           include: {
@@ -218,8 +336,23 @@ export class PartnersService {
         },
         commissions: { orderBy: { createdAt: 'desc' } },
         inquiries: { orderBy: { submittedAt: 'desc' } },
+        /*
+         * Selected rather than included: the full row carries
+         * `invitationTokenHash`, which the console never needs and no
+         * response should carry.
+         */
         onboardingApplications: {
-          include: { submissions: { orderBy: { version: 'desc' }, take: 1 } },
+          select: {
+            id: true,
+            status: true,
+            tokenExpiresAt: true,
+            submittedAt: true,
+            reviewedAt: true,
+            reviewNotes: true,
+            version: true,
+            createdAt: true,
+            updatedAt: true,
+          },
           orderBy: { updatedAt: 'desc' },
         },
         portalUsers: {
@@ -231,6 +364,7 @@ export class PartnersService {
             status: true,
             activatedAt: true,
             lastActiveAt: true,
+            createdAt: true,
           },
           orderBy: { createdAt: 'asc' },
         },
@@ -242,19 +376,380 @@ export class PartnersService {
             id: true,
             companyName: true,
             status: true,
+            country: true,
+            referralCodeSnapshot: true,
             createdAt: true,
           },
           orderBy: { createdAt: 'desc' },
         },
         attributedTenants: {
-          select: { id: true, name: true, status: true, createdAt: true },
+          select: {
+            id: true,
+            name: true,
+            displayName: true,
+            slug: true,
+            status: true,
+            createdAt: true,
+            customerAccount: { select: { id: true, companyName: true } },
+          },
           orderBy: { createdAt: 'desc' },
         },
         timeline: { orderBy: { createdAt: 'desc' }, take: 100 },
       },
     });
     if (!item) throw new NotFoundException('Partner was not found.');
-    return normalizePartner(item);
+    return normalizePartner({
+      ...item,
+      /*
+       * Whether the partner came from a partner inquiry. The console offers the
+       * application-review commands (start review, approve, reject, request
+       * information) only when it did; a partner created in the console has
+       * none and takes the agreement-first path (ADR-0026).
+       */
+      hasInquiry: item.inquiries.length > 0,
+      assignedToUser: withFullName(item.assignedToUser),
+      leads: item.leads?.map(describeReferredLead),
+      portalUsers: item.portalUsers?.map(describePortalContact),
+      referralLinks: item.referralLinks?.map((link) => ({
+        ...link,
+        url: partnerReferralLinkUrl(link),
+      })),
+      attributedTenants: item.attributedTenants?.map(describeAttributedTenant),
+      commissions: await this.describeCommissions(item.commissions),
+    });
+  }
+
+  /**
+   * The partner's timeline, newest first, with the name of whoever acted.
+   *
+   * EXECPLAN-0055 D5. Notes added from the record were written to the platform
+   * audit log while this tab read `PartnerTimeline`, so a note never appeared.
+   * Notes are now written here (`addNote`); the ones written to the audit log
+   * before that are read back from it so none is lost.
+   */
+  async timeline(partnerId: string) {
+    const partner = await this.prisma.partner.findUnique({
+      where: { id: partnerId },
+      select: { id: true },
+    });
+    if (!partner) throw new NotFoundException('Partner was not found.');
+    const [rows, legacyNotes] = await Promise.all([
+      this.prisma.partnerTimeline.findMany({
+        where: { partnerId },
+        select: {
+          id: true,
+          eventType: true,
+          actorType: true,
+          actorId: true,
+          message: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 200,
+      }),
+      this.prisma.platformAuditLog.findMany({
+        where: {
+          action: 'TIMELINE_ACTIVITY_ADDED',
+          entityType: { in: ['Partners', 'Partner'] },
+          entityId: partnerId,
+        },
+        select: {
+          id: true,
+          platformActorUserId: true,
+          afterSnapshot: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 200,
+      }),
+    ]);
+    const entries = [
+      ...rows,
+      ...legacyNotes.map((note) => ({
+        id: note.id,
+        eventType: 'NOTE',
+        actorType: 'PLATFORM_USER',
+        actorId: note.platformActorUserId,
+        message: readSnapshotText(note.afterSnapshot, 'message'),
+        createdAt: note.createdAt,
+      })),
+    ].sort(
+      (left, right) =>
+        new Date(right.createdAt).getTime() -
+        new Date(left.createdAt).getTime(),
+    );
+    const idsOf = (type: string) => [
+      ...new Set(
+        entries
+          .filter((entry) => entry.actorType === type && entry.actorId)
+          .map((entry) => entry.actorId as string),
+      ),
+    ];
+    const platformIds = idsOf('PLATFORM_USER');
+    const portalIds = idsOf('PARTNER_USER');
+    const [platformUsers, portalUsers] = await Promise.all([
+      platformIds.length
+        ? this.prisma.platformUser.findMany({
+            where: { id: { in: platformIds } },
+            select: { id: true, firstName: true, lastName: true, email: true },
+          })
+        : [],
+      portalIds.length
+        ? this.prisma.partnerPortalUser.findMany({
+            where: { id: { in: portalIds }, partnerId },
+            select: { id: true, firstName: true, lastName: true, email: true },
+          })
+        : [],
+    ]);
+    const names = (
+      people: Array<{ id: string } & Parameters<typeof personName>[0]>,
+    ) =>
+      new Map(
+        people.flatMap((person) => {
+          const name = personName(person);
+          return name ? [[person.id, name] as [string, string]] : [];
+        }),
+      );
+    return {
+      items: describePartnerTimeline(entries, {
+        platform: names(platformUsers),
+        portal: names(portalUsers),
+      }),
+    };
+  }
+
+  /**
+   * Add an operator's note to the partner's timeline, with the operator as
+   * its actor, and audit it. The note is the timeline entry itself, so the
+   * Timeline tab shows it the moment it is saved.
+   */
+  async addNote(partnerId: string, message: string, actorId: string) {
+    const text = message.trim();
+    if (!text)
+      throw new AppError('VALIDATION_FAILED', {
+        message: 'Enter a note.',
+        details: {
+          fieldErrors: [{ field: 'message', message: 'Enter a note.' }],
+        },
+      });
+    if (text.length > 4000)
+      throw new AppError('VALIDATION_FAILED', {
+        message: 'A note can be at most 4000 characters.',
+        details: {
+          fieldErrors: [
+            {
+              field: 'message',
+              message: 'A note can be at most 4000 characters.',
+            },
+          ],
+        },
+      });
+    const partner = await this.prisma.partner.findUnique({
+      where: { id: partnerId },
+      select: { id: true },
+    });
+    if (!partner) throw new NotFoundException('Partner was not found.');
+    const entry = await this.prisma.partnerTimeline.create({
+      data: {
+        partnerId,
+        eventType: 'NOTE',
+        actorType: 'PLATFORM_USER',
+        actorId,
+        message: text,
+      },
+    });
+    await this.auditService.log({
+      tenantId: 'platform',
+      actorUserId: actorId,
+      action: AUDIT_ACTIONS.PARTNER_NOTE_ADDED,
+      entityType: 'Partner',
+      entityId: partnerId,
+      afterSnapshot: { timelineEntryId: entry.id, message: text },
+    });
+    return entry;
+  }
+
+  /**
+   * Add a contact to the partner (EXECPLAN-0055 WP-08).
+   *
+   * A contact is a `PartnerPortalUser` that has not been invited: status
+   * NOT_INVITED, no invitation token and an unusable password hash, so it can
+   * neither sign in (sign-in requires ACTIVE) nor accept an invitation. Nothing
+   * is sent — portal access is still granted only by Activate partner and the
+   * portal's own flows, which find this row by email and invite it.
+   *
+   * Portal sign-in is keyed on email across all partners, so an email already
+   * held by any portal user is refused: with this partner's name when it is
+   * already a contact here, without naming the other partner otherwise.
+   */
+  async createContact(
+    partnerId: string,
+    dto: CreatePartnerContactDto,
+    actorId: string,
+  ) {
+    const email = dto.email.trim().toLowerCase();
+    const firstName = dto.firstName.trim();
+    const lastName = dto.lastName.trim();
+    const fieldErrors = [
+      ...(firstName
+        ? []
+        : [{ field: 'firstName', message: 'Enter a first name.' }]),
+      ...(lastName
+        ? []
+        : [{ field: 'lastName', message: 'Enter a last name.' }]),
+    ];
+    if (fieldErrors.length)
+      throw new AppError('VALIDATION_FAILED', {
+        message: fieldErrors[0].message,
+        details: { fieldErrors },
+      });
+    const partner = await this.prisma.partner.findUnique({
+      where: { id: partnerId },
+      select: { id: true, displayName: true },
+    });
+    if (!partner) throw new NotFoundException('Partner was not found.');
+    const existing = await this.prisma.partnerPortalUser.findUnique({
+      where: { email },
+      select: { id: true, partnerId: true },
+    });
+    if (existing) {
+      const message =
+        existing.partnerId === partnerId
+          ? `${email} is already a contact of ${partner.displayName}.`
+          : `${email} is already used by another partner's contact.`;
+      throw new AppError('PARTNER_CONTACT_EMAIL_IN_USE', {
+        message,
+        details: { fieldErrors: [{ field: 'email', message }] },
+      });
+    }
+    const contact = await this.prisma
+      .$transaction(async (tx) => {
+        const created = await tx.partnerPortalUser.create({
+          data: {
+            partnerId,
+            email,
+            firstName,
+            lastName,
+            passwordHash: '!NOT_INVITED!',
+            status: 'NOT_INVITED',
+          },
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            status: true,
+            activatedAt: true,
+            lastActiveAt: true,
+            createdAt: true,
+          },
+        });
+        await tx.partnerTimeline.create({
+          data: {
+            partnerId,
+            eventType: 'CONTACT_ADDED',
+            actorType: 'PLATFORM_USER',
+            actorId,
+            message: `Contact ${firstName} ${lastName} was added.`,
+          },
+        });
+        return created;
+      })
+      .catch((error: unknown) => {
+        // A concurrent create of the same email loses on the unique index.
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002'
+        ) {
+          const message = `${email} is already used by a partner contact.`;
+          throw new AppError('PARTNER_CONTACT_EMAIL_IN_USE', {
+            message,
+            details: { fieldErrors: [{ field: 'email', message }] },
+          });
+        }
+        throw error;
+      });
+    await this.auditService.log({
+      tenantId: 'platform',
+      actorUserId: actorId,
+      action: AUDIT_ACTIONS.PARTNER_CONTACT_CREATED,
+      entityType: 'Partner',
+      entityId: partnerId,
+      afterSnapshot: {
+        contactId: contact.id,
+        email: contact.email,
+        status: contact.status,
+      },
+    });
+    return describePortalContact(contact);
+  }
+
+  /**
+   * Remove a contact that never activated portal access (TASK-0037).
+   *
+   * Only such a contact qualifies (`NEVER_ACTIVATED_CONTACT_WHERE`): it has
+   * no password, no sessions and no access history, so removing it erases
+   * nothing anyone relies on. Deleting the row also revokes a pending
+   * invitation — the token hash lives on the row, so the emailed link stops
+   * resolving. A contact that activated is a login whose history is kept; it
+   * is refused with the way to end its access instead.
+   *
+   * The delete carries the rule in its own filter, so a contact accepting its
+   * invitation concurrently is either deleted before it activates or refused
+   * after — never deleted once it is a login.
+   */
+  async removeContact(partnerId: string, contactId: string, actorId: string) {
+    await this.prisma.$transaction(async (tx) => {
+      const contact = await tx.partnerPortalUser.findFirst({
+        where: { id: contactId, partnerId },
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          status: true,
+          invitationExpiresAt: true,
+        },
+      });
+      // Another partner's contact is "not found" here, never "forbidden".
+      if (!contact) throw new NotFoundException('Contact was not found.');
+      const { count } = await tx.partnerPortalUser.deleteMany({
+        where: { id: contactId, partnerId, ...NEVER_ACTIVATED_CONTACT_WHERE },
+      });
+      if (count === 0)
+        throw new AppError('PARTNER_CONTACT_HAS_PORTAL_ACCESS', {
+          message: `${personName(contact)} has activated partner portal access and cannot be removed. Suspend or deactivate the partner to end portal access.`,
+        });
+      await tx.partnerTimeline.create({
+        data: {
+          partnerId,
+          eventType: 'CONTACT_REMOVED',
+          actorType: 'PLATFORM_USER',
+          actorId,
+          message: `Contact ${personName(contact)} was removed.`,
+        },
+      });
+      // In the transaction: a contact is never gone without the row saying who removed it.
+      await this.auditService.log(
+        {
+          tenantId: 'platform',
+          actorUserId: actorId,
+          action: AUDIT_ACTIONS.PARTNER_CONTACT_REMOVED,
+          entityType: 'Partner',
+          entityId: partnerId,
+          // Who and in what state — never the password or invitation hash.
+          beforeSnapshot: {
+            contactId: contact.id,
+            email: contact.email,
+            status: contact.status,
+            pendingInvitation: Boolean(contact.invitationExpiresAt),
+          },
+          afterSnapshot: { removed: true },
+        },
+        tx,
+      );
+    });
+    return { success: true, message: 'Contact removed.' };
   }
 
   async lifecycleAction(
@@ -263,21 +758,19 @@ export class PartnersService {
     dto: PartnerLifecycleActionDto,
   ) {
     const partner = await this.get(id);
+    assertPartnerInquiryFor(dto.action, partner.hasInquiry);
     const next = partnerTransition(partner.status, dto.action);
+    const accountStatus = accountStatusAfterAction(
+      dto.action,
+      partner.portalUsers.some(
+        (portalUser: { status: string }) => portalUser.status === 'ACTIVE',
+      ),
+    );
     const eventType = `PARTNER_${dto.action.toUpperCase().replaceAll('-', '_')}`;
     await this.prisma.$transaction([
       this.prisma.partner.update({
         where: { id },
-        data: {
-          status: next,
-          ...(dto.action === 'suspend'
-            ? { accountStatus: 'SUSPENDED' }
-            : dto.action === 'reactivate'
-              ? { accountStatus: 'ACTIVE' }
-              : dto.action === 'deactivate'
-                ? { accountStatus: 'DISABLED' }
-                : {}),
-        },
+        data: { status: next, ...(accountStatus ? { accountStatus } : {}) },
       }),
       this.prisma.partnerTimeline.create({
         data: {
@@ -316,7 +809,11 @@ export class PartnersService {
         status: partner.status,
         accountStatus: partner.accountStatus,
       },
-      afterSnapshot: { status: next, reason: dto.reason ?? null },
+      afterSnapshot: {
+        status: next,
+        accountStatus: accountStatus ?? partner.accountStatus,
+        reason: dto.reason ?? null,
+      },
     });
     return this.get(id);
   }
@@ -456,48 +953,58 @@ export class PartnersService {
      * which neither path checked before.
      */
     assertNoPartnerDuplicate(await findPartnerDuplicate(this.prisma, dto));
+    // ADR-0026 D4: a chosen currency must be enabled; the fallback always is.
+    if (dto.currencyCode)
+      await assertCurrencyEnabled(this.prisma, dto.currencyCode);
     const currencyCode = dto.currencyCode ?? (await this.reportingCurrency());
-    const created = await this.prisma.partner.create({
-      data: {
-        ...partnerData(dto, currencyCode),
-        code: createReference('PTR'),
-      },
-    });
-    await this.auditService.log({
-      tenantId: 'platform',
-      actorUserId: actorId ?? null,
-      action: 'PARTNER_CREATED',
-      entityType: 'Partner',
-      entityId: created.id,
-      afterSnapshot: partnerAuditSnapshot(created),
+    /*
+     * ADR-0027. The partner number is allocated on the create's own
+     * transaction, last, so the sequence row is locked only for the insert and
+     * a refused create (a unique clash, say) hands its number back. It is set
+     * after the DTO spread so nothing a caller sends can supply it, and no
+     * update path writes it — `partnerUpdateData` does not know the field.
+     */
+    const created = await this.prisma.$transaction(async (tx) => {
+      const partnerNumber = await this.numbering.next('partner', tx);
+      const row = await tx.partner.create({
+        data: {
+          ...partnerData(dto, currencyCode),
+          code: createReference('PTR'),
+          partnerNumber,
+        },
+      });
+      await this.auditService.log(
+        {
+          tenantId: 'platform',
+          actorUserId: actorId ?? null,
+          action: 'PARTNER_CREATED',
+          entityType: 'Partner',
+          entityId: row.id,
+          afterSnapshot: partnerAuditSnapshot(row),
+        },
+        tx,
+      );
+      return row;
     });
     return normalizePartner(created);
   }
   async update(id: string, dto: UpdatePartnerDto, actorId?: string) {
     const existing = await this.get(id);
-    if (
-      dto.status === PartnerStatus.ACTIVE &&
-      existing.status !== PartnerStatus.ACTIVE
-    )
-      throw new BadRequestException(
-        'Activate partners through the governed activation action after onboarding and agreement verification.',
-      );
     /*
-     * The mirror of the guard above, which was missing. Entering ACTIVE was
-     * governed; leaving it was not, so a generic PATCH could take a live
-     * partner — signed agreement, working referral link — straight to
-     * REJECTED or TERMINATED with no timeline entry and no from-set check,
-     * bypassing `partnerTransition` entirely. Suspension, deactivation and
-     * reactivation already have governed actions that record why.
+     * ADR-0026 D1 — update never changes status. The DTO no longer declares it,
+     * so an HTTP body carrying it is refused by `forbidNonWhitelisted` before
+     * reaching here; this is the guard for an internal caller handing over an
+     * object that still has one (the runtime header status once spread the
+     * whole GET record into this method).
+     *
+     * REG-015 pinned two directions — into ACTIVE and out of ACTIVE. Both are
+     * now one rule: any status other than the current one is a lifecycle
+     * action's job, because only an action checks the from-state, records a
+     * timeline entry and audits the reason.
      */
-    if (
-      existing.status === PartnerStatus.ACTIVE &&
-      dto.status !== undefined &&
-      dto.status !== PartnerStatus.ACTIVE
-    )
-      throw new BadRequestException(
-        'A live partner’s status is changed through the governed lifecycle actions — suspend, deactivate or reactivate — so the reason is recorded.',
-      );
+    const requestedStatus = (dto as { status?: unknown }).status;
+    if (requestedStatus !== undefined && requestedStatus !== existing.status)
+      throw partnerStatusRequiresAction(existing.status);
     await this.validateOwner(dto.assignedToUserId);
     /*
      * WP-08 finding 3. `dto` may now be a genuinely partial patch — validate
@@ -511,6 +1018,16 @@ export class PartnersService {
     assertNoPartnerDuplicate(
       await findPartnerDuplicate(this.prisma, merged, id),
     );
+    /*
+     * ADR-0026 D4. Only a *change* of currency is checked against the enabled
+     * set: a partner whose currency was disabled after it was chosen keeps it
+     * through every unrelated edit (the runtime form resubmits the field).
+     */
+    if (
+      dto.currencyCode !== undefined &&
+      dto.currencyCode.toUpperCase() !== existing.currencyCode
+    )
+      await assertCurrencyEnabled(this.prisma, dto.currencyCode);
     const updated = await this.prisma.partner.update({
       where: { id },
       data: partnerUpdateData(dto),
@@ -527,45 +1044,102 @@ export class PartnersService {
     return normalizePartner(updated);
   }
 
+  /**
+   * Record a commission against a partner (ADR-0026 D3; EXECPLAN-0055 WP-06).
+   *
+   * An operator-created ledger entry — nothing accrues these from billing.
+   * Every column is picked explicitly: the DTO used to be spread into the
+   * create, so whatever it gained reached the row. The rate defaults to the
+   * partner's configured default, the amount is computed here, the currency
+   * defaults to the partner's own, and a linked lead, customer or invoice must
+   * be one this partner referred.
+   */
   async createCommission(
     partnerId: string,
     dto: CreatePartnerCommissionDto,
     actorId?: string,
   ) {
-    const partner = await this.get(partnerId);
-    const amount = Math.round(dto.baseAmount * dto.commissionRate) / 100;
-    const created = await this.prisma.partnerCommission.create({
-      data: {
-        partnerId,
-        ...dto,
-        currencyCode:
-          dto.currencyCode ??
-          partner.currencyCode ??
-          (await this.reportingCurrency()),
-        commissionNumber: createReference('COM'),
-        commissionAmount: amount,
-        earnedAt: dto.earnedAt ? new Date(dto.earnedAt) : null,
-        dueAt: dto.dueAt ? new Date(dto.dueAt) : null,
+    const partner = await this.prisma.partner.findUnique({
+      where: { id: partnerId },
+      select: {
+        id: true,
+        displayName: true,
+        currencyCode: true,
+        defaultCommissionRate: true,
       },
     });
-    await this.auditService.log({
-      tenantId: 'platform',
-      actorUserId: actorId ?? null,
-      action: 'PARTNER_COMMISSION_CREATED',
-      entityType: 'PartnerCommission',
-      entityId: created.id,
-      afterSnapshot: {
-        partnerId,
-        commissionNumber: created.commissionNumber,
-        baseAmount: Number(created.baseAmount),
-        commissionRate: Number(created.commissionRate),
-        commissionAmount: Number(created.commissionAmount),
-        currencyCode: created.currencyCode,
-        status: created.status,
-      },
+    if (!partner) throw new NotFoundException('Partner was not found.');
+    const rate = resolveCommissionRate(
+      dto.commissionRate,
+      partner.defaultCommissionRate,
+    );
+    const requestedCurrency = dto.currencyCode?.toUpperCase();
+    // ADR-0026 D4: an explicitly chosen currency other than the partner's own.
+    if (requestedCurrency && requestedCurrency !== partner.currencyCode)
+      await assertCurrencyEnabled(this.prisma, requestedCurrency);
+    await assertCommissionLinksBelongToPartner(this.prisma, partnerId, {
+      leadId: dto.leadId,
+      customerAccountId: dto.customerAccountId,
+      invoiceId: dto.invoiceId,
     });
-    return created;
+    const currencyCode =
+      requestedCurrency ??
+      partner.currencyCode ??
+      (await this.reportingCurrency());
+    const commissionAmount = computeCommissionAmount(dto.baseAmount, rate);
+    const created = await this.prisma.$transaction(async (tx) => {
+      const row = await tx.partnerCommission.create({
+        data: {
+          partnerId,
+          leadId: dto.leadId ?? null,
+          customerAccountId: dto.customerAccountId ?? null,
+          invoiceId: dto.invoiceId ?? null,
+          commissionNumber: createReference('COM'),
+          status: PartnerCommissionStatus.PENDING,
+          baseAmount: dto.baseAmount,
+          commissionRate: rate,
+          commissionAmount,
+          currencyCode,
+          description: dto.description?.trim() || null,
+          earnedAt: dto.earnedAt ? new Date(dto.earnedAt) : null,
+          dueAt: dto.dueAt ? new Date(dto.dueAt) : null,
+        },
+      });
+      await tx.partnerTimeline.create({
+        data: {
+          partnerId,
+          eventType: 'COMMISSION_CREATED',
+          actorType: 'PLATFORM_USER',
+          actorId,
+          message: `Commission ${row.commissionNumber} of ${currencyCode} ${commissionAmount.toFixed(2)} (${rate.toString()}% of ${currencyCode} ${Number(dto.baseAmount).toFixed(2)}) was recorded.`,
+          metadata: {
+            commissionId: row.id,
+            commissionNumber: row.commissionNumber,
+          },
+        },
+      });
+      await this.auditService.log(
+        {
+          tenantId: 'platform',
+          actorUserId: actorId ?? null,
+          action: 'PARTNER_COMMISSION_CREATED',
+          entityType: 'PartnerCommission',
+          entityId: row.id,
+          afterSnapshot: commissionAuditSnapshot(row),
+        },
+        tx,
+      );
+      return row;
+    });
+    return normalizeCommission(created);
   }
+
+  /**
+   * `PATCH /partners/:id/commissions/:commissionId { status }` — kept for
+   * existing callers, and held to the same machine as the actions: the target
+   * status is translated to the one action that reaches it from the current
+   * status, or refused.
+   */
   async updateCommission(
     partnerId: string,
     id: string,
@@ -574,25 +1148,150 @@ export class PartnersService {
   ) {
     const item = await this.prisma.partnerCommission.findFirst({
       where: { id, partnerId },
+      select: { id: true, status: true },
     });
     if (!item) throw new NotFoundException('Commission was not found.');
-    const updated = await this.prisma.partnerCommission.update({
-      where: { id },
-      data: {
-        status: dto.status,
-        ...(dto.status === 'PAID' ? { paidAt: new Date() } : {}),
-      },
+    return this.commissionAction(
+      id,
+      commissionActionForTarget(item.status, dto.status),
+      actorId,
+      dto.reason,
+      partnerId,
+    );
+  }
+
+  /**
+   * Move a commission one step through its status machine. Approve, mark
+   * payable, mark paid, or void (until paid). Paid stamps `paidAt`; nothing
+   * else about the entry changes. Audited with the actor and written to the
+   * partner's timeline in the same transaction.
+   */
+  async commissionAction(
+    id: string,
+    action: PartnerCommissionActionKey,
+    actorId?: string,
+    reason?: string | null,
+    partnerId?: string,
+  ) {
+    const item = await this.prisma.partnerCommission.findFirst({
+      where: { id, ...(partnerId ? { partnerId } : {}) },
     });
-    await this.auditService.log({
-      tenantId: 'platform',
-      actorUserId: actorId ?? null,
-      action: 'PARTNER_COMMISSION_UPDATED',
-      entityType: 'PartnerCommission',
-      entityId: id,
-      beforeSnapshot: { status: item.status },
-      afterSnapshot: { status: updated.status, paidAt: updated.paidAt },
+    if (!item) throw new NotFoundException('Commission was not found.');
+    const next = commissionTransition(item.status, action);
+    const updated = await this.prisma.$transaction(async (tx) => {
+      /*
+       * Conditional on the status read above, so two operators pressing
+       * different buttons at once cannot both succeed — the second matches no
+       * row and is told to refresh.
+       */
+      const changed = await tx.partnerCommission.updateMany({
+        where: { id, status: item.status },
+        data: {
+          status: next,
+          ...(next === PartnerCommissionStatus.PAID
+            ? { paidAt: new Date() }
+            : {}),
+        },
+      });
+      if (changed.count !== 1)
+        throw new AppError('PARTNER_COMMISSION_TRANSITION_NOT_ALLOWED', {
+          message:
+            'The commission was changed by someone else. Refresh it to see its current status.',
+        });
+      const row = await tx.partnerCommission.findUniqueOrThrow({
+        where: { id },
+      });
+      await tx.partnerTimeline.create({
+        data: {
+          partnerId: item.partnerId,
+          eventType: `COMMISSION_${next}`,
+          actorType: 'PLATFORM_USER',
+          actorId,
+          message: `Commission ${item.commissionNumber} moved from ${item.status} to ${next}.`,
+          metadata: {
+            commissionId: id,
+            commissionNumber: item.commissionNumber,
+            ...(reason ? { reason } : {}),
+          },
+        },
+      });
+      await this.auditService.log(
+        {
+          tenantId: 'platform',
+          actorUserId: actorId ?? null,
+          action: `PARTNER_COMMISSION_${next}`,
+          entityType: 'PartnerCommission',
+          entityId: id,
+          beforeSnapshot: commissionAuditSnapshot(item),
+          afterSnapshot: {
+            ...commissionAuditSnapshot(row),
+            reason: reason ?? null,
+          },
+        },
+        tx,
+      );
+      return row;
     });
-    return updated;
+    return normalizeCommission(updated);
+  }
+
+  /**
+   * Commissions as reads return them: decimals as numbers, plus a
+   * `sourceLabel` naming the lead, customer or invoice each was recorded
+   * against (the ids are plain columns, so the names are looked up here).
+   */
+  async describeCommissions<
+    T extends {
+      leadId: string | null;
+      customerAccountId: string | null;
+      invoiceId: string | null;
+      baseAmount: unknown;
+      commissionRate: unknown;
+      commissionAmount: unknown;
+    },
+  >(commissions: T[]) {
+    const ids = (pick: (row: T) => string | null) => [
+      ...new Set(commissions.map(pick).filter((v): v is string => !!v)),
+    ];
+    const leadIds = ids((c) => c.leadId);
+    const customerIds = ids((c) => c.customerAccountId);
+    const invoiceIds = ids((c) => c.invoiceId);
+    const [leads, customers, invoices] = await Promise.all([
+      leadIds.length
+        ? this.prisma.lead.findMany({
+            where: { id: { in: leadIds } },
+            select: { id: true, companyName: true },
+          })
+        : ([] as Array<{ id: string; companyName: string }>),
+      customerIds.length
+        ? this.prisma.customerAccount.findMany({
+            where: { id: { in: customerIds } },
+            select: { id: true, companyName: true },
+          })
+        : ([] as Array<{ id: string; companyName: string }>),
+      invoiceIds.length
+        ? this.prisma.invoice.findMany({
+            where: { id: { in: invoiceIds } },
+            select: { id: true, invoiceNumber: true },
+          })
+        : ([] as Array<{ id: string; invoiceNumber: string }>),
+    ]);
+    const names = {
+      leads: new Map<string, string>(
+        leads.map((row): [string, string] => [row.id, row.companyName]),
+      ),
+      customers: new Map<string, string>(
+        customers.map((row): [string, string] => [row.id, row.companyName]),
+      ),
+      invoices: new Map<string, string>(
+        invoices.map((row): [string, string] => [row.id, row.invoiceNumber]),
+      ),
+    };
+    return commissions.map((commission) => ({
+      ...normalizeCommission(commission),
+      sourceLabel: commissionSourceLabel(commission, names),
+      ...commissionReferenceLabels(commission, names),
+    }));
   }
   private async validateOwner(id?: string) {
     if (!id) return;
@@ -699,67 +1398,6 @@ function partnerViewWhere(viewKey?: string): Prisma.PartnerWhereInput {
   return values ? { status: { in: values } } : {};
 }
 
-function partnerTransition(
-  current: PartnerStatus,
-  action: PartnerLifecycleActionDto['action'],
-) {
-  const allowed: Record<
-    PartnerLifecycleActionDto['action'],
-    { from: PartnerStatus[]; to: PartnerStatus }
-  > = {
-    'start-review': {
-      from: [
-        PartnerStatus.INQUIRY,
-        PartnerStatus.NEW_INQUIRY,
-        PartnerStatus.MORE_INFORMATION_REQUIRED,
-      ],
-      to: PartnerStatus.UNDER_REVIEW,
-    },
-    approve: {
-      from: [
-        PartnerStatus.INQUIRY,
-        PartnerStatus.NEW_INQUIRY,
-        PartnerStatus.UNDER_REVIEW,
-        PartnerStatus.MORE_INFORMATION_REQUIRED,
-      ],
-      to: PartnerStatus.APPROVED_AWAITING_AGREEMENT,
-    },
-    reject: {
-      from: [
-        PartnerStatus.INQUIRY,
-        PartnerStatus.NEW_INQUIRY,
-        PartnerStatus.UNDER_REVIEW,
-        PartnerStatus.MORE_INFORMATION_REQUIRED,
-        PartnerStatus.APPROVED_AWAITING_AGREEMENT,
-      ],
-      to: PartnerStatus.REJECTED,
-    },
-    'request-information': {
-      from: [
-        PartnerStatus.INQUIRY,
-        PartnerStatus.NEW_INQUIRY,
-        PartnerStatus.UNDER_REVIEW,
-      ],
-      to: PartnerStatus.MORE_INFORMATION_REQUIRED,
-    },
-    suspend: { from: [PartnerStatus.ACTIVE], to: PartnerStatus.SUSPENDED },
-    reactivate: {
-      from: [PartnerStatus.SUSPENDED, PartnerStatus.INACTIVE],
-      to: PartnerStatus.ACTIVE,
-    },
-    deactivate: {
-      from: [PartnerStatus.ACTIVE, PartnerStatus.SUSPENDED],
-      to: PartnerStatus.INACTIVE,
-    },
-  };
-  const rule = allowed[action];
-  if (!rule.from.includes(current))
-    throw new BadRequestException(
-      `Action ${action} is not available while the partner is ${current}.`,
-    );
-  return rule.to;
-}
-
 function partnerActionMessage(
   action: PartnerLifecycleActionDto['action'],
   name: string,
@@ -795,10 +1433,16 @@ function partnerRuntimeWhere(
     if (filter.field === 'type') clauses.push({ type: value as never });
     else if (filter.field === 'status')
       clauses.push({ status: value as never });
+    else if (filter.field === 'accountStatus')
+      clauses.push({ accountStatus: value as never });
     else if (filter.field === 'displayName')
       clauses.push({ displayName: stringCondition(filter.operator, value) });
     else if (filter.field === 'email')
       clauses.push({ email: stringCondition(filter.operator, value) });
+    else if (filter.field === 'partnerNumber')
+      clauses.push({
+        partnerNumber: nullableStringCondition(filter.operator, value),
+      });
     else if (filter.field === 'country')
       clauses.push({
         country: nullableStringCondition(filter.operator, value),
@@ -833,9 +1477,11 @@ function partnerRuntimeOrder(
   sort: Array<{ field: string; direction: 'asc' | 'desc' }>,
 ): Prisma.PartnerOrderByWithRelationInput[] {
   const supported = new Set([
+    'partnerNumber',
     'displayName',
     'type',
     'status',
+    'accountStatus',
     'email',
     'country',
     'defaultCommissionRate',
@@ -911,14 +1557,33 @@ function assertPartnerIdentityFields(identity: {
     );
 }
 
+/*
+ * Fields are picked, not spread (ADR-0026 D1). `...dto` carried `status`
+ * straight into the insert, so a partner could be created ACTIVE; and a spread
+ * writes whatever an internal caller's object happens to hold. Every partner
+ * starts at DRAFT with no portal account — both move only through lifecycle
+ * actions.
+ */
 function partnerData(dto: CreatePartnerDto, currencyCode: string) {
   return {
-    ...dto,
+    type: dto.type,
     displayName: dto.displayName.trim(),
+    legalName: dto.legalName,
+    companyName: dto.companyName,
+    contactFirstName: dto.contactFirstName,
+    contactLastName: dto.contactLastName,
     email: dto.email.trim().toLowerCase(),
-    currencyCode: currencyCode.toUpperCase(),
-    status: dto.status ?? PartnerStatus.DRAFT,
+    phone: dto.phone,
+    country: dto.country,
+    website: dto.website,
+    taxId: dto.taxId,
+    partnershipModel: dto.partnershipModel,
     defaultCommissionRate: dto.defaultCommissionRate,
+    currencyCode: currencyCode.toUpperCase(),
+    assignedToUserId: dto.assignedToUserId,
+    notes: dto.notes,
+    status: PartnerStatus.DRAFT,
+    accountStatus: PartnerAccountStatus.NOT_PROVISIONED,
   };
 }
 
@@ -952,11 +1617,12 @@ function partnerUpdateData(dto: UpdatePartnerDto) {
   if (dto.country !== undefined) data.country = dto.country;
   if (dto.website !== undefined) data.website = dto.website;
   if (dto.taxId !== undefined) data.taxId = dto.taxId;
+  if (dto.partnershipModel !== undefined)
+    data.partnershipModel = dto.partnershipModel;
   if (dto.defaultCommissionRate !== undefined)
     data.defaultCommissionRate = dto.defaultCommissionRate;
   if (dto.currencyCode !== undefined)
     data.currencyCode = dto.currencyCode.toUpperCase();
-  if (dto.status !== undefined) data.status = dto.status;
   if (dto.assignedToUserId !== undefined)
     data.assignedToUserId = dto.assignedToUserId;
   if (dto.notes !== undefined) data.notes = dto.notes;
@@ -1029,6 +1695,7 @@ function normalizePartner<T extends Record<string, any>>(item: T) {
 function partnerAuditSnapshot(partner: {
   id: string;
   code: string;
+  partnerNumber?: string | null;
   type: string;
   displayName: string;
   companyName: string | null;
@@ -1042,6 +1709,7 @@ function partnerAuditSnapshot(partner: {
   return {
     id: partner.id,
     code: partner.code,
+    partnerNumber: partner.partnerNumber ?? null,
     type: partner.type,
     displayName: partner.displayName,
     companyName: partner.companyName,
@@ -1054,6 +1722,42 @@ function partnerAuditSnapshot(partner: {
   };
 }
 
+/** The money terms and state of a commission, for its audit rows. */
+function commissionAuditSnapshot(commission: {
+  partnerId: string;
+  commissionNumber: string;
+  status: string;
+  baseAmount: unknown;
+  commissionRate: unknown;
+  commissionAmount: unknown;
+  currencyCode: string;
+  leadId: string | null;
+  customerAccountId: string | null;
+  invoiceId: string | null;
+  paidAt: Date | null;
+}) {
+  return {
+    partnerId: commission.partnerId,
+    commissionNumber: commission.commissionNumber,
+    status: commission.status,
+    baseAmount: Number(commission.baseAmount),
+    commissionRate: Number(commission.commissionRate),
+    commissionAmount: Number(commission.commissionAmount),
+    currencyCode: commission.currencyCode,
+    leadId: commission.leadId,
+    customerAccountId: commission.customerAccountId,
+    invoiceId: commission.invoiceId,
+    paidAt: commission.paidAt,
+  };
+}
+
 function createReference(prefix: string) {
   return `${prefix}-${new Date().getFullYear()}-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+}
+
+function readSnapshotText(snapshot: unknown, key: string) {
+  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot))
+    return '';
+  const value = (snapshot as Record<string, unknown>)[key];
+  return typeof value === 'string' ? value : '';
 }
