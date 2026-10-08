@@ -49,7 +49,18 @@ Added by EXECPLAN-0055 (TASK-0037, 2026-10-08); the full account is in
 - **Commissions are a manual ledger** with a status machine, and agreements
   snapshot the partner's commission when they are created.
 - **Deletion is dependency-checked.** Attribution, agreements, contacts and
-  history keep the partner.
+  history keep the partner. Never-activated contacts cascade; a contact who
+  has ever had portal access blocks.
+- **Activation and resend fail safe** (BUG-4007, BUG-4008, BUG-4009):
+  - A failed activation email releases the claim, so the partner stays
+    retryable rather than half-active.
+  - Activation refuses an email that is already another partner's portal
+    user.
+  - A failed resend revokes only the invitation it issued, matched on the
+    token hash, so a newer invitation survives.
+- **Commission lookups are bound to the record's partner.** The
+  `{partnerId}` placeholder is sent as `bind.partnerId`, and the commission
+  payload names its lead and customer (BUG-4019).
 
 ## Authorization
 
@@ -68,9 +79,12 @@ OPEN, HIGH. The review screens have no inbound link, and the
 
 ## Untested
 
-Partner-portal lead submission routes are **permanent 403 stubs** in code. The
-partner public onboarding *submission* path was not exercised — the approval
-after it succeeded anyway, which is how the missing state machine was found.
+Partner-portal lead submission routes are **permanent 403 stubs** in code.
+
+The public onboarding *submission* path was exercised in a browser on
+2026-10-08 (TASK-0037). The pass covered send, cooldown, resend, the public
+token page, the invalid-token 404, submission, approval and activation. It ran
+on an isolated stack, not on production.
 
 ## Related
 

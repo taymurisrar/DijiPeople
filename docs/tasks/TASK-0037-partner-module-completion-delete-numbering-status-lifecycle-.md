@@ -4,17 +4,17 @@ aliases: [TASK-0037]
 TITLE: Partner module completion — delete, numbering, status lifecycle, commission, currency, onboarding, tabs
 TYPE: FEATURE
 SIZE: LARGE
-STATUS: IN_PROGRESS
+STATUS: COMPLETE
 PRIORITY: P1
 CREATED_AT: 2026-10-07
 AFFECTED_MODULES: [partners, partner-experience, platform-runtime, contracts, super-admin, apps/admin]
 AGENTS: [architect, database, backend-api, frontend, security, qa, reviewer, integrator]
 DEPENDENCIES: WP-03 after WP-02; WP-04 after WP-01; WP-05 after WP-01 and WP-04; WP-06 after WP-03 and WP-04; WP-07 after WP-01; WP-08 after WP-03 to WP-07
-CURRENT_PACKAGE: FINALIZATION
+CURRENT_PACKAGE:
 COMPLETED_PACKAGES: [WP-01, WP-02, WP-03, WP-04, WP-05, WP-06, WP-07, WP-08]
 BLOCKED_PACKAGES: []
 OWNER_DECISIONS: 1
-FINAL_STATUS:
+FINAL_STATUS: COMPLETE — develop at d69f2583 (CI 37795108058 PASS); released by PR #102 at 4fce2c61, live in production
 ---
 
 # TASK-0037 — Partner module completion — delete, numbering, status lifecycle, commission, currency, onboarding, tabs
@@ -58,7 +58,7 @@ Plan: EXECPLAN-0055. Decisions: ADR-0026, ADR-0027.
 | WP-05 | Onboarding invitation hardening | DONE | WP-01, WP-04 | backend-api, security | agent/partner-module-completion | — | — | — | — | — |
 | WP-06 | Commission and agreement inheritance | DONE | WP-03, WP-04 | backend-api | agent/partner-module-completion | — | — | — | — | — |
 | WP-07 | Generic dependency-aware delete | DONE | WP-01 | backend-api, frontend | agent/partner-module-completion | — | — | — | — | — |
-| WP-08 | Admin UX (header, quick-create, tabs) and browser E2E | DONE | WP-03, WP-04, WP-05, WP-06, WP-07 | frontend, qa | agent/partner-module-completion | pending final SHA | PASS | BUG-4005, BUG-4006, BUG-4007, BUG-4008, BUG-4009, BUG-4019 | LOCAL_PASS | PENDING |
+| WP-08 | Admin UX (header, quick-create, tabs) and browser E2E | DONE | WP-03, WP-04, WP-05, WP-06, WP-07 | frontend, qa | agent/partner-module-completion | d69f2583 | PASS | BUG-4005, BUG-4006, BUG-4007, BUG-4008, BUG-4009, BUG-4019 | PASS | MERGED |
 
 ## Assumptions
 
