@@ -6,11 +6,13 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 0** · completed: 115
+**Active: 1** · completed: 115
 
 ## Active
 
-_None. No session is currently running._
+| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
+|---|---|---|---|---|---|---|---|
+| [SESSION-0120](../../docs/sessions/SESSION-0120-platform-admin-ux-functional-cleanup-dashboard-header-record.md) | — | Platform Admin UX/functional cleanup: dashboard header, record header, command bar, fields, location cascade, agreement editor, datatable flicker, tenants grid, monitoring | ACTIVE | `agent/admin-ux-cleanup` | `develop` | — | 2026-10-08T21:29:10.881Z |
 
 ## Completed
 

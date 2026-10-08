@@ -23,6 +23,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -38,7 +39,18 @@ import {
   describeDestructiveConfirm,
   recordDisplayName,
 } from "@/lib/runtime/destructive-confirm";
+import { fitCommands, orderCommands } from "@/lib/runtime/command-overflow";
 import { DependencyAwareDeleteDialog } from "./dependency-aware-delete-dialog";
+
+/** Matches `gap-1` between command buttons. */
+const COMMAND_GAP_PX = 4;
+/*
+ * useLayoutEffect measures before the browser paints, so an overflowing bar is
+ * never shown with its last buttons clipped for a frame. It does nothing on the
+ * server, where there is nothing to measure.
+ */
+const useIsomorphicLayoutEffect =
+  typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 export type ModuleActionContext = {
   scope: "list" | "record";
@@ -96,8 +108,12 @@ export type ModuleActionHandler = (
  * - **Visibility** (`isVisible`) — scope, role, permission, record status and
  *   selection count, all five of which must pass. This is UX gating only; the
  *   API is the authority, and an action hidden here is not an action refused.
- * - **Placement** — `placement: "overflow"` falls into the ⋯ menu, everything
- *   else stays inline. The registry decides which; this draws the split.
+ * - **Placement** — every command is drawn inline while the bar has room for
+ *   it. When it does not, the lowest-priority commands move into More (see
+ *   `fitCommands`), and come back when the bar widens. More exists only when
+ *   something is actually in it. `placement: "overflow"` now means "first to
+ *   leave", not "always hidden"; `placement: "primary"` means "last to leave",
+ *   and is the one emphasised button.
  * - **Confirmation** — a `destructive` action routes through a confirm dialog
  *   before `onAction` is ever called, so a handler cannot skip it by accident.
  * - **Pending and result state** — one action at a time, with the outcome
@@ -150,16 +166,61 @@ export function ModuleActionBar({
   }, []);
   const [overflowOpen, setOverflowOpen] = useState(false);
   const overflowRef = useRef<HTMLDivElement | null>(null);
+  const slotRef = useRef<HTMLDivElement | null>(null);
+  const measureRef = useRef<HTMLDivElement | null>(null);
   const available = useMemo(
-    () => actions.filter((action) => isVisible(action, context)),
+    () =>
+      orderCommands(actions.filter((action) => isVisible(action, context))),
     [actions, context],
   );
+  /*
+   * The keys that do not fit. Empty until measured — the server render and the
+   * first client render agree on "everything inline", so hydration never
+   * disagrees, and the layout effect corrects it before the first paint.
+   */
+  const [overflowKeys, setOverflowKeys] = useState<string[]>([]);
+  const availableSignature = available.map((action) => action.key).join("|");
+  const availableRef = useRef(available);
+  availableRef.current = available;
+  useIsomorphicLayoutEffect(() => {
+    const slot = slotRef.current;
+    const measure = measureRef.current;
+    if (!slot || !measure) return;
+    const compute = () => {
+      const commandWidths = Array.from(
+        measure.querySelectorAll<HTMLElement>("[data-command-measure]"),
+      ).map((node) => node.getBoundingClientRect().width);
+      const moreWidth =
+        measure
+          .querySelector<HTMLElement>("[data-more-measure]")
+          ?.getBoundingClientRect().width ?? 0;
+      const { overflow } = fitCommands(
+        availableRef.current,
+        commandWidths,
+        slot.clientWidth,
+        moreWidth,
+        COMMAND_GAP_PX,
+      );
+      const next = overflow.map((action) => String(action.key));
+      setOverflowKeys((current) =>
+        current.join("|") === next.join("|") ? current : next,
+      );
+    };
+    compute();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(compute);
+    observer.observe(slot);
+    observer.observe(measure);
+    return () => observer.disconnect();
+  }, [availableSignature]);
   const primary = available.filter(
-    (action) => (action.placement ?? "secondary") !== "overflow",
+    (action) => !overflowKeys.includes(String(action.key)),
   );
-  const overflow = available.filter(
-    (action) => action.placement === "overflow",
+  const overflow = available.filter((action) =>
+    overflowKeys.includes(String(action.key)),
   );
+  // An emptied menu cannot stay open, e.g. after the window widens.
+  const menuOpen = overflowOpen && overflow.length > 0;
   useEffect(() => {
     if (!overflowOpen) return;
     const close = (event: PointerEvent) => {
@@ -246,9 +307,39 @@ export function ModuleActionBar({
          * At z-30 it tied with the topbar and won on DOM order, so an open
          * profile menu was sliced in half by the command bar behind it.
          */
-        className={`sticky top-0 z-10 flex min-h-14 flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/95 px-3 py-2 shadow-sm backdrop-blur ${className ?? ""}`}
+        className={`sticky top-0 z-10 flex min-h-12 items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white/95 px-2 py-1.5 shadow-sm backdrop-blur ${className ?? ""}`}
       >
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div
+          ref={slotRef}
+          role="toolbar"
+          aria-label="Commands"
+          className="relative flex min-w-0 flex-1 items-center gap-1"
+        >
+          {/*
+           * Every command at its natural width, invisible, so the bar knows
+           * what would fit without first drawing it wrong. Inert and hidden
+           * from assistive technology — it is a ruler, not a second toolbar.
+           */}
+          <div
+            ref={measureRef}
+            aria-hidden
+            inert
+            className="pointer-events-none invisible absolute left-0 top-0 flex w-max items-center gap-1"
+          >
+            {available.map((action) => (
+              <span key={action.key} data-command-measure>
+                <ActionButton
+                  action={action}
+                  busy={false}
+                  disabledReason={null}
+                  onClick={() => undefined}
+                />
+              </span>
+            ))}
+            <span data-more-measure>
+              <MoreButton expanded={false} onClick={() => undefined} />
+            </span>
+          </div>
           {primary.map((action) => (
             <ActionButton
               key={action.key}
@@ -259,34 +350,39 @@ export function ModuleActionBar({
             />
           ))}
           {overflow.length ? (
-            <div className="relative" ref={overflowRef}>
-              <button
-                type="button"
-                aria-haspopup="menu"
-                aria-expanded={overflowOpen}
+            <div className="relative shrink-0" ref={overflowRef}>
+              <MoreButton
+                expanded={menuOpen}
                 onClick={() => setOverflowOpen((value) => !value)}
-                className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-600 hover:bg-slate-50"
-              >
-                <MoreHorizontal className="h-4 w-4" />
-                More
-                <ChevronDown className="h-3.5 w-3.5" />
-              </button>
-              {overflowOpen ? (
+              />
+              {menuOpen ? (
                 <div
                   role="menu"
-                  className="absolute left-0 top-[calc(100%+6px)] z-20 min-w-56 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl"
+                  aria-label="More commands"
+                  onKeyDown={(event) =>
+                    handleMenuKey(event, () => setOverflowOpen(false))
+                  }
+                  className="absolute right-0 top-[calc(100%+6px)] z-20 min-w-56 rounded-xl border border-slate-200 bg-white p-1 shadow-xl"
                 >
-                  {overflow.map((action) => (
+                  {overflow.map((action, index) => (
                     <button
                       role="menuitem"
                       key={action.key}
                       type="button"
+                      autoFocus={index === 0}
                       title={disabledReason(action, context) ?? undefined}
-                      disabled={Boolean(disabledReason(action, context))}
+                      disabled={
+                        Boolean(disabledReason(action, context)) ||
+                        pendingKey === action.key
+                      }
                       onClick={() => execute(action)}
-                      className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40 ${action.destructive ? "text-rose-700 hover:bg-rose-50" : "text-slate-700 hover:bg-slate-50"}`}
+                      className={`flex h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-medium outline-none focus-visible:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-400 disabled:hover:bg-transparent ${action.destructive ? "text-rose-700 hover:bg-rose-50" : "text-slate-700 hover:bg-slate-100"}`}
                     >
-                      {iconFor(action)}
+                      {pendingKey === action.key ? (
+                        <LoaderCircle className="h-4 w-4 animate-spin" />
+                      ) : (
+                        iconFor(action)
+                      )}
                       {action.label}
                     </button>
                   ))}
@@ -295,17 +391,20 @@ export function ModuleActionBar({
             </div>
           ) : null}
         </div>
-        <div className="flex items-center gap-3">
-          {notice ? (
-            <span
-              role="status"
-              className={`text-xs font-medium ${notice.failed ? "text-rose-600" : "text-emerald-700"}`}
-            >
-              {notice.text}
-            </span>
-          ) : null}
-          {statusSlot}
-        </div>
+        {notice || statusSlot ? (
+          <div className="flex min-w-0 shrink items-center gap-3">
+            {notice ? (
+              <span
+                role="status"
+                title={notice.text}
+                className={`truncate text-xs font-medium ${notice.failed ? "text-rose-600" : "text-emerald-700"}`}
+              >
+                {notice.text}
+              </span>
+            ) : null}
+            {statusSlot}
+          </div>
+        ) : null}
       </div>
       {confirmAction && dependencyCheck ? (
         <DependencyAwareDeleteDialog
@@ -369,6 +468,25 @@ export function ModuleActionBar({
   );
 }
 
+/*
+ * One visual language for every command: same height, type, icon size and
+ * spacing, no box around an ordinary command. The bar is the container; a
+ * border on each button inside it was noise, and the mix of bordered, filled
+ * and outlined buttons made equal commands look unequal. Only a genuine
+ * primary business action is filled, and a destructive one is told apart by
+ * colour *and* its label, never colour alone.
+ */
+const COMMAND_BASE =
+  "inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)] focus-visible:ring-offset-1 disabled:cursor-not-allowed";
+const COMMAND_TONE = {
+  normal:
+    "text-slate-700 hover:bg-slate-100 hover:text-slate-950 disabled:text-slate-400 disabled:hover:bg-transparent",
+  destructive:
+    "text-rose-700 hover:bg-rose-50 disabled:text-rose-300 disabled:hover:bg-transparent",
+  primary:
+    "bg-[var(--admin-primary)] text-white shadow-sm hover:bg-[var(--admin-primary-hover)] disabled:bg-transparent disabled:text-slate-400 disabled:shadow-none",
+} as const;
+
 function ActionButton({
   action,
   busy,
@@ -380,14 +498,20 @@ function ActionButton({
   disabledReason: string | null;
   onClick: () => void;
 }) {
-  const primary = action.placement === "primary";
+  const tone =
+    action.placement === "primary"
+      ? "primary"
+      : action.destructive
+        ? "destructive"
+        : "normal";
   return (
     <button
       type="button"
       disabled={Boolean(reason) || busy}
+      aria-busy={busy || undefined}
       title={reason ?? undefined}
       onClick={onClick}
-      className={`inline-flex h-10 items-center gap-2 rounded-xl px-3.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${primary ? "bg-slate-950 text-white hover:bg-slate-800" : action.destructive ? "border border-rose-200 text-rose-700 hover:bg-rose-50" : "border border-slate-200 text-slate-700 hover:bg-slate-50"}`}
+      className={`${COMMAND_BASE} ${COMMAND_TONE[tone]}`}
     >
       {busy ? (
         <LoaderCircle className="h-4 w-4 animate-spin" />
@@ -398,6 +522,52 @@ function ActionButton({
     </button>
   );
 }
+
+function MoreButton({
+  expanded,
+  onClick,
+}: {
+  expanded: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-haspopup="menu"
+      aria-expanded={expanded}
+      onClick={onClick}
+      className={`${COMMAND_BASE} ${COMMAND_TONE.normal} ${expanded ? "bg-slate-100" : ""}`}
+    >
+      <MoreHorizontal className="h-4 w-4" />
+      More
+      <ChevronDown className="h-3.5 w-3.5" />
+    </button>
+  );
+}
+
+/** Arrow keys move through the menu; Escape closes it. */
+function handleMenuKey(
+  event: React.KeyboardEvent<HTMLDivElement>,
+  close: () => void,
+) {
+  if (event.key === "Escape") {
+    event.preventDefault();
+    close();
+    return;
+  }
+  if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+  event.preventDefault();
+  const items = Array.from(
+    event.currentTarget.querySelectorAll<HTMLButtonElement>(
+      "[role=menuitem]:not(:disabled)",
+    ),
+  );
+  if (!items.length) return;
+  const current = items.indexOf(document.activeElement as HTMLButtonElement);
+  const step = event.key === "ArrowDown" ? 1 : -1;
+  items[(current + step + items.length) % items.length]?.focus();
+}
+
 /**
  * The records a delete confirmation should check, or null for an action that
  * is not a delete or a context with no dependency lookup.

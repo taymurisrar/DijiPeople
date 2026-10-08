@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**770 records** — 542 bugs under [`docs/bugs/`](../bugs/), 228 non-bug items under [`items/`](items/).
+**774 records** — 546 bugs under [`docs/bugs/`](../bugs/), 228 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,7 +13,7 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 270 |
+| Open (active work) | 274 |
 | Blocked | 4 |
 | Deferred | 125 |
 | Awaiting a product decision | 14 |
@@ -28,15 +28,15 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 8 |
 | HIGH | 110 |
-| MEDIUM | 122 |
-| LOW | 29 |
+| MEDIUM | 125 |
+| LOW | 30 |
 
 ## Open by type
 
 | Type | Count |
 |---|---|
 | AUTHORIZATION | 15 |
-| BUG | 82 |
+| BUG | 83 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 27 |
 | DOCUMENTATION | 1 |
@@ -50,7 +50,7 @@ see [`README.md`](README.md) for why.
 | TECH_DEBT | 8 |
 | TENANT_ISOLATION | 3 |
 | TEST_GAP | 9 |
-| UX | 57 |
+| UX | 60 |
 
 ## All records by status
 
@@ -61,7 +61,7 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 4 |
 | DEFERRED | 125 |
 | PRODUCT_DECISION | 14 |
-| FIXED | 188 |
+| FIXED | 192 |
 | VERIFIED | 221 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
@@ -585,6 +585,9 @@ see [`README.md`](README.md) for why.
 | [BUG-3996](../../docs/bugs/BUG-3996-a-partner-with-a-never-invited-contact-could-not-be-deleted-.md) | A partner with a never-invited contact could not be deleted and the contact could not be removed | BUG | MEDIUM | P2 | FIXED | partners, apps/admin | FIX_NOW |
 | [BUG-4009](../../docs/bugs/BUG-4009-failed-onboarding-resend-overwrites-a-newer-invitation-durin.md) | Failed onboarding resend overwrites a newer invitation during compensation | STATE_MACHINE | MEDIUM | P2 | VERIFIED | api:partner-experience | DONE |
 | [BUG-4014](../../docs/bugs/BUG-4014-regression-id-allocator-emits-four-digit-ids-that-qa-validat.md) | Regression ID allocator emits four-digit IDs that QA validators truncate | INFRA | MEDIUM | P2 | DEFERRED | agent-framework | DEFER |
+| [BUG-4032](../../docs/bugs/BUG-4032-admin-html-body-overflow-x-hidden-disabled-every-position-st.md) | Admin html/body overflow-x hidden disabled every position:sticky (command bar, agreement editor toolbar and Fields & Signatures panel scroll away) | UX | MEDIUM | P2 | FIXED | app:admin | FIX_NOW |
+| [BUG-4033](../../docs/bugs/BUG-4033-tenants-grid-labelled-the-tenant-column-name-beside-a-linked.md) | Tenants grid labelled the tenant column Name beside a linked Customer name, so operators opened the customer believing it was the tenant | UX | MEDIUM | P2 | FIXED | app:admin | FIX_NOW |
+| [BUG-4035](../../docs/bugs/BUG-4035-monitoring-error-logs-offered-filters-and-cards-matching-no-.md) | Monitoring error logs offered filters and cards matching no stored value, page-only export, a tenant-only diagnostics download, and Create support case sent the trace id so it always 404ed | BUG | MEDIUM | P2 | FIXED | app:admin | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -760,6 +763,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3916](../../docs/bugs/BUG-3916-lead-partner-attribution-renders-above-the-record-tabs-on-ev.md) | Lead Partner attribution renders above the record tabs on every tab instead of in a tab | UX | LOW | P3 | FIXED | apps/admin, leads | FIX_NOW |
 | [BUG-4006](../../docs/bugs/BUG-4006-expected-domain-refusals-on-record-actions-open-the-technica.md) | Expected domain refusals on record actions open the technical error dialog because the adapter drops request headers | UX | LOW | P3 | FIXED | apps/admin | FIX_NOW |
 | [BUG-4019](../../docs/bugs/BUG-4019-partner-record-polish-empty-application-card-clipped-subgrid.md) | Partner record polish: empty application card, clipped subgrid row actions, unfiltered commission lookups, raw ids on commission record | UX | LOW | P3 | FIXED | partners, super-admin, apps/admin | FIX_NOW |
+| [BUG-4034](../../docs/bugs/BUG-4034-runtime-lists-rendered-the-definition-s-default-columns-then.md) | Runtime lists rendered the definition's default columns, then swapped to the saved view's columns (column flash on load) | UX | LOW | P3 | FIXED | app:admin | FIX_NOW |
 | [ITEM-0007](../../docs/backlog/items/ITEM-0007-should-duplicate-website-leads-be-deduplicated.md) | Product decision — should duplicate website leads be deduplicated? | PRODUCT_DECISION | LOW | P3 | DONE | api:leads, apps/landing | DONE |
 | [ITEM-0008](../../docs/backlog/items/ITEM-0008-customeraccount-has-no-origin-channel.md) | Product decision — CustomerAccount carries no origin channel | PRODUCT_DECISION | LOW | P3 | DONE | services/api/prisma, api:super-admin | DONE |
 | [ITEM-0011](../../docs/backlog/items/ITEM-0011-framework-validation-should-catch-absence-claims.md) | Framework validation should catch false absence claims in context documents | TECH_DEBT | LOW | P3 | DONE | .agent/context, scripts | DONE |

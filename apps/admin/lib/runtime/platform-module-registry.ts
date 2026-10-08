@@ -274,7 +274,12 @@ const EDIT_RECORD_ACTIONS: RuntimeActionDefinition[] = [
  * "cannot access before initialization" at import and the whole app fails to
  * boot, with a message that names the constant rather than the ordering.
  */
+/** The tenant identity column opens the tenant — never its customer. */
+const TENANT_RECORD_LINK = { route: "/tenants", idField: "id" } as const;
 const COUNTRY_LOOKUP_PATH = "/public/geography/countries";
+const STATE_LOOKUP_PATH = "/public/geography/states?country={country}";
+const CITY_LOOKUP_PATH =
+  "/public/geography/cities?country={country}&state={stateProvince?}";
 
 /*
  * ADR-0026 D4 — the currencies the platform has enabled (Settings > General).
@@ -737,6 +742,21 @@ const TENANT_RECORD_ACTIONS: RuntimeActionDefinition[] = [
 ];
 
 export const DASHBOARD_VIEWS: RuntimeViewDefinition[] = [
+  /*
+   * Listed in the order an operator reads the business: the overview first,
+   * then live operations, then the customer lifecycle from lead to agreement
+   * to onboarding to billing, then support and partners, and administration
+   * last. The default view is chosen by `roleDefaultFor` / `isSystemDefault`,
+   * not by position, so reordering changes nobody's landing view.
+   */
+  {
+    key: "executive",
+    label: "Executive overview",
+    description: "Commercial and operational health across the platform.",
+    kind: "system",
+    isSystemDefault: true,
+    roles: PLATFORM_OPERATORS,
+  },
   {
     key: "operations",
     label: "Operations",
@@ -745,14 +765,6 @@ export const DASHBOARD_VIEWS: RuntimeViewDefinition[] = [
     kind: "system",
     roleDefaultFor: ["SUPER_ADMIN", "PLATFORM_ADMIN"],
     roles: [...PLATFORM_OPERATORS, "MONITORING_OPERATOR"],
-  },
-  {
-    key: "executive",
-    label: "Executive overview",
-    description: "Commercial and operational health across the platform.",
-    kind: "system",
-    isSystemDefault: true,
-    roles: PLATFORM_OPERATORS,
   },
   {
     key: "presales",
@@ -766,14 +778,6 @@ export const DASHBOARD_VIEWS: RuntimeViewDefinition[] = [
       "PRESALES_USER",
       "MEMBER",
     ],
-  },
-  {
-    key: "partner-operations",
-    label: "Partner operations",
-    description:
-      "Applications, onboarding, agreements, leads, and commissions.",
-    kind: "system",
-    roles: [...PLATFORM_OPERATORS, "PARTNER_MANAGER"],
   },
   {
     key: "agreement-operations",
@@ -797,6 +801,14 @@ export const DASHBOARD_VIEWS: RuntimeViewDefinition[] = [
     roles: [...PLATFORM_OPERATORS, "PLATFORM_OPERATIONS", "MEMBER"],
   },
   {
+    key: "billing-revenue",
+    label: "Billing and revenue",
+    description:
+      "Subscriptions, invoicing, collections, and commission exposure.",
+    kind: "system",
+    roles: [...PLATFORM_OPERATORS, "FINANCE_MANAGER", "BILLING_USER"],
+  },
+  {
     key: "customer-support",
     label: "Customer support",
     description: "Support queues, SLAs, escalations, and communications.",
@@ -809,12 +821,12 @@ export const DASHBOARD_VIEWS: RuntimeViewDefinition[] = [
     ],
   },
   {
-    key: "billing-revenue",
-    label: "Billing and revenue",
+    key: "partner-operations",
+    label: "Partner operations",
     description:
-      "Subscriptions, invoicing, collections, and commission exposure.",
+      "Applications, onboarding, agreements, leads, and commissions.",
     kind: "system",
-    roles: [...PLATFORM_OPERATORS, "FINANCE_MANAGER", "BILLING_USER"],
+    roles: [...PLATFORM_OPERATORS, "PARTNER_MANAGER"],
   },
   {
     key: "platform-administration",
@@ -1317,7 +1329,7 @@ const PARTNER_RELATED_RECORDS: RuntimeRelatedRecordDefinition[] = [
     emptyDescription:
       "Workspaces provisioned for this partner's customers appear here.",
     columns: [
-      col("displayName", "Tenant", 200),
+      col("displayName", "Tenant", 200, "text", TENANT_RECORD_LINK),
       col("slug", "Workspace", 160),
       col("customerName", "Customer", 200, "text", {
         route: "/customers",
@@ -1690,8 +1702,8 @@ const definitions: PlatformModuleDefinition[] = [
           "company",
         ),
         countryField("company"),
-        field("stateProvince", "State or province", "text", "company"),
-        field("city", "City", "text", "company"),
+        stateProvinceField("company"),
+        cityField("company"),
         field(
           "requirementsSummary",
           "Requirements summary",
@@ -2432,8 +2444,8 @@ const definitions: PlatformModuleDefinition[] = [
         field("financeContactName", "Finance contact", "text", "contacts"),
         field("financeContactEmail", "Finance email", "email", "contacts"),
         countryField("address", true),
-        field("stateProvince", "State or province", "text", "address"),
-        field("city", "City", "text", "address"),
+        stateProvinceField("address"),
+        cityField("address"),
         field("addressLine1", "Address line 1", "text", "address"),
         field("addressLine2", "Address line 2", "text", "address"),
         {
@@ -2623,6 +2635,23 @@ const definitions: PlatformModuleDefinition[] = [
         tab: "tenants",
         module: "tenants",
         foreignKey: "customerAccountId",
+        /*
+         * Explicit, not the tenant list's first four. Those included Customer,
+         * which on a customer's own record repeats the record being viewed —
+         * and left this table's only Customer-looking link pointing back here.
+         * The tenant is the identity and the link; the rest says which
+         * workspace, how it is billed and whether it is live.
+         */
+        columns: [
+          col("displayName", "Tenant", 200, "text", TENANT_RECORD_LINK),
+          col("slug", "Workspace", 160),
+          col("environmentType", "Environment", 130, "status"),
+          col("status", "Status", 130, "status"),
+          col("subscription.plan.name", "Plan", 140),
+          col("subscription.status", "Subscription", 140, "status"),
+          col("employees", "Employees", 110, "number"),
+          col("createdAt", "Created", 150, "dateTime"),
+        ],
         emptyTitle: "No tenants yet",
         emptyDescription:
           "Tenants are provisioned from completed onboarding cycles. A customer can have multiple tenants.",
@@ -3116,16 +3145,22 @@ const definitions: PlatformModuleDefinition[] = [
          * addresses every row by somebody else's name, and stops being a list
          * of tenants — which is exactly how this was found.
          *
-         * Labelled "Name" rather than "Tenant": the header sits on a page
-         * already titled Tenants, so repeating the noun said nothing, and the
-         * question an operator is answering here is "which one".
+         * Labelled "Tenant", and drawn as the link to the tenant record. It was
+         * labelled "Name" beside a "Customer" column that is also a name and
+         * also a link — so the one blue name in a row could be the customer's,
+         * and an operator clicking what read as the tenant landed on the
+         * customer instead. The record a grid lists owns the primary link;
+         * every related record is labelled by what it is.
          *
          * `displayName` rather than `name`, even though `name` is the required
          * field: `mapTenantSummary` returns `displayName: tenant.displayName ??
          * tenant.name`, so this is the friendly name where one is set and the
          * real name otherwise, and is never empty.
          */
-        { ...col("displayName", "Name", 220), essential: true },
+        {
+          ...col("displayName", "Tenant", 220, "text", TENANT_RECORD_LINK),
+          essential: true,
+        },
         /*
          * The subdomain the customer actually signs in at. Not a lookup: it
          * addresses the same record the row already opens, so linking it
@@ -5145,6 +5180,34 @@ function countryField(
      * Public signup has always written the name here; this makes the admin form
      * agree with it.
      */
+    submitsLabel: true,
+  };
+}
+
+/*
+ * State or province, then City — each searchable and scoped by the one above
+ * it, so the three can only be a real place.
+ *
+ * Like Country, the columns hold names (BUG-1578), so the lookups are scoped
+ * by name: the API resolves `country` against the Country table's id, code or
+ * name, and `state` within that country the same way. Changing Country clears
+ * State and City, and changing State clears City (`lookupDependents`), because
+ * a value chosen from a list the parent scoped is meaningless once the parent
+ * changes. A country with no states still offers its cities — the `state`
+ * binding is optional for exactly that case.
+ */
+function stateProvinceField(section: string): RuntimeFieldDefinition {
+  return {
+    ...field("stateProvince", "State or province", "lookup", section),
+    lookupPath: STATE_LOOKUP_PATH,
+    submitsLabel: true,
+  };
+}
+
+function cityField(section: string): RuntimeFieldDefinition {
+  return {
+    ...field("city", "City", "lookup", section),
+    lookupPath: CITY_LOOKUP_PATH,
     submitsLabel: true,
   };
 }

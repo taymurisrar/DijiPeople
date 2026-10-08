@@ -2,7 +2,9 @@ import Link from "next/link";
 
 const items = [
   ["Overview", "/settings/monitoring"],
-  ["Incidents / Errors", "/settings/monitoring/error-logs"],
+  // One name for one screen: the page, its title and this tab all say
+  // "Error logs" (this tab used to say "Incidents / Errors").
+  ["Error logs", "/settings/monitoring/error-logs"],
   ["Events", "/settings/monitoring/events"],
   // BUG-3564: PlatformAuditLog was write-only until TASK-0032 WP-10 — no
   // screen could read what a platform action had actually done.
@@ -17,7 +19,10 @@ const items = [
 
 export function MonitoringNav({ current }: { current: string }) {
   return (
-    <nav className="flex min-w-0 gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 shadow-sm" aria-label="Monitoring views">
+    <nav
+      className="flex min-w-0 gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 shadow-sm"
+      aria-label="Monitoring views"
+    >
       {items.map(([label, href]) => (
         <Link
           key={href}

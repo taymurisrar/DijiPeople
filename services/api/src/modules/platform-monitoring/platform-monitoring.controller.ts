@@ -14,6 +14,7 @@ import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
+import { ListPlatformErrorLogsQueryDto } from './dto/list-platform-error-logs.query.dto';
 import { PlatformMonitoringService } from './platform-monitoring.service';
 
 @Controller('platform/logs')
@@ -31,9 +32,18 @@ export class PlatformMonitoringController {
   @Get('events')
   listEvents(
     @CurrentUser() user: AuthenticatedUser,
-    @Query() query: Record<string, string | undefined>,
+    @Query() query: ListPlatformErrorLogsQueryDto,
   ) {
     return this.platformMonitoringService.listEvents(user, query);
+  }
+
+  /*
+   * Declared before `events/:traceId` so the static segment is matched first.
+   * The filter options for the error-log console, read from the data.
+   */
+  @Get('events/facets')
+  listEventFacets(@CurrentUser() user: AuthenticatedUser) {
+    return this.platformMonitoringService.listFacets(user);
   }
 
   @Get('events/:traceId')

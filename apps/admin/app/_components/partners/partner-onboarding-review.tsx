@@ -1,8 +1,8 @@
 "use client";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { ModuleActionBar } from "@/app/_components/runtime/module-action-bar";
+import { RecordHeader } from "@/app/_components/runtime/record-highlight-header";
 import { RecordStatusGroup } from "@/app/_components/runtime/record-status-group";
 import { getPlatformModuleDefinition } from "@/lib/runtime/platform-module-registry";
 import { runStandardRecordCommand } from "@/lib/runtime/standard-record-commands";
@@ -68,34 +68,26 @@ export function PartnerOnboardingReview({
   const submission = item.submissions[0];
   return (
     <main className="space-y-5">
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <Link
-          href="/partner-onboarding"
-          className="text-xs font-semibold text-[var(--admin-primary)]"
-        >
-          ← Partner onboarding
-        </Link>
-        <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
-              Application review
-            </p>
-            <h1 className="mt-2 text-2xl font-semibold text-slate-950">
-              {item.partner.displayName}
-            </h1>
-            <p className="mt-1 text-sm text-slate-500">
-              {item.partner.email} · Submission version{" "}
-              {submission?.version ?? "—"}
-            </p>
-          </div>
+      <RecordHeader
+        eyebrow="Partner application review"
+        title={item.partner.displayName}
+        cells={
           <RecordStatusGroup
             definition={moduleDefinition}
             record={item as unknown as Record<string, unknown>}
             roleKeys={roleKeys}
             permissionKeys={permissionKeys}
+            layout="cells"
           />
-        </div>
-      </section>
+        }
+        secondary={[
+          { label: "Email", value: item.partner.email },
+          {
+            label: "Submission version",
+            value: String(submission?.version ?? "—"),
+          },
+        ]}
+      />
       <ModuleActionBar
         actions={moduleDefinition.actions}
         context={{

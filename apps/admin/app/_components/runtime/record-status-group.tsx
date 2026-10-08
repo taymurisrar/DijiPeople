@@ -48,7 +48,7 @@ export function RecordStatusGroup({
   onChanged,
   disabled = false,
   slots: visibleSlots,
-  compact = false,
+  layout = "stack",
 }: {
   /**
    * Draw only these slots. The record highlight header shows Status and
@@ -56,8 +56,13 @@ export function RecordStatusGroup({
    * here, so the assignment route and its permission check stay in one place.
    */
   slots?: Array<"owner" | "status" | "subStatus">;
-  /** Size to content, for use inside another header strip. */
-  compact?: boolean;
+  /**
+   * `cells` draws each slot as a cell of the surrounding grid — the shared
+   * `RecordHeader` band — instead of a block of its own, so Owner, Status and
+   * Status reason line up with the record's other header values rather than
+   * being squeezed into a fixed column beside them.
+   */
+  layout?: "stack" | "cells";
   definition: PlatformModuleDefinition;
   record: RuntimeRecord | Record<string, unknown>;
   roleKeys: string[];
@@ -136,72 +141,77 @@ export function RecordStatusGroup({
     });
   }
 
-  return (
-    <div
-      className={
-        compact ? "min-w-[12rem] max-w-xs" : "w-full lg:w-auto lg:min-w-[26rem]"
-      }
-    >
-      <dl
-        className={
-          compact
-            ? "grid grid-cols-1 gap-3"
-            : "grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-3"
-        }
-      >
-        {header.owner ? (
-          <OwnerSlot
-            slot={header.owner}
-            record={record}
-            editable={canWrite(header.owner)}
-            busy={isPending && pendingSlot === header.owner.field}
-            onChange={(ownerId) =>
-              run(header.owner!.field, () => write!.assign(ownerId))
-            }
-          />
-        ) : null}
-        {header.status ? (
-          <OptionSlot
-            slot={header.status}
-            value={statusValue}
-            options={header.status.options ?? []}
-            statuses={definition.statuses}
-            editable={canWrite(header.status)}
-            busy={isPending && pendingSlot === header.status.field}
-            onChange={(next) =>
-              run(header.status!.field, () =>
-                write!.changeStatus({ status: next }),
-              )
-            }
-          />
-        ) : null}
-        {header.subStatus ? (
-          <OptionSlot
-            slot={header.subStatus}
-            value={String(record[header.subStatus.field] ?? "")}
-            options={
-              header.subStatus.optionsByStatus
-                ? (header.subStatus.optionsByStatus[statusValue] ?? [])
-                : (header.subStatus.options ?? [])
-            }
-            editable={canWrite(header.subStatus)}
-            busy={isPending && pendingSlot === header.subStatus.field}
-            onChange={(next) =>
-              run(header.subStatus!.field, () =>
-                write!.changeStatus({ status: statusValue, subStatus: next }),
-              )
-            }
-          />
-        ) : null}
-      </dl>
-      {notice ? (
-        <p
-          role="status"
-          className={`mt-2 text-xs font-medium ${failed ? "text-rose-700" : "text-emerald-700"}`}
-        >
-          {notice}
-        </p>
+  const slotElements = (
+    <>
+      {header.owner ? (
+        <OwnerSlot
+          slot={header.owner}
+          record={record}
+          editable={canWrite(header.owner)}
+          busy={isPending && pendingSlot === header.owner.field}
+          onChange={(ownerId) =>
+            run(header.owner!.field, () => write!.assign(ownerId))
+          }
+        />
       ) : null}
+      {header.status ? (
+        <OptionSlot
+          slot={header.status}
+          value={statusValue}
+          options={header.status.options ?? []}
+          statuses={definition.statuses}
+          editable={canWrite(header.status)}
+          busy={isPending && pendingSlot === header.status.field}
+          onChange={(next) =>
+            run(header.status!.field, () =>
+              write!.changeStatus({ status: next }),
+            )
+          }
+        />
+      ) : null}
+      {header.subStatus ? (
+        <OptionSlot
+          slot={header.subStatus}
+          value={String(record[header.subStatus.field] ?? "")}
+          options={
+            header.subStatus.optionsByStatus
+              ? (header.subStatus.optionsByStatus[statusValue] ?? [])
+              : (header.subStatus.options ?? [])
+          }
+          editable={canWrite(header.subStatus)}
+          busy={isPending && pendingSlot === header.subStatus.field}
+          onChange={(next) =>
+            run(header.subStatus!.field, () =>
+              write!.changeStatus({ status: statusValue, subStatus: next }),
+            )
+          }
+        />
+      ) : null}
+    </>
+  );
+  const noticeElement = notice ? (
+    <p
+      role="status"
+      className={`text-xs font-medium ${failed ? "text-rose-700" : "text-emerald-700"} ${layout === "cells" ? "col-span-full -mt-1" : "mt-2"}`}
+    >
+      {notice}
+    </p>
+  ) : null;
+
+  if (layout === "cells")
+    return (
+      <>
+        {slotElements}
+        {noticeElement}
+      </>
+    );
+
+  return (
+    <div className="w-full">
+      <dl className="grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-x-6 gap-y-3">
+        {slotElements}
+      </dl>
+      {noticeElement}
     </div>
   );
 }
@@ -253,9 +263,12 @@ function OwnerSlot({
           }
         />
       ) : (
-        <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-800">
-          <UserRound className="h-3.5 w-3.5 text-slate-400" aria-hidden />
-          {label ?? "Unassigned"}
+        <span
+          className="inline-flex min-w-0 max-w-full items-center gap-1.5 text-sm font-semibold text-slate-800"
+          title={label ?? undefined}
+        >
+          <UserRound className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden />
+          <span className="truncate">{label ?? "Unassigned"}</span>
         </span>
       )}
       {lookup.error ? (
@@ -337,7 +350,7 @@ function SlotShell({
           />
         ) : null}
       </dt>
-      <dd className="mt-1 flex flex-col gap-1">{children}</dd>
+      <dd className="mt-1 flex min-h-6 min-w-0 flex-col gap-1">{children}</dd>
     </div>
   );
 }
@@ -357,7 +370,8 @@ function StatusValue({
     return <span className="text-sm text-slate-400">Not set</span>;
   return (
     <span
-      className={`inline-flex w-fit max-w-full items-center truncate rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ${TONE_CLASSES[tone ?? "neutral"]}`}
+      title={label}
+      className={`inline-block w-fit max-w-full truncate rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ${TONE_CLASSES[tone ?? "neutral"]}`}
     >
       {label}
     </span>

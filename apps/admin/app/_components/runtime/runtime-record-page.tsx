@@ -33,7 +33,11 @@ import {
 } from "@/lib/runtime/humanize-field-error";
 import { executeRuntimeRecordAction } from "@/lib/runtime/runtime-record-action-handler";
 import { ModuleActionBar } from "./module-action-bar";
-import { RecordHighlightHeader } from "./record-highlight-header";
+import {
+  RecordHeader,
+  RecordHighlightHeader,
+  type RecordHeaderSecondaryItem,
+} from "./record-highlight-header";
 import { RuntimeRelatedRecordsPanel } from "./runtime-related-records-panel";
 import {
   RecordStatusGroup,
@@ -54,7 +58,11 @@ import {
   useRuntimeFormState,
   validateRuntimeValues,
 } from "./runtime-form";
-import { TenantRecordHeader } from "@/app/_components/tenants/tenant-record-header";
+import {
+  TenantEnvironmentBadge,
+  tenantHeaderSecondary,
+  tenantHeaderTitle,
+} from "@/app/_components/tenants/tenant-record-header";
 import { TenantOverviewPanel } from "@/app/_components/tenants/tenant-overview-panel";
 import { TenantConfigurationPanel } from "@/app/_components/tenants/tenant-configuration-panel";
 import { TenantAccessPanel } from "@/app/_components/tenants/tenant-access-panel";
@@ -608,7 +616,13 @@ function RuntimeRecordEditor({
    * metadata strip beneath the title, which is where Status and Owner used to
    * sit for the handful of modules that showed them at all.
    */
-  const statusGroup = isCreate ? null : (
+  /*
+   * Owner, Status and Sub-status are drawn once, as the first cells of the
+   * shared record header, for every module — the D365 arrangement. They are
+   * deliberately not repeated in the secondary line beneath, which is where
+   * Status and Owner used to sit for the handful of modules that showed them.
+   */
+  const statusCells = isCreate ? null : (
     <RecordStatusGroup
       definition={definition}
       record={form.values}
@@ -616,19 +630,32 @@ function RuntimeRecordEditor({
       permissionKeys={permissionKeys}
       write={headerWrite}
       onChanged={reloadRecord}
+      layout="cells"
     />
   );
 
   return (
     <main className="space-y-5">
-      {moduleKey === "tenants" && !isCreate ? (
-        <TenantRecordHeader record={form.values} statusGroup={statusGroup} />
-      ) : definition.highlight && !isCreate ? (
+      {isCreate ? (
+        <PageHeader
+          eyebrow={definition.navigationGroup}
+          title={title}
+          description={`Create a new ${definition.displayName.toLowerCase()}.`}
+        />
+      ) : moduleKey === "tenants" ? (
+        <RecordHeader
+          eyebrow="Tenant"
+          title={tenantHeaderTitle(form.values)}
+          badge={<TenantEnvironmentBadge record={form.values} />}
+          cells={statusCells}
+          secondary={tenantHeaderSecondary(form.values)}
+        />
+      ) : definition.highlight ? (
         /*
-         * EXECPLAN-0055 D8 — a module that declares a highlight gets the
-         * compact header: its key values in one band, with Owner as the only
-         * control (from the status group, so assignment is governed as
-         * before). Status and Sub-status are values there, not dropdowns.
+         * EXECPLAN-0055 D8 — a module that declares a highlight gets its key
+         * values as header cells, with Owner as the only control (from the
+         * status group, so assignment is governed as before). Status and
+         * Sub-status are values there, not dropdowns.
          */
         <RecordHighlightHeader
           definition={definition}
@@ -644,23 +671,17 @@ function RuntimeRecordEditor({
                 write={headerWrite}
                 onChanged={reloadRecord}
                 slots={["owner"]}
-                compact
+                layout="cells"
               />
             ) : undefined
           }
         />
       ) : (
-        <PageHeader
-          eyebrow={definition.navigationGroup}
+        <RecordHeader
+          eyebrow={definition.displayName}
           title={title}
-          description={
-            isCreate ? (
-              `Create a new ${definition.displayName.toLowerCase()}.`
-            ) : (
-              <RecordHeaderMetadata moduleKey={moduleKey} record={form.values} />
-            )
-          }
-          actions={statusGroup}
+          cells={statusCells}
+          secondary={recordHeaderSecondary(moduleKey, form.values)}
         />
       )}
       {moduleKey === "plans" && !isCreate ? (
@@ -1632,25 +1653,17 @@ function isAgreementLocked(status: string) {
  * header status group, where an operator can also change them, and repeating
  * them below the title only invited the two to disagree while one was saving.
  */
-function RecordHeaderMetadata({
-  moduleKey,
-  record,
-}: {
-  moduleKey: PlatformModuleKey;
-  record: Record<string, unknown>;
-}) {
+function recordHeaderSecondary(
+  moduleKey: PlatformModuleKey,
+  record: Record<string, unknown>,
+): RecordHeaderSecondaryItem[] {
   const source = String(record.source ?? record.applicationSource ?? "");
   const customer = readRecordLabel(record.customerAccount ?? record.customer);
   const convertedCustomer =
     record.convertedCustomer && typeof record.convertedCustomer === "object"
       ? (record.convertedCustomer as Record<string, unknown>)
       : null;
-  type HeaderMetadataItem = {
-    label: string;
-    value: string;
-    href?: string;
-  };
-  const candidateItems: Array<HeaderMetadataItem | null> = [
+  const candidateItems: Array<RecordHeaderSecondaryItem | null> = [
     moduleKey === "leads" && source ? { label: "Source", value: source } : null,
     moduleKey === "leads" && convertedCustomer
       ? {
@@ -1667,27 +1680,8 @@ function RecordHeaderMetadata({
         }
       : null,
   ];
-  const items = candidateItems.filter(
-    (item): item is HeaderMetadataItem => item !== null,
-  );
-  return (
-    <span className="flex flex-wrap gap-x-5 gap-y-1">
-      {items.map((item) => (
-        <span key={item.label} className="inline-flex gap-1.5">
-          <span className="font-medium text-slate-500">{item.label}</span>
-          {item.href ? (
-            <Link
-              href={item.href}
-              className="font-semibold text-[var(--admin-primary)] hover:underline"
-            >
-              {item.value}
-            </Link>
-          ) : (
-            <span className="text-slate-800">{item.value}</span>
-          )}
-        </span>
-      ))}
-    </span>
+  return candidateItems.filter(
+    (item): item is RecordHeaderSecondaryItem => item !== null,
   );
 }
 

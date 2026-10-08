@@ -9,7 +9,7 @@
 |---|---|
 | Open CRITICAL | **8** |
 | Open HIGH | **110** |
-| Open total | 270 |
+| Open total | 274 |
 | Blocked | 4 |
 | Awaiting a product decision | 14 |
 | Deferred | 125 |
@@ -572,6 +572,9 @@
 | [[BUG-3982-partner-commissions-accept-any-status-jump-and-unverified-li|BUG-3982]] | Partner commissions accept any status jump and unverified links, and agreements change when the partner default commission is edited | DATA_INTEGRITY | MEDIUM | FIXED | partners, contracts | FIX_NOW |
 | [[BUG-3996-a-partner-with-a-never-invited-contact-could-not-be-deleted-|BUG-3996]] | A partner with a never-invited contact could not be deleted and the contact could not be removed | BUG | MEDIUM | FIXED | partners, apps/admin | FIX_NOW |
 | [[BUG-4009-failed-onboarding-resend-overwrites-a-newer-invitation-durin|BUG-4009]] | Failed onboarding resend overwrites a newer invitation during compensation | STATE_MACHINE | MEDIUM | VERIFIED | api:partner-experience | DONE |
+| [[BUG-4032-admin-html-body-overflow-x-hidden-disabled-every-position-st|BUG-4032]] | Admin html/body overflow-x hidden disabled every position:sticky (command bar, agreement editor toolbar and Fields & Signatures panel scroll away) | UX | MEDIUM | FIXED | app:admin | FIX_NOW |
+| [[BUG-4033-tenants-grid-labelled-the-tenant-column-name-beside-a-linked|BUG-4033]] | Tenants grid labelled the tenant column Name beside a linked Customer name, so operators opened the customer believing it was the tenant | UX | MEDIUM | FIXED | app:admin | FIX_NOW |
+| [[BUG-4035-monitoring-error-logs-offered-filters-and-cards-matching-no-|BUG-4035]] | Monitoring error logs offered filters and cards matching no stored value, page-only export, a tenant-only diagnostics download, and Create support case sent the trace id so it always 404ed | BUG | MEDIUM | FIXED | app:admin | FIX_NOW |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -611,6 +614,7 @@
 | [[BUG-3916-lead-partner-attribution-renders-above-the-record-tabs-on-ev|BUG-3916]] | Lead Partner attribution renders above the record tabs on every tab instead of in a tab | UX | LOW | FIXED | apps/admin, leads | FIX_NOW |
 | [[BUG-4006-expected-domain-refusals-on-record-actions-open-the-technica|BUG-4006]] | Expected domain refusals on record actions open the technical error dialog because the adapter drops request headers | UX | LOW | FIXED | apps/admin | FIX_NOW |
 | [[BUG-4019-partner-record-polish-empty-application-card-clipped-subgrid|BUG-4019]] | Partner record polish: empty application card, clipped subgrid row actions, unfiltered commission lookups, raw ids on commission record | UX | LOW | FIXED | partners, super-admin, apps/admin | FIX_NOW |
+| [[BUG-4034-runtime-lists-rendered-the-definition-s-default-columns-then|BUG-4034]] | Runtime lists rendered the definition's default columns, then swapped to the saved view's columns (column flash on load) | UX | LOW | FIXED | app:admin | FIX_NOW |
 
 ## Recent QA Runs
 
@@ -761,6 +765,9 @@
 | [[BUG-3956-changing-partner-status-from-the-record-header-always-fails-|BUG-3956]] | Changing Partner status from the record header always fails and would bypass the partner state machine | STATE_MACHINE | MEDIUM | FIXED | partners, apps/admin | FIX_NOW |
 | [[BUG-3982-partner-commissions-accept-any-status-jump-and-unverified-li|BUG-3982]] | Partner commissions accept any status jump and unverified links, and agreements change when the partner default commission is edited | DATA_INTEGRITY | MEDIUM | FIXED | partners, contracts | FIX_NOW |
 | [[BUG-3996-a-partner-with-a-never-invited-contact-could-not-be-deleted-|BUG-3996]] | A partner with a never-invited contact could not be deleted and the contact could not be removed | BUG | MEDIUM | FIXED | partners, apps/admin | FIX_NOW |
+| [[BUG-4032-admin-html-body-overflow-x-hidden-disabled-every-position-st|BUG-4032]] | Admin html/body overflow-x hidden disabled every position:sticky (command bar, agreement editor toolbar and Fields & Signatures panel scroll away) | UX | MEDIUM | FIXED | app:admin | FIX_NOW |
+| [[BUG-4033-tenants-grid-labelled-the-tenant-column-name-beside-a-linked|BUG-4033]] | Tenants grid labelled the tenant column Name beside a linked Customer name, so operators opened the customer believing it was the tenant | UX | MEDIUM | FIXED | app:admin | FIX_NOW |
+| [[BUG-4035-monitoring-error-logs-offered-filters-and-cards-matching-no-|BUG-4035]] | Monitoring error logs offered filters and cards matching no stored value, page-only export, a tenant-only diagnostics download, and Create support case sent the trace id so it always 404ed | BUG | MEDIUM | FIXED | app:admin | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -806,6 +813,7 @@
 | [[BUG-3916-lead-partner-attribution-renders-above-the-record-tabs-on-ev|BUG-3916]] | Lead Partner attribution renders above the record tabs on every tab instead of in a tab | UX | LOW | FIXED | apps/admin, leads | FIX_NOW |
 | [[BUG-4006-expected-domain-refusals-on-record-actions-open-the-technica|BUG-4006]] | Expected domain refusals on record actions open the technical error dialog because the adapter drops request headers | UX | LOW | FIXED | apps/admin | FIX_NOW |
 | [[BUG-4019-partner-record-polish-empty-application-card-clipped-subgrid|BUG-4019]] | Partner record polish: empty application card, clipped subgrid row actions, unfiltered commission lookups, raw ids on commission record | UX | LOW | FIXED | partners, super-admin, apps/admin | FIX_NOW |
+| [[BUG-4034-runtime-lists-rendered-the-definition-s-default-columns-then|BUG-4034]] | Runtime lists rendered the definition's default columns, then swapped to the saved view's columns (column flash on load) | UX | LOW | FIXED | app:admin | FIX_NOW |
 | [[ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by|ITEM-0080]] | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
 | [[ITEM-0225-re-verify-historical-frontend-dto-contract-drift-400s-agains|ITEM-0225]] | Re-verify historical frontend/DTO contract-drift 400s against current DTOs before resolving them | FOLLOW_UP | — | READY | error-logs | PLAN_REQUIRED |
 
@@ -847,7 +855,7 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 542 |
+| Bug records | 546 |
 | Backlog items | 228 |
 | Known bug patterns | 35 |
 | QA runs | 39 |

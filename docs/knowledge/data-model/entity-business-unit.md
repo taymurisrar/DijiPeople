@@ -96,7 +96,7 @@ was treated as authority to reshape it.
 | Prisma accessor | `prisma.businessUnit` |
 | Owning module | `services/api/src/modules/organization` |
 | Domain | People |
-| Also touched by | `users`, `tenant-control-plane` (reads), `tenant-settings` (reads), `approvals` (reads), `dashboard` (reads), `leave` (reads), `notifications` (reads), `payroll` (reads), and 10 more |
+| Also touched by | `users`, `tenant-control-plane` (reads), `tenant-settings` (reads), `approvals` (reads), `dashboard` (reads), `leave` (reads), `notifications` (reads), `payroll` (reads), and 11 more |
 
 ### Fields
 

@@ -1,53 +1,49 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
 import {
-  AlertTriangle,
-  ArrowRight,
-  CheckCircle2,
-  Clock3,
-  Copy,
-  Inbox,
-  ShieldAlert,
-} from "lucide-react";
+  INCIDENT_PARAM,
+  formatSourceApp,
+  summarizeMessage,
+  titleCase,
+} from "@/lib/error-log-console";
+import { SeverityBadge, SupportStatusBadge } from "./monitoring-ui";
 
 /**
  * Monitoring, as a place to start work rather than a place to read numbers.
  *
- * WHAT WAS HERE. Four counters (events / succeeded / pending / failed), a
- * two-column list of event codes by source, and ten recent events with their
- * timestamps. Every figure was real — and none of it told a support agent
- * anything they could act on. "Events (24h): 4,182" is not a question anybody
- * has; "which customer is broken right now, and what happened to them" is, and
- * that data was already on the wire from a different endpoint the page did not
- * call.
+ * Each band answers one question, in the order an operator asks them:
  *
- * So this is built from the incident queue rather than from the event stream.
- * Each band answers one question, in the order an agent asks them:
+ *   1. Is anything on fire?       — unresolved and critical counts, as links
+ *   2. What should I pick up?     — the most recent unresolved incidents
+ *   3. Is the platform itself ok? — event failure rate, by source
  *
- *   1. Is anything on fire?          — critical and untriaged counts, as links
- *   2. What should I pick up?        — the actual queue, filterable in place
- *   3. Is the platform itself well?  — event failure rate, by source
- *
- * Every tile is a link into the incident queue carrying its own filter, so
- * reading a number and acting on it are the same gesture. Nothing here is
- * decorative: there are no placeholder cards, no sparklines over data we do not
- * have, and no health tile for a thing this platform does not measure.
+ * WHAT WAS REMOVED. This page used to carry its own search, three filters and
+ * a sort over the 25 newest incidents, filtered in the browser — a second,
+ * weaker error log one tab away from the real one, whose severity and source
+ * options ("CRITICAL", "WEB") matched values no row stores. The list here is
+ * now a short read of what is open, and every row opens that incident in the
+ * error log, where filtering is done properly on the server.
  */
 
 export type OverviewIncident = {
   id: string;
   referenceNumber: string;
   timestamp: string;
+  lastSeenAt?: string;
   severity: string;
+  severityGroup?: string;
   sourceApp: string;
   status: string;
   message: string;
+  module?: string | null;
   route: string | null;
   method: string | null;
   statusCode: number | null;
   category: string | null;
+  occurrenceCount?: number;
   tenant: { id: string; name: string | null } | null;
   user: { id: string | null; email: string | null } | null;
   assignedTo: string | null;
@@ -56,15 +52,14 @@ export type OverviewIncident = {
 export type OverviewMetrics = {
   total: number;
   critical: number;
-  webApp: number;
   open: number;
   resolved: number;
   /*
-   * Counted by the API from the same predicate the `investigating` view
-   * filters on. Optional only so a stale API cannot blank the page; when it is
-   * absent the tile reads 0 rather than falling back to the subtraction that
-   * caused BUG-2495.
+   * Counted by the API from the same predicates the error log's filters use.
+   * Optional only so a stale API cannot blank the page.
    */
+  criticalOpen?: number;
+  warning?: number;
   investigating?: number;
 };
 
@@ -76,18 +71,6 @@ export type EventHealth = {
 
 const QUEUE = "/settings/monitoring/error-logs";
 
-/** The filters this page owns. They map one-for-one onto the queue's own. */
-type Filters = {
-  severity: string;
-  sourceApp: string;
-  status: string;
-  search: string;
-};
-
-const EMPTY: Filters = { severity: "", sourceApp: "", status: "", search: "" };
-
-type SortKey = "newest" | "oldest" | "severity";
-
 export function MonitoringOverview({
   incidents,
   metrics,
@@ -97,336 +80,141 @@ export function MonitoringOverview({
   metrics: OverviewMetrics;
   events: EventHealth;
 }) {
-  const [filters, setFilters] = useState<Filters>(EMPTY);
-  const [sort, setSort] = useState<SortKey>("newest");
-  const [copied, setCopied] = useState<string | null>(null);
-
-  /*
-   * Filtering and sorting happen here, over the page the server already sent.
-   *
-   * The alternative — a round trip per keystroke — would make this a second
-   * incident queue, and there is one of those a click away that does it
-   * properly with pagination. This is triage over the most recent slice: fast,
-   * and honest about being a slice, which is what "Open in the full queue"
-   * beneath it is for. It carries the same filters across, so narrowing here
-   * and continuing there is one continuous action rather than two.
-   */
-  const visible = useMemo(() => {
-    const needle = filters.search.trim().toLowerCase();
-    const rows = incidents.filter((incident) => {
-      if (filters.severity && incident.severity !== filters.severity)
-        return false;
-      if (filters.sourceApp && incident.sourceApp !== filters.sourceApp)
-        return false;
-      if (filters.status && incident.status !== filters.status) return false;
-      if (!needle) return true;
-      return [
-        incident.referenceNumber,
-        incident.message,
-        incident.route,
-        incident.tenant?.name,
-        incident.user?.email,
-        incident.category,
-      ]
-        .filter(Boolean)
-        .some((field) => String(field).toLowerCase().includes(needle));
-    });
-
-    const rank = (value: string) =>
-      ["CRITICAL", "ERROR", "WARNING", "INFO"].indexOf(value);
-    return [...rows].sort((left, right) => {
-      if (sort === "severity") {
-        const bySeverity = rank(left.severity) - rank(right.severity);
-        if (bySeverity !== 0) return bySeverity;
-      }
-      const leftTime = new Date(left.timestamp).getTime();
-      const rightTime = new Date(right.timestamp).getTime();
-      return sort === "oldest" ? leftTime - rightTime : rightTime - leftTime;
-    });
-  }, [incidents, filters, sort]);
-
-  /** The same filters, as the query the full queue understands. */
-  const queueHref = useMemo(() => {
-    const params = new URLSearchParams();
-    if (filters.severity) params.set("severity", filters.severity);
-    if (filters.sourceApp) params.set("sourceApp", filters.sourceApp);
-    if (filters.status) params.set("status", filters.status);
-    if (filters.search.trim()) params.set("search", filters.search.trim());
-    const query = params.toString();
-    return query ? `${QUEUE}?${query}` : QUEUE;
-  }, [filters]);
-
   const failed = events.byResult.FAILED ?? 0;
   const eventTotal = Object.values(events.byResult).reduce(
     (sum, count) => sum + count,
     0,
   );
 
-  async function copyReference(reference: string) {
-    await navigator.clipboard.writeText(reference);
-    setCopied(reference);
-    window.setTimeout(() => setCopied(null), 1500);
-  }
-
   return (
     <div className="space-y-5">
       {/*
-        Band 1 — is anything on fire.
-        Four figures, each a link that applies its own filter. A count an agent
-        has to go and rebuild a filter for is a count that costs them time to
-        use.
+        Band 1. Every tile opens the error log with the filter that produced
+        its count — the same predicate on both sides, so the number and the
+        list cannot disagree (BUG-1750, BUG-2495). The critical tile used to
+        show the all-time critical count while linking to critical-and-new.
       */}
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatLink
-          /*
-           * `viewId=critical`, not `severity=CRITICAL`. Nothing in the system
-           * stores the value "CRITICAL" — severity is free text holding ERROR
-           * and FATAL in either case — so this link returned 0 of 0 while the
-           * tile above it counted 11 (BUG-1750).
-           */
-          href={`${QUEUE}?viewId=critical&status=NEW`}
-          icon={ShieldAlert}
-          label="Critical, untriaged"
-          tone={metrics.critical ? "danger" : "calm"}
-          value={metrics.critical}
-          hint="Nobody has picked these up"
+          hint="Error-level failures nobody has closed"
+          href={`${QUEUE}?severity=critical&status=UNRESOLVED`}
+          label="Critical, unresolved"
+          tone={metrics.criticalOpen ? "danger" : "calm"}
+          value={metrics.criticalOpen}
         />
         <StatLink
-          href={`${QUEUE}?status=NEW`}
-          icon={Inbox}
-          label="Waiting for triage"
+          hint="Not resolved or set aside"
+          href={`${QUEUE}?status=UNRESOLVED`}
+          label="Unresolved"
           tone={metrics.open ? "warning" : "calm"}
           value={metrics.open}
-          hint="No owner, no investigation yet"
         />
         <StatLink
-          /*
-           * The API's own count, not `total - open - resolved`.
-           *
-           * That subtraction assumed every incident was open, resolved or
-           * investigating. `NOT_AN_INCIDENT` became a fourth state in
-           * BUG-1754 and the arithmetic never learned about it, so every row
-           * the classifier set aside landed here under "Assigned and in
-           * progress" while this link returned none of them. Production read
-           * 27, and all 27 were `NOT_AN_INCIDENT` — nobody was investigating
-           * anything (BUG-2495).
-           *
-           * Inferring a count by subtracting the states you know about is only
-           * ever correct until someone adds a state.
-           */
-          href={`${QUEUE}?status=INVESTIGATING`}
-          icon={Clock3}
-          label="Under investigation"
-          tone="info"
-          value={metrics.investigating ?? 0}
-          hint="Assigned and in progress"
-        />
-        <StatLink
+          hint="Closed by support"
           href={`${QUEUE}?status=RESOLVED`}
-          icon={CheckCircle2}
           label="Resolved"
           tone="calm"
           value={metrics.resolved}
-          hint="Closed with a customer-ready update"
+        />
+        <StatLink
+          hint="Every incident on record"
+          href={QUEUE}
+          label="Recorded"
+          tone="neutral"
+          value={metrics.total}
         />
       </section>
 
-      {/*
-        Band 2 — the work itself.
-        A queue an agent can narrow without leaving the page, and carry into the
-        full queue when they want pagination. The filters are the queue's own
-        parameter names, so the two cannot drift into meaning different things.
-      */}
+      {/* Band 2 — the work itself. */}
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-slate-200 p-4 xl:flex-row xl:items-center">
-          <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3">
+          <div>
             <h2 className="text-sm font-semibold text-slate-950">
-              Incidents to pick up
+              Latest unresolved incidents
             </h2>
-            <p className="mt-0.5 text-xs text-slate-500">
-              The most recent {incidents.length}, filtered here. Open the full
-              queue for everything, with pagination and assignment.
+            <p className="text-xs text-slate-500">
+              The {incidents.length || ""} most recently active. Open one to
+              investigate it.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <input
-              aria-label="Search incidents"
-              className="h-9 w-52 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none focus:border-[var(--admin-primary)]"
-              onChange={(event) =>
-                setFilters((current) => ({
-                  ...current,
-                  search: event.target.value,
-                }))
-              }
-              placeholder="Reference, customer, route…"
-              value={filters.search}
-            />
-            <Select
-              label="Severity"
-              onChange={(value) =>
-                setFilters((current) => ({ ...current, severity: value }))
-              }
-              options={["CRITICAL", "ERROR", "WARNING", "INFO"]}
-              value={filters.severity}
-            />
-            <Select
-              label="Source"
-              onChange={(value) =>
-                setFilters((current) => ({ ...current, sourceApp: value }))
-              }
-              options={["WEB", "ADMIN", "API"]}
-              value={filters.sourceApp}
-            />
-            <Select
-              label="Status"
-              onChange={(value) =>
-                setFilters((current) => ({ ...current, status: value }))
-              }
-              options={[
-                "NEW",
-                "INVESTIGATING",
-                "WAITING_ON_CUSTOMER",
-                "RESOLVED",
-              ]}
-              value={filters.status}
-            />
-            <label className="sr-only" htmlFor="monitoring-overview-sort">
-              Sort incidents
-            </label>
-            <select
-              className="h-9 rounded-xl border border-slate-200 bg-white px-2 text-sm text-slate-900"
-              id="monitoring-overview-sort"
-              onChange={(event) => setSort(event.target.value as SortKey)}
-              value={sort}
-            >
-              <option value="newest">Newest first</option>
-              <option value="oldest">Oldest first</option>
-              <option value="severity">Most severe first</option>
-            </select>
-            {filters === EMPTY ? null : (
-              <button
-                className="h-9 rounded-xl border border-slate-200 px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50"
-                onClick={() => setFilters(EMPTY)}
-                type="button"
-              >
-                Clear
-              </button>
-            )}
-          </div>
+          <Link
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+            href={`${QUEUE}?status=UNRESOLVED`}
+          >
+            Open the error log
+            <ArrowRight aria-hidden className="h-3.5 w-3.5" />
+          </Link>
         </div>
 
-        {visible.length ? (
+        {incidents.length ? (
           <ul className="divide-y divide-slate-100">
-            {visible.map((incident) => (
-              <li
-                className="p-4 transition hover:bg-slate-50"
-                key={incident.id}
-              >
-                <div className="flex flex-wrap items-start gap-x-3 gap-y-1.5">
-                  <SeverityPill value={incident.severity} />
-                  <Link
-                    className="min-w-0 flex-1 text-sm font-semibold text-slate-950 hover:underline"
-                    /*
-                     * BUG-1419. This was `${QUEUE}/${incident.id}` — a record
-                     * route under the queue that has never existed, so every
-                     * incident title on the overview was a link to a 404. With
-                     * 1,495 incidents recorded and none ever resolved, the
-                     * queue could be counted and never worked.
-                     *
-                     * The queue itself already searches by reference number, so
-                     * the incident opens there rather than in a detail page
-                     * nobody has built — in the tool that carries the filters,
-                     * the assignment and the support-case link. If a dedicated
-                     * record page is wanted later it belongs in a plan, not in
-                     * an href.
-                     */
-                    href={`${QUEUE}?search=${encodeURIComponent(incident.referenceNumber)}`}
-                  >
-                    {incident.message}
-                  </Link>
-                  <IncidentTime timestamp={incident.timestamp} />
-                </div>
-                <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
-                  {/*
-                    The reference first and copyable, because it is the thing an
-                    agent pastes into a reply to the customer.
-                  */}
-                  <button
-                    className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-700 hover:bg-slate-200"
-                    onClick={() => void copyReference(incident.referenceNumber)}
-                    title="Copy reference"
-                    type="button"
-                  >
-                    <Copy className="h-3 w-3" aria-hidden />
-                    {copied === incident.referenceNumber
-                      ? "Copied"
-                      : incident.referenceNumber}
-                  </button>
-                  <span>{titleCase(incident.status)}</span>
-                  <span>{incident.sourceApp}</span>
-                  {incident.tenant?.name ? (
-                    <span className="truncate">{incident.tenant.name}</span>
-                  ) : null}
-                  {incident.user?.email ? (
-                    <span className="truncate">{incident.user.email}</span>
-                  ) : null}
-                  {incident.route ? (
-                    <span className="truncate font-mono">
-                      {incident.method ? `${incident.method} ` : ""}
-                      {incident.route}
-                      {incident.statusCode ? ` · ${incident.statusCode}` : ""}
+            {incidents.map((incident) => (
+              <li key={incident.id}>
+                <Link
+                  className="grid gap-x-3 gap-y-1 px-4 py-2.5 transition hover:bg-slate-50 md:grid-cols-[auto_minmax(0,1fr)_auto]"
+                  /*
+                   * BUG-1419: this once composed a record route under the
+                   * queue that has never existed. The incident opens in the
+                   * error log's drawer instead, addressed by its reference.
+                   */
+                  href={`${QUEUE}?status=UNRESOLVED&${INCIDENT_PARAM}=${encodeURIComponent(incident.referenceNumber)}`}
+                >
+                  <span className="pt-0.5">
+                    <SeverityBadge
+                      group={incident.severityGroup}
+                      severity={incident.severity}
+                    />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium text-slate-950">
+                      {summarizeMessage(incident.message)}
                     </span>
-                  ) : null}
-                  {incident.assignedTo ? (
-                    <span>Assigned</span>
-                  ) : (
-                    <span className="font-semibold text-amber-700">
-                      Unassigned
+                    <span className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-slate-500">
+                      <span>{incident.tenant?.name ?? "Platform"}</span>
+                      <span>{formatSourceApp(incident.sourceApp)}</span>
+                      {incident.module ? <span>{incident.module}</span> : null}
+                      {incident.occurrenceCount &&
+                      incident.occurrenceCount > 1 ? (
+                        <span>
+                          ×{incident.occurrenceCount.toLocaleString()}
+                        </span>
+                      ) : null}
+                      <span className="font-mono">
+                        {incident.referenceNumber}
+                      </span>
                     </span>
-                  )}
-                </div>
+                  </span>
+                  <span className="flex items-center gap-3 md:justify-end">
+                    <SupportStatusBadge value={incident.status} />
+                    <IncidentTime
+                      timestamp={incident.lastSeenAt ?? incident.timestamp}
+                    />
+                  </span>
+                </Link>
               </li>
             ))}
           </ul>
         ) : (
-          <div className="px-4 py-12 text-center">
+          <div className="px-4 py-10 text-center">
             <CheckCircle2
               aria-hidden
               className="mx-auto h-6 w-6 text-emerald-500"
             />
-            <p className="mt-3 text-sm font-semibold text-slate-900">
-              {incidents.length
-                ? "No incident matches these filters."
-                : "No incidents have been recorded."}
+            <p className="mt-2 text-sm font-semibold text-slate-900">
+              No unresolved incidents.
             </p>
             <p className="mt-1 text-sm text-slate-600">
-              {incidents.length
-                ? "Clear the filters to see the rest of the queue."
-                : "Failures from the web app, admin console and API arrive here as they happen."}
+              Failures from the tenant app, platform admin and API arrive in the
+              error log as they happen.
             </p>
           </div>
         )}
-
-        <div className="flex items-center justify-between gap-3 border-t border-slate-200 px-4 py-3">
-          <p className="text-xs text-slate-500">
-            Showing {visible.length} of the {incidents.length} most recent.
-          </p>
-          <Link
-            className="inline-flex items-center gap-1.5 rounded-xl bg-slate-950 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-800"
-            href={queueHref}
-          >
-            Open in the full queue
-            <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-          </Link>
-        </div>
       </section>
 
       {/*
-        Band 3 — the platform's own signal.
-        Kept, because a spike in failed events explains a spike in incidents,
-        and reduced to the part that carries information: the failure rate and
-        where the failures came from. The success count is not a metric anybody
-        acts on; it is the denominator, so it is shown as one.
+        Band 3 — the platform's own signal. A spike in failed events explains
+        a spike in incidents; the success count is the denominator, so it is
+        shown as one.
       */}
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -442,7 +230,7 @@ export function MonitoringOverview({
           <>
             <p className="mt-2 text-sm text-slate-700">
               <span
-                className={`text-2xl font-semibold ${
+                className={`text-2xl font-semibold tabular-nums ${
                   failed ? "text-rose-700" : "text-slate-950"
                 }`}
               >
@@ -459,13 +247,13 @@ export function MonitoringOverview({
                 .sort(([, left], [, right]) => right - left)
                 .map(([source, count]) => (
                   <div
-                    className="rounded-xl bg-slate-50 px-3 py-2"
+                    className="rounded-lg bg-slate-50 px-3 py-2"
                     key={source}
                   >
                     <dt className="text-xs text-slate-500">
                       {titleCase(source)}
                     </dt>
-                    <dd className="text-sm font-semibold text-slate-900">
+                    <dd className="text-sm font-semibold tabular-nums text-slate-900">
                       {count.toLocaleString()}
                     </dd>
                   </div>
@@ -476,7 +264,7 @@ export function MonitoringOverview({
               href="/settings/monitoring/events"
             >
               Browse the event log
-              <ArrowRight className="h-3 w-3" aria-hidden />
+              <ArrowRight aria-hidden className="h-3 w-3" />
             </Link>
           </>
         ) : (
@@ -491,110 +279,43 @@ export function MonitoringOverview({
 }
 
 /**
- * A figure that is also the way to act on it.
- *
- * `tone` never carries the meaning on its own — every tile states what it
- * counts and what that implies, and an agent who cannot see the colour loses
- * nothing but emphasis.
+ * A figure that is also the way to act on it. The meaning is in the label and
+ * hint; `tone` is emphasis only.
  */
 function StatLink({
   href,
   label,
   value,
   hint,
-  icon: Icon,
   tone,
 }: {
   href: string;
   label: string;
-  value: number;
+  value: number | undefined;
   hint: string;
-  icon: typeof ShieldAlert;
-  tone: "danger" | "warning" | "info" | "calm";
+  tone: "danger" | "warning" | "calm" | "neutral";
 }) {
-  const tones = {
-    danger: "bg-rose-50 text-rose-700",
-    warning: "bg-amber-50 text-amber-700",
-    info: "bg-blue-50 text-blue-700",
-    calm: "bg-emerald-50 text-emerald-700",
-  };
+  const accent = {
+    danger: "bg-rose-500",
+    warning: "bg-amber-500",
+    calm: "bg-emerald-500",
+    neutral: "bg-slate-400",
+  }[tone];
   return (
     <Link
-      className="flex items-start justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-slate-300 hover:shadow"
+      className="relative block overflow-hidden rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:border-slate-300 hover:shadow"
       href={href}
     >
-      <div className="min-w-0">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
-          {label}
-        </p>
-        <p className="mt-2 text-2xl font-semibold text-slate-950">
-          {value.toLocaleString()}
-        </p>
-        <p className="mt-0.5 text-[11px] text-slate-500">{hint}</p>
-      </div>
-      <span className={`shrink-0 rounded-xl p-2.5 ${tones[tone]}`}>
-        <Icon className="h-5 w-5" aria-hidden />
+      <span aria-hidden className={`absolute inset-y-0 left-0 w-1 ${accent}`} />
+      <span className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+        {label}
       </span>
+      <span className="mt-1 block text-2xl font-semibold tabular-nums text-slate-950">
+        {typeof value === "number" ? value.toLocaleString() : "—"}
+      </span>
+      <span className="block text-[11px] text-slate-500">{hint}</span>
     </Link>
   );
-}
-
-function Select({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: string[];
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="inline-flex items-center gap-1.5 text-xs text-slate-500">
-      <span className="sr-only">{label}</span>
-      <select
-        className="h-9 rounded-xl border border-slate-200 bg-white px-2 text-sm text-slate-900"
-        onChange={(event) => onChange(event.target.value)}
-        value={value}
-      >
-        <option value="">{label}: all</option>
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {titleCase(option)}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
-function SeverityPill({ value }: { value: string }) {
-  const tones: Record<string, string> = {
-    CRITICAL: "bg-rose-100 text-rose-900 ring-rose-300",
-    ERROR: "bg-rose-50 text-rose-800 ring-rose-200",
-    WARNING: "bg-amber-50 text-amber-900 ring-amber-200",
-    INFO: "bg-slate-100 text-slate-700 ring-slate-200",
-  };
-  return (
-    <span
-      className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ring-1 ring-inset ${
-        tones[value] ?? tones.INFO
-      }`}
-    >
-      {value === "CRITICAL" ? (
-        <AlertTriangle className="h-3 w-3" aria-hidden />
-      ) : null}
-      {titleCase(value)}
-    </span>
-  );
-}
-
-function titleCase(value: string) {
-  return value
-    .toLowerCase()
-    .replaceAll("_", " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 const subscribeNever = () => () => {};
@@ -604,11 +325,10 @@ const subscribeNever = () => () => {};
  *
  * "7m ago" depends on the clock and the tooltip on the viewer's locale, so the
  * server and the browser computed different text whenever a minute ticked
- * between render and hydration. React then threw a hydration error, which the
- * admin error dialog turned into a full-screen "unexpected system error" over
- * the monitoring page (TASK-0032 browser QA). The server now renders an empty
- * `<time>` carrying only the machine-readable timestamp, and the browser fills
- * in the human text after hydration.
+ * between render and hydration, and React's hydration error became a
+ * full-screen "unexpected system error" over this page (TASK-0032 browser QA).
+ * The server renders an empty `<time>` carrying only the machine-readable
+ * timestamp, and the browser fills in the human text after hydration.
  */
 function IncidentTime({ timestamp }: { timestamp: string }) {
   const inBrowser = useSyncExternalStore(
@@ -618,7 +338,7 @@ function IncidentTime({ timestamp }: { timestamp: string }) {
   );
   return (
     <time
-      className="shrink-0 text-xs text-slate-500"
+      className="w-16 shrink-0 text-right text-xs text-slate-500"
       dateTime={timestamp}
       title={inBrowser ? new Date(timestamp).toLocaleString() : undefined}
     >
@@ -627,7 +347,7 @@ function IncidentTime({ timestamp }: { timestamp: string }) {
   );
 }
 
-/** "4 minutes ago", falling back to a date once relative stops helping. */
+/** "4m ago", falling back to a date once relative stops helping. */
 function relativeTime(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;

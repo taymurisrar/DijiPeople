@@ -329,6 +329,13 @@ export const DASHBOARD_WIDGET_REGISTRY = {
   "unavailable-note": "notice",
 } as const;
 
+/** Views whose figures are money, and so carry the currency and rates note. */
+const MONEY_VIEWS = new Set([
+  "executive",
+  "partner-operations",
+  "billing-revenue",
+]);
+
 export function PlatformDashboard({
   summary,
   operations = null,
@@ -433,164 +440,174 @@ export function PlatformDashboard({
   );
   const widgets = buildDashboardWidgets(content);
 
+  /*
+   * Only the views whose numbers come from the period summary respond to the
+   * time range; Operations is live and has its own endpoint. A control that
+   * changes nothing on the screen it sits on is a control that lies.
+   */
+  const usesTimeRange = viewKey !== "operations";
+  const showsMoney = MONEY_VIEWS.has(viewKey);
+
   return (
     <main className="space-y-5">
-      <section className="rounded-[28px] border border-slate-200 bg-gradient-to-br from-white via-white to-[var(--admin-surface-tint)] p-5 shadow-sm lg:p-6">
-        {/*
-          Split at 2xl, not xl, and cap the control panel at 560px.
-          `xl` is 1280px, and at 1280 the shell has already spent ~288px on the
-          sidebar plus padding — so a 720px control column left the heading
-          column about 215px wide. "Executive overview" wrapped onto two lines
-          and the description became a vertical ribbon. Below 2xl the two blocks
-          stack, which is the only honest layout at that width.
-        */}
-        <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_minmax(0,560px)] 2xl:items-start">
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--admin-primary)]">
-              Live operations workspace
-            </p>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
-              {content.title}
-            </h1>
-            <p className="mt-2 max-w-3xl text-sm text-slate-600">
-              {content.subtitle}
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-600">
-              {/*
-                `suppressHydrationWarning`, because this text is *supposed* to
-                differ between server and client (BUG-1557).
-
-                `toLocaleString()` with no arguments formats in the runtime's
-                own locale and timezone. Next server-renders this client
-                component on a UTC server and then hydrates it in a browser
-                somewhere else, so the two strings disagree by definition and
-                React logs error #418 on every dashboard load.
-
-                Formatting deterministically would fix the warning by showing
-                every operator the server's clock, which is the wrong answer for
-                a "when was this refreshed" stamp — the useful reading is the
-                viewer's own time. So the difference is declared rather than
-                removed.
-              */}
-              <span
-                className="rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm"
-                suppressHydrationWarning
-              >
-                Refreshed {new Date(summary.refreshedAt).toLocaleString()}
-              </span>
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
-                {summary.timeRangeLabel}
-              </span>
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
-                Currency {summary.reportingCurrency}
-              </span>
-              {/*
-                The rate behind the numbers, on the same line as the numbers.
-
-                A converted figure is only as trustworthy as its rate, and an
-                operator should never have to go looking for the rate to decide
-                whether to believe a revenue total. The chip links to the screen
-                where that rate can be corrected (BUG-1745).
-              */}
-              {summary.fx?.rates.length ? (
-                <Link
-                  className="rounded-full border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
-                  href="/settings/exchange-rates"
-                  title={summary.fx.rates
-                    .map(
-                      (rate) =>
-                        `1 ${rate.currency} = ${rate.rate} ${summary.reportingCurrency}` +
-                        (rate.manualOverride ? " (manual override)" : ""),
-                    )
-                    .join("\n")}
-                >
-                  Rates{" "}
-                  {summary.fx.ratesAsOf
-                    ? formatDate(summary.fx.ratesAsOf)
-                    : "manual"}
-                </Link>
-              ) : null}
-              {/*
-                A zero still has to mean one thing.
-
-                Money held in a currency the platform has no rate for is named
-                here rather than dropped from the totals or, worse, added to
-                them at par. Normally empty; an entry is a prompt to add a rate,
-                not a permanent footnote.
-              */}
-              {summary.fx?.unconvertible.length ? (
-                <Link
-                  className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 font-medium text-amber-800 shadow-sm transition hover:bg-amber-100"
-                  href="/settings/exchange-rates"
-                  title={summary.fx.unconvertible
-                    .map(
-                      (entry) =>
-                        `${entry.currency} ${entry.amount} is not counted — no exchange rate is set`,
-                    )
-                    .join("\n")}
-                >
-                  No rate for{" "}
-                  {summary.fx.unconvertible
-                    .map((entry) => entry.currency)
-                    .join(", ")}
-                </Link>
-              ) : null}
-            </div>
-          </div>
-          <div className="grid min-w-0 gap-3 rounded-2xl border border-slate-200 bg-white/85 p-3 shadow-sm sm:grid-cols-2 sm:items-end xl:grid-cols-[minmax(220px,1fr)_minmax(150px,auto)_auto_auto]">
-            <RuntimeViewSelector
-              moduleKey="dashboard"
-              views={DASHBOARD_VIEWS}
-              defaultViewKey={defaultViewKey}
-              roleKeys={roleKeys}
-            />
-            <label className="grid gap-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-              Time range
-              <select
-                aria-label="Dashboard time range"
-                value={searchParams.get("range") ?? summary.timeRange ?? "6m"}
-                onChange={(event) => {
-                  const next = new URLSearchParams(searchParams.toString());
-                  next.set("range", event.target.value);
-                  router.push(`/?${next.toString()}`);
-                }}
-                className="h-10 w-full min-w-0 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-slate-700 shadow-sm"
-              >
-                <option value="30d">Last 30 days</option>
-                <option value="3m">Last 3 months</option>
-                <option value="6m">Last 6 months</option>
-                <option value="12m">Last 12 months</option>
-              </select>
-            </label>
-            <button
-              type="button"
-              onClick={() => router.refresh()}
-              aria-label="Refresh"
-              title="Refresh"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </button>
-
-            <button
-              type="button"
-              aria-pressed={autoRefresh}
-              aria-label={autoRefresh ? "Disable live refresh" : "Enable live refresh"}
-              title={autoRefresh ? "Live refresh on" : "Live refresh off"}
-              onClick={() => setAutoRefresh((current) => !current)}
-              className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border shadow-sm ${autoRefresh
-                  ? "border-[var(--admin-primary)] bg-[var(--admin-surface-tint)] text-[var(--admin-primary)]"
-                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                }`}
-            >
-              <Activity className="h-4 w-4" />
-            </button>
-          </div>
+      {/*
+        One compact row: what this dashboard is, then the controls that change
+        it. It used to be a tall gradient panel with a strip of pills under the
+        title — Currency, the period and the exchange rates — none of which is a
+        control and two of which repeated the time-range picker beside them.
+        The currency and rates now sit with the money figures they qualify
+        (`FxNote`), and only on views that show money.
+      */}
+      <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <div className="min-w-0 flex-[1_1_20rem]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+            Dashboard
+          </p>
+          <h1 className="mt-0.5 truncate text-xl font-semibold leading-7 text-slate-950">
+            {content.title}
+          </h1>
+          <p
+            className="mt-0.5 truncate text-sm text-slate-500"
+            title={content.subtitle}
+          >
+            {content.subtitle}
+            {/*
+              `suppressHydrationWarning`, because this text is *supposed* to
+              differ between server and client (BUG-1557): the useful reading of
+              "when was this refreshed" is the viewer's own clock, not the
+              server's, so the difference is declared rather than removed.
+            */}
+            <span className="text-slate-400" suppressHydrationWarning>
+              {" · "}Refreshed {new Date(summary.refreshedAt).toLocaleString()}
+            </span>
+          </p>
         </div>
-      </section>
+        <div className="flex flex-wrap items-center gap-2">
+          <RuntimeViewSelector
+            moduleKey="dashboard"
+            views={DASHBOARD_VIEWS}
+            defaultViewKey={defaultViewKey}
+            roleKeys={roleKeys}
+          />
+          {usesTimeRange ? (
+            <select
+              aria-label="Dashboard time range"
+              value={searchParams.get("range") ?? summary.timeRange ?? "6m"}
+              onChange={(event) => {
+                const next = new URLSearchParams(searchParams.toString());
+                next.set("range", event.target.value);
+                router.push(`/?${next.toString()}`);
+              }}
+              className="h-9 rounded-lg border border-slate-200 bg-white px-2.5 text-sm font-medium text-slate-700 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary)]/30"
+            >
+              <option value="30d">Last 30 days</option>
+              <option value="3m">Last 3 months</option>
+              <option value="6m">Last 6 months</option>
+              <option value="12m">Last 12 months</option>
+            </select>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => router.refresh()}
+            aria-label="Refresh"
+            title="Refresh"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            aria-pressed={autoRefresh}
+            aria-label={
+              autoRefresh ? "Disable live refresh" : "Enable live refresh"
+            }
+            title={
+              autoRefresh
+                ? "Live refresh on — updates every minute"
+                : "Live refresh off"
+            }
+            onClick={() => setAutoRefresh((current) => !current)}
+            className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border ${
+              autoRefresh
+                ? "border-[var(--admin-primary)] bg-[var(--admin-surface-tint)] text-[var(--admin-primary)]"
+                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+            }`}
+          >
+            <Activity className="h-4 w-4" />
+          </button>
+        </div>
+      </header>
+
+      {/*
+        A zero still has to mean one thing. Money held in a currency the
+        platform has no rate for is named rather than dropped from the totals or
+        added to them at par — an alert above the figures it affects, linking
+        to where the rate is set. Normally absent.
+      */}
+      {showsMoney && summary.fx?.unconvertible.length ? (
+        <Link
+          href="/settings/exchange-rates"
+          className="block rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm text-amber-900 hover:bg-amber-100"
+          title={summary.fx.unconvertible
+            .map(
+              (entry) =>
+                `${entry.currency} ${entry.amount} is not counted — no exchange rate is set`,
+            )
+            .join("\n")}
+        >
+          <span className="font-semibold">Not counted:</span> amounts in{" "}
+          {summary.fx.unconvertible.map((entry) => entry.currency).join(", ")}{" "}
+          have no exchange rate to {summary.reportingCurrency}. Set a rate →
+        </Link>
+      ) : null}
 
       <DashboardRuntime widgets={widgets} />
+      {showsMoney ? (
+        <FxNote currency={summary.reportingCurrency} fx={summary.fx} />
+      ) : null}
     </main>
+  );
+}
+
+/*
+ * The currency and rates behind the money figures, said once beneath them.
+ * A converted figure is only as trustworthy as its rate, so the rate stays one
+ * click away (BUG-1745) — but as a note on the numbers it qualifies, not as a
+ * pill in the page header pretending to be a control.
+ */
+function FxNote({
+  currency,
+  fx,
+}: {
+  currency: string;
+  fx: PlatformDashboardSummary["fx"];
+}) {
+  const rates = fx?.rates ?? [];
+  return (
+    <p className="px-1 text-xs text-slate-500">
+      Amounts in {currency}
+      {rates.length ? (
+        <>
+          , converted at{" "}
+          <Link
+            href="/settings/exchange-rates"
+            className="font-medium text-[var(--admin-primary)] hover:underline"
+            title={rates
+              .map(
+                (rate) =>
+                  `1 ${rate.currency} = ${rate.rate} ${currency}` +
+                  (rate.manualOverride ? " (manual override)" : ""),
+              )
+              .join("\n")}
+          >
+            {fx?.ratesAsOf
+              ? `exchange rates as of ${formatDate(fx.ratesAsOf)}`
+              : "manual exchange rates"}
+          </Link>
+        </>
+      ) : null}
+      .
+    </p>
   );
 }
 

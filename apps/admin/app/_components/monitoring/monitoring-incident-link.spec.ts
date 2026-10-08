@@ -7,9 +7,8 @@ import path from "node:path";
  * names the *queue*. No dynamic segment has ever existed under
  * `settings/monitoring`, so all of them were links to a 404.
  *
- * With 1,495 incidents recorded, one critical and none ever resolved, the queue
- * could be counted and sorted and never worked. The "0 resolved" figure read as
- * a backlog when it was the absence of a working tool.
+ * The incident now opens in the error log's detail drawer, which is addressed
+ * by a query parameter on the queue, not by a path segment.
  *
  * Asserted against the source rather than by rendering, because admin's jest is
  * node-only with no jsdom. The property that matters is which href is composed,
@@ -25,28 +24,25 @@ const RAW = readFileSync(
  * Comments are stripped before scanning, for the reason REG-262 records about
  * the worktree guard: the fix explains the broken href in its own comment, so
  * the sentence that prevents the mistake would fail the check that enforces it.
- * The same shape as a bug record breaking a link check by quoting a wikilink.
  */
 const SOURCE = RAW.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
 
 describe("monitoring incidents link somewhere that exists", () => {
   it("does not compose a record route under the queue constant", () => {
-    /*
-     * `${QUEUE}/${...}` is the shape that 404s. A query string under the same
-     * constant is fine, which is why this matches a slash specifically.
-     */
+    // `${QUEUE}/${...}` is the shape that 404s; a query string is fine.
     expect(SOURCE).not.toMatch(/\$\{QUEUE\}\/\$\{/);
   });
 
-  it("carries the incident's reference number to the queue", () => {
+  it("opens the incident's drawer in the queue by its reference number", () => {
     expect(SOURCE).toContain("incident.referenceNumber");
-    expect(SOURCE).toMatch(/\$\{QUEUE\}\?search=/);
+    expect(SOURCE).toMatch(
+      /\$\{QUEUE\}\?[^`]*\$\{INCIDENT_PARAM\}=\$\{encodeURIComponent\(incident\.referenceNumber\)\}/,
+    );
   });
 
   it("still reads the reference number the API returns", () => {
     // Guards the guard: if the field were renamed, the assertion above would
-    // pass against a link that no longer resolves to anything. Read from the
-    // raw source, since the type declaration is not inside a comment.
+    // pass against a link that no longer resolves to anything.
     expect(RAW).toMatch(/referenceNumber:\s*string/);
   });
 });

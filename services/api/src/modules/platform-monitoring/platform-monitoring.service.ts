@@ -4,7 +4,6 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { createReadStream } from 'fs';
 import { mkdir, readdir, stat } from 'fs/promises';
 import path from 'path';
@@ -12,11 +11,45 @@ import type { AuthenticatedUser } from '../../common/interfaces/authenticated-re
 import { userHasPlatformPermission } from '../platform-auth/platform-permissions';
 import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { redactSecretsInText } from '../../common/errors/sanitize-error-log';
+import {
+  redactSecretsInText,
+  sanitizeForErrorLog,
+} from '../../common/errors/sanitize-error-log';
 import { NOT_AN_INCIDENT } from '../error-logs/expected-protocol-outcome';
+import {
+  buildErrorLogWhere,
+  criticalIncidentWhere,
+  getErrorLogOrderBy,
+  investigatingIncidentWhere,
+  normalizePositiveInt,
+  normalizeSortBy,
+  normalizeSortDirection,
+  openIncidentWhere,
+  scopeWhere,
+  severityGroupOf,
+  warningIncidentWhere,
+  type ErrorLogListQuery,
+} from './error-log-query';
+
+/*
+ * Re-exported so the callers that already import these predicates from the
+ * service — the operations dashboard and the BUG-1750/BUG-2495 specs — keep one
+ * definition rather than growing a second import path to a copy.
+ */
+export {
+  CRITICAL_INCIDENT_SEVERITIES,
+  INVESTIGATING_SUPPORT_STATUSES,
+  criticalIncidentWhere,
+  incidentViewWhere,
+  investigatingIncidentWhere,
+  openIncidentWhere,
+} from './error-log-query';
 
 const LOG_FILE_PATTERN =
   /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,180}\.(log|txt|json|ndjson)$/;
+
+/** How many tenant names a search may expand to before it stops widening. */
+const TENANT_SEARCH_LIMIT = 50;
 
 @Injectable()
 export class PlatformMonitoringService {
@@ -27,169 +60,255 @@ export class PlatformMonitoringService {
     private readonly prisma: PrismaService,
   ) {}
 
-  async listEvents(
-    user: AuthenticatedUser,
-    query: Record<string, string | undefined>,
-  ) {
+  async listEvents(user: AuthenticatedUser, query: ErrorLogListQuery) {
     this.assertMonitoring(user, 'read');
     const page = normalizePositiveInt(query.page, 1);
     const pageSize = Math.min(
       Math.max(normalizePositiveInt(query.pageSize, 25), 10),
       100,
     );
-    const createdAt = {
-      ...(query.from ? { gte: new Date(query.from) } : {}),
-      ...(query.to ? { lte: new Date(query.to) } : {}),
+    const options = {
+      now: new Date(),
+      tenantIdsMatchingSearch: await this.findTenantIdsByName(query.search),
     };
-    const search = query.search?.trim();
-    const where: Prisma.ErrorLogWhereInput = {
-      AND: [
-        query.reference
-          ? { traceId: { contains: query.reference, mode: 'insensitive' } }
-          : {},
-        /*
-         * Exact match, distinct from `reference` above. An operator who has
-         * been handed a full trace id — from a "Reference: req_…" toast, a log
-         * line, or another incident's "related" list — wants exactly that
-         * request, not every id containing it as a substring.
-         */
-        query.correlationId ? { traceId: query.correlationId } : {},
-        query.sourceApp ? { sourceApp: query.sourceApp } : {},
-        query.environment ? { environment: query.environment } : {},
-        query.tenantId && query.tenantId !== 'platform'
-          ? { tenantId: query.tenantId }
-          : {},
-        query.tenantId === 'platform' ? { tenantId: null } : {},
-        query.userId ? { userId: query.userId } : {},
-        /*
-         * BUG-1420. `ErrorLog.severity` is free text and production holds both
-         * spellings — a census on 2026-08-27 found 1,466 rows lowercase against
-         * 5 uppercase. An exact match therefore hid 14 of the 15 errors that
-         * existed, and did it silently: the screen was not empty and reported
-         * nothing wrong, it simply answered a different question.
-         *
-         * Matched case-insensitively so the rows already stored are reachable.
-         * `equals` with `mode: 'insensitive'` rather than a `toUpperCase()` on
-         * the input, which would only have moved the mismatch to the other side.
-         */
-        query.severity
-          ? { severity: { equals: query.severity, mode: 'insensitive' } }
-          : {},
-        query.status ? { supportStatus: query.status } : {},
-        incidentViewWhere(query.viewKey),
-        query.category
-          ? { errorCode: { contains: query.category, mode: 'insensitive' } }
-          : {},
-        query.module ? { module: query.module } : {},
-        query.route
-          ? { path: { contains: query.route, mode: 'insensitive' } }
-          : {},
-        query.method ? { method: query.method.toUpperCase() } : {},
-        Object.keys(createdAt).length > 0 ? { createdAt } : {},
-        search
-          ? {
-              OR: [
-                { traceId: { contains: search, mode: 'insensitive' } },
-                { errorCode: { contains: search, mode: 'insensitive' } },
-                { message: { contains: search, mode: 'insensitive' } },
-                { description: { contains: search, mode: 'insensitive' } },
-                { path: { contains: search, mode: 'insensitive' } },
-                { userId: { contains: search, mode: 'insensitive' } },
-                { tenantId: { contains: search, mode: 'insensitive' } },
-              ],
-            }
-          : {},
-      ],
-    };
+    const where = buildErrorLogWhere(query, options);
+    /*
+     * The summary metrics count the *scope* — period, source, environment,
+     * module, tenant, search — and ignore the severity/status selection. Each
+     * metric card doubles as that filter, and a breakdown that collapsed to
+     * zero everywhere except the card just pressed would stop being one.
+     */
+    const scope = scopeWhere(query, options);
     const orderBy = getErrorLogOrderBy(query.sortBy, query.sortDirection);
-    const [logs, total, critical, webApp, open, resolved, investigating] =
-      await Promise.all([
-        this.prisma.errorLog.findMany({
-          where,
-          orderBy,
-          skip: (page - 1) * pageSize,
-          take: pageSize,
-        }),
-        this.prisma.errorLog.count({ where }),
-        /*
-         * The same definition of "critical" the view uses.
-         *
-         * This counted `severity: 'ERROR'` exactly, while the view had already
-         * been taught to fold case by BUG-1420 — so the tile said 11 and the
-         * view it linked to returned 0 of 0. BUG-1420 fixed the view and left
-         * the metric carrying the original defect (BUG-1750). One definition,
-         * three call sites, is the actual fix.
-         */
-        this.prisma.errorLog.count({
-          where: { AND: [where, criticalIncidentWhere()] },
-        }),
-        this.prisma.errorLog.count({
-          where: { AND: [where, { sourceApp: 'web' }] },
-        }),
-        /*
-         * "Waiting for triage" means waiting for a person. `not: 'RESOLVED'`
-         * counted expected protocol outcomes as open work, which is the same
-         * miscount that filled the queue — just expressed as a number.
-         */
-        this.prisma.errorLog.count({
-          where: { AND: [where, openIncidentWhere()] },
-        }),
-        this.prisma.errorLog.count({
-          where: { AND: [where, { supportStatus: 'RESOLVED' }] },
-        }),
-        /*
-         * Measured, not inferred. The overview used to derive this as
-         * `total - open - resolved`, which silently swept every
-         * `NOT_AN_INCIDENT` row into a tile reading "Assigned and in progress"
-         * (BUG-2495). Counted from the same predicate the `investigating` view
-         * filters on, so the tile and the list it opens cannot disagree.
-         */
-        this.prisma.errorLog.count({
-          where: { AND: [where, investigatingIncidentWhere()] },
-        }),
-      ]);
+    const [
+      logs,
+      matching,
+      total,
+      critical,
+      warning,
+      open,
+      resolved,
+      investigating,
+      criticalOpen,
+    ] = await Promise.all([
+      this.prisma.errorLog.findMany({
+        where,
+        orderBy,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.errorLog.count({ where }),
+      this.prisma.errorLog.count({ where: scope }),
+      /*
+       * The same definition of "critical" the filter uses (BUG-1750): one
+       * definition, every call site.
+       */
+      this.prisma.errorLog.count({
+        where: { AND: [scope, criticalIncidentWhere()] },
+      }),
+      this.prisma.errorLog.count({
+        where: { AND: [scope, warningIncidentWhere()] },
+      }),
+      /*
+       * "Unresolved" means waiting for a person. `not: 'RESOLVED'` counted
+       * expected protocol outcomes as open work, which is the same miscount
+       * that filled the queue — just expressed as a number.
+       */
+      this.prisma.errorLog.count({
+        where: { AND: [scope, openIncidentWhere()] },
+      }),
+      this.prisma.errorLog.count({
+        where: { AND: [scope, { supportStatus: 'RESOLVED' }] },
+      }),
+      /*
+       * Measured, not inferred (BUG-2495): counted from the predicate the
+       * `investigating` view filters on, so the tile and its list agree.
+       */
+      this.prisma.errorLog.count({
+        where: { AND: [scope, investigatingIncidentWhere()] },
+      }),
+      /*
+       * The overview's "critical and unresolved" tile. It used to show the
+       * all-time critical count while linking to critical-and-NEW, so the
+       * number and the list it opened disagreed.
+       */
+      this.prisma.errorLog.count({
+        where: { AND: [scope, criticalIncidentWhere(), openIncidentWhere()] },
+      }),
+    ]);
     const items = await this.enrichEvents(logs);
     return {
       items,
       meta: {
         page,
         pageSize,
-        total,
-        totalPages: Math.max(1, Math.ceil(total / pageSize)),
+        total: matching,
+        totalPages: Math.max(1, Math.ceil(matching / pageSize)),
         sortBy: normalizeSortBy(query.sortBy),
         sortDirection: normalizeSortDirection(query.sortDirection),
       },
-      metrics: { total, critical, webApp, open, resolved, investigating },
+      metrics: {
+        total,
+        critical,
+        warning,
+        open,
+        resolved,
+        investigating,
+        criticalOpen,
+      },
     };
   }
 
+  /**
+   * The values the console's filters offer, read from the incidents that
+   * exist rather than from a hardcoded list.
+   *
+   * The previous screen offered "staging" as an environment and "WEB" as a
+   * source, neither of which any row has ever stored, so choosing them always
+   * returned nothing. A filter option the data cannot satisfy is a dead
+   * control; these lists cannot contain one.
+   *
+   * Grouped over the whole table, not the current filter, so choosing a value
+   * never makes the other options disappear. Each column is indexed
+   * (`sourceApp`, `module`, `tenantId` lead an index; `environment` is
+   * low-cardinality), and the tenant list is capped.
+   */
+  async listFacets(user: AuthenticatedUser) {
+    this.assertMonitoring(user, 'read');
+    const [sources, environments, modules, tenantRows] = await Promise.all([
+      this.prisma.errorLog.groupBy({
+        by: ['sourceApp'],
+        _count: { _all: true },
+        orderBy: { sourceApp: 'asc' },
+      }),
+      this.prisma.errorLog.groupBy({
+        by: ['environment'],
+        _count: { _all: true },
+        orderBy: { environment: 'asc' },
+      }),
+      this.prisma.errorLog.groupBy({
+        by: ['module'],
+        where: { module: { not: null } },
+        _count: { _all: true },
+        orderBy: { module: 'asc' },
+      }),
+      this.prisma.errorLog.groupBy({
+        by: ['tenantId'],
+        _count: { _all: true },
+        orderBy: { tenantId: 'asc' },
+        take: 500,
+      }),
+    ]);
+    const tenantIds = tenantRows.flatMap((row) => row.tenantId ?? []);
+    const tenants = tenantIds.length
+      ? await this.prisma.tenant.findMany({
+          where: { id: { in: tenantIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const tenantName = new Map(tenants.map((row) => [row.id, row.name]));
+
+    return {
+      sourceApps: sources.map((row) => ({
+        value: row.sourceApp,
+        count: row._count._all,
+      })),
+      environments: environments.map((row) => ({
+        value: row.environment,
+        count: row._count._all,
+      })),
+      modules: modules.flatMap((row) =>
+        row.module ? [{ value: row.module, count: row._count._all }] : [],
+      ),
+      tenants: tenantRows
+        .flatMap((row) =>
+          row.tenantId && row.tenantId !== 'platform'
+            ? [
+                {
+                  id: row.tenantId,
+                  name: tenantName.get(row.tenantId) ?? 'Deleted tenant',
+                  count: row._count._all,
+                },
+              ]
+            : [],
+        )
+        .sort((left, right) => left.name.localeCompare(right.name)),
+      /* Incidents with no tenant: failed sign-ins, platform routes, probes. */
+      platformCount: tenantRows
+        .filter((row) => !row.tenantId || row.tenantId === 'platform')
+        .reduce((total, row) => total + row._count._all, 0),
+    };
+  }
+
+  /**
+   * One incident, for the detail drawer.
+   *
+   * `traceId` may be the incident's own reference or the reference of any
+   * later occurrence of it — the one the customer was actually shown is
+   * usually the latter, and returning 404 for it sent the operator back to
+   * searching by hand.
+   */
   async getEvent(user: AuthenticatedUser, traceId: string) {
     this.assertMonitoring(user, 'read');
-    const log = await this.prisma.errorLog.findUnique({ where: { traceId } });
+    const log =
+      (await this.prisma.errorLog.findUnique({ where: { traceId } })) ??
+      (await this.findIncidentByOccurrence(traceId));
     if (!log) {
       throw new NotFoundException('Error event was not found.');
     }
-    const [event, relatedOccurrences, relatedAuditEvents, relatedOutboxEvents] =
-      await Promise.all([
-        this.enrichEvents([log]).then(([item]) => item),
-        this.findRelatedOccurrences(log.id, log.traceId),
-        this.findRelatedAuditEvents(log.traceId),
-        this.findRelatedOutboxEvents(log.traceId),
-      ]);
+    const [
+      event,
+      relatedOccurrences,
+      relatedAuditEvents,
+      relatedOutboxEvents,
+      organization,
+      businessUnit,
+    ] = await Promise.all([
+      this.enrichEvents([log]).then(([item]) => item),
+      this.findRelatedOccurrences(log.id, log.traceId),
+      this.findRelatedAuditEvents(log.traceId),
+      this.findRelatedOutboxEvents(log.traceId),
+      /*
+       * Names, not ids, for the context panel. Scoped by the incident's own
+       * tenant so an id recorded against one tenant can never resolve to a
+       * record of another.
+       */
+      log.organizationId && log.tenantId
+        ? this.prisma.organization.findFirst({
+            where: { id: log.organizationId, tenantId: log.tenantId },
+            select: { id: true, name: true },
+          })
+        : null,
+      log.businessUnitId && log.tenantId
+        ? this.prisma.businessUnit.findFirst({
+            where: { id: log.businessUnitId, tenantId: log.tenantId },
+            select: { id: true, name: true },
+          })
+        : null,
+    ]);
+    /*
+     * Re-sanitized on read, as defence in depth. Rows are sanitized when they
+     * are written, but the sanitizer has grown since (BUG-3555 added free-text
+     * scanning and the financial-identifier keys), and rows written before
+     * that still hold whatever it used to miss. The same rules apply on the
+     * way out, so an older row cannot show this screen a token the current
+     * write path would have removed.
+     */
     return {
       ...event,
-      fullMessage: log.message,
-      description: log.description,
-      stack: log.stack,
-      cause: log.cause,
-      details: log.details,
+      requestedReference: traceId,
+      fullMessage: redactSecretsInText(log.message),
+      description: redactSecretsInText(log.description),
+      stack: log.stack ? redactSecretsInText(log.stack) : null,
+      cause: sanitizeForErrorLog(log.cause),
+      details: sanitizeForErrorLog(log.details),
       module: log.module,
       request: {
         method: log.method,
         path: log.path,
-        params: log.params,
-        query: log.query,
-        body: log.requestBody,
+        params: sanitizeForErrorLog(log.params),
+        query: sanitizeForErrorLog(log.query),
+        body: sanitizeForErrorLog(log.requestBody),
         ipAddress: log.ipAddress,
       },
       client: { userAgent: log.userAgent },
@@ -197,7 +316,9 @@ export class PlatformMonitoringService {
         userId: log.userId,
         tenantId: log.tenantId,
         organizationId: log.organizationId,
+        organizationName: organization?.name ?? null,
         businessUnitId: log.businessUnitId,
+        businessUnitName: businessUnit?.name ?? null,
         platformActor: readPlatformActor(log.details),
       },
       /*
@@ -210,6 +331,34 @@ export class PlatformMonitoringService {
       relatedAuditEvents,
       relatedOutboxEvents,
     };
+  }
+
+  private async findIncidentByOccurrence(traceId: string) {
+    const occurrence = await this.prisma.errorLogOccurrence.findUnique({
+      where: { traceId },
+      select: { incident: true },
+    });
+    return occurrence?.incident ?? null;
+  }
+
+  /**
+   * Tenants whose name matches a search, so "acme" finds Acme's incidents.
+   * `ErrorLog` stores only the id; this is the join it cannot express.
+   */
+  private async findTenantIdsByName(search: string | undefined) {
+    const value = search?.trim();
+    if (!value || value.length < 2) return [];
+    const tenants = await this.prisma.tenant.findMany({
+      where: {
+        OR: [
+          { name: { contains: value, mode: 'insensitive' } },
+          { slug: { contains: value, mode: 'insensitive' } },
+        ],
+      },
+      select: { id: true },
+      take: TENANT_SEARCH_LIMIT,
+    });
+    return tenants.map((tenant) => tenant.id);
   }
 
   /** Other recent occurrences of the same incident (same fingerprint), for "is this recurring". */
@@ -573,6 +722,13 @@ export class PlatformMonitoringService {
         : null;
       return {
         id: log.traceId,
+        /*
+         * The row id, which `id` above is not (it has always carried the trace
+         * id, and the runtime keys records by it). Creating a support case from
+         * an incident takes this id; passing the trace id there 404ed, so the
+         * console's "Create support case" button never worked.
+         */
+        incidentId: log.id,
         traceId: log.traceId,
         fingerprint: log.fingerprint ?? null,
         firstSeenAt: log.firstSeenAt ?? log.createdAt,
@@ -584,6 +740,9 @@ export class PlatformMonitoringService {
         referenceNumber: log.traceId,
         timestamp: log.createdAt,
         severity: log.severity,
+        // The group the console filters by, so a row labelled "Critical" is a
+        // row the Critical filter returns; `severity` itself is free text.
+        severityGroup: severityGroupOf(log.severity),
         sourceApp: log.sourceApp ?? getLogSourceApp(log.traceId),
         tenant:
           tenant ??
@@ -620,7 +779,8 @@ export class PlatformMonitoringService {
         method: log.method,
         module: log.module ?? null,
         category: log.errorCode,
-        message: log.message,
+        // Redacted on read as well as on write; see `getEvent`.
+        message: redactSecretsInText(log.message),
         status: log.supportStatus ?? 'NEW',
         assignedTo: log.assignedTo ?? null,
         assignedToUser: assignedToUser
@@ -691,52 +851,6 @@ function getLogSourceApp(traceId: string) {
   return 'api';
 }
 
-function normalizePositiveInt(value: string | undefined, fallback: number) {
-  const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
-}
-
-function normalizeSortBy(value: string | undefined) {
-  const allowed = new Set([
-    'timestamp',
-    'severity',
-    'sourceApp',
-    'tenant',
-    'user',
-    'route',
-    'category',
-    'statusCode',
-  ]);
-  return value && allowed.has(value) ? value : 'timestamp';
-}
-
-function normalizeSortDirection(value: string | undefined) {
-  return value === 'asc' ? 'asc' : 'desc';
-}
-
-function getErrorLogOrderBy(
-  sortBy: string | undefined,
-  sortDirection: string | undefined,
-) {
-  const direction = normalizeSortDirection(sortDirection);
-  switch (normalizeSortBy(sortBy)) {
-    case 'severity':
-      return { severity: direction } as const;
-    case 'route':
-      return { path: direction } as const;
-    case 'category':
-      return { errorCode: direction } as const;
-    case 'statusCode':
-      return { statusCode: direction } as const;
-    case 'timestamp':
-    case 'sourceApp':
-    case 'tenant':
-    case 'user':
-    default:
-      return { createdAt: direction } as const;
-  }
-}
-
 function readPlatformActor(details: unknown) {
   if (!details || typeof details !== 'object' || Array.isArray(details)) {
     return null;
@@ -751,82 +865,6 @@ function readPlatformActor(details: unknown) {
     email: typeof record.email === 'string' ? record.email : null,
     role: typeof record.role === 'string' ? record.role : null,
   };
-}
-
-/*
- * The incidents grid offers five tabs. Until now listEvents read no view key
- * at all, so Critical, New, Under investigation and Resolved every one of them
- * returned the same rows as All.
- *
- * Severity is stored as free text rather than an enum, so the critical view
- * matches the two levels the ingest path writes.
- */
-/**
- * What "critical" means, in the one place that decides it.
- *
- * `severity` is unconstrained free text, so this is a list rather than a
- * comparison. Prisma's `in` is case-sensitive and has no insensitive mode, so
- * the spellings are enumerated rather than folded — a census on 2026-08-27
- * found 1,466 rows lowercase against 5 uppercase, which is why an exact match
- * on `'ERROR'` returned almost nothing.
- *
- * Promoting `severity` to an enum with a normalising migration is the deeper
- * fix and needs an ExecPlan; until then this is the definition, and the metric,
- * the view and the tile's link all read it rather than each spelling their own.
- */
-export const CRITICAL_INCIDENT_SEVERITIES = [
-  'ERROR',
-  'FATAL',
-  'error',
-  'fatal',
-] as const;
-
-export function criticalIncidentWhere(): Prisma.ErrorLogWhereInput {
-  return { severity: { in: [...CRITICAL_INCIDENT_SEVERITIES] } };
-}
-
-/**
- * What "under investigation" means, in one place.
- *
- * The overview tile used to infer this by subtraction —
- * `total - open - resolved` — which was true while there were three states and
- * silently became false when `NOT_AN_INCIDENT` was added as a fourth
- * (BUG-1754). Every set-aside row then landed in a tile labelled "Assigned and
- * in progress", whose link filtered on `INVESTIGATING` and returned none of
- * them. Production read 27 there, and all 27 were `NOT_AN_INCIDENT`
- * (BUG-2495).
- *
- * Exported so the metric and the view filter cannot drift, which is the rule
- * BUG-1750 established for "critical" after it had been spelled three
- * different ways on this same screen.
- */
-export const INVESTIGATING_SUPPORT_STATUSES = [
-  'INVESTIGATING',
-  'FIX_IN_PROGRESS',
-] as const;
-
-export function investigatingIncidentWhere(): Prisma.ErrorLogWhereInput {
-  return { supportStatus: { in: [...INVESTIGATING_SUPPORT_STATUSES] } };
-}
-
-/**
- * ITEM-0206. Open work: every incident not resolved and not set aside as
- * NOT_AN_INCIDENT. The overview's "waiting for triage" tile, the operations
- * dashboard's "Errors needing attention" and the `open` view all read this, so
- * the count a tile shows is the list its link opens.
- */
-export function openIncidentWhere(): Prisma.ErrorLogWhereInput {
-  return { supportStatus: { notIn: ['RESOLVED', NOT_AN_INCIDENT] } };
-}
-
-export function incidentViewWhere(viewKey?: string): Prisma.ErrorLogWhereInput {
-  if (viewKey === 'critical') return criticalIncidentWhere();
-  if (viewKey === 'open') return openIncidentWhere();
-  /* supportStatus is non-nullable and defaults to NEW, so untriaged rows match. */
-  if (viewKey === 'new') return { supportStatus: 'NEW' };
-  if (viewKey === 'investigating') return investigatingIncidentWhere();
-  if (viewKey === 'resolved') return { supportStatus: 'RESOLVED' };
-  return {};
 }
 
 const SUPPORT_STATUSES = new Set([
