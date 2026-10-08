@@ -59,12 +59,12 @@ import { contractPartyTypeForPartner } from '../partners/partner-type-policy';
 import { toDisplayString } from '../../common/utils/display-string';
 import {
   ALWAYS_AVAILABLE_SOURCE_ENTITIES,
-  contractAllowedSourceEntities,
-  contractInstanceContextEntities,
+  offeredPlaceholderEntities,
   outOfContextPlaceholders,
   unresolvableRequiredPlaceholders,
   type LinkableContract,
 } from './placeholder-context';
+import { normalizeSignatureTokens } from './signature-tokens';
 import {
   assertCustomerUsable,
   assertLeadAttributedToPartner,
@@ -421,6 +421,24 @@ export const CONTRACT_PLACEHOLDER_REGISTRY: ContractPlaceholderDefinition[] = [
     'EMAIL',
     'noura@northstar.example',
   ),
+  /*
+   * Optional: `Partner.phone` and `Partner.country` are nullable, and a
+   * partner agreement must not be blocked on a phone number.
+   */
+  placeholder(
+    'partner.contact.phone',
+    'Partner contact phone',
+    'PHONE',
+    '+966 55 000 0000',
+    optional,
+  ),
+  placeholder(
+    'partner.country',
+    'Partner country',
+    'TEXT',
+    'Saudi Arabia',
+    optional,
+  ),
   placeholder(
     'partner.commissionPercentage',
     'Partner commission',
@@ -621,6 +639,77 @@ export const CONTRACT_PLACEHOLDER_REGISTRY: ContractPlaceholderDefinition[] = [
       required: false,
       fallbackBehavior: 'EMPTY',
     },
+  ),
+  /*
+   * The lead's own legal identity, address, signer and billing contact.
+   *
+   * A lead-sourced agreement already resolved these into `customer.*` (see
+   * `resolveSource`), which is the only reason a lead's signer could appear in
+   * a document at all — and it meant authoring a document for a prospect
+   * required picking "Customer" fields. The Fields panel now offers a lead
+   * `lead.*` only (`offeredPlaceholderEntities`), so the lead namespace has to
+   * carry what a prospect agreement actually prints. Optional like the rest
+   * of `lead.*`: every one of these columns is nullable on `Lead`.
+   */
+  placeholder(
+    'lead.legalName',
+    'Lead legal name',
+    'TEXT',
+    'Gulf Horizon Logistics Company',
+    optional,
+  ),
+  placeholder(
+    'lead.registrationNumber',
+    'Lead registration number',
+    'TEXT',
+    'CR-7002146',
+    optional,
+  ),
+  placeholder('lead.taxId', 'Lead tax ID', 'TEXT', '310987654300003', {
+    ...optional,
+    securityClassification: 'CONFIDENTIAL',
+  }),
+  placeholder(
+    'lead.address',
+    'Lead address',
+    'ADDRESS',
+    'King Fahd Road, Dammam, Eastern Province',
+    optional,
+  ),
+  placeholder(
+    'lead.signer.name',
+    'Lead authorized signer',
+    'TEXT',
+    'Amal Hassan',
+    optional,
+  ),
+  placeholder(
+    'lead.signer.title',
+    'Lead signer title',
+    'TEXT',
+    'Chief Executive Officer',
+    optional,
+  ),
+  placeholder(
+    'lead.signer.email',
+    'Lead signer email',
+    'EMAIL',
+    'amal@gulfhorizon.example',
+    optional,
+  ),
+  placeholder(
+    'lead.billingContact.name',
+    'Lead billing contact',
+    'TEXT',
+    'Faisal Rahman',
+    optional,
+  ),
+  placeholder(
+    'lead.billingContact.email',
+    'Lead billing contact email',
+    'EMAIL',
+    'billing@gulfhorizon.example',
+    optional,
   ),
   placeholder(
     'contract.number',
@@ -1137,11 +1226,15 @@ export class ContractsService {
   ) {}
 
   /**
-   * ADR-0020. `contractType` narrows the registry to what that type's
-   * context can ever hold; `contractId` narrows it further to what this
-   * specific agreement actually links. Neither is required — an omitted
-   * `contractType` returns the full registry, unchanged from before this
-   * ADR, for any caller that still wants to browse every placeholder.
+   * ADR-0020. What the Fields panel offers, by agreement subject: a template
+   * (`contractType` only) is offered the subject its type declares; an
+   * agreement (`contractId`) the subject it is actually with — a lead is
+   * offered `lead.*`, a customer `customer.*`, a tenant `tenant.*` plus
+   * `customer.*` only where that customer exists (`offeredPlaceholderEntities`).
+   * The offer is always a subset of what resolves, so a field the panel lists
+   * is a field generation can fill. Neither parameter is required — omitting
+   * both returns the full registry, which the template editor's sample
+   * preview uses to render examples for whatever an old template contains.
    */
   async listPlaceholderDefinitions(
     user: AuthenticatedUser,
@@ -1153,6 +1246,8 @@ export class ContractsService {
       ? await this.prisma.contract.findUnique({
           where: { id: contractId },
           select: {
+            contractType: true,
+            counterpartyType: true,
             partnerId: true,
             relatedLeadId: true,
             customerAccountId: true,
@@ -1161,11 +1256,11 @@ export class ContractsService {
           },
         })
       : null;
-    const allowedEntities = !contractType
-      ? null
-      : linked
-        ? contractInstanceContextEntities(contractType, linked)
-        : contractAllowedSourceEntities(contractType);
+    const effectiveType = linked?.contractType ?? contractType;
+    const context = effectiveType
+      ? offeredPlaceholderEntities(effectiveType, linked)
+      : null;
+    const allowedEntities = context?.entities ?? null;
     const items = (
       allowedEntities
         ? CONTRACT_PLACEHOLDER_REGISTRY.filter((item) =>
@@ -1193,7 +1288,19 @@ export class ContractsService {
         'contract.currency': 'SAR',
       }),
     }));
-    return { items, groups: PLACEHOLDER_GROUP_ORDER };
+    return {
+      items,
+      groups: PLACEHOLDER_GROUP_ORDER,
+      // Lets the panel say whose fields it is showing rather than leaving the
+      // author to infer it from which groups happen to be missing.
+      context: context
+        ? {
+            contractType: effectiveType,
+            subjectType: context.subjectType,
+            sourceEntities: [...context.entities],
+          }
+        : null,
+    };
   }
 
   async list(
@@ -5054,6 +5161,15 @@ export class ContractsService {
           'customer.industry': lead.industry,
           'customer.country': lead.countryOfRegistration ?? lead.country ?? '',
           ...definedValues({
+            'lead.legalName': lead.legalCompanyName,
+            'lead.registrationNumber': lead.registrationNumber,
+            'lead.taxId': lead.taxId,
+            'lead.address': address,
+            'lead.signer.name': lead.authorizedSignerName,
+            'lead.signer.title': lead.authorizedSignerTitle,
+            'lead.signer.email': lead.authorizedSignerEmail,
+            'lead.billingContact.name': lead.billingContactName,
+            'lead.billingContact.email': lead.billingContactEmail,
             'customer.registrationNumber': lead.registrationNumber,
             'customer.taxId': lead.taxId,
             'customer.address': address,
@@ -5465,6 +5581,8 @@ export class ContractsService {
         contactFirstName: true,
         contactLastName: true,
         email: true,
+        phone: true,
+        country: true,
         taxId: true,
         defaultCommissionRate: true,
         currencyCode: true,
@@ -6044,7 +6162,17 @@ function normalizeContractTemplate<
   };
 }
 
+/**
+ * Every write of document HTML — template versions, agreement drafts,
+ * imports — passes through here, so this is also where a signature token is
+ * stored in its one canonical spelling (`signature-tokens.ts`). Stored rows
+ * written before that are normalised on read by the renderers instead.
+ */
 export function cleanContractHtml(value: string) {
+  return normalizeSignatureTokens(sanitizeContractHtml(value));
+}
+
+function sanitizeContractHtml(value: string) {
   return sanitizeHtml(value, {
     allowedTags: [
       'p',
@@ -6357,11 +6485,13 @@ export function omitPlatformSignatureLines(
   platformSigns: boolean,
 ) {
   if (platformSigns) return html;
-  return html.replace(/<p\b[^>]*>[\s\S]*?<\/p>/gi, (paragraph) =>
-    /data-document-role\s*=\s*["']platform-signature["']/i.test(paragraph) ||
-    /\{\{\s*signature\.platform\./i.test(paragraph)
-      ? ''
-      : paragraph,
+  return normalizeSignatureTokens(html).replace(
+    /<p\b[^>]*>[\s\S]*?<\/p>/gi,
+    (paragraph) =>
+      /data-document-role\s*=\s*["']platform-signature["']/i.test(paragraph) ||
+      /\{\{\s*signature\.platform\./i.test(paragraph)
+        ? ''
+        : paragraph,
   );
 }
 
@@ -6397,7 +6527,12 @@ export function renderContractVersionHtml(
       )
       .map((row) => [row.key, row.value]),
   );
-  const rendered = renderContractPlaceholders(html, values);
+  // A legacy spelling (`{{ signature.partner.name }}`) is canonicalised first,
+  // so it is held back at freeze and filled at signing like any other.
+  const rendered = renderContractPlaceholders(
+    normalizeSignatureTokens(html),
+    values,
+  );
   return mode === 'display' ? renderPendingSignatureTokens(rendered) : rendered;
 }
 
@@ -6466,7 +6601,7 @@ export function renderSignatureEvidenceTokens(
   const dateDefinition = CONTRACT_PLACEHOLDER_REGISTRY.find(
     (item) => item.key === 'signature.counterparty.date',
   );
-  return html.replace(
+  return normalizeSignatureTokens(html).replace(
     /\{\{\s*(signature\.[a-zA-Z0-9_.-]+)\s*\}\}/g,
     (_token, key: string) => {
       const parts = key.split('.');
@@ -6514,9 +6649,11 @@ export function renderSignatureEvidenceTokens(
 export function extractContractPlaceholders(html: string) {
   return [
     ...new Set(
-      [...html.matchAll(/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g)].map(
-        (match) => match[1],
-      ),
+      [
+        ...normalizeSignatureTokens(html).matchAll(
+          /\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g,
+        ),
+      ].map((match) => match[1]),
     ),
   ].map(
     (key) =>
@@ -6879,6 +7016,8 @@ export function partnerPlaceholderValues(
     contactFirstName?: string | null;
     contactLastName?: string | null;
     email?: string | null;
+    phone?: string | null;
+    country?: string | null;
     taxId?: string | null;
     defaultCommissionRate?: { toString(): string } | number | null;
   },
@@ -6901,6 +7040,8 @@ export function partnerPlaceholderValues(
     'partner.contact.firstName': partner.contactFirstName,
     'partner.contact.lastName': partner.contactLastName,
     'partner.contact.email': partner.email?.toLowerCase(),
+    'partner.contact.phone': partner.phone,
+    'partner.country': partner.country,
     'partner.commissionPercentage':
       contractCommissionPercentage?.toString() ?? defaultRate,
   });

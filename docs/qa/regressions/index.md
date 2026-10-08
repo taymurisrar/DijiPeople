@@ -7160,3 +7160,59 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes. Dropping `bind.` from the lookup query or removing `commissionReferenceLabels` fails the specs. |
 | **Fixed** | 2026-10-08, branch `agent/partner-module-completion` |
 | **Active** | yes |
+
+### REG-663 — Sticky admin chrome scrolled away (html/body overflow-x hidden)
+
+| | |
+|---|---|
+| **Bug class** | `layout` |
+| **Module** | `apps/admin` |
+| **Bug record** | BUG-4032 |
+| **Root cause** | `overflow-x: hidden` on both html and body made body a non-scrolling scroll container that captured every sticky element. Now `overflow-x: clip`. |
+| **Regression test** | `apps/admin/lib/sticky-scroll-container.spec.ts`. |
+| **Scenario** | QA-ADMINUX-001 — Sticky console chrome and the agreement Fields & Signatures panel stay in view. |
+| **Fails without the fix** | Yes — restoring `overflow-x: hidden` fails both assertions (mutation-tested). |
+| **Fixed** | 2026-10-09, branch `agent/admin-ux-cleanup` |
+| **Active** | yes |
+
+### REG-664 — Tenants grid identity read as the customer
+
+| | |
+|---|---|
+| **Bug class** | `UX` |
+| **Module** | `apps/admin` |
+| **Bug record** | BUG-4033 |
+| **Root cause** | The identity column was an unlinked "Name" beside a linked Customer name; related tenant grids inherited a self-referencing Customer column. |
+| **Regression test** | `apps/admin/lib/runtime/effective-columns.spec.ts`. |
+| **Scenario** | QA-ADMINUX-002 — Tenants grid leads with a linked Tenant identity. |
+| **Fails without the fix** | Yes — relabelling the column or removing its link fails the tenant grid semantics cases. |
+| **Fixed** | 2026-10-09, branch `agent/admin-ux-cleanup` |
+| **Active** | yes |
+
+### REG-665 — Runtime list flashed default columns before the saved view
+
+| | |
+|---|---|
+| **Bug class** | `UX` |
+| **Module** | `apps/admin` |
+| **Bug record** | BUG-4034 |
+| **Root cause** | Columns were seeded from the definition and replaced after preferences loaded. Now resolved in one step and the table waits behind a skeleton. |
+| **Regression test** | `apps/admin/lib/runtime/effective-columns.spec.ts`. |
+| **Scenario** | QA-ADMINUX-003 — A runtime list renders only its effective columns. |
+| **Fails without the fix** | Yes — the resolver cases fail if saved state is not applied in one step. |
+| **Fixed** | 2026-10-09, branch `agent/admin-ux-cleanup` |
+| **Active** | yes |
+
+### REG-666 — Monitoring controls that filtered on nothing and a support case that always 404ed
+
+| | |
+|---|---|
+| **Bug class** | `dead-control` |
+| **Module** | `services/api/src/modules/platform-monitoring` |
+| **Bug record** | BUG-4035 |
+| **Root cause** | Hardcoded filter values no row stores, and the support-case action passed the trace id instead of the incident id. |
+| **Regression test** | `services/api/src/modules/platform-monitoring/error-log-query.spec.ts` and `apps/admin/lib/error-log-console.spec.ts`. |
+| **Scenario** | QA-MON-001 — Monitoring error-log filters, metrics and detail drawer work against real captured data. |
+| **Fails without the fix** | Yes — the platform-tenant, severity-group and metric-scope cases fail against the previous query builder. |
+| **Fixed** | 2026-10-09, branch `agent/admin-ux-cleanup` |
+| **Active** | yes |

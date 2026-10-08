@@ -40,18 +40,82 @@ export function collectRuntimeLookupPaths(
  * substitutes them. Bound values are record ids, so anything that is not a
  * short id-shaped token is refused rather than spliced into an API path.
  */
-const LOOKUP_PLACEHOLDER = /\{([A-Za-z][A-Za-z0-9_.]*)\}/g;
+const LOOKUP_PLACEHOLDER = /\{([A-Za-z][A-Za-z0-9_.]*)(\?)?\}/g;
 const LOOKUP_BINDING_VALUE = /^[A-Za-z0-9_-]{1,64}$/;
+/*
+ * A placeholder in the query string may also carry a display name — the
+ * State picker is scoped by the country *name*, because that is what the
+ * Country column stores (BUG-1578). It is still refused unless it is plainly a
+ * name: letters, digits, spaces and the punctuation real place names use, and
+ * never `/`, `?`, `#`, `%` or `=`. It is URI-encoded into a query value, so it
+ * cannot add a parameter or change the path; a path segment keeps the strict
+ * id-shaped rule above, so `..` can never reach one.
+ */
+const LOOKUP_QUERY_BINDING_VALUE = /^[\p{L}\p{M}\p{N} .,'’()&_-]{1,120}$/u;
 export const LOOKUP_BINDING_PREFIX = "bind.";
+
+type LookupPlaceholder = {
+  name: string;
+  /** `{field?}` — sent empty when the form has no value, instead of blocking. */
+  optional: boolean;
+  /** After the `?` of the template, where a display name is acceptable. */
+  inQuery: boolean;
+};
+
+function lookupPlaceholders(template: string | undefined): LookupPlaceholder[] {
+  if (!template) return [];
+  const queryStart = template.indexOf("?");
+  const seen = new Set<string>();
+  const placeholders: LookupPlaceholder[] = [];
+  for (const match of template.matchAll(LOOKUP_PLACEHOLDER)) {
+    const name = match[1]!;
+    if (seen.has(name)) continue;
+    seen.add(name);
+    placeholders.push({
+      name,
+      optional: match[2] === "?",
+      inQuery: queryStart >= 0 && (match.index ?? 0) > queryStart,
+    });
+  }
+  return placeholders;
+}
+
+function acceptsBinding(placeholder: LookupPlaceholder, value: string) {
+  return placeholder.inQuery
+    ? LOOKUP_QUERY_BINDING_VALUE.test(value)
+    : LOOKUP_BINDING_VALUE.test(value);
+}
 
 /** The `{field}` names a lookup path depends on, in order, without repeats. */
 export function lookupPathPlaceholders(template: string | undefined): string[] {
-  if (!template) return [];
-  return [
-    ...new Set(
-      Array.from(template.matchAll(LOOKUP_PLACEHOLDER), (match) => match[1]!),
-    ),
-  ];
+  return lookupPlaceholders(template).map((placeholder) => placeholder.name);
+}
+
+/**
+ * Fields whose lookup is scoped by `changedKey`, directly or through another
+ * dependent — State and City for Country, City for State.
+ *
+ * A dependent's value was chosen from a list the parent scoped. When the
+ * parent changes, that value belongs to a list the form no longer offers — a
+ * state of the previous country — so the form clears it rather than saving a
+ * Country, State and City that contradict each other.
+ */
+export function lookupDependents(
+  fields: ReadonlyArray<Pick<RuntimeFieldDefinition, "key" | "lookupPath">>,
+  changedKey: string,
+): string[] {
+  const dependents: string[] = [];
+  const queue = [changedKey];
+  while (queue.length) {
+    const parent = queue.shift()!;
+    for (const field of fields) {
+      if (field.key === changedKey || dependents.includes(field.key)) continue;
+      if (!lookupPathPlaceholders(field.lookupPath).includes(parent)) continue;
+      dependents.push(field.key);
+      queue.push(field.key);
+    }
+  }
+  return dependents;
 }
 
 /**
@@ -65,12 +129,18 @@ export function resolveLookupBindings(
   values: Record<string, unknown>,
 ): Record<string, string> | null {
   const bindings: Record<string, string> = {};
-  for (const name of lookupPathPlaceholders(template)) {
-    const value = readPath(values, name);
-    if (typeof value !== "string" && typeof value !== "number") return null;
-    const text = String(value).trim();
-    if (!LOOKUP_BINDING_VALUE.test(text)) return null;
-    bindings[name] = text;
+  for (const placeholder of lookupPlaceholders(template)) {
+    const value = readPath(values, placeholder.name);
+    const text =
+      typeof value === "string" || typeof value === "number"
+        ? String(value).trim()
+        : "";
+    if (!text && placeholder.optional) {
+      bindings[placeholder.name] = "";
+      continue;
+    }
+    if (!text || !acceptsBinding(placeholder, text)) return null;
+    bindings[placeholder.name] = text;
   }
   return bindings;
 }
@@ -85,9 +155,17 @@ export function bindRuntimeLookupPath(
   bindings: Record<string, string | null | undefined>,
 ): string | null {
   let invalid = false;
+  const placeholders = new Map(
+    lookupPlaceholders(template).map((placeholder) => [
+      placeholder.name,
+      placeholder,
+    ]),
+  );
   const bound = template.replace(LOOKUP_PLACEHOLDER, (_match, name: string) => {
+    const placeholder = placeholders.get(name)!;
     const value = bindings[name]?.trim();
-    if (!value || !LOOKUP_BINDING_VALUE.test(value)) {
+    if (!value && placeholder.optional) return "";
+    if (!value || !acceptsBinding(placeholder, value)) {
       invalid = true;
       return "";
     }

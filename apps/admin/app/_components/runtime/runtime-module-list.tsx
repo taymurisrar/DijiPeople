@@ -206,22 +206,10 @@ export function RuntimeModuleList({
       .then((payload: { tableStateJson?: RuntimeTableState | null }) => {
         const state =
           payload.tableStateJson?.version === 2 ? payload.tableStateJson : null;
-        if (state?.visibleColumns?.length)
-          setVisibleColumns(
-            mergeVisibleColumns(
-              state.visibleColumns,
-              state.columnOrder ?? [],
-              definition.columns,
-            ),
-          );
-        if (state?.columnOrder?.length)
-          setColumnOrder(
-            normalizeColumnOrder(
-              state.columnOrder,
-              definition.columns.map((column) => column.key),
-            ),
-          );
-        if (state?.columnWidths) setColumnWidths(state.columnWidths);
+        const effective = resolveTableColumnState(state, definition.columns);
+        setVisibleColumns(effective.visibleColumns);
+        setColumnOrder(effective.columnOrder);
+        setColumnWidths(effective.columnWidths);
         if (state?.savedFilters)
           setSavedFilters(
             state.savedFilters.map((item) => ({
@@ -898,6 +886,12 @@ export function RuntimeModuleList({
               setSelectedIds(checked ? data.items.map((item) => item.id) : [])
             }
             loading={loading}
+            /*
+             * Until the saved preference has resolved, the effective columns
+             * are not known. Drawing the definition's defaults meanwhile is
+             * what made a list flash the wrong columns and then swap them.
+             */
+            columnsPending={!preferencesLoaded}
             stickyHeader
             stickyPagination
             maxHeight="calc(100vh - 330px)"
@@ -1356,6 +1350,36 @@ function readSorts(
  * Explicitly reordered columns keep their positions relative to one another.
  * Only the ones the saved state has never seen are placed from the definition.
  */
+/**
+ * The columns a list shows, from the module definition and the operator's
+ * saved table state (or none). One function, so the first table drawn is the
+ * effective one rather than the definition's defaults patched afterwards.
+ */
+export function resolveTableColumnState(
+  state: Pick<
+    RuntimeTableState,
+    "visibleColumns" | "columnOrder" | "columnWidths"
+  > | null,
+  columns: RuntimeColumnDefinition[],
+) {
+  const keys = columns.map((column) => column.key);
+  return {
+    visibleColumns: state?.visibleColumns?.length
+      ? mergeVisibleColumns(
+          state.visibleColumns,
+          state.columnOrder ?? [],
+          columns,
+        )
+      : columns
+          .filter((column) => column.visible !== false || column.essential)
+          .map((column) => column.key),
+    columnOrder: state?.columnOrder?.length
+      ? normalizeColumnOrder(state.columnOrder, keys)
+      : keys,
+    columnWidths: state?.columnWidths ?? {},
+  };
+}
+
 export function normalizeColumnOrder(current: string[], available: string[]) {
   const kept = current.filter((key) => available.includes(key));
   const merged = [...kept];

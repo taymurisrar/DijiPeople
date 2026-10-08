@@ -68,10 +68,10 @@ test.describe('Flow G — the admin tenant list', () => {
       .map((text) => text.trim())
       .filter(Boolean);
 
-    const nameAt = labels.findIndex((label) => /^name$/i.test(label));
+    const nameAt = labels.findIndex((label) => /^tenant$/i.test(label));
     const customerAt = labels.findIndex((label) => /^customer$/i.test(label));
 
-    expect(nameAt, `Name column missing. Headers: ${labels.join(', ')}`).toBeGreaterThanOrEqual(0);
+    expect(nameAt, `Tenant column missing. Headers: ${labels.join(', ')}`).toBeGreaterThanOrEqual(0);
     expect(customerAt).toBeGreaterThanOrEqual(0);
     expect(nameAt, 'the name column must come before the customer column').toBeLessThan(customerAt);
     expect(labels[nameAt]).toBe(labels[0]);
@@ -109,7 +109,7 @@ test.describe('Flow G — the admin tenant list', () => {
       .filter(Boolean);
 
     for (const expected of [
-      /^name$/i,
+      /^tenant$/i,
       /^workspace$/i,
       /^customer$/i,
       /^status$/i,
@@ -138,7 +138,7 @@ test.describe('Flow G — the admin tenant list', () => {
      * hunting for the missing "Name" column would find nothing and conclude it
      * had been dropped, which is the confusion this whole change exists to end.
      */
-    const nameRow = page.locator('label', { hasText: /^name/i }).first();
+    const nameRow = page.locator('label', { hasText: /^tenant/i }).first();
     const nameCheckbox = nameRow.locator('input[type="checkbox"]');
 
     await expect(nameCheckbox).toBeChecked();
@@ -171,8 +171,8 @@ test.describe('Flow G — the admin tenant list', () => {
      */
     const headerCells = page.getByRole('columnheader');
     const labels = await headerCells.allTextContents();
-    const nameColumn = labels.findIndex((label) => /^name$/i.test(label.trim()));
-    expect(nameColumn, `Name column missing. Headers: ${labels.join(', ')}`).toBeGreaterThanOrEqual(0);
+    const nameColumn = labels.findIndex((label) => /^tenant$/i.test(label.trim()));
+    expect(nameColumn, `Tenant column missing. Headers: ${labels.join(', ')}`).toBeGreaterThanOrEqual(0);
 
     const rows = page.getByRole('row');
     const count = await rows.count();

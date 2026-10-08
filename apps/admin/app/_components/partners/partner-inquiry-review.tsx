@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ModuleActionBar } from "@/app/_components/runtime/module-action-bar";
+import { RecordHeader } from "@/app/_components/runtime/record-highlight-header";
 import { RecordStatusGroup } from "@/app/_components/runtime/record-status-group";
 import { getPlatformModuleDefinition } from "@/lib/runtime/platform-module-registry";
 import type { RuntimeActionDefinition } from "@/lib/runtime/platform-runtime.types";
@@ -105,31 +106,30 @@ export function PartnerInquiryReview({
   const closed = ["CONVERTED", "REJECTED"].includes(item.status);
   return (
     <main className="space-y-5">
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <Link
-          href="/partner-inquiries"
-          className="text-xs font-semibold text-[var(--admin-primary)]"
-        >
-          Partner inquiries
-        </Link>
-        <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
-              {item.referenceNumber}
-            </p>
-            <h1 className="mt-2 text-2xl font-semibold text-slate-950">
-              {item.companyName ||
-                `${item.contactFirstName} ${item.contactLastName}`}
-            </h1>
-          </div>
+      <RecordHeader
+        eyebrow="Partner inquiry"
+        title={
+          item.companyName ||
+          `${item.contactFirstName} ${item.contactLastName}`
+        }
+        cells={
           <RecordStatusGroup
             definition={moduleDefinition}
             record={item as unknown as Record<string, unknown>}
             roleKeys={roleKeys}
             permissionKeys={permissionKeys}
+            layout="cells"
           />
-        </div>
-      </section>
+        }
+        secondary={[
+          { label: "Reference", value: item.referenceNumber },
+          { label: "Source", value: item.source || "—" },
+          {
+            label: "Received",
+            value: new Date(item.createdAt).toLocaleString(),
+          },
+        ]}
+      />
       <ModuleActionBar
         /*
          * The decision actions declare the states they are valid in, so a

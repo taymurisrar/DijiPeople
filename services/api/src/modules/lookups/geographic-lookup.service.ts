@@ -113,18 +113,71 @@ export class GeographicLookupService {
     });
   }
 
-  private async resolveCountryIdentifier(value: string) {
+  /*
+   * An id, an ISO code, or the country's name. The name matters because the
+   * commercial records store the name (BUG-1578), and the admin State and City
+   * pickers are scoped by what the Country field actually holds.
+   */
+  async resolveCountryIdentifier(value: string) {
     const trimmed = value.trim();
     if (!trimmed) return undefined;
 
     const country = await this.prisma.country.findFirst({
       where: {
-        OR: [{ id: trimmed }, { code: trimmed.toUpperCase() }],
+        OR: [
+          { id: trimmed },
+          { code: trimmed.toUpperCase() },
+          { name: { equals: trimmed, mode: 'insensitive' } },
+        ],
       },
       select: { id: true },
     });
 
     return country?.id;
+  }
+
+  /**
+   * Cities of a place given as the commercial records hold it: a country and,
+   * optionally, a state — each by id, code or name.
+   *
+   * A state that is named but does not resolve within the country returns
+   * nothing rather than every city in the country: the caller asked for a
+   * specific state, and widening silently would offer cities from the wrong
+   * one. Capped, because a populous state has thousands of cities and the
+   * picker searches server-side for the rest.
+   */
+  async listCitiesForPlace(input: {
+    country: string;
+    state?: string;
+    search?: string;
+    take?: number;
+  }) {
+    const countryId = await this.resolveCountryIdentifier(input.country);
+    if (!countryId) return [];
+    let stateProvinceId: string | undefined;
+    if (input.state?.trim()) {
+      await this.syncStatesForCountry(countryId);
+      const state = input.state.trim();
+      const match = await this.prisma.stateProvince.findFirst({
+        where: {
+          countryId,
+          OR: [
+            { id: state },
+            { code: state.toUpperCase() },
+            { name: { equals: state, mode: 'insensitive' } },
+          ],
+        },
+        select: { id: true },
+      });
+      if (!match) return [];
+      stateProvinceId = match.id;
+    }
+    const cities = await this.listCities(
+      countryId,
+      stateProvinceId,
+      input.search,
+    );
+    return cities.slice(0, input.take ?? cities.length);
   }
 
   async listCities(

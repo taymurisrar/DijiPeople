@@ -1,10 +1,14 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { codeOnly } from "./source-scan";
+
 const APP_ROOT = join(__dirname, "..");
-const table = readFileSync(
-  join(APP_ROOT, "app/_components/monitoring/error-logs-table.tsx"),
-  "utf8",
+const table = codeOnly(
+  readFileSync(
+    join(APP_ROOT, "app/_components/monitoring/error-logs-table.tsx"),
+    "utf8",
+  ),
 );
 const sidebar = readFileSync(
   join(APP_ROOT, "app/_components/admin-sidebar.tsx"),
@@ -12,108 +16,123 @@ const sidebar = readFileSync(
 );
 
 /**
- * The incident queue's summary row, and how an operator reaches it.
+ * The error log's summary row, and how an operator reaches it.
  *
- * What was here: "Matching incidents 12,005", "Error severity 488", "Web app
- * incidents 524", "Open investigations 12,005", "Resolved incidents 0" — with
- * the sidebar linking straight past the Overview into that queue.
- *
- * Three distinct faults. "Error severity" is a column name, not a quantity.
- * "Open investigations" equalled the total because every sanitized incident
- * starts NEW, so one figure appeared twice under two names and neither said
- * which was the queue. And nothing was clickable, so learning that 488 were
- * critical left the reader to rebuild that filter by hand.
+ * History: "Matching incidents 12,005", "Error severity 488", "Open
+ * investigations 12,005" — a column name used as a quantity, one figure under
+ * two names, nothing clickable. The next version made each card a filter, but
+ * two of them filtered on values no row stores (`severity=CRITICAL`,
+ * `sourceApp=WEB`) and so emptied the table when pressed.
  */
 describe("monitoring", () => {
   describe("where the sidebar lands", () => {
     it("opens the area on its Overview, not on the incident queue", () => {
-      /*
-       * `routeBase` is where a module's *records* live — the right answer for
-       * the runtime record routes built from it, and the wrong one for an
-       * area's landing page. An override rather than a changed `routeBase`,
-       * because changing it would break `/settings/monitoring/error-logs/<id>`.
-       */
       expect(sidebar).toContain(
         'moduleItem("monitoring-incidents", "Monitoring", "/settings/monitoring")',
       );
     });
 
     it("still lets a module use its own route by default", () => {
-      // The override is opt-in; every other module keeps `routeBase`.
       expect(sidebar).toContain("href: href ?? definition.routeBase");
     });
   });
 
-  describe("the summary tiles", () => {
+  describe("the summary cards", () => {
     const row = table.slice(
-      table.indexOf('<section className="grid gap-3 sm:grid-cols-2'),
+      table.indexOf("<MetricCard"),
       table.indexOf("</section>"),
     );
 
-    it("labels each tile with what it counts", () => {
+    it("finds the card row", () => {
+      // An index of -1 silently slices from the start of the file.
+      expect(row.length).toBeGreaterThan(200);
+    });
+
+    it("labels each card with what it counts", () => {
       for (const label of [
-        "Incidents in view",
+        "Errors",
         "Critical",
-        "From the web app",
-        "Not yet triaged",
+        "Warning",
+        "Unresolved",
         "Resolved",
       ]) {
         expect(row).toContain(`label="${label}"`);
       }
     });
 
-    it("no longer labels a count with the name of a column", () => {
-      // "Error severity: 488" counted criticals.
-      expect(table).not.toContain('label="Error severity"');
-      // And "Open investigations" was the total under a second name.
-      expect(table).not.toContain('label="Open investigations"');
-    });
-
-    it("makes every tile a filter", () => {
-      /*
-       * A metric that cannot be acted on is decoration. Five `onClick` handlers,
-       * one per tile — asserted by count so a tile added without one fails here.
-       */
+    it("makes every card a filter", () => {
+      expect((row.match(/<MetricCard/g) ?? []).length).toBe(5);
       expect((row.match(/onClick=/g) ?? []).length).toBe(5);
-      expect((row.match(/scope=\{windowLabel\}/g) ?? []).length).toBe(5);
     });
 
-    it("lets a filter be cleared by pressing its tile again", () => {
-      // A toggle, not a one-way trip into a filter with no marked way out.
+    it("filters on values the API understands, never on a stored spelling", () => {
+      // The groups and the UNRESOLVED predicate are the API's own vocabulary
+      // (error-log-query.ts); "CRITICAL" and "WEB" matched no stored row.
+      expect(row).toContain('"critical"');
+      expect(row).toContain('"warning"');
+      expect(row).toContain('"UNRESOLVED"');
+      expect(row).not.toContain('"CRITICAL"');
+      expect(table).not.toContain('"WEB"');
+    });
+
+    it("lets a filter be cleared by pressing its card again", () => {
       expect(row).toContain(
-        'filters.severity === "CRITICAL" ? null : "CRITICAL"',
+        'filters.severity === "critical" ? null : "critical"',
       );
-      expect(row).toContain('filters.status === "NEW" ? null : "NEW"');
+      expect(row).toContain(
+        'filters.status === "UNRESOLVED" ? null : "UNRESOLVED"',
+      );
     });
 
-    it("marks the tile whose filter is in force, in text as well as colour", () => {
-      expect(row).toContain("active={filters.severity");
+    it("marks the card whose filter is in force, in text as well as colour", () => {
       expect(table).toContain("aria-pressed={active}");
-      expect(table).toContain("`Filtering · ${scope}`");
+      expect(table).toContain("Filtering");
     });
 
-    it("states the window every count was taken over", () => {
-      /*
-       * A count with no scope is a number. "12,005" read as a workload rather
-       * than as everything ever recorded, which is the difference between a
-       * queue and a firehose.
-       */
-      expect(table).toContain("const windowLabel =");
-      for (const label of [
-        "last 24 hours",
-        "last 7 days",
-        "last 30 days",
-        "selected dates",
-        "all time",
+    it("states the window the counts were taken over", () => {
+      expect(table).toContain("describePeriod(filters)");
+      expect(table).toContain("caption={periodLabel}");
+    });
+  });
+
+  describe("the controls", () => {
+    it("reads filter options from the data, not from a hardcoded list", () => {
+      for (const facet of [
+        "facets?.sourceApps",
+        "facets?.environments",
+        "facets?.modules",
+        "facets?.tenants",
       ]) {
-        expect(table).toContain(`"${label}"`);
+        expect(table).toContain(facet);
       }
+      // "staging" was offered and no row has ever had it.
+      expect(table).not.toContain('"staging"');
     });
 
-    it("requires a scope on every tile, so one cannot be added without it", () => {
-      const card = table.slice(table.indexOf("function SummaryCard("));
-      expect(card).toContain("scope: string;");
-      expect(card).not.toContain("scope?: string");
+    it("chooses a tenant by name, never by typing an id", () => {
+      expect(table).toContain("label: tenant.name");
+      expect(table).not.toContain('label="Tenant ID"');
+      expect(table).not.toContain('label="User ID"');
+    });
+
+    it("has no control that only pretended to work", () => {
+      // Export covered the visible page only; the diagnostics download hit a
+      // tenant-scoped endpoint that refuses platform users.
+      expect(table).not.toContain("exportCsv");
+      expect(table).not.toContain("/api/error-logs/");
+    });
+
+    it("uses the shared table, and opens a row into the detail drawer", () => {
+      expect(table).toContain("<ProDataTable");
+      expect(table).toContain("onRowClick=");
+      expect(table).toContain("<IncidentDrawer");
+      expect(table).not.toContain("renderExpandedRow");
+    });
+
+    it("has a loading, an empty and a filtered-empty state", () => {
+      expect(table).toContain("loading={isPending}");
+      expect(table).toContain("No errors match these filters");
+      expect(table).toContain("No errors recorded");
     });
   });
 });

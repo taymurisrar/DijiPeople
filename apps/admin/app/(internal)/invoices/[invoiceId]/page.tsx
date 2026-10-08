@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { InvoiceActions } from "@/app/_components/invoice-actions";
 import { RecordCommandBar } from "@/app/_components/runtime/record-command-bar";
+import { RecordHeader } from "@/app/_components/runtime/record-highlight-header";
 import { RecordStatusGroup } from "@/app/_components/runtime/record-status-group";
 import { requireSystemAdminUser } from "@/lib/auth";
 import { getPlatformModuleDefinition } from "@/lib/runtime/platform-module-registry";
@@ -70,6 +71,26 @@ export default async function InvoiceDetailPage({
 
   return (
     <main className="space-y-6">
+      <RecordHeader
+        eyebrow="Invoice"
+        title={invoice.invoiceNumber}
+        cells={
+          <RecordStatusGroup
+            definition={getPlatformModuleDefinition("invoices")}
+            record={invoice as unknown as Record<string, unknown>}
+            roleKeys={roleKeys}
+            permissionKeys={user.permissionKeys}
+            layout="cells"
+          />
+        }
+        secondary={[
+          {
+            label: "Amount",
+            value: formatCurrency(invoice.currency, invoice.amount),
+          },
+          { label: "Tenant", value: invoice.tenant.name },
+        ]}
+      />
       <RecordCommandBar
         moduleKey="invoices"
         record={invoice as unknown as Record<string, unknown>}
@@ -78,30 +99,8 @@ export default async function InvoiceDetailPage({
         reloadMessage="Invoice reloaded."
       />
 
-      <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
-              Invoice detail
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold text-slate-950">
-              {invoice.invoiceNumber}
-            </h1>
-            <p className="mt-2 text-sm text-slate-600">
-              {formatCurrency(invoice.currency, invoice.amount)} ·{" "}
-              {invoice.tenant.name}
-            </p>
-          </div>
-          <RecordStatusGroup
-            definition={getPlatformModuleDefinition("invoices")}
-            record={invoice as unknown as Record<string, unknown>}
-            roleKeys={roleKeys}
-            permissionKeys={user.permissionKeys}
-          />
-        </div>
-        <div className="mt-5">
-          <InvoiceActions invoiceId={invoice.id} />
-        </div>
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <InvoiceActions invoiceId={invoice.id} />
       </section>
 
       <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">

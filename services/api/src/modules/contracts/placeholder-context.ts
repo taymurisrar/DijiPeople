@@ -182,6 +182,158 @@ export function contractInstanceContextEntities(
   return new Set([...allowed].filter((entity) => linked.has(entity)));
 }
 
+/**
+ * The entity an agreement is *with* — the record its counterparty fields come
+ * from. Distinct from the contract type: a SUBSCRIPTION_AGREEMENT can be with
+ * a lead (before conversion) or with a customer, and the two do not offer the
+ * same fields.
+ */
+export type AgreementSubjectType = 'PARTNER' | 'LEAD' | 'CUSTOMER' | 'TENANT';
+
+/**
+ * Subject -> the placeholder namespaces an author is *offered* for it, on top
+ * of the context-free ones (`ALWAYS_AVAILABLE_SOURCE_ENTITIES`).
+ *
+ * This is the narrower of the two questions this module answers. The type
+ * ceiling and the linked set above answer "what can resolve" — they gate
+ * publishing and sending, and stay wide enough that every template already
+ * stored keeps generating. This answers "what should be offered", and is
+ * what the Fields panel lists.
+ *
+ * LEAD offers `lead.*`, never `customer.*`. `resolveSource('lead')` does fill
+ * the canonical `customer.*` namespace from the lead so existing customer
+ * templates render for a prospect, and that stays (resolvable); but offering
+ * customer fields while authoring against a lead reads as "this lead is a
+ * customer", which it is not until conversion. `commercial.*` is offered
+ * because a lead carries its own agreed plan, price and seats.
+ */
+const SUBJECT_SOURCE_ENTITIES: Record<AgreementSubjectType, readonly string[]> =
+  {
+    PARTNER: ['partner'],
+    LEAD: ['lead', 'commercial'],
+    CUSTOMER: ['customer', 'commercial'],
+    TENANT: [
+      'tenant',
+      'commercial',
+      'serviceOrder',
+      'implementation',
+      'integration',
+      'hosting',
+    ],
+  };
+
+/**
+ * The subject a contract type declares. Used for a template, which has a type
+ * but is not yet bound to any record. Generic types (NDA, amendment, …)
+ * declare none, so a template of one is offered only the context-free groups.
+ */
+const CONTRACT_TYPE_DECLARED_SUBJECT: Partial<
+  Record<ContractType, AgreementSubjectType>
+> = {
+  [ContractType.PARTNER_AGREEMENT]: 'PARTNER',
+  [ContractType.MASTER_PARTNER_AGREEMENT]: 'PARTNER',
+  [ContractType.COMMISSION_ADDENDUM]: 'PARTNER',
+  [ContractType.TERRITORY_ADDENDUM]: 'PARTNER',
+  [ContractType.REFERRAL_ADDENDUM]: 'PARTNER',
+  [ContractType.CUSTOMER_AGREEMENT]: 'CUSTOMER',
+  [ContractType.MASTER_SERVICES_AGREEMENT]: 'CUSTOMER',
+  [ContractType.SUBSCRIPTION_AGREEMENT]: 'CUSTOMER',
+  [ContractType.DATA_PROCESSING_AGREEMENT]: 'CUSTOMER',
+  [ContractType.SLA]: 'CUSTOMER',
+  [ContractType.STATEMENT_OF_WORK]: 'CUSTOMER',
+  [ContractType.SERVICE_AGREEMENT]: 'TENANT',
+};
+
+/*
+ * A tenant service order cannot exist without a converted customer
+ * (`assertTenantServiceOrderEligible` refuses a raw lead), so for this type the
+ * tenant -> customer relationship is guaranteed even before a record is bound.
+ * Any other tenant agreement offers `customer.*` only when the instance really
+ * links one.
+ */
+const TENANT_TYPES_WITH_GUARANTEED_CUSTOMER = new Set<ContractType>([
+  ContractType.SERVICE_AGREEMENT,
+]);
+
+export function contractTypeDeclaredSubject(
+  contractType: ContractType,
+): AgreementSubjectType | null {
+  return CONTRACT_TYPE_DECLARED_SUBJECT[contractType] ?? null;
+}
+
+export type SubjectLinkedContract = LinkableContract & {
+  counterpartyType?: string | null;
+};
+
+const SUBJECT_LINK_PRECEDENCE = [
+  'TENANT',
+  'CUSTOMER',
+  'LEAD',
+  'PARTNER',
+] as const satisfies readonly AgreementSubjectType[];
+
+/**
+ * Which subject one agreement is with, from what it actually links.
+ *
+ * The declared family decides first, because links overlap: a lead-sourced
+ * agreement also carries the lead's referring `partnerId`, and that partner is
+ * not who the agreement is with. A generic type trusts the recorded
+ * `counterpartyType` when its record is really linked, then falls back to the
+ * most specific link. An agreement linked to nothing yet takes its type's
+ * declared subject — the relationship is expected, just not made.
+ */
+export function agreementSubjectOf(
+  contractType: ContractType,
+  contract: SubjectLinkedContract,
+): AgreementSubjectType | null {
+  const hasCustomer = Boolean(
+    contract.customerAccountId || contract.customerOnboardingId,
+  );
+  const declared = contractTypeDeclaredSubject(contractType);
+  if (declared === 'PARTNER' || declared === 'TENANT') return declared;
+  if (declared === 'CUSTOMER')
+    return !hasCustomer && contract.relatedLeadId ? 'LEAD' : 'CUSTOMER';
+  const linked: Record<AgreementSubjectType, boolean> = {
+    TENANT: Boolean(contract.tenantId),
+    CUSTOMER: hasCustomer,
+    LEAD: Boolean(contract.relatedLeadId),
+    PARTNER: Boolean(contract.partnerId),
+  };
+  const recorded = SUBJECT_LINK_PRECEDENCE.find(
+    (subject) => subject === contract.counterpartyType?.toUpperCase(),
+  );
+  if (recorded && linked[recorded]) return recorded;
+  return SUBJECT_LINK_PRECEDENCE.find((subject) => linked[subject]) ?? null;
+}
+
+/**
+ * The placeholder namespaces the editor offers. With a `contract`, they follow
+ * the subject that agreement is with; without one (a template), the subject
+ * its type declares. Never wider than `contractAllowedSourceEntities`, so
+ * everything offered is also resolvable.
+ */
+export function offeredPlaceholderEntities(
+  contractType: ContractType,
+  contract?: SubjectLinkedContract | null,
+): { subjectType: AgreementSubjectType | null; entities: Set<string> } {
+  const subjectType = contract
+    ? agreementSubjectOf(contractType, contract)
+    : contractTypeDeclaredSubject(contractType);
+  const offered = new Set<string>(ALWAYS_AVAILABLE_SOURCE_ENTITIES);
+  if (subjectType)
+    for (const entity of SUBJECT_SOURCE_ENTITIES[subjectType])
+      offered.add(entity);
+  const tenantHasCustomer = contract
+    ? Boolean(contract.customerAccountId)
+    : TENANT_TYPES_WITH_GUARANTEED_CUSTOMER.has(contractType);
+  if (subjectType === 'TENANT' && tenantHasCustomer) offered.add('customer');
+  const ceiling = contractAllowedSourceEntities(contractType);
+  return {
+    subjectType,
+    entities: new Set([...offered].filter((entity) => ceiling.has(entity))),
+  };
+}
+
 /** How the blocking message names the missing relationship. */
 const ASSOCIATION_PHRASE: Record<string, string> = {
   partner: 'a partner',

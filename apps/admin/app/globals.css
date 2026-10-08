@@ -30,10 +30,19 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/*
+ * `clip`, not `hidden`. With `hidden` on both html and body, body became a
+ * scroll container of its own (overflow-y computes to `auto`) that never
+ * scrolls — the window does — so every `position: sticky` in the console was
+ * measured against the wrong box and silently scrolled away: the record
+ * command bar, the agreement editor toolbar and its Fields & Signatures panel.
+ * `clip` still prevents horizontal page scroll without creating a scroll
+ * container.
+ */
 html,
 body {
   max-width: 100%;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 body {

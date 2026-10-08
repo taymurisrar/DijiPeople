@@ -173,6 +173,8 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-3894-the-tenant-error-boundary-shows-the-react-digest-as-the-erro|BUG-3894]] | The tenant error boundary shows the React digest as the error reference, which support cannot find and Download log 404s on | UX | MEDIUM | OPEN | apps/web | FIX_NOW |
 | [[BUG-3956-changing-partner-status-from-the-record-header-always-fails-|BUG-3956]] | Changing Partner status from the record header always fails and would bypass the partner state machine | STATE_MACHINE | MEDIUM | FIXED | partners, apps/admin | FIX_NOW |
 | [[BUG-3982-partner-commissions-accept-any-status-jump-and-unverified-li|BUG-3982]] | Partner commissions accept any status jump and unverified links, and agreements change when the partner default commission is edited | DATA_INTEGRITY | MEDIUM | FIXED | partners, contracts | FIX_NOW |
+| [[BUG-4032-admin-html-body-overflow-x-hidden-disabled-every-position-st|BUG-4032]] | Admin html/body overflow-x hidden disabled every position:sticky (command bar, agreement editor toolbar and Fields & Signatures panel scroll away) | UX | MEDIUM | FIXED | app:admin | FIX_NOW |
+| [[BUG-4033-tenants-grid-labelled-the-tenant-column-name-beside-a-linked|BUG-4033]] | Tenants grid labelled the tenant column Name beside a linked Customer name, so operators opened the customer believing it was the tenant | UX | MEDIUM | FIXED | app:admin | FIX_NOW |
 | [[BUG-1964-record-headings-and-dialog-titles-are-singularised-by-stripp|BUG-1964]] | Record headings and dialog titles are singularised by stripping a trailing s | UX | LOW | FIXED | apps/web | DONE |
 | [[BUG-2010-the-dashboard-recent-changes-list-renders-unformatted-iso-86|BUG-2010]] | The dashboard Recent changes list renders unformatted ISO-8601 timestamps | UX | LOW | FIXED | apps/web | DONE |
 | [[BUG-2017-the-inbox-related-record-column-renders-a-bare-uuid-with-no-|BUG-2017]] | The inbox Related record column renders a bare UUID with no label and no link | UX | LOW | FIXED | apps/web | DONE |
@@ -190,6 +192,7 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-3916-lead-partner-attribution-renders-above-the-record-tabs-on-ev|BUG-3916]] | Lead Partner attribution renders above the record tabs on every tab instead of in a tab | UX | LOW | FIXED | apps/admin, leads | FIX_NOW |
 | [[BUG-4006-expected-domain-refusals-on-record-actions-open-the-technica|BUG-4006]] | Expected domain refusals on record actions open the technical error dialog because the adapter drops request headers | UX | LOW | FIXED | apps/admin | FIX_NOW |
 | [[BUG-4019-partner-record-polish-empty-application-card-clipped-subgrid|BUG-4019]] | Partner record polish: empty application card, clipped subgrid row actions, unfiltered commission lookups, raw ids on commission record | UX | LOW | FIXED | partners, super-admin, apps/admin | FIX_NOW |
+| [[BUG-4034-runtime-lists-rendered-the-definition-s-default-columns-then|BUG-4034]] | Runtime lists rendered the definition's default columns, then swapped to the saved view's columns (column flash on load) | UX | LOW | FIXED | app:admin | FIX_NOW |
 
 ## How to read this
 

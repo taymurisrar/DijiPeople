@@ -1,9 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useReasonPrompt } from "@/app/_components/runtime/use-reason-prompt";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { Extension, Node } from "@tiptap/core";
+import { Plugin, PluginKey } from "@tiptap/pm/state";
+import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import { TableKit } from "@tiptap/extension-table";
@@ -17,11 +26,18 @@ import Highlight from "@tiptap/extension-highlight";
 
 import {
   buildSignatureBlockHtml,
+  signaturePartiesFromRegistry,
+  signaturePartyNameToken as partyNameTokenFor,
   SIGNATURE_LINES,
   WET_INK_PARTY,
   type SignatureLineKey,
-  type SignatureParty,
 } from "@/lib/documents/signature-block";
+import {
+  findDocumentTokens,
+  groupOfferedFields,
+  placeholderDefinitionsQuery,
+  type PlaceholderFieldDefinition as PlaceholderDefinition,
+} from "@/lib/documents/placeholder-fields";
 import {
   AlignCenter,
   AlignLeft,
@@ -52,42 +68,63 @@ import {
   X,
 } from "lucide-react";
 
-type PlaceholderDefinition = {
-  key: string;
-  label: string;
-  description?: string;
-  dataType: string;
-  sourceEntity: string;
-  required?: boolean;
-  exampleValue?: string;
-  group?: string;
-  deprecatedFor?: string;
-};
+/*
+ * There is deliberately no hardcoded fallback list. The one that used to sit
+ * here offered keys the API never resolved (`signer.name`,
+ * `partner.commissionRate`) whenever the registry request failed, so an
+ * author could place a field that printed as a raw token in the signed copy.
+ * A failed load now says so instead.
+ */
 
-const defaultPlaceholders: PlaceholderDefinition[] = [
-  "contract.number",
-  "contract.effectiveDate",
-  "contract.expiryDate",
-  "counterparty.name",
-  "counterparty.email",
-  "partner.name",
-  "partner.commissionRate",
-  "customer.name",
-  "platform.legalName",
-  "platform.reportingCurrency",
-  "signer.name",
-  "signature.platform.name",
-  "signature.platform.date",
-  "signature.counterparty.name",
-  "signature.counterparty.date",
-  "signature.party.primary.name",
-  "signature.party.primary.date",
-].map((key) => ({
-  key,
-  label: key.replaceAll(".", " "),
-  dataType: key.startsWith("signature.") ? "SIGNATURE" : "TEXT",
-  sourceEntity: key.split(".")[0],
-}));
+/**
+ * Draws `{{tokens}}` in the editor as chips — merge fields in one style,
+ * signature fields in another — without changing the stored HTML.
+ *
+ * Decorations, not a node type: the API sanitiser strips unknown elements and
+ * `data-*` attributes from saved documents, so a custom placeholder node would
+ * be deleted on the first save, and every template already stored holds plain
+ * text tokens. A decoration is view-only, so storage stays exactly as it is.
+ */
+const DocumentTokenHighlight = Extension.create({
+  name: "documentTokenHighlight",
+  addProseMirrorPlugins() {
+    const build = (doc: Parameters<typeof DecorationSet.create>[0]) => {
+      const decorations: Decoration[] = [];
+      doc.descendants((node, position) => {
+        if (!node.isText || !node.text) return;
+        for (const token of findDocumentTokens(node.text))
+          decorations.push(
+            Decoration.inline(position + token.from, position + token.to, {
+              class:
+                token.kind === "signature"
+                  ? "contract-token contract-token-signature"
+                  : "contract-token",
+              title:
+                token.kind === "signature"
+                  ? "Signature field"
+                  : `Field: ${token.key}`,
+            }),
+          );
+      });
+      return DecorationSet.create(doc, decorations);
+    };
+    return [
+      new Plugin({
+        key: new PluginKey("documentTokenHighlight"),
+        state: {
+          init: (_, state) => build(state.doc),
+          apply: (transaction, current) =>
+            transaction.docChanged ? build(transaction.doc) : current,
+        },
+        props: {
+          decorations(state) {
+            return this.getState(state);
+          },
+        },
+      }),
+    ];
+  },
+});
 
 const PageBreak = Node.create({
   name: "pageBreak",
@@ -151,6 +188,8 @@ export function ContractDocumentEditor({
   readOnly = false,
   placeholders,
   contractType,
+  contractId,
+  signerRoles,
   previewHtml,
 }: {
   value: string;
@@ -159,11 +198,22 @@ export function ContractDocumentEditor({
   placeholders?: Array<string | PlaceholderDefinition>;
   /**
    * ADR-0020. Narrows the fields rail to the placeholder groups this
-   * contract type's context can hold — a partner agreement no longer offers
-   * `customer.*`/`tenant.*`. Omitted for the caller that still passes its own
-   * `placeholders` list explicitly.
+   * contract type's declared subject offers — a partner agreement template
+   * no longer offers `customer.*`/`tenant.*`. Omitted for the caller that
+   * still passes its own `placeholders` list explicitly.
    */
   contractType?: string;
+  /**
+   * The agreement being edited, when there is one. The API then offers the
+   * fields of the subject this agreement is actually with — a lead agreement
+   * gets `lead.*`, never `customer.*` — rather than everything its type allows.
+   */
+  contractId?: string;
+  /**
+   * The template's required signer roles, offered as suggestions for the
+   * signature box's role so the block matches the signing configuration.
+   */
+  signerRoles?: string[];
   /**
    * Rendered instead of the editor's own content while set.
    *
@@ -198,13 +248,14 @@ export function ContractDocumentEditor({
   const [signaturePartyIndex, setSignaturePartyIndex] = useState(0);
   const [signatureCaption, setSignatureCaption] = useState("");
   const [signatureCustomLabel, setSignatureCustomLabel] = useState("");
+  const [signatureRole, setSignatureRole] = useState("");
+  const signerRolesListId = useId();
   const [signatureLines, setSignatureLines] = useState<SignatureLineKey[]>([
     "signature",
     "name",
     "title",
     "date",
   ]);
-  const signaturePartyRef = useRef<HTMLSelectElement>(null);
   const [tableOpen, setTableOpen] = useState(false);
   const [placeholderQuery, setPlaceholderQuery] = useState("");
   const [importing, setImporting] = useState(false);
@@ -214,20 +265,28 @@ export function ContractDocumentEditor({
   } | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const [placeholderRegistry, setPlaceholderRegistry] =
-    useState<PlaceholderDefinition[]>(defaultPlaceholders);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const [placeholderRegistry, setPlaceholderRegistry] = useState<
+    PlaceholderDefinition[]
+  >([]);
+  const [registryState, setRegistryState] = useState<
+    "loading" | "ready" | "error"
+  >("loading");
   const [placeholderGroupOrder, setPlaceholderGroupOrder] = useState<string[]>(
     [],
   );
   useEffect(() => {
     if (placeholders !== undefined) return;
     const controller = new AbortController();
-    const query = contractType
-      ? `?contractType=${encodeURIComponent(contractType)}`
-      : "";
-    fetch(`/api/contracts/placeholder-definitions${query}`, {
-      signal: controller.signal,
-    })
+    setRegistryState("loading");
+    fetch(
+      `/api/contracts/placeholder-definitions${placeholderDefinitionsQuery({
+        contractType,
+        contractId,
+      })}`,
+      { signal: controller.signal },
+    )
       .then((response) => (response.ok ? response.json() : null))
       .then(
         (
@@ -236,16 +295,24 @@ export function ContractDocumentEditor({
             groups?: string[];
           } | null,
         ) => {
-          if (payload?.items?.length) setPlaceholderRegistry(payload.items);
-          if (payload?.groups?.length) setPlaceholderGroupOrder(payload.groups);
+          if (!payload?.items) {
+            setRegistryState("error");
+            return;
+          }
+          setPlaceholderRegistry(payload.items);
+          setPlaceholderGroupOrder(payload.groups ?? []);
+          setRegistryState("ready");
         },
       )
-      .catch(() => undefined);
+      .catch((error: unknown) => {
+        if ((error as { name?: string }).name !== "AbortError")
+          setRegistryState("error");
+      });
     return () => controller.abort();
     // Refetches whenever the author changes the contract type, so the rail
     // always reflects the type currently selected, not the one open when the
     // editor first mounted.
-  }, [placeholders, contractType]);
+  }, [placeholders, contractType, contractId]);
   const normalizedPlaceholders = useMemo(
     () =>
       placeholders === undefined
@@ -262,86 +329,48 @@ export function ContractDocumentEditor({
           ),
     [placeholderRegistry, placeholders],
   );
-  /*
-   * Superseded keys stay resolvable for agreements that already use them, but
-   * are never offered when authoring, so the picker only shows the canonical
-   * namespace. Grouping follows the order the API publishes.
-   */
-  const placeholderGroups = useMemo(() => {
-    const matching = normalizedPlaceholders.filter(
-      (definition) =>
-        !definition.deprecatedFor &&
-        `${definition.key} ${definition.label} ${definition.dataType}`
-          .toLowerCase()
-          .includes(placeholderQuery.toLowerCase()),
-    );
-    const byGroup = new Map<string, PlaceholderDefinition[]>();
-    for (const definition of matching) {
-      const group = definition.group ?? "Other";
-      byGroup.set(group, [...(byGroup.get(group) ?? []), definition]);
-    }
-    const ordered = [...byGroup.keys()].sort(
-      (first, second) =>
-        groupRank(first, placeholderGroupOrder) -
-        groupRank(second, placeholderGroupOrder),
-    );
-    return ordered.map((group) => ({
-      group,
-      items: byGroup.get(group) ?? [],
-    }));
-  }, [placeholderQuery, normalizedPlaceholders, placeholderGroupOrder]);
-  /**
-   * Which parties the platform can actually fill a signature in for.
-   *
-   * Read out of the placeholder registry rather than listed here, so a slot
-   * registered on the API appears in this dialog without a second registration
-   * in the frontend — that duplication is exactly how the two placeholder lists
-   * drifted apart before. Any party outside the registry is still offered, as
-   * wet ink.
-   */
-  const signatureParties = useMemo<SignatureParty[]>(() => {
-    const slots = new Map<string, string>();
-    for (const definition of normalizedPlaceholders) {
-      if (definition.deprecatedFor) continue;
-      const match = /^signature\.(.+)\.name$/.exec(definition.key);
-      if (!match?.[1]) continue;
-      slots.set(match[1], definition.label || match[1]);
-    }
-    return [
-      ...[...slots.entries()].map(([slot, label]) => ({ slot, label })),
-      WET_INK_PARTY,
-    ];
-  }, [normalizedPlaceholders]);
+  const placeholderGroups = useMemo(
+    () =>
+      groupOfferedFields(
+        normalizedPlaceholders,
+        placeholderQuery,
+        placeholderGroupOrder,
+      ),
+    [placeholderQuery, normalizedPlaceholders, placeholderGroupOrder],
+  );
+  const signatureParties = useMemo(
+    () => signaturePartiesFromRegistry(normalizedPlaceholders),
+    [normalizedPlaceholders],
+  );
 
   const signatureParty =
     signatureParties[
       Math.min(signaturePartyIndex, signatureParties.length - 1)
     ] ?? WET_INK_PARTY;
 
-  /**
-   * The token that prints the party's *name* beneath the mark.
-   *
-   * `signature.<slot>.name` is the mark itself — an image when the signer drew
-   * one — so it cannot also serve as the printed name. The party's own entity
-   * token is used where the registry has one (`platform.legalName`,
-   * `counterparty.name`), and the line is left ruled where it does not.
-   */
-  const signaturePartyNameToken = useMemo(() => {
-    if (!signatureParty.slot) return null;
-    const candidates = [
-      `${signatureParty.slot}.legalName`,
-      `${signatureParty.slot}.name`,
-    ];
-    return (
-      candidates.find((candidate) =>
-        normalizedPlaceholders.some(
-          (definition) =>
-            definition.key === candidate && !definition.deprecatedFor,
-        ),
-      ) ?? null
-    );
-  }, [normalizedPlaceholders, signatureParty]);
+  const signaturePartyNameToken = useMemo(
+    () => partyNameTokenFor(signatureParty, normalizedPlaceholders),
+    [normalizedPlaceholders, signatureParty],
+  );
 
+  /*
+   * Where the toolbar and the fields rail stick, measured rather than assumed.
+   *
+   * The window is the scroll container here (the admin shell clips only the x
+   * axis precisely so that sticky works), and what the editor has to clear is
+   * whatever sticky chrome the *page* pins above it — the module command bar
+   * on a template, the record command bar on an agreement — whose height
+   * changes as it wraps. The rail used to sit at a fixed `top-20` with the
+   * toolbar at `top-2`: the toolbar slid under the command bar, and on a long
+   * document the two-row toolbar covered the top of the rail, so from page
+   * five on the Fields & signatures controls looked as if they had scrolled
+   * away. Measuring the page's sticky elements and the toolbar's real height
+   * keeps both clear at every width and zoom.
+   */
+  const [stickyOffsets, setStickyOffsets] = useState({
+    toolbar: 8,
+    rail: 72,
+  });
   const editor = useEditor({
     immediatelyRender: false,
     editable: !readOnly,
@@ -370,6 +399,7 @@ export function ContractDocumentEditor({
       PageBreak,
       Indent,
       DocumentRole,
+      DocumentTokenHighlight,
     ],
     content: value || "<p></p>",
     editorProps: {
@@ -394,6 +424,105 @@ export function ContractDocumentEditor({
     if (!editor || editor.getHTML() === (value || "<p></p>")) return;
     editor.commands.setContent(value || "<p></p>", { emitUpdate: false });
   }, [editor, value]);
+
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!root || readOnly || typeof ResizeObserver === "undefined") return;
+    let frame = 0;
+    const observed = new Set<Element>();
+    const observer = new ResizeObserver(() => schedule());
+    function pageStickyBottom(from: HTMLElement) {
+      let bottom = 0;
+      for (
+        let node: HTMLElement | null = from;
+        node && node !== document.body;
+        node = node.parentElement
+      ) {
+        for (
+          let sibling = node.previousElementSibling;
+          sibling;
+          sibling = sibling.previousElementSibling
+        ) {
+          for (const candidate of [sibling, ...Array.from(sibling.children)]) {
+            if (!(candidate instanceof HTMLElement)) continue;
+            const style = window.getComputedStyle(candidate);
+            if (style.position !== "sticky" && style.position !== "fixed")
+              continue;
+            const top = Number.parseFloat(style.top);
+            const height = candidate.offsetHeight;
+            // A full-height sticky column (the sidebar) is beside the
+            // editor, not above it.
+            if (!Number.isFinite(top) || !height) continue;
+            if (height > window.innerHeight * 0.4) continue;
+            bottom = Math.max(bottom, top + height);
+            if (!observed.has(candidate)) {
+              observed.add(candidate);
+              observer.observe(candidate);
+            }
+          }
+        }
+      }
+      return bottom;
+    }
+    function measure() {
+      frame = 0;
+      const toolbarTop = pageStickyBottom(root!) + 8;
+      const toolbarHeight = toolbarRef.current?.offsetHeight ?? 0;
+      const next = {
+        toolbar: toolbarTop,
+        rail: toolbarTop + toolbarHeight + 12,
+      };
+      setStickyOffsets((current) =>
+        current.toolbar === next.toolbar && current.rail === next.rail
+          ? current
+          : next,
+      );
+    }
+    function schedule() {
+      if (!frame) frame = window.requestAnimationFrame(measure);
+    }
+    /*
+     * A sticky rail cannot outlive its container. Once the end of the editor
+     * scrolls into view, a full-height rail is pushed up by the container's
+     * bottom edge — under the sticky toolbar, which belongs to a taller
+     * container and stays put — hiding the signature controls exactly where
+     * signatures usually go. Instead the rail shrinks to the room left between
+     * its sticky line and the end of the editor, and scrolls inside that.
+     * Written straight to a CSS variable: this runs on every scroll frame and
+     * must not re-render the editor.
+     */
+    let roomFrame = 0;
+    function fitRail() {
+      roomFrame = 0;
+      const rail = root!.querySelector<HTMLElement>("[data-contract-rail]");
+      const container = rail?.parentElement;
+      if (!rail || !container) return;
+      const top = Number.parseFloat(window.getComputedStyle(rail).top) || 0;
+      const room = container.getBoundingClientRect().bottom - top;
+      root!.style.setProperty(
+        "--contract-rail-room",
+        `${Math.max(160, Math.floor(room))}px`,
+      );
+    }
+    function scheduleFit() {
+      if (!roomFrame) roomFrame = window.requestAnimationFrame(fitRail);
+    }
+    measure();
+    fitRail();
+    if (toolbarRef.current) observer.observe(toolbarRef.current);
+    window.addEventListener("resize", schedule);
+    window.addEventListener("resize", scheduleFit);
+    window.addEventListener("scroll", scheduleFit, { passive: true });
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.cancelAnimationFrame(roomFrame);
+      observer.disconnect();
+      window.removeEventListener("resize", schedule);
+      window.removeEventListener("resize", scheduleFit);
+      window.removeEventListener("scroll", scheduleFit);
+    };
+    // `editor` is a dependency because the toolbar only mounts once it exists.
+  }, [editor, readOnly]);
 
   if (!editor)
     return (
@@ -450,22 +579,29 @@ export function ContractDocumentEditor({
     );
   }
 
-  function insertSignatureBlock() {
+  /*
+   * The only way a signature enters a document. Everything about it — which
+   * party, their role, which lines — is chosen here, and the result is the
+   * same `signature.<slot>.*` tokens the API freezes at send and fills from
+   * the signing evidence (typed or drawn). Inserted at the caret, or dragged
+   * to where it belongs; once placed it is ordinary document content that can
+   * be cut, moved and deleted like any table.
+   */
+  function signatureBlockHtml() {
     const party = signatureParty.slot
       ? signatureParty
       : { slot: null, label: signatureCustomLabel.trim() || "Party" };
-    editor!
-      .chain()
-      .focus()
-      .insertContent(
-        buildSignatureBlockHtml(
-          party,
-          signatureCaption,
-          signatureLines,
-          signaturePartyNameToken,
-        ),
-      )
-      .run();
+    return buildSignatureBlockHtml(
+      party,
+      signatureCaption,
+      signatureLines,
+      signaturePartyNameToken,
+      signatureRole,
+    );
+  }
+
+  function insertSignatureBlock() {
+    editor!.chain().focus().insertContent(signatureBlockHtml()).run();
   }
 
   function changeIndent(delta: number) {
@@ -573,11 +709,26 @@ export function ContractDocumentEditor({
   }
 
   return (
-    <div className="overflow-visible rounded-2xl border border-slate-200 bg-slate-100 shadow-sm">
+    <div
+      ref={rootRef}
+      className="overflow-visible rounded-2xl border border-slate-200 bg-slate-100 shadow-sm"
+      style={
+        {
+          "--contract-toolbar-top": `${stickyOffsets.toolbar}px`,
+          "--contract-rail-top": `${stickyOffsets.rail}px`,
+        } as React.CSSProperties
+      }
+    >
       {reasonDialog}
       {!readOnly ? (
         <div
-          className="sticky top-2 z-10 flex flex-wrap items-center gap-1 rounded-t-2xl border-b border-slate-200 bg-white/95 p-2 shadow-sm backdrop-blur"
+          ref={toolbarRef}
+          /*
+           * z-[5], under the page's command bar (z-10): the toolbar now sticks
+           * directly beneath that bar, and a command-bar menu that opens
+           * downward must paint over the toolbar rather than behind it.
+           */
+          className="sticky top-[var(--contract-toolbar-top)] z-[5] flex flex-wrap items-center gap-1 rounded-t-2xl border-b border-slate-200 bg-white/95 p-2 shadow-sm backdrop-blur"
           role="toolbar"
           aria-label="Document formatting"
         >
@@ -904,26 +1055,12 @@ export function ContractDocumentEditor({
             <Braces className="h-4 w-4" />
             Fields & signatures
           </button>
-          <button
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
-            onClick={() => {
-              /*
-               * Opens the rail and puts the caret in it. The signature box is
-               * configured before it is placed, so sending the author to the
-               * control that decides *which party* is the whole point — a
-               * button that inserted a fixed box would have to be undone
-               * before it could be corrected.
-               */
-              setRailOpen(true);
-              window.requestAnimationFrame(() =>
-                signaturePartyRef.current?.focus(),
-              );
-            }}
-            type="button"
-          >
-            <Signature className="h-4 w-4" />
-            Signature box
-          </button>
+          {/*
+            No separate "Signature box" button here any more. It only opened
+            the rail below — a second entry point to the same control, beside
+            raw `signature.*` tokens in the field list as a third. One place
+            now inserts a signature: the rail's signature section.
+          */}
           <button
             type="button"
             onClick={() => printContractDocument(editor.getHTML())}
@@ -999,13 +1136,18 @@ export function ContractDocumentEditor({
             /*
              * Sticky, and scrolled independently of the document.
              *
-             * `top-24` clears the toolbar, which is itself `sticky top-2` and
-             * two rows tall on most widths. The height cap is what makes the
-             * panel usable at all: the field registry is long enough that an
-             * unbounded rail would run past the fold and take the insert
-             * controls with it.
+             * It sticks just under the toolbar at whatever height the page
+             * chrome and toolbar actually measure (`--contract-rail-top`),
+             * and its height is the viewport below that line, so the bottom
+             * of the panel is reachable however long the document runs. The
+             * cap is what makes the panel usable at all: the field registry
+             * is long enough that an unbounded rail would run past the fold
+             * and take the insert controls with it. `overscroll-contain`
+             * keeps a scroll that reaches the end of the list from carrying
+             * on into the document.
              */
-            className="mt-3 max-h-[calc(100vh-7rem)] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-3 shadow-sm lg:sticky lg:top-20 lg:mt-6"
+            data-contract-rail
+            className="mt-3 max-h-[calc(100dvh-7rem)] overflow-y-auto overscroll-contain rounded-2xl border border-slate-200 bg-white p-3 shadow-sm lg:sticky lg:top-[var(--contract-rail-top)] lg:mt-6 lg:max-h-[min(calc(100dvh-var(--contract-rail-top)-1rem),var(--contract-rail-room,100dvh))]"
           >
             <div className="flex items-start justify-between gap-2">
               <div>
@@ -1026,9 +1168,10 @@ export function ContractDocumentEditor({
               </button>
             </div>
 
-            <section className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-2.5">
-              <h4 className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                Signature box
+            <section className="mt-3 rounded-xl border border-indigo-200 bg-indigo-50/60 p-2.5">
+              <h4 className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-indigo-700">
+                <Signature className="h-3.5 w-3.5" aria-hidden />
+                Signature
               </h4>
               <label className="mt-2 block text-[11px] font-medium text-slate-600">
                 Party
@@ -1037,7 +1180,6 @@ export function ContractDocumentEditor({
                   onChange={(event) =>
                     setSignaturePartyIndex(Number(event.target.value))
                   }
-                  ref={signaturePartyRef}
                   value={signaturePartyIndex}
                 >
                   {signatureParties.map((party, index) => (
@@ -1060,6 +1202,23 @@ export function ContractDocumentEditor({
                   />
                 </label>
               ) : null}
+              <label className="mt-2 block text-[11px] font-medium text-slate-600">
+                Signer role
+                <input
+                  className="mt-1 h-9 w-full rounded-lg border border-slate-200 px-2 text-xs"
+                  list={signerRoles?.length ? signerRolesListId : undefined}
+                  onChange={(event) => setSignatureRole(event.target.value)}
+                  placeholder="Authorized signatory"
+                  value={signatureRole}
+                />
+                {signerRoles?.length ? (
+                  <datalist id={signerRolesListId}>
+                    {signerRoles.map((role) => (
+                      <option key={role} value={role} />
+                    ))}
+                  </datalist>
+                ) : null}
+              </label>
               <label className="mt-2 block text-[11px] font-medium text-slate-600">
                 Caption
                 <input
@@ -1110,9 +1269,14 @@ export function ContractDocumentEditor({
                   : "This party has no electronic signature slot, so every line is ruled for signing by hand."}
               </p>
               <button
-                className="mt-2 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-slate-950 px-3 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+                className="mt-2 inline-flex h-9 w-full cursor-grab items-center justify-center gap-1.5 rounded-lg bg-indigo-700 px-3 text-xs font-semibold text-white transition hover:bg-indigo-800 active:cursor-grabbing disabled:cursor-not-allowed disabled:opacity-40"
                 disabled={signatureLines.length === 0}
+                draggable={signatureLines.length > 0}
                 onClick={insertSignatureBlock}
+                onDragStart={(event) => {
+                  event.dataTransfer.setData("text/html", signatureBlockHtml());
+                  event.dataTransfer.effectAllowed = "copy";
+                }}
                 type="button"
               >
                 <Signature className="h-4 w-4" />
@@ -1137,9 +1301,20 @@ export function ContractDocumentEditor({
                   </p>
                   {items.map((definition) => (
                     <button
-                      className="block w-full rounded-lg px-2 py-1.5 text-left text-xs text-slate-700 hover:bg-slate-50"
+                      className="block w-full cursor-grab rounded-lg px-2 py-1.5 text-left text-xs text-slate-700 hover:bg-slate-50 active:cursor-grabbing"
+                      draggable
                       key={definition.key}
                       onClick={() => insertPlaceholder(definition.key)}
+                      onDragStart={(event) => {
+                        // Dropped as text, so the editor places the token at
+                        // the drop point exactly as a click places it at the
+                        // caret.
+                        event.dataTransfer.setData(
+                          "text/plain",
+                          `{{${definition.key}}}`,
+                        );
+                        event.dataTransfer.effectAllowed = "copy";
+                      }}
                       title={definition.description}
                       type="button"
                     >
@@ -1154,7 +1329,18 @@ export function ContractDocumentEditor({
                   ))}
                 </div>
               ))}
-              {placeholderGroups.length === 0 ? (
+              {placeholders === undefined && registryState === "loading" ? (
+                <p className="px-2 py-4 text-center text-xs text-slate-500">
+                  Loading fields…
+                </p>
+              ) : placeholders === undefined && registryState === "error" ? (
+                <p
+                  className="px-2 py-4 text-center text-xs text-rose-700"
+                  role="alert"
+                >
+                  Fields could not be loaded.
+                </p>
+              ) : placeholderGroups.length === 0 ? (
                 <p className="px-2 py-4 text-center text-xs text-slate-500">
                   No fields match this search.
                 </p>
@@ -1313,6 +1499,29 @@ function DocumentEditorStyles() {
         font-size: 14px;
         line-height: 1.55;
         overflow-wrap: anywhere;
+      }
+      /*
+        Merge fields and signature fields, drawn by the
+        DocumentTokenHighlight decoration. Two distinct treatments so a
+        signature line cannot be mistaken for a text field: fields are a
+        quiet slate chip, signatures an indigo one with a pen-mark underline.
+      */
+      .contract-editor-content .contract-token {
+        border-radius: 4px;
+        background: #f1f5f9;
+        box-shadow: inset 0 0 0 1px #cbd5e1;
+        color: #334155;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.86em;
+        padding: 0 3px;
+      }
+      .contract-editor-content .contract-token-signature {
+        background: #eef2ff;
+        box-shadow:
+          inset 0 0 0 1px #a5b4fc,
+          inset 0 -2px 0 #4f46e5;
+        color: #3730a3;
+        font-weight: 600;
       }
       .contract-editor-content > :first-child {
         margin-top: 0;
@@ -1624,9 +1833,4 @@ function TableAction({
       {label}
     </button>
   );
-}
-
-function groupRank(group: string, order: string[]) {
-  const index = order.indexOf(group);
-  return index === -1 ? order.length : index;
 }

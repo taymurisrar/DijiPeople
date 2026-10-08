@@ -68,7 +68,15 @@ export function buildSignatureBlockHtml(
   caption: string,
   lines: readonly SignatureLineKey[],
   partyNameToken: string | null,
+  /*
+   * The signer's role ("Authorized signatory", "Witness"), printed on the
+   * Title line. Plain text, not a token: no record holds a per-agreement
+   * signer title for every party, and the role is what the template author
+   * knows when the block is placed.
+   */
+  signerRole = "",
 ) {
+  const role = signerRole.trim();
   const cells = SIGNATURE_LINES.filter((line) => lines.includes(line.key)).map(
     (line) => {
       let value = "";
@@ -78,6 +86,7 @@ export function buildSignatureBlockHtml(
         value = `{{signature.${party.slot}.date}}`;
       else if (line.token === "partyName" && partyNameToken)
         value = `{{${partyNameToken}}}`;
+      else if (line.key === "title" && role) value = escapeDocumentText(role);
       /* A ruled, empty cell — never a token nothing will ever resolve. */
       return `<tr><td><strong>${escapeDocumentText(line.label)}</strong></td><td>${value || "&nbsp;"}</td></tr>`;
     },
@@ -95,4 +104,69 @@ export function buildSignatureBlockHtml(
     ? `<tr><th colspan="2">${escapeDocumentText(heading)}</th></tr>`
     : "";
   return `<table data-document-role="signature-block"><tbody>${header}${cells.join("")}</tbody></table><p></p>`;
+}
+
+/** A placeholder definition as the API serves it — only what this file reads. */
+export type RegistryPlaceholder = {
+  key: string;
+  label: string;
+  deprecatedFor?: string;
+};
+
+/**
+ * Whether a document token is a signature field.
+ *
+ * By namespace, the same rule the API applies (`isSignaturePlaceholderKey`):
+ * every `signature.*` token is filled at signing, never typed in, so the
+ * editor shows it as a signature and never offers it as an ordinary field.
+ */
+export function isSignatureTokenKey(key: string) {
+  return key.trim().startsWith("signature.");
+}
+
+/**
+ * The parties a signature box can be addressed to.
+ *
+ * Read out of the API placeholder registry rather than listed here, so a slot
+ * registered on the API (`signature.<slot>.name`) appears without a second
+ * registration in the frontend — that duplication is exactly how the two
+ * placeholder lists drifted apart before. Wet ink is always last.
+ */
+export function signaturePartiesFromRegistry(
+  definitions: readonly RegistryPlaceholder[],
+): SignatureParty[] {
+  const slots = new Map<string, string>();
+  for (const definition of definitions) {
+    if (definition.deprecatedFor) continue;
+    const match = /^signature\.(.+)\.name$/.exec(definition.key);
+    if (!match?.[1]) continue;
+    slots.set(match[1], definition.label || match[1]);
+  }
+  return [
+    ...[...slots.entries()].map(([slot, label]) => ({ slot, label })),
+    WET_INK_PARTY,
+  ];
+}
+
+/**
+ * The token that prints the party's *name* beneath the mark.
+ *
+ * `signature.<slot>.name` is the mark itself — an image when the signer drew
+ * one — so it cannot also serve as the printed name. The party's own entity
+ * token is used where the registry offers one (`platform.legalName`,
+ * `counterparty.name`), and the line is left ruled where it does not.
+ */
+export function signaturePartyNameToken(
+  party: SignatureParty,
+  definitions: readonly RegistryPlaceholder[],
+) {
+  if (!party.slot) return null;
+  return (
+    [`${party.slot}.legalName`, `${party.slot}.name`].find((candidate) =>
+      definitions.some(
+        (definition) =>
+          definition.key === candidate && !definition.deprecatedFor,
+      ),
+    ) ?? null
+  );
 }

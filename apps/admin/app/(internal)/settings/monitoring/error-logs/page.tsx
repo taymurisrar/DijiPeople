@@ -1,17 +1,20 @@
 import type { Metadata } from "next";
 import {
   ErrorLogsTable,
+  type ErrorLogFacets,
   type PlatformErrorEvent,
   type PlatformErrorLogsMeta,
   type PlatformErrorLogMetrics,
   type SupportOwnerOption,
 } from "@/app/_components/monitoring/error-logs-table";
-import { PageHeader } from "@/app/_components/ui/page-header";
-import { RuntimeViewSelector } from "@/app/_components/runtime/runtime-view-selector";
-import { requireSystemAdminUser } from "@/lib/auth";
-import { apiRequestJson } from "@/lib/server-api";
-import { getPlatformModuleDefinition } from "@/lib/runtime/platform-module-registry";
 import { MonitoringNav } from "@/app/_components/monitoring/monitoring-nav";
+import { PageHeader } from "@/app/_components/ui/page-header";
+import { requireSystemAdminUser } from "@/lib/auth";
+import {
+  buildErrorLogApiQuery,
+  canonicalizeLegacyView,
+} from "@/lib/error-log-console";
+import { apiRequestJson } from "@/lib/server-api";
 
 /* Each screen titles itself. 47 of 48 shared one title, so a tab, a
    bookmark and a screen reader's announcement said the same thing on
@@ -20,15 +23,16 @@ export const metadata: Metadata = {
   title: "Error Logs",
 };
 
-
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+const ROUTE = "/settings/monitoring/error-logs";
 
 export default async function PlatformErrorLogsPage({
   searchParams,
 }: {
   searchParams: SearchParams;
 }) {
-  const user = await requireSystemAdminUser("/settings/monitoring/error-logs");
+  const user = await requireSystemAdminUser(ROUTE);
   if (!hasPermission(user.permissionKeys, "monitoring.read")) {
     return (
       <main className="space-y-5">
@@ -42,26 +46,58 @@ export default async function PlatformErrorLogsPage({
   }
 
   const resolvedSearchParams = await searchParams;
-  const query = buildQueryString(resolvedSearchParams);
-  const [response, assignees, preference] = await Promise.all([apiRequestJson<{
-    items: PlatformErrorEvent[];
-    meta: PlatformErrorLogsMeta;
-    metrics: PlatformErrorLogMetrics;
-  }>(
-    `/platform/logs/events${query ? `?${query}` : ""}`,
-  ), apiRequestJson<SupportOwnerOption[]>("/platform-users/owner-candidates"), apiRequestJson<{ defaultViewKey?: string | null }>("/platform-users/me/module-preferences?moduleKey=monitoring-incidents")]);
-  const moduleDefinition = getPlatformModuleDefinition("monitoring-incidents");
+  /*
+   * The view selector this screen used to carry is gone — its five views were
+   * the status and severity filters under a second name — but the operations
+   * dashboard and old bookmarks still link with `viewId`. They are rewritten
+   * into the visible filters rather than applied silently: the list is
+   * fetched with the rewritten filters and the console replaces the URL to
+   * match, so the filter bar shows what the list was filtered by. Not a
+   * server redirect — a module's routeBase page must render the module
+   * (`module-routes.invariant.spec.ts`, BUG-0019).
+   */
+  const canonical = canonicalizeLegacyView(resolvedSearchParams);
+  const effectiveSearchParams =
+    canonical === null
+      ? resolvedSearchParams
+      : Object.fromEntries(new URLSearchParams(canonical));
+
+  const query = buildErrorLogApiQuery(effectiveSearchParams);
+  const [response, facets, assignees] = await Promise.all([
+    apiRequestJson<{
+      items: PlatformErrorEvent[];
+      meta: PlatformErrorLogsMeta;
+      metrics: PlatformErrorLogMetrics;
+    }>(`/platform/logs/events?${query}`),
+    /*
+     * The filter options. A failure here costs the dropdowns their options,
+     * not the page: the incident list is the thing an operator came for.
+     */
+    apiRequestJson<ErrorLogFacets>("/platform/logs/events/facets").catch(
+      () => null,
+    ),
+    apiRequestJson<SupportOwnerOption[]>(
+      "/platform-users/owner-candidates",
+    ).catch(() => [] as SupportOwnerOption[]),
+  ]);
 
   return (
-    <main className="space-y-5">
+    <main className="space-y-4">
       <PageHeader
         eyebrow="Platform monitoring"
         title="Error logs"
-        description="Support customers from a sanitized incident queue: trace web, admin, and API failures, record investigation progress, and maintain customer-ready updates."
-        actions={<RuntimeViewSelector moduleKey="monitoring-incidents" views={moduleDefinition.views} defaultViewKey={preference.defaultViewKey} roleKeys={[user.role, ...(user.roleKeys ?? [])]} />}
+        description="Failures captured from the tenant app, platform admin and API — what failed, for whom, and whether anyone is on it."
       />
-      <MonitoringNav current="/settings/monitoring/error-logs" />
-      <ErrorLogsTable logs={response.items} meta={response.meta} metrics={response.metrics} assignees={assignees} />
+      <MonitoringNav current={ROUTE} />
+      <ErrorLogsTable
+        assignees={assignees}
+        canManage={hasPermission(user.permissionKeys, "monitoring.manage")}
+        canonicalQuery={canonical}
+        facets={facets}
+        logs={response.items}
+        meta={response.meta}
+        metrics={response.metrics}
+      />
     </main>
   );
 }
@@ -74,68 +110,4 @@ function hasPermission(granted: string[], requested: string) {
       (permission.endsWith(".*") &&
         requested.startsWith(permission.slice(0, -1))),
   );
-}
-
-function buildQueryString(searchParams: Record<string, string | string[] | undefined>) {
-  const allowed = new Set([
-    "page",
-    "pageSize",
-    "sortBy",
-    "sortDirection",
-    "search",
-    "reference",
-    "severity",
-    "viewKey",
-    "status",
-    "sourceApp",
-    "environment",
-    "tenantId",
-    "userId",
-    "category",
-    "module",
-    "correlationId",
-    "route",
-    "method",
-    "from",
-    "to",
-  ]);
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(searchParams)) {
-    if (!allowed.has(key)) continue;
-    const normalized = Array.isArray(value) ? value[0] : value;
-    if (normalized) params.set(key, normalized);
-  }
-  const viewId = Array.isArray(searchParams.viewId)
-    ? searchParams.viewId[0]
-    : searchParams.viewId;
-  /*
-   * The critical view is named, not spelled out.
-   *
-   * This used to translate `viewId=critical` into `severity=ERROR`, an exact
-   * match — while the API had already been taught to fold case (BUG-1420).
-   * `severity` is free text and production holds 1,466 lowercase rows against
-   * 5 uppercase, so the filter returned almost nothing while the tile that
-   * linked here counted 11 (BUG-1750).
-   *
-   * Passing the view key instead lets `incidentViewWhere` answer, which is the
-   * one place that decides what "critical" means.
-   */
-  if (viewId === "critical" && !params.has("severity")) {
-    params.set("viewKey", "critical");
-  }
-  /*
-   * ITEM-0206. Every named view passes its key, so `incidentViewWhere` alone
-   * decides what the view holds. Translating "investigating" to
-   * `status=INVESTIGATING` missed FIX_IN_PROGRESS rows that the overview tile
-   * linking here counts — the BUG-2495 shape again.
-   */
-  if (
-    ["new", "investigating", "resolved", "open"].includes(viewId ?? "") &&
-    !params.has("status") &&
-    !params.has("viewKey")
-  ) {
-    params.set("viewKey", String(viewId));
-  }
-  if (!params.has("pageSize")) params.set("pageSize", "25");
-  return params.toString();
 }

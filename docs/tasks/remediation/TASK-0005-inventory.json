@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 770,
+    "total_records": 774,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -24110,6 +24110,174 @@
           "apps/admin"
         ],
         "verification_scope": "See docs/bugs/BUG-4019-partner-record-polish-empty-application-card-clipped-subgrid.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-4032",
+      "type": "UX",
+      "title": "Admin html/body overflow-x hidden disabled every position:sticky (command bar, agreement editor toolbar and Fields & Signatures panel scroll away)",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-4032-admin-html-body-overflow-x-hidden-disabled-every-position-st.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "c419770a",
+        "created_at": "2026-10-08",
+        "updated_at": "2026-10-09",
+        "resolved_at": "2026-10-09"
+      },
+      "affected_modules": [
+        "apps/admin/app/globals.css"
+      ],
+      "regressions": [
+        "REG-663"
+      ],
+      "qa_scenarios": [
+        "QA-ADMINUX-001"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin/app/globals.css"
+        ],
+        "verification_scope": "See docs/bugs/BUG-4032-admin-html-body-overflow-x-hidden-disabled-every-position-st.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-4033",
+      "type": "UX",
+      "title": "Tenants grid labelled the tenant column Name beside a linked Customer name, so operators opened the customer believing it was the tenant",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-4033-tenants-grid-labelled-the-tenant-column-name-beside-a-linked.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "c419770a",
+        "created_at": "2026-10-08",
+        "updated_at": "2026-10-09",
+        "resolved_at": "2026-10-09"
+      },
+      "affected_modules": [
+        "apps/admin/lib/runtime/platform-module-registry.ts"
+      ],
+      "regressions": [
+        "REG-664"
+      ],
+      "qa_scenarios": [
+        "QA-ADMINUX-002"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin/lib/runtime/platform-module-registry.ts"
+        ],
+        "verification_scope": "See docs/bugs/BUG-4033-tenants-grid-labelled-the-tenant-column-name-beside-a-linked.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-4034",
+      "type": "UX",
+      "title": "Runtime lists rendered the definition's default columns, then swapped to the saved view's columns (column flash on load)",
+      "severity": "LOW",
+      "priority": "P3",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-4034-runtime-lists-rendered-the-definition-s-default-columns-then.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "c419770a",
+        "created_at": "2026-10-08",
+        "updated_at": "2026-10-09",
+        "resolved_at": "2026-10-09"
+      },
+      "affected_modules": [
+        "apps/admin/app/_components/runtime/runtime-module-list.tsx"
+      ],
+      "regressions": [
+        "REG-665"
+      ],
+      "qa_scenarios": [
+        "QA-ADMINUX-003"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin/app/_components/runtime/runtime-module-list.tsx"
+        ],
+        "verification_scope": "See docs/bugs/BUG-4034-runtime-lists-rendered-the-definition-s-default-columns-then.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-4035",
+      "type": "BUG",
+      "title": "Monitoring error logs offered filters and cards matching no stored value, page-only export, a tenant-only diagnostics download, and Create support case sent the trace id so it always 404ed",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-4035-monitoring-error-logs-offered-filters-and-cards-matching-no-.md",
+        "provenance": "USER_REPORT",
+        "detected_in_sha": "c419770a",
+        "created_at": "2026-10-08",
+        "updated_at": "2026-10-09",
+        "resolved_at": "2026-10-09"
+      },
+      "affected_modules": [
+        "apps/admin/app/_components/monitoring"
+      ],
+      "regressions": [
+        "REG-666"
+      ],
+      "qa_scenarios": [
+        "QA-MON-001"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "apps/admin/app/_components/monitoring"
+        ],
+        "verification_scope": "See docs/bugs/BUG-4035-monitoring-error-logs-offered-filters-and-cards-matching-no-.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

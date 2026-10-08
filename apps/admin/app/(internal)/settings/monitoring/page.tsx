@@ -21,7 +21,6 @@ export const metadata: Metadata = {
   title: "Monitoring",
 };
 
-
 /**
  * The monitoring landing page.
  *
@@ -39,16 +38,17 @@ export default async function MonitoringSettingsPage() {
 
   const [incidents, events, health] = await Promise.all([
     /*
-     * The queue's own endpoint, with its own filters — asking for the most
-     * recent 25 rather than re-implementing pagination on a landing page. The
-     * page filters that slice in the browser and hands the same filters to the
-     * full queue when an agent wants more, so the two never drift into meaning
-     * different things.
+     * The error log's own endpoint: the ten most recently active unresolved
+     * incidents, plus the metrics. The metrics count the scope and ignore the
+     * status filter, so this one request yields both the open slice and the
+     * all-time counts the tiles show.
      */
     apiRequestJson<{
       items: OverviewIncident[];
       metrics: OverviewMetrics;
-    }>("/platform/logs/events?pageSize=25&sortBy=createdAt&sortDirection=desc"),
+    }>(
+      "/platform/logs/events?pageSize=10&status=UNRESOLVED&sortBy=lastSeen&sortDirection=desc",
+    ),
     apiRequestJson<EventHealth>("/platform/events/overview"),
     // TASK-0032 WP-06: "is the platform healthy" answered first, from real
     // dependency probes rather than inferred from the incident queue below.
@@ -59,7 +59,7 @@ export default async function MonitoringSettingsPage() {
     <main className="space-y-5">
       <PageHeader
         description="What needs a person right now, what is already being worked, and whether the platform itself is healthy."
-        eyebrow="Operations"
+        eyebrow="Platform monitoring"
         title="Monitoring"
       />
       <MonitoringNav current="/settings/monitoring" />

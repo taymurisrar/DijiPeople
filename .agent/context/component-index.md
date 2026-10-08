@@ -1,7 +1,7 @@
 # Component Index
 
 > **Last verified:** 2026-10-08
-> **Verified against commit:** 952b7b58
+> **Verified against commit:** c419770a
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -16,8 +16,8 @@ question an agent can answer by retrieval rather than by reading a directory.
 comment beside it is the reasoning; this document is a route to both. Every row
 carries `file`:`line` for that reason — read the source before changing it.
 
-**An export missing from here is undocumented, not absent.** 898 of
-1241 exports across these kits carry no
+**An export missing from here is undocumented, not absent.** 906 of
+1261 exports across these kits carry no
 doc-comment and are omitted rather than listed as bare names. That ratio is
 itself worth knowing: it is where a UI/UX or Frontend agent is working without
 stated rationale, and where adding one is worth more than a new abstraction.
@@ -45,15 +45,18 @@ re-derived on each run.
 
 `ProDataTable` (`crm/data-table.tsx`) is the required table for every production admin screen. A hand-rolled table here is a review failure.
 
-122 documented export(s); 274 undocumented export(s) omitted.
+134 documented export(s); 282 undocumented export(s) omitted.
 
 | Export | Kind | Used by | Where | What it is |
 |---|---|---|---|---|
 | `PanelDialog` | component | 11 | `apps/admin/app/_components/tenants/tenant-panel-ui.tsx`:270 | A modal that traps focus, restores it on close and can always be dismissed with Escape. |
 | `PanelCard` | component | 9 | `apps/admin/app/_components/tenants/tenant-panel-ui.tsx`:16 | The pieces every tenant panel is built from. |
-| `ModuleActionBar` | component | 8 | `apps/admin/app/_components/runtime/module-action-bar.tsx`:112 | The command bar every admin list and record screen draws its buttons in. |
+| `ModuleActionBar` | component | 8 | `apps/admin/app/_components/runtime/module-action-bar.tsx`:128 | The command bar every admin list and record screen draws its buttons in. |
 | `StatePill` | component | 8 | `apps/admin/app/_components/tenants/tenant-panel-ui.tsx`:147 | A status word carrying its own icon and text, never colour alone — the same pill has to be readable to someone who cannot distinguish red from green. |
+| `Field` | component | 5 | `apps/admin/app/_components/monitoring/monitoring-ui.tsx`:146 | A labelled value in a detail grid. |
 | `RecordStatusGroup` | component | 5 | `apps/admin/app/_components/runtime/record-status-group.tsx`:42 | The record header status group. |
+| `RecordHeader` | component | 4 | `apps/admin/app/_components/runtime/record-highlight-header.tsx`:42 | The one record header every Platform Admin record page draws. |
+| `CopyReference` | component | 3 | `apps/admin/app/_components/monitoring/monitoring-ui.tsx`:107 | A reference id that copies itself; it is what support pastes to a customer. |
 | `NotificationBell` | component | 2 | `apps/admin/app/_components/notifications/notification-bell.tsx`:34 | The bell: a count, and the last few things worth knowing. |
 | `PlanPriceManager` | component | 2 | `apps/admin/app/_components/plan-price-manager.tsx`:94 | Plan prices. This screen was a stack of cards, one per price, each repeating "Cycle", "Amount", "Stripe Price ID" and "Subscriptions" as its own labelled block — so a plan priced in six currencies across two periods, with a few superseded versions behind it, rendered several hundred vertical pixels of column headings. |
 | `AccountPreferencesClient` | component | 1 | `apps/admin/app/_components/account-preferences-client.tsx`:26 | Personal console preferences, stored against the operator. |
@@ -67,7 +70,7 @@ re-derived on each run.
 | `ProviderPaymentsClient` | component | 1 | `apps/admin/app/_components/billing/provider-payments-client.tsx`:61 | Payments DijiPeople billed through a provider other than Stripe (Safepay), and the webhook deliveries behind them. |
 | `ReadinessCard` | component | 1 | `apps/admin/app/_components/tenants/tenant-overview-panel.tsx`:446 | Deterministic readiness, shown as the list of rules it checked. |
 | `RecordCommandBar` | component | 1 | `apps/admin/app/_components/runtime/record-command-bar.tsx`:22 | The default record command bar for a **server-rendered** detail page. |
-| `RecordHighlightHeader` | component | 1 | `apps/admin/app/_components/runtime/record-highlight-header.tsx`:33 | The record highlight header (EXECPLAN-0055 D8). |
+| `RecordHighlightHeader` | component | 1 | `apps/admin/app/_components/runtime/record-highlight-header.tsx`:130 | The record header for a module that declares a `highlight` (EXECPLAN-0055 D8): its key values as cells, with Owner as the only control — taken from the status group so its permission check and assignment route are not duplicated. |
 | `RowActions` | component | 1 | `apps/admin/app/_components/crm/row-actions.tsx`:38 | The actions available on one row of a table. |
 | `RuntimeQuickCreatePanel` | component | 1 | `apps/admin/app/_components/runtime/runtime-quick-create-panel.tsx`:46 | Create a related record from a subgrid, in a side sheet, without leaving the record (EXECPLAN-0055 D8). |
 | `RuntimeRelatedRecordsPanel` | component | 1 | `apps/admin/app/_components/runtime/runtime-related-records-panel.tsx`:52 | A subgrid on a record page. |
@@ -77,10 +80,10 @@ re-derived on each run.
 | `TenantCommercialPanel` | component | 1 | `apps/admin/app/_components/tenants/tenant-commercial-panel.tsx`:51 | Commercial. Everything here is a record this platform holds: a Subscription, Contracts and Invoices. |
 | `TenantConfigurationPanel` | component | 1 | `apps/admin/app/_components/tenants/tenant-configuration-panel.tsx`:27 | Configuration — the workspace itself, not the HRM inside it. |
 | `TenantDomainsPanel` | component | 1 | `apps/admin/app/_components/tenants/tenant-domains-panel.tsx`:74 | The hostnames a workspace answers on. |
+| `TenantEnvironmentBadge` | component | 1 | `apps/admin/app/_components/tenants/tenant-record-header.tsx`:27 | Always rendered, including for PRODUCTION. |
 | `TenantEraseDialog` | component | 1 | `apps/admin/app/_components/tenants/tenant-erase-dialog.tsx`:33 | Erase Tenant. Intentionally difficult. |
 | `TenantOperationsPanel` | component | 1 | `apps/admin/app/_components/tenants/tenant-operations-panel.tsx`:51 | Operations. Provisioning history, support load and background job outcomes — all read from records the platform writes. |
 | `TenantOverviewPanel` | component | 1 | `apps/admin/app/_components/tenants/tenant-overview-panel.tsx`:30 | The Overview tab. It answers the questions a Platform Admin actually opens a tenant to answer — is it working, who owns it, what is it paying for, is anything broken — rather than listing the tenant table's columns. |
-| `TenantRecordHeader` | component | 1 | `apps/admin/app/_components/tenants/tenant-record-header.tsx`:21 | The tenant record header. |
 | `TenantSystemPanel` | component | 1 | `apps/admin/app/_components/tenants/tenant-system-panel.tsx`:28 | System — internal platform metadata, and the one place tenant erasure lives. |
 | `TenantTimelinePanel` | component | 1 | `apps/admin/app/_components/tenants/tenant-timeline-panel.tsx`:54 | Timeline — readable operational history, not the compliance audit log. |
 | `TenantControlPlaneError` | component | 0 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:512 | An API failure with the context needed to chase it. |
@@ -113,11 +116,14 @@ re-derived on each run.
 | `emptyEditOutcome` | function | 1 | `apps/admin/lib/runtime/runtime-write-payload.ts`:103 | The save outcome when an edit has nothing to send, or null when it does. |
 | `errorCountByTab` | function | 1 | `apps/admin/lib/runtime/blocked-save-feedback.ts`:33 | How many failures sit on each tab, for the tab strip's badges. |
 | `firstFailingTab` | function | 1 | `apps/admin/lib/runtime/blocked-save-feedback.ts`:22 | The tab holding the first failure, or null when none of them declare one. |
+| `fitCommands` | function | 1 | `apps/admin/lib/runtime/command-overflow.ts`:51 | Split `actions` (already in display order) into what is drawn inline and what goes into More. @param widths measured width of each action's inline button, same order @param available width of the space the buttons sit in @param moreWidth width of the More button @param gap horizontal gap between buttons |
 | `isRowActionVisible` | function | 1 | `apps/admin/lib/runtime/related-records-model.ts`:180 | Whether a row command applies to this row. |
 | `isRuntimeFieldVisible` | function | 1 | `apps/admin/lib/runtime/field-visibility.ts`:35 | Should the record form render this field? |
 | `isTransportFailure` | function | 1 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:683 | Whether a failure means "the request never got an answer" rather than "the server said no". |
+| `lookupDependents` | function | 1 | `apps/admin/lib/runtime/runtime-lookups.ts`:103 | Fields whose lookup is scoped by `changedKey`, directly or through another dependent — State and City for Country, City for State. |
 | `lookupDisplayFallback` | function | 1 | `apps/admin/lib/runtime/lookup-display-fallback.ts`:15 | What a lookup shows when its stored value matches no option. |
 | `mapQuickCreateErrors` | function | 1 | `apps/admin/lib/runtime/quick-create-model.ts`:149 | Splits an API failure between the fields it names and a panel-level message. |
+| `orderCommands` | function | 1 | `apps/admin/lib/runtime/command-overflow.ts`:35 | The commands in display order: everything the registry placed inline first, then what it marked as overflow-by-default, each keeping its declared order. |
 | `planEntitlementKeys` | function | 1 | `apps/admin/lib/runtime/plan-entitlement-keys.ts`:29 | The entitlement keys a plan record grants, whatever shape the record is in. |
 | `planSubscriptionCount` | function | 1 | `apps/admin/lib/runtime/plan-subscription-count.ts`:22 | How many tenants are billed on a plan, whatever shape the record is in. |
 | `quickCreateAvailability` | function | 1 | `apps/admin/lib/runtime/quick-create-model.ts`:132 | Whether the Add button is offered for this parent, and if not, why — shown on the disabled button, so it never reads as broken. |
@@ -125,25 +131,27 @@ re-derived on each run.
 | `quickCreateInitialValues` | function | 1 | `apps/admin/lib/runtime/quick-create-model.ts`:76 | Where the panel starts: fixed defaults, then values taken from the parent, then the parent id under `parentField`. |
 | `readConditionValue` | function | 1 | `apps/admin/lib/runtime/visibility-condition.ts`:22 | The value a condition reads: the key itself when `values` has it, otherwise a dot path into nested objects (`owner.id`) — what the form always read. |
 | `readFieldErrors` | function | 1 | `apps/admin/lib/runtime/http-module-runtime-adapter.ts`:237 | The field errors an API failure carries. |
-| `readRuntimeLookupLabel` | function | 1 | `apps/admin/lib/runtime/runtime-lookups.ts`:231 | The display name of a related record, wherever this schema happens to keep it. |
+| `readRuntimeLookupLabel` | function | 1 | `apps/admin/lib/runtime/runtime-lookups.ts`:309 | The display name of a related record, wherever this schema happens to keep it. |
 | `reconcileWithErasureReceipt` | function | 1 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:708 | Ask the receipt what happened when the response did not arrive. |
 | `recordHeaderWritePermission` | function | 1 | `apps/admin/lib/runtime/runtime-permissions.ts`:54 | The permission a header slot's write route is governed by. |
-| `resolveAllowedLookupSource` | function | 1 | `apps/admin/lib/runtime/runtime-lookups.ts`:104 | The API path a lookup request may call: the `path` parameter must be an allowlisted template, and each of its placeholders is filled from the matching `bind.<field>` parameter. |
-| `resolveLookupBindings` | function | 1 | `apps/admin/lib/runtime/runtime-lookups.ts`:63 | The values a templated lookup needs, read from the form. |
+| `resolveAllowedLookupSource` | function | 1 | `apps/admin/lib/runtime/runtime-lookups.ts`:182 | The API path a lookup request may call: the `path` parameter must be an allowlisted template, and each of its placeholders is filled from the matching `bind.<field>` parameter. |
+| `resolveLookupBindings` | function | 1 | `apps/admin/lib/runtime/runtime-lookups.ts`:127 | The values a templated lookup needs, read from the form. |
 | `resolveQuickCreateFields` | function | 1 | `apps/admin/lib/runtime/quick-create-model.ts`:30 | The fields the panel renders. |
 | `resolveRowActionPath` | function | 1 | `apps/admin/lib/runtime/related-records-model.ts`:210 | The `/api` path a `post` or `delete` row command calls, with its tokens substituted. |
 | `rowActionRequest` | function | 1 | `apps/admin/lib/runtime/related-records-model.ts`:196 | The request a `post` or `delete` row command sends: POST with its JSON `body`, or DELETE with none. |
 | `shareableUrl` | function | 1 | `apps/admin/lib/runtime/related-records-model.ts`:227 | A referral link's shareable URL — the one the API built from the configured public site (`partnerReferralLinkUrl`). |
+| `tenantHeaderTitle` | function | 1 | `apps/admin/app/_components/tenants/tenant-record-header.tsx`:18 | The tenant record header's content, drawn by the shared `RecordHeader`. |
 | `useTenantRecordActions` | function | 1 | `apps/admin/app/_components/tenants/use-tenant-record-actions.tsx`:99 | Routes tenant action-bar requests to whichever surface owns the change. |
 | `acceptsField` | function | 0 | `apps/admin/lib/runtime/runtime-write-payload.ts`:20 | Whether the runtime will accept this field on this kind of write. |
-| `bindRuntimeLookupPath` | function | 0 | `apps/admin/lib/runtime/runtime-lookups.ts`:83 | The API path for an allowlisted template and its bindings, or null when a placeholder is unbound or a value is not id-shaped. |
+| `bindRuntimeLookupPath` | function | 0 | `apps/admin/lib/runtime/runtime-lookups.ts`:153 | The API path for an allowlisted template and its bindings, or null when a placeholder is unbound or a value is not id-shaped. |
+| `commandPriority` | function | 0 | `apps/admin/lib/runtime/command-overflow.ts`:22 | Lower is more important. |
 | `fetchErasureReceipts` | function | 0 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:663 | Erasure receipts for one tenant, read without addressing the tenant itself. |
 | `isEmptyFieldValue` | function | 0 | `apps/admin/lib/runtime/field-visibility.ts`:14 | Does a stored value count as "nothing here" for `hideWhenEmpty`? |
-| `lookupPathPlaceholders` | function | 0 | `apps/admin/lib/runtime/runtime-lookups.ts`:48 | The `{field}` names a lookup path depends on, in order, without repeats. |
-| `mergeVisibleColumns` | function | 0 | `apps/admin/app/_components/runtime/runtime-module-list.tsx`:1408 | Which columns are visible, given a saved preference written against an older version of the module. |
-| `normalizeColumnOrder` | function | 0 | `apps/admin/app/_components/runtime/runtime-module-list.tsx`:1359 | Merge a saved column order with the module's current one. |
+| `lookupPathPlaceholders` | function | 0 | `apps/admin/lib/runtime/runtime-lookups.ts`:90 | The `{field}` names a lookup path depends on, in order, without repeats. |
+| `mergeVisibleColumns` | function | 0 | `apps/admin/app/_components/runtime/runtime-module-list.tsx`:1432 | Which columns are visible, given a saved preference written against an older version of the module. |
 | `normalizeWriteValue` | function | 0 | `apps/admin/lib/runtime/runtime-write-payload.ts`:49 | What an empty optional field should be sent as — or whether to send it. |
 | `resolveLookupRecordRoute` | function | 0 | `apps/admin/lib/runtime/lookup-record-href.ts`:44 | The module a lookup reads from, if Platform Admin can show that record. |
+| `resolveTableColumnState` | function | 0 | `apps/admin/app/_components/runtime/runtime-module-list.tsx`:1358 | The columns a list shows, from the module definition and the operator's saved table state (or none). |
 | `standardRecordActions` | function | 0 | `apps/admin/lib/runtime/standard-record-commands.ts`:56 | The registry's command bar for a module, with the page's own commands merged in on top — same rule the registry itself uses, so a bespoke page can override a default's label or states without losing the rest. |
 | `tabHasEditableField` | function | 0 | `apps/admin/lib/runtime/edit-tab-selection.ts`:73 | Whether the named tab currently has at least one field the operator could edit. |
 | `ConsolePreferencesApplier` | value | 1 | `apps/admin/app/_components/console-preferences-applier.tsx`:23 | Apply the operator's preferences to every page, not just the one that sets them. |
@@ -154,19 +162,23 @@ re-derived on each run.
 | `RELATED_PANEL_CLASS` | constant | 1 | `apps/admin/lib/runtime/related-records-model.ts`:168 | Wide subgrids scroll inside their card, and their row commands stay in view. |
 | `TENANT_PANEL_TABS` | constant | 1 | `apps/admin/app/_components/tenants/use-tenant-record-actions.tsx`:21 | Tabs whose content comes from a tenant panel rather than from form fields. |
 | `DASHBOARD_WIDGET_REGISTRY` | constant | 0 | `apps/admin/app/_components/dashboard/platform-dashboard.tsx`:295 | Canonical widget capability registry. |
+| `EMPTY_VALUE` | constant | 0 | `apps/admin/app/_components/runtime/runtime-form.tsx`:34 | What a read-only field shows when it has no value — one wording everywhere. |
 | `MODULES_WITH_DEPENDENCY_CHECK` | constant | 0 | `apps/admin/lib/runtime/http-module-runtime-adapter.ts`:20 | Modules whose API answers `GET :id/dependencies` (EXECPLAN-0055 D5) — the mirror of `dependencyProviders()` in `PlatformRuntimeService`. |
 | `QUICK_CREATE_SECTION` | constant | 0 | `apps/admin/lib/runtime/quick-create-model.ts`:18 | The quick-create side panel's rules, without the panel (EXECPLAN-0055 D8). |
 | `RUNTIME_ELEVATED_ROLES` | constant | 0 | `apps/admin/lib/runtime/runtime-permissions.ts`:21 | Roles that reach every platform module regardless of the granted key set. |
 | `RuntimeRecordHighlightDefinition` | type | 3 | `apps/admin/lib/runtime/platform-runtime.types.ts`:495 | The record highlight header: the record's name and the handful of values an operator reads first, in one compact strip. |
 | `RuntimeQuickCreateDefinition` | type | 2 | `apps/admin/lib/runtime/platform-runtime.types.ts`:437 | A quick-create side panel for a subgrid (EXECPLAN-0055 D8). |
 | `RuntimeRelatedRecordDefinition` | type | 2 | `apps/admin/lib/runtime/platform-runtime.types.ts`:406 | One subgrid on a record page — the records related to the one being viewed, read from `GET /platform-runtime/<module>/:id/related/<key>`. |
+| `PlatformErrorEvent` | type | 1 | `apps/admin/app/_components/monitoring/error-logs-table.tsx`:50 | The error-log console: what is failing, for whom, and whether anyone is on it. |
 | `RecordDependencyPolicy` | type | 1 | `apps/admin/lib/runtime/platform-runtime.types.ts`:634 | What deleting a record would do, relation by relation — the answer of `GET /platform-runtime/:moduleKey/:id/dependencies` (EXECPLAN-0055 D5). |
+| `RecordHeaderSecondaryItem` | type | 1 | `apps/admin/app/_components/runtime/record-highlight-header.tsx`:18 | A small contextual value under the main band — Source, Received, Workspace. |
 | `AdminMfaChallenge` | type | 0 | `apps/admin/app/_components/security/mfa-security.tsx`:138 | ------------------------------------------------------------------ |
 | `DependencyDeleteTarget` | type | 0 | `apps/admin/lib/runtime/dependency-delete-model.ts`:20 | What a dependency-aware delete dialog shows, and whether it lets the operator confirm (EXECPLAN-0055 D5). |
 | `Notification` | type | 0 | `apps/admin/app/_components/notifications/notification-model.ts`:11 | One row of the feed, as `platform-notifications.ts` projects it. |
 | `OperationsSection` | type | 0 | `apps/admin/app/_components/dashboard/platform-dashboard.tsx`:137 | The Operations view's own data source (TASK-0032 WP-07 / ITEM-0199), `GET /super-admin/dashboard-summary/operations`. |
-| `OverviewIncident` | type | 0 | `apps/admin/app/_components/monitoring/monitoring-overview.tsx`:39 | Monitoring, as a place to start work rather than a place to read numbers. |
+| `OverviewIncident` | type | 0 | `apps/admin/app/_components/monitoring/monitoring-overview.tsx`:31 | Monitoring, as a place to start work rather than a place to read numbers. |
 | `PlanPriceLike` | type | 0 | `apps/admin/lib/runtime/plan-headline-prices.ts`:43 | The one monthly/annual pair a plan's headline tiles may show. |
+| `PlatformEventRow` | type | 0 | `apps/admin/app/_components/monitoring/events-table.tsx`:23 | The platform event log — lifecycle activity (sign-ins, provisioning runs, webhooks, emails), successful or not, kept apart from the error log. |
 | `RelatedCell` | type | 0 | `apps/admin/lib/runtime/related-records-model.ts`:20 | Subgrid cells, row commands and the referral-link copy action, as data (EXECPLAN-0055 WP-08). |
 | `ResolvedHighlight` | type | 0 | `apps/admin/lib/runtime/record-highlight.ts`:15 | One value in the record highlight header, resolved from the record. |
 | `TenantWorkspaceHealth` | type | 0 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:174 | What is missing from a workspace, as facts about the tenant rather than about a provisioning run that may never have been recorded. |

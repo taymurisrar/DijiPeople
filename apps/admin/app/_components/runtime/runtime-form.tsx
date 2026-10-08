@@ -9,6 +9,7 @@ import type {
 } from "@/lib/runtime/platform-runtime.types";
 import { ContractDocumentEditor } from "@/app/_components/documents/contract-document-editor";
 import {
+  lookupDependents,
   resolveLookupBindings,
   type RuntimeLookupOption,
 } from "@/lib/runtime/runtime-lookups";
@@ -29,6 +30,9 @@ import {
 } from "@/lib/a11y/listbox-navigation";
 
 type RuntimeValues = Record<string, unknown>;
+/** What a read-only field shows when it has no value — one wording everywhere. */
+export const EMPTY_VALUE = "Not set";
+
 export function RuntimeForm({
   definition,
   values,
@@ -166,7 +170,7 @@ export function RuntimeForm({
               </div>
             ) : null}
             <div
-              className={`grid gap-3 ${section.columns === 3 ? "md:grid-cols-2 xl:grid-cols-3" : section.columns === 2 ? "md:grid-cols-2" : "grid-cols-1"}`}
+              className={`grid items-start gap-x-4 gap-y-3 ${section.columns === 3 ? "md:grid-cols-2 xl:grid-cols-3" : section.columns === 2 ? "md:grid-cols-2" : "grid-cols-1"}`}
             >
               {fields.map((field) => (
                 <RuntimeField
@@ -181,7 +185,17 @@ export function RuntimeForm({
                     isConditionallyReadOnly(field, values)
                   }
                   onChange={(value) => {
+                    const previous = readRuntimeValue(values, field.key);
                     onChange(field.key, value);
+                    // A Country change clears State and City; a State change
+                    // clears City (see `lookupDependents`).
+                    if ((previous ?? "") !== (value ?? ""))
+                      for (const dependentKey of lookupDependents(
+                        definition.fields,
+                        field.key,
+                      ))
+                        if (readRuntimeValue(values, dependentKey))
+                          onChange(dependentKey, null);
                     for (const dependentField of definition.fields) {
                       if (
                         dependentField.optionsByFieldValue?.field !== field.key
@@ -269,6 +283,17 @@ function RuntimeField({
           value={String(value ?? "")}
           onChange={onChange}
           readOnly={readOnly}
+          /*
+           * The agreement's own context, so the fields offered are the ones
+           * its subject (partner, lead, customer, tenant) can resolve rather
+           * than the whole registry.
+           */
+          contractType={
+            typeof values.contractType === "string"
+              ? values.contractType
+              : undefined
+          }
+          contractId={typeof values.id === "string" ? values.id : undefined}
         />
         {error ? (
           <span className="mt-1 block text-xs text-rose-600">{error}</span>
@@ -297,7 +322,7 @@ function RuntimeField({
       data-field-key={field.key}
       // Why a locked field is locked, as its tooltip rather than more text.
       title={readOnly && field.readOnlyReason ? field.readOnlyReason : undefined}
-      className={`flex flex-col gap-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 ${span}`}
+      className={`flex min-w-0 flex-col gap-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 ${span}`}
     >
       <label
         htmlFor={controlId}
@@ -386,8 +411,20 @@ function FieldDisplay({
   value: unknown;
   values: RuntimeValues;
 }) {
-  const base =
-    "min-h-10 rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900";
+  /*
+   * Every read-only value sits in the same box: one height for a single line,
+   * text vertically centred, and long text growing the box rather than
+   * overflowing it. A status pill used to render at its own 26px height beside
+   * 40px neighbours, and an empty value printed "—" for booleans but "Not set"
+   * for everything else — so a half-filled section looked unevenly rendered,
+   * as if part of it had failed to load. `EMPTY_VALUE` is the one empty state.
+   */
+  const box =
+    "min-h-10 min-w-0 rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2 text-sm font-normal normal-case leading-6 tracking-normal text-slate-900";
+  const base = `${box} flex items-center break-words [overflow-wrap:anywhere]`;
+  const empty = (
+    <span className={`${base} text-slate-400`}>{EMPTY_VALUE}</span>
+  );
 
   /*
    * Explicit presentation metadata wins for every field type, not just lookups.
@@ -418,7 +455,11 @@ function FieldDisplay({
 
   if (field.type === "boolean") {
     return (
-      <span className={base}>{value === true ? "Yes" : value === false ? "No" : "—"}</span>
+      value === true || value === false ? (
+        <span className={base}>{value ? "Yes" : "No"}</span>
+      ) : (
+        empty
+      )
     );
   }
 
@@ -426,7 +467,7 @@ function FieldDisplay({
     const label =
       resolveLookupLabel(field, value, values) ??
       lookupDisplayFallback(field, value);
-    if (!label) return <span className={`${base} text-slate-400`}>Not set</span>;
+    if (!label) return empty;
     const href = resolveDisplayHref(field, values, value);
     return (
       <span className={base}>
@@ -444,8 +485,13 @@ function FieldDisplay({
     );
   }
 
-  if (value === null || value === undefined || value === "") {
-    return <span className={`${base} text-slate-400`}>Not set</span>;
+  if (
+    value === null ||
+    value === undefined ||
+    value === "" ||
+    (Array.isArray(value) && value.length === 0)
+  ) {
+    return empty;
   }
 
   if (field.renderAs === "status" || field.type === "option") {
@@ -453,8 +499,10 @@ function FieldDisplay({
       field.options?.find((option) => option.value === String(value))?.label ??
       titleCase(String(value));
     return field.renderAs === "status" ? (
-      <span className="inline-flex w-fit rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold normal-case tracking-normal text-slate-700">
-        {label}
+      <span className={base}>
+        <span className="inline-flex max-w-full truncate rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-xs font-semibold text-slate-700">
+          {label}
+        </span>
       </span>
     ) : (
       <span className={base}>{label}</span>
@@ -489,8 +537,7 @@ function FieldDisplay({
      * 1 January 1970 to the millisecond is the sentinel, and any other 1970
      * date is somebody's real data.
      */
-    if (date.getTime() === 0)
-      return <span className={`${base} text-slate-400`}>Not set</span>;
+    if (date.getTime() === 0) return empty;
     return (
       <span className={base}>
         {Number.isNaN(date.getTime())
@@ -538,7 +585,7 @@ function FieldDisplay({
 
   if (field.type === "json") {
     return (
-      <pre className={`${base} max-h-48 overflow-auto font-mono text-xs`}>
+      <pre className={`${box} max-h-48 overflow-auto font-mono text-xs`}>
         {typeof value === "string" ? value : JSON.stringify(value, null, 2)}
       </pre>
     );

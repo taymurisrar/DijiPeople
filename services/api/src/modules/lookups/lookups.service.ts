@@ -47,6 +47,15 @@ export class LookupsService {
     }));
   }
 
+  listCitiesForPlace(input: {
+    country: string;
+    state?: string;
+    search?: string;
+    take?: number;
+  }) {
+    return this.geographicLookupService.listCitiesForPlace(input);
+  }
+
   async listCities(
     countryId?: string,
     stateProvinceId?: string,

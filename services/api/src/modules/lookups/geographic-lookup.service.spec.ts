@@ -188,3 +188,75 @@ describe('country sort bands', () => {
     expect(ordered[ordered.length - 1].code).toBe('AM');
   });
 });
+
+/*
+ * The admin State and City pickers are scoped by the names the commercial
+ * records store, so the place must resolve from a name — and a state that does
+ * not belong to the country must yield nothing, never the whole country.
+ */
+describe('listCitiesForPlace', () => {
+  function build(state: { id: string } | null) {
+    const countryFindFirst = jest.fn().mockResolvedValue({ id: 'country-ae' });
+    const stateFindFirst = jest.fn().mockResolvedValue(state);
+    const prisma = {
+      country: { findFirst: countryFindFirst },
+      stateProvince: { findFirst: stateFindFirst },
+    } as unknown as PrismaService;
+    const service = new GeographicLookupService(prisma, {
+      get: jest.fn(),
+    } as unknown as ConfigService);
+    const internals = service as unknown as {
+      syncStatesForCountry: (id: string) => Promise<void>;
+    };
+    jest.spyOn(internals, 'syncStatesForCountry').mockResolvedValue(undefined);
+    const listCities = jest.spyOn(service, 'listCities').mockResolvedValue(
+      [1, 2, 3].map((index) => ({
+        id: `city-${index}`,
+        name: `City ${index}`,
+      })) as never,
+    );
+    return { countryFindFirst, stateFindFirst, service, listCities };
+  }
+
+  it('resolves the country by name and the state within it', async () => {
+    const { countryFindFirst, stateFindFirst, service, listCities } = build({
+      id: 'state-dubai',
+    });
+    await service.listCitiesForPlace({
+      country: 'United Arab Emirates',
+      state: 'Dubai',
+      search: 'Jum',
+    });
+    const [countryQuery] = countryFindFirst.mock.calls[0] as [
+      { where: { OR: unknown[] } },
+    ];
+    expect(countryQuery.where.OR).toContainEqual({
+      name: { equals: 'United Arab Emirates', mode: 'insensitive' },
+    });
+    const [stateQuery] = stateFindFirst.mock.calls[0] as [
+      { where: { countryId: string } },
+    ];
+    expect(stateQuery.where.countryId).toBe('country-ae');
+    expect(listCities).toHaveBeenCalledWith('country-ae', 'state-dubai', 'Jum');
+  });
+
+  it('returns nothing for a state outside the country rather than widening', async () => {
+    const { service, listCities } = build(null);
+    const result = await service.listCitiesForPlace({
+      country: 'United Arab Emirates',
+      state: 'Texas',
+    });
+    expect(result).toEqual([]);
+    expect(listCities).not.toHaveBeenCalled();
+  });
+
+  it('lists the country when no state is given, capped to the page size', async () => {
+    const { service, listCities } = build(null);
+    const result = await service.listCitiesForPlace({
+      country: 'AE',
+      take: 2,
+    });
+    expect(listCities).toHaveBeenCalledWith('country-ae', undefined, undefined);
+    expect(result).toHaveLength(2);
+  });
+});

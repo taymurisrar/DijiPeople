@@ -48,13 +48,56 @@ export class PublicGeographyController {
   async listStates(
     @Query('countryId') countryId?: string,
     @Query('search') search?: string,
+    @Query('country') country?: string,
   ) {
-    if (!countryId) return [];
-    const states = await this.lookups.listStates(countryId, search);
+    /*
+     * `country` takes an id, ISO code or name — the admin State picker is
+     * scoped by the name its Country field stores. `countryId` stays for the
+     * subscribe wizard, which already sends one.
+     */
+    const identifier = boundedParam(countryId) ?? boundedParam(country);
+    if (!identifier) return [];
+    const states = await this.lookups.listStates(
+      identifier,
+      boundedParam(search),
+    );
     return states.map((state) => ({
       id: state.id,
       code: state.code,
       name: state.name,
     }));
   }
+
+  /**
+   * Cities within a country, and within a state when one is given.
+   *
+   * Like `states`, a country is required — an unscoped city list is neither
+   * useful to a form nor cheap. At most `CITY_PAGE_SIZE` come back; the picker
+   * narrows the rest with `search`.
+   */
+  @Get('cities')
+  async listCities(
+    @Query('country') country?: string,
+    @Query('state') state?: string,
+    @Query('search') search?: string,
+  ) {
+    const countryIdentifier = boundedParam(country);
+    if (!countryIdentifier) return [];
+    const cities = await this.lookups.listCitiesForPlace({
+      country: countryIdentifier,
+      state: boundedParam(state),
+      search: boundedParam(search),
+      take: CITY_PAGE_SIZE,
+    });
+    return cities.map((city) => ({ id: city.id, name: city.name }));
+  }
+}
+
+const CITY_PAGE_SIZE = 200;
+
+/** A trimmed, non-empty query value of sane length, or undefined. */
+function boundedParam(value: unknown) {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed && trimmed.length <= 120 ? trimmed : undefined;
 }

@@ -41,6 +41,13 @@ export type ProDataTableProps<T> = {
   onToggleAll?: (checked: boolean) => void;
 
   loading?: boolean;
+  /*
+   * The columns themselves are not known yet — a saved view or column
+   * preference is still loading. The table draws a neutral skeleton with no
+   * headers rather than the definition's default columns, which would show for
+   * a moment and then be replaced by the operator's own (the column flash).
+   */
+  columnsPending?: boolean;
   loadingRowCount?: number;
   emptyTitle?: string;
   emptyDescription?: string;
@@ -81,6 +88,47 @@ export type ProDataTableProps<T> = {
   onColumnResize?: (columnKey: string, width: number) => void;
 };
 
+function TableSkeleton({
+  rows,
+  selectable,
+  maxHeight,
+  wrapperClassName,
+}: {
+  rows: number;
+  selectable: boolean;
+  maxHeight?: string | number;
+  wrapperClassName?: string;
+}) {
+  const cells = Array.from({ length: 5 });
+  return (
+    <div
+      role="status"
+      aria-busy="true"
+      aria-label="Loading table"
+      className={clsx("overflow-hidden", wrapperClassName)}
+      style={maxHeight ? { maxHeight } : undefined}
+    >
+      <div className="flex items-center gap-6 border-b border-slate-200 bg-slate-50 px-6 py-4">
+        {selectable ? <div className="h-4 w-4 rounded bg-slate-200" /> : null}
+        {cells.map((_, index) => (
+          <div key={index} className="h-3 flex-1 rounded bg-slate-200" />
+        ))}
+      </div>
+      {Array.from({ length: rows }).map((_, row) => (
+        <div
+          key={row}
+          className="flex animate-pulse items-center gap-6 border-b border-slate-100 px-6 py-4"
+        >
+          {selectable ? <div className="h-4 w-4 rounded bg-slate-100" /> : null}
+          {cells.map((_, index) => (
+            <div key={index} className="h-3 flex-1 rounded bg-slate-100" />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function getAlignmentClasses(align: ProDataTableColumn<unknown>["align"]) {
   switch (align) {
     case "center":
@@ -114,6 +162,7 @@ export function ProDataTable<T>({
   onToggleRow,
   onToggleAll,
   loading = false,
+  columnsPending = false,
   loadingRowCount = 6,
   emptyTitle = "No records found",
   emptyDescription = "There is nothing to display right now.",
@@ -219,6 +268,16 @@ export function ProDataTable<T>({
     document.addEventListener("pointermove", move);
     document.addEventListener("pointerup", stop, { once: true });
   }
+
+  if (columnsPending)
+    return (
+      <TableSkeleton
+        rows={loadingRowCount}
+        selectable={selectable}
+        maxHeight={maxHeight}
+        wrapperClassName={wrapperClassName}
+      />
+    );
 
   return (
     <div

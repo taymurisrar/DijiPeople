@@ -63,6 +63,15 @@ describe('BUG-1750 — the metric and the view agree on what critical means', ()
     join(__dirname, 'platform-monitoring.service.ts'),
     'utf8',
   );
+  /*
+   * The predicates moved to `error-log-query.ts` so the list filter and the
+   * metrics could be tested without a database. The literal still lives in
+   * exactly one file — that one — and the service must not regrow a copy.
+   */
+  const querySource = readFileSync(
+    join(__dirname, 'error-log-query.ts'),
+    'utf8',
+  );
 
   it('is the same where clause', () => {
     expect(incidentViewWhere('critical')).toEqual(criticalIncidentWhere());
@@ -71,13 +80,14 @@ describe('BUG-1750 — the metric and the view agree on what critical means', ()
   it('spells the severity list in exactly one place', () => {
     // The literal belongs to `CRITICAL_INCIDENT_SEVERITIES` alone. A second
     // occurrence is a second definition, which is the defect returning.
-    const occurrences = source.match(/'ERROR',\s+'FATAL'/g) ?? [];
+    const occurrences = querySource.match(/'ERROR',\s+'FATAL'/g) ?? [];
     expect(occurrences.length).toBe(1);
+    expect(source.match(/'ERROR',\s+'FATAL'/g) ?? []).toHaveLength(0);
   });
 
   it('counts the metric through that definition, not a literal', () => {
     const listEvents = source.slice(
-      source.indexOf('const [logs, total, critical'),
+      source.indexOf('async listEvents('),
       source.indexOf('const items = await this.enrichEvents(logs)'),
     );
     // Comments stripped: the note above the metric quotes the old code by
