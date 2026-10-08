@@ -689,7 +689,12 @@ export class PartnerExperienceService {
         idempotencyKey: `partner-onboarding:${application.id}:${tokenHash}`,
       });
     } catch (error) {
-      await this.revokeUndeliveredInvitation(current, application.id, null);
+      await this.revokeUndeliveredInvitation(
+        current,
+        application.id,
+        tokenHash,
+        null,
+      );
       throw error;
     }
 
@@ -703,6 +708,7 @@ export class PartnerExperienceService {
       await this.revokeUndeliveredInvitation(
         current,
         application.id,
+        tokenHash,
         delivery.id,
       );
       await this.prisma.partnerTimeline.create({
@@ -816,12 +822,13 @@ export class PartnerExperienceService {
       updatedAt: Date;
     } | null,
     applicationId: string,
+    issuedTokenHash: string,
     deliveryId: string | null,
   ) {
     await this.prisma.$transaction(async (tx) => {
       if (previous)
-        await tx.partnerOnboardingApplication.update({
-          where: { id: previous.id },
+        await tx.partnerOnboardingApplication.updateMany({
+          where: { id: previous.id, invitationTokenHash: issuedTokenHash },
           data: {
             invitationTokenHash: previous.invitationTokenHash,
             tokenExpiresAt: previous.tokenExpiresAt,
@@ -831,7 +838,11 @@ export class PartnerExperienceService {
         });
       else
         await tx.partnerOnboardingApplication.deleteMany({
-          where: { id: applicationId, submittedAt: null },
+          where: {
+            id: applicationId,
+            invitationTokenHash: issuedTokenHash,
+            submittedAt: null,
+          },
         });
       if (deliveryId)
         await tx.platformOutboundEmail.updateMany({
@@ -1094,103 +1105,187 @@ export class PartnerExperienceService {
         'A fully signed partner agreement is required before activation.',
       );
     const invitationToken = randomBytes(32).toString('base64url');
-    const defaultLink = await this.prisma.partnerReferralLink.findFirst({
-      where: { partnerId, isDefault: true, status: 'ACTIVE' },
-    });
-    const referralCode = partnerReference();
-    const portalUser = await this.prisma.$transaction(async (tx) => {
-      await tx.partner.update({
-        where: { id: partnerId },
-        data: {
-          status: PartnerStatus.ACTIVE,
-          accountStatus: 'INVITED',
-        },
-      });
-      if (!defaultLink)
-        await tx.partnerReferralLink.create({
-          data: {
-            partnerId,
-            name: 'Default referral link',
-            code: referralCode,
-            targetPath: '/request-demo',
-            isDefault: true,
-            createdById: user.userId,
-          },
-        });
-      await tx.partnerTimeline.create({
-        data: {
-          partnerId,
-          eventType: 'PARTNER_ACCOUNT_ACTIVATION_INVITED',
-          actorType: 'PLATFORM_USER',
-          actorId: user.userId,
-          message: 'Partner account activation invitation was sent.',
-          metadata: { agreementId: agreement.id },
-        },
-      });
-      return tx.partnerPortalUser.upsert({
-        where: { email: partner.email.toLowerCase() },
-        create: {
-          partnerId,
-          email: partner.email.toLowerCase(),
-          firstName: partner.contactFirstName ?? 'Partner',
-          lastName: partner.contactLastName ?? 'User',
-          passwordHash: '!INVITED!',
-          status: 'INVITED',
-          invitationTokenHash: sha256(invitationToken),
-          invitationExpiresAt: addDays(new Date(), 7),
-        },
-        update: {
-          partnerId,
-          status: 'INVITED',
-          invitationTokenHash: sha256(invitationToken),
-          invitationExpiresAt: addDays(new Date(), 7),
-        },
-      });
-    });
-    await this.auditService.log({
-      tenantId: 'platform',
-      actorUserId: user.userId,
-      action: 'PARTNER_ACTIVATED',
-      entityType: 'Partner',
-      entityId: partnerId,
-      beforeSnapshot: {
-        status: partner.status,
-        accountStatus: partner.accountStatus,
-      },
-      afterSnapshot: {
-        status: PartnerStatus.ACTIVE,
-        accountStatus: 'INVITED',
-        portalUserId: portalUser.id,
-      },
-    });
+    const invitationTokenHash = sha256(invitationToken);
+    const recipient = onboardingContactEmail(partner.email);
     const activationUrl = buildPublicSiteUrl(
       `/partners/activate/${invitationToken}`,
     );
-    await this.communications.sendEmail({
-      eventCode: 'PARTNER_ACTIVATION_INVITATION',
-      recipient: partner.email,
-      subject: 'Activate your DijiPeople partner portal',
-      html: emailPage(
-        'Partner account ready',
-        'Your signed agreement has been verified and your partner account is ready. Set a password to activate portal access.',
-        { label: 'Activate partner portal', url: activationUrl },
-      ),
-      text: `Activate your partner portal: ${activationUrl}`,
-      entityType: 'Partner',
-      entityId: partnerId,
-      requestedById: user.userId,
-      idempotencyKey: `partner-activation:${portalUser.id}:${portalUser.invitationTokenHash}`,
+    // Claim this activation before issuing a credential. A contact's globally
+    // unique email never permits moving its identity to a different partner.
+    const issued = await this.prisma.$transaction(async (tx) => {
+      const claimed = await tx.partner.updateMany({
+        where: {
+          id: partnerId,
+          status: partner.status,
+          updatedAt: partner.updatedAt,
+        },
+        data: { updatedAt: new Date() },
+      });
+      if (claimed.count !== 1) throw invitationCooldown(60_000);
+      const previous = await tx.partnerPortalUser.findUnique({
+        where: { email: recipient },
+      });
+      if (previous && previous.partnerId !== partnerId)
+        throw new AppError('PARTNER_CONTACT_EMAIL_IN_USE');
+      if (previous?.activatedAt || previous?.status === 'ACTIVE')
+        throw new AppError('PARTNER_CONTACT_HAS_PORTAL_ACCESS');
+      // A pending credential is an in-flight send or a delivered invitation.
+      // Neither may be rotated by another activation attempt.
+      if (
+        previous?.invitationTokenHash &&
+        previous.invitationExpiresAt &&
+        previous.invitationExpiresAt > new Date()
+      )
+        throw invitationCooldown(60_000);
+      const data = {
+        status: 'INVITED' as const,
+        invitationTokenHash,
+        invitationExpiresAt: addDays(new Date(), 7),
+      };
+      const portalUser = previous
+        ? await tx.partnerPortalUser.update({
+            where: { id: previous.id, partnerId },
+            data,
+          })
+        : await tx.partnerPortalUser.create({
+            data: {
+              partnerId,
+              email: recipient,
+              firstName: partner.contactFirstName ?? 'Partner',
+              lastName: partner.contactLastName ?? 'User',
+              passwordHash: '!INVITED!',
+              ...data,
+            },
+          });
+      return { portalUser, previous };
     });
-    /*
-     * EXECPLAN-0055 WP-05 — the raw invitation token is no longer returned. It
-     * is a credential for the partner's portal account; the operator's console
-     * never needed it, and returning it put it in browser history and proxies.
-     */
+    const revoke = async (deliveryId?: string) => {
+      await this.prisma.$transaction(async (tx) => {
+        const where = {
+          id: issued.portalUser.id,
+          partnerId,
+          invitationTokenHash,
+        };
+        if (issued.previous)
+          await tx.partnerPortalUser.updateMany({
+            where,
+            data: {
+              status: issued.previous.status,
+              invitationTokenHash: issued.previous.invitationTokenHash,
+              invitationExpiresAt: issued.previous.invitationExpiresAt,
+            },
+          });
+        else await tx.partnerPortalUser.deleteMany({ where });
+        if (deliveryId)
+          await tx.platformOutboundEmail.updateMany({
+            where: { id: deliveryId, status: 'FAILED' },
+            data: { nextRetryAt: null },
+          });
+      });
+    };
+    let delivery: Awaited<
+      ReturnType<PlatformCommunicationsService['sendEmail']>
+    >;
+    try {
+      delivery = await this.communications.sendEmail({
+        eventCode: 'PARTNER_ACTIVATION_INVITATION',
+        recipient,
+        subject: 'Activate your DijiPeople partner portal',
+        html: emailPage(
+          'Partner account ready',
+          'Your signed agreement has been verified and your partner account is ready. Set a password to activate portal access.',
+          { label: 'Activate partner portal', url: activationUrl },
+        ),
+        text: `Activate your partner portal: ${activationUrl}`,
+        entityType: 'Partner',
+        entityId: partnerId,
+        requestedById: user.userId,
+        idempotencyKey: `partner-activation:${issued.portalUser.id}:${invitationTokenHash}`,
+      });
+    } catch (error) {
+      await revoke();
+      throw error;
+    }
+    if (delivery.status !== 'SENT') {
+      await revoke(delivery.id);
+      throw new AppError('PARTNER_INVITATION_DELIVERY_FAILED', {
+        message:
+          'The portal activation email could not be delivered. The partner was not activated. Correct the email provider and try Activate again.',
+      });
+    }
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        const contact = await tx.partnerPortalUser.findUniqueOrThrow({
+          where: { id: issued.portalUser.id },
+        });
+        const changed = await tx.partner.updateMany({
+          where: { id: partnerId, status: partner.status },
+          data: {
+            status: PartnerStatus.ACTIVE,
+            accountStatus: contact.status === 'ACTIVE' ? 'ACTIVE' : 'INVITED',
+          },
+        });
+        if (changed.count !== 1)
+          throw new AppError('PARTNER_ACTION_NOT_AVAILABLE', {
+            message:
+              'The partner changed during activation. Refresh the record.',
+          });
+        const defaultLink = await tx.partnerReferralLink.findFirst({
+          where: { partnerId, isDefault: true, status: 'ACTIVE' },
+        });
+        if (!defaultLink)
+          await tx.partnerReferralLink.create({
+            data: {
+              partnerId,
+              name: 'Default referral link',
+              code: partnerReference(),
+              targetPath: '/request-demo',
+              isDefault: true,
+              createdById: user.userId,
+            },
+          });
+        await tx.partnerTimeline.create({
+          data: {
+            partnerId,
+            eventType: 'PARTNER_ACCOUNT_ACTIVATION_INVITED',
+            actorType: 'PLATFORM_USER',
+            actorId: user.userId,
+            message: 'Partner account activation invitation was sent.',
+            metadata: { agreementId: agreement.id },
+          },
+        });
+        await this.auditService.log(
+          {
+            tenantId: 'platform',
+            actorUserId: user.userId,
+            action: 'PARTNER_ACTIVATED',
+            entityType: 'Partner',
+            entityId: partnerId,
+            beforeSnapshot: {
+              status: partner.status,
+              accountStatus: partner.accountStatus,
+            },
+            afterSnapshot: {
+              status: PartnerStatus.ACTIVE,
+              accountStatus: contact.status === 'ACTIVE' ? 'ACTIVE' : 'INVITED',
+              portalUserId: issued.portalUser.id,
+            },
+          },
+          tx,
+        );
+      });
+    } catch (error) {
+      // The message has already left the provider. Revoke this request's token
+      // if the local lifecycle commit fails so the operator can retry instead
+      // of being trapped behind a cooldown with a partial activation.
+      await revoke();
+      throw error;
+    }
     return {
       partnerId,
-      portalUserId: portalUser.id,
-      sentTo: partner.email,
-      expiresAt: portalUser.invitationExpiresAt,
+      portalUserId: issued.portalUser.id,
+      sentTo: recipient,
+      expiresAt: issued.portalUser.invitationExpiresAt,
     };
   }
 

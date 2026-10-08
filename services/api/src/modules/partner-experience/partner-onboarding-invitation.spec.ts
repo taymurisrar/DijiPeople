@@ -132,7 +132,9 @@ function harness(
               args.where.updatedAt.getTime() !== item.updatedAt.getTime())
           )
             return { count: 0 };
-          Object.assign(item, args.data, { updatedAt: clock() });
+          Object.assign(item, args.data, {
+            updatedAt: args.data.updatedAt ?? clock(),
+          });
           return { count: 1 };
         },
       ),
