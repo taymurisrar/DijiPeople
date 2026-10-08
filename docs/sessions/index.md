@@ -6,18 +6,17 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 1** · completed: 115
+**Active: 0** · completed: 116
 
 ## Active
 
-| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
-|---|---|---|---|---|---|---|---|
-| [SESSION-0120](../../docs/sessions/SESSION-0120-platform-admin-ux-functional-cleanup-dashboard-header-record.md) | — | Platform Admin UX/functional cleanup: dashboard header, record header, command bar, fields, location cascade, agreement editor, datatable flicker, tenants grid, monitoring | ACTIVE | `agent/admin-ux-cleanup` | `develop` | — | 2026-10-08T21:29:10.881Z |
+_None. No session is currently running._
 
 ## Completed
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0120](../../docs/sessions/SESSION-0120-platform-admin-ux-functional-cleanup-dashboard-header-record.md) | — | Platform Admin UX/functional cleanup: dashboard header, record header, command bar, fields, location cascade, agreement editor, datatable flicker, tenants grid, monitoring | COMPLETE | `agent/admin-ux-cleanup` | `develop` | — | 2026-10-08T21:29:10.881Z |
 | [SESSION-0119](../../docs/sessions/SESSION-0119-partner-module-completion.md) | TASK-0037 | Partner module completion | COMPLETE | `agent/partner-module-completion` | `develop` | — | 2026-10-08T14:31:27.000Z |
 | [SESSION-0117](../../docs/sessions/SESSION-0117-claims-missing-from-the-sidebar-add-claims-my-claims-navigat.md) | — | Claims missing from the sidebar: add Claims / My Claims navigation | COMPLETE | `agent/claims-navigation` | `develop` | — | 2026-09-27T14:35:22.750Z |
 | [SESSION-0116](../../docs/sessions/SESSION-0116-custom-fields-screens-for-api-only-modules-sort-filter-by-cu.md) | TASK-0036 | Custom fields: screens for API-only modules, sort/filter by custom fields, BUG-3800, live QA | COMPLETE | `agent/custom-fields-screens-and-query` | `develop` | — | 2026-09-27T07:38:03.980Z |

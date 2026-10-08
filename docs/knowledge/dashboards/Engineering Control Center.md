@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **1** |
+| Active sessions | **0** |
 | Active parent tasks | 4 |
 | Active work packages | 4 |
 | Blocked work packages | 0 |
@@ -47,9 +47,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-| Session | Task | Title | Status | Branch | Target | Leases | Schema |
-|---|---|---|---|---|---|---|---|
-| [[SESSION-0120-platform-admin-ux-functional-cleanup-dashboard-header-record|SESSION-0120]] | — | Platform Admin UX/functional cleanup: dashboard header, record header, command bar, fields, location cascade, agreement editor, datatable flicker, tenants grid, monitoring | ACTIVE | `agent/admin-ux-cleanup` | `develop` | — | NO |
+_No session is currently registered as active._
 
 ## Active Tasks and Work Packages
 
