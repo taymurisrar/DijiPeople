@@ -376,7 +376,7 @@ because they concern tooling, not the product:
 
 ## Obsidian Sync
 
-PENDING_SYNC
+`npm run knowledge:sync` ran on the closing commit `39280c41`. It wrote 94 files, found 1,768 already current, and skipped 6 as empty. `knowledge:verify` then read the vault back: `OBSIDIAN_SYNC_STATUS = PASS`, with 0 stale nodes.
 
 ## Cleanup
 
