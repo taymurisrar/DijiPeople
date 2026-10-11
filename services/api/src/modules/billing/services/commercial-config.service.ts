@@ -88,7 +88,18 @@ export class CommercialConfigService {
       include: { market: true },
     });
 
-    return mapping?.market ?? null;
+    /*
+     * A mapping to a market that is not selling is treated as no mapping.
+     *
+     * `US` is mapped to the `US` market, which production holds as DRAFT /
+     * PLANNED / disabled. Returning it anyway meant every US visitor resolved to
+     * a market that can sell nothing, so every plan rendered "Pricing on
+     * request" while the published INTL USD schedule sat unused. A country whose
+     * own market has not launched belongs to the fallback, exactly like a
+     * country nobody mapped.
+     */
+    const market = mapping?.market ?? null;
+    return market && isMarketSelling(market) ? market : null;
   }
 
   /**
@@ -246,6 +257,10 @@ export class CommercialConfigService {
     });
 
     const resolvableMarket = toResolvableMarket(market);
+    const currency = resolveCatalogueCurrency(
+      market,
+      plans.flatMap((plan) => plan.prices),
+    );
 
     const publicPlans = plans.map((plan) => {
       const resolvablePlan = toResolvablePlan(plan);
@@ -257,7 +272,7 @@ export class CommercialConfigService {
             plan: resolvablePlan,
             market: resolvableMarket,
             prices: resolvablePrices,
-            currency: market.defaultCurrency,
+            currency,
             billingInterval,
             // Minimum-seat rules are surfaced separately; quoting the catalogue
             // should not fail merely because the caller named no team size.
@@ -293,7 +308,7 @@ export class CommercialConfigService {
         selfServiceEnabled: market.selfServiceEnabled,
         launchStatus: market.launchStatus,
       },
-      currency: market.defaultCurrency.toUpperCase(),
+      currency,
       billingIntervals: [BillingInterval.MONTH, BillingInterval.YEAR],
       plans: publicPlans,
       // The feature catalogue travels with the config so the public site can
@@ -368,6 +383,58 @@ export class CommercialConfigService {
     });
     return selectEffectivePrice(prices.map(toResolvablePrice), new Date());
   }
+}
+
+function isMarketSelling(market: {
+  publicationStatus: CommercialPublicationStatus;
+  isEnabled: boolean;
+  launchStatus: MarketLaunchStatus;
+}) {
+  return (
+    market.publicationStatus === CommercialPublicationStatus.PUBLISHED &&
+    market.isEnabled &&
+    (market.launchStatus === MarketLaunchStatus.LAUNCHED ||
+      market.launchStatus === MarketLaunchStatus.PILOT)
+  );
+}
+
+/**
+ * The currency the public catalogue quotes a market in.
+ *
+ * The market's default currency when the market publishes self-service prices
+ * in it; otherwise the first of its supported currencies that does. Quoting in
+ * a currency nothing is priced in is not a quote: production's `PK` market
+ * carries `defaultCurrency: USD` while every PK price is PKR, so every plan
+ * resolved NO_PUBLISHED_PRICE and Pakistan saw "Pricing on request" in USD.
+ * Derived from the published rows rather than a country table, so the
+ * catalogue still follows configuration (BUG-0028).
+ */
+export function resolveCatalogueCurrency(
+  market: { defaultCurrency: string; supportedCurrencies: string[] },
+  prices: Array<{
+    currency: string;
+    salesModel: CommercialSalesModel;
+    publicationStatus: CommercialPublicationStatus;
+    isActive: boolean;
+  }>,
+): string {
+  const priced = new Set(
+    prices
+      .filter(
+        (price) =>
+          price.isActive &&
+          price.publicationStatus === CommercialPublicationStatus.PUBLISHED &&
+          price.salesModel === CommercialSalesModel.SELF_SERVICE,
+      )
+      .map((price) => price.currency.trim().toUpperCase()),
+  );
+
+  const preference = [
+    market.defaultCurrency,
+    ...market.supportedCurrencies,
+  ].map((value) => value.trim().toUpperCase());
+
+  return preference.find((candidate) => priced.has(candidate)) ?? preference[0];
 }
 
 type PlanRow = {
