@@ -6,7 +6,11 @@ import type { AuthenticatedUser } from '../../../common/interfaces/authenticated
 import type { OrderActivationService } from './order-activation.service';
 import type { PrismaService } from '../../../common/prisma/prisma.service';
 import type { StripeBillingService } from './stripe-billing.service';
-import { PaymentRecheckService } from './payment-recheck.service';
+import {
+  PaymentRecheckService,
+  RECONCILE_THROTTLE_MS,
+  STRIPE_CHECKOUT_SESSION_ID_PATTERN,
+} from './payment-recheck.service';
 
 /**
  * REG-227 — ITEM-0076.
@@ -226,5 +230,177 @@ describe('ITEM-0076 — payment re-check advances only on the provider’s word'
     };
     expect(where.status.in).not.toContain(SubscriptionOrderStatus.ABANDONED);
     expect(where.status.in).not.toContain(SubscriptionOrderStatus.ACTIVATED);
+  });
+});
+
+/**
+ * The buyer's status poll confirming a Stripe payment ahead of the webhook.
+ *
+ * The success page used to sit on "We're confirming your payment" until
+ * `checkout.session.completed` arrived, because nothing else asked Stripe. The
+ * reconcile asks — but it is reachable from an anonymous endpoint, so the
+ * properties under test are again the refusals: a foreign session id is never
+ * read, an unpaid session never confirms, and polling cannot hammer Stripe.
+ */
+describe('reconcileStripeOrder — the status poll asks Stripe, within limits', () => {
+  function harness(options: {
+    status?: SubscriptionOrderStatus;
+    paymentProvider?: string | null;
+    paymentStatus?: string;
+    stripeThrows?: boolean;
+  }) {
+    const order = {
+      id: 'order-1',
+      orderNumber: 'ORD-1',
+      status: options.status ?? SubscriptionOrderStatus.PENDING_PAYMENT,
+      paymentProvider:
+        options.paymentProvider === undefined
+          ? 'STRIPE'
+          : options.paymentProvider,
+      stripeCheckoutSessionId: 'cs_test_order',
+    };
+    const prisma = {
+      subscriptionOrder: { findUnique: jest.fn(() => Promise.resolve(order)) },
+    } as unknown as PrismaService;
+    const retrieve = jest.fn(() => {
+      if (options.stripeThrows) {
+        return Promise.reject(new Error('Stripe is unreachable'));
+      }
+      return Promise.resolve({
+        id: 'cs_test_order',
+        status: 'complete',
+        payment_status: options.paymentStatus ?? 'paid',
+      });
+    });
+    const stripe = {
+      client: { checkout: { sessions: { retrieve } } },
+    } as unknown as StripeBillingService;
+    /*
+     * Stateful like the real `confirmPayment`: the first call moves the order,
+     * every later one finds it confirmed.
+     */
+    let confirmed = false;
+    const confirmPayment = jest.fn(() => {
+      const already = confirmed;
+      confirmed = true;
+      return Promise.resolve({ orderId: 'order-1', alreadyConfirmed: already });
+    });
+    const activation = { confirmPayment } as unknown as OrderActivationService;
+    const service = new PaymentRecheckService(prisma, stripe, activation, {
+      log: jest.fn(),
+    } as unknown as AuditService);
+    return { service, retrieve, confirmPayment, order };
+  }
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('confirms a paid session once, through confirmPayment', async () => {
+    const h = harness({ paymentStatus: 'paid' });
+
+    await expect(
+      h.service.reconcileStripeOrder('order-1', 'cs_test_order'),
+    ).resolves.toBe('CONFIRMED');
+
+    expect(h.retrieve).toHaveBeenCalledWith('cs_test_order');
+    expect(h.confirmPayment).toHaveBeenCalledTimes(1);
+    expect(h.confirmPayment).toHaveBeenCalledWith({
+      stripeCheckoutSessionId: 'cs_test_order',
+      correlationId: 'reconcile:order-1',
+    });
+  });
+
+  it('reads the order’s own stored session when no hint is given', async () => {
+    const h = harness({ paymentStatus: 'paid' });
+
+    await h.service.reconcileStripeOrder('order-1');
+
+    expect(h.retrieve).toHaveBeenCalledWith('cs_test_order');
+  });
+
+  it('refuses a session id that is not the order’s own, without asking Stripe', async () => {
+    const h = harness({ paymentStatus: 'paid' });
+
+    await expect(
+      h.service.reconcileStripeOrder('order-1', 'cs_test_somebody_else'),
+    ).resolves.toBe('SESSION_MISMATCH');
+
+    expect(h.retrieve).not.toHaveBeenCalled();
+    expect(h.confirmPayment).not.toHaveBeenCalled();
+  });
+
+  it('leaves an unpaid session pending', async () => {
+    const h = harness({ paymentStatus: 'unpaid' });
+
+    await expect(h.service.reconcileStripeOrder('order-1')).resolves.toBe(
+      'NOT_PAID',
+    );
+    expect(h.confirmPayment).not.toHaveBeenCalled();
+  });
+
+  it('asks Stripe at most once per throttle window per order', async () => {
+    let now = Date.parse('2026-10-11T10:00:00Z');
+    jest.spyOn(Date, 'now').mockImplementation(() => now);
+    const h = harness({ paymentStatus: 'unpaid' });
+
+    await h.service.reconcileStripeOrder('order-1');
+    await expect(h.service.reconcileStripeOrder('order-1')).resolves.toBe(
+      'THROTTLED',
+    );
+    expect(h.retrieve).toHaveBeenCalledTimes(1);
+
+    now += RECONCILE_THROTTLE_MS;
+    await h.service.reconcileStripeOrder('order-1');
+    expect(h.retrieve).toHaveBeenCalledTimes(2);
+  });
+
+  it('does nothing for an order the webhook already confirmed', async () => {
+    // The duplicate path: webhook first, poll second. No Stripe read, no
+    // second confirmation.
+    const h = harness({ status: SubscriptionOrderStatus.PAID });
+
+    await expect(h.service.reconcileStripeOrder('order-1')).resolves.toBe(
+      'NOT_APPLICABLE',
+    );
+    expect(h.retrieve).not.toHaveBeenCalled();
+    expect(h.confirmPayment).not.toHaveBeenCalled();
+  });
+
+  it('reports a confirmation that raced the webhook as already confirmed', async () => {
+    const h = harness({ paymentStatus: 'paid' });
+    // The webhook's call wins the conditional update first.
+    await (h.confirmPayment as unknown as (input: unknown) => Promise<unknown>)(
+      { stripeCheckoutSessionId: 'cs_test_order' },
+    );
+
+    await expect(h.service.reconcileStripeOrder('order-1')).resolves.toBe(
+      'ALREADY_CONFIRMED',
+    );
+  });
+
+  it('leaves orders another provider collects to the settlement path', async () => {
+    const h = harness({ paymentProvider: 'SAFEPAY' });
+
+    await expect(h.service.reconcileStripeOrder('order-1')).resolves.toBe(
+      'NOT_APPLICABLE',
+    );
+    expect(h.retrieve).not.toHaveBeenCalled();
+  });
+
+  it('never throws when Stripe is unreachable, and confirms nothing', async () => {
+    const h = harness({ stripeThrows: true });
+
+    await expect(h.service.reconcileStripeOrder('order-1')).resolves.toBe(
+      'PROVIDER_UNREACHABLE',
+    );
+    expect(h.confirmPayment).not.toHaveBeenCalled();
+  });
+
+  it('accepts only Checkout Session shaped ids as a hint', () => {
+    expect(STRIPE_CHECKOUT_SESSION_ID_PATTERN.test('cs_test_a1B2')).toBe(true);
+    expect(STRIPE_CHECKOUT_SESSION_ID_PATTERN.test('pi_123')).toBe(false);
+    expect(STRIPE_CHECKOUT_SESSION_ID_PATTERN.test('cs_x/../y')).toBe(false);
+    expect(STRIPE_CHECKOUT_SESSION_ID_PATTERN.test('')).toBe(false);
   });
 });

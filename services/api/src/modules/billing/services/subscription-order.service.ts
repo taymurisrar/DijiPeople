@@ -1,4 +1,10 @@
-import { ConflictException, Injectable, Logger } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  Logger,
+  Optional,
+} from '@nestjs/common';
+import { RecordAssignmentService } from '../../super-admin/record-assignment.service';
 import {
   BillingCycle,
   CustomerAccountStatus,
@@ -11,7 +17,10 @@ import {
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { normalizeEmail } from '../../../common/utils/email.util';
-import { assertValidTenantSlug } from '../../../common/utils/slug.util';
+import {
+  assertValidTenantSlug,
+  suggestTenantSlug,
+} from '../../../common/utils/slug.util';
 import { OutboxService } from '../../outbox/outbox.service';
 import {
   PartnerReferralResolverService,
@@ -179,6 +188,9 @@ export class SubscriptionOrderService {
     private readonly outbox: OutboxService,
     // Attribution is resolved here, never accepted. BUG-0281.
     private readonly referralResolver: PartnerReferralResolverService,
+    // Optional so specs that construct this by hand keep working. Owner rules
+    // for self-service customers, which arrive with nobody assigned (WS07).
+    @Optional() private readonly recordAssignment?: RecordAssignmentService,
   ) {}
 
   /**
@@ -684,8 +696,27 @@ export class SubscriptionOrderService {
     const firstName = input.owner?.firstName?.trim() || splitFirstName;
     const lastName = input.owner?.lastName?.trim() || rest.join(' ') || null;
 
+    // Self-service buyers arrive unowned, so the configured customer rules pick
+    // an owner. Manual operator creation keeps its own actor-as-owner default
+    // and never passes through here. Never throws; null leaves it unowned.
+    const autoAssignment = this.recordAssignment
+      ? await this.recordAssignment.assignOnCreate(
+          'customers',
+          {
+            originChannel: selection.originChannel,
+            country: input.country.trim(),
+            status: CustomerAccountStatus.PROSPECT,
+            selectedPlanId: selection.planId,
+            originatingPartnerId: selection.attribution.partnerId,
+            industry: profile.industry ?? null,
+          },
+          tx,
+        )
+      : null;
+
     const customer = await tx.customerAccount.create({
       data: {
+        assignedToUserId: autoAssignment?.userId ?? null,
         companyName: input.companyName.trim(),
         primaryContactFirstName: firstName,
         primaryContactLastName: lastName,
@@ -734,6 +765,15 @@ export class SubscriptionOrderService {
       },
       select: { id: true },
     });
+
+    if (autoAssignment && this.recordAssignment) {
+      await this.recordAssignment.recordAssigned(
+        'customers',
+        customer.id,
+        autoAssignment,
+        tx,
+      );
+    }
 
     await this.outbox.emit(tx, {
       eventType: DomainEventType.CUSTOMER_CREATED,
@@ -799,6 +839,8 @@ export class SubscriptionOrderService {
         available: boolean;
         reason?: 'RESERVED' | 'TAKEN' | 'INVALID_FORMAT';
         message?: string;
+        /** Up to three verified-free alternatives; present when unavailable. */
+        suggestions?: string[];
       }
   > {
     const session = await this.prisma.subscriptionOrder.findUnique({
@@ -828,6 +870,11 @@ export class SubscriptionOrderService {
         slug: candidate,
         available: false,
         reason: 'INVALID_FORMAT',
+        // A reserved word ("api") or an over-long name still has a usable
+        // neighbour; derive it from the sanitised form of what was typed.
+        suggestions: await this.suggestAlternativeSlugs(
+          suggestTenantSlug(candidate),
+        ),
       };
     }
 
@@ -844,12 +891,67 @@ export class SubscriptionOrderService {
       }),
     ]);
 
-    return {
-      session: 'VALID',
-      slug,
-      available: !tenant && !held,
-      reason: tenant || held ? 'TAKEN' : undefined,
-    };
+    if (tenant || held) {
+      return {
+        session: 'VALID',
+        slug,
+        available: false,
+        reason: 'TAKEN',
+        suggestions: await this.suggestAlternativeSlugs(slug),
+      };
+    }
+
+    return { session: 'VALID', slug, available: true };
+  }
+
+  /**
+   * Up to three free workspace addresses near `base`, in a fixed order
+   * (`base-hr`, `base-team`, `base-2`, …) so the same input always yields the
+   * same chips.
+   *
+   * Each candidate is checked against both places a name can be held —
+   * `Tenant.slug` and `SubscriptionOrder.requestedSlug` — and against the
+   * format/reserved rules, in two queries rather than one per candidate. Still
+   * advisory: `openOrder`'s unique index decides at submit.
+   */
+  private async suggestAlternativeSlugs(base: string): Promise<string[]> {
+    const stem = base.replace(/-+$/, '');
+    if (stem.length < 3) return [];
+
+    const candidates: string[] = [];
+    for (const suffix of ['hr', 'team', '2', '3', '4', '5', '6']) {
+      const candidate = `${stem.slice(0, 50 - suffix.length - 1).replace(/-+$/, '')}-${suffix}`;
+      try {
+        assertValidTenantSlug(candidate);
+      } catch {
+        continue;
+      }
+      if (candidate !== stem && !candidates.includes(candidate)) {
+        candidates.push(candidate);
+      }
+    }
+    if (!candidates.length) return [];
+
+    const [tenants, orders] = await Promise.all([
+      this.prisma.tenant.findMany({
+        where: { slug: { in: candidates } },
+        select: { slug: true },
+      }),
+      this.prisma.subscriptionOrder.findMany({
+        where: { requestedSlug: { in: candidates } },
+        select: { requestedSlug: true },
+      }),
+    ]);
+    const unavailable = new Set<string>([
+      ...tenants.map((row) => row.slug),
+      ...orders.flatMap((row) =>
+        row.requestedSlug ? [row.requestedSlug] : [],
+      ),
+    ]);
+
+    return candidates
+      .filter((candidate) => !unavailable.has(candidate))
+      .slice(0, 3);
   }
 
   /**
@@ -977,11 +1079,21 @@ export class SubscriptionOrderService {
        * internal steps and would tell an anonymous caller how provisioning is
        * built.
        */
+      /*
+       * A FAILED order that was never paid failed at the payment, not at
+       * provisioning — a refused bank debit, or money that did not match the
+       * order. Telling that buyer "we could not finish setting up your
+       * workspace" sends them to wait for a workspace that is not coming. Both
+       * sentences stay generic: which of the two payment failures it was is
+       * the operator's to explain.
+       */
       actionRequired:
-        order.status === SubscriptionOrderStatus.FAILED ||
-        run?.status === 'FAILED'
-          ? 'We could not finish setting up your workspace. Our team has been notified.'
-          : null,
+        order.status === SubscriptionOrderStatus.FAILED && !order.paidAt
+          ? 'We could not confirm your payment for this order. No workspace has been created. Please contact us quoting your order number and we will help you complete it.'
+          : order.status === SubscriptionOrderStatus.FAILED ||
+              run?.status === 'FAILED'
+            ? 'We could not finish setting up your workspace. Our team has been notified.'
+            : null,
     };
   }
 }

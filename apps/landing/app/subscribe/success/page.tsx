@@ -30,7 +30,10 @@ export default async function SubscribeSuccessPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const { onboarding } = await searchParams;
+  // `session_id` is forwarded to the poll as a cross-check only; the API
+  // confirms nothing on it — see `statusPollUrl`. A refresh keeps both
+  // parameters, and the state is the server's, so reloading simply resumes.
+  const { onboarding, session_id: sessionId } = await searchParams;
 
   /*
    * No onboarding id means somebody reached this URL without going through
@@ -62,7 +65,10 @@ export default async function SubscribeSuccessPage({
 
   return (
     <PageShell>
-      <ProvisioningProgress onboardingId={onboarding} />
+      <ProvisioningProgress
+        onboardingId={onboarding}
+        sessionId={sessionId ?? null}
+      />
     </PageShell>
   );
 }

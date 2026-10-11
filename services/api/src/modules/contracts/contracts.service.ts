@@ -1744,6 +1744,11 @@ export class ContractsService {
         documentSource: created.documentSource,
         relatedLeadId: dto.relatedLeadId,
         partnerId: dto.partnerId,
+        // Repeated in metadata so the notification formatter can name the
+        // customer without reading the event's own columns.
+        ...(dto.customerAccountId
+          ? { customerAccountId: dto.customerAccountId }
+          : {}),
       },
     });
     return this.get(user, created.id);
@@ -1754,13 +1759,43 @@ export class ContractsService {
     dto: CreateContractFromSourceDto,
   ) {
     this.assertWrite(user);
-    const source = await this.resolveSource(dto.sourceType, dto.sourceId);
+    let source = await this.resolveSource(dto.sourceType, dto.sourceId);
     const contractType = dto.contractType ?? source.defaultContractType;
     const masterAgreement = await this.assertTenantServiceOrderEligible(
       contractType,
       dto.lifecycleGatePurpose,
       source,
     );
+    const signer = normalizeSourceSigner(dto.signer);
+    if (signer) {
+      /*
+       * Owner decision D3. The signer an operator types into the Create
+       * Agreement dialog is the customer's authorized signatory — a fact about
+       * the customer, not about this one document — so it is written to the
+       * CustomerAccount and the agreement then resolves it the ordinary way,
+       * through `customerSource()`. It is never passed as a placeholder
+       * override: an override path would let any field be typed over, and the
+       * next agreement for the same customer would ask again.
+       *
+       * The pairing is checked with the signer applied *before* anything is
+       * written, so a template that is also missing, say, every `tenant.*`
+       * field is refused without first altering the customer record.
+       */
+      if (!source.customerAccountId) {
+        throw new BadRequestException({
+          code: 'CONTRACT_SIGNER_REQUIRES_CUSTOMER',
+          message:
+            'A signer can only be recorded for a source linked to a customer ' +
+            'account. Add the signer to the lead, or convert it to a customer first.',
+        });
+      }
+      await this.assertSourceCanFillTemplate(
+        dto.templateId,
+        withSignerValues(source, signer),
+      );
+      await this.recordCustomerSigner(user, source.customerAccountId, signer);
+      source = await this.resolveSource(dto.sourceType, dto.sourceId);
+    }
     await this.assertSourceCanFillTemplate(dto.templateId, source);
     return this.create(user, {
       title: dto.title ?? `${source.counterpartyName} services agreement`,
@@ -1833,54 +1868,193 @@ export class ContractsService {
     // message. Saying it twice differently would be worse than saying it once.
     if (!templateVersion?.contentHtml) return;
 
-    const values = applyDeprecatedPlaceholderAliases(
-      compactStringRecord(source.placeholderValues),
+    const assessment = assessSourceTemplateFill(
+      templateVersion.contentHtml,
+      source,
     );
+    if (!assessment.unfillable.length) return;
 
-    /*
-     * Namespaces the source is not responsible for, and which are therefore not
-     * evidence of a wrong pairing:
-     *
-     *   contract.*      the create step fills from the DTO — number, title, dates
-     *   platform.*      the platform's own company profile
-     *   counterparty.*  derived from the source's counterparty name and e-mail
-     *   sla.*           platform service defaults, identical for every source
-     *   signature.*     filled at signing, necessarily empty before it
-     *
-     * Checking against them refuses every creation, valid or not — which the
-     * first version of this did, and which the accompanying spec caught before
-     * it reached anyone.
-     *
-     * This is `ALWAYS_AVAILABLE_SOURCE_ENTITIES` (`placeholder-context.ts`,
-     * ADR-0020) — the same five namespaces, imported rather than kept as a
-     * second literal copy of this list.
-     */
-    const filledAfterSource: readonly string[] =
-      ALWAYS_AVAILABLE_SOURCE_ENTITIES;
-
-    const unfillable = extractContractPlaceholders(templateVersion.contentHtml)
-      .filter((definition) => definition.required)
-      .filter(
-        (definition) => !filledAfterSource.includes(definition.sourceEntity),
-      )
-      .filter((definition) => !values[definition.key]?.trim())
-      .map((definition) => definition.key);
-
-    if (!unfillable.length) return;
-
-    const namespaces = [
-      ...new Set(unfillable.map((key) => key.split('.')[0])),
-    ].sort();
+    const { unfillable, namespaces, missingFields, unsupportedFields } =
+      assessment;
+    const onlySignerMissing =
+      !unsupportedFields.length &&
+      missingFields.every((field) => field.collectable);
 
     throw new BadRequestException({
       code: 'CONTRACT_SOURCE_CANNOT_FILL_TEMPLATE',
-      message:
-        `This template needs details a ${source.counterpartyType.toLowerCase()} ` +
-        `does not carry (${namespaces.join(', ')}), so the document would be ` +
-        `generated with those fields blank. Create it from a source that has ` +
-        `them — a provisioned tenant or an onboarding — or choose a template ` +
-        `written for this source.`,
-      details: { unfillable, namespaces },
+      /*
+       * Two different problems, two different instructions. A customer that
+       * simply has no authorized signer on file is fixed by entering one — the
+       * Create Agreement dialog collects it (owner decision D3). A source that
+       * can never carry a namespace (a customer asked for `tenant.*`) is fixed
+       * only by choosing another source or template, and saying "enter the
+       * missing fields" there would send the operator looking for inputs that
+       * do not exist.
+       */
+      message: onlySignerMissing
+        ? `This customer has no authorized signer on record ` +
+          `(${missingFields.map((field) => field.label).join(', ')}). ` +
+          `Enter the signer to create this agreement, or add them to the ` +
+          `customer record first.`
+        : `This template needs details a ${source.counterpartyType.toLowerCase()} ` +
+          `does not carry (${namespaces.join(', ')}), so the document would be ` +
+          `generated with those fields blank. Create it from a source that has ` +
+          `them — a provisioned tenant or an onboarding — or choose a template ` +
+          `written for this source.`,
+      details: {
+        unfillable,
+        namespaces,
+        missingFields,
+        unsupportedFields,
+        // Read by the standard error contract into `fieldErrors`, so a client
+        // can show each missing field without parsing the message.
+        fieldErrors: [
+          ...missingFields.map((field) => ({
+            field: field.key,
+            message: `${field.label} is required.`,
+          })),
+          ...unsupportedFields.map((key) => ({
+            field: key,
+            message: `${key} cannot be supplied by a ${source.counterpartyType.toLowerCase()}.`,
+          })),
+        ],
+      },
+    });
+  }
+
+  /**
+   * Which published templates the chosen source can actually fill, and why
+   * not where it cannot — so the Create Agreement dialog can disable a
+   * template before the operator submits, instead of reporting the refusal
+   * afterwards. Same rule, same function (`assessSourceTemplateFill`) as the
+   * check `createFromSource` enforces, so the two can never disagree about a
+   * template: the dialog is a preview of the guard, not a second guard.
+   *
+   * Guarded like `from-source` itself (contracts.manage) because its only use
+   * is choosing what to create, and it reads the source record to answer.
+   */
+  async templateEligibility(
+    user: AuthenticatedUser,
+    sourceType: CreateContractFromSourceDto['sourceType'],
+    sourceId: string,
+  ) {
+    this.assertWrite(user);
+    const source = await this.resolveSource(sourceType, sourceId);
+    const templates = await this.prisma.contractTemplate.findMany({
+      where: { isActive: true, archivedAt: null },
+      orderBy: { name: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        contractType: true,
+        versions: {
+          where: { isPublished: true },
+          orderBy: { version: 'desc' },
+          take: 1,
+          select: { contentHtml: true },
+        },
+      },
+    });
+    return {
+      sourceType,
+      sourceId,
+      counterpartyType: source.counterpartyType,
+      // Whether a missing signer can be entered inline at all: it is written
+      // to a CustomerAccount, so a source without one cannot take it.
+      canCollectSigner: Boolean(source.customerAccountId),
+      signer: {
+        name: stringValue(
+          source.placeholderValues['customer.primarySigner.name'],
+        ),
+        title: stringValue(
+          source.placeholderValues['customer.primarySigner.title'],
+        ),
+        email: stringValue(
+          source.placeholderValues['customer.primarySigner.email'],
+        ),
+      },
+      items: templates
+        .filter((template) => template.versions[0]?.contentHtml)
+        .map((template) => {
+          const assessment = assessSourceTemplateFill(
+            template.versions[0].contentHtml,
+            source,
+          );
+          const eligible = assessment.unfillable.length === 0;
+          return {
+            templateId: template.id,
+            name: template.name,
+            contractType: template.contractType,
+            eligible,
+            /*
+             * ELIGIBLE        create as is
+             * NEEDS_SIGNER    create once the operator enters the signer
+             * INELIGIBLE      this source can never fill it, or the record is
+             *                 missing data only the record's own page can fix
+             */
+            status: eligible
+              ? 'ELIGIBLE'
+              : !assessment.unsupportedFields.length &&
+                  assessment.missingFields.every((field) => field.collectable)
+                ? 'NEEDS_SIGNER'
+                : 'INELIGIBLE',
+            missingFields: assessment.missingFields,
+            unsupportedFields: assessment.unsupportedFields,
+          };
+        }),
+    };
+  }
+
+  /*
+   * Writes the signer typed into the Create Agreement dialog onto the
+   * customer account, audited with a before/after snapshot of the three
+   * fields. Only the fields actually provided are written; one left out keeps
+   * whatever the record already holds, so entering a missing title cannot
+   * blank an existing name.
+   */
+  private async recordCustomerSigner(
+    user: AuthenticatedUser,
+    customerAccountId: string,
+    signer: ContractSourceSigner,
+  ) {
+    await this.prisma.$transaction(async (tx) => {
+      const before = await tx.customerAccount.findUnique({
+        where: { id: customerAccountId },
+        select: {
+          authorizedSignerName: true,
+          authorizedSignerTitle: true,
+          authorizedSignerEmail: true,
+        },
+      });
+      if (!before)
+        throw new NotFoundException('Customer source was not found.');
+      const data = {
+        ...(signer.name ? { authorizedSignerName: signer.name } : {}),
+        ...(signer.title ? { authorizedSignerTitle: signer.title } : {}),
+        ...(signer.email ? { authorizedSignerEmail: signer.email } : {}),
+      };
+      const after = await tx.customerAccount.update({
+        where: { id: customerAccountId },
+        data,
+        select: {
+          authorizedSignerName: true,
+          authorizedSignerTitle: true,
+          authorizedSignerEmail: true,
+        },
+      });
+      await this.auditService.log(
+        {
+          tenantId: 'platform',
+          actorUserId: user.userId,
+          action: 'CUSTOMER_AUTHORIZED_SIGNER_RECORDED',
+          entityType: 'CustomerAccount',
+          entityId: customerAccountId,
+          sourceModule: 'contracts',
+          beforeSnapshot: before,
+          afterSnapshot: after,
+        },
+        tx,
+      );
     });
   }
 
@@ -3891,11 +4065,22 @@ export class ContractsService {
       actorType: 'PLATFORM_USER',
       actorId: user.userId,
       route: `/contracts/${contractId}`,
+      /*
+       * Identifiers only — the notification formatter names the agreement and
+       * its customer from these. Recipient e-mails and the document body stay
+       * out: platform-event metadata is broadly readable and long-lived.
+       */
       metadata: {
         signatureRequestId: request.id,
         requestNumber: request.requestNumber,
         signingMode: request.signingMode,
         recipientCount: request.recipients.length,
+        contractNumber: contract.contractNumber,
+        ...(contract.customerAccountId
+          ? { customerAccountId: contract.customerAccountId }
+          : {}),
+        // Lets the platform's own signer be told the request is waiting on them.
+        ...(platformSigns ? { awaitingPlatformSignature: true } : {}),
       },
     });
     return {
@@ -4689,6 +4874,14 @@ export class ContractsService {
         method: dto.method,
         role: recipient.role,
         completed: isFinal,
+        // Identifiers for the notification formatter; no signer e-mail.
+        contractNumber: recipient.signatureRequest.contract.contractNumber,
+        ...(recipient.signatureRequest.contract.customerAccountId
+          ? {
+              customerAccountId:
+                recipient.signatureRequest.contract.customerAccountId,
+            }
+          : {}),
       },
     });
     return {
@@ -5229,8 +5422,22 @@ export class ContractsService {
           : undefined,
         placeholderValues: {
           ...base.placeholderValues,
-          'customer.primarySigner': adminName,
-          'customer.primarySignerEmail': onboarding.primaryOwnerWorkEmail,
+          /*
+           * The legacy signer keys historically carried the workspace's first
+           * administrator, which a legacy template still renders. Once the
+           * customer account records an actual authorized signer that wins —
+           * the canonical `customer.primarySigner.*` keys come from it through
+           * `customerSource()` and the aliases backfill the legacy ones — so
+           * the two generations of template name the same person. The
+           * administrator is never promoted into the canonical keys: running
+           * the workspace and signing for the company are different authority.
+           */
+          ...(onboarding.customer.authorizedSignerName
+            ? {}
+            : {
+                'customer.primarySigner': adminName,
+                'customer.primarySignerEmail': onboarding.primaryOwnerWorkEmail,
+              }),
           'commercial.billingCycle': onboarding.billingCycle ?? '',
           'commercial.agreedPrice': onboarding.agreedPrice?.toString() ?? '',
           ...definedValues({
@@ -7070,6 +7277,9 @@ function customerSource(
     country: string;
     industry: string | null;
     originatingPartnerId?: string | null;
+    authorizedSignerName?: string | null;
+    authorizedSignerTitle?: string | null;
+    authorizedSignerEmail?: string | null;
   },
   currencyCode: string,
 ) {
@@ -7113,9 +7323,186 @@ function customerSource(
         'customer.billingContact.name': customer.financeContactName,
         'customer.billingContact.email':
           customer.billingContactEmail ?? customer.financeContactEmail,
+        /*
+         * The catalog declares all three signer placeholders required, and
+         * until the CustomerAccount carried them this resolver had nothing to
+         * put there — so every customer agreement whose template named its
+         * signatory was refused at creation (CONTRACT_SOURCE_CANNOT_FILL_TEMPLATE).
+         *
+         * Deliberately *not* defaulted from `primaryContact*`. The person who
+         * answers the e-mail is not necessarily the person entitled to bind
+         * the company, and a contract that names the wrong signatory is worse
+         * than one that refuses to be created. A blank signer stays blank and
+         * the Create Agreement dialog asks for it (owner decision D3).
+         */
+        'customer.primarySigner.name': customer.authorizedSignerName,
+        'customer.primarySigner.title': customer.authorizedSignerTitle,
+        'customer.primarySigner.email':
+          customer.authorizedSignerEmail?.toLowerCase(),
       }),
     },
   };
+}
+
+/** A signer entered for a source at agreement creation. */
+export type ContractSourceSigner = {
+  name?: string;
+  title?: string;
+  email?: string;
+};
+
+/*
+ * The only placeholders an operator may supply at creation time, and the
+ * signer field each one is written to. Everything else a template needs comes
+ * from a record; these three are the exception because they are the one gap a
+ * customer account commonly has that the operator creating the agreement is
+ * also the right person to close (owner decision D3).
+ */
+export const COLLECTABLE_SIGNER_PLACEHOLDERS: Record<
+  string,
+  keyof ContractSourceSigner
+> = {
+  'customer.primarySigner.name': 'name',
+  'customer.primarySigner.title': 'title',
+  'customer.primarySigner.email': 'email',
+};
+
+export type SourceTemplateFillAssessment = {
+  /** Every required key the source leaves empty — the original BUG-1541 list. */
+  unfillable: string[];
+  namespaces: string[];
+  /** Keys this kind of source does carry, but this record has no value for. */
+  missingFields: Array<{ key: string; label: string; collectable: boolean }>;
+  /** Keys in a namespace this source carries nothing for at all. */
+  unsupportedFields: string[];
+};
+
+/**
+ * Whether a source can fill a template, as a pure function so the creation
+ * guard and the eligibility preview are the same rule.
+ *
+ * A missing required field is one of two things, and the difference decides
+ * what the operator can do about it:
+ *
+ *   missing      the source carries this namespace but this record has no
+ *                value — fixable on the record (or, for the customer's
+ *                signer, inline: `collectable`)
+ *   unsupported  the source carries nothing in that namespace — a customer
+ *                asked for `tenant.*`. No amount of editing this record helps;
+ *                another source or another template does.
+ *
+ * "Carries the namespace" is read from what the resolver actually produced
+ * rather than from a second hand-kept table of which source emits what, which
+ * would drift from `resolveSource` the first time either changed.
+ */
+export function assessSourceTemplateFill(
+  contentHtml: string,
+  source: Pick<
+    ResolvedContractSource,
+    'placeholderValues' | 'customerAccountId'
+  >,
+): SourceTemplateFillAssessment {
+  const values = applyDeprecatedPlaceholderAliases(
+    compactStringRecord(source.placeholderValues),
+  );
+
+  /*
+   * Namespaces the source is not responsible for, and which are therefore not
+   * evidence of a wrong pairing:
+   *
+   *   contract.*      the create step fills from the DTO — number, title, dates
+   *   platform.*      the platform's own company profile
+   *   counterparty.*  derived from the source's counterparty name and e-mail
+   *   sla.*           platform service defaults, identical for every source
+   *   signature.*     filled at signing, necessarily empty before it
+   *
+   * Checking against them refuses every creation, valid or not — which the
+   * first version of this did, and which the accompanying spec caught before
+   * it reached anyone.
+   *
+   * This is `ALWAYS_AVAILABLE_SOURCE_ENTITIES` (`placeholder-context.ts`,
+   * ADR-0020) — the same five namespaces, imported rather than kept as a
+   * second literal copy of this list.
+   */
+  const filledAfterSource: readonly string[] = ALWAYS_AVAILABLE_SOURCE_ENTITIES;
+
+  const unfillableDefinitions = extractContractPlaceholders(contentHtml)
+    .filter((definition) => definition.required)
+    .filter(
+      (definition) => !filledAfterSource.includes(definition.sourceEntity),
+    )
+    .filter((definition) => !values[definition.key]?.trim());
+
+  const carriedNamespaces = new Set(
+    Object.entries(values)
+      .filter(([, value]) => value.trim())
+      .map(([key]) => key.split('.')[0]),
+  );
+  const missingFields: SourceTemplateFillAssessment['missingFields'] = [];
+  const unsupportedFields: string[] = [];
+  for (const definition of unfillableDefinitions) {
+    const collectable =
+      Boolean(source.customerAccountId) &&
+      definition.key in COLLECTABLE_SIGNER_PLACEHOLDERS;
+    if (collectable || carriedNamespaces.has(definition.sourceEntity)) {
+      missingFields.push({
+        key: definition.key,
+        label: definition.label,
+        collectable,
+      });
+    } else {
+      unsupportedFields.push(definition.key);
+    }
+  }
+
+  const unfillable = unfillableDefinitions.map((definition) => definition.key);
+  return {
+    unfillable,
+    namespaces: [...new Set(unfillable.map((key) => key.split('.')[0]))].sort(),
+    missingFields,
+    unsupportedFields,
+  };
+}
+
+/*
+ * Trimmed, lower-cased where it is an address, and `undefined` when nothing
+ * survives — so `{ name: '  ' }` is treated as no signer rather than as an
+ * instruction to write a blank.
+ */
+function normalizeSourceSigner(
+  signer: ContractSourceSigner | undefined,
+): ContractSourceSigner | undefined {
+  if (!signer) return undefined;
+  const normalized = {
+    ...(signer.name?.trim() ? { name: signer.name.trim() } : {}),
+    ...(signer.title?.trim() ? { title: signer.title.trim() } : {}),
+    ...(signer.email?.trim()
+      ? { email: signer.email.trim().toLowerCase() }
+      : {}),
+  };
+  return Object.keys(normalized).length ? normalized : undefined;
+}
+
+/* The source as it will resolve once the signer has been recorded. */
+function withSignerValues(
+  source: ResolvedContractSource,
+  signer: ContractSourceSigner,
+): ResolvedContractSource {
+  return {
+    ...source,
+    placeholderValues: {
+      ...source.placeholderValues,
+      ...Object.fromEntries(
+        Object.entries(COLLECTABLE_SIGNER_PLACEHOLDERS)
+          .filter(([, field]) => signer[field])
+          .map(([key, field]) => [key, signer[field]]),
+      ),
+    },
+  };
+}
+
+function stringValue(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
 export const TENANT_PROVISIONING_GATE = 'TENANT_PROVISIONING';

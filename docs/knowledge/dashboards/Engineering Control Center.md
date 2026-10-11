@@ -15,7 +15,7 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **8** |
-| Open HIGH | 110 |
+| Open HIGH | 115 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 14 |
 | QA coverage gaps | 161 |
@@ -30,11 +30,11 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 274 |
-| No next action | 274 |
-| Aging — 7d / 30d / 90d | 240 / 102 / 0 |
+| No acceptance criteria | 284 |
+| No next action | 284 |
+| Aging — 7d / 30d / 90d | 240 / 183 / 0 |
 | Architecture and technical debt | 8 |
-| Security gaps | 45 |
+| Security gaps | 46 |
 | Database gaps | 28 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
@@ -49,7 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
-| [[SESSION-0120-platform-admin-ux-functional-cleanup-dashboard-header-record|SESSION-0120]] | — | Platform Admin UX/functional cleanup: dashboard header, record header, command bar, fields, location cascade, agreement editor, datatable flicker, tenants grid, monitoring | ACTIVE | `agent/admin-ux-cleanup` | `develop` | — | NO |
+| [[SESSION-0121-dp-platform-remediation-12-workstreams|SESSION-0121]] | — | DP platform remediation — 12 workstreams | ACTIVE | `agent/dp-platform-remediation` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
 
@@ -304,7 +304,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 274 |
+| Open total | 284 |
 | Blocked | 4 |
 | Deferred | 125 |
 | Awaiting a product decision | 14 |

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   canOpenWorkspace,
@@ -8,6 +9,8 @@ import {
   isTerminalState,
   nextDelayMs,
   pollErrorMessage,
+  statusPollUrl,
+  timedOutMessage,
   type OnboardingStatusView,
 } from "../../../lib/provisioning-view";
 
@@ -39,28 +42,46 @@ import {
  */
 const GIVE_UP_AFTER_MS = 10 * 60_000;
 
+/*
+ * "Check again" after giving up resumes at the slowest cadence for five more
+ * minutes, rather than restarting the fast first minute. The rate-limit window
+ * is the server's, not the page's: a restart that replayed the 2-second tier
+ * inside the same ten minutes would spend the budget `pollDelayMs` was sized
+ * to keep, and turn a slow confirmation into a wall of 429s.
+ */
+const RESUME_ELAPSED_OFFSET_MS = 3 * 60_000;
+const RESUME_FOR_MS = 5 * 60_000;
+
 export function ProvisioningProgress({
   onboardingId,
+  sessionId,
 }: {
   onboardingId: string;
+  /** Stripe's `session_id` from the return URL; a cross-check only. */
+  sessionId?: string | null;
 }) {
   const [status, setStatus] = useState<OnboardingStatusView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [timedOut, setTimedOut] = useState(false);
+  /** Bumped by "Check again" to start a new, slower polling run. */
+  const [resumeCount, setResumeCount] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
-    const startedAt = Date.now();
+    const resumed = resumeCount > 0;
+    const startedAt = Date.now() - (resumed ? RESUME_ELAPSED_OFFSET_MS : 0);
+    const giveUpAfter = resumed
+      ? RESUME_ELAPSED_OFFSET_MS + RESUME_FOR_MS
+      : GIVE_UP_AFTER_MS;
     let timer: ReturnType<typeof setTimeout> | undefined;
 
     async function poll() {
       let httpStatus: number | null = null;
 
       try {
-        const response = await fetch(
-          `/api/public/onboarding/${onboardingId}/status`,
-          { cache: "no-store" },
-        );
+        const response = await fetch(statusPollUrl(onboardingId, sessionId), {
+          cache: "no-store",
+        });
 
         if (cancelled) return;
         httpStatus = response.status;
@@ -80,7 +101,7 @@ export function ProvisioningProgress({
       }
 
       const elapsed = Date.now() - startedAt;
-      if (elapsed > GIVE_UP_AFTER_MS) {
+      if (elapsed > giveUpAfter) {
         if (!cancelled) setTimedOut(true);
         return;
       }
@@ -94,7 +115,7 @@ export function ProvisioningProgress({
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [onboardingId]);
+  }, [onboardingId, sessionId, resumeCount]);
 
   const ready = canOpenWorkspace(status);
 
@@ -159,17 +180,36 @@ export function ProvisioningProgress({
       ) : null}
 
       {status?.actionRequired ? (
-        <p className="mt-5 rounded-2xl border border-border bg-surface p-4 text-sm text-foreground">
-          {status.actionRequired}
-        </p>
+        <div className="mt-5 rounded-2xl border border-border bg-surface p-4 text-sm text-foreground">
+          <p>{status.actionRequired}</p>
+          <Link className="mt-3 inline-flex font-semibold text-accent" href="/contact">
+            Contact us
+          </Link>
+        </div>
       ) : null}
 
       {timedOut && !ready ? (
-        <p className="mt-5 text-sm text-muted">
-          This is taking longer than usual. Your payment is safe and your
-          workspace is still being prepared — we will email you the moment it is
-          ready, and you can close this page.
-        </p>
+        <div className="mt-5">
+          <p className="text-sm text-muted">{timedOutMessage(status)}</p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button
+              className="inline-flex rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-white"
+              onClick={() => {
+                setTimedOut(false);
+                setResumeCount((count) => count + 1);
+              }}
+              type="button"
+            >
+              Check again
+            </button>
+            <Link
+              className="inline-flex rounded-xl border border-border px-5 py-3 text-sm font-semibold text-foreground"
+              href="/contact"
+            >
+              Contact us
+            </Link>
+          </div>
+        </div>
       ) : null}
 
       {error ? (

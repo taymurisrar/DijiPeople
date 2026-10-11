@@ -65,6 +65,37 @@ const SESSION_AUTH_CODES = new Set([
  */
 const HOST_RESOLUTION_PATHS = ['/public/tenants/resolve'];
 
+/**
+ * `400` codes that are a business rule answering about *data*, not a request
+ * the client got wrong.
+ *
+ * This does not reopen the 400 question above. Rows are excluded one named
+ * code at a time, and only where the code itself proves the request was
+ * well-formed and the refusal was the feature working:
+ *
+ * - `CONTRACT_SOURCE_CANNOT_FILL_TEMPLATE` — the chosen record lacks a field
+ *   the template requires (most often a customer with no authorized signer on
+ *   file). The refusal names each missing field and the operator fixes the
+ *   record or enters the signer; nothing is broken. A generic class-validator
+ *   400 still reaches the queue as before, because it never carries this code.
+ * - The support-case lifecycle refusals (WS11) — a status change the
+ *   transition table forbids, one missing its required information, or an
+ *   edit to a closed or merged case. Each is the state machine doing its job
+ *   on a well-formed request. The referential refusals (tenant/customer not
+ *   found or mismatched) are deliberately NOT listed: those can point at a
+ *   stale UI or a real data problem and stay visible.
+ */
+const EXPECTED_DOMAIN_REFUSAL_CODES = new Set([
+  'CONTRACT_SOURCE_CANNOT_FILL_TEMPLATE',
+  'SUPPORT_CASE_TRANSITION_NOT_ALLOWED',
+  'SUPPORT_CASE_TRANSITION_REQUIRES_INFO',
+  'SUPPORT_CASE_CLOSURE_CONFIRMATION_REQUIRED',
+  'SUPPORT_CASE_LOCKED',
+  'SUPPORT_CASE_MERGED_READ_ONLY',
+  'SUPPORT_CASE_ESCALATION_LIMIT',
+  'SUPPORT_CASE_RELATION_EXISTS',
+]);
+
 export type ProtocolOutcomeInput = {
   statusCode?: number | null;
   errorCode?: string | null;
@@ -99,6 +130,10 @@ export function isExpectedProtocolOutcome(
   // question, and "no" is one of the two answers it is allowed to give.
   if (status === 404 && code === 'TENANT_NOT_FOUND' && isHostResolution(input))
     return true;
+
+  // A record that cannot fill the template chosen for it. Recorded, not
+  // queued: the operator was told exactly which fields to supply.
+  if (status === 400 && EXPECTED_DOMAIN_REFUSAL_CODES.has(code)) return true;
 
   return false;
 }

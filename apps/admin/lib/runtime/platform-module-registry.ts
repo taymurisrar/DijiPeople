@@ -31,6 +31,10 @@ import {
 import { PLATFORM_CURRENCY_OPTIONS } from "@/lib/reference-data/platform-reference-data";
 import { emptyListDescription, emptyListTitle } from "@repo/config";
 import { humanizeLabel } from "./humanize-label";
+import {
+  SUPPORT_CASE_ACTIONS,
+  supportCaseEditableActions,
+} from "./support-case-actions";
 
 const PLATFORM_OPERATORS = ["PLATFORM_OWNER", "PLATFORM_ADMIN", "SUPER_ADMIN"];
 const ALL_PLATFORM_ROLES = [
@@ -2344,8 +2348,11 @@ const definitions: PlatformModuleDefinition[] = [
       [
         col("companyName", "Customer", 240),
         col("status", "Status", 140, "status"),
-        col("onboardings", "Onboarding", 150, "number"),
-        col("contracts", "Contracts", 150, "number"),
+        // Bound to the API's _count (as partners' _count.agreements is), not to
+        // the raw `onboardings` array (a take:1 sample) or `contracts` (never
+        // loaded), which rendered empty or as a misleading 0/1.
+        col("_count.onboardings", "Onboarding", 150, "number"),
+        col("_count.contracts", "Contracts", 150, "number"),
         col("assignedToUser.fullName", "Owner", 180, "lookup"),
         col("createdAt", "Created", 160, "dateTime"),
       ],
@@ -2443,6 +2450,30 @@ const definitions: PlatformModuleDefinition[] = [
         ),
         field("financeContactName", "Finance contact", "text", "contacts"),
         field("financeContactEmail", "Finance email", "email", "contacts"),
+        /*
+         * WS05: the customer's authorized signatory — who signs agreements
+         * for the company, rendered as `customer.primarySigner.*`. Separate
+         * from the primary contact on purpose: agreements never infer one
+         * from the other.
+         */
+        field(
+          "authorizedSignerName",
+          "Authorized signer name",
+          "text",
+          "contacts",
+        ),
+        field(
+          "authorizedSignerTitle",
+          "Authorized signer title",
+          "text",
+          "contacts",
+        ),
+        field(
+          "authorizedSignerEmail",
+          "Authorized signer email",
+          "email",
+          "contacts",
+        ),
         countryField("address", true),
         stateProvinceField("address"),
         cityField("address"),
@@ -4145,14 +4176,25 @@ const definitions: PlatformModuleDefinition[] = [
     forms: form("support-cases", [
       field("title", "Case title", "text", "case", true),
       field("description", "Description", "longText", "case", true),
-      field(
-        "status",
-        "Status",
-        "option",
-        "case",
-        false,
-        SUPPORT_STATUSES.map((item) => item.value),
-      ),
+      {
+        ...field(
+          "status",
+          "Status",
+          "option",
+          "case",
+          false,
+          SUPPORT_STATUSES.map((item) => item.value),
+        ),
+        /*
+         * WS11: status moves only through the case commands, which collect
+         * what each move requires (a resolution, a reason, a customer
+         * message). A free status dropdown is how cases reached CLOSED with
+         * no resolution and NEW straight from CLOSED.
+         */
+        readOnly: true,
+        readOnlyReason: "Use the case commands to change status.",
+        hideOnCreate: true,
+      },
       field("priority", "Priority", "option", "triage", true, [
         "LOW",
         "NORMAL",
@@ -4179,7 +4221,13 @@ const definitions: PlatformModuleDefinition[] = [
       },
       {
         ...field("tenantId", "Tenant", "lookup", "customer"),
-        lookupPath: "/super-admin/tenants",
+        /*
+         * WS09: scoped to the chosen customer's tenants, and cleared when the
+         * customer changes (`lookupDependents`). Optional binding, so a case
+         * with no customer yet still offers every tenant — the API derives
+         * the customer from the tenant and refuses a mismatched pair.
+         */
+        lookupPath: "/super-admin/tenants?customerAccountId={customerAccountId?}",
       },
       field("requesterName", "Requester name", "text", "customer"),
       field("requesterEmail", "Requester email", "email", "customer"),
@@ -4192,12 +4240,23 @@ const definitions: PlatformModuleDefinition[] = [
         ),
         lookupPath: "/platform-users/owner-candidates",
       },
-      field("assignedTeam", "Support team", "option", "ownership", false, [
-        "Customer Support",
-        "Engineering",
-        "Billing",
-        "Platform Operations",
-      ]),
+      {
+        /*
+         * A real PlatformTeam now, not four hard-coded names. `assignedTeam`
+         * stays the display snapshot the API writes from the team's name, so
+         * legacy rows that only ever had the free text still read correctly.
+         */
+        ...field("assignedTeamId", "Support team", "lookup", "ownership"),
+        lookupPath: "/platform-teams?active=true&category=SUPPORT",
+        displayValueField: "assignedTeam",
+      },
+      {
+        // Declared only to keep the schema completer from re-adding the
+        // snapshot as an editable free-text box beside the team picker.
+        ...field("assignedTeam", "Support team name", "text", "ownership"),
+        hidden: true,
+        readOnly: true,
+      },
       field(
         "resolutionSummary",
         "Resolution summary",
@@ -4215,7 +4274,9 @@ const definitions: PlatformModuleDefinition[] = [
     actions: [
       ...CREATE_LIST_ACTIONS,
       ACTION.bulkAssign,
-      ...EDIT_RECORD_ACTIONS,
+      ...supportCaseEditableActions(EDIT_RECORD_ACTIONS),
+      // WS11 lifecycle commands; states derive from the API's transition table.
+      ...SUPPORT_CASE_ACTIONS,
     ],
     relatedRecords: [
       {

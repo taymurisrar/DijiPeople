@@ -34,7 +34,7 @@ export type SlugState =
   | { kind: "idle" }
   | { kind: "checking" }
   | { kind: "available" }
-  | { kind: "taken" }
+  | { kind: "taken"; suggestions?: string[] }
   | { kind: "unknown" };
 
 /** Marks a field the buyer must still fill, for screen readers as well as sight. */
@@ -394,6 +394,34 @@ export function WorkspaceStep({
           </span>
         )}
       </p>
+
+      {/*
+        Alternatives the API verified as free. Picking one goes through `set`,
+        which also marks the address as buyer-chosen so a later company-name
+        edit does not overwrite it.
+      */}
+      {!formatProblem &&
+      slugState.kind === "taken" &&
+      slugState.suggestions?.length ? (
+        <div>
+          <p className="text-xs font-medium text-foreground">
+            Available alternatives
+          </p>
+          <ul className="mt-2 flex flex-wrap gap-2">
+            {slugState.suggestions.map((option) => (
+              <li key={option}>
+                <button
+                  className="rounded-full border border-border px-3 py-1 text-xs font-medium text-accent hover:bg-surface-muted"
+                  onClick={() => set({ requestedSlug: option })}
+                  type="button"
+                >
+                  {option}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -569,11 +597,62 @@ export function AgreementsStep({ form, set, agreements }: StepProps) {
   );
 }
 
+export type PaymentProviderKey = "STRIPE" | "SAFEPAY";
+export type PaymentProviderOption = { key: PaymentProviderKey; label: string };
+
+/**
+ * The providers `/public/plans` offers for a price, read defensively.
+ *
+ * `paymentProviders` is an additive API field that `PublicPlanPrice` does not
+ * declare, and an older API omits it, so it is shape-checked here rather than
+ * trusted: anything unexpected reads as "no list", which keeps today's
+ * currency routing.
+ */
+export function offeredPaymentProviders(
+  price: unknown,
+): PaymentProviderOption[] {
+  const list = (price as { paymentProviders?: unknown } | null)
+    ?.paymentProviders;
+  if (!Array.isArray(list)) return [];
+  return list.filter(
+    (item): item is PaymentProviderOption =>
+      typeof item === "object" &&
+      item !== null &&
+      ((item as { key?: unknown }).key === "STRIPE" ||
+        (item as { key?: unknown }).key === "SAFEPAY") &&
+      typeof (item as { label?: unknown }).label === "string",
+  );
+}
+
+/**
+ * The provider to submit, or undefined to submit none. Undefined unless there
+ * are two or more options, so a single-provider price posts exactly what it
+ * did before; a stale pick falls back to the server's default (listed first).
+ */
+export function chosenPaymentProvider(
+  options: PaymentProviderOption[],
+  selected: PaymentProviderKey | null,
+): PaymentProviderKey | undefined {
+  if (options.length < 2) return undefined;
+  if (selected && options.some((option) => option.key === selected)) {
+    return selected;
+  }
+  return options[0]?.key;
+}
+
 export function ReviewStep({
   form,
   tenantBaseDomain,
   goTo,
-}: StepProps & { goTo: (step: WizardStep) => void }) {
+  paymentProviders = [],
+  paymentProvider,
+  onPaymentProviderChange,
+}: StepProps & {
+  goTo: (step: WizardStep) => void;
+  paymentProviders?: PaymentProviderOption[];
+  paymentProvider?: PaymentProviderKey;
+  onPaymentProviderChange?: (key: PaymentProviderKey) => void;
+}) {
   const rows: Array<{ label: string; value: string; step: WizardStep }> = [
     { label: "Company", value: form.companyName, step: "organization" },
     { label: "Country", value: form.country, step: "organization" },
@@ -622,6 +701,35 @@ export function ReviewStep({
           </div>
         ))}
       </dl>
+
+      {/*
+        Only when the API offers a real choice for this price. A native radio
+        group in a fieldset: arrow keys move between options and the legend is
+        announced with each one.
+      */}
+      {paymentProviders.length > 1 && onPaymentProviderChange ? (
+        <fieldset className="grid gap-2">
+          <legend className="mb-1 text-sm font-medium text-foreground">
+            Payment method
+          </legend>
+          {paymentProviders.map((option) => (
+            <label
+              className="flex cursor-pointer items-center gap-3 rounded-2xl border border-border bg-white px-4 py-3 text-sm text-foreground has-[:checked]:border-accent"
+              key={option.key}
+            >
+              <input
+                checked={paymentProvider === option.key}
+                className="h-4 w-4 accent-accent"
+                name="paymentProvider"
+                onChange={() => onPaymentProviderChange(option.key)}
+                type="radio"
+                value={option.key}
+              />
+              <span>{option.label}</span>
+            </label>
+          ))}
+        </fieldset>
+      ) : null}
     </div>
   );
 }

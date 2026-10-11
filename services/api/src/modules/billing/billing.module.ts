@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { AuthModule } from '../auth/auth.module';
 import { AuditModule } from '../audit/audit.module';
+import { RecordAssignmentModule } from '../super-admin/record-assignment.module';
 import { BillingController } from './controllers/billing.controller';
 import { PublicBillingController } from './controllers/public-billing.controller';
 import { StripeWebhookController } from './controllers/stripe-webhook.controller';
@@ -46,6 +47,8 @@ import { ReconciliationService } from './services/reconciliation.service';
   imports: [
     AuthModule,
     AuditModule,
+    // Owner rules for self-service customers (WS07).
+    RecordAssignmentModule,
     PlatformCommunicationsModule,
     LegalModule,
     // For PartnerReferralResolverService: checkout attribution is resolved from

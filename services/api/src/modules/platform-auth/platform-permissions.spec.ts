@@ -20,6 +20,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { AdminLeadsController } from '../leads/admin-leads.controller';
 import { AdminLegalController } from '../legal/admin-legal.controller';
 import { DemoDataController } from '../demo-data/demo-data.controller';
+import { PlatformTeamsController } from '../platform-users/platform-teams.controller';
 import { SuperAdminController } from '../super-admin/super-admin.controller';
 import type {
   AuthenticatedRequest,
@@ -502,6 +503,7 @@ describe('ADR-0018 platform route authorization', () => {
     { name: 'AdminLeadsController', type: AdminLeadsController },
     { name: 'AdminLegalController', type: AdminLegalController },
     { name: 'DemoDataController', type: DemoDataController },
+    { name: 'PlatformTeamsController', type: PlatformTeamsController },
   ];
 
   const VERBS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'ALL', 'OPTIONS'];
@@ -570,7 +572,7 @@ describe('ADR-0018 platform route authorization', () => {
       ? ALL_ROLES.filter((role) => hasPlatformPermission(role, permission))
       : [];
 
-  it('enumerates routes on all four controllers', () => {
+  it('enumerates routes on every platform controller', () => {
     const byController = new Set(allRoutes().map((route) => route.controller));
     expect([...byController].sort()).toEqual(
       controllers.map((c) => c.name).sort(),

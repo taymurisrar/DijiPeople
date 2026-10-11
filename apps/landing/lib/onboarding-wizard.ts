@@ -146,14 +146,95 @@ export function describeSlugProblem(slug: string): string | null {
  * a mangled guess they would have to notice and undo.
  */
 export function suggestSlug(companyName: string): string {
-  return companyName
+  /*
+   * Same decomposition as `suggestWorkspaceSlug` in `packages/config`: NFD then
+   * strip combining marks, so "Café Ünion" becomes "cafe-union". NFKD without
+   * the strip left the accent as a separate mark that the next replace turned
+   * into a hyphen, splitting "cafe" into "caf" + "-".
+   *
+   * Not imported from `@repo/config` because that module is CommonJS with node
+   * built-ins and this file ships in the client bundle; the algorithm is small
+   * and the server re-validates anyway.
+   */
+  const tokens = companyName
+    .trim()
     .toLowerCase()
-    .normalize("NFKD")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/-{2,}/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 50)
-    .replace(/-$/, "");
+    .replace(/^-+|-+$/g, "")
+    .split("-")
+    .filter(Boolean);
+
+  /*
+   * Drop trailing legal-form words ("Acme Ltd" -> "acme"), but only while
+   * something of at least three characters remains. "Inc" alone, or "Co Ltd",
+   * must not suggest an empty or two-letter address.
+   */
+  let kept = tokens;
+  while (kept.length > 1) {
+    // Longest match first, but a phrase that would leave too little falls
+    // back to the single trailing word rather than giving up on both.
+    const candidates: number[] = [];
+    if (LEGAL_SUFFIX_PHRASES.includes(kept.slice(-2).join(" "))) {
+      candidates.push(2);
+    }
+    if (LEGAL_SUFFIX_WORDS.includes(kept[kept.length - 1])) candidates.push(1);
+    const dropCount = candidates.find(
+      (count) => kept.slice(0, kept.length - count).join("-").length >= 3,
+    );
+    if (!dropCount) break;
+    kept = kept.slice(0, kept.length - dropCount);
+  }
+
+  let slug = kept.join("-").slice(0, 50).replace(/-+$/, "");
+  /*
+   * Below the 3-character minimum, pad deterministically rather than suggest
+   * something the format check immediately rejects. Empty stays empty.
+   */
+  if (slug && slug.length < 3) slug = `${slug}-hr`;
+  return slug;
+}
+
+const LEGAL_SUFFIX_WORDS = [
+  "ltd",
+  "llc",
+  "inc",
+  "pvt",
+  "limited",
+  "co",
+  "corp",
+  "gmbh",
+  "plc",
+];
+const LEGAL_SUFFIX_PHRASES = ["private limited", "pvt ltd", "co ltd"];
+
+/**
+ * What pressing Continue / Enter / the submit button should do.
+ *
+ * The form is one `<form>` around every step, so a native submit can arrive
+ * from any step (Enter in a text input, or a button whose type was mutated).
+ * Only the review step may reach the network; every other step is a request to
+ * advance, subject to that step's own required fields.
+ */
+export type SubmitDecision =
+  | { action: "advance"; blocked: false }
+  | { action: "blocked"; blocked: true }
+  | { action: "submit"; blocked: false }
+  | { action: "ignore"; blocked: true };
+
+export function decideSubmit(args: {
+  step: WizardStep;
+  missing: string[];
+  inFlight: boolean;
+}): SubmitDecision {
+  if (args.inFlight) return { action: "ignore", blocked: true };
+  if (args.step !== "review") {
+    return args.missing.length
+      ? { action: "blocked", blocked: true }
+      : { action: "advance", blocked: false };
+  }
+  return { action: "submit", blocked: false };
 }
 
 /**

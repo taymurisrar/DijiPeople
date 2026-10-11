@@ -10,6 +10,11 @@ import type {
   RuntimeActionDefinition,
   RuntimeRecord,
 } from "./platform-runtime.types";
+import {
+  SUPPORT_CASE_DIRECT_ACTIONS,
+  isSupportCaseDialogAction,
+  type SupportCaseDialogAction,
+} from "./support-case-actions";
 
 type RuntimeAdapter = ReturnType<typeof createHttpModuleRuntimeAdapter>;
 type ActionResult = { success?: boolean; message?: string } | void;
@@ -28,6 +33,12 @@ export async function executeRuntimeRecordAction(input: {
   enterEditMode(): void;
   leaveEditMode(): void;
   openSignatureDialog(): void;
+  /**
+   * Open the support case command dialog for a command that needs structured
+   * input (resolution, customer message, owner, target case). Optional so the
+   * many callers with no support cases need not supply it.
+   */
+  openSupportCaseDialog?(action: SupportCaseDialogAction): void;
   /**
    * Collect a governed reason through the design system.
    *
@@ -60,6 +71,7 @@ export async function executeRuntimeRecordAction(input: {
     enterEditMode,
     leaveEditMode,
     openSignatureDialog,
+    openSupportCaseDialog,
     requestReason,
   } = input;
 
@@ -93,6 +105,47 @@ export async function executeRuntimeRecordAction(input: {
     const result = readDeleteOutcome(await adapter.deleteRecord(record.id));
     if (result.success) router.push(routeBase);
     return result;
+  }
+
+  /*
+   * Support case commands (WS11) go to the support case routes. They never
+   * fall through to the generic platform-runtime action route below, which
+   * dispatches no support case actions and would answer every one with 400.
+   */
+  if (moduleKey === "support-cases") {
+    const key = String(action.key);
+    if (isSupportCaseDialogAction(key)) {
+      if (!openSupportCaseDialog)
+        throw new Error("This command is not available here.");
+      return openSupportCaseDialog(key);
+    }
+    const direct = SUPPORT_CASE_DIRECT_ACTIONS[key];
+    if (direct) {
+      let reason: string | undefined;
+      if (action.reasonPrompt) {
+        const entered = await requestReason({
+          title: action.reasonPrompt.title,
+          label: action.reasonPrompt.label,
+          confirmLabel: action.label,
+          tone: action.destructive ? "danger" : "default",
+        });
+        if (!entered) return;
+        reason = entered;
+      }
+      const response = await fetch(
+        `/api/support-cases/${encodeURIComponent(record.id)}/${direct.path}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(direct.body(reason)),
+        },
+      );
+      const payload = await response.json().catch(() => null);
+      if (!response.ok)
+        throw new Error(payload?.message ?? `Unable to ${action.label.toLowerCase()}.`);
+      await reloadRecord();
+      return { success: true, message: `${action.label} completed.` };
+    }
   }
 
   if (action.key === "create-agreement") {

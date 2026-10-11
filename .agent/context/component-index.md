@@ -1,7 +1,7 @@
 # Component Index
 
-> **Last verified:** 2026-10-08
-> **Verified against commit:** c419770a
+> **Last verified:** 2026-10-11
+> **Verified against commit:** d5e35295
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -16,8 +16,8 @@ question an agent can answer by retrieval rather than by reading a directory.
 comment beside it is the reasoning; this document is a route to both. Every row
 carries `file`:`line` for that reason — read the source before changing it.
 
-**An export missing from here is undocumented, not absent.** 906 of
-1261 exports across these kits carry no
+**An export missing from here is undocumented, not absent.** 918 of
+1287 exports across these kits carry no
 doc-comment and are omitted rather than listed as bare names. That ratio is
 itself worth knowing: it is where a UI/UX or Frontend agent is working without
 stated rationale, and where adding one is worth more than a new abstraction.
@@ -45,11 +45,11 @@ re-derived on each run.
 
 `ProDataTable` (`crm/data-table.tsx`) is the required table for every production admin screen. A hand-rolled table here is a review failure.
 
-134 documented export(s); 282 undocumented export(s) omitted.
+147 documented export(s); 294 undocumented export(s) omitted.
 
 | Export | Kind | Used by | Where | What it is |
 |---|---|---|---|---|
-| `PanelDialog` | component | 11 | `apps/admin/app/_components/tenants/tenant-panel-ui.tsx`:270 | A modal that traps focus, restores it on close and can always be dismissed with Escape. |
+| `PanelDialog` | component | 13 | `apps/admin/app/_components/tenants/tenant-panel-ui.tsx`:270 | A modal that traps focus, restores it on close and can always be dismissed with Escape. |
 | `PanelCard` | component | 9 | `apps/admin/app/_components/tenants/tenant-panel-ui.tsx`:16 | The pieces every tenant panel is built from. |
 | `ModuleActionBar` | component | 8 | `apps/admin/app/_components/runtime/module-action-bar.tsx`:128 | The command bar every admin list and record screen draws its buttons in. |
 | `StatePill` | component | 8 | `apps/admin/app/_components/tenants/tenant-panel-ui.tsx`:147 | A status word carrying its own icon and text, never colour alone — the same pill has to be readable to someone who cannot distinguish red from green. |
@@ -57,12 +57,12 @@ re-derived on each run.
 | `RecordStatusGroup` | component | 5 | `apps/admin/app/_components/runtime/record-status-group.tsx`:42 | The record header status group. |
 | `RecordHeader` | component | 4 | `apps/admin/app/_components/runtime/record-highlight-header.tsx`:42 | The one record header every Platform Admin record page draws. |
 | `CopyReference` | component | 3 | `apps/admin/app/_components/monitoring/monitoring-ui.tsx`:107 | A reference id that copies itself; it is what support pastes to a customer. |
-| `NotificationBell` | component | 2 | `apps/admin/app/_components/notifications/notification-bell.tsx`:34 | The bell: a count, and the last few things worth knowing. |
+| `NotificationBell` | component | 2 | `apps/admin/app/_components/notifications/notification-bell.tsx`:36 | The bell: a count, and the last few things worth knowing. |
 | `PlanPriceManager` | component | 2 | `apps/admin/app/_components/plan-price-manager.tsx`:94 | Plan prices. This screen was a stack of cards, one per price, each repeating "Cycle", "Amount", "Stripe Price ID" and "Subscriptions" as its own labelled block — so a plan priced in six currencies across two periods, with a few superseded versions behind it, rendered several hundred vertical pixels of column headings. |
 | `AccountPreferencesClient` | component | 1 | `apps/admin/app/_components/account-preferences-client.tsx`:26 | Personal console preferences, stored against the operator. |
 | `DependencyAwareDeleteDialog` | component | 1 | `apps/admin/app/_components/runtime/dependency-aware-delete-dialog.tsx`:30 | The delete confirmation that asks the API what the delete would do first (EXECPLAN-0055 D5). |
 | `HealthOverviewTiles` | component | 1 | `apps/admin/app/_components/monitoring/health-overview-tiles.tsx`:84 | TASK-0032 WP-06. "Is the platform healthy" as the first thing on the monitoring page, not something inferred from an error queue. |
-| `NotificationsFeed` | component | 1 | `apps/admin/app/_components/notifications/notifications-feed.tsx`:30 | What has happened on this platform that somebody should look at. |
+| `NotificationsFeed` | component | 1 | `apps/admin/app/_components/notifications/notifications-feed.tsx`:31 | What has happened on this platform that somebody should look at. |
 | `NumberSequencesManager` | component | 1 | `apps/admin/app/_components/settings/number-sequences-manager.tsx`:27 | Settings > Numbering (ADR-0027). |
 | `PaymentRecheckPanel` | component | 1 | `apps/admin/app/_components/customers/payment-recheck-panel.tsx`:63 | What Stripe says about this customer's payment, and what to tell them. |
 | `PlanCommercialSummary` | component | 1 | `apps/admin/app/_components/plans/plan-commercial-summary.tsx`:33 | What this plan currently costs and who is on it. |
@@ -96,7 +96,7 @@ re-derived on each run.
 | `useReasonPrompt` | function | 3 | `apps/admin/app/_components/runtime/use-reason-prompt.tsx`:62 | Collects a governed reason through the design system instead of `window.prompt` (BUG-0020). |
 | `useRuntimeLookupOptions` | function | 3 | `apps/admin/lib/runtime/use-runtime-lookup-options.ts`:34 | Read an allowlisted runtime lookup. |
 | `describePlanSchedule` | function | 2 | `apps/admin/lib/runtime/plan-headline-prices.ts`:180 | "Per seat, PKR" — how the tiles name the schedule they are showing. |
-| `formatWhen` | function | 2 | `apps/admin/app/_components/notifications/notification-model.ts`:86 | "4 minutes ago", falling back to an absolute time once relative stops being the more useful phrasing. |
+| `formatWhen` | function | 2 | `apps/admin/app/_components/notifications/notification-model.ts`:128 | "4 minutes ago", falling back to an absolute time once relative stops being the more useful phrasing. |
 | `humanizeFieldError` | function | 2 | `apps/admin/lib/runtime/humanize-field-error.ts`:24 | Replace a leading DTO property name with the label the operator sees. |
 | `readDeleteOutcome` | function | 2 | `apps/admin/lib/runtime/runtime-action-outcome.ts`:23 | What a runtime delete actually did, read from where the API puts it. |
 | `recordDisplayName` | function | 2 | `apps/admin/lib/runtime/destructive-confirm.ts`:95 | The best display name for a record, from whatever the row happens to carry. |
@@ -109,6 +109,7 @@ re-derived on each run.
 | `createSubmitGuard` | function | 1 | `apps/admin/lib/runtime/quick-create-model.ts`:178 | One submission at a time. |
 | `describeActionNotice` | function | 1 | `apps/admin/lib/runtime/runtime-action-outcome.ts`:62 | The command-bar notice for whatever an action handler returned. |
 | `describeBlockedSave` | function | 1 | `apps/admin/lib/runtime/blocked-save-feedback.ts`:52 | The summary message. Names the fields so it stands on its own even when the tab strip has scrolled out of view — the message was previously the only feedback available and said nothing. |
+| `describeContractApiError` | function | 1 | `apps/admin/app/_components/documents/contract-source-eligibility.ts`:126 | A readable message from the API's standard error contract. |
 | `describeDependencyCount` | function | 1 | `apps/admin/lib/runtime/dependency-delete-model.ts`:156 | "2 referral links" style count line for one dependency. |
 | `describeDestructiveConfirm` | function | 1 | `apps/admin/lib/runtime/destructive-confirm.ts`:47 | Title, description and names for a destructive confirmation. |
 | `describeRecordActionOutcome` | function | 1 | `apps/admin/lib/runtime/runtime-action-outcome.ts`:88 | The outcome of a record action the API handled, phrased for the command bar. |
@@ -119,6 +120,7 @@ re-derived on each run.
 | `fitCommands` | function | 1 | `apps/admin/lib/runtime/command-overflow.ts`:51 | Split `actions` (already in display order) into what is drawn inline and what goes into More. @param widths measured width of each action's inline button, same order @param available width of the space the buttons sit in @param moreWidth width of the More button @param gap horizontal gap between buttons |
 | `isRowActionVisible` | function | 1 | `apps/admin/lib/runtime/related-records-model.ts`:180 | Whether a row command applies to this row. |
 | `isRuntimeFieldVisible` | function | 1 | `apps/admin/lib/runtime/field-visibility.ts`:35 | Should the record form render this field? |
+| `isSessionEnded` | function | 1 | `apps/admin/app/_components/notifications/notification-model.ts`:62 | A 401 means the session has ended; asking again cannot help. |
 | `isTransportFailure` | function | 1 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:683 | Whether a failure means "the request never got an answer" rather than "the server said no". |
 | `lookupDependents` | function | 1 | `apps/admin/lib/runtime/runtime-lookups.ts`:103 | Fields whose lookup is scoped by `changedKey`, directly or through another dependent — State and City for Country, City for State. |
 | `lookupDisplayFallback` | function | 1 | `apps/admin/lib/runtime/lookup-display-fallback.ts`:15 | What a lookup shows when its stored value matches no option. |
@@ -134,12 +136,17 @@ re-derived on each run.
 | `readRuntimeLookupLabel` | function | 1 | `apps/admin/lib/runtime/runtime-lookups.ts`:309 | The display name of a related record, wherever this schema happens to keep it. |
 | `reconcileWithErasureReceipt` | function | 1 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:708 | Ask the receipt what happened when the response did not arrive. |
 | `recordHeaderWritePermission` | function | 1 | `apps/admin/lib/runtime/runtime-permissions.ts`:54 | The permission a header slot's write route is governed by. |
+| `requiredSignerFields` | function | 1 | `apps/admin/app/_components/documents/contract-source-eligibility.ts`:88 | The signer inputs a template needs filled before it can be created. |
 | `resolveAllowedLookupSource` | function | 1 | `apps/admin/lib/runtime/runtime-lookups.ts`:182 | The API path a lookup request may call: the `path` parameter must be an allowlisted template, and each of its placeholders is filled from the matching `bind.<field>` parameter. |
 | `resolveLookupBindings` | function | 1 | `apps/admin/lib/runtime/runtime-lookups.ts`:127 | The values a templated lookup needs, read from the form. |
 | `resolveQuickCreateFields` | function | 1 | `apps/admin/lib/runtime/quick-create-model.ts`:30 | The fields the panel renders. |
 | `resolveRowActionPath` | function | 1 | `apps/admin/lib/runtime/related-records-model.ts`:210 | The `/api` path a `post` or `delete` row command calls, with its tokens substituted. |
 | `rowActionRequest` | function | 1 | `apps/admin/lib/runtime/related-records-model.ts`:196 | The request a `post` or `delete` row command sends: POST with its JSON `body`, or DELETE with none. |
 | `shareableUrl` | function | 1 | `apps/admin/lib/runtime/related-records-model.ts`:227 | A referral link's shareable URL — the one the API built from the configured public site (`partnerReferralLinkUrl`). |
+| `signerErrors` | function | 1 | `apps/admin/app/_components/documents/contract-source-eligibility.ts`:101 | Client-side check of the signer inputs; the API validates again. |
+| `supportCaseEditableActions` | function | 1 | `apps/admin/lib/runtime/support-case-actions.ts`:200 | Edit and Save are hidden on a case that is finished with, because the API refuses every edit there. |
+| `supportCaseNextStep` | function | 1 | `apps/admin/lib/runtime/support-case-actions.ts`:219 | One terse line about where the case stands and what moves it on — shown in the case panel. |
+| `templateOptionState` | function | 1 | `apps/admin/app/_components/documents/contract-source-eligibility.ts`:60 | How a template appears in the picker for the chosen record. |
 | `tenantHeaderTitle` | function | 1 | `apps/admin/app/_components/tenants/tenant-record-header.tsx`:18 | The tenant record header's content, drawn by the shared `RecordHeader`. |
 | `useTenantRecordActions` | function | 1 | `apps/admin/app/_components/tenants/use-tenant-record-actions.tsx`:99 | Routes tenant action-bar requests to whichever surface owns the change. |
 | `acceptsField` | function | 0 | `apps/admin/lib/runtime/runtime-write-payload.ts`:20 | Whether the runtime will accept this field on this kind of write. |
@@ -153,19 +160,24 @@ re-derived on each run.
 | `resolveLookupRecordRoute` | function | 0 | `apps/admin/lib/runtime/lookup-record-href.ts`:44 | The module a lookup reads from, if Platform Admin can show that record. |
 | `resolveTableColumnState` | function | 0 | `apps/admin/app/_components/runtime/runtime-module-list.tsx`:1358 | The columns a list shows, from the module definition and the operator's saved table state (or none). |
 | `standardRecordActions` | function | 0 | `apps/admin/lib/runtime/standard-record-commands.ts`:56 | The registry's command bar for a module, with the page's own commands merged in on top — same rule the registry itself uses, so a bespoke page can override a default's label or states without losing the rest. |
+| `supportCaseStatesFor` | function | 0 | `apps/admin/lib/runtime/support-case-actions.ts`:36 | Every status from which `to` is a legal move. |
 | `tabHasEditableField` | function | 0 | `apps/admin/lib/runtime/edit-tab-selection.ts`:73 | Whether the named tab currently has at least one field the operator could edit. |
 | `ConsolePreferencesApplier` | value | 1 | `apps/admin/app/_components/console-preferences-applier.tsx`:23 | Apply the operator's preferences to every page, not just the one that sets them. |
 | `LOOKUP_SEARCH_DEBOUNCE_MS` | constant | 3 | `apps/admin/lib/runtime/lookup-search.ts`:14 | How long to wait after the last keystroke before issuing a search request. |
-| `NOTIFICATIONS_ENDPOINT` | constant | 2 | `apps/admin/app/_components/notifications/notification-model.ts`:37 | The read endpoint, and the one that clears the unread mark. |
-| `NOTIFICATIONS_READ_EVENT` | constant | 2 | `apps/admin/app/_components/notifications/notification-model.ts`:47 | The badge and the page read the same count from the same endpoint, so clearing it in one place has to reach the other. |
-| `SEVERITY` | constant | 2 | `apps/admin/app/_components/notifications/notification-model.ts`:57 | Severity as it is drawn. |
+| `CATEGORY_LABEL` | constant | 2 | `apps/admin/app/_components/notifications/notification-model.ts`:44 | Category as a chip — text, so it never relies on colour alone. |
+| `NOTIFICATIONS_ENDPOINT` | constant | 2 | `apps/admin/app/_components/notifications/notification-model.ts`:79 | The read endpoint, and the one that clears the unread mark. |
+| `NOTIFICATIONS_READ_EVENT` | constant | 2 | `apps/admin/app/_components/notifications/notification-model.ts`:89 | The badge and the page read the same count from the same endpoint, so clearing it in one place has to reach the other. |
+| `SEVERITY` | constant | 2 | `apps/admin/app/_components/notifications/notification-model.ts`:99 | Severity as it is drawn. |
 | `RELATED_PANEL_CLASS` | constant | 1 | `apps/admin/lib/runtime/related-records-model.ts`:168 | Wide subgrids scroll inside their card, and their row commands stay in view. |
+| `SUPPORT_CASE_DIRECT_ACTIONS` | constant | 1 | `apps/admin/lib/runtime/support-case-actions.ts`:74 | Commands that only need a status (Triage) or a reason (Reopen, Cancel) and are posted straight to the support case route — never to the generic platform-runtime action route, which has no support case actions. |
 | `TENANT_PANEL_TABS` | constant | 1 | `apps/admin/app/_components/tenants/use-tenant-record-actions.tsx`:21 | Tabs whose content comes from a tenant panel rather than from form fields. |
 | `DASHBOARD_WIDGET_REGISTRY` | constant | 0 | `apps/admin/app/_components/dashboard/platform-dashboard.tsx`:295 | Canonical widget capability registry. |
 | `EMPTY_VALUE` | constant | 0 | `apps/admin/app/_components/runtime/runtime-form.tsx`:34 | What a read-only field shows when it has no value — one wording everywhere. |
 | `MODULES_WITH_DEPENDENCY_CHECK` | constant | 0 | `apps/admin/lib/runtime/http-module-runtime-adapter.ts`:20 | Modules whose API answers `GET :id/dependencies` (EXECPLAN-0055 D5) — the mirror of `dependencyProviders()` in `PlatformRuntimeService`. |
 | `QUICK_CREATE_SECTION` | constant | 0 | `apps/admin/lib/runtime/quick-create-model.ts`:18 | The quick-create side panel's rules, without the panel (EXECPLAN-0055 D8). |
 | `RUNTIME_ELEVATED_ROLES` | constant | 0 | `apps/admin/lib/runtime/runtime-permissions.ts`:21 | Roles that reach every platform module regardless of the granted key set. |
+| `SUPPORT_CASE_DIALOG_ACTIONS` | constant | 0 | `apps/admin/lib/runtime/support-case-actions.ts`:51 | The commands that need more than a reason open a focused dialog (`SupportCaseActionDialog`). |
+| `SUPPORT_CASE_TRANSITIONS` | constant | 0 | `apps/admin/lib/runtime/support-case-actions.ts`:14 | Support case commands (WS11). |
 | `RuntimeRecordHighlightDefinition` | type | 3 | `apps/admin/lib/runtime/platform-runtime.types.ts`:495 | The record highlight header: the record's name and the handful of values an operator reads first, in one compact strip. |
 | `RuntimeQuickCreateDefinition` | type | 2 | `apps/admin/lib/runtime/platform-runtime.types.ts`:437 | A quick-create side panel for a subgrid (EXECPLAN-0055 D8). |
 | `RuntimeRelatedRecordDefinition` | type | 2 | `apps/admin/lib/runtime/platform-runtime.types.ts`:406 | One subgrid on a record page — the records related to the one being viewed, read from `GET /platform-runtime/<module>/:id/related/<key>`. |
@@ -181,6 +193,7 @@ re-derived on each run.
 | `PlatformEventRow` | type | 0 | `apps/admin/app/_components/monitoring/events-table.tsx`:23 | The platform event log — lifecycle activity (sign-ins, provisioning runs, webhooks, emails), successful or not, kept apart from the error log. |
 | `RelatedCell` | type | 0 | `apps/admin/lib/runtime/related-records-model.ts`:20 | Subgrid cells, row commands and the referral-link copy action, as data (EXECPLAN-0055 WP-08). |
 | `ResolvedHighlight` | type | 0 | `apps/admin/lib/runtime/record-highlight.ts`:15 | One value in the record highlight header, resolved from the record. |
+| `SignerField` | type | 0 | `apps/admin/app/_components/documents/contract-source-eligibility.ts`:12 | Pure rules behind the "From record" mode of the Create Agreement launcher. |
 | `TenantWorkspaceHealth` | type | 0 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:174 | What is missing from a workspace, as facts about the tenant rather than about a provisioning run that may never have been recorded. |
 | `VisibilityCondition` | type | 0 | `apps/admin/lib/runtime/visibility-condition.ts`:11 | The runtime's one visibility condition, shared by form fields (`visibleWhen`/`visibleWhenAny` — `runtime-form.tsx` and `edit-tab-selection.ts`) and record commands (`RuntimeActionDefinition.visibleWhen`, see `command-visibility.ts`). |
 
@@ -188,7 +201,7 @@ re-derived on each run.
 
 Metadata-driven UI is the default. New modules are declared through `lib/runtime/` and rendered by the standard runtime pages; a bespoke page needs a stated reason in the plan.
 
-221 documented export(s); 621 undocumented export(s) omitted.
+222 documented export(s); 621 undocumented export(s) omitted.
 
 | Export | Kind | Used by | Where | What it is |
 |---|---|---|---|---|
@@ -203,6 +216,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `DialogCloseButton` | component | 2 | `apps/web/app/components/ui/dialog.tsx`:374 | The close affordance most dialogs want in their footer or header. |
 | `MfaEnrolmentPanel` | component | 2 | `apps/web/app/components/security/mfa-panels.tsx`:121 | Scan (or type) the key, then prove it with a code. |
 | `OneTimeCodeField` | component | 2 | `apps/web/app/components/security/mfa-panels.tsx`:36 | A six-digit authenticator code: numeric keypad, and SMS/app autofill. |
+| `PasswordField` | component | 2 | `apps/web/app/components/ui/password-field.tsx`:25 | One password input with a show/hide toggle, so the activation and reset screens stop hand-rolling bare <input type="password"> elements. |
 | `RecoveryCodesPanel` | component | 2 | `apps/web/app/components/security/mfa-panels.tsx`:225 | Recovery codes, shown once. |
 | `ApprovalChain` | component | 1 | `apps/web/app/components/approvals/approval-chain.tsx`:20 | The approval chain and its history. |
 | `AttendanceActionFeedback` | component | 1 | `apps/web/app/components/runtime/attendance-action-feedback.tsx`:15 | The contextual answer to an attendance attempt. |

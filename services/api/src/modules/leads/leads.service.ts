@@ -3,7 +3,9 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
+import { RecordAssignmentService } from '../super-admin/record-assignment.service';
 import {
   ConsentState,
   ConsentType,
@@ -84,6 +86,10 @@ export class LeadsService {
     // be private to this service, which is exactly why self-service checkout —
     // writing the same CustomerAccount columns — attributed nothing. BUG-0281.
     private readonly referralResolver: PartnerReferralResolverService,
+    // Optional so specs that build this service by hand keep working; in the
+    // running app it is always provided. Owner rules for unowned public leads
+    // (WS07).
+    @Optional() private readonly recordAssignment?: RecordAssignmentService,
   ) {}
 
   async submitLead(dto: SubmitLeadDto, correlationId?: string) {
@@ -154,8 +160,27 @@ export class LeadsService {
       : CURRENT_PRIVACY_NOTICE_VERSION;
 
     const lead = await this.prisma.$transaction(async (tx) => {
+      // A public submission has no owner by definition, so the configured
+      // assignment rules decide one. Admin-created leads are not routed here:
+      // their creator is the explicit owner. Never throws; null leaves the
+      // lead unowned, as it was before rules existed.
+      const leadSource = referral.partnerId ? 'Partner Referral' : 'Website';
+      const autoAssignment = this.recordAssignment
+        ? await this.recordAssignment.assignOnCreate(
+            'leads',
+            {
+              source: leadSource,
+              country: dto.country ?? null,
+              status: LeadStatus.NEW,
+              partnerId: referral.partnerId,
+              industry: dto.industry ?? null,
+            },
+            tx,
+          )
+        : null;
       const created = await this.leadsRepository.create(
         {
+          assignedToUserId: autoAssignment?.userId ?? null,
           contactFirstName: dto.firstName.trim(),
           // Null rather than a placeholder. The form used to send "Contact" as
           // a surname for anyone who gave a single name.
@@ -212,6 +237,14 @@ export class LeadsService {
         },
         tx,
       );
+      if (autoAssignment && this.recordAssignment) {
+        await this.recordAssignment.recordAssigned(
+          'leads',
+          created.id,
+          autoAssignment,
+          tx,
+        );
+      }
       if (referral.linkId) {
         await tx.partnerReferralLink.update({
           where: { id: referral.linkId },
@@ -289,6 +322,8 @@ export class LeadsService {
       actorType: 'PUBLIC_VISITOR',
       metadata: {
         result: 'created',
+        // The subject label the admin notification feed shows (WS04).
+        companyName: lead.companyName,
         source: lead.source,
         attributionStatus: lead.attributionStatus,
         partnerAttributed: Boolean(referral.partnerId),

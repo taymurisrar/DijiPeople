@@ -69,8 +69,14 @@ export function canOpenWorkspace(
  *
  * `AWAITING_PAYMENT` is worth its own line. Reaching this page means Stripe
  * redirected the browser back, but the redirect is not the provider's word —
- * only the verified webhook is — so for the seconds before it lands the honest
- * statement is that confirmation is still coming, not that it has arrived.
+ * only the provider's own answer, read by the server, is — so until that
+ * lands the honest statement is that confirmation is still coming, not that it
+ * has arrived.
+ *
+ * `PAYMENT_CONFIRMED` and `PROVISIONING` each get their own line too. They
+ * used to share the generic "preparing" headline, so the moment the payment
+ * was confirmed — the one the buyer was anxious about — changed nothing on
+ * screen but a small tick in the list.
  */
 export function headlineFor(status: OnboardingStatusView | null) {
   if (!status) return "We're preparing your DijiPeople workspace.";
@@ -84,12 +90,54 @@ export function headlineFor(status: OnboardingStatusView | null) {
       return "We need to look at something.";
     case "AWAITING_PAYMENT":
       return "We're confirming your payment.";
+    case "PAYMENT_CONFIRMED":
+      return "Payment received. We're creating your workspace.";
+    case "PROVISIONING":
+      return "We're setting up your workspace.";
     case "EXPIRED":
       return "This checkout session expired.";
     default:
       return "We're preparing your DijiPeople workspace.";
   }
 }
+
+/**
+ * What to say when the page stops polling without a workspace.
+ *
+ * The old sentence — "your payment is safe and your workspace is still being
+ * prepared" — was said whatever the state, including when the payment had
+ * never been confirmed. To a buyer still at `AWAITING_PAYMENT` that is a claim
+ * nobody had evidence for, and it told them to close the page and wait for an
+ * email that might not come. So the two cases are told apart, and the
+ * unconfirmed one names the action: do not pay again, check again, or contact
+ * us with the order number.
+ */
+export function timedOutMessage(status: OnboardingStatusView | null) {
+  const order = status?.orderNumber ? ` quoting order ${status.orderNumber}` : "";
+  if (!status || status.state === "AWAITING_PAYMENT" || status.state === "EXPIRED") {
+    return `We have not received confirmation of this payment yet. If you were charged, please do not pay again — check again in a few minutes, or contact us${order} and we will sort it out.`;
+  }
+  return `This is taking longer than usual. Your payment is confirmed and your workspace is still being prepared — we will email you the moment it is ready, and you can close this page. If you need us, contact us${order}.`;
+}
+
+/**
+ * The URL the page polls.
+ *
+ * Carries Stripe's `session_id` from the return URL so the API can ask Stripe
+ * about this order right away instead of waiting for the webhook. It is a
+ * cross-check, not a credential: the API acts only if it equals the session
+ * the order already stored, and only on Stripe's own answer. Anything that is
+ * not shaped like a Checkout Session id is dropped here rather than forwarded.
+ */
+export function statusPollUrl(onboardingId: string, sessionId?: string | null) {
+  const base = `/api/public/onboarding/${encodeURIComponent(onboardingId)}/status`;
+  return sessionId && STRIPE_SESSION_ID_PATTERN.test(sessionId)
+    ? `${base}?session_id=${encodeURIComponent(sessionId)}`
+    : base;
+}
+
+/** Mirrors the API's own check; a mismatch only costs the early reconcile. */
+export const STRIPE_SESSION_ID_PATTERN = /^cs_[A-Za-z0-9_]{1,250}$/;
 
 /** The short status word above the headline. */
 export function eyebrowFor(status: OnboardingStatusView | null) {
@@ -123,15 +171,21 @@ export function pollErrorMessage(httpStatus: number | null) {
  * still watching. The page would rate-limit *itself* out of the one situation
  * it exists for.
  *
- * So it starts fast, where provisioning almost always finishes, and backs off
- * once it is clear this is a long wait. Over the full ten minutes that is
- * roughly 65 requests, comfortably inside the budget with room for the retries
- * a flaky connection adds.
+ * So it starts fast, where payment confirmation and provisioning almost
+ * always finish, and backs off once it is clear this is a long wait: every two
+ * seconds for the first minute, every four up to three minutes, then every
+ * ten. Over the full ten minutes that is about 102 requests — inside the 120
+ * budget, with the margin the spec below pins.
+ *
+ * The first two tiers were stretched from 30s/2min after the API started
+ * confirming Stripe payments from this poll itself: the poll is now what
+ * moves a delayed-webhook payment forward, so the fast window has to cover
+ * the time a payment typically takes to settle, not just provisioning.
  */
 export function pollDelayMs(elapsedMs: number) {
-  if (elapsedMs < 30_000) return 2_000;
-  if (elapsedMs < 120_000) return 5_000;
-  return 15_000;
+  if (elapsedMs < 60_000) return 2_000;
+  if (elapsedMs < 180_000) return 4_000;
+  return 10_000;
 }
 
 /**

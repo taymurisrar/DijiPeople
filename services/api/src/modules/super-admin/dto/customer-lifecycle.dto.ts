@@ -204,6 +204,29 @@ export class CreateCustomerDto {
   @MaxLength(160)
   financeContactEmail?: string;
 
+  /*
+   * WS05: the person entitled to sign for the customer, which agreements
+   * render as `customer.primarySigner.*`. Kept apart from the primary contact
+   * on purpose — the two are often different people.
+   */
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  @MaxLength(200)
+  authorizedSignerName?: string;
+
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  @MaxLength(200)
+  authorizedSignerTitle?: string;
+
+  @IsOptional()
+  @Transform(normalizeEmail)
+  @IsEmail()
+  @MaxLength(254)
+  authorizedSignerEmail?: string;
+
   @IsOptional()
   @Transform(trimString)
   @IsString()
@@ -386,6 +409,29 @@ export class UpdateCustomerDto {
   @IsEmail()
   @MaxLength(160)
   financeContactEmail?: string;
+
+  /*
+   * WS05: the person entitled to sign for the customer, which agreements
+   * render as `customer.primarySigner.*`. Kept apart from the primary contact
+   * on purpose — the two are often different people.
+   */
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  @MaxLength(200)
+  authorizedSignerName?: string;
+
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  @MaxLength(200)
+  authorizedSignerTitle?: string;
+
+  @IsOptional()
+  @Transform(normalizeEmail)
+  @IsEmail()
+  @MaxLength(254)
+  authorizedSignerEmail?: string;
 
   @IsOptional()
   @Transform(trimString)

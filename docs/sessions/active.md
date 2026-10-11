@@ -12,4 +12,4 @@ therefore sees sibling worktrees without anybody having pushed.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
-| [SESSION-0120](../../docs/sessions/SESSION-0120-platform-admin-ux-functional-cleanup-dashboard-header-record.md) | — | Platform Admin UX/functional cleanup: dashboard header, record header, command bar, fields, location cascade, agreement editor, datatable flicker, tenants grid, monitoring | ACTIVE | `agent/admin-ux-cleanup` | `develop` | — | 2026-10-08T21:29:10.881Z |
+| [SESSION-0121](../../docs/sessions/SESSION-0121-dp-platform-remediation-12-workstreams.md) | — | DP platform remediation — 12 workstreams | ACTIVE | `agent/dp-platform-remediation` | `develop` | — | 2026-10-11T08:04:10.067Z |

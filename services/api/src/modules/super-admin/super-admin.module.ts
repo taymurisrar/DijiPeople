@@ -17,6 +17,8 @@ import { TenantSettingsModule } from '../tenant-settings/tenant-settings.module'
 import { TenantsRepository } from '../tenants/tenants.repository';
 import { TenantProvisioningRunModule } from '../tenant-control-plane/tenant-provisioning-run.service';
 import { UsersModule } from '../users/users.module';
+import { AssignmentRulesController } from './assignment-rules.controller';
+import { RecordAssignmentModule } from './record-assignment.module';
 import { BillingService } from './billing.service';
 import { PaymentsService } from './payments.service';
 import { PlansRepository } from './plans.repository';
@@ -45,8 +47,9 @@ import { TenantIdentitiesProvisioningService } from './tenant-identities-provisi
     NumberingModule,
     StripeBillingModule,
     TenantProvisioningRunModule,
+    RecordAssignmentModule,
   ],
-  controllers: [SuperAdminController],
+  controllers: [SuperAdminController, AssignmentRulesController],
   providers: [
     TenantsRepository,
     PlansRepository,

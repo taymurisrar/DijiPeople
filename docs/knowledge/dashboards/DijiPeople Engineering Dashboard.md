@@ -8,8 +8,8 @@
 | | |
 |---|---|
 | Open CRITICAL | **8** |
-| Open HIGH | **110** |
-| Open total | 274 |
+| Open HIGH | **115** |
+| Open total | 284 |
 | Blocked | 4 |
 | Awaiting a product decision | 14 |
 | Deferred | 125 |
@@ -139,6 +139,11 @@
 | [[BUG-3981-partner-onboarding-invitation-resends-never-arrive-kill-the-|BUG-3981]] | Partner onboarding invitation resends never arrive, kill the old link, return the raw token and report failed sends as success | SECURITY | HIGH | FIXED | partner-experience | FIX_NOW |
 | [[BUG-3995-console-created-partners-had-no-usable-lifecycle-action-and-|BUG-3995]] | Console-created partners had no usable lifecycle action and the review actions failed with an opaque submission error | STATE_MACHINE | HIGH | FIXED | partners, apps/admin | FIX_NOW |
 | [[BUG-4005-reason-prompted-record-commands-suspend-deactivate-reject-le|BUG-4005]] | Reason-prompted record commands (Suspend, Deactivate, Reject, lead Disqualify, contract stage-back) silently do nothing | BUG | HIGH | FIXED | apps/admin | FIX_NOW |
+| [[BUG-4052-subscribe-wizard-continue-on-step-4-submits-the-order-from-s|BUG-4052]] | Subscribe wizard: Continue on step 4 submits the order from step 5 | UX | HIGH | FIXED | apps/landing | FIX_NOW |
+| [[BUG-4054-subscription-success-page-waits-on-the-stripe-webhook-alone|BUG-4054]] | Subscription success page waits on the Stripe webhook alone | INTEGRATION | HIGH | FIXED | billing, outbox, apps/landing | FIX_NOW |
+| [[BUG-4056-create-agreement-from-a-customer-always-fails-for-templates-|BUG-4056]] | Create Agreement from a customer always fails for templates that need a primary signer | BUG | HIGH | FIXED | contracts, super-admin, apps/admin | FIX_NOW |
+| [[BUG-4060-support-case-tenant-lookup-ignores-the-selected-customer-and|BUG-4060]] | Support case Tenant lookup ignores the selected Customer and the API accepts mismatched pairs | AUTHORIZATION | HIGH | FIXED | support-cases, apps/admin | FIX_NOW |
+| [[BUG-4061-support-case-escalate-always-fails-with-400-and-statuses-cha|BUG-4061]] | Support case Escalate always fails with 400 and statuses change without validation | BUG | HIGH | FIXED | support-cases, apps/admin | FIX_NOW |
 | [[ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no|ITEM-0133]] | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | READY | services/api/test | PLAN_REQUIRED |
 | [[ITEM-0134-the-payroll-run-engine-has-no-tests|ITEM-0134]] | The payroll run engine has no tests | TEST_GAP | HIGH | READY | api:payroll | PLAN_REQUIRED |
 | [[ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-|ITEM-0136]] | electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major | SECURITY | HIGH | READY | apps/agent-desktop | FIX_NOW |
@@ -395,6 +400,11 @@
 | [[BUG-4005-reason-prompted-record-commands-suspend-deactivate-reject-le|BUG-4005]] | Reason-prompted record commands (Suspend, Deactivate, Reject, lead Disqualify, contract stage-back) silently do nothing | BUG | HIGH | FIXED | apps/admin | FIX_NOW |
 | [[BUG-4007-partner-activation-reports-failed-delivery-as-success-and-ca|BUG-4007]] | Partner activation reports failed delivery as success and cannot retry | STATE_MACHINE | HIGH | VERIFIED | api:partner-experience | DONE |
 | [[BUG-4008-partner-activation-reassigns-a-different-partners-portal-con|BUG-4008]] | Partner activation reassigns a different partners portal contact by email | AUTHORIZATION | HIGH | VERIFIED | api:partner-experience | DONE |
+| [[BUG-4052-subscribe-wizard-continue-on-step-4-submits-the-order-from-s|BUG-4052]] | Subscribe wizard: Continue on step 4 submits the order from step 5 | UX | HIGH | FIXED | apps/landing | FIX_NOW |
+| [[BUG-4054-subscription-success-page-waits-on-the-stripe-webhook-alone|BUG-4054]] | Subscription success page waits on the Stripe webhook alone | INTEGRATION | HIGH | FIXED | billing, outbox, apps/landing | FIX_NOW |
+| [[BUG-4056-create-agreement-from-a-customer-always-fails-for-templates-|BUG-4056]] | Create Agreement from a customer always fails for templates that need a primary signer | BUG | HIGH | FIXED | contracts, super-admin, apps/admin | FIX_NOW |
+| [[BUG-4060-support-case-tenant-lookup-ignores-the-selected-customer-and|BUG-4060]] | Support case Tenant lookup ignores the selected Customer and the API accepts mismatched pairs | AUTHORIZATION | HIGH | FIXED | support-cases, apps/admin | FIX_NOW |
+| [[BUG-4061-support-case-escalate-always-fails-with-400-and-statuses-cha|BUG-4061]] | Support case Escalate always fails with 400 and statuses change without validation | BUG | HIGH | FIXED | support-cases, apps/admin | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver|BUG-3501]] | The email provider screen presents a console sink as delivery and offers sink providers in production | UX | MEDIUM | FIXED | notifications, apps/web | PLAN_REQUIRED |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
@@ -575,6 +585,11 @@
 | [[BUG-4032-admin-html-body-overflow-x-hidden-disabled-every-position-st|BUG-4032]] | Admin html/body overflow-x hidden disabled every position:sticky (command bar, agreement editor toolbar and Fields & Signatures panel scroll away) | UX | MEDIUM | FIXED | app:admin | FIX_NOW |
 | [[BUG-4033-tenants-grid-labelled-the-tenant-column-name-beside-a-linked|BUG-4033]] | Tenants grid labelled the tenant column Name beside a linked Customer name, so operators opened the customer believing it was the tenant | UX | MEDIUM | FIXED | app:admin | FIX_NOW |
 | [[BUG-4035-monitoring-error-logs-offered-filters-and-cards-matching-no-|BUG-4035]] | Monitoring error logs offered filters and cards matching no stored value, page-only export, a tenant-only diagnostics download, and Create support case sent the trace id so it always 404ed | BUG | MEDIUM | FIXED | app:admin | FIX_NOW |
+| [[BUG-4053-workspace-slug-suggestion-freezes-after-the-first-keystroke-|BUG-4053]] | Workspace slug suggestion freezes after the first keystroke (reads as initials) | UX | MEDIUM | FIXED | apps/landing, billing | FIX_NOW |
+| [[BUG-4055-platform-notifications-title-a-provisioning-request-as-tenan|BUG-4055]] | Platform notifications title a provisioning request as 'Tenant provisioned' and carry no subject | UX | MEDIUM | FIXED | platform-events | FIX_NOW |
+| [[BUG-4057-account-activation-reports-a-password-mismatch-after-autofil|BUG-4057]] | Account activation reports a password mismatch after autofill and has no reveal toggle | UX | MEDIUM | FIXED | apps/web | FIX_NOW |
+| [[BUG-4058-customer-list-owner-onboarding-and-agreements-columns-are-em|BUG-4058]] | Customer list Owner, Onboarding and Agreements columns are empty | BUG | MEDIUM | FIXED | super-admin, apps/admin | FIX_NOW |
+| [[BUG-4059-customer-and-lead-timeline-tabs-are-always-empty|BUG-4059]] | Customer and lead Timeline tabs are always empty | BUG | MEDIUM | FIXED | super-admin | FIX_NOW |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -611,6 +626,7 @@
 | [[BUG-3586-the-monitoring-health-headline-reads-unknown-when-no-email-h|BUG-3586]] | The monitoring health headline reads Unknown when no email has been sent | BUG | LOW | FIXED | api:platform-monitoring | DONE |
 | [[BUG-3599-generating-an-agreement-in-an-unsupported-format-returns-a-5|BUG-3599]] | Generating an agreement in an unsupported format returns a 500 instead of a 400 | BUG | LOW | FIXED | api:contracts | DONE |
 | [[BUG-3668-saving-agreement-document-fields-skips-the-shared-immutabili|BUG-3668]] | Saving agreement document fields skips the shared immutability check | BUG | LOW | FIXED | api:contracts | DONE |
+| [[BUG-3895-the-admin-notification-bell-keeps-polling-every-five-minutes|BUG-3895]] | The admin notification bell keeps polling every five minutes after sign-out | BUG | LOW | FIXED | apps/admin | FIX_NOW |
 | [[BUG-3916-lead-partner-attribution-renders-above-the-record-tabs-on-ev|BUG-3916]] | Lead Partner attribution renders above the record tabs on every tab instead of in a tab | UX | LOW | FIXED | apps/admin, leads | FIX_NOW |
 | [[BUG-4006-expected-domain-refusals-on-record-actions-open-the-technica|BUG-4006]] | Expected domain refusals on record actions open the technical error dialog because the adapter drops request headers | UX | LOW | FIXED | apps/admin | FIX_NOW |
 | [[BUG-4019-partner-record-polish-empty-application-card-clipped-subgrid|BUG-4019]] | Partner record polish: empty application card, clipped subgrid row actions, unfiltered commission lookups, raw ids on commission record | UX | LOW | FIXED | partners, super-admin, apps/admin | FIX_NOW |
@@ -640,13 +656,13 @@
 ## Recent Engineering History
 
 - [[2026-10-08-partner-module-completion-d69f2583|Engineering History — Partner module completion]]
+- [[2026-10-08-admin-ux-cleanup-32c4b314|Engineering History — Platform Admin UX cleanup]]
 - [[2026-10-07-crm-plugin-alm-mfa-claims-afc93291|Engineering History — CRM plugin: package ALM and MFA discoverability, Claims on the runtime, advisory fix]]
 - [[2026-09-27-custom-fields-screens-and-query-04892def|Engineering History — Custom fields screens and query]]
 - [[2026-09-27-custom-fields-every-module-be7189f7|Engineering History — Custom fields every module]]
 - [[2026-09-27-claims-navigation-cea41518|Engineering History — Claims navigation]]
 - [[2026-09-26-task-0033-package-alm-b55afdb2|Engineering History — TASK-0033 package ALM]]
 - [[2026-09-26-release-task-0034-custom-field-values-1aeda297|Engineering History — Release task 0034 custom field values]]
-- [[2026-09-26-release-backlog-safepay-package-alm-42f597b7|Engineering History — Release backlog safepay package alm]]
 
 ## Recent Releases
 
@@ -768,6 +784,11 @@
 | [[BUG-4032-admin-html-body-overflow-x-hidden-disabled-every-position-st|BUG-4032]] | Admin html/body overflow-x hidden disabled every position:sticky (command bar, agreement editor toolbar and Fields & Signatures panel scroll away) | UX | MEDIUM | FIXED | app:admin | FIX_NOW |
 | [[BUG-4033-tenants-grid-labelled-the-tenant-column-name-beside-a-linked|BUG-4033]] | Tenants grid labelled the tenant column Name beside a linked Customer name, so operators opened the customer believing it was the tenant | UX | MEDIUM | FIXED | app:admin | FIX_NOW |
 | [[BUG-4035-monitoring-error-logs-offered-filters-and-cards-matching-no-|BUG-4035]] | Monitoring error logs offered filters and cards matching no stored value, page-only export, a tenant-only diagnostics download, and Create support case sent the trace id so it always 404ed | BUG | MEDIUM | FIXED | app:admin | FIX_NOW |
+| [[BUG-4053-workspace-slug-suggestion-freezes-after-the-first-keystroke-|BUG-4053]] | Workspace slug suggestion freezes after the first keystroke (reads as initials) | UX | MEDIUM | FIXED | apps/landing, billing | FIX_NOW |
+| [[BUG-4055-platform-notifications-title-a-provisioning-request-as-tenan|BUG-4055]] | Platform notifications title a provisioning request as 'Tenant provisioned' and carry no subject | UX | MEDIUM | FIXED | platform-events | FIX_NOW |
+| [[BUG-4057-account-activation-reports-a-password-mismatch-after-autofil|BUG-4057]] | Account activation reports a password mismatch after autofill and has no reveal toggle | UX | MEDIUM | FIXED | apps/web | FIX_NOW |
+| [[BUG-4058-customer-list-owner-onboarding-and-agreements-columns-are-em|BUG-4058]] | Customer list Owner, Onboarding and Agreements columns are empty | BUG | MEDIUM | FIXED | super-admin, apps/admin | FIX_NOW |
+| [[BUG-4059-customer-and-lead-timeline-tabs-are-always-empty|BUG-4059]] | Customer and lead Timeline tabs are always empty | BUG | MEDIUM | FIXED | super-admin | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -806,7 +827,7 @@
 | [[BUG-3586-the-monitoring-health-headline-reads-unknown-when-no-email-h|BUG-3586]] | The monitoring health headline reads Unknown when no email has been sent | BUG | LOW | FIXED | api:platform-monitoring | DONE |
 | [[BUG-3599-generating-an-agreement-in-an-unsupported-format-returns-a-5|BUG-3599]] | Generating an agreement in an unsupported format returns a 500 instead of a 400 | BUG | LOW | FIXED | api:contracts | DONE |
 | [[BUG-3668-saving-agreement-document-fields-skips-the-shared-immutabili|BUG-3668]] | Saving agreement document fields skips the shared immutability check | BUG | LOW | FIXED | api:contracts | DONE |
-| [[BUG-3895-the-admin-notification-bell-keeps-polling-every-five-minutes|BUG-3895]] | The admin notification bell keeps polling every five minutes after sign-out | BUG | LOW | OPEN | apps/admin | FIX_NOW |
+| [[BUG-3895-the-admin-notification-bell-keeps-polling-every-five-minutes|BUG-3895]] | The admin notification bell keeps polling every five minutes after sign-out | BUG | LOW | FIXED | apps/admin | FIX_NOW |
 | [[BUG-3896-unmatched-route-404s-are-categorised-database-record-not-fou|BUG-3896]] | Unmatched-route 404s are categorised DATABASE_RECORD_NOT_FOUND in the incident queue | BUG | LOW | OPEN | error-logs | FIX_NOW |
 | [[BUG-3898-platform-health-tile-drill-downs-land-on-panels-that-do-not-|BUG-3898]] | Platform health tile drill-downs land on panels that do not show the signal the tile measures | UX | LOW | OPEN | platform-monitoring | FIX_NOW |
 | [[BUG-3899-the-monitoring-integrations-tab-is-static-and-its-platform-e|BUG-3899]] | The monitoring Integrations tab is static and its platform email badge is hard-coded | UX | LOW | OPEN | platform-monitoring | FIX_NOW |
@@ -855,11 +876,11 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 546 |
+| Bug records | 556 |
 | Backlog items | 228 |
 | Known bug patterns | 35 |
 | QA runs | 39 |
-| Engineering history records | 96 |
+| Engineering history records | 97 |
 | Release records | 10 |
 | Module notes | 31 |
 | Architecture notes | 22 |

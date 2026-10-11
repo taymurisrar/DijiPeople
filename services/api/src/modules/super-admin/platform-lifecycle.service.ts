@@ -42,6 +42,7 @@ import {
   isValidTransition,
   isValidSubStatus,
 } from './platform-lifecycle.constants';
+import { withFullName } from './platform-user-name';
 import {
   CreateCustomerDto,
   CreateCustomerOnboardingRecordDto,
@@ -58,6 +59,11 @@ import { PlatformEventsService } from '../platform-events/platform-events.servic
 import { TenantProvisioningRunService } from '../tenant-control-plane/tenant-provisioning-run.service';
 import { TenantDomainService } from '../tenant-domains/tenant-domain.service';
 import { resolveOriginChannel } from './origin-channel';
+import {
+  describeEvent,
+  hrefFor,
+  humanizeEventCode,
+} from '../platform-events/platform-notifications';
 
 @Injectable()
 export class PlatformLifecycleService {
@@ -224,6 +230,18 @@ export class PlatformLifecycleService {
               dto.addressLine1?.trim() || lead.registeredAddress || null,
             addressLine2: dto.addressLine2?.trim() || null,
             website: dto.website?.trim() || lead.companyWebsite || null,
+            /*
+             * WS05. The lead's confirmed authorized signatory travels with the
+             * conversion. Before CustomerAccount could hold one, a lead could
+             * produce a customer agreement and the customer it became could
+             * not — every signer placeholder resolved on the lead and was lost
+             * one step later. Copied as recorded on the lead, never derived
+             * from its contact person (owner decision D3).
+             */
+            authorizedSignerName: lead.authorizedSignerName?.trim() || null,
+            authorizedSignerTitle: lead.authorizedSignerTitle?.trim() || null,
+            authorizedSignerEmail:
+              lead.authorizedSignerEmail?.trim().toLowerCase() || null,
             estimatedEmployeeCount:
               dto.estimatedEmployeeCount ?? lead.estimatedEmployeeCount ?? null,
             selectedPlanId: dto.selectedPlanId ?? lead.agreedPlanId ?? null,
@@ -369,6 +387,7 @@ export class PlatformLifecycleService {
       route: `/leads/${leadId}`,
       metadata: {
         customerId: customer.id,
+        companyName: customer.companyName,
         partnerId: lead.partnerId,
         referralLinkId: lead.partnerReferralLinkId,
       },
@@ -474,9 +493,20 @@ export class PlatformLifecycleService {
       this.prisma.customerAccount.findMany({
         where,
         include: {
+          /*
+           * The list used to include accountManagerUser but not assignedToUser,
+           * which is what the Owner column binds, so the column was empty for
+           * every row. The _count entries feed the Onboarding and Contracts
+           * columns, which previously bound to a take:1 array and an
+           * association the query never loaded.
+           */
+          assignedToUser: {
+            select: { id: true, firstName: true, lastName: true, email: true },
+          },
           accountManagerUser: {
             select: { id: true, firstName: true, lastName: true, email: true },
           },
+          _count: { select: { contracts: true, onboardings: true } },
           primaryOwnerUser: {
             select: { id: true, firstName: true, lastName: true, email: true },
           },
@@ -518,6 +548,8 @@ export class PlatformLifecycleService {
     return {
       items: items.map((item) => ({
         ...item,
+        assignedToUser: withFullName(item.assignedToUser),
+        accountManagerUser: withFullName(item.accountManagerUser),
         tenant: item.tenants[0] ?? null,
       })),
       meta: {
@@ -676,6 +708,8 @@ export class PlatformLifecycleService {
 
     return {
       ...customer,
+      assignedToUser: withFullName(customer.assignedToUser),
+      accountManagerUser: withFullName(customer.accountManagerUser),
       tenant: customer.tenants[0] ?? null,
       onboardings: customer.onboardings.map((record) => ({
         ...record,
@@ -2222,6 +2256,21 @@ export class PlatformLifecycleService {
               dto.financeContactEmail?.trim().toLowerCase() || null,
           }
         : {}),
+      // WS05: the customer's authorized signatory, read by agreements as
+      // `customer.primarySigner.*`. Picked field by field like the rest — the
+      // DTO is never spread into the write.
+      ...(dto.authorizedSignerName !== undefined
+        ? { authorizedSignerName: dto.authorizedSignerName?.trim() || null }
+        : {}),
+      ...(dto.authorizedSignerTitle !== undefined
+        ? { authorizedSignerTitle: dto.authorizedSignerTitle?.trim() || null }
+        : {}),
+      ...(dto.authorizedSignerEmail !== undefined
+        ? {
+            authorizedSignerEmail:
+              dto.authorizedSignerEmail?.trim().toLowerCase() || null,
+          }
+        : {}),
       ...(dto.industry !== undefined
         ? { industry: dto.industry?.trim() || null }
         : {}),
@@ -2582,6 +2631,295 @@ export class PlatformLifecycleService {
       isReadyForTenantCreation: blockers.length === 0,
     };
   }
+
+  /**
+   * The customer record's Timeline tab.
+   *
+   * The generic runtime fell through to `audit.listRecordTimeline` keyed on the
+   * *operator's* tenant and the entity type "Customers" — which matches no row,
+   * because writers record `CustomerAccount`, `CustomerOnboarding`, `Contract`
+   * and `Lead`, and platform actions land in `PlatformAuditLog`. The tab was
+   * empty however much had happened.
+   *
+   * A customer's history lives in several places, so this merges them: platform
+   * events linked to the customer or its tenants, and platform audit rows for
+   * the customer, its onboardings, its agreements and the lead it came from.
+   * Wording comes from the notification formatter so both screens agree.
+   *
+   * Snapshots are never returned — only the *names* of fields that changed —
+   * because a snapshot can carry contact details and contract terms.
+   */
+  async customerTimeline(
+    customerAccountId: string,
+    options: { limit?: number; cursor?: string } = {},
+  ) {
+    const limit = Math.min(200, Math.max(1, Math.floor(options.limit ?? 50)));
+    const before = options.cursor ? new Date(options.cursor) : null;
+    const beforeDate =
+      before && !Number.isNaN(before.getTime()) ? before : null;
+
+    const customer = await this.prisma.customerAccount.findUnique({
+      where: { id: customerAccountId },
+      select: { id: true, companyName: true, leadId: true },
+    });
+    if (!customer) throw new NotFoundException('Customer not found.');
+
+    const [tenants, onboardings, contracts] = await Promise.all([
+      this.prisma.tenant.findMany({
+        where: { customerAccountId: customer.id },
+        select: { id: true, name: true, slug: true },
+      }),
+      this.prisma.customerOnboarding.findMany({
+        where: { customerId: customer.id },
+        select: { id: true },
+      }),
+      this.prisma.contract.findMany({
+        where: { customerAccountId: customer.id },
+        select: { id: true },
+      }),
+    ]);
+    const tenantIds = tenants.map((tenant) => tenant.id);
+    const onboardingIds = onboardings.map((item) => item.id);
+    const contractIds = contracts.map((item) => item.id);
+
+    const eventScopes: Prisma.PlatformEventWhereInput[] = [
+      { customerAccountId: customer.id },
+      { entityType: 'CustomerAccount', entityId: customer.id },
+      ...(tenantIds.length ? [{ tenantId: { in: tenantIds } }] : []),
+      ...(contractIds.length
+        ? [{ entityType: 'Contract', entityId: { in: contractIds } }]
+        : []),
+      ...(customer.leadId
+        ? [{ entityType: 'Lead', entityId: customer.leadId }]
+        : []),
+    ];
+    const auditScopes: Prisma.PlatformAuditLogWhereInput[] = [
+      { entityType: 'CustomerAccount', entityId: customer.id },
+      ...(onboardingIds.length
+        ? [
+            {
+              entityType: 'CustomerOnboarding',
+              entityId: { in: onboardingIds },
+            },
+          ]
+        : []),
+      ...(contractIds.length
+        ? [{ entityType: 'Contract', entityId: { in: contractIds } }]
+        : []),
+      ...(customer.leadId
+        ? [{ entityType: 'Lead', entityId: customer.leadId }]
+        : []),
+    ];
+
+    const [events, audits] = await Promise.all([
+      this.prisma.platformEvent.findMany({
+        where: {
+          OR: eventScopes,
+          ...(beforeDate ? { occurredAt: { lt: beforeDate } } : {}),
+        },
+        orderBy: { occurredAt: 'desc' },
+        take: limit + 1,
+        select: {
+          id: true,
+          eventCode: true,
+          result: true,
+          occurredAt: true,
+          entityType: true,
+          entityId: true,
+          tenantId: true,
+          customerAccountId: true,
+          actorType: true,
+          actorId: true,
+          metadata: true,
+        },
+      }),
+      this.prisma.platformAuditLog.findMany({
+        where: {
+          OR: auditScopes,
+          ...(beforeDate ? { createdAt: { lt: beforeDate } } : {}),
+        },
+        orderBy: { createdAt: 'desc' },
+        take: limit + 1,
+        select: {
+          id: true,
+          action: true,
+          entityType: true,
+          entityId: true,
+          createdAt: true,
+          beforeSnapshot: true,
+          afterSnapshot: true,
+          platformActorUser: {
+            select: { firstName: true, lastName: true, email: true },
+          },
+        },
+      }),
+    ]);
+
+    // Event actors are bare ids; resolve the platform ones in a single lookup.
+    const actorIds = [
+      ...new Set(
+        events
+          .filter(
+            (event) => event.actorType === 'PLATFORM_USER' && event.actorId,
+          )
+          .map((event) => event.actorId as string),
+      ),
+    ];
+    const actors = actorIds.length
+      ? await this.prisma.platformUser.findMany({
+          where: { id: { in: actorIds } },
+          select: { id: true, firstName: true, lastName: true, email: true },
+        })
+      : [];
+    const actorNames = new Map(
+      actors.map((actor) => [
+        actor.id,
+        [actor.firstName, actor.lastName].filter(Boolean).join(' ') ||
+          actor.email,
+      ]),
+    );
+
+    const labels = {
+      tenants: new Map(
+        tenants.map((tenant) => [
+          tenant.id,
+          { name: tenant.name, slug: tenant.slug },
+        ]),
+      ),
+      customers: new Map([[customer.id, customer.companyName]]),
+    };
+
+    type TimelineItem = {
+      id: string;
+      source: 'PLATFORM_EVENT' | 'PLATFORM_AUDIT';
+      action: string;
+      actionLabel: string;
+      title: string;
+      description: string;
+      message: string;
+      category: string;
+      severity: string;
+      actorName: string;
+      entityType: string | null;
+      entityId: string | null;
+      link: string | null;
+      visibility: 'customer-facing' | 'operational';
+      occurredAt: string;
+    };
+
+    const items: TimelineItem[] = [
+      ...events.map((event): TimelineItem => {
+        const described = describeEvent(event, labels);
+        const title = described?.title ?? humanizeEventCode(event.eventCode);
+        const description = described?.summary ?? '';
+        const category = described?.category ?? 'system';
+        const severity = described?.severity ?? 'INFO';
+        const actorName =
+          event.actorType === 'PLATFORM_USER'
+            ? (actorNames.get(event.actorId ?? '') ?? 'Platform user')
+            : event.actorType === 'EXTERNAL_SIGNER' ||
+                event.actorType === 'PUBLIC_VISITOR' ||
+                event.actorType === 'CUSTOMER'
+              ? 'Customer'
+              : 'System';
+        return {
+          id: event.id,
+          source: 'PLATFORM_EVENT',
+          action: event.eventCode,
+          actionLabel: title,
+          title,
+          description,
+          message: description,
+          category,
+          severity,
+          actorName,
+          entityType: event.entityType,
+          entityId: event.entityId,
+          link: hrefFor(event),
+          // Failures and system plumbing are for operators; progress the
+          // customer could themselves recognise is customer-facing.
+          visibility:
+            severity === 'INFO' &&
+            ['agreements', 'billing', 'onboarding'].includes(category)
+              ? 'customer-facing'
+              : 'operational',
+          occurredAt: event.occurredAt.toISOString(),
+        };
+      }),
+      ...audits.map((audit): TimelineItem => {
+        const title = humanizeEventCode(audit.action);
+        const changed = changedFieldNames(
+          audit.beforeSnapshot,
+          audit.afterSnapshot,
+        );
+        const description = changed.length
+          ? `Changed: ${changed.join(', ')}`
+          : '';
+        const actor = audit.platformActorUser;
+        return {
+          id: audit.id,
+          source: 'PLATFORM_AUDIT',
+          action: audit.action,
+          actionLabel: title,
+          title,
+          description,
+          message: description,
+          category:
+            audit.entityType === 'Contract'
+              ? 'agreements'
+              : audit.entityType === 'Lead'
+                ? 'leads'
+                : audit.entityType === 'CustomerOnboarding'
+                  ? 'onboarding'
+                  : 'system',
+          severity: 'INFO',
+          actorName: actor
+            ? [actor.firstName, actor.lastName].filter(Boolean).join(' ') ||
+              actor.email
+            : 'System',
+          entityType: audit.entityType,
+          entityId: audit.entityId,
+          link: hrefFor(audit),
+          visibility: 'operational',
+          occurredAt: audit.createdAt.toISOString(),
+        };
+      }),
+    ].sort((left, right) => right.occurredAt.localeCompare(left.occurredAt));
+
+    // The same fact is often recorded twice (a retried request, an event
+    // re-emitted); identical title + subject within the same minute is one row.
+    const seen = new Set<string>();
+    const unique = items.filter((item) => {
+      const key = `${item.source}|${item.action}|${item.entityType}:${item.entityId}|${item.occurredAt.slice(0, 16)}|${item.actorName}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    const page = unique.slice(0, limit);
+    return {
+      items: page,
+      nextCursor:
+        unique.length > limit ? page[page.length - 1].occurredAt : null,
+    };
+  }
+}
+
+/**
+ * Names — never values — of the top-level fields that differ between two
+ * snapshots. Credential-looking keys are dropped even as names.
+ */
+function changedFieldNames(before: unknown, after: unknown) {
+  const asRecord = (value: unknown) =>
+    value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  const left = asRecord(before);
+  const right = asRecord(after);
+  return [...new Set([...Object.keys(left), ...Object.keys(right)])]
+    .filter((key) => JSON.stringify(left[key]) !== JSON.stringify(right[key]))
+    .filter((key) => !/password|secret|token|hash|signature/i.test(key))
+    .slice(0, 8);
 }
 
 function buildDefaultTenantBranding(

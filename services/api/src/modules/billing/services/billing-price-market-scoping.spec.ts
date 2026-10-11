@@ -151,6 +151,8 @@ function buildService(options: {
 
   const stripeBillingService = {
     getRuntimeMode: () => 'test' as const,
+    // Read by `getPublicPlans` for each price's `paymentProviders` (WS12).
+    isSecretKeyConfigured: () => true,
     verifyRecurringPrice: jest.fn().mockResolvedValue({
       valid: true,
       livemode: false,

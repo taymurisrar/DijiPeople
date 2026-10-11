@@ -864,6 +864,16 @@ export class SuperAdminService {
     return this.platformLifecycleService.getCustomer(actor, customerAccountId);
   }
 
+  getCustomerTimeline(
+    customerAccountId: string,
+    options?: { limit?: number; cursor?: string },
+  ) {
+    return this.platformLifecycleService.customerTimeline(
+      customerAccountId,
+      options,
+    );
+  }
+
   getCustomerOnboardings(customerAccountId: string) {
     return this.platformLifecycleService.getCustomerOnboardings(
       customerAccountId,
@@ -980,8 +990,17 @@ export class SuperAdminService {
     return this.platformOnboardingService.onboardCustomer(actor, dto);
   }
 
-  async listTenants() {
-    const tenants = await this.tenantsRepository.findAllForSuperAdmin();
+  /**
+   * `customerAccountId` narrows the list to one customer's workspaces. The
+   * Support Case form's Tenant lookup depends on it, so choosing a customer
+   * offers only that customer's tenants (WS09). Absent, every tenant is listed —
+   * the platform-admin scope this endpoint already sits behind.
+   */
+  async listTenants(filter: { customerAccountId?: string } = {}) {
+    const tenants = await this.tenantsRepository.findAllForSuperAdmin(
+      undefined,
+      filter,
+    );
     return Promise.all(
       tenants.map(async (tenant) => this.mapTenantSummary(tenant)),
     );

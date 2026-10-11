@@ -73,8 +73,45 @@ describe("onboarding wizard step rules", () => {
 
     it("suggests an address from the company name", () => {
       expect(suggestSlug("Maseer Group")).toBe("maseer-group");
-      expect(suggestSlug("ABC  Holdings, Inc.")).toBe("abc-holdings-inc");
+      expect(suggestSlug("ABC  Holdings, Inc.")).toBe("abc-holdings");
       expect(suggestSlug("  Leading Space")).toBe("leading-space");
+    });
+
+    it("tracks the whole name as it is typed, not the first letter", () => {
+      expect(suggestSlug("M")).toBe("m-hr");
+      expect(suggestSlug("Ma")).toBe("ma-hr");
+      expect(suggestSlug("Mas")).toBe("mas");
+      expect(suggestSlug("Maseer Gr")).toBe("maseer-gr");
+    });
+
+    it("keeps accented letters instead of dropping them", () => {
+      expect(suggestSlug("Café Ünion")).toBe("cafe-union");
+      expect(suggestSlug("Zoë & Søren's")).toBe("zoe-s-ren-s");
+    });
+
+    it("drops trailing legal suffixes only when something remains", () => {
+      expect(suggestSlug("Acme Ltd")).toBe("acme");
+      expect(suggestSlug("Acme Private Limited")).toBe("acme");
+      expect(suggestSlug("Acme Pvt Ltd")).toBe("acme");
+      expect(suggestSlug("Acme GmbH")).toBe("acme");
+      expect(suggestSlug("Acme Corp")).toBe("acme");
+      expect(suggestSlug("Inc")).toBe("inc");
+      expect(suggestSlug("Co Ltd")).toBe("co-ltd");
+      expect(suggestSlug("AB Ltd")).toBe("ab-ltd");
+    });
+
+    it("caps the length at the server limit without a trailing hyphen", () => {
+      const slug = suggestSlug("a".repeat(49) + " bbbb");
+      expect(slug.length).toBeLessThanOrEqual(50);
+      expect(slug.endsWith("-")).toBe(false);
+      expect(describeSlugProblem(slug)).toBeNull();
+    });
+
+    it("always yields a format-valid address or nothing", () => {
+      for (const name of ["x", "Q&A", "日本", "A.B.C.", "O'Brien Ltd"]) {
+        const slug = suggestSlug(name);
+        if (slug) expect(describeSlugProblem(slug)).toBeNull();
+      }
     });
 
     it("suggests nothing rather than a mangled guess", () => {

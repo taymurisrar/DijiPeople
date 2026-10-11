@@ -204,6 +204,13 @@ export class UserInvitationsService {
           }
         : null,
       expiresAt: invitation.expiresAt,
+      // The same tenant policy activateAccount enforces, so the form can list
+      // the actual rules up front instead of the person discovering them one
+      // rejection at a time (WS06). Only a holder of a live invitation token
+      // reaches this line, and the policy is not secret from them.
+      passwordPolicy: await this.passwordPolicyService.resolvePolicy(
+        invitation.tenantId,
+      ),
     };
   }
 

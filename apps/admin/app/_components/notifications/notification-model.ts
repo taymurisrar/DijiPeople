@@ -17,9 +17,51 @@ export type Notification = {
   occurredAt: string;
   eventCode: string;
   entityType: string | null;
+  entityId?: string | null;
   href: string | null;
   unread: boolean;
+  category?: Category;
+  /** True only where a person has something to do. */
+  actionRequired?: boolean;
+  actionLabel?: string | null;
+  subject?: { type: string; id: string; label: string | null } | null;
+  /** Who it concerns, e.g. "Acme Ltd (acme) · Acme Holdings". */
+  context?: string | null;
+  /** Identical repeats this row stands for. */
+  count?: number;
 };
+
+export type Category =
+  | "onboarding"
+  | "billing"
+  | "tenants"
+  | "agreements"
+  | "support"
+  | "leads"
+  | "system";
+
+/** Category as a chip — text, so it never relies on colour alone. */
+export const CATEGORY_LABEL: Record<Category, string> = {
+  onboarding: "Onboarding",
+  billing: "Billing",
+  tenants: "Tenants",
+  agreements: "Agreements",
+  support: "Support",
+  leads: "Leads",
+  system: "System",
+};
+
+/**
+ * A 401 means the session has ended; asking again cannot help.
+ *
+ * BUG-3895 — the bell polled every five minutes forever after sign-out, and
+ * each refusal was a row in the error log. Same defect `apps/web` fixed as
+ * BUG-2459; kept as a pure function so the rule is testable without a mounted
+ * component.
+ */
+export function isSessionEnded(status: number) {
+  return status === 401;
+}
 
 export type Feed = {
   items: Notification[];

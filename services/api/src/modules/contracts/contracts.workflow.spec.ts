@@ -179,3 +179,220 @@ describe('contract and signature workflow guards', () => {
     },
   );
 });
+
+/*
+ * WS05, owner decision D3. A customer with no authorized signer on file can
+ * still have its agreement created: the operator enters the signer in the
+ * dialog, it is written to the customer account (audited), and the agreement
+ * then resolves it like any other customer field.
+ */
+describe('creating an agreement with the signer entered inline', () => {
+  const SIGNER_TEMPLATE =
+    '<p>{{customer.legalName}}</p><p>{{customer.primarySigner.name}}, ' +
+    '{{customer.primarySigner.title}} ({{customer.primarySigner.email}})</p>';
+  const baseSource = {
+    counterpartyName: 'Xoult Ltd',
+    counterpartyEmail: 'omar@xoult.example',
+    currencyCode: 'USD',
+    counterpartyType: 'CUSTOMER',
+    defaultContractType: ContractType.CUSTOMER_AGREEMENT,
+    customerAccountId: 'customer-1',
+    placeholderValues: {
+      'customer.companyName': 'Xoult',
+      'customer.legalName': 'Xoult Ltd',
+    } as Record<string, string>,
+  };
+  const signer = {
+    name: 'Amal Hassan',
+    title: 'Chief Operating Officer',
+    email: 'Amal@Xoult.example',
+  };
+
+  function harness(source: Record<string, unknown> = baseSource) {
+    let stored: Record<string, string | null> = {
+      authorizedSignerName: null,
+      authorizedSignerTitle: null,
+      authorizedSignerEmail: null,
+    };
+    const tx = {
+      customerAccount: {
+        findUnique: jest.fn(() => Promise.resolve({ ...stored })),
+        update: jest.fn(({ data }: { data: Record<string, string> }) => {
+          stored = { ...stored, ...data };
+          return Promise.resolve({ ...stored });
+        }),
+      },
+    };
+    const audit = { log: jest.fn(() => Promise.resolve()) };
+    const service = new ContractsService(
+      {
+        contractTemplateVersion: {
+          findFirst: jest.fn(() =>
+            Promise.resolve({ contentHtml: SIGNER_TEMPLATE }),
+          ),
+        },
+        $transaction: jest.fn((operation: (client: typeof tx) => unknown) =>
+          operation(tx),
+        ),
+      } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      audit as never,
+    );
+    // The resolver reads the customer account as it now stands, which is
+    // what makes the recorded signer reach the agreement.
+    const resolveSource = jest.fn(() =>
+      Promise.resolve({
+        ...source,
+        placeholderValues: {
+          ...(source.placeholderValues as Record<string, string>),
+          ...(stored.authorizedSignerName && source.customerAccountId
+            ? {
+                'customer.primarySigner.name': stored.authorizedSignerName,
+                'customer.primarySigner.title': stored.authorizedSignerTitle,
+                'customer.primarySigner.email': stored.authorizedSignerEmail,
+              }
+            : {}),
+        },
+      }),
+    );
+    const create = jest.fn((_user: unknown, dto: unknown) =>
+      Promise.resolve({ id: 'contract-1', dto }),
+    );
+    Object.assign(service, {
+      resolveSource,
+      create,
+      assertTenantServiceOrderEligible: jest.fn(() => Promise.resolve(null)),
+    });
+    return { service, tx, audit, create, stored: () => stored };
+  }
+
+  it('refuses the template without a signer, naming the signer fields', async () => {
+    const { service, create } = harness();
+
+    const error = (await service
+      .createFromSource(platformAdmin, {
+        sourceType: 'customer',
+        sourceId: 'customer-1',
+        templateId: 'template-1',
+      })
+      .catch((reason: unknown) => reason)) as {
+      response: {
+        code: string;
+        details: { missingFields: Array<Record<string, unknown>> };
+      };
+    };
+
+    expect(error.response.code).toBe('CONTRACT_SOURCE_CANNOT_FILL_TEMPLATE');
+    expect(error.response.details.missingFields).toContainEqual({
+      key: 'customer.primarySigner.name',
+      label: 'Customer authorized signatory',
+      collectable: true,
+    });
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('persists the signer to the customer, audits it, and creates the agreement', async () => {
+    const { service, tx, audit, create, stored } = harness();
+
+    await service.createFromSource(platformAdmin, {
+      sourceType: 'customer',
+      sourceId: 'customer-1',
+      templateId: 'template-1',
+      signer,
+    });
+
+    expect(tx.customerAccount.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'customer-1' },
+        data: {
+          authorizedSignerName: 'Amal Hassan',
+          authorizedSignerTitle: 'Chief Operating Officer',
+          authorizedSignerEmail: 'amal@xoult.example',
+        },
+      }),
+    );
+    expect(stored().authorizedSignerEmail).toBe('amal@xoult.example');
+    expect(audit.log).toHaveBeenCalledTimes(1);
+    const [entry, client] = audit.log.mock.calls[0] as unknown as [
+      Record<string, unknown>,
+      unknown,
+    ];
+    // Written inside the same transaction as the update it describes.
+    expect(client).toBe(tx);
+    expect(entry).toMatchObject({
+      tenantId: 'platform',
+      action: 'CUSTOMER_AUTHORIZED_SIGNER_RECORDED',
+      entityType: 'CustomerAccount',
+      entityId: 'customer-1',
+      beforeSnapshot: { authorizedSignerName: null },
+      afterSnapshot: { authorizedSignerName: 'Amal Hassan' },
+    });
+    expect(create).toHaveBeenCalledTimes(1);
+    const [, dto] = create.mock.calls[0] as unknown as [
+      unknown,
+      { customerAccountId: string; placeholderValues: Record<string, string> },
+    ];
+    expect(dto.customerAccountId).toBe('customer-1');
+    expect(dto.placeholderValues).toMatchObject({
+      'customer.primarySigner.name': 'Amal Hassan',
+      'customer.primarySigner.title': 'Chief Operating Officer',
+      'customer.primarySigner.email': 'amal@xoult.example',
+    });
+  });
+
+  it('refuses a signer for a source with no customer account', async () => {
+    const { service, tx, create } = harness({
+      ...baseSource,
+      counterpartyType: 'LEAD',
+      customerAccountId: undefined,
+      relatedLeadId: 'lead-1',
+    });
+
+    await expect(
+      service.createFromSource(platformAdmin, {
+        sourceType: 'lead',
+        sourceId: 'lead-1',
+        templateId: 'template-1',
+        signer,
+      }),
+    ).rejects.toMatchObject({
+      response: { code: 'CONTRACT_SIGNER_REQUIRES_CUSTOMER' },
+    });
+    expect(tx.customerAccount.update).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('does not touch the customer when the template is unfillable for another reason', async () => {
+    // A signer cannot rescue a customer asked for `tenant.*`; recording it
+    // anyway would change a customer record for an agreement never created.
+    const { service, tx } = harness();
+    Object.assign(service, {
+      prisma: {
+        contractTemplateVersion: {
+          findFirst: jest.fn(() =>
+            Promise.resolve({
+              contentHtml: `${SIGNER_TEMPLATE}<p>{{tenant.name}}</p>`,
+            }),
+          ),
+        },
+      },
+    });
+
+    await expect(
+      service.createFromSource(platformAdmin, {
+        sourceType: 'customer',
+        sourceId: 'customer-1',
+        templateId: 'template-1',
+        signer,
+      }),
+    ).rejects.toMatchObject({
+      response: {
+        code: 'CONTRACT_SOURCE_CANNOT_FILL_TEMPLATE',
+        details: { unsupportedFields: ['tenant.name'] },
+      },
+    });
+    expect(tx.customerAccount.update).not.toHaveBeenCalled();
+  });
+});

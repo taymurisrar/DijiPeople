@@ -27,6 +27,10 @@ import { BillingService } from '../services/billing.service';
 import { CommercialConfigService } from '../services/commercial-config.service';
 import { OwnerEmailVerificationService } from '../services/owner-email-verification.service';
 import { PaymentSettlementService } from '../services/payment-settlement.service';
+import {
+  PaymentRecheckService,
+  STRIPE_CHECKOUT_SESSION_ID_PATTERN,
+} from '../services/payment-recheck.service';
 import { SubscriptionOrderService } from '../services/subscription-order.service';
 
 /*
@@ -94,6 +98,7 @@ export class PublicBillingController {
     private readonly subscriptionOrders: SubscriptionOrderService,
     private readonly ownerEmailVerification: OwnerEmailVerificationService,
     private readonly settlement: PaymentSettlementService,
+    private readonly paymentRecheck: PaymentRecheckService,
   ) {}
 
   @Public()
@@ -238,6 +243,8 @@ export class PublicBillingController {
       slug: result.slug,
       available: result.available,
       reason: result.reason ?? null,
+      // Additive: absent/empty when the address is available.
+      suggestions: result.suggestions ?? [],
     };
   }
 
@@ -311,6 +318,7 @@ export class PublicBillingController {
   async getOnboardingStatus(
     @Param('onboardingId', new ParseUUIDPipe({ version: '4' }))
     onboardingId: string,
+    @Query('session_id') sessionId?: string,
   ) {
     /*
      * For an order a provider other than Stripe is collecting, ask that
@@ -322,6 +330,28 @@ export class PublicBillingController {
     await this.settlement
       .settleOrder(onboardingId, 'RETURN')
       .catch(() => undefined);
+
+    /*
+     * The Stripe half of the same question. `settleOrder` skips Stripe orders,
+     * which left them waiting on the webhook alone. The reconcile reads the
+     * order's own stored session from Stripe, throttled per order, and treats
+     * `session_id` purely as a cross-check: a malformed value skips the
+     * reconcile, and one naming another session stops it — in both cases
+     * without changing the answer below. The response is the same shape
+     * either way, so the parameter tells an anonymous caller nothing about
+     * which sessions exist. `reconcileStripeOrder` never throws.
+     */
+    const sessionIdHint =
+      typeof sessionId === 'string' &&
+      STRIPE_CHECKOUT_SESSION_ID_PATTERN.test(sessionId)
+        ? sessionId
+        : null;
+    if (!sessionId || sessionIdHint) {
+      await this.paymentRecheck.reconcileStripeOrder(
+        onboardingId,
+        sessionIdHint,
+      );
+    }
 
     const status =
       await this.subscriptionOrders.getOnboardingStatus(onboardingId);

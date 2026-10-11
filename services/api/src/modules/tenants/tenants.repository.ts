@@ -133,8 +133,14 @@ export class TenantsRepository {
     });
   }
 
-  findAllForSuperAdmin(db: PrismaDb = this.prisma) {
+  findAllForSuperAdmin(
+    db: PrismaDb = this.prisma,
+    filter: { customerAccountId?: string } = {},
+  ) {
     return db.tenant.findMany({
+      where: filter.customerAccountId
+        ? { customerAccountId: filter.customerAccountId }
+        : undefined,
       orderBy: { createdAt: 'desc' },
       include: {
         customerAccount: true,

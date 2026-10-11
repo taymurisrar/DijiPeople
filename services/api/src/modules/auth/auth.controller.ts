@@ -129,7 +129,12 @@ export class AuthController {
     };
   }
 
+  /*
+   * Public and token-keyed: unthrottled it is an oracle for guessing which
+   * invitation tokens exist, so it shares the per-IP read budget.
+   */
   @Public()
+  @UseGuards(PublicRateLimitGuard)
   @Get('invitation-status')
   invitationStatus(@Query() query: InvitationStatusQueryDto) {
     return this.authService.getInvitationStatus(query.token);

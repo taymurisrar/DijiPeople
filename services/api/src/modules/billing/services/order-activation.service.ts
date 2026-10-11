@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import {
   CustomerAccountStatus,
   CustomerOnboardingStatus,
@@ -7,6 +7,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { OutboxService } from '../../outbox/outbox.service';
+import { OutboxWorkerService } from '../../outbox/outbox-worker.service';
 import { buildIdempotencyKey } from '../../outbox/outbox.types';
 
 /**
@@ -31,6 +32,12 @@ export class OrderActivationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly outbox: OutboxService,
+    /*
+     * Optional so a container without the outbox worker — and the specs that
+     * construct this service by hand — still confirm payments; the event is
+     * durable either way and the interval, or an operator, drains it.
+     */
+    @Optional() private readonly outboxWorker?: OutboxWorkerService,
   ) {}
 
   /**
@@ -147,6 +154,18 @@ export class OrderActivationService {
       });
       return true;
     });
+
+    /*
+     * A buyer is watching the success page for exactly this. Ask the worker to
+     * drain now rather than on its next interval, so the onboarding, the
+     * provisioning request and the tenant follow back to back. After the
+     * commit, never inside it: a drain started inside the transaction could
+     * not see the event it was kicked for. Only on the call that actually
+     * moved the order — a redelivery has nothing new to deliver.
+     */
+    if (confirmed) {
+      this.outboxWorker?.kick();
+    }
 
     return { orderId: order.id, alreadyConfirmed: !confirmed };
   }

@@ -3,6 +3,16 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import type { RuntimeLookupOption } from "@/lib/runtime/runtime-lookups";
+import {
+  SIGNER_FIELD_LABELS,
+  SIGNER_FIELD_LIMITS,
+  describeContractApiError,
+  requiredSignerFields,
+  signerErrors,
+  templateOptionState,
+  type SignerField,
+  type SourceEligibility,
+} from "./contract-source-eligibility";
 type Template = {
   id: string;
   name: string;
@@ -26,6 +36,7 @@ export function ContractCreationLauncher({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [message, setMessage] = useState<string | null>(null);
+  const [messageFields, setMessageFields] = useState<string[]>([]);
   const [pending, startTransition] = useTransition();
   function select(value: string) {
     router.push(`/contracts/new?mode=${value}`, { scroll: false });
@@ -33,6 +44,7 @@ export function ContractCreationLauncher({
   function jsonSubmit(path: string, body: Record<string, unknown>) {
     startTransition(async () => {
       setMessage(null);
+      setMessageFields([]);
       const response = await fetch(path, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -40,11 +52,14 @@ export function ContractCreationLauncher({
       });
       const payload = await response.json().catch(() => null);
       if (!response.ok) {
-        setMessage(
-          Array.isArray(payload?.message)
-            ? payload.message.join(", ")
-            : (payload?.message ?? "Unable to create contract."),
+        // The API names each field it could not fill; list them rather than
+        // leaving the operator to guess from one sentence.
+        const error = describeContractApiError(
+          payload,
+          "Unable to create contract.",
         );
+        setMessage(error.message);
+        setMessageFields(error.fields);
         return;
       }
       router.push(`/contracts/${payload.id ?? payload.item?.id}`);
@@ -103,7 +118,6 @@ export function ContractCreationLauncher({
       {mode === "source" ? (
         <SourceForm
           disabled={pending}
-          templates={templates}
           initialSourceType={searchParams.get("sourceType") ?? "customer"}
           initialSourceId={searchParams.get("sourceId") ?? ""}
           onSubmit={(body) => jsonSubmit("/api/contracts/from-source", body)}
@@ -118,14 +132,27 @@ export function ContractCreationLauncher({
       {mode === "upload" ? (
         <UploadForm
           disabled={pending}
-          onMessage={setMessage}
+          onMessage={(value) => {
+            setMessage(value || null);
+            setMessageFields([]);
+          }}
           onCreated={(id) => router.push(`/contracts/${id}`)}
         />
       ) : null}
       {message ? (
-        <p className="mt-3 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">
-          {message}
-        </p>
+        <div
+          role="alert"
+          className="mt-3 rounded-xl bg-rose-50 p-3 text-sm text-rose-700"
+        >
+          <p>{message}</p>
+          {messageFields.length ? (
+            <ul className="mt-2 list-disc pl-5">
+              {messageFields.map((field) => (
+                <li key={field}>{field}</li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
       ) : null}
     </section>
   );
@@ -155,13 +182,11 @@ const sourceRecords = [
 
 function SourceForm({
   disabled,
-  templates,
   initialSourceType,
   initialSourceId,
   onSubmit,
 }: {
   disabled: boolean;
-  templates: Template[];
   initialSourceType: string;
   initialSourceId: string;
   onSubmit: (body: Record<string, unknown>) => void;
@@ -172,20 +197,52 @@ function SourceForm({
       : "customer",
   );
   const [sourceId, setSourceId] = useState(initialSourceId);
+  const [templateId, setTemplateId] = useState("");
+  const [signer, setSigner] = useState<Partial<Record<SignerField, string>>>(
+    {},
+  );
+  const [showSignerErrors, setShowSignerErrors] = useState(false);
   const source =
     sourceRecords.find((item) => item.value === sourceType) ?? sourceRecords[1];
+  const eligibility = useSourceEligibility(sourceType, sourceId);
+  const chosen = eligibility.data?.items.find(
+    (item) => item.templateId === templateId,
+  );
+  const chosenState = chosen ? templateOptionState(chosen) : null;
+  const signerFields = requiredSignerFields(chosen);
+  const errors = signerErrors(signerFields, signer);
+  const hasSignerErrors = Object.keys(errors).length > 0;
+  /*
+   * Without a chosen record there is nothing to judge a template against, so
+   * the picker waits for one rather than offering every template and letting
+   * the API refuse the wrong pairing afterwards — which is what it used to do.
+   */
+  const templatesReady = Boolean(sourceId) && eligibility.status === "ready";
 
   return (
     <form
       className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-4"
+      noValidate
       onSubmit={(e) => {
         e.preventDefault();
+        if (chosenState?.disabled) return;
+        if (hasSignerErrors) {
+          setShowSignerErrors(true);
+          return;
+        }
         const d = new FormData(e.currentTarget);
         onSubmit({
           sourceType,
           sourceId,
-          templateId: d.get("templateId") || undefined,
+          templateId: templateId || undefined,
           title: d.get("title") || undefined,
+          ...(signerFields.length
+            ? {
+                signer: Object.fromEntries(
+                  signerFields.map((field) => [field, signer[field]?.trim()]),
+                ),
+              }
+            : {}),
         });
       }}
     >
@@ -197,6 +254,9 @@ function SourceForm({
         onChange={(value) => {
           setSourceType(value);
           setSourceId("");
+          setTemplateId("");
+          setSigner({});
+          setShowSignerErrors(false);
         }}
       />
       <LookupSelect
@@ -209,7 +269,12 @@ function SourceForm({
         initialValue={
           sourceId && sourceId === initialSourceId ? initialSourceId : undefined
         }
-        onSelect={(option) => setSourceId(option?.value ?? "")}
+        onSelect={(option) => {
+          setSourceId(option?.value ?? "");
+          setTemplateId("");
+          setSigner({});
+          setShowSignerErrors(false);
+        }}
         action={
           sourceId
             ? {
@@ -224,24 +289,173 @@ function SourceForm({
         Template
         <select
           name="templateId"
-          className="h-11 rounded-xl border border-slate-200 px-3 text-sm font-normal normal-case tracking-normal"
+          value={templateId}
+          disabled={!templatesReady}
+          aria-describedby="source-template-status"
+          onChange={(event) => {
+            setTemplateId(event.target.value);
+            setShowSignerErrors(false);
+          }}
+          className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-normal normal-case tracking-normal disabled:bg-slate-50"
         >
           <option value="">Default / blank</option>
-          {templates.map((template) => (
-            <option key={template.id} value={template.id}>
-              {template.name}
-            </option>
-          ))}
+          {(eligibility.data?.items ?? []).map((item) => {
+            const state = templateOptionState(item);
+            return (
+              <option
+                key={item.templateId}
+                value={item.templateId}
+                disabled={state.disabled}
+                title={state.reason ?? undefined}
+              >
+                {state.label}
+              </option>
+            );
+          })}
         </select>
+        <span
+          id="source-template-status"
+          aria-live="polite"
+          className={`text-[11px] font-normal normal-case tracking-normal ${eligibility.status === "error" ? "text-rose-600" : "text-slate-500"}`}
+        >
+          {!sourceId
+            ? ""
+            : eligibility.status === "loading"
+              ? "Checking which templates this record can fill..."
+              : eligibility.status === "error"
+                ? eligibility.error
+                : !eligibility.data?.items.length
+                  ? "No published templates are available."
+                  : (chosenState?.reason ?? "")}
+        </span>
       </label>
+      {signerFields.length ? (
+        <fieldset className="grid gap-3 rounded-2xl border border-amber-200 bg-amber-50/60 p-4 md:col-span-2 lg:col-span-4 md:grid-cols-3">
+          <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-amber-800">
+            Authorized signer
+          </legend>
+          {signerFields.map((field) => {
+            const error = showSignerErrors ? errors[field] : undefined;
+            const id = `source-signer-${field}`;
+            return (
+              <label
+                key={field}
+                htmlFor={id}
+                className="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-600"
+              >
+                {SIGNER_FIELD_LABELS[field]}
+                <input
+                  id={id}
+                  name={`signer.${field}`}
+                  type={field === "email" ? "email" : "text"}
+                  required
+                  maxLength={SIGNER_FIELD_LIMITS[field]}
+                  autoComplete="off"
+                  value={signer[field] ?? ""}
+                  aria-invalid={error ? true : undefined}
+                  aria-describedby={error ? `${id}-error` : undefined}
+                  onChange={(event) =>
+                    setSigner((current) => ({
+                      ...current,
+                      [field]: event.target.value,
+                    }))
+                  }
+                  className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-normal normal-case tracking-normal aria-[invalid=true]:border-rose-400"
+                />
+                {error ? (
+                  <span
+                    id={`${id}-error`}
+                    className="text-[11px] font-normal normal-case tracking-normal text-rose-600"
+                  >
+                    {error}
+                  </span>
+                ) : null}
+              </label>
+            );
+          })}
+        </fieldset>
+      ) : null}
       <button
-        disabled={disabled || !sourceId}
+        disabled={
+          disabled ||
+          !sourceId ||
+          (Boolean(sourceId) && eligibility.status === "loading") ||
+          Boolean(chosenState?.disabled)
+        }
         className="h-11 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white disabled:opacity-40 md:col-start-2 lg:col-start-4"
       >
         Create from record
       </button>
     </form>
   );
+}
+
+type EligibilityState =
+  | { status: "idle" | "loading"; data: null; error: null }
+  | { status: "ready"; data: SourceEligibility; error: null }
+  | { status: "error"; data: null; error: string };
+
+/*
+ * Asks the API which published templates the chosen record can fill. The API
+ * runs the same rule `from-source` enforces, so a template shown as available
+ * here is one creation will accept — barring a record edited in between, which
+ * the creation call still catches and reports.
+ */
+function useSourceEligibility(
+  sourceType: string,
+  sourceId: string,
+): EligibilityState {
+  /*
+   * The answer is stored with the record it answers for, and anything else
+   * reads as loading. A late response for a record the operator has already
+   * moved off can then never be shown against the new one.
+   */
+  const requestKey = sourceId ? `${sourceType}:${sourceId}` : "";
+  const [result, setResult] = useState<
+    | { key: string; data: SourceEligibility; error: null }
+    | { key: string; data: null; error: string }
+    | null
+  >(null);
+  useEffect(() => {
+    if (!sourceId) return;
+    const key = `${sourceType}:${sourceId}`;
+    const controller = new AbortController();
+    const query = new URLSearchParams({ sourceType, sourceId });
+    fetch(`/api/contracts/template-eligibility?${query.toString()}`, {
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const payload = (await response.json().catch(() => null)) as unknown;
+        if (!response.ok) {
+          throw new Error(
+            describeContractApiError(
+              payload,
+              "Unable to check which templates this record can fill.",
+            ).message,
+          );
+        }
+        setResult({ key, data: payload as SourceEligibility, error: null });
+      })
+      .catch((reason: unknown) => {
+        if (reason instanceof DOMException && reason.name === "AbortError")
+          return;
+        setResult({
+          key,
+          data: null,
+          error:
+            reason instanceof Error
+              ? reason.message
+              : "Unable to check which templates this record can fill.",
+        });
+      });
+    return () => controller.abort();
+  }, [sourceType, sourceId]);
+  if (!requestKey) return { status: "idle", data: null, error: null };
+  if (!result || result.key !== requestKey)
+    return { status: "loading", data: null, error: null };
+  return result.data
+    ? { status: "ready", data: result.data, error: null }
+    : { status: "error", data: null, error: result.error ?? "" };
 }
 function CopyForm({
   disabled,

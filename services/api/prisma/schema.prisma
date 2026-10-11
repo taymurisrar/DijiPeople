@@ -2642,6 +2642,15 @@ model CustomerAccount {
   primaryContactLastName     String?
   primaryContactEmail        String?
   primaryContactPhone        String?
+  /// The person who signs agreements for this customer. Distinct from the
+  /// primary contact on purpose: the contact is whoever the sales team talks
+  /// to, the signer is whoever holds signing authority, and a template that
+  /// asks for `customer.primarySigner.*` must never be filled by guessing one
+  /// from the other. Copied from the lead at conversion when the lead carries
+  /// it; otherwise entered by an operator from Create Agreement.
+  authorizedSignerName       String?
+  authorizedSignerTitle      String?
+  authorizedSignerEmail      String?
   billingContactEmail        String?
   financeContactName         String?
   financeContactEmail        String?
@@ -3743,7 +3752,11 @@ model SupportCase {
   requesterEmail       String?
   requesterUserId      String?
   assignedToUserId     String?
+  /// Display snapshot of the owning team's name. Rows created before
+  /// `assignedTeamId` existed carry only this free-text value and are left as
+  /// they are — no backfill (owner decision D4, 2026-10-11).
   assignedTeam         String?
+  assignedTeamId       String?
   escalationLevel      Int                        @default(0)
   firstResponseDueAt   DateTime?
   resolutionDueAt      DateTime?
@@ -3771,11 +3784,15 @@ model SupportCase {
   childCases           SupportCase[]              @relation("SupportCaseChildren")
   mergedIntoCase       SupportCase?               @relation("SupportCaseMerges", fields: [mergedIntoCaseId], references: [id], onDelete: Restrict)
   mergedCases          SupportCase[]              @relation("SupportCaseMerges")
+  assignedTeamRef      PlatformTeam?              @relation("PlatformTeamSupportCases", fields: [assignedTeamId], references: [id], onDelete: Restrict)
+  outgoingRelations    SupportCaseRelation[]      @relation("SupportCaseRelationSource")
+  incomingRelations    SupportCaseRelation[]      @relation("SupportCaseRelationTarget")
   timeline             SupportCaseTimeline[]
   communications       SupportCaseCommunication[]
   incidentLinks        SupportCaseIncident[]
   attachments          SupportCaseAttachment[]
 
+  @@index([assignedTeamId, status])
   @@index([status, priority, createdAt])
   @@index([assignedToUserId, status])
   @@index([customerAccountId, status])
@@ -4566,6 +4583,9 @@ model PlatformUser {
   updatedContracts         Contract[]                 @relation("ContractsUpdatedBy")
   modulePreferences        PlatformModulePreference[]
   mfaRecoveryCodes         PlatformUserMfaRecoveryCode[]
+  platformTeamMemberships  PlatformTeamMember[]
+  ledPlatformTeams         PlatformTeam[]             @relation("PlatformTeamLead")
+  assignmentRuleTargets    RecordAssignmentRule[]     @relation("RecordAssignmentRuleTargetUser")
 
   @@index([email])
   @@index([role])
@@ -14925,3 +14945,120 @@ model WorkforceSnapshotDaily {
 //             reportRecentViews ("ReportRecentViewUser"),
 //             ownedReportSchedules ("ReportScheduleOwner")
 //   Employee: workforceSnapshots
+
+/// A platform-side team of DijiPeople operators (support, billing, sales…).
+/// Not the tenant HR `Team` model: these members are PlatformUsers, and the
+/// teams own platform records — support cases and, through
+/// RecordAssignmentRule, leads and customers. Name uniqueness is
+/// case-insensitive by convention, enforced in the service.
+model PlatformTeam {
+  id              String                 @id @default(uuid())
+  name            String                 @unique
+  description     String?
+  /// SUPPORT, SALES, BILLING, OPERATIONS or GENERAL — a grouping label for
+  /// pickers, not a permission. Free text so a new kind needs no migration.
+  category        String                 @default("GENERAL")
+  isActive        Boolean                @default(true)
+  leadUserId      String?
+  email           String?
+  sortOrder       Int                    @default(0)
+  archivedAt      DateTime?
+  createdById     String?
+  updatedById     String?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  leadUser        PlatformUser?          @relation("PlatformTeamLead", fields: [leadUserId], references: [id], onDelete: SetNull)
+  members         PlatformTeamMember[]
+  supportCases    SupportCase[]          @relation("PlatformTeamSupportCases")
+  assignmentRules RecordAssignmentRule[] @relation("RecordAssignmentRuleTargetTeam")
+
+  @@index([isActive, sortOrder])
+  @@index([category, isActive])
+}
+
+model PlatformTeamMember {
+  id                  String       @id @default(uuid())
+  teamId              String
+  platformUserId      String
+  /// MEMBER or LEAD.
+  role                String       @default("MEMBER")
+  /// Whether round-robin assignment may pick this member. A member can stay
+  /// on the team (visibility, notifications) while out of the rotation.
+  receivesAssignments Boolean      @default(true)
+  createdById         String?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  team                PlatformTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  platformUser        PlatformUser @relation(fields: [platformUserId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, platformUserId])
+  @@index([platformUserId])
+}
+
+enum SupportCaseRelationType {
+  RELATED
+  DUPLICATE
+  BLOCKS
+}
+
+/// A case-to-case link. Directional: `BLOCKS` reads "source blocks target".
+/// A merge is not a relation — it stays on SupportCase.mergedIntoCaseId.
+model SupportCaseRelation {
+  id           String                  @id @default(uuid())
+  sourceCaseId String
+  targetCaseId String
+  relationType SupportCaseRelationType @default(RELATED)
+  note         String?
+  createdById  String?
+  createdAt    DateTime                @default(now())
+  sourceCase   SupportCase             @relation("SupportCaseRelationSource", fields: [sourceCaseId], references: [id], onDelete: Cascade)
+  targetCase   SupportCase             @relation("SupportCaseRelationTarget", fields: [targetCaseId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceCaseId, targetCaseId, relationType])
+  @@index([targetCaseId])
+}
+
+enum RecordAssignmentStrategy {
+  SPECIFIC_USER
+  TEAM_ROUND_ROBIN
+  USER_ROUND_ROBIN
+}
+
+/// Platform-admin configurable ownership rule (WS07). Rules are evaluated on
+/// record creation, highest `priority` first; the first active rule whose
+/// `conditions` match assigns the owner — and only when the record arrived
+/// without one, so a deliberate manual owner is never overwritten.
+/// `moduleKey` is a platform runtime module key (leads, customers,
+/// support-cases), kept as text so a new eligible module needs no migration.
+model RecordAssignmentRule {
+  id                 String                   @id @default(uuid())
+  moduleKey          String
+  name               String
+  description        String?
+  isActive           Boolean                  @default(false)
+  priority           Int                      @default(100)
+  /// Equality matches on record fields, e.g. {"source":"WEBSITE"}. Empty
+  /// matches every record. Validated against an allowlist per module.
+  conditions         Json                     @default("{}")
+  strategy           RecordAssignmentStrategy
+  targetUserId       String?
+  targetTeamId       String?
+  candidateUserIds   String[]                 @default([])
+  /// Monotonic counter advanced atomically on every round-robin pick, so two
+  /// concurrent creations never read the same position.
+  roundRobinCursor   Int                      @default(0)
+  matchCount         Int                      @default(0)
+  lastAssignedAt     DateTime?
+  lastAssignedUserId String?
+  lastFailureAt      DateTime?
+  lastFailureReason  String?
+  createdById        String?
+  updatedById        String?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  targetUser         PlatformUser?            @relation("RecordAssignmentRuleTargetUser", fields: [targetUserId], references: [id], onDelete: SetNull)
+  targetTeam         PlatformTeam?            @relation("RecordAssignmentRuleTargetTeam", fields: [targetTeamId], references: [id], onDelete: Restrict)
+
+  @@index([moduleKey, isActive, priority])
+  @@index([targetTeamId])
+}

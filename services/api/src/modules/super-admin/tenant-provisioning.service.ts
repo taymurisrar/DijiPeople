@@ -63,6 +63,23 @@ export class TenantProvisioningService {
       actorUserId: input.actorId ?? null,
     });
 
+    /*
+     * The event is keyed on the tenant, but the customer record's timeline and
+     * the notification context both read `customerAccountId`. Callers do not
+     * pass it, so look it up once here rather than leaving the event unlinked.
+     * Telemetry linkage must never fail provisioning, hence the guard.
+     */
+    let customerAccountId: string | null = null;
+    try {
+      const owner = await this.prisma.tenant.findUnique({
+        where: { id: input.tenantId },
+        select: { customerAccountId: true },
+      });
+      customerAccountId = owner?.customerAccountId ?? null;
+    } catch {
+      customerAccountId = null;
+    }
+
     await this.events.record({
       eventCode: 'TENANT_PROVISIONING_REQUESTED',
       source: 'API',
@@ -71,10 +88,16 @@ export class TenantProvisioningService {
       entityType: 'Tenant',
       entityId: input.tenantId,
       tenantId: input.tenantId,
+      customerAccountId,
       actorType: input.actorId ? 'PLATFORM_USER' : 'SYSTEM',
       actorId: input.actorId,
       route: '/super-admin/customer-onboarding/:id/create-tenant',
       metadata: {
+        // Read by the notification formatter: a request is not a completion,
+        // and the wording says which of the two this is.
+        message: settings.wildcardDnsReady
+          ? `Workspace address ${tenantDomain.domain} is ready.`
+          : `Workspace address ${tenantDomain.domain} requested; waiting for DNS.`,
         requestedDomain: tenantDomain.domain,
         resolvedUrl: `${settings.defaultProtocol}://${tenantDomain.domain}`,
         wildcardDnsReady: settings.wildcardDnsReady,
