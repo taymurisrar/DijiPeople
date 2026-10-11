@@ -7216,3 +7216,157 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — the platform-tenant, severity-group and metric-scope cases fail against the previous query builder. |
 | **Fixed** | 2026-10-09, branch `agent/admin-ux-cleanup` |
 | **Active** | yes |
+
+### REG-667 — Subscribe wizard Continue submitted the order from step 5
+
+| | |
+|---|---|
+| **Bug class** | `UX` |
+| **Module** | `apps/landing` |
+| **Bug record** | BUG-4052 |
+| **Root cause** | Continue and Confirm shared one unkeyed button slot and React mutated it to submit mid-click; Enter bypassed the step guards. |
+| **Regression test** | `apps/landing/lib/onboarding-submit-guard.spec.ts` and `apps/landing/lib/onboarding-wizard.spec.ts`; the guard cases fail without the fix. |
+| **Scenario** | QA-LANDING-024 — Subscribe wizard Continue never submits the order before the final step. |
+| **Fails without the fix** | Yes — the cases named above fail against the previous behaviour. |
+| **Fixed** | 2026-10-11, commit 51c80beb on branch `agent/dp-platform-remediation` |
+| **Active** | yes |
+
+### REG-668 — Workspace slug suggestion froze after the first keystroke
+
+| | |
+|---|---|
+| **Bug class** | `UX` |
+| **Module** | `apps/landing` |
+| **Bug record** | BUG-4053 |
+| **Root cause** | The suggestion only ran while the slug was empty and normalisation kept combining marks out of the fold. |
+| **Regression test** | `apps/landing/lib/onboarding-wizard.spec.ts` and `services/api/src/modules/billing/services/subscription-order-slug-suggestions.spec.ts`. |
+| **Scenario** | QA-LANDING-025 — Subscribe wizard slug suggestion tracks the company name. |
+| **Fails without the fix** | Yes — the cases named above fail against the previous behaviour. |
+| **Fixed** | 2026-10-11, commit 51c80beb on branch `agent/dp-platform-remediation` |
+| **Active** | yes |
+
+### REG-669 — Subscription success page waited on the Stripe webhook alone
+
+| | |
+|---|---|
+| **Bug class** | `integration-gap` |
+| **Module** | `services/api/src/modules/billing` |
+| **Bug record** | BUG-4054 |
+| **Root cause** | No reconcile on return, session_id dropped, per-hop outbox delay, async payment events unhandled, no public payment email. |
+| **Regression test** | `services/api/src/modules/billing/services/payment-recheck.service.spec.ts`, `services/api/src/modules/billing/services/order-activation.service.spec.ts`, `services/api/src/modules/billing/services/payment-confirmed.handler.spec.ts`, `services/api/src/modules/outbox/outbox-worker.service.spec.ts` and `apps/landing/lib/provisioning-view.spec.ts`. |
+| **Scenario** | QA-BILLING-045 — Subscription success page reconciles without waiting for the webhook. |
+| **Fails without the fix** | Yes — the cases named above fail against the previous behaviour. |
+| **Fixed** | 2026-10-11, commit 51c80beb on branch `agent/dp-platform-remediation` |
+| **Active** | yes |
+
+### REG-670 — Provisioning request notified as Tenant provisioned with no subject
+
+| | |
+|---|---|
+| **Bug class** | `UX` |
+| **Module** | `services/api/src/modules/platform-events` |
+| **Bug record** | BUG-4055 |
+| **Root cause** | The notification mapping reused the completed title for the request event and dropped the subject. |
+| **Regression test** | `services/api/src/modules/platform-events/platform-notifications.spec.ts` and `services/api/src/modules/platform-events/platform-events.service.spec.ts`. |
+| **Scenario** | QA-PLATFORM-057 — Platform notifications title provisioning events correctly and carry a subject. |
+| **Fails without the fix** | Yes — the cases named above fail against the previous behaviour. |
+| **Fixed** | 2026-10-11, commit 51c80beb on branch `agent/dp-platform-remediation` |
+| **Active** | yes |
+
+### REG-671 — Create Agreement from a customer failed for templates needing a primary signer
+
+| | |
+|---|---|
+| **Bug class** | `missing-mapping` |
+| **Module** | `services/api/src/modules/contracts` |
+| **Bug record** | BUG-4056 |
+| **Root cause** | The source resolver never mapped the customer lead signer to the template primary signer and the admin could not see ineligible sources. |
+| **Regression test** | `services/api/src/modules/contracts/source-fills-template.spec.ts`, `services/api/src/modules/contracts/contracts.workflow.spec.ts`, `apps/admin/app/_components/documents/contract-source-eligibility.spec.ts` and `services/api/src/modules/super-admin/platform-lifecycle.lead-signer.spec.ts`. |
+| **Scenario** | QA-CONTRACT-015 — Create Agreement from a customer fills the primary signer. |
+| **Fails without the fix** | Yes — the cases named above fail against the previous behaviour. |
+| **Fixed** | 2026-10-11, commit 51c80beb on branch `agent/dp-platform-remediation` |
+| **Active** | yes |
+
+### REG-672 — Account activation reported a false password mismatch after autofill
+
+| | |
+|---|---|
+| **Bug class** | `UX` |
+| **Module** | `apps/web` |
+| **Bug record** | BUG-4057 |
+| **Root cause** | Controlled state only updated on typed input events, so autofill left stale values; no reveal control existed. |
+| **Regression test** | `apps/web/app/components/ui/password-field.spec.ts` and `apps/web/app/activate-account/password-rules.spec.ts`. |
+| **Scenario** | QA-AUTH-022 — Account activation accepts autofilled passwords and can reveal them. |
+| **Fails without the fix** | Yes — the cases named above fail against the previous behaviour. |
+| **Fixed** | 2026-10-11, commit 51c80beb on branch `agent/dp-platform-remediation` |
+| **Active** | yes |
+
+### REG-673 — Customer list Owner, Onboarding and Agreements columns empty
+
+| | |
+|---|---|
+| **Bug class** | `missing-mapping` |
+| **Module** | `services/api/src/modules/super-admin` |
+| **Bug record** | BUG-4058 |
+| **Root cause** | listCustomers never included the owner or counts and never mapped fullName. |
+| **Regression test** | `services/api/src/modules/super-admin/customer-partner-filter.spec.ts` and `apps/admin/lib/runtime/customer-list-columns.spec.ts`. |
+| **Scenario** | QA-PLATFORM-058 — Customer list Owner, Onboarding and Agreements columns are populated. |
+| **Fails without the fix** | Yes — the cases named above fail against the previous behaviour. |
+| **Fixed** | 2026-10-11, commit 51c80beb on branch `agent/dp-platform-remediation` |
+| **Active** | yes |
+
+### REG-674 — Customer and lead Timeline tabs always empty
+
+| | |
+|---|---|
+| **Bug class** | `wrong-query-scope` |
+| **Module** | `services/api/src/modules/super-admin` |
+| **Bug record** | BUG-4059 |
+| **Root cause** | Timeline fell through to AuditLog with entityType Customers and the operator tenant id. |
+| **Regression test** | `services/api/src/modules/super-admin/platform-lifecycle.customer-timeline.spec.ts`. |
+| **Scenario** | QA-PLATFORM-059 — Customer and lead Timeline tabs list recorded events. |
+| **Fails without the fix** | Yes — the cases named above fail against the previous behaviour. |
+| **Fixed** | 2026-10-11, commit 51c80beb on branch `agent/dp-platform-remediation` |
+| **Active** | yes |
+
+### REG-675 — Support case accepted a tenant that does not belong to the customer
+
+| | |
+|---|---|
+| **Bug class** | `authorization` |
+| **Module** | `services/api/src/modules/support-cases` |
+| **Bug record** | BUG-4060 |
+| **Root cause** | The lookup carried no customer filter and the API validated each id independently. |
+| **Regression test** | `services/api/src/modules/support-cases/support-cases.domain.spec.ts` and `services/api/test/dp-remediation-workflows.e2e-spec.ts`. |
+| **Scenario** | QA-PLATFORM-060 — Support case rejects a tenant that does not belong to the customer. |
+| **Fails without the fix** | Yes — the cases named above fail against the previous behaviour. |
+| **Fixed** | 2026-10-11, commit 51c80beb on branch `agent/dp-platform-remediation` |
+| **Active** | yes |
+
+### REG-676 — Support case Escalate always 400 and unvalidated status changes
+
+| | |
+|---|---|
+| **Bug class** | `contract-mismatch` |
+| **Module** | `services/api/src/modules/support-cases` |
+| **Bug record** | BUG-4061 |
+| **Root cause** | The UI sent a string to an Int field and the service had no transition table. |
+| **Regression test** | `services/api/src/modules/support-cases/support-case-lifecycle.spec.ts`, `services/api/src/modules/support-cases/support-cases.domain.spec.ts` and `services/api/test/dp-remediation-workflows.e2e-spec.ts`. |
+| **Scenario** | QA-PLATFORM-061 — Support case escalate succeeds and status transitions are validated. |
+| **Fails without the fix** | Yes — the cases named above fail against the previous behaviour. |
+| **Fixed** | 2026-10-11, commit 51c80beb on branch `agent/dp-platform-remediation` |
+| **Active** | yes |
+
+### REG-677 — Admin notification bell kept polling after sign-out
+
+| | |
+|---|---|
+| **Bug class** | `lifecycle-leak` |
+| **Module** | `apps/admin` |
+| **Bug record** | BUG-3895 |
+| **Root cause** | The poll timer was rescheduled unconditionally, so a 401 never stopped it. |
+| **Regression test** | `apps/admin/app/_components/notifications/notification-model.spec.ts`. |
+| **Scenario** | QA-PLATFORM-062 — Admin notification bell stops polling after the session ends. |
+| **Fails without the fix** | Yes — the cases named above fail against the previous behaviour. |
+| **Fixed** | 2026-10-11, commit 51c80beb on branch `agent/dp-platform-remediation` |
+| **Active** | yes |

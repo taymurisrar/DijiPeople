@@ -46,4 +46,15 @@ Schema (one additive migration `20261011090000_platform_teams_assignment_rules_c
 - WS01/02 done: keyed wizard buttons + `decideSubmit` guard; slug re-suggests until touched, accent folding, legal-suffix strip, server `suggestions`.
 - WS07 done: customer list includes/counts/fullName; `RecordAssignmentService` + rules API/UI; wired into public lead submission and self-service customer creation.
 - WS10 done: `PlatformTeam` API in `platform-users`, settings UI, archive/reassign, seed of the four existing support team names (create-only).
-- Local verification limit: the junctioned `node_modules` lacks `qrcode`/`@aws-sdk/*` and has a stale `@repo/config`, so several suites cannot load locally; full verification runs on a real `npm ci` install before push.
+- WS03/04/05/08/09/11/12 done (see commit 51c80beb for the full list).
+- Verification on a real `npm ci` install (worktree junctions removed):
+  - `npm run typecheck`: 8/8 tasks pass.
+  - Jest: api 442 suites / 8,335 tests, web 124 / 2,303, admin 81 / 918, landing 15 / 200: all pass after one fix (the Teams manager used a local `z-50` modal; it now uses the shared `PanelDialog`).
+  - ESLint as CI runs it: 0 errors in every workspace; API warnings 786 (budget 787, baseline 786) after removing 5 new ones.
+  - `prisma migrate deploy` on a fresh database (full history), `seed:config` + verifier pass, four support teams seeded.
+  - API boots (DI graph proven); 28 new routes mapped; protected routes answer 401 unauthenticated.
+  - New `test/dp-remediation-workflows.e2e-spec.ts` against the real database: 6/6, including 6 concurrent unowned cases splitting 3/3 across a team, tenant/customer mismatch refusal, lifecycle refusals, numeric escalation, relation duplicate/cycle refusal, cross-customer merge refusal and an atomic merge.
+  - Existing e2e suites for subscription orders, provisioning, contracts, outbox, settlement, leads, lookups and activation: 115/115.
+  - Browser (Playwright, desktop 1280 and mobile 390): step 4 → Continue lands on Review with zero order posts; Enter on step 1 posts nothing; Back keeps state; "Ñandú Café Solutions Pvt Ltd" suggests `nandu-cafe-solutions`.
+- Not browser-verified: admin screens (Teams, Assignment rules, Create Agreement launcher, support-case dialogs, notifications) and the activation page. Admin login is a challenge flow and the Playwright MCP server did not connect; these are covered by unit and API tests only.
+- Pre-existing, out of scope: the wizard's step labels run together at 390 px ("AdministratorAgreements").

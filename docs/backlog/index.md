@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**774 records** — 546 bugs under [`docs/bugs/`](../bugs/), 228 non-bug items under [`items/`](items/).
+**784 records** — 556 bugs under [`docs/bugs/`](../bugs/), 228 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 274 |
+| Open (active work) | 284 |
 | Blocked | 4 |
 | Deferred | 125 |
 | Awaiting a product decision | 14 |
 | Completed / closed | 357 |
 | **Open CRITICAL** | **8** |
-| **Open HIGH** | **110** |
+| **Open HIGH** | **115** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,22 +27,22 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 8 |
-| HIGH | 110 |
-| MEDIUM | 125 |
+| HIGH | 115 |
+| MEDIUM | 130 |
 | LOW | 30 |
 
 ## Open by type
 
 | Type | Count |
 |---|---|
-| AUTHORIZATION | 15 |
-| BUG | 83 |
+| AUTHORIZATION | 16 |
+| BUG | 87 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 27 |
 | DOCUMENTATION | 1 |
 | FOLLOW_UP | 4 |
 | INFRA | 7 |
-| INTEGRATION | 6 |
+| INTEGRATION | 7 |
 | PERFORMANCE | 15 |
 | PRODUCT_DECISION | 2 |
 | SECURITY | 27 |
@@ -50,18 +50,18 @@ see [`README.md`](README.md) for why.
 | TECH_DEBT | 8 |
 | TENANT_ISOLATION | 3 |
 | TEST_GAP | 9 |
-| UX | 60 |
+| UX | 64 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
-| OPEN | 56 |
+| OPEN | 55 |
 | IN_PROGRESS | 1 |
 | BLOCKED | 4 |
 | DEFERRED | 125 |
 | PRODUCT_DECISION | 14 |
-| FIXED | 192 |
+| FIXED | 203 |
 | VERIFIED | 221 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
@@ -322,6 +322,11 @@ see [`README.md`](README.md) for why.
 | [BUG-4005](../../docs/bugs/BUG-4005-reason-prompted-record-commands-suspend-deactivate-reject-le.md) | Reason-prompted record commands (Suspend, Deactivate, Reject, lead Disqualify, contract stage-back) silently do nothing | BUG | HIGH | P1 | FIXED | apps/admin | FIX_NOW |
 | [BUG-4007](../../docs/bugs/BUG-4007-partner-activation-reports-failed-delivery-as-success-and-ca.md) | Partner activation reports failed delivery as success and cannot retry | STATE_MACHINE | HIGH | P1 | VERIFIED | api:partner-experience | DONE |
 | [BUG-4008](../../docs/bugs/BUG-4008-partner-activation-reassigns-a-different-partners-portal-con.md) | Partner activation reassigns a different partners portal contact by email | AUTHORIZATION | HIGH | P1 | VERIFIED | api:partner-experience | DONE |
+| [BUG-4052](../../docs/bugs/BUG-4052-subscribe-wizard-continue-on-step-4-submits-the-order-from-s.md) | Subscribe wizard: Continue on step 4 submits the order from step 5 | UX | HIGH | P1 | FIXED | apps/landing | FIX_NOW |
+| [BUG-4054](../../docs/bugs/BUG-4054-subscription-success-page-waits-on-the-stripe-webhook-alone.md) | Subscription success page waits on the Stripe webhook alone | INTEGRATION | HIGH | P1 | FIXED | billing, outbox, apps/landing | FIX_NOW |
+| [BUG-4056](../../docs/bugs/BUG-4056-create-agreement-from-a-customer-always-fails-for-templates-.md) | Create Agreement from a customer always fails for templates that need a primary signer | BUG | HIGH | P1 | FIXED | contracts, super-admin, apps/admin | FIX_NOW |
+| [BUG-4060](../../docs/bugs/BUG-4060-support-case-tenant-lookup-ignores-the-selected-customer-and.md) | Support case Tenant lookup ignores the selected Customer and the API accepts mismatched pairs | AUTHORIZATION | HIGH | P1 | FIXED | support-cases, apps/admin | FIX_NOW |
+| [BUG-4061](../../docs/bugs/BUG-4061-support-case-escalate-always-fails-with-400-and-statuses-cha.md) | Support case Escalate always fails with 400 and statuses change without validation | BUG | HIGH | P1 | FIXED | support-cases, apps/admin | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -588,6 +593,11 @@ see [`README.md`](README.md) for why.
 | [BUG-4032](../../docs/bugs/BUG-4032-admin-html-body-overflow-x-hidden-disabled-every-position-st.md) | Admin html/body overflow-x hidden disabled every position:sticky (command bar, agreement editor toolbar and Fields & Signatures panel scroll away) | UX | MEDIUM | P2 | FIXED | app:admin | FIX_NOW |
 | [BUG-4033](../../docs/bugs/BUG-4033-tenants-grid-labelled-the-tenant-column-name-beside-a-linked.md) | Tenants grid labelled the tenant column Name beside a linked Customer name, so operators opened the customer believing it was the tenant | UX | MEDIUM | P2 | FIXED | app:admin | FIX_NOW |
 | [BUG-4035](../../docs/bugs/BUG-4035-monitoring-error-logs-offered-filters-and-cards-matching-no-.md) | Monitoring error logs offered filters and cards matching no stored value, page-only export, a tenant-only diagnostics download, and Create support case sent the trace id so it always 404ed | BUG | MEDIUM | P2 | FIXED | app:admin | FIX_NOW |
+| [BUG-4053](../../docs/bugs/BUG-4053-workspace-slug-suggestion-freezes-after-the-first-keystroke-.md) | Workspace slug suggestion freezes after the first keystroke (reads as initials) | UX | MEDIUM | P2 | FIXED | apps/landing, billing | FIX_NOW |
+| [BUG-4055](../../docs/bugs/BUG-4055-platform-notifications-title-a-provisioning-request-as-tenan.md) | Platform notifications title a provisioning request as 'Tenant provisioned' and carry no subject | UX | MEDIUM | P2 | FIXED | platform-events | FIX_NOW |
+| [BUG-4057](../../docs/bugs/BUG-4057-account-activation-reports-a-password-mismatch-after-autofil.md) | Account activation reports a password mismatch after autofill and has no reveal toggle | UX | MEDIUM | P2 | FIXED | apps/web | FIX_NOW |
+| [BUG-4058](../../docs/bugs/BUG-4058-customer-list-owner-onboarding-and-agreements-columns-are-em.md) | Customer list Owner, Onboarding and Agreements columns are empty | BUG | MEDIUM | P2 | FIXED | super-admin, apps/admin | FIX_NOW |
+| [BUG-4059](../../docs/bugs/BUG-4059-customer-and-lead-timeline-tabs-are-always-empty.md) | Customer and lead Timeline tabs are always empty | BUG | MEDIUM | P2 | FIXED | super-admin | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -748,7 +758,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3700](../../docs/bugs/BUG-3700-any-signed-in-user-can-read-the-full-published-customization.md) | Any signed-in user can read the full published customization snapshot | AUTHORIZATION | LOW | P3 | DEFERRED | customization | DEFER |
 | [BUG-3701](../../docs/bugs/BUG-3701-platform-scope-customization-packages-are-not-unique-by-key.md) | Platform-scope customization packages are not unique by key | DATABASE | LOW | P3 | DEFERRED | customization | DEFER |
 | [BUG-3705](../../docs/bugs/BUG-3705-package-sub-page-breadcrumbs-end-in-a-second-packages-instea.md) | Package sub-page breadcrumbs end in a second Packages instead of the page | UX | LOW | P3 | DEFERRED | apps/web | DEFER |
-| [BUG-3895](../../docs/bugs/BUG-3895-the-admin-notification-bell-keeps-polling-every-five-minutes.md) | The admin notification bell keeps polling every five minutes after sign-out | BUG | LOW | P3 | OPEN | apps/admin | FIX_NOW |
+| [BUG-3895](../../docs/bugs/BUG-3895-the-admin-notification-bell-keeps-polling-every-five-minutes.md) | The admin notification bell keeps polling every five minutes after sign-out | BUG | LOW | P3 | FIXED | apps/admin | FIX_NOW |
 | [BUG-3896](../../docs/bugs/BUG-3896-unmatched-route-404s-are-categorised-database-record-not-fou.md) | Unmatched-route 404s are categorised DATABASE_RECORD_NOT_FOUND in the incident queue | BUG | LOW | P3 | OPEN | error-logs | FIX_NOW |
 | [BUG-3898](../../docs/bugs/BUG-3898-platform-health-tile-drill-downs-land-on-panels-that-do-not-.md) | Platform health tile drill-downs land on panels that do not show the signal the tile measures | UX | LOW | P3 | OPEN | platform-monitoring | FIX_NOW |
 | [BUG-3899](../../docs/bugs/BUG-3899-the-monitoring-integrations-tab-is-static-and-its-platform-e.md) | The monitoring Integrations tab is static and its platform email badge is hard-coded | UX | LOW | P3 | OPEN | platform-monitoring | FIX_NOW |
