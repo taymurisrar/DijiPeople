@@ -14,7 +14,7 @@ A screen marked **bespoke** is a hand-written page whose API calls and underlyin
 
 **`apiPath` is called by the server, not the browser.** Loading `/leaves` on that tenant issued no client-side request to `/api/leave-requests`; the list arrives already rendered, and the only client calls were notifications and settings. Runtime list and record screens fetch through `apps/web/lib/server-api.ts` in a server component. Watching the browser network log to discover which endpoint a screen uses will therefore find nothing, and concluding the screen calls no API would be wrong.
 
-**366 screens** across 3 applications · 11 runtime modules declare an API path and entity
+**368 screens** across 3 applications · 11 runtime modules declare an API path and entity
 
 Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[known-gaps]]
 
@@ -288,7 +288,7 @@ Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[
 
 ## Platform admin — `apps/admin` (port 3002)
 
-91 screens, 6 runtime-driven.
+93 screens, 6 runtime-driven.
 
 | Route | Source | API | Entity |
 |---|---|---|---|
@@ -342,6 +342,7 @@ Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[
 | `/security` | `apps/admin/app/(internal)/security/page.tsx` | _bespoke_ | — |
 | `/settings` | `apps/admin/app/(internal)/settings/page.tsx` | _bespoke_ | — |
 | `/settings/appearance` | `apps/admin/app/(internal)/settings/appearance/page.tsx` | _bespoke_ | — |
+| `/settings/assignment-rules` | `apps/admin/app/(internal)/settings/assignment-rules/page.tsx` | _bespoke_ | — |
 | `/settings/billing` | `apps/admin/app/(internal)/settings/billing/page.tsx` | _bespoke_ | — |
 | `/settings/branding` | `apps/admin/app/(internal)/settings/branding/page.tsx` | _bespoke_ | — |
 | `/settings/company-profile` | `apps/admin/app/(internal)/settings/company-profile/page.tsx` | _bespoke_ | — |
@@ -369,6 +370,7 @@ Related: [[domain-map]] · [[data-model-overview]] · [[discovery-status]] · [[
 | `/settings/platform-defaults` | `apps/admin/app/(internal)/settings/platform-defaults/page.tsx` | _bespoke_ | — |
 | `/settings/security` | `apps/admin/app/(internal)/settings/security/page.tsx` | _bespoke_ | — |
 | `/settings/support` | `apps/admin/app/(internal)/settings/support/page.tsx` | _bespoke_ | — |
+| `/settings/teams` | `apps/admin/app/(internal)/settings/teams/page.tsx` | _bespoke_ | — |
 | `/settings/tenant-provisioning` | `apps/admin/app/(internal)/settings/tenant-provisioning/page.tsx` | _bespoke_ | — |
 | `/settings/users` | `apps/admin/app/(internal)/settings/users/page.tsx` | _bespoke_ | — |
 | `/signature-requests` | `apps/admin/app/(internal)/signature-requests/page.tsx` | _bespoke_ | — |

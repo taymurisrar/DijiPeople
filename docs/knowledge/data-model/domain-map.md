@@ -8,7 +8,7 @@ aliases: [Domain Map]
 
 Attribution is by counted Prisma call sites, not by name. A model with no call site anywhere is listed under **Unattributed** — that is a finding, not a gap in the tooling. See [[known-gaps]].
 
-**336 models · 312 enums · 269 tenant-scoped · 13 with an entity note**
+**340 models · 314 enums · 269 tenant-scoped · 13 with an entity note**
 
 Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 
@@ -207,7 +207,7 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `WorkflowAction` | no | `workflows` | — |
 | `WorkflowRun` | yes | `workflows` | — |
 
-## Commercial — 71 models
+## Commercial — 73 models
 
 | Model | Tenant | Owning module | Note |
 |---|---|---|---|
@@ -258,6 +258,7 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `Promotion` | no | `super-admin` | — |
 | `ReconciliationFinding` | yes | `billing` | — |
 | `ReconciliationRun` | no | `billing` | — |
+| `RecordAssignmentRule` | no | `super-admin` | — |
 | `RefundRequest` | yes | `billing` | — |
 | `RetentionHold` | yes | `billing` | — |
 | `SeatChangeRequest` | yes | `billing` | — |
@@ -277,6 +278,7 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `SupportCaseAttachment` | no | `support-cases` | — |
 | `SupportCaseCommunication` | no | `support-cases` | — |
 | `SupportCaseIncident` | no | `support-cases` | — |
+| `SupportCaseRelation` | no | `support-cases` | — |
 | `SupportCaseTimeline` | no | `support-cases` | — |
 | `Tenant` | no | `super-admin` | [[entity-tenant|documented]] |
 | `TenantDeletionRequest` | yes | `billing` | — |
@@ -342,7 +344,7 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `NotificationRule` | yes | `notifications` | — |
 | `NotificationTemplate` | yes | **none** | — |
 
-## Platform ops — 36 models
+## Platform ops — 38 models
 
 | Model | Tenant | Owning module | Note |
 |---|---|---|---|
@@ -368,6 +370,8 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `PlatformModulePreference` | no | `platform-users` | — |
 | `PlatformOutboundEmail` | no | `platform-communications` | — |
 | `PlatformSetting` | no | `platform-communications` | — |
+| `PlatformTeam` | no | `platform-users` | — |
+| `PlatformTeamMember` | no | `platform-users` | — |
 | `ReportDefinition` | yes | `reporting` | — |
 | `ReportFavorite` | yes | `reporting` | — |
 | `ReportRecentView` | yes | `reporting` | — |
