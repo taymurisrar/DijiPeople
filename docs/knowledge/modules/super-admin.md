@@ -82,9 +82,20 @@ scoped per domain.
 service asserts platform identity itself — it did not, and that omission is why
 nothing downstream caught the guard failing open.
 
+## Record assignment rules (2026-10-11, SESSION-0121)
+
+`RecordAssignmentRule` + `RecordAssignmentService` (in this module) assign an owner on creation for `leads`, `customers` and `support-cases`. Rules run highest priority first, and the first active rule whose equality conditions match wins.
+
+- **Strategies:** a specific user, team round robin (members with `receivesAssignments`), or user round robin.
+- **Race safety:** the round-robin position comes from an atomic `roundRobinCursor` increment, so concurrent creations get different members. The e2e suite proves an exact 3/3 split across 6 racing creations.
+- **What a rule never does:** override an owner supplied explicitly (operator-created leads keep their creator), throw into record creation, or backfill existing records. Owner decision D4 rules out backfill.
+- **Defaults:** rules ship disabled. `POST super-admin/assignment-rules/test` is a dry run that does not advance the cursor.
+- **Customer list:** the list API maps `fullName` onto `assignedToUser` and `accountManagerUser`, and returns `_count.contracts` and `_count.onboardings`. Their absence was why those columns were empty ([[BUG-4058]]).
+
 ## Related
 
 - [[platform-auth]] — the guard, the permission map and both defects
+- [[support-cases]] — teams, lifecycle and the assignment hook
 - [[platform-communications]] — platform email settings and templates
 - [[platform-admin]] — the frontend
 - [[BUG-0071]], [[BUG-0072]]

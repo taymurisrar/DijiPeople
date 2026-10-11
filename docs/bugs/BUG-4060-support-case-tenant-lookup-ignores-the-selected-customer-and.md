@@ -95,7 +95,7 @@ Scenario: Support case rejects a tenant that is not the customer's (see the QA s
 
 ## Related
 
-- Modules — [[platform-admin]]
+- Modules — [[support-cases]], [[platform-admin]]
 - Regression — REG-675 (see the regression register)
 
 <!-- GRAPH:END -->

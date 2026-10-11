@@ -9,10 +9,10 @@
 |---|---|
 | Open CRITICAL | **8** |
 | Open HIGH | **115** |
-| Open total | 284 |
+| Open total | 285 |
 | Blocked | 4 |
 | Awaiting a product decision | 14 |
-| Deferred | 125 |
+| Deferred | 124 |
 | Completed | 357 |
 | Awaiting Architect triage | 0 |
 
@@ -535,6 +535,7 @@
 | [[BUG-2839-a-dashboard-fx-test-asserted-on-the-last-month-bucket-so-it-|BUG-2839]] | A dashboard FX test asserted on the last month bucket, so it passed in August and failed on 1 September | BUG | MEDIUM | FIXED | super-admin | FIX_NOW |
 | [[BUG-2888-an-externally-hosted-release-is-invisible-to-the-desktop-age|BUG-2888]] | An externally hosted release is invisible to the desktop agent update feed, because the platform publish route cannot record a SHA-512 | INTEGRATION | MEDIUM | FIXED | api:app-releases | DONE |
 | [[BUG-3146-platform-admin-login-has-no-account-lockout-of-any-kind|BUG-3146]] | Platform-admin login has no account lockout of any kind | SECURITY | MEDIUM | FIXED | api:platform-auth | DONE |
+| [[BUG-3207-updatesupportcasedto-tenantid-is-a-client-settable-field-spr|BUG-3207]] | UpdateSupportCaseDto.tenantId is a client-settable field spread directly into the Prisma update | AUTHORIZATION | MEDIUM | FIXED | api:support-cases | FIX_NOW |
 | [[BUG-3227-no-access-log-and-traceid-never-reaches-an-application-log-l|BUG-3227]] | No access log, and traceId never reaches an application log line: a successful request leaves no trace at all | INFRA | MEDIUM | FIXED | services/api/src/common | DONE |
 | [[BUG-3254-the-forwarded-for-hop-guard-rejected-every-honest-chain-coll|BUG-3254]] | The rate-limit e2e suite sent a forwarded chain one hop short, and the guard was misread as an off-by-one | TEST_GAP | MEDIUM | FIXED | pkg:config, services/api/src/common/security, services/api/test | DONE |
 | [[BUG-3263-the-provisioning-queue-e2e-fixture-raced-the-clock-so-an-exa|BUG-3263]] | The provisioning queue e2e fixture raced the clock, so an exact five-minute interval came out 300001ms | TEST_GAP | MEDIUM | FIXED | services/api/test | DONE |
@@ -655,6 +656,7 @@
 
 ## Recent Engineering History
 
+- [[2026-10-11-dp-platform-remediation-dc10b371|Engineering History — DP platform remediation (12 workstreams)]]
 - [[2026-10-08-partner-module-completion-d69f2583|Engineering History — Partner module completion]]
 - [[2026-10-08-admin-ux-cleanup-32c4b314|Engineering History — Platform Admin UX cleanup]]
 - [[2026-10-07-crm-plugin-alm-mfa-claims-afc93291|Engineering History — CRM plugin: package ALM and MFA discoverability, Claims on the runtime, advisory fix]]
@@ -662,7 +664,6 @@
 - [[2026-09-27-custom-fields-every-module-be7189f7|Engineering History — Custom fields every module]]
 - [[2026-09-27-claims-navigation-cea41518|Engineering History — Claims navigation]]
 - [[2026-09-26-task-0033-package-alm-b55afdb2|Engineering History — TASK-0033 package ALM]]
-- [[2026-09-26-release-task-0034-custom-field-values-1aeda297|Engineering History — Release task 0034 custom field values]]
 
 ## Recent Releases
 
@@ -727,6 +728,7 @@
 | [[BUG-2839-a-dashboard-fx-test-asserted-on-the-last-month-bucket-so-it-|BUG-2839]] | A dashboard FX test asserted on the last month bucket, so it passed in August and failed on 1 September | BUG | MEDIUM | FIXED | super-admin | FIX_NOW |
 | [[BUG-2888-an-externally-hosted-release-is-invisible-to-the-desktop-age|BUG-2888]] | An externally hosted release is invisible to the desktop agent update feed, because the platform publish route cannot record a SHA-512 | INTEGRATION | MEDIUM | FIXED | api:app-releases | DONE |
 | [[BUG-3146-platform-admin-login-has-no-account-lockout-of-any-kind|BUG-3146]] | Platform-admin login has no account lockout of any kind | SECURITY | MEDIUM | FIXED | api:platform-auth | DONE |
+| [[BUG-3207-updatesupportcasedto-tenantid-is-a-client-settable-field-spr|BUG-3207]] | UpdateSupportCaseDto.tenantId is a client-settable field spread directly into the Prisma update | AUTHORIZATION | MEDIUM | FIXED | api:support-cases | FIX_NOW |
 | [[BUG-3227-no-access-log-and-traceid-never-reaches-an-application-log-l|BUG-3227]] | No access log, and traceId never reaches an application log line: a successful request leaves no trace at all | INFRA | MEDIUM | FIXED | services/api/src/common | DONE |
 | [[BUG-3254-the-forwarded-for-hop-guard-rejected-every-honest-chain-coll|BUG-3254]] | The rate-limit e2e suite sent a forwarded chain one hop short, and the guard was misread as an off-by-one | TEST_GAP | MEDIUM | FIXED | pkg:config, services/api/src/common/security, services/api/test | DONE |
 | [[BUG-3263-the-provisioning-queue-e2e-fixture-raced-the-clock-so-an-exa|BUG-3263]] | The provisioning queue e2e fixture raced the clock, so an exact five-minute interval came out 300001ms | TEST_GAP | MEDIUM | FIXED | services/api/test | DONE |
@@ -880,9 +882,9 @@
 | Backlog items | 228 |
 | Known bug patterns | 35 |
 | QA runs | 39 |
-| Engineering history records | 97 |
+| Engineering history records | 98 |
 | Release records | 10 |
-| Module notes | 31 |
+| Module notes | 32 |
 | Architecture notes | 22 |
 | Decision notes (ADR + generated) | 31 |
 | Implementation records | 7 |

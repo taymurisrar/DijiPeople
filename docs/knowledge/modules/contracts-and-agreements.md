@@ -109,6 +109,13 @@ The fix tightens `PATCH /contracts/:id` for five statuses. If any workflow
 legitimately reassigns an internal owner on an executed contract, it now needs a
 governed action. No such caller exists in the frontends.
 
+## Source eligibility and the authorized signer (2026-10-11, SESSION-0121)
+
+- `customer.primarySigner.*` comes from `CustomerAccount.authorizedSignerName/Title/Email` and **never** from the primary contact: the contact is who sales talks to, and the signer is who holds signing authority. Lead conversion copies the lead's signer onto the customer.
+- One pure check, `assessSourceTemplateFill`, decides eligibility for both `GET /contracts/template-eligibility` and creation. It returns `missingFields` (collectable: the signer, when a customer account exists) and `unsupportedFields` (a namespace the source type can never supply).
+- `createFromSource` accepts an optional `signer`. It saves only the provided fields to the customer with an audit row, then re-checks before creating. If creation then fails for another reason, the saved signer stays, because it is real, operator-entered data.
+- `CONTRACT_SOURCE_CANNOT_FILL_TEMPLATE` is an expected outcome: it keeps its code in the response and is not queued as an incident ([[BUG-4056]]).
+
 ## Related
 
 [[leads]] · [[customers]] · [[partners]] · [[partner-onboarding]] ·

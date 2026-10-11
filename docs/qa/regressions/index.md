@@ -7335,7 +7335,7 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 |---|---|
 | **Bug class** | `authorization` |
 | **Module** | `services/api/src/modules/support-cases` |
-| **Bug record** | BUG-4060 |
+| **Bug record** | BUG-4060, BUG-3207 |
 | **Root cause** | The lookup carried no customer filter and the API validated each id independently. |
 | **Regression test** | `services/api/src/modules/support-cases/support-cases.domain.spec.ts` and `services/api/test/dp-remediation-workflows.e2e-spec.ts`. |
 | **Scenario** | QA-PLATFORM-060 — Support case rejects a tenant that does not belong to the customer. |

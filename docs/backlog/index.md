@@ -13,9 +13,9 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 284 |
+| Open (active work) | 285 |
 | Blocked | 4 |
-| Deferred | 125 |
+| Deferred | 124 |
 | Awaiting a product decision | 14 |
 | Completed / closed | 357 |
 | **Open CRITICAL** | **8** |
@@ -28,14 +28,14 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 8 |
 | HIGH | 115 |
-| MEDIUM | 130 |
+| MEDIUM | 131 |
 | LOW | 30 |
 
 ## Open by type
 
 | Type | Count |
 |---|---|
-| AUTHORIZATION | 16 |
+| AUTHORIZATION | 17 |
 | BUG | 87 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 27 |
@@ -59,9 +59,9 @@ see [`README.md`](README.md) for why.
 | OPEN | 55 |
 | IN_PROGRESS | 1 |
 | BLOCKED | 4 |
-| DEFERRED | 125 |
+| DEFERRED | 124 |
 | PRODUCT_DECISION | 14 |
-| FIXED | 203 |
+| FIXED | 204 |
 | VERIFIED | 221 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
@@ -507,7 +507,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3203](../../docs/bugs/BUG-3203-the-api-origin-sends-no-security-response-headers-at-all.md) | The API origin sends no security response headers at all | SECURITY | MEDIUM | P2 | DEFERRED | services/api/src/main.ts | DEFER |
 | [BUG-3204](../../docs/bugs/BUG-3204-per-client-jwt-secrets-are-documented-but-not-provisioned-cl.md) | Per-client JWT secrets are documented but not provisioned; client separation rests on an unsigned claim check | SECURITY | MEDIUM | P2 | DEFERRED | api:auth | DEFER |
 | [BUG-3206](../../docs/bugs/BUG-3206-35-mutating-settings-lookup-routes-take-record-string-unknow.md) | 35 mutating settings/lookup routes take Record<string, unknown> bodies, bypassing ValidationPipe whitelisting | BUG | MEDIUM | P2 | DEFERRED | api:settings-runtime, api:lookups | DEFER |
-| [BUG-3207](../../docs/bugs/BUG-3207-updatesupportcasedto-tenantid-is-a-client-settable-field-spr.md) | UpdateSupportCaseDto.tenantId is a client-settable field spread directly into the Prisma update | AUTHORIZATION | MEDIUM | P2 | DEFERRED | api:support-cases | DEFER |
+| [BUG-3207](../../docs/bugs/BUG-3207-updatesupportcasedto-tenantid-is-a-client-settable-field-spr.md) | UpdateSupportCaseDto.tenantId is a client-settable field spread directly into the Prisma update | AUTHORIZATION | MEDIUM | P2 | FIXED | api:support-cases | FIX_NOW |
 | [BUG-3208](../../docs/bugs/BUG-3208-an-unauthenticated-caller-can-insert-unbounded-entries-into-.md) | An unauthenticated caller can insert unbounded entries into a process-wide static Map | PERFORMANCE | MEDIUM | P2 | DEFERRED | services/api/src/common | DEFER |
 | [BUG-3209](../../docs/bugs/BUG-3209-authenticated-document-view-and-download-responses-set-no-ca.md) | Authenticated document view and download responses set no Cache-Control at all | SECURITY | MEDIUM | P2 | DEFERRED | api:documents | DEFER |
 | [BUG-3210](../../docs/bugs/BUG-3210-every-server-side-api-call-opts-out-of-next-fetch-deduplicat.md) | Every server-side API call opts out of Next fetch deduplication; tenant-settings/resolved is fetched twice on nine pages | PERFORMANCE | MEDIUM | P2 | DEFERRED | apps/web | DEFER |

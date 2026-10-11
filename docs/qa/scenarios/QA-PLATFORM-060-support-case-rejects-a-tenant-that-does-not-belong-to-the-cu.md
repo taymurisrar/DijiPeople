@@ -8,7 +8,7 @@ TYPE: API
 RISK: HIGH
 AUTOMATION_STATUS: AUTOMATED
 TEST_REFERENCE: services/api/src/modules/support-cases/support-cases.domain.spec.ts
-RELATED_BUGS: [BUG-4060]
+RELATED_BUGS: [BUG-4060, BUG-3207]
 RELATED_REGRESSIONS: [REG-675]
 LAST_RUN: 
 LAST_RESULT: NOT_RUN
@@ -42,7 +42,7 @@ Created 2026-10-11 at `51c80beb`.
 
 - Test plan — [[PLAN-019]]
 - Module — [[platform-admin]]
-- Bugs — [[BUG-4060]]
+- Bugs — [[BUG-4060]], [[BUG-3207]]
 - Regressions — REG-675 (see the regression register)
 
 <!-- GRAPH:END -->

@@ -179,6 +179,6 @@ delivery test gap.
 ## Related
 
 - Bug — [[BUG-3375]]
-- Modules — [[notifications]], [[contracts-and-agreements]], [[legal]], [[partners]]
+- Modules — [[notifications]], [[contracts-and-agreements]], [[support-cases]], [[legal]], [[partners]]
 
 <!-- GRAPH:END -->

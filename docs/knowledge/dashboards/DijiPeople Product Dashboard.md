@@ -54,6 +54,7 @@ See [[dijipeople-platform-overview|DijiPeople Platform Overview]] for the full p
 - [[reporting|Reporting]]
 - [[settings|Settings]]
 - [[super-admin|Super Admin]]
+- [[support-cases|Support Cases]]
 - [[tenant-application|Tenant Application]]
 - [[tenant-control-plane]]
 - [[tenant-isolation|Tenant Isolation]]
