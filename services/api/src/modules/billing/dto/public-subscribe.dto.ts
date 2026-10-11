@@ -1,8 +1,10 @@
 import { Transform } from 'class-transformer';
+import { PaymentProvider } from '@prisma/client';
 import {
   ArrayMaxSize,
   IsArray,
   IsEmail,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -271,4 +273,14 @@ export class PublicSubscribeDto {
   @IsOptional()
   @IsUUID('4')
   onboardingId?: string;
+
+  /**
+   * Which of the price's offered `paymentProviders` the buyer picked. Absent
+   * means "route by currency", exactly as before this field existed. The
+   * server re-checks it against what it offers; the enum here only rejects
+   * values that are not providers at all.
+   */
+  @IsOptional()
+  @IsIn(Object.values(PaymentProvider))
+  provider?: PaymentProvider;
 }

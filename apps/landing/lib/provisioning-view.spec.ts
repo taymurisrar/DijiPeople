@@ -7,6 +7,8 @@ import {
   pollDelayMs,
   RATE_LIMITED_DELAY_MS,
   pollErrorMessage,
+  statusPollUrl,
+  timedOutMessage,
   type OnboardingStatusView,
 } from "./provisioning-view";
 
@@ -121,6 +123,54 @@ describe("headlineFor", () => {
       "We need to look at something.",
     );
   });
+
+  // The moment the buyer was anxious about must change the headline, not
+  // just a tick in the list.
+  it("gives payment confirmed and provisioning their own lines", () => {
+    const awaiting = headlineFor(status({ state: "AWAITING_PAYMENT" }));
+    const confirmed = headlineFor(status({ state: "PAYMENT_CONFIRMED" }));
+    const provisioning = headlineFor(status({ state: "PROVISIONING" }));
+
+    expect(confirmed).toBe("Payment received. We're creating your workspace.");
+    expect(provisioning).toBe("We're setting up your workspace.");
+    expect(new Set([awaiting, confirmed, provisioning]).size).toBe(3);
+  });
+});
+
+describe("timedOutMessage", () => {
+  // Never claim the payment is safe when nothing has confirmed it.
+  it("does not reassure about a payment that was never confirmed", () => {
+    const message = timedOutMessage(status({ state: "AWAITING_PAYMENT" }));
+    expect(message).toContain("not received confirmation");
+    expect(message).toContain("do not pay again");
+    expect(message).toContain("SO-2026-000123");
+    expect(message).not.toContain("payment is confirmed");
+    expect(timedOutMessage(null)).toContain("not received confirmation");
+  });
+
+  it("says the payment is confirmed only once it is", () => {
+    for (const state of ["PAYMENT_CONFIRMED", "PROVISIONING"] as const) {
+      expect(timedOutMessage(status({ state }))).toContain(
+        "payment is confirmed",
+      );
+    }
+  });
+});
+
+describe("statusPollUrl", () => {
+  it("forwards Stripe's session id so the API can ask Stripe straight away", () => {
+    expect(statusPollUrl("order-1", "cs_test_abc123")).toBe(
+      "/api/public/onboarding/order-1/status?session_id=cs_test_abc123",
+    );
+  });
+
+  it("polls without it when it is absent or not a checkout session id", () => {
+    const bare = "/api/public/onboarding/order-1/status";
+    expect(statusPollUrl("order-1")).toBe(bare);
+    expect(statusPollUrl("order-1", null)).toBe(bare);
+    expect(statusPollUrl("order-1", "{CHECKOUT_SESSION_ID}")).toBe(bare);
+    expect(statusPollUrl("order-1", "cs_a&admin=1")).toBe(bare);
+  });
 });
 
 describe("eyebrowFor", () => {
@@ -152,13 +202,14 @@ describe("pollErrorMessage", () => {
 describe("pollDelayMs", () => {
   it("polls quickly while provisioning is likely still running", () => {
     expect(pollDelayMs(0)).toBe(2_000);
-    expect(pollDelayMs(29_999)).toBe(2_000);
+    expect(pollDelayMs(59_999)).toBe(2_000);
   });
 
   it("backs off once the wait is clearly not a normal one", () => {
-    expect(pollDelayMs(30_000)).toBe(5_000);
-    expect(pollDelayMs(120_000)).toBe(15_000);
-    expect(pollDelayMs(9 * 60_000)).toBe(15_000);
+    expect(pollDelayMs(60_000)).toBe(4_000);
+    expect(pollDelayMs(179_999)).toBe(4_000);
+    expect(pollDelayMs(180_000)).toBe(10_000);
+    expect(pollDelayMs(9 * 60_000)).toBe(10_000);
   });
 
   /*
@@ -188,7 +239,7 @@ describe("nextDelayMs", () => {
   it("uses the normal cadence for an ordinary response", () => {
     expect(nextDelayMs(0, 200)).toBe(2_000);
     expect(nextDelayMs(0, null)).toBe(2_000);
-    expect(nextDelayMs(5 * 60_000, 500)).toBe(15_000);
+    expect(nextDelayMs(5 * 60_000, 500)).toBe(10_000);
   });
 
   // Retrying a 429 at the same cadence turns one into a wall of them.

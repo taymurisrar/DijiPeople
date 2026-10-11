@@ -17,7 +17,8 @@ const groups: Group[] = [
   ]},
   { title: "Customers & Lifecycle", description: "Lead-to-customer and provisioning rules.", items: [
     { title: "Lead definitions", description: "Sources, qualification, statuses, and pipeline rules.", href: "/settings/lead-definitions", icon: Workflow },
-    { title: "Customer definitions", description: "Lifecycle stages and account readiness.", href: "/settings/customer-definitions", icon: Users },
+    { title: "Assignment rules", description: "Who owns new leads, customers and support cases, by rule or in rotation.", href: "/settings/assignment-rules", icon: Workflow },
+    { title: "Customer definitions",description: "Lifecycle stages and account readiness.", href: "/settings/customer-definitions", icon: Users },
     { title: "Onboarding", description: "Readiness and conversion requirements.", href: "/settings/onboarding-definitions", icon: SlidersHorizontal },
     { title: "Tenant provisioning & domains", description: "Slug, base domain, protocol, wildcard DNS, and proxy readiness.", href: "/settings/tenant-provisioning", icon: Building2 },
   ]},
@@ -48,9 +49,12 @@ const groups: Group[] = [
   ]},
   { title: "Integrations", description: "External service connectivity.", items: [
     { title: "Stripe", description: "Connection, synchronization, and webhooks.", href: "/settings/integrations/stripe", icon: CreditCard },
+    // Safepay has no settings screen of its own (credentials are env-only); its operational home is the Billing tab.
+    { title: "Safepay", description: "PKR payments, provider payments, and webhook deliveries.", href: "/billing?tab=safepay", icon: CreditCard },
   ]},
   { title: "Operations", description: "Monitoring, support, and controlled test data.", items: [
     { title: "Monitoring", description: "Overview, incidents, events, and integrations.", href: "/settings/monitoring", icon: Bug },
+    { title: "Teams", description: "Groups that support cases and assignment rules route work to.", href: "/settings/teams", icon: Users },
     { title: "Support policy", description: "Case numbering, severity targets, and SLA.", href: "/settings/support", icon: Headphones },
     { title: "Desktop agent", description: "Published agent versions by channel, and which tenants receive them.", href: "/settings/desktop-agent", icon: MonitorSmartphone },
     { title: "Demo/test data", description: "Manage explicitly tagged local demonstration data.", href: "/settings/demo-data", icon: DatabaseBackup },

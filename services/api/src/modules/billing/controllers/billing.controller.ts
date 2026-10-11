@@ -140,6 +140,7 @@ export class BillingController {
       planPriceId: dto.planPriceId,
       seatQuantity: dto.seatQuantity,
       promotionCode: dto.promotionCode,
+      provider: dto.provider,
     });
   }
 

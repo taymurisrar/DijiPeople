@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getApiBaseUrl } from "../../../../../../lib/api";
 import { forwardedClientHeaders } from "@/lib/forwarded-headers";
+import { STRIPE_SESSION_ID_PATTERN } from "@/lib/provisioning-view";
 
 /**
  * Provisioning state for the page the buyer waits on.
@@ -15,9 +16,21 @@ export async function GET(
 ) {
   const { onboardingId } = await params;
 
+  /*
+   * Only `session_id` is passed through, and only when it is shaped like a
+   * Stripe Checkout Session id. It lets the API ask Stripe about this order
+   * on the poll instead of waiting for the webhook; the API cross-checks it
+   * against the order's own session and decides nothing on it alone.
+   */
+  const sessionId = new URL(request.url).searchParams.get("session_id");
+  const query =
+    sessionId && STRIPE_SESSION_ID_PATTERN.test(sessionId)
+      ? `?session_id=${encodeURIComponent(sessionId)}`
+      : "";
+
   try {
     const response = await fetch(
-      `${getApiBaseUrl()}/public/onboarding/${encodeURIComponent(onboardingId)}/status`,
+      `${getApiBaseUrl()}/public/onboarding/${encodeURIComponent(onboardingId)}/status${query}`,
       {
         headers: {
           ...forwardedClientHeaders(request),

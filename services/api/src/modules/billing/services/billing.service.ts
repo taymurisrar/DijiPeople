@@ -47,6 +47,7 @@ import {
 } from '../billing-seat-pricing';
 import { parseInvoicePurpose } from '../managed-billing.rules';
 import { PaymentGateways } from '../providers/payment-gateways';
+import { openOrderCheckoutProvider } from '../providers/payment-provider.resolver';
 import {
   ManagedCheckoutService,
   type ReturnUrls,
@@ -107,6 +108,40 @@ export class BillingService {
       price,
       this.paymentGateways.get(provider).isConfigured(),
     );
+  }
+
+  /**
+   * Whether Stripe could collect this price, judged from the stored sync state
+   * only — no network call, because this runs for every price on every plans
+   * listing. The Stripe checkout path still re-verifies the Price live before
+   * it opens a session, so a stale "ready" here can cost the buyer an error,
+   * never a wrong charge.
+   */
+  private stripeFactsFor(
+    price: Prisma.PlanPriceGetPayload<object>,
+    expectedStripeEnvironment: StripeEnvironment = stripeEnvironmentFromMode(
+      this.stripeBillingService.getRuntimeMode(),
+    ),
+  ) {
+    return {
+      configured: this.stripeBillingService.isSecretKeyConfigured(),
+      priceReady: deriveCheckoutReadiness(
+        {
+          ...mapSeatPriceContract(price),
+          isActive: price.isActive,
+          effectiveFrom: price.effectiveFrom,
+          stripeProductId: price.stripeProductId,
+          stripePriceId: price.stripePriceId,
+          stripeEnvironment: price.stripeEnvironment,
+          stripeSyncStatus: price.stripeSyncStatus,
+          stripeActive: price.stripeActive,
+          stripeUsageType: price.stripeUsageType,
+          stripeRecurringInterval: price.stripeRecurringInterval,
+          stripeVerifiedAt: price.stripeVerifiedAt,
+        },
+        expectedStripeEnvironment,
+      ).checkoutReady,
+    };
   }
 
   /**
@@ -313,6 +348,14 @@ export class BillingService {
             checkoutReady: readiness.checkoutReady,
             isCheckoutReady: readiness.checkoutReady,
             checkoutReadinessReasons: readiness.reasons,
+            // Additive. Every provider that could collect this price now,
+            // default first; a UI offers a choice only when there are two or
+            // more, and checkout re-checks whatever it is sent against this
+            // same computation.
+            paymentProviders: this.paymentGateways.providerOptions(
+              price.currency,
+              this.stripeFactsFor(price, expectedStripeEnvironment),
+            ),
             stripeEnvironment: price.stripeEnvironment,
             stripeSyncStatus: price.stripeSyncStatus,
             stripeVerifiedAt: price.stripeVerifiedAt,
@@ -496,6 +539,11 @@ export class BillingService {
     ipAddress?: string | null;
     userAgent?: string | null;
     detectedCountry?: string | null;
+    /**
+     * The buyer's choice among the `paymentProviders` `/public/plans` offered
+     * for this price. Declared for the same spread reason as `onboardingId`.
+     */
+    provider?: PaymentProvider | null;
   }) {
     if (input.website?.trim()) {
       return { submitted: true };
@@ -524,8 +572,13 @@ export class BillingService {
       input.seatQuantity,
       planPrice,
     );
-    // Decided once, from the price's currency — never from the request.
-    const provider = this.paymentGateways.resolveProvider(planPrice.currency);
+    // Decided once. Currency routing unless the buyer picked another provider
+    // the server itself offers for this price; never an amount from the request.
+    const provider = this.paymentGateways.chooseProvider(
+      planPrice.currency,
+      input.provider,
+      () => this.stripeFactsFor(planPrice),
+    );
     if (this.paymentGateways.isManaged(provider)) {
       // Refuse before an order is opened, not after the buyer verified.
       this.paymentGateways.require(provider);
@@ -639,7 +692,12 @@ export class BillingService {
      */
     const verifiedOrder = await this.prisma.subscriptionOrder.findUnique({
       where: { id: order.orderId },
-      select: { ownerEmailVerifiedAt: true },
+      select: {
+        ownerEmailVerifiedAt: true,
+        paymentProvider: true,
+        providerPaymentId: true,
+        stripeCheckoutSessionId: true,
+      },
     });
 
     if (!verifiedOrder?.ownerEmailVerifiedAt) {
@@ -658,6 +716,29 @@ export class BillingService {
         leadId: null,
         reused: order.reused,
       };
+    }
+
+    /*
+     * One provider per public order, once a checkout is open on it.
+     *
+     * The order carries a single `paymentProvider`, and everything after
+     * payment reads it: `confirmPayment` copies it into PAYMENT_CONFIRMED,
+     * provisioning creates the subscription on it, and `settleOrder` only
+     * re-verifies a managed provider. Opening a Stripe session on an order
+     * whose Safepay tracker can still be paid — or the reverse — would let a
+     * late payment on the first page either vanish unsettled or provision the
+     * subscription on the wrong provider. Only an explicit choice is refused;
+     * a request with no choice behaves exactly as before.
+     */
+    const openProvider = openOrderCheckoutProvider(verifiedOrder, (value) =>
+      this.paymentGateways.isManaged(value),
+    );
+    if (input.provider && openProvider && openProvider !== provider) {
+      throw new ConflictException({
+        code: 'PAYMENT_PROVIDER_LOCKED',
+        message:
+          'A checkout is already open for this order with another payment method. Complete it there, or contact support to change the payment method.',
+      });
     }
 
     /*
@@ -1071,6 +1152,7 @@ export class BillingService {
     planPriceId: string;
     seatQuantity: number;
     promotionCode?: string;
+    provider?: PaymentProvider | null;
   }) {
     const planPrice = await this.prisma.planPrice.findUnique({
       where: { id: input.planPriceId },
@@ -1114,8 +1196,16 @@ export class BillingService {
     );
 
     // The market and currency are settled above; the provider follows from
-    // them. The browser never chooses it and never sends an amount.
-    const provider = this.paymentGateways.resolveProvider(planPrice.currency);
+    // them, unless the buyer picked another one this price is offered on. The
+    // browser never sends an amount. Switching provider between attempts is
+    // safe here, unlike a public order: a Stripe webhook sets
+    // `paymentProvider = STRIPE` on the subscription it projects, and a late
+    // payment on a superseded managed invoice is refunded by settlement.
+    const provider = this.paymentGateways.chooseProvider(
+      planPrice.currency,
+      input.provider,
+      () => this.stripeFactsFor(planPrice),
+    );
     if (this.paymentGateways.isManaged(provider)) {
       return this.managedCheckout.startSubscriptionCheckout({
         tenantId: input.tenantId,

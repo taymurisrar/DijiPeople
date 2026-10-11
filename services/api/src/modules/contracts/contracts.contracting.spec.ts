@@ -300,3 +300,123 @@ describe('tenant provisioning service order gate', () => {
     ).toBe('Customer');
   });
 });
+
+/*
+ * WS05. The catalog requires `customer.primarySigner.*`, and until the
+ * customer account could hold a signer only the lead source ever filled them.
+ */
+describe('customer signer resolution', () => {
+  const CUSTOMER = {
+    id: 'customer-1',
+    companyName: 'Xoult',
+    legalCompanyName: 'Xoult Ltd',
+    primaryContactFirstName: 'Omar',
+    primaryContactLastName: 'Saleh',
+    primaryContactEmail: 'omar@xoult.example',
+    contactEmail: 'accounts@xoult.example',
+    country: 'Saudi Arabia',
+    industry: 'Logistics',
+    authorizedSignerName: null as string | null,
+    authorizedSignerTitle: null as string | null,
+    authorizedSignerEmail: null as string | null,
+  };
+  const resolve = (contracts: ContractsService, type: string, id: string) =>
+    (
+      contracts as unknown as {
+        resolveSource: (
+          type: string,
+          id: string,
+        ) => Promise<{ placeholderValues: Record<string, string> }>;
+      }
+    ).resolveSource(type, id);
+
+  it('fills the signer placeholders from the customer account', async () => {
+    const contracts = service({
+      platformSetting: { findUnique: jest.fn(async () => null) },
+      customerAccount: {
+        findUnique: jest.fn(async () => ({
+          ...CUSTOMER,
+          authorizedSignerName: 'Amal Hassan',
+          authorizedSignerTitle: 'Chief Operating Officer',
+          authorizedSignerEmail: 'Amal@Xoult.example',
+        })),
+      },
+    });
+
+    const { placeholderValues } = await resolve(
+      contracts,
+      'customer',
+      'customer-1',
+    );
+
+    expect(placeholderValues).toMatchObject({
+      'customer.primarySigner.name': 'Amal Hassan',
+      'customer.primarySigner.title': 'Chief Operating Officer',
+      'customer.primarySigner.email': 'amal@xoult.example',
+    });
+  });
+
+  it('never infers the signer from the primary contact', async () => {
+    // Owner decision D3: the person who answers e-mail is not necessarily
+    // the person who may bind the company.
+    const contracts = service({
+      platformSetting: { findUnique: jest.fn(async () => null) },
+      customerAccount: { findUnique: jest.fn(async () => CUSTOMER) },
+    });
+
+    const { placeholderValues } = await resolve(
+      contracts,
+      'customer',
+      'customer-1',
+    );
+
+    expect(placeholderValues['customer.primarySigner.name']).toBeUndefined();
+    expect(placeholderValues['customer.primarySigner.title']).toBeUndefined();
+    expect(placeholderValues['customer.primarySigner.email']).toBeUndefined();
+  });
+
+  it("an onboarding uses the customer's recorded signer over its administrator", async () => {
+    const contracts = service({
+      platformSetting: { findUnique: jest.fn(async () => null) },
+      customerOnboarding: {
+        findUnique: jest.fn(async () => ({
+          id: 'onboarding-1',
+          tenantId: null,
+          agreedPrice: null,
+          billingCycle: null,
+          discountType: null,
+          discountValue: null,
+          selectedPlan: null,
+          primaryOwnerFirstName: 'Workspace',
+          primaryOwnerLastName: 'Admin',
+          primaryOwnerWorkEmail: 'admin@xoult.example',
+          primaryOwnerPhone: null,
+          customer: {
+            ...CUSTOMER,
+            authorizedSignerName: 'Amal Hassan',
+            authorizedSignerTitle: 'Chief Operating Officer',
+            authorizedSignerEmail: 'amal@xoult.example',
+          },
+        })),
+      },
+    });
+
+    const { placeholderValues } = await resolve(
+      contracts,
+      'onboarding',
+      'onboarding-1',
+    );
+
+    expect(placeholderValues).toMatchObject({
+      'customer.primarySigner.name': 'Amal Hassan',
+      'customer.primarySigner.title': 'Chief Operating Officer',
+      'customer.primarySigner.email': 'amal@xoult.example',
+    });
+    // The legacy keys follow the canonical signer instead of contradicting it.
+    expect(
+      applyDeprecatedPlaceholderAliases(placeholderValues)[
+        'customer.primarySigner'
+      ],
+    ).toBe('Amal Hassan');
+  });
+});

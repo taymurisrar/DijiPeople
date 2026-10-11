@@ -206,6 +206,18 @@ export class CreateContractDto {
   relatedRecords?: ContractRelatedRecordDto[];
 }
 
+/*
+ * The customer's authorized signatory, entered in the Create Agreement dialog
+ * when the customer account has none on file (owner decision D3). Persisted to
+ * the CustomerAccount, never used as a free-form placeholder override — which
+ * is why this is three named fields and not a `placeholderValues` map.
+ */
+export class ContractSourceSignerDto {
+  @IsOptional() @IsString() @MaxLength(200) name?: string;
+  @IsOptional() @IsString() @MaxLength(200) title?: string;
+  @IsOptional() @IsEmail() @MaxLength(254) email?: string;
+}
+
 export class CreateContractFromSourceDto {
   @IsIn(['lead', 'customer', 'onboarding', 'tenant']) sourceType!:
     | 'lead'
@@ -219,6 +231,19 @@ export class CreateContractFromSourceDto {
   @IsOptional() @IsString() @MaxLength(120) lifecycleGatePurpose?: string;
   @IsOptional() @IsDateString() effectiveDate?: string;
   @IsOptional() @IsDateString() expiryDate?: string;
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ContractSourceSignerDto)
+  signer?: ContractSourceSignerDto;
+}
+
+export class TemplateEligibilityQueryDto {
+  @IsIn(['lead', 'customer', 'onboarding', 'tenant']) sourceType!:
+    | 'lead'
+    | 'customer'
+    | 'onboarding'
+    | 'tenant';
+  @IsUUID() sourceId!: string;
 }
 
 export class CopyContractDto {

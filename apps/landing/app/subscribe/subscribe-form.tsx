@@ -12,6 +12,7 @@ import {
 } from "../../lib/plans";
 import {
   buildSubmitPayload,
+  decideSubmit,
   describeSlugProblem,
   emptyWizardForm,
   missingFieldsForStep,
@@ -29,10 +30,13 @@ import {
 } from "../../lib/subscribe-selection";
 import {
   AgreementsStep,
+  chosenPaymentProvider,
+  offeredPaymentProviders,
   OrganizationStep,
   OwnerStep,
   ReviewStep,
   WorkspaceStep,
+  type PaymentProviderKey,
   type SlugState,
 } from "./onboarding-steps";
 
@@ -149,6 +153,15 @@ export function SubscribeForm({
   const selectedPrice = selectedPlan
     ? findPlanPrice(selectedPlan, currency, billingCycle, publishedBillingModel)
     : null;
+  // What the API offers for this exact price; a choice is shown and sent only
+  // when there are two or more.
+  const [pickedProvider, setPickedProvider] =
+    useState<PaymentProviderKey | null>(null);
+  const paymentProviders = offeredPaymentProviders(selectedPrice);
+  const paymentProvider = chosenPaymentProvider(
+    paymentProviders,
+    pickedProvider,
+  );
   // One decision, three consumers: the notice, the form and Continue.
   const block = checkoutBlock(selectedPrice);
   const canCheckout = block === null;
@@ -182,15 +195,27 @@ export function SubscribeForm({
   const countryForDraft = form.country.trim();
   const emailForDraft = form.email.trim() || "pending@onboarding.invalid";
 
+  /*
+   * Whether the buyer has edited the workspace address themselves. A ref, read
+   * inside the state updater, so it is current even when two patches batch.
+   *
+   * This replaces `!current.requestedSlug` as the "untouched" test, which was
+   * true only before the first keystroke: typing "M" wrote "m", the field was
+   * then non-empty, and the suggestion froze at the company's initial.
+   */
+  const slugTouchedRef = useRef(false);
+
   function set(patch: Partial<WizardForm>) {
+    if (patch.requestedSlug !== undefined) slugTouchedRef.current = true;
     setForm((current) => {
       const next = { ...current, ...patch };
       /*
-       * Prefill the workspace address from the company name, but only while the
-       * buyer has not touched it. Overwriting an address they typed because
-       * they later corrected a typo in the company name would be maddening.
+       * Re-suggest the workspace address from the company name on every change
+       * until the buyer edits the address directly. Overwriting an address they
+       * typed because they later corrected a typo in the company name would be
+       * maddening, so a direct edit ends the tracking for good.
        */
-      if (patch.companyName !== undefined && !current.requestedSlug) {
+      if (patch.companyName !== undefined && !slugTouchedRef.current) {
         next.requestedSlug = suggestSlug(patch.companyName);
       }
       return next;
@@ -210,6 +235,7 @@ export function SubscribeForm({
   const [slugAnswer, setSlugAnswer] = useState<{
     slug: string;
     verdict: "available" | "taken" | "unknown";
+    suggestions?: string[];
   } | null>(null);
 
   const currentSlug = form.requestedSlug.trim().toLowerCase();
@@ -220,7 +246,9 @@ export function SubscribeForm({
   const slugState: SlugState = slugFormatProblem
     ? { kind: "idle" }
     : slugAnswer?.slug === currentSlug
-      ? { kind: slugAnswer.verdict }
+      ? slugAnswer.verdict === "taken"
+        ? { kind: "taken", suggestions: slugAnswer.suggestions ?? [] }
+        : { kind: slugAnswer.verdict }
       : { kind: "checking" };
 
   /*
@@ -244,11 +272,14 @@ export function SubscribeForm({
     const requestId = ++slugRequestRef.current;
     const timer = setTimeout(() => {
       void (async () => {
-        const answer = (verdict: "available" | "taken" | "unknown") => {
+        const answer = (
+          verdict: "available" | "taken" | "unknown",
+          suggestions?: string[],
+        ) => {
           // A stale response must never overwrite a newer one — the buyer who
           // typed on would otherwise see an answer about a name they left.
           if (slugRequestRef.current === requestId) {
-            setSlugAnswer({ slug: currentSlug, verdict });
+            setSlugAnswer({ slug: currentSlug, verdict, suggestions });
           }
         };
 
@@ -280,8 +311,20 @@ export function SubscribeForm({
             `/api/public/onboarding/${onboardingIdRef.current}/workspace-address?value=${encodeURIComponent(currentSlug)}`,
           );
           if (!response.ok) return answer("unknown");
-          const payload = (await response.json()) as { available?: boolean };
-          return answer(payload.available ? "available" : "taken");
+          const payload = (await response.json()) as {
+            available?: boolean;
+            suggestions?: unknown;
+          };
+          // Additive field: older API builds omit it, so tolerate absence and
+          // keep only well-formed strings.
+          const suggestions = Array.isArray(payload.suggestions)
+            ? payload.suggestions.filter(
+                (value): value is string => typeof value === "string",
+              )
+            : [];
+          return payload.available
+            ? answer("available")
+            : answer("taken", suggestions);
         } catch {
           // A check we could not run is not a reason to block the buyer. The
           // server decides at submit either way.
@@ -308,7 +351,10 @@ export function SubscribeForm({
     setStep(next);
   }
 
-  function goNext() {
+  function goNext(event?: { preventDefault: () => void }) {
+    // Belt and braces with the distinct button keys below: whatever the
+    // browser's activation behaviour, Continue must never also submit.
+    event?.preventDefault();
     if (missing.length) {
       setShowErrors(true);
       return;
@@ -317,8 +363,38 @@ export function SubscribeForm({
     goTo(WIZARD_STEPS[Math.min(stepIndex + 1, WIZARD_STEPS.length - 1)]);
   }
 
+  /*
+   * A synchronous in-flight latch. `isSubmitting` is state and only changes on
+   * the next render, so a double-click or Enter-then-click could pass the
+   * check twice before it flips; a ref closes that window.
+   */
+  const submitInFlightRef = useRef(false);
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    /*
+     * One `<form>` wraps every step, so a native submit can arrive from any of
+     * them — Enter in a text input, or the Continue button on step 4 being
+     * re-typed as "submit" when the review step swapped it in at the same DOM
+     * position. Only the review step may reach the network; elsewhere a submit
+     * is just "Continue", with that step's own validation.
+     */
+    const decision = decideSubmit({
+      step,
+      missing,
+      inFlight: submitInFlightRef.current || isSubmitting,
+    });
+    if (decision.action === "ignore") return;
+    if (decision.action === "blocked") {
+      setShowErrors(true);
+      return;
+    }
+    if (decision.action === "advance") {
+      goNext();
+      return;
+    }
+
     if (!selectedPrice || !canCheckout) {
       /*
        * `checkoutBlock` owns both of these sentences, and this branch used to
@@ -335,10 +411,13 @@ export function SubscribeForm({
       return;
     }
 
+    submitInFlightRef.current = true;
     setIsSubmitting(true);
     setStatus(null);
 
-    const response = await fetch("/api/public/subscribe", {
+    let response: Response;
+    try {
+      response = await fetch("/api/public/subscribe", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -361,9 +440,20 @@ export function SubscribeForm({
          * attacker a rate-limited, durably recorded row per question.
          */
         onboardingId: onboardingId ?? undefined,
+        // Undefined (so omitted by JSON) unless the buyer had a choice.
+        provider: paymentProvider,
       }),
-    });
+      });
+    } catch {
+      // A network failure must release the latch, or the buyer could never
+      // retry without reloading and losing the form.
+      submitInFlightRef.current = false;
+      setIsSubmitting(false);
+      setStatus("We couldn't reach the server. Please try again in a moment.");
+      return;
+    }
     const payload = await response.json().catch(() => null);
+    submitInFlightRef.current = false;
     setIsSubmitting(false);
 
     if (!response.ok) {
@@ -443,6 +533,9 @@ export function SubscribeForm({
          * attacker a rate-limited, durably recorded row per question.
          */
         onboardingId: onboardingId ?? undefined,
+        // The same choice the first submission carried; the server refuses a
+        // switch once a checkout is open on this order (PAYMENT_PROVIDER_LOCKED).
+        provider: paymentProvider,
       }),
     });
     const checkoutPayload = await checkout.json().catch(() => null);
@@ -888,7 +981,13 @@ export function SubscribeForm({
             {step === "owner" ? <OwnerStep {...stepProps} /> : null}
             {step === "agreements" ? <AgreementsStep {...stepProps} /> : null}
             {step === "review" ? (
-              <ReviewStep {...stepProps} goTo={goTo} />
+              <ReviewStep
+                {...stepProps}
+                goTo={goTo}
+                onPaymentProviderChange={setPickedProvider}
+                paymentProvider={paymentProvider}
+                paymentProviders={paymentProviders}
+              />
             ) : null}
           </fieldset>
         )}
@@ -929,8 +1028,17 @@ export function SubscribeForm({
             Back
           </button>
 
+          {/*
+            Distinct keys are the WS01 fix. Without them React reuses one DOM
+            button for both branches and mutates `type` from "button" to
+            "submit" while the Continue click on step 4 is still being handled;
+            the browser then reads the new type and submits the form, which
+            posted the order and jumped to email verification on the "second
+            advance".
+          */}
           {step === "review" ? (
             <button
+              key="wizard-submit"
               className="rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
               disabled={isSubmitting || !canCheckout}
               type="submit"
@@ -939,6 +1047,7 @@ export function SubscribeForm({
             </button>
           ) : (
             <button
+              key="wizard-continue"
               // Disabled for the same reason the fieldset is: advancing collects
               // more of somebody's time towards a submit button that cannot fire.
               className="rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"

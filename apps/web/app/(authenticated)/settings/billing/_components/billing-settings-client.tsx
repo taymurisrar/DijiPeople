@@ -25,6 +25,11 @@ import {
   rankPlanFeatures,
   resolveDefaultCurrency,
 } from "../_lib/plan-presentation";
+import {
+  chosenPaymentProvider,
+  type PaymentProviderKey,
+  type PaymentProviderOption,
+} from "../_lib/payment-provider-choice";
 
 type SubscriptionView = "overview" | "plans" | "billing-history";
 
@@ -50,6 +55,11 @@ type BillingPlan = {
     includedSeats?: number;
     hasStripePrice: boolean;
     isCheckoutReady: boolean;
+    /**
+     * Providers the API says can collect this price now, default first.
+     * Optional because an older API omits it; absent means "route by currency".
+     */
+    paymentProviders?: PaymentProviderOption[];
   }>;
   features: Array<{
     key: string;
@@ -170,9 +180,15 @@ export function BillingSettingsClient({
   const [promotionCode, setPromotionCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [actionId, setActionId] = useState<string | null>(null);
+  // Per price, because which providers are offered depends on the price (its
+  // currency, and whether it has a synced Stripe Price).
+  const [providerByPriceId, setProviderByPriceId] = useState<
+    Record<string, PaymentProviderKey>
+  >({});
   const [isPending, startTransition] = useTransition();
   const seatFieldId = useId();
   const promotionFieldId = useId();
+  const providerFieldId = useId();
 
   const currencies = useMemo(
     () =>
@@ -240,6 +256,12 @@ export function BillingSettingsClient({
         // The amount is never sent: the API prices the order, applies the
         // code, and decides which provider takes the payment.
         const code = promotionCode.trim();
+        // Sent only when there was a choice to make. With one provider the
+        // API routes by currency exactly as it always has.
+        const provider = chosenPaymentProvider(
+          selectedPrice.paymentProviders,
+          providerByPriceId[planPriceId],
+        );
         const response = await fetchJson<{ url?: string }>(
           "/api/billing/checkout-sessions",
           {
@@ -248,6 +270,7 @@ export function BillingSettingsClient({
               planPriceId,
               seatQuantity,
               ...(code ? { promotionCode: code } : {}),
+              ...(provider ? { provider } : {}),
             }),
           },
         );
@@ -783,24 +806,43 @@ export function BillingSettingsClient({
                       ) : price?.isCheckoutReady &&
                         canSelfServiceUpgrade &&
                         !hasLiveSubscriptionBlock ? (
-                        <Button
-                          variant="primary"
-                          fullWidth
-                          onClick={() => createCheckoutSession(price.id)}
-                          disabled={
-                            isPending ||
-                            Boolean(seatValidation && !seatValidation.ok)
-                          }
-                          loading={actionId === price.id}
-                          leftIcon={
-                            <ArrowUpRight
-                              className="h-4 w-4"
-                              aria-hidden="true"
+                        <>
+                          {(price.paymentProviders?.length ?? 0) > 1 ? (
+                            <PaymentProviderChoice
+                              name={`${providerFieldId}-${price.id}`}
+                              options={price.paymentProviders ?? []}
+                              value={chosenPaymentProvider(
+                                price.paymentProviders,
+                                providerByPriceId[price.id],
+                              )}
+                              disabled={isPending}
+                              onChange={(key) =>
+                                setProviderByPriceId((current) => ({
+                                  ...current,
+                                  [price.id]: key,
+                                }))
+                              }
                             />
-                          }
-                        >
-                          Subscribe
-                        </Button>
+                          ) : null}
+                          <Button
+                            variant="primary"
+                            fullWidth
+                            onClick={() => createCheckoutSession(price.id)}
+                            disabled={
+                              isPending ||
+                              Boolean(seatValidation && !seatValidation.ok)
+                            }
+                            loading={actionId === price.id}
+                            leftIcon={
+                              <ArrowUpRight
+                                className="h-4 w-4"
+                                aria-hidden="true"
+                              />
+                            }
+                          >
+                            Subscribe
+                          </Button>
+                        </>
                       ) : hasLiveSubscriptionBlock ? (
                         <div className="rounded-[14px] border border-dashed border-border bg-surface px-4 py-3 text-sm text-muted">
                           You already have a subscription. Manage or change your
@@ -1437,6 +1479,49 @@ function formatSeatBounds(price: {
     return `Minimum ${minimum} seat${minimum === 1 ? "" : "s"}.`;
   }
   return `${minimum}-${price.maximumSeats} seats.`;
+}
+
+/**
+ * Shown only when the API offers two or more providers for the price. A
+ * native radio group inside a fieldset, so arrow keys move between options and
+ * a screen reader announces the group name with each one.
+ */
+function PaymentProviderChoice({
+  name,
+  options,
+  value,
+  disabled,
+  onChange,
+}: {
+  name: string;
+  options: PaymentProviderOption[];
+  value: PaymentProviderKey | undefined;
+  disabled?: boolean;
+  onChange: (key: PaymentProviderKey) => void;
+}) {
+  return (
+    <fieldset className="mb-3 grid gap-2" disabled={disabled}>
+      <legend className="mb-1 text-sm font-semibold text-foreground">
+        Payment method
+      </legend>
+      {options.map((option) => (
+        <label
+          key={option.key}
+          className="flex cursor-pointer items-center gap-2 rounded-[12px] border border-border bg-surface px-3 py-2 text-sm text-foreground has-[:checked]:border-accent"
+        >
+          <input
+            type="radio"
+            name={name}
+            value={option.key}
+            checked={value === option.key}
+            onChange={() => onChange(option.key)}
+            className="h-4 w-4 accent-accent"
+          />
+          <span>{option.label}</span>
+        </label>
+      ))}
+    </fieldset>
+  );
 }
 
 function compareFeatures(

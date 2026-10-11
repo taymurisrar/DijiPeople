@@ -32,6 +32,11 @@ import {
   humanizeFieldError,
 } from "@/lib/runtime/humanize-field-error";
 import { executeRuntimeRecordAction } from "@/lib/runtime/runtime-record-action-handler";
+import {
+  supportCaseNextStep,
+  type SupportCaseDialogAction,
+} from "@/lib/runtime/support-case-actions";
+import { SupportCaseActionDialog } from "@/app/_components/support/support-case-action-dialog";
 import { ModuleActionBar } from "./module-action-bar";
 import {
   RecordHeader,
@@ -185,6 +190,9 @@ function RuntimeRecordEditor({
    */
   const [relatedRefreshKey, setRelatedRefreshKey] = useState(0);
   const [signatureOpen, setSignatureOpen] = useState(false);
+  // WS11: the support case command that needs structured input, if open.
+  const [supportDialog, setSupportDialog] =
+    useState<SupportCaseDialogAction | null>(null);
   /*
    * Governed reasons are collected here rather than by `window.prompt` in the
    * action handler, which is a plain module and cannot render (BUG-0020).
@@ -538,6 +546,7 @@ function RuntimeRecordEditor({
       },
       leaveEditMode: () => setMode("read"),
       openSignatureDialog: () => setSignatureOpen(true),
+      openSupportCaseDialog: setSupportDialog,
       requestReason,
     });
   }
@@ -954,6 +963,16 @@ function RuntimeRecordEditor({
           allowChangeRequests={form.values.allowChangeRequests !== false}
           onClose={() => setSignatureOpen(false)}
           onComplete={reloadRecord}
+        />
+      ) : null}
+      {supportDialog && moduleKey === "support-cases" ? (
+        <SupportCaseActionDialog
+          action={supportDialog}
+          record={form.values}
+          onClose={() => setSupportDialog(null)}
+          onComplete={async () => {
+            await reloadRecord();
+          }}
         />
       ) : null}
       {reasonDialog}
@@ -1995,6 +2014,14 @@ function CustomerAgreementPanel({
   );
 }
 
+/*
+ * WS11: status buttons and the raw "Incident ID" / "Merge into case ID" text
+ * boxes used to live here. Status now moves only through the registry
+ * commands (which carry `states` from the API's transition table and open
+ * `SupportCaseActionDialog` for structured input), so this panel keeps what
+ * is not a status change: where the case stands, its links, the customer
+ * update, and attachments.
+ */
 function SupportCaseOperationsPanel({
   record,
   onComplete,
@@ -2002,236 +2029,241 @@ function SupportCaseOperationsPanel({
   record: Record<string, unknown>;
   onComplete: () => Promise<void>;
 }) {
-  const [incidentId, setIncidentId] = useState("");
-  const [mergeTarget, setMergeTarget] = useState("");
   const [message, setMessage] = useState("");
   const [customerSubject, setCustomerSubject] = useState(
     `Update on ${String(record.caseNumber ?? "your support case")}`,
   );
   const [customerBody, setCustomerBody] = useState("");
   const [busy, setBusy] = useState(false);
+  const [relations, setRelations] = useState<SupportCaseRelationItem[]>([]);
+  const caseId = String(record.id ?? "");
+  const merged = record.mergedIntoCase as
+    | { id?: string; caseNumber?: string; title?: string }
+    | null
+    | undefined;
+  const status = String(record.status ?? "NEW");
+  const locked = Boolean(merged) || ["CLOSED", "CANCELLED"].includes(status);
   const attachments = Array.isArray(record.attachments)
     ? (record.attachments as Array<Record<string, unknown>>)
     : [];
   const incidents = Array.isArray(record.incidentLinks)
     ? (record.incidentLinks as Array<Record<string, unknown>>)
     : [];
-  async function post(path: string, body: Record<string, unknown>) {
+  const refreshKey = String(record.updatedAt ?? "");
+
+  // Bumped after an unlink so the list reloads without a full record reload.
+  const [relationsVersion, setRelationsVersion] = useState(0);
+  useEffect(() => {
+    if (!caseId) return;
+    let live = true;
+    fetch(`/api/support-cases/${encodeURIComponent(caseId)}/relations`)
+      .then(async (response) => {
+        const payload = await response.json().catch(() => null);
+        if (live)
+          setRelations(
+            response.ok && Array.isArray(payload?.items) ? payload.items : [],
+          );
+      })
+      .catch(() => live && setRelations([]));
+    return () => {
+      live = false;
+    };
+  }, [caseId, refreshKey, relationsVersion]);
+
+  async function send(
+    path: string,
+    init: RequestInit,
+    success: string,
+    after?: () => void,
+  ) {
     setBusy(true);
     setMessage("");
-    const response = await fetch(`/api/support-cases/${record.id}/${path}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    const response = await fetch(
+      `/api/support-cases/${encodeURIComponent(caseId)}/${path}`,
+      init,
+    );
     const payload = await response.json().catch(() => null);
     setBusy(false);
     if (!response.ok) {
       setMessage(payload?.message ?? "Unable to update support case.");
       return;
     }
-    setMessage(
-      path === "customer-updates"
-        ? "Customer update sent and recorded."
-        : "Support case updated.",
-    );
-    if (path === "customer-updates") setCustomerBody("");
+    setMessage(success);
+    after?.();
     await onComplete();
+    setRelationsVersion((version) => version + 1);
   }
-  async function changeStatus(
-    status: string,
-    extra: Record<string, unknown> = {},
-  ) {
-    setBusy(true);
-    setMessage("");
-    const response = await fetch(`/api/support-cases/${record.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status, ...extra }),
-    });
-    const payload = await response.json().catch(() => null);
-    setBusy(false);
-    if (!response.ok) {
-      setMessage(payload?.message ?? "Unable to change case status.");
-      return;
-    }
-    setMessage(`Case moved to ${status.toLowerCase().replaceAll("_", " ")}.`);
-    await onComplete();
-  }
-  const status = String(record.status ?? "NEW");
   async function upload(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
-    setBusy(true);
     const data = new FormData();
     data.set("file", file);
     data.set("customerSafe", "false");
-    const response = await fetch(
-      `/api/support-cases/${record.id}/attachments`,
-      { method: "POST", body: data },
-    );
-    const payload = await response.json().catch(() => null);
-    setBusy(false);
-    if (!response.ok) {
-      setMessage(payload?.message ?? "Unable to upload attachment.");
-      return;
-    }
-    setMessage("Attachment uploaded.");
-    await onComplete();
+    await send("attachments", { method: "POST", body: data }, "Attachment uploaded.");
+    event.target.value = "";
   }
+
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div>
-        <p className="text-sm font-semibold text-slate-950">
-          Case relationships and communication
-        </p>
-        <p className="mt-1 text-xs text-slate-500">
-          Link sanitized incidents, merge duplicates, preserve evidence, and
-          send customer-safe progress updates.
-        </p>
-      </div>
-      <div
-        className="mt-4 flex flex-wrap gap-2"
-        aria-label="Support case actions"
-      >
-        {["NEW", "REOPENED"].includes(status) ? (
-          <CaseAction
-            label="Triage"
-            disabled={busy}
-            onClick={() => changeStatus("TRIAGED")}
-          />
-        ) : null}
-        {!["RESOLVED", "CLOSED", "CANCELLED"].includes(status) ? (
-          <CaseAction
-            label="Escalate"
-            disabled={busy}
-            onClick={() =>
-              changeStatus("WAITING_ON_INTERNAL_TEAM", {
-                escalationLevel: "ESCALATED",
-              })
-            }
-          />
-        ) : null}
-        {!["RESOLVED", "CLOSED", "CANCELLED"].includes(status) ? (
-          <CaseAction
-            label="Request info"
-            disabled={busy}
-            onClick={() => changeStatus("WAITING_ON_CUSTOMER")}
-          />
-        ) : null}
-        {!["RESOLVED", "CLOSED", "CANCELLED"].includes(status) ? (
-          <CaseAction
-            label="Resolve"
-            disabled={busy}
-            onClick={() => changeStatus("RESOLVED")}
-            primary
-          />
-        ) : null}
-        {status === "RESOLVED" ? (
-          <CaseAction
-            label="Close"
-            disabled={busy}
-            onClick={() => changeStatus("CLOSED")}
-            primary
-          />
-        ) : null}
-        {["RESOLVED", "CLOSED"].includes(status) ? (
-          <CaseAction
-            label="Reopen"
-            disabled={busy}
-            onClick={() => changeStatus("REOPENED")}
-          />
-        ) : null}
-      </div>
-      <div className="mt-4 grid gap-3 lg:grid-cols-[0.8fr_1.5fr_auto] lg:items-end">
-        <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Customer email subject
-          <input
-            value={customerSubject}
-            onChange={(event) => setCustomerSubject(event.target.value)}
-            className="h-10 rounded-xl border border-slate-200 px-3 text-sm font-normal normal-case tracking-normal"
-          />
-        </label>
-        <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Customer-safe update
-          <textarea
-            value={customerBody}
-            onChange={(event) => setCustomerBody(event.target.value)}
-            rows={2}
-            className="min-h-10 resize-y rounded-xl border border-slate-200 px-3 py-2 text-sm font-normal normal-case tracking-normal"
-          />
-        </label>
-        <button
-          type="button"
-          disabled={busy || !customerSubject || !customerBody}
-          onClick={() =>
-            void post("customer-updates", {
-              subject: customerSubject,
-              body: customerBody,
-            })
-          }
-          className="h-10 rounded-xl bg-emerald-700 px-4 text-xs font-semibold text-white disabled:opacity-40"
+    <section
+      className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+      aria-label="Case status, links and communication"
+    >
+      {merged ? (
+        <p
+          role="status"
+          className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900"
         >
-          Send update
-        </button>
-      </div>
-      <div className="mt-4 grid gap-3 lg:grid-cols-3">
-        <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Incident ID
-          <div className="flex gap-2">
-            <input
-              value={incidentId}
-              onChange={(e) => setIncidentId(e.target.value)}
-              className="h-10 min-w-0 flex-1 rounded-xl border border-slate-200 px-3 text-sm font-normal normal-case tracking-normal"
-            />
-            <button
-              disabled={busy || !incidentId}
-              onClick={() => post("incidents", { errorLogId: incidentId })}
-              className="rounded-xl bg-blue-700 px-3 text-xs font-semibold text-white"
+          Merged into{" "}
+          {merged.id ? (
+            <Link
+              href={`/support/cases/${merged.id}`}
+              className="font-semibold underline"
             >
-              Link
-            </button>
-          </div>
-        </label>
-        <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Merge into case ID
-          <div className="flex gap-2">
-            <input
-              value={mergeTarget}
-              onChange={(e) => setMergeTarget(e.target.value)}
-              className="h-10 min-w-0 flex-1 rounded-xl border border-slate-200 px-3 text-sm font-normal normal-case tracking-normal"
-            />
-            <button
-              disabled={busy || !mergeTarget}
-              onClick={() =>
-                post("merge", {
-                  targetCaseId: mergeTarget,
-                  reason: "Duplicate case merged from Platform Admin.",
-                })
-              }
-              className="rounded-xl bg-amber-700 px-3 text-xs font-semibold text-white"
-            >
-              Merge
-            </button>
-          </div>
-        </label>
-        <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Attachment
-          <input
-            type="file"
-            accept=".pdf,.png,.jpg,.jpeg,.txt"
-            onChange={upload}
-            className="h-10 rounded-xl border border-slate-200 px-2 py-1.5 text-xs font-normal normal-case tracking-normal"
-          />
-        </label>
+              {merged.caseNumber ?? "another case"}
+            </Link>
+          ) : (
+            "another case"
+          )}
+          . This case is read-only.
+        </p>
+      ) : null}
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="text-sm font-semibold text-slate-950">
+          {status.toLowerCase().replaceAll("_", " ").replace(/^\w/, (c) => c.toUpperCase())}
+        </p>
+        <p className="text-xs text-slate-500">{supportCaseNextStep(record)}</p>
       </div>
-      <div className="mt-3 flex flex-wrap gap-2">
+
+      <div className="mt-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Linked cases
+        </p>
+        {relations.length ? (
+          <ul className="mt-2 divide-y divide-slate-100 rounded-xl border border-slate-200">
+            {relations.map((relation) => (
+              <li
+                key={relation.id}
+                className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm"
+              >
+                <span className="min-w-0">
+                  <span className="mr-2 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600">
+                    {relationLabel(relation)}
+                  </span>
+                  <Link
+                    href={`/support/cases/${relation.case.id}`}
+                    className="font-semibold text-[var(--admin-primary)] hover:underline"
+                  >
+                    {relation.case.caseNumber}
+                  </Link>{" "}
+                  <span className="text-slate-600">{relation.case.title}</span>
+                </span>
+                {locked ? null : (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() =>
+                      void send(
+                        `relations/${encodeURIComponent(relation.id)}`,
+                        { method: "DELETE" },
+                        "Link removed.",
+                      )
+                    }
+                    aria-label={`Unlink ${relation.case.caseNumber}`}
+                    className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700 disabled:opacity-40"
+                  >
+                    Unlink
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-1 text-xs text-slate-500">
+            No linked cases. Use Link case in the command bar.
+          </p>
+        )}
+      </div>
+
+      {merged ? null : (
+        <div className="mt-4 grid gap-3 lg:grid-cols-[0.8fr_1.5fr_auto] lg:items-end">
+          <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Customer email subject
+            <input
+              value={customerSubject}
+              onChange={(event) => setCustomerSubject(event.target.value)}
+              className="h-10 rounded-xl border border-slate-200 px-3 text-sm font-normal normal-case tracking-normal"
+            />
+          </label>
+          <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Customer-safe update
+            <textarea
+              value={customerBody}
+              onChange={(event) => setCustomerBody(event.target.value)}
+              rows={2}
+              className="min-h-10 resize-y rounded-xl border border-slate-200 px-3 py-2 text-sm font-normal normal-case tracking-normal"
+            />
+          </label>
+          <button
+            type="button"
+            disabled={busy || !customerSubject || !customerBody}
+            onClick={() =>
+              void send(
+                "customer-updates",
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    subject: customerSubject,
+                    body: customerBody,
+                  }),
+                },
+                "Customer update sent and recorded.",
+                () => setCustomerBody(""),
+              )
+            }
+            className="h-10 rounded-xl bg-emerald-700 px-4 text-xs font-semibold text-white disabled:opacity-40"
+          >
+            Send update
+          </button>
+        </div>
+      )}
+
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        {merged ? null : (
+          <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Attachment
+            <input
+              type="file"
+              accept=".pdf,.png,.jpg,.jpeg,.txt"
+              onChange={upload}
+              disabled={busy}
+              className="h-10 max-w-full rounded-xl border border-slate-200 px-2 py-1.5 text-xs font-normal normal-case tracking-normal"
+            />
+          </label>
+        )}
         {incidents.map((item) => (
           <span
             key={String(item.id)}
-            className="rounded-lg bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-700"
+            className="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-700"
           >
             Incident linked
+            {merged ? null : (
+              <button
+                type="button"
+                disabled={busy}
+                aria-label="Unlink incident"
+                onClick={() =>
+                  void send(
+                    `incidents/${encodeURIComponent(String(item.id))}`,
+                    { method: "DELETE" },
+                    "Incident unlinked.",
+                  )
+                }
+                className="ml-1 rounded px-1 text-blue-900 hover:bg-blue-100 disabled:opacity-40"
+              >
+                ×
+              </button>
+            )}
           </span>
         ))}
         {attachments.map((item) => (
@@ -2245,33 +2277,27 @@ function SupportCaseOperationsPanel({
         ))}
       </div>
       {message ? (
-        <p className="mt-3 text-xs text-slate-600">{message}</p>
+        <p role="status" className="mt-3 text-xs text-slate-600">
+          {message}
+        </p>
       ) : null}
     </section>
   );
 }
 
-function CaseAction({
-  label,
-  onClick,
-  disabled,
-  primary = false,
-}: {
-  label: string;
-  onClick: () => void;
-  disabled: boolean;
-  primary?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      className={`rounded-lg px-3 py-2 text-xs font-semibold disabled:opacity-40 ${primary ? "bg-slate-950 text-white" : "border border-slate-200 text-slate-700"}`}
-    >
-      {label}
-    </button>
-  );
+type SupportCaseRelationItem = {
+  id: string;
+  relationType: "RELATED" | "DUPLICATE" | "BLOCKS";
+  direction: "OUTGOING" | "INCOMING";
+  case: { id: string; caseNumber: string; title: string; status: string };
+};
+
+function relationLabel(relation: SupportCaseRelationItem) {
+  if (relation.relationType === "BLOCKS")
+    return relation.direction === "OUTGOING" ? "Blocks" : "Blocked by";
+  if (relation.relationType === "DUPLICATE")
+    return relation.direction === "OUTGOING" ? "Duplicate of" : "Duplicated by";
+  return "Related";
 }
 
 function ContractVersionHistory({

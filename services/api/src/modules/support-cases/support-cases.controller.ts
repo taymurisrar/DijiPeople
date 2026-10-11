@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -20,11 +21,18 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import {
   AddSupportCaseActivityDto,
+  AssignSupportCaseDto,
   CreateSupportCaseDto,
+  CreateSupportCaseRelationDto,
+  EscalateSupportCaseDto,
   LinkSupportIncidentDto,
   MergeSupportCaseDto,
+  ReopenSupportCaseDto,
+  RequestSupportCaseInfoDto,
+  ResolveSupportCaseDto,
   SendCustomerUpdateDto,
   SupportCaseQueryDto,
+  TransitionSupportCaseDto,
   UpdateSupportCaseDto,
 } from './dto/support-cases.dto';
 import { SupportCasesService } from './support-cases.service';
@@ -87,6 +95,80 @@ export class SupportCasesController {
     @Body() dto: LinkSupportIncidentDto,
   ) {
     return this.service.linkIncident(user, id, dto);
+  }
+  /*
+   * Lifecycle commands (WS11). Authorization stays where this controller has
+   * always kept it — in the service (support.read / support.manage) — so every
+   * route, old and new, is checked by the same code.
+   */
+  @Post(':id/transition') transition(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: TransitionSupportCaseDto,
+  ) {
+    return this.service.transition(user, id, dto);
+  }
+  @Post(':id/escalate') escalate(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: EscalateSupportCaseDto,
+  ) {
+    return this.service.escalate(user, id, dto);
+  }
+  @Post(':id/request-info') requestInfo(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: RequestSupportCaseInfoDto,
+  ) {
+    return this.service.requestInfo(user, id, dto);
+  }
+  @Post(':id/resolve') resolve(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: ResolveSupportCaseDto,
+  ) {
+    return this.service.resolve(user, id, dto);
+  }
+  @Post(':id/reopen') reopen(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: ReopenSupportCaseDto,
+  ) {
+    return this.service.reopen(user, id, dto);
+  }
+  @Post(':id/assign') assign(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: AssignSupportCaseDto,
+  ) {
+    return this.service.assign(user, id, dto);
+  }
+  @Get(':id/relations') relations(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    return this.service.listRelations(user, id);
+  }
+  @Post(':id/relations') createRelation(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: CreateSupportCaseRelationDto,
+  ) {
+    return this.service.createRelation(user, id, dto);
+  }
+  @Delete(':id/relations/:relationId') deleteRelation(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Param('relationId') relationId: string,
+  ) {
+    return this.service.deleteRelation(user, id, relationId);
+  }
+  @Delete(':id/incidents/:linkId') unlinkIncident(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Param('linkId') linkId: string,
+  ) {
+    return this.service.unlinkIncident(user, id, linkId);
   }
   @Post(':id/merge') merge(
     @CurrentUser() user: AuthenticatedUser,

@@ -378,6 +378,7 @@ export async function runSeedConfig() {
   await seedSystemEmailTemplates(prisma);
   await seedPlatformOperationalSettings(prisma);
   await seedPlatformNumberSequences(prisma);
+  await seedPlatformTeams(prisma);
   await seedPlatformContractTemplates(prisma);
   const referenceDataCount = await seedCoreReferenceData(prisma);
   const permissionBootstrapService = new PermissionBootstrapService(
@@ -585,6 +586,33 @@ export const PLATFORM_NUMBER_SEQUENCE_DEFAULTS = [
     issuedPattern: '^PART-([0-9]+)$',
   },
 ] as const;
+
+/*
+ * The four values the support-case team picker has always offered, as real
+ * teams so the assignment-team lookup and the picker agree. Create-only: an
+ * operator who renamed, archived or re-categorised one has made a decision that
+ * a redeploy must not undo, so an existing row (matched case-insensitively) is
+ * left exactly as it is.
+ */
+const DEFAULT_PLATFORM_TEAMS = [
+  { name: 'Customer Support', sortOrder: 10 },
+  { name: 'Engineering', sortOrder: 20 },
+  { name: 'Billing', sortOrder: 30 },
+  { name: 'Platform Operations', sortOrder: 40 },
+] as const;
+
+async function seedPlatformTeams(client: PrismaClient) {
+  for (const team of DEFAULT_PLATFORM_TEAMS) {
+    const existing = await client.platformTeam.findFirst({
+      where: { name: { equals: team.name, mode: 'insensitive' } },
+      select: { id: true },
+    });
+    if (existing) continue;
+    await client.platformTeam.create({
+      data: { name: team.name, category: 'SUPPORT', sortOrder: team.sortOrder },
+    });
+  }
+}
 
 async function seedPlatformNumberSequences(client: PrismaClient) {
   for (const sequence of PLATFORM_NUMBER_SEQUENCE_DEFAULTS) {

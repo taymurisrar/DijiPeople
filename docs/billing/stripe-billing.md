@@ -58,6 +58,8 @@ Required events:
 
 ```text
 checkout.session.completed
+checkout.session.async_payment_succeeded
+checkout.session.async_payment_failed
 customer.subscription.created
 customer.subscription.updated
 customer.subscription.deleted
@@ -69,6 +71,14 @@ invoice.marked_uncollectible
 payment_intent.succeeded
 payment_intent.payment_failed
 ```
+
+The two `async_payment_*` events matter only for delayed payment methods
+(bank debits); a card checkout completes with `payment_status: paid` on
+`checkout.session.completed`. An endpoint created before 2026-10-11 does not
+subscribe to them and must have them added in the Stripe dashboard. The
+public onboarding status poll also reconciles a paid session directly from
+Stripe, so a missed or delayed webhook no longer leaves the success page
+waiting.
 
 DijiPeople verifies the `Stripe-Signature` header using `STRIPE_WEBHOOK_SECRET`. Subscription activation must come from webhook processing, not the Checkout success URL.
 

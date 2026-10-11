@@ -5,6 +5,11 @@ import { MonitoringNav } from "@/app/_components/monitoring/monitoring-nav";
 import { PageHeader } from "@/app/_components/ui/page-header";
 import { requireSystemAdminUser } from "@/lib/auth";
 import { apiRequestJson } from "@/lib/server-api";
+import {
+  deriveSafepayIntegrationState,
+  type ProviderEventSummary,
+  type SafepayDescription,
+} from "@/lib/safepay-integration-state";
 
 /* Each screen titles itself. 47 of 48 shared one title, so a tab, a
    bookmark and a screen reader's announcement said the same thing on
@@ -32,12 +37,34 @@ type State = { label: string; tone: "ok" | "warn" | "down" | "unknown" };
  */
 export default async function MonitoringIntegrationsPage() {
   await requireSystemAdminUser("/settings/monitoring/integrations");
-  const [diagnostics, health] = await Promise.all([
-    apiRequestJson<StripeDiagnostics>("/super-admin/billing/diagnostics"),
-    apiRequestJson<PlatformHealth>("/platform/monitoring/health").catch(
-      () => null,
-    ),
-  ]);
+  const [diagnostics, health, providers, recentEvents, recentFailures] =
+    await Promise.all([
+      apiRequestJson<StripeDiagnostics>("/super-admin/billing/diagnostics"),
+      apiRequestJson<PlatformHealth>("/platform/monitoring/health").catch(
+        () => null,
+      ),
+      // Each Safepay read degrades to "could not be read" on its own, so a
+      // failing provider endpoint cannot take the Stripe and email cards down.
+      apiRequestJson<{ safepay?: SafepayDescription }>(
+        "/super-admin/billing/payment-providers",
+      ).catch(() => null),
+      apiRequestJson<{ items: ProviderEventSummary[] }>(
+        "/super-admin/billing/provider-events?pageSize=20",
+      )
+        .then((page) => page.items)
+        .catch(() => null),
+      apiRequestJson<{ items: ProviderEventSummary[] }>(
+        "/super-admin/billing/provider-events?pageSize=20&status=FAILED",
+      )
+        .then((page) => page.items)
+        .catch(() => null),
+    ]);
+
+  const safepayState = deriveSafepayIntegrationState({
+    safepay: providers?.safepay ?? null,
+    recentEvents,
+    recentFailures,
+  });
 
   const stripeState: State = diagnostics.secretKeyConfigured
     ? diagnostics.webhookConfigured
@@ -80,6 +107,14 @@ export default async function MonitoringIntegrationsPage() {
           title="Stripe"
         />
         <Integration
+          description="PKR payments, hosted checkout and webhook delivery."
+          detail={safepayState.detail}
+          href="/billing?tab=safepay"
+          linkLabel="Open Safepay billing"
+          state={safepayState}
+          title="Safepay"
+        />
+        <Integration
           description="Platform email provider and recent delivery."
           detail={email?.reason ?? "The health probe could not be reached."}
           href="/settings/email"
@@ -104,12 +139,14 @@ function Integration({
   description,
   detail,
   href,
+  linkLabel = "Open settings",
 }: {
   title: string;
   state: State;
   description: string;
   detail: string;
   href: string;
+  linkLabel?: string;
 }) {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -127,7 +164,7 @@ function Integration({
         className="mt-3 inline-flex text-sm font-semibold text-[var(--admin-primary)] hover:underline"
         href={href}
       >
-        Open settings
+        {linkLabel}
       </Link>
     </section>
   );

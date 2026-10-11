@@ -9,9 +9,11 @@ import type { AuthenticatedUser } from '../../common/interfaces/authenticated-re
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { userHasPlatformPermission } from '../platform-auth/platform-permissions';
 import {
+  collapseRepeats,
   isNotifiable,
   toNotification,
   type PlatformNotification,
+  type SubjectLabels,
 } from './platform-notifications';
 
 export type RecordPlatformEventInput = {
@@ -147,11 +149,20 @@ export class PlatformEventsService {
       },
     });
 
-    const items = rows
-      .filter((row) =>
+    /*
+     * Collapse before counting, so a burst of identical retries is one unread
+     * item rather than thirty — the badge should say how many things happened,
+     * not how many times one thing did.
+     */
+    const items = collapseRepeats(
+      rows.filter((row) =>
         isNotifiable({ eventCode: row.eventCode, result: String(row.result) }),
-      )
-      .map((row) => toNotification(row, readAt))
+      ),
+    );
+    const pageItems = items.slice(0, limit);
+    const labels = await this.resolveLabels(pageItems.map((i) => i.event));
+    const page = pageItems
+      .map((group) => toNotification(group.event, readAt, labels, group.count))
       .filter((item): item is PlatformNotification => item !== null);
 
     return {
@@ -160,16 +171,73 @@ export class PlatformEventsService {
        * badge that changes when you open the panel it describes is worse than
        * no badge, because it looks like the act of looking created the news.
        */
-      unreadCount: items.filter((item) => item.unread).length,
+      unreadCount: items.filter(
+        (group) => !readAt || group.event.occurredAt > readAt,
+      ).length,
       /*
        * True when the scan hit its ceiling, so the count is a floor rather than
        * a total. The caller renders "99+" rather than an exact number it cannot
        * stand behind.
        */
       scanTruncated: rows.length >= NOTIFICATION_SCAN_LIMIT,
-      items: items.slice(0, limit),
+      items: page,
       readAt: readAt?.toISOString() ?? null,
     };
+  }
+
+  /**
+   * Names for the rows being shown, in one query per kind.
+   *
+   * Only the displayed page is resolved — not the whole scan — and ids are
+   * de-duplicated first, so the cost is two small `IN` lookups however many
+   * events share a tenant. A failed lookup degrades to unlabeled rows rather
+   * than losing the notification.
+   */
+  private async resolveLabels(
+    events: Array<{
+      entityType?: string | null;
+      entityId?: string | null;
+      tenantId?: string | null;
+      customerAccountId?: string | null;
+    }>,
+  ): Promise<SubjectLabels> {
+    const tenantIds = new Set<string>();
+    const customerIds = new Set<string>();
+    for (const event of events) {
+      if (event.tenantId) tenantIds.add(event.tenantId);
+      if (event.customerAccountId) customerIds.add(event.customerAccountId);
+      if (event.entityType === 'Tenant' && event.entityId)
+        tenantIds.add(event.entityId);
+      if (event.entityType === 'CustomerAccount' && event.entityId)
+        customerIds.add(event.entityId);
+    }
+    try {
+      const [tenants, customers] = await Promise.all([
+        tenantIds.size
+          ? this.prisma.tenant.findMany({
+              where: { id: { in: [...tenantIds] } },
+              select: { id: true, name: true, slug: true },
+            })
+          : [],
+        customerIds.size
+          ? this.prisma.customerAccount.findMany({
+              where: { id: { in: [...customerIds] } },
+              select: { id: true, companyName: true },
+            })
+          : [],
+      ]);
+      const tenantLabels: NonNullable<SubjectLabels['tenants']> = new Map();
+      for (const t of tenants)
+        tenantLabels.set(t.id, { name: t.name, slug: t.slug });
+      const customerLabels: NonNullable<SubjectLabels['customers']> = new Map();
+      for (const c of customers) customerLabels.set(c.id, c.companyName);
+      return { tenants: tenantLabels, customers: customerLabels };
+    } catch (error) {
+      this.logger.warn(
+        `Unable to resolve notification labels: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return {};
+    }
   }
 
   /** Mark the feed read, as of now. */

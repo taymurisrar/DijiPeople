@@ -59,6 +59,28 @@ describe('BUG-1754 — expected protocol outcomes are not incidents', () => {
     });
   });
 
+  describe('a record that cannot fill the chosen agreement template', () => {
+    it('is recorded but not queued', () => {
+      // WS05: a customer without an authorized signer produced an incident per
+      // attempt, although the refusal named every field the operator needed.
+      expect(
+        isExpectedProtocolOutcome({
+          statusCode: 400,
+          errorCode: 'CONTRACT_SOURCE_CANNOT_FILL_TEMPLATE',
+        }),
+      ).toBe(true);
+    });
+
+    it('only as a 400 — the same code on a 500 is a fault', () => {
+      expect(
+        isExpectedProtocolOutcome({
+          statusCode: 500,
+          errorCode: 'CONTRACT_SOURCE_CANNOT_FILL_TEMPLATE',
+        }),
+      ).toBe(false);
+    });
+  });
+
   describe('what keeps its place in the queue', () => {
     it('a 400 validation rejection', () => {
       /*
@@ -73,6 +95,16 @@ describe('BUG-1754 — expected protocol outcomes are not incidents', () => {
         isExpectedProtocolOutcome({
           statusCode: 400,
           errorCode: 'VALIDATION_FAILED',
+        }),
+      ).toBe(false);
+    });
+
+    it('a 400 under a code that is not a named domain refusal', () => {
+      // The contract refusal below is excluded by its code, not its status.
+      expect(
+        isExpectedProtocolOutcome({
+          statusCode: 400,
+          errorCode: 'CONTRACT_SIGNER_REQUIRES_CUSTOMER',
         }),
       ).toBe(false);
     });

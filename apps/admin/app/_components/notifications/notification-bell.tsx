@@ -5,7 +5,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowRight, Bell, BellOff, CheckCheck } from "lucide-react";
 
 import {
+  CATEGORY_LABEL,
   formatWhen,
+  isSessionEnded,
   NOTIFICATIONS_ENDPOINT,
   NOTIFICATIONS_READ_ENDPOINT,
   NOTIFICATIONS_READ_EVENT,
@@ -41,6 +43,7 @@ export function NotificationBell() {
   const [marking, setMarking] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const sessionEndedRef = useRef(false);
 
   /**
    * One read serves both jobs.
@@ -54,6 +57,16 @@ export function NotificationBell() {
       const response = await fetch(`${NOTIFICATIONS_ENDPOINT}?limit=${limit}`, {
         signal,
       });
+      if (isSessionEnded(response.status)) {
+        /*
+         * BUG-3895: the session is gone, so stop asking. The poll loop checks
+         * this ref before re-arming its timer; without it a tab left open after
+         * sign-out kept polling every five minutes indefinitely.
+         */
+        sessionEndedRef.current = true;
+        setUnread(0);
+        return null;
+      }
       if (!response.ok) throw new Error("unavailable");
       const payload = (await response.json()) as Feed;
       setUnread(Math.max(0, Number(payload.unreadCount ?? 0)));
@@ -92,8 +105,10 @@ export function NotificationBell() {
      * socket for a single number would be more infrastructure than the number
      * is worth.
      */
-    let timer = window.setTimeout(function tick() {
-      void read(1, controller.signal);
+    let timer = window.setTimeout(async function tick() {
+      await read(1, controller.signal);
+      // Re-arm only while the session lives (BUG-3895).
+      if (sessionEndedRef.current) return;
       timer = window.setTimeout(tick, 5 * 60 * 1000);
     }, 0);
 
@@ -270,6 +285,11 @@ export function NotificationBell() {
                           is a glance; a paragraph belongs on the page, and the
                           footer below is how you get there.
                         */}
+                        {item.context ? (
+                          <p className="mt-0.5 truncate text-xs font-medium text-slate-700">
+                            {item.context}
+                          </p>
+                        ) : null}
                         <p className="mt-0.5 line-clamp-2 text-xs leading-5 text-slate-600">
                           {item.detail}
                         </p>
@@ -298,8 +318,29 @@ export function NotificationBell() {
                           <span className="font-semibold uppercase tracking-wide">
                             {tone.label}
                           </span>
+                          {item.category ? (
+                            <>
+                              <span aria-hidden>·</span>
+                              <span className="rounded-full bg-slate-100 px-1.5 py-0.5 font-semibold text-slate-700">
+                                {CATEGORY_LABEL[item.category]}
+                              </span>
+                            </>
+                          ) : null}
+                          {item.actionRequired ? (
+                            <span className="rounded-full bg-amber-100 px-1.5 py-0.5 font-bold uppercase tracking-wide text-amber-900">
+                              Action required
+                            </span>
+                          ) : null}
                           <span aria-hidden>·</span>
-                          {formatWhen(item.occurredAt)}
+                          <time
+                            dateTime={item.occurredAt}
+                            title={new Date(item.occurredAt).toLocaleString()}
+                          >
+                            {formatWhen(item.occurredAt)}
+                          </time>
+                          {item.count && item.count > 1 ? (
+                            <span>{`(${item.count} times)`}</span>
+                          ) : null}
                           {item.unread ? (
                             <>
                               <span aria-hidden>·</span>

@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import {
+  IsBoolean,
   IsEmail,
   IsEnum,
   IsInt,
@@ -9,10 +10,12 @@ import {
   Max,
   MaxLength,
   Min,
+  MinLength,
 } from 'class-validator';
 import {
   SupportCaseChannel,
   SupportCasePriority,
+  SupportCaseRelationType,
   SupportCaseSeverity,
   SupportCaseStatus,
 } from '@prisma/client';
@@ -70,6 +73,12 @@ export class CreateSupportCaseDto {
   @IsOptional() @IsString() requesterUserId?: string;
   @IsOptional() @IsUUID() assignedToUserId?: string;
   @IsOptional() @IsString() @MaxLength(120) assignedTeam?: string;
+  /*
+   * The owning PlatformTeam. When set, `assignedTeam` is overwritten with the
+   * team's current name as a display snapshot; the free-text field is kept
+   * only for callers and rows that predate teams.
+   */
+  @IsOptional() @IsUUID() assignedTeamId?: string;
   @IsOptional() @IsString() errorLogId?: string;
 }
 
@@ -101,6 +110,12 @@ export class UpdateSupportCaseDto {
   @IsOptional() @IsEmail() requesterEmail?: string;
   @IsOptional() @IsUUID() assignedToUserId?: string;
   @IsOptional() @IsString() @MaxLength(120) assignedTeam?: string;
+  /*
+   * The owning PlatformTeam. When set, `assignedTeam` is overwritten with the
+   * team's current name as a display snapshot; the free-text field is kept
+   * only for callers and rows that predate teams.
+   */
+  @IsOptional() @IsUUID() assignedTeamId?: string;
   @IsOptional() @IsString() @MaxLength(10000) resolutionSummary?: string;
   @IsOptional() @IsString() @MaxLength(160) resolutionCategory?: string;
   @IsOptional() @IsString() @MaxLength(10000) rootCause?: string;
@@ -109,7 +124,11 @@ export class UpdateSupportCaseDto {
 
 export class MergeSupportCaseDto {
   @IsUUID() targetCaseId!: string;
-  @IsOptional() @IsString() @MaxLength(2000) reason?: string;
+  /*
+   * Required since WS11: a merge closes the source case for good, and the
+   * reason is the only explanation a customer-facing agent will find later.
+   */
+  @IsString() @MinLength(3) @MaxLength(2000) reason!: string;
 }
 
 export class LinkSupportIncidentDto {
@@ -125,4 +144,57 @@ export class SendCustomerUpdateDto {
   @IsOptional() @IsEmail() recipientEmail?: string;
   @IsString() @MaxLength(240) subject!: string;
   @IsString() @MaxLength(10000) body!: string;
+}
+
+/** POST :id/transition — every status change, validated by the lifecycle. */
+export class TransitionSupportCaseDto {
+  @IsEnum(SupportCaseStatus) toStatus!: SupportCaseStatus;
+  @IsOptional() @IsString() @MaxLength(2000) reason?: string;
+  @IsOptional() @IsString() @MaxLength(10000) resolutionSummary?: string;
+  @IsOptional() @IsString() @MaxLength(160) resolutionCategory?: string;
+  @IsOptional() @IsString() @MaxLength(10000) rootCause?: string;
+  @IsOptional() @IsString() @MaxLength(10000) customerMessage?: string;
+  @IsOptional() @IsUUID() assignedTeamId?: string;
+  @IsOptional() @IsBoolean() confirmClosure?: boolean;
+}
+
+export class EscalateSupportCaseDto {
+  @IsString() @MinLength(3) @MaxLength(2000) reason!: string;
+  @IsOptional() @IsUUID() assignedTeamId?: string;
+  @IsOptional() @IsUUID() assignedToUserId?: string;
+}
+
+export class RequestSupportCaseInfoDto {
+  @IsString() @MinLength(3) @MaxLength(10000) customerMessage!: string;
+  @IsOptional() @IsString() @MaxLength(240) subject?: string;
+}
+
+export class ResolveSupportCaseDto {
+  @IsString() @MinLength(3) @MaxLength(10000) resolutionSummary!: string;
+  @IsString() @MinLength(2) @MaxLength(160) resolutionCategory!: string;
+  @IsOptional() @IsString() @MaxLength(10000) rootCause?: string;
+  /** Optional note to the customer, recorded and sent like a customer update. */
+  @IsOptional() @IsString() @MaxLength(10000) customerMessage?: string;
+}
+
+export class ReopenSupportCaseDto {
+  @IsString() @MinLength(3) @MaxLength(2000) reason!: string;
+}
+
+/**
+ * Either or both owners. `null` clears that owner; an omitted key leaves it
+ * as it is. At least one key must be present — checked by the service, since
+ * "neither" is a shape class-validator cannot express on optional fields.
+ */
+export class AssignSupportCaseDto {
+  @IsOptional() @IsUUID() assignedToUserId?: string | null;
+  @IsOptional() @IsUUID() assignedTeamId?: string | null;
+}
+
+export class CreateSupportCaseRelationDto {
+  @IsUUID() targetCaseId!: string;
+  @IsOptional()
+  @IsEnum(SupportCaseRelationType)
+  relationType?: SupportCaseRelationType;
+  @IsOptional() @IsString() @MaxLength(1000) note?: string;
 }

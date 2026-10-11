@@ -962,6 +962,68 @@ export class PlatformRuntimeService {
     if (key === 'tenants') {
       return this.tenantControlPlane.timeline(user, id);
     }
+    /*
+     * Customers and leads fell through to the generic audit lookup below, which
+     * is keyed on the operator's own tenant and a pluralised module name
+     * ("Customers", "Leads") — neither of which any writer uses, so both tabs
+     * were empty. Platform actions are recorded as `CustomerAccount` / `Lead`
+     * in `PlatformAuditLog`, with linked `PlatformEvent` rows.
+     */
+    if (key === 'customers') {
+      return this.superAdmin.getCustomerTimeline(id);
+    }
+    if (key === 'leads') {
+      const [events, audits] = await Promise.all([
+        this.prisma.platformEvent.findMany({
+          where: { entityType: 'Lead', entityId: id },
+          orderBy: { occurredAt: 'desc' },
+          take: 100,
+          select: { id: true, eventCode: true, occurredAt: true },
+        }),
+        this.prisma.platformAuditLog.findMany({
+          where: { entityType: 'Lead', entityId: id },
+          orderBy: { createdAt: 'desc' },
+          take: 100,
+          select: {
+            id: true,
+            action: true,
+            createdAt: true,
+            platformActorUser: {
+              select: { firstName: true, lastName: true, email: true },
+            },
+          },
+        }),
+      ]);
+      const label = (code: string) =>
+        code
+          .toLowerCase()
+          .replaceAll('_', ' ')
+          .replace(/^\w/, (letter) => letter.toUpperCase());
+      const items = [
+        ...events.map((event) => ({
+          id: event.id,
+          actionLabel: label(event.eventCode),
+          actionType: event.eventCode,
+          actorDisplayName: 'System',
+          occurredAt: event.occurredAt.toISOString(),
+        })),
+        ...audits.map((audit) => ({
+          id: audit.id,
+          actionLabel: label(audit.action),
+          actionType: audit.action,
+          actorDisplayName: audit.platformActorUser
+            ? [
+                audit.platformActorUser.firstName,
+                audit.platformActorUser.lastName,
+              ]
+                .filter(Boolean)
+                .join(' ') || audit.platformActorUser.email
+            : 'System',
+          occurredAt: audit.createdAt.toISOString(),
+        })),
+      ].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
+      return { items: items.slice(0, 100) };
+    }
     return this.audit.listRecordTimeline({
       tenantId: user.tenantId,
       entityType: entityType(key),

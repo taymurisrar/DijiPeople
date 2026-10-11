@@ -3,6 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { AuditModule } from '../audit/audit.module';
+import { RecordAssignmentModule } from '../super-admin/record-assignment.module';
 import { PlatformPermissionsGuard } from '../platform-auth/platform-permissions';
 import { AdminLeadsController } from './admin-leads.controller';
 import { LeadsRepository } from './leads.repository';
@@ -16,6 +17,7 @@ import { PartnerExperienceModule } from '../partner-experience/partner-experienc
   imports: [
     JwtModule.register({}),
     AuditModule,
+    RecordAssignmentModule,
     PlatformCommunicationsModule,
     LegalModule,
     PartnerExperienceModule,

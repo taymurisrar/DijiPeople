@@ -2,7 +2,11 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useState } from "react";
-import { TextField } from "@/app/components/ui/form-control";
+import { PasswordField } from "@/app/components/ui/password-field";
+import {
+  comparePasswords,
+  describeComparison,
+} from "@/app/activate-account/password-rules";
 
 type FieldErrors = {
   password?: string;
@@ -27,8 +31,10 @@ export function ResetPasswordForm() {
     if (password.length < 8) {
       errors.password = "Password must be at least 8 characters.";
     }
-    if (password !== confirmPassword) {
-      errors.confirmPassword = "Passwords do not match.";
+    const comparison = comparePasswords(password, confirmPassword);
+    if (!comparison.ok) {
+      errors.confirmPassword =
+        describeComparison(comparison) ?? "Confirm your password.";
     }
     setFieldErrors(errors);
     setMessage(null);
@@ -63,41 +69,35 @@ export function ResetPasswordForm() {
           {message}
         </div>
       ) : null}
-      <div className="space-y-2">
-        <TextField
-          label="New password"
-          onChange={(value) => {
-            setPassword(value);
-            setFieldErrors((current) => ({ ...current, password: undefined }));
-          }}
-          placeholder="Enter a new password"
-          type="password"
-          value={password}
-        />
-        {fieldErrors.password ? (
-          <p className="text-sm text-red-600">{fieldErrors.password}</p>
-        ) : null}
-      </div>
-      <div className="space-y-2">
-        <TextField
-          label="Confirm password"
-          onChange={(value) => {
-            setConfirmPassword(value);
-            setFieldErrors((current) => ({
-              ...current,
-              confirmPassword: undefined,
-            }));
-          }}
-          placeholder="Re-enter the new password"
-          type="password"
-          value={confirmPassword}
-        />
-        {fieldErrors.confirmPassword ? (
-          <p className="text-sm text-red-600">
-            {fieldErrors.confirmPassword}
-          </p>
-        ) : null}
-      </div>
+      <PasswordField
+        autoComplete="new-password"
+        disabled={isSubmitting}
+        error={fieldErrors.password}
+        label="New password"
+        name="password"
+        onChange={(value) => {
+          setPassword(value);
+          setFieldErrors((current) => ({ ...current, password: undefined }));
+        }}
+        placeholder="Enter a new password"
+        value={password}
+      />
+      <PasswordField
+        autoComplete="new-password"
+        disabled={isSubmitting}
+        error={fieldErrors.confirmPassword}
+        label="Confirm password"
+        name="confirmPassword"
+        onChange={(value) => {
+          setConfirmPassword(value);
+          setFieldErrors((current) => ({
+            ...current,
+            confirmPassword: undefined,
+          }));
+        }}
+        placeholder="Re-enter the new password"
+        value={confirmPassword}
+      />
       <button
         className="w-full rounded-2xl bg-accent px-4 py-3 font-medium text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-70"
         disabled={isSubmitting || !token}

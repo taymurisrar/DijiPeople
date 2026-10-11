@@ -14,7 +14,7 @@ async function forward(request: Request, context: Context, method: string) {
       `/support-cases${path.length ? `/${path.map(encodeURIComponent).join("/")}` : ""}${url.search}`,
       {
         method,
-        ...(method === "GET"
+        ...(method === "GET" || method === "DELETE"
           ? {}
           : contentType.includes("multipart/form-data")
             ? { body: await request.arrayBuffer(), headers: { "Content-Type": contentType } }
@@ -46,3 +46,6 @@ export const POST = (request: Request, context: Context) =>
   forward(request, context, "POST");
 export const PATCH = (request: Request, context: Context) =>
   forward(request, context, "PATCH");
+// WS11: unlinking a case relation or an incident is a DELETE on the case.
+export const DELETE = (request: Request, context: Context) =>
+  forward(request, context, "DELETE");

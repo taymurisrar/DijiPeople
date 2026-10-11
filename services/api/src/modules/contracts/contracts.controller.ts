@@ -44,6 +44,7 @@ import {
   RequestSignatureChangesDto,
   SaveContractVersionDto,
   SendSignatureRequestDto,
+  TemplateEligibilityQueryDto,
   UpdateContractDto,
   UpdateContractPartyDto,
   UpdateContractTemplateStateDto,
@@ -100,6 +101,22 @@ export class ContractsController {
     @UploadedFile() file: ContractUploadFile,
   ) {
     return this.contracts.importDocument(user, file);
+  }
+
+  /*
+   * Declared above `@Get(':id')` on purpose: Nest matches in declaration
+   * order, and below it `template-eligibility` would be read as a contract id.
+   */
+  @Get('template-eligibility')
+  templateEligibility(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: TemplateEligibilityQueryDto,
+  ) {
+    return this.contracts.templateEligibility(
+      user,
+      query.sourceType,
+      query.sourceId,
+    );
   }
 
   @Get('placeholder-definitions')

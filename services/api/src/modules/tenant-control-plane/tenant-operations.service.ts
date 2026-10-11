@@ -499,10 +499,14 @@ export class TenantOperationsService {
       entityType: 'Tenant',
       entityId: tenant.id,
       tenantId: tenant.id,
+      customerAccountId: tenant.customerAccountId ?? null,
       actorType: 'PLATFORM_USER',
       actorId: actor.id,
       route: '/platform/tenants/:tenantId/operations/retry-provisioning',
       metadata: {
+        message: succeeded
+          ? 'Provisioning retry completed.'
+          : `Provisioning retry failed at ${failedStepKey}.`,
         actorName: actor.name,
         failedStepKey,
         runId: run?.id ?? null,

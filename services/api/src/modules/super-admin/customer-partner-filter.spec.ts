@@ -107,3 +107,44 @@ describe('customer list: originatingPartnerId filter', () => {
     ).rejects.toBeDefined();
   });
 });
+
+describe('customer list: owner and count mapping (WS07)', () => {
+  it('loads the owner and counts, and maps fullName on the list rows', async () => {
+    const { service, customerAccount } = buildService();
+    customerAccount.findMany.mockResolvedValueOnce([
+      {
+        id: 'c1',
+        tenants: [],
+        _count: { contracts: 2, onboardings: 1 },
+        assignedToUser: { id: 'u1', firstName: 'Ada', lastName: 'Lovelace' },
+        accountManagerUser: {
+          id: 'u2',
+          firstName: 'Grace',
+          lastName: 'Hopper',
+        },
+      },
+    ] as never);
+    const result = await service.listCustomers(
+      actor(PlatformUserRole.SUPER_ADMIN),
+      query({}),
+    );
+    const args = (
+      customerAccount.findMany.mock.calls[0] as unknown as [
+        { include: Record<string, unknown> },
+      ]
+    )[0];
+    expect(args.include).toHaveProperty('assignedToUser');
+    expect(args.include).toHaveProperty('accountManagerUser');
+    expect(args.include).toMatchObject({
+      _count: { select: { contracts: true, onboardings: true } },
+    });
+    const item = result.items[0] as unknown as {
+      assignedToUser: { fullName: string };
+      accountManagerUser: { fullName: string };
+      _count: { contracts: number };
+    };
+    expect(item.assignedToUser.fullName).toBe('Ada Lovelace');
+    expect(item.accountManagerUser.fullName).toBe('Grace Hopper');
+    expect(item._count.contracts).toBe(2);
+  });
+});

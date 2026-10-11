@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { BellOff, CheckCheck, LoaderCircle, RefreshCw } from "lucide-react";
 
 import {
+  CATEGORY_LABEL,
   formatWhen,
   NOTIFICATIONS_ENDPOINT,
   NOTIFICATIONS_READ_ENDPOINT,
@@ -194,22 +195,51 @@ export function NotificationsFeed() {
                     >
                       {tone.label}
                     </span>
+                    {item.category ? (
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-700">
+                        {CATEGORY_LABEL[item.category]}
+                      </span>
+                    ) : null}
+                    {item.actionRequired ? (
+                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-900">
+                        Action required
+                      </span>
+                    ) : null}
                     {item.unread ? (
                       <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-sky-800">
                         Unread
                       </span>
                     ) : null}
                   </div>
+                  {item.context ? (
+                    <p className="mt-0.5 text-xs font-medium text-slate-700">
+                      {item.context}
+                    </p>
+                  ) : null}
                   <p className="mt-1 break-words text-sm leading-6 text-slate-700">
                     {item.detail}
                   </p>
                   {item.action ? (
                     <p className="mt-1 text-sm font-medium text-slate-900">
                       {item.action}
+                      {/* The row is the link; this names where it goes. */}
+                      {item.actionRequired && item.actionLabel && item.href ? (
+                        <span className="ml-2 font-semibold text-[var(--admin-primary)]">
+                          {item.actionLabel} →
+                        </span>
+                      ) : null}
                     </p>
                   ) : null}
                   <p className="mt-1 text-xs text-slate-500">
-                    {formatWhen(item.occurredAt)}
+                    <time
+                      dateTime={item.occurredAt}
+                      title={new Date(item.occurredAt).toLocaleString()}
+                    >
+                      {formatWhen(item.occurredAt)}
+                    </time>
+                    {item.count && item.count > 1
+                      ? ` · ${item.count} times`
+                      : ""}
                     {item.entityType ? ` · ${item.entityType}` : ""}
                   </p>
                 </div>

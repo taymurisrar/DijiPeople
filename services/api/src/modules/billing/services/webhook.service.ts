@@ -319,11 +319,26 @@ export class WebhookService {
   }
 
   private async dispatchStripeEvent(event: StripeEvent) {
+    /*
+     * `async_payment_succeeded`: a delayed-notification method — a bank debit,
+     * a bank transfer — completes the session `unpaid` and settles later.
+     * `completed` then confirms nothing (it requires `paid`), and before this
+     * case existed nothing else ever did: the order sat at PENDING_PAYMENT
+     * after Stripe had collected the money. The later event carries the same
+     * session object, now `paid`, so it goes through the same handler and the
+     * same idempotent `confirmPayment`; for a tenant checkout the handler's
+     * event-time guard keeps an older event from overwriting a newer one.
+     */
     switch (event.type) {
       case 'checkout.session.completed':
+      case 'checkout.session.async_payment_succeeded':
         return this.handleCheckoutSessionCompleted(
           event.data.object as StripeCheckoutSession,
           event.created,
+        );
+      case 'checkout.session.async_payment_failed':
+        return this.handleCheckoutSessionAsyncPaymentFailed(
+          event.data.object as StripeCheckoutSession,
         );
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
@@ -535,6 +550,52 @@ export class WebhookService {
         stripeSubscriptionId,
       });
     }
+
+    return true;
+  }
+
+  /**
+   * A delayed payment the bank refused.
+   *
+   * For a public self-service order this is terminal for that checkout: the
+   * session is spent and Stripe will not retry it, so the order moves to the
+   * existing `FAILED` state — the same one a settlement mismatch uses — and
+   * the buyer's status page stops saying "confirming your payment" and shows
+   * the action-required path instead. Conditional on the order still waiting,
+   * so a failure delivered late can never un-pay an order that was confirmed
+   * through another route.
+   *
+   * A tenant checkout is left alone here: its subscription status is driven by
+   * the `customer.subscription.*` and `invoice.payment_failed` events Stripe
+   * sends for the same failure, and writing it from two places would race.
+   */
+  private async handleCheckoutSessionAsyncPaymentFailed(
+    session: StripeCheckoutSession,
+  ) {
+    if (session.mode !== 'subscription' || session.metadata?.tenantId) {
+      return false;
+    }
+
+    await this.prisma.subscriptionOrder.updateMany({
+      where: {
+        stripeCheckoutSessionId: session.id,
+        status: {
+          in: [
+            SubscriptionOrderStatus.DRAFT,
+            SubscriptionOrderStatus.PENDING_PAYMENT,
+            SubscriptionOrderStatus.ABANDONED,
+          ],
+        },
+      },
+      data: {
+        status: SubscriptionOrderStatus.FAILED,
+        failureReason:
+          'STRIPE_ASYNC_PAYMENT_FAILED: the delayed payment for this checkout was not completed.',
+        // Released like every other order that stops being the open one, so
+        // the customer can start a fresh checkout for the same submission.
+        submissionHash: null,
+      },
+    });
 
     return true;
   }

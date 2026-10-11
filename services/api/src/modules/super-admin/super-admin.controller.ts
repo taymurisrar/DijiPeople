@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -14,6 +15,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Response } from 'express';
+import { isUUID } from 'class-validator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { PaymentRecheckService } from '../billing/services/payment-recheck.service';
 import { PaymentSettlementService } from '../billing/services/payment-settlement.service';
@@ -287,8 +289,19 @@ export class SuperAdminController {
   }
 
   @Get('tenants')
-  listTenants() {
-    return this.superAdminService.listTenants();
+  listTenants(@Query('customerAccountId') customerAccountId?: string) {
+    // The runtime lookup sends an empty value when no customer is chosen, so
+    // blank means "no filter" rather than a validation failure.
+    const trimmed = customerAccountId?.trim();
+    if (trimmed && !isUUID(trimmed)) {
+      throw new BadRequestException({
+        code: 'VALIDATION_FAILED',
+        message: 'customerAccountId must be a UUID.',
+      });
+    }
+    return this.superAdminService.listTenants({
+      customerAccountId: trimmed || undefined,
+    });
   }
 
   @Get('tenant-slug/availability')

@@ -1,4 +1,5 @@
 import {
+  collapseRepeats,
   isNotifiable,
   toNotification,
   type NotifiableEvent,
@@ -31,7 +32,8 @@ describe('platform notifications', () => {
       READ_AT,
     )!;
     expect(notification.severity).toBe('CRITICAL');
-    expect(notification.action).toContain('retry provisioning');
+    expect(notification.action).toContain('retry the failed step');
+    expect(notification.actionRequired).toBe(true);
   });
 
   it('does not raise routine audit traffic', () => {
@@ -229,6 +231,164 @@ describe('platform notifications', () => {
       expect(failedWebhook({ error: 'boom' }).title).toBe(
         'Stripe could not tell us about a payment',
       );
+    });
+  });
+
+  describe('templates', () => {
+    const labels = {
+      tenants: new Map([['ten-1', { name: 'Acme Ltd', slug: 'acme' }]]),
+      customers: new Map([['cust-1', 'Acme Holdings']]),
+    };
+    const base = {
+      entityType: 'Tenant',
+      entityId: 'ten-1',
+      tenantId: 'ten-1',
+      customerAccountId: 'cust-1',
+    };
+
+    it('does not say "provisioned" about a provisioning request', () => {
+      const pending = toNotification(
+        event({ ...base, result: 'PENDING' }),
+        READ_AT,
+        labels,
+      )!;
+      expect(pending.title).toBe('Provisioning started for Acme Ltd');
+      expect(pending.actionRequired).toBe(false);
+
+      const done = toNotification(
+        event({ ...base, result: 'SUCCEEDED' }),
+        READ_AT,
+        labels,
+      )!;
+      expect(done.title).toBe('Workspace Acme Ltd provisioned');
+      expect(done.category).toBe('onboarding');
+      expect(done.context).toBe('Acme Ltd (acme) · Acme Holdings');
+      expect(done.subject).toEqual({
+        type: 'Tenant',
+        id: 'ten-1',
+        label: 'Acme Ltd',
+      });
+      expect(done.href).toBe('/tenants/ten-1');
+    });
+
+    it('asks for action on failures with remediation guidance', () => {
+      const failed = toNotification(
+        event({ ...base, result: 'FAILED' }),
+        READ_AT,
+        labels,
+      )!;
+      expect(failed.actionRequired).toBe(true);
+      expect(failed.actionLabel).toBe('Open tenant');
+      expect(failed.action).toContain('retry the failed step');
+    });
+
+    it('claims action only where somebody has something to do', () => {
+      const routine = [
+        'LEAD_SUBMITTED',
+        'LEAD_CONVERTED',
+        'CUSTOMER_ONBOARDING_INITIALIZED',
+        'AGREEMENT_CREATED',
+        'AGREEMENT_SIGNED',
+        'AGREEMENT_FULLY_SIGNED',
+        'SIGNATURE_REQUESTED',
+        'BILLING_INVOICE_ISSUED',
+        'BILLING_SUBSCRIPTION_ACTIVE',
+        'SUPPORT_CASE_UPDATE',
+        'TENANT_SUBSCRIPTION_CANCELLED',
+        'TENANT_ERASURE_COMPLETED',
+        'PAYMENT_CONFIRMATION',
+      ];
+      for (const eventCode of routine) {
+        const n = toNotification(
+          event({ eventCode, result: 'SUCCEEDED' }),
+          null,
+        )!;
+        expect(n).not.toBeNull();
+        expect(n.actionRequired).toBe(false);
+        expect(n.action).toBeNull();
+        expect(n.actionLabel).toBeNull();
+      }
+      const blocked = toNotification(
+        event({
+          eventCode: 'LEAD_CONVERSION_BLOCKED',
+          result: 'FAILED',
+          entityType: 'Lead',
+          entityId: 'lead-1',
+        }),
+        null,
+      )!;
+      expect(blocked.actionRequired).toBe(true);
+      expect(blocked.href).toBe('/leads/lead-1');
+      expect(
+        toNotification(
+          event({ eventCode: 'PAYMENT_CONFIRMATION', result: 'FAILED' }),
+          null,
+        )!.actionRequired,
+      ).toBe(true);
+    });
+
+    it('never surfaces metadata outside the whitelist', () => {
+      const n = toNotification(
+        event({
+          eventCode: 'AGREEMENT_CREATED',
+          metadata: {
+            contractNumber: 'AGR-9',
+            counterpartyEmail: 'ceo@secret.test',
+            signatureToken: 'tok_123',
+          },
+        }),
+        null,
+      )!;
+      expect(n.detail).toBe('Agreement: AGR-9');
+      expect(JSON.stringify(n)).not.toContain('secret.test');
+      expect(JSON.stringify(n)).not.toContain('tok_123');
+    });
+
+    it('keeps the generic fallback for unknown codes and claims no action', () => {
+      expect(
+        toNotification(event({ eventCode: 'SOMETHING_UNKNOWN' }), null),
+      ).toBeNull();
+      const fallback = toNotification(
+        event({ eventCode: 'TENANT_PROVISIONING_STEP', result: 'SUCCEEDED' }),
+        null,
+      )!;
+      expect(fallback.detail).toBe('Tenant provisioning step');
+      expect(fallback.actionRequired).toBe(false);
+    });
+  });
+
+  describe('collapseRepeats', () => {
+    const at = (minutes: number) =>
+      new Date(Date.UTC(2026, 9, 1, 12, 0, 0) - minutes * 60000);
+    const row = (id: string, minutes: number, extra = {}) =>
+      event({
+        id,
+        eventCode: 'TENANT_PROVISIONING_RETRIED',
+        result: 'FAILED',
+        entityId: 'ten-1',
+        occurredAt: at(minutes),
+        ...extra,
+      });
+
+    it('merges identical consecutive events inside ten minutes', () => {
+      const groups = collapseRepeats([row('a', 0), row('b', 4), row('c', 9)]);
+      expect(groups).toHaveLength(1);
+      expect(groups[0].count).toBe(3);
+      expect(groups[0].event.id).toBe('a');
+    });
+
+    it('does not merge across a gap, a different entity, or an interleaved event', () => {
+      expect(collapseRepeats([row('a', 0), row('b', 30)])).toHaveLength(2);
+      expect(
+        collapseRepeats([row('a', 0), row('b', 1, { entityId: 'ten-2' })]),
+      ).toHaveLength(2);
+      expect(
+        collapseRepeats([
+          row('a', 0),
+          row('x', 1, { eventCode: 'LEAD_SUBMITTED' }),
+          row('b', 2),
+        ]),
+      ).toHaveLength(3);
     });
   });
 });
