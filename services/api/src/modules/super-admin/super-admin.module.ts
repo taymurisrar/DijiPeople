@@ -30,6 +30,7 @@ import { ProvisioningRequestedHandler } from './provisioning-requested.handler';
 import { SuperAdminController } from './super-admin.controller';
 import { SuperAdminService } from './super-admin.service';
 import { PlanDeletionService } from './plan-deletion.service';
+import { PlanPublicationService } from './plan-publication.service';
 import { TenantProvisioningService } from './tenant-provisioning.service';
 import { TenantIdentitiesProvisioningService } from './tenant-identities-provisioning.service';
 
@@ -65,6 +66,7 @@ import { TenantIdentitiesProvisioningService } from './tenant-identities-provisi
     TenantIdentitiesProvisioningService,
     SuperAdminService,
     PlanDeletionService,
+    PlanPublicationService,
     /*
      * The consumer that turns a confirmed payment into a workspace (BUG-0078).
      * It lives here rather than in `billing` because the engine it calls is
@@ -86,6 +88,7 @@ import { TenantIdentitiesProvisioningService } from './tenant-identities-provisi
   exports: [
     SuperAdminService,
     PlanDeletionService,
+    PlanPublicationService,
     TenantProvisioningService,
     TenantIdentitiesProvisioningService,
   ],

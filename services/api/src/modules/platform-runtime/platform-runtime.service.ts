@@ -74,6 +74,10 @@ import { toDisplayString } from '../../common/utils/display-string';
 import type { RecordDependencyProvider } from '../../common/deletion/record-dependencies';
 import { ContractDeletionService } from '../contracts/contract-deletion.service';
 import { PlanDeletionService } from '../super-admin/plan-deletion.service';
+import {
+  isPlanPublicationAction,
+  PlanPublicationService,
+} from '../super-admin/plan-publication.service';
 
 @Injectable()
 export class PlatformRuntimeService {
@@ -92,6 +96,7 @@ export class PlatformRuntimeService {
     private readonly tenantControlPlane: TenantControlPlaneService,
     private readonly contractDeletion: ContractDeletionService,
     private readonly planDeletion: PlanDeletionService,
+    private readonly planPublication: PlanPublicationService,
   ) {}
   async list(
     user: AuthenticatedUser,
@@ -804,6 +809,14 @@ export class PlatformRuntimeService {
           'Lead converted to a customer. Tenant provisioning remains a separate onboarding step.',
         data: customer,
       };
+    }
+    /*
+     * Publish / unpublish / archive a plan (ITEM-0022). Changing what can be
+     * bought is administrative, like deleting: module write and admin tier.
+     */
+    if (id && key === 'plans' && isPlanPublicationAction(action)) {
+      this.assertAdmin(user);
+      return this.planPublication.transition(user, id, action);
     }
     if (action === 'activate' && id && key === 'partners')
       return this.partnerExperience.activatePartner(user, id);

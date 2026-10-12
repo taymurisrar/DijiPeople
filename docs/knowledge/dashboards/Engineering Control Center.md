@@ -15,7 +15,7 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **8** |
-| Open HIGH | 116 |
+| Open HIGH | 117 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 14 |
 | QA coverage gaps | 161 |
@@ -30,8 +30,8 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 287 |
-| No next action | 287 |
+| No acceptance criteria | 288 |
+| No next action | 288 |
 | Aging — 7d / 30d / 90d | 241 / 189 / 0 |
 | Architecture and technical debt | 8 |
 | Security gaps | 47 |
@@ -49,7 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
-| [[SESSION-0123-owner-placeholder-names-lookup-links-owner-edit|SESSION-0123]] | — | Owner placeholder names, lookup links, owner edit | ACTIVE | `agent/owner-names-and-lookup-links` | `develop` | — | NO |
+| [[SESSION-0124-plan-publish-unpublish-and-archive-actions|SESSION-0124]] | — | Plan publish, unpublish and archive actions | ACTIVE | `agent/plan-publication-actions` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
 
@@ -304,7 +304,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 287 |
+| Open total | 288 |
 | Blocked | 4 |
 | Deferred | 124 |
 | Awaiting a product decision | 14 |

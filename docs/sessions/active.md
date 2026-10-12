@@ -12,4 +12,4 @@ therefore sees sibling worktrees without anybody having pushed.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
-| [SESSION-0123](../../docs/sessions/SESSION-0123-owner-placeholder-names-lookup-links-owner-edit.md) | — | Owner placeholder names, lookup links, owner edit | ACTIVE | `agent/owner-names-and-lookup-links` | `develop` | — | 2026-10-12T06:52:07.848Z |
+| [SESSION-0124](../../docs/sessions/SESSION-0124-plan-publish-unpublish-and-archive-actions.md) | — | Plan publish, unpublish and archive actions | ACTIVE | `agent/plan-publication-actions` | `develop` | — | 2026-10-12T13:49:07.877Z |

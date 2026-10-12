@@ -8,8 +8,8 @@
 | | |
 |---|---|
 | Open CRITICAL | **8** |
-| Open HIGH | **116** |
-| Open total | 287 |
+| Open HIGH | **117** |
+| Open total | 288 |
 | Blocked | 4 |
 | Awaiting a product decision | 14 |
 | Deferred | 124 |
@@ -145,6 +145,7 @@
 | [[BUG-4060-support-case-tenant-lookup-ignores-the-selected-customer-and|BUG-4060]] | Support case Tenant lookup ignores the selected Customer and the API accepts mismatched pairs | AUTHORIZATION | HIGH | FIXED | support-cases, apps/admin | FIX_NOW |
 | [[BUG-4061-support-case-escalate-always-fails-with-400-and-statuses-cha|BUG-4061]] | Support case Escalate always fails with 400 and statuses change without validation | BUG | HIGH | FIXED | support-cases, apps/admin | FIX_NOW |
 | [[BUG-4098-admin-refused-every-agreement-and-plan-delete-and-printed-re|BUG-4098]] | Admin refused every agreement and plan delete and printed reference ids as values | BUG | HIGH | FIXED | contracts, super-admin, platform-runtime | FIX_NOW |
+| [[BUG-4120-a-published-plan-could-not-be-unpublished-or-archived-so-the|BUG-4120]] | A published plan could not be unpublished or archived, so the delete rule pointed at an action that did not exist | BUG | HIGH | FIXED | super-admin, platform-runtime, apps/admin | FIX_NOW |
 | [[ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no|ITEM-0133]] | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | READY | services/api/test | PLAN_REQUIRED |
 | [[ITEM-0134-the-payroll-run-engine-has-no-tests|ITEM-0134]] | The payroll run engine has no tests | TEST_GAP | HIGH | READY | api:payroll | PLAN_REQUIRED |
 | [[ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-|ITEM-0136]] | electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major | SECURITY | HIGH | READY | apps/agent-desktop | FIX_NOW |
@@ -407,6 +408,7 @@
 | [[BUG-4060-support-case-tenant-lookup-ignores-the-selected-customer-and|BUG-4060]] | Support case Tenant lookup ignores the selected Customer and the API accepts mismatched pairs | AUTHORIZATION | HIGH | FIXED | support-cases, apps/admin | FIX_NOW |
 | [[BUG-4061-support-case-escalate-always-fails-with-400-and-statuses-cha|BUG-4061]] | Support case Escalate always fails with 400 and statuses change without validation | BUG | HIGH | FIXED | support-cases, apps/admin | FIX_NOW |
 | [[BUG-4098-admin-refused-every-agreement-and-plan-delete-and-printed-re|BUG-4098]] | Admin refused every agreement and plan delete and printed reference ids as values | BUG | HIGH | FIXED | contracts, super-admin, platform-runtime | FIX_NOW |
+| [[BUG-4120-a-published-plan-could-not-be-unpublished-or-archived-so-the|BUG-4120]] | A published plan could not be unpublished or archived, so the delete rule pointed at an action that did not exist | BUG | HIGH | FIXED | super-admin, platform-runtime, apps/admin | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver|BUG-3501]] | The email provider screen presents a console sink as delivery and offers sink providers in production | UX | MEDIUM | FIXED | notifications, apps/web | PLAN_REQUIRED |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
@@ -659,6 +661,7 @@
 
 ## Recent Engineering History
 
+- [[2026-10-12-owner-names-and-lookup-links-f93b56b5|Engineering History — Owner names and lookup links]]
 - [[2026-10-12-admin-delete-and-labels-ed30bda7|Engineering History — Admin delete and labels]]
 - [[2026-10-11-dp-platform-remediation-dc10b371|Engineering History — DP platform remediation (12 workstreams)]]
 - [[2026-10-08-partner-module-completion-d69f2583|Engineering History — Partner module completion]]
@@ -666,7 +669,6 @@
 - [[2026-10-07-crm-plugin-alm-mfa-claims-afc93291|Engineering History — CRM plugin: package ALM and MFA discoverability, Claims on the runtime, advisory fix]]
 - [[2026-09-27-custom-fields-screens-and-query-04892def|Engineering History — Custom fields screens and query]]
 - [[2026-09-27-custom-fields-every-module-be7189f7|Engineering History — Custom fields every module]]
-- [[2026-09-27-claims-navigation-cea41518|Engineering History — Claims navigation]]
 
 ## Recent Releases
 
@@ -882,11 +884,11 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 558 |
+| Bug records | 559 |
 | Backlog items | 228 |
 | Known bug patterns | 35 |
 | QA runs | 39 |
-| Engineering history records | 99 |
+| Engineering history records | 100 |
 | Release records | 10 |
 | Module notes | 32 |
 | Architecture notes | 22 |
