@@ -6,18 +6,17 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 1** · completed: 119
+**Active: 0** · completed: 120
 
 ## Active
 
-| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
-|---|---|---|---|---|---|---|---|
-| [SESSION-0124](../../docs/sessions/SESSION-0124-plan-publish-unpublish-and-archive-actions.md) | — | Plan publish, unpublish and archive actions | ACTIVE | `agent/plan-publication-actions` | `develop` | — | 2026-10-12T13:49:07.877Z |
+_None. No session is currently running._
 
 ## Completed
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0124](../../docs/sessions/SESSION-0124-plan-publish-unpublish-and-archive-actions.md) | — | Plan publish, unpublish and archive actions | COMPLETE | `agent/plan-publication-actions` | `develop` | — | 2026-10-12T15:05:00.000Z |
 | [SESSION-0123](../../docs/sessions/SESSION-0123-owner-placeholder-names-lookup-links-owner-edit.md) | — | Owner placeholder names, lookup links, owner edit | COMPLETE | `agent/owner-names-and-lookup-links` | `develop` | — | 2026-10-12T07:55:00.000Z |
 | [SESSION-0122](../../docs/sessions/SESSION-0122-admin-subgrid-delete-guid-display-plan-deletion.md) | — | Admin subgrid delete, GUID display, plan deletion | COMPLETE | `agent/admin-delete-and-labels` | `develop` | — | 2026-10-12T06:20:00.000Z |
 | [SESSION-0121](../../docs/sessions/SESSION-0121-dp-platform-remediation-12-workstreams.md) | — | DP platform remediation — 12 workstreams | COMPLETE | `agent/dp-platform-remediation` | `develop` | — | 2026-10-11T08:04:10.067Z |
