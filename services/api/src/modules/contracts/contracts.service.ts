@@ -69,6 +69,14 @@ import {
 import { normalizeSignatureTokens } from './signature-tokens';
 import { unwrapPlaceholderMarkup } from './placeholder-markup';
 import {
+  agreementTermProblems,
+  assertAgreementTerms,
+  assertTemplateTermRules,
+  COLUMN_BACKED_TERMS,
+  readTemplateTermRules,
+  type TemplateTermRule,
+} from './agreement-terms';
+import {
   assertDocumentContent,
   assessDocumentContent,
   buildTemplateSigningDefinitions,
@@ -1570,6 +1578,46 @@ export class ContractsService {
       templateVersion?.contentHtml ??
       `<h1>${escapeHtml(dto.title)}</h1>`;
     const contentHtml = cleanContractHtml(rawHtml);
+    /*
+     * The template's proposed defaults (`agreement-terms.ts`) fill only what no
+     * record and no caller supplied, and only for terms the document uses.
+     * They are proposals: stored with their own source, editable before send.
+     */
+    const documentKeys = new Set(
+      extractContractPlaceholders(contentHtml).map((item) => item.key),
+    );
+    /*
+     * Precedence: a value a record or the caller supplied wins; then the
+     * template's default; then the platform-wide contract setting. A template
+     * is more specific than the global setting — the Pakistan pilot agreement
+     * states a PKR liability floor whatever the platform default says — but
+     * never more specific than what was agreed for this counterparty.
+     */
+    const suppliedExplicitly = (key: string) =>
+      key in (dto.placeholderValues ?? {}) || key in partnerValues;
+    const onlyPlatformDefault = (key: string) =>
+      !values[key]?.trim() ||
+      (!suppliedExplicitly(key) &&
+        (agreementTerms as Record<string, unknown>)[key] !== undefined &&
+        values[key] ===
+          String((agreementTerms as Record<string, unknown>)[key]));
+    const templateDefaults: Record<string, string> = Object.fromEntries(
+      readTemplateTermRules(
+        templateVersion?.fieldDefinitions,
+        isRegisteredPlaceholder,
+      )
+        .filter(
+          (rule) =>
+            rule.defaultValue &&
+            documentKeys.has(rule.key) &&
+            onlyPlatformDefault(rule.key),
+        )
+        .map((rule) => [rule.key, rule.defaultValue!]),
+    );
+    Object.assign(values, templateDefaults);
+    const defaultedDays = (key: string, explicit: number | undefined) =>
+      explicit ??
+      (templateDefaults[key] ? Number(templateDefaults[key]) : undefined);
     assertValidContractPlaceholderValues(
       extractContractPlaceholders(contentHtml),
       values,
@@ -1632,8 +1680,16 @@ export class ContractsService {
           commissionPercentage: commercial.commissionPercentage,
           commissionBasis: dto.commissionBasis,
           paymentTerms: dto.paymentTerms,
-          governingLaw: dto.governingLaw,
-          jurisdiction: dto.jurisdiction,
+          // The agreement's own columns carry a template default too, so the
+          // record form and the document state the same term.
+          governingLaw:
+            dto.governingLaw?.trim() ||
+            templateDefaults['contract.governingLaw'] ||
+            dto.governingLaw,
+          jurisdiction:
+            dto.jurisdiction?.trim() ||
+            templateDefaults['contract.jurisdiction'] ||
+            dto.jurisdiction,
           confidentialityClass: dto.confidentialityClass,
           effectiveDate: dto.effectiveDate ? new Date(dto.effectiveDate) : null,
           expiryDate: dto.expiryDate ? new Date(dto.expiryDate) : null,
@@ -1648,8 +1704,14 @@ export class ContractsService {
               ? new Date(dto.expiryDate)
               : null,
           autoRenewal: dto.autoRenewal ?? false,
-          renewalNoticeDays: dto.renewalNoticeDays,
-          terminationNoticeDays: dto.terminationNoticeDays,
+          renewalNoticeDays: defaultedDays(
+            'contract.renewalNoticeDays',
+            dto.renewalNoticeDays,
+          ),
+          terminationNoticeDays: defaultedDays(
+            'contract.terminationNoticeDays',
+            dto.terminationNoticeDays,
+          ),
           notes: dto.notes,
           currentVersionNumber: 1,
           createdById: user.userId,
@@ -1807,7 +1869,7 @@ export class ContractsService {
             contractId: contract.id,
             key,
             value,
-            source: 'create',
+            source: key in templateDefaults ? 'template-default' : 'create',
             updatedById: user.userId,
           })),
         });
@@ -2718,24 +2780,44 @@ export class ContractsService {
       ? extractContractPlaceholders(version.contentHtml)
       : [];
     const resolved = applyDeprecatedPlaceholderAliases(values);
+    // The template's mandatory terms, and what is wrong with each right now —
+    // the same check the send applies, so the operator sees it before sending.
+    const termRules = await this.agreementTermRules(contract);
+    const requiredTerms = new Set(
+      termRules.filter((rule) => rule.required).map((rule) => rule.key),
+    );
+    const termProblems = new Map(
+      agreementTermProblems(
+        termRules,
+        new Set(definitions.map((definition) => definition.key)),
+        resolved,
+        placeholderLabel,
+      ).map((problem) => [problem.field, problem.message]),
+    );
     return {
       items: definitions.map((definition) => ({
         key: definition.key,
         label: definition.label,
         description: definition.description,
         dataType: definition.dataType,
-        required: definition.required,
+        required: definition.required || requiredTerms.has(definition.key),
+        problem: termProblems.get(definition.key) ?? null,
         group: placeholderGroup(definition.key),
         exampleValue: definition.exampleValue,
         source: sources.get(definition.key) ?? null,
         /*
          * The signature namespace — marks, names and dates — is produced by
          * signing, never typed in here, and a derived value is owned by the
-         * contract field it mirrors.
+         * contract field it mirrors. Column-backed terms are edited on the
+         * agreement record, whose next save would overwrite a value typed here.
          */
         editable:
           !isSignaturePlaceholderKey(definition.key) &&
-          sources.get(definition.key) !== 'derived',
+          sources.get(definition.key) !== 'derived' &&
+          !(
+            COLUMN_BACKED_TERMS.has(definition.key) &&
+            termRules.some((rule) => rule.key === definition.key)
+          ),
         value: resolved[definition.key] ?? '',
       })),
       previewHtml: version
@@ -2765,8 +2847,13 @@ export class ContractsService {
             ),
             [...contract.placeholderValues, revisionRow],
             'display',
+            requiredTerms,
           )
         : '',
+      termProblems: [...termProblems.entries()].map(([field, message]) => ({
+        field,
+        message,
+      })),
       contentIssues: version
         ? assessDocumentContent(version.contentHtml, isRegisteredPlaceholder)
         : [],
@@ -3042,6 +3129,10 @@ export class ContractsService {
     const contentHtml = cleanContractHtml(dto.contentHtml);
     this.assertTemplatePlaceholdersInContext(dto.contractType, contentHtml);
     if (dto.publish) this.assertTemplatePublishable(contentHtml);
+    assertTemplateTermRules(
+      readTemplateTermRules(dto.fieldDefinitions, isRegisteredPlaceholder),
+      placeholderLabel,
+    );
     const lifecycleGatePurpose =
       resolveTemplateLifecycleGate(
         dto.lifecycleGatePurpose,
@@ -3110,6 +3201,10 @@ export class ContractsService {
       contentHtml,
     );
     if (dto.publish) this.assertTemplatePublishable(contentHtml);
+    assertTemplateTermRules(
+      readTemplateTermRules(dto.fieldDefinitions, isRegisteredPlaceholder),
+      placeholderLabel,
+    );
     const requestedGate = resolveTemplateLifecycleGate(
       dto.lifecycleGatePurpose,
       template.contractType,
@@ -3137,7 +3232,14 @@ export class ContractsService {
           contentText: dto.contentText?.trim() || toPlainText(contentHtml),
           placeholders: (dto.placeholders ??
             extractContractPlaceholders(contentHtml)) as Prisma.InputJsonValue,
-          fieldDefinitions: dto.fieldDefinitions as Prisma.InputJsonValue,
+          /*
+           * The editor does not send term rules, so a new version saved from
+           * it inherits the latest version's rather than silently dropping
+           * the template's mandatory terms and defaults.
+           */
+          fieldDefinitions: (dto.fieldDefinitions ??
+            template.versions[0]?.fieldDefinitions ??
+            Prisma.JsonNull) as Prisma.InputJsonValue,
           ...signing,
           lifecycleGatePurpose,
           changeSummary: dto.changeSummary?.trim() || null,
@@ -3459,6 +3561,28 @@ export class ContractsService {
         code: 'CONTRACT_TEMPLATE_VERSION_LOCKED',
         message: `This version cannot be edited because ${reason}. Save your changes as a new draft version instead.`,
       });
+  }
+
+  /**
+   * The term rules of the template version an agreement was drafted from.
+   * Read from its first template-linked version: later revisions saved from
+   * the agreement editor do not carry `templateVersionId`, and losing the
+   * rules on the first edit would let a mandatory term go out blank.
+   */
+  private async agreementTermRules(contract: {
+    id: string;
+    templateId: string | null;
+  }): Promise<TemplateTermRule[]> {
+    if (!contract.templateId) return [];
+    const origin = await this.prisma.contractVersion.findFirst({
+      where: { contractId: contract.id, templateVersionId: { not: null } },
+      orderBy: { version: 'asc' },
+      select: { templateVersion: { select: { fieldDefinitions: true } } },
+    });
+    return readTemplateTermRules(
+      origin?.templateVersion?.fieldDefinitions,
+      isRegisteredPlaceholder,
+    );
   }
 
   private assertTemplatePublishable(contentHtml: string) {
@@ -4235,6 +4359,19 @@ export class ContractsService {
       version.contentHtml,
     );
     this.assertPlaceholdersInContext(contract, placeholderDefinitions);
+    /*
+     * The template's mandatory terms first, with what to enter: a governing
+     * law, a liability floor or a notice period that is missing or malformed
+     * must stop the send, not print as a broken sentence in a signed copy.
+     */
+    assertAgreementTerms(
+      agreementTermProblems(
+        await this.agreementTermRules(contract),
+        new Set(placeholderDefinitions.map((item) => item.key)),
+        placeholderSnapshot,
+        placeholderLabel,
+      ),
+    );
     assertValidContractPlaceholderValues(
       placeholderDefinitions,
       placeholderSnapshot,
@@ -5649,6 +5786,11 @@ export class ContractsService {
           agreementRevisionRow(contract._count.signatureRequests),
         ],
         'display',
+        new Set(
+          (await this.agreementTermRules(contract))
+            .filter((rule) => rule.required)
+            .map((rule) => rule.key),
+        ),
       );
     const buffer =
       format === 'pdf'
@@ -7044,6 +7186,11 @@ const PLACEHOLDER_ARTIFACT_LITERALS = new Set([
 export function renderContractPlaceholders(
   html: string,
   rawValues: Record<string, string>,
+  /** Display only: which missing values to show as a marked gap. */
+  markMissing?: (
+    key: string,
+    definition: ContractPlaceholderDefinition | undefined,
+  ) => boolean,
 ) {
   const values = applyDeprecatedPlaceholderAliases(rawValues);
   const currencyCode = /^[A-Za-z]{3}$/.test(
@@ -7081,6 +7228,7 @@ export function renderContractPlaceholders(
          * than leaving a raw token in the document. Anything declared ERROR or
          * LEAVE_TOKEN keeps its token so the signature gate can refuse it.
          */
+        if (markMissing?.(key, definition)) return missingValueMarker(key);
         return definition?.fallbackBehavior === 'EMPTY' ? '' : match;
       }
       if (
@@ -7147,6 +7295,22 @@ export function agreementRevisionRow(
 
 export function isRegisteredPlaceholder(key: string) {
   return CONTRACT_PLACEHOLDER_REGISTRY.some((item) => item.key === key);
+}
+
+export function placeholderLabel(key: string) {
+  return (
+    CONTRACT_PLACEHOLDER_REGISTRY.find((item) => item.key === key)?.label ?? key
+  );
+}
+
+/*
+ * What a preview shows where a mandatory value is still missing. Never a
+ * blank (which reads as a finished sentence), `undefined` or a raw token: a
+ * marked gap the operator can see and fill. Only previews use it — the send
+ * gate refuses the document before such a value could be frozen.
+ */
+function missingValueMarker(key: string) {
+  return `<mark data-missing-field="${escapeHtml(key)}">[Missing: ${escapeHtml(placeholderLabel(key))}]</mark>`;
 }
 
 /*
@@ -7237,6 +7401,8 @@ export function renderContractVersionHtml(
   html: string,
   rows: StoredContractPlaceholderValue[],
   mode: 'freeze' | 'display',
+  /** Terms the agreement's template makes mandatory (`agreement-terms.ts`). */
+  requiredKeys: ReadonlySet<string> = new Set(),
 ) {
   const values = Object.fromEntries(
     rows
@@ -7252,6 +7418,16 @@ export function renderContractVersionHtml(
   const rendered = renderContractPlaceholders(
     normalizeSignatureTokens(html),
     values,
+    /*
+     * A preview never shows a missing mandatory value as a blank or a raw
+     * `{{token}}`: registry-required keys and the template's required terms
+     * read "[Missing: …]". Freeze keeps tokens so the send gate refuses them.
+     */
+    mode === 'display'
+      ? (key, definition) =>
+          !isSignaturePlaceholderKey(key) &&
+          (requiredKeys.has(key) || (definition?.required ?? true))
+      : undefined,
   );
   return mode === 'display' ? renderPendingSignatureTokens(rendered) : rendered;
 }

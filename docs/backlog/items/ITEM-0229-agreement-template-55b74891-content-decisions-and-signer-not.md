@@ -11,7 +11,7 @@ Source: ARCHITECT
 OwnerAgent: architect
 ArchitectDisposition: PRODUCT_DECISION
 CreatedAt: 2026-10-12
-UpdatedAt: 2026-10-12
+UpdatedAt: 2026-10-13
 RelatedBug: BUG-4133
 RelatedQA: QA-CONTRACTS-001
 RelatedADR: 

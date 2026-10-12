@@ -1055,6 +1055,8 @@ type DocumentField = {
   source: string | null;
   editable: boolean;
   value: string;
+  /** Why the send would refuse this term today, from the server's own check. */
+  problem?: string | null;
 };
 
 /*
@@ -1160,6 +1162,14 @@ function ContractDocumentFieldsPanel({
   const missing = fields.filter(
     (field) => field.required && !(drafts[field.key] ?? field.value).trim(),
   );
+  // Terms whose stored value the send gate refuses (an empty one is already
+  // in `missing`), until the operator has typed a replacement.
+  const invalid = fields.filter(
+    (field) =>
+      field.problem &&
+      (field.value ?? "").trim() &&
+      drafts[field.key] === undefined,
+  );
   const groups = [...new Set(fields.map((field) => field.group))];
   const dirty = Object.keys(drafts).length > 0;
 
@@ -1212,6 +1222,13 @@ function ContractDocumentFieldsPanel({
           {missing.map((field) => field.label).join(", ")}.
         </p>
       ) : null}
+      {invalid.length ? (
+        <ul className="mt-3 space-y-1 rounded-lg bg-rose-50 p-3 text-sm text-rose-700">
+          {invalid.map((field) => (
+            <li key={field.key}>{field.problem}</li>
+          ))}
+        </ul>
+      ) : null}
       {loading ? (
         <p className="mt-4 text-sm text-slate-500">Loading document fields…</p>
       ) : (
@@ -1258,13 +1275,19 @@ function ContractDocumentFieldsPanel({
                             : "border-slate-200"
                         }`}
                       />
-                      <span className="text-[11px] font-normal text-slate-400">
-                        {field.editable
-                          ? (field.description ?? field.dataType)
-                          : field.source === "signature"
-                            ? "Captured when the document is signed."
-                            : "Set from the agreement fields above."}
-                      </span>
+                      {field.problem && drafts[field.key] === undefined ? (
+                        <span className="text-[11px] font-normal text-rose-600">
+                          {field.problem}
+                        </span>
+                      ) : (
+                        <span className="text-[11px] font-normal text-slate-400">
+                          {field.editable
+                            ? (field.description ?? field.dataType)
+                            : field.source === "signature"
+                              ? "Captured when the document is signed."
+                              : "Set from the agreement fields above."}
+                        </span>
+                      )}
                     </label>
                   );
                 })}
@@ -2567,7 +2590,9 @@ function SignatureRequestDialog({
       const payload = await response.json();
       if (!response.ok)
         throw new Error(
-          payload?.message ?? "Unable to send signature request.",
+          Array.isArray(payload?.message)
+            ? payload.message.join(" ")
+            : (payload?.message ?? "Unable to send signature request."),
         );
       await onComplete();
       const failedDeliveries = Number(payload?.emailDelivery?.failed ?? 0);
