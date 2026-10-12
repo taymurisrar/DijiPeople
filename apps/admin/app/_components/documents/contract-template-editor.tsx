@@ -213,7 +213,7 @@ export function ContractTemplateEditor({
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch("/api/contract-templates/options", { signal: controller.signal })
+    fetch("/api/contracts/template-options", { signal: controller.signal })
       .then((response) => (response.ok ? response.json() : null))
       .then((payload: TemplateOptions | null) => {
         if (payload) setOptions(payload);

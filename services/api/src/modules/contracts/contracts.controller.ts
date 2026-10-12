@@ -132,6 +132,12 @@ export class ContractsController {
     );
   }
 
+  /** Supported lifecycle gates and signer roles, for the template editor. */
+  @Get('template-options')
+  templateOptions(@CurrentUser() user: AuthenticatedUser) {
+    return this.contracts.templateOptions(user);
+  }
+
   @Get(':id')
   get(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.contracts.get(user, id);
@@ -339,12 +345,6 @@ export class ContractTemplatesController {
     @Body() dto: CreateContractTemplateDto,
   ) {
     return this.contracts.createTemplate(user, dto);
-  }
-
-  // Declared above `:id` so "options" is never read as a template id.
-  @Get('options')
-  options(@CurrentUser() user: AuthenticatedUser) {
-    return this.contracts.templateOptions(user);
   }
 
   @Get(':id')
