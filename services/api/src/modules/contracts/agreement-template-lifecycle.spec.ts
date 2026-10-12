@@ -737,3 +737,82 @@ describe('ContractsService.sendForSignature — what is frozen', () => {
     });
   });
 });
+
+describe('ContractsService.submitApproval — derived agreement version', () => {
+  /*
+   * Production, 2026-10-12 (admin_9d964ede): submitting an agreement drafted
+   * from template 55b74891 v3 failed with "Agreement version is required." —
+   * a value the platform derives and the document fields offer no way to
+   * enter. Approval validated only stored values; it now derives the version
+   * exactly as the send freeze does.
+   */
+  function approvalHarness(
+    storedValues: Array<{ key: string; value: string }>,
+  ) {
+    const update = jest.fn().mockResolvedValue({});
+    const prisma = {
+      contract: { update },
+      contractTimeline: { create: jest.fn().mockResolvedValue({}) },
+      $transaction: jest.fn((operations: unknown[]) => Promise.all(operations)),
+    };
+    const service = new ContractsService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      { log: jest.fn().mockResolvedValue(undefined) } as never,
+    );
+    const internals = service as unknown as Record<string, unknown>;
+    // Approvals disabled by policy: the agreement goes straight to signature.
+    internals.contractSettings = jest.fn().mockResolvedValue({
+      requireCommercialApproval: false,
+      requireLegalApproval: false,
+    });
+    internals.auditContract = jest.fn().mockResolvedValue(undefined);
+    jest.spyOn(service, 'get').mockResolvedValue({
+      id: 'contract-1',
+      contractNumber: 'CON-1',
+      title: 'SaaS Pilot Agreement',
+      contractType: ContractType.MASTER_SERVICES_AGREEMENT,
+      status: 'DRAFT',
+      relatedLeadId: 'lead-1',
+      partnerId: null,
+      customerAccountId: null,
+      customerOnboardingId: null,
+      tenantId: null,
+      currentVersionNumber: 1,
+      versions: [
+        {
+          version: 1,
+          contentHtml:
+            '<p>Agreement Version: {{contract.version}} — {{customer.legalName}}</p>',
+        },
+      ],
+      placeholderValues: storedValues,
+      signatureRequests: [],
+      parties: [],
+    } as never);
+    return { service, update };
+  }
+
+  it('does not ask for the agreement version, which nobody can type', async () => {
+    const { service, update } = approvalHarness([
+      { key: 'customer.legalName', value: 'Sample Retail (Pvt) Ltd' },
+    ]);
+
+    await expect(
+      service.submitApproval(platformAdmin, 'contract-1'),
+    ).resolves.toMatchObject({ status: 'READY_FOR_SIGNATURE' });
+    expect(update).toHaveBeenCalled();
+  });
+
+  it('still refuses a genuinely missing required value', async () => {
+    const { service } = approvalHarness([]);
+
+    await expect(
+      service.submitApproval(platformAdmin, 'contract-1'),
+    ).rejects.toMatchObject({
+      response: { message: ['Customer legal name is required.'] },
+    });
+  });
+});

@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**789 records** — 560 bugs under [`docs/bugs/`](../bugs/), 229 non-bug items under [`items/`](items/).
+**790 records** — 561 bugs under [`docs/bugs/`](../bugs/), 229 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 289 |
+| Open (active work) | 290 |
 | Blocked | 4 |
 | Deferred | 124 |
 | Awaiting a product decision | 15 |
 | Completed / closed | 357 |
 | **Open CRITICAL** | **8** |
-| **Open HIGH** | **118** |
+| **Open HIGH** | **119** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,7 +27,7 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 8 |
-| HIGH | 118 |
+| HIGH | 119 |
 | MEDIUM | 132 |
 | LOW | 30 |
 
@@ -36,7 +36,7 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | AUTHORIZATION | 17 |
-| BUG | 91 |
+| BUG | 92 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 27 |
 | DOCUMENTATION | 1 |
@@ -61,7 +61,7 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 4 |
 | DEFERRED | 124 |
 | PRODUCT_DECISION | 15 |
-| FIXED | 208 |
+| FIXED | 209 |
 | VERIFIED | 221 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
@@ -330,6 +330,7 @@ see [`README.md`](README.md) for why.
 | [BUG-4098](../../docs/bugs/BUG-4098-admin-refused-every-agreement-and-plan-delete-and-printed-re.md) | Admin refused every agreement and plan delete and printed reference ids as values | BUG | HIGH | P1 | FIXED | contracts, super-admin, platform-runtime | FIX_NOW |
 | [BUG-4120](../../docs/bugs/BUG-4120-a-published-plan-could-not-be-unpublished-or-archived-so-the.md) | A published plan could not be unpublished or archived, so the delete rule pointed at an action that did not exist | BUG | HIGH | P1 | FIXED | super-admin, platform-runtime, apps/admin | FIX_NOW |
 | [BUG-4133](../../docs/bugs/BUG-4133-agreement-template-editor-corrupts-placeholders-ignores-sign.md) | Agreement template editor corrupts placeholders, ignores signer roles and cannot edit drafts or print | BUG | HIGH | P1 | FIXED | contracts | FIX_NOW |
+| [BUG-4174](../../docs/bugs/BUG-4174-submit-for-approval-reports-the-derived-agreement-version-as.md) | Submit for approval reports the derived agreement version as a missing required field | BUG | HIGH | P1 | FIXED | contracts | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |

@@ -7426,3 +7426,17 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — with the markup unwrapper or the signer plan disabled, five lifecycle specs fail (mutation-checked 2026-10-12). |
 | **Fixed** | 2026-10-12, branch `agent/agreement-templates-hotfix` |
 | **Active** | yes |
+
+### REG-682 — Submit for approval asked for the derived agreement version
+
+| | |
+|---|---|
+| **Bug class** | `derived-value-validated-as-stored` |
+| **Module** | `services/api` |
+| **Bug record** | BUG-4174 |
+| **Root cause** | {{contract.version}} is derived and never stored, but submitApproval validated required placeholders against stored values only, so it reported "Agreement version is required." with nowhere to enter it. |
+| **Regression test** | `services/api/src/modules/contracts/agreement-template-lifecycle.spec.ts`. |
+| **Scenario** | QA-CONTRACTS-002 — An agreement whose document uses the agreement version can be submitted for approval. |
+| **Fails without the fix** | Yes — with the derived row removed from submitApproval the approval specs fail (mutation-checked 2026-10-13). |
+| **Fixed** | 2026-10-13, branch `agent/agreement-version-approval` |
+| **Active** | yes |

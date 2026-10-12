@@ -6,11 +6,13 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 0** · completed: 122
+**Active: 1** · completed: 122
 
 ## Active
 
-_None. No session is currently running._
+| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
+|---|---|---|---|---|---|---|---|
+| [SESSION-0127](../../docs/sessions/SESSION-0127-submit-for-approval-reports-the-derived-agreement-version-as.md) | — | Submit for approval reports the derived agreement version as missing | ACTIVE | `agent/agreement-version-approval` | `develop` | — | 2026-10-12T21:13:36.074Z |
 
 ## Completed
 
