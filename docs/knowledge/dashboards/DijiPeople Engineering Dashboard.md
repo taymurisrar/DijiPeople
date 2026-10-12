@@ -11,7 +11,7 @@
 | Open HIGH | **118** |
 | Open total | 289 |
 | Blocked | 4 |
-| Awaiting a product decision | 14 |
+| Awaiting a product decision | 15 |
 | Deferred | 124 |
 | Completed | 357 |
 | Awaiting Architect triage | 0 |
@@ -169,6 +169,7 @@
 | [[ITEM-0223-decide-which-lifecycle-events-the-platform-must-emit-to-the-|ITEM-0223]] | Decide which lifecycle events the platform must emit to the Events stream | PRODUCT_DECISION | — | PRODUCT_DECISION | platform-events | PRODUCT_DECISION |
 | [[ITEM-0224-decide-whether-business-rule-rejections-should-be-recorded-b|ITEM-0224]] | Decide whether business-rule rejections should be recorded but not queued as incidents | PRODUCT_DECISION | — | PRODUCT_DECISION | error-logs | PRODUCT_DECISION |
 | [[ITEM-0227-automatic-commission-accrual-from-collected-invoices|ITEM-0227]] | Automatic commission accrual from collected invoices | PRODUCT_DECISION | — | PRODUCT_DECISION | partners, billing | PRODUCT_DECISION |
+| [[ITEM-0229-agreement-template-55b74891-content-decisions-and-signer-not|ITEM-0229]] | Agreement template 55b74891 content decisions and signer notification gaps | PRODUCT_DECISION | — | PRODUCT_DECISION | contracts | PRODUCT_DECISION |
 | [[ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins|ITEM-0191]] | Decide whether custom modules need their own access keys instead of the shared custom-records privilege | PRODUCT_DECISION | — | PRODUCT_DECISION | data, permissions | PRODUCT_DECISION |
 
 ## Blocked Items
@@ -665,12 +666,12 @@
 
 - [[2026-10-12-plan-publication-actions-3d471223|Engineering History — Plan publication actions]]
 - [[2026-10-12-owner-names-and-lookup-links-f93b56b5|Engineering History — Owner names and lookup links]]
+- [[2026-10-12-agreement-templates-hotfix-dcd2720d|Engineering History — Agreement templates hotfix]]
 - [[2026-10-12-admin-delete-and-labels-ed30bda7|Engineering History — Admin delete and labels]]
 - [[2026-10-11-dp-platform-remediation-dc10b371|Engineering History — DP platform remediation (12 workstreams)]]
 - [[2026-10-08-partner-module-completion-d69f2583|Engineering History — Partner module completion]]
 - [[2026-10-08-admin-ux-cleanup-32c4b314|Engineering History — Platform Admin UX cleanup]]
 - [[2026-10-07-crm-plugin-alm-mfa-claims-afc93291|Engineering History — CRM plugin: package ALM and MFA discoverability, Claims on the runtime, advisory fix]]
-- [[2026-09-27-custom-fields-screens-and-query-04892def|Engineering History — Custom fields screens and query]]
 
 ## Recent Releases
 
@@ -887,10 +888,10 @@
 | Knowledge | Count |
 |---|---|
 | Bug records | 560 |
-| Backlog items | 228 |
+| Backlog items | 229 |
 | Known bug patterns | 35 |
 | QA runs | 39 |
-| Engineering history records | 101 |
+| Engineering history records | 102 |
 | Release records | 10 |
 | Module notes | 32 |
 | Architecture notes | 22 |
