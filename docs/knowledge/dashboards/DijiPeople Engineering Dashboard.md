@@ -659,6 +659,7 @@
 
 ## Recent Engineering History
 
+- [[2026-10-12-owner-names-and-lookup-links-f93b56b5|Engineering History — Owner names and lookup links]]
 - [[2026-10-12-admin-delete-and-labels-ed30bda7|Engineering History — Admin delete and labels]]
 - [[2026-10-11-dp-platform-remediation-dc10b371|Engineering History — DP platform remediation (12 workstreams)]]
 - [[2026-10-08-partner-module-completion-d69f2583|Engineering History — Partner module completion]]
@@ -666,7 +667,6 @@
 - [[2026-10-07-crm-plugin-alm-mfa-claims-afc93291|Engineering History — CRM plugin: package ALM and MFA discoverability, Claims on the runtime, advisory fix]]
 - [[2026-09-27-custom-fields-screens-and-query-04892def|Engineering History — Custom fields screens and query]]
 - [[2026-09-27-custom-fields-every-module-be7189f7|Engineering History — Custom fields every module]]
-- [[2026-09-27-claims-navigation-cea41518|Engineering History — Claims navigation]]
 
 ## Recent Releases
 
@@ -886,7 +886,7 @@
 | Backlog items | 228 |
 | Known bug patterns | 35 |
 | QA runs | 39 |
-| Engineering history records | 99 |
+| Engineering history records | 100 |
 | Release records | 10 |
 | Module notes | 32 |
 | Architecture notes | 22 |
