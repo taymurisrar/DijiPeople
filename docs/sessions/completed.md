@@ -6,6 +6,7 @@ Sessions that reached a terminal state. Kept as history: the branch, the base it
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0126](../../docs/sessions/SESSION-0126-agreement-template-55b74891-v3-final-saas-master-agreement-c.md) | — | Agreement template 55b74891 v3: final SaaS master agreement content | COMPLETE | `agent/agreement-template-v3` | `develop` | — | 2026-10-12T19:04:34.256Z |
 | [SESSION-0125](../../docs/sessions/SESSION-0125-agreement-template-hotfix-gates-signer-roles-draft-editing-p.md) | — | Agreement template hotfix: gates, signer roles, draft editing, print, placeholders | COMPLETE | `agent/agreement-templates-hotfix` | `develop` | — | 2026-10-12T16:31:51.351Z |
 | [SESSION-0124](../../docs/sessions/SESSION-0124-plan-publish-unpublish-and-archive-actions.md) | — | Plan publish, unpublish and archive actions | COMPLETE | `agent/plan-publication-actions` | `develop` | — | 2026-10-12T15:05:00.000Z |
 | [SESSION-0123](../../docs/sessions/SESSION-0123-owner-placeholder-names-lookup-links-owner-edit.md) | — | Owner placeholder names, lookup links, owner edit | COMPLETE | `agent/owner-names-and-lookup-links` | `develop` | — | 2026-10-12T07:55:00.000Z |

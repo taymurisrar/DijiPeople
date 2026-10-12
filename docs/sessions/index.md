@@ -6,18 +6,17 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 1** · completed: 121
+**Active: 0** · completed: 122
 
 ## Active
 
-| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
-|---|---|---|---|---|---|---|---|
-| [SESSION-0126](../../docs/sessions/SESSION-0126-agreement-template-55b74891-v3-final-saas-master-agreement-c.md) | — | Agreement template 55b74891 v3: final SaaS master agreement content | ACTIVE | `agent/agreement-template-v3` | `develop` | — | 2026-10-12T19:04:34.256Z |
+_None. No session is currently running._
 
 ## Completed
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0126](../../docs/sessions/SESSION-0126-agreement-template-55b74891-v3-final-saas-master-agreement-c.md) | — | Agreement template 55b74891 v3: final SaaS master agreement content | COMPLETE | `agent/agreement-template-v3` | `develop` | — | 2026-10-12T19:04:34.256Z |
 | [SESSION-0125](../../docs/sessions/SESSION-0125-agreement-template-hotfix-gates-signer-roles-draft-editing-p.md) | — | Agreement template hotfix: gates, signer roles, draft editing, print, placeholders | COMPLETE | `agent/agreement-templates-hotfix` | `develop` | — | 2026-10-12T16:31:51.351Z |
 | [SESSION-0124](../../docs/sessions/SESSION-0124-plan-publish-unpublish-and-archive-actions.md) | — | Plan publish, unpublish and archive actions | COMPLETE | `agent/plan-publication-actions` | `develop` | — | 2026-10-12T15:05:00.000Z |
 | [SESSION-0123](../../docs/sessions/SESSION-0123-owner-placeholder-names-lookup-links-owner-edit.md) | — | Owner placeholder names, lookup links, owner edit | COMPLETE | `agent/owner-names-and-lookup-links` | `develop` | — | 2026-10-12T07:55:00.000Z |
