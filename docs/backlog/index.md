@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**785 records** — 557 bugs under [`docs/bugs/`](../bugs/), 228 non-bug items under [`items/`](items/).
+**786 records** — 558 bugs under [`docs/bugs/`](../bugs/), 228 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,7 +13,7 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 286 |
+| Open (active work) | 287 |
 | Blocked | 4 |
 | Deferred | 124 |
 | Awaiting a product decision | 14 |
@@ -28,7 +28,7 @@ see [`README.md`](README.md) for why.
 |---|---|
 | CRITICAL | 8 |
 | HIGH | 116 |
-| MEDIUM | 131 |
+| MEDIUM | 132 |
 | LOW | 30 |
 
 ## Open by type
@@ -36,7 +36,7 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | AUTHORIZATION | 17 |
-| BUG | 88 |
+| BUG | 89 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 27 |
 | DOCUMENTATION | 1 |
@@ -61,7 +61,7 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 4 |
 | DEFERRED | 124 |
 | PRODUCT_DECISION | 14 |
-| FIXED | 205 |
+| FIXED | 206 |
 | VERIFIED | 221 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
@@ -599,6 +599,7 @@ see [`README.md`](README.md) for why.
 | [BUG-4057](../../docs/bugs/BUG-4057-account-activation-reports-a-password-mismatch-after-autofil.md) | Account activation reports a password mismatch after autofill and has no reveal toggle | UX | MEDIUM | P2 | FIXED | apps/web | FIX_NOW |
 | [BUG-4058](../../docs/bugs/BUG-4058-customer-list-owner-onboarding-and-agreements-columns-are-em.md) | Customer list Owner, Onboarding and Agreements columns are empty | BUG | MEDIUM | P2 | FIXED | super-admin, apps/admin | FIX_NOW |
 | [BUG-4059](../../docs/bugs/BUG-4059-customer-and-lead-timeline-tabs-are-always-empty.md) | Customer and lead Timeline tabs are always empty | BUG | MEDIUM | P2 | FIXED | super-admin | FIX_NOW |
+| [BUG-4111](../../docs/bugs/BUG-4111-provisioning-stores-owner-and-workspace-as-placeholder-owner.md) | Provisioning stores Owner and Workspace as placeholder owner names, and owner and other lookups do not link to their record | BUG | MEDIUM | P2 | FIXED | super-admin, tenant-control-plane, apps/admin | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |

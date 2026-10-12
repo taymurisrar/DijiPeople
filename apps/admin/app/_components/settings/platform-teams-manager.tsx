@@ -2,6 +2,7 @@
 /* eslint-disable react-hooks/set-state-in-effect -- fetch-on-mount/filter sets state after awaits; the load is intended */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { LoaderCircle, Plus } from "lucide-react";
 import { PanelDialog } from "../tenants/tenant-panel-ui";
 
@@ -109,6 +110,8 @@ function ErrorLine({ message }: { message: string | null }) {
 }
 
 export function PlatformTeamsManager({ users }: { users: UserOption[] }) {
+  // `?highlight=<teamId>`: a support case's team lookup links here.
+  const highlightedId = useSearchParams().get("highlight");
   const [teams, setTeams] = useState<Team[] | null>(null);
   const [denied, setDenied] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -252,7 +255,11 @@ export function PlatformTeamsManager({ users }: { users: UserOption[] }) {
             </thead>
             <tbody>
               {teams.map((team) => (
-                <tr className="border-t border-slate-100" key={team.id}>
+                <tr
+                  className={`border-t border-slate-100 ${team.id === highlightedId ? "outline outline-2 -outline-offset-2 outline-[var(--admin-primary)]" : ""}`}
+                  aria-current={team.id === highlightedId ? "true" : undefined}
+                  key={team.id}
+                >
                   <th
                     className="px-3 py-3 text-left font-semibold text-slate-900"
                     scope="row"

@@ -238,9 +238,8 @@ export class TenantAccessService {
           businessUnitId: businessUnit.id,
           identityId,
           firstName: dto.firstName,
-          lastName: isOwner
-            ? dto.lastName?.trim() || 'Owner'
-            : 'Service Account',
+          // Owners keep the surname entered, even an empty one (BUG-4111).
+          lastName: isOwner ? (dto.lastName?.trim() ?? '') : 'Service Account',
           email,
           /*
            * The workspace account's own copy, kept until the contract phase
@@ -381,8 +380,18 @@ export class TenantAccessService {
             ? 'TENANT_ACCESS_ENABLED'
             : 'TENANT_ACCESS_UPDATED',
       entityId: identity.id,
-      before: { status: identity.status },
-      after: { status: updated.status, email: updated.email },
+      // Names too: correcting who a workspace owner is must be auditable.
+      before: {
+        status: identity.status,
+        firstName: identity.firstName,
+        lastName: identity.lastName,
+      },
+      after: {
+        status: updated.status,
+        email: updated.email,
+        firstName: updated.firstName,
+        lastName: updated.lastName,
+      },
     });
 
     return this.list(user, tenant.id);

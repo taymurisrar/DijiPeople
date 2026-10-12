@@ -15,6 +15,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { RolesRepository } from '../roles/roles.repository';
 import { UsersRepository } from '../users/users.repository';
 import { BillingService } from './billing.service';
+import { storedPersonName } from '../../common/utils/person-name';
 
 /**
  * The identity and billing half of tenant provisioning, made re-entrant.
@@ -159,8 +160,12 @@ export class TenantIdentitiesProvisioningService {
       const primaryOwnerUser = await this.ensureUser(tx, {
         tenantId: input.tenantId,
         email: primaryOwnerEmail,
-        firstName: onboarding.primaryOwnerFirstName.trim(),
-        lastName: onboarding.primaryOwnerLastName.trim() || 'Owner',
+        // An empty surname is stored as empty, not as "Owner" (BUG-4111).
+        ...storedPersonName({
+          firstName: onboarding.primaryOwnerFirstName,
+          lastName: onboarding.primaryOwnerLastName,
+          email: primaryOwnerEmail,
+        }),
         actorUserId: input.actorUserId,
         onCreated: () => created.push(primaryOwnerEmail),
       });

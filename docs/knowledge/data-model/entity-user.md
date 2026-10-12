@@ -86,9 +86,9 @@ and lockout state that no client needs.
 | Tenant-scoped | **yes** — carries `tenantId` |
 | Primary key | `id` |
 | Prisma accessor | `prisma.user` |
-| Owning module | `services/api/src/modules/users` |
-| Domain | Identity |
-| Also touched by | `super-admin`, `tenant-control-plane`, `auth`, `tenant-settings`, `employees` (reads), `organization` (reads), `approvals` (reads), `payroll` (reads), and 17 more |
+| Owning module | `services/api/src/modules/super-admin` |
+| Domain | Commercial |
+| Also touched by | `users`, `tenant-control-plane`, `auth`, `tenant-settings`, `employees` (reads), `organization` (reads), `approvals` (reads), `payroll` (reads), and 17 more |
 
 ### Fields
 

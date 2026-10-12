@@ -2528,8 +2528,12 @@ const definitions: PlatformModuleDefinition[] = [
           ),
           /*
            * A lookup, not text: the record carries `primaryOwnerUser`, and a
-           * text field printed the user id instead of their name.
+           * text field printed the user id instead of their name. The owner is
+           * a user inside the tenant, managed on that tenant's Access & Security
+           * tab — the link opens it with the owner's row outlined.
            */
+          displayHref:
+            "/tenants/{primaryOwnerUser.tenantId}?tab=access-security&highlight={primaryOwnerUserId}",
           readOnly: true,
           hideOnCreate: true,
         },
@@ -4348,6 +4352,8 @@ const definitions: PlatformModuleDefinition[] = [
       {
         ...field("planPriceId", "Price", "lookup", "subscription"),
         lookupPath: "/super-admin/promotions/targets?scope=PRICE",
+        // A price has no page of its own; it is managed on its plan.
+        displayHref: "/plans/{planId}",
       },
       field("status", "Status", "option", "subscription", false, [
         "TRIALING",
@@ -4484,8 +4490,8 @@ const definitions: PlatformModuleDefinition[] = [
     ),
     forms: form("payments", [
       // Lookups resolve the embedded `tenant` / `invoice`; text printed the ids.
-      field("tenantId", "Tenant", "lookup", "payment"),
-      field("invoiceId", "Invoice", "lookup", "payment"),
+      { ...field("tenantId", "Tenant", "lookup", "payment"), displayHref: "/tenants/{tenantId}" },
+      { ...field("invoiceId", "Invoice", "lookup", "payment"), displayHref: "/invoices/{invoiceId}" },
       field("status", "Status", "text", "payment"),
       field("amount", "Amount", "currency", "payment"),
       field("currency", "Currency", "text", "payment"),

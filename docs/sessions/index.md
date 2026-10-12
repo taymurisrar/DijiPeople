@@ -6,11 +6,13 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 0** · completed: 118
+**Active: 1** · completed: 118
 
 ## Active
 
-_None. No session is currently running._
+| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
+|---|---|---|---|---|---|---|---|
+| [SESSION-0123](../../docs/sessions/SESSION-0123-owner-placeholder-names-lookup-links-owner-edit.md) | — | Owner placeholder names, lookup links, owner edit | ACTIVE | `agent/owner-names-and-lookup-links` | `develop` | — | 2026-10-12T06:52:07.848Z |
 
 ## Completed
 

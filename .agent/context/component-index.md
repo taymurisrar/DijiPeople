@@ -1,7 +1,7 @@
 # Component Index
 
 > **Last verified:** 2026-10-12
-> **Verified against commit:** a46d6bbb
+> **Verified against commit:** 773a1393
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -75,7 +75,7 @@ re-derived on each run.
 | `RuntimeQuickCreatePanel` | component | 1 | `apps/admin/app/_components/runtime/runtime-quick-create-panel.tsx`:46 | Create a related record from a subgrid, in a side sheet, without leaving the record (EXECPLAN-0055 D8). |
 | `RuntimeRelatedRecordsPanel` | component | 1 | `apps/admin/app/_components/runtime/runtime-related-records-panel.tsx`:74 | A subgrid on a record page. |
 | `StatTile` | component | 1 | `apps/admin/app/_components/tenants/tenant-panel-ui.tsx`:65 | One number with the thing it counts. |
-| `TenantAccessPanel` | component | 1 | `apps/admin/app/_components/tenants/tenant-access-panel.tsx`:98 | Access & Security. This is not a tenant user console. |
+| `TenantAccessPanel` | component | 1 | `apps/admin/app/_components/tenants/tenant-access-panel.tsx`:100 | Access & Security. This is not a tenant user console. |
 | `TenantAppsModulesPanel` | component | 1 | `apps/admin/app/_components/tenants/tenant-apps-modules-panel.tsx`:87 | Apps & Modules — the tenant-level control centre for DijiPeople capability. |
 | `TenantCommercialPanel` | component | 1 | `apps/admin/app/_components/tenants/tenant-commercial-panel.tsx`:51 | Commercial. Everything here is a record this platform holds: a Subscription, Contracts and Invoices. |
 | `TenantConfigurationPanel` | component | 1 | `apps/admin/app/_components/tenants/tenant-configuration-panel.tsx`:27 | Configuration — the workspace itself, not the HRM inside it. |
@@ -103,7 +103,7 @@ re-derived on each run.
 | `formatWhen` | function | 2 | `apps/admin/app/_components/notifications/notification-model.ts`:128 | "4 minutes ago", falling back to an absolute time once relative stops being the more useful phrasing. |
 | `humanizeFieldError` | function | 2 | `apps/admin/lib/runtime/humanize-field-error.ts`:24 | Replace a leading DTO property name with the label the operator sees. |
 | `useConfirmAction` | function | 2 | `apps/admin/app/_components/runtime/use-confirm-action.tsx`:50 | Confirmation for an irreversible, billable create (BUG-0022). |
-| `buildLookupRecordHref` | function | 1 | `apps/admin/lib/runtime/lookup-record-href.ts`:64 | The link for a resolved lookup value. |
+| `buildLookupRecordHref` | function | 1 | `apps/admin/lib/runtime/lookup-record-href.ts`:75 | The link for a resolved lookup value. |
 | `buildQuickCreatePayload` | function | 1 | `apps/admin/lib/runtime/quick-create-model.ts`:100 | The request body. Only the panel's own fields are sent — never whatever else the values object happens to hold — plus the parent id under `parentField`, which overrides anything typed. |
 | `buildWritePayload` | function | 1 | `apps/admin/lib/runtime/runtime-write-payload.ts`:73 | The values a create or update request should actually carry. |
 | `commandMatchesRecord` | function | 1 | `apps/admin/lib/runtime/command-visibility.ts`:13 | Whether a command's record conditions hold for `record`: its `states` list (the record's `status` must be one of them) and its `visibleWhen` condition. |
@@ -163,7 +163,7 @@ re-derived on each run.
 | `lookupPathPlaceholders` | function | 0 | `apps/admin/lib/runtime/runtime-lookups.ts`:90 | The `{field}` names a lookup path depends on, in order, without repeats. |
 | `mergeVisibleColumns` | function | 0 | `apps/admin/app/_components/runtime/runtime-module-list.tsx`:1442 | Which columns are visible, given a saved preference written against an older version of the module. |
 | `normalizeWriteValue` | function | 0 | `apps/admin/lib/runtime/runtime-write-payload.ts`:49 | What an empty optional field should be sent as — or whether to send it. |
-| `resolveLookupRecordRoute` | function | 0 | `apps/admin/lib/runtime/lookup-record-href.ts`:44 | The module a lookup reads from, if Platform Admin can show that record. |
+| `resolveLookupRecordRoute` | function | 0 | `apps/admin/lib/runtime/lookup-record-href.ts`:55 | The module a lookup reads from, if Platform Admin can show that record. |
 | `resolveTableColumnState` | function | 0 | `apps/admin/app/_components/runtime/runtime-module-list.tsx`:1368 | The columns a list shows, from the module definition and the operator's saved table state (or none). |
 | `siblingRelationLabel` | function | 0 | `apps/admin/lib/runtime/reference-display.ts`:73 | For a record and the path of an id field (`primaryOwnerUserId`, `subscription.planId`), the sibling relation's label (`primaryOwnerUser`, `subscription.plan`) when the API embedded one. |
 | `standardRecordActions` | function | 0 | `apps/admin/lib/runtime/standard-record-commands.ts`:56 | The registry's command bar for a module, with the page's own commands merged in on top — same rule the registry itself uses, so a bespoke page can override a default's label or states without losing the rest. |

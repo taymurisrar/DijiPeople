@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **0** |
+| Active sessions | **1** |
 | Active parent tasks | 4 |
 | Active work packages | 4 |
 | Blocked work packages | 0 |
@@ -30,8 +30,8 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 286 |
-| No next action | 286 |
+| No acceptance criteria | 287 |
+| No next action | 287 |
 | Aging — 7d / 30d / 90d | 241 / 189 / 0 |
 | Architecture and technical debt | 8 |
 | Security gaps | 47 |
@@ -47,7 +47,9 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-_No session is currently registered as active._
+| Session | Task | Title | Status | Branch | Target | Leases | Schema |
+|---|---|---|---|---|---|---|---|
+| [[SESSION-0123-owner-placeholder-names-lookup-links-owner-edit|SESSION-0123]] | — | Owner placeholder names, lookup links, owner edit | ACTIVE | `agent/owner-names-and-lookup-links` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
 
@@ -302,7 +304,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 286 |
+| Open total | 287 |
 | Blocked | 4 |
 | Deferred | 124 |
 | Awaiting a product decision | 14 |
