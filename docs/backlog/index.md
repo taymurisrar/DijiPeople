@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**784 records** — 556 bugs under [`docs/bugs/`](../bugs/), 228 non-bug items under [`items/`](items/).
+**785 records** — 557 bugs under [`docs/bugs/`](../bugs/), 228 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 284 |
+| Open (active work) | 286 |
 | Blocked | 4 |
-| Deferred | 125 |
+| Deferred | 124 |
 | Awaiting a product decision | 14 |
 | Completed / closed | 357 |
 | **Open CRITICAL** | **8** |
-| **Open HIGH** | **115** |
+| **Open HIGH** | **116** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,16 +27,16 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 8 |
-| HIGH | 115 |
-| MEDIUM | 130 |
+| HIGH | 116 |
+| MEDIUM | 131 |
 | LOW | 30 |
 
 ## Open by type
 
 | Type | Count |
 |---|---|
-| AUTHORIZATION | 16 |
-| BUG | 87 |
+| AUTHORIZATION | 17 |
+| BUG | 88 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 27 |
 | DOCUMENTATION | 1 |
@@ -59,9 +59,9 @@ see [`README.md`](README.md) for why.
 | OPEN | 55 |
 | IN_PROGRESS | 1 |
 | BLOCKED | 4 |
-| DEFERRED | 125 |
+| DEFERRED | 124 |
 | PRODUCT_DECISION | 14 |
-| FIXED | 203 |
+| FIXED | 205 |
 | VERIFIED | 221 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
@@ -327,6 +327,7 @@ see [`README.md`](README.md) for why.
 | [BUG-4056](../../docs/bugs/BUG-4056-create-agreement-from-a-customer-always-fails-for-templates-.md) | Create Agreement from a customer always fails for templates that need a primary signer | BUG | HIGH | P1 | FIXED | contracts, super-admin, apps/admin | FIX_NOW |
 | [BUG-4060](../../docs/bugs/BUG-4060-support-case-tenant-lookup-ignores-the-selected-customer-and.md) | Support case Tenant lookup ignores the selected Customer and the API accepts mismatched pairs | AUTHORIZATION | HIGH | P1 | FIXED | support-cases, apps/admin | FIX_NOW |
 | [BUG-4061](../../docs/bugs/BUG-4061-support-case-escalate-always-fails-with-400-and-statuses-cha.md) | Support case Escalate always fails with 400 and statuses change without validation | BUG | HIGH | P1 | FIXED | support-cases, apps/admin | FIX_NOW |
+| [BUG-4098](../../docs/bugs/BUG-4098-admin-refused-every-agreement-and-plan-delete-and-printed-re.md) | Admin refused every agreement and plan delete and printed reference ids as values | BUG | HIGH | P1 | FIXED | contracts, super-admin, platform-runtime | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -507,7 +508,7 @@ see [`README.md`](README.md) for why.
 | [BUG-3203](../../docs/bugs/BUG-3203-the-api-origin-sends-no-security-response-headers-at-all.md) | The API origin sends no security response headers at all | SECURITY | MEDIUM | P2 | DEFERRED | services/api/src/main.ts | DEFER |
 | [BUG-3204](../../docs/bugs/BUG-3204-per-client-jwt-secrets-are-documented-but-not-provisioned-cl.md) | Per-client JWT secrets are documented but not provisioned; client separation rests on an unsigned claim check | SECURITY | MEDIUM | P2 | DEFERRED | api:auth | DEFER |
 | [BUG-3206](../../docs/bugs/BUG-3206-35-mutating-settings-lookup-routes-take-record-string-unknow.md) | 35 mutating settings/lookup routes take Record<string, unknown> bodies, bypassing ValidationPipe whitelisting | BUG | MEDIUM | P2 | DEFERRED | api:settings-runtime, api:lookups | DEFER |
-| [BUG-3207](../../docs/bugs/BUG-3207-updatesupportcasedto-tenantid-is-a-client-settable-field-spr.md) | UpdateSupportCaseDto.tenantId is a client-settable field spread directly into the Prisma update | AUTHORIZATION | MEDIUM | P2 | DEFERRED | api:support-cases | DEFER |
+| [BUG-3207](../../docs/bugs/BUG-3207-updatesupportcasedto-tenantid-is-a-client-settable-field-spr.md) | UpdateSupportCaseDto.tenantId is a client-settable field spread directly into the Prisma update | AUTHORIZATION | MEDIUM | P2 | FIXED | api:support-cases | FIX_NOW |
 | [BUG-3208](../../docs/bugs/BUG-3208-an-unauthenticated-caller-can-insert-unbounded-entries-into-.md) | An unauthenticated caller can insert unbounded entries into a process-wide static Map | PERFORMANCE | MEDIUM | P2 | DEFERRED | services/api/src/common | DEFER |
 | [BUG-3209](../../docs/bugs/BUG-3209-authenticated-document-view-and-download-responses-set-no-ca.md) | Authenticated document view and download responses set no Cache-Control at all | SECURITY | MEDIUM | P2 | DEFERRED | api:documents | DEFER |
 | [BUG-3210](../../docs/bugs/BUG-3210-every-server-side-api-call-opts-out-of-next-fetch-deduplicat.md) | Every server-side API call opts out of Next fetch deduplication; tenant-settings/resolved is fetched twice on nine pages | PERFORMANCE | MEDIUM | P2 | DEFERRED | apps/web | DEFER |

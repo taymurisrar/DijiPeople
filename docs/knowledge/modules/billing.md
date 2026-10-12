@@ -179,6 +179,15 @@ Two further things worth carrying:
   prevent. The mode is re-read on a short TTL, so flipping it is a deliberate act
   that takes effect — and can be reversed — within a minute.
 
+## Payment confirmation and provider choice (2026-10-11, SESSION-0121)
+
+- **The Stripe return is reconciled, not only the webhook.** The public onboarding status poll reads the order's own checkout session from Stripe and confirms through the idempotent `confirmPayment`. A `session_id` that differs from the stored one is refused without calling Stripe, and reads are throttled to one per order every 5 s. The webhook remains authoritative; this only closes the gap when it is late ([[BUG-4054]]).
+- **The outbox is kicked after confirmation.** Payment → onboarding → provisioning used to wait one 5 s worker tick per hop. `OutboxWorkerService.kick()` drains immediately, never runs two drains at once, and respects `OUTBOX_WORKER_ENABLED`.
+- **`checkout.session.async_payment_*` events are handled.** The production endpoint must be subscribed to them in the Stripe dashboard; see `docs/billing/stripe-billing.md`.
+- **Payment-confirmed email:** `SUBSCRIPTION_PAYMENT_RECEIVED`, idempotency key `order:{id}:payment-confirmed`. Safepay public orders go through the same `confirmPayment`, so they get the same email.
+- **Provider choice.** `availableProvidersFor(currency)` lists only providers that can collect right now: Safepay for PKR when enabled and configured, and Stripe when the price has a synced Stripe Price. Checkout accepts an optional `provider`; one that is not offered is refused with `PAYMENT_PROVIDER_UNAVAILABLE`. A public order is locked to the provider of its first open checkout (`PAYMENT_PROVIDER_LOCKED`), so a late payment cannot settle on the other provider.
+- **Gap:** a Safepay webhook that fails signature verification is only logged, so the Integrations card cannot show it as an error ([[BUG-3888]]).
+
 ## Related
 
 [[tenant-provisioning]] · [[customers]] · [[settings]] ·

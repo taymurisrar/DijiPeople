@@ -12,4 +12,4 @@ therefore sees sibling worktrees without anybody having pushed.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
-| [SESSION-0121](../../docs/sessions/SESSION-0121-dp-platform-remediation-12-workstreams.md) | — | DP platform remediation — 12 workstreams | ACTIVE | `agent/dp-platform-remediation` | `develop` | — | 2026-10-11T08:04:10.067Z |
+| [SESSION-0122](../../docs/sessions/SESSION-0122-admin-subgrid-delete-guid-display-plan-deletion.md) | — | Admin subgrid delete, GUID display, plan deletion | ACTIVE | `agent/admin-delete-and-labels` | `develop` | — | 2026-10-12T04:58:38.042Z |

@@ -72,6 +72,8 @@ import { PlatformRuntimeRelationsService } from './platform-runtime-relations.se
 import { TenantControlPlaneService } from '../tenant-control-plane/tenant-control-plane.service';
 import { toDisplayString } from '../../common/utils/display-string';
 import type { RecordDependencyProvider } from '../../common/deletion/record-dependencies';
+import { ContractDeletionService } from '../contracts/contract-deletion.service';
+import { PlanDeletionService } from '../super-admin/plan-deletion.service';
 
 @Injectable()
 export class PlatformRuntimeService {
@@ -88,6 +90,8 @@ export class PlatformRuntimeService {
     private readonly partnerExperience: PartnerExperienceService,
     private readonly relations: PlatformRuntimeRelationsService,
     private readonly tenantControlPlane: TenantControlPlaneService,
+    private readonly contractDeletion: ContractDeletionService,
+    private readonly planDeletion: PlanDeletionService,
   ) {}
   async list(
     user: AuthenticatedUser,
@@ -672,6 +676,16 @@ export class PlatformRuntimeService {
         return result(
           await this.partnerDeletion.deletePartnerOnboarding(user, ids),
         );
+      /*
+       * Agreements and plans used to land in the refusal below wholesale. Only
+       * their evidence needs keeping: an agreement that was never sent and a
+       * plan that was never sold are deletable, and the services refuse the
+       * rest by name (owner decision, 2026-10-12).
+       */
+      case 'contracts':
+        return result(await this.contractDeletion.deleteContracts(user, ids));
+      case 'plans':
+        return result(await this.planDeletion.deletePlans(user, ids));
       default:
         /*
          * Not an oversight. The modules that land here hold records the
@@ -732,7 +746,11 @@ export class PlatformRuntimeService {
   private dependencyProviders(): Partial<
     Record<PlatformRuntimeModuleKey, RecordDependencyProvider>
   > {
-    return { partners: this.partnerDeletion };
+    return {
+      partners: this.partnerDeletion,
+      contracts: this.contractDeletion,
+      plans: this.planDeletion,
+    };
   }
 
   async execute(
@@ -1394,11 +1412,21 @@ export class PlatformRuntimeService {
     }
     const model = key === 'payments' ? 'payment' : null;
     if (!model) throw new NotFoundException('Record is not available.');
+    /*
+     * The tenant and invoice names ride along so the record page shows them
+     * instead of two UUIDs; the ids stay on the row.
+     */
     const item = await (
       this.prisma[model] as never as {
         findUnique(args: unknown): Promise<unknown>;
       }
-    ).findUnique({ where: { id } });
+    ).findUnique({
+      where: { id },
+      include: {
+        tenant: { select: { id: true, name: true } },
+        invoice: { select: { id: true, invoiceNumber: true } },
+      },
+    });
     if (!item) throw new NotFoundException('Record was not found.');
     return item;
   }

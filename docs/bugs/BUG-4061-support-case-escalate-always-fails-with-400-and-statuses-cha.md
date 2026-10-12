@@ -94,7 +94,7 @@ Scenario: Support case escalate succeeds and status transitions are validated (s
 
 ## Related
 
-- Modules — [[platform-admin]]
+- Modules — [[support-cases]], [[platform-admin]]
 - Regression — REG-676 (see the regression register)
 
 <!-- GRAPH:END -->

@@ -75,6 +75,7 @@ import {
   emailPage,
   PlatformCommunicationsService,
 } from '../platform-communications/platform-communications.service';
+import { PlanDeletionService } from './plan-deletion.service';
 import { PlatformEmailSettingsService } from '../platform-communications/platform-email-settings.service';
 
 /*
@@ -106,6 +107,7 @@ export class SuperAdminController {
     private readonly paymentSettlement: PaymentSettlementService,
     private readonly paymentGateways: PaymentGateways,
     private readonly numbering: PlatformNumberingService,
+    private readonly planDeletion: PlanDeletionService,
   ) {}
 
   @Get('dashboard-summary')
@@ -632,14 +634,14 @@ export class SuperAdminController {
    * route it could not be removed either. Two are stuck in production in
    * exactly that state (BUG-1749).
    *
-   * Refused once a plan has subscriptions or prices: see `deletePlan`.
+   * Refused while the plan is live or has been sold: see `PlanDeletionService`.
    */
   @Delete('plans/:planId')
   deletePlan(
     @CurrentUser() user: AuthenticatedUser,
     @Param('planId', new ParseUUIDPipe()) planId: string,
   ) {
-    return this.superAdminService.deletePlan(user, planId);
+    return this.planDeletion.deletePlan(user, planId);
   }
 
   @Get('plans/:planId/prices')

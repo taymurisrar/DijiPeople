@@ -38,15 +38,19 @@ const MODULES = [
   'monitoring-incidents',
 ] as const;
 
-/** Modules that hold records the business must be able to produce later. */
+/**
+ * Modules that hold records the business must be able to produce later.
+ *
+ * `plans` and `contracts` left this list on 2026-10-12: a never-sold plan and a
+ * never-sent agreement are deletable, and their deletion services refuse the
+ * rest by name — so they are exercised in `DELETABLE` like partners are.
+ */
 const RETENTION_REFUSED = [
   'tenants',
   'subscriptions',
-  'plans',
   'invoices',
   'payments',
   'commissions',
-  'contracts',
   'contract-templates',
   'signature-requests',
   'support-cases',
@@ -113,6 +117,12 @@ function buildService() {
     deletePartnerOnboarding: (_u: unknown, ids: string[]) =>
       record('partner-onboarding')(ids),
   };
+  const contractDeletion = {
+    deleteContracts: (_u: unknown, ids: string[]) => record('contracts')(ids),
+  };
+  const planDeletion = {
+    deletePlans: (_u: unknown, ids: string[]) => record('plans')(ids),
+  };
 
   const service = new PlatformRuntimeService(
     {} as never,
@@ -127,6 +137,8 @@ function buildService() {
     {} as never,
     {} as never,
     {} as never,
+    contractDeletion as never,
+    planDeletion as never,
   );
 
   return { service, calls };

@@ -46,6 +46,7 @@ import { openExternal } from "@/lib/open-external";
 import { buildTenantLoginUrl } from "@/lib/tenant-url";
 import { emptyListDescription, emptyListTitle } from "@repo/config";
 import { recordDisplayName } from "@/lib/runtime/destructive-confirm";
+import { displayForOpaqueValue } from "@/lib/runtime/reference-display";
 
 type Operator = {
   id: string;
@@ -477,6 +478,7 @@ export function RuntimeModuleList({
               defaults.reportingCurrency,
               defaults.locale,
               column.link,
+              column.label,
             ),
         })),
     [
@@ -1199,6 +1201,7 @@ function formatCell(
   reportingCurrency: string,
   locale: string,
   link?: RuntimeColumnDefinition["link"],
+  label?: string,
 ) {
   const value = readPath(record, field);
   if (value == null || value === "")
@@ -1265,6 +1268,13 @@ function formatCell(
         (value as Record<string, unknown>).fullName ??
         "—",
     );
+  // A column bound to an id prints the record it names, never the UUID.
+  const reference = displayForOpaqueValue(
+    record,
+    { key: field.split(".").pop() ?? field, path: field, label },
+    value,
+  );
+  if (reference) return <span className="text-slate-800">{reference}</span>;
   return <span className="text-slate-800">{String(value)}</span>;
 }
 

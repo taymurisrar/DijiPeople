@@ -5,6 +5,7 @@ import type {
   RuntimeRelatedRowAction,
 } from "./platform-runtime.types";
 import { readRecordPath } from "./record-highlight";
+import { displayForOpaqueValue } from "./reference-display";
 
 /**
  * Subgrid cells, row commands and the referral-link copy action, as data
@@ -118,6 +119,13 @@ export function relatedCellValue(
     const label = objectLabel(value as Record<string, unknown>);
     return label ? text(label) : { kind: "empty" };
   }
+  // A column bound to an id prints the record it names, never the UUID.
+  const reference = displayForOpaqueValue(
+    row,
+    { key: column.field.split(".").pop() ?? column.field, path: column.field, label: column.label },
+    value,
+  );
+  if (reference) return text(reference);
   const raw = String(value);
   // SCREAMING_SNAKE only ever comes from an enum column.
   return text(/^[A-Z][A-Z0-9_]*$/.test(raw) ? enumLabel(raw) : raw);

@@ -313,6 +313,6 @@ query log. Re-verify by repeating the reproduction above.
 ## Related
 
 - Backlog item — [[ITEM-0060]]
-- Modules — [[contracts-and-agreements]], [[partners]], [[approvals]], [[settings]]
+- Modules — [[contracts-and-agreements]], [[partners]], [[support-cases]], [[approvals]], [[settings]]
 
 <!-- GRAPH:END -->

@@ -1,7 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { SuperAdminService } from './super-admin.service';
+import { blocksDelete } from '../../common/deletion/record-dependencies';
+import {
+  classifyPlanDependencies,
+  PlanDeletionService,
+} from './plan-deletion.service';
 
 /**
  * BUG-1749 — the console created plans that could never be sold or removed.
@@ -25,7 +29,7 @@ describe('BUG-1749 — a plan is born unsellable, so it is born unpublished', ()
   it('does not let the schema default decide publication', () => {
     const createPlan = source.slice(
       source.indexOf('async createPlan('),
-      source.indexOf('async deletePlan('),
+      source.indexOf('async updatePlan('),
     );
     expect(createPlan).toContain(
       'publicationStatus: CommercialPublicationStatus.DRAFT',
@@ -42,7 +46,7 @@ describe('BUG-1749 — a plan is born unsellable, so it is born unpublished', ()
      */
     const createPlan = source.slice(
       source.indexOf('async createPlan('),
-      source.indexOf('async deletePlan('),
+      source.indexOf('async updatePlan('),
     );
     expect(createPlan).not.toMatch(/\bisPublic\s*:\s*(true|false)\b/);
   });
@@ -52,7 +56,7 @@ describe('BUG-1749 — a plan is born unsellable, so it is born unpublished', ()
     // than left as a default nobody remembers the reason for.
     const createPlan = source.slice(
       source.indexOf('async createPlan('),
-      source.indexOf('async deletePlan('),
+      source.indexOf('async updatePlan('),
     );
     expect(createPlan).not.toContain('prices:');
   });
@@ -62,82 +66,113 @@ type PlanRow = {
   id: string;
   key: string;
   name: string;
-  _count: { subscriptions: number; prices: number };
+  isActive: boolean;
+  publicationStatus: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+  stripeProductId: string | null;
+  _count: Record<string, number>;
 };
 
-function serviceWith(plan: PlanRow | null) {
-  const prisma = {
+const NONE = {
+  subscriptions: 0,
+  subscriptionOrders: 0,
+  planChangesFrom: 0,
+  planChangesTo: 0,
+  prices: 0,
+  features: 0,
+  selectedByCustomers: 0,
+  selectedByOnboardings: 0,
+  agreedByLeads: 0,
+  promotions: 0,
+};
+
+function plan(overrides: Partial<PlanRow> & { counts?: Partial<typeof NONE> }) {
+  const { counts, ...rest } = overrides;
+  return {
+    id: 'plan-1',
+    key: 'mistake',
+    name: 'Mistake',
+    isActive: false,
+    publicationStatus: 'ARCHIVED' as const,
+    stripeProductId: null,
+    ...rest,
+    _count: { ...NONE, ...counts },
+  };
+}
+
+function serviceWith(row: PlanRow | null) {
+  const tx = {
+    $queryRaw: jest.fn().mockResolvedValue([]),
     plan: {
-      findUnique: jest.fn().mockResolvedValue(plan),
-      delete: jest.fn().mockResolvedValue(plan),
+      findUnique: jest.fn().mockResolvedValue(row),
+      delete: jest.fn().mockResolvedValue(row),
     },
+    planPrice: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
+    planFeature: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
+  };
+  const prisma = {
+    plan: { findUnique: jest.fn().mockResolvedValue(row) },
+    $transaction: jest.fn((run: (client: typeof tx) => unknown) => run(tx)),
   };
   const auditService = { log: jest.fn().mockResolvedValue(undefined) };
-  const service = Object.create(
-    SuperAdminService.prototype,
-  ) as SuperAdminService;
-  Object.assign(service, { prisma, auditService });
-  return { service, prisma, auditService };
+  const service = new PlanDeletionService(
+    prisma as never,
+    auditService as never,
+  );
+  return { service, tx, auditService };
 }
 
 const ACTOR = { userId: 'platform-user-1' } as never;
 
-describe('BUG-1749 — deleting a plan', () => {
-  it('removes one that was never priced and never sold', async () => {
-    const { service, prisma } = serviceWith({
-      id: 'plan-1',
-      key: 'mistake',
-      name: 'Mistake',
-      _count: { subscriptions: 0, prices: 0 },
-    });
+describe('Plan deletion — inactive and never sold (2026-10-12)', () => {
+  it('deletes an inactive, never-sold plan with its prices and features', async () => {
+    const { service, tx } = serviceWith(
+      plan({ counts: { prices: 3, features: 5, selectedByCustomers: 2 } }),
+    );
 
     await expect(service.deletePlan(ACTOR, 'plan-1')).resolves.toEqual({
       success: true,
       id: 'plan-1',
     });
-    expect(prisma.plan.delete).toHaveBeenCalledWith({
-      where: { id: 'plan-1' },
+    expect(tx.planPrice.deleteMany).toHaveBeenCalledWith({
+      where: { planId: 'plan-1' },
     });
+    expect(tx.planFeature.deleteMany).toHaveBeenCalled();
+    expect(tx.plan.delete).toHaveBeenCalledWith({ where: { id: 'plan-1' } });
   });
 
-  it('refuses one somebody is billed on', async () => {
-    const { service, prisma } = serviceWith({
-      id: 'plan-2',
-      key: 'starter',
-      name: 'Starter',
-      _count: { subscriptions: 2, prices: 4 },
-    });
-
-    await expect(service.deletePlan(ACTOR, 'plan-2')).rejects.toThrow(
-      BadRequestException,
+  it.each([
+    ['active', plan({ isActive: true })],
+    ['published', plan({ publicationStatus: 'PUBLISHED' })],
+  ])('refuses a %s plan and says to deactivate it first', async (_l, row) => {
+    const { service, tx } = serviceWith(row);
+    await expect(service.deletePlan(ACTOR, 'plan-1')).rejects.toThrow(
+      /Deactivate or archive it first/,
     );
-    expect(prisma.plan.delete).not.toHaveBeenCalled();
+    expect(tx.plan.delete).not.toHaveBeenCalled();
   });
 
-  it('refuses one that has been priced, even with no subscribers', async () => {
-    const { service } = serviceWith({
-      id: 'plan-3',
-      key: 'growth',
-      name: 'Growth',
-      _count: { subscriptions: 0, prices: 2 },
-    });
+  it.each(['subscriptions', 'subscriptionOrders', 'planChangesTo'] as const)(
+    'refuses a plan with %s and offers archive instead',
+    async (relation) => {
+      const { service, tx } = serviceWith(plan({ counts: { [relation]: 1 } }));
+      await expect(service.deletePlan(ACTOR, 'plan-1')).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.deletePlan(ACTOR, 'plan-1')).rejects.toThrow(
+        /Archive it instead/,
+      );
+      expect(tx.plan.delete).not.toHaveBeenCalled();
+    },
+  );
 
-    await expect(service.deletePlan(ACTOR, 'plan-3')).rejects.toThrow(
-      /2 price\(s\) are configured on it/,
-    );
-  });
-
-  it('says which reasons apply and what to do instead', async () => {
-    const { service } = serviceWith({
-      id: 'plan-2',
-      key: 'starter',
-      name: 'Starter',
-      _count: { subscriptions: 2, prices: 4 },
-    });
-
-    await expect(service.deletePlan(ACTOR, 'plan-2')).rejects.toThrow(
-      /"Starter"[\s\S]*2 subscription\(s\)[\s\S]*and[\s\S]*4 price\(s\)[\s\S]*Deactivate it instead/,
-    );
+  it('reports refusals per plan in a bulk delete rather than failing the batch', async () => {
+    const { service } = serviceWith(plan({ counts: { subscriptions: 2 } }));
+    const result = await service.deletePlans(ACTOR, ['plan-1']);
+    expect(result.deleted).toBe(0);
+    expect(result.refused).toEqual([
+      expect.objectContaining({ id: 'plan-1', label: 'Mistake' }),
+    ]);
+    expect(result.message).toMatch(/Nothing was deleted\. Kept 1: Mistake/);
   });
 
   it('404s on a plan that is not there', async () => {
@@ -147,14 +182,8 @@ describe('BUG-1749 — deleting a plan', () => {
     );
   });
 
-  it('records the deletion', async () => {
-    const { service, auditService } = serviceWith({
-      id: 'plan-1',
-      key: 'mistake',
-      name: 'Mistake',
-      _count: { subscriptions: 0, prices: 0 },
-    });
-
+  it('records the deletion in the same transaction', async () => {
+    const { service, auditService, tx } = serviceWith(plan({}));
     await service.deletePlan(ACTOR, 'plan-1');
     expect(auditService.log).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -164,7 +193,18 @@ describe('BUG-1749 — deleting a plan', () => {
         entityId: 'plan-1',
         afterSnapshot: null,
       }),
+      tx,
     );
+  });
+
+  it('the dependency dialog and the delete read one rule', () => {
+    const blocking = classifyPlanDependencies({
+      id: 'p',
+      isActive: false,
+      publicationStatus: 'DRAFT' as never,
+      counts: { ...NONE, prices: 2, promotions: 1 },
+    }).filter(blocksDelete);
+    expect(blocking).toEqual([]);
   });
 });
 

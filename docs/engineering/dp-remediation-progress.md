@@ -58,3 +58,12 @@ Schema (one additive migration `20261011090000_platform_teams_assignment_rules_c
   - Browser (Playwright, desktop 1280 and mobile 390): step 4 → Continue lands on Review with zero order posts; Enter on step 1 posts nothing; Back keeps state; "Ñandú Café Solutions Pvt Ltd" suggests `nandu-cafe-solutions`.
 - Not browser-verified: admin screens (Teams, Assignment rules, Create Agreement launcher, support-case dialogs, notifications) and the activation page. Admin login is a challenge flow and the Playwright MCP server did not connect; these are covered by unit and API tests only.
 - Pre-existing, out of scope: the wizard's step labels run together at 390 px ("AdministratorAgreements").
+
+## Release
+
+- `develop` fast-forwarded to `889f94c7` after CI passed. All three CI runs on that commit passed: 38147733646, 38148343585 and 38148397594.
+- PR #104 merged into `main` as `dc10b371`.
+- Render deploy `dep-db5q89c9v7es739brchg` is live. Its pre-deploy step ran the migration, `seed:config` and `seed:verify`.
+- Vercel web, admin and landing are READY at `dc10b371`.
+- Production checks: health reports `dc10b37`; the new routes are mapped and answer 401 unauthenticated; plans return `paymentProviders`; the changed public pages return 200.
+- Manual follow-up: subscribe the Stripe webhook endpoint to `checkout.session.async_payment_succeeded` and `checkout.session.async_payment_failed`.
