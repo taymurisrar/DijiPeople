@@ -26,6 +26,8 @@
  * right party's block — without a data change.
  */
 
+import { unwrapPlaceholderMarkup } from './placeholder-markup';
+
 /** Parties the platform can capture an electronic signature for. */
 export const SIGNATURE_SLOTS = [
   'platform',
@@ -102,10 +104,17 @@ const SIGNATURE_TOKEN_PATTERN = /\{\{\s*(signature\.[a-zA-Z0-9_.-]+)\s*\}\}/g;
  * Rewrite every recognised signature token to its canonical spelling. Tokens
  * that do not parse are left exactly as written, so nothing an author typed
  * disappears.
+ *
+ * Markup an editor wrapped around a placeholder is removed first
+ * (`unwrapPlaceholderMarkup`): every renderer and `cleanContractHtml` already
+ * pass through here, so this is the one place that reaches all of them.
  */
 export function normalizeSignatureTokens(html: string) {
-  return html.replace(SIGNATURE_TOKEN_PATTERN, (token, key: string) => {
-    const parsed = parseSignatureTokenKey(key);
-    return parsed ? `{{${parsed.key}}}` : token;
-  });
+  return unwrapPlaceholderMarkup(html).replace(
+    SIGNATURE_TOKEN_PATTERN,
+    (token, key: string) => {
+      const parsed = parseSignatureTokenKey(key);
+      return parsed ? `{{${parsed.key}}}` : token;
+    },
+  );
 }

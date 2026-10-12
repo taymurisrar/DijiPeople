@@ -6,11 +6,13 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 0** · completed: 120
+**Active: 1** · completed: 120
 
 ## Active
 
-_None. No session is currently running._
+| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
+|---|---|---|---|---|---|---|---|
+| [SESSION-0125](../../docs/sessions/SESSION-0125-agreement-template-hotfix-gates-signer-roles-draft-editing-p.md) | — | Agreement template hotfix: gates, signer roles, draft editing, print, placeholders | ACTIVE | `agent/agreement-templates-hotfix` | `develop` | — | 2026-10-12T16:31:51.351Z |
 
 ## Completed
 

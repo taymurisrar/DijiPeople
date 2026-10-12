@@ -155,6 +155,7 @@ describe('ContractsService — placeholder context at generate/send (BUG-3552)',
         },
       ],
       placeholderValues: [],
+      signatureRequests: [],
       parties: [],
     } as never);
 
@@ -190,6 +191,7 @@ describe('ContractsService — placeholder context at generate/send (BUG-3552)',
       placeholderValues: [
         { key: 'customer.legalName', value: 'Gulf Horizon Ltd' },
       ],
+      signatureRequests: [],
       parties: [],
     } as never);
 

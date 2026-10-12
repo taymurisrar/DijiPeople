@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **0** |
+| Active sessions | **1** |
 | Active parent tasks | 4 |
 | Active work packages | 4 |
 | Blocked work packages | 0 |
@@ -15,7 +15,7 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **8** |
-| Open HIGH | 117 |
+| Open HIGH | 118 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 14 |
 | QA coverage gaps | 161 |
@@ -30,8 +30,8 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 288 |
-| No next action | 288 |
+| No acceptance criteria | 289 |
+| No next action | 289 |
 | Aging — 7d / 30d / 90d | 241 / 189 / 0 |
 | Architecture and technical debt | 8 |
 | Security gaps | 47 |
@@ -47,7 +47,9 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-_No session is currently registered as active._
+| Session | Task | Title | Status | Branch | Target | Leases | Schema |
+|---|---|---|---|---|---|---|---|
+| [[SESSION-0125-agreement-template-hotfix-gates-signer-roles-draft-editing-p|SESSION-0125]] | — | Agreement template hotfix: gates, signer roles, draft editing, print, placeholders | ACTIVE | `agent/agreement-templates-hotfix` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
 
@@ -302,7 +304,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 288 |
+| Open total | 289 |
 | Blocked | 4 |
 | Deferred | 124 |
 | Awaiting a product decision | 14 |

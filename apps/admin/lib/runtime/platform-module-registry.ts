@@ -4096,6 +4096,33 @@ const definitions: PlatformModuleDefinition[] = [
         scope: "record",
         placement: "primary",
       },
+      /*
+       * Version publication. The editor puts `latestDraftPublishable` and
+       * `hasPublishedVersion` on the record it hands the action bar, so these
+       * follow the versions rather than the template's active state.
+       */
+      {
+        key: "publish",
+        label: "Publish draft",
+        scope: "record",
+        placement: "secondary",
+        selection: "none",
+        visibleWhen: { field: "latestDraftPublishable", equals: true },
+        confirmTitle: "Publish this draft?",
+        confirmDescription:
+          "New agreements are drafted from it. The version it replaces and every agreement already drafted stay unchanged.",
+      },
+      {
+        key: "unpublish",
+        label: "Unpublish",
+        scope: "record",
+        placement: "overflow",
+        selection: "none",
+        visibleWhen: { field: "hasPublishedVersion", equals: true },
+        confirmTitle: "Unpublish this template?",
+        confirmDescription:
+          "No new agreement can be drafted from it until a version is published again, and the template is deactivated. Existing agreements are unchanged.",
+      },
       {
         key: "activate",
         label: "Activate",

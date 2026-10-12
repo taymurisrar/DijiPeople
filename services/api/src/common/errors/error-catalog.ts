@@ -1292,6 +1292,34 @@ export const ERROR_CATALOG = {
     'warning',
     'validation',
   ),
+  CONTRACT_TEMPLATE_GATE_INVALID: entry(
+    400,
+    'Lifecycle gate not supported',
+    'Choose one of the lifecycle gates this agreement type can serve.',
+    'warning',
+    'validation',
+  ),
+  CONTRACT_TEMPLATE_SIGNER_ROLES_INVALID: entry(
+    400,
+    'Signer roles not supported',
+    'Choose at least one of the supported signer roles for this template.',
+    'warning',
+    'validation',
+  ),
+  CONTRACT_DOCUMENT_CONTENT_INVALID: entry(
+    400,
+    'Document content needs attention',
+    'The document has broken placeholders or unresolved confirmation notes that must be fixed first.',
+    'warning',
+    'validation',
+  ),
+  CONTRACT_TEMPLATE_VERSION_LOCKED: entry(
+    409,
+    'Template version cannot be edited',
+    'Published versions and versions used by agreements are kept unchanged. Edit a new draft instead.',
+    'warning',
+    'validation',
+  ),
   // ITEM-0201: an admin record page saved a copy someone else had since changed.
   RECORD_CHANGED_SINCE_OPENED: entry(
     409,

@@ -7412,3 +7412,17 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — the dispatch and routing specs read the plans entry of the shared action contract, and the publication spec asserts each transition and refusal. |
 | **Fixed** | 2026-10-12, branch `agent/plan-publication-actions` |
 | **Active** | yes |
+
+### REG-681 — The agreement template editor broke placeholders, ignored signer roles and could not edit a draft
+
+| | |
+|---|---|
+| **Bug class** | `editor-corrupts-stored-content` |
+| **Module** | `services/api`, `apps/admin` |
+| **Bug record** | BUG-4133 |
+| **Root cause** | TipTap autolink wrapped typed placeholders in links so no renderer matched them; the lifecycle gate and signer roles were free text nothing validated or read; every save created a new version; Print used a popup that a blocked window silently cancelled; the template proxy did not forward PATCH. |
+| **Regression test** | `services/api/src/modules/contracts/agreement-template-lifecycle.spec.ts`, `services/api/src/modules/contracts/contracts.workflow.spec.ts`. |
+| **Scenario** | QA-CONTRACTS-001 — A template draft is edited in place, published, and its agreement renders every placeholder. |
+| **Fails without the fix** | Yes — with the markup unwrapper or the signer plan disabled, five lifecycle specs fail (mutation-checked 2026-10-12). |
+| **Fixed** | 2026-10-12, branch `agent/agreement-templates-hotfix` |
+| **Active** | yes |

@@ -1,10 +1,12 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import {
+  ContractSigningMode,
   ContractStatus,
   ContractType,
   ContractVersionStatus,
@@ -65,6 +67,16 @@ import {
   type LinkableContract,
 } from './placeholder-context';
 import { normalizeSignatureTokens } from './signature-tokens';
+import { unwrapPlaceholderMarkup } from './placeholder-markup';
+import {
+  assertDocumentContent,
+  assessDocumentContent,
+  buildTemplateSigningDefinitions,
+  CONTRACT_LIFECYCLE_GATES,
+  readTemplateSignerPlan,
+  resolveTemplateLifecycleGate,
+  TEMPLATE_SIGNER_ROLES,
+} from './template-lifecycle';
 import {
   assertCustomerUsable,
   assertLeadAttributedToPartner,
@@ -82,6 +94,7 @@ import {
   CreateUploadedContractDto,
   CreateContractTemplateDto,
   CreateContractTemplateVersionDto,
+  UpdateContractTemplateDraftDto,
   DeclineSignatureDto,
   RequestSignatureChangesDto,
   SaveContractVersionDto,
@@ -717,6 +730,16 @@ export const CONTRACT_PLACEHOLDER_REGISTRY: ContractPlaceholderDefinition[] = [
     'LOOKUP',
     'CON-20260730-A13F',
   ),
+  /*
+   * The agreement's own revision, distinct from the template version it was
+   * drafted from: 1 for the first issue for signature, 2 when it is re-issued
+   * after a change request, and so on. Never typed in — it is derived from the
+   * agreement's signature requests and frozen into each signing version.
+   */
+  placeholder('contract.version', 'Agreement version', 'INTEGER', '1', {
+    description:
+      'Revision of this agreement as issued for signature. Derived; increases each time the agreement is re-issued.',
+  }),
   placeholder(
     'contract.title',
     'Contract title',
@@ -872,6 +895,48 @@ export const CONTRACT_PLACEHOLDER_REGISTRY: ContractPlaceholderDefinition[] = [
     optional,
   ),
   placeholder('commercial.discount', 'Discount', 'TEXT', '10%', optional),
+  /*
+   * Pilot terms. No record holds them, so they are agreement terms entered on
+   * the agreement and frozen into its signing version. The pilot period
+   * defaults to the agreement's own effective and expiry dates at creation;
+   * a discount defaults to "None" so one appears only where approved.
+   */
+  placeholder(
+    'commercial.pilotType',
+    'Pilot arrangement',
+    'TEXT',
+    'Paid pilot at standard pricing',
+    optional,
+  ),
+  placeholder(
+    'commercial.pilotStartDate',
+    'Pilot start date',
+    'DATE',
+    '2026-08-01',
+    { ...optional, formattingRule: 'locale-date' },
+  ),
+  placeholder(
+    'commercial.pilotEndDate',
+    'Pilot end date',
+    'DATE',
+    '2026-10-31',
+    { ...optional, formattingRule: 'locale-date' },
+  ),
+  placeholder('commercial.pilotDiscount', 'Pilot discount', 'TEXT', 'None', {
+    ...optional,
+    defaultValue: 'None',
+  }),
+  placeholder(
+    'commercial.planFeatures',
+    'Plan features',
+    'REPEATING_COLLECTION',
+    '["Employees","Attendance","Leave","Payroll"]',
+    {
+      ...optional,
+      description:
+        "Features enabled on the agreed plan, read from the plan's configuration.",
+    },
+  ),
   placeholder(
     'commercial.implementationFee',
     'Implementation fee',
@@ -1487,6 +1552,15 @@ export class ContractsService {
       'contract.terminationNoticeDays': dto.terminationNoticeDays,
       'counterparty.name': dto.counterpartyName.trim(),
       'counterparty.email': dto.counterpartyEmail?.trim().toLowerCase(),
+      // The pilot runs for the agreement's own term unless agreed otherwise.
+      ...(/commercial\.pilot(?:Start|End)Date/.test(
+        dto.contentHtml ?? templateVersion?.contentHtml ?? '',
+      )
+        ? {
+            'commercial.pilotStartDate': dto.effectiveDate,
+            'commercial.pilotEndDate': dto.expiryDate,
+          }
+        : {}),
       // Explicit values (a source, or the caller) still win over the record.
       ...partnerValues,
       ...(dto.placeholderValues ?? {}),
@@ -1503,6 +1577,22 @@ export class ContractsService {
     const contentText = toPlainText(
       renderContractPlaceholders(contentHtml, values),
     );
+    /*
+     * The template decides who signs and in what order. Only a structured
+     * plan is applied (`readTemplateSignerPlan`); a template saved before
+     * roles were structured keeps the long-standing defaults below.
+     */
+    const signerPlan = readTemplateSignerPlan(templateVersion?.signingConfig);
+    const signerOrder = (key: string) => {
+      if (!signerPlan) return undefined;
+      const index = signerPlan.roles.indexOf(
+        key as (typeof signerPlan.roles)[number],
+      );
+      if (index < 0) return undefined;
+      return signerPlan.mode === 'PARALLEL' ? 1 : index + 1;
+    };
+    const platformSignerOrder = signerOrder('PLATFORM_SIGNATORY');
+    const counterpartySignerOrder = signerOrder('COUNTERPARTY_SIGNATORY');
     const created = await this.prisma.$transaction(async (tx) => {
       const contract = await tx.contract.create({
         data: {
@@ -1514,7 +1604,9 @@ export class ContractsService {
             dto.lifecycleGatePurpose ?? templateVersion?.lifecycleGatePurpose,
           isGoverningAgreement: dto.isGoverningAgreement ?? false,
           allowChangeRequests: dto.allowChangeRequests ?? true,
-          signingMode: dto.signingMode ?? 'MIXED',
+          // A template's configured order is enforced: the create form always
+          // sends a default mode, so it cannot be allowed to override one.
+          signingMode: signerPlan?.mode ?? dto.signingMode ?? 'MIXED',
           counterpartyType: dto.counterpartyType,
           processStage: 'INITIATION',
           templateId: dto.templateId,
@@ -1586,9 +1678,9 @@ export class ContractsService {
               name: companyProfile.companyName,
               legalName: companyProfile.legalName,
               isPrimary: true,
-              isSignatory: false,
-              signatureRequired: false,
-              signingOrder: 1,
+              isSignatory: platformSignerOrder !== undefined,
+              signatureRequired: platformSignerOrder !== undefined,
+              signingOrder: platformSignerOrder ?? 1,
             },
             {
               partyType: dto.partnerId
@@ -1609,9 +1701,10 @@ export class ContractsService {
                 dto.tenantId ??
                 dto.relatedLeadId,
               isPrimary: true,
-              isSignatory: true,
-              signatureRequired: true,
-              signingOrder: 2,
+              isSignatory: !signerPlan || counterpartySignerOrder !== undefined,
+              signatureRequired:
+                !signerPlan || counterpartySignerOrder !== undefined,
+              signingOrder: counterpartySignerOrder ?? 2,
             },
           ];
       await tx.contractParty.createMany({
@@ -2605,10 +2698,16 @@ export class ContractsService {
      * A stored `signature.*` value counts only when signing wrote it (QA
      * agreements DEFECT-2): one typed in before that fix is not a signature.
      */
-    const storedValues = contract.placeholderValues.filter(
-      (item) =>
-        !isSignaturePlaceholderKey(item.key) || item.source === 'signature',
-    );
+    const revisionRow = agreementRevisionRow(contract.signatureRequests.length);
+    const storedValues = [
+      ...contract.placeholderValues.filter(
+        (item) =>
+          (!isSignaturePlaceholderKey(item.key) ||
+            item.source === 'signature') &&
+          !DERIVED_PLACEHOLDER_KEYS.has(item.key),
+      ),
+      revisionRow,
+    ];
     const values = Object.fromEntries(
       storedValues.map((item) => [item.key, item.value]),
     );
@@ -2664,10 +2763,13 @@ export class ContractsService {
               version.contentHtml,
               platformSignsContract(contract.parties),
             ),
-            contract.placeholderValues,
+            [...contract.placeholderValues, revisionRow],
             'display',
           )
         : '',
+      contentIssues: version
+        ? assessDocumentContent(version.contentHtml, isRegisteredPlaceholder)
+        : [],
     };
   }
 
@@ -2706,7 +2808,11 @@ export class ContractsService {
     const definitions = extractContractPlaceholders(version.contentHtml);
     const allowed = new Map(
       definitions
-        .filter((definition) => !isSignaturePlaceholderKey(definition.key))
+        .filter(
+          (definition) =>
+            !isSignaturePlaceholderKey(definition.key) &&
+            !DERIVED_PLACEHOLDER_KEYS.has(definition.key),
+        )
         .map((definition) => [definition.key, definition]),
     );
     const entries = Object.entries(values).filter(([key]) => allowed.has(key));
@@ -2851,9 +2957,34 @@ export class ContractsService {
       include: { versions: { orderBy: { version: 'desc' } } },
     });
     if (!item) throw new NotFoundException('Contract template was not found.');
+    const usage = await this.prisma.contractVersion.groupBy({
+      by: ['templateVersionId'],
+      where: { templateVersionId: { in: item.versions.map((row) => row.id) } },
+      _count: { _all: true },
+    });
+    const agreementsByVersion = new Map(
+      usage.map((row) => [row.templateVersionId, row._count._all]),
+    );
     return {
       ...normalizeContractTemplate(item),
       contextIssues: this.templateContextIssues(item),
+      versions: item.versions.map((version, index) => {
+        const agreementCount = agreementsByVersion.get(version.id) ?? 0;
+        return {
+          ...version,
+          agreementCount,
+          // Mirrors `assertTemplateVersionEditable`; the API still decides.
+          editable:
+            index === 0 &&
+            !version.isPublished &&
+            !version.publishedAt &&
+            agreementCount === 0,
+          contentIssues: assessDocumentContent(
+            version.contentHtml,
+            isRegisteredPlaceholder,
+          ),
+        };
+      }),
     };
   }
 
@@ -2910,6 +3041,13 @@ export class ContractsService {
     this.assertWrite(user);
     const contentHtml = cleanContractHtml(dto.contentHtml);
     this.assertTemplatePlaceholdersInContext(dto.contractType, contentHtml);
+    if (dto.publish) this.assertTemplatePublishable(contentHtml);
+    const lifecycleGatePurpose =
+      resolveTemplateLifecycleGate(
+        dto.lifecycleGatePurpose,
+        dto.contractType,
+      ) ?? null;
+    const signing = this.templateSigningFields(dto, dto.signingMode ?? 'MIXED');
     const created = await this.prisma.contractTemplate.create({
       data: {
         key: dto.key.trim().toUpperCase(),
@@ -2918,7 +3056,7 @@ export class ContractsService {
         description: dto.description,
         documentMode: dto.documentMode ?? 'EDITOR',
         signingMode: dto.signingMode ?? 'MIXED',
-        lifecycleGatePurpose: dto.lifecycleGatePurpose,
+        lifecycleGatePurpose,
         createdById: user.userId,
         updatedById: user.userId,
         versions: {
@@ -2932,9 +3070,8 @@ export class ContractsService {
                 contentHtml,
               )) as Prisma.InputJsonValue,
             fieldDefinitions: dto.fieldDefinitions as Prisma.InputJsonValue,
-            partyDefinitions: dto.partyDefinitions as Prisma.InputJsonValue,
-            signingConfig: dto.signingConfig as Prisma.InputJsonValue,
-            lifecycleGatePurpose: dto.lifecycleGatePurpose,
+            ...signing,
+            lifecycleGatePurpose,
             changeSummary: dto.changeSummary?.trim() || 'Initial version',
             isPublished: dto.publish ?? false,
             publishedAt: dto.publish ? new Date() : null,
@@ -2972,11 +3109,23 @@ export class ContractsService {
       template.contractType,
       contentHtml,
     );
+    if (dto.publish) this.assertTemplatePublishable(contentHtml);
+    const requestedGate = resolveTemplateLifecycleGate(
+      dto.lifecycleGatePurpose,
+      template.contractType,
+    );
+    const lifecycleGatePurpose =
+      requestedGate === undefined
+        ? template.lifecycleGatePurpose
+        : requestedGate;
+    const signing = this.templateSigningFields(dto, template.signingMode);
     const version = await this.prisma.$transaction(async (tx) => {
       if (dto.publish) {
+        // Superseded, not erased: `publishedAt` stays as the record that this
+        // version was once the one agreements were drafted from.
         await tx.contractTemplateVersion.updateMany({
           where: { templateId, isPublished: true },
-          data: { isPublished: false, publishedAt: null },
+          data: { isPublished: false },
         });
       }
       const created = await tx.contractTemplateVersion.create({
@@ -2989,10 +3138,8 @@ export class ContractsService {
           placeholders: (dto.placeholders ??
             extractContractPlaceholders(contentHtml)) as Prisma.InputJsonValue,
           fieldDefinitions: dto.fieldDefinitions as Prisma.InputJsonValue,
-          partyDefinitions: dto.partyDefinitions as Prisma.InputJsonValue,
-          signingConfig: dto.signingConfig as Prisma.InputJsonValue,
-          lifecycleGatePurpose:
-            dto.lifecycleGatePurpose ?? template.lifecycleGatePurpose,
+          ...signing,
+          lifecycleGatePurpose,
           changeSummary: dto.changeSummary?.trim() || null,
           isPublished: dto.publish ?? false,
           publishedAt: dto.publish ? new Date() : null,
@@ -3001,11 +3148,7 @@ export class ContractsService {
       });
       await tx.contractTemplate.update({
         where: { id: templateId },
-        data: {
-          lifecycleGatePurpose:
-            dto.lifecycleGatePurpose ?? template.lifecycleGatePurpose,
-          updatedById: user.userId,
-        },
+        data: { lifecycleGatePurpose, updatedById: user.userId },
       });
       return created;
     });
@@ -3040,6 +3183,9 @@ export class ContractsService {
         name: `${source.name} (Copy)`,
         contractType: source.contractType,
         description: source.description,
+        documentMode: source.documentMode,
+        signingMode: source.signingMode,
+        lifecycleGatePurpose: source.lifecycleGatePurpose,
         isActive: false,
         createdById: user.userId,
         updatedById: user.userId,
@@ -3050,6 +3196,10 @@ export class ContractsService {
             contentHtml: latest.contentHtml,
             contentText: latest.contentText,
             placeholders: latest.placeholders ?? Prisma.JsonNull,
+            fieldDefinitions: latest.fieldDefinitions ?? Prisma.JsonNull,
+            partyDefinitions: latest.partyDefinitions ?? Prisma.JsonNull,
+            signingConfig: latest.signingConfig ?? Prisma.JsonNull,
+            lifecycleGatePurpose: latest.lifecycleGatePurpose,
             changeSummary: `Cloned from ${source.name}`,
             isPublished: false,
             createdById: user.userId,
@@ -3067,6 +3217,281 @@ export class ContractsService {
       afterSnapshot: { sourceTemplateId: templateId, key: cloned.key },
     });
     return cloned;
+  }
+
+  /** The supported gates and signer roles, for the template editor. */
+  templateOptions(user: AuthenticatedUser) {
+    this.assertPlatform(user);
+    return {
+      lifecycleGates: CONTRACT_LIFECYCLE_GATES.map((gate) => ({
+        key: gate.key,
+        label: gate.label,
+        contractTypes: gate.contractTypes,
+      })),
+      signerRoles: TEMPLATE_SIGNER_ROLES.map((role) => ({
+        key: role.key,
+        label: role.label,
+        side: role.side,
+      })),
+    };
+  }
+
+  /**
+   * Save the template's current draft in place.
+   *
+   * Every save used to create a new version, so a template could not be
+   * worked on without leaving a trail of versions nobody meant to keep. Only
+   * the latest version may be edited, and only while it is unpublished and no
+   * agreement has been drafted from it — a published version, or one an
+   * agreement points at, is changed by creating a new draft instead.
+   */
+  async updateTemplateDraft(
+    user: AuthenticatedUser,
+    templateId: string,
+    versionId: string,
+    dto: UpdateContractTemplateDraftDto,
+  ) {
+    this.assertWrite(user);
+    const { template, version } = await this.loadTemplateVersion(
+      templateId,
+      versionId,
+    );
+    await this.assertTemplateVersionEditable(template, version);
+    const contentHtml =
+      dto.contentHtml === undefined
+        ? undefined
+        : cleanContractHtml(dto.contentHtml);
+    if (contentHtml !== undefined)
+      this.assertTemplatePlaceholdersInContext(
+        template.contractType,
+        contentHtml,
+      );
+    const requestedGate = resolveTemplateLifecycleGate(
+      dto.lifecycleGatePurpose,
+      template.contractType,
+    );
+    const signing =
+      dto.requiredSignerRoles === undefined
+        ? {}
+        : this.templateSigningFields(dto, template.signingMode);
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const saved = await tx.contractTemplateVersion.update({
+        where: { id: version.id },
+        data: {
+          ...(dto.title !== undefined ? { title: dto.title } : {}),
+          ...(contentHtml !== undefined
+            ? {
+                contentHtml,
+                contentText: toPlainText(contentHtml),
+                placeholders: extractContractPlaceholders(
+                  contentHtml,
+                ) as Prisma.InputJsonValue,
+              }
+            : {}),
+          ...(dto.changeSummary !== undefined
+            ? { changeSummary: dto.changeSummary.trim() || null }
+            : {}),
+          ...(requestedGate !== undefined
+            ? { lifecycleGatePurpose: requestedGate }
+            : {}),
+          ...signing,
+        },
+      });
+      await tx.contractTemplate.update({
+        where: { id: templateId },
+        data: {
+          ...(requestedGate !== undefined
+            ? { lifecycleGatePurpose: requestedGate }
+            : {}),
+          updatedById: user.userId,
+        },
+      });
+      return saved;
+    });
+    await this.auditService.log({
+      tenantId: 'platform',
+      actorUserId: user.userId,
+      action: 'CONTRACT_TEMPLATE_DRAFT_UPDATED',
+      entityType: 'ContractTemplate',
+      entityId: templateId,
+      beforeSnapshot: {
+        version: version.version,
+        title: version.title,
+        contentSha256: sha256(version.contentHtml),
+        lifecycleGatePurpose: version.lifecycleGatePurpose,
+      },
+      afterSnapshot: {
+        version: updated.version,
+        title: updated.title,
+        contentSha256: sha256(updated.contentHtml),
+        lifecycleGatePurpose: updated.lifecycleGatePurpose,
+      },
+    });
+    return updated;
+  }
+
+  /**
+   * Make one version the template's published version. The previous one is
+   * superseded, never altered; agreements already drafted keep pointing at
+   * the version they were drafted from. Publishing an older version is how a
+   * template is rolled back.
+   */
+  async publishTemplateVersion(
+    user: AuthenticatedUser,
+    templateId: string,
+    versionId: string,
+  ) {
+    this.assertWrite(user);
+    const { template, version } = await this.loadTemplateVersion(
+      templateId,
+      versionId,
+    );
+    if (version.isPublished)
+      throw new BadRequestException('This version is already published.');
+    this.assertTemplatePlaceholdersInContext(
+      template.contractType,
+      version.contentHtml,
+    );
+    this.assertTemplatePublishable(version.contentHtml);
+    const now = new Date();
+    await this.prisma.$transaction([
+      this.prisma.contractTemplateVersion.updateMany({
+        where: { templateId, isPublished: true },
+        data: { isPublished: false },
+      }),
+      this.prisma.contractTemplateVersion.update({
+        where: { id: version.id },
+        data: { isPublished: true, publishedAt: now },
+      }),
+      this.prisma.contractTemplate.update({
+        where: { id: templateId },
+        data: { updatedById: user.userId },
+      }),
+    ]);
+    await this.auditService.log({
+      tenantId: 'platform',
+      actorUserId: user.userId,
+      action: 'CONTRACT_TEMPLATE_VERSION_PUBLISHED',
+      entityType: 'ContractTemplate',
+      entityId: templateId,
+      beforeSnapshot: {
+        publishedVersion:
+          template.versions.find((item) => item.isPublished)?.version ?? null,
+      },
+      afterSnapshot: { publishedVersion: version.version },
+    });
+    return this.getTemplate(user, templateId);
+  }
+
+  /**
+   * Withdraw the published version so no new agreement is drafted from it.
+   * Agreements already drafted are unaffected. A template left with nothing
+   * published cannot be active, so it is deactivated in the same step rather
+   * than left offering a template every create would refuse.
+   */
+  async unpublishTemplateVersion(
+    user: AuthenticatedUser,
+    templateId: string,
+    versionId: string,
+  ) {
+    this.assertWrite(user);
+    const { template, version } = await this.loadTemplateVersion(
+      templateId,
+      versionId,
+    );
+    if (!version.isPublished)
+      throw new BadRequestException('This version is not published.');
+    await this.prisma.$transaction([
+      this.prisma.contractTemplateVersion.update({
+        where: { id: version.id },
+        data: { isPublished: false },
+      }),
+      this.prisma.contractTemplate.update({
+        where: { id: templateId },
+        data: { isActive: false, updatedById: user.userId },
+      }),
+    ]);
+    await this.auditService.log({
+      tenantId: 'platform',
+      actorUserId: user.userId,
+      action: 'CONTRACT_TEMPLATE_VERSION_UNPUBLISHED',
+      entityType: 'ContractTemplate',
+      entityId: templateId,
+      beforeSnapshot: {
+        publishedVersion: version.version,
+        isActive: template.isActive,
+      },
+      afterSnapshot: { publishedVersion: null, isActive: false },
+    });
+    return this.getTemplate(user, templateId);
+  }
+
+  private async loadTemplateVersion(templateId: string, versionId: string) {
+    const template = await this.prisma.contractTemplate.findUnique({
+      where: { id: templateId },
+      include: { versions: { orderBy: { version: 'desc' } } },
+    });
+    if (!template)
+      throw new NotFoundException('Contract template was not found.');
+    const version = template.versions.find((item) => item.id === versionId);
+    if (!version)
+      throw new NotFoundException('Template version was not found.');
+    return { template, version };
+  }
+
+  private async assertTemplateVersionEditable(
+    template: { versions: Array<{ id: string }> },
+    version: { id: string; isPublished: boolean; publishedAt: Date | null },
+  ) {
+    const reason = version.isPublished
+      ? 'it is published'
+      : version.publishedAt
+        ? 'it has been published before'
+        : template.versions[0]?.id !== version.id
+          ? 'a newer version exists'
+          : (await this.prisma.contractVersion.count({
+                where: { templateVersionId: version.id },
+              })) > 0
+            ? 'agreements have been drafted from it'
+            : null;
+    if (reason)
+      throw new ConflictException({
+        code: 'CONTRACT_TEMPLATE_VERSION_LOCKED',
+        message: `This version cannot be edited because ${reason}. Save your changes as a new draft version instead.`,
+      });
+  }
+
+  private assertTemplatePublishable(contentHtml: string) {
+    assertDocumentContent(
+      assessDocumentContent(contentHtml, isRegisteredPlaceholder),
+      ['error'],
+      'publishing it',
+    );
+  }
+
+  private templateSigningFields(
+    dto: {
+      requiredSignerRoles?: string[];
+      signingMode?: ContractSigningMode;
+      partyDefinitions?: Array<Record<string, unknown>>;
+      signingConfig?: Record<string, unknown>;
+    },
+    fallbackMode: ContractSigningMode,
+  ) {
+    if (dto.requiredSignerRoles !== undefined) {
+      const built = buildTemplateSigningDefinitions(
+        dto.requiredSignerRoles,
+        dto.signingMode ?? fallbackMode,
+      );
+      return {
+        partyDefinitions: built.partyDefinitions as Prisma.InputJsonValue,
+        signingConfig: built.signingConfig as Prisma.InputJsonValue,
+      };
+    }
+    return {
+      partyDefinitions: dto.partyDefinitions as Prisma.InputJsonValue,
+      signingConfig: dto.signingConfig as Prisma.InputJsonValue,
+    };
   }
 
   async updateTemplateState(
@@ -3794,8 +4219,15 @@ export class ContractsService {
      * past the old gate) would otherwise be frozen into the executed version
      * beside the real signing timestamp.
      */
+    const revisionRow = agreementRevisionRow(contract.signatureRequests.length);
+    const placeholderRows = [
+      ...contract.placeholderValues.filter(
+        (item) => !DERIVED_PLACEHOLDER_KEYS.has(item.key),
+      ),
+      revisionRow,
+    ];
     const placeholderSnapshot = Object.fromEntries(
-      contract.placeholderValues
+      placeholderRows
         .filter((item) => !isSignaturePlaceholderKey(item.key))
         .map((item) => [item.key, item.value]),
     );
@@ -3821,7 +4253,7 @@ export class ContractsService {
     );
     const resolvedHtml = renderContractVersionHtml(
       omitPlatformSignatureLines(version.contentHtml, platformSigns),
-      contract.placeholderValues,
+      placeholderRows,
       'freeze',
     );
     /*
@@ -3835,6 +4267,17 @@ export class ContractsService {
       throw new BadRequestException(
         `Resolve required document fields before signature: ${unresolvedNonSignature.join(', ')}.`,
       );
+    /*
+     * What is frozen here is what the counterparty signs. A fill-in note
+     * ("[REQUIRED — CONFIRM]"), a "Status: Draft" line or a broken placeholder
+     * must never reach it; the operator completes them on this agreement's
+     * draft. Nothing is rewritten for them — these may be negotiated terms.
+     */
+    assertDocumentContent(
+      assessDocumentContent(resolvedHtml, isRegisteredPlaceholder),
+      ['error', 'issue'],
+      'sending it for signature',
+    );
     const snapshotSha256 = sha256(
       JSON.stringify(
         Object.fromEntries(
@@ -4855,6 +5298,9 @@ export class ContractsService {
               requestId: recipient.signatureRequestId,
               attachmentDocumentId: signed.document.id,
             },
+            // One completion notice per signer per request, however many
+            // times the final step is retried.
+            idempotencyKey: `signature-completed:${recipient.signatureRequestId}:${signer.email.toLowerCase()}`,
           }),
         ),
       );
@@ -5056,6 +5502,7 @@ export class ContractsService {
             signatureRequired: true,
           },
         },
+        _count: { select: { signatureRequests: true } },
       },
     });
     if (!contract || !contract.versions[0])
@@ -5195,7 +5642,12 @@ export class ContractsService {
           documentHtml,
           platformSignsContract(contract.parties),
         ),
-        contract.placeholderValues,
+        [
+          ...contract.placeholderValues.filter(
+            (item) => !DERIVED_PLACEHOLDER_KEYS.has(item.key),
+          ),
+          agreementRevisionRow(contract._count.signatureRequests),
+        ],
         'display',
       );
     const buffer =
@@ -5327,6 +5779,7 @@ export class ContractsService {
       const address = [lead.registeredAddress, lead.city, lead.stateProvince]
         .filter(Boolean)
         .join(', ');
+      const planFeatures = await this.planFeatureList(lead.agreedPlanId);
       return {
         counterpartyName: lead.legalCompanyName ?? lead.companyName,
         counterpartyEmail: lead.authorizedSignerEmail ?? lead.workEmail,
@@ -5374,6 +5827,7 @@ export class ContractsService {
             'customer.billingContact.email': lead.billingContactEmail,
             'commercial.planName': lead.agreedPlan?.name,
             'commercial.planId': lead.agreedPlanId,
+            'commercial.planFeatures': planFeatures,
             'commercial.licensedUsers': lead.agreedSeats,
             'commercial.agreedPrice': lead.agreedPrice?.toString(),
             'commercial.billingCycle': lead.billingCycle,
@@ -5411,6 +5865,9 @@ export class ContractsService {
           'Customer onboarding source was not found.',
         );
       const base = customerSource(onboarding.customer, reportingCurrency);
+      const planFeatures = await this.planFeatureList(
+        onboarding.selectedPlanId,
+      );
       const adminName =
         `${onboarding.primaryOwnerFirstName} ${onboarding.primaryOwnerLastName}`.trim();
       return {
@@ -5448,6 +5905,8 @@ export class ContractsService {
               reportingCurrency,
             ),
             'tenant.planName': onboarding.selectedPlan?.name,
+            'commercial.planName': onboarding.selectedPlan?.name,
+            'commercial.planFeatures': planFeatures,
             'tenant.admin.name': adminName,
             'tenant.admin.email': onboarding.primaryOwnerWorkEmail,
             'tenant.admin.phone': onboarding.primaryOwnerPhone,
@@ -5509,6 +5968,7 @@ export class ContractsService {
         : String(row.value);
     };
     const subscription = tenant.subscription;
+    const planFeatures = await this.planFeatureList(subscription?.planId);
     const tenantCurrency =
       subscription?.currency ??
       tenantSetting('organization', 'currency') ??
@@ -5539,6 +5999,7 @@ export class ContractsService {
             tenantSetting('system', 'locale'),
           'tenant.currency': tenantCurrency,
           'tenant.planName': subscription?.plan?.name,
+          'commercial.planFeatures': planFeatures,
           'tenant.admin.name': tenant.ownerUser
             ? `${tenant.ownerUser.firstName} ${tenant.ownerUser.lastName}`.trim()
             : undefined,
@@ -5578,6 +6039,23 @@ export class ContractsService {
         }),
       },
     };
+  }
+
+  /**
+   * `commercial.planFeatures`: the features enabled on a plan, read from the
+   * plan's own configuration so an agreement lists what the plan actually
+   * grants rather than a hand-typed copy of it.
+   */
+  private async planFeatureList(planId: string | null | undefined) {
+    if (!planId) return undefined;
+    const features = await this.prisma.planFeature.findMany({
+      where: { planId, isEnabled: true },
+      select: { featureKey: true },
+      orderBy: { featureKey: 'asc' },
+    });
+    return features.length
+      ? JSON.stringify(features.map((feature) => labelize(feature.featureKey)))
+      : undefined;
   }
 
   /*
@@ -5683,6 +6161,8 @@ export class ContractsService {
       entityType: 'Contract',
       entityId: contract.id,
       metadata: { signatureRequestId },
+      // A decline or change request closes the request, so one per event.
+      idempotencyKey: `${eventCode}:${signatureRequestId}`,
     });
   }
 
@@ -6571,13 +7051,23 @@ export function renderContractPlaceholders(
   )
     ? values['contract.currency'].trim().toUpperCase()
     : undefined;
-  return html.replace(
+  return unwrapPlaceholderMarkup(html).replace(
     /\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g,
     (match, key: string) => {
       const definition = CONTRACT_PLACEHOLDER_REGISTRY.find(
         (item) => item.key === key,
       );
-      const value = key in values ? String(values[key]) : '';
+      const stored = key in values ? String(values[key]) : '';
+      /*
+       * `defaultValue` is declared on the definition type and was never read.
+       * It is now the value a term takes when nothing explicit was agreed —
+       * `commercial.pilotDiscount` reads "None" rather than a blank line, so
+       * a discount appears only where one was actually recorded.
+       */
+      const value =
+        stored.trim() && !PLACEHOLDER_ARTIFACT_LITERALS.has(stored.trim())
+          ? stored
+          : (definition?.defaultValue ?? stored);
       /*
        * ADR-0020 point 4. A value that stringifies to one of these literals
        * is not a value — it is `undefined`, `null`, or a bare object that
@@ -6635,6 +7125,29 @@ export type StoredContractPlaceholderValue = {
   value: string;
   source?: string | null;
 };
+
+/** Values the platform derives and an operator can never type over. */
+export const DERIVED_PLACEHOLDER_KEYS = new Set(['contract.version']);
+
+/**
+ * `{{contract.version}}` for an agreement that has been issued for signature
+ * `issuedCount` times so far: the revision the next issue (or the current
+ * draft's preview) carries. Computed the same way for the preview, the
+ * signing freeze and the PDF, so the three cannot print different numbers.
+ */
+export function agreementRevisionRow(
+  issuedCount: number,
+): StoredContractPlaceholderValue {
+  return {
+    key: 'contract.version',
+    value: String(issuedCount + 1),
+    source: 'derived',
+  };
+}
+
+export function isRegisteredPlaceholder(key: string) {
+  return CONTRACT_PLACEHOLDER_REGISTRY.some((item) => item.key === key);
+}
 
 /*
  * What a draft preview prints where a signature is still to come. Dates read

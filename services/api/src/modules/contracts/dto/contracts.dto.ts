@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
   ArrayMinSize,
   IsArray,
   IsBoolean,
@@ -66,6 +67,16 @@ export class CreateContractTemplateDto {
   @IsOptional() @IsArray() fieldDefinitions?: Array<Record<string, unknown>>;
   @IsOptional() @IsArray() partyDefinitions?: Array<Record<string, unknown>>;
   @IsOptional() @IsObject() signingConfig?: Record<string, unknown>;
+  /*
+   * Keys from TEMPLATE_SIGNER_ROLES, in signing order. When present the API
+   * builds `partyDefinitions` / `signingConfig` itself and ignores those two
+   * fields; they stay accepted for clients that predate this.
+   */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(5)
+  @IsString({ each: true })
+  requiredSignerRoles?: string[];
   @IsOptional() @IsString() @MaxLength(1000) changeSummary?: string;
 }
 
@@ -80,6 +91,26 @@ export class CreateContractTemplateVersionDto {
   @IsOptional() @IsArray() fieldDefinitions?: Array<Record<string, unknown>>;
   @IsOptional() @IsArray() partyDefinitions?: Array<Record<string, unknown>>;
   @IsOptional() @IsObject() signingConfig?: Record<string, unknown>;
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(5)
+  @IsString({ each: true })
+  requiredSignerRoles?: string[];
+  @IsOptional() @IsEnum(ContractSigningMode) signingMode?: ContractSigningMode;
+}
+
+/** Edits to the template's current draft; every field is optional. */
+export class UpdateContractTemplateDraftDto {
+  @IsOptional() @IsString() @MaxLength(240) title?: string;
+  @IsOptional() @IsString() contentHtml?: string;
+  @IsOptional() @IsString() @MaxLength(1000) changeSummary?: string;
+  @IsOptional() @IsString() @MaxLength(120) lifecycleGatePurpose?: string;
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(5)
+  @IsString({ each: true })
+  requiredSignerRoles?: string[];
+  @IsOptional() @IsEnum(ContractSigningMode) signingMode?: ContractSigningMode;
 }
 
 export class ContractPartyDto {

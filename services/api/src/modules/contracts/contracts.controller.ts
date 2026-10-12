@@ -47,6 +47,7 @@ import {
   TemplateEligibilityQueryDto,
   UpdateContractDto,
   UpdateContractPartyDto,
+  UpdateContractTemplateDraftDto,
   UpdateContractTemplateStateDto,
 } from './dto/contracts.dto';
 
@@ -340,6 +341,12 @@ export class ContractTemplatesController {
     return this.contracts.createTemplate(user, dto);
   }
 
+  // Declared above `:id` so "options" is never read as a template id.
+  @Get('options')
+  options(@CurrentUser() user: AuthenticatedUser) {
+    return this.contracts.templateOptions(user);
+  }
+
   @Get(':id')
   get(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.contracts.getTemplate(user, id);
@@ -352,6 +359,34 @@ export class ContractTemplatesController {
     @Body() dto: CreateContractTemplateVersionDto,
   ) {
     return this.contracts.createTemplateVersion(user, id, dto);
+  }
+
+  @Patch(':id/versions/:versionId')
+  updateDraft(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Param('versionId') versionId: string,
+    @Body() dto: UpdateContractTemplateDraftDto,
+  ) {
+    return this.contracts.updateTemplateDraft(user, id, versionId, dto);
+  }
+
+  @Post(':id/versions/:versionId/publish')
+  publishVersion(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Param('versionId') versionId: string,
+  ) {
+    return this.contracts.publishTemplateVersion(user, id, versionId);
+  }
+
+  @Post(':id/versions/:versionId/unpublish')
+  unpublishVersion(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Param('versionId') versionId: string,
+  ) {
+    return this.contracts.unpublishTemplateVersion(user, id, versionId);
   }
 
   @Post(':id/clone')

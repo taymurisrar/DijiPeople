@@ -178,6 +178,12 @@ describe('lead source resolution', () => {
     const contracts = service({
       platformSetting: { findUnique: jest.fn(async () => null) },
       lead: { findUnique: jest.fn(async () => LEAD) },
+      planFeature: {
+        findMany: jest.fn(async () => [
+          { featureKey: 'attendance' },
+          { featureKey: 'leave_management' },
+        ]),
+      },
     });
 
     const source = await (
@@ -212,6 +218,8 @@ describe('lead source resolution', () => {
       'commercial.billingCycle': BillingCycle.MONTHLY,
       'commercial.subscriptionTerm': '12 months',
       'contract.paymentTerms': 'Net 30 days',
+      // Read from the agreed plan's enabled features, not typed in.
+      'commercial.planFeatures': '["Attendance","Leave management"]',
     });
     // The lead namespace stays available for lead-specific documents.
     expect(values['lead.companyName']).toBe('Xoult');
