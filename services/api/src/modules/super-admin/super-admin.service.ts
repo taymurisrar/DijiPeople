@@ -2103,62 +2103,6 @@ export class SuperAdminService {
     return this.mapPlan(plan);
   }
 
-  /*
-   * Remove a plan nothing has ever been sold on.
-   *
-   * There was no delete route for a plan at all, which only became a problem
-   * once the console could create one that was unsellable: born active and
-   * public with no `PlanPrice` rows, advertised, unbuyable, and permanent
-   * (BUG-1749). Two are in that state in production.
-   *
-   * The same line as promotions, for the same reason. A plan with a
-   * subscription is somebody's billing history and stays; a plan with prices
-   * has been configured deliberately enough that removing it silently would be
-   * destructive, so those are refused too and deactivation remains the route.
-   * What is deletable is the mistake: created, never priced, never sold.
-   */
-  async deletePlan(actor: AuthenticatedUser, planId: string) {
-    const plan = await this.prisma.plan.findUnique({
-      where: { id: planId },
-      select: {
-        id: true,
-        key: true,
-        name: true,
-        _count: { select: { subscriptions: true, prices: true } },
-      },
-    });
-    if (!plan) throw new NotFoundException('Plan not found.');
-
-    const reasons: string[] = [];
-    if (plan._count.subscriptions > 0)
-      reasons.push(
-        `${plan._count.subscriptions} subscription(s) are billed on it`,
-      );
-    if (plan._count.prices > 0)
-      reasons.push(`${plan._count.prices} price(s) are configured on it`);
-
-    if (reasons.length) {
-      throw new BadRequestException(
-        `"${plan.name}" cannot be deleted because ${reasons.join(' and ')}. ` +
-          `Deactivate it instead to withdraw it from sale while keeping its ` +
-          `history.`,
-      );
-    }
-
-    await this.prisma.plan.delete({ where: { id: planId } });
-    await this.auditService.log({
-      tenantId: 'platform',
-      actorUserId: actor.userId,
-      action: 'platform.plan_deleted',
-      entityType: 'Plan',
-      entityId: planId,
-      sourceModule: 'super-admin',
-      beforeSnapshot: { id: plan.id, key: plan.key, name: plan.name },
-      afterSnapshot: null,
-    });
-    return { success: true, id: planId };
-  }
-
   async updatePlan(
     actor: AuthenticatedUser,
     planId: string,

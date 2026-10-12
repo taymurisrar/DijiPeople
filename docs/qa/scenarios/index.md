@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 483** · automated: 395 · manual: 27 · blocked by infrastructure: 0
+**Scenarios: 484** · automated: 396 · manual: 27 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -325,6 +325,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-PLATFORM-060](../../../docs/qa/scenarios/QA-PLATFORM-060-support-case-rejects-a-tenant-that-does-not-belong-to-the-cu.md) | Support case rejects a tenant that does not belong to the customer | platform-admin | API | HIGH | AUTOMATED | `services/api/src/modules/support-cases/support-cases.domain.spec.ts` | BUG-4060, BUG-3207 | REG-675 |
 | [QA-PLATFORM-061](../../../docs/qa/scenarios/QA-PLATFORM-061-support-case-escalate-succeeds-and-status-transitions-are-va.md) | Support case escalate succeeds and status transitions are validated | platform-admin | API | HIGH | AUTOMATED | `services/api/src/modules/support-cases/support-case-lifecycle.spec.ts` | BUG-4061 | REG-676 |
 | [QA-PLATFORM-062](../../../docs/qa/scenarios/QA-PLATFORM-062-admin-notification-bell-stops-polling-after-the-session-ends.md) | Admin notification bell stops polling after the session ends | notifications | UNIT | LOW | AUTOMATED | `apps/admin/app/_components/notifications/notification-model.spec.ts` | BUG-3895 | REG-677 |
+| [QA-PLATFORM-063](../../../docs/qa/scenarios/QA-PLATFORM-063-admin-deletes-draft-agreements-and-inactive-never-sold-plans.md) | Admin deletes draft agreements and inactive never-sold plans, keeps evidence, and shows names not ids | platform-admin | API | HIGH | AUTOMATED | `services/api/src/modules/contracts/contract-deletion.spec.ts` | BUG-4098 | REG-678 |
 | [QA-PROV-001](../../../docs/qa/scenarios/QA-PROV-001-a-tenant-that-failed-provisioning-can-be-retried.md) | A tenant that failed provisioning can be retried | tenant-provisioning | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/tenant-control-plane/tenant-provisioning-retry.spec.ts` | BUG-0014 | REG-012 |
 | [QA-PROV-002](../../../docs/qa/scenarios/QA-PROV-002-provisioning-is-safe-to-submit-twice.md) | Provisioning is safe to submit twice | tenant-provisioning | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/super-admin/tenant-provisioning-idempotency.spec.ts` | BUG-0022 | REG-030 |
 | [QA-PROV-003](../../../docs/qa/scenarios/QA-PROV-003-issued-tenant-hostnames-honour-the-configured-base-domain.md) | Issued tenant hostnames honour the configured base domain | tenant-provisioning | UNIT | HIGH | AUTOMATED | `services/api/src/common/config/tenant-url.config.spec.ts` | BUG-0017, BUG-0026 | REG-016, REG-027 |

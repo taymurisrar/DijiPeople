@@ -1,7 +1,7 @@
 # Component Index
 
-> **Last verified:** 2026-10-11
-> **Verified against commit:** d5e35295
+> **Last verified:** 2026-10-12
+> **Verified against commit:** a46d6bbb
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -16,8 +16,8 @@ question an agent can answer by retrieval rather than by reading a directory.
 comment beside it is the reasoning; this document is a route to both. Every row
 carries `file`:`line` for that reason — read the source before changing it.
 
-**An export missing from here is undocumented, not absent.** 918 of
-1287 exports across these kits carry no
+**An export missing from here is undocumented, not absent.** 925 of
+1304 exports across these kits carry no
 doc-comment and are omitted rather than listed as bare names. That ratio is
 itself worth knowing: it is where a UI/UX or Frontend agent is working without
 stated rationale, and where adding one is worth more than a new abstraction.
@@ -45,7 +45,7 @@ re-derived on each run.
 
 `ProDataTable` (`crm/data-table.tsx`) is the required table for every production admin screen. A hand-rolled table here is a review failure.
 
-147 documented export(s); 294 undocumented export(s) omitted.
+157 documented export(s); 301 undocumented export(s) omitted.
 
 | Export | Kind | Used by | Where | What it is |
 |---|---|---|---|---|
@@ -57,10 +57,10 @@ re-derived on each run.
 | `RecordStatusGroup` | component | 5 | `apps/admin/app/_components/runtime/record-status-group.tsx`:42 | The record header status group. |
 | `RecordHeader` | component | 4 | `apps/admin/app/_components/runtime/record-highlight-header.tsx`:42 | The one record header every Platform Admin record page draws. |
 | `CopyReference` | component | 3 | `apps/admin/app/_components/monitoring/monitoring-ui.tsx`:107 | A reference id that copies itself; it is what support pastes to a customer. |
+| `DependencyAwareDeleteDialog` | component | 2 | `apps/admin/app/_components/runtime/dependency-aware-delete-dialog.tsx`:30 | The delete confirmation that asks the API what the delete would do first (EXECPLAN-0055 D5). |
 | `NotificationBell` | component | 2 | `apps/admin/app/_components/notifications/notification-bell.tsx`:36 | The bell: a count, and the last few things worth knowing. |
 | `PlanPriceManager` | component | 2 | `apps/admin/app/_components/plan-price-manager.tsx`:94 | Plan prices. This screen was a stack of cards, one per price, each repeating "Cycle", "Amount", "Stripe Price ID" and "Subscriptions" as its own labelled block — so a plan priced in six currencies across two periods, with a few superseded versions behind it, rendered several hundred vertical pixels of column headings. |
 | `AccountPreferencesClient` | component | 1 | `apps/admin/app/_components/account-preferences-client.tsx`:26 | Personal console preferences, stored against the operator. |
-| `DependencyAwareDeleteDialog` | component | 1 | `apps/admin/app/_components/runtime/dependency-aware-delete-dialog.tsx`:30 | The delete confirmation that asks the API what the delete would do first (EXECPLAN-0055 D5). |
 | `HealthOverviewTiles` | component | 1 | `apps/admin/app/_components/monitoring/health-overview-tiles.tsx`:84 | TASK-0032 WP-06. "Is the platform healthy" as the first thing on the monitoring page, not something inferred from an error queue. |
 | `NotificationsFeed` | component | 1 | `apps/admin/app/_components/notifications/notifications-feed.tsx`:31 | What has happened on this platform that somebody should look at. |
 | `NumberSequencesManager` | component | 1 | `apps/admin/app/_components/settings/number-sequences-manager.tsx`:27 | Settings > Numbering (ADR-0027). |
@@ -73,7 +73,7 @@ re-derived on each run.
 | `RecordHighlightHeader` | component | 1 | `apps/admin/app/_components/runtime/record-highlight-header.tsx`:130 | The record header for a module that declares a `highlight` (EXECPLAN-0055 D8): its key values as cells, with Owner as the only control — taken from the status group so its permission check and assignment route are not duplicated. |
 | `RowActions` | component | 1 | `apps/admin/app/_components/crm/row-actions.tsx`:38 | The actions available on one row of a table. |
 | `RuntimeQuickCreatePanel` | component | 1 | `apps/admin/app/_components/runtime/runtime-quick-create-panel.tsx`:46 | Create a related record from a subgrid, in a side sheet, without leaving the record (EXECPLAN-0055 D8). |
-| `RuntimeRelatedRecordsPanel` | component | 1 | `apps/admin/app/_components/runtime/runtime-related-records-panel.tsx`:52 | A subgrid on a record page. |
+| `RuntimeRelatedRecordsPanel` | component | 1 | `apps/admin/app/_components/runtime/runtime-related-records-panel.tsx`:74 | A subgrid on a record page. |
 | `StatTile` | component | 1 | `apps/admin/app/_components/tenants/tenant-panel-ui.tsx`:65 | One number with the thing it counts. |
 | `TenantAccessPanel` | component | 1 | `apps/admin/app/_components/tenants/tenant-access-panel.tsx`:98 | Access & Security. This is not a tenant user console. |
 | `TenantAppsModulesPanel` | component | 1 | `apps/admin/app/_components/tenants/tenant-apps-modules-panel.tsx`:87 | Apps & Modules — the tenant-level control centre for DijiPeople capability. |
@@ -91,37 +91,39 @@ re-derived on each run.
 | `relativeTime` | function | 5 | `apps/admin/app/_components/tenants/tenant-panel-ui.tsx`:439 | Relative time for heartbeat and last-seen columns. |
 | `humanizeLabel` | function | 4 | `apps/admin/lib/runtime/humanize-label.ts`:89 | Display text for a stored enum value, lookup key or similar. |
 | `runStandardRecordCommand` | function | 4 | `apps/admin/lib/runtime/standard-record-commands.ts`:23 | Back, New and Refresh for the record pages that are **not** the runtime. |
+| `displayForOpaqueValue` | function | 3 | `apps/admin/lib/runtime/reference-display.ts`:104 | The text for a cell or read-only field whose value may be an id. |
 | `humanizeErrorMessage` | function | 3 | `apps/admin/lib/runtime/humanize-field-error.ts`:62 | Whether this message is implementation detail rather than user-facing text. |
 | `matchesVisibility` | function | 3 | `apps/admin/lib/runtime/visibility-condition.ts`:39 | `hasValue` wins over `in`, which wins over `equals`. |
+| `readDeleteOutcome` | function | 3 | `apps/admin/lib/runtime/runtime-action-outcome.ts`:23 | What a runtime delete actually did, read from where the API puts it. |
+| `recordDisplayName` | function | 3 | `apps/admin/lib/runtime/destructive-confirm.ts`:95 | The best display name for a record, from whatever the row happens to carry. |
 | `useReasonPrompt` | function | 3 | `apps/admin/app/_components/runtime/use-reason-prompt.tsx`:62 | Collects a governed reason through the design system instead of `window.prompt` (BUG-0020). |
 | `useRuntimeLookupOptions` | function | 3 | `apps/admin/lib/runtime/use-runtime-lookup-options.ts`:34 | Read an allowlisted runtime lookup. |
+| `describeDestructiveConfirm` | function | 2 | `apps/admin/lib/runtime/destructive-confirm.ts`:47 | Title, description and names for a destructive confirmation. |
 | `describePlanSchedule` | function | 2 | `apps/admin/lib/runtime/plan-headline-prices.ts`:180 | "Per seat, PKR" — how the tiles name the schedule they are showing. |
 | `formatWhen` | function | 2 | `apps/admin/app/_components/notifications/notification-model.ts`:128 | "4 minutes ago", falling back to an absolute time once relative stops being the more useful phrasing. |
 | `humanizeFieldError` | function | 2 | `apps/admin/lib/runtime/humanize-field-error.ts`:24 | Replace a leading DTO property name with the label the operator sees. |
-| `readDeleteOutcome` | function | 2 | `apps/admin/lib/runtime/runtime-action-outcome.ts`:23 | What a runtime delete actually did, read from where the API puts it. |
-| `recordDisplayName` | function | 2 | `apps/admin/lib/runtime/destructive-confirm.ts`:95 | The best display name for a record, from whatever the row happens to carry. |
 | `useConfirmAction` | function | 2 | `apps/admin/app/_components/runtime/use-confirm-action.tsx`:50 | Confirmation for an irreversible, billable create (BUG-0022). |
 | `buildLookupRecordHref` | function | 1 | `apps/admin/lib/runtime/lookup-record-href.ts`:64 | The link for a resolved lookup value. |
 | `buildQuickCreatePayload` | function | 1 | `apps/admin/lib/runtime/quick-create-model.ts`:100 | The request body. Only the panel's own fields are sent — never whatever else the values object happens to hold — plus the parent id under `parentField`, which overrides anything typed. |
 | `buildWritePayload` | function | 1 | `apps/admin/lib/runtime/runtime-write-payload.ts`:73 | The values a create or update request should actually carry. |
 | `commandMatchesRecord` | function | 1 | `apps/admin/lib/runtime/command-visibility.ts`:13 | Whether a command's record conditions hold for `record`: its `states` list (the record's `status` must be one of them) and its `visibleWhen` condition. |
-| `copyText` | function | 1 | `apps/admin/lib/runtime/related-records-model.ts`:244 | Copy text to the clipboard. |
+| `copyText` | function | 1 | `apps/admin/lib/runtime/related-records-model.ts`:252 | Copy text to the clipboard. |
 | `createSubmitGuard` | function | 1 | `apps/admin/lib/runtime/quick-create-model.ts`:178 | One submission at a time. |
 | `describeActionNotice` | function | 1 | `apps/admin/lib/runtime/runtime-action-outcome.ts`:62 | The command-bar notice for whatever an action handler returned. |
 | `describeBlockedSave` | function | 1 | `apps/admin/lib/runtime/blocked-save-feedback.ts`:52 | The summary message. Names the fields so it stands on its own even when the tab strip has scrolled out of view — the message was previously the only feedback available and said nothing. |
 | `describeContractApiError` | function | 1 | `apps/admin/app/_components/documents/contract-source-eligibility.ts`:126 | A readable message from the API's standard error contract. |
 | `describeDependencyCount` | function | 1 | `apps/admin/lib/runtime/dependency-delete-model.ts`:156 | "2 referral links" style count line for one dependency. |
-| `describeDestructiveConfirm` | function | 1 | `apps/admin/lib/runtime/destructive-confirm.ts`:47 | Title, description and names for a destructive confirmation. |
 | `describeRecordActionOutcome` | function | 1 | `apps/admin/lib/runtime/runtime-action-outcome.ts`:88 | The outcome of a record action the API handled, phrased for the command bar. |
 | `editEntryTab` | function | 1 | `apps/admin/lib/runtime/edit-tab-selection.ts`:89 | The tab Edit should switch to, or `null` when the current tab already has something editable and no switch is needed. |
 | `emptyEditOutcome` | function | 1 | `apps/admin/lib/runtime/runtime-write-payload.ts`:103 | The save outcome when an edit has nothing to send, or null when it does. |
 | `errorCountByTab` | function | 1 | `apps/admin/lib/runtime/blocked-save-feedback.ts`:33 | How many failures sit on each tab, for the tab strip's badges. |
 | `firstFailingTab` | function | 1 | `apps/admin/lib/runtime/blocked-save-feedback.ts`:22 | The tab holding the first failure, or null when none of them declare one. |
 | `fitCommands` | function | 1 | `apps/admin/lib/runtime/command-overflow.ts`:51 | Split `actions` (already in display order) into what is drawn inline and what goes into More. @param widths measured width of each action's inline button, same order @param available width of the space the buttons sit in @param moreWidth width of the More button @param gap horizontal gap between buttons |
-| `isRowActionVisible` | function | 1 | `apps/admin/lib/runtime/related-records-model.ts`:180 | Whether a row command applies to this row. |
+| `isRowActionVisible` | function | 1 | `apps/admin/lib/runtime/related-records-model.ts`:188 | Whether a row command applies to this row. |
 | `isRuntimeFieldVisible` | function | 1 | `apps/admin/lib/runtime/field-visibility.ts`:35 | Should the record form render this field? |
 | `isSessionEnded` | function | 1 | `apps/admin/app/_components/notifications/notification-model.ts`:62 | A 401 means the session has ended; asking again cannot help. |
 | `isTransportFailure` | function | 1 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:683 | Whether a failure means "the request never got an answer" rather than "the server said no". |
+| `keepRefused` | function | 1 | `apps/admin/lib/runtime/subgrid-selection.ts`:91 | The ids a delete refused stay selected, so the operator sees what is left. |
 | `lookupDependents` | function | 1 | `apps/admin/lib/runtime/runtime-lookups.ts`:103 | Fields whose lookup is scoped by `changedKey`, directly or through another dependent — State and City for Country, City for State. |
 | `lookupDisplayFallback` | function | 1 | `apps/admin/lib/runtime/lookup-display-fallback.ts`:15 | What a lookup shows when its stored value matches no option. |
 | `mapQuickCreateErrors` | function | 1 | `apps/admin/lib/runtime/quick-create-model.ts`:149 | Splits an API failure between the fields it names and a panel-level message. |
@@ -136,43 +138,50 @@ re-derived on each run.
 | `readRuntimeLookupLabel` | function | 1 | `apps/admin/lib/runtime/runtime-lookups.ts`:309 | The display name of a related record, wherever this schema happens to keep it. |
 | `reconcileWithErasureReceipt` | function | 1 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:708 | Ask the receipt what happened when the response did not arrive. |
 | `recordHeaderWritePermission` | function | 1 | `apps/admin/lib/runtime/runtime-permissions.ts`:54 | The permission a header slot's write route is governed by. |
+| `relationObjectLabel` | function | 1 | `apps/admin/lib/runtime/reference-display.ts`:46 | The label of an embedded relation object, in the order every renderer already used: explicit label, then the naming fields records actually carry. |
 | `requiredSignerFields` | function | 1 | `apps/admin/app/_components/documents/contract-source-eligibility.ts`:88 | The signer inputs a template needs filled before it can be created. |
 | `resolveAllowedLookupSource` | function | 1 | `apps/admin/lib/runtime/runtime-lookups.ts`:182 | The API path a lookup request may call: the `path` parameter must be an allowlisted template, and each of its placeholders is filled from the matching `bind.<field>` parameter. |
 | `resolveLookupBindings` | function | 1 | `apps/admin/lib/runtime/runtime-lookups.ts`:127 | The values a templated lookup needs, read from the form. |
 | `resolveQuickCreateFields` | function | 1 | `apps/admin/lib/runtime/quick-create-model.ts`:30 | The fields the panel renders. |
-| `resolveRowActionPath` | function | 1 | `apps/admin/lib/runtime/related-records-model.ts`:210 | The `/api` path a `post` or `delete` row command calls, with its tokens substituted. |
-| `rowActionRequest` | function | 1 | `apps/admin/lib/runtime/related-records-model.ts`:196 | The request a `post` or `delete` row command sends: POST with its JSON `body`, or DELETE with none. |
-| `shareableUrl` | function | 1 | `apps/admin/lib/runtime/related-records-model.ts`:227 | A referral link's shareable URL — the one the API built from the configured public site (`partnerReferralLinkUrl`). |
+| `resolveRowActionPath` | function | 1 | `apps/admin/lib/runtime/related-records-model.ts`:218 | The `/api` path a `post` or `delete` row command calls, with its tokens substituted. |
+| `rowActionRequest` | function | 1 | `apps/admin/lib/runtime/related-records-model.ts`:204 | The request a `post` or `delete` row command sends: POST with its JSON `body`, or DELETE with none. |
+| `shareableUrl` | function | 1 | `apps/admin/lib/runtime/related-records-model.ts`:235 | A referral link's shareable URL — the one the API built from the configured public site (`partnerReferralLinkUrl`). |
 | `signerErrors` | function | 1 | `apps/admin/app/_components/documents/contract-source-eligibility.ts`:101 | Client-side check of the signer inputs; the API validates again. |
+| `subgridRowLabel` | function | 1 | `apps/admin/lib/runtime/subgrid-selection.ts`:44 | A label for a related row, never its id. |
 | `supportCaseEditableActions` | function | 1 | `apps/admin/lib/runtime/support-case-actions.ts`:200 | Edit and Save are hidden on a case that is finished with, because the API refuses every edit there. |
 | `supportCaseNextStep` | function | 1 | `apps/admin/lib/runtime/support-case-actions.ts`:219 | One terse line about where the case stands and what moves it on — shown in the case panel. |
 | `templateOptionState` | function | 1 | `apps/admin/app/_components/documents/contract-source-eligibility.ts`:60 | How a template appears in the picker for the chosen record. |
 | `tenantHeaderTitle` | function | 1 | `apps/admin/app/_components/tenants/tenant-record-header.tsx`:18 | The tenant record header's content, drawn by the shared `RecordHeader`. |
+| `togglePage` | function | 1 | `apps/admin/lib/runtime/subgrid-selection.ts`:71 | Header checkbox: select or clear this page, keeping other pages' picks. |
 | `useTenantRecordActions` | function | 1 | `apps/admin/app/_components/tenants/use-tenant-record-actions.tsx`:99 | Routes tenant action-bar requests to whichever surface owns the change. |
 | `acceptsField` | function | 0 | `apps/admin/lib/runtime/runtime-write-payload.ts`:20 | Whether the runtime will accept this field on this kind of write. |
 | `bindRuntimeLookupPath` | function | 0 | `apps/admin/lib/runtime/runtime-lookups.ts`:153 | The API path for an allowlisted template and its bindings, or null when a placeholder is unbound or a value is not id-shaped. |
 | `commandPriority` | function | 0 | `apps/admin/lib/runtime/command-overflow.ts`:22 | Lower is more important. |
 | `fetchErasureReceipts` | function | 0 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:663 | Erasure receipts for one tenant, read without addressing the tenant itself. |
 | `isEmptyFieldValue` | function | 0 | `apps/admin/lib/runtime/field-visibility.ts`:14 | Does a stored value count as "nothing here" for `hideWhenEmpty`? |
+| `isIdentifierField` | function | 0 | `apps/admin/lib/runtime/reference-display.ts`:27 | A field that *is* an identifier — "Customer ID" on the System tab, the record's own `id` — rather than a reference to another record. |
 | `lookupPathPlaceholders` | function | 0 | `apps/admin/lib/runtime/runtime-lookups.ts`:90 | The `{field}` names a lookup path depends on, in order, without repeats. |
-| `mergeVisibleColumns` | function | 0 | `apps/admin/app/_components/runtime/runtime-module-list.tsx`:1432 | Which columns are visible, given a saved preference written against an older version of the module. |
+| `mergeVisibleColumns` | function | 0 | `apps/admin/app/_components/runtime/runtime-module-list.tsx`:1442 | Which columns are visible, given a saved preference written against an older version of the module. |
 | `normalizeWriteValue` | function | 0 | `apps/admin/lib/runtime/runtime-write-payload.ts`:49 | What an empty optional field should be sent as — or whether to send it. |
 | `resolveLookupRecordRoute` | function | 0 | `apps/admin/lib/runtime/lookup-record-href.ts`:44 | The module a lookup reads from, if Platform Admin can show that record. |
-| `resolveTableColumnState` | function | 0 | `apps/admin/app/_components/runtime/runtime-module-list.tsx`:1358 | The columns a list shows, from the module definition and the operator's saved table state (or none). |
+| `resolveTableColumnState` | function | 0 | `apps/admin/app/_components/runtime/runtime-module-list.tsx`:1368 | The columns a list shows, from the module definition and the operator's saved table state (or none). |
+| `siblingRelationLabel` | function | 0 | `apps/admin/lib/runtime/reference-display.ts`:73 | For a record and the path of an id field (`primaryOwnerUserId`, `subscription.planId`), the sibling relation's label (`primaryOwnerUser`, `subscription.plan`) when the API embedded one. |
 | `standardRecordActions` | function | 0 | `apps/admin/lib/runtime/standard-record-commands.ts`:56 | The registry's command bar for a module, with the page's own commands merged in on top — same rule the registry itself uses, so a bespoke page can override a default's label or states without losing the rest. |
 | `supportCaseStatesFor` | function | 0 | `apps/admin/lib/runtime/support-case-actions.ts`:36 | Every status from which `to` is a legal move. |
 | `tabHasEditableField` | function | 0 | `apps/admin/lib/runtime/edit-tab-selection.ts`:73 | Whether the named tab currently has at least one field the operator could edit. |
+| `unresolvedReferenceLabel` | function | 0 | `apps/admin/lib/runtime/reference-display.ts`:32 | The readable stand-in for a reference nothing could resolve. |
 | `ConsolePreferencesApplier` | value | 1 | `apps/admin/app/_components/console-preferences-applier.tsx`:23 | Apply the operator's preferences to every page, not just the one that sets them. |
 | `LOOKUP_SEARCH_DEBOUNCE_MS` | constant | 3 | `apps/admin/lib/runtime/lookup-search.ts`:14 | How long to wait after the last keystroke before issuing a search request. |
 | `CATEGORY_LABEL` | constant | 2 | `apps/admin/app/_components/notifications/notification-model.ts`:44 | Category as a chip — text, so it never relies on colour alone. |
 | `NOTIFICATIONS_ENDPOINT` | constant | 2 | `apps/admin/app/_components/notifications/notification-model.ts`:79 | The read endpoint, and the one that clears the unread mark. |
 | `NOTIFICATIONS_READ_EVENT` | constant | 2 | `apps/admin/app/_components/notifications/notification-model.ts`:89 | The badge and the page read the same count from the same endpoint, so clearing it in one place has to reach the other. |
 | `SEVERITY` | constant | 2 | `apps/admin/app/_components/notifications/notification-model.ts`:99 | Severity as it is drawn. |
-| `RELATED_PANEL_CLASS` | constant | 1 | `apps/admin/lib/runtime/related-records-model.ts`:168 | Wide subgrids scroll inside their card, and their row commands stay in view. |
+| `RELATED_PANEL_CLASS` | constant | 1 | `apps/admin/lib/runtime/related-records-model.ts`:176 | Wide subgrids scroll inside their card, and their row commands stay in view. |
+| `SELECT_ALL_LIMIT` | constant | 1 | `apps/admin/lib/runtime/subgrid-selection.ts`:29 | Largest selection "Select all" will gather, in pages of `SELECT_ALL_PAGE`. |
 | `SUPPORT_CASE_DIRECT_ACTIONS` | constant | 1 | `apps/admin/lib/runtime/support-case-actions.ts`:74 | Commands that only need a status (Triage) or a reason (Reopen, Cancel) and are posted straight to the support case route — never to the generic platform-runtime action route, which has no support case actions. |
 | `TENANT_PANEL_TABS` | constant | 1 | `apps/admin/app/_components/tenants/use-tenant-record-actions.tsx`:21 | Tabs whose content comes from a tenant panel rather than from form fields. |
 | `DASHBOARD_WIDGET_REGISTRY` | constant | 0 | `apps/admin/app/_components/dashboard/platform-dashboard.tsx`:295 | Canonical widget capability registry. |
-| `EMPTY_VALUE` | constant | 0 | `apps/admin/app/_components/runtime/runtime-form.tsx`:34 | What a read-only field shows when it has no value — one wording everywhere. |
+| `EMPTY_VALUE` | constant | 0 | `apps/admin/app/_components/runtime/runtime-form.tsx`:38 | What a read-only field shows when it has no value — one wording everywhere. |
 | `MODULES_WITH_DEPENDENCY_CHECK` | constant | 0 | `apps/admin/lib/runtime/http-module-runtime-adapter.ts`:20 | Modules whose API answers `GET :id/dependencies` (EXECPLAN-0055 D5) — the mirror of `dependencyProviders()` in `PlatformRuntimeService`. |
 | `QUICK_CREATE_SECTION` | constant | 0 | `apps/admin/lib/runtime/quick-create-model.ts`:18 | The quick-create side panel's rules, without the panel (EXECPLAN-0055 D8). |
 | `RUNTIME_ELEVATED_ROLES` | constant | 0 | `apps/admin/lib/runtime/runtime-permissions.ts`:21 | Roles that reach every platform module regardless of the granted key set. |
@@ -191,9 +200,10 @@ re-derived on each run.
 | `OverviewIncident` | type | 0 | `apps/admin/app/_components/monitoring/monitoring-overview.tsx`:31 | Monitoring, as a place to start work rather than a place to read numbers. |
 | `PlanPriceLike` | type | 0 | `apps/admin/lib/runtime/plan-headline-prices.ts`:43 | The one monthly/annual pair a plan's headline tiles may show. |
 | `PlatformEventRow` | type | 0 | `apps/admin/app/_components/monitoring/events-table.tsx`:23 | The platform event log — lifecycle activity (sign-ins, provisioning runs, webhooks, emails), successful or not, kept apart from the error log. |
-| `RelatedCell` | type | 0 | `apps/admin/lib/runtime/related-records-model.ts`:20 | Subgrid cells, row commands and the referral-link copy action, as data (EXECPLAN-0055 WP-08). |
+| `RelatedCell` | type | 0 | `apps/admin/lib/runtime/related-records-model.ts`:21 | Subgrid cells, row commands and the referral-link copy action, as data (EXECPLAN-0055 WP-08). |
 | `ResolvedHighlight` | type | 0 | `apps/admin/lib/runtime/record-highlight.ts`:15 | One value in the record highlight header, resolved from the record. |
 | `SignerField` | type | 0 | `apps/admin/app/_components/documents/contract-source-eligibility.ts`:12 | Pure rules behind the "From record" mode of the Create Agreement launcher. |
+| `SubgridSelection` | type | 0 | `apps/admin/lib/runtime/subgrid-selection.ts`:24 | Selected ids → display labels, kept across pages. |
 | `TenantWorkspaceHealth` | type | 0 | `apps/admin/app/_components/tenants/tenant-control-plane.client.ts`:174 | What is missing from a workspace, as facts about the tenant rather than about a provisioning run that may never have been recorded. |
 | `VisibilityCondition` | type | 0 | `apps/admin/lib/runtime/visibility-condition.ts`:11 | The runtime's one visibility condition, shared by form fields (`visibleWhen`/`visibleWhenAny` — `runtime-form.tsx` and `edit-tab-selection.ts`) and record commands (`RuntimeActionDefinition.visibleWhen`, see `command-visibility.ts`). |
 

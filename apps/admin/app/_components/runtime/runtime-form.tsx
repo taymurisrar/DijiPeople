@@ -15,6 +15,10 @@ import {
 } from "@/lib/runtime/runtime-lookups";
 import { buildLookupRecordHref } from "@/lib/runtime/lookup-record-href";
 import { lookupDisplayFallback } from "@/lib/runtime/lookup-display-fallback";
+import {
+  displayForOpaqueValue,
+  relationObjectLabel,
+} from "@/lib/runtime/reference-display";
 import { errorCountByTab } from "@/lib/runtime/blocked-save-feedback";
 import { humanizeLabel } from "@/lib/runtime/humanize-label";
 import { isRuntimeFieldVisible } from "@/lib/runtime/field-visibility";
@@ -595,6 +599,13 @@ function FieldDisplay({
     return <IdentifierValue value={String(value)} />;
   }
 
+  /*
+   * A reference declared as text (Created by, a payment's tenant) prints the
+   * name the record embeds, or a readable fallback — never its UUID.
+   */
+  const reference = displayForOpaqueValue(values, field, value);
+  if (reference) return <span className={base}>{reference}</span>;
+
   return <span className={base}>{String(value)}</span>;
 }
 
@@ -655,25 +666,8 @@ function resolveLookupLabel(
   return null;
 }
 
-function readRelationLabel(relation: unknown) {
-  if (!relation || typeof relation !== "object" || Array.isArray(relation))
-    return null;
-  const record = relation as Record<string, unknown>;
-  const candidates = [
-    record.label,
-    record.displayName,
-    record.companyName,
-    record.name,
-    record.fullName,
-    record.title,
-    [record.firstName, record.lastName].filter(Boolean).join(" ") || undefined,
-    record.email,
-  ];
-  const found = candidates.find(
-    (candidate) => typeof candidate === "string" && candidate.trim(),
-  );
-  return found ? String(found) : null;
-}
+/* One reader for every renderer — see `reference-display.ts`. */
+const readRelationLabel = relationObjectLabel;
 
 /**
  * Where a displayed value should link to.

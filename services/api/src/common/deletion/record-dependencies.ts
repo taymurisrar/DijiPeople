@@ -106,3 +106,39 @@ export function isForeignKeyViolation(error: unknown) {
     message.includes('Foreign key constraint violated')
   );
 }
+
+/** A record a delete left in place, and why — the shape every delete returns. */
+export type DeleteRefusal = { id: string; label: string; reason: string };
+
+/** The reason given for an id that matched no row. */
+export const NO_LONGER_EXISTS = 'it no longer exists';
+
+/**
+ * One sentence an operator can act on.
+ *
+ * Named rows rather than a count, because "3 could not be deleted" sends
+ * somebody back to the list to work out which three. Shared by every deletion
+ * service so a refused agreement, plan or partner reads the same way.
+ */
+export function describeDeleteOutcome(
+  deleted: number,
+  refused: Array<{ label: string; reason: string }>,
+) {
+  const deletedPart = deleted
+    ? `Deleted ${deleted} record${deleted === 1 ? '' : 's'}.`
+    : 'Nothing was deleted.';
+  if (!refused.length) return deletedPart;
+
+  const named = refused
+    .slice(0, 3)
+    // Reasons may be whole sentences; the sentence below supplies its own stop.
+    .map((item) => `${item.label} — ${item.reason.replace(/\.+$/, '')}`)
+    .join('; ');
+  const rest = refused.length > 3 ? ` and ${refused.length - 3} more` : '';
+  return `${deletedPart} Kept ${refused.length}: ${named}${rest}.`;
+}
+
+/** `countLabel` for a dependency: "1 version", "2 versions". */
+export function pluralCount(count: number, singular: string, plural?: string) {
+  return `${count} ${count === 1 ? singular : (plural ?? `${singular}s`)}`;
+}

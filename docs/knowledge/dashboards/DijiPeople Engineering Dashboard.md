@@ -8,8 +8,8 @@
 | | |
 |---|---|
 | Open CRITICAL | **8** |
-| Open HIGH | **115** |
-| Open total | 285 |
+| Open HIGH | **116** |
+| Open total | 286 |
 | Blocked | 4 |
 | Awaiting a product decision | 14 |
 | Deferred | 124 |
@@ -144,6 +144,7 @@
 | [[BUG-4056-create-agreement-from-a-customer-always-fails-for-templates-|BUG-4056]] | Create Agreement from a customer always fails for templates that need a primary signer | BUG | HIGH | FIXED | contracts, super-admin, apps/admin | FIX_NOW |
 | [[BUG-4060-support-case-tenant-lookup-ignores-the-selected-customer-and|BUG-4060]] | Support case Tenant lookup ignores the selected Customer and the API accepts mismatched pairs | AUTHORIZATION | HIGH | FIXED | support-cases, apps/admin | FIX_NOW |
 | [[BUG-4061-support-case-escalate-always-fails-with-400-and-statuses-cha|BUG-4061]] | Support case Escalate always fails with 400 and statuses change without validation | BUG | HIGH | FIXED | support-cases, apps/admin | FIX_NOW |
+| [[BUG-4098-admin-refused-every-agreement-and-plan-delete-and-printed-re|BUG-4098]] | Admin refused every agreement and plan delete and printed reference ids as values | BUG | HIGH | FIXED | contracts, super-admin, platform-runtime | FIX_NOW |
 | [[ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no|ITEM-0133]] | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | READY | services/api/test | PLAN_REQUIRED |
 | [[ITEM-0134-the-payroll-run-engine-has-no-tests|ITEM-0134]] | The payroll run engine has no tests | TEST_GAP | HIGH | READY | api:payroll | PLAN_REQUIRED |
 | [[ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-|ITEM-0136]] | electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major | SECURITY | HIGH | READY | apps/agent-desktop | FIX_NOW |
@@ -405,6 +406,7 @@
 | [[BUG-4056-create-agreement-from-a-customer-always-fails-for-templates-|BUG-4056]] | Create Agreement from a customer always fails for templates that need a primary signer | BUG | HIGH | FIXED | contracts, super-admin, apps/admin | FIX_NOW |
 | [[BUG-4060-support-case-tenant-lookup-ignores-the-selected-customer-and|BUG-4060]] | Support case Tenant lookup ignores the selected Customer and the API accepts mismatched pairs | AUTHORIZATION | HIGH | FIXED | support-cases, apps/admin | FIX_NOW |
 | [[BUG-4061-support-case-escalate-always-fails-with-400-and-statuses-cha|BUG-4061]] | Support case Escalate always fails with 400 and statuses change without validation | BUG | HIGH | FIXED | support-cases, apps/admin | FIX_NOW |
+| [[BUG-4098-admin-refused-every-agreement-and-plan-delete-and-printed-re|BUG-4098]] | Admin refused every agreement and plan delete and printed reference ids as values | BUG | HIGH | FIXED | contracts, super-admin, platform-runtime | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver|BUG-3501]] | The email provider screen presents a console sink as delivery and offers sink providers in production | UX | MEDIUM | FIXED | notifications, apps/web | PLAN_REQUIRED |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
@@ -878,7 +880,7 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 556 |
+| Bug records | 557 |
 | Backlog items | 228 |
 | Known bug patterns | 35 |
 | QA runs | 39 |

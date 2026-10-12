@@ -1,15 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Copy, Plus } from "lucide-react";
+import { Copy, Plus, Trash2 } from "lucide-react";
 import {
   ProDataTable,
   type ProDataTableColumn,
 } from "@/app/_components/crm/data-table";
 import { reportedRequestInit } from "@/lib/background-request";
-import type { createHttpModuleRuntimeAdapter } from "@/lib/runtime/http-module-runtime-adapter";
+import { createHttpModuleRuntimeAdapter } from "@/lib/runtime/http-module-runtime-adapter";
+import { describeDestructiveConfirm } from "@/lib/runtime/destructive-confirm";
+import { readDeleteOutcome } from "@/lib/runtime/runtime-action-outcome";
+import {
+  canDeleteFromSubgrid,
+  EMPTY_SELECTION,
+  keepRefused,
+  SELECT_ALL_LIMIT,
+  SELECT_ALL_PAGE,
+  selectionSummary,
+  selectRows,
+  subgridRowLabel,
+  toggleRow,
+  togglePage,
+  type SubgridSelection,
+} from "@/lib/runtime/subgrid-selection";
 import { getPlatformModuleDefinition } from "@/lib/runtime/platform-module-registry";
 import type {
   PlatformModuleDefinition,
@@ -35,6 +50,7 @@ import {
   PanelDialog,
 } from "@/app/_components/tenants/tenant-panel-ui";
 import { RuntimeQuickCreatePanel } from "./runtime-quick-create-panel";
+import { DependencyAwareDeleteDialog } from "./dependency-aware-delete-dialog";
 
 const PAGE_SIZE = 10;
 
@@ -48,6 +64,12 @@ const PAGE_SIZE = 10;
  * carry commands (copy a referral link, disable it); and the grid pages
  * instead of silently showing the first ten. `refreshKey` reloads it after a
  * record-level action changed what it lists.
+ *
+ * Every subgrid whose target module permits deletion also gets per-row Delete,
+ * row and page selection, "Select all", and Delete selected — one
+ * implementation for all of them (`subgrid-selection.ts`). The confirmation
+ * asks the API what the delete would do first where the module answers that,
+ * and the API decides; refused rows stay selected with the reason shown.
  */
 export function RuntimeRelatedRecordsPanel({
   adapter,
@@ -88,6 +110,18 @@ export function RuntimeRelatedRecordsPanel({
     action: RuntimeRelatedRowAction;
     row: RuntimeRecord;
   } | null>(null);
+  const [selection, setSelection] =
+    useState<SubgridSelection>(EMPTY_SELECTION);
+  const [pendingDelete, setPendingDelete] = useState<SubgridSelection | null>(
+    null,
+  );
+  const [deleting, setDeleting] = useState(false);
+  const [selectingAll, setSelectingAll] = useState(false);
+
+  // A different parent or relationship is a different list.
+  useEffect(() => {
+    setSelection(EMPTY_SELECTION);
+  }, [recordId, relationship.key]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -121,6 +155,12 @@ export function RuntimeRelatedRecordsPanel({
     ? getPlatformModuleDefinition(relationship.module)
     : null;
   const context = { roleKeys, permissionKeys };
+  const canDelete = canDeleteFromSubgrid(target, context);
+  const targetKey = target?.key;
+  const targetAdapter = useMemo(
+    () => (targetKey ? createHttpModuleRuntimeAdapter(targetKey) : null),
+    [targetKey],
+  );
   const quickCreate = relationship.quickCreate;
   const canCreate =
     quickCreate &&
@@ -194,6 +234,78 @@ export function RuntimeRelatedRecordsPanel({
     }
   }
 
+  /*
+   * "Select all" means every related record, not the ten on screen: the ids are
+   * gathered page by page from the same endpoint, up to SELECT_ALL_LIMIT.
+   */
+  async function selectAllRelated() {
+    setSelectingAll(true);
+    setNotice(null);
+    try {
+      const gathered: RuntimeRecord[] = [];
+      for (
+        let next = 1;
+        gathered.length < Math.min(total, SELECT_ALL_LIMIT);
+        next += 1
+      ) {
+        const response = await adapter.getRelatedRecords(
+          recordId,
+          relationship.key,
+          { page: next, pageSize: SELECT_ALL_PAGE },
+        );
+        gathered.push(...response.items);
+        if (response.items.length < SELECT_ALL_PAGE) break;
+      }
+      setSelection(selectRows(gathered.slice(0, SELECT_ALL_LIMIT)));
+      if (total > SELECT_ALL_LIMIT)
+        setNotice({
+          text: `Selected the first ${SELECT_ALL_LIMIT} of ${total}.`,
+          failed: false,
+        });
+    } catch {
+      setNotice({
+        text: "Could not select every record. Check your connection and try again.",
+        failed: true,
+      });
+    } finally {
+      setSelectingAll(false);
+    }
+  }
+
+  async function deleteSelected(chosen: SubgridSelection) {
+    if (!targetAdapter) return;
+    setPendingDelete(null);
+    setDeleting(true);
+    setNotice(null);
+    try {
+      const raw = await targetAdapter.bulkDelete([...chosen.keys()]);
+      const outcome = readDeleteOutcome(raw);
+      const data = (raw?.data ?? {}) as { refused?: Array<{ id?: unknown }> };
+      const refusedIds = (Array.isArray(data.refused) ? data.refused : [])
+        .map((item) => (typeof item?.id === "string" ? item.id : null))
+        .filter((id): id is string => Boolean(id));
+      setNotice({
+        text:
+          outcome.message ??
+          (outcome.success ? "Deleted." : "Nothing was deleted."),
+        failed: !outcome.success,
+      });
+      setSelection((current) => keepRefused(current, refusedIds));
+      setPage(1);
+      await reload();
+    } catch (reason) {
+      setNotice({
+        text:
+          reason instanceof Error
+            ? reason.message
+            : "The delete could not be completed.",
+        failed: true,
+      });
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   const configuredColumns: RuntimeColumnDefinition[] =
     relationship.columns ??
     target?.columns.slice(0, 4) ??
@@ -207,7 +319,7 @@ export function RuntimeRelatedRecordsPanel({
       render: (row) => <RelatedCellView row={row} column={column} />,
     }),
   );
-  if (rowActions.length)
+  if (rowActions.length || canDelete)
     columns.push({
       key: "__actions",
       header: "",
@@ -240,6 +352,21 @@ export function RuntimeRelatedRecordsPanel({
                   : action.label}
               </button>
             ))}
+          {canDelete ? (
+            <button
+              type="button"
+              disabled={busyRow !== null || deleting}
+              aria-label={`Delete ${subgridRowLabel(row)}`}
+              onClick={(event) => {
+                event.stopPropagation();
+                setPendingDelete(new Map([[row.id, subgridRowLabel(row)]]));
+              }}
+              className="inline-flex items-center gap-1 rounded-lg border border-rose-200 px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-40"
+            >
+              <Trash2 className="h-3 w-3" aria-hidden />
+              Delete
+            </button>
+          ) : null}
         </span>
       ),
     });
@@ -262,6 +389,18 @@ export function RuntimeRelatedRecordsPanel({
       </button>
     ) : null;
   const rowHrefBase = target?.routeBase;
+  const selectedOnPage = items
+    .filter((row) => selection.has(row.id))
+    .map((row) => row.id);
+  const summary = selectionSummary(selection.size, total);
+  const deleteCopy = pendingDelete
+    ? describeDestructiveConfirm({
+        labels: [...pendingDelete.values()],
+        count: pendingDelete.size,
+        singular: target?.displayName ?? "record",
+        plural: target?.pluralDisplayName ?? "records",
+      })
+    : null;
 
   return (
     <section className={RELATED_PANEL_CLASS}>
@@ -315,6 +454,44 @@ export function RuntimeRelatedRecordsPanel({
           ) : null}
         </div>
       </div>
+      {canDelete && summary ? (
+        <div
+          role="region"
+          aria-label={`${relationship.label} selection`}
+          className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50 px-4 py-2 text-xs"
+        >
+          <span className="font-semibold text-slate-800" aria-live="polite">
+            {summary}
+          </span>
+          {selection.size < total ? (
+            <button
+              type="button"
+              onClick={() => void selectAllRelated()}
+              disabled={selectingAll || deleting}
+              className="font-semibold text-[var(--admin-primary)] hover:underline disabled:opacity-40"
+            >
+              {selectingAll ? "Selecting…" : `Select all ${total}`}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => setSelection(EMPTY_SELECTION)}
+            disabled={deleting}
+            className="font-semibold text-slate-600 hover:underline disabled:opacity-40"
+          >
+            Clear
+          </button>
+          <button
+            type="button"
+            onClick={() => setPendingDelete(selection)}
+            disabled={deleting || selectingAll}
+            className="ml-auto inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-white px-2.5 py-1.5 font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-40"
+          >
+            <Trash2 className="h-3.5 w-3.5" aria-hidden />
+            {deleting ? "Deleting…" : `Delete selected (${selection.size})`}
+          </button>
+        </div>
+      ) : null}
       {availability && !availability.available && canCreate ? (
         <p className="border-b border-slate-100 bg-slate-50 px-4 py-2 text-xs text-slate-600">
           {availability.reason}
@@ -346,10 +523,20 @@ export function RuntimeRelatedRecordsPanel({
           rows={items}
           columns={columns}
           rowKey={(row) => row.id}
-          loading={loading}
+          loading={loading || deleting}
           loadingRowCount={3}
           compact
-          getRowClassName={rowActions.length ? () => "group" : undefined}
+          selectable={canDelete && items.length > 0}
+          selectedRowIds={selectedOnPage}
+          onToggleRow={(_id, row) =>
+            setSelection((current) => toggleRow(current, row))
+          }
+          onToggleAll={(checked) =>
+            setSelection((current) => togglePage(current, items, checked))
+          }
+          getRowClassName={
+            rowActions.length || canDelete ? () => "group" : undefined
+          }
           emptyState={
             <div className="mx-auto max-w-md">
               <div className="text-base font-semibold text-slate-900">
@@ -395,6 +582,47 @@ export function RuntimeRelatedRecordsPanel({
             await reload();
           }}
         />
+      ) : null}
+      {pendingDelete && deleteCopy && targetAdapter?.getDependencies ? (
+        <DependencyAwareDeleteDialog
+          title={deleteCopy.title}
+          description={deleteCopy.description}
+          names={deleteCopy.names}
+          targets={[...pendingDelete].map(([id, label]) => ({ id, label }))}
+          getDependencies={targetAdapter.getDependencies}
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={() => void deleteSelected(pendingDelete)}
+        />
+      ) : pendingDelete && deleteCopy ? (
+        <PanelDialog
+          title={deleteCopy.title}
+          description={deleteCopy.description}
+          tone="danger"
+          onClose={() => setPendingDelete(null)}
+          footer={
+            <>
+              <PanelButton onClick={() => setPendingDelete(null)}>
+                Cancel
+              </PanelButton>
+              <PanelButton
+                variant="danger"
+                onClick={() => void deleteSelected(pendingDelete)}
+              >
+                Delete
+              </PanelButton>
+            </>
+          }
+        >
+          {deleteCopy.names.length ? (
+            <ul className="max-h-32 space-y-1 overflow-y-auto rounded-xl bg-slate-50 p-3 text-sm text-slate-700">
+              {deleteCopy.names.map((name) => (
+                <li key={name} className="truncate">
+                  {name}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </PanelDialog>
       ) : null}
       {pendingConfirm ? (
         <PanelDialog

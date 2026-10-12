@@ -7370,3 +7370,17 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — the cases named above fail against the previous behaviour. |
 | **Fixed** | 2026-10-11, commit 51c80beb on branch `agent/dp-platform-remediation` |
 | **Active** | yes |
+
+### REG-678 — Admin refused every agreement and plan delete and printed reference ids
+
+| | |
+|---|---|
+| **Bug class** | `retention-rule-too-coarse` |
+| **Module** | `services/api` |
+| **Bug record** | BUG-4098 |
+| **Root cause** | Evidence retention was enforced per module instead of per record, so draft agreements and never-sold plans could not be deleted; reference fields typed as text printed their UUID. |
+| **Regression test** | `services/api/src/modules/contracts/contract-deletion.spec.ts`, `services/api/src/modules/super-admin/plan-lifecycle.spec.ts`, `services/api/src/modules/platform-runtime/generic-delete.spec.ts`, `apps/admin/lib/runtime/reference-display.spec.ts`, `apps/admin/lib/runtime/subgrid-selection.spec.ts`. |
+| **Scenario** | QA-PLATFORM-063 — Admin deletes draft agreements and inactive never-sold plans, keeps evidence, and shows names not ids. |
+| **Fails without the fix** | Yes — generic-delete expects contracts and plans to reach their deletion services, and the reference/subgrid specs assert the owner lookup and contracts delete capability. |
+| **Fixed** | 2026-10-12, branch `agent/admin-delete-and-labels` |
+| **Active** | yes |

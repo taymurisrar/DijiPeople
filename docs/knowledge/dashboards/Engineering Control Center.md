@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **0** |
+| Active sessions | **1** |
 | Active parent tasks | 4 |
 | Active work packages | 4 |
 | Blocked work packages | 0 |
@@ -15,7 +15,7 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **8** |
-| Open HIGH | 115 |
+| Open HIGH | 116 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 14 |
 | QA coverage gaps | 161 |
@@ -30,9 +30,9 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 285 |
-| No next action | 285 |
-| Aging — 7d / 30d / 90d | 241 / 184 / 0 |
+| No acceptance criteria | 286 |
+| No next action | 286 |
+| Aging — 7d / 30d / 90d | 241 / 189 / 0 |
 | Architecture and technical debt | 8 |
 | Security gaps | 47 |
 | Database gaps | 28 |
@@ -47,7 +47,9 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-_No session is currently registered as active._
+| Session | Task | Title | Status | Branch | Target | Leases | Schema |
+|---|---|---|---|---|---|---|---|
+| [[SESSION-0122-admin-subgrid-delete-guid-display-plan-deletion|SESSION-0122]] | — | Admin subgrid delete, GUID display, plan deletion | ACTIVE | `agent/admin-delete-and-labels` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
 
@@ -302,7 +304,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 285 |
+| Open total | 286 |
 | Blocked | 4 |
 | Deferred | 124 |
 | Awaiting a product decision | 14 |

@@ -18,7 +18,7 @@ import type {
  * It belongs on the module registry as a capability; see the WP-07 report.
  */
 export const MODULES_WITH_DEPENDENCY_CHECK: ReadonlySet<PlatformModuleKey> =
-  new Set<PlatformModuleKey>(["partners"]);
+  new Set<PlatformModuleKey>(["partners", "contracts", "plans"]);
 
 export function createHttpModuleRuntimeAdapter<
   T extends RuntimeRecord = RuntimeRecord,

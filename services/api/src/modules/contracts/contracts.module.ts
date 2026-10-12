@@ -9,6 +9,7 @@ import {
   SignatureRequestsController,
 } from './contracts.controller';
 import { ContractsService } from './contracts.service';
+import { ContractDeletionService } from './contract-deletion.service';
 import { PlatformCommunicationsModule } from '../platform-communications/platform-communications.module';
 import { AuditModule } from '../audit/audit.module';
 
@@ -21,7 +22,12 @@ import { AuditModule } from '../audit/audit.module';
     PublicSignaturesController,
     SignatureRequestsController,
   ],
-  providers: [ContractsService, JwtAuthGuard, PublicRateLimitGuard],
-  exports: [ContractsService],
+  providers: [
+    ContractsService,
+    ContractDeletionService,
+    JwtAuthGuard,
+    PublicRateLimitGuard,
+  ],
+  exports: [ContractsService, ContractDeletionService],
 })
 export class ContractsModule {}

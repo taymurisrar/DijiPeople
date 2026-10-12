@@ -9,6 +9,8 @@ import type { AuthenticatedUser } from '../../common/interfaces/authenticated-re
 import {
   blocksDelete,
   buildDependencyReport,
+  describeDeleteOutcome as describeOutcome,
+  NO_LONGER_EXISTS,
   isForeignKeyViolation,
   type RecordDependency,
   type RecordDependencyProvider,
@@ -20,8 +22,6 @@ import {
   type ClassifiedPartnerDependency,
 } from './partner-dependencies';
 import { NEVER_ACTIVATED_CONTACT_WHERE } from './partner-contacts';
-
-const NO_LONGER_EXISTS = 'it no longer exists';
 
 /** The API contract carries no refusal phrase; that is for the message only. */
 function stripPhrase({
@@ -430,27 +430,4 @@ export class PartnerDeletionService implements RecordDependencyProvider {
       message: describeOutcome(removed.count, refused),
     };
   }
-}
-
-/**
- * One sentence an operator can act on.
- *
- * Named rows rather than a count, because "3 could not be deleted" sends
- * somebody back to the list to work out which three.
- */
-function describeOutcome(
-  deleted: number,
-  refused: Array<{ label: string; reason: string }>,
-) {
-  const deletedPart = deleted
-    ? `Deleted ${deleted} record${deleted === 1 ? '' : 's'}.`
-    : 'Nothing was deleted.';
-  if (!refused.length) return deletedPart;
-
-  const named = refused
-    .slice(0, 3)
-    .map((item) => `${item.label} — ${item.reason}`)
-    .join('; ');
-  const rest = refused.length > 3 ? ` and ${refused.length - 3} more` : '';
-  return `${deletedPart} Kept ${refused.length}: ${named}${rest}.`;
 }

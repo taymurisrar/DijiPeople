@@ -385,8 +385,6 @@ const REVIEWABLE_ONBOARDING_STATES = [
 const DELETE_REFUSALS: Partial<Record<PlatformModuleKey, string>> = {
   tenants:
     "A tenant carries its customer's entire workspace behind a cascade, so deleting the row deletes their data. Use More → Erase tenant, which is governed, reconciled and reversible up to the point of erasure.",
-  contracts:
-    "An executed agreement is the evidence that it was executed, and the signature chain hashes it. Supersede or terminate the agreement instead — both keep the record and change what it means.",
   "contract-templates":
     "Templates are versioned and referenced by every agreement generated from them, so deleting one detaches contracts from the text they were made of. Deactivate the template instead: it stops being offered and stays resolvable.",
   "signature-requests":
@@ -395,8 +393,6 @@ const DELETE_REFUSALS: Partial<Record<PlatformModuleKey, string>> = {
     "A case is the record of what a customer was told and when. Resolve or close it instead — the list filters on status, and closed cases leave the default view.",
   subscriptions:
     "A subscription is what a customer is being charged against. Cancel it instead; deleting it detaches invoices and payments from the thing that produced them.",
-  plans:
-    "Plans are referenced by every subscription and price sold under them. Archive the plan instead — it stops being sellable and existing subscriptions keep resolving.",
   invoices:
     "Invoices are financial records the business is required to be able to produce. Void or credit the invoice instead, which is what an auditor expects to see.",
   payments:
@@ -420,12 +416,18 @@ const MODULE_CAPABILITIES: Record<
   "partner-onboarding": { create: false, update: false, delete: true },
   "customer-onboarding": { create: true, update: true, delete: true },
   tenants: { create: false, update: true, delete: false },
-  contracts: { create: true, update: true, delete: false },
+  /*
+   * Delete is offered, and the API keeps everything that left drafting: a
+   * sent or signed agreement is evidence, so its delete is refused by name and
+   * the dialog points at void, supersede or terminate (2026-10-12).
+   */
+  contracts: { create: true, update: true, delete: true },
   "contract-templates": { create: false, update: false, delete: false },
   "signature-requests": { create: false, update: false, delete: false },
   "support-cases": { create: true, update: true, delete: false },
   subscriptions: { create: false, update: false, delete: false },
-  plans: { create: false, update: true, delete: false },
+  // Only an inactive plan nothing was ever sold on; the rest archive (2026-10-12).
+  plans: { create: false, update: true, delete: true },
   invoices: { create: false, update: false, delete: false },
   payments: { create: false, update: false, delete: false },
   // Created as a ledger entry, never edited: corrections are Void + a new one.
@@ -2521,9 +2523,13 @@ const definitions: PlatformModuleDefinition[] = [
           ...field(
             "primaryOwnerUserId",
             "Tenant primary owner",
-            "text",
+            "userLookup",
             "ownership",
           ),
+          /*
+           * A lookup, not text: the record carries `primaryOwnerUser`, and a
+           * text field printed the user id instead of their name.
+           */
           readOnly: true,
           hideOnCreate: true,
         },
@@ -3862,6 +3868,20 @@ const definitions: PlatformModuleDefinition[] = [
       },
       ACTION.save,
       ACTION.saveClose,
+      /*
+       * Offered only while the agreement has not left drafting — the statuses
+       * `ContractDeletionService` deletes from. The API re-checks.
+       */
+      {
+        ...ACTION.delete,
+        states: [
+          "DRAFT",
+          "INTERNAL_REVIEW",
+          "APPROVED_FOR_SENDING",
+          "COMMERCIAL_APPROVAL",
+          "LEGAL_APPROVAL",
+        ],
+      },
       {
         key: "submit",
         label: "Submit for internal review",
@@ -4463,8 +4483,9 @@ const definitions: PlatformModuleDefinition[] = [
       ],
     ),
     forms: form("payments", [
-      field("tenantId", "Tenant ID", "text", "payment"),
-      field("invoiceId", "Invoice ID", "text", "payment"),
+      // Lookups resolve the embedded `tenant` / `invoice`; text printed the ids.
+      field("tenantId", "Tenant", "lookup", "payment"),
+      field("invoiceId", "Invoice", "lookup", "payment"),
       field("status", "Status", "text", "payment"),
       field("amount", "Amount", "currency", "payment"),
       field("currency", "Currency", "text", "payment"),

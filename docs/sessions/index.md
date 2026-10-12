@@ -6,11 +6,13 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 0** · completed: 117
+**Active: 1** · completed: 117
 
 ## Active
 
-_None. No session is currently running._
+| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
+|---|---|---|---|---|---|---|---|
+| [SESSION-0122](../../docs/sessions/SESSION-0122-admin-subgrid-delete-guid-display-plan-deletion.md) | — | Admin subgrid delete, GUID display, plan deletion | ACTIVE | `agent/admin-delete-and-labels` | `develop` | — | 2026-10-12T04:58:38.042Z |
 
 ## Completed
 
