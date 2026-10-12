@@ -16,6 +16,7 @@ import type {
 import { OrderActivationService } from '../billing/services/order-activation.service';
 import { PaymentSettlementService } from '../billing/services/payment-settlement.service';
 import { PlatformOnboardingService } from './platform-onboarding.service';
+import { storedPersonName } from '../../common/utils/person-name';
 
 /**
  * Provision the workspace a confirmed payment paid for.
@@ -156,9 +157,13 @@ export class ProvisioningRequestedHandler
       companyName: order.customer.companyName,
       slug,
       contactEmail: order.customer.contactEmail,
+      // What the customer entered, never a placeholder (BUG-4111).
       owner: {
-        firstName: order.customer.primaryContactFirstName ?? 'Workspace',
-        lastName: order.customer.primaryContactLastName ?? 'Owner',
+        ...storedPersonName({
+          firstName: order.customer.primaryContactFirstName,
+          lastName: order.customer.primaryContactLastName,
+          email: ownerEmail,
+        }),
         email: ownerEmail,
       },
       // ACTIVE, not ONBOARDING: this workspace is paid for, and the customer is

@@ -30,8 +30,8 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 286 |
-| No next action | 286 |
+| No acceptance criteria | 287 |
+| No next action | 287 |
 | Aging — 7d / 30d / 90d | 241 / 189 / 0 |
 | Architecture and technical debt | 8 |
 | Security gaps | 47 |
@@ -49,7 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
-| [[SESSION-0122-admin-subgrid-delete-guid-display-plan-deletion|SESSION-0122]] | — | Admin subgrid delete, GUID display, plan deletion | ACTIVE | `agent/admin-delete-and-labels` | `develop` | — | NO |
+| [[SESSION-0123-owner-placeholder-names-lookup-links-owner-edit|SESSION-0123]] | — | Owner placeholder names, lookup links, owner edit | ACTIVE | `agent/owner-names-and-lookup-links` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
 
@@ -304,7 +304,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 286 |
+| Open total | 287 |
 | Blocked | 4 |
 | Deferred | 124 |
 | Awaiting a product decision | 14 |

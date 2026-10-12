@@ -33,11 +33,22 @@ const RECORD_ROUTE_BY_COLLECTION: Array<{ match: RegExp; route: string }> = [
   { match: /^\/signature-requests\b/, route: "/signature-requests" },
   { match: /^\/support-cases\b/, route: "/support" },
   /*
-   * Deliberately not mapped:
-   *   /platform-users/owner-candidates — platform users have no record page;
-   *     they are managed as a list under Settings.
-   *   /super-admin/promotions/targets — targets are plan prices, not records.
+   * Deliberately not mapped here:
+   *   /platform-users/owner-candidates, /platform-teams — no record page; see
+   *     MANAGED_IN_LIST below.
+   *   /super-admin/promotions/targets — targets are plan prices, not records;
+   *     fields over it carry an explicit `displayHref` to the plan.
    */
+];
+
+/**
+ * Records that have no page of their own but are managed in a list. The link
+ * opens that list with the record outlined (`?highlight=<id>`), so a lookup
+ * naming a platform user or a team still goes to where it can be acted on.
+ */
+const MANAGED_IN_LIST: Array<{ match: RegExp; list: string }> = [
+  { match: /^\/platform-users\b/, list: "/settings/users" },
+  { match: /^\/platform-teams\b/, list: "/settings/teams" },
 ];
 
 /** The module a lookup reads from, if Platform Admin can show that record. */
@@ -70,7 +81,11 @@ export function buildLookupRecordHref(
   if (!id) return null;
 
   const route = resolveLookupRecordRoute(field.lookupPath);
-  if (!route) return null;
+  if (route) return `${route}/${encodeURIComponent(id)}`;
 
-  return `${route}/${encodeURIComponent(id)}`;
+  const path = field.lookupPath?.split("?")[0] ?? "";
+  const managed = MANAGED_IN_LIST.find((entry) => entry.match.test(path));
+  return managed
+    ? `${managed.list}?highlight=${encodeURIComponent(id)}`
+    : null;
 }

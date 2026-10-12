@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   ProDataTable,
   type ProDataTableColumn,
@@ -31,6 +32,7 @@ type PendingAction =
   | { kind: "create"; identityType: "TENANT_OWNER" | "SERVICE_ACCOUNT" }
   | { kind: "confirm"; identity: TenantIdentity; action: ConfirmableAction }
   | { kind: "transfer"; target: TenantIdentity }
+  | { kind: "edit"; identity: TenantIdentity }
   | null;
 
 type ConfirmableAction =
@@ -106,6 +108,7 @@ export function TenantAccessPanel({
 }) {
   const { data, loading, error, reload, setData } =
     useTenantResource<TenantAccessView>(tenantId, "/access");
+  const highlightedId = useSearchParams().get("highlight");
   const [pending, setPending] = useState<PendingAction>(null);
   const [notice, setNotice] = useState<{
     tone: "success" | "error";
@@ -225,11 +228,13 @@ export function TenantAccessPanel({
             rows={data.owners}
             rowKey={(row) => row.id}
             compact
+            highlightedRowId={highlightedId}
             columns={identityColumns({
               isServiceAccount: false,
               lastActiveOwnerId: lastActiveOwner,
               onAction: (identity, action) =>
                 setPending({ kind: "confirm", identity, action }),
+              onEdit: (identity) => setPending({ kind: "edit", identity }),
               onTransfer: (identity) =>
                 setPending({ kind: "transfer", target: identity }),
               canTransfer: data.owners.filter((item) => item.isActive).length > 1,
@@ -412,6 +417,25 @@ export function TenantAccessPanel({
         />
       ) : null}
 
+      {activePending?.kind === "edit" ? (
+        <EditIdentityDialog
+          identity={activePending.identity}
+          onClose={closeDialog}
+          onSubmit={async (values) => {
+            await run(
+              () =>
+                tenantRequest<TenantAccessView>(
+                  tenantId,
+                  `/access/${activePending.identity.id}`,
+                  { method: "PATCH", body: JSON.stringify(values) },
+                ),
+              "Owner details updated.",
+            );
+            closeDialog();
+          }}
+        />
+      ) : null}
+
       {activePending?.kind === "transfer" ? (
         <TransferOwnershipDialog
           target={activePending.target}
@@ -446,6 +470,7 @@ function identityColumns(options: {
   isServiceAccount: boolean;
   lastActiveOwnerId?: string;
   canTransfer?: boolean;
+  onEdit?: (identity: TenantIdentity) => void;
   onAction: (identity: TenantIdentity, action: ConfirmableAction) => void;
   onTransfer?: (identity: TenantIdentity) => void;
 }): ProDataTableColumn<TenantIdentity>[] {
@@ -597,6 +622,12 @@ function identityColumns(options: {
                   : "Enable the account before sending a reset.",
               },
               {
+                key: "edit",
+                label: "Edit details",
+                hidden: options.isServiceAccount || !options.onEdit,
+                onSelect: () => options.onEdit?.(row),
+              },
+              {
                 key: "make-primary",
                 label: "Make primary",
                 hidden:
@@ -732,6 +763,77 @@ function CreateIdentityDialog({
           />
         </DialogField>
       ) : null}
+    </PanelDialog>
+  );
+}
+
+/**
+ * Correct an owner's name. The API always accepted first and last name on
+ * `PATCH /access/:userId`; the panel never offered it, so a name stored wrong
+ * at provisioning — "Anou Owner" (BUG-4111) — could not be fixed here.
+ * The last name may be empty: some people have one name.
+ */
+function EditIdentityDialog({
+  identity,
+  onClose,
+  onSubmit,
+}: {
+  identity: TenantIdentity;
+  onClose: () => void;
+  onSubmit: (values: { firstName: string; lastName: string }) => Promise<void>;
+}) {
+  const [firstName, setFirstName] = useState(identity.firstName);
+  const [lastName, setLastName] = useState(identity.lastName);
+  const [busy, setBusy] = useState(false);
+  const changed =
+    firstName.trim() !== identity.firstName ||
+    lastName.trim() !== identity.lastName;
+
+  return (
+    <PanelDialog
+      title="Edit owner details"
+      description={identity.email}
+      onClose={onClose}
+      footer={
+        <>
+          <PanelButton onClick={onClose}>Cancel</PanelButton>
+          <PanelButton
+            variant="primary"
+            busy={busy}
+            disabled={!firstName.trim() || !changed}
+            onClick={async () => {
+              setBusy(true);
+              try {
+                await onSubmit({
+                  firstName: firstName.trim(),
+                  lastName: lastName.trim(),
+                });
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            Save
+          </PanelButton>
+        </>
+      }
+    >
+      <DialogField label="First name" required>
+        <input
+          className={dialogInputClass}
+          value={firstName}
+          maxLength={60}
+          onChange={(event) => setFirstName(event.target.value)}
+        />
+      </DialogField>
+      <DialogField label="Last name">
+        <input
+          className={dialogInputClass}
+          value={lastName}
+          maxLength={60}
+          onChange={(event) => setLastName(event.target.value)}
+        />
+      </DialogField>
     </PanelDialog>
   );
 }

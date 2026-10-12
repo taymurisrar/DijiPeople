@@ -55,6 +55,12 @@ export type ProDataTableProps<T> = {
 
   onRowClick?: (row: T) => void;
   getRowClassName?: (row: T, index: number) => string | undefined;
+  /*
+   * The row a link pointed at (`?highlight=<id>`). It is outlined and scrolled
+   * into view once, so a lookup that leads to a list rather than a record page
+   * still lands the operator on the record it named.
+   */
+  highlightedRowId?: string | null;
 
   stickyHeader?: boolean;
   maxHeight?: string | number;
@@ -169,6 +175,7 @@ export function ProDataTable<T>({
   emptyState,
   onRowClick,
   getRowClassName,
+  highlightedRowId,
   stickyHeader = false,
   maxHeight,
   compact = false,
@@ -190,6 +197,14 @@ export function ProDataTable<T>({
   onColumnResize,
 }: ProDataTableProps<T>) {
   const [expandedRowIds, setExpandedRowIds] = useState<string[]>([]);
+  const highlightedRowRef = useRef<HTMLTableRowElement | null>(null);
+  const scrolledTo = useRef<string | null>(null);
+  useEffect(() => {
+    if (!highlightedRowId || scrolledTo.current === highlightedRowId) return;
+    if (!highlightedRowRef.current) return;
+    scrolledTo.current = highlightedRowId;
+    highlightedRowRef.current.scrollIntoView({ block: "center" });
+  });
   const visibleColumns = useMemo(
     () => columns.filter((column) => !column.hidden),
     [columns],
@@ -488,8 +503,13 @@ export function ProDataTable<T>({
               return (
                 <Fragment key={id}>
                   <tr
+                    ref={id === highlightedRowId ? highlightedRowRef : undefined}
+                    aria-current={id === highlightedRowId ? "true" : undefined}
                     className={clsx(
                       rowClassName,
+                      id === highlightedRowId
+                        ? "outline outline-2 -outline-offset-2 outline-[var(--admin-primary)]"
+                        : "",
                       zebra && index % 2 === 1 ? "bg-slate-50/40" : "bg-white",
                       hoverable ? "hover:bg-slate-50" : "",
                       isSelected ? "bg-blue-50/50" : "",

@@ -508,7 +508,14 @@ export class PlatformLifecycleService {
           },
           _count: { select: { contracts: true, onboardings: true } },
           primaryOwnerUser: {
-            select: { id: true, firstName: true, lastName: true, email: true },
+            // tenantId: the owner is managed on that tenant's Access tab.
+            select: {
+              id: true,
+              tenantId: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
           },
           sourceLead: {
             select: { id: true, companyName: true, status: true },
@@ -581,7 +588,14 @@ export class PlatformLifecycleService {
           select: { id: true, firstName: true, lastName: true, email: true },
         },
         primaryOwnerUser: {
-          select: { id: true, firstName: true, lastName: true, email: true },
+          // tenantId: the owner is managed on that tenant's Access tab.
+          select: {
+            id: true,
+            tenantId: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
         },
         selectedPlan: {
           select: { id: true, name: true, key: true },

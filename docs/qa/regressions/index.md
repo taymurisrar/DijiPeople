@@ -7384,3 +7384,17 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — generic-delete expects contracts and plans to reach their deletion services, and the reference/subgrid specs assert the owner lookup and contracts delete capability. |
 | **Fixed** | 2026-10-12, branch `agent/admin-delete-and-labels` |
 | **Active** | yes |
+
+### REG-679 — Provisioning invented "Owner" surnames and lookups did not link
+
+| | |
+|---|---|
+| **Bug class** | `placeholder-data` |
+| **Module** | `services/api` |
+| **Bug record** | BUG-4111 |
+| **Root cause** | Provisioning filled a missing surname with "Owner" (and first name with "Workspace"), and lookups linked only when their collection had a record page. |
+| **Regression test** | `services/api/src/modules/super-admin/owner-name-repair.spec.ts`, `apps/admin/lib/runtime/lookup-links.spec.ts`. |
+| **Scenario** | QA-PLATFORM-064 — Owner names are stored as entered, placeholders are repaired, and every lookup links. |
+| **Fails without the fix** | Yes — removing any lookup link fails lookup-links (mutation-tested), and the repair spec asserts empty surnames rather than placeholders. |
+| **Fixed** | 2026-10-12, branch `agent/owner-names-and-lookup-links` |
+| **Active** | yes |

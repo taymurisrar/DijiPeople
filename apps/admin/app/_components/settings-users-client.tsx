@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, RefreshCw, Save, Search, ShieldOff, X } from "lucide-react";
 import { AppNotification } from "@/app/_components/notifications/app-notification";
 import { usePlatformDefaults } from "@/app/_components/platform-defaults-provider";
@@ -55,6 +55,8 @@ export function SettingsUsersClient({
   currentUserId?: string;
   users: PlatformUser[];
 }) {
+  // `?highlight=<userId>`: a record's owner lookup links here (BUG-4111).
+  const highlightedId = useSearchParams().get("highlight");
   const router = useRouter();
   const { defaults } = usePlatformDefaults();
   const [query, setQuery] = useState("");
@@ -330,6 +332,7 @@ export function SettingsUsersClient({
           rows={filteredUsers}
           columns={columns}
           rowKey={(user) => user.userId}
+          highlightedRowId={highlightedId}
           stickyHeader
           maxHeight="calc(100vh - 310px)"
           emptyTitle="No platform users found"

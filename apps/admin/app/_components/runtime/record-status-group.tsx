@@ -239,10 +239,17 @@ function OwnerSlot({
     editable ? slot.lookupPath : undefined,
   );
   const value = String(record[slot.field] ?? "");
+  /*
+   * The declared relation first, then the record's own name for it: tenants
+   * serve their owner as `owner`, not `ownerUser`, so every tenant header read
+   * "Unassigned" beside an Access tab naming the primary owner (BUG-4111).
+   */
   const label =
     (slot.displayValueField
       ? readRuntimeLookupLabel(record[slot.displayValueField])
-      : null) ?? null;
+      : null) ??
+    readRuntimeLookupLabel(record[slot.field.replace(/(User)?Id$/, "")]) ??
+    null;
   const options =
     value && label && !lookup.options.some((option) => option.value === value)
       ? [{ value, label }, ...lookup.options]

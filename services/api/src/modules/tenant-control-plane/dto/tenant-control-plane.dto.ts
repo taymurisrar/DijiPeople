@@ -78,9 +78,11 @@ export class CreateTenantIdentityDto {
 }
 
 export class UpdateTenantIdentityDto {
+  // Optional, but never blank: a user always has a first name.
   @Transform(trimmed)
   @IsOptional()
   @IsString()
+  @IsNotEmpty()
   @MaxLength(60)
   firstName?: string;
 

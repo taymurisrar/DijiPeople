@@ -12,7 +12,7 @@ Attribution is by counted Prisma call sites, not by name. A model with no call s
 
 Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 
-## Identity — 16 models
+## Identity — 15 models
 
 | Model | Tenant | Owning module | Note |
 |---|---|---|---|
@@ -27,7 +27,6 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `RoleMiscPermission` | yes | `roles` | — |
 | `RolePermission` | yes | `roles` | — |
 | `RolePrivilege` | yes | `permissions` | — |
-| `User` | yes | `users` | [[entity-user|documented]] |
 | `UserInvitation` | yes | `auth` | — |
 | `UserMfaRecoveryCode` | yes | `auth` | — |
 | `UserPermission` | yes | `users` | — |
@@ -207,7 +206,7 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `WorkflowAction` | no | `workflows` | — |
 | `WorkflowRun` | yes | `workflows` | — |
 
-## Commercial — 73 models
+## Commercial — 74 models
 
 | Model | Tenant | Owning module | Note |
 |---|---|---|---|
@@ -284,6 +283,7 @@ Related: [[data-model-overview]] · [[glossary]] · [[discovery-status]]
 | `TenantDeletionRequest` | yes | `billing` | — |
 | `TenantFeature` | yes | `super-admin` | — |
 | `TenantRetention` | yes | `billing` | — |
+| `User` | yes | `super-admin` | [[entity-user|documented]] |
 
 ## Configuration — 40 models
 
