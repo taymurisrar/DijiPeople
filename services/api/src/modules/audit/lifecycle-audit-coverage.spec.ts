@@ -150,6 +150,7 @@ const COVERAGE: readonly Coverage[] = [
       'saveVersion',
       'createTemplate',
       'createTemplateVersion',
+      'updateTemplateDraft',
       'cloneTemplate',
       'updateTemplateState',
       'submitApproval',

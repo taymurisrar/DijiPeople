@@ -6,6 +6,31 @@ import { ContractDocumentEditor } from "./contract-document-editor";
 import { ModuleActionBar } from "@/app/_components/runtime/module-action-bar";
 import { getPlatformModuleDefinition } from "@/lib/runtime/platform-module-registry";
 import { formatEnumLabel } from "@/lib/formatters";
+import { unwrapPlaceholderMarkup } from "@/lib/documents/placeholder-markup";
+
+type ContentIssue = {
+  code: string;
+  severity: "error" | "issue" | "warning";
+  message: string;
+  samples: string[];
+};
+
+type TemplateVersion = {
+  id: string;
+  version: number;
+  title: string;
+  contentHtml: string;
+  changeSummary?: string;
+  lifecycleGatePurpose?: string | null;
+  partyDefinitions?: Array<Record<string, unknown>>;
+  signingConfig?: Record<string, unknown>;
+  isPublished: boolean;
+  publishedAt?: string | null;
+  createdAt: string;
+  editable?: boolean;
+  agreementCount?: number;
+  contentIssues?: ContentIssue[];
+};
 
 type Template = {
   id: string;
@@ -14,23 +39,22 @@ type Template = {
   description?: string;
   contractType: string;
   signingMode?: string;
-  lifecycleGatePurpose?: string;
+  lifecycleGatePurpose?: string | null;
   isActive: boolean;
   archivedAt?: string | null;
   status: string;
-  versions: Array<{
-    id: string;
-    version: number;
-    title: string;
-    contentHtml: string;
-    changeSummary?: string;
-    lifecycleGatePurpose?: string;
-    partyDefinitions?: Array<Record<string, unknown>>;
-    signingConfig?: Record<string, unknown>;
-    isPublished: boolean;
-    createdAt: string;
-  }>;
+  versions: TemplateVersion[];
 };
+
+type TemplateOptions = {
+  lifecycleGates: Array<{ key: string; label: string; contractTypes: string[] }>;
+  signerRoles: Array<{ key: string; label: string; side: string }>;
+};
+
+type SigningOrder = "COUNTERPARTY_FIRST" | "PLATFORM_FIRST" | "PARALLEL";
+
+const COUNTERPARTY = "COUNTERPARTY_SIGNATORY";
+const PLATFORM = "PLATFORM_SIGNATORY";
 
 const moduleDefinition = getPlatformModuleDefinition("contract-templates");
 const contractTypes = [
@@ -77,21 +101,27 @@ export function ContractTemplateEditor({
           versions: [],
         },
   );
+  const [options, setOptions] = useState<TemplateOptions | null>(null);
   const [name, setName] = useState("");
   const [key, setKey] = useState("");
   const [type, setType] = useState("SERVICE_AGREEMENT");
   const [description, setDescription] = useState("");
-  const [signingMode, setSigningMode] = useState("MIXED");
   const [lifecycleGatePurpose, setLifecycleGatePurpose] = useState("");
-  const [requiredSignerRoles, setRequiredSignerRoles] = useState(
-    "Authorized signatory",
-  );
+  /*
+   * Stable keys from the API's signer-role catalog, in signing order. The
+   * free-text field this replaces stored "Authorized signatory" into JSON
+   * nothing read; these keys decide the parties of every agreement drafted
+   * from the template.
+   */
+  const [signerRoles, setSignerRoles] = useState<string[]>([COUNTERPARTY]);
+  const [signingOrder, setSigningOrder] =
+    useState<SigningOrder>("COUNTERPARTY_FIRST");
   const [title, setTitle] = useState("");
   const [html, setHtml] = useState(
     "<h1>{{contract.title}}</h1><p>This agreement is between {{platform.legalName}} and {{counterparty.name}}.</p>",
   );
   const [summary, setSummary] = useState("");
-  const [publish, setPublish] = useState(true);
+  const [publish, setPublish] = useState(false);
   const [dirty, setDirty] = useState(!templateId);
   const [loadError, setLoadError] = useState("");
   const [samplePreview, setSamplePreview] = useState(false);
@@ -123,6 +153,27 @@ export function ContractTemplateEditor({
     [html, placeholderExamples],
   );
 
+  const applyTemplate = useCallback((template: Template) => {
+    setItem(template);
+    setName(template.name);
+    setKey(template.key);
+    setType(template.contractType);
+    setDescription(template.description ?? "");
+    const latest = template.versions[0];
+    setTitle(latest?.title ?? template.name);
+    setHtml(unwrapPlaceholderMarkup(latest?.contentHtml ?? ""));
+    setLifecycleGatePurpose(
+      latest?.lifecycleGatePurpose ?? template.lifecycleGatePurpose ?? "",
+    );
+    const signers = signersForVersion(latest);
+    setSignerRoles(signers.roles);
+    setSigningOrder(signers.order);
+    setPublish(false);
+    setSummary("");
+    setDirty(false);
+    setLoadError("");
+  }, []);
+
   const load = useCallback(async () => {
     if (!templateId) return;
     const response = await fetch(`/api/contract-templates/${templateId}`);
@@ -131,26 +182,8 @@ export function ContractTemplateEditor({
       setLoadError(data?.message ?? "Unable to load the contract template.");
       return;
     }
-    const template = data as Template;
-    setItem(template);
-    setName(template.name);
-    setKey(template.key);
-    setType(template.contractType);
-    setDescription(template.description ?? "");
-    setSigningMode(template.signingMode ?? "MIXED");
-    setLifecycleGatePurpose(template.lifecycleGatePurpose ?? "");
-    const latest = template.versions[0];
-    setTitle(latest?.title ?? template.name);
-    setHtml(latest?.contentHtml ?? "");
-    setLifecycleGatePurpose(
-      latest?.lifecycleGatePurpose ?? template.lifecycleGatePurpose ?? "",
-    );
-    setRequiredSignerRoles(signerRolesForVersion(latest));
-    setPublish(latest?.isPublished ?? false);
-    setSummary("");
-    setDirty(false);
-    setLoadError("");
-  }, [templateId]);
+    applyTemplate(data as Template);
+  }, [templateId, applyTemplate]);
 
   useEffect(() => {
     if (!templateId) return;
@@ -169,32 +202,25 @@ export function ContractTemplateEditor({
           );
           return;
         }
-        const template = data as Template;
-        setItem(template);
-        setName(template.name);
-        setKey(template.key);
-        setType(template.contractType);
-        setDescription(template.description ?? "");
-        setSigningMode(template.signingMode ?? "MIXED");
-        setLifecycleGatePurpose(template.lifecycleGatePurpose ?? "");
-        const latest = template.versions[0];
-        setTitle(latest?.title ?? template.name);
-        setHtml(latest?.contentHtml ?? "");
-        setLifecycleGatePurpose(
-          latest?.lifecycleGatePurpose ?? template.lifecycleGatePurpose ?? "",
-        );
-        setRequiredSignerRoles(signerRolesForVersion(latest));
-        setPublish(latest?.isPublished ?? false);
-        setSummary("");
-        setDirty(false);
-        setLoadError("");
+        applyTemplate(data as Template);
       })
       .catch((error: unknown) => {
         if ((error as { name?: string }).name !== "AbortError")
           setLoadError("Unable to load the contract template.");
       });
     return () => controller.abort();
-  }, [templateId]);
+  }, [templateId, applyTemplate]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/contracts/template-options", { signal: controller.signal })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload: TemplateOptions | null) => {
+        if (payload) setOptions(payload);
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -239,6 +265,22 @@ export function ContractTemplateEditor({
     return () => window.removeEventListener("beforeunload", beforeUnload);
   }, [dirty]);
 
+  const gateOptions = useMemo(
+    () =>
+      (options?.lifecycleGates ?? []).filter((gate) =>
+        gate.contractTypes.includes(type),
+      ),
+    [options, type],
+  );
+  /*
+   * Until the catalog loads nothing is judged unsupported — the stored value
+   * is shown, not flagged, rather than flashing an error on every open.
+   */
+  const gateSupported =
+    !options ||
+    !lifecycleGatePurpose ||
+    gateOptions.some((gate) => gate.key === lifecycleGatePurpose);
+
   if (!item)
     return (
       <div className="rounded-3xl border border-slate-200 bg-white p-8 text-sm text-slate-500">
@@ -246,62 +288,113 @@ export function ContractTemplateEditor({
       </div>
     );
 
-  async function save() {
-    const path = templateId
-      ? `/api/contract-templates/${templateId}/versions`
-      : "/api/contract-templates";
-    const signerRoles = requiredSignerRoles
-      .split(",")
-      .map((value) => value.trim())
-      .filter(Boolean);
-    const versionFields = {
-      title,
-      contentHtml: html,
-      changeSummary: summary || (templateId ? undefined : "Initial version"),
-      publish,
-      lifecycleGatePurpose: lifecycleGatePurpose || undefined,
-      partyDefinitions: signerRoles.map((role, index) => ({
-        role,
-        signingOrder: index + 1,
-        required: true,
-      })),
-      signingConfig: { requiredSignerRoles: signerRoles },
+  const latest = item.versions[0];
+  const publishedVersion = item.versions.find((version) => version.isPublished);
+  const draftEditable = Boolean(latest?.editable);
+  const latestIssues = latest?.contentIssues ?? [];
+
+  function signingPayload() {
+    const ordered =
+      signerRoles.length === 2 && signingOrder === "PLATFORM_FIRST"
+        ? [PLATFORM, COUNTERPARTY]
+        : signerRoles.length === 2
+          ? [COUNTERPARTY, PLATFORM]
+          : signerRoles;
+    return {
+      requiredSignerRoles: ordered,
+      signingMode:
+        signerRoles.length === 2 && signingOrder === "PARALLEL"
+          ? "PARALLEL"
+          : "SEQUENTIAL",
     };
-    const body = templateId
-      ? versionFields
-      : {
-          ...versionFields,
-          key,
-          name,
-          contractType: type,
-          description,
-          signingMode,
-          documentMode: "EDITOR",
-        };
+  }
+
+  function validate() {
+    if (!gateSupported)
+      throw new Error(
+        `"${lifecycleGatePurpose}" is not a supported lifecycle gate. Choose one from the list.`,
+      );
+    if (!signerRoles.length)
+      throw new Error("Choose at least one required signer role.");
+  }
+
+  async function request(path: string, method: string, body?: unknown) {
     const response = await fetch(path, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      method,
+      headers: body ? { "Content-Type": "application/json" } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
     });
     const payload = await response.json().catch(() => null);
     if (!response.ok)
       throw new Error(
         Array.isArray(payload?.message)
           ? payload.message.join(", ")
-          : (payload?.message ?? "Unable to save template."),
+          : (payload?.message ?? "The template could not be saved."),
       );
-    setDirty(false);
+    return payload;
+  }
+
+  async function save() {
+    validate();
+    const common = {
+      title,
+      contentHtml: html,
+      lifecycleGatePurpose: lifecycleGatePurpose || "",
+      ...signingPayload(),
+    };
     if (!templateId) {
+      const payload = await request("/api/contract-templates", "POST", {
+        ...common,
+        changeSummary: summary || "Initial version",
+        publish,
+        key,
+        name,
+        contractType: type,
+        description,
+        documentMode: "EDITOR",
+      });
+      setDirty(false);
       router.push(`/templates/${payload.id}`);
       return { success: true, message: "Template created." };
     }
+    if (draftEditable && latest) {
+      await request(
+        `/api/contract-templates/${templateId}/versions/${latest.id}`,
+        "PATCH",
+        { ...common, ...(summary ? { changeSummary: summary } : {}) },
+      );
+      setDirty(false);
+      await load();
+      return {
+        success: true,
+        message: `Draft version ${latest.version} saved.`,
+      };
+    }
+    const created = await request(
+      `/api/contract-templates/${templateId}/versions`,
+      "POST",
+      { ...common, changeSummary: summary || undefined, publish: false },
+    );
+    setDirty(false);
     await load();
-    return { success: true, message: "Template version created." };
+    return {
+      success: true,
+      message: `Draft version ${created.version} created. Publish it when it is ready.`,
+    };
   }
 
   function update<T>(setter: (value: T) => void, value: T) {
     setter(value);
     setDirty(true);
+  }
+
+  function toggleSignerRole(role: string, checked: boolean) {
+    update(
+      setSignerRoles,
+      checked
+        ? [...signerRoles.filter((value) => value !== role), role]
+        : signerRoles.filter((value) => value !== role),
+    );
   }
 
   /*
@@ -312,6 +405,10 @@ export function ContractTemplateEditor({
     setSamplePreview((current) => !current);
   }
 
+  const signerLabels = (options?.signerRoles ?? [])
+    .filter((role) => signerRoles.includes(role.key))
+    .map((role) => role.label);
+
   return (
     <main className="space-y-5">
       <ModuleActionBar
@@ -319,13 +416,24 @@ export function ContractTemplateEditor({
           action.key === "save"
             ? {
                 ...action,
-                label: templateId ? "Create version" : "Save",
+                label: !templateId
+                  ? "Save"
+                  : draftEditable
+                    ? "Save draft"
+                    : "Save as new draft",
               }
             : action,
         )}
         context={{
           scope: "record",
-          record: { ...item, status: item.status },
+          record: {
+            ...item,
+            status: item.status,
+            latestDraftPublishable: Boolean(
+              templateId && latest && !latest.isPublished,
+            ),
+            hasPublishedVersion: Boolean(templateId && publishedVersion),
+          },
           roleKeys,
           permissionKeys,
           mode: templateId ? "edit" : "create",
@@ -358,14 +466,35 @@ export function ContractTemplateEditor({
             return { success: true, message: "Template reloaded." };
           }
           if (action.key === "save") return save();
-          if (action.key === "duplicate" && templateId) {
-            const response = await fetch(
-              `/api/contract-templates/${templateId}/clone`,
-              { method: "POST" },
+          if (action.key === "publish" && templateId && latest) {
+            // Publishing what is stored, never what is still in the editor.
+            if (dirty) throw new Error("Save the draft before publishing it.");
+            await request(
+              `/api/contract-templates/${templateId}/versions/${latest.id}/publish`,
+              "POST",
             );
-            const payload = await response.json().catch(() => null);
-            if (!response.ok)
-              throw new Error(payload?.message ?? "Unable to clone template.");
+            await load();
+            return {
+              success: true,
+              message: `Version ${latest.version} published.`,
+            };
+          }
+          if (action.key === "unpublish" && templateId && publishedVersion) {
+            await request(
+              `/api/contract-templates/${templateId}/versions/${publishedVersion.id}/unpublish`,
+              "POST",
+            );
+            await load();
+            return {
+              success: true,
+              message: `Version ${publishedVersion.version} unpublished; the template is inactive.`,
+            };
+          }
+          if (action.key === "duplicate" && templateId) {
+            const payload = await request(
+              `/api/contract-templates/${templateId}/clone`,
+              "POST",
+            );
             router.push(`/templates/${payload.id}`);
             return {
               success: true,
@@ -382,19 +511,11 @@ export function ContractTemplateEditor({
                 : action.key === "deactivate"
                   ? "INACTIVE"
                   : "ARCHIVED";
-            const response = await fetch(
+            await request(
               `/api/contract-templates/${templateId}/state`,
-              {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ state }),
-              },
+              "PATCH",
+              { state },
             );
-            const payload = await response.json().catch(() => null);
-            if (!response.ok)
-              throw new Error(
-                payload?.message ?? "Unable to update template state.",
-              );
             await load();
             return {
               success: true,
@@ -460,22 +581,6 @@ export function ContractTemplateEditor({
                   value={description}
                   onChange={(value) => update(setDescription, value)}
                 />
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Signing mode
-                  <select
-                    value={signingMode}
-                    onChange={(event) =>
-                      update(setSigningMode, event.target.value)
-                    }
-                    className="h-11 rounded-xl border border-slate-200 px-3 text-sm font-normal normal-case tracking-normal"
-                  >
-                    {["SEQUENTIAL", "PARALLEL", "MIXED"].map((value) => (
-                      <option key={value} value={value}>
-                        {formatEnumLabel(value)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
               </>
             ) : null}
             <Field
@@ -483,16 +588,84 @@ export function ContractTemplateEditor({
               value={title}
               onChange={(value) => update(setTitle, value)}
             />
-            <Field
-              label="Lifecycle gate purpose"
-              value={lifecycleGatePurpose}
-              onChange={(value) => update(setLifecycleGatePurpose, value)}
-            />
-            <Field
-              label="Required signer roles"
-              value={requiredSignerRoles}
-              onChange={(value) => update(setRequiredSignerRoles, value)}
-            />
+            <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Lifecycle gate purpose
+              <select
+                aria-invalid={!gateSupported}
+                value={lifecycleGatePurpose}
+                onChange={(event) =>
+                  update(setLifecycleGatePurpose, event.target.value)
+                }
+                className="h-11 rounded-xl border border-slate-200 px-3 text-sm font-normal normal-case tracking-normal aria-invalid:border-rose-400"
+              >
+                <option value="">None</option>
+                {gateOptions.map((gate) => (
+                  <option key={gate.key} value={gate.key}>
+                    {gate.label}
+                  </option>
+                ))}
+                {lifecycleGatePurpose &&
+                !gateOptions.some(
+                  (gate) => gate.key === lifecycleGatePurpose,
+                ) ? (
+                  <option value={lifecycleGatePurpose} disabled>
+                    {lifecycleGatePurpose} (not supported)
+                  </option>
+                ) : null}
+              </select>
+              {!gateSupported ? (
+                <span className="text-[11px] font-medium normal-case tracking-normal text-rose-600">
+                  Choose a supported gate before saving.
+                </span>
+              ) : null}
+            </label>
+            <fieldset className="grid gap-1.5">
+              <legend className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Required signer roles
+              </legend>
+              <div className="grid gap-1.5 rounded-xl border border-slate-200 px-3 py-2">
+                {(options?.signerRoles ?? []).map((role) => (
+                  <label
+                    key={role.key}
+                    className="flex items-center gap-2 text-sm text-slate-700"
+                  >
+                    <input
+                      checked={signerRoles.includes(role.key)}
+                      onChange={(event) =>
+                        toggleSignerRole(role.key, event.target.checked)
+                      }
+                      type="checkbox"
+                    />
+                    {role.label}
+                  </label>
+                ))}
+              </div>
+              {!signerRoles.length ? (
+                <span className="text-[11px] font-medium text-rose-600">
+                  Choose at least one signer.
+                </span>
+              ) : null}
+            </fieldset>
+            {signerRoles.length === 2 ? (
+              <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Signing order
+                <select
+                  value={signingOrder}
+                  onChange={(event) =>
+                    update(setSigningOrder, event.target.value as SigningOrder)
+                  }
+                  className="h-11 rounded-xl border border-slate-200 px-3 text-sm font-normal normal-case tracking-normal"
+                >
+                  <option value="COUNTERPARTY_FIRST">
+                    Customer / partner first, then DijiPeople
+                  </option>
+                  <option value="PLATFORM_FIRST">
+                    DijiPeople first, then customer / partner
+                  </option>
+                  <option value="PARALLEL">In any order</option>
+                </select>
+              </label>
+            ) : null}
             {templateId ? (
               <Field
                 label="Change summary"
@@ -501,13 +674,43 @@ export function ContractTemplateEditor({
               />
             ) : null}
           </div>
+
+          {latestIssues.length ? (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+              <h2 className="font-semibold">
+                Content check — version {latest?.version}
+              </h2>
+              <ul className="mt-2 space-y-2">
+                {latestIssues.map((issue) => (
+                  <li key={issue.code}>
+                    <span className="mr-2 rounded bg-white px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide">
+                      {issue.severity === "error"
+                        ? "Blocks publishing"
+                        : issue.severity === "issue"
+                          ? "Blocks sending"
+                          : "Review"}
+                    </span>
+                    {issue.message}
+                    {issue.samples.length ? (
+                      <span className="mt-1 block break-words font-mono text-[11px] text-amber-800">
+                        {issue.samples.slice(0, 8).join(" · ")}
+                        {issue.samples.length > 8
+                          ? ` · +${issue.samples.length - 8} more`
+                          : ""}
+                      </span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </div>
 
         <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="font-semibold text-slate-950">Version history</h2>
           <p className="mt-1 text-xs leading-5 text-slate-500">
-            Selecting an earlier version restores its content into a new
-            editable draft; the original remains unchanged.
+            Selecting an earlier version restores its content into the editor;
+            the original remains unchanged.
           </p>
           <div className="mt-3 space-y-2">
             {item.versions.map((version) => (
@@ -516,14 +719,15 @@ export function ContractTemplateEditor({
                 key={version.id}
                 onClick={() => {
                   setTitle(version.title);
-                  setHtml(version.contentHtml);
+                  setHtml(unwrapPlaceholderMarkup(version.contentHtml));
                   setLifecycleGatePurpose(
                     version.lifecycleGatePurpose ??
                       item.lifecycleGatePurpose ??
                       "",
                   );
-                  setRequiredSignerRoles(signerRolesForVersion(version));
-                  setPublish(version.isPublished);
+                  const signers = signersForVersion(version);
+                  setSignerRoles(signers.roles);
+                  setSigningOrder(signers.order);
                   setSummary(`Restored from version ${version.version}`);
                   // Restoring a version puts you back in the editor: what you
                   // are looking at is now a draft, not a sample rendering.
@@ -538,14 +742,30 @@ export function ContractTemplateEditor({
                     className={
                       version.isPublished
                         ? "text-emerald-700"
-                        : "text-slate-400"
+                        : version.publishedAt
+                          ? "text-slate-500"
+                          : "text-amber-700"
                     }
                   >
-                    {version.isPublished ? "Published" : "Draft"}
+                    {version.isPublished
+                      ? "Published"
+                      : version.publishedAt
+                        ? "Superseded"
+                        : version.editable
+                          ? "Draft (editable)"
+                          : "Draft"}
                   </span>
                 </span>
-                <span className="mt-1 block text-xs text-slate-500">
-                  {new Date(version.createdAt).toLocaleDateString()}
+                <span className="mt-1 flex justify-between text-xs text-slate-500">
+                  <span>
+                    {new Date(version.createdAt).toLocaleDateString()}
+                  </span>
+                  {version.agreementCount ? (
+                    <span>
+                      {version.agreementCount} agreement
+                      {version.agreementCount === 1 ? "" : "s"}
+                    </span>
+                  ) : null}
                 </span>
               </button>
             ))}
@@ -583,45 +803,50 @@ export function ContractTemplateEditor({
           readOnly={samplePreview}
           value={html}
           contractType={type}
-          signerRoles={requiredSignerRoles
-            .split(",")
-            .map((role) => role.trim())
-            .filter(Boolean)}
+          signerRoles={signerLabels}
         />
-        <label className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white p-4 text-sm font-semibold text-slate-700">
-          <input
-            checked={publish}
-            onChange={(event) => update(setPublish, event.target.checked)}
-            type="checkbox"
-          />
-          Publish this version
-        </label>
+        {!templateId ? (
+          <label className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white p-4 text-sm font-semibold text-slate-700">
+            <input
+              checked={publish}
+              onChange={(event) => update(setPublish, event.target.checked)}
+              type="checkbox"
+            />
+            Publish this version
+          </label>
+        ) : null}
       </section>
     </main>
   );
 }
 
-function signerRolesForVersion(
-  version: Template["versions"][number] | undefined,
-) {
-  const configured = version?.signingConfig?.requiredSignerRoles;
-  if (Array.isArray(configured)) {
-    const roles = configured.filter(
-      (role): role is string =>
-        typeof role === "string" && Boolean(role.trim()),
-    );
-    if (roles.length) return roles.join(", ");
-  }
-  if (Array.isArray(version?.partyDefinitions)) {
-    const roles = version.partyDefinitions
-      .map((definition) => definition.role)
-      .filter(
-        (role): role is string =>
-          typeof role === "string" && Boolean(role.trim()),
-      );
-    if (roles.length) return roles.join(", ");
-  }
-  return "Authorized signatory";
+/**
+ * The signer plan a version declares. A version saved before roles were
+ * structured (free text such as "Authorized signatory", or the seed's party
+ * list) produced agreements signed by the counterparty alone, so that is what
+ * it shows — which is also what the API keeps doing for it.
+ */
+function signersForVersion(version: TemplateVersion | undefined): {
+  roles: string[];
+  order: SigningOrder;
+} {
+  const config = version?.signingConfig;
+  const configured = Array.isArray(config?.requiredSignerRoles)
+    ? (config.requiredSignerRoles as unknown[]).filter(
+        (role): role is string => role === COUNTERPARTY || role === PLATFORM,
+      )
+    : [];
+  if (!configured.length)
+    return { roles: [COUNTERPARTY], order: "COUNTERPARTY_FIRST" };
+  return {
+    roles: configured,
+    order:
+      config?.mode === "PARALLEL"
+        ? "PARALLEL"
+        : configured[0] === PLATFORM
+          ? "PLATFORM_FIRST"
+          : "COUNTERPARTY_FIRST",
+  };
 }
 
 function Field({

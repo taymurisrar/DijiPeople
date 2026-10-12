@@ -12,4 +12,4 @@ therefore sees sibling worktrees without anybody having pushed.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
-| [SESSION-0124](../../docs/sessions/SESSION-0124-plan-publish-unpublish-and-archive-actions.md) | — | Plan publish, unpublish and archive actions | ACTIVE | `agent/plan-publication-actions` | `develop` | — | 2026-10-12T13:49:07.877Z |
+| [SESSION-0125](../../docs/sessions/SESSION-0125-agreement-template-hotfix-gates-signer-roles-draft-editing-p.md) | — | Agreement template hotfix: gates, signer roles, draft editing, print, placeholders | ACTIVE | `agent/agreement-templates-hotfix` | `develop` | — | 2026-10-12T16:31:51.351Z |

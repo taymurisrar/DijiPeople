@@ -24,7 +24,9 @@ describe('contract and signature workflow guards', () => {
       contractTemplate: {
         findUnique: jest.fn().mockResolvedValue({
           id: 'template-1',
-          lifecycleGatePurpose: 'CUSTOMER_ACTIVATION',
+          contractType: ContractType.SERVICE_AGREEMENT,
+          signingMode: 'MIXED',
+          lifecycleGatePurpose: null,
           versions: [{ version: 1 }],
         }),
       },
@@ -45,16 +47,15 @@ describe('contract and signature workflow guards', () => {
       contentHtml: '<h1>Version two</h1>',
       changeSummary: 'Restored and revised',
       publish: true,
-      lifecycleGatePurpose: 'TENANT_ACTIVATION',
-      partyDefinitions: [
-        { role: 'Authorized signatory', required: true, signingOrder: 1 },
-      ],
-      signingConfig: { requiredSignerRoles: ['Authorized signatory'] },
+      lifecycleGatePurpose: 'TENANT_PROVISIONING',
+      requiredSignerRoles: ['COUNTERPARTY_SIGNATORY', 'PLATFORM_SIGNATORY'],
+      signingMode: 'SEQUENTIAL',
     });
 
+    // Superseded, not erased: the old version keeps its `publishedAt`.
     expect(tx.contractTemplateVersion.updateMany).toHaveBeenCalledWith({
       where: { templateId: 'template-1', isPublished: true },
-      data: { isPublished: false, publishedAt: null },
+      data: { isPublished: false },
     });
     expect(tx.contractTemplateVersion.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -62,16 +63,108 @@ describe('contract and signature workflow guards', () => {
           version: 2,
           changeSummary: 'Restored and revised',
           isPublished: true,
-          lifecycleGatePurpose: 'TENANT_ACTIVATION',
+          lifecycleGatePurpose: 'TENANT_PROVISIONING',
+          signingConfig: {
+            mode: 'SEQUENTIAL',
+            requiredSignerRoles: [
+              'COUNTERPARTY_SIGNATORY',
+              'PLATFORM_SIGNATORY',
+            ],
+          },
+          partyDefinitions: [
+            expect.objectContaining({
+              key: 'COUNTERPARTY_SIGNATORY',
+              partyType: 'COUNTERPARTY',
+              signingOrder: 1,
+              required: true,
+            }),
+            expect.objectContaining({
+              key: 'PLATFORM_SIGNATORY',
+              partyType: 'PLATFORM',
+              signingOrder: 2,
+              required: true,
+            }),
+          ],
         }),
       }),
     );
     expect(tx.contractTemplate.update).toHaveBeenCalledWith({
       where: { id: 'template-1' },
       data: {
-        lifecycleGatePurpose: 'TENANT_ACTIVATION',
+        lifecycleGatePurpose: 'TENANT_PROVISIONING',
         updatedById: 'user-1',
       },
+    });
+  });
+
+  it.each([
+    ['free text', 'customer_onboarding'],
+    ['a key this agreement type cannot serve', 'PARTNER_ONBOARDING'],
+  ])(
+    'refuses a lifecycle gate that is %s',
+    async (_label, lifecycleGatePurpose) => {
+      const prisma = {
+        contractTemplate: {
+          findUnique: jest.fn().mockResolvedValue({
+            id: 'template-1',
+            contractType: ContractType.MASTER_SERVICES_AGREEMENT,
+            signingMode: 'MIXED',
+            lifecycleGatePurpose: null,
+            versions: [{ version: 1 }],
+          }),
+        },
+        $transaction: jest.fn(),
+      };
+      const service = new ContractsService(
+        prisma as never,
+        {} as never,
+        {} as never,
+        {} as never,
+        { log: jest.fn() } as never,
+      );
+
+      await expect(
+        service.createTemplateVersion(platformAdmin, 'template-1', {
+          title: 'Version two',
+          contentHtml: '<h1>Version two</h1>',
+          lifecycleGatePurpose,
+        }),
+      ).rejects.toMatchObject({
+        response: { code: 'CONTRACT_TEMPLATE_GATE_INVALID' },
+      });
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    },
+  );
+
+  it('refuses a signer role outside the catalog', async () => {
+    const prisma = {
+      contractTemplate: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'template-1',
+          contractType: ContractType.MASTER_SERVICES_AGREEMENT,
+          signingMode: 'MIXED',
+          lifecycleGatePurpose: null,
+          versions: [{ version: 1 }],
+        }),
+      },
+      $transaction: jest.fn(),
+    };
+    const service = new ContractsService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      { log: jest.fn() } as never,
+    );
+
+    await expect(
+      service.createTemplateVersion(platformAdmin, 'template-1', {
+        title: 'Version two',
+        contentHtml: '<h1>Version two</h1>',
+        requiredSignerRoles: ['Authorized signatory'],
+      }),
+    ).rejects.toMatchObject({
+      response: { code: 'CONTRACT_TEMPLATE_SIGNER_ROLES_INVALID' },
     });
   });
 

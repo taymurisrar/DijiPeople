@@ -47,6 +47,7 @@ import {
   TemplateEligibilityQueryDto,
   UpdateContractDto,
   UpdateContractPartyDto,
+  UpdateContractTemplateDraftDto,
   UpdateContractTemplateStateDto,
 } from './dto/contracts.dto';
 
@@ -129,6 +130,12 @@ export class ContractsController {
       query.contractType,
       query.contractId,
     );
+  }
+
+  /** Supported lifecycle gates and signer roles, for the template editor. */
+  @Get('template-options')
+  templateOptions(@CurrentUser() user: AuthenticatedUser) {
+    return this.contracts.templateOptions(user);
   }
 
   @Get(':id')
@@ -352,6 +359,34 @@ export class ContractTemplatesController {
     @Body() dto: CreateContractTemplateVersionDto,
   ) {
     return this.contracts.createTemplateVersion(user, id, dto);
+  }
+
+  @Patch(':id/versions/:versionId')
+  updateDraft(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Param('versionId') versionId: string,
+    @Body() dto: UpdateContractTemplateDraftDto,
+  ) {
+    return this.contracts.updateTemplateDraft(user, id, versionId, dto);
+  }
+
+  @Post(':id/versions/:versionId/publish')
+  publishVersion(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Param('versionId') versionId: string,
+  ) {
+    return this.contracts.publishTemplateVersion(user, id, versionId);
+  }
+
+  @Post(':id/versions/:versionId/unpublish')
+  unpublishVersion(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Param('versionId') versionId: string,
+  ) {
+    return this.contracts.unpublishTemplateVersion(user, id, versionId);
   }
 
   @Post(':id/clone')

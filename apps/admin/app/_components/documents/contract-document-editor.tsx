@@ -378,7 +378,14 @@ export function ContractDocumentEditor({
       StarterKit.configure({ heading: { levels: [1, 2, 3, 4] }, link: false }),
       Link.configure({
         openOnClick: false,
-        autolink: true,
+        /*
+         * Off: a placeholder key reads like a host name, so typing
+         * `{{customer.contact.email}}` was turned into a link inside the
+         * braces and the token never resolved again. Links are added
+         * deliberately from the toolbar.
+         */
+        autolink: false,
+        linkOnPaste: false,
         defaultProtocol: "https",
       }),
       TableKit.configure({
@@ -1063,7 +1070,15 @@ export function ContractDocumentEditor({
           */}
           <button
             type="button"
-            onClick={() => printContractDocument(editor.getHTML())}
+            onClick={() =>
+              // Print what the sheet shows: sample values while previewing,
+              // the document itself otherwise.
+              printContractDocument(
+                preview || readOnly
+                  ? (previewHtml ?? editor.getHTML())
+                  : editor.getHTML(),
+              )
+            }
             className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50"
           >
             <FileDown className="h-4 w-4" />
@@ -1363,21 +1378,47 @@ export function ContractDocumentEditor({
   );
 }
 
+/**
+ * Print the document — and only the document — from a hidden frame.
+ *
+ * This used to `window.open` a popup with window features and write into it.
+ * Browsers that block such popups return `null`, and the function then
+ * returned silently: the Print button did nothing at all. A same-origin frame
+ * in this page cannot be blocked, never shows the admin chrome, and is removed
+ * once the print dialog closes.
+ */
 function printContractDocument(contentHtml: string) {
-  const printWindow = window.open(
-    "",
-    "contract-document-print",
-    "width=1000,height=800",
-  );
-  if (!printWindow) return;
-  printWindow.document.open();
-  printWindow.document
-    .write(`<!doctype html><html><head><meta charset="utf-8"><title>Agreement document</title><style>
+  const frame = document.createElement("iframe");
+  frame.setAttribute("aria-hidden", "true");
+  frame.tabIndex = -1;
+  Object.assign(frame.style, {
+    position: "fixed",
+    right: "0",
+    bottom: "0",
+    width: "0",
+    height: "0",
+    border: "0",
+    visibility: "hidden",
+  });
+  document.body.appendChild(frame);
+  const printWindow = frame.contentWindow;
+  const printDocument = frame.contentDocument;
+  if (!printWindow || !printDocument) {
+    frame.remove();
+    return;
+  }
+  printDocument.open();
+  printDocument.write(`<!doctype html><html><head><meta charset="utf-8"><title>Agreement document</title><style>
     @page { size: A4; margin: 18mm; }
     * { box-sizing: border-box; }
     body { margin: 0; color: #172033; background: #fff; font: 11pt/1.55 Arial, sans-serif; }
     h1 { font-size: 24pt; line-height: 1.1; } h2 { font-size: 17pt; } h3 { font-size: 13pt; }
-    table { width: 100%; border-collapse: collapse; margin: 12pt 0; break-inside: avoid; }
+    h1, h2, h3, h4 { break-after: avoid; page-break-after: avoid; }
+    p, li { orphans: 3; widows: 3; }
+    ul, ol { padding-left: 18pt; }
+    tr { break-inside: avoid; page-break-inside: avoid; }
+    a { color: inherit; text-decoration: none; }
+    table { width: 100%; border-collapse: collapse; margin: 12pt 0; }
     th, td { border: 1px solid #cbd5e1; padding: 7pt; text-align: left; vertical-align: top; }
     th { background: #eaf8f5; font-weight: 700; }
     img { max-width: 100%; height: auto; }
@@ -1388,9 +1429,27 @@ function printContractDocument(contentHtml: string) {
     table[data-document-role="signature-block"] td { border: 0; border-bottom: 0.5pt solid #94a3b8; padding: 10pt 2pt 3pt; }
     table[data-document-role="signature-block"] td:first-child { width: 38%; border-bottom: 0; color: #64748b; font-size: 8pt; vertical-align: bottom; }
   </style></head><body>${contentHtml}</body></html>`);
-  printWindow.document.close();
-  printWindow.focus();
-  printWindow.setTimeout(() => printWindow.print(), 150);
+  printDocument.close();
+  const cleanup = () => window.setTimeout(() => frame.remove(), 500);
+  printWindow.addEventListener("afterprint", cleanup, { once: true });
+  // Images (drawn signatures, logos) must be decoded before the page is laid
+  // out, or they print as empty boxes.
+  const images = Array.from(printDocument.images);
+  Promise.all(
+    images.map((image) =>
+      image.complete
+        ? Promise.resolve()
+        : new Promise<void>((resolve) => {
+            image.addEventListener("load", () => resolve(), { once: true });
+            image.addEventListener("error", () => resolve(), { once: true });
+          }),
+    ),
+  ).then(() => {
+    printWindow.focus();
+    printWindow.print();
+    // Browsers without `afterprint` still get the frame removed.
+    window.setTimeout(() => frame.isConnected && frame.remove(), 60_000);
+  });
 }
 
 function normalizePastedDocumentHtml(html: string) {

@@ -111,6 +111,7 @@ function generateHarness(input: {
           },
         ],
         placeholderValues: input.placeholderValues,
+        _count: { signatureRequests: 0 },
       }),
     },
     signatureEvidence: {
@@ -211,6 +212,7 @@ describe('QA agreements DEFECT-1 — a generated preview resolves placeholders',
       currentVersionNumber: 1,
       versions: [{ version: 1, contentHtml: PARTNER_TEMPLATE_HTML }],
       placeholderValues: draftValues,
+      signatureRequests: [],
     } as never);
 
     const fields = await service.documentFields(platformAdmin, 'contract-1');
@@ -440,6 +442,7 @@ describe('QA agreements DEFECT-2 — signature.* is resolved at signing, never b
         },
       ],
       placeholderValues,
+      signatureRequests: [],
       parties: [
         {
           id: 'party-1',
