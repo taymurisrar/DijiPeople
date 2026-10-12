@@ -12,4 +12,4 @@ therefore sees sibling worktrees without anybody having pushed.
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
-| [SESSION-0125](../../docs/sessions/SESSION-0125-agreement-template-hotfix-gates-signer-roles-draft-editing-p.md) | — | Agreement template hotfix: gates, signer roles, draft editing, print, placeholders | ACTIVE | `agent/agreement-templates-hotfix` | `develop` | — | 2026-10-12T16:31:51.351Z |
+| [SESSION-0126](../../docs/sessions/SESSION-0126-agreement-template-55b74891-v3-final-saas-master-agreement-c.md) | — | Agreement template 55b74891 v3: final SaaS master agreement content | ACTIVE | `agent/agreement-template-v3` | `develop` | — | 2026-10-12T19:04:34.256Z |

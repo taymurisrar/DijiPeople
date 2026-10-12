@@ -191,16 +191,26 @@ describe('QA agreements DEFECT-1 — a generated preview resolves placeholders',
     expect(text).not.toContain('{{signature.');
   });
 
-  it('keeps a required unresolved token visible and drops an optional one', () => {
+  it('marks a missing required value visibly and drops an optional one', () => {
     const html = renderContractVersionHtml(
       '<p>{{partner.legalName}}|{{platform.contact.email}}|{{signature.counterparty.date}}</p>',
       [],
       'display',
     );
-    // Required: left as the token the operator still has to fill.
-    expect(html).toContain('{{partner.legalName}}');
-    // Optional (fallback EMPTY) resolves to nothing; signature date is pending.
-    expect(html).toBe('<p>{{partner.legalName}}||Pending</p>');
+    /*
+     * Required: a marked gap the operator still has to fill — never a raw
+     * `{{token}}` (owner decision, 2026-10-13). Optional (fallback EMPTY)
+     * resolves to nothing; the signature date is pending.
+     */
+    expect(html).toBe(
+      '<p><mark data-missing-field="partner.legalName">[Missing: Partner legal name]</mark>||Pending</p>',
+    );
+  });
+
+  it('freezes a missing required value as its token, so the send gate refuses it', () => {
+    expect(
+      renderContractVersionHtml('<p>{{partner.legalName}}</p>', [], 'freeze'),
+    ).toBe('<p>{{partner.legalName}}</p>');
   });
 
   it('the document-fields view renders through the same function', async () => {

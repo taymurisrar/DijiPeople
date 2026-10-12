@@ -17,7 +17,7 @@
 | Open CRITICAL | **8** |
 | Open HIGH | 118 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 14 |
+| Owner decisions pending | 15 |
 | QA coverage gaps | 161 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -49,7 +49,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 | Session | Task | Title | Status | Branch | Target | Leases | Schema |
 |---|---|---|---|---|---|---|---|
-| [[SESSION-0125-agreement-template-hotfix-gates-signer-roles-draft-editing-p|SESSION-0125]] | — | Agreement template hotfix: gates, signer roles, draft editing, print, placeholders | ACTIVE | `agent/agreement-templates-hotfix` | `develop` | — | NO |
+| [[SESSION-0126-agreement-template-55b74891-v3-final-saas-master-agreement-c|SESSION-0126]] | — | Agreement template 55b74891 v3: final SaaS master agreement content | ACTIVE | `agent/agreement-template-v3` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
 
@@ -129,6 +129,7 @@ Questions where the engineering is understood and the **product answer is**
 - [[ITEM-0223-decide-which-lifecycle-events-the-platform-must-emit-to-the-|ITEM-0223]] — **Decide which lifecycle events the platform must emit to the Events stream**
 - [[ITEM-0224-decide-whether-business-rule-rejections-should-be-recorded-b|ITEM-0224]] — **Decide whether business-rule rejections should be recorded but not queued as incidents**
 - [[ITEM-0227-automatic-commission-accrual-from-collected-invoices|ITEM-0227]] — **Automatic commission accrual from collected invoices**
+- [[ITEM-0229-agreement-template-55b74891-content-decisions-and-signer-not|ITEM-0229]] — **Agreement template 55b74891 content decisions and signer notification gaps**
 - [[ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins|ITEM-0191]] — **Decide whether custom modules need their own access keys instead of the shared custom-records privilege**
 
 ## QA Coverage Gaps
@@ -307,7 +308,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 | Open total | 289 |
 | Blocked | 4 |
 | Deferred | 124 |
-| Awaiting a product decision | 14 |
+| Awaiting a product decision | 15 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

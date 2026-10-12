@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**788 records** — 560 bugs under [`docs/bugs/`](../bugs/), 228 non-bug items under [`items/`](items/).
+**789 records** — 560 bugs under [`docs/bugs/`](../bugs/), 229 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -16,7 +16,7 @@ see [`README.md`](README.md) for why.
 | Open (active work) | 289 |
 | Blocked | 4 |
 | Deferred | 124 |
-| Awaiting a product decision | 14 |
+| Awaiting a product decision | 15 |
 | Completed / closed | 357 |
 | **Open CRITICAL** | **8** |
 | **Open HIGH** | **118** |
@@ -60,7 +60,7 @@ see [`README.md`](README.md) for why.
 | IN_PROGRESS | 1 |
 | BLOCKED | 4 |
 | DEFERRED | 124 |
-| PRODUCT_DECISION | 14 |
+| PRODUCT_DECISION | 15 |
 | FIXED | 208 |
 | VERIFIED | 221 |
 | DUPLICATE | 11 |
@@ -854,6 +854,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0224](../../docs/backlog/items/ITEM-0224-decide-whether-business-rule-rejections-should-be-recorded-b.md) | Decide whether business-rule rejections should be recorded but not queued as incidents | PRODUCT_DECISION | — | P2 | PRODUCT_DECISION | error-logs | PRODUCT_DECISION |
 | [ITEM-0225](../../docs/backlog/items/ITEM-0225-re-verify-historical-frontend-dto-contract-drift-400s-agains.md) | Re-verify historical frontend/DTO contract-drift 400s against current DTOs before resolving them | FOLLOW_UP | — | P2 | READY | error-logs | PLAN_REQUIRED |
 | [ITEM-0227](../../docs/backlog/items/ITEM-0227-automatic-commission-accrual-from-collected-invoices.md) | Automatic commission accrual from collected invoices | PRODUCT_DECISION | — | P2 | PRODUCT_DECISION | partners, billing | PRODUCT_DECISION |
+| [ITEM-0229](../../docs/backlog/items/ITEM-0229-agreement-template-55b74891-content-decisions-and-signer-not.md) | Agreement template 55b74891 content decisions and signer notification gaps | PRODUCT_DECISION | — | P2 | PRODUCT_DECISION | contracts | PRODUCT_DECISION |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |
 | [ITEM-0114](../../docs/backlog/items/ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-.md) | The workspace shell states the tenant's identity four times and its purpose twice | UX | — | P3 | DONE | views, apps/web | DONE |

@@ -1313,6 +1313,13 @@ export const ERROR_CATALOG = {
     'warning',
     'validation',
   ),
+  CONTRACT_REQUIRED_TERMS_MISSING: entry(
+    400,
+    'Agreement terms incomplete',
+    'Some terms this agreement requires are missing or invalid. Complete them in the document fields, then send again.',
+    'warning',
+    'validation',
+  ),
   CONTRACT_TEMPLATE_VERSION_LOCKED: entry(
     409,
     'Template version cannot be edited',

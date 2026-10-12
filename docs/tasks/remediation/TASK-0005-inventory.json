@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 788,
+    "total_records": 789,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -34611,6 +34611,44 @@
           "partner-experience"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0228-onboarding-and-activation-links-are-stored-verbatim-in-platf.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0229",
+      "type": "PRODUCT_DECISION",
+      "title": "Agreement template 55b74891 content decisions and signer notification gaps",
+      "severity": "",
+      "priority": "P2",
+      "current_status": "PRODUCT_DECISION",
+      "architect_disposition": "PRODUCT_DECISION",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0229-agreement-template-55b74891-content-decisions-and-signer-not.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-10-12",
+        "updated_at": "2026-10-13",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "contracts"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "contracts"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0229-agreement-template-55b74891-content-decisions-and-signer-not.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

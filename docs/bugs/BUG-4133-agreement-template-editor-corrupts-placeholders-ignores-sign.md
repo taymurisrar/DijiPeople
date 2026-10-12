@@ -135,6 +135,7 @@ template 55b74891 v1 and v2 against the fixed code: no token left unresolved.
 
 ## Related
 
+- Referenced by — [[ITEM-0229]]
 - Modules — [[contracts-and-agreements]]
 - Regression — REG-681 (see the regression register)
 
