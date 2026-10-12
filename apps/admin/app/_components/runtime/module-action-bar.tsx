@@ -243,7 +243,22 @@ export function ModuleActionBar({
    */
   const confirmCopy = useMemo(
     () =>
-      describeDestructiveConfirm({
+      confirmAction && !isDeleteAction(confirmAction) && confirmAction.confirmTitle
+        ? /*
+           * Not a delete: say what *this* action does. The delete wording
+           * ("permanently deletes … cannot be undone") was shown for Archive,
+           * Unpublish and Suspend alike, which told the operator something
+           * false about the click they were about to make.
+           */
+          {
+            title: confirmAction.confirmTitle,
+            description: confirmAction.confirmDescription ?? "",
+            names:
+              context.scope === "record"
+                ? [recordDisplayName(context.record) ?? ""].filter(Boolean)
+                : (context.selectedLabels ?? []).slice(0, 5),
+          }
+        : describeDestructiveConfirm({
         labels:
           context.scope === "record"
             ? [recordDisplayName(context.record) ?? ""].filter(Boolean)
@@ -263,8 +278,14 @@ export function ModuleActionBar({
   );
 
   function execute(action: RuntimeActionDefinition) {
-    // A reason-prompted action is confirmed by its reason dialog instead.
-    if (action.destructive && !action.reasonPrompt && !confirmAction) {
+    // A reason-prompted action is confirmed by its reason dialog instead. A
+    // declared confirmTitle asks first too: Unpublish is not destructive, but
+    // taking a plan off sale is not a one-click act either.
+    if (
+      (action.destructive || action.confirmTitle) &&
+      !action.reasonPrompt &&
+      !confirmAction
+    ) {
       setConfirmAction(action);
       setDependencyCheck(dependencyCheckFor(action, context));
       return;
@@ -424,9 +445,11 @@ export function ModuleActionBar({
           className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/40 p-4"
         >
           <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-rose-50 text-rose-700">
-              <Trash2 className="h-5 w-5" />
-            </div>
+            {isDeleteAction(confirmAction) ? (
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-rose-50 text-rose-700">
+                <Trash2 className="h-5 w-5" />
+              </div>
+            ) : null}
             <h2
               id="runtime-confirm-title"
               className="mt-4 text-lg font-semibold text-slate-950"
@@ -456,9 +479,9 @@ export function ModuleActionBar({
               <button
                 type="button"
                 onClick={() => execute(confirmAction)}
-                className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white"
+                className={`rounded-xl px-4 py-2 text-sm font-semibold text-white ${confirmAction.destructive ? "bg-rose-600" : "bg-[var(--admin-primary)]"}`}
               >
-                Confirm
+                {confirmAction.label}
               </button>
             </div>
           </div>
@@ -672,4 +695,8 @@ function iconFor(action: RuntimeActionDefinition) {
     ACTION_ICONS[inferredIcon] ??
     ACTION_ICONS.check!;
   return <Icon className="h-4 w-4" />;
+}
+
+function isDeleteAction(action: RuntimeActionDefinition) {
+  return action.key === "delete" || action.key === "bulk-delete";
 }

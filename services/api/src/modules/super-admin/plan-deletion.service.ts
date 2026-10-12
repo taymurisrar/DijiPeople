@@ -43,7 +43,7 @@ export type PlanFacts = {
 /**
  * When a plan may be permanently deleted (owner decision, 2026-10-12).
  *
- * - **Live** — active or published. Deactivate or archive it first, so a plan
+ * - **Live** — active or published. Unpublish or archive and deactivate it first, so a plan
  *   never vanishes from the pricing page and the checkout in one click.
  * - **Sold** (`RETAIN`) — a subscription, a subscription order or a plan
  *   change ever referenced it. That is billing history; invoices and payments
@@ -88,7 +88,7 @@ export function classifyPlanDependencies(facts: PlanFacts): RecordDependency[] {
       live ? 1 : 0,
       ['active or published plan', 'active or published plans'],
       'BLOCKS',
-      'Only an inactive plan can be deleted. Deactivate or archive it first.',
+      'Only an unpublished, inactive plan can be deleted. Unpublish or archive it and deactivate it first.',
     ),
     dep(
       'subscriptions',

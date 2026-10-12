@@ -91,6 +91,7 @@ function buildService() {
     sendOnboardingInvitation: record(1),
   };
   const superAdmin = { convertLeadToCustomer: record(1) };
+  const planPublication = { transition: record(1) };
   const contracts = {
     voidContract: record(1),
     terminateContract: record(1),
@@ -119,6 +120,9 @@ function buildService() {
     partnerExperience as never,
     {} as never,
     {} as never,
+    {} as never,
+    {} as never,
+    planPublication as never,
   );
   return { service, seen };
 }

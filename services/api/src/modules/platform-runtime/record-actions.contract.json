@@ -19,7 +19,7 @@
     "terminate-agreement",
     "void-agreement"
   ],
-  "plans": [],
+  "plans": ["publish", "unpublish", "archive"],
   "commissions": [
     "approve-commission",
     "mark-commission-paid",

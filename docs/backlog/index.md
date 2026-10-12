@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**786 records** — 558 bugs under [`docs/bugs/`](../bugs/), 228 non-bug items under [`items/`](items/).
+**787 records** — 559 bugs under [`docs/bugs/`](../bugs/), 228 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 287 |
+| Open (active work) | 288 |
 | Blocked | 4 |
 | Deferred | 124 |
 | Awaiting a product decision | 14 |
 | Completed / closed | 357 |
 | **Open CRITICAL** | **8** |
-| **Open HIGH** | **116** |
+| **Open HIGH** | **117** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,7 +27,7 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 8 |
-| HIGH | 116 |
+| HIGH | 117 |
 | MEDIUM | 132 |
 | LOW | 30 |
 
@@ -36,7 +36,7 @@ see [`README.md`](README.md) for why.
 | Type | Count |
 |---|---|
 | AUTHORIZATION | 17 |
-| BUG | 89 |
+| BUG | 90 |
 | DATABASE | 1 |
 | DATA_INTEGRITY | 27 |
 | DOCUMENTATION | 1 |
@@ -61,7 +61,7 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 4 |
 | DEFERRED | 124 |
 | PRODUCT_DECISION | 14 |
-| FIXED | 206 |
+| FIXED | 207 |
 | VERIFIED | 221 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
@@ -328,6 +328,7 @@ see [`README.md`](README.md) for why.
 | [BUG-4060](../../docs/bugs/BUG-4060-support-case-tenant-lookup-ignores-the-selected-customer-and.md) | Support case Tenant lookup ignores the selected Customer and the API accepts mismatched pairs | AUTHORIZATION | HIGH | P1 | FIXED | support-cases, apps/admin | FIX_NOW |
 | [BUG-4061](../../docs/bugs/BUG-4061-support-case-escalate-always-fails-with-400-and-statuses-cha.md) | Support case Escalate always fails with 400 and statuses change without validation | BUG | HIGH | P1 | FIXED | support-cases, apps/admin | FIX_NOW |
 | [BUG-4098](../../docs/bugs/BUG-4098-admin-refused-every-agreement-and-plan-delete-and-printed-re.md) | Admin refused every agreement and plan delete and printed reference ids as values | BUG | HIGH | P1 | FIXED | contracts, super-admin, platform-runtime | FIX_NOW |
+| [BUG-4120](../../docs/bugs/BUG-4120-a-published-plan-could-not-be-unpublished-or-archived-so-the.md) | A published plan could not be unpublished or archived, so the delete rule pointed at an action that did not exist | BUG | HIGH | P1 | FIXED | super-admin, platform-runtime, apps/admin | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |

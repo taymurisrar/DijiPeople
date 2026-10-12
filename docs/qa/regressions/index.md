@@ -7398,3 +7398,17 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — removing any lookup link fails lookup-links (mutation-tested), and the repair spec asserts empty surnames rather than placeholders. |
 | **Fixed** | 2026-10-12, branch `agent/owner-names-and-lookup-links` |
 | **Active** | yes |
+
+### REG-680 — A published plan could not be unpublished, archived or deleted
+
+| | |
+|---|---|
+| **Bug class** | `unreachable-transition` |
+| **Module** | `services/api` |
+| **Bug record** | BUG-4120 |
+| **Root cause** | Plan deletion required an unpublished plan, but no action could change a plan's publication; the governed actions were still a backlog item. |
+| **Regression test** | `services/api/src/modules/super-admin/plan-publication.spec.ts`, `services/api/src/modules/platform-runtime/record-action-dispatch.spec.ts`, `apps/admin/lib/runtime/record-action-routing.spec.ts`. |
+| **Scenario** | QA-PLATFORM-065 — A published plan can be unpublished, archived and then deleted. |
+| **Fails without the fix** | Yes — the dispatch and routing specs read the plans entry of the shared action contract, and the publication spec asserts each transition and refusal. |
+| **Fixed** | 2026-10-12, branch `agent/plan-publication-actions` |
+| **Active** | yes |

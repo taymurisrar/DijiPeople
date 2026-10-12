@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 485** · automated: 397 · manual: 27 · blocked by infrastructure: 0
+**Scenarios: 486** · automated: 398 · manual: 27 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -327,6 +327,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-PLATFORM-062](../../../docs/qa/scenarios/QA-PLATFORM-062-admin-notification-bell-stops-polling-after-the-session-ends.md) | Admin notification bell stops polling after the session ends | notifications | UNIT | LOW | AUTOMATED | `apps/admin/app/_components/notifications/notification-model.spec.ts` | BUG-3895 | REG-677 |
 | [QA-PLATFORM-063](../../../docs/qa/scenarios/QA-PLATFORM-063-admin-deletes-draft-agreements-and-inactive-never-sold-plans.md) | Admin deletes draft agreements and inactive never-sold plans, keeps evidence, and shows names not ids | platform-admin | API | HIGH | AUTOMATED | `services/api/src/modules/contracts/contract-deletion.spec.ts` | BUG-4098 | REG-678 |
 | [QA-PLATFORM-064](../../../docs/qa/scenarios/QA-PLATFORM-064-owner-names-are-stored-as-entered-placeholders-are-repaired-.md) | Owner names are stored as entered, placeholders are repaired, and every lookup links | platform-admin | BROWSER_E2E | MEDIUM | AUTOMATED | `apps/admin/lib/runtime/lookup-links.spec.ts` | BUG-4111 | REG-679 |
+| [QA-PLATFORM-065](../../../docs/qa/scenarios/QA-PLATFORM-065-a-published-plan-can-be-unpublished-archived-and-then-delete.md) | A published plan can be unpublished, archived and then deleted | platform-admin | BROWSER_E2E | HIGH | AUTOMATED | `services/api/src/modules/super-admin/plan-publication.spec.ts` | BUG-4120 | REG-680 |
 | [QA-PROV-001](../../../docs/qa/scenarios/QA-PROV-001-a-tenant-that-failed-provisioning-can-be-retried.md) | A tenant that failed provisioning can be retried | tenant-provisioning | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/tenant-control-plane/tenant-provisioning-retry.spec.ts` | BUG-0014 | REG-012 |
 | [QA-PROV-002](../../../docs/qa/scenarios/QA-PROV-002-provisioning-is-safe-to-submit-twice.md) | Provisioning is safe to submit twice | tenant-provisioning | UNIT | CRITICAL | AUTOMATED | `services/api/src/modules/super-admin/tenant-provisioning-idempotency.spec.ts` | BUG-0022 | REG-030 |
 | [QA-PROV-003](../../../docs/qa/scenarios/QA-PROV-003-issued-tenant-hostnames-honour-the-configured-base-domain.md) | Issued tenant hostnames honour the configured base domain | tenant-provisioning | UNIT | HIGH | AUTOMATED | `services/api/src/common/config/tenant-url.config.spec.ts` | BUG-0017, BUG-0026 | REG-016, REG-027 |

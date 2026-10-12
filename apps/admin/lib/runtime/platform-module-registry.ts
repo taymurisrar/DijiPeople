@@ -4416,7 +4416,49 @@ const definitions: PlatformModuleDefinition[] = [
       ],
     ),
     forms: planForms(),
-    actions: [...CREATE_LIST_ACTIONS, ...EDIT_RECORD_ACTIONS],
+    actions: [
+      ...CREATE_LIST_ACTIONS,
+      ...EDIT_RECORD_ACTIONS,
+      /*
+       * Publication moves only through these (ITEM-0022): the form shows it
+       * read-only. Without Unpublish a published plan could never be taken
+       * down — or deleted, since delete requires an unpublished plan.
+       */
+      {
+        key: "publish",
+        label: "Publish",
+        scope: "record",
+        placement: "secondary",
+        selection: "none",
+        visibleWhen: { field: "publicationStatus", in: ["DRAFT"] },
+        confirmTitle: "Publish this plan?",
+        confirmDescription:
+          "It appears on the pricing page and new customers can buy it.",
+      },
+      {
+        key: "unpublish",
+        label: "Unpublish",
+        scope: "record",
+        placement: "secondary",
+        selection: "none",
+        visibleWhen: { field: "publicationStatus", in: ["PUBLISHED"] },
+        confirmTitle: "Unpublish this plan?",
+        confirmDescription:
+          "It leaves the pricing page and cannot be bought until published again. Existing subscriptions are unaffected.",
+      },
+      {
+        key: "archive",
+        label: "Archive",
+        scope: "record",
+        placement: "overflow",
+        selection: "none",
+        destructive: true,
+        visibleWhen: { field: "publicationStatus", in: ["DRAFT", "PUBLISHED"] },
+        confirmTitle: "Archive this plan?",
+        confirmDescription:
+          "It is retired for good and cannot be published again. Existing subscriptions are unaffected.",
+      },
+    ],
     /*
      * These declared no `tab`, and the record page only renders a relationship
      * whose tab is the active one — so a plan with tabs named "Subscriptions"
@@ -5564,7 +5606,7 @@ function planForms() {
           "option",
           "publication",
         ),
-        "Set through the governed publish and archive actions tracked as ITEM-0022, not from this form.",
+        "Changed with the Publish, Unpublish and Archive actions, not from this form.",
       ),
       tab: "commercial",
     },

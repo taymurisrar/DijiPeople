@@ -146,7 +146,7 @@ describe('Plan deletion — inactive and never sold (2026-10-12)', () => {
   ])('refuses a %s plan and says to deactivate it first', async (_l, row) => {
     const { service, tx } = serviceWith(row);
     await expect(service.deletePlan(ACTOR, 'plan-1')).rejects.toThrow(
-      /Deactivate or archive it first/,
+      /Unpublish or archive it and deactivate it first/,
     );
     expect(tx.plan.delete).not.toHaveBeenCalled();
   });
