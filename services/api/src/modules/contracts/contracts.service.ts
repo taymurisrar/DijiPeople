@@ -3678,8 +3678,19 @@ export class ContractsService {
       throw new BadRequestException(
         'Create a contract version before approval.',
       );
+    /*
+     * `{{contract.version}}` is derived, never stored, and the document-fields
+     * view rightly offers no way to type it. Validating only stored values
+     * reported it as "Agreement version is required." with nowhere to enter
+     * it; it is computed here exactly as the send freeze computes it.
+     */
     const placeholderValues = Object.fromEntries(
-      contract.placeholderValues.map((item) => [item.key, item.value]),
+      [
+        ...contract.placeholderValues.filter(
+          (item) => !DERIVED_PLACEHOLDER_KEYS.has(item.key),
+        ),
+        agreementRevisionRow(contract.signatureRequests.length),
+      ].map((item) => [item.key, item.value]),
     );
     const approvalDefinitions = extractContractPlaceholders(
       currentVersion.contentHtml,
