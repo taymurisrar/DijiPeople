@@ -13,10 +13,10 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 292 |
+| Open (active work) | 293 |
 | Blocked | 4 |
 | Deferred | 124 |
-| Awaiting a product decision | 16 |
+| Awaiting a product decision | 15 |
 | Completed / closed | 357 |
 | **Open CRITICAL** | **8** |
 | **Open HIGH** | **120** |
@@ -44,7 +44,7 @@ see [`README.md`](README.md) for why.
 | INFRA | 7 |
 | INTEGRATION | 7 |
 | PERFORMANCE | 15 |
-| PRODUCT_DECISION | 2 |
+| PRODUCT_DECISION | 3 |
 | SECURITY | 27 |
 | STATE_MACHINE | 6 |
 | TECH_DEBT | 8 |
@@ -57,10 +57,10 @@ see [`README.md`](README.md) for why.
 | Status | Count |
 |---|---|
 | OPEN | 55 |
-| IN_PROGRESS | 1 |
+| IN_PROGRESS | 2 |
 | BLOCKED | 4 |
 | DEFERRED | 124 |
-| PRODUCT_DECISION | 16 |
+| PRODUCT_DECISION | 15 |
 | FIXED | 211 |
 | VERIFIED | 221 |
 | DUPLICATE | 11 |
@@ -858,7 +858,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0225](../../docs/backlog/items/ITEM-0225-re-verify-historical-frontend-dto-contract-drift-400s-agains.md) | Re-verify historical frontend/DTO contract-drift 400s against current DTOs before resolving them | FOLLOW_UP | — | P2 | READY | error-logs | PLAN_REQUIRED |
 | [ITEM-0227](../../docs/backlog/items/ITEM-0227-automatic-commission-accrual-from-collected-invoices.md) | Automatic commission accrual from collected invoices | PRODUCT_DECISION | — | P2 | PRODUCT_DECISION | partners, billing | PRODUCT_DECISION |
 | [ITEM-0229](../../docs/backlog/items/ITEM-0229-agreement-template-55b74891-content-decisions-and-signer-not.md) | Agreement template 55b74891 content decisions and signer notification gaps | PRODUCT_DECISION | — | P2 | PRODUCT_DECISION | contracts | PRODUCT_DECISION |
-| [ITEM-0230](../../docs/backlog/items/ITEM-0230-master-saas-agreement-pricing-basis-pilot-vs-expiry-dates-pr.md) | Master SaaS agreement: pricing basis, pilot vs expiry dates, provider legal identity, co-signer party model | PRODUCT_DECISION | — | P2 | PRODUCT_DECISION | contracts | PRODUCT_DECISION |
+| [ITEM-0230](../../docs/backlog/items/ITEM-0230-master-saas-agreement-pricing-basis-pilot-vs-expiry-dates-pr.md) | Master SaaS agreement: pricing basis, pilot vs expiry dates, provider legal identity, co-signer party model | PRODUCT_DECISION | — | P2 | IN_PROGRESS | contracts | FIX_NOW |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |
 | [ITEM-0114](../../docs/backlog/items/ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-.md) | The workspace shell states the tenant's identity four times and its purpose twice | UX | — | P3 | DONE | views, apps/web | DONE |

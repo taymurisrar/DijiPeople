@@ -9,9 +9,9 @@
 |---|---|
 | Open CRITICAL | **8** |
 | Open HIGH | **120** |
-| Open total | 292 |
+| Open total | 293 |
 | Blocked | 4 |
-| Awaiting a product decision | 16 |
+| Awaiting a product decision | 15 |
 | Deferred | 124 |
 | Completed | 357 |
 | Awaiting Architect triage | 0 |
@@ -172,7 +172,6 @@
 | [[ITEM-0224-decide-whether-business-rule-rejections-should-be-recorded-b|ITEM-0224]] | Decide whether business-rule rejections should be recorded but not queued as incidents | PRODUCT_DECISION | — | PRODUCT_DECISION | error-logs | PRODUCT_DECISION |
 | [[ITEM-0227-automatic-commission-accrual-from-collected-invoices|ITEM-0227]] | Automatic commission accrual from collected invoices | PRODUCT_DECISION | — | PRODUCT_DECISION | partners, billing | PRODUCT_DECISION |
 | [[ITEM-0229-agreement-template-55b74891-content-decisions-and-signer-not|ITEM-0229]] | Agreement template 55b74891 content decisions and signer notification gaps | PRODUCT_DECISION | — | PRODUCT_DECISION | contracts | PRODUCT_DECISION |
-| [[ITEM-0230-master-saas-agreement-pricing-basis-pilot-vs-expiry-dates-pr|ITEM-0230]] | Master SaaS agreement: pricing basis, pilot vs expiry dates, provider legal identity, co-signer party model | PRODUCT_DECISION | — | PRODUCT_DECISION | contracts | PRODUCT_DECISION |
 | [[ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins|ITEM-0191]] | Decide whether custom modules need their own access keys instead of the shared custom-records privilege | PRODUCT_DECISION | — | PRODUCT_DECISION | data, permissions | PRODUCT_DECISION |
 
 ## Blocked Items
@@ -855,6 +854,7 @@
 | [[BUG-4034-runtime-lists-rendered-the-definition-s-default-columns-then|BUG-4034]] | Runtime lists rendered the definition's default columns, then swapped to the saved view's columns (column flash on load) | UX | LOW | FIXED | app:admin | FIX_NOW |
 | [[ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by|ITEM-0080]] | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
 | [[ITEM-0225-re-verify-historical-frontend-dto-contract-drift-400s-agains|ITEM-0225]] | Re-verify historical frontend/DTO contract-drift 400s against current DTOs before resolving them | FOLLOW_UP | — | READY | error-logs | PLAN_REQUIRED |
+| [[ITEM-0230-master-saas-agreement-pricing-basis-pilot-vs-expiry-dates-pr|ITEM-0230]] | Master SaaS agreement: pricing basis, pilot vs expiry dates, provider legal identity, co-signer party model | PRODUCT_DECISION | — | IN_PROGRESS | contracts | FIX_NOW |
 
 ## Key Architecture Decisions
 

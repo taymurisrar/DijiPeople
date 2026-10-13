@@ -40,6 +40,8 @@ export type SignatoryForBlock = {
   /** The contracting party the person signs for. */
   organization?: string | null;
   email?: string | null;
+  /** A contracting party in its own right, not a co-signer for another. */
+  separateParty?: boolean;
 };
 
 type SlotSubject = Pick<
@@ -116,7 +118,9 @@ function escapeBlockText(value: string) {
 }
 
 function signatureBlockHtml(signer: SignatoryForBlock, ordinal: number) {
-  const caption = `${partyCaption(signer.partyType)}${ordinal > 1 ? ` — AUTHORIZED SIGNATORY ${ordinal}` : ''}`;
+  const caption = signer.separateParty
+    ? `FOR ${escapeBlockText((signer.organization || signer.name).toUpperCase())}`
+    : `${partyCaption(signer.partyType)}${ordinal > 1 ? ` — AUTHORIZED SIGNATORY ${ordinal}` : ''}`;
   const details = [
     signer.organization
       ? `Legal Contracting Party: ${escapeBlockText(signer.organization)}`
@@ -188,6 +192,7 @@ export function insertAdditionalSignatureBlocks(
   const ordinals = new Map<SignatoryForBlock, number>();
   const counts = new Map<string, number>();
   for (const signer of ordered) {
+    if (signer.separateParty) continue;
     const side = partyCaption(signer.partyType);
     const next = (counts.get(side) ?? 0) + 1;
     counts.set(side, next);
@@ -199,20 +204,53 @@ export function insertAdditionalSignatureBlocks(
     .join('')}${normalized.slice(at)}`;
 }
 
+type PartyCapacitySubject = {
+  partyType?: string | null;
+  name?: string | null;
+  legalName?: string | null;
+  isPrimary?: boolean | null;
+  metadata?: unknown;
+};
+
 /**
- * The contracting party a signer signs for: their own party's legal name,
- * else the primary party of the same type (a second officer signing for the
- * customer signs for the customer), else their party's name.
+ * How a party signs (owner decision, ITEM-0230): `SEPARATE_PARTY` is a
+ * contracting party in its own right; `ADDITIONAL_SIGNATORY` signs for the
+ * primary party of its type. Set on the party in Platform Admin and kept in
+ * its metadata; null on parties created before the choice existed.
+ */
+export function partySigningCapacity(
+  party: PartyCapacitySubject | null | undefined,
+) {
+  const metadata = party?.metadata;
+  const value =
+    metadata && typeof metadata === 'object' && !Array.isArray(metadata)
+      ? (metadata as Record<string, unknown>).signingCapacity
+      : undefined;
+  return value === 'SEPARATE_PARTY' || value === 'ADDITIONAL_SIGNATORY'
+    ? value
+    : null;
+}
+
+/** Whether a non-primary party signs as its own contracting party. */
+export function isSeparateParty(
+  party: PartyCapacitySubject | null | undefined,
+) {
+  return Boolean(
+    party &&
+    !party.isPrimary &&
+    partySigningCapacity(party) === 'SEPARATE_PARTY',
+  );
+}
+
+/**
+ * The contracting party a signer signs for. A separate party signs for
+ * itself; an additional signatory for the primary party of its type (a
+ * second officer signing for the customer signs for the customer). A party
+ * with no recorded choice keeps the earlier rule: its own legal name, else the
+ * primary party of its type, else its own name.
  */
 export function signerOrganization(
-  party:
-    | {
-        partyType?: string | null;
-        name?: string | null;
-        legalName?: string | null;
-      }
-    | null
-    | undefined,
+  party: PartyCapacitySubject | null | undefined,
   parties: ReadonlyArray<{
     partyType?: string | null;
     name?: string | null;
@@ -221,7 +259,11 @@ export function signerOrganization(
   }>,
 ) {
   if (!party) return null;
-  if (party.legalName) return party.legalName;
+  const capacity = party.isPrimary ? null : partySigningCapacity(party);
+  if (capacity === 'SEPARATE_PARTY')
+    return party.legalName || party.name || null;
+  if (capacity !== 'ADDITIONAL_SIGNATORY' && party.legalName)
+    return party.legalName;
   const primary = parties.find(
     (item) => item.partyType === party.partyType && item.isPrimary,
   );

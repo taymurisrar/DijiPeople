@@ -127,6 +127,61 @@ export function agreementTermProblems(
     const failure = TERM_CHECKS[rule.key]?.(value);
     if (failure) problems.push({ field: rule.key, label, message: failure });
   }
+  return [...problems, ...agreementDateProblems(documentKeys, values, labelOf)];
+}
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Dates that contradict each other. CON-20261012-E7421CC1 was signed with a
+ * pilot ending 15 January 2027 and an agreement expiring 30 January 2027 — a
+ * typing mistake (owner, 2026-10-13) that nothing caught. These apply to
+ * every template that uses the dates, whatever its declared rules, because
+ * no agreement can mean them: a pilot that starts before the agreement does,
+ * ends before it starts, or an agreement that outlives the pilot it governs.
+ *
+ * An agreement that uses both the pilot end and its own expiry is a pilot
+ * agreement whose access ends with the pilot, so the two must be the same
+ * date; a continuing subscription needs a new or amended order, not a later
+ * expiry on this one.
+ */
+export function agreementDateProblems(
+  documentKeys: Set<string>,
+  values: Record<string, string>,
+  labelOf: (key: string) => string,
+): AgreementTermProblem[] {
+  const date = (key: string) => {
+    if (!documentKeys.has(key)) return null;
+    const value = (values[key] ?? '').trim().slice(0, 10);
+    return ISO_DATE.test(value) ? value : null;
+  };
+  const effective = date('contract.effectiveDate');
+  const pilotStart = date('commercial.pilotStartDate');
+  const pilotEnd = date('commercial.pilotEndDate');
+  const expiry = date('contract.expiryDate');
+  const problems: AgreementTermProblem[] = [];
+  const add = (field: string, message: string) =>
+    problems.push({ field, label: labelOf(field), message });
+  if (effective && pilotStart && pilotStart < effective)
+    add(
+      'commercial.pilotStartDate',
+      `The pilot start date (${pilotStart}) is before the agreement's effective date (${effective}).`,
+    );
+  if (pilotStart && pilotEnd && pilotEnd <= pilotStart)
+    add(
+      'commercial.pilotEndDate',
+      `The pilot end date (${pilotEnd}) must be after the pilot start date (${pilotStart}).`,
+    );
+  if (effective && expiry && expiry <= effective)
+    add(
+      'contract.expiryDate',
+      `The expiry date (${expiry}) must be after the effective date (${effective}).`,
+    );
+  if (pilotEnd && expiry && pilotEnd !== expiry)
+    add(
+      'contract.expiryDate',
+      `The expiry date (${expiry}) must be the pilot end date (${pilotEnd}): this agreement ends when its pilot ends.`,
+    );
   return problems;
 }
 

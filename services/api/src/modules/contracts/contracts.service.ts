@@ -74,6 +74,7 @@ import { normalizeSignatureTokens } from './signature-tokens';
 import {
   assignSignatureSlots,
   insertAdditionalSignatureBlocks,
+  isSeparateParty,
   SIGNER_SLOT_PREFIX,
   signerOrganization,
   type SignatoryForBlock,
@@ -407,6 +408,28 @@ export const CONTRACT_PLACEHOLDER_REGISTRY: ContractPlaceholderDefinition[] = [
     securityClassification: 'CONFIDENTIAL',
   }),
   placeholder(
+    'platform.entityType',
+    'Platform entity type',
+    'TEXT',
+    'Company',
+    {
+      ...optional,
+      description:
+        'Company or Individual, from Settings → Company profile → Entity type.',
+    },
+  ),
+  placeholder(
+    'platform.legalIdentity',
+    'Platform legal identity',
+    'TEXT',
+    'DijiPeople Technologies Ltd., a company registered under number CR-1010203040',
+    {
+      ...optional,
+      description:
+        'Who the provider legally is: the company (with its registration number when one is set), or the individual and the name they trade under.',
+    },
+  ),
+  placeholder(
     'platform.contact.email',
     'Platform contact email',
     'EMAIL',
@@ -588,6 +611,19 @@ export const CONTRACT_PLACEHOLDER_REGISTRY: ContractPlaceholderDefinition[] = [
     ...optional,
     formattingRule: 'currency',
   }),
+  /*
+   * What the agreed price is a price of. Owner decision (ITEM-0230,
+   * 2026-10-13): subscriptions are priced per Active Employee per month. The
+   * executed CON-20261012-E7421CC1 printed "PKR 6,000.00" with no unit, which
+   * read equally as a flat monthly fee or a pilot total.
+   */
+  placeholder(
+    'commercial.priceBasis',
+    'Price basis',
+    'TEXT',
+    'per Active Employee per month',
+    { ...optional, defaultValue: 'per Active Employee per month' },
+  ),
   placeholder(
     'commercial.billingCycle',
     'Billing cycle',
@@ -1546,6 +1582,7 @@ export class ContractsService {
         .filter(Boolean)
         .join(', '),
       'platform.reportingCurrency': reportingCurrency,
+      ...platformIdentityValues(companyProfile, agreementTerms),
       ...definedValues({
         'platform.registrationNumber': companyProfile.registrationNumber,
         'platform.taxId': companyProfile.taxNumber,
@@ -2713,6 +2750,7 @@ export class ContractsService {
       'platform.registrationNumber': companyProfile.registrationNumber,
       'platform.taxId': companyProfile.taxNumber,
       'platform.contact.email': companyProfile.supportEmail,
+      ...platformIdentityValues(companyProfile, agreementTerms),
     });
 
     /*
@@ -4015,6 +4053,9 @@ export class ContractsService {
           dto.signatureRequired === true || (dto.isSignatory ?? false),
         signatureRequired: dto.signatureRequired ?? dto.isSignatory ?? false,
         signingOrder: dto.signingOrder ?? 1,
+        ...(dto.signingCapacity
+          ? { metadata: { signingCapacity: dto.signingCapacity } }
+          : {}),
       },
     });
     await this.timeline(
@@ -4035,11 +4076,26 @@ export class ContractsService {
     this.assertWrite(user);
     const contract = await this.get(user, contractId);
     this.assertAgreementEditable(contract.status);
-    if (!contract.parties.some((party) => party.id === partyId))
+    const existing = contract.parties.find((party) => party.id === partyId);
+    if (!existing)
       throw new NotFoundException('Agreement party was not found.');
+    const existingMetadata =
+      existing.metadata &&
+      typeof existing.metadata === 'object' &&
+      !Array.isArray(existing.metadata)
+        ? (existing.metadata as Record<string, unknown>)
+        : {};
     await this.prisma.contractParty.update({
       where: { id: partyId },
       data: {
+        ...(dto.signingCapacity !== undefined
+          ? {
+              metadata: {
+                ...existingMetadata,
+                signingCapacity: dto.signingCapacity,
+              } as Prisma.InputJsonValue,
+            }
+          : {}),
         ...(dto.partyType !== undefined ? { partyType: dto.partyType } : {}),
         ...(dto.role !== undefined ? { role: dto.role } : {}),
         ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
@@ -5678,6 +5734,7 @@ export class ContractsService {
             isSignatory: true,
             signatureRequired: true,
             signingOrder: true,
+            metadata: true,
           },
         },
         _count: { select: { signatureRequests: true } },
@@ -5747,6 +5804,7 @@ export class ContractsService {
                   name: true,
                   legalName: true,
                   isPrimary: true,
+                  metadata: true,
                 },
               },
             },
@@ -6355,6 +6413,8 @@ export class ContractsService {
       taxNumber: text('taxNumber'),
       supportEmail: text('supportEmail'),
       website: text('website'),
+      entityType: text('entityType', 'Company'),
+      proprietorName: text('proprietorName'),
     };
   }
 
@@ -6403,6 +6463,7 @@ export class ContractsService {
                     isPrimary: true,
                     name: true,
                     legalName: true,
+                    metadata: true,
                   },
                 },
               },
@@ -7374,6 +7435,43 @@ export type StoredContractPlaceholderValue = {
 export const DERIVED_PLACEHOLDER_KEYS = new Set(['contract.version']);
 
 /**
+ * The provider's legal identity as an agreement states it. Owner decision
+ * (ITEM-0230, 2026-10-13): DijiPeople may contract as a company or as an
+ * individual, and today holds no company registration or tax number — so the
+ * Parties clause cannot assume a registered company. A company reads
+ * "<legal name>, a company registered under number <n>" (the number only when
+ * one is set); an individual reads "<proprietor>, an individual trading as
+ * <legal name>", the proprietor defaulting to the authorized signer.
+ */
+export function platformIdentityValues(
+  profile: {
+    legalName: string;
+    registrationNumber?: string;
+    entityType?: string;
+    proprietorName?: string;
+  },
+  terms: Record<string, string | undefined> = {},
+) {
+  const individual =
+    (profile.entityType ?? '').trim().toLowerCase() === 'individual';
+  const registration = (profile.registrationNumber ?? '').trim();
+  const proprietor =
+    (profile.proprietorName ?? '').trim() ||
+    (terms['platform.authorizedSigner.name'] ?? '').trim();
+  const legalIdentity = individual
+    ? proprietor
+      ? `${proprietor}, an individual trading as ${profile.legalName}`
+      : profile.legalName
+    : registration
+      ? `${profile.legalName}, a company registered under number ${registration}`
+      : profile.legalName;
+  return {
+    'platform.entityType': individual ? 'Individual' : 'Company',
+    'platform.legalIdentity': legalIdentity,
+  };
+}
+
+/**
  * `{{contract.version}}` for an agreement that has been issued for signature
  * `issuedCount` times so far: the revision the next issue (or the current
  * draft's preview) carries. Computed the same way for the preview, the
@@ -7511,6 +7609,7 @@ export function partySignatories(
         isSignatory?: boolean | null;
         signatureRequired?: boolean | null;
         signingOrder?: number | null;
+        metadata?: unknown;
       }>
     | null
     | undefined,
@@ -7526,6 +7625,7 @@ export function partySignatories(
       name: party.name,
       organization: signerOrganization(party, all),
       email: party.email,
+      separateParty: isSeparateParty(party),
     }));
 }
 
@@ -7542,6 +7642,7 @@ export function recipientSignatories(
       isPrimary?: boolean | null;
       name?: string | null;
       legalName?: string | null;
+      metadata?: unknown;
     } | null;
   }>,
 ): SignatoryForBlock[] {
@@ -7558,6 +7659,7 @@ export function recipientSignatories(
       name: recipient.name,
       organization: signerOrganization(recipient.party, parties),
       email: recipient.email,
+      separateParty: isSeparateParty(recipient.party),
     }));
 }
 
@@ -7626,6 +7728,7 @@ export type SignatureEvidenceForRender = {
       isPrimary?: boolean | null;
       name?: string | null;
       legalName?: string | null;
+      metadata?: unknown;
     } | null;
   };
 };
@@ -7650,6 +7753,7 @@ function evidenceSignatories(evidenceRows: SignatureEvidenceForRender[]) {
       name: evidence.recipient.name,
       organization: signerOrganization(evidence.recipient.party, parties),
       email: evidence.recipient.email,
+      separateParty: isSeparateParty(evidence.recipient.party),
     }),
   );
 }

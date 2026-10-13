@@ -1005,6 +1005,8 @@ type AgreementParty = {
   isSignatory: boolean;
   signatureRequired: boolean;
   signingOrder: number;
+  /** "" until chosen; see SIGNING_CAPACITY_OPTIONS. */
+  signingCapacity: string;
 };
 
 /*
@@ -1023,7 +1025,56 @@ function agreementPartyPayload(party: Omit<AgreementParty, "id">) {
     signatureRequired: party.signatureRequired,
     signingOrder: party.signingOrder,
     ...(email ? { email } : {}),
+    ...(party.signingCapacity
+      ? { signingCapacity: party.signingCapacity }
+      : {}),
   };
+}
+
+/*
+ * Owner decision (ITEM-0230): a second signer of a party either signs for the
+ * primary party of its type or is a contracting party of its own. The primary
+ * party is always itself, so the choice applies to the others only.
+ */
+const SIGNING_CAPACITY_OPTIONS = [
+  { value: "ADDITIONAL_SIGNATORY", label: "Additional signatory" },
+  { value: "SEPARATE_PARTY", label: "Separate party" },
+];
+
+function signingCapacityOf(metadata: unknown) {
+  const value =
+    metadata && typeof metadata === "object" && !Array.isArray(metadata)
+      ? (metadata as Record<string, unknown>).signingCapacity
+      : undefined;
+  return typeof value === "string" ? value : "";
+}
+
+function SigningCapacitySelect({
+  value,
+  disabled,
+  label,
+  onChange,
+}: {
+  value: string;
+  disabled: boolean;
+  label: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <select
+      disabled={disabled}
+      value={value || "ADDITIONAL_SIGNATORY"}
+      onChange={(event) => onChange(event.target.value)}
+      aria-label={label}
+      className="h-10 min-w-40 rounded-lg border border-slate-200 bg-white px-3 text-xs"
+    >
+      {SIGNING_CAPACITY_OPTIONS.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  );
 }
 
 function agreementParties(value: unknown): AgreementParty[] {
@@ -1042,6 +1093,7 @@ function agreementParties(value: unknown): AgreementParty[] {
       isSignatory: item.isSignatory === true,
       signatureRequired: item.signatureRequired === true,
       signingOrder: Number(item.signingOrder ?? 1),
+      signingCapacity: signingCapacityOf(item.metadata),
     }))
     .filter((item) => item.id);
 }
@@ -1396,6 +1448,7 @@ function ContractPartiesPanel({
               <th className="p-3">Party</th>
               <th className="p-3">Type</th>
               <th className="p-3">Role</th>
+              <th className="p-3">Signs as</th>
               <th className="p-3">Signatory</th>
               <th className="p-3">Required</th>
               <th className="p-3">Order</th>
@@ -1440,6 +1493,22 @@ function ContractPartiesPanel({
                     options={PARTY_ROLES}
                     onChange={(role) => update(party.id, { role })}
                   />
+                </td>
+                <td className="p-3">
+                  {party.isPrimary ? (
+                    <span className="text-xs text-slate-500">
+                      Primary party
+                    </span>
+                  ) : (
+                    <SigningCapacitySelect
+                      disabled={locked}
+                      value={party.signingCapacity}
+                      label={`${party.name} signs as`}
+                      onChange={(signingCapacity) =>
+                        update(party.id, { signingCapacity })
+                      }
+                    />
+                  )}
                 </td>
                 <td className="p-3">
                   <input
@@ -1591,6 +1660,7 @@ function NewPartyForm({
     isSignatory: true,
     signatureRequired: true,
     signingOrder: 1,
+    signingCapacity: "ADDITIONAL_SIGNATORY",
   });
   return (
     <div className="mt-4 grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-2 xl:grid-cols-4">
@@ -1621,6 +1691,17 @@ function NewPartyForm({
           value={party.role}
           options={PARTY_ROLES}
           onChange={(role) => setParty({ ...party, role })}
+        />
+      </label>
+      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <span>Signs as</span>
+        <SigningCapacitySelect
+          disabled={disabled}
+          value={party.signingCapacity}
+          label="Signs as"
+          onChange={(signingCapacity) =>
+            setParty({ ...party, signingCapacity })
+          }
         />
       </label>
       <label className="flex items-center gap-2 text-sm">

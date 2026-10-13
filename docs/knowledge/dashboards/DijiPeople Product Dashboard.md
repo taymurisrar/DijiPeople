@@ -87,7 +87,6 @@ Questions where the engineering is understood and the **product answer**
 - [[ITEM-0224-decide-whether-business-rule-rejections-should-be-recorded-b|ITEM-0224]] — **Decide whether business-rule rejections should be recorded but not queued as incidents** (unrated)
 - [[ITEM-0227-automatic-commission-accrual-from-collected-invoices|ITEM-0227]] — **Automatic commission accrual from collected invoices** (unrated)
 - [[ITEM-0229-agreement-template-55b74891-content-decisions-and-signer-not|ITEM-0229]] — **Agreement template 55b74891 content decisions and signer notification gaps** (unrated)
-- [[ITEM-0230-master-saas-agreement-pricing-basis-pilot-vs-expiry-dates-pr|ITEM-0230]] — **Master SaaS agreement: pricing basis, pilot vs expiry dates, provider legal identity, co-signer party model** (unrated)
 - [[ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins|ITEM-0191]] — **Decide whether custom modules need their own access keys instead of the shared custom-records privilege** (unrated)
 
 ## Recent Product Changes

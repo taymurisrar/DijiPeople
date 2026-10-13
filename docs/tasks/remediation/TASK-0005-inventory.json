@@ -34790,8 +34790,8 @@
       "title": "Master SaaS agreement: pricing basis, pilot vs expiry dates, provider legal identity, co-signer party model",
       "severity": "",
       "priority": "P2",
-      "current_status": "PRODUCT_DECISION",
-      "architect_disposition": "PRODUCT_DECISION",
+      "current_status": "IN_PROGRESS",
+      "architect_disposition": "FIX_NOW",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0230-master-saas-agreement-pricing-basis-pilot-vs-expiry-dates-pr.md",
         "provenance": "ARCHITECT",
