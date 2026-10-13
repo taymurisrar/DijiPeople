@@ -115,6 +115,7 @@ Owner decision.
 ## Related
 
 - Bug — [[BUG-4191]]
+- Referenced by — [[BUG-4217]], [[BUG-4218]]
 - Modules — [[contracts-and-agreements]]
 
 <!-- GRAPH:END -->

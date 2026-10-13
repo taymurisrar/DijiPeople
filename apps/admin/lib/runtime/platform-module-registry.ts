@@ -3905,6 +3905,14 @@ const definitions: PlatformModuleDefinition[] = [
         ],
       },
       {
+        // Signing ends at FULLY_EXECUTED; activation is the governed next step.
+        key: "activate-contract",
+        label: "Activate contract",
+        scope: "record",
+        placement: "primary",
+        states: ["FULLY_SIGNED", "FULLY_EXECUTED"],
+      },
+      {
         key: "stage-forward",
         label: "Next stage",
         scope: "record",

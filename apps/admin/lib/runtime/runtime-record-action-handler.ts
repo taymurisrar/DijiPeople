@@ -142,7 +142,9 @@ export async function executeRuntimeRecordAction(input: {
       );
       const payload = await response.json().catch(() => null);
       if (!response.ok)
-        throw new Error(payload?.message ?? `Unable to ${action.label.toLowerCase()}.`);
+        throw new Error(
+          payload?.message ?? `Unable to ${action.label.toLowerCase()}.`,
+        );
       await reloadRecord();
       return { success: true, message: `${action.label} completed.` };
     }
@@ -179,11 +181,7 @@ export async function executeRuntimeRecordAction(input: {
       tone: "danger",
     });
     if (!reason) return;
-    const result = await adapter.changeStatus(
-      record.id,
-      "UNQUALIFIED",
-      reason,
-    );
+    const result = await adapter.changeStatus(record.id, "UNQUALIFIED", reason);
     await reloadRecord();
     return result;
   }
@@ -208,7 +206,7 @@ export async function executeRuntimeRecordAction(input: {
   }
   if (
     moduleKey === "contracts" &&
-    ["stage-back", "stage-forward"].includes(action.key)
+    ["stage-back", "stage-forward", "activate-contract"].includes(action.key)
   ) {
     const backward = action.key === "stage-back";
     let reason: string | undefined;
@@ -316,11 +314,7 @@ export async function executeRuntimeRecordAction(input: {
     if (!reason) return;
     body = { reason };
   }
-  const result = await adapter.executeRecordAction(
-    record.id,
-    action.key,
-    body,
-  );
+  const result = await adapter.executeRecordAction(record.id, action.key, body);
   await reloadRecord();
   return describeRecordActionOutcome(result, action.label);
 }
