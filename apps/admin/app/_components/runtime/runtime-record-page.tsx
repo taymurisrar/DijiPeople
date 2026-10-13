@@ -204,7 +204,9 @@ function RuntimeRecordEditor({
    * request to the right panel and keeps the state-based visibility rules and
    * the confirmation prompts in one place.
    */
-  const tenant = useTenantRecordActions(moduleKey === "tenants" ? record.id : null);
+  const tenant = useTenantRecordActions(
+    moduleKey === "tenants" ? record.id : null,
+  );
   /*
    * A contract's document lives on its current version, not on the contract
    * row. Every place that seeds the form from a server record has to apply the
@@ -1971,14 +1973,18 @@ function CustomerAgreementPanel({
                 Set a planned workspace slug on this record first.
               </p>
             ) : workspace === null ? (
-              <p className="mt-1 text-xs text-slate-500">Checking {plannedSlug}…</p>
+              <p className="mt-1 text-xs text-slate-500">
+                Checking {plannedSlug}…
+              </p>
             ) : workspace.available ? (
               <>
                 <p className="mt-1 break-all text-sm font-semibold text-slate-900">
-                  {workspace.url ?? `${plannedSlug} (no base domain configured)`}
+                  {workspace.url ??
+                    `${plannedSlug} (no base domain configured)`}
                 </p>
                 <p className="mt-0.5 text-xs text-emerald-700">
-                  Available. This becomes the workspace&apos;s permanent address.
+                  Available. This becomes the workspace&apos;s permanent
+                  address.
                 </p>
               </>
             ) : (
@@ -2122,7 +2128,11 @@ function SupportCaseOperationsPanel({
     const data = new FormData();
     data.set("file", file);
     data.set("customerSafe", "false");
-    await send("attachments", { method: "POST", body: data }, "Attachment uploaded.");
+    await send(
+      "attachments",
+      { method: "POST", body: data },
+      "Attachment uploaded.",
+    );
     event.target.value = "";
   }
 
@@ -2152,7 +2162,10 @@ function SupportCaseOperationsPanel({
       ) : null}
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="text-sm font-semibold text-slate-950">
-          {status.toLowerCase().replaceAll("_", " ").replace(/^\w/, (c) => c.toUpperCase())}
+          {status
+            .toLowerCase()
+            .replaceAll("_", " ")
+            .replace(/^\w/, (c) => c.toUpperCase())}
         </p>
         <p className="text-xs text-slate-500">{supportCaseNextStep(record)}</p>
       </div>
@@ -2571,6 +2584,60 @@ function SignatureRequestDialog({
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  // The parent rebuilds `parties` on every render; the prefill runs once.
+  const initialParties = useRef(parties);
+  const partyNames = useMemo(
+    () => new Map(parties.map((party) => [party.id, party.name])),
+    [parties],
+  );
+  /*
+   * A signer is a person, but each row used to start with the party's name,
+   * so CON-20261012-E7421CC1 recorded "DijiPeople" and "DijiPeople Demo
+   * Company" as the people who signed. The agreement already names its
+   * authorized signatories; a row still showing its party's name takes that
+   * person instead. Anything the operator typed is left alone.
+   */
+  useEffect(() => {
+    let cancelled = false;
+    void fetch(`/api/contracts/${contractId}/document-fields`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then(
+        (payload: { items?: Array<{ key: string; value: string }> } | null) => {
+          if (cancelled || !payload?.items) return;
+          const value = (pattern: RegExp) =>
+            payload.items
+              ?.find((item) => pattern.test(item.key) && item.value?.trim())
+              ?.value.trim();
+          const platformSigner = value(/^platform\.authorizedSigner\.name$/);
+          const counterpartySigner = value(
+            /^(customer|partner|lead|counterparty)\.(primarySigner|authorizedSigner)\.name$/,
+          );
+          setRecipients((items) =>
+            items.map((item) => {
+              const party = initialParties.current.find(
+                (entry) => entry.id === item.partyId,
+              );
+              if (!party || item.name !== party.name) return item;
+              const signer =
+                party.partyType === "PLATFORM"
+                  ? platformSigner
+                  : party.isPrimary
+                    ? counterpartySigner
+                    : undefined;
+              return signer ? { ...item, name: signer } : item;
+            }),
+          );
+        },
+      )
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [contractId]);
+  useEffect(() => {
+    panel.current?.querySelector<HTMLInputElement>("input")?.focus();
+  }, []);
   async function send() {
     setBusy(true);
     setError(null);
@@ -2614,29 +2681,51 @@ function SignatureRequestDialog({
     }
   }
   return (
+    /*
+     * The panel is bounded by the viewport and scrolls inside; title and
+     * actions stay put. It used to grow with every signer and was centred
+     * in a fixed overlay, so with three signers its top and its Send button
+     * were cut off with no way to scroll to them.
+     */
     <div
-      className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/45 p-4"
+      className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/45 sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="signature-title"
+      onKeyDown={(event) => {
+        if (event.key === "Escape" && !busy) onClose();
+      }}
     >
-      <div className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
-        <h2
-          id="signature-title"
-          className="text-lg font-semibold text-slate-950"
-        >
-          Send for e-signature
-        </h2>
-        <p className="mt-2 text-sm text-slate-600">
-          A secure, expiring signing link will be created. Recipients sign the
-          immutable current version in order.
-        </p>
-        <div className="mt-5 space-y-3">
+      <div
+        ref={panel}
+        className="flex max-h-[100dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl border border-slate-200 bg-white shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:rounded-3xl"
+      >
+        <header className="shrink-0 border-b border-slate-200 px-5 pb-4 pt-5 sm:px-6">
+          <h2
+            id="signature-title"
+            className="text-lg font-semibold text-slate-950"
+          >
+            Send for e-signature
+          </h2>
+          <p className="mt-1 text-sm text-slate-600">
+            A secure, expiring signing link will be created. Recipients sign the
+            immutable current version in order.
+          </p>
+        </header>
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-5 py-4 sm:px-6">
           {recipients.map((recipient, index) => (
-            <div
+            <fieldset
               key={`${recipient.partyId ?? "unassigned"}-${index}`}
-              className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-2"
+              className="grid min-w-0 gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-2"
             >
+              <legend className="sr-only">Signer {index + 1}</legend>
+              <p className="text-xs font-semibold text-slate-600 sm:col-span-2">
+                {index + 1}.{" "}
+                {recipient.partyId
+                  ? (partyNames.get(recipient.partyId) ?? "Signer")
+                  : "Signer"}{" "}
+                · Order {recipient.signingOrder}
+              </p>
               <DialogField
                 label="Signer name"
                 value={recipient.name}
@@ -2722,7 +2811,7 @@ function SignatureRequestDialog({
                   </button>
                 ) : null}
               </div>
-            </div>
+            </fieldset>
           ))}
           <div className="grid gap-4 sm:grid-cols-2">
             <DialogField
@@ -2736,29 +2825,35 @@ function SignatureRequestDialog({
             </label>
           </div>
         </div>
-        {error ? <p className="mt-4 text-sm text-rose-600">{error}</p> : null}
-        <div className="mt-6 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            disabled={
-              busy ||
-              !subject ||
-              !recipients.length ||
-              recipients.some((item) => !item.name || !item.email)
-            }
-            onClick={() => void send()}
-            className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
-          >
-            {busy ? "Sending…" : "Send request"}
-          </button>
-        </div>
+        <footer className="shrink-0 border-t border-slate-200 bg-white px-5 py-4 sm:px-6">
+          {error ? (
+            <p role="alert" className="mb-3 text-sm text-rose-600">
+              {error}
+            </p>
+          ) : null}
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={
+                busy ||
+                !subject ||
+                !recipients.length ||
+                recipients.some((item) => !item.name || !item.email)
+              }
+              onClick={() => void send()}
+              className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+            >
+              {busy ? "Sending…" : "Send request"}
+            </button>
+          </div>
+        </footer>
       </div>
     </div>
   );

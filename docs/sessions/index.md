@@ -6,11 +6,13 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 0** · completed: 123
+**Active: 1** · completed: 123
 
 ## Active
 
-_None. No session is currently running._
+| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
+|---|---|---|---|---|---|---|---|
+| [SESSION-0128](../../docs/sessions/SESSION-0128-contract-signing-hotfix-multi-party-signature-blocks-dialog-.md) | — | Contract signing hotfix: multi-party signature blocks, dialog overflow, PDF layout | ACTIVE | `agent/contract-signing-multiparty` | `develop` | — | 2026-10-13T04:41:57.844Z |
 
 ## Completed
 

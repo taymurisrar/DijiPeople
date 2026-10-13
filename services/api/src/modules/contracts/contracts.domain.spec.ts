@@ -86,18 +86,51 @@ describe('contract document domain', () => {
       extractAgreementDocumentStructure(
         '<h2>Commercial terms</h2><ol><li>First<ul><li>Nested</li></ul></li></ol><table><thead><tr><th>Item</th><th>Value</th></tr></thead><tbody><tr><td>Seats</td><td>25</td></tr></tbody></table>',
       ),
-    ).toEqual([
+    ).toMatchObject([
       { kind: 'paragraph', text: 'Commercial terms', level: 2 },
       { kind: 'list', text: 'First', depth: 0, ordered: true, index: 1 },
       { kind: 'list', text: 'Nested', depth: 1, ordered: false, index: 1 },
       {
         kind: 'table',
+        header: true,
         rows: [
           ['Item', 'Value'],
           ['Seats', '25'],
         ],
       },
     ]);
+  });
+
+  /*
+   * CON-20261012-E7421CC1. The signed PDF ran "Legal Contracting Party: …
+   * Business / Platform: … Authorized Signatory: …" together as one sentence
+   * and dropped every bold label: paragraphs reached the renderer flattened.
+   */
+  it('keeps line breaks and bold labels of a paragraph for generated files', () => {
+    const [block] = extractAgreementDocumentStructure(
+      '<p><strong>Legal Contracting Party:</strong> Acme Ltd<br><strong>Authorized Signatory:</strong> Sara Mansour</p>',
+    );
+    expect(block).toMatchObject({
+      kind: 'paragraph',
+      lines: [
+        [
+          { text: 'Legal Contracting Party:', bold: true },
+          { text: ' Acme Ltd' },
+        ],
+        [
+          { text: 'Authorized Signatory:', bold: true },
+          { text: ' Sara Mansour' },
+        ],
+      ],
+    });
+  });
+
+  it('draws a horizontal rule rather than printing hyphens', () => {
+    expect(
+      extractAgreementDocumentStructure('<p>A</p><hr><p>B</p>').map(
+        (block) => block.kind,
+      ),
+    ).toEqual(['paragraph', 'rule', 'paragraph']);
   });
 
   it('preserves an embedded signature image at its document placeholder', () => {

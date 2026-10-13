@@ -87,6 +87,7 @@ Questions where the engineering is understood and the **product answer**
 - [[ITEM-0224-decide-whether-business-rule-rejections-should-be-recorded-b|ITEM-0224]] — **Decide whether business-rule rejections should be recorded but not queued as incidents** (unrated)
 - [[ITEM-0227-automatic-commission-accrual-from-collected-invoices|ITEM-0227]] — **Automatic commission accrual from collected invoices** (unrated)
 - [[ITEM-0229-agreement-template-55b74891-content-decisions-and-signer-not|ITEM-0229]] — **Agreement template 55b74891 content decisions and signer notification gaps** (unrated)
+- [[ITEM-0230-master-saas-agreement-pricing-basis-pilot-vs-expiry-dates-pr|ITEM-0230]] — **Master SaaS agreement: pricing basis, pilot vs expiry dates, provider legal identity, co-signer party model** (unrated)
 - [[ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins|ITEM-0191]] — **Decide whether custom modules need their own access keys instead of the shared custom-records privilege** (unrated)
 
 ## Recent Product Changes
@@ -133,6 +134,7 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-3930-partner-delete-hides-its-refusal-reason-and-silently-erases-|BUG-3930]] | Partner delete hides its refusal reason and silently erases customer and tenant attribution | DATA_INTEGRITY | HIGH | FIXED | partners, apps/admin | FIX_NOW |
 | [[BUG-3995-console-created-partners-had-no-usable-lifecycle-action-and-|BUG-3995]] | Console-created partners had no usable lifecycle action and the review actions failed with an opaque submission error | STATE_MACHINE | HIGH | FIXED | partners, apps/admin | FIX_NOW |
 | [[BUG-4052-subscribe-wizard-continue-on-step-4-submits-the-order-from-s|BUG-4052]] | Subscribe wizard: Continue on step 4 submits the order from step 5 | UX | HIGH | FIXED | apps/landing | FIX_NOW |
+| [[BUG-4191-executed-agreement-renders-signature-blocks-only-for-templat|BUG-4191]] | Executed agreement renders signature blocks only for template slots; extra required signers missing | DATA_INTEGRITY | HIGH | FIXED | contracts | FIX_NOW |
 | [[BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver|BUG-3501]] | The email provider screen presents a console sink as delivery and offers sink providers in production | UX | MEDIUM | FIXED | notifications, apps/web | PLAN_REQUIRED |
 | [[BUG-1668-tenant-workspace-pages-scroll-horizontally-at-mobile-width|BUG-1668]] | Tenant workspace pages scroll horizontally at mobile width | UX | MEDIUM | FIXED | views | DONE |
 | [[BUG-1950-every-tenant-workspace-screen-renders-the-same-h1-so-no-page|BUG-1950]] | Every tenant workspace screen renders the same h1, so no page announces what it is | UX | MEDIUM | FIXED | apps/web | DONE |
@@ -181,6 +183,7 @@ Questions where the engineering is understood and the **product answer**
 | [[BUG-4053-workspace-slug-suggestion-freezes-after-the-first-keystroke-|BUG-4053]] | Workspace slug suggestion freezes after the first keystroke (reads as initials) | UX | MEDIUM | FIXED | apps/landing, billing | FIX_NOW |
 | [[BUG-4055-platform-notifications-title-a-provisioning-request-as-tenan|BUG-4055]] | Platform notifications title a provisioning request as 'Tenant provisioned' and carry no subject | UX | MEDIUM | FIXED | platform-events | FIX_NOW |
 | [[BUG-4057-account-activation-reports-a-password-mismatch-after-autofil|BUG-4057]] | Account activation reports a password mismatch after autofill and has no reveal toggle | UX | MEDIUM | FIXED | apps/web | FIX_NOW |
+| [[BUG-4192-send-for-signature-dialog-clips-signer-rows-and-actions-with|BUG-4192]] | Send-for-signature dialog clips signer rows and actions with more than two signers | UX | MEDIUM | FIXED | contracts | FIX_NOW |
 | [[BUG-1964-record-headings-and-dialog-titles-are-singularised-by-stripp|BUG-1964]] | Record headings and dialog titles are singularised by stripping a trailing s | UX | LOW | FIXED | apps/web | DONE |
 | [[BUG-2010-the-dashboard-recent-changes-list-renders-unformatted-iso-86|BUG-2010]] | The dashboard Recent changes list renders unformatted ISO-8601 timestamps | UX | LOW | FIXED | apps/web | DONE |
 | [[BUG-2017-the-inbox-related-record-column-renders-a-bare-uuid-with-no-|BUG-2017]] | The inbox Related record column renders a bare UUID with no label and no link | UX | LOW | FIXED | apps/web | DONE |

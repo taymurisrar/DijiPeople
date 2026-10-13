@@ -10,7 +10,7 @@ them again. Select with:
 node scripts/qa-select.mjs services/api/src/modules/auth
 ```
 
-**Scenarios: 488** · automated: 400 · manual: 27 · blocked by infrastructure: 0
+**Scenarios: 489** · automated: 401 · manual: 27 · blocked by infrastructure: 0
 
 | Scenario | Title | Area | Type | Risk | Automation | Test | Bugs | Regressions |
 |---|---|---|---|---|---|---|---|---|
@@ -163,6 +163,7 @@ node scripts/qa-select.mjs services/api/src/modules/auth
 | [QA-CONTRACT-015](../../../docs/qa/scenarios/QA-CONTRACT-015-create-agreement-from-a-customer-fills-the-primary-signer.md) | Create Agreement from a customer fills the primary signer | platform-admin | UNIT | HIGH | AUTOMATED | `services/api/src/modules/contracts/source-fills-template.spec.ts` | BUG-4056 | REG-671 |
 | [QA-CONTRACTS-001](../../../docs/qa/scenarios/QA-CONTRACTS-001-a-template-draft-is-edited-in-place-published-and-its-agreem.md) | A template draft is edited in place, published, and its agreement renders every placeholder | commercial-onboarding | UNIT | HIGH | AUTOMATED | `services/api/src/modules/contracts/agreement-template-lifecycle.spec.ts` | BUG-4133 | REG-681 |
 | [QA-CONTRACTS-002](../../../docs/qa/scenarios/QA-CONTRACTS-002-an-agreement-whose-document-uses-the-agreement-version-can-b.md) | An agreement whose document uses the agreement version can be submitted for approval | commercial-onboarding | UNIT | HIGH | AUTOMATED | `services/api/src/modules/contracts/agreement-template-lifecycle.spec.ts` | BUG-4174 | REG-682 |
+| [QA-CONTRACTS-003](../../../docs/qa/scenarios/QA-CONTRACTS-003-every-required-signer-of-an-agreement-has-exactly-one-signat.md) | Every required signer of an agreement has exactly one signature block | commercial-onboarding | UNIT | HIGH | AUTOMATED | `services/api/src/modules/contracts/signature-blocks.spec.ts` | BUG-4191, BUG-4192 | REG-683 |
 | [QA-DEPLOY-001](../../../docs/qa/scenarios/QA-DEPLOY-001-deployment-smoke-checks-answer-against-the-deployed-environm.md) | Deployment smoke checks answer against the deployed environment | deployment-release | DEPLOYMENT_SMOKE | HIGH | AUTOMATED | `scripts/smoke-deployment.mjs` | — | — |
 | [QA-DEPLOY-002](../../../docs/qa/scenarios/QA-DEPLOY-002-no-url-is-hardcoded-where-configuration-is-required.md) | No URL is hardcoded where configuration is required | deployment-release | UNIT | HIGH | AUTOMATED | `scripts/check-no-hardcoded-urls.mjs` | BUG-0026 | REG-016 |
 | [QA-DEPLOY-003](../../../docs/qa/scenarios/QA-DEPLOY-003-the-running-api-exposes-the-commit-it-was-built-from.md) | The running API exposes the commit it was built from | deployment-release | UNIT | MEDIUM | AUTOMATED | `services/api/src/config/deployed-commit.spec.ts` | — | — |

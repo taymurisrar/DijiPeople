@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **0** |
+| Active sessions | **1** |
 | Active parent tasks | 4 |
 | Active work packages | 4 |
 | Blocked work packages | 0 |
@@ -15,9 +15,9 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **8** |
-| Open HIGH | 119 |
+| Open HIGH | 120 |
 | Awaiting Architect triage | 0 |
-| Owner decisions pending | 15 |
+| Owner decisions pending | 16 |
 | QA coverage gaps | 161 |
 | Scenarios blocked by infrastructure | 0 |
 
@@ -30,12 +30,12 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 290 |
-| No next action | 290 |
-| Aging — 7d / 30d / 90d | 241 / 189 / 0 |
+| No acceptance criteria | 292 |
+| No next action | 292 |
+| Aging — 7d / 30d / 90d | 241 / 200 / 0 |
 | Architecture and technical debt | 8 |
 | Security gaps | 47 |
-| Database gaps | 28 |
+| Database gaps | 29 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -47,7 +47,9 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-_No session is currently registered as active._
+| Session | Task | Title | Status | Branch | Target | Leases | Schema |
+|---|---|---|---|---|---|---|---|
+| [[SESSION-0128-contract-signing-hotfix-multi-party-signature-blocks-dialog-|SESSION-0128]] | — | Contract signing hotfix: multi-party signature blocks, dialog overflow, PDF layout | ACTIVE | `agent/contract-signing-multiparty` | `develop` | — | NO |
 
 ## Active Tasks and Work Packages
 
@@ -128,6 +130,7 @@ Questions where the engineering is understood and the **product answer is**
 - [[ITEM-0224-decide-whether-business-rule-rejections-should-be-recorded-b|ITEM-0224]] — **Decide whether business-rule rejections should be recorded but not queued as incidents**
 - [[ITEM-0227-automatic-commission-accrual-from-collected-invoices|ITEM-0227]] — **Automatic commission accrual from collected invoices**
 - [[ITEM-0229-agreement-template-55b74891-content-decisions-and-signer-not|ITEM-0229]] — **Agreement template 55b74891 content decisions and signer notification gaps**
+- [[ITEM-0230-master-saas-agreement-pricing-basis-pilot-vs-expiry-dates-pr|ITEM-0230]] — **Master SaaS agreement: pricing basis, pilot vs expiry dates, provider legal identity, co-signer party model**
 - [[ITEM-0191-decide-whether-custom-modules-need-their-own-access-keys-ins|ITEM-0191]] — **Decide whether custom modules need their own access keys instead of the shared custom-records privilege**
 
 ## QA Coverage Gaps
@@ -303,10 +306,10 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 290 |
+| Open total | 292 |
 | Blocked | 4 |
 | Deferred | 124 |
-| Awaiting a product decision | 15 |
+| Awaiting a product decision | 16 |
 | Awaiting Architect triage | 0 |
 
 Every ordinary record carries a disposition.

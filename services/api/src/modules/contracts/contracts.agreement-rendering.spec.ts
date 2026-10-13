@@ -369,11 +369,14 @@ describe('QA agreements DEFECT-1 — the executed copy stays frozen', () => {
 
   it('a named slot with no signer reads "Not signed", never another party', () => {
     const html = renderSignatureEvidenceTokens(
-      '{{signature.platform.name}}|{{signature.platform.date}}',
+      '<p>{{signature.platform.name}}|{{signature.platform.date}}</p>',
       [evidence[1]],
     );
-    expect(html).toContain('Not signed');
-    expect(html).not.toContain('Noura');
+    const [platformSlot, ...generated] = html.split('</p>');
+    expect(platformSlot).toContain('Not signed');
+    expect(platformSlot).not.toContain('Noura');
+    // The signer the template has no slot for gets a block of their own.
+    expect(generated.join('</p>')).toContain('Noura Al-Salem');
   });
 });
 
