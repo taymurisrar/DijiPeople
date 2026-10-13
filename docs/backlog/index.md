@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**793 records** — 563 bugs under [`docs/bugs/`](../bugs/), 230 non-bug items under [`items/`](items/).
+**795 records** — 565 bugs under [`docs/bugs/`](../bugs/), 230 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 293 |
+| Open (active work) | 295 |
 | Blocked | 4 |
 | Deferred | 124 |
 | Awaiting a product decision | 15 |
 | Completed / closed | 357 |
 | **Open CRITICAL** | **8** |
-| **Open HIGH** | **120** |
+| **Open HIGH** | **121** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,8 +27,8 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 8 |
-| HIGH | 120 |
-| MEDIUM | 133 |
+| HIGH | 121 |
+| MEDIUM | 134 |
 | LOW | 30 |
 
 ## Open by type
@@ -46,11 +46,11 @@ see [`README.md`](README.md) for why.
 | PERFORMANCE | 15 |
 | PRODUCT_DECISION | 3 |
 | SECURITY | 27 |
-| STATE_MACHINE | 6 |
+| STATE_MACHINE | 7 |
 | TECH_DEBT | 8 |
 | TENANT_ISOLATION | 3 |
 | TEST_GAP | 9 |
-| UX | 65 |
+| UX | 66 |
 
 ## All records by status
 
@@ -61,7 +61,7 @@ see [`README.md`](README.md) for why.
 | BLOCKED | 4 |
 | DEFERRED | 124 |
 | PRODUCT_DECISION | 15 |
-| FIXED | 211 |
+| FIXED | 213 |
 | VERIFIED | 221 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
@@ -332,6 +332,7 @@ see [`README.md`](README.md) for why.
 | [BUG-4133](../../docs/bugs/BUG-4133-agreement-template-editor-corrupts-placeholders-ignores-sign.md) | Agreement template editor corrupts placeholders, ignores signer roles and cannot edit drafts or print | BUG | HIGH | P1 | FIXED | contracts | FIX_NOW |
 | [BUG-4174](../../docs/bugs/BUG-4174-submit-for-approval-reports-the-derived-agreement-version-as.md) | Submit for approval reports the derived agreement version as a missing required field | BUG | HIGH | P1 | FIXED | contracts | FIX_NOW |
 | [BUG-4191](../../docs/bugs/BUG-4191-executed-agreement-renders-signature-blocks-only-for-templat.md) | Executed agreement renders signature blocks only for template slots; extra required signers missing | DATA_INTEGRITY | HIGH | P1 | FIXED | contracts | FIX_NOW |
+| [BUG-4217](../../docs/bugs/BUG-4217-fully-executed-agreement-cannot-be-activated.md) | Fully executed agreement cannot be activated | STATE_MACHINE | HIGH | P1 | FIXED | contracts | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -605,6 +606,7 @@ see [`README.md`](README.md) for why.
 | [BUG-4059](../../docs/bugs/BUG-4059-customer-and-lead-timeline-tabs-are-always-empty.md) | Customer and lead Timeline tabs are always empty | BUG | MEDIUM | P2 | FIXED | super-admin | FIX_NOW |
 | [BUG-4111](../../docs/bugs/BUG-4111-provisioning-stores-owner-and-workspace-as-placeholder-owner.md) | Provisioning stores Owner and Workspace as placeholder owner names, and owner and other lookups do not link to their record | BUG | MEDIUM | P2 | FIXED | super-admin, tenant-control-plane, apps/admin | FIX_NOW |
 | [BUG-4192](../../docs/bugs/BUG-4192-send-for-signature-dialog-clips-signer-rows-and-actions-with.md) | Send-for-signature dialog clips signer rows and actions with more than two signers | UX | MEDIUM | P2 | FIXED | contracts | FIX_NOW |
+| [BUG-4218](../../docs/bugs/BUG-4218-stored-signed-copy-of-an-agreement-is-not-reachable-from-pla.md) | Stored signed copy of an agreement is not reachable from Platform Admin | UX | MEDIUM | P2 | FIXED | contracts | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |

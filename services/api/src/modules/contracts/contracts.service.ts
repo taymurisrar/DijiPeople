@@ -3859,6 +3859,12 @@ export class ContractsService {
       DRAFT: ContractStatus.INTERNAL_REVIEW,
       COUNTERPARTY_REVIEW: ContractStatus.READY_FOR_SIGNATURE,
       FULLY_SIGNED: ContractStatus.ACTIVE,
+      /*
+       * Completing the last signature moves an agreement to FULLY_EXECUTED,
+       * never FULLY_SIGNED, so without this an executed agreement had no way
+       * to become Active (CON-20261012-E7421CC1).
+       */
+      FULLY_EXECUTED: ContractStatus.ACTIVE,
       ACTIVE: ContractStatus.EXPIRING,
       EXPIRING: ContractStatus.EXPIRED,
     };
@@ -3881,7 +3887,8 @@ export class ContractsService {
       );
     if (
       next === ContractStatus.ACTIVE &&
-      contract.status !== ContractStatus.FULLY_SIGNED
+      contract.status !== ContractStatus.FULLY_SIGNED &&
+      contract.status !== ContractStatus.FULLY_EXECUTED
     )
       throw new BadRequestException(
         'Only a fully signed contract can be activated.',

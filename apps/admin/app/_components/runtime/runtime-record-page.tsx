@@ -588,7 +588,7 @@ function RuntimeRecordEditor({
     (moduleKey === "customer-onboarding" &&
       ["overview", "readiness", "agreements"].includes(activeTab)) ||
     (moduleKey === "contracts" &&
-      ["parties", "versions"].includes(activeTab)) ||
+      ["parties", "versions", "signatures"].includes(activeTab)) ||
     (moduleKey === "tenants" && TENANT_PANEL_TABS.includes(activeTab)) ||
     /*
      * Was `moduleKey === "plans"` unqualified, which claimed a panel on every
@@ -775,6 +775,9 @@ function RuntimeRecordEditor({
           record={form.values}
           onComplete={reloadRecord}
         />
+      ) : null}
+      {moduleKey === "contracts" && !isCreate && activeTab === "signatures" ? (
+        <ContractDocumentsPanel documents={form.values.documents} />
       ) : null}
       {moduleKey === "contracts" && !isCreate && activeTab === "parties" ? (
         <ContractPartiesPanel
@@ -1753,6 +1756,84 @@ function NewPartyForm({
         Add party
       </button>
     </div>
+  );
+}
+
+/*
+ * The files stored against an agreement. The immutable signed copy saved when
+ * the last signer completes was downloadable only through the API: nothing in
+ * Platform Admin listed it, and "Generate document" builds a new copy rather
+ * than opening that one.
+ */
+const CONTRACT_DOCUMENT_KINDS: Record<string, string> = {
+  SIGNED_COPY: "Signed copy",
+  EVIDENCE_BUNDLE: "Signature evidence",
+  GENERATED_PDF: "Generated PDF",
+  GENERATED_PREVIEW: "Generated DOCX",
+};
+
+function ContractDocumentsPanel({ documents }: { documents: unknown }) {
+  const rows = (Array.isArray(documents) ? documents : [])
+    .filter((item): item is Record<string, unknown> =>
+      Boolean(item && typeof item === "object" && "id" in item),
+    )
+    // The executed record first, then everything else newest first.
+    .sort(
+      (left, right) =>
+        Number(right.kind === "SIGNED_COPY") -
+          Number(left.kind === "SIGNED_COPY") ||
+        String(right.createdAt ?? "").localeCompare(
+          String(left.createdAt ?? ""),
+        ),
+    );
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h2 className="text-lg font-semibold text-slate-950">Signed documents</h2>
+      {rows.length ? (
+        <div className="mt-3 overflow-x-auto rounded-xl border border-slate-200">
+          <table className="w-full min-w-[640px] text-left text-sm">
+            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+              <tr>
+                <th className="p-3">Document</th>
+                <th className="p-3">Type</th>
+                <th className="p-3">Created</th>
+                <th className="p-3 text-right">Download</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200">
+              {rows.map((item) => (
+                <tr key={String(item.id)}>
+                  <td className="p-3 font-medium text-slate-900">
+                    {String(item.fileName ?? "")}
+                  </td>
+                  <td className="p-3 text-slate-700">
+                    {CONTRACT_DOCUMENT_KINDS[String(item.kind)] ??
+                      String(item.kind ?? "")}
+                    {item.isImmutable ? " · Locked" : ""}
+                  </td>
+                  <td className="p-3 text-slate-700">
+                    {item.createdAt
+                      ? new Date(String(item.createdAt)).toLocaleString()
+                      : ""}
+                  </td>
+                  <td className="p-3 text-right">
+                    <a
+                      href={`/api/contracts/documents/${encodeURIComponent(String(item.id))}/download`}
+                      download={String(item.fileName ?? "")}
+                      className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700"
+                    >
+                      Download
+                    </a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="mt-2 text-sm text-slate-600">No documents yet.</p>
+      )}
+    </section>
   );
 }
 

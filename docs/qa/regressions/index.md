@@ -7454,3 +7454,17 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — with block insertion bypassed in renderSignatureEvidenceTokens, 6 of 18 specs fail (mutation-checked 2026-10-13). |
 | **Fixed** | 2026-10-13, branch `agent/contract-signing-multiparty` |
 | **Active** | yes |
+
+### REG-684 — An executed agreement could not be activated
+
+| | |
+|---|---|
+| **Bug class** | `state-machine-missing-transition` |
+| **Module** | `services/api/src/modules/contracts` |
+| **Bug record** | BUG-4217, BUG-4218 |
+| **Root cause** | Signing ends at FULLY_EXECUTED, but activation was allowed only from FULLY_SIGNED; the stored signed copy had no admin surface. |
+| **Regression test** | `services/api/src/modules/contracts/contract-activation.spec.ts` |
+| **Scenario** | QA-CONTRACTS-004 — A fully executed agreement can be activated and its signed copy downloaded. |
+| **Fails without the fix** | Yes — without FULLY_EXECUTED in the forward map the FULLY_EXECUTED case throws. |
+| **Fixed** | 2026-10-13, branch `agent/contract-activation-documents` |
+| **Active** | yes |

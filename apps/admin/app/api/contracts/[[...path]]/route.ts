@@ -23,13 +23,19 @@ async function forward(request: Request, context: Context, method: string) {
                 headers: { "Content-Type": contentType },
               }
             : {
-              body: await request.text(),
-              headers: { "Content-Type": "application/json" },
-            }),
+                body: await request.text(),
+                headers: { "Content-Type": "application/json" },
+              }),
       },
     );
     const type = response.headers.get("content-type") ?? "";
-    return type.includes("application/pdf") || type.includes("officedocument")
+    // A stored download (the signature evidence is JSON) is a file, too.
+    const attachment = (
+      response.headers.get("content-disposition") ?? ""
+    ).startsWith("attachment");
+    return attachment ||
+      type.includes("application/pdf") ||
+      type.includes("officedocument")
       ? proxyApiFileResponse(response)
       : proxyApiJsonResponse(response);
   } catch (error) {
