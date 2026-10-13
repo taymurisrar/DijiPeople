@@ -6,6 +6,8 @@ Sessions that reached a terminal state. Kept as history: the branch, the base it
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0128](../../docs/sessions/SESSION-0128-contract-signing-hotfix-multi-party-signature-blocks-dialog-.md) | — | Contract signing hotfix: multi-party signature blocks, dialog overflow, PDF layout | COMPLETE | `agent/contract-signing-multiparty` | `develop` | — | 2026-10-13T04:41:57.844Z |
+| [SESSION-0127](../../docs/sessions/SESSION-0127-submit-for-approval-reports-the-derived-agreement-version-as.md) | — | Submit for approval reports the derived agreement version as missing | COMPLETE | `agent/agreement-version-approval` | `develop` | — | 2026-10-12T21:13:36.074Z |
 | [SESSION-0126](../../docs/sessions/SESSION-0126-agreement-template-55b74891-v3-final-saas-master-agreement-c.md) | — | Agreement template 55b74891 v3: final SaaS master agreement content | COMPLETE | `agent/agreement-template-v3` | `develop` | — | 2026-10-12T19:04:34.256Z |
 | [SESSION-0125](../../docs/sessions/SESSION-0125-agreement-template-hotfix-gates-signer-roles-draft-editing-p.md) | — | Agreement template hotfix: gates, signer roles, draft editing, print, placeholders | COMPLETE | `agent/agreement-templates-hotfix` | `develop` | — | 2026-10-12T16:31:51.351Z |
 | [SESSION-0124](../../docs/sessions/SESSION-0124-plan-publish-unpublish-and-archive-actions.md) | — | Plan publish, unpublish and archive actions | COMPLETE | `agent/plan-publication-actions` | `develop` | — | 2026-10-12T15:05:00.000Z |

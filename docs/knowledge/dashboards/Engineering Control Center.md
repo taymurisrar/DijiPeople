@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Active sessions | **1** |
+| Active sessions | **0** |
 | Active parent tasks | 4 |
 | Active work packages | 4 |
 | Blocked work packages | 0 |
@@ -15,7 +15,7 @@
 | Open questions | 0 |
 | Sessions declaring a schema write | 0 |
 | Open CRITICAL | **8** |
-| Open HIGH | 119 |
+| Open HIGH | 120 |
 | Awaiting Architect triage | 0 |
 | Owner decisions pending | 15 |
 | QA coverage gaps | 161 |
@@ -30,12 +30,12 @@ survives every review by being unfalsifiable.
 | | |
 |---|---|
 | Ownerless actionable records | 0 |
-| No acceptance criteria | 290 |
-| No next action | 290 |
-| Aging — 7d / 30d / 90d | 241 / 189 / 0 |
+| No acceptance criteria | 293 |
+| No next action | 293 |
+| Aging — 7d / 30d / 90d | 241 / 200 / 0 |
 | Architecture and technical debt | 8 |
 | Security gaps | 47 |
-| Database gaps | 28 |
+| Database gaps | 29 |
 
 Ranked next-best actions weigh blast radius rather than severity alone, and
 are computed on demand so the reasons travel with the ranking:
@@ -47,9 +47,7 @@ node scripts/agent-health.mjs          # AGENT_HEALTH_REGRESSIONS
 
 ## Active Sessions
 
-| Session | Task | Title | Status | Branch | Target | Leases | Schema |
-|---|---|---|---|---|---|---|---|
-| [[SESSION-0127-submit-for-approval-reports-the-derived-agreement-version-as|SESSION-0127]] | — | Submit for approval reports the derived agreement version as missing | ACTIVE | `agent/agreement-version-approval` | `develop` | — | NO |
+_No session is currently registered as active._
 
 ## Active Tasks and Work Packages
 
@@ -305,7 +303,7 @@ gap into scope — or files a `TEST_GAP` item and says so.
 
 | | |
 |---|---|
-| Open total | 290 |
+| Open total | 293 |
 | Blocked | 4 |
 | Deferred | 124 |
 | Awaiting a product decision | 15 |

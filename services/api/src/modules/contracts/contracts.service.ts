@@ -22,11 +22,15 @@ import { createHash, randomBytes } from 'crypto';
 import sanitizeHtml from 'sanitize-html';
 import PDFDocument from 'pdfkit';
 import {
+  AlignmentType,
+  BorderStyle,
   Document,
+  Footer,
   HeadingLevel,
   ImageRun,
   Packer,
   PageBreak,
+  PageNumber,
   Paragraph,
   Table,
   TableCell,
@@ -67,6 +71,14 @@ import {
   type LinkableContract,
 } from './placeholder-context';
 import { normalizeSignatureTokens } from './signature-tokens';
+import {
+  assignSignatureSlots,
+  insertAdditionalSignatureBlocks,
+  isSeparateParty,
+  SIGNER_SLOT_PREFIX,
+  signerOrganization,
+  type SignatoryForBlock,
+} from './signature-blocks';
 import { unwrapPlaceholderMarkup } from './placeholder-markup';
 import {
   agreementTermProblems,
@@ -396,6 +408,28 @@ export const CONTRACT_PLACEHOLDER_REGISTRY: ContractPlaceholderDefinition[] = [
     securityClassification: 'CONFIDENTIAL',
   }),
   placeholder(
+    'platform.entityType',
+    'Platform entity type',
+    'TEXT',
+    'Company',
+    {
+      ...optional,
+      description:
+        'Company or Individual, from Settings → Company profile → Entity type.',
+    },
+  ),
+  placeholder(
+    'platform.legalIdentity',
+    'Platform legal identity',
+    'TEXT',
+    'DijiPeople Technologies Ltd., a company registered under number CR-1010203040',
+    {
+      ...optional,
+      description:
+        'Who the provider legally is: the company (with its registration number when one is set), or the individual and the name they trade under.',
+    },
+  ),
+  placeholder(
     'platform.contact.email',
     'Platform contact email',
     'EMAIL',
@@ -577,6 +611,19 @@ export const CONTRACT_PLACEHOLDER_REGISTRY: ContractPlaceholderDefinition[] = [
     ...optional,
     formattingRule: 'currency',
   }),
+  /*
+   * What the agreed price is a price of. Owner decision (ITEM-0230,
+   * 2026-10-13): subscriptions are priced per Active Employee per month. The
+   * executed CON-20261012-E7421CC1 printed "PKR 6,000.00" with no unit, which
+   * read equally as a flat monthly fee or a pilot total.
+   */
+  placeholder(
+    'commercial.priceBasis',
+    'Price basis',
+    'TEXT',
+    'per Active Employee per month',
+    { ...optional, defaultValue: 'per Active Employee per month' },
+  ),
   placeholder(
     'commercial.billingCycle',
     'Billing cycle',
@@ -1535,6 +1582,7 @@ export class ContractsService {
         .filter(Boolean)
         .join(', '),
       'platform.reportingCurrency': reportingCurrency,
+      ...platformIdentityValues(companyProfile, agreementTerms),
       ...definedValues({
         'platform.registrationNumber': companyProfile.registrationNumber,
         'platform.taxId': companyProfile.taxNumber,
@@ -2702,6 +2750,7 @@ export class ContractsService {
       'platform.registrationNumber': companyProfile.registrationNumber,
       'platform.taxId': companyProfile.taxNumber,
       'platform.contact.email': companyProfile.supportEmail,
+      ...platformIdentityValues(companyProfile, agreementTerms),
     });
 
     /*
@@ -2837,6 +2886,8 @@ export class ContractsService {
               ...storedValues,
             ],
             'display',
+            undefined,
+            partySignatories(contract.parties),
           )
         : '',
       resolvedHtml: version
@@ -2848,6 +2899,7 @@ export class ContractsService {
             [...contract.placeholderValues, revisionRow],
             'display',
             requiredTerms,
+            partySignatories(contract.parties),
           )
         : '',
       termProblems: [...termProblems.entries()].map(([field, message]) => ({
@@ -4001,6 +4053,9 @@ export class ContractsService {
           dto.signatureRequired === true || (dto.isSignatory ?? false),
         signatureRequired: dto.signatureRequired ?? dto.isSignatory ?? false,
         signingOrder: dto.signingOrder ?? 1,
+        ...(dto.signingCapacity
+          ? { metadata: { signingCapacity: dto.signingCapacity } }
+          : {}),
       },
     });
     await this.timeline(
@@ -4021,11 +4076,26 @@ export class ContractsService {
     this.assertWrite(user);
     const contract = await this.get(user, contractId);
     this.assertAgreementEditable(contract.status);
-    if (!contract.parties.some((party) => party.id === partyId))
+    const existing = contract.parties.find((party) => party.id === partyId);
+    if (!existing)
       throw new NotFoundException('Agreement party was not found.');
+    const existingMetadata =
+      existing.metadata &&
+      typeof existing.metadata === 'object' &&
+      !Array.isArray(existing.metadata)
+        ? (existing.metadata as Record<string, unknown>)
+        : {};
     await this.prisma.contractParty.update({
       where: { id: partyId },
       data: {
+        ...(dto.signingCapacity !== undefined
+          ? {
+              metadata: {
+                ...existingMetadata,
+                signingCapacity: dto.signingCapacity,
+              } as Prisma.InputJsonValue,
+            }
+          : {}),
         ...(dto.partyType !== undefined ? { partyType: dto.partyType } : {}),
         ...(dto.role !== undefined ? { role: dto.role } : {}),
         ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
@@ -4973,7 +5043,15 @@ export class ContractsService {
       },
       document: {
         title: recipient.signatureRequest.contractVersion.title,
-        contentHtml: recipient.signatureRequest.contractVersion.contentHtml,
+        /*
+         * The frozen version plus a block for every signer its template has
+         * no slot for. `sha256` remains the hash of the frozen version: the
+         * generated blocks hold only signature tokens, filled at signing.
+         */
+        contentHtml: insertAdditionalSignatureBlocks(
+          recipient.signatureRequest.contractVersion.contentHtml,
+          recipientSignatories(recipient.signatureRequest.recipients),
+        ),
         sha256: recipient.signatureRequest.contractVersion.contentSha256,
       },
       canSign: !earlierIncomplete,
@@ -5156,6 +5234,7 @@ export class ContractsService {
           dto.typedName?.trim() || recipient.name,
           dto.signatureDataUrl,
           signedAt,
+          signerPreviewSlot(recipient, recipient.signatureRequest.recipients),
         ),
       )) {
         await tx.contractPlaceholderValue.upsert({
@@ -5642,12 +5721,20 @@ export class ContractsService {
       include: {
         versions: { orderBy: { version: 'desc' }, take: 1 },
         placeholderValues: { select: { key: true, value: true, source: true } },
-        // Whether DijiPeople signs decides whether its signature line appears.
+        // Whether DijiPeople signs decides whether its signature line appears;
+        // the required signatories decide how many signature blocks a draft shows.
         parties: {
           select: {
+            id: true,
             partyType: true,
+            name: true,
+            legalName: true,
+            email: true,
+            isPrimary: true,
             isSignatory: true,
             signatureRequired: true,
+            signingOrder: true,
+            metadata: true,
           },
         },
         _count: { select: { signatureRequests: true } },
@@ -5658,7 +5745,25 @@ export class ContractsService {
     const version = contract.versions[0];
     const scope = this.contractStorageScope(contract.tenantId);
     let documentHtml = version.contentHtml;
-    let documentText = '';
+    let appendixHtml = '';
+    /*
+     * The agreement version the document itself prints. A frozen version
+     * carries the `{{contract.version}}` it was issued with; a draft shows the
+     * revision its next issue will carry. The executed copy's appendix used to
+     * print `ContractVersion.version` — the internal record counter, which the
+     * signing freeze advances — so the cover of CON-20261012-E7421CC1 said
+     * Version 1 and its audit certificate Version 2.
+     */
+    const frozenSnapshot =
+      version.placeholderSnapshot &&
+      typeof version.placeholderSnapshot === 'object' &&
+      !Array.isArray(version.placeholderSnapshot)
+        ? (version.placeholderSnapshot as Record<string, unknown>)
+        : null;
+    const agreementVersion =
+      typeof frozenSnapshot?.['contract.version'] === 'string'
+        ? frozenSnapshot['contract.version']
+        : agreementRevisionRow(contract._count.signatureRequests).value;
     /*
      * An executed agreement renders from its frozen version and signature
      * evidence whether the copy is the one stored at completion or one an
@@ -5694,7 +5799,13 @@ export class ContractsService {
               role: true,
               signingOrder: true,
               party: {
-                select: { partyType: true, name: true, isPrimary: true },
+                select: {
+                  partyType: true,
+                  name: true,
+                  legalName: true,
+                  isPrimary: true,
+                  metadata: true,
+                },
               },
             },
           },
@@ -5735,20 +5846,6 @@ export class ContractsService {
         evidenceRows,
         signatureImages,
       );
-      documentText += `\n\nELECTRONIC SIGNATURE APPENDIX\nDocument SHA-256: ${version.contentSha256}\n`;
-      for (const evidence of evidenceRows) {
-        documentText += [
-          '',
-          `Signer ${evidence.eventSequence}: ${evidence.typedName || evidence.recipient.name}`,
-          `Role: ${evidence.recipient.role}`,
-          `Email: ${evidence.recipient.email}`,
-          `Method: ${evidence.method}`,
-          `Signed: ${evidence.signedAt.toISOString()}${evidence.timezone ? ` (${evidence.timezone})` : ''}`,
-          `Verification: ${evidence.verificationStatus ?? 'TOKEN_VERIFIED'}`,
-          `Signature SHA-256: ${evidence.signatureSha256}`,
-          `Evidence event hash: ${evidence.eventHash ?? ''}`,
-        ].join('\n');
-      }
       const completedRequest = await this.prisma.signatureRequest.findFirst({
         where: {
           contractVersionId: version.id,
@@ -5768,14 +5865,16 @@ export class ContractsService {
           orderBy: { createdAt: 'asc' },
         }),
       ]);
-      documentText += `\n\nAUDIT CERTIFICATE\nAgreement: ${contract.contractNumber}\nVersion: ${version.version}\nSignature request: ${completedRequest?.requestNumber ?? ''}\n`;
-      for (const event of signatureEvents) {
-        documentText += `\n${event.eventSequence}. ${event.eventType} — ${event.createdAt.toISOString()} — Hash ${event.eventHash}`;
-      }
-      documentText += '\n\nAGREEMENT TIMELINE';
-      for (const event of timeline) {
-        documentText += `\n${event.createdAt.toISOString()} — ${event.eventType}: ${event.message}`;
-      }
+      appendixHtml = signatureEvidenceAppendixHtml({
+        contractNumber: contract.contractNumber,
+        agreementVersion,
+        signingRecordVersion: version.version,
+        documentSha256: version.contentSha256,
+        requestNumber: completedRequest?.requestNumber ?? '',
+        evidence: evidenceRows,
+        signatureEvents,
+        timeline,
+      });
     }
     if (!fromEvidence)
       /*
@@ -5802,11 +5901,35 @@ export class ContractsService {
             .filter((rule) => rule.required)
             .map((rule) => rule.key),
         ),
+        partySignatories(contract.parties),
       );
+    const coverValues: Record<string, unknown> =
+      frozenSnapshot ??
+      Object.fromEntries(
+        contract.placeholderValues.map((item) => [item.key, item.value]),
+      );
+    const cover = agreementCoverDetails({
+      contractNumber: contract.contractNumber,
+      agreementVersion,
+      counterpartyName: contract.counterpartyName,
+      values: coverValues,
+      status: fromEvidence
+        ? 'Executed'
+        : version.status === ContractVersionStatus.SENT_FOR_SIGNATURE
+          ? 'Issued for signature'
+          : 'Draft — not for signature',
+      executedAt: fromEvidence ? (contract.signedAt ?? null) : null,
+    });
     const buffer =
       format === 'pdf'
-        ? await createPdf(contract.title, documentHtml, documentText)
-        : await createDocx(contract.title, documentHtml, documentText);
+        ? await createPdf(contract.title, documentHtml, '', {
+            cover,
+            appendixHtml,
+          })
+        : await createDocx(contract.title, documentHtml, '', {
+            cover,
+            appendixHtml,
+          });
     const mimeType =
       format === 'pdf'
         ? 'application/pdf'
@@ -6290,6 +6413,8 @@ export class ContractsService {
       taxNumber: text('taxNumber'),
       supportEmail: text('supportEmail'),
       website: text('website'),
+      entityType: text('entityType', 'Company'),
+      proprietorName: text('proprietorName'),
     };
   }
 
@@ -6326,7 +6451,24 @@ export class ContractsService {
         // The party decides which signature slot the mark fills.
         party: { select: { partyType: true } },
         signatureRequest: {
-          include: { contract: true, contractVersion: true, recipients: true },
+          include: {
+            contract: true,
+            contractVersion: true,
+            // Every signer's party, so the signing page shows a block for each.
+            recipients: {
+              include: {
+                party: {
+                  select: {
+                    partyType: true,
+                    isPrimary: true,
+                    name: true,
+                    legalName: true,
+                    metadata: true,
+                  },
+                },
+              },
+            },
+          },
         },
       },
     });
@@ -7212,8 +7354,12 @@ export function renderContractPlaceholders(
   return unwrapPlaceholderMarkup(html).replace(
     /\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g,
     (match, key: string) => {
+      // A generated signer block's token formats like the counterparty slot's.
+      const registryKey = key.startsWith(`signature.${SIGNER_SLOT_PREFIX}`)
+        ? `signature.counterparty.${key.split('.').pop()}`
+        : key;
       const definition = CONTRACT_PLACEHOLDER_REGISTRY.find(
-        (item) => item.key === key,
+        (item) => item.key === registryKey,
       );
       const stored = key in values ? String(values[key]) : '';
       /*
@@ -7287,6 +7433,43 @@ export type StoredContractPlaceholderValue = {
 
 /** Values the platform derives and an operator can never type over. */
 export const DERIVED_PLACEHOLDER_KEYS = new Set(['contract.version']);
+
+/**
+ * The provider's legal identity as an agreement states it. Owner decision
+ * (ITEM-0230, 2026-10-13): DijiPeople may contract as a company or as an
+ * individual, and today holds no company registration or tax number — so the
+ * Parties clause cannot assume a registered company. A company reads
+ * "<legal name>, a company registered under number <n>" (the number only when
+ * one is set); an individual reads "<proprietor>, an individual trading as
+ * <legal name>", the proprietor defaulting to the authorized signer.
+ */
+export function platformIdentityValues(
+  profile: {
+    legalName: string;
+    registrationNumber?: string;
+    entityType?: string;
+    proprietorName?: string;
+  },
+  terms: Record<string, string | undefined> = {},
+) {
+  const individual =
+    (profile.entityType ?? '').trim().toLowerCase() === 'individual';
+  const registration = (profile.registrationNumber ?? '').trim();
+  const proprietor =
+    (profile.proprietorName ?? '').trim() ||
+    (terms['platform.authorizedSigner.name'] ?? '').trim();
+  const legalIdentity = individual
+    ? proprietor
+      ? `${proprietor}, an individual trading as ${profile.legalName}`
+      : profile.legalName
+    : registration
+      ? `${profile.legalName}, a company registered under number ${registration}`
+      : profile.legalName;
+  return {
+    'platform.entityType': individual ? 'Individual' : 'Company',
+    'platform.legalIdentity': legalIdentity,
+  };
+}
 
 /**
  * `{{contract.version}}` for an agreement that has been issued for signature
@@ -7408,13 +7591,95 @@ export function platformSignsContract(
   );
 }
 
+/**
+ * An agreement's required signers as configured on its parties — what a
+ * preview shows signature blocks for before any request exists. A party that
+ * is not a required signatory (a billing contact, an optional signer) gets no
+ * block.
+ */
+export function partySignatories(
+  parties:
+    | ReadonlyArray<{
+        id: string;
+        partyType: string;
+        name: string;
+        legalName?: string | null;
+        email?: string | null;
+        isPrimary?: boolean | null;
+        isSignatory?: boolean | null;
+        signatureRequired?: boolean | null;
+        signingOrder?: number | null;
+        metadata?: unknown;
+      }>
+    | null
+    | undefined,
+): SignatoryForBlock[] {
+  const all = parties ?? [];
+  return all
+    .filter((party) => party.isSignatory && party.signatureRequired)
+    .map((party) => ({
+      key: party.id,
+      partyType: party.partyType,
+      isPrimary: party.isPrimary,
+      signingOrder: party.signingOrder,
+      name: party.name,
+      organization: signerOrganization(party, all),
+      email: party.email,
+      separateParty: isSeparateParty(party),
+    }));
+}
+
+/** The required signers of one signature request. */
+export function recipientSignatories(
+  recipients: ReadonlyArray<{
+    id: string;
+    name: string;
+    email?: string | null;
+    isRequired?: boolean | null;
+    signingOrder?: number | null;
+    party?: {
+      partyType: string;
+      isPrimary?: boolean | null;
+      name?: string | null;
+      legalName?: string | null;
+      metadata?: unknown;
+    } | null;
+  }>,
+): SignatoryForBlock[] {
+  const parties = recipients
+    .map((recipient) => recipient.party)
+    .filter((party): party is NonNullable<typeof party> => Boolean(party));
+  return recipients
+    .filter((recipient) => recipient.isRequired !== false)
+    .map((recipient) => ({
+      key: recipient.id,
+      partyType: recipient.party?.partyType,
+      isPrimary: recipient.party?.isPrimary,
+      signingOrder: recipient.signingOrder,
+      name: recipient.name,
+      organization: signerOrganization(recipient.party, parties),
+      email: recipient.email,
+      separateParty: isSeparateParty(recipient.party),
+    }));
+}
+
 export function renderContractVersionHtml(
   html: string,
   rows: StoredContractPlaceholderValue[],
   mode: 'freeze' | 'display',
   /** Terms the agreement's template makes mandatory (`agreement-terms.ts`). */
   requiredKeys: ReadonlySet<string> = new Set(),
+  /*
+   * The agreement's required signers. A preview shows a pending block for
+   * each one no template slot covers; freezing never adds them, so the
+   * signing version stays the template as resolved (signature-blocks.ts).
+   */
+  signers: SignatoryForBlock[] = [],
 ) {
+  const source =
+    mode === 'display' && signers.length
+      ? insertAdditionalSignatureBlocks(html, signers)
+      : html;
   const values = Object.fromEntries(
     rows
       .filter(
@@ -7427,7 +7692,7 @@ export function renderContractVersionHtml(
   // A legacy spelling (`{{ signature.partner.name }}`) is canonicalised first,
   // so it is held back at freeze and filled at signing like any other.
   const rendered = renderContractPlaceholders(
-    normalizeSignatureTokens(html),
+    normalizeSignatureTokens(source),
     values,
     /*
      * A preview never shows a missing mandatory value as a blank or a raw
@@ -7456,9 +7721,42 @@ export type SignatureEvidenceForRender = {
   signatureSha256: string;
   recipient: {
     name: string;
-    party?: { partyType: string; isPrimary?: boolean | null } | null;
+    email?: string | null;
+    signingOrder?: number | null;
+    party?: {
+      partyType: string;
+      isPrimary?: boolean | null;
+      name?: string | null;
+      legalName?: string | null;
+      metadata?: unknown;
+    } | null;
   };
 };
+
+const SIGNATURE_METHOD_LABELS: Record<string, string> = {
+  TYPED: 'Typed signature',
+  DRAWN: 'Drawn signature',
+  UPLOADED: 'Uploaded signature',
+};
+
+/** The signers of an executed version, in the shape signature blocks take. */
+function evidenceSignatories(evidenceRows: SignatureEvidenceForRender[]) {
+  const parties = evidenceRows
+    .map((evidence) => evidence.recipient.party)
+    .filter((party): party is NonNullable<typeof party> => Boolean(party));
+  return evidenceRows.map(
+    (evidence): SignatoryForBlock => ({
+      key: evidence.id,
+      partyType: evidence.recipient.party?.partyType,
+      isPrimary: evidence.recipient.party?.isPrimary,
+      signingOrder: evidence.recipient.signingOrder,
+      name: evidence.recipient.name,
+      organization: signerOrganization(evidence.recipient.party, parties),
+      email: evidence.recipient.email,
+      separateParty: isSeparateParty(evidence.recipient.party),
+    }),
+  );
+}
 
 /**
  * Fill every `signature.*` token of an executed version from the evidence of
@@ -7485,21 +7783,19 @@ export function renderSignatureEvidenceTokens(
 ) {
   const bySlot = new Map<string, SignatureEvidenceForRender | undefined>();
   let fallbackIndex = 0;
-  const counterparties = evidenceRows.filter(
-    (item) => item.recipient.party?.partyType !== 'PLATFORM',
+  const signatories = evidenceSignatories(evidenceRows);
+  const evidenceByKey = new Map(
+    evidenceRows.map((evidence) => [evidence.id, evidence]),
   );
+  // One rule for which signer fills which template slot (signature-blocks.ts).
+  const { slots } = assignSignatureSlots(signatories);
   const evidenceFor = (slot: string) => {
     if (bySlot.has(slot)) return bySlot.get(slot);
     let evidence: SignatureEvidenceForRender | undefined;
-    if (slot === 'platform')
-      evidence = evidenceRows.find(
-        (item) => item.recipient.party?.partyType === 'PLATFORM',
-      );
-    else if (slot === 'counterparty') evidence = counterparties[0];
-    else if (slot === 'party.primary')
-      evidence =
-        counterparties.find((item) => item.recipient.party?.isPrimary) ??
-        counterparties[0];
+    if (slot.startsWith(SIGNER_SLOT_PREFIX))
+      evidence = evidenceByKey.get(slot.slice(SIGNER_SLOT_PREFIX.length));
+    else if (slot in slots)
+      evidence = slots[slot] ? evidenceByKey.get(slots[slot].key) : undefined;
     else if (evidenceRows.length)
       evidence = evidenceRows[fallbackIndex++ % evidenceRows.length];
     bySlot.set(slot, evidence);
@@ -7508,7 +7804,12 @@ export function renderSignatureEvidenceTokens(
   const dateDefinition = CONTRACT_PLACEHOLDER_REGISTRY.find(
     (item) => item.key === 'signature.counterparty.date',
   );
-  return normalizeSignatureTokens(html).replace(
+  /*
+   * Every signer gets a signature block: the template's slots take the
+   * signers they resolve to, and a block is generated for each one left over
+   * (CON-20261012-E7421CC1 — three signers, two blocks).
+   */
+  return insertAdditionalSignatureBlocks(html, signatories).replace(
     /\{\{\s*(signature\.[a-zA-Z0-9_.-]+)\s*\}\}/g,
     (_token, key: string) => {
       const parts = key.split('.');
@@ -7548,7 +7849,20 @@ export function renderSignatureEvidenceTokens(
         evidence.method === 'TYPED' && evidence.typedStyle
           ? ` data-signature-style="${escapeHtml(evidence.typedStyle)}"`
           : '';
-      return `${signatureImage ? `<img src="${signatureImage}" alt="${escapeHtml(evidence.recipient.name)} signature" width="240" height="80">` : ''}<span data-signature-metadata="true"${typedStyleAttr}><strong>${escapeHtml(evidence.typedName || evidence.recipient.name)}</strong><br>${escapeHtml(evidence.method)} signature · ${escapeHtml(evidence.signedAt.toISOString())}<br>Verified · SHA-256 ${escapeHtml(evidence.signatureSha256.slice(0, 20))}…</span>`;
+      /*
+       * The mark (image, or the typed name in its chosen style) on its own
+       * line, then one short evidence line. The full evidence — hashes, time
+       * zone, verification — belongs to the appendix, not the legal block;
+       * this line used to run the method, raw ISO timestamp and hash together
+       * into one wrapped sentence beside the signer's name.
+       */
+      const evidenceLine = [
+        'Electronically signed',
+        SIGNATURE_METHOD_LABELS[evidence.method] ?? evidence.method,
+        formatPlaceholderValue(evidence.signedAt.toISOString(), dateDefinition),
+        `Ref. ${evidence.signatureSha256.slice(0, 12)}`,
+      ].join(' · ');
+      return `${signatureImage ? `<img src="${signatureImage}" alt="${escapeHtml(evidence.recipient.name)} signature" width="240" height="80">` : ''}<span data-signature-metadata="true"${typedStyleAttr}><strong>${escapeHtml(evidence.typedName || evidence.recipient.name)}</strong></span><br><span data-signature-metadata="true">${escapeHtml(evidenceLine)}</span>`;
     },
   );
 }
@@ -8212,13 +8526,44 @@ export const TENANT_PROVISIONING_GATE = 'TENANT_PROVISIONING';
  * placeholders: the mark itself and the moment it was made. A drawn or uploaded
  * signature keeps its image; a typed one keeps the legal name it was typed as.
  */
+/**
+ * The preview slot a signer's mark is recorded under. Every counterparty
+ * signer used to write `signature.counterparty.*`, so on an agreement with two
+ * customer signers the second one's mark replaced the first one's in the
+ * primary customer block. A signer no template slot resolves to is recorded
+ * under its party's generated block (`partySignatories` keys it by party id).
+ */
+export function signerPreviewSlot(
+  recipient: { id: string; partyId?: string | null },
+  recipients: ReadonlyArray<{
+    id: string;
+    signingOrder?: number | null;
+    party?: { partyType: string; isPrimary?: boolean | null } | null;
+  }>,
+) {
+  const { slots } = assignSignatureSlots(
+    recipients.map((item) => ({
+      key: item.id,
+      partyType: item.party?.partyType,
+      isPrimary: item.party?.isPrimary,
+      signingOrder: item.signingOrder,
+    })),
+  );
+  if (slots.platform?.key === recipient.id) return 'platform';
+  if (slots.counterparty?.key === recipient.id) return 'counterparty';
+  return `${SIGNER_SLOT_PREFIX}${recipient.partyId ?? recipient.id}`;
+}
+
 export function signaturePlaceholderValues(
   partyType: string | null,
   signerName: string,
   signatureDataUrl: string | undefined,
   signedAt: Date,
+  /** From `signerPreviewSlot`; the party type decides when it is not known. */
+  slotOverride?: string,
 ) {
-  const slot = partyType === 'PLATFORM' ? 'platform' : 'counterparty';
+  const slot =
+    slotOverride ?? (partyType === 'PLATFORM' ? 'platform' : 'counterparty');
   const initials = signerName
     .split(/\s+/)
     .filter(Boolean)
@@ -8545,24 +8890,110 @@ type AgreementHtmlNode = {
  * (`dto/contracts.dto.ts`) via `SignatureEvidence.typedStyle`. */
 type SignatureRenderStyle = 'CLASSIC' | 'SCRIPT' | 'FORMAL';
 
+/*
+ * One formatted run of text. PDF and DOCX used to receive each paragraph as
+ * a single flattened string, which is why the signed PDF of
+ * CON-20261012-E7421CC1 printed "Legal Contracting Party: … Business /
+ * Platform: … Authorized Signatory: …" as one run-on sentence: the template's
+ * line breaks and bold labels never reached the renderer.
+ */
+type AgreementRun = {
+  text: string;
+  bold?: boolean;
+  italic?: boolean;
+  /** Evidence text under a signature: smaller and muted. */
+  muted?: boolean;
+  signatureStyle?: SignatureRenderStyle;
+};
+
+/** A paragraph's lines, split at each `<br>`. */
+type AgreementLine = AgreementRun[];
+
 type AgreementBlock =
   | {
       kind: 'paragraph';
       text: string;
+      lines: AgreementLine[];
       level?: number;
       quote?: boolean;
       signatureStyle?: SignatureRenderStyle;
     }
   | { kind: 'pageBreak' }
+  | { kind: 'rule' }
   | { kind: 'image'; data: Buffer; imageType: 'png' | 'jpg'; alt: string }
   | {
       kind: 'list';
       text: string;
+      lines: AgreementLine[];
       depth: number;
       ordered: boolean;
       index: number;
     }
-  | { kind: 'table'; rows: string[][] };
+  | { kind: 'table'; rows: string[][]; header: boolean };
+
+function inlineLines(nodes: AgreementHtmlNode[]): AgreementLine[] {
+  const lines: AgreementLine[] = [[]];
+  const visit = (
+    list: AgreementHtmlNode[],
+    format: Omit<AgreementRun, 'text'>,
+  ) => {
+    for (const node of list) {
+      if (node.type === 'text') {
+        const text = (node.data ?? '').replace(/\s+/g, ' ');
+        if (text) lines[lines.length - 1].push({ text, ...format });
+        continue;
+      }
+      const name = node.name?.toLowerCase();
+      if (name === 'br') {
+        lines.push([]);
+        continue;
+      }
+      if (!name || name === 'img' || name === 'script' || name === 'style')
+        continue;
+      const next = { ...format };
+      if (name === 'strong' || name === 'b') next.bold = true;
+      if (name === 'em' || name === 'i') next.italic = true;
+      const style = node.attribs?.['data-signature-style'];
+      if (style && SIGNATURE_RENDER_STYLES.has(style))
+        next.signatureStyle = style as SignatureRenderStyle;
+      if (node.attribs?.['data-signature-metadata'] === 'true')
+        next.muted = true;
+      visit(node.children ?? [], next);
+    }
+  };
+  visit(nodes, {});
+  return lines
+    .map((line) => {
+      const merged: AgreementRun[] = [];
+      for (const run of line) {
+        const last = merged[merged.length - 1];
+        if (
+          last &&
+          last.bold === run.bold &&
+          last.italic === run.italic &&
+          last.muted === run.muted &&
+          last.signatureStyle === run.signatureStyle
+        )
+          last.text = `${last.text}${run.text}`.replace(/\s+/g, ' ');
+        else merged.push({ ...run });
+      }
+      if (merged.length) {
+        merged[0].text = merged[0].text.trimStart();
+        merged[merged.length - 1].text =
+          merged[merged.length - 1].text.trimEnd();
+      }
+      return merged.filter((run) => run.text.length > 0);
+    })
+    .filter((line) => line.length > 0);
+}
+
+function linesText(lines: AgreementLine[]) {
+  return lines
+    .map((line) => line.map((run) => run.text).join(''))
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
 export function extractAgreementDocumentStructure(html: string) {
   const root = parseDocument(cleanContractHtml(html)) as unknown as {
@@ -8572,11 +9003,12 @@ export function extractAgreementDocumentStructure(html: string) {
   const walk = (nodes: AgreementHtmlNode[], listDepth = 0) => {
     for (const node of nodes) {
       const name = node.name?.toLowerCase();
-      if (name && /^h[1-4]$/.test(name))
+      if (name && /^h[1-6]$/.test(name))
         blocks.push({
           kind: 'paragraph',
           text: nodeText(node),
-          level: Number(name.slice(1)),
+          lines: [[{ text: nodeText(node), bold: true }]],
+          level: Math.min(4, Number(name.slice(1))),
         });
       else if (name === 'p') {
         if (findDescendants(node, 'img').length)
@@ -8585,10 +9017,16 @@ export function extractAgreementDocumentStructure(html: string) {
           blocks.push({
             kind: 'paragraph',
             text: nodeText(node),
+            lines: inlineLines(node.children ?? []),
             signatureStyle: signatureStyleOf(node),
           });
       } else if (name === 'blockquote')
-        blocks.push({ kind: 'paragraph', text: nodeText(node), quote: true });
+        blocks.push({
+          kind: 'paragraph',
+          text: nodeText(node),
+          lines: inlineLines(node.children ?? []),
+          quote: true,
+        });
       else if (name === 'ul' || name === 'ol') {
         const items = (node.children ?? []).filter(
           (child) => child.name?.toLowerCase() === 'li',
@@ -8600,6 +9038,7 @@ export function extractAgreementDocumentStructure(html: string) {
           blocks.push({
             kind: 'list',
             text: nodesText(inline),
+            lines: inlineLines(inline),
             depth: listDepth,
             ordered: name === 'ol',
             index: index + 1,
@@ -8612,12 +9051,17 @@ export function extractAgreementDocumentStructure(html: string) {
           );
         });
       } else if (name === 'table') {
-        const rows = findDescendants(node, 'tr').map((row) =>
+        const rowNodes = findDescendants(node, 'tr');
+        const rows = rowNodes.map((row) =>
           (row.children ?? [])
             .filter((cell) => ['td', 'th'].includes(cell.name ?? ''))
             .map(nodeText),
         );
-        if (rows.length) blocks.push({ kind: 'table', rows });
+        // A header row is one the author marked as such, not simply the first.
+        const header = (rowNodes[0]?.children ?? []).some(
+          (cell) => cell.name === 'th',
+        );
+        if (rows.length) blocks.push({ kind: 'table', rows, header });
       } else if (name === 'img') {
         const image = decodeEmbeddedDocumentImage(node.attribs?.src);
         if (image)
@@ -8630,7 +9074,8 @@ export function extractAgreementDocumentStructure(html: string) {
       } else if (name === 'hr') {
         if (node.attribs?.['data-page-break'] === 'true')
           blocks.push({ kind: 'pageBreak' });
-        else blocks.push({ kind: 'paragraph', text: '--------------------' });
+        // A drawn rule, not a line of twenty hyphens.
+        else blocks.push({ kind: 'rule' });
       } else if (node.children) walk(node.children, listDepth);
     }
   };
@@ -8640,6 +9085,7 @@ export function extractAgreementDocumentStructure(html: string) {
       block.kind === 'table' ||
       block.kind === 'image' ||
       block.kind === 'pageBreak' ||
+      block.kind === 'rule' ||
       block.text.trim().length > 0,
   );
 }
@@ -8658,11 +9104,11 @@ function splitParagraphAroundImages(paragraph: AgreementHtmlNode) {
   const flush = () => {
     if (!pending.length) return;
     const segment = { children: pending } as AgreementHtmlNode;
+    const lines = inlineLines(pending);
     blocks.push({
       kind: 'paragraph',
-      text: DomUtils.getText(pending as never)
-        .replace(/\s+/g, ' ')
-        .trim(),
+      text: linesText(lines),
+      lines,
       signatureStyle: signatureStyleOf(segment),
     });
     pending = [];
@@ -8713,79 +9159,577 @@ const PDF_SIGNATURE_STYLE_FONT: Record<SignatureRenderStyle, string> = {
   FORMAL: 'Times-Roman',
 };
 
+/**
+ * What the title page and running header/footer of a generated agreement
+ * show. Built by `agreementCoverDetails` from the same values the document
+ * itself was rendered from, so the cover cannot disagree with the body.
+ */
+export type AgreementCover = {
+  brand: string;
+  status: string;
+  rows: Array<[string, string]>;
+  /** Running header/footer reference, e.g. "CON-… · Version 1". */
+  reference: string;
+};
+
+export type AgreementRenderOptions = {
+  cover?: AgreementCover;
+  /** Evidence and audit records, rendered after the agreement on new pages. */
+  appendixHtml?: string;
+};
+
+export function agreementCoverDetails(input: {
+  contractNumber: string;
+  agreementVersion: string;
+  counterpartyName?: string | null;
+  values: Record<string, unknown>;
+  status: string;
+  executedAt: Date | null;
+}): AgreementCover {
+  const text = (key: string) => {
+    const raw = input.values[key];
+    if (typeof raw !== 'string' || !raw.trim()) return '';
+    const definition = CONTRACT_PLACEHOLDER_REGISTRY.find(
+      (item) => item.key === key,
+    );
+    return formatPlaceholderValue(raw, definition);
+  };
+  const counterpartyRow = (
+    [
+      ['Customer', 'customer.legalName'],
+      ['Partner', 'partner.legalName'],
+      ['Counterparty', 'counterparty.legalName'],
+    ] as const
+  )
+    .map(([label, key]) => [label, text(key)] as [string, string])
+    .find(([, value]) => value) ?? [
+    'Counterparty',
+    input.counterpartyName ?? '',
+  ];
+  const dateDefinition = CONTRACT_PLACEHOLDER_REGISTRY.find(
+    (item) => item.key === 'signature.counterparty.date',
+  );
+  const rows: Array<[string, string]> = [
+    ['Agreement reference', input.contractNumber],
+    ['Agreement version', input.agreementVersion],
+    ['Service provider', text('platform.legalName')],
+    counterpartyRow,
+    ['Effective date', text('contract.effectiveDate')],
+    ['Expiry date', text('contract.expiryDate')],
+    [
+      'Document status',
+      input.executedAt
+        ? `${input.status} · ${formatPlaceholderValue(input.executedAt.toISOString(), dateDefinition)}`
+        : input.status,
+    ],
+  ];
+  return {
+    brand: text('platform.name') || 'DijiPeople',
+    status: input.status,
+    rows: rows.filter(([, value]) => value.trim()),
+    reference: `${input.contractNumber} · Version ${input.agreementVersion}`,
+  };
+}
+
+/** Evidence timestamps keep their precision; UTC is stated, not implied. */
+function evidenceTimestamp(value: Date) {
+  return `${value.toISOString().replace('T', ' ').replace('Z', '')} UTC`;
+}
+
+/**
+ * The signature evidence and audit records of an executed agreement, as a
+ * separate appendix after the agreement's own signature blocks. Built as HTML
+ * so PDF and DOCX lay it out with the same tables as the agreement, instead
+ * of the single preformatted text dump they printed before.
+ */
+export function signatureEvidenceAppendixHtml(input: {
+  contractNumber: string;
+  agreementVersion: string;
+  signingRecordVersion: number;
+  documentSha256: string;
+  requestNumber: string;
+  evidence: Array<
+    SignatureEvidenceForRender & {
+      timezone?: string | null;
+      verificationStatus?: string | null;
+      eventHash?: string | null;
+      recipient: SignatureEvidenceForRender['recipient'] & { role?: string };
+    }
+  >;
+  signatureEvents: Array<{
+    eventSequence: number;
+    eventType: string;
+    createdAt: Date;
+    eventHash: string | null;
+  }>;
+  timeline: Array<{ createdAt: Date; eventType: string; message: string }>;
+}) {
+  const cell = (value: string | number | null | undefined) =>
+    `<td>${escapeHtml(String(value ?? ''))}</td>`;
+  const keyValue = (
+    rows: Array<[string, string | number | null | undefined]>,
+  ) =>
+    `<table>${rows
+      .filter(
+        ([, value]) => value !== null && value !== undefined && value !== '',
+      )
+      .map(([label, value]) => `<tr>${cell(label)}${cell(value)}</tr>`)
+      .join('')}</table>`;
+  const signatories = evidenceSignatories(input.evidence);
+  const parts = [
+    '<h1>ELECTRONIC SIGNATURE APPENDIX</h1>',
+    keyValue([
+      ['Agreement reference', input.contractNumber],
+      ['Agreement version', input.agreementVersion],
+      [
+        'Signing record',
+        `Immutable signing snapshot ${input.signingRecordVersion}`,
+      ],
+      ['Signature request', input.requestNumber],
+      ['Document SHA-256', input.documentSha256],
+      ['Signers', input.evidence.length],
+    ]),
+  ];
+  input.evidence.forEach((evidence, index) => {
+    parts.push(
+      `<h3>Signer ${index + 1} of ${input.evidence.length} — ${escapeHtml(evidence.recipient.name)}</h3>`,
+      keyValue([
+        ['Signing for', signatories[index]?.organization ?? ''],
+        ['Role', evidence.recipient.role ?? ''],
+        ['Email', evidence.recipient.email ?? ''],
+        ['Signing order', evidence.recipient.signingOrder ?? ''],
+        ['Method', SIGNATURE_METHOD_LABELS[evidence.method] ?? evidence.method],
+        [
+          'Typed signature',
+          evidence.method === 'TYPED' ? evidence.typedName : '',
+        ],
+        ['Signed at', evidenceTimestamp(evidence.signedAt)],
+        ['Signer time zone', evidence.timezone ?? ''],
+        ['Verification', evidence.verificationStatus ?? 'TOKEN_VERIFIED'],
+        ['Signature SHA-256', evidence.signatureSha256],
+        ['Evidence event hash', evidence.eventHash ?? ''],
+      ]),
+    );
+  });
+  parts.push(
+    '<h2>AUDIT CERTIFICATE</h2>',
+    `<table><tr><th>#</th><th>Event</th><th>Time</th><th>Event hash</th></tr>${input.signatureEvents
+      .map(
+        (event) =>
+          `<tr>${cell(event.eventSequence)}${cell(event.eventType)}${cell(evidenceTimestamp(event.createdAt))}${cell(event.eventHash)}</tr>`,
+      )
+      .join('')}</table>`,
+    '<h2>AGREEMENT TIMELINE</h2>',
+    `<table><tr><th>Time</th><th>Event</th><th>Detail</th></tr>${input.timeline
+      .map(
+        (event) =>
+          `<tr>${cell(evidenceTimestamp(event.createdAt))}${cell(event.eventType)}${cell(event.message)}</tr>`,
+      )
+      .join('')}</table>`,
+  );
+  return parts.join('');
+}
+
+/*
+ * The generated agreement's look. Restrained: one accent colour for the brand
+ * and headings, near-black body text, and hairline rules and table borders.
+ */
+const PDF_THEME = {
+  ink: '#1f2933',
+  heading: '#12263f',
+  accent: '#0f5c8c',
+  muted: '#5f6b7a',
+  rule: '#c9d2dc',
+  tableHeader: '#eef2f6',
+} as const;
+
+const PDF_MARGINS = { top: 72, bottom: 72, left: 64, right: 64 };
+
+const PDF_HEADING_SIZE: Record<number, number> = {
+  1: 15,
+  2: 13,
+  3: 11.5,
+  4: 10.5,
+};
+
+function pdfFont(
+  run: Pick<AgreementRun, 'bold' | 'italic'>,
+  family = 'Helvetica',
+) {
+  if (run.bold && run.italic) return `${family}-BoldOblique`;
+  if (run.bold) return `${family}-Bold`;
+  if (run.italic) return `${family}-Oblique`;
+  return family;
+}
+
+/*
+ * A short paragraph that is bold throughout ("FOR THE CUSTOMER", "Service
+ * Provider") captions what follows it, so it is kept with it like a heading.
+ */
+function isCaptionParagraph(block: AgreementBlock) {
+  return (
+    block.kind === 'paragraph' &&
+    !block.level &&
+    block.text.length <= 90 &&
+    block.lines.length > 0 &&
+    block.lines.every((line) => line.every((run) => run.bold))
+  );
+}
+
+/*
+ * The title a cover page shows: the headings the document opens with, less a
+ * heading that only repeats the brand already printed above it.
+ */
+function documentTitleLines(blocks: AgreementBlock[], brand: string) {
+  const lines: string[] = [];
+  for (const block of blocks) {
+    if (block.kind !== 'paragraph' || !block.level || block.level > 2) break;
+    if (block.text.trim().toLowerCase() !== brand.trim().toLowerCase())
+      lines.push(block.text);
+    if (lines.length === 2) break;
+  }
+  return lines;
+}
+
 // Exported for contracts.domain.spec.ts to assert directly against the
 // rendered PDF/DOCX bytes (BUG-3554's drawn-image and typed-style checks) —
 // not otherwise part of this module's public service surface.
-export async function createPdf(title: string, html: string, appendix = '') {
+export async function createPdf(
+  title: string,
+  html: string,
+  appendix = '',
+  options: AgreementRenderOptions = {},
+) {
   return new Promise<Buffer>((resolve, reject) => {
     const chunks: Buffer[] = [];
     const document = new PDFDocument({
       size: 'A4',
-      margins: { top: 54, bottom: 54, left: 54, right: 54 },
+      margins: PDF_MARGINS,
+      bufferPages: true,
       info: { Title: title },
     });
     document.on('data', (chunk: Buffer) => chunks.push(chunk));
     document.on('error', reject);
     document.on('end', () => resolve(Buffer.concat(chunks)));
-    document.fontSize(18).text(title, { align: 'center' }).moveDown(2);
-    for (const block of extractAgreementDocumentStructure(html)) {
-      if (block.kind === 'pageBreak') {
-        document.addPage();
-        continue;
-      }
-      if (block.kind === 'table') {
-        for (const [rowIndex, row] of block.rows.entries()) {
+    const left = PDF_MARGINS.left;
+    const width = document.page.width - PDF_MARGINS.left - PDF_MARGINS.right;
+    const bottom = () => document.page.height - PDF_MARGINS.bottom;
+    const atPageTop = () => document.y <= PDF_MARGINS.top + 1;
+    const ensureSpace = (height: number) => {
+      if (document.y + height > bottom() && !atPageTop()) document.addPage();
+    };
+    const writeLines = (
+      lines: AgreementLine[],
+      layout: {
+        x: number;
+        width: number;
+        size: number;
+        color?: string;
+        lineGap?: number;
+      },
+    ) => {
+      for (const line of lines) {
+        line.forEach((run, index) => {
+          const font = run.signatureStyle
+            ? PDF_SIGNATURE_STYLE_FONT[run.signatureStyle]
+            : pdfFont(run);
+          const size = run.signatureStyle
+            ? 15
+            : run.muted
+              ? layout.size - 1.5
+              : layout.size;
           document
-            .font(rowIndex === 0 ? 'Helvetica-Bold' : 'Helvetica')
-            .fontSize(9)
-            .text(row.join('  |  '), { lineGap: 3 });
-          document.moveDown(0.35);
+            .font(font)
+            .fontSize(size)
+            .fillColor(
+              run.muted ? PDF_THEME.muted : (layout.color ?? PDF_THEME.ink),
+            );
+          const textOptions = {
+            continued: index < line.length - 1,
+            lineGap: layout.lineGap ?? 2.5,
+          };
+          if (index === 0)
+            document.text(run.text, layout.x, document.y, {
+              ...textOptions,
+              width: layout.width,
+            });
+          else document.text(run.text, textOptions);
+        });
+      }
+    };
+    const writeTable = (rows: string[][], header: boolean) => {
+      const columns = Math.max(...rows.map((row) => row.length));
+      if (!columns) return;
+      // Column widths follow content, capped so one long hash cannot starve
+      // the others; a two-column table without a header is a label/value list.
+      // A column is never narrower than its longest word ("SIGNED" must not
+      // break as "SIGNE / D"); hashes, which have no spaces, are the cap.
+      const weights = Array.from({ length: columns }, (_, column) => {
+        const cells = rows.map((row) => row[column] ?? '');
+        const longestWord = Math.max(
+          0,
+          ...cells.flatMap((cell) =>
+            cell.split(/\s+/).map((word) => word.length),
+          ),
+        );
+        return Math.min(
+          42,
+          Math.max(6, longestWord + 4, ...cells.map((cell) => cell.length)),
+        );
+      });
+      if (columns === 2 && !header) weights.splice(0, 2, 32, 68);
+      const total = weights.reduce((sum, value) => sum + value, 0);
+      const widths = weights.map((value) => (value / total) * width);
+      const padding = 4;
+      const size = 8.5;
+      const drawRow = (row: string[], isHeader: boolean) => {
+        document.font(isHeader ? 'Helvetica-Bold' : 'Helvetica').fontSize(size);
+        const height =
+          Math.max(
+            ...widths.map((columnWidth, column) =>
+              document.heightOfString(row[column] ?? '', {
+                width: columnWidth - padding * 2,
+                lineGap: 1.5,
+              }),
+            ),
+          ) +
+          padding * 2;
+        if (document.y + height > bottom()) {
+          document.addPage();
+          if (header && !isHeader) drawRow(rows[0], true);
         }
-        document.moveDown(0.75);
-        continue;
-      }
-      if (block.kind === 'image') {
-        document.image(block.data, { fit: [240, 80] });
-        document.moveDown(0.5);
-        continue;
-      }
-      if (block.kind === 'list') {
-        const prefix = block.ordered ? `${block.index}.` : '•';
-        document
-          .font('Helvetica')
-          .fontSize(10)
-          .text(`${'   '.repeat(block.depth)}${prefix} ${block.text}`, {
-            indent: block.depth * 14,
-            lineGap: 3,
-          })
-          .moveDown(0.45);
-        continue;
-      }
+        const top = document.y;
+        let x = left;
+        widths.forEach((columnWidth, column) => {
+          if (isHeader)
+            document
+              .rect(x, top, columnWidth, height)
+              .fill(PDF_THEME.tableHeader);
+          document
+            .rect(x, top, columnWidth, height)
+            .lineWidth(0.5)
+            .strokeColor(PDF_THEME.rule)
+            .stroke();
+          document
+            .font(
+              isHeader || (!header && column === 0)
+                ? 'Helvetica-Bold'
+                : 'Helvetica',
+            )
+            .fontSize(size)
+            .fillColor(PDF_THEME.ink)
+            .text(row[column] ?? '', x + padding, top + padding, {
+              width: columnWidth - padding * 2,
+              lineGap: 1.5,
+            });
+          x += columnWidth;
+        });
+        document.x = left;
+        document.y = top + height;
+      };
+      rows.forEach((row, index) => drawRow(row, header && index === 0));
+      document.moveDown(0.8);
+    };
+    const writeBlocks = (blocks: AgreementBlock[]) => {
+      blocks.forEach((block, index) => {
+        const next = blocks[index + 1];
+        if (block.kind === 'pageBreak') {
+          if (!atPageTop()) document.addPage();
+          return;
+        }
+        if (block.kind === 'rule') {
+          // A rule before a top-level heading (a new Part or Schedule) starts
+          // a new page instead of stranding the heading at a page foot.
+          if (next?.kind === 'paragraph' && next.level === 1) {
+            if (!atPageTop()) document.addPage();
+            return;
+          }
+          ensureSpace(16);
+          const y = document.y + 4;
+          document
+            .moveTo(left, y)
+            .lineTo(left + width, y)
+            .lineWidth(0.6)
+            .strokeColor(PDF_THEME.rule)
+            .stroke();
+          document.x = left;
+          document.y = y + 10;
+          return;
+        }
+        if (block.kind === 'table') {
+          writeTable(block.rows, block.header);
+          return;
+        }
+        if (block.kind === 'image') {
+          ensureSpace(72);
+          document.x = left;
+          document.image(block.data, { fit: [190, 64] });
+          document.moveDown(0.3);
+          return;
+        }
+        if (block.kind === 'list') {
+          const indent = left + block.depth * 16;
+          const prefix = block.ordered ? `${block.index}.` : '•';
+          ensureSpace(28);
+          const top = document.y;
+          document
+            .font('Helvetica')
+            .fontSize(10)
+            .fillColor(PDF_THEME.ink)
+            .text(prefix, indent, top, { width: 16 });
+          document.y = top;
+          writeLines(block.lines, {
+            x: indent + 16,
+            width: width - (indent - left) - 16,
+            size: 10,
+          });
+          document.moveDown(0.3);
+          return;
+        }
+        if (block.level) {
+          const size = PDF_HEADING_SIZE[block.level] ?? 10.5;
+          // Keep a heading with at least the first lines of what it heads.
+          ensureSpace(size * 2 + 48);
+          if (!atPageTop()) document.moveDown(block.level <= 2 ? 0.6 : 0.3);
+          document
+            .font('Helvetica-Bold')
+            .fontSize(size)
+            .fillColor(block.level <= 2 ? PDF_THEME.heading : PDF_THEME.ink)
+            .text(block.text, left, document.y, { width, lineGap: 2 });
+          document.moveDown(block.level <= 2 ? 0.5 : 0.35);
+          return;
+        }
+        ensureSpace(isCaptionParagraph(block) ? 96 : 24);
+        writeLines(block.lines, {
+          x: left + (block.quote ? 18 : 0),
+          width: width - (block.quote ? 18 : 0),
+          size: 10,
+        });
+        document.moveDown(next && isCaptionParagraph(block) ? 0.35 : 0.55);
+      });
+    };
+    const body = extractAgreementDocumentStructure(html);
+    const cover = options.cover;
+    if (cover) {
       document
-        .font(
-          block.signatureStyle
-            ? PDF_SIGNATURE_STYLE_FONT[block.signatureStyle]
-            : block.level
-              ? 'Helvetica-Bold'
-              : 'Helvetica',
-        )
-        .fontSize(
-          block.signatureStyle
-            ? 13
-            : block.level
-              ? Math.max(11, 19 - block.level * 2)
-              : 10,
-        )
-        .text(block.text, {
-          align: block.level ? 'left' : 'justify',
-          indent: block.quote ? 18 : 0,
-          lineGap: 4,
-        })
-        .moveDown(block.level ? 0.8 : 0.6);
+        .font('Helvetica-Bold')
+        .fontSize(10)
+        .fillColor(PDF_THEME.accent)
+        .text(cover.brand.toUpperCase(), left, PDF_MARGINS.top + 40, {
+          width,
+          characterSpacing: 2,
+        });
+      const ruleY = document.y + 8;
+      document
+        .moveTo(left, ruleY)
+        .lineTo(left + 72, ruleY)
+        .lineWidth(1.5)
+        .strokeColor(PDF_THEME.accent)
+        .stroke();
+      document.y = ruleY + 28;
+      const titleLines = documentTitleLines(body, cover.brand);
+      document
+        .font('Helvetica-Bold')
+        .fontSize(22)
+        .fillColor(PDF_THEME.heading)
+        .text(
+          (titleLines.length ? titleLines : [title]).join('\n'),
+          left,
+          document.y,
+          {
+            width,
+            lineGap: 4,
+          },
+        );
+      document.moveDown(0.6);
+      document
+        .font('Helvetica')
+        .fontSize(11)
+        .fillColor(PDF_THEME.muted)
+        .text(cover.status, left, document.y, { width });
+      document.moveDown(2.2);
+      writeTable(cover.rows, false);
+      document.addPage();
+    } else {
+      document
+        .font('Helvetica-Bold')
+        .fontSize(16)
+        .fillColor(PDF_THEME.heading)
+        .text(title, left, document.y, { width });
+      document.moveDown(1.2);
+    }
+    writeBlocks(body);
+    const appendixBlocks = options.appendixHtml
+      ? extractAgreementDocumentStructure(options.appendixHtml)
+      : [];
+    if (appendixBlocks.length) {
+      document.addPage();
+      writeBlocks(appendixBlocks);
     }
     if (appendix.trim()) {
       document.addPage();
-      document.font('Helvetica').fontSize(9).text(appendix, { lineGap: 3 });
+      document
+        .font('Helvetica')
+        .fontSize(9)
+        .fillColor(PDF_THEME.ink)
+        .text(appendix, left, document.y, { width, lineGap: 3 });
+    }
+    // Running header and footer, drawn once every page exists so the footer
+    // can say "Page n of N". The cover carries neither.
+    const range = document.bufferedPageRange();
+    const reference = cover?.reference ?? title;
+    for (let page = range.start; page < range.start + range.count; page += 1) {
+      document.switchToPage(page);
+      const pageBottom = document.page.margins.bottom;
+      document.page.margins.bottom = 0;
+      const footerY = document.page.height - 46;
+      if (!(cover && page === range.start)) {
+        document
+          .font('Helvetica-Bold')
+          .fontSize(7.5)
+          .fillColor(PDF_THEME.accent)
+          .text((cover?.brand ?? 'DijiPeople').toUpperCase(), left, 40, {
+            width: width / 2,
+            characterSpacing: 1.2,
+            lineBreak: false,
+          });
+        document
+          .font('Helvetica')
+          .fontSize(7.5)
+          .fillColor(PDF_THEME.muted)
+          .text(reference, left + width / 2, 40, {
+            width: width / 2,
+            align: 'right',
+            lineBreak: false,
+          });
+        document
+          .moveTo(left, 54)
+          .lineTo(left + width, 54)
+          .lineWidth(0.5)
+          .strokeColor(PDF_THEME.rule)
+          .stroke();
+      }
+      document
+        .moveTo(left, footerY - 8)
+        .lineTo(left + width, footerY - 8)
+        .lineWidth(0.5)
+        .strokeColor(PDF_THEME.rule)
+        .stroke();
+      document
+        .font('Helvetica')
+        .fontSize(7.5)
+        .fillColor(PDF_THEME.muted)
+        .text(cover ? 'Confidential' : reference, left, footerY, {
+          width: width / 2,
+          lineBreak: false,
+        });
+      document.text(
+        `Page ${page - range.start + 1} of ${range.count}`,
+        left + width / 2,
+        footerY,
+        { width: width / 2, align: 'right', lineBreak: false },
+      );
+      document.page.margins.bottom = pageBottom;
     }
     document.end();
   });
@@ -8800,41 +9744,82 @@ const DOCX_SIGNATURE_STYLE_FONT: Partial<Record<SignatureRenderStyle, string>> =
     FORMAL: 'Times New Roman',
   };
 
-export async function createDocx(title: string, html: string, appendix = '') {
-  const children: Array<Paragraph | Table> = [
-    new Paragraph({
-      children: [new TextRun({ text: title, bold: true, size: 32 })],
-      spacing: { after: 400 },
-    }),
-  ];
-  for (const block of extractAgreementDocumentStructure(html)) {
+function docxRuns(lines: AgreementLine[], quote = false) {
+  return lines.flatMap((line, lineIndex) =>
+    line.map(
+      (run, runIndex) =>
+        new TextRun({
+          text: run.text,
+          bold: run.bold,
+          italics: quote || run.italic || run.signatureStyle === 'SCRIPT',
+          font: run.signatureStyle
+            ? DOCX_SIGNATURE_STYLE_FONT[run.signatureStyle]
+            : undefined,
+          size: run.signatureStyle ? 26 : run.muted ? 18 : undefined,
+          color: run.muted ? '5F6B7A' : undefined,
+          break: lineIndex > 0 && runIndex === 0 ? 1 : undefined,
+        }),
+    ),
+  );
+}
+
+function docxTable(rows: string[][], header: boolean) {
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: rows.map(
+      (row, rowIndex) =>
+        new TableRow({
+          tableHeader: header && rowIndex === 0,
+          children: row.map(
+            (cell, column) =>
+              new TableCell({
+                children: [
+                  new Paragraph({
+                    children: [
+                      new TextRun({
+                        text: cell,
+                        bold:
+                          (header && rowIndex === 0) ||
+                          (!header && column === 0),
+                        size: 18,
+                      }),
+                    ],
+                  }),
+                ],
+              }),
+          ),
+        }),
+    ),
+  });
+}
+
+function docxBlocks(blocks: AgreementBlock[]) {
+  const children: Array<Paragraph | Table> = [];
+  for (const block of blocks) {
     if (block.kind === 'pageBreak') {
       children.push(new Paragraph({ children: [new PageBreak()] }));
       continue;
     }
-    if (block.kind === 'table') {
+    if (block.kind === 'rule') {
       children.push(
-        new Table({
-          width: { size: 100, type: WidthType.PERCENTAGE },
-          rows: block.rows.map(
-            (row, rowIndex) =>
-              new TableRow({
-                children: row.map(
-                  (cell) =>
-                    new TableCell({
-                      children: [
-                        new Paragraph({
-                          children: [
-                            new TextRun({ text: cell, bold: rowIndex === 0 }),
-                          ],
-                        }),
-                      ],
-                    }),
-                ),
-              }),
-          ),
+        new Paragraph({
+          children: [],
+          border: {
+            bottom: {
+              style: BorderStyle.SINGLE,
+              size: 4,
+              color: 'C9D2DC',
+              space: 1,
+            },
+          },
+          spacing: { after: 160 },
         }),
       );
+      continue;
+    }
+    if (block.kind === 'table') {
+      children.push(docxTable(block.rows, block.header));
+      children.push(new Paragraph({ children: [], spacing: { after: 120 } }));
       continue;
     }
     if (block.kind === 'image') {
@@ -8860,13 +9845,12 @@ export async function createDocx(title: string, html: string, appendix = '') {
     if (block.kind === 'list') {
       children.push(
         new Paragraph({
-          children: [
-            new TextRun({
-              text: block.ordered
-                ? `${block.index}. ${block.text}`
-                : block.text,
-            }),
-          ],
+          children: block.ordered
+            ? [
+                new TextRun({ text: `${block.index}. ` }),
+                ...docxRuns(block.lines),
+              ]
+            : docxRuns(block.lines),
           ...(block.ordered
             ? {}
             : { bullet: { level: Math.min(8, block.depth) } }),
@@ -8878,16 +9862,9 @@ export async function createDocx(title: string, html: string, appendix = '') {
     }
     children.push(
       new Paragraph({
-        children: [
-          new TextRun({
-            text: block.text,
-            italics: block.quote || block.signatureStyle === 'SCRIPT',
-            font: block.signatureStyle
-              ? DOCX_SIGNATURE_STYLE_FONT[block.signatureStyle]
-              : undefined,
-            size: block.signatureStyle ? 26 : undefined,
-          }),
-        ],
+        children: block.level
+          ? [new TextRun({ text: block.text, bold: true })]
+          : docxRuns(block.lines, block.quote),
         heading:
           block.level === 1
             ? HeadingLevel.HEADING_1
@@ -8899,10 +9876,68 @@ export async function createDocx(title: string, html: string, appendix = '') {
                   ? HeadingLevel.HEADING_4
                   : undefined,
         indent: block.quote ? { left: 360 } : undefined,
+        keepNext: Boolean(block.level) || isCaptionParagraph(block),
         spacing: { after: block.level ? 220 : 160 },
       }),
     );
   }
+  return children;
+}
+
+export async function createDocx(
+  title: string,
+  html: string,
+  appendix = '',
+  options: AgreementRenderOptions = {},
+) {
+  const children: Array<Paragraph | Table> = [];
+  const cover = options.cover;
+  const body = extractAgreementDocumentStructure(html);
+  if (cover) {
+    const titleLines = documentTitleLines(body, cover.brand);
+    children.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: cover.brand.toUpperCase(),
+            bold: true,
+            color: '0F5C8C',
+            characterSpacing: 40,
+          }),
+        ],
+        spacing: { after: 480 },
+      }),
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: (titleLines.length ? titleLines : [title]).join(' '),
+            bold: true,
+            size: 44,
+            color: '12263F',
+          }),
+        ],
+        spacing: { after: 240 },
+      }),
+      new Paragraph({
+        children: [new TextRun({ text: cover.status, color: '5F6B7A' })],
+        spacing: { after: 360 },
+      }),
+      docxTable(cover.rows, false),
+      new Paragraph({ children: [new PageBreak()] }),
+    );
+  } else
+    children.push(
+      new Paragraph({
+        children: [new TextRun({ text: title, bold: true, size: 32 })],
+        spacing: { after: 400 },
+      }),
+    );
+  children.push(...docxBlocks(body));
+  if (options.appendixHtml)
+    children.push(
+      new Paragraph({ children: [new PageBreak()] }),
+      ...docxBlocks(extractAgreementDocumentStructure(options.appendixHtml)),
+    );
   if (appendix.trim())
     children.push(
       ...appendix
@@ -8911,7 +9946,32 @@ export async function createDocx(title: string, html: string, appendix = '') {
         .map((text) => new Paragraph({ text, spacing: { after: 120 } })),
     );
   const document = new Document({
-    sections: [{ children }],
+    sections: [
+      {
+        footers: {
+          default: new Footer({
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.RIGHT,
+                children: [
+                  new TextRun({
+                    children: [
+                      `${cover?.reference ?? title} · Page `,
+                      PageNumber.CURRENT,
+                      ' of ',
+                      PageNumber.TOTAL_PAGES,
+                    ],
+                    size: 16,
+                    color: '5F6B7A',
+                  }),
+                ],
+              }),
+            ],
+          }),
+        },
+        children,
+      },
+    ],
   });
   return Packer.toBuffer(document);
 }

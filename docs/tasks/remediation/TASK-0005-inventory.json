@@ -6,7 +6,7 @@
   "discovery_source_head": "00511803ebb0e1343ff35535996df1af98c95834",
   "reconciliation_base_head": "d919e1aab71807e6c6df972ebe09226660aac614",
   "inventory_summary": {
-    "total_records": 790,
+    "total_records": 793,
     "bugs": 118,
     "backlog_items": 76,
     "open_bucket": 4,
@@ -24954,6 +24954,90 @@
       "verification_result": "NOT_VERIFIED"
     },
     {
+      "record_id": "BUG-4191",
+      "type": "DATA_INTEGRITY",
+      "title": "Executed agreement renders signature blocks only for template slots; extra required signers missing",
+      "severity": "HIGH",
+      "priority": "P1",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-4191-executed-agreement-renders-signature-blocks-only-for-templat.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "202c1370",
+        "created_at": "2026-10-13",
+        "updated_at": "2026-10-13",
+        "resolved_at": "2026-10-13"
+      },
+      "affected_modules": [
+        "contracts"
+      ],
+      "regressions": [
+        "REG-683"
+      ],
+      "qa_scenarios": [
+        "QA-CONTRACTS-003"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "contracts"
+        ],
+        "verification_scope": "See docs/bugs/BUG-4191-executed-agreement-renders-signature-blocks-only-for-templat.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "BUG-4192",
+      "type": "UX",
+      "title": "Send-for-signature dialog clips signer rows and actions with more than two signers",
+      "severity": "MEDIUM",
+      "priority": "P2",
+      "current_status": "FIXED",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/bugs/BUG-4192-send-for-signature-dialog-clips-signer-rows-and-actions-with.md",
+        "provenance": "QA_RUN",
+        "detected_in_sha": "202c1370",
+        "created_at": "2026-10-13",
+        "updated_at": "2026-10-13",
+        "resolved_at": "2026-10-13"
+      },
+      "affected_modules": [
+        "contracts"
+      ],
+      "regressions": [
+        "REG-683"
+      ],
+      "qa_scenarios": [
+        "QA-CONTRACTS-003"
+      ],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "contracts"
+        ],
+        "verification_scope": "See docs/bugs/BUG-4192-send-for-signature-dialog-clips-signer-rows-and-actions-with.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
       "record_id": "ITEM-0001",
       "source": {
         "record_path": "docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md",
@@ -34689,6 +34773,44 @@
           "contracts"
         ],
         "verification_scope": "See docs/backlog/items/ITEM-0229-agreement-template-55b74891-content-decisions-and-signer-not.md — Evidence, Reproduction and Acceptance Criteria."
+      },
+      "dependencies": {
+        "record_ids": [],
+        "note": ""
+      },
+      "related_bugs": [],
+      "related_backlog": [],
+      "active_session_conflict": "NONE",
+      "owner_decision_required": "NO",
+      "verification_result": "NOT_VERIFIED"
+    },
+    {
+      "record_id": "ITEM-0230",
+      "type": "PRODUCT_DECISION",
+      "title": "Master SaaS agreement: pricing basis, pilot vs expiry dates, provider legal identity, co-signer party model",
+      "severity": "",
+      "priority": "P2",
+      "current_status": "IN_PROGRESS",
+      "architect_disposition": "FIX_NOW",
+      "source": {
+        "record_path": "docs/backlog/items/ITEM-0230-master-saas-agreement-pricing-basis-pilot-vs-expiry-dates-pr.md",
+        "provenance": "ARCHITECT",
+        "detected_in_sha": "",
+        "created_at": "2026-10-13",
+        "updated_at": "2026-10-13",
+        "resolved_at": ""
+      },
+      "affected_modules": [
+        "contracts"
+      ],
+      "regressions": [],
+      "qa_scenarios": [],
+      "test_plan": [],
+      "current_evidence": {
+        "paths": [
+          "contracts"
+        ],
+        "verification_scope": "See docs/backlog/items/ITEM-0230-master-saas-agreement-pricing-basis-pilot-vs-expiry-dates-pr.md — Evidence, Reproduction and Acceptance Criteria."
       },
       "dependencies": {
         "record_ids": [],

@@ -113,6 +113,12 @@ export class UpdateContractTemplateDraftDto {
   @IsOptional() @IsEnum(ContractSigningMode) signingMode?: ContractSigningMode;
 }
 
+export const SIGNING_CAPACITIES = [
+  'ADDITIONAL_SIGNATORY',
+  'SEPARATE_PARTY',
+] as const;
+export type SigningCapacity = (typeof SIGNING_CAPACITIES)[number];
+
 export class ContractPartyDto {
   @IsEnum(ContractPartyType) partyType!: ContractPartyType;
   @IsEnum(ContractPartyRole) role!: ContractPartyRole;
@@ -125,6 +131,14 @@ export class ContractPartyDto {
   @IsOptional() @IsBoolean() isSignatory?: boolean;
   @IsOptional() @IsBoolean() signatureRequired?: boolean;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) signingOrder?: number;
+  /**
+   * Owner decision (ITEM-0230): a second signer either signs for another
+   * party (an additional authorized signatory) or is a contracting party in
+   * its own right. Stored in the party's metadata.
+   */
+  @IsOptional()
+  @IsIn(SIGNING_CAPACITIES)
+  signingCapacity?: SigningCapacity;
 }
 
 export class UpdateContractPartyDto {
@@ -139,6 +153,14 @@ export class UpdateContractPartyDto {
   @IsOptional() @IsBoolean() isSignatory?: boolean;
   @IsOptional() @IsBoolean() signatureRequired?: boolean;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) signingOrder?: number;
+  /**
+   * Owner decision (ITEM-0230): a second signer either signs for another
+   * party (an additional authorized signatory) or is a contracting party in
+   * its own right. Stored in the party's metadata.
+   */
+  @IsOptional()
+  @IsIn(SIGNING_CAPACITIES)
+  signingCapacity?: SigningCapacity;
 }
 
 export class ContractRelatedRecordDto {

@@ -8,8 +8,8 @@
 | | |
 |---|---|
 | Open CRITICAL | **8** |
-| Open HIGH | **119** |
-| Open total | 290 |
+| Open HIGH | **120** |
+| Open total | 293 |
 | Blocked | 4 |
 | Awaiting a product decision | 15 |
 | Deferred | 124 |
@@ -148,6 +148,7 @@
 | [[BUG-4120-a-published-plan-could-not-be-unpublished-or-archived-so-the|BUG-4120]] | A published plan could not be unpublished or archived, so the delete rule pointed at an action that did not exist | BUG | HIGH | FIXED | super-admin, platform-runtime, apps/admin | FIX_NOW |
 | [[BUG-4133-agreement-template-editor-corrupts-placeholders-ignores-sign|BUG-4133]] | Agreement template editor corrupts placeholders, ignores signer roles and cannot edit drafts or print | BUG | HIGH | FIXED | contracts | FIX_NOW |
 | [[BUG-4174-submit-for-approval-reports-the-derived-agreement-version-as|BUG-4174]] | Submit for approval reports the derived agreement version as a missing required field | BUG | HIGH | FIXED | contracts | FIX_NOW |
+| [[BUG-4191-executed-agreement-renders-signature-blocks-only-for-templat|BUG-4191]] | Executed agreement renders signature blocks only for template slots; extra required signers missing | DATA_INTEGRITY | HIGH | FIXED | contracts | FIX_NOW |
 | [[ITEM-0133-tenant-isolation-is-proven-for-one-module-60-modules-have-no|ITEM-0133]] | Tenant isolation is proven for one module; 60+ modules have no isolation test | TEST_GAP | HIGH | READY | services/api/test | PLAN_REQUIRED |
 | [[ITEM-0134-the-payroll-run-engine-has-no-tests|ITEM-0134]] | The payroll run engine has no tests | TEST_GAP | HIGH | READY | api:payroll | PLAN_REQUIRED |
 | [[ITEM-0136-electron-is-pinned-at-39-2-6-in-apps-agent-desktop-about-30-|ITEM-0136]] | electron is pinned at 39.2.6 in apps/agent-desktop, about 30 published CVEs behind the same major | SECURITY | HIGH | READY | apps/agent-desktop | FIX_NOW |
@@ -414,6 +415,7 @@
 | [[BUG-4120-a-published-plan-could-not-be-unpublished-or-archived-so-the|BUG-4120]] | A published plan could not be unpublished or archived, so the delete rule pointed at an action that did not exist | BUG | HIGH | FIXED | super-admin, platform-runtime, apps/admin | FIX_NOW |
 | [[BUG-4133-agreement-template-editor-corrupts-placeholders-ignores-sign|BUG-4133]] | Agreement template editor corrupts placeholders, ignores signer roles and cannot edit drafts or print | BUG | HIGH | FIXED | contracts | FIX_NOW |
 | [[BUG-4174-submit-for-approval-reports-the-derived-agreement-version-as|BUG-4174]] | Submit for approval reports the derived agreement version as a missing required field | BUG | HIGH | FIXED | contracts | FIX_NOW |
+| [[BUG-4191-executed-agreement-renders-signature-blocks-only-for-templat|BUG-4191]] | Executed agreement renders signature blocks only for template slots; extra required signers missing | DATA_INTEGRITY | HIGH | FIXED | contracts | FIX_NOW |
 | [[BUG-0051-backlog-and-qa-validators-accept-contradictory-record-state|BUG-0051]] | Backlog and QA validators accept contradictory record state | INFRA | MEDIUM | VERIFIED | scripts/lib/backlog-records.mjs, scripts/lib/qa-records.mjs, docs/bugs, docs/backlog, docs/qa | DONE |
 | [[BUG-3501-the-email-provider-screen-presents-a-console-sink-as-deliver|BUG-3501]] | The email provider screen presents a console sink as delivery and offers sink providers in production | UX | MEDIUM | FIXED | notifications, apps/web | PLAN_REQUIRED |
 | [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | VERIFIED | app:admin, api:auth | DONE |
@@ -601,6 +603,7 @@
 | [[BUG-4058-customer-list-owner-onboarding-and-agreements-columns-are-em|BUG-4058]] | Customer list Owner, Onboarding and Agreements columns are empty | BUG | MEDIUM | FIXED | super-admin, apps/admin | FIX_NOW |
 | [[BUG-4059-customer-and-lead-timeline-tabs-are-always-empty|BUG-4059]] | Customer and lead Timeline tabs are always empty | BUG | MEDIUM | FIXED | super-admin | FIX_NOW |
 | [[BUG-4111-provisioning-stores-owner-and-workspace-as-placeholder-owner|BUG-4111]] | Provisioning stores Owner and Workspace as placeholder owner names, and owner and other lookups do not link to their record | BUG | MEDIUM | FIXED | super-admin, tenant-control-plane, apps/admin | FIX_NOW |
+| [[BUG-4192-send-for-signature-dialog-clips-signer-rows-and-actions-with|BUG-4192]] | Send-for-signature dialog clips signer rows and actions with more than two signers | UX | MEDIUM | FIXED | contracts | FIX_NOW |
 | [[BUG-0018-bulk-lead-delete-is-unreachable-for-every-role|BUG-0018]] | Bulk lead delete is unreachable for every role, including SUPER_ADMIN | AUTHORIZATION | LOW | VERIFIED | api:platform-auth, api:super-admin | DONE |
 | [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | VERIFIED | .agent/context | DONE |
 | [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | VERIFIED | apps/admin, api:super-admin | DONE |
@@ -666,6 +669,7 @@
 
 ## Recent Engineering History
 
+- [[2026-10-13-agreement-version-approval-e4801467|Engineering History — Submit for approval derives the agreement version]]
 - [[2026-10-13-agreement-template-v3-b3c2b9a4|Engineering History — Agreement template 55b74891 v3 and mandatory agreement terms]]
 - [[2026-10-12-plan-publication-actions-3d471223|Engineering History — Plan publication actions]]
 - [[2026-10-12-owner-names-and-lookup-links-f93b56b5|Engineering History — Owner names and lookup links]]
@@ -673,7 +677,6 @@
 - [[2026-10-12-admin-delete-and-labels-ed30bda7|Engineering History — Admin delete and labels]]
 - [[2026-10-11-dp-platform-remediation-dc10b371|Engineering History — DP platform remediation (12 workstreams)]]
 - [[2026-10-08-partner-module-completion-d69f2583|Engineering History — Partner module completion]]
-- [[2026-10-08-admin-ux-cleanup-32c4b314|Engineering History — Platform Admin UX cleanup]]
 
 ## Recent Releases
 
@@ -802,6 +805,7 @@
 | [[BUG-4058-customer-list-owner-onboarding-and-agreements-columns-are-em|BUG-4058]] | Customer list Owner, Onboarding and Agreements columns are empty | BUG | MEDIUM | FIXED | super-admin, apps/admin | FIX_NOW |
 | [[BUG-4059-customer-and-lead-timeline-tabs-are-always-empty|BUG-4059]] | Customer and lead Timeline tabs are always empty | BUG | MEDIUM | FIXED | super-admin | FIX_NOW |
 | [[BUG-4111-provisioning-stores-owner-and-workspace-as-placeholder-owner|BUG-4111]] | Provisioning stores Owner and Workspace as placeholder owner names, and owner and other lookups do not link to their record | BUG | MEDIUM | FIXED | super-admin, tenant-control-plane, apps/admin | FIX_NOW |
+| [[BUG-4192-send-for-signature-dialog-clips-signer-rows-and-actions-with|BUG-4192]] | Send-for-signature dialog clips signer rows and actions with more than two signers | UX | MEDIUM | FIXED | contracts | FIX_NOW |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | READY | services/api, apps/web, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0020-contract-phase-drop-legacy-plan-pricing-columns|ITEM-0020]] | Contract phase: drop legacy Plan pricing columns | TECH_DEBT | MEDIUM | READY | services/api/prisma, api:super-admin, apps/admin | PLAN_REQUIRED |
 | [[ITEM-0022-governed-publish-and-archive-actions-for-commercial-configur|ITEM-0022]] | Governed publish and archive actions for commercial configuration | FOLLOW_UP | MEDIUM | READY | api:super-admin, apps/admin | PLAN_REQUIRED |
@@ -850,6 +854,7 @@
 | [[BUG-4034-runtime-lists-rendered-the-definition-s-default-columns-then|BUG-4034]] | Runtime lists rendered the definition's default columns, then swapped to the saved view's columns (column flash on load) | UX | LOW | FIXED | app:admin | FIX_NOW |
 | [[ITEM-0080-type-the-remaining-services-api-no-unsafe-warnings-module-by|ITEM-0080]] | Type the remaining services/api no-unsafe warnings module by module | TECH_DEBT | LOW | READY | services/api | FIX_NOW |
 | [[ITEM-0225-re-verify-historical-frontend-dto-contract-drift-400s-agains|ITEM-0225]] | Re-verify historical frontend/DTO contract-drift 400s against current DTOs before resolving them | FOLLOW_UP | — | READY | error-logs | PLAN_REQUIRED |
+| [[ITEM-0230-master-saas-agreement-pricing-basis-pilot-vs-expiry-dates-pr|ITEM-0230]] | Master SaaS agreement: pricing basis, pilot vs expiry dates, provider legal identity, co-signer party model | PRODUCT_DECISION | — | IN_PROGRESS | contracts | FIX_NOW |
 
 ## Key Architecture Decisions
 
@@ -889,11 +894,11 @@
 
 | Knowledge | Count |
 |---|---|
-| Bug records | 561 |
-| Backlog items | 229 |
+| Bug records | 563 |
+| Backlog items | 230 |
 | Known bug patterns | 35 |
 | QA runs | 39 |
-| Engineering history records | 103 |
+| Engineering history records | 104 |
 | Release records | 10 |
 | Module notes | 32 |
 | Architecture notes | 22 |

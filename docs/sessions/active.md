@@ -10,6 +10,4 @@ leases actually held this minute, the develop merge queue — comes from
 `node scripts/session.mjs list`, which reads the shared Git directory and
 therefore sees sibling worktrees without anybody having pushed.
 
-| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
-|---|---|---|---|---|---|---|---|
-| [SESSION-0127](../../docs/sessions/SESSION-0127-submit-for-approval-reports-the-derived-agreement-version-as.md) | — | Submit for approval reports the derived agreement version as missing | ACTIVE | `agent/agreement-version-approval` | `develop` | — | 2026-10-12T21:13:36.074Z |
+_None. No session is currently running._

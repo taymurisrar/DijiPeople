@@ -4,7 +4,7 @@
 
 Every durable Bug and Backlog record in the repository, whatever its state.
 
-**790 records** — 561 bugs under [`docs/bugs/`](../bugs/), 229 non-bug items under [`items/`](items/).
+**793 records** — 563 bugs under [`docs/bugs/`](../bugs/), 230 non-bug items under [`items/`](items/).
 
 A bug record **is** its own backlog entry. There is no parallel item for it —
 see [`README.md`](README.md) for why.
@@ -13,13 +13,13 @@ see [`README.md`](README.md) for why.
 
 | | Count |
 |---|---|
-| Open (active work) | 290 |
+| Open (active work) | 293 |
 | Blocked | 4 |
 | Deferred | 124 |
 | Awaiting a product decision | 15 |
 | Completed / closed | 357 |
 | **Open CRITICAL** | **8** |
-| **Open HIGH** | **119** |
+| **Open HIGH** | **120** |
 | **Awaiting Architect triage** | **0** |
 
 ## Open by severity
@@ -27,8 +27,8 @@ see [`README.md`](README.md) for why.
 | Severity | Count |
 |---|---|
 | CRITICAL | 8 |
-| HIGH | 119 |
-| MEDIUM | 132 |
+| HIGH | 120 |
+| MEDIUM | 133 |
 | LOW | 30 |
 
 ## Open by type
@@ -38,30 +38,30 @@ see [`README.md`](README.md) for why.
 | AUTHORIZATION | 17 |
 | BUG | 92 |
 | DATABASE | 1 |
-| DATA_INTEGRITY | 27 |
+| DATA_INTEGRITY | 28 |
 | DOCUMENTATION | 1 |
 | FOLLOW_UP | 4 |
 | INFRA | 7 |
 | INTEGRATION | 7 |
 | PERFORMANCE | 15 |
-| PRODUCT_DECISION | 2 |
+| PRODUCT_DECISION | 3 |
 | SECURITY | 27 |
 | STATE_MACHINE | 6 |
 | TECH_DEBT | 8 |
 | TENANT_ISOLATION | 3 |
 | TEST_GAP | 9 |
-| UX | 64 |
+| UX | 65 |
 
 ## All records by status
 
 | Status | Count |
 |---|---|
 | OPEN | 55 |
-| IN_PROGRESS | 1 |
+| IN_PROGRESS | 2 |
 | BLOCKED | 4 |
 | DEFERRED | 124 |
 | PRODUCT_DECISION | 15 |
-| FIXED | 209 |
+| FIXED | 211 |
 | VERIFIED | 221 |
 | DUPLICATE | 11 |
 | ACCEPTED_RISK | 3 |
@@ -331,6 +331,7 @@ see [`README.md`](README.md) for why.
 | [BUG-4120](../../docs/bugs/BUG-4120-a-published-plan-could-not-be-unpublished-or-archived-so-the.md) | A published plan could not be unpublished or archived, so the delete rule pointed at an action that did not exist | BUG | HIGH | P1 | FIXED | super-admin, platform-runtime, apps/admin | FIX_NOW |
 | [BUG-4133](../../docs/bugs/BUG-4133-agreement-template-editor-corrupts-placeholders-ignores-sign.md) | Agreement template editor corrupts placeholders, ignores signer roles and cannot edit drafts or print | BUG | HIGH | P1 | FIXED | contracts | FIX_NOW |
 | [BUG-4174](../../docs/bugs/BUG-4174-submit-for-approval-reports-the-derived-agreement-version-as.md) | Submit for approval reports the derived agreement version as a missing required field | BUG | HIGH | P1 | FIXED | contracts | FIX_NOW |
+| [BUG-4191](../../docs/bugs/BUG-4191-executed-agreement-renders-signature-blocks-only-for-templat.md) | Executed agreement renders signature blocks only for template slots; extra required signers missing | DATA_INTEGRITY | HIGH | P1 | FIXED | contracts | FIX_NOW |
 | [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | DONE | apps/web, apps/admin, apps/landing | DONE |
 | [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0034](../../docs/backlog/items/ITEM-0034-apps-web-has-zero-browser-e2e-coverage.md) | apps/web has zero browser E2E coverage | TEST_GAP | HIGH | P1 | DONE | apps/web, e2e | DONE |
@@ -603,6 +604,7 @@ see [`README.md`](README.md) for why.
 | [BUG-4058](../../docs/bugs/BUG-4058-customer-list-owner-onboarding-and-agreements-columns-are-em.md) | Customer list Owner, Onboarding and Agreements columns are empty | BUG | MEDIUM | P2 | FIXED | super-admin, apps/admin | FIX_NOW |
 | [BUG-4059](../../docs/bugs/BUG-4059-customer-and-lead-timeline-tabs-are-always-empty.md) | Customer and lead Timeline tabs are always empty | BUG | MEDIUM | P2 | FIXED | super-admin | FIX_NOW |
 | [BUG-4111](../../docs/bugs/BUG-4111-provisioning-stores-owner-and-workspace-as-placeholder-owner.md) | Provisioning stores Owner and Workspace as placeholder owner names, and owner and other lookups do not link to their record | BUG | MEDIUM | P2 | FIXED | super-admin, tenant-control-plane, apps/admin | FIX_NOW |
+| [BUG-4192](../../docs/bugs/BUG-4192-send-for-signature-dialog-clips-signer-rows-and-actions-with.md) | Send-for-signature dialog clips signer rows and actions with more than two signers | UX | MEDIUM | P2 | FIXED | contracts | FIX_NOW |
 | [ITEM-0002](../../docs/backlog/items/ITEM-0002-no-live-api-session-test-harness.md) | Live API session and database proof for admin sign-out | TEST_GAP | MEDIUM | P2 | DONE | services/api, apps/admin | DONE |
 | [ITEM-0003](../../docs/backlog/items/ITEM-0003-tenant-erasure-never-exercised-against-a-database.md) | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | P2 | DONE | api:tenant-control-plane | DONE |
 | [ITEM-0005](../../docs/backlog/items/ITEM-0005-customeraccount-leadid-has-no-unique-constraint.md) | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | P2 | DONE | services/api/prisma, api:super-admin | DONE |
@@ -856,6 +858,7 @@ see [`README.md`](README.md) for why.
 | [ITEM-0225](../../docs/backlog/items/ITEM-0225-re-verify-historical-frontend-dto-contract-drift-400s-agains.md) | Re-verify historical frontend/DTO contract-drift 400s against current DTOs before resolving them | FOLLOW_UP | — | P2 | READY | error-logs | PLAN_REQUIRED |
 | [ITEM-0227](../../docs/backlog/items/ITEM-0227-automatic-commission-accrual-from-collected-invoices.md) | Automatic commission accrual from collected invoices | PRODUCT_DECISION | — | P2 | PRODUCT_DECISION | partners, billing | PRODUCT_DECISION |
 | [ITEM-0229](../../docs/backlog/items/ITEM-0229-agreement-template-55b74891-content-decisions-and-signer-not.md) | Agreement template 55b74891 content decisions and signer notification gaps | PRODUCT_DECISION | — | P2 | PRODUCT_DECISION | contracts | PRODUCT_DECISION |
+| [ITEM-0230](../../docs/backlog/items/ITEM-0230-master-saas-agreement-pricing-basis-pilot-vs-expiry-dates-pr.md) | Master SaaS agreement: pricing basis, pilot vs expiry dates, provider legal identity, co-signer party model | PRODUCT_DECISION | — | P2 | IN_PROGRESS | contracts | FIX_NOW |
 | [ITEM-0058](../../docs/backlog/items/ITEM-0058-next-env-d-ts-churns-between-dev-and-build-forms-and-the-fou.md) | next-env.d.ts churns between dev and build forms and the four apps disagree | TECH_DEBT | — | P3 | DEFERRED | apps/landing, apps/web, apps/admin | DEFER |
 | [ITEM-0059](../../docs/backlog/items/ITEM-0059-49-tracked-text-files-have-no-final-newline-and-nothing-enfo.md) | 49 tracked text files have no final newline, and nothing enforces one | TECH_DEBT | — | P3 | DEFERRED | apps/admin, apps/web, apps/agent-desktop | DEFER |
 | [ITEM-0114](../../docs/backlog/items/ITEM-0114-the-workspace-shell-states-the-tenant-s-identity-four-times-.md) | The workspace shell states the tenant's identity four times and its purpose twice | UX | — | P3 | DONE | views, apps/web | DONE |

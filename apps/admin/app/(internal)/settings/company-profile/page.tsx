@@ -30,6 +30,8 @@ export default async function CompanyProfileSettingsPage() {
         fields={[
           { key: "companyName", label: "Company name", description: "Public platform name.", type: "text" },
           { key: "legalName", label: "Legal name", description: "Legal contracting entity.", type: "text" },
+          { key: "entityType", label: "Entity type", description: "Whether the provider contracts as a company or as an individual.", type: "select", options: ["Company", "Individual"] },
+          { key: "proprietorName", label: "Proprietor name", description: "The individual who contracts, when the entity type is Individual.", type: "text" },
           { key: "registrationNumber", label: "Registration number", description: "Business registration identifier.", type: "text" },
           { key: "taxNumber", label: "Tax number", description: "Tax registration identifier.", type: "text" },
           { key: "supportEmail", label: "Support email", description: "Customer-facing support mailbox.", type: "text" },

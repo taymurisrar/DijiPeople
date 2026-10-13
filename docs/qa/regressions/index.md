@@ -7440,3 +7440,17 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Fails without the fix** | Yes — with the derived row removed from submitApproval the approval specs fail (mutation-checked 2026-10-13). |
 | **Fixed** | 2026-10-13, branch `agent/agreement-version-approval` |
 | **Active** | yes |
+
+### REG-683 — Executed agreement dropped signers the template had no slot for
+
+| | |
+|---|---|
+| **Bug class** | `fixed-template-slots-vs-dynamic-signers` |
+| **Module** | `services/api/src/modules/contracts` |
+| **Bug record** | BUG-4191, BUG-4192 |
+| **Root cause** | The executed-copy renderer filled only the signature slots a template names, so a third required signer had evidence but no signature block; previews wrote every counterparty signer to the same slot; PDF paragraphs were flattened, dropping line breaks and bold labels; the appendix printed the internal version-record counter. |
+| **Regression test** | `services/api/src/modules/contracts/signature-blocks.spec.ts` |
+| **Scenario** | QA-CONTRACTS-003 — Every required signer of an agreement has exactly one signature block. |
+| **Fails without the fix** | Yes — with block insertion bypassed in renderSignatureEvidenceTokens, 6 of 18 specs fail (mutation-checked 2026-10-13). |
+| **Fixed** | 2026-10-13, branch `agent/contract-signing-multiparty` |
+| **Active** | yes |
