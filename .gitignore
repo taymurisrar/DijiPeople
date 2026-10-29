@@ -161,3 +161,10 @@ uat-out-prod/
 # path is personal to each developer. Never commit it.
 # =========================================================
 .obsidian-sync.local.json
+
+# Go-live QA (SESSION-0129): local credentials, run output and ad-hoc logs
+.env.qa.local
+.qa-*.log
+.qa-storage/
+e2e/golive-results/
+e2e/golive-report/

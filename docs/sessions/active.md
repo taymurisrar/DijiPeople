@@ -10,4 +10,6 @@ leases actually held this minute, the develop merge queue — comes from
 `node scripts/session.mjs list`, which reads the shared Git directory and
 therefore sees sibling worktrees without anybody having pushed.
 
-_None. No session is currently running._
+| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
+|---|---|---|---|---|---|---|---|
+| [SESSION-0129](../../docs/sessions/SESSION-0129-starter-plan-web-go-live-qa-audit-and-reusable-qa-system.md) | — | Starter plan web go-live QA audit and reusable QA system | ACTIVE | `agent/starter-golive-qa` | `develop` | — | 2026-10-29T19:44:45.793Z |

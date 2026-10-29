@@ -1,0 +1,95 @@
+# QA Runbook — Starter plan go-live (tenant web)
+
+Part of [[README]]. Scope: [[STARTER-SCOPE]]. Everything here runs **locally against a throwaway database**.
+Nothing in this runbook touches production, Neon, Stripe, SMTP or R2.
+
+## Safety rails (enforced in code, not just policy)
+
+- `e2e/golive/fixtures/env.ts` refuses to run unless `QA_WEB_URL`/`QA_API_URL` are localhost and
+  `QA_DATABASE_URL` is local with a `_test`/`_ci`/`_scratch`/`_tmp` marker.
+- The QA API `.env` has `STRIPE_SECRET_KEY`, `SMTP_*` empty and `ENABLE_EMAILS=false`; storage is a local dir.
+- `scripts/assert-test-database.mjs` must pass before any seed or migrate.
+
+## Credentials — variable names only
+
+Real values live in gitignored `.env.qa.local` at the worktree root (never in Git, Obsidian, logs or screenshots).
+
+```
+QA_WEB_URL        http://<slug>.localhost:<web-port>   (tenant resolved from host, like production)
+QA_API_URL        http://localhost:<api-port>
+QA_TENANT_SLUG    qa-starter
+QA_DATABASE_URL   postgresql://…/dijipeople_starterqa_test   (local only)
+QA_PASSWORD       shared password of the seeded QA users
+QA_ADMIN_EMAIL  QA_HR_EMAIL  QA_MANAGER_EMAIL  QA_EMPLOYEE_EMAIL  QA_PAYROLL_EMAIL  QA_RECRUITER_EMAIL
+```
+
+The seeded users are `system-admin@`, `hr@`, `manager@`, `employee@`, `payroll@`, `recruiter@dijipeople.local`;
+their password comes from `DEMO_USER_PASSWORD` in `services/api/.env` **at seed time** (the seed does not use the
+documented default).
+
+## One-time environment build
+
+```powershell
+# 0. worktree + node_modules (see memory: fresh-worktree-has-no-node-modules). node_modules must be a real directory
+#    of junctions with @repo/* pointing at THIS worktree, else seeds fail on a stale @repo/config.
+# 1. database
+createdb dijipeople_starterqa_test          # via any local connection; role needs CREATEDB
+$env:DATABASE_URL = "<local url>/dijipeople_starterqa_test"; node scripts/assert-test-database.mjs
+cd services/api; npx prisma migrate deploy --config prisma.config.ts
+# 2. seeds (DEMO_TENANT_SLUG=qa-starter, DEMO_USER_PASSWORD=<qa password> in services/api/.env first)
+$env:TS_NODE_TRANSPILE_ONLY="true"; npm run seed:config; npm run seed:demo
+# 3. put the tenant on Starter (seed-demo leaves it with NO subscription) — SQL on the QA DB only:
+#    insert a "Subscription" row for plan key 'starter', status ACTIVE
+# 4. turn entitlement enforcement on (default is REPORT_ONLY):
+#    PlatformSetting key 'module-settings' value {"entitlementEnforcement":"ENFORCE"}  (60 s cache)
+```
+
+`apps/web/.env.local` must point at the QA API (`API_BASE_URL`, `NEXT_PUBLIC_API_BASE_URL`) and web origin.
+`services/api/.env`: `PORT=4098`, `CORS_ALLOWED_ORIGINS=http://localhost:3012,http://qa-starter.localhost:3012`,
+`WEB_APP_URL=http://localhost:3012`.
+
+## Starting the stack
+
+```powershell
+# API  (cwd services/api)   — Bash has no network here; use PowerShell
+$env:TS_NODE_TRANSPILE_ONLY="true"; npx ts-node -r tsconfig-paths/register src/main.ts     # :4098
+# Web  (cwd apps/web)       — --webpack is mandatory through junctions (Turbopack panics)
+npx next dev --webpack -p 3012
+curl http://localhost:4098/api/health
+```
+
+## Running suites (cwd `e2e/`)
+
+| Goal | Command |
+|---|---|
+| Everything, Chromium | `npx playwright test -c playwright.golive.config.ts --project=chromium` |
+| Smoke only | `… --project=chromium -g "DPQA-SMK"` |
+| One feature | `… -g "DPQA-EMP"` (prefixes: SMK AUTH ENT EMP LV ATT DOC SET A11Y RESP PERF ISO) |
+| Cross-browser | `… --project=firefox --project=webkit` (only `@xbrowser` tests) |
+| Responsive | `… --project=mobile --project=tablet` (only `@responsive` tests) |
+| Re-run failures only | `… --last-failed` |
+| HTML report | `npx playwright show-report golive-report` |
+
+`retries` is 0 by design: a test that fails once is investigated, not retried into green.
+Browsers: `npx playwright install firefox webkit` once (Chromium is already present).
+
+## After a run
+
+1. `node e2e/golive/tools/make-run-report.mjs` → writes `docs/qa/go-live/runs/RUN-<n>-<date>.md` from
+   `golive-results/results.json` (immutable; never edit a past run).
+2. Raise or update issues in `issues/` and [[KNOWN-ISSUES]]; update [[TEST-MATRIX]] execution history.
+3. Update the checkpoint in [[README]].
+
+## Recovery
+
+- *"Database system is in recovery mode"* — Postgres crashed under parallel load; wait and retry, not a product bug.
+- *API port stuck / stale code* — kill the ts-node process; a locked log file can make a relaunch silently fail and
+  leave the old process serving.
+- *Login 429* — 20 POSTs / 10 min throttle; wait, and prefer the cached `.auth` sessions.
+- *Reset the tenant to a known state* — drop and recreate `dijipeople_starterqa_test`, repeat the build above.
+- *Stripe/SMTP* — must stay empty; if an outbound call appears in the API log, stop and investigate.
+
+## Tools (`e2e/golive/tools/`)
+
+`explore.mjs ROLE /path…` screenshots + visible controls · `probe-api.mjs ROLE /path…` status codes ·
+`discover-nav.mjs ROLE` walks the sidebar · `usermenu.mjs` profile-menu dump · `make-run-report.mjs`.

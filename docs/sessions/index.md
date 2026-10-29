@@ -6,11 +6,13 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 0** · completed: 124
+**Active: 1** · completed: 124
 
 ## Active
 
-_None. No session is currently running._
+| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
+|---|---|---|---|---|---|---|---|
+| [SESSION-0129](../../docs/sessions/SESSION-0129-starter-plan-web-go-live-qa-audit-and-reusable-qa-system.md) | — | Starter plan web go-live QA audit and reusable QA system | ACTIVE | `agent/starter-golive-qa` | `develop` | — | 2026-10-29T19:44:45.793Z |
 
 ## Completed
 
