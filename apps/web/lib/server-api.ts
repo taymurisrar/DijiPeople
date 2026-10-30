@@ -12,6 +12,7 @@ import {
   buildAuthSessionCookies,
   type RefreshedSessionTokens,
 } from "@/lib/auth-session-cookies";
+import { RATE_LIMITED_DIGEST } from "./rate-limit-digest";
 
 type JsonPrimitive = string | number | boolean | null;
 
@@ -74,6 +75,8 @@ export class ApiRequestError extends Error {
   errorCode?: string;
   description?: string;
   details?: unknown;
+  /** Set for a 429 so it survives the server-component boundary (DP-QA-024). */
+  digest?: string;
 
   constructor(params: {
     status: number;
@@ -103,6 +106,7 @@ export class ApiRequestError extends Error {
     this.errorCode = params.code;
     this.description = params.description;
     this.details = params.details;
+    if (params.status === 429) this.digest = RATE_LIMITED_DIGEST;
   }
 }
 
@@ -210,7 +214,11 @@ export async function apiRequest(
           response = await fetch(url, {
             ...init,
             method,
-            headers: buildRequestHeaders(init, outcome.tokens.accessToken, true),
+            headers: buildRequestHeaders(
+              init,
+              outcome.tokens.accessToken,
+              true,
+            ),
             signal: mergeAbortSignals(init.signal, controller.signal),
             cache: init.cache ?? "no-store",
           });
@@ -295,11 +303,7 @@ const COOKIE_WRITE_PROBE_NAME = "__dp_cookie_write_probe";
 async function canPersistCookies(): Promise<boolean> {
   try {
     const cookieStore = await cookies();
-    cookieStore.set(
-      COOKIE_WRITE_PROBE_NAME,
-      "",
-      getClearAuthCookieOptions(),
-    );
+    cookieStore.set(COOKIE_WRITE_PROBE_NAME, "", getClearAuthCookieOptions());
     return true;
   } catch {
     return false;
@@ -465,7 +469,11 @@ async function performRefresh(
       failure: {
         status: 503,
         code: "NETWORK_ERROR",
-        message: extractFetchErrorMessage(error, `${baseUrl}/auth/refresh`, "POST"),
+        message: extractFetchErrorMessage(
+          error,
+          `${baseUrl}/auth/refresh`,
+          "POST",
+        ),
         traceId,
         isNetworkError: true,
       },

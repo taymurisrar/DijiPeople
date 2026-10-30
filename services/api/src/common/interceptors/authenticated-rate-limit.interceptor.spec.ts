@@ -7,13 +7,18 @@ import {
   shouldRateLimitAuthenticatedRequest,
 } from './authenticated-rate-limit.interceptor';
 
-function context(userId: string | undefined, method: string): ExecutionContext {
+function context(
+  userId: string | undefined,
+  method: string,
+  setHeader: jest.Mock = jest.fn(),
+): ExecutionContext {
   return {
     switchToHttp: () => ({
       getRequest: () => ({
         method,
         user: userId ? { userId } : undefined,
       }),
+      getResponse: () => ({ setHeader }),
     }),
   } as unknown as ExecutionContext;
 }
@@ -128,5 +133,23 @@ describe('AuthenticatedRateLimitInterceptor', () => {
     ) {
       expect(() => interceptor.intercept(publicRequest, handler)).not.toThrow();
     }
+  });
+
+  it('DP-QA-024 — tells the client how long to back off with Retry-After', () => {
+    const interceptor = new AuthenticatedRateLimitInterceptor();
+    const setHeader = jest.fn();
+    const request = context(`retry-${Date.now()}`, 'POST', setHeader);
+
+    for (let i = 0; i < __authenticatedRateLimitInternals.WRITE_LIMIT; i += 1) {
+      interceptor.intercept(request, handler);
+    }
+    expect(() => interceptor.intercept(request, handler)).toThrow(
+      HttpException,
+    );
+
+    expect(setHeader).toHaveBeenCalledWith(
+      'Retry-After',
+      expect.stringMatching(/^[1-9][0-9]*$/),
+    );
   });
 });

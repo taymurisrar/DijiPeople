@@ -15,11 +15,14 @@
  * setup that `apps/web` has. `error.tsx` maps the returned variant to an icon.
  */
 
+import { RATE_LIMITED_DIGEST } from "@/lib/rate-limit-digest";
+
 export type DashboardErrorVariant =
   | "session-expired"
   | "access-denied"
   | "not-found"
   | "api-error"
+  | "rate-limited"
   | "server-error"
   | "unexpected";
 
@@ -78,6 +81,15 @@ const CONFIGS: Record<DashboardErrorVariant, DashboardErrorConfig> = {
     description:
       "This usually happens when the API, database, network, or authentication service is temporarily unavailable.",
     toneClassName: "border-orange-200 bg-orange-50 text-orange-700",
+    primaryAction: "retry",
+  },
+  "rate-limited": {
+    variant: "rate-limited",
+    eyebrow: "Too many requests",
+    title: "You are making requests faster than we allow.",
+    description:
+      "Nothing is wrong with your account or data. Wait about a minute, then try again.",
+    toneClassName: "border-amber-200 bg-amber-50 text-amber-700",
     primaryAction: "retry",
   },
   /*
@@ -140,6 +152,18 @@ export function classifyDashboardError(
    * the branch above it, so a 404 whose message happened to contain the word
    * "permission" rendered as ACCESS DENIED (BUG-2014).
    */
+  /*
+   * DP-QA-024. A 429 is neither a crash nor an outage. The digest is the only
+   * thing a server-component throw leaves the client, so it is read first.
+   */
+  if (
+    error.digest === RATE_LIMITED_DIGEST ||
+    status === 429 ||
+    normalize(error.message).includes("too many requests")
+  ) {
+    return CONFIGS["rate-limited"];
+  }
+
   if (status !== undefined) {
     if (status === 401) return CONFIGS["session-expired"];
     if (status === 403) return CONFIGS["access-denied"];
@@ -158,10 +182,7 @@ export function classifyDashboardError(
 
   const code = normalize(error.code);
 
-  if (
-    code.includes("unauthorized") ||
-    code.includes("token_expired")
-  ) {
+  if (code.includes("unauthorized") || code.includes("token_expired")) {
     return CONFIGS["session-expired"];
   }
 

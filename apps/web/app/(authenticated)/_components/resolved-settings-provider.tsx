@@ -78,18 +78,30 @@ export function SystemPreferencesProvider({
   );
 
   const refresh = useCallback(async () => {
-    const [contextResponse, settingsResponse] = await Promise.all([
-      fetch("/api/settings/resolved-context", { credentials: "include" }),
-      fetch("/api/tenant-settings/resolved", { credentials: "include" }),
-    ]);
+    /*
+     * Every caller does `void refresh()`, so a rejection here is an unhandled
+     * one. A navigation aborts in-flight fetches, and Firefox and WebKit then
+     * report "NetworkError when attempting to fetch resource" / "Load failed" as
+     * an uncaught page error on the very next route (DP-QA-023: the two
+     * redirecting settings routes). Failing to refresh is not an error the user
+     * can act on - the previous settings stay in place - so it is contained.
+     */
+    try {
+      const [contextResponse, settingsResponse] = await Promise.all([
+        fetch("/api/settings/resolved-context", { credentials: "include" }),
+        fetch("/api/tenant-settings/resolved", { credentials: "include" }),
+      ]);
 
-    if (contextResponse.ok) {
-      setApiContext((await contextResponse.json()) as ApiResolvedContext);
-    }
-    if (settingsResponse.ok) {
-      setResolvedSettings(
-        (await settingsResponse.json()) as TenantResolvedSettingsResponse,
-      );
+      if (contextResponse.ok) {
+        setApiContext((await contextResponse.json()) as ApiResolvedContext);
+      }
+      if (settingsResponse.ok) {
+        setResolvedSettings(
+          (await settingsResponse.json()) as TenantResolvedSettingsResponse,
+        );
+      }
+    } catch {
+      // Aborted by navigation, offline, or a non-JSON body: keep what we have.
     }
   }, []);
 
