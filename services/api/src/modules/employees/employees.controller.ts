@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  NotFoundException,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -272,11 +273,29 @@ export class EmployeesController {
   @Delete(':employeeId')
   @Permissions('employees.delete')
   @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'delete')
-  deleteOne(
+  async deleteOne(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
   ) {
-    return this.employeesService.bulkDelete(user, { ids: [employeeId] });
+    const result = await this.employeesService.bulkDelete(user, {
+      ids: [employeeId],
+    });
+
+    /*
+     * A single-id delete that matched nothing is a 404, not a 200 carrying
+     * `success: false` (DP-QA-008): clients that branch on status would treat it
+     * as a deletion. The body is the same for another tenant's id and for an id
+     * that never existed, so it still reveals nothing about other tenants. Bulk
+     * delete keeps its partial-success shape.
+     */
+    if (!result.success && result.deletedCount === 0) {
+      throw new NotFoundException({
+        code: 'EMPLOYEE_NOT_FOUND',
+        message: 'No matching employee record was found.',
+      });
+    }
+
+    return result;
   }
 
   @Get(':employeeId/hierarchy')
