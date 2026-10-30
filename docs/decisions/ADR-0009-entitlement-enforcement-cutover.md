@@ -359,3 +359,39 @@ audit history needs an explicit grant.
 these keys and that has no `CUSTOM` override loses those screens. Run
 `npm run entitlement:grandfather` (dry run) **before** flipping production, as
 for the original seven. Nothing in this change flips the mode.
+
+## Update 2026-10-31 — enforcement is a release floor, and fails closed on a fault (DP-QA-005)
+
+RUN-001/002 observed that the posture lived only in a `PlatformSetting` row, so
+a fresh, restored or re-seeded database came up `REPORT_ONLY` and served every
+paid module to a Starter tenant until someone remembered to flip it — and a
+database fault at read time also dropped a running `ENFORCE` to `REPORT_ONLY`.
+
+What changed (the **default is not changed**; shipping this alters no environment):
+
+1. **`ENTITLEMENT_ENFORCEMENT_MODE` is a release floor.** When set on a
+   deployment, the effective mode is `max(floor, stored)` by strictness
+   (`OFF` < `REPORT_ONLY` < `ENFORCE`). The stored setting can make it
+   stricter, never looser. Unset means no floor.
+2. **A set-but-malformed floor fails closed** to `ENFORCE` and logs an error.
+   (A malformed *stored* value still falls back to the default, as before.)
+3. **A read fault keeps the last successfully read stored mode** instead of
+   dropping to the default. With nothing read yet it still defaults to
+   `REPORT_ONLY`.
+4. **Boot makes an unenforced production loud:** `ENTITLEMENT_NOT_ENFORCED` is
+   logged at error level when `NODE_ENV=production` and the effective mode is
+   not `ENFORCE`. It never blocks startup.
+5. `render.yaml` declares the variable with `sync: false` (no value), and
+   `docs/environment-variables.md` documents it.
+
+**Why the default stays `REPORT_ONLY`.** Flipping it in code would enforce on
+the next deploy, before the owner has run `entitlement:grandfather`, and cut
+off every tenant using a module outside its plan. The cutover remains one
+deliberate act per environment.
+
+**Cutover order (owner, production — not performed by this change):**
+`entitlement:grandfather` dry run → review → `--apply` → set
+`ENTITLEMENT_ENFORCEMENT_MODE=ENFORCE` on the service → deploy → verify gates
+A1–A5 in `docs/qa/go-live/PRODUCTION-RELEASE-GATES.md`. **Rollback** is changing
+the variable (and, if the stored row is also `ENFORCE`, `entitlement:set-mode`);
+the stored setting alone can no longer relax a floor.

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { TenantFeatureSource } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -25,6 +25,57 @@ export const ENTITLEMENT_ENFORCEMENT_MODES: readonly EntitlementEnforcementMode[
 
 export const DEFAULT_ENTITLEMENT_ENFORCEMENT_MODE: EntitlementEnforcementMode =
   'REPORT_ONLY';
+
+/**
+ * Release-configuration floor for the mode (DP-QA-005).
+ *
+ * The stored platform setting alone is a weak place for a security posture to
+ * live: a fresh, restored or re-seeded database has no row and silently comes up
+ * REPORT_ONLY, so a Starter tenant can use every paid module until somebody
+ * remembers to flip it. Setting this variable on a deployment makes the posture
+ * part of the release: the effective mode is never weaker than it. The database
+ * setting can still make it stricter, never looser.
+ *
+ * It is deliberately unset by default and is never changed by `seed:config`, so
+ * shipping this code alters nothing until an owner sets it — after
+ * `npm run entitlement:grandfather` has been run (ADR-0009).
+ */
+export const ENTITLEMENT_ENV_VAR = 'ENTITLEMENT_ENFORCEMENT_MODE';
+
+const MODE_STRICTNESS: Record<EntitlementEnforcementMode, number> = {
+  OFF: 0,
+  REPORT_ONLY: 1,
+  ENFORCE: 2,
+};
+
+export type EntitlementModeSource = 'ENV' | 'PLATFORM_SETTING' | 'DEFAULT';
+
+/** The stricter of two modes. */
+export function stricterMode(
+  a: EntitlementEnforcementMode,
+  b: EntitlementEnforcementMode,
+): EntitlementEnforcementMode {
+  return MODE_STRICTNESS[a] >= MODE_STRICTNESS[b] ? a : b;
+}
+
+/**
+ * Reads the release floor. An absent or blank variable means "no floor".
+ * A value that is set but is not a mode is a typo in a security setting; it
+ * fails CLOSED to ENFORCE, with `invalid` set so the caller can say so, rather
+ * than silently leaving the deployment unenforced.
+ */
+export function readEnvEnforcementFloor(
+  env: Record<string, string | undefined> = process.env,
+): { floor: EntitlementEnforcementMode | null; invalid: string | null } {
+  const raw = env[ENTITLEMENT_ENV_VAR]?.trim();
+  if (!raw) return { floor: null, invalid: null };
+
+  const normalized = raw.toUpperCase();
+  const mode = ENTITLEMENT_ENFORCEMENT_MODES.find((m) => m === normalized);
+  return mode
+    ? { floor: mode, invalid: null }
+    : { floor: 'ENFORCE', invalid: raw };
+}
 
 /** The `PlatformSetting` row and field the mode lives in. */
 export const ENTITLEMENT_SETTING_KEY = 'module-settings';
@@ -81,15 +132,42 @@ type CacheEntry = {
  * rule; what differs is how much of it is dressed up.
  */
 @Injectable()
-export class TenantEntitlementService {
+export class TenantEntitlementService implements OnApplicationBootstrap {
   private readonly logger = new Logger(TenantEntitlementService.name);
   private readonly cache = new Map<string, CacheEntry>();
   private modeCache: {
     mode: EntitlementEnforcementMode;
+    source: EntitlementModeSource;
     expiresAt: number;
   } | null = null;
 
+  /** The last stored mode that was read successfully; survives a later fault. */
+  private lastKnownStoredMode: EntitlementEnforcementMode | null = null;
+
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Makes an unenforced production loud at boot. A deployment that is not in
+   * ENFORCE is a commercial decision, but it should never be an invisible one
+   * (DP-QA-005). Never throws: the database may not be reachable yet, and a
+   * boot that refuses to start over a log line would be worse than the gap.
+   */
+  async onApplicationBootstrap() {
+    if (process.env.NODE_ENV !== 'production') return;
+
+    try {
+      const { mode, source } = await this.effectiveMode();
+      if (mode !== 'ENFORCE') {
+        this.logger.error(
+          `ENTITLEMENT_NOT_ENFORCED mode=${mode} source=${source}: plan entitlements are not being refused in this environment. Set ${ENTITLEMENT_ENV_VAR}=ENFORCE after running the grandfather script (ADR-0009).`,
+        );
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Entitlement mode could not be checked at startup. ${describeError(error)}`,
+      );
+    }
+  }
 
   /**
    * Drops a tenant's snapshot so the next request re-reads it.
@@ -106,36 +184,66 @@ export class TenantEntitlementService {
   invalidateAll() {
     this.cache.clear();
     this.modeCache = null;
+    this.lastKnownStoredMode = null;
   }
 
   async mode(): Promise<EntitlementEnforcementMode> {
+    return (await this.effectiveMode()).mode;
+  }
+
+  /** The mode in force, and which input decided it. */
+  async effectiveMode(): Promise<{
+    mode: EntitlementEnforcementMode;
+    source: EntitlementModeSource;
+  }> {
     const now = Date.now();
     if (this.modeCache && this.modeCache.expiresAt > now) {
-      return this.modeCache.mode;
+      return { mode: this.modeCache.mode, source: this.modeCache.source };
     }
 
-    let mode = DEFAULT_ENTITLEMENT_ENFORCEMENT_MODE;
+    let stored: EntitlementEnforcementMode;
+    let source: EntitlementModeSource = 'DEFAULT';
     try {
       const row = await this.prisma.platformSetting.findUnique({
         where: { key: ENTITLEMENT_SETTING_KEY },
         select: { value: true },
       });
-      mode = parseEnforcementMode(row?.value);
+      stored = parseEnforcementMode(row?.value);
+      if (row?.value) source = 'PLATFORM_SETTING';
+      this.lastKnownStoredMode = stored;
     } catch (error) {
       /*
-       * A mode that cannot be read falls back to the default rather than to the
-       * last value or to ENFORCE. REPORT_ONLY is the safe answer in both
-       * directions: it never refuses a request, and it never silently disables
-       * the logging the platform owner is relying on to measure the cutover.
+       * A mode that cannot be read keeps the last one that could. A transient
+       * database fault must not drop a deployment from ENFORCE to REPORT_ONLY,
+       * which is the fail-open direction (DP-QA-005). With nothing known yet it
+       * falls back to the default, which never refuses a request and never
+       * silently disables the logging the owner relies on to measure the cutover.
        */
+      stored = this.lastKnownStoredMode ?? DEFAULT_ENTITLEMENT_ENFORCEMENT_MODE;
       this.logger.warn(
-        `Entitlement enforcement mode could not be read; defaulting to ${DEFAULT_ENTITLEMENT_ENFORCEMENT_MODE}. ${describeError(error)}`,
+        `Entitlement enforcement mode could not be read; using ${stored}${this.lastKnownStoredMode ? ' (last known)' : ' (default)'}. ${describeError(error)}`,
       );
-      mode = DEFAULT_ENTITLEMENT_ENFORCEMENT_MODE;
     }
 
-    this.modeCache = { mode, expiresAt: now + ENTITLEMENT_CACHE_TTL_MS };
-    return mode;
+    const { floor, invalid } = readEnvEnforcementFloor();
+    if (invalid !== null) {
+      this.logger.error(
+        `${ENTITLEMENT_ENV_VAR}="${invalid}" is not one of ${ENTITLEMENT_ENFORCEMENT_MODES.join(', ')}; failing closed to ENFORCE.`,
+      );
+    }
+
+    let mode = stored;
+    if (floor && MODE_STRICTNESS[floor] > MODE_STRICTNESS[stored]) {
+      mode = floor;
+      source = 'ENV';
+    }
+
+    this.modeCache = {
+      mode,
+      source,
+      expiresAt: now + ENTITLEMENT_CACHE_TTL_MS,
+    };
+    return { mode, source };
   }
 
   /**
