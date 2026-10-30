@@ -1110,6 +1110,11 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
     'notifications.read',
   ],
   [ROLE_KEYS.CEO]: [
+    // `dashboard.view` gates GET /employees/me/context and /dashboard/summary, so every
+    // role that signs in to the tenant app needs it (DP-QA-002). It is listed in
+    // BASE_ROLE_PERMISSION_KEYS, but nothing in production reads that map, so
+    // provisioning never wrote it and non-admin roles got 403 on their own profile.
+    'dashboard.view',
     MISC_PERMISSION_KEYS.AUDIT_VIEW,
     MISC_PERMISSION_KEYS.REPORTS_EXPORT,
     MISC_PERMISSION_KEYS.BILLING_VIEW,
@@ -1120,6 +1125,7 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
     'notifications.read',
   ],
   [ROLE_KEYS.MANAGER]: [
+    'dashboard.view',
     MISC_PERMISSION_KEYS.REPORTS_EXPORT,
     'approvals.readAssigned',
     'attendance.correction.create',
@@ -1141,6 +1147,7 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
     'notifications.read',
   ],
   [ROLE_KEYS.HR]: [
+    'dashboard.view',
     ...DATA_MANAGEMENT_PERMISSION_KEYS,
     MISC_PERMISSION_KEYS.TENANT_SETTINGS_MANAGE,
     MISC_PERMISSION_KEYS.AUDIT_VIEW,
@@ -1220,6 +1227,7 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
     'notifications.read',
   ],
   [ROLE_KEYS.PAYROLL_MANAGER]: [
+    'dashboard.view',
     MISC_PERMISSION_KEYS.REPORTS_EXPORT,
     'approvals.read',
     'approvals.readAssigned',
@@ -1253,6 +1261,7 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
     'notifications.read',
   ],
   [ROLE_KEYS.RECRUITER]: [
+    'dashboard.view',
     'inbox.archive',
     'inbox.dismiss',
     'inbox.markRead',
@@ -1260,6 +1269,7 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
     'notifications.read',
   ],
   [ROLE_KEYS.EMPLOYEE]: [
+    'dashboard.view',
     'approvals.readOwn',
     'attendance.checkin',
     'attendance.checkout',

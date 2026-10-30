@@ -63,8 +63,16 @@ export default async function MyProfilePage({
     return (
       <div className="grid gap-6">
         <AccessDeniedState
-          description="An administrator must link this account to an Employee record."
-          title="Employee profile not linked."
+          description={
+            currentEmployeeContext.accessDenied
+              ? "Your role does not currently allow viewing your own profile. Ask an administrator to review your role's permissions."
+              : "An administrator must link this account to an Employee record."
+          }
+          title={
+            currentEmployeeContext.accessDenied
+              ? "You do not have access to your profile."
+              : "Employee profile not linked."
+          }
         />
         <div className="scroll-mt-24" id={ACCOUNT_SECURITY_ANCHOR}>
           <MfaSettingsCard />
