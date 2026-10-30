@@ -228,7 +228,7 @@ const del = await call(T['system-admin'], 'DELETE', '/employees/5b1f0c3e-7a49-4d
 check('DP-QA-008', 'single-id delete that matches nothing answers 404', del.status === 404, String(del.status));
 const sort = await call(T['system-admin'], 'GET', '/data/employees?orderBy=fullName desc&pageSize=5');
 check('DP-QA-014', 'entity data API sorts employees by fullName', sort.status === 200, `${sort.status} ${sort.text.slice(0, 100)}`);
-const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==', 'base64');
+const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
 const form = new FormData();
 form.append('settingKey', 'logoUrl');
 form.append('file', new Blob([png], { type: 'image/png' }), 'logo.png');
@@ -238,7 +238,8 @@ if (up.status < 300 && viewPath) {
   const p = viewPath.replace(/^\/api/, '');
   const asEmp = await call(T.employee, 'GET', p);
   const asHr = await call(T.hr, 'GET', p);
-  check('DP-QA-016', 'employee and HR can load the tenant logo (200 image)', asEmp.status === 200 && asHr.status === 200, `${asEmp.status}/${asHr.status}`);
+  const asPayroll = await call(T.payroll, 'GET', p);
+  check('DP-QA-016', 'employee, HR and payroll-manager can load the tenant logo (200 image)', asEmp.status === 200 && asHr.status === 200 && asPayroll.status === 200, `${asEmp.status}/${asHr.status}/${asPayroll.status}`);
   const docId = up.json?.documentId;
   const meta = await call(T.employee, 'GET', `/documents/${docId}`);
   check('DP-QA-016n', 'but the logo document record itself is still not readable by an employee', meta.status === 403 || meta.status === 404, String(meta.status));

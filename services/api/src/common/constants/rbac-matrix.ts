@@ -904,6 +904,10 @@ export const SYSTEM_ROLE_PRIVILEGES: Record<
     'hierarchy:READ': SecurityAccessLevel.BUSINESS_UNIT,
   }),
   [ROLE_KEYS.PAYROLL_MANAGER]: matrix(SecurityAccessLevel.NONE, {
+    // Own documents only. Every role that signs in to the tenant app can load the
+    // tenant logo, which is served through the documents route (DP-QA-016); this
+    // was the one role holding no documents access at all.
+    'documents:READ': SecurityAccessLevel.SELF,
     'user-preferences:READ': SecurityAccessLevel.SELF,
     'user-preferences:WRITE': SecurityAccessLevel.SELF,
     'tenant-settings-resolved:READ': SecurityAccessLevel.ORGANIZATION,

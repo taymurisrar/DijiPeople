@@ -28,7 +28,6 @@ import {
 } from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
-import { AuthenticationOnly } from '../../common/decorators/authentication-only.decorator';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { CreateDocumentCategoryDto } from './dto/create-document-category.dto';
 import { CreateDocumentTypeDto } from './dto/create-document-type.dto';
@@ -192,19 +191,9 @@ export class DocumentsController {
     return this.documentsService.findById(user, documentId);
   }
 
-  /*
-   * Authentication only at the route, authorization in the service (DP-QA-016).
-   *
-   * This route also serves the tenant logo, which every signed-in user must be
-   * able to load whatever their documents access - payroll-manager holds none,
-   * and a route-level `documents.read` returned 403 to it before the service
-   * could recognise a published branding asset. `openForView` therefore applies
-   * the identical `documents.read` requirement itself for every document that is
-   * not a currently published branding asset, so nothing else is reachable
-   * that was not before. Listed in AUTHENTICATION_ONLY_HANDLERS for review.
-   */
   @Get(':documentId/view')
-  @AuthenticationOnly()
+  @Permissions('documents.read')
+  @RequirePermission(ENTITY_KEYS.DOCUMENTS, 'read')
   async view(
     @CurrentUser() user: AuthenticatedUser,
     @Param('documentId', new ParseUUIDPipe()) documentId: string,

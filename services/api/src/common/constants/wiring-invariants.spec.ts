@@ -401,15 +401,6 @@ const AUTHENTICATION_ONLY_HANDLERS = [
    * permissions applied.
    */
   'CustomFieldsController.definitions',
-  /*
-   * DP-QA-016: serves the tenant logo to every signed-in user. Takes a document
-   * id, which the rule above normally forbids, so it is admitted on the strength
-   * of `DocumentsService.openForView`: a currently published branding asset is
-   * readable by the tenant's users, and EVERY other document still needs
-   * `documents.read` (legacy and matrix) plus the object-level scope, evaluated
-   * with the same function the guard uses.
-   */
-  'DocumentsController.view',
 ] as const;
 
 describe('permission wiring invariants', () => {
