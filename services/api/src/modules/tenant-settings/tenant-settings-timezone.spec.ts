@@ -50,7 +50,8 @@ describe('TenantSettingsService time zone validation', () => {
   it('accepts a real IANA zone', async () => {
     await update('timezone', 'Asia/Karachi');
     expect(upsertSettings).toHaveBeenCalledTimes(1);
-    expect(upsertSettings.mock.calls[0][1][0]).toMatchObject({
+    const [, updates] = upsertSettings.mock.calls[0] as [string, unknown[]];
+    expect(updates[0]).toMatchObject({
       key: 'timezone',
       value: 'Asia/Karachi',
     });

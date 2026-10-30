@@ -35,7 +35,7 @@ function walk(dir: string, acc: string[] = []) {
 }
 
 type ControllerFacts = {
-  ref: Function;
+  ref: abstract new (...args: never[]) => unknown;
   name: string;
   file: string;
   moduleDir: string;

@@ -16,7 +16,16 @@ describe('ensureDefaultLeaveTypes', () => {
 
     expect(created).toBe(4);
     expect(db.leaveType.update).not.toHaveBeenCalled();
-    const args = createMany.mock.calls[0][0];
+    const [args] = createMany.mock.calls[0] as [
+      {
+        skipDuplicates: boolean;
+        data: Array<{
+          tenantId: string;
+          createdById: string;
+          requiresApproval: boolean;
+        }>;
+      },
+    ];
     // skipDuplicates keeps an admin's rename/deactivation intact on replay.
     expect(args.skipDuplicates).toBe(true);
     expect(args.data).toHaveLength(DEFAULT_LEAVE_TYPES.length);
