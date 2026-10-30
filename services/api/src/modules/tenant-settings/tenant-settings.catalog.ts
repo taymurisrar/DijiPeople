@@ -561,8 +561,11 @@ export const DEFAULT_TENANT_SETTINGS: TenantSettingDefaults = {
     legalCompanyName: '',
     shortBrandName: '',
     brandDescription: '',
-    primaryColor: '#059669',
-    secondaryColor: '#047857',
+    // Darkened from #059669 (3.76:1 on white) so default-theme text and white-on-
+    // accent controls meet WCAG AA 4.5:1 (DP-QA-013). Tenants that already store a
+    // colour keep it.
+    primaryColor: '#047857',
+    secondaryColor: '#065f46',
     accentColor: '#34D399',
     backgroundColor: '#f8fafc',
     surfaceColor: '#ffffff',
@@ -571,7 +574,7 @@ export const DEFAULT_TENANT_SETTINGS: TenantSettingDefaults = {
     borderColor: '#e2e8f0',
     sidebarBackgroundColor: '#0f172a',
     sidebarTextColor: '#e5e7eb',
-    sidebarActiveBackgroundColor: '#059669',
+    sidebarActiveBackgroundColor: '#047857',
     sidebarActiveTextColor: '#ffffff',
     successColor: '#16a34a',
     warningColor: '#f59e0b',

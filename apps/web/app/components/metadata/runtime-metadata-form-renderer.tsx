@@ -1405,7 +1405,8 @@ function EditableField({
 
   return (
     <div>
-      <dd>
+      {/* Was <dd>, which is only valid inside <dl>; there is none here (axe dlitem, DP-QA-013). */}
+      <div>
         {field.dataType === "optionset" && field.options?.length ? (
           <SelectField
             label={label}
@@ -1536,7 +1537,7 @@ function EditableField({
             value={fieldValue}
           />
         )}
-      </dd>
+      </div>
     </div>
   );
 }
