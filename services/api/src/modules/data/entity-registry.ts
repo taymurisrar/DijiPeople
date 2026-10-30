@@ -34,6 +34,7 @@ export const ENTITY_REGISTRY = {
       'employmentStatus',
     ],
     defaultOrderBy: [{ field: 'firstName', direction: 'asc' }],
+    sortAliases: { fullName: ['firstName', 'lastName'] },
     fields: {
       id: { type: 'string', selectable: true, filterable: true },
       firstName: {

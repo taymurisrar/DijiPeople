@@ -55,6 +55,13 @@ export type EntityMetadata = {
   defaultSelect: string[];
   defaultOrderBy: EntityOrderByMetadata[];
   fields: Record<string, EntityFieldMetadata>;
+  /**
+   * Sort-only names for columns the UI shows but the table does not store, each
+   * mapped to the real fields it orders by, in priority order. `fullName` is a
+   * display composition of first and last name (DP-QA-014); it is not selectable
+   * or filterable, only sortable through its parts.
+   */
+  sortAliases?: Record<string, string[]>;
   expands: Record<string, EntityExpandMetadata>;
 };
 
