@@ -1616,6 +1616,8 @@ export class AuthService {
     const refreshToken = this.extractTokenFromRequest(req, cookieNames.refresh);
     const sessionId = this.extractTokenFromRequest(req, cookieNames.session);
 
+    let revokedBySession = 0;
+
     if (sessionId) {
       /*
        * BUG-0627. The refresh cookie is the shortest-lived of the three, so the
@@ -1644,12 +1646,19 @@ export class AuthService {
        * runs whenever the session is known, and the scan below is left as the
        * fallback for a client that sent no session cookie.
        */
-      await this.revokeSessionTokens(clientId, sessionId);
+      revokedBySession = await this.revokeSessionTokens(clientId, sessionId);
     }
 
-    // Fallback only: reached when no session cookie arrived, or alongside the
-    // exact revocation above for a token issued before sessions were recorded.
-    if (refreshToken) {
+    /*
+     * Fallback only. DP-QA-007: this scan bcrypt-compares up to twenty stored
+     * hashes one after another, and it used to run on EVERY sign-out that carried
+     * a refresh cookie - including the ordinary one, where the exact revocation
+     * above had already done the job. That was the 0.6-3.9 s logout the go-live
+     * QA measured, long enough that the client timed out at 8 s and left a user
+     * unsure they had signed out. It now runs only when the session id revoked
+     * nothing: no session cookie arrived, or the token predates sessions.
+     */
+    if (refreshToken && revokedBySession === 0) {
       if (clientId === 'admin') {
         const activeTokens = await this.prisma.platformRefreshToken.findMany({
           where: { revokedAt: null, appClientId: clientId },
@@ -1757,22 +1766,26 @@ export class AuthService {
    * sign-out. `revokedAt: null` in the filter keeps an already-closed session's
    * timestamp at the moment it was actually closed.
    */
-  private async revokeSessionTokens(clientId: AuthClientId, sessionId: string) {
+  private async revokeSessionTokens(
+    clientId: AuthClientId,
+    sessionId: string,
+  ): Promise<number> {
     const now = new Date();
     const where = { sessionId, appClientId: clientId, revokedAt: null };
 
     if (clientId === 'admin') {
-      await this.prisma.platformRefreshToken.updateMany({
+      const result = await this.prisma.platformRefreshToken.updateMany({
         where,
         data: { revokedAt: now, lastUsedAt: now },
       });
-      return;
+      return result.count;
     }
 
-    await this.prisma.refreshToken.updateMany({
+    const result = await this.prisma.refreshToken.updateMany({
       where,
       data: { revokedAt: now, lastUsedAt: now },
     });
+    return result.count;
   }
 
   private async validateCredentials(
