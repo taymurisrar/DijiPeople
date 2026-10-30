@@ -36,7 +36,7 @@ export default defineConfig({
     navigationTimeout: 60_000,
   },
   projects: [
-    { name: 'setup', testMatch: /setup\/auth\.setup\.ts/ },
+    { name: 'setup', testMatch: /setup\/.*\.setup\.ts/ },
     {
       name: 'chromium',
       testMatch: /tests\/.*\.spec\.ts/,

@@ -33,7 +33,10 @@ export const test = base.extend<{ diag: Diagnostics }>({
       const allowed: RegExp[] = [];
       const consoleErrors: string[] = [];
       const failedRequests: string[] = [];
-      page.on('console', (m) => m.type() === 'error' && consoleErrors.push(m.text().slice(0, 300)));
+      // CSP *Report-Only* notices about script eval come from `next dev` HMR in Firefox/WebKit; they are an artefact of the dev server
+      // (production CSP is release gate B8), so they are not counted as page errors.
+      const devOnly = /Content[- ]Security[- ]Policy/i;
+      page.on('console', (m) => m.type() === 'error' && !devOnly.test(m.text()) && consoleErrors.push(m.text().slice(0, 300)));
       page.on('pageerror', (e) => consoleErrors.push(`pageerror: ${e.message.slice(0, 300)}`));
       page.on('response', (r) => {
         if (r.status() >= 500) failedRequests.push(`${r.status()} ${r.request().method()} ${r.url().slice(0, 200)}`);

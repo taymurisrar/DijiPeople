@@ -93,3 +93,21 @@ Browsers: `npx playwright install firefox webkit` once (Chromium is already pres
 
 `explore.mjs ROLE /path…` screenshots + visible controls · `probe-api.mjs ROLE /path…` status codes ·
 `discover-nav.mjs ROLE` walks the sidebar · `usermenu.mjs` profile-menu dump · `make-run-report.mjs`.
+
+## RUN-002 additions
+
+**Provision real tenants** (needs `seed:admin` once, `QA_PLATFORM_*` in `.env.qa.local`):
+```powershell
+node e2e/golive/tools/provision-tenant.mjs qa-prov-a "QA Provisioned A" qa-owner-a@qa.dijipeople.test   # customer -> onboarding -> create-tenant
+node e2e/golive/tools/owner-access.mjs qa-prov-a      # run TWICE: first activates the owner, second moves the tenant to ACTIVE
+node e2e/golive/tools/seed-role-users.mjs qa-prov-a qa-owner-a@qa.dijipeople.test a   # employee, manager, hr, payroll-manager users
+```
+Fixture shortcuts used on the throwaway DB only: an executed SUBSCRIPTION_AGREEMENT `Contract` row (inserted by `provision-tenant.mjs`) and
+`PlatformSetting tenant-provisioning = {"wildcardDnsReady": true}`. Add `qa-prov-a.localhost:3012,qa-prov-b.localhost:3012` to the API `CORS_ALLOWED_ORIGINS`.
+
+**Throttle:** login is limited to 20 / 10 min per IP+path in memory. Cached sessions (`.auth/*.json`, 20 min) and tokens (`.auth/api-tokens.json`, 25 min) avoid it. On 429, restart the API.
+**Web crash:** run `next dev` with `NODE_OPTIONS=--max-old-space-size=6144`; if every UI login suddenly fails, check that port 3012 is still listening.
+**Browsers:** `npx playwright install firefox webkit` (done). Run per project and save each result: `Copy-Item golive-results\results.json golive-results\results-<project>.json`; `make-run-report.mjs` merges all `results-*.json`.
+**Cleanup:** `node e2e/golive/tools/qa-cleanup.mjs` (leftover employees / pending leave / correction requests). Tests are self-contained because Playwright restarts a worker after a failure.
+**Probes:** `probe-api.mjs`, `explore.mjs`, `click-explore.mjs`, `dom-probe.mjs`, `ui-probe.cjs`, `mobile-shot.cjs`, `xt-delete-probe.mjs`. Run Node tools from PowerShell, not Git Bash (path mangling, no network).
+**Playwright MCP:** see DEC-007 — restart it from a checkout containing the updated `.mcp.json`.

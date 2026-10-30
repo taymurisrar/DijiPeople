@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Category | Functional / Security (RBAC) |
-| Severity / Priority | High / **P1 (provisional — pending fixture check below)** |
+| Severity / Priority | High / **P1 — CONFIRMED application defect (not a fixture artefact), see Verdict** |
 | Status | Open |
 | Module / routes | Overview `/`, `/my-profile`, `GET /api/employees/me/context` |
 | Roles | `employee`, `manager`, `hr`, `payroll-manager` (all non-elevated roles tried). `system-admin` works. |
@@ -39,6 +39,23 @@ Employee sees their own profile; every signed-in user sees an Overview.
 - **Recommended:** (1) grant `user-preferences` READ to all system roles (or stop gating self-context on it);
   (2) only map a 404/empty result to "not linked", never a 403.
 
+## Verdict (2026-10-30, RUN-002) — application defect, not seed-demo
+
+Reproduced on **two tenants created through the real platform workflow** (super-admin customer → onboarding → create-tenant,
+Starter plan, owner activated via the activation API; tenants `qa-prov-a`, `qa-prov-b`), with employees and users created through the
+tenants own admin API and roles assigned with `POST /users/:id/roles`:
+
+| Tenant | Role | GET /employees/me/context | GET /dashboard/summary |
+|---|---|---|---|
+| qa-prov-a | owner (admin tier) | 200 | 200 |
+| qa-prov-a | employee / manager / hr / payroll-manager | **403 ×4** | **403 ×4** |
+
+Same result on seed-demo (`qa-starter`). **CONFIRMED** also: in all three tenants no role holds a `dashboard.view` RolePermission row
+(role → count of dashboard.view links: all 0), including the provisioned ones, so the cause is in the system-role definitions that
+provisioning applies (`SYSTEM_ROLE_PRIVILEGES` / bridge to `user-preferences` READ), not in seed-demo.
+Authorization was **not** weakened to confirm this; the endpoints are correctly refusing a role that was never granted the permission.
+Tests: `DPQA-RBAC-1-EMPLOYEE|MANAGER|HR|PAYROLL` (fail, mapped here).
+
 ## Regression impact
 Self-service (leave, attendance, profile) entry points for every non-admin Starter user. Highest-impact
 role-based finding so far; blocks the OWN/TEAM-scope test plan until resolved or fixture-corrected.
@@ -46,4 +63,5 @@ role-based finding so far; blocks the OWN/TEAM-scope test plan until resolved or
 ## Retest history
 | Run | Result |
 |---|---|
-| RUN-001 | FAIL (reproduced, 4 roles) |
+| RUN-001 | FAIL (reproduced, 4 roles, seed-demo) |
+| RUN-002 | FAIL (reproduced, 4 roles, real-provisioned tenant) — verdict: application defect |

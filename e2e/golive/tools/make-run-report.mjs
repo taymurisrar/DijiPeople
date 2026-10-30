@@ -7,7 +7,12 @@ import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
-const results = JSON.parse(readFileSync(join(root, 'e2e/golive-results/results.json'), 'utf8'));
+// Merge every per-project result file (results-<project>.json); fall back to results.json for a single run.
+import { readdirSync as _ls } from 'node:fs';
+const resDir = join(root, 'e2e/golive-results');
+const files = _ls(resDir).filter((f) => /^results-.+.json$/.test(f));
+const parts = (files.length ? files : ['results.json']).map((f) => JSON.parse(readFileSync(join(resDir, f), 'utf8')));
+const results = { suites: parts.flatMap((p) => p.suites), stats: { duration: parts.reduce((a, p) => a + (p.stats?.duration ?? 0), 0) }, config: parts[0].config };
 const runsDir = join(root, 'docs/qa/go-live/runs');
 mkdirSync(runsDir, { recursive: true });
 const note = process.argv.includes('--note') ? process.argv[process.argv.indexOf('--note') + 1] : '';

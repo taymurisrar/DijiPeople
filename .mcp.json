@@ -1,4 +1,4 @@
-{
+﻿{
   "mcpServers": {
     "playwright": {
       "command": "npx",
@@ -34,7 +34,7 @@
         "104857600",
         "--save-session",
         "--allowed-origins",
-        "https://admin.dijipeople.com;https://app.dijipeople.com;https://api.dijipeople.com;https://www.dijipeople.com;https://*.ws.dijipeople.com;https://checkout.stripe.com;https://js.stripe.com;https://m.stripe.network;api.stripe.com"
+        "https://admin.dijipeople.com;https://app.dijipeople.com;https://api.dijipeople.com;https://www.dijipeople.com;https://*.ws.dijipeople.com;https://checkout.stripe.com;https://js.stripe.com;https://m.stripe.network;api.stripe.com;http://localhost:3012;http://qa-starter.localhost:3012;http://qa-prov-a.localhost:3012;http://qa-prov-b.localhost:3012;http://localhost:4098;http://127.0.0.1:3012;http://127.0.0.1:4098"
       ]
     }
   }

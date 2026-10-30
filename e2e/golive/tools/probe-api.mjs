@@ -10,11 +10,11 @@ const [role, ...paths] = process.argv.slice(2);
 const login = await fetch(`${env.QA_API_URL}/api/auth/login`, {
   method: 'POST',
   headers: { 'content-type': 'application/json', 'X-DijiPeople-App': 'web' },
-  body: JSON.stringify({ email: env[`QA_${role.toUpperCase()}_EMAIL`], password: env.QA_PASSWORD, tenantSlug: env.QA_TENANT_SLUG }),
+  body: JSON.stringify({ email: process.env.PROBE_EMAIL ?? env[`QA_${role.toUpperCase()}_EMAIL`], password: env.QA_PASSWORD, tenantSlug: process.env.PROBE_SLUG ?? env.QA_TENANT_SLUG }),
 });
 const body = await login.json();
 const token = body.accessToken ?? body.tokens?.accessToken ?? body.session?.accessToken;
-if (!token) { console.error('no token; keys:', Object.keys(body)); process.exit(1); }
+if (!token) { console.error('login failed:', body.statusCode, body.errorCode, body.message); process.exit(1); }
 for (const p of paths) {
   const r = await fetch(`${env.QA_API_URL}/api${p}`, { headers: { authorization: `Bearer ${token}`, 'X-DijiPeople-App': 'web' } });
   const t = await r.text();

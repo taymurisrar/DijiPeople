@@ -1,37 +1,38 @@
 # Go-live QA — Starter plan, tenant web (DijiPeople)
 
-Entry point for any QA agent. Read this, then [[QA-RUNBOOK]], and you can continue without the original brief.
+Entry point for any QA agent. Read this, then [[QA-RUNBOOK]]; a resume prompt is in [[FUTURE-AGENT-PROMPT]].
 
 | Doc | Purpose |
 |---|---|
-| [[QA-RUNBOOK]] | build the isolated environment, run suites, recover |
-| [[STARTER-SCOPE]] | what Starter actually includes (differs from the brief — read it) |
-| [[TEST-MATRIX]] | feature → scenario IDs → automation → latest status |
-| [[KNOWN-ISSUES]] | defect register (details in `issues/`, evidence in `evidence/`) |
-| [[DECISIONS-AND-OBSERVATIONS]] | assumptions, discrepancies, open questions |
-| `runs/` → [[INDEX]] | immutable per-run reports |
+| [[QA-RUNBOOK]] | build the isolated environment, provision tenants, run suites, recover |
+| [[STARTER-SCOPE]] | what Starter actually includes (differs from the first brief) |
+| [[TEST-MATRIX]] | suites, status, the six first-failures mapped, unresolved items, not-covered list |
+| [[KNOWN-ISSUES]] | defect register (17 records; detail `issues/`, screenshots `evidence/`) |
+| [[REMEDIATION-BACKLOG]] | ordered work for a separate development agent |
+| [[PRODUCTION-RELEASE-GATES]] | checklist the **owner** runs on production (QA never touches production) |
+| [[DECISIONS-AND-OBSERVATIONS]] | decisions, discrepancies, open questions |
+| `runs/` → [[INDEX]] | immutable run reports (RUN-001, RUN-002) |
 
-Session: SESSION-0129 · branch `agent/starter-golive-qa` · target `develop` · **no production contact, no deploy**.
+Session SESSION-0129 · branch `agent/starter-golive-qa` · **not merged, nothing deployed, production untouched**.
 
-## Verdict (latest): **NOT READY**
+## Verdict (RUN-002): **NOT READY**
 
-Coverage is **partial** (smoke, auth, plan entitlements only). One High/P1 defect with confirmed symptoms
-([[DP-QA-002]]), one P1-if-prod-misconfigured owner decision ([[DP-QA-005]]), and the Starter plan-gate UX is
-inconsistent ([[DP-QA-001]], [[DP-QA-003]]). Nothing here says the remaining modules are good — they are **untested**.
+Four confirmed P1 defects — [[DP-QA-002]] (non-admin roles cannot load self-service; reproduced on tenants provisioned through the real workflow, so it is **not** a seed artefact),
+[[DP-QA-011]] (employees cannot list leave types or cancel their own request), [[DP-QA-010]] (four paid features have no backend plan guard) and [[DP-QA-012]] (an invalid timezone is accepted and breaks every page) —
+plus the owner decision [[DP-QA-005]] (enforcement default `REPORT_ONLY`). Eleven P2/P3 defects are open. Strengths verified: tenant isolation between two provisioned tenants (12/12), authentication
+and API refusals, document upload controls, in-app notification isolation.
 
-## Checkpoint (update after every batch)
+Coverage is **substantial but not complete**: see "Not covered yet" and "Unresolved test-side items" in [[TEST-MATRIX]]. The audit must not be called complete.
 
-**Done:** discovery; isolated env (DB `dijipeople_starterqa_test`, API :4098, web :3012 on `qa-starter.localhost`);
-Starter subscription + ENFORCE on QA DB; framework (config, env guard, per-role sessions, diagnostics fixture, run-report tool);
-suites SMK / AUTH / ENT on Chromium.
+## Checkpoint
+**Done:** discovery; isolated stack; two provisioned tenants + seed-demo comparison; 14 suites / 254 executed results over Chromium, Firefox, WebKit, mobile, tablet;
+17 defect records with screenshots; release gates, remediation backlog and resume prompt.
 
 **Pending, in order:**
-1. Resolve DP-QA-002 fixture question: provision a tenant through the real super-admin flow and re-probe non-admin roles.
-2. Write EMP (create/edit/validation/duplicate/commands) → LV → ATT → DOC → SET suites; each with POMs and data factories that clean up.
-3. ISO: second tenant, assert cross-tenant reads/writes are refused at API and by direct URL.
-4. A11Y (axe), RESP (mobile/tablet), XB (`npx playwright install firefox webkit`), PERF, VIS baselines.
-5. Re-run all with `--last-failed`, then full regression, then write the go-live report.
+1. Resolve EMP-003/004/006 and ATT-008 (automation can't yet drive the relation-type combobox / edit mode / correction body) — or verify manually once MCP can reach localhost (restart MCP from this branch, DEC-007).
+2. Not-covered list in TEST-MATRIX: leave approval chain, balances, attendance check-in on a working day, import/export, org CRUD, invitation flow, documents tab UI, branding visuals, session expiry/refresh/concurrency, password reset, visual-regression baselines.
+3. Re-run everything against `next build && next start` (cross-browser noise, real performance) and after the P1 fixes, then retest each issue and move it Open → Ready for Retest → Resolved.
+4. Owner works through [[PRODUCTION-RELEASE-GATES]].
 
-**Blockers:** none hard. Playwright MCP cannot reach localhost (see DEC-004).
-**Env state:** stack started from the worktree; logs `.qa-api.log`, `.qa-web.log` (gitignored). To restart see [[QA-RUNBOOK]].
-**Next exact action:** `cd e2e; npx playwright test -c playwright.golive.config.ts --project=chromium` (expect the known failures in [[KNOWN-ISSUES]]).
+**Environment state:** API :4098 and web :3012 running from the worktree (logs `.qa-api.log`, `.qa-web.log`, gitignored); QA DB `dijipeople_starterqa_test`; tenants `qa-starter`, `qa-prov-a`, `qa-prov-b`.
+**Next exact action:** `node e2e/golive/tools/qa-cleanup.mjs` then `cd e2e; npx playwright test -c playwright.golive.config.ts --project=chromium`.

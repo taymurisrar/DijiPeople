@@ -4,11 +4,13 @@ import { join } from 'node:path';
 export type QaEnv = Record<
   | 'QA_WEB_URL' | 'QA_API_URL' | 'QA_TENANT_SLUG' | 'QA_DATABASE_URL' | 'QA_PASSWORD'
   | 'QA_ADMIN_EMAIL' | 'QA_HR_EMAIL' | 'QA_MANAGER_EMAIL' | 'QA_EMPLOYEE_EMAIL'
-  | 'QA_PAYROLL_EMAIL' | 'QA_RECRUITER_EMAIL',
+  | 'QA_PAYROLL_EMAIL' | 'QA_RECRUITER_EMAIL'
+  | 'QA_TENANT_A_SLUG' | 'QA_TENANT_B_SLUG' | 'QA_TENANT_A_OWNER' | 'QA_TENANT_B_OWNER',
   string
 >;
 
-export const ROLES = ['ADMIN', 'HR', 'MANAGER', 'EMPLOYEE'] as const;
+// Only the roles whose UI session a test actually uses; others are exercised through API tokens (login endpoint is throttled).
+export const ROLES = ['ADMIN', 'EMPLOYEE'] as const;
 export type Role = (typeof ROLES)[number];
 
 const LOCAL = /^https?:\/\/([a-z0-9-]+\.)?(localhost|127\.0\.0\.1)(:\d+)?$/;
