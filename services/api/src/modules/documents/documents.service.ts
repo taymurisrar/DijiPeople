@@ -486,7 +486,26 @@ export class DocumentsService {
       throw new NotFoundException('Document was not found for this tenant.');
     }
 
-    await this.assertDocumentReadAccess(currentUser, document);
+    try {
+      await this.assertDocumentReadAccess(currentUser, document);
+    } catch (error) {
+      /*
+       * The tenant's own logo is shown in the shell to every signed-in user, but
+       * it is stored as an ordinary document that a SELF-scoped role cannot read
+       * (DP-QA-016: a broken image for every employee and HR user). Content the
+       * tenant has published as branding is readable bytes-only by its own
+       * users; the document record, list and metadata stay behind the normal
+       * check, and nothing outside the current branding settings qualifies.
+       */
+      if (
+        error instanceof NotFoundException &&
+        (await this.isPublishedBrandingAsset(currentUser.tenantId, documentId))
+      ) {
+        // fall through to serving the bytes
+      } else {
+        throw error;
+      }
+    }
 
     const documentSettings =
       await this.tenantSettingsResolverService.getDocumentSettings(
@@ -505,6 +524,20 @@ export class DocumentsService {
         tenantId: currentUser.tenantId,
       }),
     };
+  }
+
+  private async isPublishedBrandingAsset(tenantId: string, documentId: string) {
+    const published = await this.prisma.tenantSetting.findFirst({
+      where: {
+        tenantId,
+        category: 'branding',
+        key: { endsWith: 'DocumentId' },
+        value: { equals: documentId },
+      },
+      select: { id: true },
+    });
+
+    return Boolean(published);
   }
 
   async openForDownload(currentUser: AuthenticatedUser, documentId: string) {
