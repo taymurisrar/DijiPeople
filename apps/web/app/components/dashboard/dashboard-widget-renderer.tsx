@@ -99,7 +99,7 @@ function ChartCard({ widget }: { widget: DashboardWidget }) {
   const share = (value: number) => (total ? (value / total) * 100 : 0);
 
   return (
-    <article className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+    <article className="min-w-0 rounded-xl border border-border bg-surface p-5 shadow-sm">
       <CardHeader widget={widget} />
 
       {slices.length ? (
@@ -183,7 +183,7 @@ function ChartCard({ widget }: { widget: DashboardWidget }) {
 
 function MetricCard({ widget }: { widget: DashboardWidget }) {
   return (
-    <article className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+    <article className="min-w-0 rounded-xl border border-border bg-surface p-5 shadow-sm">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-muted">{widget.title}</p>
@@ -207,7 +207,7 @@ function SummaryCard({ widget }: { widget: DashboardWidget }) {
   const entries = objectEntries(widget.data);
 
   return (
-    <article className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+    <article className="min-w-0 rounded-xl border border-border bg-surface p-5 shadow-sm">
       <CardHeader widget={widget} />
       {entries.length ? (
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
@@ -243,7 +243,7 @@ function RowsCard({
   const rows = getRows(widget);
 
   return (
-    <article className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+    <article className="min-w-0 rounded-xl border border-border bg-surface p-5 shadow-sm">
       <CardHeader widget={widget} />
       {rows.length ? (
         mode === "table" ? (
@@ -297,7 +297,7 @@ function QuickActions({ widget }: { widget: DashboardWidget }) {
   const actions = widget.actions ?? [];
 
   return (
-    <article className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+    <article className="min-w-0 rounded-xl border border-border bg-surface p-5 shadow-sm">
       <CardHeader widget={widget} />
       {actions.length ? (
         <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
