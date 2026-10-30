@@ -24,6 +24,9 @@ import {
 } from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { EntitlementGuard } from '../../common/guards/entitlement.guard';
+import { RequireEntitlement } from '../../common/decorators/require-entitlement.decorator';
+import { TENANT_FEATURE_KEYS } from '../../common/constants/tenant-features';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { ImportAnalysisService } from './import-analysis.service';
 import { ExportExecutionService } from './export-execution.service';
@@ -62,7 +65,8 @@ type MulterFile = {
 };
 
 @Controller('data-management')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, EntitlementGuard)
+@RequireEntitlement(TENANT_FEATURE_KEYS.DATA_MANAGEMENT)
 export class DataManagementController {
   constructor(
     private readonly registry: DataModuleRegistryService,

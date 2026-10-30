@@ -19,6 +19,9 @@ import {
 import { Public } from '../../common/decorators/public.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { EntitlementGuard } from '../../common/guards/entitlement.guard';
+import { RequireEntitlement } from '../../common/decorators/require-entitlement.decorator';
+import { TENANT_FEATURE_KEYS } from '../../common/constants/tenant-features';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { AgentService } from './agent.service';
 import {
@@ -186,7 +189,16 @@ export class AgentController {
     return this.agentService.endSession(user, dto);
   }
 
+  /*
+   * The settings page is the tenant-admin surface the Desktop Agent entitlement
+   * sells (DP-QA-010), so these two handlers are gated. The device routes above
+   * are deliberately NOT: agents already deployed in the field cannot be
+   * upgraded past a refusal, and their sync endpoints carry attendance a tenant
+   * did buy. `entitlement-wiring.invariants.spec.ts` pins both halves.
+   */
   @Get('settings')
+  @UseGuards(EntitlementGuard)
+  @RequireEntitlement(TENANT_FEATURE_KEYS.DESKTOP_AGENT)
   @Permissions('agent.settings.read')
   @RequirePermission(ENTITY_KEYS.AGENT, 'read')
   getSettings(@CurrentUser() user: AuthenticatedUser) {
@@ -194,6 +206,8 @@ export class AgentController {
   }
 
   @Patch('settings')
+  @UseGuards(EntitlementGuard)
+  @RequireEntitlement(TENANT_FEATURE_KEYS.DESKTOP_AGENT)
   @Permissions('agent.settings.manage')
   @RequireAnyPermission(
     { entityKey: ENTITY_KEYS.AGENT, action: 'configure' },

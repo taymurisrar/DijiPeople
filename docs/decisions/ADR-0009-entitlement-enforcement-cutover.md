@@ -330,3 +330,32 @@ is a naming migration, not a behavioural one.
 BUG-1952 (original entitlement-guard build, REPORT_ONLY default). BUG-3350
 (this cutover). BUG-3332/BUG-3333/BUG-3334 (the same Plans-screen review this
 was found alongside).
+
+## Update 2026-10-31 — the four ungated features now carry route guards (DP-QA-010)
+
+The go-live QA (RUN-002) confirmed the residual finding above as a release risk:
+a Starter owner was served `/data-management/*`, `/integrations/attendance/*`,
+`/integrations/gateways`, `/agent/settings` and `/audit-logs` under `ENFORCE`.
+The product brief requires plan restrictions to hold in the backend, so the four
+are now guarded — **without** the breakage the earlier reasons warned about:
+
+- **`data-management`** — the whole module is gated (`ENTITLEMENT_GATED_MODULES`).
+- **`attendance-integrations`** — the six tenant-admin controllers are gated one
+  by one (`ENTITLEMENT_GATED_CONTROLLERS`). `GatewayRuntimeController` and
+  `GatewayServiceController` stay open (`ENTITLEMENT_OPEN_CONTROLLERS`): a deployed
+  gateway cannot be upgraded past a refusal and carries no tenant user.
+- **`desktop-agent`** — only `GET/PATCH /agent/settings` are gated
+  (`ENTITLEMENT_GATED_HANDLERS`). Device routes stay open so fielded agents keep
+  syncing attendance a tenant did buy.
+- **`compliance`** — `AuditController` (the tenant's two audit reads) is gated;
+  audit *writes* are internal service calls and are unaffected.
+
+`entitlement-wiring.invariants.spec.ts` asserts both halves from real Nest
+metadata. The grandfather script gained usage probes for the first three;
+`compliance` has none because every tenant has audit rows, so an Enterprise-only
+audit history needs an explicit grant.
+
+**Operational consequence.** With `ENFORCE` on, a tenant whose plan lacks one of
+these keys and that has no `CUSTOM` override loses those screens. Run
+`npm run entitlement:grandfather` (dry run) **before** flipping production, as
+for the original seven. Nothing in this change flips the mode.

@@ -5,7 +5,10 @@ import { Reflector } from '@nestjs/core';
 import { REQUIRED_ENTITLEMENTS_KEY } from '../decorators/require-entitlement.decorator';
 import { EntitlementGuard } from '../guards/entitlement.guard';
 import {
+  ENTITLEMENT_GATED_CONTROLLERS,
+  ENTITLEMENT_GATED_HANDLERS,
   ENTITLEMENT_GATED_MODULES,
+  ENTITLEMENT_OPEN_CONTROLLERS,
   ENTITLEMENT_UNGATED_MODULES,
   type TenantFeatureKey,
 } from './tenant-features';
@@ -32,6 +35,7 @@ function walk(dir: string, acc: string[] = []) {
 }
 
 type ControllerFacts = {
+  ref: Function;
   name: string;
   file: string;
   moduleDir: string;
@@ -56,6 +60,7 @@ async function collectControllers(): Promise<ControllerFacts[]> {
       if (Reflect.getMetadata(PATH_METADATA, exported) === undefined) continue;
 
       found.push({
+        ref: exported,
         name: exported.name,
         file: rel,
         moduleDir,
@@ -136,6 +141,7 @@ describe('entitlement wiring invariants', () => {
     const unexpected = controllers
       .filter((controller) => controller.entitlements?.length)
       .filter((controller) => !ENTITLEMENT_GATED_MODULES[controller.moduleDir])
+      .filter((controller) => !ENTITLEMENT_GATED_CONTROLLERS[controller.name])
       .map((controller) => `${controller.file} [${controller.name}]`);
 
     expect(unexpected).toEqual([]);
@@ -162,6 +168,7 @@ describe('entitlement wiring invariants', () => {
 
     const contradictions = controllers
       .filter((controller) => ENTITLEMENT_UNGATED_MODULES[controller.moduleDir])
+      .filter((controller) => !ENTITLEMENT_GATED_CONTROLLERS[controller.name])
       .filter((controller) => controller.entitlements?.length)
       .map(
         (controller) =>
@@ -169,5 +176,100 @@ describe('entitlement wiring invariants', () => {
       );
 
     expect(contradictions).toEqual([]);
+  });
+
+  /*
+   * DP-QA-010. The tenant-admin surface of a paid feature is refused, the
+   * machine-facing surface is not. Both halves are asserted, because the second
+   * is what keeps fielded desktop agents and deployed gateways working.
+   */
+  it('gates exactly the controllers registered as gated, with the registered key', async () => {
+    const controllers = await collectControllers();
+    const problems: string[] = [];
+
+    for (const [name, key] of Object.entries(ENTITLEMENT_GATED_CONTROLLERS)) {
+      const controller = controllers.find((item) => item.name === name);
+      if (!controller) {
+        problems.push(
+          `${name} is registered as gated but no such controller exists`,
+        );
+        continue;
+      }
+      if (!usesEntitlementGuard(controller.guards)) {
+        problems.push(
+          `${name} is registered as gated but does not use EntitlementGuard`,
+        );
+      }
+      if (!controller.entitlements?.includes(key)) {
+        problems.push(`${name} must declare @RequireEntitlement(${key})`);
+      }
+    }
+
+    expect(problems).toEqual([]);
+  });
+
+  it('leaves the machine-facing controllers open', async () => {
+    const controllers = await collectControllers();
+    const problems: string[] = [];
+
+    for (const name of Object.keys(ENTITLEMENT_OPEN_CONTROLLERS)) {
+      const controller = controllers.find((item) => item.name === name);
+      if (!controller) {
+        problems.push(
+          `${name} is registered as open but no such controller exists`,
+        );
+        continue;
+      }
+      if (
+        usesEntitlementGuard(controller.guards) ||
+        controller.entitlements?.length
+      ) {
+        problems.push(`${name} must stay open to every plan`);
+      }
+    }
+
+    expect(problems).toEqual([]);
+  });
+
+  it('gates the registered handlers and only those', async () => {
+    const controllers = await collectControllers();
+    const reflector = new Reflector();
+    const problems: string[] = [];
+
+    for (const [name, handlers] of Object.entries(ENTITLEMENT_GATED_HANDLERS)) {
+      const controller = controllers.find((item) => item.name === name);
+      if (!controller) {
+        problems.push(
+          `${name} is registered with gated handlers but does not exist`,
+        );
+        continue;
+      }
+      const prototype = controller.ref.prototype as Record<string, unknown>;
+
+      for (const method of Object.getOwnPropertyNames(prototype)) {
+        const handler = prototype[method];
+        if (method === 'constructor' || typeof handler !== 'function') continue;
+
+        const expected = handlers[method];
+        const declared = reflector.get<string[]>(
+          REQUIRED_ENTITLEMENTS_KEY,
+          handler as () => unknown,
+        );
+        const guards =
+          (Reflect.getMetadata(GUARDS_METADATA, handler) as unknown[]) ?? [];
+
+        if (expected) {
+          if (!declared?.includes(expected) || !usesEntitlementGuard(guards)) {
+            problems.push(`${name}.${method} must be gated on ${expected}`);
+          }
+        } else if (declared?.length || usesEntitlementGuard(guards)) {
+          problems.push(
+            `${name}.${method} is a device route and must stay open`,
+          );
+        }
+      }
+    }
+
+    expect(problems).toEqual([]);
   });
 });
