@@ -19,6 +19,7 @@ import {
 } from '@repo/config';
 import { createPrismaClient } from './create-prisma-client';
 import { bootstrapCommercialDefaults } from '../src/modules/super-admin/commercial-bootstrap';
+import { DEFAULT_LEAVE_TYPES } from '../src/modules/leave/default-leave-types';
 import { PermissionBootstrapService } from '../src/modules/permissions/permission-bootstrap.service';
 import { DEFAULT_APPROVAL_MATRICES } from '../src/modules/approvals/default-approval-matrices';
 import { NOTIFICATION_EVENT_CATALOG } from '../src/modules/notifications/notification-events.catalog';
@@ -55,14 +56,6 @@ const AUTH_EVENT_CODES = [
   'AUTH_PASSWORD_RESET',
   'AUTH_OTP',
 ] as const;
-
-const DEFAULT_LEAVE_TYPES = [
-  { name: 'Annual Leave', code: 'ANNUAL', category: 'PAID', isPaid: true },
-  { name: 'Sick Leave', code: 'SICK', category: 'PAID', isPaid: true },
-  { name: 'Casual Leave', code: 'CASUAL', category: 'PAID', isPaid: true },
-  { name: 'Unpaid Leave', code: 'UNPAID', category: 'UNPAID', isPaid: false },
-] as const;
-
 /*
  * ITEM-0115 - no longer seeded (see `seedTenantWorkforceReferenceData`); the
  * product decision, 2026-09-11, was to stop provisioning departments with no

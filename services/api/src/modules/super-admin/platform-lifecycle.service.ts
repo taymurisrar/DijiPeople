@@ -28,6 +28,7 @@ import { assertValidTenantSlug } from '../../common/utils/slug.util';
 import { generateTenantCode } from '../../common/utils/tenant-code.util';
 import { AuditService } from '../audit/audit.service';
 import { isPlatformAdminTier } from '../platform-auth/platform-permissions';
+import { ensureDefaultLeaveTypes } from '../leave/default-leave-types';
 import { PermissionsService } from '../permissions/permissions.service';
 import { UserInvitationsService } from '../auth/user-invitations.service';
 import { LeadsRepository } from '../leads/leads.repository';
@@ -1859,6 +1860,17 @@ export class PlatformLifecycleService {
     let customizationFailure: string | null = null;
     try {
       const defaults = await this.customizationService.publishTenantDefaults(
+        provisioning.tenant.id,
+        actor.userId,
+      );
+      /*
+       * Leave types ride on this step rather than a step of their own: they are
+       * the same kind of thing (day-one tenant defaults), insert-only and safe
+       * to replay, and a new step would change the registered step sequence.
+       * Without them an employee cannot file a first leave request (DP-QA-011).
+       */
+      await ensureDefaultLeaveTypes(
+        this.prisma,
         provisioning.tenant.id,
         actor.userId,
       );
