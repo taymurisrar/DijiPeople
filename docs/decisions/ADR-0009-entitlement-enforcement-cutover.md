@@ -344,9 +344,12 @@ are now guarded — **without** the breakage the earlier reasons warned about:
   by one (`ENTITLEMENT_GATED_CONTROLLERS`). `GatewayRuntimeController` and
   `GatewayServiceController` stay open (`ENTITLEMENT_OPEN_CONTROLLERS`): a deployed
   gateway cannot be upgraded past a refusal and carries no tenant user.
-- **`desktop-agent`** — only `GET/PATCH /agent/settings` are gated
-  (`ENTITLEMENT_GATED_HANDLERS`). Device routes stay open so fielded agents keep
-  syncing attendance a tenant did buy.
+- **`desktop-agent`** — the whole authenticated agent controller is gated (settings, device
+  enrolment, sessions, heartbeats); the three public auth routes carry no tenant and pass. This
+  was first narrowed to `GET/PATCH /agent/settings` to protect fielded agents, which left a plan
+  that never bought the agent able to enrol devices and run sessions. Tenants already running
+  agents are carried by the grandfather `agentRefreshToken` probe, so **run the grandfather script
+  before ENFORCE** or their agents get 403 `TENANT_FEATURE_NOT_ENTITLED`. Owner to confirm.
 - **`compliance`** — `AuditController` (the tenant's two audit reads) is gated;
   audit *writes* are internal service calls and are unaffected.
 

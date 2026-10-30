@@ -2,11 +2,11 @@ import { readdirSync, statSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import { GUARDS_METADATA, PATH_METADATA } from '@nestjs/common/constants';
 import { Reflector } from '@nestjs/core';
+import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { REQUIRED_ENTITLEMENTS_KEY } from '../decorators/require-entitlement.decorator';
 import { EntitlementGuard } from '../guards/entitlement.guard';
 import {
   ENTITLEMENT_GATED_CONTROLLERS,
-  ENTITLEMENT_GATED_HANDLERS,
   ENTITLEMENT_GATED_MODULES,
   ENTITLEMENT_OPEN_CONTROLLERS,
   ENTITLEMENT_UNGATED_MODULES,
@@ -231,45 +231,18 @@ describe('entitlement wiring invariants', () => {
     expect(problems).toEqual([]);
   });
 
-  it('gates the registered handlers and only those', async () => {
+  it('keeps the agent login, refresh and logout public so sign-in still works', async () => {
     const controllers = await collectControllers();
+    const agent = controllers.find((item) => item.name === 'AgentController');
+    expect(agent).toBeDefined();
+    // The guard lets a request with no tenant user through, which is what keeps
+    // login, refresh and logout reachable. Pin the three handlers stay @Public.
     const reflector = new Reflector();
-    const problems: string[] = [];
-
-    for (const [name, handlers] of Object.entries(ENTITLEMENT_GATED_HANDLERS)) {
-      const controller = controllers.find((item) => item.name === name);
-      if (!controller) {
-        problems.push(
-          `${name} is registered with gated handlers but does not exist`,
-        );
-        continue;
-      }
-      const prototype = controller.ref.prototype as Record<string, unknown>;
-
-      for (const method of Object.getOwnPropertyNames(prototype)) {
-        const handler = prototype[method];
-        if (method === 'constructor' || typeof handler !== 'function') continue;
-
-        const expected = handlers[method];
-        const declared = reflector.get<string[]>(
-          REQUIRED_ENTITLEMENTS_KEY,
-          handler as () => unknown,
-        );
-        const guards =
-          (Reflect.getMetadata(GUARDS_METADATA, handler) as unknown[]) ?? [];
-
-        if (expected) {
-          if (!declared?.includes(expected) || !usesEntitlementGuard(guards)) {
-            problems.push(`${name}.${method} must be gated on ${expected}`);
-          }
-        } else if (declared?.length || usesEntitlementGuard(guards)) {
-          problems.push(
-            `${name}.${method} is a device route and must stay open`,
-          );
-        }
-      }
+    const proto = agent!.ref.prototype as Record<string, unknown>;
+    for (const method of ['login', 'refresh', 'logout']) {
+      expect(
+        reflector.get<boolean>(IS_PUBLIC_KEY, proto[method] as () => unknown),
+      ).toBe(true);
     }
-
-    expect(problems).toEqual([]);
   });
 });

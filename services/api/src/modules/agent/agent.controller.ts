@@ -45,8 +45,17 @@ import { UpdateAgentSettingsDto } from './dto/update-agent-settings.dto';
 import { AgentHistoryQueryDto } from './dto/agent-history-query.dto';
 import { PublicRateLimitGuard } from '../../common/guards/public-rate-limit.guard';
 
+/*
+ * The whole authenticated agent surface is the Desktop Agent entitlement, not
+ * only the settings page (DP-QA-010 follow-up). Gating just the settings left
+ * device enrolment, sessions and heartbeats open to a plan that never bought the
+ * agent. The three `@Public()` auth routes carry no tenant and pass the guard
+ * untouched. A tenant whose agents are already in the field is carried by the
+ * grandfather script's `agentRefreshToken` probe (ADR-0009 update).
+ */
 @Controller('agent')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, EntitlementGuard)
+@RequireEntitlement(TENANT_FEATURE_KEYS.DESKTOP_AGENT)
 export class AgentController {
   constructor(private readonly agentService: AgentService) {}
 
@@ -189,16 +198,7 @@ export class AgentController {
     return this.agentService.endSession(user, dto);
   }
 
-  /*
-   * The settings page is the tenant-admin surface the Desktop Agent entitlement
-   * sells (DP-QA-010), so these two handlers are gated. The device routes above
-   * are deliberately NOT: agents already deployed in the field cannot be
-   * upgraded past a refusal, and their sync endpoints carry attendance a tenant
-   * did buy. `entitlement-wiring.invariants.spec.ts` pins both halves.
-   */
   @Get('settings')
-  @UseGuards(EntitlementGuard)
-  @RequireEntitlement(TENANT_FEATURE_KEYS.DESKTOP_AGENT)
   @Permissions('agent.settings.read')
   @RequirePermission(ENTITY_KEYS.AGENT, 'read')
   getSettings(@CurrentUser() user: AuthenticatedUser) {
@@ -206,8 +206,6 @@ export class AgentController {
   }
 
   @Patch('settings')
-  @UseGuards(EntitlementGuard)
-  @RequireEntitlement(TENANT_FEATURE_KEYS.DESKTOP_AGENT)
   @Permissions('agent.settings.manage')
   @RequireAnyPermission(
     { entityKey: ENTITY_KEYS.AGENT, action: 'configure' },

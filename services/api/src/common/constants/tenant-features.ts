@@ -83,6 +83,7 @@ export const ENTITLEMENT_GATED_MODULES: Readonly<
 export const ENTITLEMENT_GATED_CONTROLLERS: Readonly<
   Record<string, TenantFeatureKey>
 > = {
+  AgentController: TENANT_FEATURE_KEYS.DESKTOP_AGENT,
   AuditController: TENANT_FEATURE_KEYS.COMPLIANCE,
   AttendanceConnectorsController: TENANT_FEATURE_KEYS.ATTENDANCE_INTEGRATIONS,
   AttendanceDeviceController: TENANT_FEATURE_KEYS.ATTENDANCE_INTEGRATIONS,
@@ -90,19 +91,6 @@ export const ENTITLEMENT_GATED_CONTROLLERS: Readonly<
   AttendanceOperationsController: TENANT_FEATURE_KEYS.ATTENDANCE_INTEGRATIONS,
   GatewayAdminController: TENANT_FEATURE_KEYS.ATTENDANCE_INTEGRATIONS,
   WorkSiteReadinessController: TENANT_FEATURE_KEYS.ATTENDANCE_INTEGRATIONS,
-};
-
-/**
- * Individual handlers gated inside a controller that mixes tenant-admin and
- * device routes: `controller → handler method → feature key`.
- */
-export const ENTITLEMENT_GATED_HANDLERS: Readonly<
-  Record<string, Readonly<Record<string, TenantFeatureKey>>>
-> = {
-  AgentController: {
-    getSettings: TENANT_FEATURE_KEYS.DESKTOP_AGENT,
-    updateSettings: TENANT_FEATURE_KEYS.DESKTOP_AGENT,
-  },
 };
 
 /** Controllers that must stay open whatever the plan, and why. */
@@ -121,9 +109,6 @@ export const ENTITLEMENT_GATED_FEATURE_KEYS: readonly TenantFeatureKey[] =
     new Set<TenantFeatureKey>([
       ...Object.values(ENTITLEMENT_GATED_MODULES),
       ...Object.values(ENTITLEMENT_GATED_CONTROLLERS),
-      ...Object.values(ENTITLEMENT_GATED_HANDLERS).flatMap((handlers) =>
-        Object.values(handlers),
-      ),
     ]),
   );
 
@@ -176,7 +161,7 @@ export const ENTITLEMENT_UNGATED_MODULES: Readonly<Record<string, string>> = {
   'attendance-integrations':
     'Gated controller by controller (ENTITLEMENT_GATED_CONTROLLERS), not as a module: the gateway runtime and service controllers carry no tenant user, and refusing a deployed on-premise gateway is an integration break rather than a commercial one.',
   agent:
-    'Gated handler by handler (ENTITLEMENT_GATED_HANDLERS): the settings page is sold, the device routes are not, because fielded desktop agents cannot be upgraded past a refusal.',
+    'Gated as a controller (ENTITLEMENT_GATED_CONTROLLERS); its three public auth routes carry no tenant and pass the guard.',
   benefits:
     'No feature key sells it. Whether it belongs to the payroll entitlement is a product decision this record did not make; gating it would make one silently.',
   claims: 'No feature key sells it — same reasoning as benefits.',
