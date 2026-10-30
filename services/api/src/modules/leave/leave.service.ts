@@ -6,6 +6,7 @@ import {
   LeaveRequestStatus,
   NotificationRecipientResolverType,
   Prisma,
+  SecurityAccessLevel,
   SecurityPrivilege,
 } from '@prisma/client';
 import {
@@ -31,8 +32,14 @@ import {
   AUDIT_ACTIONS,
   AUDIT_ENTITY_TYPES,
 } from '../../common/constants/audit-actions';
-import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
-import { buildScopedAccessWhere } from '../../common/security/rbac-query-scope';
+import {
+  ENTITY_KEYS,
+  SECURITY_ACCESS_LEVEL_WEIGHT,
+} from '../../common/constants/rbac-matrix';
+import {
+  buildScopedAccessWhere,
+  resolveEffectiveAccessLevel,
+} from '../../common/security/rbac-query-scope';
 import { AuditService } from '../audit/audit.service';
 import { EmployeesRepository } from '../employees/employees.repository';
 import { UsersRepository } from '../users/users.repository';
@@ -523,6 +530,24 @@ export class LeaveService {
         : [];
 
     const leaveRequest = await this.prisma.$transaction(async (tx) => {
+      /*
+       * DP-QA-020. The check above is read-then-write, so three simultaneous
+       * submissions each saw no clash and all three were accepted. Requests for
+       * one employee now serialise on a transaction-scoped advisory lock and the
+       * check is repeated under it: the second submission waits for the first to
+       * commit and then sees it. The lock is released with the transaction, is
+       * per (tenant, employee) so nobody else waits, and needs no schema change.
+       */
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`leave-request:${currentUser.tenantId}:${employee.id}`}))`;
+      await this.assertNoOverlappingLeave(
+        currentUser.tenantId,
+        employee.id,
+        startDate,
+        endDate,
+        undefined,
+        tx,
+      );
+
       const created = await this.leaveRepository.createLeaveRequest(
         {
           tenantId: currentUser.tenantId,
@@ -967,10 +992,38 @@ export class LeaveService {
       );
     }
 
-    if (leaveRequest.status !== LeaveRequestStatus.PENDING) {
-      throw new ConflictException(
-        'Only pending leave requests can be cancelled.',
-      );
+    const wasApproved = leaveRequest.status === LeaveRequestStatus.APPROVED;
+
+    if (leaveRequest.status !== LeaveRequestStatus.PENDING && !wasApproved) {
+      throw new ConflictException({
+        code: 'LEAVE_REQUEST_FAILED',
+        message: 'Only pending or approved leave requests can be cancelled.',
+      });
+    }
+
+    /*
+     * DP-QA-019. Approved leave could not be undone by anyone. It can now, under
+     * three rules: the requester may withdraw their own approved leave only
+     * while it has not started (what has been taken is a record, not a plan);
+     * anyone else must already hold decision authority over this employee (the
+     * checks above) and must give a reason, which is audited; and the balance
+     * the approval consumed is returned in the same transaction.
+     */
+    if (wasApproved) {
+      const today = new Date();
+      today.setUTCHours(0, 0, 0, 0);
+
+      if (isOwnRequest && leaveRequest.startDate.getTime() <= today.getTime()) {
+        throw new ForbiddenException(
+          'Approved leave that has already started can only be cancelled by HR or your manager.',
+        );
+      }
+
+      if (!isOwnRequest && !dto.reason?.trim()) {
+        throw new BadRequestException(
+          'A reason is required to cancel approved leave.',
+        );
+      }
     }
 
     await this.prisma.$transaction(async (tx) => {
@@ -984,6 +1037,10 @@ export class LeaveService {
         },
         tx,
       );
+
+      if (wasApproved) {
+        await this.reverseApprovedLeaveConsumption(leaveRequest, tx);
+      }
 
       for (const step of leaveRequest.approvalSteps) {
         if (step.status === LeaveApprovalStepStatus.PENDING) {
@@ -2027,6 +2084,40 @@ export class LeaveService {
     return leaveRequest;
   }
 
+  /**
+   * Undoes `recordApprovedLeaveConsumption`. Keyed on the consumption record
+   * (unique per request), so a replay or a request that never consumed anything
+   * returns nothing twice.
+   */
+  private async reverseApprovedLeaveConsumption(
+    leaveRequest: LeaveRequestWithRelations,
+    db: Prisma.TransactionClient,
+  ) {
+    const removed = await db.leaveConsumptionRecord.deleteMany({
+      where: {
+        tenantId: leaveRequest.tenantId,
+        leaveRequestId: leaveRequest.id,
+      },
+    });
+
+    if (removed.count === 0) {
+      return;
+    }
+
+    await db.leaveBalance.updateMany({
+      where: {
+        tenantId: leaveRequest.tenantId,
+        employeeId: leaveRequest.employeeId,
+        leaveTypeId: leaveRequest.leaveTypeId,
+      },
+      data: {
+        totalUsed: { decrement: leaveRequest.totalDays },
+        totalRemaining: { increment: leaveRequest.totalDays },
+        lastUpdatedAt: new Date(),
+      },
+    });
+  }
+
   private async recordApprovedLeaveConsumption(
     leaveRequest: LeaveRequestWithRelations,
     db: Prisma.TransactionClient,
@@ -2239,6 +2330,7 @@ export class LeaveService {
     startDate: Date,
     endDate: Date,
     excludeLeaveRequestId?: string,
+    db?: Prisma.TransactionClient,
   ) {
     const clashes = await this.leaveRepository.findOverlappingLeaveRequests(
       tenantId,
@@ -2246,6 +2338,7 @@ export class LeaveService {
       startDate,
       endDate,
       excludeLeaveRequestId,
+      db,
     );
 
     if (clashes.length === 0) {
@@ -2359,7 +2452,54 @@ export class LeaveService {
       select: { id: true },
     });
 
-    return Boolean(visible);
+    if (!visible) {
+      return false;
+    }
+
+    /*
+     * DP-QA-018. Scope says who the user can *see*, and a manager's scope is a
+     * business unit, so every employee in it was approvable by every manager.
+     * Deciding someone else's leave without being the assigned (or delegated)
+     * approver needs either organisation-wide decision authority - HR and the
+     * admin tier - or the requester to sit in the user's own reporting line.
+     * The assigned approver on the pending step is handled by the caller and is
+     * unaffected.
+     */
+    const decisionLevel = [
+      SecurityPrivilege.APPROVE,
+      SecurityPrivilege.REJECT,
+    ].reduce<SecurityAccessLevel>((best, privilege) => {
+      const level = resolveEffectiveAccessLevel(
+        currentUser,
+        ENTITY_KEYS.LEAVE_REQUESTS,
+        privilege,
+      );
+      return SECURITY_ACCESS_LEVEL_WEIGHT[level] >
+        SECURITY_ACCESS_LEVEL_WEIGHT[best]
+        ? level
+        : best;
+    }, SecurityAccessLevel.NONE);
+
+    if (
+      SECURITY_ACCESS_LEVEL_WEIGHT[decisionLevel] >=
+      SECURITY_ACCESS_LEVEL_WEIGHT[SecurityAccessLevel.ORGANIZATION]
+    ) {
+      return true;
+    }
+
+    const decider = await this.employeesRepository.findByUserIdAndTenant(
+      currentUser.tenantId,
+      currentUser.userId,
+    );
+    if (!decider) {
+      return false;
+    }
+
+    const reportIds = await this.resolveReportingHierarchyEmployeeIds(
+      currentUser.tenantId,
+      decider.id,
+    );
+    return reportIds.includes(leaveRequest.employeeId);
   }
 
   private async canReadLeaveRequest(
