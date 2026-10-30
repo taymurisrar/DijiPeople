@@ -1148,6 +1148,8 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
   ],
   [ROLE_KEYS.HR]: [
     'dashboard.view',
+    'timesheets.submit',
+    'timesheets.withdraw',
     ...DATA_MANAGEMENT_PERMISSION_KEYS,
     MISC_PERMISSION_KEYS.TENANT_SETTINGS_MANAGE,
     MISC_PERMISSION_KEYS.AUDIT_VIEW,
@@ -1270,6 +1272,11 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
   ],
   [ROLE_KEYS.EMPLOYEE]: [
     'dashboard.view',
+    // Routes demand these and BASE_ROLE_PERMISSION_KEYS said employees hold them,
+    // but nothing granted them, so no employee could submit a timesheet (found
+    // when the wiring invariant stopped trusting that map).
+    'timesheets.submit',
+    'timesheets.withdraw',
     'approvals.readOwn',
     'attendance.checkin',
     'attendance.checkout',

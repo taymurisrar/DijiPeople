@@ -19,8 +19,8 @@ import {
   MISC_PERMISSION_KEYS,
   SYSTEM_ROLE_MISC_PERMISSIONS,
   SYSTEM_ROLE_PRIVILEGES,
+  matrixPrivilegeToPermissionKey,
 } from './rbac-matrix';
-import { BASE_ROLE_PERMISSION_KEYS } from './permissions';
 
 /*
  * These do not test a feature. They test that the parts are wired to each
@@ -53,16 +53,25 @@ function grantedPermissionKeys() {
     for (const key of list) keys.add(key);
   }
 
-  // Seeding also writes these to RolePermission for each base role.
-  for (const list of Object.values(BASE_ROLE_PERMISSION_KEYS)) {
-    for (const key of list) keys.add(key);
-  }
+  /*
+   * Deliberately NOT BASE_ROLE_PERMISSION_KEYS. This used to add that map here
+   * under the comment "seeding also writes these to RolePermission", which was
+   * false: nothing in production reads it, so a route whose only grant was there
+   * looked reachable and was dead for every ordinary role. That is exactly how
+   * `dashboard.view` stayed ungranted until the go-live QA (DP-QA-002). What
+   * provisioning actually writes is SYSTEM_ROLE_PRIVILEGES and
+   * SYSTEM_ROLE_MISC_PERMISSIONS, below.
+   */
 
   for (const matrix of Object.values(SYSTEM_ROLE_PRIVILEGES)) {
     for (const [entityPrivilege, level] of Object.entries(matrix)) {
       if (level === 'NONE') continue;
       const [entity, privilege] = entityPrivilege.split(':');
-      if (entity && privilege) keys.add(`${entity}.${privilege.toLowerCase()}`);
+      // The same mapping provisioning uses to turn a matrix cell into a legacy
+      // key; the naive `entity.privilege` guess missed every explicit alias.
+      if (entity && privilege) {
+        keys.add(matrixPrivilegeToPermissionKey(entity, privilege as never));
+      }
     }
   }
 
@@ -75,6 +84,20 @@ function grantedPermissionKeys() {
  * screen behind it is dead for every real user.
  */
 const ADMIN_ONLY_PERMISSIONS = new Set<string>([
+  /*
+   * Held by no provisioned role, only by the elevated-admin bypass. Listed after
+   * the invariant stopped trusting BASE_ROLE_PERMISSION_KEYS. `attendance.override`
+   * and `customers.delete` were intended for HR in that dead map; granting them
+   * widens HR, which is a product decision this change does not make.
+   */
+  'appDownloads.manage',
+  'attendance.override',
+  'customers.delete',
+  'employees.delete',
+  'payroll-runs.manage',
+  'tenant.update',
+  'workflows.manage',
+  'workflows.read',
   // Held by no role by default: reviewing captured DLP content is reachable only
   // via the elevated-admin bypass until a tenant assigns a dedicated role
   // (TASK-0020).

@@ -19,7 +19,10 @@ import {
 } from '@repo/config';
 import { createPrismaClient } from './create-prisma-client';
 import { bootstrapCommercialDefaults } from '../src/modules/super-admin/commercial-bootstrap';
-import { DEFAULT_LEAVE_TYPES } from '../src/modules/leave/default-leave-types';
+import {
+  DEFAULT_LEAVE_TYPES,
+  ensureDefaultLeaveTypes,
+} from '../src/modules/leave/default-leave-types';
 import { PermissionBootstrapService } from '../src/modules/permissions/permission-bootstrap.service';
 import { DEFAULT_APPROVAL_MATRICES } from '../src/modules/approvals/default-approval-matrices';
 import { NOTIFICATION_EVENT_CATALOG } from '../src/modules/notifications/notification-events.catalog';
@@ -2069,6 +2072,14 @@ export async function seedNotificationConfig(client: PrismaClient) {
   }
 }
 
+/**
+ * Gives every tenant the default leave types it is missing, and touches nothing
+ * else. This runs on every deploy, so it must be idempotent in the strong sense:
+ * a type an admin renamed, re-categorised or deliberately deactivated stays
+ * exactly as they left it. It used to update existing rows and force
+ * `isActive: true`, silently re-enabling deactivated leave types at each
+ * release. Returns how many defaults each tenant is now guaranteed to have.
+ */
 export async function seedTenantLeaveTypes(
   client: PrismaClient,
   tenants: TenantSeedTarget[],
@@ -2076,39 +2087,8 @@ export async function seedTenantLeaveTypes(
   let count = 0;
 
   for (const tenant of tenants) {
-    for (const leaveType of DEFAULT_LEAVE_TYPES) {
-      const existing = await client.leaveType.findFirst({
-        where: {
-          tenantId: tenant.id,
-          OR: [{ code: leaveType.code }, { name: leaveType.name }],
-        },
-        select: { id: true },
-      });
-
-      if (existing) {
-        await client.leaveType.update({
-          where: { id: existing.id },
-          data: {
-            name: leaveType.name,
-            code: leaveType.code,
-            category: leaveType.category,
-            isPaid: leaveType.isPaid,
-            requiresApproval: true,
-            isActive: true,
-          },
-        });
-      } else {
-        await client.leaveType.create({
-          data: {
-            tenantId: tenant.id,
-            ...leaveType,
-            requiresApproval: true,
-            isActive: true,
-          },
-        });
-      }
-      count += 1;
-    }
+    await ensureDefaultLeaveTypes(client, tenant.id);
+    count += DEFAULT_LEAVE_TYPES.length;
   }
 
   return count;
@@ -2233,7 +2213,8 @@ export async function verifyRequiredSeedData(
       client.leaveType.count({
         where: {
           tenantId: tenant.id,
-          isActive: true,
+          // Existence, not activity: an admin may deactivate a default type, and
+          // that must not fail the release verification.
           code: { in: DEFAULT_LEAVE_TYPES.map((item) => item.code) },
         },
       }),
