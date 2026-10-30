@@ -21,6 +21,8 @@ import {
   UserRoundCheck,
   X,
 } from "lucide-react";
+import { useTenantEntitlements } from "@/app/(authenticated)/_components/tenant-entitlements-provider";
+import { commandsForPlan } from "../../../lib/runtime/command-plan-gate";
 import type { CommandDefinition } from "../../../lib/runtime/command-runtime.types";
 import type { ModuleRuntimeContext } from "../../../lib/runtime/module-runtime.types";
 import type {
@@ -56,7 +58,11 @@ export function ModuleCommandBar({
   readonly runtime: ModuleRuntimeContext;
   readonly selectedRecordIds?: readonly string[];
 }) {
-  const groups = useMemo(() => normalizeCommandGroups(commands), [commands]);
+  const enabledFeatureKeys = useTenantEntitlements();
+  const groups = useMemo(
+    () => normalizeCommandGroups(commandsForPlan(commands, enabledFeatureKeys)),
+    [commands, enabledFeatureKeys],
+  );
 
   return (
     <div className="rounded-lg border border-border bg-white shadow-sm">

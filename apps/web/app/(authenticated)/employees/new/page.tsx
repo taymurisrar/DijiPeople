@@ -16,6 +16,7 @@ import {
 import { TenantResolvedSettingsResponse } from "../../settings/types";
 import { loadEmployeeCustomFields } from "../custom-fields";
 import { EmployeeListResponse } from "../types";
+import { canCreateEmployee } from "../_lib/can-create-employee";
 
 export default async function NewEmployeePage({
   searchParams,
@@ -38,6 +39,18 @@ export default async function NewEmployeePage({
   }
 
   const sessionUser = await getSessionUser();
+
+  if (!canCreateEmployee(sessionUser)) {
+    return (
+      <div className="dp-theme-scope dp-employees-scope grid gap-6">
+        <AccessDeniedState
+          description="Your role does not allow creating employee records."
+          title="You do not have permission to create employees."
+        />
+      </div>
+    );
+  }
+
   const [managers, resolvedSettings, runtimeForms, customFields] =
     await Promise.all([
       apiRequestJson<EmployeeListResponse>("/employees?pageSize=100"),
