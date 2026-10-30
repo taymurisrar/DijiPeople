@@ -36,7 +36,7 @@ export function ApprovalChain({
         title="Source record"
       >
         <Link
-          className="inline-flex items-center rounded-full border border-accent/20 bg-accent-soft px-4 py-2 text-sm font-semibold text-accent hover:bg-accent/10"
+          className="inline-flex items-center rounded-full border border-accent/20 bg-accent-soft px-4 py-2 text-sm font-semibold text-accent-strong hover:bg-accent/10"
           href={approval.relatedRecordUrl}
         >
           Open the {moduleLabel.toLowerCase()} record

@@ -62,16 +62,16 @@ const variantClasses: Record<ButtonVariant, string> = {
     "bg-accent text-white shadow-sm hover:bg-accent-strong disabled:opacity-70 disabled:cursor-not-allowed",
 
   secondary:
-    "border border-border bg-white text-foreground shadow-sm hover:border-accent/30 hover:bg-accent-soft/20 hover:text-accent disabled:opacity-70 disabled:cursor-not-allowed",
+    "border border-border bg-white text-foreground shadow-sm hover:border-accent/30 hover:bg-accent-soft/20 hover:text-accent-strong disabled:opacity-70 disabled:cursor-not-allowed",
 
   outline:
-    "border border-border bg-transparent text-foreground hover:border-accent/40 hover:bg-accent-soft/20 hover:text-accent disabled:opacity-70 disabled:cursor-not-allowed",
+    "border border-border bg-transparent text-foreground hover:border-accent/40 hover:bg-accent-soft/20 hover:text-accent-strong disabled:opacity-70 disabled:cursor-not-allowed",
 
   ghost:
-    "bg-transparent text-foreground hover:bg-accent-soft/30 hover:text-accent disabled:opacity-70 disabled:cursor-not-allowed",
+    "bg-transparent text-foreground hover:bg-accent-soft/30 hover:text-accent-strong disabled:opacity-70 disabled:cursor-not-allowed",
 
   soft:
-    "bg-accent-soft text-accent hover:bg-accent-soft/80 disabled:opacity-70 disabled:cursor-not-allowed",
+    "bg-accent-soft text-accent-strong hover:bg-accent-soft/80 disabled:opacity-70 disabled:cursor-not-allowed",
 
   success:
     "bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 disabled:opacity-70 disabled:cursor-not-allowed",

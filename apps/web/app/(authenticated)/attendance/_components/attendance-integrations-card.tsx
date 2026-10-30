@@ -179,7 +179,7 @@ export function AttendanceIntegrationsCard({
                     {formatValue(integration.integrationType)}
                   </p>
                 </div>
-                <span className="rounded-full bg-accent-soft px-3 py-1 text-xs font-medium text-accent">
+                <span className="rounded-full bg-accent-soft px-3 py-1 text-xs font-medium text-accent-strong">
                   {integration.isActive ? "Active" : "Inactive"}
                 </span>
               </div>

@@ -136,7 +136,7 @@ export function ResponsiveRuntimeTabs({
       target instanceof Node &&
       Boolean(
         menuRef.current?.contains(target) ||
-          moreButtonRef.current?.contains(target),
+        moreButtonRef.current?.contains(target),
       );
     const handleKeyDown = (event: globalThis.KeyboardEvent) => {
       if (event.key !== "Escape") return;
@@ -311,36 +311,42 @@ export function ResponsiveRuntimeTabs({
           />
         ))}
       </div>
-      <div
-        aria-label="Record sections"
-        className="flex w-full min-w-0 max-w-full flex-nowrap items-center gap-2 overflow-hidden"
-        onKeyDown={handleTabListKeyDown}
-        ref={tablistRef}
-        role="tablist"
-        // The tablist itself is not a Tab stop under the roving-tabindex
-        // pattern — focus lives on the selected tab (tabIndex 0 there) — but
-        // it does own the arrow-key handling above, and eslint-plugin-jsx-a11y
-        // requires an element carrying keyboard handlers to declare a
-        // tabIndex. -1 keeps it reachable by script without adding a second
-        // Tab stop next to the tab it already delegates to.
-        tabIndex={-1}
-      >
-        {visibleTabs.map((tab) => {
-          const active = tab.tabKey === activeTabKey;
-          return (
-            <TabButton
-              active={active}
-              id={getResponsiveTabId(idPrefix, tab.tabKey)}
-              key={tab.tabKey}
-              onClick={() => {
-                setMoreOpen(false);
-                onTabChange(tab.tabKey);
-              }}
-              panelId={getResponsiveTabPanelId(idPrefix)}
-              tab={tab}
-            />
-          );
-        })}
+      {/*
+       * The More button is a sibling of the tablist, not a child: a tablist may
+       * own only tabs (axe aria-required-children, DP-QA-013).
+       */}
+      <div className="flex w-full min-w-0 max-w-full flex-nowrap items-center gap-2 overflow-hidden">
+        <div
+          aria-label="Record sections"
+          className="flex min-w-0 flex-nowrap items-center gap-2 overflow-hidden"
+          onKeyDown={handleTabListKeyDown}
+          ref={tablistRef}
+          role="tablist"
+          // The tablist itself is not a Tab stop under the roving-tabindex
+          // pattern — focus lives on the selected tab (tabIndex 0 there) — but
+          // it does own the arrow-key handling above, and eslint-plugin-jsx-a11y
+          // requires an element carrying keyboard handlers to declare a
+          // tabIndex. -1 keeps it reachable by script without adding a second
+          // Tab stop next to the tab it already delegates to.
+          tabIndex={-1}
+        >
+          {visibleTabs.map((tab) => {
+            const active = tab.tabKey === activeTabKey;
+            return (
+              <TabButton
+                active={active}
+                id={getResponsiveTabId(idPrefix, tab.tabKey)}
+                key={tab.tabKey}
+                onClick={() => {
+                  setMoreOpen(false);
+                  onTabChange(tab.tabKey);
+                }}
+                panelId={getResponsiveTabPanelId(idPrefix)}
+                tab={tab}
+              />
+            );
+          })}
+        </div>
         {overflowTabs.length ? (
           <div className="relative shrink-0">
             <button

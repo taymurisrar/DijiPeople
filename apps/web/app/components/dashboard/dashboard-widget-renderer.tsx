@@ -254,7 +254,7 @@ function RowsCard({
                   <tr key={getRowKey(row, index)}>
                     {visibleCells(row).map(([key, value]) => (
                       <td className="py-3 pr-4 text-muted" key={key}>
-                        <span className="block text-xs uppercase text-muted/80">
+                        <span className="block text-xs uppercase text-muted">
                           {humanize(key)}
                         </span>
                         <RowValue row={row} value={value} />
