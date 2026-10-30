@@ -238,3 +238,62 @@ describe('DocumentsService object authorization', () => {
     });
   });
 });
+
+/**
+ * DP-QA-016 follow-up. The route became authentication-only so a role with no
+ * documents access (payroll-manager) can still load the tenant logo; the service
+ * must therefore apply the old route requirement itself to every other document.
+ */
+describe('openForView without the route-level permission', () => {
+  function build(published: boolean) {
+    const repository = {
+      findById: jest.fn(async () => ({ ...document, links: [] })),
+    };
+    const prisma = {
+      tenantSetting: {
+        findFirst: jest.fn(async () => (published ? { id: 's' } : null)),
+      },
+    };
+    const storage = { openFile: jest.fn(async () => ({ stream: 's' })) };
+    const settings = {
+      getDocumentSettings: jest.fn(async () => ({
+        disableExternalDownloads: false,
+      })),
+    };
+    return {
+      service: new DocumentsService(
+        repository as never,
+        prisma as never,
+        storage as never,
+        settings as never,
+        {} as never,
+      ),
+      storage,
+    };
+  }
+
+  const noDocuments = {
+    userId: 'u',
+    tenantId: 'tenant-a',
+    roleIds: [],
+    roleKeys: ['payroll-manager'],
+    permissionKeys: [],
+    rolePrivileges: [],
+  } as unknown as AuthenticatedUser;
+
+  it('serves a published logo to a user with no documents access at all', async () => {
+    const { service, storage } = build(true);
+    await expect(
+      service.openForView(noDocuments, 'document-2'),
+    ).resolves.toBeDefined();
+    expect(storage.openFile).toHaveBeenCalled();
+  });
+
+  it('refuses any other document to that same user (403, not served)', async () => {
+    const { service, storage } = build(false);
+    await expect(
+      service.openForView(noDocuments, 'document-2'),
+    ).rejects.toMatchObject({ status: 403 });
+    expect(storage.openFile).not.toHaveBeenCalled();
+  });
+});

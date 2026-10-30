@@ -12,6 +12,7 @@ import {
   SecurityPrivilege,
 } from '@prisma/client';
 import { extname } from 'path';
+import { satisfiesPermissionRequirement } from '../../common/security/permission-evaluation';
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import {
@@ -486,6 +487,32 @@ export class DocumentsService {
       throw new NotFoundException('Document was not found for this tenant.');
     }
 
+    const isBranding = await this.isPublishedBrandingAsset(
+      currentUser.tenantId,
+      documentId,
+    );
+
+    if (!isBranding) {
+      // What the route used to demand before this handler became
+      // authentication-only; unchanged for every ordinary document.
+      if (
+        !satisfiesPermissionRequirement(currentUser, {
+          legacyKeys: ['documents.read'],
+          rbac: [
+            {
+              entityKey: ENTITY_KEYS.DOCUMENTS,
+              privilege: SecurityPrivilege.READ,
+            },
+          ],
+        })
+      ) {
+        throw new ForbiddenException({
+          code: 'ACCESS_DENIED',
+          message: 'You do not have permission to perform this action.',
+        });
+      }
+    }
+
     try {
       await this.assertDocumentReadAccess(currentUser, document);
     } catch (error) {
@@ -497,10 +524,7 @@ export class DocumentsService {
        * users; the document record, list and metadata stay behind the normal
        * check, and nothing outside the current branding settings qualifies.
        */
-      if (
-        error instanceof NotFoundException &&
-        (await this.isPublishedBrandingAsset(currentUser.tenantId, documentId))
-      ) {
+      if (error instanceof NotFoundException && isBranding) {
         // fall through to serving the bytes
       } else {
         throw error;
