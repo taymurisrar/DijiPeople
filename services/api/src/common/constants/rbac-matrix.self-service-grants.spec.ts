@@ -40,8 +40,8 @@ describe('self-service grants for provisioned system roles', () => {
   });
 
   it('does not hand the key to the customizer', () => {
-    expect(SYSTEM_ROLE_MISC_PERMISSIONS[ROLE_KEYS.SYSTEM_CUSTOMIZER]).not.toContain(
-      'dashboard.view',
-    );
+    expect(
+      SYSTEM_ROLE_MISC_PERMISSIONS[ROLE_KEYS.SYSTEM_CUSTOMIZER],
+    ).not.toContain('dashboard.view');
   });
 });

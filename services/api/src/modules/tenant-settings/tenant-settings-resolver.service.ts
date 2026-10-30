@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { resolveValidTimeZone } from '../../common/utils/time-zone';
 import { AttendanceMode, Prisma, WorkWeekday } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import {
@@ -517,7 +518,8 @@ export class TenantSettingsResolverService {
       industry: stringValue(category.industry, ''),
       businessEmail: stringValue(category.businessEmail, ''),
       businessPhone: stringValue(category.businessPhone, ''),
-      timezone: stringValue(category.timezone, 'UTC'),
+      // A value stored before validation existed may be unusable; degrade, never throw (DP-QA-012).
+      timezone: resolveValidTimeZone(stringValue(category.timezone, 'UTC')),
       currency: stringValue(category.currency, 'USD'),
       country: stringValue(category.country, ''),
       dateFormat: stringValue(category.dateFormat, 'MM/dd/yyyy'),
@@ -1436,7 +1438,9 @@ export class TenantSettingsResolverService {
         200,
       ),
       enableStickyFilters: booleanValue(category.enableStickyFilters, true),
-      defaultTimezone: stringValue(category.defaultTimezone, 'UTC'),
+      defaultTimezone: resolveValidTimeZone(
+        stringValue(category.defaultTimezone, 'UTC'),
+      ),
       defaultCurrency: stringValue(category.defaultCurrency, 'USD'),
       defaultLanguage: stringValue(category.defaultLanguage, 'en'),
       autoLogoutMinutes: numberValue(category.autoLogoutMinutes, 15, 15, 1440),

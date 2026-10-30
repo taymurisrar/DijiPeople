@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 import { SecurityAccessLevel, SecurityPrivilege } from '@prisma/client';
 import {
   ENTITY_KEYS,
@@ -6,6 +10,7 @@ import {
 } from '../../common/constants/rbac-matrix';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { isValidTimeZone } from '../../common/utils/time-zone';
 import { resolveEffectiveAccessLevel } from '../../common/security/rbac-query-scope';
 import { ConfigurationResolverService } from './configuration-resolver.service';
 
@@ -180,7 +185,9 @@ function normalizePreferences(dto: Record<string, unknown>) {
     typeof dto.timeFormat === 'string' ? dto.timeFormat.trim() : '';
 
   if (timezone) {
-    new Intl.DateTimeFormat('en-US', { timeZone: timezone });
+    if (!isValidTimeZone(timezone)) {
+      throw new BadRequestException('timezone must be a valid IANA time zone.');
+    }
     preferences.timezone = timezone;
   }
   if (locale) preferences.locale = locale;
