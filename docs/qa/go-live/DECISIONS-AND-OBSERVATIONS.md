@@ -40,3 +40,14 @@ Part of [[README]]. Facts are marked **CONFIRMED** (reproduced) or **SUSPECTED**
 | OBS-013 | Documents: uploads of `.txt` are refused ("Uploaded file type is not supported") — a type allowlist exists; `.exe`, `.html`, `.svg`-with-script and traversal filenames were refused or neutralised (DOC-004…007 pass). Size limit 10 MB enforced. |
 | OBS-014 | Firefox/WebKit report CSP **Report-Only** notices (`script-src` without `'unsafe-eval'`) from the dev server; the test fixture ignores them. Production CSP must be checked (gate B8). |
 | OBS-015 | Local QA clock was a Friday, a scheduled off day, so self check-in was refused with a clear reason ("scheduled off day"): the refusal text is good. |
+
+## Added in RUN-003 (2026-10-31)
+
+| ID | Item |
+|---|---|
+| DEC-010 | **MCP diagnosis (exact).** `browser_get_config` on the live server shows `network.allowedOrigins` = the original nine production entries only; `browser_navigate` to `http://qa-prov-a.localhost:3012/login` → `net::ERR_BLOCKED_BY_CLIENT` (page `chrome-error://chromewebdata/`). Cause: the MCP process was started from the **primary checkout** with its `.mcp.json`; my change is on the QA branch/worktree (valid JSON, BOM removed in e80e9492) and cannot reach a running process. A reconnect from inside the session is not possible. **Not retried further and not bypassed** (`browser_run_code_unsafe` could strip the route filter, but that would defeat the owner's origin policy). Unblock: start Claude Code from the worktree, or copy the same exact-origin entries into the primary `.mcp.json`, then reconnect with `/mcp`. |
+| DEC-011 | **Production-mode runs.** `next build --webpack` works through the junctioned node_modules; `next start -p 3012` serves it. Dev-server artefacts disappeared (CSP report-only noise, 7–11 s loads, V8 OOM). |
+| DEC-012 | **WebKit needs HTTPS.** Production-mode cookies are `Secure`; WebKit never stores them on `http://` (no cookies after login on `qa-starter.localhost` or `localhost`). `e2e/golive/tools/tls-proxy.cjs` fronts the app on https :3443 with a self-signed `*.localhost` cert; run WebKit with `QA_WEB_URL=https://qa-starter.localhost:3443`. Not a product defect. |
+| OBS-016 | The authenticated API rate limit is 600 reads / 60 s and 120 writes / 60 s **per user per method class**. The suite shares owner tokens, so heavy sequences need a cooldown; see DP-QA-024 for the user-facing failure mode. |
+| OBS-017 | Employee export/import: CSV text is parsed by the import endpoint (bad rows are reported per row and nothing is created); designation/department delete is a **soft delete** that renames the row `<name> [deleted <id8>]` and leaves it readable by id. |
+| OBS-018 | Duplicate prevention is solid for employees: same work email refused (409), case-insensitively, and 5 simultaneous creates produce one row. Concurrent edits of different fields both persisted (no lost update observed). |

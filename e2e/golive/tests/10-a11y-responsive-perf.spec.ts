@@ -15,6 +15,10 @@ const SCREENS: Array<[id: string, path: string]> = [
   ['010', '/settings/security-access/identities/users'],
 ];
 
+// The authenticated read limit is 600 requests/min per user and the earlier suites share the owner token: start this file with a fresh window.
+// (A 429 on a page load sends the UI to the error boundary — DP-QA-024 — so a polluted window shows up as a spurious console error.)
+test.beforeAll(async () => { await new Promise((r) => setTimeout(r, 62_000)); });
+
 const settle = async (page: import('@playwright/test').Page, path: string) => {
   await page.goto(tenantUrl('A', path), { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('networkidle').catch(() => undefined);

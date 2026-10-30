@@ -75,8 +75,9 @@ test('[DPQA-EMP-003] create an employee through the UI; list, record and databas
   created.push(e.id);
   expect(e.lastName).toBe('Lifecycle');
   expect(e.employeeCode, 'an employee code is generated').toBeTruthy();
-  await open(page, '/employees');
-  await page.getByPlaceholder(/quick filter/i).fill(first);
+  expect(e.workEmail, 'the Work Email typed in the form is persisted').toBe(`qa-${run}@qa.dijipeople.test`);
+  // The list quick filter only filters the CURRENT PAGE, so verify through the record page instead.
+  await open(page, `/employees/${e.id}`);
   await expect(page.getByText(first).first()).toBeVisible();
 });
 
@@ -117,11 +118,14 @@ async function withEmployee(request: import('@playwright/test').APIRequestContex
 }
 
 test('[DPQA-EMP-006] edit persists after reload and in the database', async ({ page, request }) => {
+  // The authenticated read limit is 600 requests/min per user; earlier suites use the same owner token, so let the window reset (an edit form hydrates ~20 lookups).
+  await page.waitForTimeout(62_000);
   await withEmployee(request, async (id) => {
     await open(page, `/employees/${id}`);
     await page.getByRole('button', { name: /^edit$/i }).first().click();
+    await expect(page.getByRole('button', { name: /^save$/i }).first()).toBeVisible({ timeout: 20_000 }); // edit mode is on once Save appears
     const input = page.locator('[data-runtime-field="preferredName"] input').first();
-    await expect(input).toBeEnabled({ timeout: 15_000 });
+    await expect(input).toBeEnabled({ timeout: 20_000 });
     await input.fill(`Pref${run}`);
     await page.getByRole('button', { name: /^save$/i }).first().click();
     await page.waitForLoadState('networkidle').catch(() => undefined);

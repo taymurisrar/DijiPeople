@@ -111,3 +111,10 @@ Fixture shortcuts used on the throwaway DB only: an executed SUBSCRIPTION_AGREEM
 **Cleanup:** `node e2e/golive/tools/qa-cleanup.mjs` (leftover employees / pending leave / correction requests). Tests are self-contained because Playwright restarts a worker after a failure.
 **Probes:** `probe-api.mjs`, `explore.mjs`, `click-explore.mjs`, `dom-probe.mjs`, `ui-probe.cjs`, `mobile-shot.cjs`, `xt-delete-probe.mjs`. Run Node tools from PowerShell, not Git Bash (path mangling, no network).
 **Playwright MCP:** see DEC-007 — restart it from a checkout containing the updated `.mcp.json`.
+
+## RUN-003 additions
+- **Production-mode web:** `cd apps/web`; `$env:NODE_OPTIONS="--max-old-space-size=6144"`; `npx next build --webpack`; `npx next start -p 3012`. Rebuild after any `.env.local` change (NEXT_PUBLIC_* are baked in). Never build while `next dev` serves the same `.next`.
+- **WebKit:** `node e2e/golive/tools/tls-proxy.cjs 3443 3012` (self-signed cert in `e2e/golive-results/tls/`, openssl SAN `DNS:localhost,DNS:*.localhost`), then `QA_WEB_URL=https://qa-starter.localhost:3443`, `QA_FORCE_LOGIN=1`, `npx playwright test -c playwright.golive.config.ts --project=webkit`.
+- **Visual baselines:** `--project=chromium -g DPQA-VIS --update-snapshots` only for an intended, reviewed UI change; baselines live in `e2e/golive/tests/14-visual-commands.spec.ts-snapshots/`.
+- **Rate limits:** reads 600/min and writes 120/min per user; heavy suites start with a cooldown. Login 20 / 10 min per IP (restart the API to clear).
+- **Stopping the QA web server:** stop only the PID that owns port 3012 (`Get-NetTCPConnection -LocalPort 3012`); never pattern-kill node/next.

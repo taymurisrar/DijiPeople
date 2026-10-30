@@ -29,6 +29,7 @@ export default defineConfig({
   ],
   use: {
     baseURL: env.QA_WEB_URL,
+    ignoreHTTPSErrors: true, // local self-signed TLS front (tools/tls-proxy.cjs) used for WebKit
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'off',

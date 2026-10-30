@@ -19,7 +19,14 @@ Severity: Critical/High/Medium/Low. Priority: P0 release-stopping · P1 major wo
 | [[DP-QA-015]] | Non-Starter tabs on the employee record | Functional/Plan | Medium | P2 | owner | EMP-007 | RUN-002 |
 | [[DP-QA-016]] | Branding logo 404 for non-admins (broken image) | Functional/Branding | Medium | P2 | employee, hr | LV-010 | RUN-002 |
 | [[DP-QA-017]] | Overview overflows horizontally on a phone (501 > 412 px) | UI/UX | Medium | P2 | owner | RESP-001 (mobile) | RUN-002 |
+| [[DP-QA-018]] | Manager approves leave of an employee outside their reporting line (intent to confirm) | Security/AuthZ | High | P2 → P1 if scoped | manager | LV-026 | RUN-003 |
+| [[DP-QA-020]] | Overlapping leave requests not prevented under concurrency (3/3 accepted) | Data integrity | Medium | P2 | employee | CONC-003 | RUN-003 |
+| [[DP-QA-022]] | Employee cannot read their own attendance correction request (403) | Functional/RBAC | High | P2 | employee | ATT-009 | RUN-003 |
 | [[DP-QA-003]] | `/recruitment` hub renders for Starter | Functional | Low | P3 | owner | ENT-1004 | RUN-001 |
+| [[DP-QA-019]] | Approved leave cannot be cancelled/revoked by anyone (product decision) | Functional | Medium | P3 | admin | LV-023 | RUN-003 |
+| [[DP-QA-021]] | New Employee form (Save) shown to an employee | UI gating | Low | P3 | employee | CMD-011 | RUN-003 |
+| [[DP-QA-023]] | Firefox/WebKit uncaught fetch errors on two redirecting settings routes | Cross-browser | Low | P3 | owner | SMK-011/015 | RUN-003 |
+| [[DP-QA-024]] | One 429 on page load drops the user into the generic error screen | Resilience | Low | P3 | any | PERF-003 | RUN-003 |
 | [[DP-QA-006]] | `/my-profile` React empty-`src` warning | Functional | Low | P3 | employee | manual | RUN-001 |
 | [[DP-QA-008]] | No-match delete answers HTTP 200 `success:false` (isolation itself holds) | API contract | Low | P3 | owner | ISO-004 | RUN-002 |
 | [[DP-QA-009]] | Manager can read subscription price/cycle | Security (info) | Low | P3 | manager | RBAC-2-MANAGER-03 | RUN-002 |
@@ -27,4 +34,4 @@ Severity: Critical/High/Medium/Low. Priority: P0 release-stopping · P1 major wo
 Screens: ![gate reference](evidence/REF-plan-gate-screen-audit-events.png)
 
 ## Release gate status
-P0 open: **0**. P1 open: **4 confirmed (DP-QA-002, -010, -011, -012)** + 1 owner-decision (DP-QA-005). → **NOT READY**.
+P0 open: **0**. P1 open: **4 confirmed (DP-QA-002, -010, -011, -012)** + 1 owner decision (DP-QA-005 — `ENFORCE` is mandatory for go-live) + 1 possible P1 pending intent (DP-QA-018). 24 records open. → **NOT READY**.

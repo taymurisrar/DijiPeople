@@ -3,7 +3,7 @@
 Part of [[README]]. Every item is a **mandatory separate gate**: local QA cannot prove any of them.
 Status column is filled in by whoever runs the check, with date and evidence link. Until each row is ✅, the go-live verdict cannot be READY.
 
-## A. Entitlement enforcement (DP-QA-005 — treated as a release-blocking risk)
+## A. Entitlement enforcement (DP-QA-005 — OWNER DECISION: `ENFORCE` is mandatory; `REPORT_ONLY` blocks release)
 
 Background: `entitlementEnforcement` defaults to `REPORT_ONLY` in code (`tenant-entitlement.service.ts`) **by design** — ADR-0009 moves
 production to `ENFORCE` through a deliberate, per-environment act (`npm run entitlement:set-mode -- ENFORCE`), and says `seed:config` must not flip it.
@@ -50,3 +50,11 @@ See [[KNOWN-ISSUES]] and [[REMEDIATION-BACKLOG]]. Gate rule: **no open P0/P1**.
 | E1 | Provision a **real** Starter tenant on production-like infrastructure and sign in as employee, manager, HR | no 403 on self-context/leave types (DP-QA-002/-011 fixed) | ☐ |
 | E2 | Tenant onboarding checklist for leave types, shifts, work sites exists (OBS-008) | documented or automated | ☐ |
 | E3 | Re-run the whole `e2e/golive` suite against a **production build** (`next build && next start`) for Firefox/WebKit/mobile | 0 failures other than documented accepted items | ☐ |
+
+## F. Additions from RUN-003
+| # | Check | Pass criterion | Status |
+|---|---|---|---|
+| F1 | Cross-browser smoke on the **deployed** HTTPS app: Safari/WebKit login works (Secure cookies), Firefox, Chrome | all 16 Starter routes render; DP-QA-023 fixed or accepted | ☐ |
+| F2 | Rate-limit headroom for real usage: an Employee edit form (~20 lookups) plus dashboard polling stays well under 600 reads/min per user | no 429 in normal use; DP-QA-024 accepted or fixed | ☐ |
+| F3 | Production runbook for provisioning covers the executed subscription agreement, wildcard DNS and owner activation before ACTIVE (OBS-009) | documented | ☐ |
+| F4 | Retest evidence: RUN-004 shows DP-QA-002, -010, -011, -012 Resolved on the release candidate | 0 open P0/P1 | ☐ |

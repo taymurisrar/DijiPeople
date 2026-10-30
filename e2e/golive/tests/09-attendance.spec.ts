@@ -98,10 +98,25 @@ test('[DPQA-ATT-008] correction request: create then cancel; both states persist
   const c = await api(request, emp, 'POST', '/attendance/correction-requests', { attendanceDate: DAY, correctionType: 'LATE_CHECK_IN', requestedCheckInAtUtc: `${DAY}T04:30:00.000Z`, reason: 'QA correction' });
   expect(c.status, JSON.stringify(c.body).slice(0, 300)).toBeLessThan(300);
   const id = c.body.item?.id ?? c.body.id;
-  const x = await api(request, emp, 'POST', `/attendance/correction-requests/${id}/cancel`, { reason: 'QA' });
+  const x = await api(request, emp, 'POST', `/attendance/correction-requests/${id}/cancel`, {});
   expect(x.status).toBeLessThan(300);
-  const g = await api(request, emp, 'GET', `/attendance/correction-requests/${id}`);
-  expect(String(g.body.status)).toMatch(/CANCEL/);
+  expect(String(x.body.item?.status), 'cancel response carries the new state').toMatch(/CANCEL/);
+  // Persisted state is read by the admin: the employee cannot read their own request (DP-QA-022, see ATT-009).
+  const owner2 = await apiToken(request, 'S', 'ADMIN');
+  const g = await api(request, owner2, 'GET', `/attendance/correction-requests/${id}`);
+  expect(String(g.body.item?.status ?? g.body.status)).toMatch(/CANCEL/);
+});
+
+test('[DPQA-ATT-009] an employee can read their own correction request (DP-QA-022: 403 today)', async ({ request }) => {
+  const c = await api(request, emp, 'POST', '/attendance/correction-requests', { attendanceDate: '2026-10-22', correctionType: 'LATE_CHECK_IN', requestedCheckInAtUtc: '2026-10-22T04:30:00.000Z', reason: 'QA own-read' });
+  expect(c.status, JSON.stringify(c.body).slice(0, 200)).toBeLessThan(300);
+  const id = c.body.item?.id ?? c.body.id;
+  try {
+    const g = await api(request, emp, 'GET', `/attendance/correction-requests/${id}`);
+    expect(g.status, 'own request must be readable by its creator').toBe(200);
+  } finally {
+    await api(request, emp, 'POST', `/attendance/correction-requests/${id}/cancel`, {});
+  }
 });
 
 test.describe('attendance UI', () => {

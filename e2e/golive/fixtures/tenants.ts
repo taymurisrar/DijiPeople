@@ -10,14 +10,14 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 export type TenantKey = 'S' | 'A' | 'B';
 export type TenantRole = 'ADMIN' | 'OWNER' | 'EMPLOYEE' | 'MANAGER' | 'HR' | 'PAYROLL';
 
-const port = new URL(env.QA_WEB_URL).port;
+const webUrl = new URL(env.QA_WEB_URL); // protocol and port follow QA_WEB_URL (https://…:3443 when the TLS front is used for WebKit)
 export const TENANTS = {
   S: { slug: env.QA_TENANT_SLUG, seeded: true },
   A: { slug: env.QA_TENANT_A_SLUG as string, seeded: false },
   B: { slug: env.QA_TENANT_B_SLUG as string, seeded: false },
 } as const;
 
-export const tenantHost = (t: TenantKey) => `http://${TENANTS[t].slug}.localhost:${port}`;
+export const tenantHost = (t: TenantKey) => `${webUrl.protocol}//${TENANTS[t].slug}.localhost:${webUrl.port}`;
 export const tenantUrl = (t: TenantKey, path = '/') => `${tenantHost(t)}${path}`;
 
 export function credentials(t: TenantKey, role: TenantRole): { email: string; password: string } {
