@@ -11,6 +11,7 @@ Entry point for any QA agent. Read this, then [[QA-RUNBOOK]]; a resume prompt is
 | [[REMEDIATION-BACKLOG]] | ordered work for a separate development agent |
 | [[PRODUCTION-RELEASE-GATES]] | checklist the **owner** runs on production (QA never touches production) |
 | [[DECISIONS-AND-OBSERVATIONS]] | decisions, discrepancies, open questions |
+| [[TRACEABILITY]] | generated defect -> test map (DP-QA-001..034) |
 | [[RUN-005-PREPARATION]] | MCP blocker, remediation reconciliation, RUN-005 protocol (awaiting final SHA) |
 | `runs/` → [[INDEX]] | immutable run reports (RUN-001, RUN-002) |
 
