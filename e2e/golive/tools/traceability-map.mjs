@@ -45,5 +45,6 @@ export const REQ = {
   'REQ-5 Essential branded transactional e-mails on every plan': ['BEM-001-A', 'BEM-002-A', 'BEM-010', 'BEM-011', 'BEM-012', 'BEM-013', 'BRAND-005'],
   'REQ-6 Advanced e-mail customization Growth+; white-label Enterprise/Custom': ['BEM-004-A', 'BEM-004-E', 'BEM-005-A', 'BEM-005-G', 'BEM-004-C'],
   'REQ-7 Production ENFORCE verified only in an authorized deployment': { open: 'Release gate A1-A5; QA verifies the mechanism locally (ENT-*, MTX-001) and never touches production' },
+  'REQ-9 Seed/migration idempotency: SMTP provider, branding, entitlements and role permissions preserved; delivery via sink; no credential leakage': ['SEED-001', 'SEED-002', 'SEED-003', 'SEED-004', 'SEED-005', 'SEED-006', 'SEED-007', 'SEED-008', 'SEED-009'],
   'REQ-8 Entitlement matrix per plan': ['ENT-030', 'MTX-001', 'MTX-010-G', 'MTX-010-E', 'MTX-010-C', 'MTX-020'],
 };
