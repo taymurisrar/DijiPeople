@@ -1,5 +1,6 @@
 import { test, expect } from '../fixtures/test';
-import { api, apiToken } from '../fixtures/tenants';
+import { api, apiToken, credentials } from '../fixtures/tenants';
+import { sql } from '../fixtures/mail-db';
 import type { APIRequestContext } from '@playwright/test';
 
 /**
@@ -116,6 +117,28 @@ test('[DPQA-LV-026] a manager cannot approve a request of an employee who does n
   }
 });
 
-test('[DPQA-LV-029] manager-driven approval chain end to end — BLOCKED by DP-QA-002/DP-QA-011', async () => {
-  test.skip(true, 'BLOCKED: non-admin roles cannot load self-service (DP-QA-002) or list leave types / cancel (DP-QA-011); reporting-line routing cannot be exercised until fixed.');
+test('[DPQA-LV-029] manager-driven approval chain: refused outside the reporting line, allowed once the employee reports to the manager, employee sees APPROVED, state persisted (DP-QA-018 positive path)', async ({ request }) => {
+  const { emp, owner, r } = await submit(request, 80);
+  expect(r.status, JSON.stringify(r.body).slice(0, 200)).toBe(201);
+  const id = r.body.id;
+  const idOf = async (email: string) => (await sql<{ id: string }>(`select e.id from "Employee" e join "User" u on u.id = e."userId" where u.email = $1`, [email]))[0].id;
+  const empId = await idOf(credentials('A', 'EMPLOYEE').email);
+  const mgrId = await idOf(credentials('A', 'MANAGER').email);
+  const before = (await sql<{ managerEmployeeId: string | null }>(`select "managerEmployeeId" from "Employee" where id = $1`, [empId]))[0].managerEmployeeId;
+  const mgr = await apiToken(request, 'A', 'MANAGER');
+  try {
+    await api(request, owner, 'PATCH', `/employees/${empId}/reporting-manager`, { reportingManagerEmployeeId: null });
+    const outside = await api(request, mgr, 'POST', `/leave-requests/${id}/approve`, { comments: 'outside the line' });
+    expect([400, 403, 404], 'outside the reporting line').toContain(outside.status);
+    const assign = await api(request, owner, 'PATCH', `/employees/${empId}/reporting-manager`, { reportingManagerEmployeeId: mgrId });
+    expect(assign.status, JSON.stringify(assign.body).slice(0, 200)).toBeLessThan(300);
+    const approve = await api(request, mgr, 'POST', `/leave-requests/${id}/approve`, { comments: 'in my line' });
+    expect(approve.status, JSON.stringify(approve.body).slice(0, 200)).toBeLessThan(300);
+    expect(String((await api(request, emp, 'GET', `/leave-requests/${id}`)).body.status)).toMatch(/APPROVED/);
+    const rows = await sql<{ status: string }>(`select status::text as status from "LeaveRequest" where id = $1`, [id]);
+    expect(rows[0]?.status, 'persisted status').toMatch(/APPROVED/);
+  } finally {
+    await api(request, owner, 'POST', `/leave-requests/${id}/cancel`, { reason: 'QA cleanup' });
+    await api(request, owner, 'PATCH', `/employees/${empId}/reporting-manager`, { reportingManagerEmployeeId: before });
+  }
 });

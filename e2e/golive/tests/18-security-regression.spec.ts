@@ -1,5 +1,5 @@
 import { test, expect, env } from '../fixtures/test';
-import { api, apiToken, TENANTS } from '../fixtures/tenants';
+import { api, apiToken, tenantUrl, TENANTS } from '../fixtures/tenants';
 import { mail } from '../fixtures/mail-db';
 import type { APIRequestContext } from '@playwright/test';
 
@@ -38,8 +38,12 @@ async function disposableUser(request: APIRequestContext, tag: string) {
   expect(u.status, JSON.stringify(u.body).slice(0, 200)).toBeLessThan(300);
   return { email, password, employeeId: e.body.id as string };
 }
-const login = (request: APIRequestContext, email: string, password: string) =>
-  request.post(`${env.QA_API_URL}/api/auth/login`, { headers: hdr, data: { email, password, tenantSlug: TENANTS.A.slug } });
+// 429-aware: the API limits sign-ins to 20 per 10 minutes per IP and path; waiting for the window is not a weakened assertion, a 429 says nothing about the credentials.
+const login = async (request: APIRequestContext, email: string, password: string) => {
+  let r = await request.post(`${env.QA_API_URL}/api/auth/login`, { headers: hdr, data: { email, password, tenantSlug: TENANTS.A.slug } });
+  for (let i = 0; i < 12 && r.status() === 429; i++) { await new Promise((x) => setTimeout(x, 15_000)); r = await request.post(`${env.QA_API_URL}/api/auth/login`, { headers: hdr, data: { email, password, tenantSlug: TENANTS.A.slug } }); }
+  return r;
+};
 const remove = (request: APIRequestContext, id: string) => api(request, owner, 'DELETE', `/employees/${id}`);
 
 test('[DPQA-SEC-001] concurrent use of ONE password-reset link: at most one request succeeds and exactly one resulting password works', async ({ request }) => {
@@ -162,4 +166,35 @@ test('[DPQA-SEC-009] tenant isolation of tokens: an invitation/reset token from 
     expect(cross.status(), 'A user signing in on tenant B').toBeGreaterThanOrEqual(400);
     expect(token.length).toBeGreaterThan(20);
   } finally { await remove(request, d.employeeId); }
+});
+
+test.describe('password reset through the UI', () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+  test('[DPQA-SEC-010] reset page: click "Reset password" sets the new password and lands on login; the same link then refuses a second reset in the UI and the API', async ({ page, request }) => {
+    const d = await disposableUser(request, 'sec10');
+    try {
+      await mail.clear();
+      await request.post(`${env.QA_API_URL}/api/auth/forgot-password`, { headers: hdr, data: { email: d.email, tenantSlug: TENANTS.A.slug } });
+      const token = mail.token(await mail.waitFor(d.email, /reset|password/i, 60_000));
+      const url = `${tenantUrl('A', '/reset-password')}?token=${encodeURIComponent(token)}`;
+      const fresh = `Ui!${run}Zz9k`;
+      await page.goto(url, { waitUntil: 'domcontentloaded' });
+      await page.getByRole('textbox', { name: 'New password' }).fill(fresh);
+      await page.getByRole('textbox', { name: 'Confirm password' }).fill(fresh);
+      await page.getByRole('button', { name: 'Reset password' }).click();
+      await expect(page).toHaveURL(/login\?reason=password-reset-success/, { timeout: 30_000 });
+      expect((await login(request, d.email, fresh)).status(), 'new password works').toBeLessThan(300);
+      expect((await login(request, d.email, d.password)).status(), 'old password stops').toBe(401);
+      // replay through the UI with the SAME link
+      await page.goto(url, { waitUntil: 'domcontentloaded' });
+      const evil = `Evil!${run}Zz9m`;
+      await page.getByRole('textbox', { name: 'New password' }).fill(evil);
+      await page.getByRole('textbox', { name: 'Confirm password' }).fill(evil);
+      await page.getByRole('button', { name: 'Reset password' }).click();
+      await page.waitForTimeout(3000);
+      await expect(page, 'a consumed link must not complete a second reset').not.toHaveURL(/password-reset-success/);
+      expect((await login(request, d.email, evil)).status(), 'the attacker password never works').toBeGreaterThanOrEqual(400);
+      expect((await login(request, d.email, fresh)).status(), 'the legitimate password still works').toBeLessThan(300);
+    } finally { await remove(request, d.employeeId); }
+  });
 });

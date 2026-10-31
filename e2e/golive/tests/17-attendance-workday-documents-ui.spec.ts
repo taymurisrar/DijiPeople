@@ -33,6 +33,8 @@ test.describe('attendance on a working day (tenant S, seed-demo)', () => {
       const e = await sql<{ id: string; locationId: string | null }>(`select id, "locationId" from "Employee" where "userId" = (select u.id from "User" u join "Tenant" t on t.id = u."tenantId" where u.email = 'employee@dijipeople.local' and t.slug = $1)`, [env.QA_TENANT_SLUG]);
       empRow = e[0];
       await sql(`update "Employee" set "locationId" = $2, "workMode" = 'OFFICE' where id = $1`, [empRow.id, site.id]);
+      // idempotent re-runs: an entry left today by an earlier execution makes the next check-in answer 409 "Already checked in today" (a fixture precondition, not a product defect)
+      await sql(`delete from "AttendanceEntry" where "employeeId" = $1 and "createdAt" > (now() at time zone 'utc') - interval '36 hours'`, [empRow.id]).catch(() => undefined);
       siteFlag = (await sql<{ a: boolean | null }>(`select "attendanceEnabled" as a from "Location" where id = $1`, [site.id]))[0]?.a ?? null;
       await sql(`update "Location" set "attendanceEnabled" = true where id = $1`, [site.id]); // seed-demo ships the site with attendance collection OFF (422 WORK_SITE_ATTENDANCE_DISABLED)
       // fixture: a WorkScheduleDay (with the schedule's shift) for every weekday the seed leaves off, so any day is a scheduled working day

@@ -81,17 +81,8 @@ test('[DPQA-PWD-002] reset with an invalid or malformed token is refused; a weak
   }
 });
 
-test('[DPQA-PWD-003] full reset: link -> new password works, old password stops working, then restore', async ({ request }) => {
-  const c = credentials('B', 'PAYROLL');
-  const f = await request.post(`${env.QA_API_URL}/api/auth/forgot-password`, { headers: { 'X-DijiPeople-App': 'web' }, data: { email: c.email, tenantSlug: TENANTS.B.slug } });
-  const text = JSON.stringify(await f.json().catch(() => ({})));
-  const tok = (text.match(/[?&]token=([A-Za-z0-9_\-.%]+)/) ?? [])[1];
-  test.skip(!tok, 'BLOCKED(environment): reset link is not exposed (email disabled, no dev link) — cannot complete the reset without a mailbox. Verify manually with a real mailbox (gate B6).');
-  const fresh = `Reset!${run}Zz9`;
-  const r = await request.post(`${env.QA_API_URL}/api/auth/reset-password`, { headers: { 'X-DijiPeople-App': 'web' }, data: { token: decodeURIComponent(tok!), password: fresh } });
-  expect(r.status()).toBeLessThan(300);
-  expect((await login(request, TENANTS.B.slug, c.email, fresh)).status()).toBeLessThan(300);
-  expect((await login(request, TENANTS.B.slug, c.email, c.password)).status()).toBe(401);
+test('[DPQA-PWD-003] full reset: link -> new password works, old password stops working (superseded: executed with the local mail sink as MAIL-002 / SEC-001 / SEC-002 / SEC-010)', async () => {
+  test.skip(true, 'SUPERSEDED, not blocked: the RUN-003 blocker (no mailbox) is gone; the scenario is executed by MAIL-002, SEC-001, SEC-002 and SEC-010 against the local SMTP sink. Kept as a pointer so the id stays traceable.');
 });
 
 test('[DPQA-INV-001] invited user: activation link works once, then is refused; login then works', async ({ request }) => {
