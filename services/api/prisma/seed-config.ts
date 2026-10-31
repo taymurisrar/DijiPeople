@@ -2582,37 +2582,27 @@ export async function seedTenantConsoleProviders(
   let count = 0;
 
   for (const tenant of tenants) {
-    const enabledProviderCount = await client.emailProviderSetting.count({
-      where: {
-        tenantId: tenant.id,
-        enabled: true,
-      },
+    /*
+     * A safe default is for a tenant that has configured nothing. ANY existing
+     * provider row - SMTP, enabled or not, verified or not, or a Console row an
+     * administrator switched off on purpose - is a choice this seed must not
+     * overwrite or re-enable. Counting only enabled rows used to re-enable the
+     * sink (and make it the default) for a tenant whose SMTP provider was merely
+     * disabled, on every `seed:config` run.
+     */
+    const existingProviderCount = await client.emailProviderSetting.count({
+      where: { tenantId: tenant.id },
     });
 
-    if (enabledProviderCount > 0) {
+    if (existingProviderCount > 0) {
       continue;
     }
 
-    await client.emailProviderSetting.upsert({
-      where: {
-        tenantId_providerName: {
-          tenantId: tenant.id,
-          providerName: 'Console Provider',
-        },
-      },
-      create: {
+    await client.emailProviderSetting.create({
+      data: {
         tenantId: tenant.id,
         providerType: EmailProviderType.CONSOLE,
         providerName: 'Console Provider',
-        enabled: true,
-        isDefault: true,
-        fromEmail: 'no-reply@dijipeople.local',
-        fromName: tenant.name || 'DijiPeople',
-        replyToEmail: null,
-        configuration: {},
-      },
-      update: {
-        providerType: EmailProviderType.CONSOLE,
         enabled: true,
         isDefault: true,
         fromEmail: 'no-reply@dijipeople.local',
