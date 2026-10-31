@@ -12,6 +12,7 @@ Entry point for any QA agent. Read this, then [[QA-RUNBOOK]]; a resume prompt is
 | [[PRODUCTION-RELEASE-GATES]] | checklist the **owner** runs on production (QA never touches production) |
 | [[DECISIONS-AND-OBSERVATIONS]] | decisions, discrepancies, open questions |
 | [[TRACEABILITY]] | generated defect -> test map (DP-QA-001..034) |
+| [[RUN-006-PREPARATION]] | new subscription requirements, open questions Q1-Q6, prepared suites, protocol (awaiting Session 2 SHA) |
 | [[RUN-005-PREPARATION]] | MCP blocker, remediation reconciliation, RUN-005 protocol (awaiting final SHA) |
 | `runs/` → [[INDEX]] | immutable run reports (RUN-001, RUN-002) |
 
@@ -25,6 +26,9 @@ Conditions before go-live are listed in [[PRODUCTION-RELEASE-GATES]] (A1-A5 cuto
 ## Coverage statement
 303 executed results in RUN-003 over Chromium, Firefox, WebKit (https), mobile and tablet. **No test is "Not Verified".** Each mandatory scenario is Passed, Failed (with issue) or explicitly Blocked/Not Run with a reason —
 see [[TEST-MATRIX]] "Explicitly Blocked or Not Run". The remaining gaps are environmental (working-day clock, mailbox, MCP restart) or next-batch items, so the audit is **not** declared complete.
+
+## Status after RUN-005
+RUN-005 stays the accurate historical result for `f47e504c` but is **not final go-live approval**: the owner approved new subscription requirements (2026-10-31). RUN-006 is prepared, not executed - see [[RUN-006-PREPARATION]].
 
 ## Checkpoint (RUN-005)
 **Done:** RUN-005 executed on the final candidate in a detached validation worktree, all five browser projects, interactive MCP inspection, 34-defect retest, repeat Chromium run, report + matrix + traceability.

@@ -125,3 +125,7 @@ Fixtures: Starter tenants `qa-starter`, `qa-prov-a`, `qa-prov-b`; add a **Growth
 Playwright MCP is only usable after the user runs `/mcp` (config is read at server start); until `browser_get_config` shows the local origins, use Playwright Test.
 
 Growth tenant for RUN-005: `provision-tenant.mjs qa-growth "QA Growth" qa-owner-g@qa.dijipeople.test growth`, `owner-access.mjs qa-growth` twice, `seed-role-users.mjs qa-growth qa-owner-g@qa.dijipeople.test g`, then set `QA_TENANT_G_SLUG=qa-growth` and `QA_TENANT_G_OWNER=qa-owner-g@qa.dijipeople.test` in `.env.qa.local` (gitignored). Without them the GRW-010..013 tests are reported Not Run. Traceability: `cd e2e; node golive/tools/traceability.mjs --write`.
+
+
+## RUN-006 (new subscription requirements)
+See [[RUN-006-PREPARATION]]. Extra fixtures: an Enterprise tenant (provision-plan-tenants.ps1) and, once Q3 is answered, a Custom tenant; keys QA_TENANT_{G,E,C}_SLUG and _OWNER in .env.qa.local. Repeated WebKit regression: webkit-regression.ps1. Idle-expiry tests need no extra service (tenant policy idleTimeoutMinutes).

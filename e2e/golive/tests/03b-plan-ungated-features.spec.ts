@@ -9,13 +9,22 @@ import { api, apiToken } from '../fixtures/tenants';
  * Provisioned tenant A (Starter), owner role, enforcement ENFORCE on the QA database.
  */
 const UNGATED: Array<[id: string, feature: string, path: string]> = [
-  ['060', 'data-management', '/data-management/modules'],
-  ['061', 'data-management', '/data-management/imports'],
   ['062', 'attendance-integrations', '/integrations/attendance/connectors'],
   ['063', 'attendance-integrations', '/integrations/gateways'],
   ['064', 'desktop-agent', '/agent/settings'],
   ['065', 'compliance', '/audit-logs'],
 ];
+
+// RUN-006 requirement change (owner-approved): BASIC import / export / templates are available on EVERY plan including Starter, with role-based security.
+// Only ADVANCED data management is premium. ENT-060/061 formerly asserted the opposite (Starter refused) and are superseded; they now assert the new contract.
+// Which routes are "advanced" is a contract detail Session 2 must name in its handoff - until then nothing advanced is asserted (see RUN-006-PREPARATION).
+for (const [id, path] of [['060', '/data-management/modules'], ['061', '/data-management/imports']] as const) {
+  test(`[DPQA-ENT-${id}] Starter owner CAN use basic data management ${path} (basic import/export is on every plan)`, async ({ request }) => {
+    const token = await apiToken(request, 'A', 'OWNER');
+    const r = await api(request, token, 'GET', path);
+    expect(r.status, `GET ${path} -> ${JSON.stringify(r.body).slice(0, 160)}`).toBe(200);
+  });
+}
 
 for (const [id, feature, path] of UNGATED) {
   test(`[DPQA-ENT-${id}] Starter owner is refused ${path} (${feature})`, async ({ request }) => {

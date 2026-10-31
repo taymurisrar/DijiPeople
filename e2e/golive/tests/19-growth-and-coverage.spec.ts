@@ -11,7 +11,8 @@ import { api, apiToken, growthTenantProvisioned } from '../fixtures/tenants';
  */
 const MODULE = 'employees';
 
-test.describe('Starter: backend refuses Growth-only data-management routes', () => {
+// RUN-006: basic import/export/templates are on every plan (owner-approved). The Starter owner is ALLOWED the basic routes; the employee-level role is not (see 20-import-export-all-plans).
+test.describe('Starter: basic data management is reachable (all plans)', () => {
   let owner: string;
   test.beforeAll(async ({ request }) => { owner = await apiToken(request, 'A', 'OWNER'); });
   for (const [id, method, path] of [
@@ -19,17 +20,21 @@ test.describe('Starter: backend refuses Growth-only data-management routes', () 
     ['002', 'GET', `/data-management/modules/${MODULE}/template`],
     ['003', 'GET', `/data-management/modules/${MODULE}/fields`],
   ] as const) {
-    test(`[DPQA-GRW-${id}] Starter owner: ${method} ${path} is refused by the backend (403), not merely hidden`, async ({ request }) => {
+    test(`[DPQA-GRW-${id}] Starter owner: ${method} ${path} is allowed (basic import/export, every plan)`, async ({ request }) => {
       const r = await api(request, owner, method, path);
-      expect(r.status, JSON.stringify(r.body).slice(0, 160)).toBe(403);
+      expect(r.status, JSON.stringify(r.body).slice(0, 160)).toBe(200);
     });
   }
-  test('[DPQA-GRW-004] Starter owner: an import analysis upload is refused (403) before the file is parsed', async ({ request }) => {
+  test('[DPQA-GRW-004] Starter owner: an import analysis upload of a valid-shaped CSV is accepted for analysis (no 403, no 5xx) and writes no employees', async ({ request }) => {
+    const before = (await api(request, owner, 'GET', '/employees?pageSize=1')).body;
     const r = await request.post(`${env.QA_API_URL}/api/data-management/modules/${MODULE}/imports/analyse`, {
       headers: { authorization: `Bearer ${owner}`, 'X-DijiPeople-App': 'web' },
       multipart: { file: { name: 'e.csv', mimeType: 'text/csv', buffer: Buffer.from('First Name,Last Name\nA,B\n') } },
     });
-    expect(r.status()).toBe(403);
+    expect(r.status(), await r.text()).not.toBe(403);
+    expect(r.status()).toBeLessThan(500);
+    const after = (await api(request, owner, 'GET', '/employees?pageSize=1')).body;
+    expect(JSON.stringify(after.total ?? after.meta ?? after), 'analysis must not create employees').toBe(JSON.stringify(before.total ?? before.meta ?? before));
   });
 });
 

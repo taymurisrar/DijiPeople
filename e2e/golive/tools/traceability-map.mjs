@@ -35,3 +35,15 @@ export const MAP = {
   'DP-QA-033': ['NAV-001'],
   'DP-QA-034': ['TRC-034'],
 };
+
+/** RUN-006 owner-approved subscription requirements -> tests (validated against the real test list like MAP). */
+export const REQ = {
+  'REQ-1 Basic import/export/templates on all plans, role-based, plan-scoped modules/fields': ['IMX-001-A', 'IMX-002-A', 'IMX-003-A', 'IMX-004-A', 'IMX-005-A', 'IMX-006-A', 'IMX-009', 'IMX-010', 'IMX-011', 'IMX-020', 'IMX-021', 'IMX-022', 'IMX-023', 'IMX-024', 'GRW-001', 'GRW-002', 'GRW-003', 'GRW-004', 'ENT-060', 'ENT-061', 'IMX-001-G', 'IMX-001-E', 'IMX-001-C'],
+  'REQ-2 Advanced Data Management is premium': { open: 'Q1: the development handoff must name the advanced routes/features; nothing advanced is asserted until then' },
+  'REQ-3 Desktop Agent: Enterprise, or Custom only when explicitly enabled': ['AGT-001-A', 'AGT-001-G', 'AGT-001-E', 'AGT-001-C', 'AGT-002-A', 'AGT-003-A', 'AGT-010', 'AGT-011', 'AGT-012', 'AGT-013', 'ENT-064', 'MTX-010-E', 'MTX-010-C'],
+  'REQ-4 HR special permissions unchanged': ['LV-029', 'RBAC-1-HR'],
+  'REQ-5 Essential branded transactional e-mails on every plan': ['BEM-001-A', 'BEM-002-A', 'BEM-010', 'BEM-011', 'BEM-012', 'BEM-013', 'BRAND-005'],
+  'REQ-6 Advanced e-mail customization Growth+; white-label Enterprise/Custom': ['BEM-004-A', 'BEM-004-E', 'BEM-005-A', 'BEM-005-G', 'BEM-004-C'],
+  'REQ-7 Production ENFORCE verified only in an authorized deployment': { open: 'Release gate A1-A5; QA verifies the mechanism locally (ENT-*, MTX-001) and never touches production' },
+  'REQ-8 Entitlement matrix per plan': ['ENT-030', 'MTX-001', 'MTX-010-G', 'MTX-010-E', 'MTX-010-C', 'MTX-020'],
+};

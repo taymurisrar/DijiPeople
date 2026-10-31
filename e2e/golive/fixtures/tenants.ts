@@ -7,7 +7,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
  * provisioned through the real platform workflow (customer -> onboarding -> create-tenant) and are the primary targets.
  * Hostnames are `<slug>.localhost:<port>` so the workspace is resolved from the host exactly as in production.
  */
-export type TenantKey = 'S' | 'A' | 'B' | 'G';
+export type TenantKey = 'S' | 'A' | 'B' | 'G' | 'E' | 'C';
 export type TenantRole = 'ADMIN' | 'OWNER' | 'EMPLOYEE' | 'MANAGER' | 'HR' | 'PAYROLL';
 
 const genv = env as unknown as Record<string, string | undefined>; // optional keys of .env.qa.local (Growth tenant)
@@ -18,7 +18,11 @@ export const TENANTS = {
   B: { slug: env.QA_TENANT_B_SLUG as string, seeded: false },
   // Growth-plan tenant (RUN-005): used for entitled-import and Growth-gated checks. Optional - suites that need it skip with a reason when it is not provisioned.
   G: { slug: (genv.QA_TENANT_G_SLUG ?? '') as string, seeded: false },
+  // RUN-006 plan-matrix tenants (all optional: tests skip with a reason when one is not provisioned)
+  E: { slug: (genv.QA_TENANT_E_SLUG ?? '') as string, seeded: false },
+  C: { slug: (genv.QA_TENANT_C_SLUG ?? '') as string, seeded: false },
 } as const;
+export const planTenantProvisioned = (t: 'G' | 'E' | 'C') => Boolean(genv[`QA_TENANT_${t}_SLUG`] && genv[`QA_TENANT_${t}_OWNER`]);
 export const growthTenantProvisioned = () => Boolean(genv.QA_TENANT_G_SLUG && genv.QA_TENANT_G_OWNER);
 
 export const tenantHost = (t: TenantKey) => `${webUrl.protocol}//${TENANTS[t].slug}.localhost:${webUrl.port}`;
@@ -30,8 +34,8 @@ export function credentials(t: TenantKey, role: TenantRole): { email: string; pa
     const map: Record<string, string> = { ADMIN: env.QA_ADMIN_EMAIL, OWNER: env.QA_ADMIN_EMAIL, EMPLOYEE: env.QA_EMPLOYEE_EMAIL, MANAGER: env.QA_MANAGER_EMAIL, HR: env.QA_HR_EMAIL, PAYROLL: env.QA_PAYROLL_EMAIL };
     return { email: map[role], password };
   }
-  const prefix = t === 'A' ? 'a' : t === 'B' ? 'b' : 'g';
-  const owner = (t === 'A' ? env.QA_TENANT_A_OWNER : t === 'B' ? env.QA_TENANT_B_OWNER : genv.QA_TENANT_G_OWNER) as string;
+  const prefix = ({ A: 'a', B: 'b', G: 'g', E: 'e', C: 'c' } as Record<string, string>)[t];
+  const owner = (t === 'A' ? env.QA_TENANT_A_OWNER : t === 'B' ? env.QA_TENANT_B_OWNER : genv[`QA_TENANT_${t}_OWNER`]) as string;
   const map: Record<string, string> = { ADMIN: owner, OWNER: owner, EMPLOYEE: `${prefix}-employee@qa.dijipeople.test`, MANAGER: `${prefix}-manager@qa.dijipeople.test`, HR: `${prefix}-hr@qa.dijipeople.test`, PAYROLL: `${prefix}-payroll-manager@qa.dijipeople.test` };
   return { email: map[role], password };
 }

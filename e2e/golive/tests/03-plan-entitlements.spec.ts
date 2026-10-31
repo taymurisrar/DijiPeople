@@ -1,4 +1,5 @@
 import { test, expect, gotoTenant, authFile, env } from '../fixtures/test';
+import { STARTER_BASE, APPROVED_STARTER_ADDITIONS } from '../fixtures/entitlement-matrix';
 
 /**
  * DPQA-ENT-*: Starter users get what Starter sells and nothing else — in the
@@ -66,5 +67,6 @@ test('[DPQA-ENT-030] feature resolution endpoint reports Starter', async ({ requ
   const body = await r.json();
   expect(body.subscription.plan.key).toBe('starter');
   const enabled = (body.items as Array<{ key: string; isEnabled: boolean }>).filter((i) => i.isEnabled).map((i) => i.key).sort();
-  expect(enabled).toEqual(['attendance', 'branding', 'documents', 'employees', 'leave', 'notifications', 'organization']);
+  // RUN-006: Starter = the original seven plus ONLY the keys the owner-approved requirements add (fixtures/entitlement-matrix.ts); any other extra key fails.
+  expect(enabled).toEqual([...STARTER_BASE, ...APPROVED_STARTER_ADDITIONS].sort());
 });
