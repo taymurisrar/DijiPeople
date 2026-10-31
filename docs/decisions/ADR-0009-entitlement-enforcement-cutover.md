@@ -398,3 +398,12 @@ deliberate act per environment.
 A1–A5 in `docs/qa/go-live/PRODUCTION-RELEASE-GATES.md`. **Rollback** is changing
 the variable (and, if the stored row is also `ENFORCE`, `entitlement:set-mode`);
 the stored setting alone can no longer relax a floor.
+
+
+## Update 2026-11-01 - partly superseded by ADR-0028
+
+The `data-management` key described above was split: `data-import-export` is now
+sold on every plan and `advanced-data-management` is the premium tier. The
+`desktop-agent` key is now Enterprise/Custom only (it was sold from Growth), and
+the agent's public login/refresh routes are entitlement-checked in the service.
+See [[ADR-0028-final-subscription-entitlements-import-export-agent-email-branding]].
