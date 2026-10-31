@@ -1,8 +1,8 @@
 # Starter go-live remediation handoff v4 - final product alignment (for QA RUN-006)
 
 Branch `agent/starter-golive-remediation`, local only: not pushed, merged or deployed, no production access.
-**Application commit: `a55bb679`.** Later commits on the branch change documents only (dashboards, session
-indexes, ADR notes, this file). Status words are developer claims; only independent QA marks anything Resolved.
+**Final application candidate for RUN-006: `17d0dcaf`** (supersedes `a55bb679`; the only code change is the
+`seed:config` email-provider fix below). Later commits on the branch change documents only. Status words are developer claims; only independent QA marks anything Resolved.
 Decisions are recorded in [[ADR-0028-final-subscription-entitlements-import-export-agent-email-branding]].
 
 ## Requirements implemented
@@ -45,11 +45,11 @@ Decisions are recorded in [[ADR-0028-final-subscription-entitlements-import-expo
 
 ## Entitlement matrix
 
-| Capability | Starter | Growth | Enterprise | Custom (Enterprise+) |
+| Capability | Starter | Growth | Enterprise | Enterprise+ / Custom overrides |
 |---|---|---|---|---|
 | `data-import-export` | yes | yes | yes | yes |
-| `advanced-data-management` | no | yes | yes | per contract |
-| `desktop-agent` | no | no | yes | per contract |
+| `advanced-data-management` (**no routes yet: entitlement only, not a working feature**) | no | yes | yes | per contract |
+| `desktop-agent` | no | no | yes | yes (`enterprise-plus` carries every catalog key); a `CUSTOM` override can grant or withdraw |
 | `attendance-integrations` | no | yes | yes | per contract |
 | essential email branding | yes | yes | yes | yes |
 | `email-template-customization` | no | yes | yes | per contract |
@@ -67,10 +67,33 @@ Decisions are recorded in [[ADR-0028-final-subscription-entitlements-import-expo
 - Growth tenants already using the agent: run `npm --workspace api run entitlement:grandfather` (dry-run first); its
   probe is `AgentRefreshToken`. Without it they lose the agent on the next enforced request.
 - `repair:plan-capabilities` and grandfather probes were updated for the renamed keys. No new environment variables.
-- Operational note: `seed:config` also resets each tenant's default email provider to the console provider; on a
-  tenant relying on the platform relay for reset mail, check the effective provider after a deploy.
+- **Email provider preservation (fixed in `17d0dcaf`).** `seedTenantConsoleProviders` used to count only *enabled*
+  providers, so a tenant whose SMTP provider was configured but disabled (or whose Console row was switched off on
+  purpose) had the sink re-enabled and made default on every `seed:config`. It now creates the default Console provider
+  only for a tenant with **no provider row at all** and never updates an existing row. Production was already a no-op
+  (sink providers retired, BUG-3501). Verified on an isolated copy of an existing database: SMTP enabled, SMTP
+  disabled and Console-disabled tenants were byte-identical (including `updatedAt`) after two `seed:config` runs; on a
+  fresh database the demo tenant gets one default Console provider and a second run changes nothing. Tests: new tenant,
+  existing SMTP, disabled SMTP, repeated seeding (`production-sink-retirement.spec.ts`). The platform relay
+  (`PlatformOutboundEmail`) is not touched by any seed. Because of this fix, RUN-006 no longer needs to re-disable
+  console providers after re-seeding an *existing* database; a *fresh* database still starts with Console.
+- **Migration review** (`20261101090000_...`): data-only, no DDL, no DELETE or disabling. Rerun-safe (guarded by
+  NOT EXISTS). Exercised twice against legacy-shaped rows in a rolled-back transaction: a Growth plan on the old key is
+  renamed and keeps its access; a plan that had the old key disabled stays disabled under the new premium key; every
+  plan gains `data-import-export`; a plan holding both old and new keys keeps both (a harmless unused `data-management`
+  row remains, no gate reads it). Existing custom plans get basic import/export; tenant overrides are renamed, never
+  created.
+- **Feature keys:** `data-import-export`, `advanced-data-management`, `desktop-agent`, `attendance-integrations`,
+  `email-template-customization`, `email-white-label`. No `data-management` gate remains.
 
-## Tests performed on `a55bb679`
+Notes: there is no `custom` plan key. Custom access is the existing mechanism: the `enterprise-plus` contract plan plus
+`TenantFeature` rows with source `CUSTOM`. Attribution text is "Powered by DijiPeople" and is dropped only with
+`email-white-label`. Tenant logos in e-mail use `<tenant portal>/api/public/tenants/<slug>/assets/logo`: the web `/api`
+path is outside the auth proxy and the API route is `@Public()`, raster-only, cacheable, sent with nosniff and a sandbox
+CSP; the logo can only appear when it is configured and never exposes another tenant's asset. Whether a *remote* mail
+client fetches it depends on the portal host being publicly reachable, which a localhost sink cannot show.
+
+## Tests performed on `a55bb679` (unchanged by `17d0dcaf` except as listed)
 
 | Check | Result |
 |---|---|
@@ -99,18 +122,27 @@ First run 12 failed / 54 passed; after fixing local environment drift, `15-mail-
   console, and pass after the relay is re-pointed (fromEmail `no-reply@qa.dijipeople.test`).
 - No Playwright failure was an application defect. WebKit, Firefox, mobile and tablet were not run in this pass.
 
+## Re-verification on `17d0dcaf`
+
+API `tsc` clean; ESLint 0 errors and exactly 787 warnings; jest for notifications, auth, users and security (53 suites,
+502 tests) and the seed spec (27 tests) pass; web untouched. Fresh database: migrate deploy, `seed:config`, `seed:admin`,
+`seed:demo`, then `seed:config` again - plan keys starter {import-export}; growth {import-export, advanced};
+enterprise and enterprise-plus {all}. Full API/web suites were not re-run for a seed-only change.
+
 ## Remaining defects, risks, owner decisions
 
 - WebKit fix for DP-QA-023 unverified; production-like logout latency (007) unmeasured; New Employee still 61 calls.
 - Owner decisions still open: DP-QA-005 production ENFORCE cutover and grandfathering (now also the Growth agent
   tenants); `attendance.override`/`customers.delete` for HR (not granted).
 - Email deliverability (SPF/DKIM) is untested; local sink only. `advanced-data-management` has no features behind it yet.
+- Logo rendering in real remote mail clients (image proxying, blocked remote images) is unverified; the unauthenticated route
+  is verified by inspection and earlier live branded-mail checks.
 
 ## RUN-006 instructions
 
 1. Fresh detached worktree at the application commit, `npm ci`, new `_test` database, `prisma migrate deploy`, then
-   `seed:config`, `seed:admin`, `seed:demo`. After seeding, disable the console email providers (or set a default SMTP
-   provider) so tenant mail reaches the sink, and set the platform relay `fromEmail` to `no-reply@qa.dijipeople.test`.
+   `seed:config`, `seed:admin`, `seed:demo`. After seeding a *fresh* database, disable the console email providers (or set a default SMTP
+   provider) so tenant mail reaches the sink; re-seeding an existing one no longer undoes that, and set the platform relay `fromEmail` to `no-reply@qa.dijipeople.test`.
 2. Production web build and API with `ENTITLEMENT_ENFORCEMENT_MODE=ENFORCE`; local SMTP sink only.
 3. Update expectations first: Starter is entitled to `/data-management/*` and Import & Export (role-limited); the agent
    is refused on Starter and Growth, allowed on Enterprise and Enterprise+, honoured via `CUSTOM` overrides.
