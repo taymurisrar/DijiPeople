@@ -50,7 +50,7 @@ function seedConfig(): { status: number | null; leaked: boolean } {
 
 test.describe.configure({ mode: 'serial' });
 test.describe('seed:config and migration idempotency (local _test database)', () => {
-  test.skip(({}, info) => info.project.name !== 'chromium', 'database-level suite: runs once, on the chromium project');
+  test.beforeEach(({}, info) => { test.skip(info.project.name !== 'chromium', 'database-level suite: runs once, on the chromium project'); });
   test.skip(!worktree, 'NOT RUN: QA_API_WORKTREE (path of the validation worktree that holds the candidate) is not set in .env.qa.local');
   let tB = ''; let tA = ''; let before: Awaited<ReturnType<typeof snapshot>>; let markerId = ''; let disabledId = '';
 
@@ -118,10 +118,17 @@ test.describe('seed:config and migration idempotency (local _test database)', ()
     try {
       const inv = await mail.waitFor(email, /activate|invit|welcome/i, 60_000);
       expect(inv.links.some((l) => /token=/.test(l)), 'invitation carries a working token link').toBe(true);
-      await request.post(`${env.QA_API_URL}/api/auth/forgot-password`, { headers: { 'X-DijiPeople-App': 'web' }, data: { email, tenantSlug: TENANTS.B.slug } });
-      const rst = await mail.waitFor(email, /reset|password/i, 60_000);
-      expect(rst.links.some((l) => /token=/.test(l))).toBe(true);
-      expect(JSON.stringify([inv, rst]), 'delivered mail never contains the dummy SMTP credential').not.toContain(SECRET);
+      // RUN-006 test-side correction: a reset is only mailed to an ACTIVE account (no enumeration of pending invitations), so the reset half uses a second, active user.
+      const email2 = `seedr-${run}@qa.dijipeople.test`;
+      const e2 = await api(request, owner, 'POST', '/employees', { firstName: 'SeedR', lastName: run, workEmail: email2, hireDate: '2025-02-03', employmentStatus: 'ACTIVE', phone: '+97455500001', emergencyContactName: 'X Y', emergencyContactRelationTypeId: (Array.isArray(rel) ? rel : rel.items)[0].id, emergencyContactPhone: '+97455500002' });
+      expect(e2.status, JSON.stringify(e2.body).slice(0, 200)).toBeLessThan(300);
+      try {
+        expect((await api(request, owner, 'POST', '/users', { firstName: 'SeedR', lastName: run, email: email2, password: `Seed!${run}Zz9a`, status: 'ACTIVE', employeeId: e2.body.id })).status).toBeLessThan(300);
+        await request.post(`${env.QA_API_URL}/api/auth/forgot-password`, { headers: { 'X-DijiPeople-App': 'web' }, data: { email: email2, tenantSlug: TENANTS.B.slug } });
+        const rst = await mail.waitFor(email2, /reset|password/i, 60_000);
+        expect(rst.links.some((l) => /token=/.test(l))).toBe(true);
+        expect(JSON.stringify([inv, rst]), 'delivered mail never contains the dummy SMTP credential').not.toContain(SECRET);
+      } finally { await api(request, owner, 'DELETE', `/employees/${e2.body.id}`); }
     } finally { await api(request, owner, 'DELETE', `/employees/${e.body.id}`); }
   });
 

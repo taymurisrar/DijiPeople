@@ -97,19 +97,28 @@ for (const key of ['A', 'G', 'E', 'C'] as const) {
       } finally { await cleanup(request, owner, r.employeeId); }
     });
 
-    test(`[DPQA-BEM-005-${key}] ${plan}: advanced customization (sender name, footer text) is ${key === 'A' ? 'refused or ignored' : 'accepted and shown in the e-mail'}`, async ({ request }) => {
-      const set = await patch(request, owner, ADV);
-      const r = await reset(request, key, owner, 'adv');
+    // RUN-006 test-side correction (contract per handoff v4 + code): "advanced e-mail customization" = template AUTHORING (create/update/clone), Growth+; there is no sender-name feature.
+    test(`[DPQA-BEM-005-${key}] ${plan}: template authoring (clone) is ${key === 'A' ? 'refused with TENANT_FEATURE_NOT_ENTITLED' : 'allowed'}`, async ({ request }) => {
+      const list = (await api(request, owner, 'GET', '/notifications/email-templates')).body.items as Array<{ id: string; eventCode: string }>;
+      const src = list.find((t) => t.eventCode === 'AUTH_PASSWORD_RESET') ?? list[0];
+      const c = await api(request, owner, 'POST', `/notifications/email-templates/${src.id}/clone`, { name: `QA clone ${run}` });
+      if (key === 'A') {
+        expect(c.status).toBe(403);
+        expect(JSON.stringify(c.body)).toContain('email-template-customization');
+      } else {
+        expect(c.status, JSON.stringify(c.body).slice(0, 200)).toBeLessThan(300);
+        await api(request, owner, 'POST', `/notifications/email-templates/${c.body.id}/archive`);
+      }
+    });
+
+    // The tenant's own footer line replaces the DijiPeople attribution only for white-label plans (Enterprise / entitled Custom).
+    test(`[DPQA-BEM-006-${key}] ${plan}: custom footer line is ${key === 'E' || key === 'C' ? 'shown (white-label)' : 'not applied; attribution stays'}`, async ({ request }) => {
+      expect((await patch(request, owner, { footerText: ADV.emailFooterText })).status).toBeLessThan(300);
+      const r = await reset(request, key, owner, 'ftr');
       try {
-        if (key === 'A') {
-          expect(set.status >= 400 || !(r.m.html + r.m.text + r.m.from).includes(ADV.emailFooterText), 'Starter must not get advanced customization').toBe(true);
-          expect(r.m.html + r.m.text, 'footer text is not applied on Starter').not.toContain(ADV.emailFooterText);
-        } else {
-          expect(set.status, JSON.stringify(set.body).slice(0, 160)).toBeLessThan(300);
-          expect(r.m.html + r.m.text, 'custom footer in the e-mail').toContain(ADV.emailFooterText);
-          expect(r.m.from, 'custom sender display name').toContain(ADV.emailSenderName);
-        }
-      } finally { await cleanup(request, owner, r.employeeId); await patch(request, owner, { emailFooterText: '', emailSenderName: '' }).catch(() => undefined); }
+        if (key === 'E' || key === 'C') expect(r.m.html + r.m.text, 'custom footer in the white-label e-mail').toContain(ADV.emailFooterText);
+        else { expect(r.m.html + r.m.text).not.toContain(ADV.emailFooterText); expect(r.m.html + r.m.text).toMatch(/powered by\s+dijipeople/i); }
+      } finally { await cleanup(request, owner, r.employeeId); await patch(request, owner, { footerText: 'Powered by DijiPeople' }).catch(() => undefined); }
     });
   });
 }
@@ -120,7 +129,7 @@ test.describe('fallbacks and safety (Starter tenants)', () => {
     ownerB = await apiToken(request, 'B', 'OWNER');
     const cur = (await api(request, ownerB, 'GET', '/tenant-settings/resolved')).body;
     const b = (cur.settings?.branding ?? cur.branding ?? {}) as Record<string, string>;
-    beforeB = { brandName: b.brandName ?? '', emailBrandColor: b.emailBrandColor ?? '', logoUrl: b.logoUrl ?? '' };
+    beforeB = { brandName: b.brandName ?? '', emailBrandColor: b.emailBrandColor ?? '', logoUrl: b.logoUrl ?? '', primaryColor: b.primaryColor ?? '#047857' };
     await patch(request, ownerB, { brandName: '', emailBrandColor: '', logoUrl: '' }); // no branding at all
     await mail.clear();
   });
@@ -130,7 +139,8 @@ test.describe('fallbacks and safety (Starter tenants)', () => {
     const r = await reset(request, 'B', ownerB, 'fb');
     try {
       expect(r.m.html).toMatch(/QA Provisioned B/);
-      expect(r.m.html.toLowerCase(), 'platform default colour').toContain('#0f766e');
+      // RUN-006 test-side correction: the accent is the tenant's own primary colour (catalog default #047857) when it has AA contrast; the product default #0f766e replaces only an invalid/low-contrast colour (BEM-014).
+      expect(r.m.html.toLowerCase(), 'tenant primary colour (default) used as accent').toContain('#047857');
       expect(r.m.html, 'no image tag with an empty or missing src').not.toMatch(/<img(?![^>]*\ssrc="[^"]+")[^>]*>/i);
       expect(r.m.html).not.toMatch(/\{\{|\}\}|undefined|\[object Object\]|null/);
     } finally { await cleanup(request, ownerB, r.employeeId); }
@@ -138,9 +148,12 @@ test.describe('fallbacks and safety (Starter tenants)', () => {
 
   test('[DPQA-BEM-011] tenant A\'s brand never appears in tenant B\'s e-mails and vice versa', async ({ request }) => {
     const ownerA = await apiToken(request, 'A', 'OWNER');
+    // RUN-006 hygiene: restore tenant A's brand afterwards (the test used to leave "Acme Mail ..." behind for every later test and screenshot).
+    const curA = ((await api(request, ownerA, 'GET', '/tenant-settings/resolved')).body.settings?.branding ?? {}) as Record<string, string>;
+    const beforeA = { brandName: curA.brandName ?? '', primaryColor: curA.primaryColor ?? '#047857', emailBrandColor: curA.emailBrandColor ?? '' };
     await patch(request, ownerA, BRAND);
     const r = await reset(request, 'B', ownerB, 'iso');
-    try { expect(r.m.html + r.m.text).not.toContain(BRAND.brandName); } finally { await cleanup(request, ownerB, r.employeeId); }
+    try { expect(r.m.html + r.m.text).not.toContain(BRAND.brandName); } finally { await cleanup(request, ownerB, r.employeeId); await patch(request, ownerA, beforeA).catch(() => undefined); }
   });
 
   test('[DPQA-BEM-012] a hostile brand name is HTML-escaped in the e-mail (no script, no attribute injection)', async ({ request }) => {
@@ -161,5 +174,16 @@ test.describe('fallbacks and safety (Starter tenants)', () => {
       expect(link).toContain(TENANTS.B.slug);
       expect(r.m.text).toContain(link!.split('token=')[0]);
     } finally { await cleanup(request, ownerB, r.employeeId); }
+  });
+
+  test('[DPQA-BEM-014] an invalid or low-contrast brand colour falls back to the product default accent (#0f766e) and never injects the raw value', async ({ request }) => {
+    for (const bad of ['#ffff00', 'red;background:url(x)', '#12']) {
+      expect((await patch(request, ownerB, { primaryColor: bad })).status).toBeLessThan(600);
+      const r = await reset(request, 'B', ownerB, 'col');
+      try {
+        expect(r.m.html.toLowerCase(), `accent for ${bad}`).toContain('#0f766e');
+        expect(r.m.html.toLowerCase()).not.toContain('url(x)');
+      } finally { await cleanup(request, ownerB, r.employeeId); }
+    }
   });
 });

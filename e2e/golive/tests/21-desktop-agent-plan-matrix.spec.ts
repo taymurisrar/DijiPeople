@@ -65,9 +65,12 @@ test.describe('desktop agent - unauthorized attempts (any plan)', () => {
     test.skip(!planTenantProvisioned('E'), 'NOT RUN: Enterprise tenant not provisioned');
     // the Enterprise fixture is provisioned with seed-role-users (e-employee@...)
     const emp = await apiToken(request, 'E', 'EMPLOYEE');
-    for (const [m, p] of [['GET', '/agent/settings'], ['PATCH', '/agent/settings']] as const) {
-      expect([401, 403], `${m} ${p}`).toContain((await api(request, emp, m, p, m === 'PATCH' ? {} : undefined)).status);
-    }
+    // RUN-006 test-side correction: GET /agent/settings is the agent client's own policy read (permission agent.settings.read, which every employee holds so the desktop agent can fetch its policy) -
+    // that is existing, unchanged design. ADMINISTRATION is the write: it must be refused for an employee, on an entitled plan, independent of the plan.
+    expect([401, 403], 'PATCH /agent/settings').toContain((await api(request, emp, 'PATCH', '/agent/settings', {})).status);
+    const read = await api(request, emp, 'GET', '/agent/settings');
+    expect(read.status, 'policy read by the agent client').toBe(200);
+    expect(JSON.stringify(read.body).toLowerCase(), 'the policy carries no credentials').not.toMatch(/password|secret|token/);
   });
 
   test('[DPQA-AGT-012] cross-tenant: a Starter owner token is never accepted by an agent route of the Enterprise tenant, and agent data of E does not appear in A', async ({ request }) => {

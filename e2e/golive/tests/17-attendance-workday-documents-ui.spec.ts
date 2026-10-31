@@ -186,16 +186,16 @@ test.describe('employees Data Transfer menu', () => {
     const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30_000 }), page.getByRole('menuitem', { name: 'Export Template', exact: true }).click()]);
     expect(dl.suggestedFilename()).toMatch(/\.(xlsx|csv)$/i);
   });
-  test('[DPQA-CMD-022] Data Transfer offers Export and Export Template but NOT Import to a Starter owner (import is Growth-gated); the import route lands on the plan gate (DP-QA-004/021 contract)', async ({ page }) => {
+  test('[DPQA-CMD-022] Data Transfer offers Export, Import and Export Template to a Starter owner (basic import/export is on every plan, RUN-006); the import route lands on Settings > Data Management, not a plan gate', async ({ page }) => {
     await page.goto(tenantUrl('A', '/employees'), { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle').catch(() => undefined);
     await page.getByRole('button', { name: 'Data Transfer' }).click();
     await expect(page.getByRole('menuitem', { name: 'Export', exact: true })).toBeVisible();
     await expect(page.getByRole('menuitem', { name: 'Export Template', exact: true })).toBeVisible();
-    await expect(page.getByRole('menuitem', { name: 'Import', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('menuitem', { name: 'Import', exact: true })).toHaveCount(1);
     await page.goto(tenantUrl('A', '/employees/import'), { waitUntil: 'domcontentloaded' });
     await expect(page).toHaveURL(/data-management/, { timeout: 20_000 });
-    await expect(page.getByText(/not part of your current subscription/i)).toBeVisible();
+    await expect(page.getByText(/not part of your current subscription/i)).toHaveCount(0);
     await expect(page.getByText(/we hit an unexpected problem|could not load/i)).toHaveCount(0);
   });
 });
