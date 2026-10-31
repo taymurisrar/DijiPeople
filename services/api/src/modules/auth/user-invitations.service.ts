@@ -172,16 +172,10 @@ export class UserInvitationsService {
       throw new NotFoundException('Invitation was not found.');
     }
 
-    if (
-      invitation.consumedAt ||
-      invitation.status === UserInvitationStatus.CONSUMED
-    ) {
-      throw new BadRequestException('Invitation has already been used.');
-    }
-
-    if (invitation.expiresAt.getTime() <= Date.now()) {
-      await this.markExpired(invitation.id);
-      throw new BadRequestException('Invitation has expired.');
+    const unusable = this.describeUnusableInvitation(invitation);
+    if (unusable) {
+      if (unusable.expired) await this.markExpired(invitation.id);
+      throw new BadRequestException(unusable.message);
     }
 
     return {
@@ -221,16 +215,10 @@ export class UserInvitationsService {
       throw new UnauthorizedException('Invitation is invalid.');
     }
 
-    if (
-      invitation.consumedAt ||
-      invitation.status === UserInvitationStatus.CONSUMED
-    ) {
-      throw new UnauthorizedException('Invitation has already been used.');
-    }
-
-    if (invitation.expiresAt.getTime() <= Date.now()) {
-      await this.markExpired(invitation.id);
-      throw new UnauthorizedException('Invitation has expired.');
+    const unusable = this.describeUnusableInvitation(invitation);
+    if (unusable) {
+      if (unusable.expired) await this.markExpired(invitation.id);
+      throw new UnauthorizedException(unusable.message);
     }
 
     await this.passwordPolicyService.assertPasswordMeetsPolicy(
@@ -246,25 +234,43 @@ export class UserInvitationsService {
     const passwordHash = await bcrypt.hash(password, 12);
 
     await this.prisma.$transaction(async (tx) => {
+      /*
+       * DP-QA-027. The checks above are advisory: they read the row, then a
+       * password is hashed (slow on purpose), and in that gap the invitation can
+       * be revoked by a resend, expire, or be consumed by a concurrent request.
+       * The claim is therefore a conditional write that must still match a live
+       * invitation at the instant it commits, and it comes FIRST so a request
+       * that loses the race changes nothing. Exactly one caller can win it.
+       */
+      const now = new Date();
+      const claimed = await tx.userInvitation.updateMany({
+        where: {
+          id: invitation.id,
+          status: UserInvitationStatus.PENDING,
+          consumedAt: null,
+          expiresAt: { gt: now },
+        },
+        data: {
+          status: UserInvitationStatus.CONSUMED,
+          consumedAt: now,
+          updatedByUserId: invitation.userId,
+        },
+      });
+
+      if (claimed.count !== 1) {
+        throw new UnauthorizedException('Invitation is no longer valid.');
+      }
+
       await this.usersRepository.update(
         invitation.userId,
         {
           passwordHash,
-          passwordChangedAt: new Date(),
+          passwordChangedAt: now,
           status: UserStatus.ACTIVE,
           updatedById: invitation.userId,
         },
         tx,
       );
-
-      await tx.userInvitation.update({
-        where: { id: invitation.id },
-        data: {
-          status: UserInvitationStatus.CONSUMED,
-          consumedAt: new Date(),
-          updatedByUserId: invitation.userId,
-        },
-      });
 
       await tx.userInvitation.updateMany({
         where: {
@@ -316,6 +322,40 @@ export class UserInvitationsService {
         updatedByUserId: actorUserId,
       },
     });
+  }
+
+  /**
+   * Why an invitation cannot be used, or null when it can. Revoked and expired
+   * invitations were treated as live: only CONSUMED was refused (DP-QA-027).
+   */
+  private describeUnusableInvitation(invitation: {
+    status: UserInvitationStatus;
+    consumedAt: Date | null;
+    expiresAt: Date;
+  }): { message: string; expired: boolean } | null {
+    if (
+      invitation.consumedAt ||
+      invitation.status === UserInvitationStatus.CONSUMED
+    ) {
+      return { message: 'Invitation has already been used.', expired: false };
+    }
+
+    if (invitation.status === UserInvitationStatus.REVOKED) {
+      return {
+        message:
+          'Invitation is no longer valid. Ask your administrator for a new one.',
+        expired: false,
+      };
+    }
+
+    if (
+      invitation.status === UserInvitationStatus.EXPIRED ||
+      invitation.expiresAt.getTime() <= Date.now()
+    ) {
+      return { message: 'Invitation has expired.', expired: true };
+    }
+
+    return null;
   }
 
   private async findInvitationByToken(token: string) {
@@ -470,7 +510,8 @@ export class UserInvitationsService {
       metadata: {
         userId: input.userId,
         invitationId: input.invitationId,
-        activationUrl: input.activationLink,
+        // The link carries a live activation token. It is in the e-mail body that
+        // is sent; it must not also be stored with the delivery record.
         source: 'user-invitation',
       },
       requestedByUserId: input.userId,

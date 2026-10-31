@@ -1318,6 +1318,8 @@ export class AuthService {
         sub: user.id,
         tenantId: user.tenantId,
         type: 'password-reset',
+        // Pins the credential this link was issued against (DP-QA-031).
+        pwv: user.passwordChangedAt?.getTime() ?? 0,
       },
       {
         secret: getClientAccessTokenSecret(this.configService, 'web'),
@@ -1415,7 +1417,11 @@ export class AuthService {
   }
 
   async resetPassword(token: string, password: string) {
-    let payload: Omit<AuthTokenPayload, 'type'> & { type?: string };
+    let payload: Omit<AuthTokenPayload, 'type'> & {
+      type?: string;
+      pwv?: number;
+      iat?: number;
+    };
     try {
       payload = this.jwtService.verify(token, {
         secret: getClientAccessTokenSecret(this.configService, 'web'),
@@ -1436,6 +1442,18 @@ export class AuthService {
       );
     }
 
+    const expired = new UnauthorizedException(
+      'This password reset link is invalid or expired.',
+    );
+    const account = await this.prisma.user.findFirst({
+      where: { id: payload.sub, tenantId: payload.tenantId },
+      select: { passwordChangedAt: true },
+    });
+
+    if (!account || !this.resetTokenMatchesCredential(payload, account)) {
+      throw expired;
+    }
+
     await this.passwordPolicyService.assertPasswordMeetsPolicy(
       payload.tenantId,
       password,
@@ -1448,8 +1466,18 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(password, 10);
     await this.prisma.$transaction(async (tx) => {
-      await tx.user.update({
-        where: { id: payload.sub },
+      /*
+       * Compare-and-set on the credential the token was issued against. The
+       * read above is advisory; this write is the claim. Two requests presenting
+       * the same token both pass the read, and only the first finds
+       * `passwordChangedAt` still unchanged - the loser updates nothing.
+       */
+      const claimed = await tx.user.updateMany({
+        where: {
+          id: payload.sub,
+          tenantId: payload.tenantId,
+          passwordChangedAt: account.passwordChangedAt,
+        },
         data: {
           passwordHash,
           passwordChangedAt: new Date(),
@@ -1457,6 +1485,11 @@ export class AuthService {
           updatedById: payload.sub,
         },
       });
+
+      if (claimed.count !== 1) {
+        throw expired;
+      }
+
       /*
        * The identity carries the same credential. Inside the transaction, so a
        * reset cannot half-apply and leave the two copies disagreeing — which,
@@ -1483,6 +1516,26 @@ export class AuthService {
     return { ok: true };
   }
 
+  /**
+   * Whether a reset token still matches the credential it was issued against.
+   * Tokens carry `pwv` (the `passwordChangedAt` they were issued against). A
+   * token from before that claim existed is accepted only if the password has not
+   * changed since it was signed, compared at second resolution like `iat`.
+   */
+  private resetTokenMatchesCredential(
+    payload: { pwv?: number; iat?: number },
+    account: { passwordChangedAt: Date | null },
+  ) {
+    const current = account.passwordChangedAt?.getTime() ?? 0;
+
+    if (typeof payload.pwv === 'number') {
+      return payload.pwv === current;
+    }
+
+    const issuedAtMs = (payload.iat ?? 0) * 1000;
+    return current <= issuedAtMs + 999;
+  }
+
   private async sendPasswordResetEmail(input: {
     user: {
       id: string;
@@ -1496,11 +1549,23 @@ export class AuthService {
     requestedByUserId: string;
     source: string;
   }) {
+    /*
+     * DP-QA-031. A reset token is single-use. `pwv` pins the credential it was
+     * issued against - the user's `passwordChangedAt` at issue time - so the
+     * first successful reset (which moves that timestamp) invalidates this token
+     * and every other reset link issued for the same credential. Nothing secret
+     * is stored: the token stays a signed, stateless claim.
+     */
+    const current = await this.prisma.user.findFirst({
+      where: { id: input.user.id, tenantId: input.user.tenantId },
+      select: { passwordChangedAt: true },
+    });
     const resetToken = this.jwtService.sign(
       {
         sub: input.user.id,
         tenantId: input.user.tenantId,
         type: 'password-reset',
+        pwv: current?.passwordChangedAt?.getTime() ?? 0,
       },
       {
         secret: getClientAccessTokenSecret(this.configService, 'web'),
@@ -1540,7 +1605,7 @@ export class AuthService {
       metadata: {
         userId: input.user.id,
         employeeId: input.user.employee?.id ?? null,
-        resetUrl,
+        // Not the reset URL: it carries a live token, and this record is stored.
         source: input.source,
       },
       requestedByUserId: input.requestedByUserId,
