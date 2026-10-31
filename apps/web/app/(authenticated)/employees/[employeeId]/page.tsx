@@ -4,6 +4,7 @@ import { getSessionUser } from "@/lib/auth";
 import { getTableForms } from "@/lib/customization-forms";
 import { buildVisibilityPlacement } from "@/lib/runtime/visibility-placement";
 import { getCurrentEmployee } from "../../_lib/current-employee";
+import { loadEnabledFeatureKeys } from "../../_lib/enabled-feature-keys";
 import { loadEmployeeCustomFields } from "../custom-fields";
 import { filterEmployeeFormTabsByPlan } from "@/lib/runtime/modules/employee-plan-tabs";
 import { canManageEmployeeRecord } from "@/lib/employee-profile-access";
@@ -144,15 +145,13 @@ export default async function EmployeeDetailPage({
     fieldSecurityRules,
   });
   // Tabs of features the plan does not include are not offered (DP-QA-015).
-  const featureAvailability = await apiRequestJson<{ enabledKeys?: string[] }>(
-    "/tenant-settings/features/availability",
-  ).catch(() => null);
+  const enabledFeatureKeys = await loadEnabledFeatureKeys();
   const activeRuntimeForm = filterEmployeeFormTabsByPlan(
     resolveEmployeeRuntimeForm(
       employeeRuntimeContext.metadata.forms,
       selectedFormId,
     ),
-    featureAvailability?.enabledKeys ?? null,
+    enabledFeatureKeys,
   );
   const employeeRuntimeRecord = {
     ...mapEmployeeRecordToRuntimeValues(employee),

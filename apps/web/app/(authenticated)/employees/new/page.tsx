@@ -1,3 +1,5 @@
+import { filterEmployeeFormTabsByPlan } from "@/lib/runtime/modules/employee-plan-tabs";
+import { loadEnabledFeatureKeys } from "../../_lib/enabled-feature-keys";
 import { getSessionUser } from "@/lib/auth";
 import { getTableForms } from "@/lib/customization-forms";
 import { apiRequestJson } from "@/lib/server-api";
@@ -116,9 +118,12 @@ export default async function NewEmployeePage({
     views: [],
     employeeSettings: resolvedSettings?.employee,
   });
-  const activeRuntimeForm = resolveEmployeeRuntimeForm(
-    employeeRuntimeContext.metadata.forms,
-    selectedFormId,
+  const activeRuntimeForm = filterEmployeeFormTabsByPlan(
+    resolveEmployeeRuntimeForm(
+      employeeRuntimeContext.metadata.forms,
+      selectedFormId,
+    ),
+    await loadEnabledFeatureKeys(),
   );
   const { EmployeeRuntimeFormWrapper } =
     await import("../_components/employee-runtime-form-wrapper");

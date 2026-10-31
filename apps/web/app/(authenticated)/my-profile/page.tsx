@@ -14,6 +14,8 @@ import type { FieldSecurityRule } from "@/lib/runtime/security-runtime.types";
 import { apiRequestJson } from "@/lib/server-api";
 import { ACCOUNT_SECURITY_ANCHOR } from "@/app/components/security/account-security-anchor";
 import { MfaSettingsCard } from "@/app/components/security/mfa-settings-card";
+import { filterEmployeeFormTabsByPlan } from "@/lib/runtime/modules/employee-plan-tabs";
+import { loadEnabledFeatureKeys } from "../_lib/enabled-feature-keys";
 import { getCurrentEmployee } from "../_lib/current-employee";
 import type { TenantResolvedSettingsResponse } from "../settings/types";
 import type { EmployeeListResponse, EmployeeProfile } from "../employees/types";
@@ -142,9 +144,13 @@ export default async function MyProfilePage({
     recordId: employee.id,
     fieldSecurityRules,
   });
-  const activeForm = resolveEmployeeRuntimeForm(
-    runtime.metadata.forms,
-    resolvedSearchParams.formId ?? "",
+  // Tabs of features the plan does not include are not offered (DP-QA-015).
+  const activeForm = filterEmployeeFormTabsByPlan(
+    resolveEmployeeRuntimeForm(
+      runtime.metadata.forms,
+      resolvedSearchParams.formId ?? "",
+    ),
+    await loadEnabledFeatureKeys(),
   );
   const { EmployeeRuntimeFormWrapper } =
     await import("../employees/_components/employee-runtime-form-wrapper");
@@ -156,7 +162,9 @@ export default async function MyProfilePage({
         lookupDisplayValues={mapEmployeeLookupDisplayValues(employee)}
         lookupOptions={mapEmployeeLookupOptions({
           employee,
-          managers: managers.items.filter((manager) => manager.id !== employee.id),
+          managers: managers.items.filter(
+            (manager) => manager.id !== employee.id,
+          ),
         })}
         mode={canEditSelf ? "edit" : "detail"}
         record={mapEmployeeRecordToRuntimeValues(employee)}

@@ -327,7 +327,11 @@ function RuntimeFormMetadataRenderer({
     ) ??
     tabs[0] ??
     null;
-  const visibleSections = resolveTabSections(form, activeTab, visibilityContext);
+  const visibleSections = resolveTabSections(
+    form,
+    activeTab,
+    visibilityContext,
+  );
   // A single (or absent) tab renders as a plain panel, not a tab UI — there is
   // nothing to switch between, so `ResponsiveRuntimeTabs` is not mounted and
   // the panel below must not claim `tabpanel`/`aria-labelledby` roles that
@@ -788,14 +792,17 @@ function RuntimeSection({
         (field): field is FieldMetadata =>
           field !== undefined &&
           field.dataType === "lookup" &&
-          (mode !== "detail" ||
-            !resolveLookupDisplayValue(
+          lookupNeedsHydration({
+            mode,
+            value: values[field.logicalName],
+            displayValue: resolveLookupDisplayValue(
               field,
               values[field.logicalName],
               values,
               lookupDisplayValues,
               lookupOptions,
-            )) &&
+            ),
+          }) &&
           !lookupOptions[field.logicalName]?.length &&
           !hydratedLookupFields.has(field.logicalName),
       );
@@ -1279,7 +1286,11 @@ function useLookupFieldSearch({
     !isSmallReferenceLookupEntity(targetEntity);
 
   if (!searchable || !getLookupOptions || !runtime) {
-    return { options: baseOptions, onSearch: undefined, resultsTruncated: false };
+    return {
+      options: baseOptions,
+      onSearch: undefined,
+      resultsTruncated: false,
+    };
   }
   // Narrowed to non-optional `const`s so the closure below keeps the
   // narrowing TypeScript already proved above — a captured parameter is not
@@ -1540,6 +1551,28 @@ function EditableField({
       </div>
     </div>
   );
+}
+
+/**
+ * Whether a lookup field needs its option list fetched.
+ *
+ * Editing always does. A read-only (detail) view needs the list only to turn a
+ * stored id into a name, so an EMPTY field has nothing to name. Fetching anyway
+ * sent every employee's My Profile to admin-scoped reference endpoints for
+ * fields like Team and Location that they hold no value for, and each refusal
+ * was logged as a hydration failure (DP-QA-034).
+ */
+export function lookupNeedsHydration(input: {
+  readonly mode: string;
+  readonly value: unknown;
+  readonly displayValue: string | undefined | null;
+}): boolean {
+  if (input.mode !== "detail") return true;
+  const hasValue =
+    input.value !== undefined &&
+    input.value !== null &&
+    String(input.value).trim() !== "";
+  return hasValue && !input.displayValue;
 }
 
 function emptyLookupOptionsMessage(label: string) {
