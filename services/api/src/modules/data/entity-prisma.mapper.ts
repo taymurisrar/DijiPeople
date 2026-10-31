@@ -211,13 +211,6 @@ function toPrismaField(
   return fieldMetadata.prismaField ?? publicField;
 }
 
-function combineWhere(
-  first: Record<string, unknown>,
-  second: Record<string, unknown>,
-) {
-  return combineAnd([first, second]);
-}
-
 function combineAnd(items: Array<Record<string, unknown>>) {
   const nonEmpty = items.filter((item) => Object.keys(item).length > 0);
 

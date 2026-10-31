@@ -42,7 +42,9 @@ function build(passwordChangedAt: Date | null) {
       cb(tx),
     ),
   };
-  const jwt = { verify: jest.fn((t: string) => JSON.parse(t)) };
+  const jwt = {
+    verify: jest.fn((t: string) => JSON.parse(t) as Record<string, unknown>),
+  };
   const policy = {
     assertPasswordMeetsPolicy: jest.fn(),
     assertPasswordNotReused: jest.fn(),
@@ -69,7 +71,7 @@ function build(passwordChangedAt: Date | null) {
         t: string,
         p: string,
       ) => Promise<unknown>
-    ).call(service, token(claims), password);
+    ).call(service, token(claims), password) as Promise<unknown>;
 
   return { reset, userApi, policy, getCurrent: () => current };
 }
