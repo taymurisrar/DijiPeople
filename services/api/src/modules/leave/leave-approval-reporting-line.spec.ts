@@ -64,6 +64,7 @@ describe('leave decisions outside the assigned approver (DP-QA-018)', () => {
       findByUserIdAndTenant: jest.fn(async (_t: string, userId: string) => ({
         id: `emp-of-${userId}`,
       })),
+      findByIdAndTenant: jest.fn().mockResolvedValue(null),
       findDirectReports: jest.fn(async (_t: string, managerId: string) =>
         (directReports[managerId] ?? []).map((id) => ({ id })),
       ),
@@ -177,6 +178,7 @@ describe('approved leave cancellation (DP-QA-019)', () => {
       endDate: startDate,
       totalDays: 2,
       leaveTypeId: 'type-1',
+      leaveType: { consumesBalance: true, isPaid: true },
       reason: 'trip',
       employee: { id: REQUESTER_EMP, userId: ownerUserId },
       approvalSteps: [],
@@ -207,6 +209,7 @@ describe('approved leave cancellation (DP-QA-019)', () => {
       findByUserIdAndTenant: jest.fn(async (_t: string, userId: string) => ({
         id: userId === 'owner-user' ? REQUESTER_EMP : `emp-of-${userId}`,
       })),
+      findByIdAndTenant: jest.fn().mockResolvedValue(null),
       findDirectReports: jest.fn().mockResolvedValue([]),
     };
     const service = new LeaveService(

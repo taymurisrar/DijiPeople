@@ -577,7 +577,11 @@ export class LeaveService {
       );
 
       if (created.status === LeaveRequestStatus.APPROVED) {
-        await this.recordApprovedLeaveConsumption(created, tx);
+        await this.recordApprovedLeaveConsumption(
+          created,
+          tx,
+          Boolean(leavePolicyRule?.negativeBalanceAllowed),
+        );
       }
 
       return created;
@@ -1793,6 +1797,13 @@ export class LeaveService {
       );
     }
 
+    // Resolved outside the transaction: it reads policy tables and the
+    // transaction should hold the balance row for as short a time as it can.
+    const negativeBalanceAllowed =
+      action === 'approve'
+        ? await this.isNegativeBalanceAllowed(leaveRequest)
+        : false;
+
     await this.prisma.$transaction(async (tx) => {
       await this.leaveRepository.updateLeaveApprovalStep(
         currentUser.tenantId,
@@ -1866,6 +1877,7 @@ export class LeaveService {
           await this.recordApprovedLeaveConsumption(
             { ...leaveRequest, status: LeaveRequestStatus.APPROVED },
             tx,
+            negativeBalanceAllowed,
           );
         }
       }
@@ -2100,7 +2112,7 @@ export class LeaveService {
       },
     });
 
-    if (removed.count === 0) {
+    if (removed.count === 0 || !leaveRequest.leaveType.consumesBalance) {
       return;
     }
 
@@ -2118,9 +2130,34 @@ export class LeaveService {
     });
   }
 
+  /** Whether the policy rule that applies to this request lets the balance go negative. */
+  private async isNegativeBalanceAllowed(
+    leaveRequest: LeaveRequestWithRelations,
+  ): Promise<boolean> {
+    const employee = await this.employeesRepository.findByIdAndTenant(
+      leaveRequest.tenantId,
+      leaveRequest.employeeId,
+    );
+    if (!employee) return false;
+
+    const policy = await this.resolveApplicableLeavePolicy(
+      leaveRequest.tenantId,
+      employee as never,
+      leaveRequest.startDate,
+    );
+    const rule = await this.resolveLeavePolicyRuleForRequest(
+      leaveRequest.tenantId,
+      policy?.id ?? null,
+      leaveRequest.leaveTypeId,
+    );
+
+    return Boolean(rule?.negativeBalanceAllowed);
+  }
+
   private async recordApprovedLeaveConsumption(
     leaveRequest: LeaveRequestWithRelations,
     db: Prisma.TransactionClient,
+    negativeBalanceAllowed: boolean,
   ) {
     if (leaveRequest.status !== LeaveRequestStatus.APPROVED) {
       return;
@@ -2149,18 +2186,59 @@ export class LeaveService {
       },
     });
 
-    await db.leaveBalance.upsert({
+    // A type that does not consume balance leaves the balance row alone.
+    if (!leaveRequest.leaveType.consumesBalance) {
+      return;
+    }
+
+    const balanceKey = {
+      tenantId: leaveRequest.tenantId,
+      employeeId: leaveRequest.employeeId,
+      leaveTypeId: leaveRequest.leaveTypeId,
+    };
+
+    /*
+     * DP-QA-029. Deduct as ONE conditional write, not read-then-increment.
+     *
+     * Pending requests do not reserve balance, so three one-day requests against
+     * a two-day entitlement are all accepted and all become approvable. The
+     * check therefore has to happen at approval, atomically with the deduction:
+     * the update only matches while `totalRemaining >= days`, Postgres
+     * serialises concurrent approvals on the row, and the later one sees the
+     * smaller remainder and matches nothing. The throw rolls the whole decision
+     * back, so the step stays pending and nothing is half-applied.
+     */
+    const deducted = await db.leaveBalance.updateMany({
       where: {
-        tenantId_employeeId_leaveTypeId: {
-          tenantId: leaveRequest.tenantId,
-          employeeId: leaveRequest.employeeId,
-          leaveTypeId: leaveRequest.leaveTypeId,
-        },
+        ...balanceKey,
+        ...(negativeBalanceAllowed
+          ? {}
+          : { totalRemaining: { gte: leaveRequest.totalDays } }),
       },
+      data: {
+        totalUsed: { increment: leaveRequest.totalDays },
+        totalRemaining: { decrement: leaveRequest.totalDays },
+        lastUpdatedAt: new Date(),
+      },
+    });
+
+    if (deducted.count === 1) {
+      return;
+    }
+
+    if (!negativeBalanceAllowed) {
+      throw new ConflictException({
+        code: 'LEAVE_REQUEST_FAILED',
+        message:
+          'There is not enough leave balance to approve this request. Reject it, or adjust the employee entitlement first.',
+      });
+    }
+
+    // Overdraft is allowed and there is no balance row yet: create it overdrawn.
+    await db.leaveBalance.upsert({
+      where: { tenantId_employeeId_leaveTypeId: balanceKey },
       create: {
-        tenantId: leaveRequest.tenantId,
-        employeeId: leaveRequest.employeeId,
-        leaveTypeId: leaveRequest.leaveTypeId,
+        ...balanceKey,
         totalAllocated: new Prisma.Decimal(0),
         totalUsed: leaveRequest.totalDays,
         totalRemaining: new Prisma.Decimal(0).minus(leaveRequest.totalDays),

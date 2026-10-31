@@ -79,7 +79,10 @@ describe('BUG-2016 — a terminal leave transition resolves its approval notific
     emit: jest.Mock;
     resolveActionRequired: jest.Mock;
   };
-  let employeesRepository: { findByUserIdAndTenant: jest.Mock };
+  let employeesRepository: {
+    findByUserIdAndTenant: jest.Mock;
+    findByIdAndTenant: jest.Mock;
+  };
   let service: LeaveService;
 
   beforeEach(() => {
@@ -92,7 +95,12 @@ describe('BUG-2016 — a terminal leave transition resolves its approval notific
       emit: jest.fn().mockResolvedValue({ created: 0, items: [] }),
       resolveActionRequired: jest.fn().mockResolvedValue({ resolved: 1 }),
     };
-    employeesRepository = { findByUserIdAndTenant: jest.fn() };
+    employeesRepository = {
+      findByUserIdAndTenant: jest.fn(),
+      // Resolved before the decision transaction to learn whether the policy
+      // allows a negative balance (DP-QA-029); null means "not allowed".
+      findByIdAndTenant: jest.fn().mockResolvedValue(null),
+    };
 
     const prisma = {
       $transaction: jest.fn(),

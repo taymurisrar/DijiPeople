@@ -155,10 +155,12 @@ describe('invitation activation token lifecycle (DP-QA-027)', () => {
     const { service, row, userUpdates } = build();
     const original = row.status;
     // Revoke between the advisory read and the claim (the bcrypt window).
-    jest.spyOn(require('bcryptjs'), 'hash').mockImplementationOnce(async () => {
+    // The service's `import * as bcrypt` reads through to the real module object.
+    const bcrypt = jest.requireActual<typeof import('bcryptjs')>('bcryptjs');
+    jest.spyOn(bcrypt, 'hash').mockImplementationOnce((() => {
       row.status = UserInvitationStatus.REVOKED;
-      return 'hash';
-    });
+      return Promise.resolve('hash');
+    }) as never);
     await expect(
       service.activateAccount('tok', 'Str0ng!Passw0rd'),
     ).rejects.toBeInstanceOf(UnauthorizedException);
