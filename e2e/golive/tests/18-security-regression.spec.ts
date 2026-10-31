@@ -170,7 +170,8 @@ test('[DPQA-SEC-009] tenant isolation of tokens: an invitation/reset token from 
 
 test.describe('password reset through the UI', () => {
   test.use({ storageState: { cookies: [], origins: [] } });
-  test('[DPQA-SEC-010] reset page: click "Reset password" sets the new password and lands on login; the same link then refuses a second reset in the UI and the API', async ({ page, request }) => {
+  test('[DPQA-SEC-010] reset page: click "Reset password" sets the new password and lands on login; the same link then refuses a second reset in the UI and the API', async ({ page, request, diag }) => {
+    diag.allow(/401|Failed to load resource/); // the refused replay is a 401 by design; the assertion below is what decides pass/fail
     const d = await disposableUser(request, 'sec10');
     try {
       await mail.clear();
@@ -191,7 +192,7 @@ test.describe('password reset through the UI', () => {
       await page.getByRole('textbox', { name: 'New password' }).fill(evil);
       await page.getByRole('textbox', { name: 'Confirm password' }).fill(evil);
       await page.getByRole('button', { name: 'Reset password' }).click();
-      await page.waitForTimeout(3000);
+      await expect(page.getByText(/invalid or expired/i), 'the UI says the link is invalid or expired').toBeVisible({ timeout: 15_000 });
       await expect(page, 'a consumed link must not complete a second reset').not.toHaveURL(/password-reset-success/);
       expect((await login(request, d.email, evil)).status(), 'the attacker password never works').toBeGreaterThanOrEqual(400);
       expect((await login(request, d.email, fresh)).status(), 'the legitimate password still works').toBeLessThan(300);
