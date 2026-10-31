@@ -4,42 +4,7 @@
 import { execSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 
-const MAP = {
-  'DP-QA-001': ['ENT-1001', 'ENT-1002', 'ENT-1003', 'ENT-1005'],
-  'DP-QA-002': ['RBAC-1-EMPLOYEE', 'RBAC-1-MANAGER', 'RBAC-1-HR', 'RBAC-1-PAYROLL'],
-  'DP-QA-003': ['ENT-1004'],
-  'DP-QA-004': ['SMK-004', 'CMD-022', 'GRW-001', 'GRW-002', 'GRW-003', 'GRW-004', 'GRW-010', 'GRW-011'],
-  'DP-QA-005': ['ENT-001', 'ENT-002', 'ENT-003', 'ENT-004', 'ENT-005', 'GRW-001', 'GRW-004'],
-  'DP-QA-006': { manual: 'empty-src console warning on /my-profile: asserted by the diag fixture (console errors fail every UI test); needs an interactive MCP pass for the DevTools trace' },
-  'DP-QA-007': ['AUTH-030', 'SESS-010'],
-  'DP-QA-008': ['ISO-004'],
-  'DP-QA-009': ['RBAC-2-PRICE'],
-  'DP-QA-010': ['ENT-060', 'ENT-061', 'ENT-062', 'ENT-063', 'ENT-064', 'ENT-065'],
-  'DP-QA-011': ['LV-001', 'LV-008'],
-  'DP-QA-012': ['SET-003'],
-  'DP-QA-013': ['A11Y-001', 'A11Y-003', 'A11Y-006', 'A11Y-008', 'A11Y-009'],
-  'DP-QA-014': ['EMP-008'],
-  'DP-QA-015': ['EMP-007'],
-  'DP-QA-016': ['BRAND-002'],
-  'DP-QA-017': ['RESP-001'],
-  'DP-QA-018': ['LV-026'],
-  'DP-QA-019': ['LV-023'],
-  'DP-QA-020': ['CONC-003'],
-  'DP-QA-021': ['CMD-011'],
-  'DP-QA-022': ['ATT-009'],
-  'DP-QA-023': ['SMK-011', 'SMK-015'],
-  'DP-QA-024': ['PERF-003'],
-  'DP-QA-025': ['PERF-001', 'PERF-002'],
-  'DP-QA-026': ['BRAND-005'],
-  'DP-QA-027': ['INV-102', 'INV-105', 'SEC-003', 'SEC-004'],
-  'DP-QA-028': ['INV-103'],
-  'DP-QA-029': ['LV-031'],
-  'DP-QA-030': ['EMP-010', 'SEC-005', 'SEC-006', 'SEC-007'],
-  'DP-QA-031': ['MAIL-002', 'SEC-001', 'SEC-002', 'SEC-008'],
-  'DP-QA-032': ['INV-104', 'INV-106'],
-  'DP-QA-033': ['NAV-001'],
-  'DP-QA-034': ['TRC-034'],
-};
+import { MAP } from './traceability-map.mjs';
 
 const raw = execSync('npx playwright test -c playwright.golive.config.ts --list --reporter=json', { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] });
 const j = JSON.parse(raw);

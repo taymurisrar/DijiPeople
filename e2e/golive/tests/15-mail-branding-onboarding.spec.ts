@@ -60,7 +60,7 @@ test('[DPQA-INV-102] an expired invitation token is refused (token aged in the Q
   expect(e.status).toBeLessThan(300);
   try {
     const token = mail.token(await mail.waitFor(email));
-    const aged = await sql(`update "UserInvitation" set "expiresAt" = now() - interval '1 hour' where "userId" in (select id from "User" where email = $1) returning id`, [email]);
+    const aged = await sql(`update "UserInvitation" set "expiresAt" = (now() at time zone 'utc') - interval '1 hour' where "userId" in (select id from "User" where email = $1) returning id`, [email]);
     expect(aged.length, 'fixture aged the invitation row').toBeGreaterThan(0);
     const act = await request.post(`${env.QA_API_URL}/api/auth/activate-account`, { headers: hdr, data: { token, password: `Exp!${run}Zz9` } });
     expect(act.status(), 'expired token').toBeGreaterThanOrEqual(400);
@@ -177,9 +177,9 @@ test('[DPQA-MAIL-002] reset link: new password works, old stops, the previous pa
     const login = (pw: string) => request.post(`${env.QA_API_URL}/api/auth/login`, { headers: hdr, data: { email: d.email, password: pw, tenantSlug: TENANTS.A.slug } });
     expect((await login(fresh)).status()).toBeLessThan(300);
     expect((await login(d.password)).status(), 'old password').toBe(401);
-    // observed control: a previously used password cannot be set again (password history) - answers 400
+    // RUN-005 contract: the consumed token is refused with 401 before password history is looked at (the 400 history check applies to a LIVE token; unreachable here without a second reset e-mail, which the 60 s cool-down suppresses)
     const reuse = await request.post(`${env.QA_API_URL}/api/auth/reset-password`, { headers: hdr, data: { token, password: d.password } });
-    expect(reuse.status(), 'password history: reuse is refused').toBe(400);
+    expect(reuse.status(), 'a consumed token cannot be used, whatever password it carries').toBe(401);
     const again = await request.post(`${env.QA_API_URL}/api/auth/reset-password`, { headers: hdr, data: { token, password: `Again!${run}Zz9b` } });
     expect(again.status(), 'the same reset link must not work a second time').toBeGreaterThanOrEqual(400);
   } finally {

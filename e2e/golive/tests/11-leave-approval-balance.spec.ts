@@ -69,14 +69,17 @@ test('[DPQA-LV-022] approving twice is refused (state transition guard)', async 
   }
 });
 
-test('[DPQA-LV-023] an APPROVED request cannot be cancelled, even by an admin: the refusal is explicit (DP-QA-019: no revoke path)', async ({ request }) => {
+test('[DPQA-LV-023] an APPROVED future request can be cancelled through the approved workflow: it ends CANCELLED, a second cancel is refused, and it stays cancelled (DP-QA-019 contract change: cancellation allowed)', async ({ request }) => {
   const { emp, owner, r } = await submit(request, 40);
   const id = r.body.id;
-  await api(request, owner, 'POST', `/leave-requests/${id}/approve`, {});
-  const c = await api(request, owner, 'POST', `/leave-requests/${id}/cancel`, { reason: 'QA' });
-  expect(c.status).toBe(409);
-  expect(JSON.stringify(c.body)).toMatch(/only pending/i);
-  expect(String((await api(request, emp, 'GET', `/leave-requests/${id}`)).body.status)).toMatch(/APPROVED/);
+  expect((await api(request, owner, 'POST', `/leave-requests/${id}/approve`, {})).status).toBeLessThan(300);
+  const c = await api(request, owner, 'POST', `/leave-requests/${id}/cancel`, { reason: 'QA approved-cancel workflow' });
+  expect(c.status, JSON.stringify(c.body).slice(0, 200)).toBeLessThan(300);
+  expect(String((await api(request, emp, 'GET', `/leave-requests/${id}`)).body.status)).toMatch(/CANCEL/);
+  const again = await api(request, owner, 'POST', `/leave-requests/${id}/cancel`, { reason: 'QA second cancel' });
+  expect(again.status, 'cancelling twice is refused, never a 5xx').toBeGreaterThanOrEqual(400);
+  expect(again.status).toBeLessThan(500);
+  expect(String((await api(request, emp, 'GET', `/leave-requests/${id}`)).body.status)).toMatch(/CANCEL/);
 });
 
 test('[DPQA-LV-024] a balance-consuming type with no entitlement refuses the request with a balance message', async ({ request }) => {

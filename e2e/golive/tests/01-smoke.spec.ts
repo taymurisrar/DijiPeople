@@ -11,7 +11,7 @@ const STARTER_ROUTES: Array<[id: string, path: string, heading: RegExp]> = [
   ['001', '/', /overview/i],
   ['002', '/employees', /employees/i],
   ['003', '/employees/new', /new employee/i],
-  ['004', '/employees/import', /import/i], // KNOWN-FAIL DP-QA-004
+  ['004', '/employees/import', /import|data management/i], // Growth-gated: lands on the plan-gate screen (see below)
   ['005', '/leaves', /leave/i],
   ['006', '/attendance', /attendance/i],
   ['007', '/approvals', /approvals/i],
@@ -33,7 +33,13 @@ for (const [id, path, heading] of STARTER_ROUTES) {
     expect(response?.status(), 'document status').toBeLessThan(400);
     await expect(page.getByRole('heading', { name: heading }).first()).toBeVisible();
     await expect(page.getByText(/we hit an unexpected problem/i)).toHaveCount(0);
-    await expect(page.getByText(/not included in your plan/i)).toHaveCount(0);
+    if (path === '/employees/import') {
+      // RUN-005 contract: bulk import is a Growth feature. A Starter tenant is sent to the Data Management plan gate - clean render, no crash, no 5xx.
+      await expect(page).toHaveURL(/data-management/);
+      await expect(page.getByText(/not part of your current subscription/i)).toBeVisible();
+    } else {
+      await expect(page.getByText(/not included in your plan/i)).toHaveCount(0);
+    }
   });
 }
 

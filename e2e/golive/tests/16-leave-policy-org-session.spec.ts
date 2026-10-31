@@ -1,5 +1,5 @@
 import { test, expect, env } from '../fixtures/test';
-import { api, apiToken, TENANTS } from '../fixtures/tenants';
+import { api, apiToken, credentials, TENANTS } from '../fixtures/tenants';
 import { sql } from '../fixtures/mail-db';
 import type { APIRequestContext } from '@playwright/test';
 
@@ -67,7 +67,8 @@ test.describe('leave entitlement and balances', () => {
     const submit = (n: number) => api(request, emp, 'POST', '/leave-requests', { leaveTypeId: typeId, startDate: day(base + n), endDate: day(base + n), reason: 'QA balance' });
     const [r1, r2, r3] = [await submit(0), await submit(1), await submit(2)];
     expect([r1.status, r2.status, r3.status], 'pending requests are accepted (balance is not reserved on submit)').toEqual([201, 201, 201]);
-    const bal = async () => (await sql<{ totalUsed: string; totalRemaining: string }>(`select "totalUsed", "totalRemaining" from "LeaveBalance" where "leaveTypeId" = $1 limit 1`, [typeId]))[0];
+    // RUN-005 fixture fix: the policy is tenant-wide, so one LeaveBalance row exists PER EMPLOYEE - read the row of the employee who submits (`limit 1` picked an arbitrary employee).
+    const bal = async () => (await sql<{ totalUsed: string; totalRemaining: string }>(`select lb."totalUsed", lb."totalRemaining" from "LeaveBalance" lb join "Employee" e on e.id = lb."employeeId" join "User" u on u.id = e."userId" where lb."leaveTypeId" = $1 and u.email = $2`, [typeId, credentials('A', 'EMPLOYEE').email]))[0];
     expect(Number((await bal()).totalRemaining)).toBe(2);
     const waitUsed = async (n: number) => { for (let i = 0; i < 20; i++) { if (Number((await bal()).totalUsed) >= n) return; await new Promise((r) => setTimeout(r, 500)); } };
     // the balance row is written shortly AFTER an approval returns (observed lag ~0.7 s), so wait for it before the next decision
