@@ -22,7 +22,8 @@ test('[DPQA-MTX-001] Starter: never has a feature sold above Starter (recruitmen
   for (const k of NEVER_ON_STARTER) expect(f.enabled.has(k), `Starter must not have ${k}`).toBe(false);
 });
 
-for (const [key, plan, agent] of [['G', 'growth', false], ['E', 'enterprise', true], ['C', 'custom', true]] as const) {
+// C = Custom: there is no `custom` plan key; Custom is a CUSTOM-source TenantFeature override on a plan (here Growth + explicit desktop-agent + email-white-label). Test-side correction, RUN-006.
+for (const [key, plan, agent] of [['G', 'growth', false], ['E', 'enterprise', true], ['C', 'growth', true]] as const) {
   test.describe(`${plan} tenant`, () => {
     test.skip(!planTenantProvisioned(key), `NOT RUN: ${plan} tenant not provisioned`);
     test(`[DPQA-MTX-010-${key}] ${plan}: resolved plan key, all Starter features enabled, desktop agent ${agent ? 'enabled' : 'disabled'}`, async ({ request }, info) => {
