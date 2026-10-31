@@ -11,6 +11,7 @@ Entry point for any QA agent. Read this, then [[QA-RUNBOOK]]; a resume prompt is
 | [[REMEDIATION-BACKLOG]] | ordered work for a separate development agent |
 | [[PRODUCTION-RELEASE-GATES]] | checklist the **owner** runs on production (QA never touches production) |
 | [[DECISIONS-AND-OBSERVATIONS]] | decisions, discrepancies, open questions |
+| [[RUN-005-PREPARATION]] | MCP blocker, remediation reconciliation, RUN-005 protocol (awaiting final SHA) |
 | `runs/` → [[INDEX]] | immutable run reports (RUN-001, RUN-002) |
 
 Session SESSION-0129 · branch `agent/starter-golive-qa` · **not merged, nothing deployed, production untouched**.
@@ -33,4 +34,5 @@ see [[TEST-MATRIX]] "Explicitly Blocked or Not Run". The remaining gaps are envi
 **Done:** RUN-004 full execution on candidate 22a21a14 (Chromium, Firefox, WebKit/TLS, mobile, tablet), 3 tenants, local SMTP sink, ENFORCE floor test, 9 new defect records (026-034), RUN-003 reconciliation ([[KNOWN-ISSUES]]).
 **Pending:** (1) user runs `/mcp` to reconnect Playwright MCP, then an interactive visual pass; (2) development agent fixes DP-QA-027/030/031 (P1) and reopened 004/015/016; (3) valid-file bulk import, leave delegation, manager/HR chain, idle/absolute session timeouts, accrual schedule remain Not Run/Blocked (see [[TEST-MATRIX]]); (4) RUN-005 against the next candidate; (5) owner executes [[PRODUCTION-RELEASE-GATES]].
 **Environment state:** candidate worktree `dijipeople-starter-verify`; production-mode web :3014 (+ TLS :3444), API :4097, mail sink :1025/:8025, DB `dijipeople_starterv4_test`, tenants `qa-starter`, `qa-prov-a`, `qa-prov-b`; API restart via `e2e/golive/tools/restart-api.ps1`.
+**RUN-005:** prepared, not executed - see [[RUN-005-PREPARATION]]; waiting for a finished development SHA addressing DP-QA-027/030/031.
 **Next exact action:** `cd e2e; npx playwright test -c playwright.golive.config.ts --list` then run per project; merge re-runs with `node golive/tools/merge-run.cjs`, report with `make-run-report.mjs`.
