@@ -21,3 +21,4 @@ Verify with the role→privilege matrix before fixing.
 | Run | Result |
 |---|---|
 | RUN-002 | FAIL (LV-001, LV-008) |
+| RUN-005 (f47e504c) | **RESOLVED** - LV-001, LV-008 pass; default leave types exist on freshly provisioned tenants A/B/G; employee form uses available-types |

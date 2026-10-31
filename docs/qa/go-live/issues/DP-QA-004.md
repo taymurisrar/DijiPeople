@@ -25,3 +25,4 @@ log: `ApiRequestError: Validation failed (uuid is expected)` raised from `Employ
 | Run | Result |
 |---|---|
 | RUN-001 | FAIL |
+| RUN-005 (f47e504c) | **RESOLVED** - Import is Growth-gated by contract: SMK-004 passes on Chromium/Firefox/mobile/tablet (clean redirect to the Data Management plan gate); CMD-022 asserts Import absent from Data Transfer; GRW-001..004 backend 403 on Starter; GRW-010..013 entitled access on the Growth tenant (`RUN005-MCP-employees-data-transfer-menu-no-import.png`). WebKit SMK-004 fails for the separate DP-QA-023 reason |

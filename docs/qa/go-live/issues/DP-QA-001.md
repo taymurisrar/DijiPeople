@@ -38,3 +38,4 @@ Direct-URL / bookmarked links to a module the customer does not own (e.g. after 
 | Run | Result |
 |---|---|
 | RUN-001 | FAIL (reproduced 4/4 routes) |
+| RUN-005 (f47e504c) | **RESOLVED** - ENT-1001/1002/1003/1005 pass (Chromium); MCP: /employees/import renders the gate, console clean (`RUN005-MCP-employees-import-plan-gate.png`) |

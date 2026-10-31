@@ -21,3 +21,9 @@ AGENTS.md requires object-level checks (`OWN/TEAM/BUSINESS_UNIT` scope) in addit
 | RUN-003 | FAIL |
 
 Evidence: API transcript — approve call 201, final status APPROVED, approverRoleId = manager role (probe e2e/golive/tools/batch-probe.cjs); no screen applies.
+
+## Retest history (RUN-005)
+
+| Run | Result |
+|---|---|
+| RUN-005 (f47e504c) | **RESOLVED** - LV-026 pass; LV-029: refused outside the line, 2xx once the employee reports to the manager, persisted APPROVED |

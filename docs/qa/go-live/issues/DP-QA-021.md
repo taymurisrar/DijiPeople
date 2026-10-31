@@ -14,3 +14,9 @@ An employee who navigates to `/employees/new` gets the full form including **Sav
 | RUN-003 | FAIL |
 
 Evidence: ![employee sees the form](../evidence/DP-QA-021-employee-sees-new-employee-form.png)
+
+## Retest history (RUN-005)
+
+| Run | Result |
+|---|---|
+| RUN-005 (f47e504c) | **RESOLVED** - CMD-011 pass |

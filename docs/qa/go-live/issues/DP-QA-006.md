@@ -14,3 +14,4 @@ Cosmetic but fires on every visit and an empty `src` can trigger a duplicate pag
 | Run | Result |
 |---|---|
 | RUN-001 | OBSERVED |
+| RUN-005 (f47e504c) | **OPEN** - Not reproduced: zero console warnings/errors on employee My Profile via MCP (level warning) and in every UI test (diag fixture fails on console errors). Cannot be Resolved without a located cause; remains P3 Not Reproduced |

@@ -58,3 +58,13 @@ See [[KNOWN-ISSUES]] and [[REMEDIATION-BACKLOG]]. Gate rule: **no open P0/P1**.
 | F2 | Rate-limit headroom for real usage: an Employee edit form (~20 lookups) plus dashboard polling stays well under 600 reads/min per user | no 429 in normal use; DP-QA-024 accepted or fixed | ☐ |
 | F3 | Production runbook for provisioning covers the executed subscription agreement, wildcard DNS and owner activation before ACTIVE (OBS-009) | documented | ☐ |
 | F4 | Retest evidence: RUN-004 shows DP-QA-002, -010, -011, -012 Resolved on the release candidate | 0 open P0/P1 | ☐ |
+
+
+## RUN-005 additions (owner executes; QA never touches production)
+- **A1-A5 (DP-QA-005):** read-only confirmation that production runs `ENTITLEMENT_ENFORCEMENT_MODE=ENFORCE` (Render dashboard; render.yaml is not synced), grandfather dry-run reviewed then applied, post-deploy checks that Starter tenants get 403 on data-management, attendance integrations, desktop agent, audit logs.
+- **C1** existing tenants: run `seed:config` (role grants, default leave types) and note stored brand colours keep the old accent (contrast fix applies to the new default only).
+- **C2** DP-QA-026: owner decision on e-mail branding recorded before launch.
+- **C3** DP-QA-007: measure POST /auth/logout on production-like infrastructure (local: 7-15 ms).
+- **C4** real mailbox check: invitation and reset e-mails reach a real inbox (SPF/DKIM/DMARC), link host is the tenant host.
+- **C5** DP-QA-023: accept or fix the WebKit intermittent fetch errors on RSC prefetch (P3).
+- **C6** Growth: execute one populated valid-file import in a non-production Growth tenant.

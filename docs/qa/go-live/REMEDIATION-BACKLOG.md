@@ -29,3 +29,10 @@ Part of [[README]]. QA does not fix application defects. Ordered by release impa
 - OBS-008: a freshly provisioned tenant has **no leave types, shifts, work sites or policies** — employees cannot request leave or be recorded for attendance until an admin configures them (QA had to create fixtures).
 - OBS-003: Claims/Approvals/Reports have no feature key — included in every plan by omission?
 - OBS-009: provisioning needed manual gates in QA (executed subscription agreement, wildcard-DNS flag, tenant status transitions) — confirm the production runbook covers them.
+
+
+## RUN-005 backlog
+1. DP-QA-023 (P3) WebKit: unhandled rejection from aborted RSC prefetch fetches (`pageerror ...?_rsc=... due to access control checks`) on route changes/redirects; Firefox clean.
+2. DP-QA-026 (P3, decision) e-mail branding: implement or document.
+3. DP-QA-006 (P3) not reproduced; needs a trace if it recurs.
+4. Product decisions carried from the developer: HR `attendance.override` / `customers.delete`; compliance grant for existing Growth tenants.

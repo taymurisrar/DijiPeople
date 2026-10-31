@@ -25,3 +25,4 @@ Expected rows re-ordered. Actual: URL becomes `/employees?viewId=…&orderBy=ful
 | Run | Result |
 |---|---|
 | RUN-002 | FAIL |
+| RUN-005 (f47e504c) | **RESOLVED** - EMP-008 pass |

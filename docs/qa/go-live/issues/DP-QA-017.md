@@ -14,3 +14,4 @@ The dashboard's content is 89 px wider than the viewport, producing a horizontal
 | Run | Result |
 |---|---|
 | RUN-002 | FAIL (mobile) |
+| RUN-005 (f47e504c) | **RESOLVED** - RESP-001 pass on Chromium, mobile (Pixel 7) and tablet |

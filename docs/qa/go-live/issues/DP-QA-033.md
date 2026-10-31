@@ -14,3 +14,4 @@ Fix: point the link at the employee Documents tab, or remove it.
 | Run | Result |
 |---|---|
 | RUN-004 | FAIL (console error in AUTH-030, INV-106) |
+| RUN-005 (f47e504c) | **RESOLVED** - NAV-001 pass |

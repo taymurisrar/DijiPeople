@@ -26,3 +26,4 @@ Check the other settings catalog keys for the same (date format, language, curre
 | Run | Result |
 |---|---|
 | RUN-002 | FAIL |
+| RUN-005 (f47e504c) | **RESOLVED** - SET-003 pass (400 on invalid, usable value stored) |

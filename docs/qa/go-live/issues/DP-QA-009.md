@@ -21,3 +21,4 @@ billing block.
 | Run | Result |
 |---|---|
 | RUN-002 | FAIL |
+| RUN-005 (f47e504c) | **RESOLVED** - RBAC-2-PRICE: plan visible, price/cycle absent for manager; owner still sees them |

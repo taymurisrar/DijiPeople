@@ -17,3 +17,4 @@ Both routes perform a **client-side redirect** (`/settings/access` → `/setting
 | Run | Result |
 |---|---|
 | RUN-003 | FAIL (Firefox, WebKit) |
+| RUN-005 (f47e504c) | **REOPENED** - Firefox RESOLVED (SMK-004/011/015 12/12 over 4 repeats). WebKit REOPENED: SMK-004/011/015 fail intermittently (7 of 12 in a 4x repeat; 3 of 16 routes in the full run) with `pageerror: ...?_rsc=... due to access control checks` on RSC prefetches (`RUN005-DP-QA-023-webkit-rsc-prefetch-pageerrors.png`) |

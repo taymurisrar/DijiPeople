@@ -15,3 +15,4 @@ Login-page branding works (`welcomeTitle` and brand name applied at once); the l
 | Run | Result |
 |---|---|
 | RUN-004 | OBSERVED |
+| RUN-005 (f47e504c) | **OPEN** - BRAND-005 passes what IS delivered (tenant company name + own host). The platform marks branding.emailSenderName/emailFooterText/showLogoInEmails NOT_IMPLEMENTED and the Branding screen does not offer them; no plan text promises branded e-mails. Not assumed optional: owner must decide implement vs. state platform-branded e-mail (gate) |

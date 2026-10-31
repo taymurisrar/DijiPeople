@@ -25,3 +25,4 @@ shared-computer risk. Re-measure against a production-like build (`next start`, 
 | Run | Result |
 |---|---|
 | RUN-001 | OBSERVED |
+| RUN-005 (f47e504c) | **RESOLVED** - Measured POST /auth/logout on a disposable user, 6 samples: 7-15 ms (RUN-001: 600-3900 ms) on the local production build; AUTH-030 and SESS-010 pass. Production-like measurement stays a release gate (infrastructure latency differs) |

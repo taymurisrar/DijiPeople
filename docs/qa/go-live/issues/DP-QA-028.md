@@ -13,3 +13,4 @@ The admin gets a raw activation link in the API response, but a user who lost th
 | Run | Result |
 |---|---|
 | RUN-004 | FAIL |
+| RUN-005 (f47e504c) | **RESOLVED** - INV-103 pass: a new invitation e-mail reaches the local sink after resend |

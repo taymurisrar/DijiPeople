@@ -22,3 +22,4 @@ not reachable by a Starter tenant either.
 | Run | Result |
 |---|---|
 | RUN-002 | FAIL |
+| RUN-005 (f47e504c) | **RESOLVED** - EMP-007 pass; MCP My Profile shows Summary, Attendance, Leave History, Documents, Previous Employment, Employee History, Education - no Timesheets/Payslips/Project Allocations |

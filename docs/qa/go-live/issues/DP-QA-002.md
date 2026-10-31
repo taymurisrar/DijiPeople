@@ -65,3 +65,4 @@ role-based finding so far; blocks the OWN/TEAM-scope test plan until resolved or
 |---|---|
 | RUN-001 | FAIL (reproduced, 4 roles, seed-demo) |
 | RUN-002 | FAIL (reproduced, 4 roles, real-provisioned tenant) — verdict: application defect |
+| RUN-005 (f47e504c) | **RESOLVED** - RBAC-1-EMPLOYEE/MANAGER/HR/PAYROLL pass on really provisioned tenants A and B; MCP employee My Profile loads with no 403 (`RUN005-MCP-employee-my-profile-tabs.png`) |

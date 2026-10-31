@@ -13,3 +13,4 @@ There is no revoke/withdraw route among the leave endpoints (`approve`, `reject`
 | Run | Result |
 |---|---|
 | RUN-003 | OBSERVED |
+| RUN-005 (f47e504c) | **RESOLVED** - Contract changed (cancellation allowed): LV-023 asserts CANCELLED, second cancel refused, no 5xx |

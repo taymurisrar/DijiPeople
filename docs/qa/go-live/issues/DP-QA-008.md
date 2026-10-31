@@ -23,3 +23,4 @@ Tenant A's owner deleting a tenant B employee id, and deleting a random UUID, bo
 | Run | Result |
 |---|---|
 | RUN-002 | OBSERVED (isolation PASS) |
+| RUN-005 (f47e504c) | **RESOLVED** - ISO-004: foreign and random id both 404 EMPLOYEE_NOT_FOUND with normalised bodies |

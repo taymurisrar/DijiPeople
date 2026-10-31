@@ -60,3 +60,13 @@ Part of [[README]]. Facts are marked **CONFIRMED** (reproduced) or **SUSPECTED**
 - OBS-022 Tenant branding applies to the login page but not to e-mails (DP-QA-026).
 - DEC-013 MCP: owner authorised exact local origins (no wildcards) in the primary `.mcp.json` (uncommitted, user may keep or revert); live MCP needs `/mcp` reconnect. Testing continued with Playwright Test.
 - DEC-014 Test corrections justified in RUN-004: ISO-004 expects 404 (confirmed contract); RBAC-2-PRICE replaces RBAC-2-MANAGER-03; leave form uses `available-types`.
+
+## RUN-005 decisions and observations
+- DEC-015 Starter bulk import is Growth-gated (owner). Tests now assert the gate and that Import is absent from Data Transfer; Export and Export Template remain Starter features.
+- DEC-016 Approved leave may be cancelled through the approved workflow (DP-QA-019 contract change).
+- DEC-017 E-mail branding (DP-QA-026): not assumed optional. Facts: the Starter feature list includes "branding"; the code marks the three e-mail branding settings NOT_IMPLEMENTED and the Branding screen does not offer them; delivered e-mails carry the tenant company name and own host but a fixed subject, platform colour, no logo/footer. No plan text promises branded e-mails. Recommendation to the owner: either implement, or state "platform-branded e-mails" in the Starter description before go-live.
+- OBS-023 The sign-in limiter (20 per 10 min per IP+path, in memory) is the dominant source of false failures in long serial runs: ENT-004/005/030/060 and SEC-008 failed only because of it. Mitigation: restart only the QA API between projects (`run-all-browsers.ps1`), 429-aware logins.
+- OBS-024 Editing spec files while a Playwright run is in progress breaks worker restarts ("Test not found in the worker process" rows with 0 ms): never edit during a run.
+- OBS-025 `e2e/golive/` is excluded by the shared git exclude; RUN-004 suite files (mail fixture, specs 15-17, tools) had never been committed and were added with `git add -f` at the start of RUN-005.
+- OBS-026 MCP can only read storage-state files inside the primary checkout; test sessions were copied into the git-ignored `.playwright-mcp/` for use and deleted afterwards.
+- OBS-027 Another session's mail sink used 1025/8025; RUN-005 used its own ports (sink 1125/8125, API 4197, web 3114, TLS 3544) and never touched foreign processes.

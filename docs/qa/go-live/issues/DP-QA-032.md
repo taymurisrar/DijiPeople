@@ -14,3 +14,4 @@ A programmatic click at the button's coordinates hits the `<form>` element inste
 | Run | Result |
 |---|---|
 | RUN-004 | FAIL (click), PASS (Enter) |
+| RUN-005 (f47e504c) | **RESOLVED** - INV-104 (click) and INV-106 (Enter) pass |
