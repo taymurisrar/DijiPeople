@@ -49,7 +49,7 @@ test('[DPQA-A11Y-020] keyboard: Tab reaches interactive controls on the employee
 
 test('[DPQA-A11Y-021] the New employee form: every input has an accessible name', async ({ page }) => {
   await settle(page, '/employees/new');
-  const unnamed = await page.evaluate(() => [...document.querySelectorAll('input:not([type=hidden]),select,textarea')]
+  const unnamed = await page.evaluate(() => Array.from(document.querySelectorAll('input:not([type=hidden]),select,textarea'))
     .filter((e) => { const el = e as HTMLInputElement; return !el.labels?.length && !el.getAttribute('aria-label') && !el.getAttribute('aria-labelledby') && !el.title; })
     .map((e) => `${e.tagName}[name=${(e as HTMLInputElement).name}]`));
   expect(unnamed).toEqual([]);

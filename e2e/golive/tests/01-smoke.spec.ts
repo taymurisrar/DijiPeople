@@ -1,4 +1,4 @@
-import { test, expect, gotoTenant, authFile } from '../fixtures/test';
+import { test, expect, gotoTenant, authFile, env } from '../fixtures/test';
 
 /**
  * DPQA-SMK-*: every Starter-entitled route renders for a tenant admin with no
@@ -38,7 +38,7 @@ for (const [id, path, heading] of STARTER_ROUTES) {
 }
 
 test('[DPQA-SMK-020] API health is ok', async ({ request }) => {
-  const r = await request.get(`${process.env.QA_API_URL ?? 'http://localhost:4098'}/api/health`);
+  const r = await request.get(`${env.QA_API_URL}/api/health`);
   expect(r.status()).toBe(200);
   expect((await r.json()).status).toBe('ok');
 });
