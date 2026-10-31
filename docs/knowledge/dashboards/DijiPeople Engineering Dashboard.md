@@ -889,6 +889,7 @@
 - [[ADR-0025-employee-list-sorts-and-filters-by-custom-fields-through-record-id-sets|ADR-0025 — Employee list sort and filter by custom fields through record-id sets]]
 - [[ADR-0026-partner-lifecycle-commission-and-currency|ADR-0026 — Partner status is action-driven, commission is a snapshotted percentage, and currency comes from an enabled platform subset]]
 - [[ADR-0027-generic-platform-number-sequences|ADR-0027 — Human-readable platform numbers come from one configurable, transactional sequence service]]
+- [[ADR-0028-final-subscription-entitlements-import-export-agent-email-branding|ADR-0028 - Final subscription entitlements]]
 - [[decision-a-bug-record-is-its-own-backlog-item|Decision — A bug record **is** its own backlog item]]
 - [[decision-ci-verdict-gates-shared-merges|Decision — A shared-target merge requires a read CI verdict on the exact SHA]]
 - [[decision-platform-admin-is-a-separate-identity|Decision — Platform admin is a separate identity, not an elevated tenant user]]
@@ -906,7 +907,7 @@
 | Release records | 10 |
 | Module notes | 32 |
 | Architecture notes | 22 |
-| Decision notes (ADR + generated) | 31 |
+| Decision notes (ADR + generated) | 32 |
 | Implementation records | 7 |
 
 **Awaiting Architect triage: 0.** A record nobody has
