@@ -1,3 +1,4 @@
+import { sharedLookupRequest } from "../shared-lookup-request";
 import type {
   ModuleDataAdapter,
   ModuleListInput,
@@ -23,6 +24,10 @@ import {
 } from "./employee-metadata.adapter";
 
 type RuntimeRecord = Readonly<Record<string, unknown>>;
+/** Identical lookup GETs inside a short window share one call (DP-QA-025). */
+const lookupGet = (path: string) =>
+  sharedLookupRequest(path, () => requestJson(path));
+
 const INLINE_ERROR_HANDLING_HEADER = "x-dijipeople-error-handling";
 
 export const employeeModuleDataAdapter: ModuleDataAdapter<
@@ -201,7 +206,7 @@ export const employeeModuleDataAdapter: ModuleDataAdapter<
       // Deliberately not swallowed: the form renderer distinguishes "no records"
       // from "could not load", and silently returning [] here made a denied
       // permission read as an empty list telling the user to create a team.
-      return readLookupOptions(await requestJson(`/api/teams?${params}`));
+      return readLookupOptions(await lookupGet(`/api/teams?${params}`));
     }
 
     if (field.logicalName === "businessUnitId") {
@@ -210,7 +215,7 @@ export const employeeModuleDataAdapter: ModuleDataAdapter<
       const organizationId = stringValue(values.organizationId);
       if (organizationId) params.set("organizationId", organizationId);
       return readLookupOptions(
-        await requestJson(`/api/business-units${queryString(params)}`),
+        await lookupGet(`/api/business-units${queryString(params)}`),
       );
     }
 
@@ -220,12 +225,12 @@ export const employeeModuleDataAdapter: ModuleDataAdapter<
       const businessUnitId = stringValue(values.businessUnitId);
       if (businessUnitId) params.set("businessUnitId", businessUnitId);
       return readLookupOptions(
-        await requestJson(`/api/departments${queryString(params)}`),
+        await lookupGet(`/api/departments${queryString(params)}`),
       );
     }
 
     if (staticLookupPath) {
-      return readLookupOptions(await requestJson(staticLookupPath), {
+      return readLookupOptions(await lookupGet(staticLookupPath), {
         preferCodeAsId:
           field.logicalName === "countryCode" ||
           field.logicalName === "currencyCode",
@@ -237,7 +242,7 @@ export const employeeModuleDataAdapter: ModuleDataAdapter<
       const countryId = stringValue(values.countryId);
       if (countryId) params.set("countryId", countryId);
       return readLookupOptions(
-        await requestJson(`/api/lookups/states${queryString(params)}`),
+        await lookupGet(`/api/lookups/states${queryString(params)}`),
       );
     }
 
@@ -248,7 +253,7 @@ export const employeeModuleDataAdapter: ModuleDataAdapter<
       if (countryId) params.set("countryId", countryId);
       if (stateProvinceId) params.set("stateProvinceId", stateProvinceId);
       return readLookupOptions(
-        await requestJson(`/api/lookups/cities${queryString(params)}`),
+        await lookupGet(`/api/lookups/cities${queryString(params)}`),
       );
     }
 
