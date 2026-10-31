@@ -139,4 +139,15 @@ describe('plan entitlement matrix', () => {
       ),
     ).resolves.toBeUndefined();
   });
+
+  it('offers a feature only when it would not be refused (menus, module lists)', async () => {
+    const leave = TENANT_FEATURE_KEYS.LEAVE;
+    // A custom plan that withdrew Leave: hidden under ENFORCE, shown otherwise.
+    const without = plan('starter').filter((key) => key !== leave);
+    expect(await service(without).isOffered('t', [leave])).toBe(false);
+    expect(
+      await service(without, [], 'REPORT_ONLY').isOffered('t', [leave]),
+    ).toBe(true);
+    expect(await service(plan('starter')).isOffered('t', [leave])).toBe(true);
+  });
 });

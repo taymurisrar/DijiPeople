@@ -52,4 +52,16 @@ describe("sharedLookupRequest (DP-QA-025)", () => {
     await sharedLookupRequest("k", load);
     expect(load).toHaveBeenCalledTimes(2);
   });
+
+  it("stays bounded when keys keep arriving", async () => {
+    for (let i = 0; i < 1000; i += 1) {
+      await sharedLookupRequest(`bound-${i}`, async () => i, () => 0);
+    }
+    // The newest key is still shared; the oldest was evicted and reloads.
+    const load = jest.fn(async () => "fresh");
+    await sharedLookupRequest("bound-999", load, () => 0);
+    expect(load).not.toHaveBeenCalled();
+    await sharedLookupRequest("bound-0", load, () => 0);
+    expect(load).toHaveBeenCalledTimes(1);
+  });
 });

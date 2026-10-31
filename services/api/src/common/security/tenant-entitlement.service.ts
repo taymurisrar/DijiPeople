@@ -301,6 +301,20 @@ export class TenantEntitlementService implements OnApplicationBootstrap {
   }
 
   /**
+   * Whether a feature should be OFFERED to a tenant right now: true when
+   * enforcement is not ENFORCE (nothing is refused yet, so nothing is hidden),
+   * otherwise the entitlement answer. For filtering lists and menus, where
+   * throwing would be wrong; use `assertEntitled` for a request that must fail.
+   */
+  async isOffered(
+    tenantId: string,
+    featureKeys: readonly TenantFeatureKey[],
+  ): Promise<boolean> {
+    if ((await this.mode()) !== 'ENFORCE') return true;
+    return (await this.decide(tenantId, featureKeys)).allowed;
+  }
+
+  /**
    * Entitlement check for code that is NOT behind `EntitlementGuard` — the
    * `@Public()` agent login/refresh routes, which mint credentials for a tenant
    * before any guard can see one. Same semantics as the guard: OFF and
