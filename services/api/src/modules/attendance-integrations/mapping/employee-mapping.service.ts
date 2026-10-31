@@ -141,6 +141,7 @@ export class EmployeeMappingService {
       const employees = await this.prisma.employee.findMany({
         where: {
           tenantId: input.tenantId,
+          isDeleted: false,
           employeeCode: { in: codeCandidates },
           employmentStatus: EmployeeEmploymentStatus.ACTIVE,
         },
@@ -193,6 +194,7 @@ export class EmployeeMappingService {
       const byEmail = await this.prisma.employee.findMany({
         where: {
           tenantId: input.tenantId,
+          isDeleted: false,
           email: { equals: email, mode: 'insensitive' },
           employmentStatus: EmployeeEmploymentStatus.ACTIVE,
         },
@@ -225,6 +227,7 @@ export class EmployeeMappingService {
       const employees = await this.prisma.employee.findMany({
         where: {
           tenantId: input.tenantId,
+          isDeleted: false,
           employmentStatus: EmployeeEmploymentStatus.ACTIVE,
         },
         select: {

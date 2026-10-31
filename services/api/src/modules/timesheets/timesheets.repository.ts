@@ -420,6 +420,7 @@ export class TimesheetsRepository {
   ) {
     const where: Prisma.EmployeeWhereInput = {
       tenantId,
+      isDeleted: false,
       employmentStatus: EmployeeEmploymentStatus.ACTIVE,
     };
 

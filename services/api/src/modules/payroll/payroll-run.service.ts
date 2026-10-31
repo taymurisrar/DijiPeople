@@ -3059,6 +3059,8 @@ export function buildPayrollEmployeeEligibilityWhere(input: {
 }): Prisma.EmployeeWhereInput {
   return {
     tenantId: input.tenantId,
+    // A soft-deleted employee must not be paid (DP-QA-030).
+    isDeleted: false,
     isDraftProfile: false,
     hireDate: { lte: input.periodEnd },
     AND: [
