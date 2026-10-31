@@ -47,6 +47,7 @@ describe('heartbeat idempotency', () => {
       {} as never,
       {} as never,
       {} as never,
+      {} as never,
     );
   }
 

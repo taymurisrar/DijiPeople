@@ -4,7 +4,7 @@ const cmd = (key: string) => ({ key }) as never;
 const STARTER = ["employees", "leave", "attendance"];
 
 describe("commandsForPlan", () => {
-  it("drops Import from a flat list on a plan without data-management", () => {
+  it("drops Import from a flat list on a plan without data-import-export", () => {
     const out = commandsForPlan([cmd("system.import"), cmd("system.new")], STARTER);
     expect(out.map((c: { key: string }) => c.key)).toEqual(["system.new"]);
   });
@@ -18,9 +18,9 @@ describe("commandsForPlan", () => {
     expect(out.group).toHaveLength(0);
   });
 
-  it("keeps Import when the plan includes data-management", () => {
+  it("keeps Import when the plan includes data-import-export", () => {
     const list = [cmd("system.import")];
-    expect(commandsForPlan(list, [...STARTER, "data-management"])).toHaveLength(1);
+    expect(commandsForPlan(list, [...STARTER, "data-import-export"])).toHaveLength(1);
   });
 
   it("leaves everything when the plan could not be read", () => {

@@ -17,6 +17,9 @@ import {
   Permissions,
   RequirePermission,
 } from '../../../common/decorators/permissions.decorator';
+import { EntitlementGuard } from '../../../common/guards/entitlement.guard';
+import { RequireEntitlement } from '../../../common/decorators/require-entitlement.decorator';
+import { TENANT_FEATURE_KEYS } from '../../../common/constants/tenant-features';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../../common/interfaces/authenticated-request.interface';
@@ -50,7 +53,8 @@ import {
  * oversized body is refused.
  */
 @Controller('agent/dlp')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, EntitlementGuard)
+@RequireEntitlement(TENANT_FEATURE_KEYS.DESKTOP_AGENT)
 export class DlpController {
   constructor(private readonly dlp: DlpService) {}
 

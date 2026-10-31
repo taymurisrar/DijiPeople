@@ -66,7 +66,7 @@ type MulterFile = {
 
 @Controller('data-management')
 @UseGuards(JwtAuthGuard, PermissionsGuard, EntitlementGuard)
-@RequireEntitlement(TENANT_FEATURE_KEYS.DATA_MANAGEMENT)
+@RequireEntitlement(TENANT_FEATURE_KEYS.DATA_IMPORT_EXPORT)
 export class DataManagementController {
   constructor(
     private readonly registry: DataModuleRegistryService,

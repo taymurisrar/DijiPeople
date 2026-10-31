@@ -32,6 +32,7 @@ describe('agent login does not enumerate accounts', () => {
         {} as never,
         {} as never,
         {} as never,
+        {} as never,
       ),
       prisma,
     };

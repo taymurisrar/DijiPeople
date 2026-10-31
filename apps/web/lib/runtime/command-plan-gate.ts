@@ -4,12 +4,13 @@ import { FEATURE_KEYS, type FeatureKey } from "../security-keys";
 /**
  * Commands whose destination belongs to a paid feature (DP-QA-004 follow-up).
  *
- * `system.import` opens Settings > Data Management, a Growth feature. On
- * Starter the button led to the plan-gate screen; it is simply not offered.
+ * `system.import` opens Settings > Data Management. Basic import/export is on
+ * every plan (data-import-export); a tenant whose plan list lacks it (a custom
+ * plan that withdrew it) is simply not offered the button.
  * Presentation only: the data-management API refuses the plan regardless.
  */
 export const COMMAND_FEATURE_KEYS: Readonly<Record<string, FeatureKey>> = {
-  "system.import": FEATURE_KEYS.DATA_MANAGEMENT,
+  "system.import": FEATURE_KEYS.DATA_IMPORT_EXPORT,
 };
 
 function isOffered(

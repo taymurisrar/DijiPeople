@@ -35,6 +35,8 @@ export const DEFAULT_PLAN_DEFINITIONS = [
       'documents',
       'notifications',
       'branding',
+      // Basic import/export is on every plan; advanced data management is not.
+      'data-import-export',
     ],
   },
   {
@@ -59,20 +61,20 @@ export const DEFAULT_PLAN_DEFINITIONS = [
       'notifications',
       'branding',
       /*
-       * Growth is the lowest tier that sells the desktop agent. Starter buys
-       * Attendance and clocks in through the web; the agent is the upgrade.
+       * The desktop agent is Enterprise/Custom only (final product decision):
        * Enterprise and Enterprise+ take every key in the catalog, so they pick
-       * this up without being listed here.
-       */
-      'desktop-agent',
-      /*
-       * Attendance hardware and the bulk data path are Growth capabilities.
-       * Compliance is Enterprise: retention policy and compliance exports are
-       * what an enterprise buyer's security review asks for, and no Growth
-       * customer has asked for them.
+       * it up without it being listed here. Growth does not sell it.
+       *
+       * Attendance hardware and advanced data management are Growth
+       * capabilities; basic import/export is on every plan. Compliance is
+       * Enterprise: retention policy and compliance exports are what an
+       * enterprise buyer's security review asks for.
        */
       'attendance-integrations',
-      'data-management',
+      'data-import-export',
+      'advanced-data-management',
+      // Wording customization is Growth+; white-label is Enterprise/Custom only.
+      'email-template-customization',
     ],
   },
   {

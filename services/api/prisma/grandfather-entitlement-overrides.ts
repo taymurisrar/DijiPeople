@@ -82,8 +82,8 @@ const USAGE_PROBES: Partial<Record<TenantFeatureKey, UsageProbe>> = {
     prisma.attendanceEntry.count({ where: { tenantId } }),
   // DP-QA-010: the four features that gained route guards. A tenant that already
   // has rows below keeps working when enforcement is switched on.
-  'data-management': (prisma, tenantId) =>
-    prisma.dataJob.count({ where: { tenantId } }),
+  // 'data-import-export' has no probe: every plan sells it, so there is nothing
+  // to grandfather. 'advanced-data-management' has no routes yet, so no usage.
   'attendance-integrations': async (prisma, tenantId) =>
     (await prisma.integrationGateway.count({ where: { tenantId } })) +
     (await prisma.attendanceIntegration.count({ where: { tenantId } })),

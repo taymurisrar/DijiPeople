@@ -370,7 +370,10 @@ export const FEATURE_KEYS = {
   DESKTOP_AGENT: "desktop-agent",
   ATTENDANCE_INTEGRATIONS: "attendance-integrations",
   COMPLIANCE: "compliance",
-  DATA_MANAGEMENT: "data-management",
+  DATA_IMPORT_EXPORT: "data-import-export",
+  ADVANCED_DATA_MANAGEMENT: "advanced-data-management",
+  EMAIL_TEMPLATE_CUSTOMIZATION: "email-template-customization",
+  EMAIL_WHITE_LABEL: "email-white-label",
 } as const;
 
 export type FeatureKey = (typeof FEATURE_KEYS)[keyof typeof FEATURE_KEYS];

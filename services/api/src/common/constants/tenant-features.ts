@@ -24,10 +24,13 @@ export const TENANT_FEATURE_KEYS = {
   DOCUMENTS: 'documents',
   NOTIFICATIONS: 'notifications',
   BRANDING: 'branding',
+  EMAIL_TEMPLATE_CUSTOMIZATION: 'email-template-customization',
+  EMAIL_WHITE_LABEL: 'email-white-label',
   DESKTOP_AGENT: 'desktop-agent',
   ATTENDANCE_INTEGRATIONS: 'attendance-integrations',
   COMPLIANCE: 'compliance',
-  DATA_MANAGEMENT: 'data-management',
+  DATA_IMPORT_EXPORT: 'data-import-export',
+  ADVANCED_DATA_MANAGEMENT: 'advanced-data-management',
   PAYROLL: 'payroll',
 } as const;
 
@@ -57,7 +60,7 @@ export const ENTITLEMENT_GATED_MODULES: Readonly<
   attendance: TENANT_FEATURE_KEYS.ATTENDANCE,
   'attendance-engine': TENANT_FEATURE_KEYS.ATTENDANCE,
   compensation: TENANT_FEATURE_KEYS.PAYROLL,
-  'data-management': TENANT_FEATURE_KEYS.DATA_MANAGEMENT,
+  'data-management': TENANT_FEATURE_KEYS.DATA_IMPORT_EXPORT,
   leave: TENANT_FEATURE_KEYS.LEAVE,
   onboarding: TENANT_FEATURE_KEYS.ONBOARDING,
   'pay-components': TENANT_FEATURE_KEYS.PAYROLL,
@@ -84,6 +87,7 @@ export const ENTITLEMENT_GATED_CONTROLLERS: Readonly<
   Record<string, TenantFeatureKey>
 > = {
   AgentController: TENANT_FEATURE_KEYS.DESKTOP_AGENT,
+  DlpController: TENANT_FEATURE_KEYS.DESKTOP_AGENT,
   AuditController: TENANT_FEATURE_KEYS.COMPLIANCE,
   AttendanceConnectorsController: TENANT_FEATURE_KEYS.ATTENDANCE_INTEGRATIONS,
   AttendanceDeviceController: TENANT_FEATURE_KEYS.ATTENDANCE_INTEGRATIONS,
@@ -137,6 +141,12 @@ export const ENTITLEMENT_UNGATED_FEATURE_KEYS: Readonly<
     'Delivery infrastructure, invoked by modules rather than bought by a tenant.',
   [TENANT_FEATURE_KEYS.BRANDING]:
     'A settings surface rather than a route module; enforced where settings resolve.',
+  [TENANT_FEATURE_KEYS.EMAIL_TEMPLATE_CUSTOMIZATION]:
+    'Enforced inside the email template authoring service (create/update/clone), because the template routes share a controller with notification settings that every plan keeps.',
+  [TENANT_FEATURE_KEYS.EMAIL_WHITE_LABEL]:
+    'Not a route: it decides at send time whether the DijiPeople attribution is dropped from branded transactional email. Essential branding itself is open to every plan.',
+  [TENANT_FEATURE_KEYS.ADVANCED_DATA_MANAGEMENT]:
+    'Premium tier of data management (saved mappings, scheduled jobs, transformations, integrations). None of those routes exist yet, so nothing can be gated; whoever builds one must gate it with this key and move it out of this register. Basic import/export is data-import-export and is open to every plan.',
 };
 
 /**

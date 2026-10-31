@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { TenantFeatureSource } from '@prisma/client';
+import { AppError } from '../errors/app-error';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   isSubscriptionLive,
@@ -297,6 +298,47 @@ export class TenantEntitlementService implements OnApplicationBootstrap {
       featureKeys,
       stale,
     };
+  }
+
+  /**
+   * Entitlement check for code that is NOT behind `EntitlementGuard` — the
+   * `@Public()` agent login/refresh routes, which mint credentials for a tenant
+   * before any guard can see one. Same semantics as the guard: OFF and
+   * REPORT_ONLY let the call through (REPORT_ONLY logs), ENFORCE refuses a
+   * tenant the plan does not sell the feature to, and a tenant whose entitlement
+   * could not be read gets the retryable 503, never a silent pass.
+   *
+   * Call it only AFTER credentials have been verified, so the refusal cannot
+   * become an account-enumeration oracle.
+   */
+  async assertEntitled(
+    tenantId: string,
+    featureKeys: readonly TenantFeatureKey[],
+    route: string,
+  ): Promise<void> {
+    const mode = await this.mode();
+    if (mode === 'OFF') return;
+
+    const decision = await this.decide(tenantId, featureKeys);
+    if (decision.allowed) return;
+
+    const summary =
+      `tenant=${tenantId} features=${featureKeys.join(',')} ` +
+      `route=${route} outcome=${decision.outcome}`;
+    if (mode === 'REPORT_ONLY') {
+      this.logger.warn(`ENTITLEMENT_WOULD_REFUSE ${summary}`);
+      return;
+    }
+
+    this.logger.warn(`ENTITLEMENT_REFUSED ${summary}`);
+    if (decision.outcome === 'UNRESOLVABLE') {
+      throw new AppError('TENANT_ENTITLEMENT_UNAVAILABLE', {
+        details: { featureKeys: [...featureKeys] },
+      });
+    }
+    throw new AppError('TENANT_FEATURE_NOT_ENTITLED', {
+      details: { featureKeys: [...featureKeys] },
+    });
   }
 
   /**
