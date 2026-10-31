@@ -42,7 +42,7 @@ const rec = await call('POST', '/super-admin/customer-onboarding', {
 const onboardingId = rec.id ?? rec.onboarding?.id;
 // FIXTURE SHORTCUT (documented in QA-RUNBOOK): the real gate needs a counter-executed SUBSCRIPTION_AGREEMENT from the
 // contracts workflow. QA inserts one executed row directly in the throwaway DB so tenant creation itself is the real path.
-if (!/dijipeople_starterqa_test/.test(env.QA_DATABASE_URL)) throw new Error('refusing: not the QA db');
+if (!/@localhost[:/]/.test(env.QA_DATABASE_URL) || !/_(test|ci|scratch|tmp|ephemeral)/.test(env.QA_DATABASE_URL)) throw new Error('refusing: not a local throwaway test database');
 const pg = new Client({ connectionString: env.QA_DATABASE_URL }); await pg.connect();
 await pg.query(`insert into "Contract"(id,"contractNumber",title,"contractType",status,"counterpartyName","customerOnboardingId","customerAccountId","updatedAt") values (gen_random_uuid(),$1,$2,'SUBSCRIPTION_AGREEMENT','FULLY_SIGNED',$3,$4,$5,now())`, ['QA-' + Date.now(), 'QA fixture agreement', company, onboardingId, customerId]);
 await pg.end();

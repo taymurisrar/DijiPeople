@@ -51,3 +51,12 @@ Part of [[README]]. Facts are marked **CONFIRMED** (reproduced) or **SUSPECTED**
 | OBS-016 | The authenticated API rate limit is 600 reads / 60 s and 120 writes / 60 s **per user per method class**. The suite shares owner tokens, so heavy sequences need a cooldown; see DP-QA-024 for the user-facing failure mode. |
 | OBS-017 | Employee export/import: CSV text is parsed by the import endpoint (bad rows are reported per row and nothing is created); designation/department delete is a **soft delete** that renames the row `<name> [deleted <id8>]` and leaves it readable by id. |
 | OBS-018 | Duplicate prevention is solid for employees: same work email refused (409), case-insensitively, and 5 simultaneous creates produce one row. Concurrent edits of different fields both persisted (no lost update observed). |
+
+
+## RUN-004 decisions and observations
+- OBS-019 Candidate environment: detached worktree at 22a21a14, fresh DB dijipeople_starterv4_test, API :4097 with `ENTITLEMENT_ENFORCEMENT_MODE=ENFORCE` (floor; no PlatformSetting written), production web build :3014, TLS :3444 for WebKit, local SMTP sink. No production access.
+- OBS-020 Entitlement floor: malformed env value fails closed to ENFORCE (verified on a second API :4096). Boot warning cannot be exercised locally - Blocked(environment).
+- OBS-021 Tokens: invitation = 64-hex DB token; reset = signed JWT with 24 h TTL. Reset e-mails are throttled ~60 s per user; password history refuses reuse.
+- OBS-022 Tenant branding applies to the login page but not to e-mails (DP-QA-026).
+- DEC-013 MCP: owner authorised exact local origins (no wildcards) in the primary `.mcp.json` (uncommitted, user may keep or revert); live MCP needs `/mcp` reconnect. Testing continued with Playwright Test.
+- DEC-014 Test corrections justified in RUN-004: ISO-004 expects 404 (confirmed contract); RBAC-2-PRICE replaces RBAC-2-MANAGER-03; leave form uses `available-types`.

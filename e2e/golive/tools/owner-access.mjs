@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 const { Client } = createRequire(import.meta.url)('pg');
 const env = Object.fromEntries(readFileSync(new URL('../../../.env.qa.local', import.meta.url), 'utf8').split(/\r?\n/).filter((l) => l && !l.startsWith('#')).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]));
-if (!/dijipeople_starterqa_test/.test(env.QA_DATABASE_URL)) throw new Error('refusing: not the QA db');
+if (!/@localhost[:/]/.test(env.QA_DATABASE_URL) || !/_(test|ci|scratch|tmp|ephemeral)/.test(env.QA_DATABASE_URL)) throw new Error('refusing: not a local throwaway test database');
 const slug = process.argv[2];
 const api = env.QA_API_URL + '/api';
 const H = { 'content-type': 'application/json', 'X-DijiPeople-App': 'admin' };

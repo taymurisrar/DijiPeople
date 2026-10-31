@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/test';
+import { test, expect, pace } from '../fixtures/test';
 import { api, apiToken, stateFile, tenantUrl } from '../fixtures/tenants';
 
 /**
@@ -6,6 +6,8 @@ import { api, apiToken, stateFile, tenantUrl } from '../fixtures/tenants';
  * Each scenario creates its own data with a unique run suffix and removes it afterwards; cleanup failures are reported,
  * not swallowed (see .agent/context/test-resource-policy.md).
  */
+// RATE-WINDOW: let the shared per-user read window (600/min) reset before UI-heavy tests (a 429 on a page load crashes the page: DP-QA-024).
+test.beforeAll(async () => { await new Promise((r) => setTimeout(r, 62_000)); });
 test.use({ storageState: stateFile('A', 'OWNER') });
 
 
@@ -29,6 +31,7 @@ test.afterAll(async ({ request }) => {
 const open = async (page: import('@playwright/test').Page, path: string) => {
   await page.goto(tenantUrl('A', path), { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('networkidle').catch(() => undefined);
+  await pace(path);
 };
 
 test('[DPQA-EMP-001] list renders seeded rows, columns and commands', async ({ page }) => {
@@ -161,4 +164,21 @@ test('[DPQA-EMP-009] sorting by Employee Code is applied (URL) without an error 
   await expect(page.getByText(/unknown sort field|could not load the employee module/i)).toHaveCount(0);
   await page.getByPlaceholder(/quick filter/i).fill('zzzz-no-such-person');
   await expect(page.getByText(/no (records|results)|showing 0/i).first()).toBeVisible();
+});
+
+test('[DPQA-EMP-010] a deleted employee disappears from the Employees list (soft-deleted rows must not be shown) (DP-QA-030)', async ({ page, request }) => {
+  const rel = await api(request, token, 'GET', '/lookups/relation-types');
+  const relId = (Array.isArray(rel.body) ? rel.body : rel.body.items)[0].id;
+  const name = `Aaa${run}`; // sorts first, so it is on page 1 of the default view
+  const c = await api(request, token, 'POST', '/employees', { firstName: name, lastName: 'Deleted', hireDate: '2025-02-03', employmentStatus: 'ACTIVE', phone: '+97455500001', emergencyContactName: 'X Y', emergencyContactRelationTypeId: relId, emergencyContactPhone: '+97455500002' });
+  expect(c.status, JSON.stringify(c.body).slice(0, 200)).toBeLessThan(300);
+  await open(page, '/employees');
+  await expect(page.getByText(name).first(), 'sanity: a live employee is listed').toBeVisible({ timeout: 20_000 });
+  const d = await api(request, token, 'DELETE', `/employees/${c.body.id}`);
+  expect(d.status).toBeLessThan(300);
+  const apiList = await api(request, token, 'GET', '/employees?pageSize=100');
+  expect(JSON.stringify(apiList.body.items), 'the API list already excludes it').not.toContain(name);
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle').catch(() => undefined);
+  await expect(page.getByText(name), 'the UI list must not show a deleted employee').toHaveCount(0);
 });

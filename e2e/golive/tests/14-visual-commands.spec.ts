@@ -8,6 +8,8 @@ import type { Page } from '@playwright/test';
  * fixture rows, avatars) are masked so the check fails on layout/styling, not on data.
  * DPQA-CMD-*  command visibility / enablement per role and screen.
  */
+// RATE-WINDOW: let the shared per-user read window (600/min) reset before UI-heavy tests (a 429 on a page load crashes the page: DP-QA-024).
+test.beforeAll(async () => { await new Promise((r) => setTimeout(r, 62_000)); });
 test.describe('visual regression (owner, tenant A) @visual', () => {
   test.use({ storageState: stateFile('A', 'OWNER'), viewport: { width: 1440, height: 900 } });
 
@@ -52,6 +54,7 @@ test.describe('command visibility - owner', () => {
     const t = await apiToken(request, 'A', 'OWNER');
     const id = (await api(request, t, 'GET', '/employees?pageSize=1')).body.items[0].id;
     await page.goto(tenantUrl('A', `/employees/${id}`), { waitUntil: 'domcontentloaded' });
+    await new Promise((r) => setTimeout(r, 15_000)); // pacing: a record form costs ~100 API calls (DP-QA-025)
     await page.waitForLoadState('networkidle').catch(() => undefined);
     await page.waitForTimeout(1500);
     const have = await names(page);

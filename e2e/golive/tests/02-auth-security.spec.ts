@@ -67,7 +67,7 @@ test.describe('role boundaries', () => {
     test('[DPQA-AUTH-030] sign out ends the session; back navigation does not restore it', async ({ page, diag }) => {
       // Known: DP-QA-007 — the client logs "[Logout] Request timed out after 8000ms" when logout is slow.
       // Allowed here so the session-ended assertion below is what decides pass/fail; the slowness is tracked separately.
-      diag.allow(/\[Logout\] Request timed out/);
+      diag.allow(/\[Logout\] Request timed out|status of 404/); // the /documents prefetch 404 is DP-QA-033 (NAV-001)
       await gotoTenant(page, '/login');
       await page.getByLabel(/email/i).first().fill(env.QA_PAYROLL_EMAIL);
       await page.getByLabel(/password/i).first().fill(env.QA_PASSWORD);
@@ -83,5 +83,16 @@ test.describe('role boundaries', () => {
       await gotoTenant(page, '/employees');
       await expect(page).toHaveURL(/\/login/);
     });
+  });
+});
+
+test.describe('navigation hygiene', () => {
+  test.use({ storageState: authFile('EMPLOYEE') });
+  test('[DPQA-NAV-001] the Overview and My Profile of an employee make no request that answers 404 (DP-QA-033: /documents)', async ({ page }) => {
+    const notFound: string[] = [];
+    page.on('response', (r) => { if (r.status() === 404) notFound.push(r.url().replace(/^https?:\/\/[^/]+/, '')); });
+    await gotoTenant(page, '/');
+    await page.waitForTimeout(2500);
+    expect(notFound, 'requests answered 404').toEqual([]);
   });
 });

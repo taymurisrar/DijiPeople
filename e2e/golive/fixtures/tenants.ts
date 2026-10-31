@@ -39,15 +39,17 @@ export const stateFile = (t: TenantKey, role: TenantRole) => `./golive-results/.
 // re-hit the throttled login endpoint (20 per 10 min). Tokens live 30 min; entries are reused for 25.
 const TOKEN_FILE = './golive-results/.auth/api-tokens.json';
 const readTokens = (): Record<string, { token: string; at: number }> => { try { return existsSync(TOKEN_FILE) ? JSON.parse(readFileSync(TOKEN_FILE, 'utf8')) : {}; } catch { return {}; } };
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export async function apiToken(request: APIRequestContext, t: TenantKey, role: TenantRole): Promise<string> {
   const key = `${t}/${role}`;
   const hit = readTokens()[key];
   if (hit && Date.now() - hit.at < 25 * 60_000) return hit.token;
   const c = credentials(t, role);
-  const r = await request.post(`${env.QA_API_URL}/api/auth/login`, {
-    headers: { 'X-DijiPeople-App': 'web' },
-    data: { email: c.email, password: c.password, tenantSlug: TENANTS[t].slug },
-  });
+  let r = await request.post(`${env.QA_API_URL}/api/auth/login`, { headers: { 'X-DijiPeople-App': 'web' }, data: { email: c.email, password: c.password, tenantSlug: TENANTS[t].slug } });
+  for (let i = 0; i < 12 && r.status() === 429; i++) {
+    await sleep(15_000);
+    r = await request.post(`${env.QA_API_URL}/api/auth/login`, { headers: { 'X-DijiPeople-App': 'web' }, data: { email: c.email, password: c.password, tenantSlug: TENANTS[t].slug } });
+  }
   const body = await r.json();
   const token = body.accessToken ?? body.tokens?.accessToken;
   if (!token) throw new Error(`API login failed for ${t}/${role}: ${r.status()} ${body.message}`);
@@ -57,11 +59,9 @@ export async function apiToken(request: APIRequestContext, t: TenantKey, role: T
 }
 
 export async function api(request: APIRequestContext, token: string, method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE', path: string, data?: unknown) {
-  const r = await request.fetch(`${env.QA_API_URL}/api${path}`, {
-    method,
-    headers: { authorization: `Bearer ${token}`, 'X-DijiPeople-App': 'web' },
-    data,
-  });
+  const call = () => request.fetch(`${env.QA_API_URL}/api${path}`, { method, headers: { authorization: `Bearer ${token}`, 'X-DijiPeople-App': 'web' }, data });
+  let r = await call();
+  for (let i = 0; i < 14 && r.status() === 429; i++) { await sleep(5_000); r = await call(); }
   let body: unknown = null;
   try { body = await r.json(); } catch { /* empty body */ }
   return { status: r.status(), body: body as any };

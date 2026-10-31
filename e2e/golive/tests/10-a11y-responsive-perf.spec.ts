@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { test, expect } from '../fixtures/test';
+import { test, expect, pace } from '../fixtures/test';
 import { stateFile, tenantUrl } from '../fixtures/tenants';
 
 /**
@@ -23,6 +23,7 @@ const settle = async (page: import('@playwright/test').Page, path: string) => {
   await page.goto(tenantUrl('A', path), { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('networkidle').catch(() => undefined);
   await page.waitForTimeout(1000);
+  await pace(path);
 };
 
 for (const [id, path] of SCREENS) {

@@ -9,7 +9,7 @@ import type { APIRequestContext } from '@playwright/test';
  * Self-contained tests; every request ends CANCELLED or REJECTED.
  */
 const run = Date.now() % 100000;
-const day = (n: number) => new Date(Date.UTC(2027, 5, 1 + n)).toISOString().slice(0, 10); // Tue 2027-06-01 + n
+const day = (n: number) => new Date(Date.UTC(2040, 5, 1 + n)).toISOString().slice(0, 10); // far future, clear of earlier approved fixtures
 
 async function ensureType(request: APIRequestContext, owner: string, code: string, consumes: boolean) {
   const list = (await api(request, owner, 'GET', '/leave-types')).body;
@@ -24,7 +24,7 @@ async function submit(request: APIRequestContext, offset: number, code = 'QAL') 
   const emp = await apiToken(request, 'A', 'EMPLOYEE');
   const owner = await apiToken(request, 'A', 'OWNER');
   const typeId = await ensureType(request, owner, code, code === 'QAB');
-  const d = day((run + offset) % 400);
+  const d = day((run * 11 + offset * 17) % 3000);
   const r = await api(request, emp, 'POST', '/leave-requests', { leaveTypeId: typeId, startDate: d, endDate: d, reason: `QA ${run}` });
   return { emp, owner, typeId, r, d };
 }

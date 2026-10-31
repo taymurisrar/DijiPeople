@@ -9,7 +9,7 @@ import type { APIRequestContext } from '@playwright/test';
  * (leave requests have no delete route, so the final state of anything created here is CANCELLED).
  */
 const run = Date.now() % 100000;
-const day = (offset: number) => new Date(Date.UTC(2027, 0, 3 + offset)).toISOString().slice(0, 10);
+const day = (offset: number) => new Date(Date.UTC(2035, 0, 3 + offset)).toISOString().slice(0, 10); // far future, clear of earlier approved fixtures
 const tokens = async (request: APIRequestContext) => ({
   emp: await apiToken(request, 'A', 'EMPLOYEE'),
   owner: await apiToken(request, 'A', 'OWNER'),
@@ -29,7 +29,7 @@ async function ensureType(request: APIRequestContext, owner: string): Promise<st
 async function withRequest(request: APIRequestContext, offset: number, body: (ctx: { emp: string; owner: string; typeId: string; id: string }) => Promise<void>) {
   const { emp, owner } = await tokens(request);
   const typeId = await ensureType(request, owner);
-  const s = day((run + offset) % 300);
+  const s = day((run * 7 + offset * 13) % 2800);
   const r = await api(request, emp, 'POST', '/leave-requests', { leaveTypeId: typeId, startDate: s, endDate: s, reason: `QA ${run}` });
   expect(r.status, `submit: ${JSON.stringify(r.body).slice(0, 300)}`).toBe(201);
   try {
@@ -118,7 +118,7 @@ test('[DPQA-LV-007] tenant B cannot read tenant A\'s request', async ({ request 
 test('[DPQA-LV-008] the request owner can cancel; the cancelled state persists (DP-QA-011: 403 today)', async ({ request }) => {
   const { emp, owner } = await tokens(request);
   const typeId = await ensureType(request, owner);
-  const s = day((run + 6) % 300);
+  const s = day((run * 7 + 90) % 2800);
   const c = await api(request, emp, 'POST', '/leave-requests', { leaveTypeId: typeId, startDate: s, endDate: s });
   expect(c.status).toBe(201);
   const r = await api(request, emp, 'POST', `/leave-requests/${c.body.id}/cancel`, { reason: 'QA' });

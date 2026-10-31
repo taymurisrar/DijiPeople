@@ -3,7 +3,8 @@
 import { readFileSync } from 'node:fs';
 const env = Object.fromEntries(readFileSync(new URL('../../../.env.qa.local', import.meta.url), 'utf8').split(/\r?\n/).filter((l) => l && !l.startsWith('#')).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]));
 if (!/^http:\/\/localhost:\d+$/.test(env.QA_API_URL)) throw new Error('refusing: not localhost');
-const T = JSON.parse(readFileSync(new URL('../../golive-results/.auth/api-tokens.json', import.meta.url), 'utf8'));
+let T;
+try { T = JSON.parse(readFileSync(new URL('../../golive-results/.auth/api-tokens.json', import.meta.url), 'utf8')); } catch { console.log('no cached API tokens yet: nothing to clean'); process.exit(0); }
 const h = (k) => ({ authorization: `Bearer ${T[k].token}`, 'X-DijiPeople-App': 'web', 'content-type': 'application/json' });
 const j = async (k, m, p, b) => { const r = await fetch(env.QA_API_URL + '/api' + p, { method: m, headers: h(k), body: b ? JSON.stringify(b) : undefined }); let x = null; try { x = await r.json(); } catch {} return { s: r.status, x }; };
 const emps = (await j('A/OWNER', 'GET', '/employees?pageSize=100')).x.items.filter((e) => /^Qa[a-z0-9]+$/i.test(e.firstName) && e.lastName === 'Lifecycle');

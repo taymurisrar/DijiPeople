@@ -50,8 +50,12 @@ test('[DPQA-ISO-003] A cannot update a B employee; B record is unchanged', async
 
 test('[DPQA-ISO-004] A cannot delete a B employee; B record still exists', async ({ request }) => {
   const r = await api(request, A, 'DELETE', `/employees/${bIds[0]}`);
-  // Observed (DP-QA-008): HTTP 200 with { success:false, deletedCount:0 } — no effect, same as for a missing id.
-  expect(r.status === 200 ? r.body.deletedCount : 0).toBe(0);
+  // Contract confirmed in REMEDIATION-HANDOFF (DP-QA-008): a single-id delete that matches nothing in the caller's tenant answers 404 EMPLOYEE_NOT_FOUND,
+  // identical for a foreign id and a random id (no tenant enumeration). RUN-001..003 asserted the old 200/deletedCount=0 body.
+  expect(r.status).toBe(404);
+  const rnd = await api(request, A, 'DELETE', '/employees/11111111-2222-4333-8444-555555555555');
+  expect(rnd.status, 'same answer as for a foreign id').toBe(404);
+  expect(JSON.stringify(rnd.body).replace(/"(traceId|timestamp|path|reference)":"[^"]*",?/g, '')).toBe(JSON.stringify(r.body).replace(/"(traceId|timestamp|path|reference)":"[^"]*",?/g, ''));
   const still = await api(request, B, 'GET', `/employees/${bIds[0]}`);
   expect(still.status).toBe(200);
 });
@@ -107,8 +111,21 @@ for (const role of ROLES) {
   });
 }
 
+// DP-QA-009 remediation: the features endpoint stays readable for module visibility but must not leak price/cycle to non-settings roles.
+test('[DPQA-RBAC-2-PRICE] subscription price and billing cycle are visible to the owner only (DP-QA-009 retest)', async ({ request }) => {
+  const sub = async (role: 'OWNER' | 'MANAGER' | 'EMPLOYEE') => api(request, await apiToken(request, 'A', role), 'GET', '/tenant-settings/features');
+  const o = await sub('OWNER');
+  expect(o.body.subscription.finalPrice, 'owner sees the price').toBe(69);
+  const m = await sub('MANAGER');
+  expect(m.status).toBe(200);
+  const leaked = JSON.stringify(m.body.subscription ?? {});
+  expect(leaked).not.toMatch(/finalPrice|billingCycle|currency|"69"|:69/);
+  expect((m.body.items as Array<{ key: string; isEnabled: boolean }>).some((i) => i.key === 'leave' && i.isEnabled), 'module visibility still works for managers').toBe(true);
+  expect((await sub('EMPLOYEE')).status).toBe(403);
+});
+
 for (const role of ['EMPLOYEE', 'MANAGER'] as const) {
-  for (const [id, path] of [['01', '/users'], ['02', '/roles'], ['03', '/tenant-settings/features'], ['04', '/audit-logs']] as const) {
+  for (const [id, path] of [['01', '/users'], ['02', '/roles'], ['04', '/audit-logs']] as const) {
     test(`[DPQA-RBAC-2-${role}-${id}] ${role} is refused ${path}`, async ({ request }) => {
       const t = await apiToken(request, 'A', role);
       const r = await api(request, t, 'GET', path);
@@ -131,4 +148,18 @@ test('[DPQA-RBAC-4-EMPLOYEE] employee cannot update another employee', async ({ 
   const target = aIds.find((i) => !mine.includes(i)) ?? other;
   const r = await api(request, t, 'PATCH', `/employees/${target}`, { firstName: 'Nope' });
   expect([403, 404]).toContain(r.status);
+});
+
+test('[DPQA-RBAC-5-EMPLOYEE] OWN scope: an employee cannot read another employee record by id (dashboard.view grant must not widen row scope)', async ({ request }) => {
+  const t = await apiToken(request, 'A', 'EMPLOYEE');
+  const mine = (await api(request, t, 'GET', '/employees?pageSize=100')).body.items.map((e: { id: string }) => e.id);
+  const other = aIds.find((i) => !mine.includes(i))!;
+  const r = await api(request, t, 'GET', `/employees/${other}`);
+  expect([403, 404], 'GET another employee').toContain(r.status);
+});
+
+test('[DPQA-RBAC-6-EMPLOYEE] the leave CONFIGURATION list stays closed to employees; the employee form uses available-types', async ({ request }) => {
+  const t = await apiToken(request, 'A', 'EMPLOYEE');
+  expect((await api(request, t, 'GET', '/leave-types')).status).toBe(403);
+  expect((await api(request, t, 'GET', '/leave-requests/available-types')).status).toBe(200);
 });

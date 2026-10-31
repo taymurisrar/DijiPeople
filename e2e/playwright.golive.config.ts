@@ -20,7 +20,7 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   retries: 0, // no hidden flakiness; rerun failures explicitly (npm run qa:rerun)
-  timeout: 90_000,
+  timeout: 180_000, // login retries on 429 (20 / 10 min limiter) can take minutes in hooks
   expect: { timeout: 15_000 },
   reporter: [
     ['list'],

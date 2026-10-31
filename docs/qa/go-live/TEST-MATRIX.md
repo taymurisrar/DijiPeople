@@ -58,3 +58,9 @@ Warm page loads: Employees 2.7 s, Leave 2.4 s, Overview 1.9 s, Attendance 1.9 s 
 | Visual regression diff verdicts | baselines only | first comparison happens in RUN-004 |
 | Valid bulk import (xlsx/CSV with all required columns) | **Not Run** | template parsing needs a spreadsheet library in the QA tree; rejection paths are covered |
 | Org: locations CRUD, business-unit CRUD, holiday calendars; branding visual in login/emails | **Not Run** | next batch |
+
+
+## RUN-004 (candidate 22a21a14) - summary
+Application SHA `22a21a14` (remediation branch, untouched); QA suite base `8c1ee270` + RUN-004 edits. 341 executed: 301 pass / 28 fail / 12 skip (see [[INDEX]], runs/RUN-004-2026-10-31).
+New suites: 11-17 (leave approval/balance, data transfer/organization, session/password/invitation, visual, mail/branding/onboarding, leave policy/org/session, working-day attendance/documents UI).
+Working-day attendance ATT-020..024 pass using a controlled fixture (schedule days + site attendance + GPS payload), host clock unchanged. Not Run/Blocked: valid-file bulk import, leave delegation (no such feature found), manager/HR approval chain (LV-029 blocked), idle/absolute session timeouts (needs time), accrual schedule (time-driven), production-boot ENTITLEMENT_NOT_ENFORCED warning (production boot refuses loopback; covered by developer specs).
