@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import {
@@ -635,9 +636,52 @@ function shouldAttemptServerRefresh(path: string) {
   );
 }
 
+/**
+ * Identical GETs made while rendering ONE request share a single API call
+ * (DP-QA-025).
+ *
+ * Opening New Employee issued ~100 API calls: every lookup field fetched the same
+ * reference list, and tenant settings were fetched again by each. Next.js
+ * normally memoises identical `fetch` calls in a render, but `apiRequest` always
+ * passes an AbortSignal for its timeout, which opts every call out. The authenticated
+ * read budget is 600 a minute per user, so a few form opens exhausted it and the
+ * next page load hit a 429 (DP-QA-024).
+ *
+ * Scope is deliberately narrow so it cannot serve stale data: React's `cache`
+ * is per request, only option-less GETs are shared, each caller gets its own
+ * copy, a failure is never retained, and any write clears the lot.
+ */
+const sharedGets = cache(() => new Map<string, Promise<unknown>>());
+
 export async function apiRequestJson<T>(
   path: string,
   init: ApiRequestOptions = {},
+): Promise<T> {
+  const method = (init.method ?? "GET").toUpperCase();
+  const shared = sharedGets();
+
+  if (method !== "GET") {
+    shared.clear();
+    return requestJson<T>(path, init);
+  }
+
+  if (Object.keys(init).length > 0) {
+    return requestJson<T>(path, init);
+  }
+
+  let pending = shared.get(path);
+  if (!pending) {
+    pending = requestJson<T>(path, init);
+    shared.set(path, pending);
+    pending.catch(() => shared.delete(path));
+  }
+
+  return structuredClone(await pending) as T;
+}
+
+async function requestJson<T>(
+  path: string,
+  init: ApiRequestOptions,
 ): Promise<T> {
   const response = await apiRequest(path, init);
   const data = await parseResponseBody(response);
