@@ -67,6 +67,14 @@ export type SendTemplateEmailInput = {
   metadata?: Record<string, unknown> | null;
   requestedByUserId?: string | null;
   dryRun?: boolean;
+  /**
+   * Skip the per-recipient cool-down that stops anonymous endpoints (forgot
+   * password) being used to mail-bomb an address. Only for messages an
+   * authenticated administrator or the platform explicitly asked for, such as
+   * an invitation resend (DP-QA-028): that flow revokes the previous link before
+   * sending, so a cool-down skip left the user with no valid link at all.
+   */
+  bypassAuthNotificationCooldown?: boolean;
   /*
    * Who is sending, not who it is about. A tenant id says which workspace the
    * message concerns; it does not say whether DijiPeople or the tenant is the
@@ -657,7 +665,11 @@ export class EmailExecutionService {
   }
 
   private async checkAuthNotificationCooldown(input: SendTemplateEmailInput) {
-    if (input.dryRun || !AUTH_NOTIFICATION_EVENTS.has(input.eventCode)) {
+    if (
+      input.dryRun ||
+      input.bypassAuthNotificationCooldown ||
+      !AUTH_NOTIFICATION_EVENTS.has(input.eventCode)
+    ) {
       return { limited: false, cooldownSeconds: 0 };
     }
 

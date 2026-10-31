@@ -515,6 +515,9 @@ export class UserInvitationsService {
         source: 'user-invitation',
       },
       requestedByUserId: input.userId,
+      // An invitation is always sent on an administrator's or the platform's
+      // say-so, never from an anonymous endpoint (DP-QA-028).
+      bypassAuthNotificationCooldown: true,
     });
   }
 }
