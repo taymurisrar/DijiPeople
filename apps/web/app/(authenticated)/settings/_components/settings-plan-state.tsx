@@ -49,7 +49,7 @@ export function SettingsNotOnPlanState({
           reason: it is where a tenant sees what they are on and what an upgrade
           would add. A blocked page that offers no route to that is a dead end.
         */}
-        <Button href="/settings/subscription" variant="secondary">
+        <Button href="/settings/subscription/overview" variant="secondary">
           View plan and pricing
         </Button>
         <Button href="/settings" variant="secondary">

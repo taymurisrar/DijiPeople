@@ -875,8 +875,8 @@ export const TENANT_FEATURE_DEFINITIONS = [
    * settings, and DLP ingest and review. Attendance *hardware* integrations
    * (`attendance-integrations`) are a different capability and are not affected.
    * A downgraded tenant keeps nothing implicitly; only an explicit grandfather
-   * override (ADR-0009) can extend access. Supersedes the "sync stays on
-   * attendance" note in ADR-0031.
+   * override (ADR-0009) can extend access. See ADR-0028; this supersedes the
+   * earlier "agent sync stays on attendance" carve-out.
    */
   {
     key: 'desktop-agent',

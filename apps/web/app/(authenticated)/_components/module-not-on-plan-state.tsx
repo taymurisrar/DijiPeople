@@ -27,7 +27,7 @@ export function ModuleNotOnPlanState({ moduleLabel }: { moduleLabel: string }) {
       </p>
 
       <div className="mt-6 flex flex-wrap gap-3">
-        <Button href="/settings/subscription" variant="secondary">
+        <Button href="/settings/subscription/overview" variant="secondary">
           View plan and pricing
         </Button>
         <Button href="/" variant="secondary">
