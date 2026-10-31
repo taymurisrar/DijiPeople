@@ -1,3 +1,4 @@
+import { loadQaEnv } from './env';
 import { Client } from 'pg';
 import { env } from './test';
 
@@ -6,7 +7,7 @@ import { env } from './test';
  *  - `mail`: the local SMTP sink (e2e/golive/tools/mail-sink.cjs, 127.0.0.1:8025). Nothing is ever relayed.
  *  - `sql`:  the throwaway QA database, for fixtures (e.g. aging a session) and persisted-state assertions. Refuses non-test DBs.
  */
-const SINK = process.env.QA_MAIL_URL ?? 'http://127.0.0.1:8025'; // QA_MAIL_URL lets RUN-005 use a sink on its own port beside other sessions' sinks
+const SINK = (loadQaEnv() as unknown as Record<string, string | undefined>).QA_MAIL_URL ?? 'http://127.0.0.1:8025'; // QA_MAIL_URL lets RUN-005 use a sink on its own port beside other sessions' sinks
 
 export type SinkMessage = { id: number; to: string[]; from: string; subject: string; text: string; html: string; links: string[]; receivedAt: string };
 

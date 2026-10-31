@@ -10,15 +10,16 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 export type TenantKey = 'S' | 'A' | 'B' | 'G';
 export type TenantRole = 'ADMIN' | 'OWNER' | 'EMPLOYEE' | 'MANAGER' | 'HR' | 'PAYROLL';
 
+const genv = env as unknown as Record<string, string | undefined>; // optional keys of .env.qa.local (Growth tenant)
 const webUrl = new URL(env.QA_WEB_URL); // protocol and port follow QA_WEB_URL (https://…:3443 when the TLS front is used for WebKit)
 export const TENANTS = {
   S: { slug: env.QA_TENANT_SLUG, seeded: true },
   A: { slug: env.QA_TENANT_A_SLUG as string, seeded: false },
   B: { slug: env.QA_TENANT_B_SLUG as string, seeded: false },
   // Growth-plan tenant (RUN-005): used for entitled-import and Growth-gated checks. Optional - suites that need it skip with a reason when it is not provisioned.
-  G: { slug: (process.env.QA_TENANT_G_SLUG ?? '') as string, seeded: false },
+  G: { slug: (genv.QA_TENANT_G_SLUG ?? '') as string, seeded: false },
 } as const;
-export const growthTenantProvisioned = () => Boolean(process.env.QA_TENANT_G_SLUG && process.env.QA_TENANT_G_OWNER);
+export const growthTenantProvisioned = () => Boolean(genv.QA_TENANT_G_SLUG && genv.QA_TENANT_G_OWNER);
 
 export const tenantHost = (t: TenantKey) => `${webUrl.protocol}//${TENANTS[t].slug}.localhost:${webUrl.port}`;
 export const tenantUrl = (t: TenantKey, path = '/') => `${tenantHost(t)}${path}`;
@@ -30,7 +31,7 @@ export function credentials(t: TenantKey, role: TenantRole): { email: string; pa
     return { email: map[role], password };
   }
   const prefix = t === 'A' ? 'a' : t === 'B' ? 'b' : 'g';
-  const owner = (t === 'A' ? env.QA_TENANT_A_OWNER : t === 'B' ? env.QA_TENANT_B_OWNER : process.env.QA_TENANT_G_OWNER) as string;
+  const owner = (t === 'A' ? env.QA_TENANT_A_OWNER : t === 'B' ? env.QA_TENANT_B_OWNER : genv.QA_TENANT_G_OWNER) as string;
   const map: Record<string, string> = { ADMIN: owner, OWNER: owner, EMPLOYEE: `${prefix}-employee@qa.dijipeople.test`, MANAGER: `${prefix}-manager@qa.dijipeople.test`, HR: `${prefix}-hr@qa.dijipeople.test`, PAYROLL: `${prefix}-payroll-manager@qa.dijipeople.test` };
   return { email: map[role], password };
 }
