@@ -118,3 +118,8 @@ Fixture shortcuts used on the throwaway DB only: an executed SUBSCRIPTION_AGREEM
 - **Visual baselines:** `--project=chromium -g DPQA-VIS --update-snapshots` only for an intended, reviewed UI change; baselines live in `e2e/golive/tests/14-visual-commands.spec.ts-snapshots/`.
 - **Rate limits:** reads 600/min and writes 120/min per user; heavy suites start with a cooldown. Login 20 / 10 min per IP (restart the API to clear).
 - **Stopping the QA web server:** stop only the PID that owns port 3012 (`Get-NetTCPConnection -LocalPort 3012`); never pattern-kill node/next.
+
+## RUN-005 (exact final candidate)
+Prepare with `e2e/golive/tools/prepare-run005.ps1 -Sha <full 40-hex>`: it refuses an abbreviated/unknown SHA, a database not ending `_test`, and a dirty QA tree; creates a **detached** worktree at that SHA (never merges, never touches the development worktree); writes `e2e/golive-results/run005/environment.json` (application SHA, QA suite SHA, DB, fixture version, Node, Playwright, OS). Browser engine versions are appended to the run report by the report generator from the Playwright run.
+Fixtures: Starter tenants `qa-starter`, `qa-prov-a`, `qa-prov-b`; add a **Growth** tenant (`provision-tenant.mjs qa-growth "QA Growth" qa-owner-g@qa.dijipeople.test growth`) for entitled import and Growth-gated checks. Local mail sink :1025/:8025; TLS front :3444 for WebKit. Credentials only in gitignored `.env.qa.local*` (also listed in the shared git exclude file; never `git add -A` without checking `git diff --cached --name-only`).
+Playwright MCP is only usable after the user runs `/mcp` (config is read at server start); until `browser_get_config` shows the local origins, use Playwright Test.
