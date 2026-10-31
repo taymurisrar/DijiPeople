@@ -5,12 +5,13 @@
 param(
   [Parameter(Mandatory)][string]$Sha,
   [string]$Database = 'dijipeople_starterv5_test',
-  [string]$Worktree = (Join-Path (Split-Path $PSScriptRoot -Parent | Split-Path -Parent | Split-Path -Parent) '..\dijipeople-starter-verify5')
+  [string]$Worktree = ''
 )
 $ErrorActionPreference = 'Stop'
 if ($Sha -notmatch '^[0-9a-f]{40}$') { throw 'Pass the full 40-hex candidate SHA supplied by the development agent.' }
 if ($Database -notmatch '_test$') { throw 'Refusing: QA databases must end in _test.' }
 $qaRoot = Split-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) -Parent
+if (-not $Worktree) { $Worktree = Join-Path (Split-Path $qaRoot -Parent) 'dijipeople-starter-verify5' }
 if (git -C $qaRoot status --porcelain -- e2e docs/qa) { throw 'QA tree is dirty: commit QA edits first so the QA suite SHA is meaningful.' }
 git -C $qaRoot cat-file -e "$Sha^{commit}" 2>$null
 if ($LASTEXITCODE -ne 0) { throw "Commit $Sha is not in this repository's object store (fetch the remediation branch first; do not merge it)." }
