@@ -62,6 +62,13 @@ export type EntityMetadata = {
    * or filterable, only sortable through its parts.
    */
   sortAliases?: Record<string, string[]>;
+  /**
+   * The boolean column that marks a soft-deleted row. Rows where it is true are
+   * never returned by the generic entity API: the legacy employee list already
+   * excluded them, this path did not, so deleted people were listed as Active
+   * with their e-mail and code (DP-QA-030).
+   */
+  softDeleteField?: string;
   expands: Record<string, EntityExpandMetadata>;
 };
 
