@@ -53,6 +53,7 @@ import type {
   RuntimeCommandHandler,
   RuntimeRecordData,
 } from "./module-runtime-ui.types";
+import { isSafeModuleHref } from "@/lib/runtime/module-href";
 
 export function ModuleRuntimeCommandHandler({
   activeForm,
@@ -565,20 +566,6 @@ function downloadFile(file: Blob | string, filename: string) {
   anchor.click();
   anchor.remove();
   URL.revokeObjectURL(url);
-}
-
-function isSafeModuleHref(href: string, routeBase: string) {
-  if (!href.startsWith(routeBase)) return false;
-  if (href.includes("..")) return false;
-  if (
-    href.includes("/auth") ||
-    href.includes("logout") ||
-    href.includes("sign-out")
-  ) {
-    return false;
-  }
-
-  return true;
 }
 
 function resolveBackHref(runtime: ModuleRuntimeContext) {

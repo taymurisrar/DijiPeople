@@ -22,9 +22,15 @@ export function SettingsLayout({
   title,
 }: SettingsLayoutProps) {
   return (
-    <div className="flex w-full min-w-0 max-w-none gap-6">
+    /*
+     * DP-QA-041 - a row at every width gave the 260px sidebar (plus padding) the
+     * whole of a 412px phone and left the content column 0px wide, off-screen.
+     * Below md the sidebar stacks under the content; from md up it is the
+     * familiar left rail.
+     */
+    <div className="flex w-full min-w-0 max-w-none flex-col gap-6 md:flex-row">
       {sidebar ? (
-        <aside className="shrink-0 rounded-[28px] border border-border bg-surface p-5 shadow-lg xl:sticky xl:top-6 xl:h-fit">
+        <aside className="order-last w-full min-w-0 shrink-0 rounded-[28px] border border-border bg-surface p-5 shadow-lg md:order-first md:w-auto xl:sticky xl:top-6 xl:h-fit">
           {sidebar}
         </aside>
       ) : null}
