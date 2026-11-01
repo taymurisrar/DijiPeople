@@ -12,5 +12,22 @@ export const APPROVED_STARTER_ADDITIONS: readonly string[] = ['data-import-expor
 /** Features a Starter tenant must NOT have (anything else a plan sells above Starter). */
 export const NEVER_ON_STARTER = ['recruitment', 'onboarding', 'timesheets', 'projects', 'payroll', 'compliance', 'attendance-integrations', 'desktop-agent', 'advanced-data-management', 'email-template-customization', 'email-white-label'] as const;
 
-/** Desktop agent: Enterprise, or Custom only when explicitly enabled. Open: Enterprise+ (Q2). */
+/** Desktop agent: Enterprise, or a Custom plan that EXPLICITLY lists `desktop-agent`. There is no `enterprise-plus` (owner FINAL decision 2026-11-01: exactly three predefined plans). */
 export const DESKTOP_AGENT_ENABLED: Record<'starter' | 'growth' | 'enterprise', boolean> = { starter: false, growth: false, enterprise: true };
+
+/**
+ * Customer-visible API probe per feature key: a tenant on a plan WITHOUT the feature must be refused (402/403); a tenant WITH it must not be plan-refused.
+ * Used by the Custom-plan suites to prove a Custom plan grants exactly what it lists - nothing inherited from Enterprise.
+ */
+export const FEATURE_PROBES: Record<string, string> = {
+  employees: '/employees?pageSize=1',
+  leave: '/leave-requests/mine',
+  documents: '/documents',
+  projects: '/projects',
+  payroll: '/payroll/runs',
+  timesheets: '/timesheets/entries',
+  recruitment: '/job-openings',
+  onboarding: '/onboarding/templates',
+};
+/** Public/catalogue facts of the owner FINAL subscription architecture. */
+export const EXPECTED_PREDEFINED_PLANS = ['starter', 'growth', 'enterprise'] as const;

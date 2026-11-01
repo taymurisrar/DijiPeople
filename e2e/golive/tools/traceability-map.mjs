@@ -42,7 +42,7 @@ export const MAP = {
   'DP-QA-039': ['SEED-005', 'SEED-006', 'SEED-010', 'SEED-011', 'EML-001', 'EML-002', 'EML-003', 'EML-004'],
   'DP-QA-040': ['SESS-023', 'SESS-030'],
   'DP-QA-041': ['SMK-004', 'RESP-100', 'RESP-101', 'RESP-102', 'RESP-103', 'RESP-104', 'RESP-105'],
-  'DP-QA-042': { manual: 'owner review of the enterprise-plus / Custom defaults; evidence = catalogue rows, CUSTOM override experiments, AGT-001-C and AGT-020; RUN-007 adds CUS-001..005, CUS-010, CUS-011, CUS-020 and EXP-010-*' },
+  'DP-QA-042': ['CAT-001', 'CAT-002', 'CAT-003', 'CAT-004', 'CUS-001', 'CUS-002', 'CUS-003', 'CUS-004', 'CUS-005', 'CUS-006', 'CUS-007', 'CUS-010', 'CUS-011', 'CUS-012', 'CUS-020', 'CUS-030', 'CUS-031', 'CUS-040', 'AGT-001-C', 'MIG-001', 'MIG-002', 'MIG-003', 'MIG-004'],
 };
 
 /** RUN-006 owner-approved subscription requirements -> tests (validated against the real test list like MAP). */
@@ -56,4 +56,6 @@ export const REQ = {
   'REQ-7 Production ENFORCE verified only in an authorized deployment': { open: 'Release gate A1-A5; QA verifies the mechanism locally (ENT-*, MTX-001) and never touches production' },
   'REQ-9 Seed/migration idempotency: SMTP provider, branding, entitlements and role permissions preserved; delivery via sink; no credential leakage': ['SEED-001', 'SEED-002', 'SEED-003', 'SEED-004', 'SEED-005', 'SEED-006', 'SEED-007', 'SEED-008', 'SEED-009'],
   'REQ-8 Entitlement matrix per plan': ['ENT-030', 'MTX-001', 'MTX-010-G', 'MTX-010-E', 'MTX-010-C', 'MTX-020'],
+  'REQ-10 Exactly three predefined plans; Custom plans are dynamic, explicit and never inherit Enterprise; enterprise-plus eliminated (owner FINAL, 2026-11-01)': ['CAT-001', 'CAT-002', 'CAT-003', 'CAT-004', 'CPL-001', 'CPL-002', 'CPL-003', 'CPL-004', 'CPL-005', 'CPL-006', 'CUS-001', 'CUS-002', 'CUS-003', 'CUS-004', 'CUS-005', 'CUS-006', 'CUS-007', 'CUS-012', 'CUS-030', 'CUS-031', 'CUS-040'],
+  'REQ-11 Predefined-plan seeds never overwrite Custom plans; legacy enterprise-plus data migrates safely': ['SEEDPLAN-001', 'SEEDPLAN-002', 'MIG-001', 'MIG-002', 'MIG-003', 'MIG-004'],
 };

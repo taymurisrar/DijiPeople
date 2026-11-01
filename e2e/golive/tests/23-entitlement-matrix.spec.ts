@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/test';
+import { test, expect, env } from '../fixtures/test';
 import { api, apiToken, planTenantProvisioned } from '../fixtures/tenants';
 import { NEVER_ON_STARTER } from '../fixtures/entitlement-matrix';
 
@@ -22,8 +22,8 @@ test('[DPQA-MTX-001] Starter: never has a feature sold above Starter (recruitmen
   for (const k of NEVER_ON_STARTER) expect(f.enabled.has(k), `Starter must not have ${k}`).toBe(false);
 });
 
-// C = Custom: there is no `custom` plan key; Custom is a CUSTOM-source TenantFeature override on a plan (here Growth + explicit desktop-agent + email-white-label). Test-side correction, RUN-006.
-for (const [key, plan, agent] of [['G', 'growth', false], ['E', 'enterprise', true], ['C', 'growth', true]] as const) {
+// C = Custom (RUN-007, owner FINAL architecture): a dynamically created Custom plan, key QA_TENANT_C_PLAN (default `qa-cp-baseline`), that EXPLICITLY lists the Starter features + desktop-agent + email-white-label + email-template-customization. No plan inherits from another; no `enterprise-plus`.
+for (const [key, plan, agent] of [['G', 'growth', false], ['E', 'enterprise', true], ['C', ((process.env.QA_TENANT_C_PLAN || (env as unknown as Record<string, string | undefined>).QA_TENANT_C_PLAN) ?? 'qa-cp-baseline'), true]] as const) {
   test.describe(`${plan} tenant`, () => {
     test.skip(!planTenantProvisioned(key), `NOT RUN: ${plan} tenant not provisioned`);
     test(`[DPQA-MTX-010-${key}] ${plan}: resolved plan key, all Starter features enabled, desktop agent ${agent ? 'enabled' : 'disabled'}`, async ({ request }, info) => {

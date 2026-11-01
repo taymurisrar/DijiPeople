@@ -7,7 +7,7 @@ import { api, apiToken, planTenantProvisioned } from '../fixtures/tenants';
  * DPQA-AGT-*: Desktop Agent is an ENTERPRISE feature, or Custom only when explicitly enabled (owner-approved RUN-006 requirement).
  *   Starter (A) -> refused   Growth (G) -> refused   Enterprise (E) -> allowed   Custom (C, agent explicitly enabled) -> allowed
  * "Refused" means the BACKEND refuses (403 and a plan/entitlement error, not merely a hidden button) - including the mutating routes, with no device or session created.
- * Open questions for the development handoff (RUN-006-PREPARATION): Q2 does Enterprise+ include the agent; Q3 how a Custom tenant is "explicitly enabled" (override mechanism) and a Custom tenant WITHOUT it.
+ * Open questions for the development handoff (RUN-006-PREPARATION): RUN-007 (owner FINAL decision): there is no enterprise-plus; the Custom tenant is on a Custom plan that explicitly lists desktop-agent (see 29-run007-custom-grants-revocation).
  * Optional tenants skip as Not Run when not provisioned. Authored before the candidate exists.
  */
 const AGENT_READ = ['/agent/settings', '/agent/me', '/agent/config', '/agent/location-requests/pending'];
@@ -118,6 +118,7 @@ test.describe('desktop agent - unauthorized attempts (any plan)', () => {
   // Entitlement withdrawal (a downgrade, or removing the explicit Custom grant). Observed behaviour: the entitlement is cached in the API process for about a minute, so the old access token and a fresh
   // sign-in keep working for up to ~60 s and are then refused. The test allows up to 120 s and records the measured delay; it fails if access is never cut.
   test('[DPQA-AGT-020] withdrawing the Custom agent entitlement cuts an already-issued agent token and any new sign-in (within the cache window)', async ({ request }, info) => {
+    test.skip(true, 'SUPERSEDED in RUN-007 by CUS-010/CUS-012: the Custom agent grant is now an explicit feature of a Custom plan changed through the supported plan API, not a TenantFeature override row. Kept for the RUN-006 record; never counted as passed.');
     test.skip(!planTenantProvisioned('C'), 'NOT RUN: Custom tenant not provisioned');
     test.setTimeout(240_000);
     const set = (v: boolean) => sql(`update "TenantFeature" set "isEnabled" = $1 where key = 'desktop-agent' and "tenantId" = (select id from "Tenant" where slug = $2)`, [v, env.QA_TENANT_C_SLUG]);
