@@ -85,3 +85,31 @@ past the plan.
 ## Related
 
 [[ADR-0009-entitlement-enforcement-cutover]] - [[ADR-0005-settings-capability-attribution]]
+
+## Amendment 2026-11-01 (after RUN-006) - Custom is an explicit-grant model
+
+Owner decision on DP-QA-042. The table above said Custom was "per contract"; the
+catalogue gave `enterprise-plus` every key, so a Custom tenant silently received
+the Desktop Agent and white-label e-mail. That is withdrawn.
+
+| Capability | Starter | Growth | Enterprise | Custom (`enterprise-plus`) |
+|---|---|---|---|---|
+| `desktop-agent` | no | no | yes (catalogue) | **only with an explicit `CUSTOM` grant** |
+| `email-white-label` | no | no | yes (catalogue) | **only with an explicit `CUSTOM` grant** |
+
+- Mechanism: no new plan key. `enterprise-plus` no longer lists the two keys
+  (`CONTRACT_GRANT_ONLY_FEATURE_KEYS`). The existing tenant-modules control plane
+  writes a `TenantFeature` row with `source: CUSTOM` when an operator grants one
+  to a tenant on that plan; it refuses the grant on any other plan, and refuses
+  every other key beyond the plan. A missing grant means off.
+- Withdrawing the Desktop Agent invalidates the entitlement cache at once and
+  revokes the tenant's `AgentRefreshToken` rows, so a device cannot mint a new
+  access token; an already-issued access token ends with the next guarded
+  request, because the cache entry is gone.
+- A plan-level change (subscription downgrade, catalogue edit applied by
+  `seed:config`) is bounded by the 60 s entitlement snapshot. Login and refresh
+  re-check entitlement on every call, so no new session can start.
+- Existing `enterprise-plus` tenants that use the agent today lose it at the next
+  `seed:config` unless `npm run entitlement:grandfather` (probe: AgentRefreshToken)
+  has written an explicit `CUSTOM` grant for them. Run it, dry-run first, before
+  releasing.
