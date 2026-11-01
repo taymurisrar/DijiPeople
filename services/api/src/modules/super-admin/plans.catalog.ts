@@ -1,3 +1,4 @@
+import { CONTRACT_GRANT_ONLY_FEATURE_KEYS } from '../../common/constants/tenant-features';
 import { TENANT_FEATURE_DEFINITIONS } from '../tenant-settings/tenant-settings.catalog';
 
 /*
@@ -107,8 +108,17 @@ export const DEFAULT_PLAN_DEFINITIONS = [
     monthlyBasePrice: 0,
     annualBasePrice: 0,
     currency: 'USD',
+    /*
+     * Everything EXCEPT the capabilities a contract gets only by explicit
+     * grant (DP-QA-042): the Desktop Agent and white-label e-mail. A Custom
+     * customer receives those through `TenantFeature` rows with source CUSTOM,
+     * never by inheriting them from this plan.
+     */
     enabledFeatureKeys: TENANT_FEATURE_DEFINITIONS.map(
       (feature) => feature.key,
+    ).filter(
+      (key) =>
+        !(CONTRACT_GRANT_ONLY_FEATURE_KEYS as readonly string[]).includes(key),
     ),
   },
 ] as const;

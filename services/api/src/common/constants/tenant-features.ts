@@ -74,6 +74,24 @@ export const ENTITLEMENT_GATED_MODULES: Readonly<
 };
 
 /**
+ * Capabilities a contract (Custom) subscription gets ONLY by explicit grant
+ * (DP-QA-042, owner decision 2026-11-01).
+ *
+ * Starter and Growth never have them. Enterprise carries them in its catalog.
+ * The contract plan (`enterprise-plus`, "terms agreed per customer") does NOT
+ * inherit them from the plan: they are switched on for a tenant by a
+ * `TenantFeature` row with source CUSTOM, through the existing tenant-modules
+ * control plane. No plan key is invented; a missing grant means off.
+ */
+export const CONTRACT_GRANT_ONLY_FEATURE_KEYS: readonly TenantFeatureKey[] = [
+  TENANT_FEATURE_KEYS.DESKTOP_AGENT,
+  TENANT_FEATURE_KEYS.EMAIL_WHITE_LABEL,
+];
+
+/** The plan whose optional capabilities are explicit grants. */
+export const CONTRACT_PLAN_KEY = 'enterprise-plus';
+
+/**
  * Controllers gated one by one inside a module that is NOT gated as a whole
  * (DP-QA-010). The tenant-admin surface of a paid feature is refused for a plan
  * that does not sell it; the machine-facing surface beside it is not, because a
