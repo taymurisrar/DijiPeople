@@ -91,8 +91,8 @@ for (const [key, label] of PLANS) {
     });
 
     test(`[DPQA-IMX-004-${key}] ${label}: an employee-level user cannot import, export, or read templates`, async ({ request }) => {
-      test.skip(key !== 'A', 'role users exist on A/B/G (seed-role-users); E/C use the owner role only');
-      const emp = await apiToken(request, 'A', 'EMPLOYEE');
+      // RUN-006: every plan tenant has its own employee user (seed-role-users), so the role check now runs on each plan instead of being skipped for G/E/C.
+      const emp = await apiToken(request, key, 'EMPLOYEE');
       for (const [m, p] of [['GET', '/data-management/imports'], ['GET', `/data-management/modules/${MODULE}/template`], ['POST', '/data-management/exports']] as const) {
         const r = await api(request, emp, m, p, m === 'POST' ? { moduleKey: MODULE, format: 'xlsx' } : undefined);
         expect([401, 403], `${m} ${p}`).toContain(r.status);
