@@ -132,6 +132,8 @@ test.describe('sensitive data, isolation and plan-scoped modules (tenant A, Star
     const rel = (await api(request, owner, 'GET', '/lookups/relation-types')).body;
     const created = await api(request, owner, 'POST', '/employees', { firstName: tag, lastName: 'Export', workEmail: `${tag.toLowerCase()}@qa.dijipeople.test`, hireDate: '2025-02-03', employmentStatus: 'ACTIVE', phone: '+97455500001', emergencyContactName: 'X Y', emergencyContactRelationTypeId: (Array.isArray(rel) ? rel : rel.items)[0].id, emergencyContactPhone: '+97455500002' });
     expect(created.status, JSON.stringify(created.body).slice(0, 200)).toBeLessThan(300);
+    // RUN-006 test-side correction: the first version deleted immediately and could pass because the export had never seen the employee. Prove the export CAN see the live employee first.
+    expect(await exportCsv(request, owner), 'precondition: the export includes the live employee').toContain(tag);
     expect((await api(request, owner, 'DELETE', `/employees/${created.body.id}`)).status).toBeLessThan(300);
     const list = JSON.stringify((await api(request, owner, 'GET', '/employees?pageSize=200')).body);
     expect(list, 'precondition: the live list excludes the deleted employee').not.toContain(tag);

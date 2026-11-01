@@ -48,7 +48,8 @@ function seedConfig(): { status: number | null; leaked: boolean } {
   return { status: r.status, leaked: `${r.stdout}${r.stderr}`.includes(SECRET) };
 }
 
-test.describe.configure({ mode: 'serial' });
+// RUN-006: tests are independent (each restores what it touches); a serial group hid SEED-006..011 behind the SEED-005 failure.
+test.describe.configure({ mode: 'default' });
 test.describe('seed:config and migration idempotency (local _test database)', () => {
   test.beforeEach(({}, info) => { test.skip(info.project.name !== 'chromium', 'database-level suite: runs once, on the chromium project'); });
   test.skip(!worktree, 'NOT RUN: QA_API_WORKTREE (path of the validation worktree that holds the candidate) is not set in .env.qa.local');
