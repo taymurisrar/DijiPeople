@@ -27,7 +27,7 @@ if (mode === 'prepare') {
   await pg.query(`insert into "TenantFeature" (id, "tenantId", key, "isEnabled", source, "createdAt", "updatedAt") values (gen_random_uuid()::text, $1, 'desktop-agent', true, 'CUSTOM'::"TenantFeatureSource", now(), now())`, [g]);
   console.log(`prepared: ${withGrant} (explicit agent grant) and ${withoutGrant} (no grant) are on enterprise-plus`);
 } else if (mode === 'capture') {
-  const rows = (await pg.query(`select t.slug, p.key as "planKey", s.status::text as status, s."billingCycle"::text as cycle, s."basePrice"::text as "basePrice", s."finalPrice"::text as "finalPrice", s.currency, s."startDate"::text as "startDate", s."endDate"::text as "endDate", s."tenantId", s."planId"
+  const rows = (await pg.query(`select t.slug, p.key as "planKey", s.status::text as status, s."billingCycle"::text as cycle, s."basePrice"::text as "basePrice", s."finalPrice"::text as "finalPrice", s.currency, s."startDate"::text as "startDate", s."endDate"::text as "endDate", s."tenantId", s."planId", s.id as "subscriptionId"
       from "Subscription" s join "Tenant" t on t.id = s."tenantId" join "Plan" p on p.id = s."planId" where p.key = 'enterprise-plus' order by t.slug`)).rows;
   const out = [];
   for (const r of rows) {
@@ -36,8 +36,10 @@ if (mode === 'prepare') {
     const effective = new Set(plan);
     for (const f of tf) f.isEnabled ? effective.add(f.key) : effective.delete(f.key);
     const explicit = tf.filter((f) => f.source === 'CUSTOM' && f.isEnabled).map((f) => f.key).sort();
-    const { tenantId, planId: _p, ...rest } = r;
-    out.push({ ...rest, effective: [...effective].sort(), explicitGrants: explicit });
+    // history counts, so MIG-006 can prove the conversion lost nothing (a table that does not exist is simply not counted)
+    const count = async (table) => { try { return Number((await pg.query(`select count(*)::int as n from "${table}" where "tenantId" = $1`, [r.tenantId])).rows[0].n); } catch { return undefined; } };
+    const { tenantId, planId: legacyPlanId, ...rest } = r;
+    out.push({ ...rest, legacyPlanId, invoiceCount: await count('Invoice'), paymentCount: await count('Payment'), effective: [...effective].sort(), explicitGrants: explicit });
   }
   mkdirSync('golive-results/run007', { recursive: true });
   writeFileSync('golive-results/run007/legacy-baseline.json', JSON.stringify(out, null, 2));

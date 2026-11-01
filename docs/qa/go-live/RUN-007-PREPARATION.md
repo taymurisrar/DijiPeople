@@ -28,7 +28,7 @@ Checkpoint: QA branch `agent/starter-golive-qa`. Revision 1 (`f5fab655`) assumed
 **"Promptly" is a newly decided number.** Today the entitlement cache makes enforcement take about 54-62 s (OBS-029). The specs use one constant `PROMPT_MS = 120000` (`29-run007-custom-grants-revocation.spec.ts`); if the owner sets a tighter SLA, change that one line and say so in the report. Measured delays are recorded as annotations.
 
 ## 2. New suites and stable test ids
-Discovery after revision 2: **516** test instances in 34 files, 0 load errors, every new id unique (new fixtures: `fixtures/platform.ts`, `tools/legacy-enterprise-plus.mjs`).
+Discovery after revision 3: **521** test instances in 34 files (revision 2 was 516; +CUS-032, CPL-007, CPL-008, MIG-005, MIG-006), 0 load errors, every new id unique (new fixtures: `fixtures/platform.ts`, `tools/legacy-enterprise-plus.mjs`).
 
 | Spec | Test id | Expected outcome (the requirement) | Checks |
 |---|---|---|---|
@@ -116,3 +116,18 @@ Fixture / test-side corrections (selectors, payload shapes, response ids, the ca
 - Visual baselines exist for Chromium only.
 - Non-authentication notification e-mails are untested.
 - A real mailbox and production link host (gate B5) need the owner's environment.
+
+## 7. Revision 3 - owner final decisions (2026-11-01, on `751ae019`)
+Execution stays blocked until development supplies the final SHA for the legacy `enterprise-plus` migration correction. Nothing here was run against any candidate.
+
+| Decision | Test IDs |
+|---|---|
+| D11 Legacy `enterprise-plus` converts to a **neutrally identified Custom plan**; subscriptions, commercial terms, feature access and history preserved | CAT-002 (no plan row with the legacy identity, any state), MIG-001..006 |
+| D12 Custom entitlements = explicitly selected features + universal basic import/export | CUS-001..007 |
+| D13 Custom plans are **sales-assisted by default** | CPL-007 |
+| D14 Reserved plans are not discoverable/selectable by unauthorised customers | CPL-008 |
+| D15 **Plan availability expiry does not terminate an active subscription** | CUS-032 (CUS-030 stays: a subscription's own expiry) |
+| D16 Revocation immediate; external propagation **max 60 s** | CUS-010/012/020, `PROMPT_MS` = 60 s (was 120 s) |
+| D17 No legacy plan available for sale or tenant assignment | CAT-002, CAT-004, CPL-008, MIG-005 |
+
+Added to the protocol: `legacy-enterprise-plus.mjs capture` now also records the subscription id, legacy plan id and invoice/payment counts, so MIG-006 can prove nothing was lost. Execution order, `_test` database, separate `_legacy_test` fixture, production build, full browser matrix and secret scan are unchanged. Defects still need independent confirmation before they are recorded Resolved; Blocked and Not Run are never counted as Passed.

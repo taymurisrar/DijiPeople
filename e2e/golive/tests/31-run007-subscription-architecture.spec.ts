@@ -23,6 +23,10 @@ import type { APIRequestContext } from '@playwright/test';
  *   CPL-006  authorization: tenant users (owner, employee) cannot list, create, edit or assign plans; tenant B cannot see tenant C's Custom plan
  *   SEEDPLAN-001  `seed:config` x2 leaves Custom plans (rows, features, prices) and the subscriptions on them byte-identical, and never restores a predefined definition over a Custom plan
  *   SEEDPLAN-002  a Custom plan whose NAME resembles a predefined plan ("Starter") is still a separate plan the seed does not touch or merge
+ *   CPL-007  Custom plans are SALES-ASSISTED by default (owner FINAL): a plan created with no sales fields is not self-service, not public, not published for sale
+ *   CPL-008  reserved (Custom) plans are not discoverable or selectable by unauthorised customers: anonymous, other tenants and the tenant's own billing screens cannot list, preview, check out or switch to one
+ *   MIG-005  the converted legacy plan is NEUTRALLY identified (no enterprise-plus key/name), a Custom plan, sales-assisted, and not for sale or self-service assignment
+ *   MIG-006  history is preserved: subscription ids, invoice and payment counts and platform audit rows are not lost by the conversion
  *   MIG-001..004  LEGACY `enterprise-plus` data migrates safely (needs golive-results/run007/legacy-baseline.json from tools/legacy-enterprise-plus.mjs, captured BEFORE the candidate's migration)
  */
 const run = Date.now().toString(36);
@@ -48,7 +52,7 @@ test.describe('plan catalogue (platform admin)', () => {
 
   test('[DPQA-CAT-002] no enterprise-plus plan, plan-feature, catalogue entry or active subscription remains', async ({ request }) => {
     const plan = await sql<{ id: string; active: boolean }>(`select id, "isActive" as active from "Plan" where key ilike '%enterprise%plus%' or name ilike '%enterprise%+%' or name ilike '%enterprise%plus%'`);
-    expect(plan.filter((p) => p.active), 'active enterprise-plus plan rows').toEqual([]);
+    expect(plan, 'plan rows still carrying enterprise-plus in key or name (owner FINAL: the legacy plan is converted to a neutrally identified Custom plan, in any state)').toEqual([]);
     const subs = await sql<{ n: string }>(`select count(*)::text as n from "Subscription" s join "Plan" p on p.id = s."planId" where p.key ilike '%enterprise%plus%'`);
     expect(subs[0].n, 'subscriptions still on enterprise-plus (must be migrated to a Custom plan)').toBe('0');
     const api1 = JSON.stringify(await plansOf(request)); const api2 = JSON.stringify(await plansOf(request, '?sellable=true'));
@@ -170,6 +174,53 @@ test.describe('Custom plan lifecycle (platform admin)', () => {
   });
 });
 
+test.describe('Custom plans are sales-assisted and reserved (owner FINAL)', () => {
+  test.skip(!platformConfigured(), 'NOT RUN: QA_PLATFORM_EMAIL / QA_PLATFORM_PASSWORD not configured');
+  test.beforeEach(({}, i) => { test.skip(i.project.name !== 'chromium', 'database-level suite: runs once, on the chromium project'); });
+  const made: CustomPlan[] = [];
+  test.afterAll(async ({ request }) => { for (const p of made) await deleteCustomPlan(request, p); });
+  const mk = async (request: APIRequestContext, features: string[], label: string) => { const p = await createCustomPlan(request, features, { label }); made.push(p); return p; };
+
+  test('[DPQA-CPL-007] a Custom plan is sales-assisted by default: not self-service, not public, not published for sale', async ({ request }, info) => {
+    const p = await mk(request, ['employees'], 'sales-model');
+    const row = (await sql<{ salesModel: string; isPublic: boolean; publicationStatus: string }>(`select "salesModel"::text as "salesModel", "isPublic" as "isPublic", "publicationStatus"::text as "publicationStatus" from "Plan" where id = $1`, [p.id]))[0];
+    info.annotations.push({ type: 'observation', description: `new plan created with no sales fields -> ${JSON.stringify(row)}` });
+    expect(['SALES_ASSISTED', 'CUSTOM_ONLY'], 'default sales model of a dynamically created Custom plan').toContain(row.salesModel);
+    expect(row.isPublic, 'a new Custom plan is public').toBe(false);
+    expect(row.publicationStatus, 'a new Custom plan is published for sale').not.toBe('PUBLISHED');
+    expect((await plansOf(request, '?sellable=true')).map((x) => x.key), 'a new Custom plan is in the sellable list').not.toContain(p.key);
+  });
+
+  test('[DPQA-CPL-008] a reserved Custom plan is neither discoverable nor selectable by unauthorised customers', async ({ request }) => {
+    test.setTimeout(300_000);
+    const p = await mk(request, ['employees', 'payroll'], 'reserved');
+    // discovery: anonymous
+    const anon = await request.get(`${env.QA_API_URL}/api/super-admin/plans`, { headers: { 'X-DijiPeople-App': 'admin' } });
+    expect([401, 403], 'anonymous platform plan list').toContain(anon.status());
+    const pub = await request.get(`${env.QA_API_URL}/api/public/plans`, { headers: { 'X-DijiPeople-App': 'web' } });
+    expect(await pub.text(), 'public catalogue exposes the reserved plan').not.toContain(p.key);
+    const cfg = await request.get(`${env.QA_API_URL}/api/public/commercial-config`, { headers: { 'X-DijiPeople-App': 'web' } });
+    expect(await cfg.text(), 'public commercial config exposes the reserved plan').not.toContain(p.key);
+    // discovery + selection: another customer's owner (tenant B) - billing screens and the plan-change path
+    const owner = await apiToken(request, 'B', 'OWNER');
+    const list = await api(request, owner, 'GET', '/billing/plans');
+    if (list.status === 200) expect(JSON.stringify(list.body), 'tenant billing plan list exposes the reserved plan').not.toContain(p.key);
+    const before = await subscriptionOf(TENANTS.B.slug);
+    const attempts: Array<[string, string, unknown]> = [
+      ['GET', `/billing/plan-changes/preview?toPlanId=${p.id}${p.priceId ? `&toPlanPriceId=${p.priceId}` : ''}`, undefined],
+      ['POST', '/billing/plan-changes', { toPlanId: p.id, ...(p.priceId ? { toPlanPriceId: p.priceId } : {}) }],
+      ...(p.priceId ? [['POST', '/billing/checkout-sessions', { planPriceId: p.priceId }] as [string, string, unknown]] : []),
+    ];
+    for (const [m, path, body] of attempts) {
+      const r = await api(request, owner, m as 'GET' | 'POST', path, body);
+      expect(r.status, `${m} ${path.split('?')[0]} by a tenant owner for a reserved plan -> ${r.status} ${JSON.stringify(r.body).slice(0, 140)}`).toBeGreaterThanOrEqual(400);
+      expect(r.status, `${m} ${path.split('?')[0]} must be a refusal, not a server error`).toBeLessThan(500);
+    }
+    const after = await subscriptionOf(TENANTS.B.slug);
+    expect({ planId: after.planId, status: after.status }, 'tenant B subscription changed by selecting a reserved plan').toEqual({ planId: before.planId, status: before.status });
+  });
+});
+
 test.describe('predefined seeds never overwrite Custom plans', () => {
   test.skip(!platformConfigured() || !worktree, 'NOT RUN: platform admin or QA_API_WORKTREE not configured');
   test.beforeEach(({}, i) => { test.skip(i.project.name !== 'chromium', 'database-level suite: runs once, on the chromium project'); });
@@ -209,7 +260,7 @@ test.describe('predefined seeds never overwrite Custom plans', () => {
 });
 
 /** Legacy enterprise-plus data: baseline captured BEFORE the candidate's migration (tools/legacy-enterprise-plus.mjs). */
-type Baseline = { slug: string; planKey: string; status: string; cycle: string; basePrice: string; finalPrice: string; currency: string; startDate: string; endDate: string | null; effective: string[]; explicitGrants: string[] };
+type Baseline = { slug: string; planKey: string; status: string; cycle: string; basePrice: string; finalPrice: string; currency: string; startDate: string; endDate: string | null; effective: string[]; explicitGrants: string[]; subscriptionId?: string; legacyPlanId?: string; invoiceCount?: number; paymentCount?: number; auditCount?: number };
 const baselineFile = 'golive-results/run007/legacy-baseline.json';
 const baseline = (): Baseline[] => (existsSync(baselineFile) ? JSON.parse(readFileSync(baselineFile, 'utf8')) : []);
 test.describe('legacy enterprise-plus data migrates safely', () => {
@@ -244,6 +295,37 @@ test.describe('legacy enterprise-plus data migrates safely', () => {
         else if (eff.includes(k)) i.annotations.push({ type: 'owner-decision', description: `${b.slug} keeps ${k} without an explicit pre-migration grant - confirm the migration rule with the owner` });
       }
       expect(eff.filter((k) => !b.effective.includes(k)), `${b.slug}: features granted that the legacy subscription never had`).toEqual([]);
+    }
+  });
+
+  test('[DPQA-MIG-005] the converted legacy plan is neutrally identified, Custom, sales-assisted and not for sale or self-service assignment', async ({ request }) => {
+    test.skip(!platformConfigured(), 'NOT RUN: platform admin not configured');
+    const seen = new Set<string>();
+    for (const b of baseline()) {
+      const a = await afterOf(b.slug); if (seen.has(a.planId)) continue; seen.add(a.planId);
+      const p = (await sql<{ key: string; name: string; description: string | null; salesModel: string; isPublic: boolean; publicationStatus: string }>(`select key, name, description, "salesModel"::text as "salesModel", "isPublic" as "isPublic", "publicationStatus"::text as "publicationStatus" from "Plan" where id = $1`, [a.planId]))[0];
+      expect(`${p.key} ${p.name}`, `${b.slug}: converted plan still identified as the legacy plan`).not.toMatch(/enterprise.?plus/i);
+      expect(PREDEFINED, `${b.slug}: converted plan must be a Custom plan, not one of the predefined three`).not.toContain(p.key);
+      expect(['SALES_ASSISTED', 'CUSTOM_ONLY'], `${b.slug}: converted plan sales model`).toContain(p.salesModel);
+      expect(p.isPublic, `${b.slug}: converted plan is public`).toBe(false);
+      expect(p.publicationStatus, `${b.slug}: converted plan is published for sale`).not.toBe('PUBLISHED');
+      expect((await plansOf(request, '?sellable=true')).map((x) => x.id), `${b.slug}: converted plan is sellable`).not.toContain(a.planId);
+      const pub = await request.get(`${env.QA_API_URL}/api/public/plans`, { headers: { 'X-DijiPeople-App': 'web' } });
+      expect(await pub.text(), `${b.slug}: converted plan is in the public catalogue`).not.toContain(p.key);
+    }
+    expect(await sql(`select 1 from "Plan" where key ilike '%enterprise%plus%' or name ilike '%enterprise%plus%' or name ilike '%enterprise%+%'`), 'a plan row still carries the legacy identity').toEqual([]);
+  });
+
+  test('[DPQA-MIG-006] history is preserved: subscription ids, invoices, payments and platform audit rows are not lost', async () => {
+    for (const b of baseline()) {
+      const a = await afterOf(b.slug);
+      const sub = (await sql<{ id: string }>(`select s.id from "Subscription" s join "Tenant" t on t.id = s."tenantId" where t.slug = $1`, [b.slug]))[0];
+      if (b.subscriptionId) expect(sub.id, `${b.slug}: subscription identity replaced by the conversion`).toBe(b.subscriptionId);
+      const count = async (table: string) => { try { return Number((await sql<{ n: string }>(`select count(*)::text as n from "${table}" where "tenantId" = $1`, [a.tenantId]))[0].n); } catch { return undefined; } };
+      for (const [table, was] of [['Invoice', b.invoiceCount], ['Payment', b.paymentCount]] as const) {
+        const now = await count(table); if (was === undefined || now === undefined) continue;
+        expect(now, `${b.slug}: ${table} rows lost by the conversion`).toBeGreaterThanOrEqual(was);
+      }
     }
   });
 

@@ -23,10 +23,10 @@ import type { APIRequestContext } from '@playwright/test';
  *   CUS-040       tenant isolation: a plan assigned to tenant C changes nothing for tenants A and B
  *   SESS-030      an idle-expired web session cannot be revived by its refresh token
  *
- * "Promptly" is a decided number: PROMPT_MS (120 s) because the entitlement snapshot is ~60 s today; the delays are recorded. Local `_test` database only.
+ * "Promptly" is the OWNER FINAL number: explicit entitlement revocation is immediate and external propagation (a token, refresh or sign-in elsewhere) is at most 60 s, so PROMPT_MS = 60 s (it was a provisional 120 s). The delays are recorded; a delay above 60 s is a defect, not a fixture issue. Local `_test` database only.
  */
 const run = Date.now().toString(36);
-const PROMPT_MS = 120_000;
+const PROMPT_MS = 60_000;
 const DEVICE = { deviceFingerprint: 'qa-device-fingerprint-0007', deviceName: 'qa-device', os: 'Windows 11', platform: 'win32', agentVersion: '1.0.0' };
 const agentHdr = { 'X-DijiPeople-App': 'agent-desktop', 'content-type': 'application/json' };
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -200,6 +200,21 @@ test.describe('Custom plans (tenant C) - explicit features only', () => {
     const settled = await awaitAgent(request, 403).catch(() => -1);
     info.annotations.push({ type: 'measurement', description: `expired subscription cut the agent after ${settled} ms` });
     expect(settled, 'an expired subscription must stop granting the plan-only desktop-agent').toBeGreaterThan(-1);
+  });
+
+  test('[DPQA-CUS-032] plan AVAILABILITY ending (deactivated / off sale) does not terminate an active subscription on it', async ({ request }, info) => {
+    test.setTimeout(600_000);
+    const p = await plan(request, [...STARTER_FEATURES, 'desktop-agent'], 'availability');
+    await assign(request, p);
+    await awaitAgent(request, 201);
+    const before = await subscriptionOf(TENANTS.C.slug);
+    const off = await papi(request, 'PATCH', `/super-admin/plans/${p.id}`, { isActive: false });
+    info.annotations.push({ type: 'observation', description: `PATCH plan isActive=false while subscribed -> ${off.status} ${JSON.stringify(off.body).slice(0, 120)}` });
+    await sleep(PROMPT_MS + 15_000); // longer than the propagation budget: a wrongly terminating cut would have landed by now
+    const after = await subscriptionOf(TENANTS.C.slug);
+    expect({ planId: after.planId, status: after.status, endDate: after.endDate }, 'subscription terminated or altered by the plan going off sale').toEqual({ planId: before.planId, status: before.status, endDate: before.endDate });
+    expect((await login(request, EMP)).status(), 'agent entitlement still granted after the plan left sale').toBe(201);
+    expect((await resolvedFeatures(request, owner)).enabled, 'resolved features unchanged').toContain('desktop-agent');
   });
 
   test('[DPQA-CUS-031] validity dates, status and plan identity persist as sent and read back unchanged', async ({ request }) => {
