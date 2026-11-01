@@ -143,6 +143,11 @@ decision.
   *assigned*; it does not terminate a running subscription (no new billing behaviour).
 - **Predefined plans** keep their key and features under the catalogue; the console
   refuses to edit them and points to creating a custom plan.
-- **Legacy `enterprise-plus`** is converted, never deleted: see the migration
+- **Legacy `enterprise-plus`** is converted in place, never deleted: same id, renamed to a neutral
+  `custom-<id>` / `Custom Plan <ID>` (old key kept only as metadata provenance), CUSTOM_ONLY, reserved to its
+  single customer or ARCHIVED when several use it, features and subscriptions untouched. Contracted features
+  stay until an approved commercial review. See the migration
   `20261102090000_plan_kind_and_custom_plan_metadata` and handoff v6.
+- Eligibility (reservation, validity window) is enforced on customer select, onboarding, provisioning, the public
+  catalogue and self-service checkout; expiry stops new assignments only, never a running subscription.
 - Per-feature limits/quotas do not exist in the product today and were not invented.

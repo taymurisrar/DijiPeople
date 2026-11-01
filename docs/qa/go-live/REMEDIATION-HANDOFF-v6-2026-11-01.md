@@ -51,41 +51,73 @@ references the key any more; the only remaining mention is the migration that co
 - Removing the Desktop Agent from a plan or a tenant: caches flushed; tenant-level removal also revokes agent refresh
   tokens; login and refresh re-check entitlement on every call.
 
-## Migration `20261102090000_plan_kind_and_custom_plan_metadata` and legacy `enterprise-plus`
+## Migration `20261102090000_plan_kind_and_custom_plan_metadata` and legacy `enterprise-plus` (consistency review)
 
-Additive: new enum `PlanKind`, columns `kind` (default CUSTOM), `eligibleCustomerAccountId` (FK RESTRICT),
-`effectiveFrom`, `effectiveUntil`, two indexes. Then data:
-- `starter`, `growth`, `enterprise` -> `CATALOGUE`.
-- legacy `enterprise-plus` is **converted, not deleted**: `kind = CUSTOM`, `salesModel = CUSTOM_ONLY`, `isPublic = false`,
-  `publicationStatus = ARCHIVED` (withdrawn from sale), `metadataJson.convertedFromCataloguePlan`. Its id, key,
-  **PlanFeature rows (including desktop-agent and white-label as they were)**, prices, subscriptions, customers,
-  onboardings, leads and orders are untouched. It stays `isActive` while anything references it; if nothing does it is
-  also deactivated.
-- Tested: (a) RUN-006-shaped database with a tenant subscribed to a legacy `enterprise-plus` carrying all 19 features:
-  after `migrate deploy` the subscription still points to it and the feature set is byte-identical; two `seed:config`
-  runs change nothing, report 0 retired / 0 withdrawn, and `kind = CATALOGUE` count is 3. (b) copy with no references:
-  converted and deactivated. (c) fresh database: `migrate deploy`, `seed:config` x2, `seed:admin`, `seed:demo` -> exactly
-  starter, growth, enterprise.
-- Seed behaviour change: `retireUnlistedPlans` previously withdrew **any** plan the catalogue did not list - it would have
-  retired every custom plan an operator created. It now touches `CATALOGUE` plans only.
+Additive: enum `PlanKind`, columns `kind` (default CUSTOM), `eligibleCustomerAccountId` (FK RESTRICT), `effectiveFrom`,
+`effectiveUntil`, two indexes; `starter`/`growth`/`enterprise` -> `CATALOGUE`. Then the legacy plan, in one PL/pgSQL block:
 
-### Existing-tenant impact and OWNER DECISIONS (migration steps stopped here)
+| Step | Behaviour |
+|---|---|
+| Identity | **Renamed in place**, same `id`: key `enterprise-plus` -> `custom-<first 12 hex of id>`, name -> `Custom Plan <first 6 of id>`. Old key/name survive only as `metadataJson.convertedFromLegacyPlan {key,name}`. No `enterprise-plus` key exists afterwards. |
+| Kind / sales | `kind = CUSTOM`, `salesModel = CUSTOM_ONLY`, `isPublic = false`. |
+| Reservation | Counted over subscribers (via tenant), customers that selected it, and onboardings that carry it. **Exactly one customer -> reserved to that customer**, publication status unchanged. **Several -> not reserved, `ARCHIVED`** (not listed publicly) because a plan can be reserved to one customer only. Existing subscriptions are unaffected either way. |
+| Features / prices / subscriptions / orders / agreements / audit | **Not touched** (no statement updates those tables). Contracted features, including the Desktop Agent and white-label e-mail, stay: no silent removal. |
+| Deactivation | `isActive = false` only when nothing references the plan (subscription, customer, onboarding, lead, order). |
+| Collision | If `custom-<id12>` is already a plan key the migration **raises a specific error and rolls back everything** (proved). |
+| Absent legacy plan | No-op (fresh and already-converted databases). |
 
-- Tenants on legacy `enterprise-plus` keep every capability and their billing terms **today**. Nothing in this branch
-  moves them. They are on a plan that is archived and CUSTOM_ONLY: it cannot be sold to anyone new.
-- **Decide per tenant** (list: `select t.slug from "Subscription" s join "Tenant" t on t.id=s."tenantId" join "Plan" p on
-  p.id=s."planId" where p.key='enterprise-plus'`): (1) leave them on the converted plan and rename/describe it in the
-  console as their contract plan; (2) create a purpose-made custom plan per customer with the entitlements their
-  agreement actually states and move them (plan-change workflow - a commercial act); (3) move to Enterprise. Whether any
-  tenant needs the converted plan's current feature list trimmed (e.g. the agent or white-label) is likewise yours.
-- The previous round's `CUSTOM` tenant-override grants on this branch were never deployed; nothing to unwind.
-  `entitlement:grandfather` still exists for Growth tenants that already use the agent.
+**Key-based dependencies inspected before renaming.** Stripe prices/products reference the plan by id (`metadata.planId`); every
+feature/price/subscription/customer/onboarding/lead/order/promotion table joins on `planId`; no setting, template, seed or
+code path addresses the plan by key (the catalogue, markets, pricing and bootstrap sources no longer name it; a spec asserts that).
+Text copies of the old key are **historical records and deliberately keep it**: `SubscriptionOrder.commercialSnapshot.planKey`
+(what an order was priced against) and `PlatformAuditLog` before/after snapshots. Nothing resolves a plan from those.
+No blocker was found; none of this required a business decision.
+
+**Verified on real local databases** (copies of the RUN-006-shaped legacy DB with the migration undone, then `migrate deploy`):
+(A) one subscribing customer: same id, neutral key/name, reserved to that customer, 19 features + subscription byte-identical, three
+CATALOGUE plans, then `seed:config` leaves the plan, its 19 features and every other custom plan untouched;
+(B) a second customer also on it: not reserved, ARCHIVED, still renamed, subscriptions identical; (C) unreferenced: renamed and
+deactivated; (D) key collision: fails with "already used by another plan", no column added, legacy plan unchanged;
+(E) legacy plan absent: migrates, exactly three CATALOGUE plans. PlanPrice rows were not present in the test data
+(none in the QA copy); the migration contains no statement that touches `PlanPrice`, asserted by a spec.
+
+### Existing-tenant impact and OWNER DECISIONS
+
+- Tenants on the legacy plan keep **every capability and billing term today**; nothing moves them. They are on a neutrally named custom
+  plan that cannot be sold to anyone else.
+- Decisions that remain yours (list the tenants: `select t.slug from "Subscription" s join "Tenant" t on t.id=s."tenantId" join
+  "Plan" p on p.id=s."planId" where p."metadataJson" ? 'convertedFromLegacyPlan'`): (1) keep the converted plan and rename/describe it
+  as the customer's contract plan in Admin; (2) move each tenant to a purpose-made custom plan carrying exactly the entitlements its
+  agreement states; (3) move to Enterprise. Whether any contracted feature (agent, white-label) should be trimmed after the commercial
+  review is likewise yours; nothing here does it.
+- The earlier `CUSTOM` tenant-override grants on this branch were never deployed; nothing to unwind.
+  `entitlement:grandfather` still exists for Growth tenants already using the agent.
+
+### Restricted plan discovery, selection and assignment (backend enforcement)
+
+| Path | Rule | Where |
+|---|---|---|
+| Public catalogue (`/billing/plans`, commercial catalogue) | reserved and out-of-window plans are not listed | `publiclyOfferablePlanWhere` |
+| Self-service checkout | reserved plan -> `CUSTOM_CONTRACT_ONLY`; custom plans are sales-assisted by default and a reserved/windowed plan can never be self-service; out-of-window -> not sellable | `resolveCommercialOffer` (new defence in depth) + `resolveCustomSalesModel` |
+| Select on a customer (create/update) | refused unless it is the reserved customer; a not-yet-existing customer cannot hold a reserved plan; expired plans cannot be newly selected | `assertPlanSelectable` (new) |
+| Onboarding create/update | same | same |
+| Tenant provisioning (`create-tenant`) | same, final authority | `assertPlanAssignable` |
+| Running subscription | **not** re-evaluated: expiry stops new assignments only | by design |
+
+### Custom effective entitlement (verified)
+
+`enabled(feature) = live subscription AND (plan lists feature OR feature is baseline) AND NOT (MANUAL override = off)`; a `CUSTOM`-source
+override (grandfathering) is the only thing that can add a feature the plan lacks. The snapshot reads only `plan.features`: the plan's kind,
+sales model, publication state, window, reservation and key cannot change what an existing subscriber may use (asserted via the Prisma
+`select`). A lapsed subscription is reported as `NO_LIVE_SUBSCRIPTION` (billing state, existing design), not re-decided by the plan.
+Withdrawal: a plan edit that changes features flushes every tenant snapshot immediately (control plane); a tenant-level withdrawal flushes that
+tenant and revokes agent refresh tokens. Cross-process propagation is bounded by the 60 s snapshot TTL (the previously approved maximum).
 
 ## Validation
 
 | Check | Result |
 |---|---|
-| API jest | 481 suites, 8750 tests pass |
+| API jest | 483 suites, 8771 tests pass (full run after the final code change) |
 | Admin jest / Web jest | 84 suites, 1068 tests / 139 suites, 2358 tests pass |
 | API `tsc`, `nest build` | clean / builds |
 | API eslint | 0 errors, 786 warnings (ceiling 787) |
@@ -95,13 +127,15 @@ Additive: new enum `PlanKind`, columns `kind` (default CUSTOM), `eligibleCustome
 | Live entitlement view of that tenant | agent ON (selected), white-label/payroll/advanced data OFF, basic import/export ON; after editing the plan (agent out, white-label in): agent OFF, white-label ON, import/export still ON |
 | Regression live (same DB): export/deleted/identifiers/formula, field list, upload with internal columns, CSV import, idle `/auth/me` | all pass (35, 37, 38, 40) |
 | Approval routing after the migration + seeds | active steps bound to staffed roles (qa-prov-a/b -> `global-admin`, qa-starter -> `system-admin`) |
-| Not run | Playwright golive suite; Firefox/tablet; WebKit and 412px sweeps (no web source changed since v5) |
+| Migration on real databases (legacy DB with the migration undone) | A-E above: 19 of 19 checks pass |
+| Live (local API on the converted legacy DB): discovery / selection / assignment | 13 of 13: no `enterprise-plus` plan, three CATALOGUE plans, neutral custom plan with 19 features reserved to its customer, absent from the public catalogue; another customer refused on customer select, customer create and onboarding create; the reserved customer still can; an expired plan cannot be newly selected; the legacy subscription and its 19 features unchanged |
+| New specs | `legacy-plan-conversion.spec`, `custom-plan-entitlement.spec`, resolver reserved/expiry tests |
+| Not re-run this round | the v5 live regression script (it requires a `*_test` database name; RUN-006 behaviour is covered by the full jest run above, nothing in those paths changed) and | Playwright golive suite; Firefox/tablet; WebKit and 412px sweeps (no web source changed since v5) |
 
 ## Risks
 
 - UI for the new fields is minimal (customer id text input, two dates). A customer picker is not built.
-- Selecting a reserved plan on the **customer record** is not blocked; the refusal happens at tenant creation (the
-  enforcement point), as with inactive/unpriced plans.
+- A published, unreserved custom plan set to SALES_ASSISTED is listed in the public catalogue as "contact sales" (not purchasable). Keep a customer-specific plan reserved or DRAFT.
 - A published **self-service** custom plan (reusable, no window) is buyable at public checkout like any plan; if that is
   not intended, keep custom plans SALES_ASSISTED (the default).
 - Tenant-level `TenantFeature` rows still exist and can only restrict (MANUAL) except grandfather `CUSTOM` rows.
@@ -116,10 +150,13 @@ Additive: new enum `PlanKind`, columns `kind` (default CUSTOM), `eligibleCustome
 3. Reserved plan: another customer cannot be provisioned onto it; it does not appear in the public catalogue.
 4. Seed safety: create a custom plan and a tenant on it, run `seed:config` three times; plan, features, prices and
    subscription are unchanged.
-5. Legacy path: on a database restored from before the migration, put a tenant on `enterprise-plus`, run `migrate deploy`
+5. Legacy path: restore a database from before the migration, put a tenant on `enterprise-plus`, run `migrate deploy` and `seed:config` twice;
+   the plan keeps its id, is renamed `custom-<id12>` / `Custom Plan <ID6>`, is reserved to its customer (or ARCHIVED when several customers use it),
+   keeps all features, and the tenant keeps its subscription and features. Assert no plan has key `enterprise-plus`.
+   Reserved-plan checks: another customer cannot select it (customer, onboarding) or be provisioned onto it; it is absent from the public catalogue.
    and `seed:config`; the tenant keeps its plan and features.
 6. Re-run the v5 list (APR, EXP/IMP, SEED, SESS, WebKit SMK, mobile, MAIL/BRAND, AGT). Mark Resolved only on your own evidence.
 
 ## Final SHA
 
-**Application candidate for RUN-007: `38a7b94a62787bd302e574dd929358530f361e5c`.** Commits after it change documents only.
+**Application candidate for RUN-007: `98f9b025fa8aa57e4288d5df183a7f0aeffeadf3`** (supersedes `38a7b94a`, which still named the legacy key). Commits after it change documents only.
