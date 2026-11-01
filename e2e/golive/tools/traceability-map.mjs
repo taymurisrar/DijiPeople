@@ -22,7 +22,7 @@ export const MAP = {
   'DP-QA-020': ['CONC-003'],
   'DP-QA-021': ['CMD-011'],
   'DP-QA-022': ['ATT-009'],
-  'DP-QA-023': ['SMK-011', 'SMK-015'],
+  'DP-QA-023': ['SMK-011', 'SMK-015', 'WK-100', 'WK-101', 'WK-102', 'WK-103', 'WK-104', 'WK-105', 'WK-110'],
   'DP-QA-024': ['PERF-003'],
   'DP-QA-025': ['PERF-001', 'PERF-002'],
   'DP-QA-026': ['BRAND-005'],
@@ -35,14 +35,14 @@ export const MAP = {
   'DP-QA-033': ['NAV-001'],
   'DP-QA-034': ['TRC-034'],
   // RUN-006 defects: the test that detects each one (it FAILS until the defect is fixed)
-  'DP-QA-035': ['IMX-023'],
-  'DP-QA-036': ['APR-001', 'APR-002'],
-  'DP-QA-037': ['IMX-030'],
-  'DP-QA-038': ['IMX-031'],
-  'DP-QA-039': ['SEED-005', 'SEED-006', 'SEED-010', 'SEED-011'],
-  'DP-QA-040': ['SESS-023'],
-  'DP-QA-041': ['SMK-004'],
-  'DP-QA-042': { manual: 'owner review of the enterprise-plus / Custom defaults; evidence = catalogue rows, CUSTOM override experiments, AGT-001-C and AGT-020' },
+  'DP-QA-035': ['IMX-023', 'IMP-020', 'IMP-021', 'RESP-110', 'RESP-111', 'RESP-112', 'RESP-113'],
+  'DP-QA-036': ['APR-001', 'APR-002', 'APR-010', 'APR-011', 'APR-012', 'APR-020-A', 'APR-020-G', 'APR-020-E', 'APR-020-C', 'APR-021-A', 'APR-021-G', 'APR-021-E', 'APR-021-C', 'APR-030'],
+  'DP-QA-037': ['IMX-030', 'EXP-001', 'EXP-002', 'EXP-004', 'EXP-011'],
+  'DP-QA-038': ['IMX-031', 'EXP-003'],
+  'DP-QA-039': ['SEED-005', 'SEED-006', 'SEED-010', 'SEED-011', 'EML-001', 'EML-002', 'EML-003', 'EML-004'],
+  'DP-QA-040': ['SESS-023', 'SESS-030'],
+  'DP-QA-041': ['SMK-004', 'RESP-100', 'RESP-101', 'RESP-102', 'RESP-103', 'RESP-104', 'RESP-105'],
+  'DP-QA-042': { manual: 'owner review of the enterprise-plus / Custom defaults; evidence = catalogue rows, CUSTOM override experiments, AGT-001-C and AGT-020; RUN-007 adds CUS-001..005, CUS-010, CUS-011, CUS-020 and EXP-010-*' },
 };
 
 /** RUN-006 owner-approved subscription requirements -> tests (validated against the real test list like MAP). */

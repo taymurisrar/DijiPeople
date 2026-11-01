@@ -14,6 +14,7 @@ Entry point for any QA agent. Read this, then [[QA-RUNBOOK]]; a resume prompt is
 | [[TRACEABILITY]] | generated defect -> test map (DP-QA-001..034) |
 | [[RUN-006-2026-11-01]] | **latest run**: verdict NOT READY on `17d0dcaf`; narrative, business rules, defects, gates |
 | [[RUN-006-RETEST-MATRIX]] | RUN-006 evidence by defect (statuses per browser project) |
+| [[RUN-007-PREPARATION]] | owner decisions D1-D6, 55 new regression ids (specs 27-30), protocol, calibration notes; awaiting the final development SHA |
 | [[RUN-006-PREPARATION]] | new subscription requirements, owner answers Q1-Q6, prepared suites, protocol, lessons |
 | [[RUN-005-PREPARATION]] | MCP blocker, remediation reconciliation, RUN-005 protocol (awaiting final SHA) |
 | `runs/` → [[INDEX]] | immutable run reports (RUN-001 to RUN-006) |

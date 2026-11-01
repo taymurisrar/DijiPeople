@@ -85,3 +85,12 @@ Part of [[README]]. Facts are marked **CONFIRMED** (reproduced) or **SUSPECTED**
 - OBS-035 Running `seed:config` against a QA database is itself a state change (default approval matrices, Console providers, notification rows): the seed suite must run last, or the fixture be re-prepared. The next run should provision a fresh database for the seed suite.
 - OBS-036 `Get-NetTCPConnection` returned nothing in the agent shell, so port-owner based "restarts" silently kept the old API process and its hot login limiter; the restart script now finds the QA API by command line.
 - OBS-037 An MCP screenshot of a reset e-mail contained a live token in the visible link. It was deleted and re-rendered with the token redacted; secret scanning does not read PNGs, so e-mail renders must be redacted before capture.
+
+## RUN-007 preparation (2026-11-01)
+- DEC-021 Standard exports exclude soft-deleted employees, national IDs, tax IDs and internal encrypted/hashed/storage fields (owner). Supersedes the "plaintext identifier" open question of RUN-006; tests EXP-001..003 assert it.
+- DEC-022 Sensitive-identifier export, if supported at all, needs explicit authorization, deliberate field selection and an audit row (owner). EXP-004.
+- DEC-023 Desktop Agent and white-label require explicit grants on Custom subscriptions even when based on enterprise-plus (owner). Resolves the direction of [[DP-QA-042]]: the current default is a deviation; CUS-001..005 assert the decision.
+- DEC-024 Deployment seeding preserves valid approval workflows, e-mail settings and other tenant-specific configuration (owner). APR-010..012, EML-001..004.
+- DEC-025 Revoked or downgraded agent credentials must respect current entitlements promptly (owner). QA budget: 120 s (`PROMPT_MS`), because enforcement today takes about 60 s; the owner may tighten it.
+- OBS-038 RUN-007 must not apply the RUN-006 administrator remediation (owner assigned to system-admin) to any tenant; it was a workaround for DP-QA-036.
+- OBS-039 Custom on enterprise-plus cannot be created through onboarding; the suite switches tenant C's plan in the throwaway database and restores it.

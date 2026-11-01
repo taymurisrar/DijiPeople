@@ -25,3 +25,5 @@
 | Run | Result |
 |---|---|
 | RUN-006 (`17d0dcaf`) | **OPEN — owner review** |
+
+**Owner decision (2026-11-01, DEC-023):** Desktop Agent and white-label require explicit grants on Custom subscriptions even when based on enterprise-plus. The RUN-006 default is therefore a deviation; RUN-007 asserts the decision with CUS-001..005, CUS-010, CUS-011 and CUS-020.
