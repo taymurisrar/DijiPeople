@@ -24,7 +24,10 @@ import {
   ensureDefaultLeaveTypes,
 } from '../src/modules/leave/default-leave-types';
 import { PermissionBootstrapService } from '../src/modules/permissions/permission-bootstrap.service';
-import { DEFAULT_APPROVAL_MATRICES } from '../src/modules/approvals/default-approval-matrices';
+import {
+  repairUnroutableDefaultApprovalMatrices,
+  seedDefaultApprovalMatrices,
+} from '../src/modules/approvals/default-approval-matrices';
 import { NOTIFICATION_EVENT_CATALOG } from '../src/modules/notifications/notification-events.catalog';
 import { RETIRED_EVENT_ALIASES } from '../src/modules/notifications/notification-events.catalog';
 import {
@@ -413,10 +416,13 @@ export async function runSeedConfig() {
   const ruleCount = await seedTenantNotificationRules(prisma, tenants);
   const providerCount = await seedTenantConsoleProviders(prisma, tenants);
   const leaveTypeCount = await seedTenantLeaveTypes(prisma, tenants);
-  const approvalMatrixCount = await seedTenantDefaultApprovalMatrices(
+  const approvalMatrixRepairs = await repairUnroutableDefaultApprovalMatrices(
     prisma,
     tenants,
   );
+  const approvalMatrixCount =
+    (await seedTenantDefaultApprovalMatrices(prisma, tenants)) +
+    approvalMatrixRepairs;
   const metadataCount = await seedTenantDefaultSolutions(prisma, tenants);
 
   await verifyRequiredSeedData(prisma, tenants);
@@ -1363,7 +1369,8 @@ export async function seedProjectRoles(client: PrismaClient, tenantId: string) {
     await client.projectRole.upsert({
       where: { tenantId_code: { tenantId, code } },
       create: { tenantId, name, code, sortOrder: index + 1 },
-      update: { name, sortOrder: index + 1, isActive: true },
+      /* DP-QA-039: tenant-owned once created; a deploy must not revert it. */
+      update: {},
     });
   }
 }
@@ -1404,10 +1411,8 @@ export async function seedTenantWorkforceReferenceData(
         name: designation.name,
         level: designation.level,
       },
-      update: {
-        level: designation.level,
-        isActive: true,
-      },
+      /* DP-QA-039: tenant-owned once created; a deploy must not revert it. */
+      update: {},
     });
     count += 1;
   }
@@ -1423,11 +1428,8 @@ export async function seedTenantWorkforceReferenceData(
         name: level.name,
         rank: level.rank,
       },
-      update: {
-        name: level.name,
-        rank: level.rank,
-        isActive: true,
-      },
+      /* DP-QA-039: tenant-owned once created; a deploy must not revert it. */
+      update: {},
     });
     count += 1;
   }
@@ -1446,14 +1448,8 @@ export async function seedTenantWorkforceReferenceData(
       isDefault: true,
       status: 'ACTIVE',
     },
-    update: {
-      name: 'Default Holiday Calendar',
-      timezone: 'Asia/Riyadh',
-      countryCode: 'SA',
-      weekendDays: [WorkWeekday.FRIDAY, WorkWeekday.SATURDAY],
-      isDefault: true,
-      status: 'ACTIVE',
-    },
+    /* DP-QA-039: tenant-owned once created; a deploy must not revert it. */
+    update: {},
   });
   count += 1;
 
@@ -1482,23 +1478,8 @@ export async function seedTenantWorkforceReferenceData(
       isActive: true,
       status: 'ACTIVE',
     },
-    update: {
-      holidayCalendarId: defaultCalendar.id,
-      timezone: 'Asia/Riyadh',
-      weeklyWorkDays: [
-        WorkWeekday.SUNDAY,
-        WorkWeekday.MONDAY,
-        WorkWeekday.TUESDAY,
-        WorkWeekday.WEDNESDAY,
-        WorkWeekday.THURSDAY,
-      ],
-      standardStartTime: '09:00',
-      standardEndTime: '17:00',
-      standardHoursPerWeek: new Prisma.Decimal(40),
-      isDefault: true,
-      isActive: true,
-      status: 'ACTIVE',
-    },
+    /* DP-QA-039: tenant-owned once created; a deploy must not revert it. */
+    update: {},
   });
   count += 1;
 
@@ -1522,19 +1503,8 @@ export async function seedTenantWorkforceReferenceData(
       isActive: true,
       status: 'ACTIVE',
     },
-    update: {
-      workScheduleId: defaultSchedule.id,
-      timezone: 'Asia/Riyadh',
-      startTime: '09:00',
-      endTime: '17:00',
-      breakMinutes: 60,
-      expectedHours: new Prisma.Decimal(8),
-      lateGraceMinutes: 10,
-      earlyExitGraceMinutes: 10,
-      isNightShift: false,
-      isActive: true,
-      status: 'ACTIVE',
-    },
+    /* DP-QA-039: tenant-owned once created; a deploy must not revert it. */
+    update: {},
   });
   count += 1;
 
@@ -1598,16 +1568,8 @@ export async function seedTenantWorkforceReferenceData(
       defaultWorkScheduleId: defaultSchedule.id,
       holidayCalendarId: defaultCalendar.id,
     },
-    update: {
-      name: 'Head Office',
-      timezone: 'Asia/Riyadh',
-      latitude: 24.7136,
-      longitude: 46.6753,
-      allowedRadiusMeters: 250,
-      defaultWorkScheduleId: defaultSchedule.id,
-      holidayCalendarId: defaultCalendar.id,
-      isActive: true,
-    },
+    /* DP-QA-039: tenant-owned once created; a deploy must not revert it. */
+    update: {},
   });
   count += 1;
 
@@ -2377,10 +2339,8 @@ export async function seedTenantNotificationPreferences(
           enabled: true,
           metadata: Prisma.JsonNull,
         },
-        update: {
-          enabled: true,
-          metadata: Prisma.JsonNull,
-        },
+        /* DP-QA-039: a tenant that switched this event off keeps it off. */
+        update: {},
       });
       count += 1;
     }
@@ -2410,9 +2370,8 @@ export async function seedTenantNotificationSettings(
         key: 'emailEnabled',
         value: true,
       },
-      update: {
-        value: true,
-      },
+      /* DP-QA-039: a tenant that turned e-mail off keeps it off. */
+      update: {},
     });
     count += 1;
   }
@@ -2493,13 +2452,8 @@ export async function seedTenantInAppNotificationTemplates(
           bodyTemplate,
           enabled: true,
         },
-        update: {
-          moduleKey,
-          titleTemplate,
-          summaryTemplate,
-          bodyTemplate,
-          enabled: true,
-        },
+        /* DP-QA-039: tenant-edited wording and the enabled flag survive a deploy. */
+        update: {},
       });
       count += 1;
     }
@@ -2546,15 +2500,8 @@ export async function seedTenantNotificationRules(
           metadata: metadata as Prisma.InputJsonValue,
           enabled: true,
         },
-        update: {
-          templateKey,
-          channels: [NotificationChannel.IN_APP],
-          displayMode,
-          priority,
-          requiresAction,
-          metadata: metadata as Prisma.InputJsonValue,
-          enabled: true,
-        },
+        /* DP-QA-039: tenant-edited rules (channels, enabled) survive a deploy. */
+        update: {},
       });
       count += 1;
     }
@@ -2652,56 +2599,6 @@ export async function seedTenantDefaultApprovalMatrices(
   client: PrismaClient,
   tenants: TenantSeedTarget[],
 ) {
-  let count = 0;
-
-  for (const tenant of tenants) {
-    for (const matrix of DEFAULT_APPROVAL_MATRICES) {
-      const existing = await client.approvalMatrix.count({
-        where: { tenantId: tenant.id, moduleKey: matrix.moduleKey },
-      });
-
-      // A tenant that already configured this module keeps its own rules.
-      if (existing > 0) continue;
-
-      for (const step of matrix.steps) {
-        const approverRoleId = step.roleKey
-          ? (
-              await client.role.findFirst({
-                where: { tenantId: tenant.id, key: step.roleKey },
-                select: { id: true },
-              })
-            )?.id
-          : undefined;
-
-        /*
-         * A role-based step without its role would create an unroutable
-         * approval, so skip it rather than seed a dead end.
-         *
-         * Note what this does and does not check: that the role *exists*, not
-         * that anybody *holds* it. `ROLE(hr)` passed this guard on every tenant
-         * and was unroutable on all of them, which is how ITEM-0113 happened.
-         * The active step now routes to `system-admin` precisely because
-         * provisioning guarantees a member for it.
-         */
-        if (step.roleKey && !approverRoleId) continue;
-
-        await client.approvalMatrix.create({
-          data: {
-            tenantId: tenant.id,
-            moduleKey: matrix.moduleKey,
-            recordType: matrix.recordType,
-            name: step.name,
-            sequence: step.sequence,
-            approverType: step.approverType,
-            approvalMode: 'ANY_ONE',
-            isActive: step.isActive ?? true,
-            ...(approverRoleId ? { approverRoleId } : {}),
-          },
-        });
-        count += 1;
-      }
-    }
-  }
-
-  return count;
+  // Logic lives beside the constants so a spec can exercise it (DP-QA-036).
+  return seedDefaultApprovalMatrices(client, tenants);
 }
