@@ -283,6 +283,55 @@ describe('auth session lifecycle', () => {
       await expect(isLive(service, payload, 'web')).resolves.toBe(false);
     });
 
+    describe('DP-QA-040 - the idle window and absolute lifetime are honoured, as at the guard', () => {
+      const minutesAgo = (m: number) => new Date(Date.now() - m * 60_000);
+      const row = (lastActivityMinutesAgo: number | null) => ({
+        id: 'row-1',
+        absoluteExpiresAt: new Date(Date.now() + 3_600_000),
+        lastActivityAt:
+          lastActivityMinutesAgo === null
+            ? null
+            : minutesAgo(lastActivityMinutesAgo),
+      });
+      const policy = (idleTimeoutMinutes: number) =>
+        prisma.tenantSetting.findMany.mockResolvedValue([
+          { key: 'idleTimeoutMinutes', value: idleTimeoutMinutes },
+        ]);
+
+      it('keeps a session that was active inside the window', async () => {
+        policy(15);
+        prisma.refreshToken.findFirst.mockResolvedValue(row(10));
+        await expect(isLive(service, payload, 'web')).resolves.toBe(true);
+      });
+
+      it('reports a session idle past the tenant window as not live', async () => {
+        policy(15);
+        prisma.refreshToken.findFirst.mockResolvedValue(row(16));
+        await expect(isLive(service, payload, 'web')).resolves.toBe(false);
+      });
+
+      it('uses the tenant policy, not a global default', async () => {
+        policy(60);
+        prisma.refreshToken.findFirst.mockResolvedValue(row(16));
+        await expect(isLive(service, payload, 'web')).resolves.toBe(true);
+      });
+
+      it('treats a session with no recorded activity as live (nothing to compare)', async () => {
+        policy(15);
+        prisma.refreshToken.findFirst.mockResolvedValue(row(null));
+        await expect(isLive(service, payload, 'web')).resolves.toBe(true);
+      });
+
+      it('reports an absolutely expired session as not live', async () => {
+        policy(480);
+        prisma.refreshToken.findFirst.mockResolvedValue({
+          ...row(1),
+          absoluteExpiresAt: new Date(Date.now() - 1000),
+        });
+        await expect(isLive(service, payload, 'web')).resolves.toBe(false);
+      });
+    });
+
     it('reads the platform store for a platform subject', async () => {
       prisma.platformRefreshToken.findFirst.mockResolvedValue({ id: 'row-2' });
 

@@ -1805,11 +1805,17 @@ export class AuthService {
       expiresAt: { gt: new Date() },
     };
 
+    const select = {
+      id: true,
+      absoluteExpiresAt: true,
+      lastActivityAt: true,
+    } as const;
     const record =
       clientId === 'admin' && payload.authSubjectType === 'platform-user'
         ? await this.prisma.platformRefreshToken.findFirst({
             where: { ...where, platformUserId: payload.sub },
-            select: { id: true },
+            orderBy: { createdAt: 'desc' },
+            select,
           })
         : await this.prisma.refreshToken.findFirst({
             where: {
@@ -1817,10 +1823,36 @@ export class AuthService {
               userId: payload.sub,
               tenantId: payload.tenantId,
             },
-            select: { id: true },
+            orderBy: { createdAt: 'desc' },
+            select,
           });
 
-    return Boolean(record);
+    if (!record) return false;
+
+    /*
+     * DP-QA-040 - revocation and expiry were checked here but not the absolute
+     * lifetime or the idle window, so `/auth/me` kept answering 200 for a session
+     * every guarded endpoint had already refused with SESSION_EXPIRED. Same rule,
+     * same tenant policy, as `JwtAuthGuard`: an idle-expired session is reported
+     * not live, which sends the caller to the refresh path, and refresh enforces
+     * the same window.
+     */
+    try {
+      const idleTimeoutMs =
+        clientId === 'web' &&
+        payload.authSubjectType !== 'platform-user' &&
+        payload.tenantId
+          ? (await this.tenantAuthPolicyService.resolveEffectivePolicy(
+              payload.tenantId,
+            )).idleTimeoutMinutes * 60_000
+          : undefined;
+      this.assertSessionNotExpired(record, clientId, idleTimeoutMs);
+    } catch (error) {
+      if (error instanceof UnauthorizedException) return false;
+      throw error;
+    }
+
+    return true;
   }
 
   /**
