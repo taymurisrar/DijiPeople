@@ -26,3 +26,4 @@ log: `ApiRequestError: Validation failed (uuid is expected)` raised from `Employ
 |---|---|
 | RUN-001 | FAIL |
 | RUN-005 (f47e504c) | **RESOLVED** - Import is Growth-gated by contract: SMK-004 passes on Chromium/Firefox/mobile/tablet (clean redirect to the Data Management plan gate); CMD-022 asserts Import absent from Data Transfer; GRW-001..004 backend 403 on Starter; GRW-010..013 entitled access on the Growth tenant (`RUN005-MCP-employees-data-transfer-menu-no-import.png`). WebKit SMK-004 fails for the separate DP-QA-023 reason |
+| RUN-006 (`17d0dcaf`) | **RESOLVED** - the route crash is gone: `/employees/import` redirects to Settings > Data Management on every plan (basic import/export is now on every plan, owner-approved); SMK-004 passes on Chromium/Firefox/WebKit/tablet. The command-bar *Import* action is dead: [[DP-QA-035]]; the page has a zero-width content column on phones: [[DP-QA-041]] |

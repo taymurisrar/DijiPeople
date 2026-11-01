@@ -18,3 +18,4 @@ This is the second divergence between the two list data paths (cf. [[DP-QA-014]]
 |---|---|
 | RUN-004 | FAIL |
 | RUN-005 (f47e504c) | **RESOLVED** - EMP-010 (UI list), SEC-005 (API list/search/entity data API), SEC-006 (404 by id for GET/PATCH/DELETE), SEC-007 (lookups) pass |
+| RUN-006 (`17d0dcaf`) | **RESOLVED** - EMP-010: pass, SEC-005: pass, SEC-006: pass, SEC-007: pass |

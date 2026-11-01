@@ -70,3 +70,18 @@ Part of [[README]]. Facts are marked **CONFIRMED** (reproduced) or **SUSPECTED**
 - OBS-025 `e2e/golive/` is excluded by the shared git exclude; RUN-004 suite files (mail fixture, specs 15-17, tools) had never been committed and were added with `git add -f` at the start of RUN-005.
 - OBS-026 MCP can only read storage-state files inside the primary checkout; test sessions were copied into the git-ignored `.playwright-mcp/` for use and deleted afterwards.
 - OBS-027 Another session's mail sink used 1025/8025; RUN-005 used its own ports (sink 1125/8125, API 4197, web 3114, TLS 3544) and never touched foreign processes.
+
+## RUN-006 (2026-11-01)
+- DEC-018 Basic import/export/templates are on every plan; Advanced Data Management is premium and has no routes (owner, 2026-10-31/11-01). Tests assert the new contract; Advanced Data Management is reported as not implemented.
+- DEC-019 Desktop Agent: Enterprise, or Custom only when explicitly entitled. Custom has no plan key: it is `CUSTOM` TenantFeature rows on a plan. Whether `enterprise-plus` should carry the agent by default is open: [[DP-QA-042]].
+- DEC-020 E-mail: essential branding on every plan (name, logo, AA-safe colour, "Powered by DijiPeople"); template authoring Growth+; white-label (no attribution, custom footer line) Enterprise/Custom.
+- OBS-028 `idleTimeoutMinutes` has a product minimum of 15 and a maximum of 1440; a lower value is stored as given and enforced as 15. Idle expiry is tested by ageing `lastActivityAt` in the throwaway DB.
+- OBS-029 Entitlement changes take effect after about 60 s (in-process cache): withdrawing the Custom grant cut the old access token and new sign-ins at 54-62 s.
+- OBS-030 `GET /agent/settings` is readable by any employee of an entitled tenant (the agent's own policy read); administration (`PATCH`) is refused for employees.
+- OBS-031 `enterprise-plus` cannot be sold through onboarding (no active price); a Custom customer on it is created by other means.
+- OBS-032 White-label removes only the attribution line; body copy still says "your DijiPeople account" and the footer names support@dijipeople.com.
+- OBS-033 E-mail links use the configured root domain (`*.dijipeople.com`) with the local port; they cannot be followed locally. Production link host is gate B5.
+- OBS-034 The QA environment shows a "Development environment" banner (`APP_ENV=development`); not a product defect.
+- OBS-035 Running `seed:config` against a QA database is itself a state change (default approval matrices, Console providers, notification rows): the seed suite must run last, or the fixture be re-prepared. The next run should provision a fresh database for the seed suite.
+- OBS-036 `Get-NetTCPConnection` returned nothing in the agent shell, so port-owner based "restarts" silently kept the old API process and its hot login limiter; the restart script now finds the QA API by command line.
+- OBS-037 An MCP screenshot of a reset e-mail contained a live token in the visible link. It was deleted and re-rendered with the token redacted; secret scanning does not read PNGs, so e-mail renders must be redacted before capture.

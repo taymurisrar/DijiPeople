@@ -129,3 +129,7 @@ Growth tenant for RUN-005: `provision-tenant.mjs qa-growth "QA Growth" qa-owner-
 
 ## RUN-006 (new subscription requirements)
 See [[RUN-006-PREPARATION]]. Extra fixtures: an Enterprise tenant (provision-plan-tenants.ps1) and, once Q3 is answered, a Custom tenant; keys QA_TENANT_{G,E,C}_SLUG and _OWNER in .env.qa.local. Repeated WebKit regression: webkit-regression.ps1. Idle-expiry tests need no extra service (tenant policy idleTimeoutMinutes).
+
+
+## RUN-006 execution notes
+Worktree `dijipeople-starter-verify6` (detached at the application SHA), database `dijipeople_starterv6_test`, ports API 4297 / web 3214 / TLS 3644 / sink 1225 and 8225. Results go to `e2e/golive-results/run006/` (never `run005`): `run-project.ps1` and `run-all-browsers.ps1` default to it. Merge targeted reruns with `merge-run.cjs <runDir> <outDir> <subset files>`, keep only the five per-project files in the merged folder, then `make-run-report.mjs --dir e2e/golive-results/run006/merged` and `retest-matrix.mjs`. Tenants: A, B, G, E, C (Custom = Growth plan + `CUSTOM` overrides) plus `qa-probe`. Agent sign-in payload: email, password, deviceFingerprint, deviceName, os, platform, agentVersion. Redact tokens before screenshotting e-mails.

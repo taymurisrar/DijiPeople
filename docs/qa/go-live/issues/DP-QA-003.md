@@ -24,3 +24,4 @@ Gate the hub page server-side the same way as the other modules. Re-check `/onbo
 |---|---|
 | RUN-001 | FAIL |
 | RUN-005 (f47e504c) | **RESOLVED** - ENT-1004 pass |
+| RUN-006 (`17d0dcaf`) | **RESOLVED** - ENT-1004: pass |

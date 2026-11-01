@@ -24,3 +24,4 @@ De-duplicate reference-list fetches per request (request-scoped cache / one batc
 |---|---|
 | RUN-004 | OBSERVED |
 | RUN-005 (f47e504c) | **RESOLVED** - PERF-001/002 pass; developer reports 127 -> 69 calls |
+| RUN-006 (`17d0dcaf`) | **RESOLVED** - PERF-001: pass, PERF-002: pass |

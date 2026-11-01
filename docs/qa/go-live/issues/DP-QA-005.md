@@ -23,3 +23,4 @@ could otherwise use Growth/Enterprise modules for the Starter price.
 |---|---|
 | RUN-001 | OBSERVED |
 | RUN-005 (f47e504c) | **OPEN** - Mechanism verified locally: ENFORCE env floor with NO PlatformSetting row -> Starter-excluded routes 403 (ENT-*, ENT-060..065, GRW-*); a malformed floor value fails closed to ENFORCE (second API :4196: /data-management/modules 403, /job-openings 403, /employees 200). Production state and grandfathering are the owner gate (PRODUCTION-RELEASE-GATES A1-A5); ENTITLEMENT_NOT_ENFORCED boot warning Blocked(environment) |
+| RUN-006 (`17d0dcaf`) | **OPEN (OWNER GATE)** - mechanism re-verified locally on `17d0dcaf` (ENFORCE environment floor, no PlatformSetting row: ENT-*, MTX-001, AGT-*, IMX-* pass); production `ENFORCE`/grandfathering remains a separately authorised deployment gate (A1..A5) |

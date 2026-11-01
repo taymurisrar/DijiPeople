@@ -29,3 +29,4 @@ screen (`DPQA-ENT-040` passes) while the same data is one authenticated GET away
 |---|---|
 | RUN-002 | FAIL ×6 |
 | RUN-005 (f47e504c) | **RESOLVED** - ENT-060..065 pass (8 backend routes 403 on Starter); GRW-001..004 |
+| RUN-006 (`17d0dcaf`) | **RESOLVED** - ENT-060: pass, ENT-061: pass, ENT-062: pass, ENT-063: pass, ENT-064: pass, ENT-065: pass |

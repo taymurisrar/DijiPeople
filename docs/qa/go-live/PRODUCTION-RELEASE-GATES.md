@@ -68,3 +68,17 @@ See [[KNOWN-ISSUES]] and [[REMEDIATION-BACKLOG]]. Gate rule: **no open P0/P1**.
 - **C4** real mailbox check: invitation and reset e-mails reach a real inbox (SPF/DKIM/DMARC), link host is the tenant host.
 - **C5** DP-QA-023: accept or fix the WebKit intermittent fetch errors on RSC prefetch (P3).
 - **C6** Growth: execute one populated valid-file import in a non-production Growth tenant.
+
+
+## E. Added by RUN-006 (`17d0dcaf`)
+
+| # | Check | Pass criterion | Status |
+|---|---|---|---|
+| E1 | **Before the next release:** an onboarded tenant that has never configured approvals can still submit leave and timesheets after `seed:config` ([[DP-QA-036]]) | fix merged and verified; or every such production tenant has the approver role assigned | ☐ |
+| E2 | Employee export never contains deleted employees ([[DP-QA-037]]); owner decision recorded on plaintext national/tax ids and on the `*Enc`/`*Hmac` columns ([[DP-QA-038]]) | fixed / decided | ☐ |
+| E3 | `seed:config` does not revert tenant notification choices ([[DP-QA-039]]) | fixed, or accepted with a list of affected tenants | ☐ |
+| E4 | Owner decision on `enterprise-plus`/Custom defaults for the desktop agent and white-label ([[DP-QA-042]]) | decided and documented; existing Custom customers listed | ☐ |
+| E5 | Production dry run of `seed:config` against a copy of production: count tenants with no approval matrix, tenants with `emailEnabled=false`, tenants with a disabled notification preference | numbers recorded; none harmed | ☐ |
+| E6 | Entitlement changes are cached for about a minute per API instance (OBS-029): acceptable for a downgrade | accepted | ☐ |
+| E7 | Safari/WebKit: redirecting URLs raise a console error ([[DP-QA-023]]); Settings at phone width ([[DP-QA-041]]) | fixed or accepted | ☐ |
+| E8 | E-mail links, logo URL and the "Powered by DijiPeople" footer on the production host, in a real mailbox | verified by the owner | ☐ |

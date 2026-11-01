@@ -20,3 +20,4 @@ Evidence: ![employee sees the form](../evidence/DP-QA-021-employee-sees-new-empl
 | Run | Result |
 |---|---|
 | RUN-005 (f47e504c) | **RESOLVED** - CMD-011 pass |
+| RUN-006 (`17d0dcaf`) | **RESOLVED** - CMD-011: pass |

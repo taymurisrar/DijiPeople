@@ -15,3 +15,4 @@ Cosmetic but fires on every visit and an empty `src` can trigger a duplicate pag
 |---|---|
 | RUN-001 | OBSERVED |
 | RUN-005 (f47e504c) | **OPEN** - Not reproduced: zero console warnings/errors on employee My Profile via MCP (level warning) and in every UI test (diag fixture fails on console errors). Cannot be Resolved without a located cause; remains P3 Not Reproduced |
+| RUN-006 (`17d0dcaf`) | **RESOLVED** - located by the developer (`AccessDeniedState` rendered `<button href="">`); verified by QA with DevTools on the production build: "Back to dashboard" on `/access-denied` is `<a href="/">`, navigates to the dashboard, console clean on `/my-profile` and `/access-denied` (`RUN006-MCP-employee-access-denied.png`) |

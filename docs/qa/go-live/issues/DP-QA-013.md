@@ -24,3 +24,4 @@ Muted helper/label text on white or on the green accent is the likely source; th
 |---|---|
 | RUN-002 | FAIL (5 screens) |
 | RUN-005 (f47e504c) | **RESOLVED** - A11Y-001/003/006/008/009 pass on tenants using the new default accent (note: tenants with a STORED brand colour keep it - gate) |
+| RUN-006 (`17d0dcaf`) | **RESOLVED** - A11Y-001: pass, A11Y-003: pass, A11Y-006: pass, A11Y-008: pass, A11Y-009: pass |

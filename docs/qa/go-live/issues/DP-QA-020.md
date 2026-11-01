@@ -16,3 +16,4 @@ Duplicate **employees** under the same race were prevented (`DPQA-CONC-001` pass
 |---|---|
 | RUN-003 | FAIL |
 | RUN-005 (f47e504c) | **RESOLVED** - CONC-003 pass |
+| RUN-006 (`17d0dcaf`) | **RESOLVED** - CONC-003: pass |

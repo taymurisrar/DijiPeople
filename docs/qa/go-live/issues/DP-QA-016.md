@@ -21,3 +21,4 @@ assets must be readable by every authenticated user of the tenant (and by the lo
 |---|---|
 | RUN-002 | FAIL |
 | RUN-005 (f47e504c) | **RESOLVED** - BRAND-002: logo loads for owner, employee, HR, manager and payroll-manager; tenant B never receives A's asset |
+| RUN-006 (`17d0dcaf`) | **RESOLVED** - BRAND-002: pass |

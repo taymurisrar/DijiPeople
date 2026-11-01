@@ -23,3 +23,4 @@ Activation looks the invitation up by token hash without filtering on `status = 
 |---|---|
 | RUN-004 | FAIL (INV-102, INV-105) |
 | RUN-005 (f47e504c) | **RESOLVED** - INV-102 (expiry aged in UTC), INV-105 (revoked by resend), SEC-003 (5 concurrent activations -> exactly 1), SEC-004 (replay after activation) pass; DB status CONSUMED/REVOKED asserted |
+| RUN-006 (`17d0dcaf`) | **RESOLVED** - INV-102: pass, INV-105: pass, SEC-003: pass, SEC-004: pass |

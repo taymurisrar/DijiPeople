@@ -14,3 +14,4 @@ Related: the profile page also offers the tabs Timesheets, Payslips and Project 
 |---|---|
 | RUN-004 | FAIL |
 | RUN-005 (f47e504c) | **RESOLVED** - TRC-034 pass; MCP network log of My Profile shows only 2xx |
+| RUN-006 (`17d0dcaf`) | **RESOLVED** - TRC-034: pass |

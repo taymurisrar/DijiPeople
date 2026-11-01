@@ -16,3 +16,4 @@ Login-page branding works (`welcomeTitle` and brand name applied at once); the l
 |---|---|
 | RUN-004 | OBSERVED |
 | RUN-005 (f47e504c) | **OPEN** - BRAND-005 passes what IS delivered (tenant company name + own host). The platform marks branding.emailSenderName/emailFooterText/showLogoInEmails NOT_IMPLEMENTED and the Branding screen does not offer them; no plan text promises branded e-mails. Not assumed optional: owner must decide implement vs. state platform-branded e-mail (gate) |
+| RUN-006 (`17d0dcaf`) | **RESOLVED** - superseded by the owner requirement (essential company-branded e-mail on every plan): BEM-001/002/004 pass on Starter, Growth, Enterprise and Custom; name, logo (anonymously loadable), colour, "Powered by DijiPeople", working links; white-label drops the attribution (`RUN006-MCP-email-reset-*.png`) |

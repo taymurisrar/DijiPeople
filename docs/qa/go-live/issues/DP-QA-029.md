@@ -22,3 +22,4 @@ So (a) the balance does not reflect an approval until the *next* decision, and (
 |---|---|
 | RUN-004 | FAIL |
 | RUN-005 (f47e504c) | **RESOLVED** - LV-031 pass: balance reflects the 1st approval, 2 approvals consume the 2-day entitlement, 3rd refused, never negative (fixture now reads the submitting employee's own balance row) |
+| RUN-006 (`17d0dcaf`) | **RESOLVED** - LV-031: pass |

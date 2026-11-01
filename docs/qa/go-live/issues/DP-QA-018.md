@@ -27,3 +27,4 @@ Evidence: API transcript — approve call 201, final status APPROVED, approverRo
 | Run | Result |
 |---|---|
 | RUN-005 (f47e504c) | **RESOLVED** - LV-026 pass; LV-029: refused outside the line, 2xx once the employee reports to the manager, persisted APPROVED |
+| RUN-006 (`17d0dcaf`) | **RESOLVED** - LV-026: pass |

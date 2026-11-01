@@ -18,3 +18,4 @@ Both routes perform a **client-side redirect** (`/settings/access` → `/setting
 |---|---|
 | RUN-003 | FAIL (Firefox, WebKit) |
 | RUN-005 (f47e504c) | **REOPENED** - Firefox RESOLVED (SMK-004/011/015 12/12 over 4 repeats). WebKit REOPENED: SMK-004/011/015 fail intermittently (7 of 12 in a 4x repeat; 3 of 16 routes in the full run) with `pageerror: ...?_rsc=... due to access control checks` on RSC prefetches (`RUN005-DP-QA-023-webkit-rsc-prefetch-pageerrors.png`) |
+| RUN-006 (`17d0dcaf`) | **REOPENED** - in-app navigation is clean (all prefetches 200, 0 page errors on `/employees`), but WebKit still raises the "access control checks" page error whenever a **redirecting URL is opened directly**: SMK-004 8/10, SMK-011 3/10, SMK-015 7/10 failures in a 10x repeat (18 of 30), 0/20 on stable pages; Firefox clean. Cause shown: WebKit reports prefetches cancelled by the redirect. No user-visible effect (P3) |

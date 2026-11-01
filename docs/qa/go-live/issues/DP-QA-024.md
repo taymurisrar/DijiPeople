@@ -16,3 +16,4 @@ The limit was reached here only because the QA suite shares one owner token acro
 |---|---|
 | RUN-003 | OBSERVED |
 | RUN-005 (f47e504c) | **RESOLVED** - PERF-003 pass (rate-limited pages say so; Retry-After sent) |
+| RUN-006 (`17d0dcaf`) | **RESOLVED** - PERF-003: pass |

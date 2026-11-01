@@ -15,3 +15,4 @@ Controls that **do** work: per-user cool-down on reset e-mails (a second request
 |---|---|
 | RUN-004 | FAIL |
 | RUN-005 (f47e504c) | **RESOLVED** - MAIL-002, SEC-001 (5 concurrent resets -> exactly 1 works), SEC-002 (replay with same/attacker password refused), SEC-008 (old access token 401 after reset), SEC-010 (UI: second reset refused with "invalid or expired", `RUN005-DP-QA-031-reset-link-replay-refused-ui.png`) |
+| RUN-006 (`17d0dcaf`) | **RESOLVED** - MAIL-002: pass, SEC-001: pass, SEC-002: pass, SEC-008: pass |
