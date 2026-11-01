@@ -5,7 +5,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from '../../common/storage/storage.service';
 import type { StorageScope } from '../../common/storage/object-storage.types';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
-import { csvCell, type CsvFile } from '../../common/utils/csv.util';
+import { csvCell, neutraliseFormula, type CsvFile } from '../../common/utils/csv.util';
 import { SecurityPrivilege } from '@prisma/client';
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { PERMISSION_KEYS } from '../../common/constants/permissions';
@@ -56,8 +56,9 @@ function relationLabel(value: unknown): string {
 function cellText(value: unknown): string {
   if (value === null || value === undefined) return '';
   if (value instanceof Date) return value.toISOString();
-  if (typeof value === 'object') return relationLabel(value);
-  return toDisplayString(value);
+  // Tenant-typed text must not run as a spreadsheet formula (DP-QA-037).
+  if (typeof value === 'object') return neutraliseFormula(relationLabel(value));
+  return neutraliseFormula(toDisplayString(value));
 }
 
 /**
@@ -207,10 +208,16 @@ export class ExportExecutionService {
       include[relation] = true;
     }
 
+    // A soft-deleted record is gone as far as the tenant is concerned (DP-QA-037).
+    const notDeleted = this.registry.modelHasField(module.modelName, 'isDeleted')
+      ? [{ isDeleted: false }]
+      : [];
+
     const rows = await delegate.findMany({
       where: {
         AND: [
           { tenantId: user.tenantId },
+          ...notDeleted,
           buildScopedAccessWhere(user, entityKey, SecurityPrivilege.READ, {
             organizationIdField: null,
             userIdField: 'userId',
@@ -221,7 +228,10 @@ export class ExportExecutionService {
       take: 10_000,
     });
 
-    const columns = module.importFields.map((field) => field.key);
+    const omitted = new Set(module.exportOmittedFields);
+    const columns = module.importFields
+      .map((field) => field.key)
+      .filter((key) => !omitted.has(key));
     const relationColumns = Object.keys(include);
     const header = [
       ...columns,
@@ -233,7 +243,7 @@ export class ExportExecutionService {
     for (const row of rows) {
       const values = [
         ...columns.map((key) => cellText(row[key])),
-        ...relationColumns.map((key) => relationLabel(row[key])),
+        ...relationColumns.map((key) => neutraliseFormula(relationLabel(row[key]))),
       ];
 
       lines.push(values.map(csvCell).join(','));
