@@ -47,11 +47,23 @@ const TENANTS = [{ id: 'tenant-1', name: 'Acme' }] as never;
 
 describe('seed:config preserves tenant-edited configuration (DP-QA-039)', () => {
   const cases: Array<[string, (client: PrismaClient) => Promise<unknown>]> = [
-    ['notification preferences', (c) => seedTenantNotificationPreferences(c, TENANTS)],
-    ['notification settings', (c) => seedTenantNotificationSettings(c, TENANTS)],
-    ['in-app notification templates', (c) => seedTenantInAppNotificationTemplates(c, TENANTS)],
+    [
+      'notification preferences',
+      (c) => seedTenantNotificationPreferences(c, TENANTS),
+    ],
+    [
+      'notification settings',
+      (c) => seedTenantNotificationSettings(c, TENANTS),
+    ],
+    [
+      'in-app notification templates',
+      (c) => seedTenantInAppNotificationTemplates(c, TENANTS),
+    ],
     ['notification rules', (c) => seedTenantNotificationRules(c, TENANTS)],
-    ['session policy defaults', (c) => seedTenantSessionPolicyDefaults(c, TENANTS)],
+    [
+      'session policy defaults',
+      (c) => seedTenantSessionPolicyDefaults(c, TENANTS),
+    ],
     ['project roles', (c) => seedProjectRoles(c, 'tenant-1')],
     [
       'workforce reference data (calendar, schedule, shift, location, designations, levels)',

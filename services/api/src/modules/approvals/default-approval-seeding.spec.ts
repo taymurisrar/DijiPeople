@@ -123,12 +123,17 @@ describe('DP-QA-036 default approval seeding', () => {
     await seedDefaultApprovalMatrices(client, T);
 
     expect(
-      activeRoleSteps(matrices).every((m) => m.approverRoleId === 'system-admin'),
+      activeRoleSteps(matrices).every(
+        (m) => m.approverRoleId === 'system-admin',
+      ),
     ).toBe(true);
   });
 
   it('seeds nothing for an empty tenant, so the fallback route keeps working', async () => {
-    const { client, matrices } = build([role('system-admin'), role('global-admin')], []);
+    const { client, matrices } = build(
+      [role('system-admin'), role('global-admin')],
+      [],
+    );
 
     await expect(seedDefaultApprovalMatrices(client, T)).resolves.toBe(0);
     expect(matrices).toHaveLength(0);
@@ -166,13 +171,18 @@ describe('DP-QA-036 default approval seeding', () => {
     await seedDefaultApprovalMatrices(client, T);
     await repairUnroutableDefaultApprovalMatrices(client, T);
 
-    expect(matrices.filter((m) => m.moduleKey === 'LEAVE_REQUEST')).toEqual([own]);
+    expect(matrices.filter((m) => m.moduleKey === 'LEAVE_REQUEST')).toEqual([
+      own,
+    ]);
     // The module the tenant did not configure still gets its default.
     expect(matrices.some((m) => m.moduleKey === 'TIMESHEET')).toBe(true);
   });
 
   it('is idempotent across repeated deployment seeds', async () => {
-    const { client, matrices } = build([role('global-admin')], [holder('global-admin')]);
+    const { client, matrices } = build(
+      [role('global-admin')],
+      [holder('global-admin')],
+    );
 
     await seedDefaultApprovalMatrices(client, T);
     const first = JSON.parse(JSON.stringify(matrices));
@@ -210,7 +220,11 @@ describe('DP-QA-036 default approval seeding', () => {
     });
 
     it('deactivates it when nobody could approve, instead of blocking every submission', async () => {
-      const { client, matrices } = build([role('system-admin')], [], [stranded()]);
+      const { client, matrices } = build(
+        [role('system-admin')],
+        [],
+        [stranded()],
+      );
 
       await repairUnroutableDefaultApprovalMatrices(client, T);
 

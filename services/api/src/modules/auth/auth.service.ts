@@ -1842,9 +1842,11 @@ export class AuthService {
         clientId === 'web' &&
         payload.authSubjectType !== 'platform-user' &&
         payload.tenantId
-          ? (await this.tenantAuthPolicyService.resolveEffectivePolicy(
-              payload.tenantId,
-            )).idleTimeoutMinutes * 60_000
+          ? (
+              await this.tenantAuthPolicyService.resolveEffectivePolicy(
+                payload.tenantId,
+              )
+            ).idleTimeoutMinutes * 60_000
           : undefined;
       this.assertSessionNotExpired(record, clientId, idleTimeoutMs);
     } catch (error) {

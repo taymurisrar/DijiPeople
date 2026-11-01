@@ -131,7 +131,9 @@ describe('plan entitlement matrix', () => {
       ['white-label e-mail', WHITE_LABEL],
     ])('does not inherit the %s from the plan', async (_label, key) => {
       expect(plan('enterprise-plus')).not.toContain(key);
-      expect((await service(plan('enterprise-plus')).decide('t', [key])).allowed).toBe(false);
+      expect(
+        (await service(plan('enterprise-plus')).decide('t', [key])).allowed,
+      ).toBe(false);
     });
 
     it.each([
@@ -170,7 +172,11 @@ describe('plan entitlement matrix', () => {
 
     it('assertEntitled refuses the agent without a grant (login/refresh path)', async () => {
       await expect(
-        service(plan('enterprise-plus')).assertEntitled('t', [AGENT], 'POST /agent/auth/refresh'),
+        service(plan('enterprise-plus')).assertEntitled(
+          't',
+          [AGENT],
+          'POST /agent/auth/refresh',
+        ),
       ).rejects.toMatchObject({ errorCode: 'TENANT_FEATURE_NOT_ENTITLED' });
     });
   });
@@ -180,7 +186,9 @@ describe('plan entitlement matrix', () => {
     ['growth', false],
     ['enterprise', true],
   ])('%s white-label e-mail entitled = %s', async (key, expected) => {
-    expect((await service(plan(key)).decide('t', [WHITE_LABEL])).allowed).toBe(expected);
+    expect((await service(plan(key)).decide('t', [WHITE_LABEL])).allowed).toBe(
+      expected,
+    );
   });
 
   it('Enterprise can still have the agent switched off by a CUSTOM row', async () => {

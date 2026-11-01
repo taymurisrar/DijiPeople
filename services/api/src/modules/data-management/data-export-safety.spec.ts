@@ -37,7 +37,12 @@ describe('import/export field allowlist (DP-QA-038)', () => {
     // Aliased descriptors are keyed by their contract name, so compare via the
     // unaliased set: nothing outside this fixed list of business fields may appear.
     expect(offered).toEqual(
-      expect.arrayContaining(['employeeCode', 'firstName', 'lastName', 'workEmail']),
+      expect.arrayContaining([
+        'employeeCode',
+        'firstName',
+        'lastName',
+        'workEmail',
+      ]),
     );
     expect(offered).not.toEqual(
       expect.arrayContaining(['passwordHash', 'tenantId', 'cnicEnc']),
@@ -63,7 +68,7 @@ describe('import/export field allowlist (DP-QA-038)', () => {
 
 describe('spreadsheet formula neutralisation (DP-QA-037)', () => {
   it.each([
-    ['=HYPERLINK("http://evil","x")', "'=HYPERLINK(\"http://evil\",\"x\")"],
+    ['=HYPERLINK("http://evil","x")', '\'=HYPERLINK("http://evil","x")'],
     ['+cmd|calc', "'+cmd|calc"],
     ['-2+3', "'-2+3"],
     ['@SUM(A1)', "'@SUM(A1)"],
@@ -119,9 +124,7 @@ describe('complete employee export (DP-QA-037)', () => {
       {} as never,
     );
     // getExportSummary re-reads the job; the file content is what matters here.
-    jest
-      .spyOn(service, 'getExportSummary')
-      .mockResolvedValue({} as never);
+    jest.spyOn(service, 'getExportSummary').mockResolvedValue({} as never);
     return { service, findMany, saved };
   }
 
@@ -130,12 +133,11 @@ describe('complete employee export (DP-QA-037)', () => {
 
     await service.runExport(user, 'job-1');
 
-    const where = (findMany.mock.calls[0] as unknown as [{ where: { AND: unknown[] } }])[0].where;
+    const where = (
+      findMany.mock.calls[0] as unknown as [{ where: { AND: unknown[] } }]
+    )[0].where;
     expect(where.AND).toEqual(
-      expect.arrayContaining([
-        { tenantId: 'tenant-1' },
-        { isDeleted: false },
-      ]),
+      expect.arrayContaining([{ tenantId: 'tenant-1' }, { isDeleted: false }]),
     );
   });
 
@@ -157,12 +159,69 @@ describe('complete employee export (DP-QA-037)', () => {
 
     const csv = saved.buffer!.toString('utf8');
     const header = csv.split('\n')[0];
-    for (const column of ['cnic', 'cnicEnc', 'cnicHmac', 'taxIdentifier', 'taxIdentifierEnc']) {
+    for (const column of [
+      'cnic',
+      'cnicEnc',
+      'cnicHmac',
+      'taxIdentifier',
+      'taxIdentifierEnc',
+    ]) {
       expect(header).not.toContain(`"${column}"`);
     }
     expect(csv).not.toContain('35202-1234567-1');
     expect(csv).not.toContain('ciphertext');
     expect(csv).not.toContain('TAX-1');
     expect(csv).toContain(`"'=HYPERLINK(""http://evil"")"`);
+  });
+});
+
+describe('export request de-duplication (DP-QA-037)', () => {
+  const user = {
+    tenantId: 'tenant-1',
+    userId: 'user-1',
+  } as unknown as AuthenticatedUser;
+
+  function build(previousStatus: string | null) {
+    const upsert = jest.fn(async () => ({ id: 'job-1' }));
+    const prisma = {
+      dataJob: {
+        findUnique: jest.fn(async () =>
+          previousStatus ? { status: previousStatus } : null,
+        ),
+        upsert,
+      },
+    };
+    const service = new ExportExecutionService(
+      prisma as never,
+      {} as never,
+      new DataModuleRegistryService(),
+      {} as never,
+      {} as never,
+    );
+    jest.spyOn(service, 'getExportSummary').mockResolvedValue({} as never);
+    return { service, upsert };
+  }
+
+  const keyOf = (upsert: jest.Mock) =>
+    (
+      upsert.mock.calls[0] as unknown as [
+        { where: { tenantId_kind_idempotencyKey: { idempotencyKey: string } } },
+      ]
+    )[0].where.tenantId_kind_idempotencyKey.idempotencyKey;
+
+  it('collapses a double click onto the job still in flight', async () => {
+    const first = build('QUEUED');
+    const second = build(null);
+    await first.service.queueExport(user, 'employees');
+    await second.service.queueExport(user, 'employees');
+    expect(keyOf(first.upsert)).toBe(keyOf(second.upsert));
+  });
+
+  it('does not hand back a finished export - a repeat request builds a fresh file', async () => {
+    const finished = build('COMPLETED');
+    const fresh = build(null);
+    await finished.service.queueExport(user, 'employees');
+    await fresh.service.queueExport(user, 'employees');
+    expect(keyOf(finished.upsert)).not.toBe(keyOf(fresh.upsert));
   });
 });

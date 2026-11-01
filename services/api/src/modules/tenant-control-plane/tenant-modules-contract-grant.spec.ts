@@ -17,7 +17,12 @@ const platformUser = {
  * `TenantFeature` row written through the existing tenant-modules control plane;
  * no other plan can be granted them, and withdrawing the agent ends its sessions.
  */
-function item(key: string, included: boolean, enabled: boolean, override: boolean | null = null) {
+function item(
+  key: string,
+  included: boolean,
+  enabled: boolean,
+  override: boolean | null = null,
+) {
   return {
     key,
     label: key,
@@ -50,7 +55,9 @@ function build(planKey: string, before: unknown[], after: unknown[] = before) {
       }),
     },
     platformUser: { findUnique: jest.fn().mockResolvedValue(null) },
-    agentRefreshToken: { updateMany: jest.fn().mockResolvedValue({ count: 2 }) },
+    agentRefreshToken: {
+      updateMany: jest.fn().mockResolvedValue({ count: 2 }),
+    },
     $transaction: jest.fn(async (work: (tx: unknown) => Promise<unknown>) =>
       work({ tenantFeature: { upsert, deleteMany } }),
     ),
@@ -81,9 +88,11 @@ describe('Custom contract explicit grants (DP-QA-042)', () => {
   it.each(['desktop-agent', 'email-white-label'])(
     'stores an explicit %s grant on the contract plan as source CUSTOM',
     async (key) => {
-      const { service, upsert, entitlements } = build('enterprise-plus', notGranted, [
-        item(key, false, true, true),
-      ]);
+      const { service, upsert, entitlements } = build(
+        'enterprise-plus',
+        notGranted,
+        [item(key, false, true, true)],
+      );
 
       await service.update(platformUser, 'tenant-1', {
         overrides: [{ key, isEnabled: true }],
@@ -92,8 +101,15 @@ describe('Custom contract explicit grants (DP-QA-042)', () => {
 
       expect(upsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          create: expect.objectContaining({ key, isEnabled: true, source: 'CUSTOM' }) as unknown,
-          update: expect.objectContaining({ isEnabled: true, source: 'CUSTOM' }) as unknown,
+          create: expect.objectContaining({
+            key,
+            isEnabled: true,
+            source: 'CUSTOM',
+          }) as unknown,
+          update: expect.objectContaining({
+            isEnabled: true,
+            source: 'CUSTOM',
+          }) as unknown,
         }),
       );
       expect(entitlements.invalidate).toHaveBeenCalledWith('tenant-1');
@@ -103,7 +119,9 @@ describe('Custom contract explicit grants (DP-QA-042)', () => {
   it.each(['starter', 'growth', 'enterprise'])(
     'refuses to grant the agent beyond the %s plan',
     async (planKey) => {
-      const { service, upsert } = build(planKey, [item('desktop-agent', false, false)]);
+      const { service, upsert } = build(planKey, [
+        item('desktop-agent', false, false),
+      ]);
 
       await expect(
         service.update(platformUser, 'tenant-1', {
@@ -115,7 +133,9 @@ describe('Custom contract explicit grants (DP-QA-042)', () => {
   );
 
   it('does not let the contract plan grant a non-optional module beyond the plan', async () => {
-    const { service, upsert } = build('enterprise-plus', [item('payroll', false, false)]);
+    const { service, upsert } = build('enterprise-plus', [
+      item('payroll', false, false),
+    ]);
 
     await expect(
       service.update(platformUser, 'tenant-1', {
@@ -130,13 +150,20 @@ describe('Custom contract explicit grants (DP-QA-042)', () => {
       platformUser,
       'tenant-1',
     );
-    const onGrowth = await build('growth', notGranted).service.list(platformUser, 'tenant-1');
+    const onGrowth = await build('growth', notGranted).service.list(
+      platformUser,
+      'tenant-1',
+    );
 
-    expect(onContract.modules.find((m) => m.key === 'desktop-agent')?.canEnable).toBe(true);
-    expect(onGrowth.modules.find((m) => m.key === 'desktop-agent')?.canEnable).toBe(false);
+    expect(
+      onContract.modules.find((m) => m.key === 'desktop-agent')?.canEnable,
+    ).toBe(true);
+    expect(
+      onGrowth.modules.find((m) => m.key === 'desktop-agent')?.canEnable,
+    ).toBe(false);
   });
 
-  it('revokes the tenant\'s agent sessions the moment the agent is withdrawn', async () => {
+  it("revokes the tenant's agent sessions the moment the agent is withdrawn", async () => {
     const { service, prisma } = build(
       'enterprise-plus',
       [item('desktop-agent', false, true, true)],

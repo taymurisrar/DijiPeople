@@ -44,7 +44,10 @@ import type {
  * the `hr` role are populated, rather than facing a blank screen.
  */
 /** Roles that may carry the default "tenant administrator" step, in preference order. */
-export const ADMINISTRATOR_ROLE_KEYS = ['system-admin', 'global-admin'] as const;
+export const ADMINISTRATOR_ROLE_KEYS = [
+  'system-admin',
+  'global-admin',
+] as const;
 
 export const DEFAULT_APPROVAL_MATRICES: Array<{
   moduleKey: ApprovalModuleKey;
@@ -279,9 +282,7 @@ export async function repairUnroutableDefaultApprovalMatrices(
         );
         await client.approvalMatrix.updateMany({
           where: { id: row.id, tenantId: tenant.id },
-          data: staffed
-            ? { approverRoleId: staffed }
-            : { isActive: false },
+          data: staffed ? { approverRoleId: staffed } : { isActive: false },
         });
         repaired += 1;
       }

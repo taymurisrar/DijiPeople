@@ -97,7 +97,10 @@ export class TenantModulesService {
         ? CONTRACT_GRANT_ONLY_FEATURE_KEYS
         : [],
     );
-    const isExplicitGrant = (item: { key: string; isEnabled?: boolean | null }) =>
+    const isExplicitGrant = (item: {
+      key: string;
+      isEnabled?: boolean | null;
+    }) =>
       item.isEnabled === true &&
       !planStateByKey.get(item.key) &&
       grantable.has(item.key);
