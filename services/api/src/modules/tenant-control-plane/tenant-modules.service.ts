@@ -5,11 +5,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantEntitlementService } from '../../common/security/tenant-entitlement.service';
 import { AuditService } from '../audit/audit.service';
 import { PlatformEventsService } from '../platform-events/platform-events.service';
-import {
-  CONTRACT_GRANT_ONLY_FEATURE_KEYS,
-  CONTRACT_PLAN_KEY,
-  TENANT_FEATURE_KEYS,
-} from '../../common/constants/tenant-features';
+import { TENANT_FEATURE_KEYS } from '../../common/constants/tenant-features';
 import { TENANT_FEATURE_DEFINITIONS } from '../tenant-settings/tenant-settings.catalog';
 import { FeatureAccessService } from '../tenant-settings/feature-access.service';
 import {
@@ -85,31 +81,8 @@ export class TenantModulesService {
       before.modules.map((item) => [item.key, item.isIncludedInPlan]),
     );
 
-    /*
-     * DP-QA-042 - on the contract plan the Desktop Agent and white-label e-mail
-     * are explicit grants. They are the ONLY keys that may be switched on beyond
-     * the plan, only on that plan, and are stored as source CUSTOM (the existing
-     * authoritative-override mechanism). Starter, Growth and Enterprise cannot be
-     * granted them here: change the plan instead.
-     */
-    const grantable = new Set<string>(
-      before.plan?.key === CONTRACT_PLAN_KEY
-        ? CONTRACT_GRANT_ONLY_FEATURE_KEYS
-        : [],
-    );
-    const isExplicitGrant = (item: {
-      key: string;
-      isEnabled?: boolean | null;
-    }) =>
-      item.isEnabled === true &&
-      !planStateByKey.get(item.key) &&
-      grantable.has(item.key);
-
     const rejected = dto.overrides.filter(
-      (item) =>
-        item.isEnabled === true &&
-        !planStateByKey.get(item.key) &&
-        !isExplicitGrant(item),
+      (item) => item.isEnabled === true && !planStateByKey.get(item.key),
     );
     if (rejected.length) {
       throw new BadRequestException(
@@ -131,9 +104,6 @@ export class TenantModulesService {
           });
           continue;
         }
-        const source = isExplicitGrant(override)
-          ? TenantFeatureSource.CUSTOM
-          : TenantFeatureSource.MANUAL;
         await tx.tenantFeature.upsert({
           where: {
             tenantId_key: { tenantId: tenant.id, key: override.key },
@@ -142,13 +112,13 @@ export class TenantModulesService {
             tenantId: tenant.id,
             key: override.key,
             isEnabled: override.isEnabled,
-            source,
+            source: TenantFeatureSource.MANUAL,
             createdById: user.userId,
             updatedById: user.userId,
           },
           update: {
             isEnabled: override.isEnabled,
-            source,
+            source: TenantFeatureSource.MANUAL,
             updatedById: user.userId,
           },
         });
@@ -167,7 +137,7 @@ export class TenantModulesService {
     const after = await this.buildModuleView(tenant.id);
 
     /*
-     * DP-QA-042 - withdrawing the Desktop Agent must end the sessions it already
+     * Withdrawing the Desktop Agent must end the sessions it already
      * has, not wait for them to lapse. The entitlement cache was invalidated
      * above, so the guard refuses the next request; revoking the refresh tokens
      * means a device cannot mint a new access token either. Tenant-scoped.
@@ -287,12 +257,7 @@ export class TenantModulesService {
          * is told which rows it must not offer as togglable rather than being
          * left to infer it.
          */
-        canEnable:
-          item.isIncludedInPlan ||
-          (subscription?.plan?.key === CONTRACT_PLAN_KEY &&
-            (CONTRACT_GRANT_ONLY_FEATURE_KEYS as readonly string[]).includes(
-              item.key,
-            )),
+        canEnable: item.isIncludedInPlan,
       };
     });
 

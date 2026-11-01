@@ -7,6 +7,7 @@ import {
   resolveTenantFeatureState,
 } from './tenant-entitlement.rule';
 import {
+  BASELINE_FEATURE_KEYS,
   TENANT_FEATURE_KEY_LIST,
   type TenantFeatureKey,
 } from '../constants/tenant-features';
@@ -445,7 +446,11 @@ export class TenantEntitlementService implements OnApplicationBootstrap {
        * `isEnabled: false` one.
        */
       for (const key of TENANT_FEATURE_KEY_LIST) {
-        const isIncludedInPlan = planFeatureByKey.get(key) ?? false;
+        // Baseline features (basic import/export) belong to every plan, custom
+        // plans that do not list them included.
+        const isIncludedInPlan =
+          (planFeatureByKey.get(key) ?? false) ||
+          BASELINE_FEATURE_KEYS.has(key);
         const override = overrideByKey.get(key);
         const isEnabled = resolveTenantFeatureState({
           isIncludedInPlan,

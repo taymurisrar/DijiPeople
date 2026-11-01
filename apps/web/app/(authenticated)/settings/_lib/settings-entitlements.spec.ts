@@ -315,7 +315,7 @@ const GROWTH = [
   FEATURE_KEYS.EMAIL_TEMPLATE_CUSTOMIZATION,
 ];
 
-/* Enterprise and Enterprise+ both take every key in the catalog. */
+/* Enterprise takes every key in the catalog. */
 const ENTERPRISE = EVERY_CAPABILITY;
 
 function shapeOf(keys: readonly string[]) {

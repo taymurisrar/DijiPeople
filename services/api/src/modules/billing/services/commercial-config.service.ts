@@ -1,3 +1,4 @@
+import { publiclyOfferablePlanWhere } from '../../super-admin/plan-eligibility';
 import { Injectable, Logger } from '@nestjs/common';
 import {
   BillingInterval,
@@ -242,6 +243,8 @@ export class CommercialConfigService {
       where: {
         publicationStatus: CommercialPublicationStatus.PUBLISHED,
         isActive: true,
+        // Customer-reserved and out-of-window custom plans are never listed.
+        ...publiclyOfferablePlanWhere(),
       },
       orderBy: { sortOrder: 'asc' },
       include: {

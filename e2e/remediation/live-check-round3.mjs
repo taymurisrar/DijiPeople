@@ -1,5 +1,5 @@
 // Live API checks for the final product-alignment decisions (RUN-005 follow-up):
-//   - basic import/export on every plan (starter, growth, enterprise, enterprise-plus)
+//   - basic import/export on every plan (starter, growth, enterprise)
 //   - desktop agent Enterprise/Custom only, enforced on agent login/refresh and settings
 //   - essential tenant e-mail branding on every plan, attribution dropped only for white-label
 //
@@ -150,7 +150,6 @@ try {
   await phase('starter', { agent: false, customize: false, whiteLabel: false });
   await phase('growth', { agent: false, customize: true, whiteLabel: false });
   await phase('enterprise', { agent: true, customize: true, whiteLabel: true });
-  await phase('enterprise-plus', { agent: true, customize: true, whiteLabel: true });
 
   // ---- Custom: an explicit CUSTOM override beats the plan in both directions
   await db.query('update "Subscription" set "planId"=$1 where "tenantId"=$2', [await planId('growth'), tenant.id]);

@@ -3,6 +3,7 @@ import {
   BillingInterval,
   BillingModel,
   CommercialPublicationStatus,
+  PlanKind,
   CommercialSalesModel,
   Prisma,
   type PrismaClient,
@@ -154,6 +155,16 @@ async function ensurePlans(
     });
 
     if (existing) {
+      /*
+       * A CUSTOM plan is never reconciled to the catalogue, whatever its key. The
+       * kind column - not the name or key - is what says a plan is predefined.
+       */
+      if (existing.kind !== PlanKind.CATALOGUE) {
+        result.warnings.push(
+          `Plan "${existing.key}" holds a catalogue key but is a custom plan; the catalogue seed left it alone.`,
+        );
+        continue;
+      }
       await reconcilePlan(prisma, result, existing, definition);
       continue;
     }
@@ -162,6 +173,7 @@ async function ensurePlans(
       await prisma.plan.create({
         data: {
           key: definition.key,
+          kind: PlanKind.CATALOGUE,
           name: definition.name,
           description: definition.description,
           sortOrder: definition.sortOrder,
@@ -175,10 +187,12 @@ async function ensurePlans(
             DEFAULT_PLAN_SALES_MODELS[definition.key] ??
             CommercialSalesModel.SELF_SERVICE,
           features: {
-            create: definition.enabledFeatureKeys.map((featureKey) => ({
-              featureKey,
-              isEnabled: true,
-            })),
+            create: (definition.enabledFeatureKeys as readonly string[]).map(
+              (featureKey) => ({
+                featureKey,
+                isEnabled: true,
+              }),
+            ),
           },
         },
       });
@@ -347,6 +361,9 @@ async function retireUnlistedPlans(
 
   const unlisted = await prisma.plan.findMany({
     where: {
+      // Only plans that WERE predefined and are no longer listed. A custom plan is
+      // never the seed's to withdraw.
+      kind: PlanKind.CATALOGUE,
       key: { notIn: listed },
       OR: [
         { isActive: true },
@@ -557,9 +574,10 @@ async function ensurePlanPrices(
   for (const definition of DEFAULT_PLAN_DEFINITIONS) {
     const plan = await prisma.plan.findUnique({
       where: { key: definition.key },
-      select: { id: true },
+      select: { id: true, kind: true },
     });
-    if (plan) planIds.set(definition.key, plan.id);
+    if (plan && plan.kind === PlanKind.CATALOGUE)
+      planIds.set(definition.key, plan.id);
   }
 
   const marketIds = new Map<string, string>();

@@ -1,3 +1,4 @@
+import { publiclyOfferablePlanWhere } from '../../super-admin/plan-eligibility';
 import {
   BadRequestException,
   ConflictException,
@@ -220,6 +221,8 @@ export class BillingService {
       where: {
         isActive: true,
         publicationStatus: CommercialPublicationStatus.PUBLISHED,
+        // Customer-reserved and out-of-window custom plans are never listed.
+        ...publiclyOfferablePlanWhere(),
       },
       include: {
         features: {

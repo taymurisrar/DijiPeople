@@ -1,3 +1,4 @@
+import { assertPlanAssignable } from './plan-eligibility';
 import {
   Logger,
   BadRequestException,
@@ -1614,12 +1615,18 @@ export class PlatformLifecycleService {
         id: true,
         name: true,
         isActive: true,
+        eligibleCustomerAccountId: true,
+        effectiveFrom: true,
+        effectiveUntil: true,
         _count: { select: { prices: { where: { isActive: true } } } },
       },
     });
     if (!plan) {
       throw new BadRequestException('The selected plan no longer exists.');
     }
+    // A customer-specific or time-boxed custom plan can only be placed on its own
+    // customer, inside its validity window.
+    assertPlanAssignable(plan, onboarding.customer.id);
     if (!plan.isActive || plan._count.prices === 0) {
       throw new BadRequestException(
         `"${plan.name}" cannot be sold: it is ` +

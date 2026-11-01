@@ -4,9 +4,12 @@ import {
   ForbiddenException,
   HttpException,
   Injectable,
+  Optional,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { BASELINE_FEATURE_KEYS } from '../../common/constants/tenant-features';
+import { TenantEntitlementService } from '../../common/security/tenant-entitlement.service';
 import * as bcrypt from 'bcryptjs';
 import {
   BillingCycle,
@@ -15,6 +18,7 @@ import {
   CommercialSalesModel,
   ApplicationReleaseChannel,
   CommercialPublicationStatus,
+  PlanKind,
   CustomerAccountStatus,
   DiscountType,
   TenantAppUpdatePolicy,
@@ -317,6 +321,7 @@ export class SuperAdminService {
     private readonly tenantDomains: TenantDomainService,
     private readonly fx: PlatformFxService,
     private readonly storage: StorageService,
+    @Optional() private readonly entitlements?: TenantEntitlementService,
   ) {}
 
   getLifecycleOptions() {
@@ -2062,9 +2067,17 @@ export class SuperAdminService {
     }
 
     this.validateFeatureKeys(dto.featureKeys);
+    const window = await this.resolvePlanEligibility(dto);
+    // Basic import/export is on every plan, custom included; it is always stored
+    // so the console shows it, though entitlement never depends on the row.
+    const featureKeys = withBaselineFeatures(dto.featureKeys);
 
     const plan = await this.plansRepository.create({
       key,
+      // A plan made here is never a predefined one (PlanKind).
+      kind: PlanKind.CUSTOM,
+      salesModel: this.resolveCustomSalesModel(dto.salesModel, window),
+      ...window,
       name: dto.name.trim(),
       description: dto.description?.trim(),
       isActive: dto.isActive ?? true,
@@ -2091,13 +2104,22 @@ export class SuperAdminService {
       createdById: actor.userId,
       updatedById: actor.userId,
       features: {
-        create: dto.featureKeys.map((featureKey) => ({
+        create: featureKeys.map((featureKey) => ({
           featureKey,
           isEnabled: true,
           createdById: actor.userId,
           updatedById: actor.userId,
         })),
       },
+    });
+
+    await this.auditPlan(actor, 'PLAN_CREATED', plan.id, null, {
+      key: plan.key,
+      kind: PlanKind.CUSTOM,
+      features: featureKeys,
+      eligibleCustomerAccountId: window.eligibleCustomerAccountId ?? null,
+      effectiveFrom: window.effectiveFrom ?? null,
+      effectiveUntil: window.effectiveUntil ?? null,
     });
 
     return this.mapPlan(plan);
@@ -2132,7 +2154,38 @@ export class SuperAdminService {
 
     this.validateFeatureKeys(featureKeys);
 
+    /*
+     * A predefined plan's key and features belong to the catalogue (the seed
+     * restores them on every deploy), so an edit here would be silently undone.
+     * Say so, and point at the mechanism that does work: a custom plan.
+     */
+    if (
+      existingPlan.kind === PlanKind.CATALOGUE &&
+      (dto.key !== undefined || dto.featureKeys !== undefined)
+    ) {
+      throw new BadRequestException(
+        'Starter, Growth and Enterprise are predefined: their key and features are set by the catalogue. Create a custom plan for different entitlements.',
+      );
+    }
+
+    const window = await this.resolvePlanEligibility(dto, existingPlan);
+    const nextFeatureKeys = withBaselineFeatures(featureKeys);
+    const featuresBefore = existingPlan.features
+      .filter((feature) => feature.isEnabled)
+      .map((feature) => feature.featureKey)
+      .sort();
+
     const updatedPlan = await this.plansRepository.update(planId, {
+      ...(existingPlan.kind === PlanKind.CUSTOM
+        ? {
+            salesModel: this.resolveCustomSalesModel(
+              dto.salesModel,
+              window,
+              existingPlan,
+            ),
+          }
+        : {}),
+      ...window,
       key: dto.key ? normalizeTenantSlug(dto.key) : undefined,
       name: dto.name?.trim(),
       description:
@@ -2145,7 +2198,7 @@ export class SuperAdminService {
       updatedById: actor.userId,
       features: {
         deleteMany: {},
-        create: featureKeys.map((featureKey) => ({
+        create: nextFeatureKeys.map((featureKey) => ({
           featureKey,
           isEnabled: true,
           createdById: actor.userId,
@@ -2153,6 +2206,33 @@ export class SuperAdminService {
         })),
       },
     });
+
+    const featuresAfter = [...nextFeatureKeys].sort();
+    await this.auditPlan(
+      actor,
+      'PLAN_UPDATED',
+      planId,
+      {
+        features: featuresBefore,
+        eligibleCustomerAccountId: existingPlan.eligibleCustomerAccountId,
+        effectiveFrom: existingPlan.effectiveFrom,
+        effectiveUntil: existingPlan.effectiveUntil,
+        isActive: existingPlan.isActive,
+      },
+      {
+        features: featuresAfter,
+        eligibleCustomerAccountId: updatedPlan.eligibleCustomerAccountId,
+        effectiveFrom: updatedPlan.effectiveFrom,
+        effectiveUntil: updatedPlan.effectiveUntil,
+        isActive: updatedPlan.isActive,
+      },
+    );
+
+    // A plan's features reach every tenant on it. Drop the cached snapshots now
+    // rather than waiting out the TTL, so a removed feature stops being served.
+    if (JSON.stringify(featuresBefore) !== JSON.stringify(featuresAfter)) {
+      this.entitlements?.invalidateAll();
+    }
 
     return this.mapPlan(updatedPlan);
   }
@@ -4725,6 +4805,10 @@ export class SuperAdminService {
       key: plan.key,
       name: plan.name,
       description: plan.description,
+      kind: plan.kind,
+      eligibleCustomerAccountId: plan.eligibleCustomerAccountId,
+      effectiveFrom: plan.effectiveFrom,
+      effectiveUntil: plan.effectiveUntil,
       isActive: plan.isActive,
       monthlyBasePrice: Number(plan.monthlyBasePrice),
       annualBasePrice: Number(plan.annualBasePrice),
@@ -5252,6 +5336,128 @@ export class SuperAdminService {
     };
   }
 
+  /**
+   * Validates and normalises the eligibility fields of a custom plan.
+   * `undefined` means "leave as is"; `null` clears.
+   */
+  private async resolvePlanEligibility(
+    dto: {
+      eligibleCustomerAccountId?: string | null;
+      effectiveFrom?: string | null;
+      effectiveUntil?: string | null;
+    },
+    existing?: { effectiveFrom: Date | null; effectiveUntil: Date | null },
+  ) {
+    const out: {
+      eligibleCustomerAccountId?: string | null;
+      effectiveFrom?: Date | null;
+      effectiveUntil?: Date | null;
+    } = {};
+
+    if (dto.eligibleCustomerAccountId !== undefined) {
+      if (dto.eligibleCustomerAccountId) {
+        const customer = await this.prisma.customerAccount.findUnique({
+          where: { id: dto.eligibleCustomerAccountId },
+          select: { id: true },
+        });
+        if (!customer) {
+          throw new BadRequestException(
+            'The eligible customer does not exist.',
+          );
+        }
+      }
+      out.eligibleCustomerAccountId = dto.eligibleCustomerAccountId;
+    }
+    if (dto.effectiveFrom !== undefined) {
+      out.effectiveFrom = dto.effectiveFrom
+        ? new Date(dto.effectiveFrom)
+        : null;
+    }
+    if (dto.effectiveUntil !== undefined) {
+      out.effectiveUntil = dto.effectiveUntil
+        ? new Date(dto.effectiveUntil)
+        : null;
+    }
+
+    const from =
+      out.effectiveFrom !== undefined
+        ? out.effectiveFrom
+        : (existing?.effectiveFrom ?? null);
+    const until =
+      out.effectiveUntil !== undefined
+        ? out.effectiveUntil
+        : (existing?.effectiveUntil ?? null);
+    if (from && until && until <= from) {
+      throw new BadRequestException(
+        'The plan expiry must be after its effective date.',
+      );
+    }
+    return out;
+  }
+
+  /**
+   * A custom plan is sales-assisted unless said otherwise, and a plan reserved for
+   * one customer or bounded by a validity window can never be self-service: the
+   * public checkout cannot tell who is buying or enforce a window, so those limits
+   * hold only on the sales-assisted path (tenant creation), which checks both.
+   */
+  private resolveCustomSalesModel(
+    requested: CommercialSalesModel | undefined,
+    window: {
+      eligibleCustomerAccountId?: string | null;
+      effectiveFrom?: Date | null;
+      effectiveUntil?: Date | null;
+    },
+    existing?: {
+      salesModel: CommercialSalesModel;
+      eligibleCustomerAccountId: string | null;
+      effectiveFrom: Date | null;
+      effectiveUntil: Date | null;
+    },
+  ): CommercialSalesModel {
+    const pick = <T>(next: T | undefined, current: T | undefined) =>
+      next !== undefined ? next : current;
+    const restricted = Boolean(
+      pick(
+        window.eligibleCustomerAccountId,
+        existing?.eligibleCustomerAccountId,
+      ) ||
+      pick(window.effectiveFrom, existing?.effectiveFrom) ||
+      pick(window.effectiveUntil, existing?.effectiveUntil),
+    );
+    const model =
+      requested ?? existing?.salesModel ?? CommercialSalesModel.SALES_ASSISTED;
+    if (restricted && model === CommercialSalesModel.SELF_SERVICE) {
+      if (requested === CommercialSalesModel.SELF_SERVICE) {
+        throw new BadRequestException(
+          'A plan reserved for one customer or limited to a validity window cannot be self-service.',
+        );
+      }
+      return CommercialSalesModel.SALES_ASSISTED;
+    }
+    return model;
+  }
+
+  private async auditPlan(
+    actor: AuthenticatedUser,
+    action: string,
+    planId: string,
+    before: Record<string, unknown> | null,
+    after: Record<string, unknown>,
+  ) {
+    await this.auditService.log({
+      // Platform-level change: routed to the platform audit log.
+      tenantId: 'platform',
+      actorUserId: actor.userId,
+      action,
+      entityType: 'Plan',
+      entityId: planId,
+      sourceModule: 'super-admin',
+      beforeSnapshot: before as never,
+      afterSnapshot: after as never,
+    });
+  }
+
   private validateFeatureKeys(featureKeys: string[]) {
     const supportedKeys = new Set<string>(
       TENANT_FEATURE_DEFINITIONS.map((feature) => feature.key),
@@ -5491,4 +5697,9 @@ function describePlanPrice(
     billingModel: price.billingModel,
     label: `${amount}${per} / ${cycle}`,
   };
+}
+
+/** Adds the features every plan has (basic import/export) if the list lacks them. */
+function withBaselineFeatures(featureKeys: readonly string[]) {
+  return [...new Set([...featureKeys, ...BASELINE_FEATURE_KEYS])];
 }

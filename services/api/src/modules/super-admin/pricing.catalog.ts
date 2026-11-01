@@ -137,9 +137,8 @@ function money(value: number): number {
 /**
  * Every price to seed: 3 plans × 3 markets × 2 cycles × 2 models = 36 rows.
  *
- * Enterprise+ is deliberately absent. It is `CUSTOM_ONLY` and carries no price
- * at all — the offer resolver answers `CUSTOM_CONTRACT_ONLY` for it, which is
- * the honest response to "what does it cost".
+ * Only the three predefined plans are priced here. A custom plan is priced by the
+ * operator through the plan console (`PlanPrice`), never by this catalogue.
  */
 export function buildSeededPrices(): SeededPrice[] {
   const prices: SeededPrice[] = [];

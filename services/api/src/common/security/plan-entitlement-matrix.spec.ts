@@ -59,7 +59,7 @@ const plan = (key: string) => {
 afterEach(() => jest.restoreAllMocks());
 
 describe('plan entitlement matrix', () => {
-  it.each(['starter', 'growth', 'enterprise', 'enterprise-plus'])(
+  it.each(['starter', 'growth', 'enterprise'])(
     '%s sells basic import/export',
     (key) => {
       expect(plan(key)).toContain(BASIC);
@@ -84,7 +84,6 @@ describe('plan entitlement matrix', () => {
     ['starter', false],
     ['growth', false],
     ['enterprise', true],
-    ['enterprise-plus', false],
   ])('%s desktop agent entitled = %s', async (key, expected) => {
     const decision = await service(plan(key)).decide('t', [AGENT]);
     expect(decision.allowed).toBe(expected);
@@ -125,54 +124,78 @@ describe('plan entitlement matrix', () => {
     ).rejects.toMatchObject({ errorCode: 'TENANT_FEATURE_NOT_ENTITLED' });
   });
 
-  describe('Custom (enterprise-plus) optional capabilities need an explicit grant', () => {
-    it.each([
-      ['desktop agent', AGENT],
-      ['white-label e-mail', WHITE_LABEL],
-    ])('does not inherit the %s from the plan', async (_label, key) => {
-      expect(plan('enterprise-plus')).not.toContain(key);
-      expect(
-        (await service(plan('enterprise-plus')).decide('t', [key])).allowed,
-      ).toBe(false);
+  describe('custom plans entitle exactly what they list (no inheritance from Enterprise)', () => {
+    const customPlan = (...keys: string[]) => [...keys];
+
+    it('the catalogue has exactly three predefined plans', () => {
+      expect(DEFAULT_PLAN_DEFINITIONS.map((p) => p.key)).toEqual([
+        'starter',
+        'growth',
+        'enterprise',
+      ]);
     });
 
     it.each([
       ['desktop agent', AGENT],
       ['white-label e-mail', WHITE_LABEL],
-    ])('has the %s once a CUSTOM grant exists', async (_label, key) => {
-      const svc = service(plan('enterprise-plus'), [
-        { key, isEnabled: true, source: 'CUSTOM' },
-      ]);
+    ])(
+      'a custom plan that does not select the %s does not have it',
+      async (_label, key) => {
+        const svc = service(
+          customPlan(TENANT_FEATURE_KEYS.LEAVE, TENANT_FEATURE_KEYS.ATTENDANCE),
+        );
+        expect((await svc.decide('t', [key])).allowed).toBe(false);
+      },
+    );
+
+    it.each([
+      ['desktop agent', AGENT],
+      ['white-label e-mail', WHITE_LABEL],
+    ])('a custom plan that selects the %s has it', async (_label, key) => {
+      const svc = service(customPlan(TENANT_FEATURE_KEYS.LEAVE, key));
       expect((await svc.decide('t', [key])).allowed).toBe(true);
     });
 
-    it('a grant for one capability does not grant the other', async () => {
-      const svc = service(plan('enterprise-plus'), [
-        { key: AGENT, isEnabled: true, source: 'CUSTOM' },
-      ]);
+    it('selecting one optional capability does not bring the other', async () => {
+      const svc = service(customPlan(AGENT));
       expect((await svc.decide('t', [AGENT])).allowed).toBe(true);
       expect((await svc.decide('t', [WHITE_LABEL])).allowed).toBe(false);
     });
 
-    it('a MANUAL row never counts as an explicit grant', async () => {
-      const svc = service(plan('enterprise-plus'), [
+    it('may offer fewer capabilities than Starter', async () => {
+      const svc = service(customPlan(TENANT_FEATURE_KEYS.LEAVE));
+      expect((await svc.decide('t', [TENANT_FEATURE_KEYS.LEAVE])).allowed).toBe(
+        true,
+      );
+      expect(
+        (await svc.decide('t', [TENANT_FEATURE_KEYS.ATTENDANCE])).allowed,
+      ).toBe(false);
+    });
+
+    it('basic import/export is available on a custom plan that does not list it', async () => {
+      const svc = service(customPlan(TENANT_FEATURE_KEYS.LEAVE));
+      expect((await svc.decide('t', [BASIC])).allowed).toBe(true);
+      // ...but advanced data management is a separate, selectable capability.
+      expect((await svc.decide('t', [ADVANCED])).allowed).toBe(false);
+    });
+
+    it('removing the agent from the plan takes it away (the next snapshot)', async () => {
+      const withAgent = service(customPlan(AGENT));
+      const without = service(customPlan());
+      expect((await withAgent.decide('t', [AGENT])).allowed).toBe(true);
+      expect((await without.decide('t', [AGENT])).allowed).toBe(false);
+    });
+
+    it('a MANUAL tenant row can still only restrict, never grant past the custom plan', async () => {
+      const svc = service(customPlan(), [
         { key: AGENT, isEnabled: true, source: 'MANUAL' },
       ]);
       expect((await svc.decide('t', [AGENT])).allowed).toBe(false);
     });
 
-    it('withdrawing the grant (row removed or set off) takes the capability away', async () => {
-      const off = service(plan('enterprise-plus'), [
-        { key: AGENT, isEnabled: false, source: 'CUSTOM' },
-      ]);
-      expect((await off.decide('t', [AGENT])).allowed).toBe(false);
-      const gone = service(plan('enterprise-plus'), []);
-      expect((await gone.decide('t', [AGENT])).allowed).toBe(false);
-    });
-
-    it('assertEntitled refuses the agent without a grant (login/refresh path)', async () => {
+    it('assertEntitled refuses the agent on a custom plan that omits it (login/refresh path)', async () => {
       await expect(
-        service(plan('enterprise-plus')).assertEntitled(
+        service(customPlan()).assertEntitled(
           't',
           [AGENT],
           'POST /agent/auth/refresh',

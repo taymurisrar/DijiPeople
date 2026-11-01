@@ -1,4 +1,3 @@
-import { CONTRACT_GRANT_ONLY_FEATURE_KEYS } from '../../common/constants/tenant-features';
 import { TENANT_FEATURE_DEFINITIONS } from '../tenant-settings/tenant-settings.catalog';
 
 /*
@@ -18,6 +17,12 @@ import { TENANT_FEATURE_DEFINITIONS } from '../tenant-settings/tenant-settings.c
  *
  * They used to read 199 / 399 / 899, invented for testing before any real
  * schedule existed.
+ */
+/*
+ * The ONLY predefined plans: Starter, Growth, Enterprise (owner decision,
+ * 2026-11-01). Any other plan - a customer agreement, a promotion, a pilot - is a
+ * CUSTOM plan created through the plan console (`Plan.kind = CUSTOM`), with its own
+ * identity and its own explicit feature list. Do not add a fourth tier here.
  */
 export const DEFAULT_PLAN_DEFINITIONS = [
   {
@@ -63,7 +68,7 @@ export const DEFAULT_PLAN_DEFINITIONS = [
       'branding',
       /*
        * The desktop agent is Enterprise/Custom only (final product decision):
-       * Enterprise and Enterprise+ take every key in the catalog, so they pick
+       * Enterprise takes every key in the catalog, so they pick
        * it up without it being listed here. Growth does not sell it.
        *
        * Attendance hardware and advanced data management are Growth
@@ -89,36 +94,6 @@ export const DEFAULT_PLAN_DEFINITIONS = [
     currency: 'USD',
     enabledFeatureKeys: TENANT_FEATURE_DEFINITIONS.map(
       (feature) => feature.key,
-    ),
-  },
-  {
-    key: 'enterprise-plus',
-    name: 'Enterprise+',
-    description:
-      'Above 250 employees. Commercial terms are agreed per customer.',
-    sortOrder: 40,
-    /*
-     * Zero, and zero here means "there is no list price" rather than "free".
-     *
-     * `bootstrapCommercialDefaults` skips any price slot whose amount is <= 0,
-     * so this plan gets no `PlanPrice` row at all — which is what makes the
-     * offer resolver answer `CUSTOM_CONTRACT_ONLY` instead of quoting a figure.
-     * That is the honest response to "what does Enterprise+ cost": ask us.
-     */
-    monthlyBasePrice: 0,
-    annualBasePrice: 0,
-    currency: 'USD',
-    /*
-     * Everything EXCEPT the capabilities a contract gets only by explicit
-     * grant (DP-QA-042): the Desktop Agent and white-label e-mail. A Custom
-     * customer receives those through `TenantFeature` rows with source CUSTOM,
-     * never by inheriting them from this plan.
-     */
-    enabledFeatureKeys: TENANT_FEATURE_DEFINITIONS.map(
-      (feature) => feature.key,
-    ).filter(
-      (key) =>
-        !(CONTRACT_GRANT_ONLY_FEATURE_KEYS as readonly string[]).includes(key),
     ),
   },
 ] as const;
