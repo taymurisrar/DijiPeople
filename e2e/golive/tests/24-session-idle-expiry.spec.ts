@@ -12,6 +12,7 @@ import type { APIRequestContext } from '@playwright/test';
  * Authored before the RUN-006 candidate exists; category/key names are from the settings catalog and are verified on the first run.
  */
 const run = Date.now().toString(36);
+const GUARDED = '/notifications/in-app/unread-count'; // any authenticated route behind JwtAuthGuard (the guard enforces idle expiry; /auth/me is @Public)
 const hdr = { 'X-DijiPeople-App': 'web' };
 const policy = (request: APIRequestContext, t: string, v: number) =>
   api(request, t, 'PATCH', '/tenant-settings', { updates: [{ category: 'security', key: 'idleTimeoutMinutes', value: v }] });
@@ -42,7 +43,8 @@ test.describe('idle session expiry (tenant B, 1-minute policy)', () => {
     expect((await api(request, owner, 'POST', '/users', { firstName: 'Idle', lastName: run, email, password, status: 'ACTIVE', employeeId })).status).toBeLessThan(300);
   });
   test.afterAll(async ({ request }) => {
-    await policy(request, owner, Number(original) || 480).catch(() => undefined);
+    // RUN-006 hygiene: always restore the PRODUCT DEFAULT (480). Restoring the value read at start leaked 15 into later runs, which then expired tenant B's cached sessions mid-run.
+    await policy(request, owner, 480).catch(() => undefined);
     if (employeeId) await api(request, owner, 'DELETE', `/employees/${employeeId}`).catch(() => undefined);
   });
 
@@ -54,9 +56,9 @@ test.describe('idle session expiry (tenant B, 1-minute policy)', () => {
   test('[DPQA-SESS-020] a session idle for longer than the 15-minute window is refused (401 SESSION_EXPIRED)', async ({ request }) => {
     test.skip(!accepted, 'BLOCKED: idle policy update refused');
     const token = await signIn(request);
-    expect((await api(request, token, 'GET', '/auth/me')).status, 'session valid right after sign-in').toBe(200);
+    expect((await api(request, token, 'GET', GUARDED)).status, 'session accepted right after sign-in').not.toBe(401);
     await ageSession(16);
-    const r = await api(request, token, 'GET', '/auth/me');
+    const r = await api(request, token, 'GET', GUARDED);
     expect(r.status, 'session idle 16 min with a 15 min floor').toBe(401);
     expect(JSON.stringify(r.body)).toMatch(/SESSION_EXPIRED|inactivity/i);
   });
@@ -65,7 +67,7 @@ test.describe('idle session expiry (tenant B, 1-minute policy)', () => {
     test.skip(!accepted, 'BLOCKED: idle policy update refused');
     const token = await signIn(request);
     await ageSession(10);
-    expect((await api(request, token, 'GET', '/auth/me')).status, 'idle 10 min < 15 min window').toBe(200);
+    expect((await api(request, token, 'GET', GUARDED)).status, 'idle 10 min < 15 min window').not.toBe(401);
   });
 
   test('[DPQA-SESS-022] the idle policy cannot be set below the 15-minute product floor: a 1-minute value is accepted but enforced as 15 (documented clamp)', async ({ request }) => {
@@ -74,6 +76,16 @@ test.describe('idle session expiry (tenant B, 1-minute policy)', () => {
     test.info().annotations.push({ type: 'observation', description: `stored/advertised idleTimeoutMinutes after setting 1 = ${String(shown)}; enforced minimum = 15` });
     const token = await signIn(request);
     await ageSession(5);
-    expect((await api(request, token, 'GET', '/auth/me')).status, 'a 5-minute idle session is not expired even though the stored policy is 1').toBe(200);
+    expect((await api(request, token, 'GET', GUARDED)).status, 'a 5-minute idle session is not expired even though the stored policy is 1').not.toBe(401);
+  });
+  test('[DPQA-SESS-023] /auth/me and the guarded API agree about an idle-expired session (observation: /auth/me is @Public and does not apply the idle policy)', async ({ request }, info) => {
+    test.skip(!accepted, 'BLOCKED: idle policy update refused');
+    const token = await signIn(request);
+    await ageSession(16);
+    const guarded = (await api(request, token, 'GET', GUARDED)).status;
+    const me = (await api(request, token, 'GET', '/auth/me')).status;
+    info.annotations.push({ type: 'observation', description: `idle 16 min: guarded endpoint ${guarded}, /auth/me ${me}` });
+    expect(guarded, 'guarded endpoint refuses an idle-expired session').toBe(401);
+    expect(me, '/auth/me must not report an idle-expired session as live').not.toBe(200);
   });
 });

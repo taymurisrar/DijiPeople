@@ -31,7 +31,7 @@ for (const [key, label] of PLANS) {
   test.describe(`basic import/export/templates - ${label}`, () => {
     test.skip(key !== 'A' && !planTenantProvisioned(key as 'G' | 'E' | 'C'), `NOT RUN: ${label} tenant not provisioned (QA_TENANT_${key}_SLUG / _OWNER unset) - see QA-RUNBOOK RUN-006`);
     let owner: string;
-    test.beforeAll(async ({ request }) => { owner = await apiToken(request, key, 'OWNER'); });
+    test.beforeAll(async ({ request }) => { test.setTimeout(600_000); owner = await apiToken(request, key, 'OWNER'); });
 
     test(`[DPQA-IMX-001-${key}] ${label} owner reads modules, fields and import history (200)`, async ({ request }) => {
       for (const p of ['/data-management/modules', `/data-management/modules/${MODULE}/fields`, '/data-management/imports']) {

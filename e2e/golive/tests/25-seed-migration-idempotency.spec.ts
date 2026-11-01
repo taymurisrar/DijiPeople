@@ -172,6 +172,27 @@ test.describe('seed:config and migration idempotency (local _test database)', ()
     expect(await sql(`select 1 from "PlanFeature" where "featureKey" = 'data-import-export' and "isEnabled" = false`), 'basic import/export never disabled by the migration').toHaveLength(0);
   });
 
+  test('[DPQA-SEED-010] seed:config does not re-enable the deliberate tenant choice notifications.emailEnabled = false (DP-QA-039)', async () => {
+    const q = () => sql<{ v: string }>(`select value::text as v from "TenantSetting" where "tenantId" = $1 and category = 'notifications' and key = 'emailEnabled'`, [tB]);
+    const original = (await q())[0]?.v ?? 'true';
+    try {
+      await sql(`update "TenantSetting" set value = 'false'::jsonb where "tenantId" = $1 and category = 'notifications' and key = 'emailEnabled'`, [tB]);
+      expect(seedConfig().status).toBe(0);
+      expect((await q())[0].v, 'a tenant that turned e-mail off must stay off after the deploy seed').toBe('false');
+    } finally { await sql(`update "TenantSetting" set value = $2::jsonb where "tenantId" = $1 and category = 'notifications' and key = 'emailEnabled'`, [tB, original]); }
+  });
+
+  test('[DPQA-SEED-011] seed:config does not re-enable a disabled tenant-level per-event e-mail preference (AUTH_PASSWORD_RESET) (DP-QA-039)', async () => {
+    const q = () => sql<{ enabled: boolean }>(`select enabled from "NotificationPreference" where "tenantId" = $1 and "userId" is null and channel = 'EMAIL' and "eventCode" = 'AUTH_PASSWORD_RESET'`, [tB]);
+    const original = (await q())[0]?.enabled ?? true;
+    test.skip((await q()).length === 0, 'NOT RUN: tenant has no tenant-level AUTH_PASSWORD_RESET e-mail preference row');
+    try {
+      await sql(`update "NotificationPreference" set enabled = false where "tenantId" = $1 and "userId" is null and channel = 'EMAIL' and "eventCode" = 'AUTH_PASSWORD_RESET'`, [tB]);
+      expect(seedConfig().status).toBe(0);
+      expect((await q())[0].enabled, 'a disabled event preference must stay disabled after the deploy seed').toBe(false);
+    } finally { await sql(`update "NotificationPreference" set enabled = $2 where "tenantId" = $1 and "userId" is null and channel = 'EMAIL' and "eventCode" = 'AUTH_PASSWORD_RESET'`, [tB, original]); }
+  });
+
   test('[DPQA-SEED-008] no SMTP credential is attached to the run: the dummy secret exists only in the throwaway database row, never in test output', async ({}, info) => {
     expect(JSON.stringify(info.annotations)).not.toContain(SECRET);
     // Output scanning of each seed run is asserted in SEED-001; the report generator additionally greps the whole results folder (tools/secret-scan.ps1 in the run protocol).

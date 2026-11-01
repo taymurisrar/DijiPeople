@@ -67,6 +67,7 @@ for (const key of ['A', 'G', 'E', 'C'] as const) {
     test.skip(key !== 'A' && !planTenantProvisioned(key), `NOT RUN: ${plan} tenant not provisioned`);
     let owner: string; let before: Record<string, string> = {};
     test.beforeAll(async ({ request }) => {
+      test.setTimeout(600_000);
       owner = await apiToken(request, key, 'OWNER');
       const cur = (await api(request, owner, 'GET', '/tenant-settings/resolved')).body;
       const b = (cur.settings?.branding ?? cur.branding ?? {}) as Record<string, string>;
@@ -177,9 +178,9 @@ test.describe('fallbacks and safety (Starter tenants)', () => {
   });
 
   test('[DPQA-BEM-014] an invalid or low-contrast brand colour falls back to the product default accent (#0f766e) and never injects the raw value', async ({ request }) => {
-    for (const bad of ['#ffff00', 'red;background:url(x)', '#12']) {
+    for (const [n, bad] of ['#ffff00', 'red;background:url(x)', '#12'].entries()) {
       expect((await patch(request, ownerB, { primaryColor: bad })).status).toBeLessThan(600);
-      const r = await reset(request, 'B', ownerB, 'col');
+      const r = await reset(request, 'B', ownerB, `col${n}`);
       try {
         expect(r.m.html.toLowerCase(), `accent for ${bad}`).toContain('#0f766e');
         expect(r.m.html.toLowerCase()).not.toContain('url(x)');

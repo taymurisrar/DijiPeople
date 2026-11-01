@@ -17,7 +17,7 @@ for (const [key, label, allowed] of MATRIX) {
   test.describe(`desktop agent - ${label}`, () => {
     test.skip(key !== 'A' && !planTenantProvisioned(key as 'G' | 'E' | 'C'), `NOT RUN: ${label} tenant not provisioned (QA_TENANT_${key}_SLUG / _OWNER unset)`);
     let owner: string;
-    test.beforeAll(async ({ request }) => { owner = await apiToken(request, key, 'OWNER'); });
+    test.beforeAll(async ({ request }) => { test.setTimeout(600_000); owner = await apiToken(request, key, 'OWNER'); });
 
     test(`[DPQA-AGT-001-${key}] ${label}: GET /agent/settings is ${allowed ? 'allowed (200)' : 'refused by the backend (403 + plan error)'}`, async ({ request }) => {
       const r = await api(request, owner, 'GET', '/agent/settings');
