@@ -789,7 +789,30 @@ export class PlatformLifecycleService {
     return customer.payments ?? [];
   }
 
+  /**
+   * A reserved or out-of-window custom plan cannot even be SELECTED for the wrong
+   * customer, not only provisioned: `customerId` null means the customer does not
+   * exist yet, so any reservation refuses.
+   */
+  private async assertPlanSelectable(
+    planId: string | null | undefined,
+    customerId: string | null,
+  ) {
+    if (!planId) return;
+    const plan = await this.prisma.plan.findUnique({
+      where: { id: planId },
+      select: {
+        name: true,
+        eligibleCustomerAccountId: true,
+        effectiveFrom: true,
+        effectiveUntil: true,
+      },
+    });
+    if (plan) assertPlanAssignable(plan, customerId ?? '');
+  }
+
   async createCustomer(actor: AuthenticatedUser, dto: CreateCustomerDto) {
+    await this.assertPlanSelectable(dto.selectedPlanId, null);
     this.assertCustomerSubStatus(
       dto.status ?? CustomerAccountStatus.PROSPECT,
       dto.subStatus,
@@ -851,6 +874,9 @@ export class PlatformLifecycleService {
       throw new NotFoundException('Customer not found.');
     }
     this.assertCustomerOwnerAccess(actor, existing);
+    if (dto.selectedPlanId && dto.selectedPlanId !== existing.selectedPlanId) {
+      await this.assertPlanSelectable(dto.selectedPlanId, customerId);
+    }
     if (
       !this.isPlatformSuperAdmin(actor) &&
       (dto.assignedToUserId !== undefined ||
@@ -1053,6 +1079,7 @@ export class PlatformLifecycleService {
     customerId: string,
     dto?: Partial<CreateCustomerOnboardingRecordDto>,
   ) {
+    await this.assertPlanSelectable(dto?.selectedPlanId, customerId);
     const { customer, plannedTenantSlug } =
       await this.assertOnboardingCreatable(actor, customerId, dto);
 
@@ -1331,6 +1358,9 @@ export class PlatformLifecycleService {
       throw new NotFoundException('Onboarding record not found.');
     }
     this.assertOnboardingOwnerAccess(actor, existing);
+    if (dto.selectedPlanId && dto.selectedPlanId !== existing.selectedPlanId) {
+      await this.assertPlanSelectable(dto.selectedPlanId, existing.customerId);
+    }
     if (
       !this.isPlatformSuperAdmin(actor) &&
       dto.onboardingOwnerUserId !== undefined

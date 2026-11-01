@@ -447,6 +447,9 @@ type PlanRow = {
   isActive: boolean;
   publicationStatus: CommercialPublicationStatus;
   salesModel: CommercialSalesModel;
+  eligibleCustomerAccountId?: string | null;
+  effectiveFrom?: Date | null;
+  effectiveUntil?: Date | null;
 };
 
 function toResolvablePlan(plan: PlanRow): ResolvablePlan {
@@ -457,6 +460,9 @@ function toResolvablePlan(plan: PlanRow): ResolvablePlan {
     isActive: plan.isActive,
     publicationStatus: plan.publicationStatus,
     salesModel: plan.salesModel,
+    eligibleCustomerAccountId: plan.eligibleCustomerAccountId,
+    effectiveFrom: plan.effectiveFrom,
+    effectiveUntil: plan.effectiveUntil,
   };
 }
 

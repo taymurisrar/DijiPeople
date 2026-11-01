@@ -8,9 +8,9 @@ import { TenantEntitlementService } from './tenant-entitlement.service';
  * catalog and the REAL resolver rather than a hand-copied list:
  *   - basic import/export on every plan; advanced data management above Starter
  *   - the desktop agent on Enterprise and Custom only
- * Custom is the `enterprise-plus` contract plan plus `TenantFeature` rows with
- * source CUSTOM. It does NOT inherit the optional capabilities (desktop agent,
- * white-label e-mail): they are switched on only by an explicit CUSTOM grant.
+ * A custom plan entitles exactly the features selected on it (plus basic
+ * import/export). It never inherits Enterprise's optional capabilities (desktop
+ * agent, white-label e-mail).
  */
 const AGENT = TENANT_FEATURE_KEYS.DESKTOP_AGENT;
 const BASIC = TENANT_FEATURE_KEYS.DATA_IMPORT_EXPORT;
