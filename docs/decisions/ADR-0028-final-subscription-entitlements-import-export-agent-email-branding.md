@@ -113,3 +113,36 @@ the Desktop Agent and white-label e-mail. That is withdrawn.
   `seed:config` unless `npm run entitlement:grandfather` (probe: AgentRefreshToken)
   has written an explicit `CUSTOM` grant for them. Run it, dry-run first, before
   releasing.
+
+## Amendment 2 (2026-11-01) - exactly three predefined plans; Custom is a dynamic plan
+
+**Supersedes the first amendment above.** `enterprise-plus` is not a plan. DijiPeople has
+three predefined plans - Starter, Growth, Enterprise - and every other plan is created
+dynamically for a customer, an agreement, a promotion, a pilot or any other business
+decision.
+
+- **Explicit metadata, not names:** `Plan.kind` (`CATALOGUE` | `CUSTOM`, default
+  `CUSTOM`). The catalogue seed creates and reconciles only `CATALOGUE` plans, retires
+  only `CATALOGUE` plans the catalogue stopped listing, and skips (with a warning) a
+  custom plan that happens to hold a catalogue key. A seed can never rewrite, retire or
+  price a custom plan.
+- **Custom plans reuse the existing plan framework** (`POST/PATCH /super-admin/plans`,
+  `PlanPrice`, publication, sales model, the tenant-creation workflow). Added to it:
+  customer eligibility (`eligibleCustomerAccountId`), a validity window
+  (`effectiveFrom`/`effectiveUntil`), `salesModel` on create/update, audit entries
+  (`PLAN_CREATED`, `PLAN_UPDATED` with before/after feature lists), and an entitlement
+  cache flush when a plan's features change.
+- **No inheritance:** a custom plan entitles exactly the features it lists, more or fewer
+  than any predefined plan. The Desktop Agent and white-label e-mail are therefore in a
+  custom plan only when selected.
+- **Baseline:** basic data import/export (`data-import-export`) is available to every
+  tenant whatever its plan lists (`BASELINE_FEATURE_KEYS`), custom plans included.
+- **Limits:** a plan reserved for one customer, or bounded by a validity window, cannot
+  be self-service (public checkout can enforce neither). Eligibility and the window are
+  enforced at tenant creation and in public listings. Expiry stops a plan being
+  *assigned*; it does not terminate a running subscription (no new billing behaviour).
+- **Predefined plans** keep their key and features under the catalogue; the console
+  refuses to edit them and points to creating a custom plan.
+- **Legacy `enterprise-plus`** is converted, never deleted: see the migration
+  `20261102090000_plan_kind_and_custom_plan_metadata` and handoff v6.
+- Per-feature limits/quotas do not exist in the product today and were not invented.
