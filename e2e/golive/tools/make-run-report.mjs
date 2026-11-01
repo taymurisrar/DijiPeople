@@ -9,7 +9,9 @@ import { join } from 'node:path';
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 // Merge every per-project result file (results-<project>.json); fall back to results.json for a single run.
 import { readdirSync as _ls } from 'node:fs';
-const resDir = join(root, 'e2e/golive-results');
+// RUN-006: `--dir <path>` reads the MERGED per-project result files of one run (relative to the repository root); the default keeps the earlier behaviour.
+const dirArg = process.argv.includes('--dir') ? process.argv[process.argv.indexOf('--dir') + 1] : '';
+const resDir = dirArg ? join(root, dirArg) : join(root, 'e2e/golive-results');
 const files = _ls(resDir).filter((f) => /^results-.+.json$/.test(f));
 const parts = (files.length ? files : ['results.json']).map((f) => JSON.parse(readFileSync(join(resDir, f), 'utf8')));
 const results = { suites: parts.flatMap((p) => p.suites), stats: { duration: parts.reduce((a, p) => a + (p.stats?.duration ?? 0), 0) }, config: parts[0].config };
