@@ -43,7 +43,8 @@ export function SettingsLayout({
        * help — the constraint has to be on the column track. With this, wide
        * children stay inside the column and scroll within themselves.
        */}
-      <div className="grid w-full min-w-0 max-w-none flex-1 grid-cols-[minmax(0,1fr)] content-start gap-6">
+      {/* A page body that is itself a bare `grid` has an implicit auto column sized by its widest child (a table, a colour row), which pushed holiday calendars and branding 150px past a 412px phone (DP-QA-041). Give such a direct child the same constrained track. */}
+      <div className="grid w-full min-w-0 max-w-none flex-1 grid-cols-[minmax(0,1fr)] content-start gap-6 [&>.grid:not([class*=grid-cols])]:grid-cols-[minmax(0,1fr)]">
         {showHeader ? (
           <header className="rounded-[28px] border border-border bg-surface px-6 py-5 shadow-sm">
             {breadcrumb ? (

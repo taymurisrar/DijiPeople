@@ -12,7 +12,6 @@ import {
   type CustomizationFieldDataType,
   type CustomizationSolutionComponentType,
 } from '@prisma/client';
-import type { ApprovalActorType, ApprovalModuleKey } from '@prisma/client';
 import {
   sinkEmailProvidersRetired,
   type EmailProviderEnvironment,

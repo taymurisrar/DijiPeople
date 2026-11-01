@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment -- in-memory Prisma fake: its argument shapes are the thing under test */
 import type { PrismaClient } from '@prisma/client';
 import {
   repairUnroutableDefaultApprovalMatrices,

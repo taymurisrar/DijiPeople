@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access -- in-memory Prisma fake: its argument shapes are the thing under test */
 import type { PrismaClient } from '@prisma/client';
 import {
   seedProjectRoles,

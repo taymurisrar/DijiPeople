@@ -1,3 +1,7 @@
+import {
+  CONTRACT_GRANT_ONLY_FEATURE_KEYS,
+  CONTRACT_PLAN_KEY,
+} from '../../common/constants/tenant-features';
 import { DEFAULT_PLAN_DEFINITIONS } from '../super-admin/plans.catalog';
 import { TENANT_FEATURE_DEFINITIONS } from '../tenant-settings/tenant-settings.catalog';
 
@@ -60,6 +64,14 @@ describe('public feature catalogue contract', () => {
       const current = new Set<string>(ordered[index].enabledFeatureKeys);
 
       for (const key of previous) {
+        // The contract plan gets the explicit-grant capabilities only by grant
+        // (DP-QA-042), so they are not part of what it nests over Enterprise.
+        if (
+          ordered[index].key === CONTRACT_PLAN_KEY &&
+          (CONTRACT_GRANT_ONLY_FEATURE_KEYS as readonly string[]).includes(key)
+        ) {
+          continue;
+        }
         expect(current.has(key)).toBe(true);
       }
     }
@@ -71,8 +83,11 @@ describe('public feature catalogue contract', () => {
     const ordered = [...DEFAULT_PLAN_DEFINITIONS].sort(
       (a, b) => a.sortOrder - b.sortOrder,
     );
+    // The top SELLABLE plan: the contract plan is priced per customer and holds
+    // the grant-only capabilities back until they are granted.
     const topPlan = new Set<string>(
-      ordered[ordered.length - 1].enabledFeatureKeys,
+      ordered.filter((plan) => plan.key !== CONTRACT_PLAN_KEY).pop()!
+        .enabledFeatureKeys,
     );
 
     for (const feature of TENANT_FEATURE_DEFINITIONS.filter(

@@ -490,7 +490,7 @@ export function BrandingSettingsForm({
   }
 
   return (
-    <div className="grid gap-6 pb-20">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6 pb-20">
       {topAlert ? (
         <TopAlert
           description={topAlert.description}
@@ -682,7 +682,7 @@ export function BrandingSettingsForm({
         </p>
 
         <div
-          className="dp-theme-scope mt-5 grid gap-4 lg:grid-cols-[0.9fr_1.1fr]"
+          className="dp-theme-scope mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[0.9fr_1.1fr]"
           style={previewStyle}
         >
           <article className="rounded-2xl border border-border bg-[color-mix(in_oklab,var(--dp-surface)_90%,white)] p-4">
