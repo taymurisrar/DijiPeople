@@ -1,7 +1,7 @@
 # Known issues register
 
 Part of [[README]]. Detail in `issues/`, evidence in `evidence/`, per-test evidence in [[RUN-006-RETEST-MATRIX]] (RUN-005: [[RUN-005-RETEST-MATRIX]]) and [[TRACEABILITY]].
-Status reflects **RUN-006** on application SHA `17d0dcafa33bdb8123e88f73d3346c577d25b4e3` (QA suite `21b318b6`); RUN-005 (`f47e504c`) statuses are kept in each record's run table and in [[RUN-005-2026-10-31]]. A row is **Resolved** only after independent verification through the UI and/or API with persisted state checked; a failed fix is **Reopened**; not executed is **Not Run**, never Passed.
+Status reflects **RUN-006** (see the RUN-007 section below, which supersedes it) on application SHA `17d0dcafa33bdb8123e88f73d3346c577d25b4e3` (QA suite `21b318b6`); RUN-005 (`f47e504c`) statuses are kept in each record's run table and in [[RUN-005-2026-10-31]]. A row is **Resolved** only after independent verification through the UI and/or API with persisted state checked; a failed fix is **Reopened**; not executed is **Not Run**, never Passed.
 Severity/priority: P0 release-stopping - P1 major workflow broken - P2 moderate/workaround - P3 cosmetic.
 
 **42 records. Earlier 34 at RUN-006: 32 Resolved, 1 Reopened (023, WebKit on redirecting URLs), 1 Open owner gate (005). New in RUN-006: 8 records (035-042), all Open: 2 P1 ([[DP-QA-036]], [[DP-QA-037]]), 5 P2 (one is an owner review, [[DP-QA-042]]), 1 P3.**
@@ -42,6 +42,22 @@ Severity/priority: P0 release-stopping - P1 major workflow broken - P2 moderate/
 | [[DP-QA-032]] | Activate account button click does nothing | P2 | **Resolved** | RUN-006: INV-104: pass, INV-106: pass. _RUN-005:_ INV-104 (click) and INV-106 (Enter) pass |
 | [[DP-QA-033]] | Dead /documents prefetch answers 404 | P3 | **Resolved** | RUN-006: NAV-001: pass. _RUN-005:_ NAV-001 pass |
 | [[DP-QA-034]] | Employee My Profile lookups answer 403 | P2 | **Resolved** | RUN-006: TRC-034: pass. _RUN-005:_ TRC-034 pass; MCP network log of My Profile shows only 2xx |
+
+## RUN-007 status (application `98f9b025`, QA suite `7b60e22d`) — supersedes the RUN-006 column below
+
+**47 records.** Resolved and independently verified in RUN-007: DP-QA-001..004, 006..034 (re-run through the full suite), **023** (WebKit regression 10x), **035, 036, 037, 038, 039, 040, 041, 042**. **Open:** DP-QA-005 (owner gate), and five records new in RUN-007 — three P2 ([[DP-QA-043]], [[DP-QA-044]], [[DP-QA-047]]) and two P3 owner items ([[DP-QA-045]], [[DP-QA-046]]). Open P0: 0. Open application P1: 0.
+
+| ID | Title | Pri | RUN-007 | Evidence |
+|---|---|---|---|---|
+| [[DP-QA-005]] | Entitlement enforcement defaults to REPORT_ONLY | P1 (owner gate) | **Open (owner gate)** | all results under the ENFORCE environment floor; production must set it |
+| [[DP-QA-023]] | WebKit page error on redirecting URLs | P2 | **Resolved** | SMK-011/015 on 5 projects; WK-100..110; 10x regression 55/55 |
+| [[DP-QA-035]]..[[DP-QA-041]] | command-bar import, approval routing, export privacy, internal columns, seed overwrite, `/auth/me`, mobile settings | P1–P3 | **Resolved** | see [[RUN-007-2026-11-02]] and [[RUN-007-RETEST-MATRIX]] |
+| [[DP-QA-042]] | enterprise-plus / Custom default grants | P2 | **Resolved** | exactly three plans; Custom grants exact; legacy plan converted |
+| [[DP-QA-043]] | Operator subscription assignment ignores a plan's reservation | P2 | **Open (new)** | CPL-009 |
+| [[DP-QA-044]] | Custom plans cannot be published (onboarding refused; no Contact Sales) | P2 | **Open (new)** | CPL-010, fixture note |
+| [[DP-QA-047]] | Subscription reassignment withdraws entitlements only after the 60 s TTL | P2 | **Open (new)** | CUS-012 (60.0 s), CUS-020 (59.2–60.1 s) |
+| [[DP-QA-045]] | Expired Custom subscription keeps every entitlement | P3 (owner decision) | **Open (new)** | CUS-030 |
+| [[DP-QA-046]] | Custom plan cannot withhold five core features at the API | P3 (awareness) | **Open (new)** | CUS-006 observation |
 
 ## Release gate status
 RUN-006: P0 open: **0**. **P1 application defects open: 2** ([[DP-QA-036]] unroutable default approval route after seed:config, [[DP-QA-037]] deleted employees in the export). Owner gate: DP-QA-005 production ENFORCE cutover. Owner reviews: [[DP-QA-038]] plaintext identifiers, [[DP-QA-042]] Custom/enterprise-plus defaults. P2/P3 items are listed above and below.

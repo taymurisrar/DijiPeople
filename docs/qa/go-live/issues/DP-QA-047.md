@@ -5,7 +5,7 @@
 | Category | Entitlement revocation / propagation |
 | Severity / Priority | Medium / **P2** (owner decision 9: withdrawal must take effect on the next authorization check, external propagation ≤ 60 s) |
 | Status | Open |
-| Found | RUN-007 (`98f9b025`), tests DPQA-CUS-012 and DPQA-CUS-020; diagnostic probe `probe-agent-429.mjs`; reproduced on four runs |
+| Found | RUN-007 (`98f9b025`), tests DPQA-CUS-012 and DPQA-CUS-020; diagnostic probe `probe-agent-429.mjs`; reproduced on seven runs |
 | Evidence | measurements below; `e2e/golive-results/run007/results-chromium-p1101.json`, `…-p1102.json` |
 
 **Measurements** (agent route `GET /agent/settings` called with an access token issued before the withdrawal; tenant on its Custom plan with `desktop-agent`, then moved by `PATCH /super-admin/tenants/:id/subscription`):
@@ -13,9 +13,10 @@
 | Withdrawal path | Time until the issued token is refused | Limit |
 |---|---|---|
 | Plan feature edit (`PATCH /super-admin/plans/:id`, agent removed) — CUS-010 | **≈ 5 s** (first poll; access 5126 ms, refresh 5499 ms, sign-in 5484 ms) | passes |
-| Subscription reassigned to a plan without the agent — CUS-012 | **60 014 ms** | ≤ 60 000 ms: **exceeded** |
-| Enterprise → Growth (predefined) — CUS-020 | **60 099 ms** | ≤ 60 000 ms: **exceeded** |
-| Probe, same path | 60 s (resolved features already reported the agent gone while the guard still allowed it) | |
+| Subscription reassigned to a plan without the agent — CUS-012 | **60 014 ms**, 60 041 ms (final pass) | ≤ 60 000 ms: **exceeded**, on every run |
+| Enterprise → Growth (predefined) — CUS-020 | 60 099 ms, then **59 248 ms** (final pass: passes with 0.75 s to spare) | ≤ 60 000 ms: at the limit, flips between runs |
+| `leave` refused on an employees-only plan — CUS-006 | passes on five runs; once (final pass, `fin2`) `leave` was still served at the 60 000 ms mark | at the limit |
+| Probe, same path | 60 s (the customer-visible feature list already showed the agent gone while the guard still allowed it) | |
 
 The grant direction is slower still: after moving the tenant back to the plan with the agent, sign-in answered 403 `TENANT_FEATURE_NOT_ENTITLED` for 66.8–68 s while the customer-visible feature list already showed the agent.
 

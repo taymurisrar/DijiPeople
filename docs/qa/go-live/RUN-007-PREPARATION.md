@@ -131,3 +131,6 @@ Execution stays blocked until development supplies the final SHA for the legacy 
 | D17 No legacy plan available for sale or tenant assignment | CAT-002, CAT-004, CPL-008, MIG-005 |
 
 Added to the protocol: `legacy-enterprise-plus.mjs capture` now also records the subscription id, legacy plan id and invoice/payment counts, so MIG-006 can prove nothing was lost. Execution order, `_test` database, separate `_legacy_test` fixture, production build, full browser matrix and secret scan are unchanged. Defects still need independent confirmation before they are recorded Resolved; Blocked and Not Run are never counted as Passed.
+
+## 8. Executed
+RUN-007 was executed against `98f9b025fa8aa57e4288d5df183a7f0aeffeadf3`: see [[RUN-007-2026-11-02]]. Calibrations of the assumptions in section 4 are listed there with their justification (import vocabulary, importMode, workbook template, footer key, anonymous context, agent token location, CONSOLE-default after a development seed, `PROVISIONING_FAILED`, ungated core features, wrong routes). The MIG-002 ratification question is closed by owner decision 5. Publication and the timesheet fixture were Not Run.

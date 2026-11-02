@@ -4,7 +4,7 @@
 |---|---|
 | Category | Responsive layout |
 | Severity / Priority | Medium / **P2** (the settings pages, including the Import & Export page the owner just made available on every plan, cannot be used on a phone) |
-| Status | Open |
+| Status | **Resolved** (independently verified in RUN-007, `98f9b025`) |
 | Found | RUN-006 (`17d0dcaf`), test DPQA-SMK-004 on the `mobile` project (Pixel 7, 412 px); 1 of 22 mobile tests failed; tablet passes |
 | Evidence | `RUN006-MCP-starter-data-management-mobile.png` (settings navigation fills the screen, horizontal scrollbar), layout probe `golive/tools/mobile-layout-probe.cjs` |
 
@@ -26,3 +26,4 @@ The settings shell renders the "Configuration" navigation card first and the pag
 | Run | Result |
 |---|---|
 | RUN-006 (`17d0dcaf`) | **OPEN** — SMK-004 fails on `mobile`; passes on chromium, firefox, webkit, tablet |
+| RUN-007 (`98f9b025`) | **RESOLVED** — RESP-100..105 pass at 412 px; SMK-004 passes on the Pixel 7 project; MCP screenshots of Settings > Import & Export, Branding and Notifications at 412 px show the content column and no horizontal scroll |

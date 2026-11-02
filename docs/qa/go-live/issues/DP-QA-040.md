@@ -4,7 +4,7 @@
 |---|---|
 | Category | Authentication / consistency |
 | Severity / Priority | Low / **P3** |
-| Status | Open |
+| Status | **Resolved** (independently verified in RUN-007, `98f9b025`) |
 | Found | RUN-006 (`17d0dcaf`), test DPQA-SESS-023; direct experiment with tenant B policy 15 min |
 
 **Experiment** (policy `idleTimeoutMinutes` = 15, session `lastActivityAt` aged in the throwaway DB):
@@ -24,3 +24,4 @@ The guard enforces the idle window correctly (DPQA-SESS-020, SESS-021 pass). `/a
 | Run | Result |
 |---|---|
 | RUN-006 (`17d0dcaf`) | **OPEN** — SESS-023 fails |
+| RUN-007 (`98f9b025`) | **RESOLVED** — SESS-023 passes (`/auth/me` reports an idle-expired session as not live); SESS-030 passes (refresh after the idle window is refused) |

@@ -4,7 +4,7 @@
 |---|---|
 | Category | Data protection / data integrity |
 | Severity / Priority | Medium / **P2** — owner decision needed for the plaintext identifiers |
-| Status | Open |
+| Status | **Resolved** (independently verified in RUN-007, `98f9b025`) |
 | Found | RUN-006 (`17d0dcaf`), test DPQA-IMX-031; `GET /data-management/modules/employees/fields` and an exported CSV |
 
 **Observed.** The employee module offers 57 import fields. Three are storage internals: `cnicEnc`, `cnicHmac`, `taxIdentifierEnc` (encrypted value, lookup hash, encrypted value). The export header contains the same three, next to the plaintext `cnic` and `taxIdentifier` columns. The registry marks a field "sensitive, excluded from import" by name pattern (`module-registry.service.ts`), and only `agentRefreshTokens` matches in this module.
@@ -16,3 +16,4 @@
 | Run | Result |
 |---|---|
 | RUN-006 (`17d0dcaf`) | **OPEN** — IMX-031 fails on the storage columns; plaintext identifiers recorded as an owner decision (annotation `owner-decision`) |
+| RUN-007 (`98f9b025`) | **RESOLVED** — EXP-003 and IMX-031 pass: no encrypted, hashed, token or storage column in the file, the template or the offered import fields. Observation: `cnic` and `taxIdentifier` are offered as import columns (import writes data in; owner decision 1 concerns exports). EXP-004 not applicable: no deliberate sensitive export exists |

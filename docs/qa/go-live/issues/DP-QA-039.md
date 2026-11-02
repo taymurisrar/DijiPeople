@@ -4,7 +4,7 @@
 |---|---|
 | Category | Deployment / configuration integrity |
 | Severity / Priority | Medium / **P2** (a tenant's deliberate setting is reverted at every deploy; production runs `seed:config` on release) |
-| Status | Open |
+| Status | **Resolved** (independently verified in RUN-007, `98f9b025`) |
 | Found | RUN-006 (`17d0dcaf`), tests DPQA-SEED-005, DPQA-SEED-006, DPQA-SEED-010, DPQA-SEED-011 |
 
 **Reproduction (throwaway DB).**
@@ -23,3 +23,4 @@ Even with the value already `true`, the row is rewritten on every run (`updatedA
 | Run | Result |
 |---|---|
 | RUN-006 (`17d0dcaf`) | **OPEN** — SEED-005/006/010/011 fail |
+| RUN-007 (`98f9b025`) | **RESOLVED** — SEED-005/006/010/011, EML-001..004 pass. Delivery after seeding is proven on the production seed path for a provider-less tenant; a development-mode seed gives such a tenant a default CONSOLE provider by design (OBS-046, EML-005) |

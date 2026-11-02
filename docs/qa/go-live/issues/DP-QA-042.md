@@ -4,7 +4,7 @@
 |---|---|
 | Category | Product contract / entitlement design |
 | Severity / Priority | Medium / **P2 — owner decision** (not a code fault: it is what the catalogue and the handoff state) |
-| Status | Open — owner review |
+| Status | **Resolved** (independently verified in RUN-007, `98f9b025`) |
 | Found | RUN-006 (`17d0dcaf`): plan catalogue read from the database, `CUSTOM` override experiments on `qa-custom` and `qa-enterprise`, onboarding attempt for `enterprise-plus` |
 
 **Question asked by the owner.** A Custom subscription without an explicit desktop-agent entitlement must not receive the agent by default; any deviation is a defect needing owner review.
@@ -29,3 +29,4 @@
 **Owner decision (2026-11-01, DEC-023):** Desktop Agent and white-label require explicit grants on Custom subscriptions even when based on enterprise-plus. The RUN-006 default is therefore a deviation; RUN-007 asserts the decision with CUS-001..005, CUS-010, CUS-011 and CUS-020.
 
 **Reframed by the owner FINAL subscription architecture (2026-11-01, DEC-026).** The question above (accept `enterprise-plus` including the agent, or make it carry only what a contract enables) is closed by decision: there are exactly three predefined plans (Starter, Growth, Enterprise); `enterprise-plus` is not a valid plan and must be eliminated; every other plan is a dynamically created Custom plan that grants exactly the features it lists and never inherits Enterprise. Expected resolution is therefore **elimination of the plan and of every dependency on it**, not a better default. Candidate `dfd829f3` (handoff v5, `enterprise-plus` kept as a contract plan minus the two grant-only keys) implements the superseded model and is not tested for sign-off. RUN-007 asserts the decision with CAT-001..004, CUS-001..040, CPL-001..006, SEEDPLAN-001/002 and MIG-001..004 (see [[RUN-007-PREPARATION]] section 0). Status: **Open - awaiting corrected candidate**.
+| RUN-007 (`98f9b025`) | **RESOLVED** — `enterprise-plus` is eliminated (CAT-001..004, MIG-001/005): exactly three CATALOGUE plans, the source scan finds no dependency, the legacy plan is converted in place to a neutral CUSTOM plan. Custom plans grant exactly what they list and never inherit Enterprise (CUS-001..007, 011, 031, 032, 040, AGT-001-C); the agent and white-label need an explicit entitlement. Follow-up findings are tracked separately: DP-QA-043..047 |

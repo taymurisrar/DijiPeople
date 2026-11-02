@@ -4,7 +4,7 @@
 |---|---|
 | Category | Data protection / functional — "deleted employee exclusion" |
 | Severity / Priority | **High / P1** (deleted people's personal data is exported; the live list correctly hides them) |
-| Status | Open |
+| Status | **Resolved** (independently verified in RUN-007, `98f9b025`) |
 | Found | RUN-006 (`17d0dcaf`), test DPQA-IMX-030; manual reproduction with a disposable employee |
 | Evidence | export CSV (kept local, not attached: it contains the probe's dummy identity values); DB row `isDeleted = true` for every listed name |
 
@@ -17,3 +17,4 @@
 | Run | Result |
 |---|---|
 | RUN-006 (`17d0dcaf`) | **OPEN** — IMX-030 fails (after a deterministic correction that first proves the export sees the live employee) |
+| RUN-007 (`98f9b025`) | **RESOLVED** — EXP-001 (deleted employee absent), EXP-002 (no national/tax id columns or values), EXP-011 (cross-tenant), IMX-030 pass |

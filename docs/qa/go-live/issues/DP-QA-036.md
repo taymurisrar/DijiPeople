@@ -4,7 +4,7 @@
 |---|---|
 | Category | Functional / deployment — core workflow blocked after a deploy |
 | Severity / Priority | **High / P1** (blocks leave and timesheet submission for every onboarded tenant that has not configured its own approval matrix; recoverable by an administrator) |
-| Status | Open |
+| Status | **Resolved** (independently verified in RUN-007, `98f9b025`) |
 | Found | RUN-006 (`17d0dcaf`), tests DPQA-APR-001, DPQA-APR-002; 11 leave tests failed in the first full run |
 | Evidence | fresh tenant `qa-probe`, created through the real onboarding workflow and left untouched; API error text below; DB state |
 
@@ -29,3 +29,4 @@ Step 1 (role): the named role has no active users. Assign somebody to it, or poi
 | Run | Result |
 |---|---|
 | RUN-006 (`17d0dcaf`) | **OPEN** — APR-001/002 fail on `qa-probe` |
+| RUN-007 (`98f9b025`) | **RESOLVED** — APR-001/002, APR-010..012, APR-020/021 on Starter, Growth, Enterprise and Custom tenants pass after repeated `seed:config` (fresh `qa-probe` tenant included). Timesheet submission (APR-030) is Not Run (no timesheet fixture) |

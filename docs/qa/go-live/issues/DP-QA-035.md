@@ -4,7 +4,7 @@
 |---|---|
 | Category | Functional / navigation — a regression introduced by the [[DP-QA-004]] fix |
 | Severity / Priority | Medium / **P2** |
-| Status | Open |
+| Status | **Resolved** (independently verified in RUN-007, `98f9b025`) |
 | Found | RUN-006 (`17d0dcaf`), tests DPQA-IMX-023 (automated) and Playwright MCP (3 reproductions) |
 | Evidence | `RUN006-MCP-starter-command-bar-import.png` (menu closed, URL unchanged), network log shows no navigation request, console clean |
 
@@ -19,3 +19,4 @@
 | Run | Result |
 |---|---|
 | RUN-006 (`17d0dcaf`) | **OPEN** — IMX-023 fails; reproduced in the browser 3×. Chromium; not browser specific |
+| RUN-007 (`98f9b025`) | **RESOLVED** — IMX-023, IMP-020, IMP-021 pass; MCP: Employees > Data Transfer > Import lands on Settings > Import & Export and a real import completed ("1 created"); RESP-110..113 command bars fit at 412 px |

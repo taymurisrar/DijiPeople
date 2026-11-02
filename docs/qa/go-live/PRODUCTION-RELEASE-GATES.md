@@ -3,6 +3,8 @@
 Part of [[README]]. Every item is a **mandatory separate gate**: local QA cannot prove any of them.
 Status column is filled in by whoever runs the check, with date and evidence link. Until each row is ✅, the go-live verdict cannot be READY.
 
+> **RUN-007 (application `98f9b025`) — verdict CONDITIONALLY READY for Starter; NOT READY for Custom-plan commercial use.** No P0 and no application P1 is open ([[DP-QA-036]] and [[DP-QA-037]] verified fixed). Gate **A (DP-QA-005, ENFORCE in production) is still the owner's to close**; every item in B onward is still outside what local QA can prove. New gates for Custom plans: **K1** [[DP-QA-043]] reserved plans enforced on operator assignment, **K2** [[DP-QA-044]] a Custom plan or price can be published (or the owner accepts the operator-only route), **K3** [[DP-QA-047]] subscription reassignment flushes the entitlement snapshot (withdrawal at the next check, never above 60 s), **K4** owner decisions on [[DP-QA-045]] (expired subscription) and [[DP-QA-046]] (core features cannot be withheld). Report: [[RUN-007-2026-11-02]].
+
 ## A. Entitlement enforcement (DP-QA-005 — OWNER DECISION: `ENFORCE` is mandatory; `REPORT_ONLY` blocks release)
 
 Background: `entitlementEnforcement` defaults to `REPORT_ONLY` in code (`tenant-entitlement.service.ts`) **by design** — ADR-0009 moves

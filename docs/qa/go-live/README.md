@@ -12,16 +12,21 @@ Entry point for any QA agent. Read this, then [[QA-RUNBOOK]]; a resume prompt is
 | [[PRODUCTION-RELEASE-GATES]] | checklist the **owner** runs on production (QA never touches production) |
 | [[DECISIONS-AND-OBSERVATIONS]] | decisions, discrepancies, open questions |
 | [[TRACEABILITY]] | generated defect -> test map (DP-QA-001..034) |
-| [[RUN-006-2026-11-01]] | **latest run**: verdict NOT READY on `17d0dcaf`; narrative, business rules, defects, gates |
+| [[RUN-007-2026-11-02]] | **latest run**: CONDITIONALLY READY (Starter) / NOT READY (Custom plans) on `98f9b025`; 552 result rows, 530 passed, 3 failed, 19 skipped with reasons; defects, migration findings, measurements, fixture corrections |
+| [[RUN-007-RETEST-MATRIX]] | RUN-007 evidence by defect (statuses per browser project and legacy fixture) |
+| [[RUN-006-2026-11-01]] | previous run: verdict NOT READY on `17d0dcaf`; narrative, business rules, defects, gates |
 | [[RUN-006-RETEST-MATRIX]] | RUN-006 evidence by defect (statuses per browser project) |
 | [[RUN-007-PREPARATION]] | revision 2 (owner FINAL subscription architecture: three predefined plans, dynamic Custom plans, no enterprise-plus): decisions D1-D10, specs 27-31, protocol incl. legacy-migration copy; awaiting the corrected committed SHA |
 | [[RUN-006-PREPARATION]] | new subscription requirements, owner answers Q1-Q6, prepared suites, protocol, lessons |
 | [[RUN-005-PREPARATION]] | MCP blocker, remediation reconciliation, RUN-005 protocol (awaiting final SHA) |
-| `runs/` → [[INDEX]] | immutable run reports (RUN-001 to RUN-006) |
+| `runs/` → [[INDEX]] | immutable run reports (RUN-001 to RUN-007) |
 
 Session SESSION-0129 · branch `agent/starter-golive-qa` · **not merged, nothing deployed, production untouched**.
 
-## Verdict (RUN-006, application `17d0dcafa33bdb8123e88f73d3346c577d25b4e3`, QA suite `21b318b6`): **NOT READY**
+## Verdict (RUN-007, application `98f9b025fa8aa57e4288d5df183a7f0aeffeadf3`, QA suite `fcbeef5b`/`7b60e22d`): **CONDITIONALLY READY** for the Starter plan on the tenant web app; **NOT READY** for Custom-plan commercial use
+No P0 and no application P1 is open; DP-QA-023 and 035–042 are independently verified. Owner gate DP-QA-005 (ENFORCE in production) remains, as do the Custom-plan findings DP-QA-043/044/047 (P2) and the owner items DP-QA-045/046. Details: [[RUN-007-2026-11-02]], [[KNOWN-ISSUES]], [[PRODUCTION-RELEASE-GATES]].
+
+## Earlier verdict (RUN-006, application `17d0dcafa33bdb8123e88f73d3346c577d25b4e3`, QA suite `21b318b6`): **NOT READY**
 
 Two unresolved **P1** application defects and the owner enforcement gate. [[DP-QA-036]]: after `seed:config` (every deploy) an onboarded tenant that never configured approvals gets a default route to `system-admin`, a role nobody holds, so leave and timesheet submission is refused. [[DP-QA-037]]: the employee export includes soft-deleted employees with plaintext national ID and tax ID. Also open: [[DP-QA-038]], [[DP-QA-035]], [[DP-QA-039]], [[DP-QA-041]] (P2), [[DP-QA-040]], [[DP-QA-023]] (P3), [[DP-QA-042]] and the plaintext-identifier question (owner decisions), [[DP-QA-005]] (owner gate).
 
