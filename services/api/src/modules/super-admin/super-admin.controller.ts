@@ -658,6 +658,35 @@ export class SuperAdminController {
     return this.superAdminService.createPlanPrice(user, planId, dto);
   }
 
+  /** Publish / withdraw a custom plan's price (DP-QA-044). */
+  @Post('plans/:planId/prices/:priceId/publish')
+  publishPlanPrice(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('planId', new ParseUUIDPipe()) planId: string,
+    @Param('priceId', new ParseUUIDPipe()) priceId: string,
+  ) {
+    return this.superAdminService.setPlanPricePublication(
+      user,
+      planId,
+      priceId,
+      'publish',
+    );
+  }
+
+  @Post('plans/:planId/prices/:priceId/unpublish')
+  unpublishPlanPrice(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('planId', new ParseUUIDPipe()) planId: string,
+    @Param('priceId', new ParseUUIDPipe()) priceId: string,
+  ) {
+    return this.superAdminService.setPlanPricePublication(
+      user,
+      planId,
+      priceId,
+      'unpublish',
+    );
+  }
+
   @Patch('plans/:planId/prices/:priceId')
   updatePlanPrice(
     @CurrentUser() user: AuthenticatedUser,

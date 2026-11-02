@@ -86,13 +86,16 @@ export const ENTITLEMENT_SETTING_FIELD = 'entitlementEnforcement';
 /**
  * How long a resolved snapshot is trusted.
  *
- * A plan change or a subscription lapse therefore takes up to this long to bite.
- * That is an accepted bound and not an oversight: billing state is not a
- * security boundary, and the alternative is a database round trip on every
- * request to every gated module. A tenant module override does not wait — the
- * control plane invalidates the entry as it writes.
+ * This is the upper bound on staleness in ANY process. The control plane
+ * invalidates the entry in the process that handled the change (a module override,
+ * a plan edit, an operator subscription change, a plan change), so there nothing
+ * waits; other API instances hold their own cache and converge within this TTL.
+ * It is deliberately half of the approved 60 s withdrawal SLA (DP-QA-047): a TTL
+ * equal to the SLA measured 60.0 s once request latency was added, so the margin
+ * is the point. Billing state is not a security boundary, and the alternative is a
+ * database round trip on every request to every gated module.
  */
-export const ENTITLEMENT_CACHE_TTL_MS = 60_000;
+export const ENTITLEMENT_CACHE_TTL_MS = 30_000;
 
 export type TenantEntitlementSnapshot = {
   enabledKeys: ReadonlySet<string>;
@@ -137,6 +140,14 @@ type CacheEntry = {
 export class TenantEntitlementService implements OnApplicationBootstrap {
   private readonly logger = new Logger(TenantEntitlementService.name);
   private readonly cache = new Map<string, CacheEntry>();
+  /**
+   * Bumped by every invalidation. A load that started before an invalidation must
+   * not write its (possibly pre-change) result into the cache afterwards, or a
+   * concurrent request would re-seed the very staleness the invalidation removed
+   * (DP-QA-047). Per tenant, plus one epoch for invalidateAll().
+   */
+  private readonly generations = new Map<string, number>();
+  private epoch = 0;
   private modeCache: {
     mode: EntitlementEnforcementMode;
     source: EntitlementModeSource;
@@ -180,11 +191,13 @@ export class TenantEntitlementService implements OnApplicationBootstrap {
    */
   invalidate(tenantId: string) {
     this.cache.delete(tenantId);
+    this.generations.set(tenantId, (this.generations.get(tenantId) ?? 0) + 1);
   }
 
   /** Test and operational seam; not called on any request path. */
   invalidateAll() {
     this.cache.clear();
+    this.epoch += 1;
     this.modeCache = null;
     this.lastKnownStoredMode = null;
   }
@@ -246,6 +259,27 @@ export class TenantEntitlementService implements OnApplicationBootstrap {
       expiresAt: now + ENTITLEMENT_CACHE_TTL_MS,
     };
     return { mode, source };
+  }
+
+  /**
+   * What `/api/health` reports about enforcement (DP-QA-005).
+   *
+   * The deploy gate reads this from the RUNNING process, because the variable
+   * lives on the service and not in this repository: a unit test cannot see what
+   * production is configured with, a smoke check can. `enforced` is true only
+   * when requests are actually refused, never merely logged. A fault reading the
+   * mode reports UNKNOWN / not enforced, so the gate fails rather than assumes.
+   */
+  async describeEnforcement(): Promise<{
+    mode: EntitlementEnforcementMode | 'UNKNOWN';
+    enforced: boolean;
+  }> {
+    try {
+      const { mode } = await this.effectiveMode();
+      return { mode, enforced: mode === 'ENFORCE' };
+    } catch {
+      return { mode: 'UNKNOWN', enforced: false };
+    }
   }
 
   /**
@@ -375,12 +409,21 @@ export class TenantEntitlementService implements OnApplicationBootstrap {
       return { snapshot: cached.snapshot, stale: false };
     }
 
+    const generation = this.generations.get(tenantId) ?? 0;
+    const epoch = this.epoch;
     try {
       const snapshot = await this.load(tenantId);
-      this.cache.set(tenantId, {
-        snapshot,
-        expiresAt: now + ENTITLEMENT_CACHE_TTL_MS,
-      });
+      // Only cache what is still current: an invalidation that landed while this
+      // load was in flight means the snapshot may predate the change.
+      if (
+        (this.generations.get(tenantId) ?? 0) === generation &&
+        this.epoch === epoch
+      ) {
+        this.cache.set(tenantId, {
+          snapshot,
+          expiresAt: now + ENTITLEMENT_CACHE_TTL_MS,
+        });
+      }
       return { snapshot, stale: false };
     } catch (error) {
       /*

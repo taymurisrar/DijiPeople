@@ -12,7 +12,16 @@ import { PlanChangeService } from './plan-change.service';
  */
 
 const FROM_PLAN = { id: 'plan-from', name: 'Starter' };
-const TO_PLAN = { id: 'plan-to', name: 'Growth', isActive: true };
+const TO_PLAN = {
+  id: 'plan-to',
+  name: 'Growth',
+  isActive: true,
+  kind: 'CATALOGUE',
+  salesModel: 'SELF_SERVICE',
+  eligibleCustomerAccountId: null,
+  effectiveFrom: null,
+  effectiveUntil: null,
+};
 
 function buildPrisma(overrides: Partial<Record<string, unknown>> = {}) {
   const subscription = {
@@ -30,8 +39,13 @@ function buildPrisma(overrides: Partial<Record<string, unknown>> = {}) {
   };
 
   return {
+    // The eligibility check (DP-QA-043) reads the tenant's customer and current plan.
+    tenant: {
+      findUnique: jest.fn().mockResolvedValue({ customerAccountId: 'cust-1' }),
+    },
     subscription: {
       findFirst: jest.fn().mockResolvedValue(subscription),
+      findUnique: jest.fn().mockResolvedValue({ planId: FROM_PLAN.id }),
     },
     plan: {
       findUniqueOrThrow: jest.fn().mockResolvedValue(FROM_PLAN),

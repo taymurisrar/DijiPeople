@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { OutboxWorkerService } from './modules/outbox/outbox-worker.service';
+import { TenantEntitlementService } from './common/security/tenant-entitlement.service';
 
 describe('AppController', () => {
   let appController: AppController;
@@ -18,6 +19,13 @@ describe('AppController', () => {
          * a timer, and what this spec asserts is the payload's shape.
          */
         { provide: OutboxWorkerService, useValue: { isEnabled: () => false } },
+        {
+          provide: TenantEntitlementService,
+          useValue: {
+            describeEnforcement: () =>
+              Promise.resolve({ mode: 'ENFORCE', enforced: true }),
+          },
+        },
       ],
     }).compile();
 
@@ -25,11 +33,12 @@ describe('AppController', () => {
   });
 
   describe('root', () => {
-    it('should return a health payload', () => {
-      expect(appController.getHealth()).toMatchObject({
+    it('should return a health payload', async () => {
+      await expect(appController.getHealth()).resolves.toMatchObject({
         app: 'dijipeople-api',
         status: 'ok',
         outboxWorker: { enabled: false },
+        entitlementEnforcement: { mode: 'ENFORCE', enforced: true },
       });
     });
   });

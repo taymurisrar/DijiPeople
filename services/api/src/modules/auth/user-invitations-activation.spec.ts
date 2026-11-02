@@ -151,6 +151,24 @@ describe('invitation activation token lifecycle (DP-QA-027)', () => {
     expect(userUpdates).toHaveLength(1);
   });
 
+  it('RUN-007 SEC-003/004: eight simultaneous requests yield exactly one winner, one password write, and a refused replay', async () => {
+    const { service, userUpdates, row } = build();
+    const results = await Promise.allSettled(
+      Array.from({ length: 8 }, (_, i) =>
+        service.activateAccount('tok', `Str0ng!Passw0rd-${i}`),
+      ),
+    );
+
+    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    expect(userUpdates).toHaveLength(1);
+    expect(row.status).toBe(UserInvitationStatus.CONSUMED);
+    // ...and the same token cannot be used again to change the password.
+    await expect(
+      service.activateAccount('tok', 'Hijack!Passw0rd-9'),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(userUpdates).toHaveLength(1);
+  }, 30_000); // 8 bcrypt(12) hashes share a 4-thread pool
+
   it('closes the check-then-write gap: revoked after the pre-check, before the claim', async () => {
     const { service, row, userUpdates } = build();
     const original = row.status;

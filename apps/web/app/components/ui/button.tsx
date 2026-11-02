@@ -18,7 +18,16 @@ type ButtonVariant =
   | "pill"
   | "card";
 
-type ButtonSize = "xs" | "sm" | "md" | "lg" | "xl" | "icon-xs" | "icon-sm" | "icon-md" | "icon-lg";
+type ButtonSize =
+  | "xs"
+  | "sm"
+  | "md"
+  | "lg"
+  | "xl"
+  | "icon-xs"
+  | "icon-sm"
+  | "icon-md"
+  | "icon-lg";
 
 type CommonButtonProps = {
   children?: React.ReactNode;
@@ -43,10 +52,7 @@ type NativeButtonProps = CommonButtonProps &
   };
 
 type AnchorButtonProps = CommonButtonProps &
-  Omit<
-    React.AnchorHTMLAttributes<HTMLAnchorElement>,
-    "children" | "href"
-  > &
+  Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, "children" | "href"> &
   Pick<LinkProps, "href"> & {
     href: LinkProps["href"];
   };
@@ -70,8 +76,7 @@ const variantClasses: Record<ButtonVariant, string> = {
   ghost:
     "bg-transparent text-foreground hover:bg-accent-soft/30 hover:text-accent-strong disabled:opacity-70 disabled:cursor-not-allowed",
 
-  soft:
-    "bg-accent-soft text-accent-strong hover:bg-accent-soft/80 disabled:opacity-70 disabled:cursor-not-allowed",
+  soft: "bg-accent-soft text-accent-strong hover:bg-accent-soft/80 disabled:opacity-70 disabled:cursor-not-allowed",
 
   success:
     "bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 disabled:opacity-70 disabled:cursor-not-allowed",
@@ -91,14 +96,11 @@ const variantClasses: Record<ButtonVariant, string> = {
   "danger-soft":
     "border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 disabled:opacity-70 disabled:cursor-not-allowed",
 
-  link:
-    "h-auto rounded-none bg-transparent px-0 text-accent hover:text-accent-strong hover:underline disabled:opacity-70 disabled:cursor-not-allowed",
+  link: "h-auto rounded-none bg-transparent px-0 text-accent hover:text-accent-strong hover:underline disabled:opacity-70 disabled:cursor-not-allowed",
 
-  pill:
-    "rounded-full border border-border bg-white/80 text-foreground shadow-sm hover:border-accent/30 hover:bg-white hover:text-accent disabled:opacity-70 disabled:cursor-not-allowed",
+  pill: "rounded-full border border-border bg-white/80 text-foreground shadow-sm hover:border-accent/30 hover:bg-white hover:text-accent disabled:opacity-70 disabled:cursor-not-allowed",
 
-  card:
-    "rounded-[22px] border border-border bg-white/90 text-left shadow-sm hover:border-accent/30 hover:bg-accent-soft/20 disabled:opacity-70 disabled:cursor-not-allowed",
+  card: "rounded-[22px] border border-border bg-white/90 text-left shadow-sm hover:border-accent/30 hover:bg-accent-soft/20 disabled:opacity-70 disabled:cursor-not-allowed",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -147,8 +149,9 @@ export const Button = React.forwardRef<
   } = props;
 
   const isDisabled = disabled || loading;
-const isIconOnly = iconOnlySizes.has(size) || (!children && Boolean(leftIcon || rightIcon));
-    const content = (
+  const isIconOnly =
+    iconOnlySizes.has(size) || (!children && Boolean(leftIcon || rightIcon));
+  const content = (
     <>
       {loading ? (
         <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
@@ -186,7 +189,8 @@ const isIconOnly = iconOnlySizes.has(size) || (!children && Boolean(leftIcon || 
 
     fullWidth && "w-full",
 
-    variant === "card" && "items-start justify-start whitespace-normal leading-normal",
+    variant === "card" &&
+      "items-start justify-start whitespace-normal leading-normal",
 
     isIconOnly && "aspect-square gap-0",
 
@@ -211,6 +215,32 @@ const isIconOnly = iconOnlySizes.has(size) || (!children && Boolean(leftIcon || 
       );
     }
 
+    /*
+     * A route handler is not a page, so it is never a `next/link` target.
+     *
+     * `Link` prefetches into the viewport in a production build, and the prefetch
+     * is a real GET. For `/api/auth/logout` that GET revoked the session, cleared
+     * the cookies and redirected cross-origin: the "Sign in again" button on the
+     * session-expired modal and the sign-in button on the error page logged the
+     * user out merely by being drawn, and the redirect surfaced as an intermittent
+     * CORS error on the RSC prefetch (RUN-007 SESS-005). A plain anchor is only
+     * ever followed when the user clicks it. It also stops download and export
+     * links being fetched before anyone asked for them.
+     */
+    if (typeof props.href === "string" && props.href.startsWith("/api/")) {
+      return (
+        <a
+          ref={ref as React.Ref<HTMLAnchorElement>}
+          href={props.href}
+          className={classes}
+          aria-label={ariaLabel}
+          {...(linkRest as React.AnchorHTMLAttributes<HTMLAnchorElement>)}
+        >
+          {content}
+        </a>
+      );
+    }
+
     return (
       <Link
         ref={ref as React.Ref<HTMLAnchorElement>}
@@ -224,10 +254,7 @@ const isIconOnly = iconOnlySizes.has(size) || (!children && Boolean(leftIcon || 
     );
   }
 
-  const buttonRest = rest as Omit<
-    NativeButtonProps,
-    keyof CommonButtonProps
-  >;
+  const buttonRest = rest as Omit<NativeButtonProps, keyof CommonButtonProps>;
 
   return (
     <button

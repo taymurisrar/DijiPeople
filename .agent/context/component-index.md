@@ -1,7 +1,7 @@
 # Component Index
 
-> **Last verified:** 2026-10-13
-> **Verified against commit:** 0df17da0
+> **Last verified:** 2026-11-01
+> **Verified against commit:** fdad3513
 >
 > **This file is generated. Do not hand-edit it.**
 > `node scripts/generate-component-index.mjs` rebuilds it;
@@ -16,8 +16,8 @@ question an agent can answer by retrieval rather than by reading a directory.
 comment beside it is the reasoning; this document is a route to both. Every row
 carries `file`:`line` for that reason — read the source before changing it.
 
-**An export missing from here is undocumented, not absent.** 925 of
-1304 exports across these kits carry no
+**An export missing from here is undocumented, not absent.** 928 of
+1313 exports across these kits carry no
 doc-comment and are omitted rather than listed as bare names. That ratio is
 itself worth knowing: it is where a UI/UX or Frontend agent is working without
 stated rationale, and where adding one is worth more than a new abstraction.
@@ -59,7 +59,7 @@ re-derived on each run.
 | `CopyReference` | component | 3 | `apps/admin/app/_components/monitoring/monitoring-ui.tsx`:107 | A reference id that copies itself; it is what support pastes to a customer. |
 | `DependencyAwareDeleteDialog` | component | 2 | `apps/admin/app/_components/runtime/dependency-aware-delete-dialog.tsx`:30 | The delete confirmation that asks the API what the delete would do first (EXECPLAN-0055 D5). |
 | `NotificationBell` | component | 2 | `apps/admin/app/_components/notifications/notification-bell.tsx`:36 | The bell: a count, and the last few things worth knowing. |
-| `PlanPriceManager` | component | 2 | `apps/admin/app/_components/plan-price-manager.tsx`:94 | Plan prices. This screen was a stack of cards, one per price, each repeating "Cycle", "Amount", "Stripe Price ID" and "Subscriptions" as its own labelled block — so a plan priced in six currencies across two periods, with a few superseded versions behind it, rendered several hundred vertical pixels of column headings. |
+| `PlanPriceManager` | component | 2 | `apps/admin/app/_components/plan-price-manager.tsx`:99 | Plan prices. This screen was a stack of cards, one per price, each repeating "Cycle", "Amount", "Stripe Price ID" and "Subscriptions" as its own labelled block — so a plan priced in six currencies across two periods, with a few superseded versions behind it, rendered several hundred vertical pixels of column headings. |
 | `AccountPreferencesClient` | component | 1 | `apps/admin/app/_components/account-preferences-client.tsx`:26 | Personal console preferences, stored against the operator. |
 | `HealthOverviewTiles` | component | 1 | `apps/admin/app/_components/monitoring/health-overview-tiles.tsx`:84 | TASK-0032 WP-06. "Is the platform healthy" as the first thing on the monitoring page, not something inferred from an error queue. |
 | `NotificationsFeed` | component | 1 | `apps/admin/app/_components/notifications/notifications-feed.tsx`:31 | What has happened on this platform that somebody should look at. |
@@ -211,7 +211,7 @@ re-derived on each run.
 
 Metadata-driven UI is the default. New modules are declared through `lib/runtime/` and rendered by the standard runtime pages; a bespoke page needs a stated reason in the plan.
 
-222 documented export(s); 621 undocumented export(s) omitted.
+228 documented export(s); 624 undocumented export(s) omitted.
 
 | Export | Kind | Used by | Where | What it is |
 |---|---|---|---|---|
@@ -258,6 +258,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `applyAnalyticsFilters` | function | 4 | `apps/web/app/components/filters/analytics-search-params.ts`:149 | Apply changes to a query string, returning a new one. |
 | `buildCustomModuleRuntime` | function | 4 | `apps/web/lib/runtime/custom-modules/custom-module-runtime.ts`:261 | The runtime context a custom-module route renders with. |
 | `defaultPrimaryNameFieldForEntity` | function | 4 | `apps/web/lib/runtime/modules/entity-primary-name-field.ts`:18 | The primary display field for an entity a lookup can point at. |
+| `filterEmployeeFormTabsByPlan` | function | 4 | `apps/web/lib/runtime/modules/employee-plan-tabs.ts`:29 | Removes the tabs of features the plan does not include. |
 | `linearScale` | function | 4 | `apps/web/app/components/charts/chart-geometry.ts`:67 | A linear mapping from a data domain onto a pixel range. |
 | `pointActionAccessibleLabel` | function | 4 | `apps/web/app/components/charts/chart-format.ts`:212 | The accessible name for an interactive point. |
 | `readAnalyticsFilters` | function | 4 | `apps/web/app/components/filters/analytics-search-params.ts`:115 | Read the recognised filters out of a URL, ignoring everything else. |
@@ -293,6 +294,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `clearAnalyticsFilters` | function | 1 | `apps/web/app/components/filters/analytics-search-params.ts`:175 | Drop every filter this module owns, keeping anything it does not. |
 | `commandContextSubtitle` | function | 1 | `apps/web/lib/runtime/command-context-labels.ts`:25 | A shift is only ever called a shift, and a work site only ever a work site. |
 | `commandsForPlacement` | function | 1 | `apps/web/lib/runtime/command-catalog.ts`:191 | Commands that make sense on a given bar, for filtering the picker. |
+| `commandsForPlan` | function | 1 | `apps/web/lib/runtime/command-plan-gate.ts`:27 | Works on a flat list or on any object whose values are command lists. |
 | `composeDashboardNavItems` | function | 1 | `apps/web/lib/runtime/custom-modules/custom-module-navigation.ts`:72 | The full sidebar catalog: the fixed list with custom entries placed just before Settings (the administrative tail), or appended when there is no Settings entry. |
 | `correctionChanges` | function | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:530 | What a correction request is asking to change, and only that. |
 | `donutArcs` | function | 1 | `apps/web/app/components/charts/chart-geometry.ts`:1119 | Arc paths for a donut, in input order. |
@@ -306,6 +308,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `hasRequestedChange` | function | 1 | `apps/web/app/components/attendance-corrections/correction-form-fields.ts`:478 | Whether a seeded draft actually asks for anything. |
 | `isLookupResultTruncated` | function | 1 | `apps/web/lib/runtime/lookup-search.ts`:129 | Whether a lookup's result list should say it is incomplete. |
 | `isReadOnlyLookupReferenceModule` | function | 1 | `apps/web/app/components/metadata/lookup-reference-route.ts`:54 | A destination whose selected value is rendered as `?reference=<value>` rather than `/<basePath>/<recordId>` — these settings screens navigate by the value itself (an ISO code, an IANA name), not a database id. |
+| `isSafeModuleHref` | function | 1 | `apps/web/lib/runtime/module-href.ts`:13 | Whether a module command may navigate to `href`. |
 | `lineItemToDraft` | function | 1 | `apps/web/lib/runtime/modules/claim-editor.ts`:215 | An existing line item, as the values an edit-in-place form starts from. |
 | `mapEmployeeWorkSiteRows` | function | 1 | `apps/web/lib/runtime/modules/employee-work-sites.ts`:40 | Maps `GET …/work-sites` (`listEmployeeWorkSites`) to subgrid rows. |
 | `mapPublishedForm` | function | 1 | `apps/web/lib/runtime/modules/standard-module-route-helpers.ts`:131 | Exported so the custom-module runtime (BUG-3494) turns a published form layout into FormMetadata through this one mapping rather than a second copy that would drift from what system modules render. |
@@ -346,6 +349,7 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `isClaimFormEditable` | function | 0 | `apps/web/lib/runtime/modules/claim-editor.ts`:26 | Whether the claim form takes input: always for a claim not yet created (it has no status), otherwise only while it is a draft. |
 | `loadCustomFieldDefinitions` | function | 0 | `apps/web/lib/runtime/custom-fields-server.ts`:56 | A failure leaves the page as it was before custom fields existed rather than failing it: nothing built into the module depends on them. |
 | `lookupLabel` | function | 0 | `apps/web/lib/runtime/custom-lookup-options.ts`:98 | A row's label: the target's own name field first, then the common ones. |
+| `lookupNeedsHydration` | function | 0 | `apps/web/app/components/metadata/runtime-metadata-form-renderer.tsx`:1565 | Whether a lookup field needs its option list fetched. |
 | `lookupSourcePath` | function | 0 | `apps/web/lib/runtime/custom-lookup-options.ts`:53 | Where a target's records are listed. |
 | `normalizeRange` | function | 0 | `apps/web/app/components/filters/period.ts`:298 | Put a pair of dates the right way round. |
 | `parseAmountInput` | function | 0 | `apps/web/lib/runtime/modules/claim-editor.ts`:130 | `null` when the input is blank or not a finite number — never `NaN`. |
@@ -390,9 +394,11 @@ Metadata-driven UI is the default. New modules are declared through `lib/runtime
 | `CHART_SERIES_COLORS` | constant | 0 | `apps/web/app/components/charts/chart-tokens.ts`:44 | The one palette every chart in the Reports & Analytics workspace draws from. |
 | `CLAIM_CANCEL_BLOCKED_STATUSES` | constant | 0 | `apps/web/lib/runtime/modules/claims-runtime-specs.ts`:65 | Statuses past which a claim can no longer be cancelled or rejected. |
 | `CLAIM_STATUSES` | constant | 0 | `apps/web/lib/runtime/modules/claims-runtime-specs.ts`:37 | Claims as runtime modules — EXECPLAN-0044 wave 2. |
+| `COMMAND_FEATURE_KEYS` | constant | 0 | `apps/web/lib/runtime/command-plan-gate.ts`:12 | Commands whose destination belongs to a paid feature (DP-QA-004 follow-up). |
 | `CUSTOM_MODULE_ROUTE_BASE` | constant | 0 | `apps/web/lib/runtime/custom-modules/custom-module-navigation.ts`:19 | Sidebar entries for published custom modules (BUG-3494 / ADR-0016). |
 | `DEFAULT_WEEK_STARTS_ON` | constant | 0 | `apps/web/app/components/charts/chart-geometry.ts`:345 | `weekStartsOn` is a parameter and not a constant on purpose. |
 | `DEFAULT_WEEK_STARTS_ON` | constant | 0 | `apps/web/app/components/filters/period.ts`:130 | Sunday. This product's default weekend is **Friday/Saturday**, so the working week begins on Sunday and not on Monday. |
+| `EMPLOYEE_TAB_FEATURE_KEYS` | constant | 0 | `apps/web/lib/runtime/modules/employee-plan-tabs.ts`:13 | The plan feature each employee-record tab belongs to (DP-QA-015). |
 | `LINE_CHART_MARGINS` | constant | 0 | `apps/web/app/components/charts/line-chart.tsx`:36 | A trend over time. A thin renderer: every number on screen was computed by `chart-geometry.ts` and every string was formatted by `chart-format.ts`, both of which are covered by specs. |
 | `SMALL_REFERENCE_LOOKUP_ENTITIES` | constant | 0 | `apps/web/lib/runtime/lookup-search.ts`:32 | Small, effectively-fixed reference sets that already fit inside one unfiltered page today (BUG-3376's "Small reference sets should keep the cheap prefetch path, chosen by the spec rather than by accident"). |
 | `VisibilityRule` | type | 5 | `apps/web/lib/runtime/visibility.resolver.ts`:27 | One place to ask "should this person see this". |

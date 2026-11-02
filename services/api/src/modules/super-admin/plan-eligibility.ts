@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import type { Prisma } from '@prisma/client';
+import type { Prisma, PrismaClient } from '@prisma/client';
 
 /**
  * Who a plan may be offered to, and when.
@@ -51,5 +51,65 @@ export function assertPlanAssignable(
     throw new BadRequestException(
       `"${plan.name}" expired on ${plan.effectiveUntil.toISOString().slice(0, 10)}.`,
     );
+  }
+}
+
+type EligibilityDb = Pick<PrismaClient, 'tenant' | 'subscription' | 'plan'>;
+
+/**
+ * The one rule behind every way of moving a tenant onto a plan (DP-QA-043).
+ *
+ * Assignment was checked at tenant creation, on customer select and in the public
+ * catalogue, but not by the operator subscription PATCH, which wrote straight
+ * through `createOrUpdateSubscription`. The rule now lives where every assignment
+ * lands, so a new caller cannot forget it.
+ *
+ * What it deliberately does NOT do: it never re-judges a subscription that stays on
+ * its current plan. A plan reserved for another customer, expired or withdrawn is
+ * still a perfectly valid thing for its existing subscriber to be on (an operator
+ * changing the billing cycle or seats of a legacy-contract tenant must keep
+ * working); only a MOVE onto a plan is checked.
+ *
+ * `opaque` is for tenant-initiated callers: they must not learn that a plan exists
+ * but is reserved for somebody else.
+ */
+export async function assertPlanAssignableToTenant(
+  db: EligibilityDb,
+  tenantId: string,
+  planId: string,
+  options: { opaque?: boolean; now?: Date } = {},
+) {
+  const [tenant, current, plan] = await Promise.all([
+    db.tenant.findUnique({
+      where: { id: tenantId },
+      select: { customerAccountId: true },
+    }),
+    db.subscription.findUnique({
+      where: { tenantId },
+      select: { planId: true },
+    }),
+    db.plan.findUnique({
+      where: { id: planId },
+      select: {
+        name: true,
+        kind: true,
+        salesModel: true,
+        eligibleCustomerAccountId: true,
+        effectiveFrom: true,
+        effectiveUntil: true,
+      },
+    }),
+  ]);
+  // Missing rows are reported by the caller's own not-found handling.
+  if (!tenant || !plan) return;
+  if (current?.planId === planId) return;
+
+  try {
+    assertPlanAssignable(plan, tenant.customerAccountId, options.now);
+  } catch (error) {
+    if (options.opaque) {
+      throw new BadRequestException('That plan is not available.');
+    }
+    throw error;
   }
 }

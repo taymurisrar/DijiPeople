@@ -2384,6 +2384,90 @@ export class SuperAdminService {
     return this.mapPlanPrice(price);
   }
 
+  /**
+   * Publish or withdraw the price of a CUSTOM plan (DP-QA-044).
+   *
+   * A custom plan could be created and priced but never sold: onboarding and
+   * operator provisioning resolve only a PUBLISHED price, and nothing set that
+   * status. This is the missing act, and it is deliberately small - it changes
+   * what an operator may provision a customer onto, nothing about how it is billed:
+   * no amount, cycle, seat rule or Stripe state is touched or invented.
+   *
+   * The predefined plans are excluded: their prices belong to the catalogue and
+   * its market workflow, not to this console action. Unpublishing never touches an
+   * existing subscription; it only stops new ones using the price.
+   */
+  async setPlanPricePublication(
+    actor: AuthenticatedUser,
+    planId: string,
+    priceId: string,
+    action: 'publish' | 'unpublish',
+  ) {
+    const plan = await this.prisma.plan.findUnique({
+      where: { id: planId },
+      select: { id: true, key: true, kind: true },
+    });
+    if (!plan) throw new NotFoundException('Plan not found.');
+    if (plan.kind !== PlanKind.CUSTOM) {
+      throw new BadRequestException(
+        'Prices of the predefined plans are managed by the catalogue and cannot be published here.',
+      );
+    }
+    const price = await this.findPlanPriceOrThrow(planId, priceId);
+
+    if (action === 'publish') {
+      if (!price.isActive) {
+        throw new BadRequestException(
+          'Activate the price before publishing it; an inactive price cannot be used.',
+        );
+      }
+      if (price.publicationStatus === CommercialPublicationStatus.PUBLISHED) {
+        throw new BadRequestException('This price is already published.');
+      }
+      if (price.publicationStatus === CommercialPublicationStatus.ARCHIVED) {
+        throw new BadRequestException(
+          'An archived price cannot be published again. Create a new price instead.',
+        );
+      }
+    } else if (
+      price.publicationStatus !== CommercialPublicationStatus.PUBLISHED
+    ) {
+      throw new BadRequestException('This price is not published.');
+    }
+
+    const updated = await this.prisma.planPrice.update({
+      where: { id: priceId },
+      data:
+        action === 'publish'
+          ? {
+              publicationStatus: CommercialPublicationStatus.PUBLISHED,
+              publishedAt: new Date(),
+              publishedById: actor.userId,
+            }
+          : { publicationStatus: CommercialPublicationStatus.DRAFT },
+      include: { _count: { select: { subscriptions: true } } },
+    });
+
+    await this.auditService.log({
+      tenantId: 'platform',
+      actorUserId: actor.userId,
+      action:
+        action === 'publish'
+          ? 'PLAN_PRICE_PUBLISHED'
+          : 'PLAN_PRICE_UNPUBLISHED',
+      entityType: 'PlanPrice',
+      entityId: priceId,
+      sourceModule: 'super-admin',
+      beforeSnapshot: { publicationStatus: price.publicationStatus },
+      afterSnapshot: {
+        publicationStatus: updated.publicationStatus,
+        planKey: plan.key,
+      },
+    });
+
+    return this.mapPlanPrice(updated);
+  }
+
   async updatePlanPrice(
     actor: AuthenticatedUser,
     planId: string,
@@ -3071,6 +3155,10 @@ export class SuperAdminService {
         actorUserId: actor.userId,
       },
     );
+
+    // The plan, price or status just changed; this process must not keep serving
+    // the previous snapshot (DP-QA-047). Other instances converge within the TTL.
+    this.entitlements?.invalidate(tenantId);
 
     if (selectedPromotion) {
       await this.prisma.$transaction([
@@ -4916,6 +5004,8 @@ export class SuperAdminService {
     stripeVerifiedAt: Date | null;
     stripeVerificationError: string | null;
     isActive: boolean;
+    publicationStatus?: CommercialPublicationStatus;
+    publishedAt?: Date | null;
     createdAt: Date;
     updatedAt: Date;
     _count?: { subscriptions: number };
@@ -4970,6 +5060,8 @@ export class SuperAdminService {
       stripeVerifiedAt: price.stripeVerifiedAt,
       stripeVerificationError: price.stripeVerificationError,
       isActive: price.isActive,
+      publicationStatus: price.publicationStatus ?? null,
+      publishedAt: price.publishedAt ?? null,
       subscriptionCount,
       isCheckoutReady: readiness.checkoutReady,
       checkoutReadinessReasons: readiness.reasons,

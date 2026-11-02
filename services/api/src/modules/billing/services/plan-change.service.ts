@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  Optional,
+} from '@nestjs/common';
 import {
   DomainEventType,
   InvoiceStatus,
@@ -13,6 +18,8 @@ import { buildIdempotencyKey } from '../../outbox/outbox.types';
 import { StripeBillingService } from './stripe-billing.service';
 import { resolveBillableSeats } from '../billing-seat-pricing';
 import { AuditService } from '../../audit/audit.service';
+import { TenantEntitlementService } from '../../../common/security/tenant-entitlement.service';
+import { assertPlanAssignableToTenant } from '../../super-admin/plan-eligibility';
 
 export type EntitlementImpact = {
   gained: string[];
@@ -73,6 +80,8 @@ export class PlanChangeService {
     private readonly outbox: OutboxService,
     private readonly stripeBillingService: StripeBillingService,
     private readonly auditService: AuditService,
+    // Optional so a spec can omit it; the module is global in the real app.
+    @Optional() private readonly entitlements?: TenantEntitlementService,
   ) {}
 
   /**
@@ -258,6 +267,12 @@ export class PlanChangeService {
         targetPlanPriceId: input.toPlanPriceId ?? toPlanPriceId,
       };
     });
+
+    // An immediate change has committed: the tenant's entitlements changed with
+    // it (DP-QA-047), so the next request must not be served the old snapshot.
+    if (result.status === PlanChangeStatus.APPLIED) {
+      this.entitlements?.invalidate(input.tenantId);
+    }
 
     /*
      * The Stripe call happens AFTER the transaction commits, deliberately.
@@ -561,6 +576,9 @@ export class PlanChangeService {
           });
         });
 
+        // The scheduled change is now the subscription's plan (DP-QA-047).
+        this.entitlements?.invalidate(request.tenantId);
+
         /*
          * Outside the transaction, same reasoning as `requestChange()`: the
          * local record of "this downgrade is applied" must not depend on
@@ -802,11 +820,30 @@ export class PlanChangeService {
       }),
       this.prisma.plan.findUnique({
         where: { id: toPlanId },
-        select: { id: true, name: true, isActive: true },
+        select: {
+          id: true,
+          name: true,
+          isActive: true,
+          kind: true,
+          salesModel: true,
+        },
       }),
     ]);
 
     if (!toPlan || !toPlan.isActive) {
+      throw new BadRequestException('That plan is not available.');
+    }
+    /*
+     * A tenant administrator is not an operator (DP-QA-043). A customer-reserved
+     * or out-of-window plan is refused, and so is any custom plan that is not
+     * explicitly self-service: custom plans are arranged by DijiPeople, and a
+     * workspace cannot move itself onto one. The refusal is opaque so it does not
+     * confirm that another customer's plan exists.
+     */
+    await assertPlanAssignableToTenant(this.prisma, tenantId, toPlanId, {
+      opaque: true,
+    });
+    if (toPlan.kind === 'CUSTOM' && toPlan.salesModel !== 'SELF_SERVICE') {
       throw new BadRequestException('That plan is not available.');
     }
 
