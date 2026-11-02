@@ -26,6 +26,10 @@ import {
 } from '@prisma/client';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import {
+  MODULE_PROVISIONING_VERSION,
+  missingModuleComponents,
+} from './module-provisioning';
 import { CreateModuleViewDto } from '../views/dto/create-module-view.dto';
 import { UpdateModuleViewDto } from '../views/dto/update-module-view.dto';
 import {
@@ -286,134 +290,227 @@ export class CustomizationService {
       );
     }
 
-    const table = await this.prisma.customizationTable.create({
-      data: {
-        tenantId: currentUser.tenantId,
-        tableKey,
-        systemName: dto.systemName?.trim() || pascalize(tableKey),
-        displayName: dto.displayName.trim(),
-        pluralDisplayName: dto.pluralDisplayName.trim(),
-        description: dto.description?.trim(),
-        icon: dto.icon?.trim(),
-        moduleKey: 'custom',
-        displayOrder: 9000,
-        ownershipType: 'tenant',
-        isSystem: false,
-        isCustom: true,
-        isCustomizable: true,
-        isVisibleInCustomization: true,
-        isValidForAdvancedFind: true,
-        isValidForFormDesigner: true,
-        isValidForViewDesigner: true,
-        isActive: dto.isActive ?? true,
-        createdByUserId: currentUser.userId,
-        updatedByUserId: currentUser.userId,
-      },
-    });
-    await this.addDefaultSolutionComponent(currentUser, {
-      solutionId: packageRecord.id,
-      componentType: 'table',
-      objectId: table.id,
-      objectKey: table.tableKey,
-      tableId: table.id,
-      isSystem: false,
-      isCustom: true,
-    });
-
     /*
-     * A custom module used to be created with only its table component, so it
-     * opened with no form, no view and no action bar while every system module
-     * had all three. It now starts with the same defaults.
+     * Table, its package membership and every default component commit
+     * together. They used to be separate awaits, so a failure part-way left a
+     * module with no form or view that a retry could not repair (the retry hit
+     * the duplicate-key Conflict above). A partial module must never be
+     * visible as a complete one.
      */
-    await this.createDefaultModuleComponents(
-      currentUser,
-      table,
-      packageRecord.id,
-    );
+    return this.prisma.$transaction(async (tx) => {
+      const table = await tx.customizationTable.create({
+        data: {
+          tenantId: currentUser.tenantId,
+          tableKey,
+          systemName: dto.systemName?.trim() || pascalize(tableKey),
+          displayName: dto.displayName.trim(),
+          pluralDisplayName: dto.pluralDisplayName.trim(),
+          description: dto.description?.trim(),
+          icon: dto.icon?.trim(),
+          moduleKey: 'custom',
+          displayOrder: 9000,
+          ownershipType: 'tenant',
+          isSystem: false,
+          isCustom: true,
+          isCustomizable: true,
+          isVisibleInCustomization: true,
+          isValidForAdvancedFind: true,
+          isValidForFormDesigner: true,
+          isValidForViewDesigner: true,
+          isActive: dto.isActive ?? true,
+          createdByUserId: currentUser.userId,
+          updatedByUserId: currentUser.userId,
+        },
+      });
+      await this.addDefaultSolutionComponent(
+        currentUser,
+        {
+          solutionId: packageRecord.id,
+          componentType: 'table',
+          objectId: table.id,
+          objectKey: table.tableKey,
+          tableId: table.id,
+          isSystem: false,
+          isCustom: true,
+        },
+        tx,
+      );
 
-    return table;
+      /*
+       * A custom module used to be created with only its table component, so it
+       * opened with no form, no view and no action bar while every system module
+       * had all three. It now starts with the same defaults.
+       */
+      await this.provisionModuleComponents(
+        currentUser,
+        table,
+        packageRecord.id,
+        tx,
+      );
+
+      return table;
+    });
   }
 
   /**
-   * Gives a newly created module its starting form, view and action bar.
-   *
-   * A brand-new custom module has no columns yet, so the form and view are
-   * created empty and fill in as fields are added — which is better than
-   * withholding them until then, because the designer has nothing to open
-   * otherwise.
+   * Back-fills whatever the module plan says a module should have and this one
+   * lacks. Safe to retry and to run on a customised module: it only ever
+   * creates, never rewrites or renames an existing form, view or action bar.
    */
-  private async createDefaultModuleComponents(
+  async reconcileModuleComponents(
+    currentUser: AuthenticatedUser,
+    tableKey: string,
+    packageId?: string,
+  ) {
+    const table = await this.prisma.customizationTable.findFirst({
+      where: { tenantId: currentUser.tenantId, tableKey, isCustom: true },
+    });
+    if (!table) {
+      throw new NotFoundException('Custom module was not found.');
+    }
+    const packageRecord = await this.resolveLayerPackage(
+      currentUser,
+      packageId,
+    );
+    return this.prisma.$transaction((tx) =>
+      this.provisionModuleComponents(currentUser, table, packageRecord.id, tx),
+    );
+  }
+
+  /**
+   * Creates the forms, views and action bar of the module plan that the module
+   * does not already have (module-provisioning.ts holds the plan and what it
+   * deliberately omits).
+   *
+   * A brand-new custom module has no columns yet, so forms and views start
+   * empty and fill in as fields are added — better than withholding them,
+   * because the designer has nothing to open otherwise. Existing rows are never
+   * touched, which is what makes this idempotent and customisation-safe.
+   */
+  private async provisionModuleComponents(
     currentUser: AuthenticatedUser,
     table: CustomizationTable,
     solutionId: string,
+    db: Prisma.TransactionClient,
   ) {
-    const form = await this.prisma.customizationForm.create({
-      data: {
-        tenantId: currentUser.tenantId,
-        tableId: table.id,
-        formKey: 'main',
-        name: `${table.displayName} Main Form`,
-        description: `Default form for ${table.displayName}.`,
-        type: CustomizationFormType.main,
-        isDefault: true,
-        isActive: true,
-        isSystem: false,
-        isCustom: true,
-        layoutJson: buildDefaultFormLayout(table, []),
-      },
-    });
-    await this.addDefaultSolutionComponent(currentUser, {
-      solutionId,
-      componentType: 'form',
-      objectId: form.id,
-      objectKey: `${table.tableKey}.${form.formKey}`,
-      tableId: table.id,
-      isSystem: false,
-      isCustom: true,
-    });
-
-    const view = await this.prisma.customizationView.create({
-      data: {
-        tenantId: currentUser.tenantId,
-        tableId: table.id,
-        viewKey: 'active',
-        name: `Active ${table.pluralDisplayName}`,
-        description: `Default active ${table.pluralDisplayName} view.`,
-        type: 'custom',
-        isDefault: true,
-        isHidden: false,
-        isSystem: false,
-        isCustom: true,
-        columnsJson: buildDefaultViewColumns([]),
-        filtersJson: [],
-        sortingJson: buildDefaultViewSorting([]),
-        visibilityScope: 'tenant',
-      },
-    });
-    await this.addDefaultSolutionComponent(currentUser, {
-      solutionId,
-      componentType: 'view',
-      objectId: view.id,
-      objectKey: `${table.tableKey}.${view.viewKey}`,
-      tableId: table.id,
-      isSystem: false,
-      isCustom: true,
+    const [forms, views, actionBar] = await Promise.all([
+      db.customizationForm.findMany({
+        where: { tenantId: currentUser.tenantId, tableId: table.id },
+        select: { formKey: true },
+      }),
+      db.customizationView.findMany({
+        where: { tenantId: currentUser.tenantId, tableId: table.id },
+        select: { viewKey: true, isDefault: true },
+      }),
+      db.customizationSolutionComponent.findFirst({
+        where: {
+          tenantId: currentUser.tenantId,
+          solutionId,
+          componentType: 'actionBar',
+          objectId: `custom-action-bar:${table.tableKey}`,
+        },
+        select: { id: true },
+      }),
+    ]);
+    const alreadyHasDefaultView = views.some((v) => v.isDefault);
+    const gap = missingModuleComponents({
+      formKeys: forms.map((f) => f.formKey),
+      viewKeys: views.map((v) => v.viewKey),
+      hasDefaultView: alreadyHasDefaultView,
+      hasActionBar: Boolean(actionBar),
     });
 
-    await this.addDefaultSolutionComponent(currentUser, {
-      solutionId,
-      componentType: 'actionBar',
-      objectId: `custom-action-bar:${table.tableKey}`,
-      objectKey: `${table.tableKey}.system.actionBar`,
-      tableId: table.id,
-      isSystem: false,
-      isCustom: true,
-      metadataJson: {
-        source: 'module-default',
-        scope: 'module',
-        actions: [...DEFAULT_MODULE_ACTION_COMMANDS],
-      },
-    });
+    for (const planned of gap.forms) {
+      const form = await db.customizationForm.create({
+        data: {
+          tenantId: currentUser.tenantId,
+          tableId: table.id,
+          formKey: planned.formKey,
+          name: `${table.displayName} ${planned.nameSuffix}`,
+          description: `${planned.nameSuffix} for ${table.displayName}.`,
+          type: planned.type,
+          isDefault: planned.isDefault,
+          isActive: true,
+          isSystem: false,
+          isCustom: true,
+          layoutJson: buildDefaultFormLayout(table, []),
+        },
+      });
+      await this.addDefaultSolutionComponent(
+        currentUser,
+        {
+          solutionId,
+          componentType: 'form',
+          objectId: form.id,
+          objectKey: `${table.tableKey}.${form.formKey}`,
+          tableId: table.id,
+          isSystem: false,
+          isCustom: true,
+        },
+        db,
+      );
+    }
+
+    for (const planned of gap.views) {
+      const name = planned.nameTemplate(table.pluralDisplayName);
+      const view = await db.customizationView.create({
+        data: {
+          tenantId: currentUser.tenantId,
+          tableId: table.id,
+          viewKey: planned.viewKey,
+          name,
+          description: `${name} view.`,
+          type: 'custom',
+          // Never a second default: an older module keeps its own.
+          isDefault: planned.isDefault && !alreadyHasDefaultView,
+          isHidden: false,
+          isSystem: false,
+          isCustom: true,
+          columnsJson: buildDefaultViewColumns([]),
+          filtersJson: [],
+          sortingJson: planned.recentFirst
+            ? [{ columnKey: 'updatedAt', direction: 'desc' }]
+            : buildDefaultViewSorting([]),
+          visibilityScope: 'tenant',
+        },
+      });
+      await this.addDefaultSolutionComponent(
+        currentUser,
+        {
+          solutionId,
+          componentType: 'view',
+          objectId: view.id,
+          objectKey: `${table.tableKey}.${view.viewKey}`,
+          tableId: table.id,
+          isSystem: false,
+          isCustom: true,
+        },
+        db,
+      );
+    }
+
+    if (gap.actionBar) {
+      await this.addDefaultSolutionComponent(
+        currentUser,
+        {
+          solutionId,
+          componentType: 'actionBar',
+          objectId: `custom-action-bar:${table.tableKey}`,
+          objectKey: `${table.tableKey}.system.actionBar`,
+          tableId: table.id,
+          isSystem: false,
+          isCustom: true,
+          metadataJson: {
+            source: 'module-default',
+            scope: 'module',
+            provisioningVersion: MODULE_PROVISIONING_VERSION,
+            actions: [...DEFAULT_MODULE_ACTION_COMMANDS],
+          },
+        },
+        db,
+      );
+    }
+    return gap;
   }
 
   async getPublished(currentUser: AuthenticatedUser) {
@@ -5263,6 +5360,7 @@ export class CustomizationService {
       version?: string;
       metadataJson?: Prisma.InputJsonValue;
     },
+    db: Prisma.TransactionClient | PrismaService = this.prisma,
   ) {
     const solution = component.solutionId
       ? await this.findPackageOrThrow(currentUser, component.solutionId)
@@ -5270,7 +5368,7 @@ export class CustomizationService {
     const solutionId = solution.id;
     const isDefaultBaseComponent =
       solution.isDefault && solution.isSystem && component.isSystem;
-    return this.prisma.customizationSolutionComponent.upsert({
+    return db.customizationSolutionComponent.upsert({
       where: {
         solutionId_componentType_objectId: {
           solutionId,

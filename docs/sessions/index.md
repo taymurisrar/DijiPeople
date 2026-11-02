@@ -6,11 +6,13 @@ Every Architect session that has run against this repository, and what it
 owned while it ran. Multiple sessions are expected to be active at once —
 see [`README.md`](README.md) for how they stay out of each other's way.
 
-**Active: 0** · completed: 124
+**Active: 1** · completed: 124
 
 ## Active
 
-_None. No session is currently running._
+| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
+|---|---|---|---|---|---|---|---|
+| [SESSION-0131](../../docs/sessions/SESSION-0131-engineering-governance-agent-os-api-module-completeness-gate.md) | — | Engineering governance: agent OS, API/module completeness gates, CI diagnostics, hotfix dry-run | ACTIVE | `agent/engineering-governance` | `develop` | — | 2026-11-02T20:22:36.365Z |
 
 ## Completed
 

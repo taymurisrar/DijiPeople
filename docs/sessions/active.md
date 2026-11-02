@@ -10,4 +10,6 @@ leases actually held this minute, the develop merge queue — comes from
 `node scripts/session.mjs list`, which reads the shared Git directory and
 therefore sees sibling worktrees without anybody having pushed.
 
-_None. No session is currently running._
+| Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
+|---|---|---|---|---|---|---|---|
+| [SESSION-0131](../../docs/sessions/SESSION-0131-engineering-governance-agent-os-api-module-completeness-gate.md) | — | Engineering governance: agent OS, API/module completeness gates, CI diagnostics, hotfix dry-run | ACTIVE | `agent/engineering-governance` | `develop` | — | 2026-11-02T20:22:36.365Z |

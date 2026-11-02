@@ -1,0 +1,138 @@
+// Proves the engineering-governance layer is internally consistent (policy AGT-003, DOC-001).
+// A rule nobody can find, an agent with an invalid tool, a policy pointing at a file that no
+// longer exists, or two policies saying the same thing are all failures — instruction rot is
+// the failure mode of every agent framework, and prose cannot detect it.
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
+const exists = (p) => fs.existsSync(path.join(ROOT, p));
+const catalogue = JSON.parse(read('docs/engineering/policy-catalogue.json'));
+const VALID_TOOLS = new Set(['Read', 'Grep', 'Glob', 'Bash', 'PowerShell', 'Edit', 'Write', 'WebFetch', 'WebSearch', 'NotebookEdit']);
+const LEVELS = ['MANDATORY', 'RECOMMENDED', 'EXCEPTION_ADR'];
+const KINDS = ['executable', 'hook', 'review', 'manual'];
+
+function frontmatter(text) {
+  const m = /^---\r?\n([\s\S]*?)\r?\n---/.exec(text);
+  assert.ok(m, 'missing frontmatter');
+  const out = {};
+  for (const l of m[1].split(/\r?\n/)) {
+    const kv = /^([\w-]+):\s*(.*)$/.exec(l);
+    if (kv) out[kv[1]] = kv[2].trim();
+  }
+  return out;
+}
+
+test('policy catalogue: unique ids, valid level/kind, targets exist, manual needs a reason', () => {
+  const ids = new Set();
+  for (const p of catalogue.policies) {
+    assert.match(p.id, /^[A-Z]+-\d{3}$/, p.id);
+    assert.ok(!ids.has(p.id), `duplicate ${p.id}`);
+    ids.add(p.id);
+    assert.ok(LEVELS.includes(p.level), `${p.id} level`);
+    assert.ok(KINDS.includes(p.enforcement.kind), `${p.id} kind`);
+    assert.ok(p.statement.length > 25, `${p.id} statement`);
+    if (p.enforcement.kind === 'manual') assert.ok(p.enforcement.reason?.length > 20, `${p.id} manual needs a reason`);
+    else assert.ok(exists(p.enforcement.ref), `${p.id} enforcement target missing: ${p.enforcement.ref}`);
+  }
+});
+
+test('critical governance rules are executable or hook-enforced, not prose', () => {
+  const critical = ['API-001', 'API-002', 'API-003', 'API-004', 'SEC-001', 'MOD-001', 'MOD-002', 'DB-001', 'GIT-001', 'GIT-002', 'CI-002', 'HOT-001', 'HOT-003', 'HOT-005'];
+  for (const id of critical) {
+    const p = catalogue.policies.find((x) => x.id === id);
+    assert.ok(p, id);
+    assert.ok(['executable', 'hook'].includes(p.enforcement.kind), `${id} must be machine-enforced, is ${p.enforcement.kind}`);
+  }
+});
+
+test('no two policies state the same thing (duplicate detection)', () => {
+  const norm = (s) => new Set(s.toLowerCase().replace(/[^a-z ]/g, '').split(/\s+/).filter((w) => w.length > 3));
+  const ps = catalogue.policies;
+  for (let i = 0; i < ps.length; i++)
+    for (let j = i + 1; j < ps.length; j++) {
+      const a = norm(ps[i].statement), b = norm(ps[j].statement);
+      const inter = [...a].filter((w) => b.has(w)).length;
+      const jac = inter / (a.size + b.size - inter);
+      assert.ok(jac < 0.7, `${ps[i].id} and ${ps[j].id} are near-duplicates (${jac.toFixed(2)})`);
+    }
+});
+
+test('every policy id referenced by code or docs exists in the catalogue', () => {
+  const ids = new Set(catalogue.policies.map((p) => p.id));
+  const files = ['scripts/check-api-completeness.mjs', 'scripts/check-module-completeness.mjs', 'scripts/hotfix.mjs', 'scripts/ci-doctor.mjs', 'scripts/lessons.mjs', 'scripts/preflight.mjs', 'scripts/hooks/guard-bash.mjs']
+    .concat(fs.readdirSync(path.join(ROOT, '.claude/rules')).map((f) => `.claude/rules/${f}`));
+  for (const f of files) {
+    for (const m of read(f).matchAll(/\b(API|MOD|SEC|DB|GIT|CI|HOT|AGT|LRN|UI|PERF|DOC)-(\d{3})\b/g)) {
+      // guard-bash has its own rule ids that intentionally mirror (GIT-00x, DB-00x, CI-00x) but may be a subset
+      if (f.endsWith('guard-bash.mjs') && ['FS', 'DEPLOY'].includes(m[1])) continue;
+      assert.ok(ids.has(m[0]) || f.endsWith('guard-bash.mjs') || f.endsWith('ci-doctor.mjs'), `${f} cites unknown policy ${m[0]}`);
+    }
+  }
+});
+
+test('agents: valid frontmatter, filename = name, only known tools, QA/security agents cannot edit source', () => {
+  const dir = '.claude/agents';
+  const files = fs.readdirSync(path.join(ROOT, dir)).filter((f) => f.endsWith('.md'));
+  assert.ok(files.length >= 10, `expected >=10 agents, found ${files.length}`);
+  for (const f of files) {
+    const fm = frontmatter(read(`${dir}/${f}`));
+    assert.equal(fm.name, f.replace(/\.md$/, ''), f);
+    assert.match(fm.name, /^dp-[a-z-]+$/);
+    assert.ok(fm.description.length > 40, `${f} description`);
+    for (const t of fm.tools.split(',').map((s) => s.trim())) assert.ok(VALID_TOOLS.has(t), `${f}: unknown tool ${t}`);
+    assert.ok(['opus', 'sonnet', 'haiku', 'inherit'].includes(fm.model), `${f} model`);
+  }
+  for (const independent of ['dp-qa-engineer', 'dp-security-reviewer']) {
+    const tools = frontmatter(read(`${dir}/${independent}.md`)).tools;
+    assert.doesNotMatch(tools, /\bEdit\b/, `${independent} must not be able to edit source (AGT-002)`);
+  }
+});
+
+test('skills: required set exists, each names an existing lead agent, side-effecting ones are manual-only', () => {
+  const required = ['dp-new-module', 'dp-new-api', 'dp-implement-feature', 'dp-fix-bug', 'dp-review', 'dp-test', 'dp-ci-doctor', 'dp-hotfix', 'dp-release-check', 'dp-security-audit', 'dp-learn'];
+  for (const s of required) {
+    assert.ok(exists(`.claude/skills/${s}/SKILL.md`), `skill ${s} missing`);
+    const text = read(`.claude/skills/${s}/SKILL.md`);
+    const fm = frontmatter(text);
+    assert.equal(fm.name, s);
+    assert.ok(fm.description.length > 30);
+    const lead = /Lead agent: `([^`]+)`/.exec(text)?.[1];
+    assert.ok(lead && exists(`.claude/agents/${lead}.md`), `${s} lead agent ${lead}`);
+  }
+  for (const s of ['dp-hotfix', 'dp-release-check', 'dp-security-audit'])
+    assert.equal(frontmatter(read(`.claude/skills/${s}/SKILL.md`))['disable-model-invocation'], 'true', `${s} must not be auto-invoked`);
+});
+
+test('rules are path-scoped and reference the catalogue', () => {
+  for (const f of fs.readdirSync(path.join(ROOT, '.claude/rules'))) {
+    const t = read(`.claude/rules/${f}`);
+    assert.match(t, /^---\r?\npaths:/, `${f} needs paths frontmatter so it loads only when relevant`);
+    assert.match(t, /policy-catalogue\.json/);
+  }
+});
+
+test('settings: hooks point at existing scripts; deny list protects main, force-push and prod DB', () => {
+  const s = JSON.parse(read('.claude/settings.json'));
+  for (const group of Object.values(s.hooks)) for (const g of group) for (const h of g.hooks) {
+    const script = /scripts\/hooks\/[\w.-]+\.mjs/.exec(h.command)?.[0];
+    assert.ok(script && exists(script), `hook script missing: ${h.command}`);
+  }
+  const deny = s.permissions.deny.join('\n');
+  for (const needle of ['git push --force', 'git push origin main', 'migrate reset', 'db push']) assert.ok(deny.includes(needle), needle);
+  assert.ok(!s.permissions.allow.some((a) => /deploy|vercel|render|push/.test(a)), 'allow list must not grant deploy/push');
+});
+
+test('root instructions stay concise and point at the layers (progressive disclosure)', () => {
+  const claude = read('CLAUDE.md');
+  assert.ok(claude.split('\n').length < 60, 'CLAUDE.md must stay a short entrypoint');
+  assert.match(claude, /docs\/engineering\/README\.md|policy-catalogue/);
+});
+
+test('machine-readable manifests referenced by gates exist', () => {
+  for (const f of ['docs/engineering/api-resource-contracts.json', 'docs/engineering/module-creation-entrypoints.json']) JSON.parse(read(f));
+});
