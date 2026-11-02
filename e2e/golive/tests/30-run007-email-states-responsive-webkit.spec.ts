@@ -12,7 +12,7 @@ import { spawnSync } from 'node:child_process';
  */
 const run = Date.now().toString(36);
 const worktree = process.env.QA_API_WORKTREE ?? (env as unknown as Record<string, string | undefined>).QA_API_WORKTREE ?? '';
-const seedConfig = () => spawnSync('npm', ['--workspace', 'api', 'run', 'seed:config'], { cwd: worktree, env: { ...process.env, DATABASE_URL: env.QA_DATABASE_URL, NODE_ENV: 'test' }, encoding: 'utf8', shell: true, timeout: 300_000 }).status;
+const seedConfig = (nodeEnv = 'test') => spawnSync('npm', ['--workspace', 'api', 'run', 'seed:config'], { cwd: worktree, env: { ...process.env, DATABASE_URL: env.QA_DATABASE_URL, NODE_ENV: nodeEnv }, encoding: 'utf8', shell: true, timeout: 300_000 }).status;
 const tid = async (slug: string) => (await sql<{ id: string }>(`select id from "Tenant" where slug = $1`, [slug]))[0]?.id;
 
 test.describe('e-mail configuration states across repeated seeding (tenant B)', () => {
@@ -38,9 +38,27 @@ test.describe('e-mail configuration states across repeated seeding (tenant B)', 
     test.setTimeout(900_000);
     const t = (await tid(TENANTS.B.slug))!; const owner = await apiToken(request, 'B', 'OWNER');
     await sql(`update "TenantSetting" set value = 'true'::jsonb where "tenantId" = $1 and category = 'notifications' and key = 'emailEnabled'`, [t]);
-    expect(seedConfig()).toBe(0); expect(seedConfig()).toBe(0);
+    // RUN-007 calibration (BUG-3501 / ADR-0015, packages/config sinkEmailProvidersRetired): in a non-production environment seed:config gives a tenant with NO provider an enabled, default CONSOLE provider, which
+    // diverts its mail from the platform SMTP fallback into the log. Production retires sink providers and creates none. The deploy path under test is therefore the PRODUCTION seed (NODE_ENV=production), applied
+    // to a provider-less tenant (the state the tenant is in before any seed touches it). The development behaviour is recorded in EML-005.
+    await sql(`delete from "EmailProviderSetting" where "tenantId" = $1 and "providerType" = 'CONSOLE'`, [t]);
+    const before = Number((await sql<{ n: string }>(`select count(*)::text as n from "EmailProviderSetting" where "tenantId" = $1`, [t]))[0].n);
+    expect(seedConfig('production')).toBe(0); expect(seedConfig('production')).toBe(0);
     expect((await emailEnabled(t))[0].v).toBe('true');
-    expect(await resetMailArrives(request, owner, TENANTS.B.slug, 60_000), 'reset e-mail delivered through the sink after seeding').toBe(true);
+    expect(Number((await sql<{ n: string }>(`select count(*)::text as n from "EmailProviderSetting" where "tenantId" = $1`, [t]))[0].n), 'the production seed must not add a provider the tenant never chose').toBe(before);
+    expect(await resetMailArrives(request, owner, TENANTS.B.slug, 60_000), 'reset e-mail delivered through the sink after the production seed').toBe(true);
+  });
+
+  test('[DPQA-EML-005] development-mode seed: a tenant with no provider receives the documented CONSOLE default (observation; production creates none)', async ({}, info) => {
+    test.setTimeout(900_000);
+    const t = (await tid(TENANTS.B.slug))!;
+    await sql(`delete from "EmailProviderSetting" where "tenantId" = $1 and "providerType" = 'CONSOLE'`, [t]);
+    const before = Number((await sql<{ n: string }>(`select count(*)::text as n from "EmailProviderSetting" where "tenantId" = $1`, [t]))[0].n);
+    expect(seedConfig('test')).toBe(0);
+    const rows = await sql<{ type: string; isDefault: boolean; enabled: boolean }>(`select "providerType"::text as type, "isDefault", enabled from "EmailProviderSetting" where "tenantId" = $1 order by "createdAt"`, [t]);
+    info.annotations.push({ type: 'observation', description: `non-production seed on a provider-less tenant: rows ${before} -> ${rows.length}: ${rows.map((r) => `${r.type}/default=${r.isDefault}/enabled=${r.enabled}`).join('; ')}` });
+    expect(rows.length - before, 'at most one safe default provider is added').toBeLessThanOrEqual(1);
+    expect(rows.filter((r) => r.isDefault && r.type !== 'CONSOLE'), 'the default added by the seed is never an external provider').toEqual([]);
   });
 
   test('[DPQA-EML-002] disabled state: after two seeds e-mail is still disabled (database) and NO e-mail reaches the sink', async ({ request }) => {
@@ -81,7 +99,8 @@ test.describe('e-mail configuration states across repeated seeding (tenant B)', 
 });
 
 const SETTINGS_ROUTES = ['/settings', '/settings/data-management', '/settings/branding', '/settings/access', '/settings/security-access/roles', '/settings/notifications'];
-const COMMAND_BAR_ROUTES = ['/employees', '/leave', '/attendance', '/documents'];
+// RUN-007 calibration (MCP: /leave and /documents render "Page not found", they are not product routes, so RESP-111/113 passed vacuously before): the routes are the Leave and Claims list pages that exist on Starter.
+const COMMAND_BAR_ROUTES = ['/employees', '/leaves', '/attendance', '/claims'];
 
 test.describe('Settings and command bars at phone width (tenant A owner)', () => {
   test.use({ storageState: './golive-results/.auth/A-OWNER.json', viewport: { width: 412, height: 915 } });
@@ -108,12 +127,14 @@ test.describe('Settings and command bars at phone width (tenant A owner)', () =>
       diag.allow(/status of 40[34]/);
       await page.goto(tenantUrl('A', route), { waitUntil: 'domcontentloaded' });
       await page.waitForLoadState('networkidle').catch(() => undefined);
-      const buttons = page.locator('main button:visible, [role=toolbar] button:visible');
-      const n = Math.min(await buttons.count(), 12);
-      for (let i = 0; i < n; i++) {
-        const b = await buttons.nth(i).boundingBox();
-        if (b && b.width > 0) expect(b.x + b.width, `${route} control #${i} (${await buttons.nth(i).innerText().catch(() => '')}) clipped on the right`).toBeLessThanOrEqual(412 + 1);
-      }
+      // RUN-007 calibration (MCP-confirmed on /employees at 412 px): the data table's own column sort/filter buttons live inside a horizontally scrollable table region and are SUPPOSED to extend past the
+      // viewport. The command bar is everything outside the table (and any scroll container), which is what must fit.
+      const rects = await page.evaluate(() => Array.from(document.querySelectorAll('main button, [role=toolbar] button'))
+        .filter((el) => !el.closest('table, [role=table], [role=grid], [class*=overflow-x]'))
+        .map((el) => { const r = el.getBoundingClientRect(); return { right: r.right, width: r.width, text: ((el as HTMLElement).innerText || el.getAttribute('aria-label') || '').trim().slice(0, 30) }; })
+        .filter((r) => r.width > 0).slice(0, 14));
+      expect(rects.length, `${route}: command bar controls found outside the table`).toBeGreaterThan(0);
+      rects.forEach((r, k) => expect(r.right, `${route} control #${k} (${r.text}) clipped on the right`).toBeLessThanOrEqual(412 + 1));
       const dt = page.getByRole('button', { name: 'Data Transfer' });
       if (await dt.count()) {
         await dt.first().click();
@@ -123,13 +144,13 @@ test.describe('Settings and command bars at phone width (tenant A owner)', () =>
   }
 });
 
-const WK_ROUTES = ['/', '/settings', '/settings/security-access', '/employees', '/leave', '/attendance'];
+const WK_ROUTES = ['/', '/settings', '/settings/security-access', '/employees', '/leaves', '/attendance'];
 test.describe('WebKit direct navigation and prefetch (tenant A owner)', () => {
   test.use({ storageState: './golive-results/.auth/A-OWNER.json' });
   test.beforeEach(({}, info) => { test.skip(info.project.name !== 'webkit', 'WebKit-specific regression (DP-QA-023): runs on the webkit project'); });
   const ACCESS = /access control checks|due to access control/i;
   for (const [i, route] of WK_ROUTES.entries()) {
-    test(`[DPQA-WK-${100 + i}] cold direct open of ${route}: no "access control checks" page error and no failed navigation`, async ({ page }) => {
+    test(`[DPQA-WK-${100 + i}] cold direct open of ${route}: no "access control checks" page error and no failed navigation @xbrowser`, async ({ page }) => {
       const errors: string[] = []; const failed: string[] = [];
       page.on('pageerror', (e) => errors.push(e.message)); page.on('requestfailed', (r) => { if (/_rsc=/.test(r.url())) failed.push(`${r.failure()?.errorText} ${r.url().replace(/_rsc=.*/, '_rsc=*')}`); });
       const r = await page.goto(tenantUrl('A', route), { waitUntil: 'networkidle' });
@@ -139,7 +160,7 @@ test.describe('WebKit direct navigation and prefetch (tenant A owner)', () => {
       test.info().annotations.push({ type: 'observation', description: `${route}: ${failed.length} failed _rsc prefetch(es), ${errors.length} page error(s)` });
     });
   }
-  test('[DPQA-WK-110] in-app navigation through the sidebar raises no page error', async ({ page }) => {
+  test('[DPQA-WK-110] in-app navigation through the sidebar raises no page error @xbrowser', async ({ page }) => {
     const errors: string[] = []; page.on('pageerror', (e) => errors.push(e.message));
     await page.goto(tenantUrl('A', '/'), { waitUntil: 'networkidle' });
     for (const name of [/employees/i, /leave/i, /settings/i]) {

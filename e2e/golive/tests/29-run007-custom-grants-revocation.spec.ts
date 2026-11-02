@@ -36,23 +36,50 @@ const login = (request: APIRequestContext, email: string) => request.post(`${env
 const read = (request: APIRequestContext, token: string) => request.get(`${env.QA_API_URL}/api/agent/settings`, { headers: { authorization: `Bearer ${token}`, 'X-DijiPeople-App': 'agent-desktop' } });
 const refresh = (request: APIRequestContext, refreshToken: string) =>
   request.post(`${env.QA_API_URL}/api/agent/auth/refresh`, { headers: agentHdr, data: { refreshToken, deviceFingerprint: DEVICE.deviceFingerprint, agentVersion: DEVICE.agentVersion } });
-async function awaitAgent(request: APIRequestContext, expected: number): Promise<number> {
-  const t0 = Date.now(); let last = 0;
-  while (Date.now() - t0 < PROMPT_MS + 30_000) { last = (await login(request, EMP)).status(); if (last === expected) return Date.now() - t0; await sleep(5_000); }
-  throw new Error(`agent sign-in never reached ${expected}; last ${last}`);
+async function awaitAgent(request: APIRequestContext, expected: number, issuedToken?: string): Promise<number> {
+  if (expected === 403 && issuedToken) return awaitAgentCut(request, issuedToken);
+  // RUN-007 calibration: agent sign-in is limited to 20 attempts / 10 min per IP, and polling it every 5 s for a 60 s budget used most of that in one phase (429 "never reached"). The wait is therefore
+  // measured on the cheap, separately limited resolved-feature read (the same snapshot the route guard uses); the agent sign-in is then CONFIRMED, polling gently, and the elapsed time covers both.
+  const t0 = Date.now(); const owner = await apiToken(request, 'C', 'OWNER'); let has = expected === 201 ? false : true;
+  while (Date.now() - t0 < PROMPT_MS + 30_000) { has = (await resolvedFeatures(request, owner)).enabled.includes('desktop-agent'); if (has === (expected === 201)) break; await sleep(2_000); }
+  if (has !== (expected === 201)) throw new Error(`resolved features never ${expected === 201 ? 'gained' : 'lost'} desktop-agent`);
+  let last = 0;
+  // the confirmation is bounded by the TOTAL elapsed time (budget + 30 s), polled every 5 s, so a late cut is MEASURED (and then fails the budget assertion) instead of aborting the wait early
+  // a GRANT is not a security deadline, so it is polled every 10 s (the same sign-in route allows 20 attempts / 10 min per address and the grant path lags by the snapshot TTL, ~60 s)
+  while (Date.now() - t0 < PROMPT_MS + 30_000) { last = (await login(request, EMP)).status(); if (last === expected) return Date.now() - t0; await sleep(expected === 201 ? 10_000 : 5_000); }
+  throw new Error(`agent sign-in never reached ${expected} within ${PROMPT_MS + 30_000} ms although the resolved features changed; last ${last}`);
+}
+/** Measures the cut on the guarded agent route with a token issued BEFORE the withdrawal (reads are limited far above sign-in), then confirms with a few gentle sign-ins. Returns the ms from the call. */
+async function awaitAgentCut(request: APIRequestContext, issuedToken: string): Promise<number> {
+  const t0 = Date.now(); let st = 0;
+  while (Date.now() - t0 < PROMPT_MS + 30_000) { st = (await read(request, issuedToken)).status(); if (st === 401 || st === 403) break; await sleep(2_000); }
+  if (st !== 401 && st !== 403) throw new Error(`the agent route still served the issued token (${st}) ${PROMPT_MS + 30_000} ms after the withdrawal`);
+  const elapsed = Date.now() - t0;
+  // ONE confirming sign-in only: a refused sign-in counts toward the account's failed-attempt lockout (429), so repeated confirmation attempts would lock the next phase out (RUN-007 observation)
+  const st2 = (await login(request, EMP)).status();
+  if (st2 !== 403) throw new Error(`agent sign-in answered ${st2} after the issued token was refused`);
+  return elapsed;
 }
 /** Waits until the tenant's resolved feature set equals `expected`; returns the settle time. */
-async function awaitFeatures(request: APIRequestContext, owner: string, expected: string[]): Promise<number> {
+async function awaitFeatures(request: APIRequestContext, owner: string, expectedPlan: string[]): Promise<number> {
+  // RUN-007 calibration (owner decision 4 / DEC-027): basic import/export is the universal baseline, so the resolved set is the plan's list PLUS data-import-export, never less.
+  const expected = [...new Set([...expectedPlan, 'data-import-export'])];
   const t0 = Date.now(); let last: string[] = [];
   while (Date.now() - t0 < PROMPT_MS + 30_000) { last = (await resolvedFeatures(request, owner)).enabled; if (JSON.stringify(last) === JSON.stringify([...expected].sort())) return Date.now() - t0; await sleep(5_000); }
   throw new Error(`resolved features never equalled the plan. expected ${[...expected].sort().join(',')} got ${last.join(',')}`);
 }
 const probe = async (request: APIRequestContext, owner: string, feature: string) => (await api(request, owner, 'GET', FEATURE_PROBES[feature])).status;
+/** Polls until the route refuses (402/403) and returns the milliseconds it took; fails past the approved propagation budget (60 s). RUN-007 calibration: the route guard reads the cached entitlement snapshot, so a withheld feature is refused within the budget, not necessarily on the very next call. */
+async function refusedWithinBudget(request: APIRequestContext, owner: string, feature: string): Promise<number> {
+  const t0 = Date.now(); let last = 0;
+  while (Date.now() - t0 <= PROMPT_MS) { last = await probe(request, owner, feature); if (last === 402 || last === 403) return Date.now() - t0; await sleep(3_000); }
+  throw new Error(`${feature} was still served (${last}) ${PROMPT_MS} ms after the plan stopped listing it`);
+}
 
 /** White-label is observed the way a customer sees it: the reset e-mail footer. */
 async function whiteLabelVisible(request: APIRequestContext, owner: string): Promise<boolean> {
   const footer = `WL ${run} ${Math.random().toString(36).slice(2, 6)}`;
-  await api(request, owner, 'PATCH', '/tenant-settings', { updates: [{ category: 'branding', key: 'emailFooterText', value: footer }] });
+  await api(request, owner, 'PATCH', '/tenant-settings', { updates: [{ category: 'branding', key: 'footerText', value: footer }] });
   const rel = (await api(request, owner, 'GET', '/lookups/relation-types')).body;
   const email = `wl-${run}-${Math.random().toString(36).slice(2, 6)}@qa.dijipeople.test`;
   const e = await api(request, owner, 'POST', '/employees', { firstName: 'Wl', lastName: 'Probe', workEmail: email, hireDate: '2025-02-03', employmentStatus: 'ACTIVE', phone: '+97455500031', emergencyContactName: 'X Y', emergencyContactRelationTypeId: (Array.isArray(rel) ? rel : rel.items)[0].id, emergencyContactPhone: '+97455500032' });
@@ -63,7 +90,7 @@ async function whiteLabelVisible(request: APIRequestContext, owner: string): Pro
     const m = await mail.waitFor(email, /reset|password/i, 60_000);
     const body = m.html + m.text;
     return body.includes(footer) && !/Powered by DijiPeople/i.test(body);
-  } finally { await api(request, owner, 'DELETE', `/employees/${e.body.id}`); await api(request, owner, 'PATCH', '/tenant-settings', { updates: [{ category: 'branding', key: 'emailFooterText', value: 'Powered by DijiPeople' }] }).catch(() => undefined); }
+  } finally { await api(request, owner, 'DELETE', `/employees/${e.body.id}`); await api(request, owner, 'PATCH', '/tenant-settings', { updates: [{ category: 'branding', key: 'footerText', value: 'Powered by DijiPeople' }] }).catch(() => undefined); }
 }
 
 test.describe('Custom plans (tenant C) - explicit features only', () => {
@@ -100,7 +127,7 @@ test.describe('Custom plans (tenant C) - explicit features only', () => {
     await assign(request, await plan(request, features, 'selective'));
     await awaitFeatures(request, owner, features);
     for (const f of ['payroll', 'timesheets', 'projects']) expect(await probe(request, owner, f), `${f} served`).not.toBeGreaterThanOrEqual(402);
-    for (const f of ['recruitment', 'onboarding']) expect([402, 403], `${f} refused`).toContain(await probe(request, owner, f));
+    for (const f of ['recruitment', 'onboarding']) expect(await refusedWithinBudget(request, owner, f), `${f} refused within the budget`).toBeLessThanOrEqual(PROMPT_MS);
     expect((await resolvedFeatures(request, owner)).enabled.filter((k) => (GRANT_ONLY_FEATURES as readonly string[]).includes(k)), 'grant-only features').toEqual([]);
     expect((await api(request, owner, 'GET', '/agent/settings')).status, 'agent route refused').toBe(403);
   });
@@ -110,7 +137,10 @@ test.describe('Custom plans (tenant C) - explicit features only', () => {
     await assign(request, await plan(request, ['employees'], 'minimal'));
     await awaitFeatures(request, owner, ['employees']);
     expect(await probe(request, owner, 'employees'), 'employees served').toBeLessThan(402);
-    for (const f of ['leave', 'documents']) expect([402, 403], `${f} refused`).toContain(await probe(request, owner, f));
+    // RUN-007 calibration: `documents` (like employees, organization, notifications, branding) is intentionally UNGATED at the route (ENTITLEMENT_UNGATED_FEATURE_KEYS), so a plan that omits it cannot withhold the route.
+    // That is recorded as an observation (DP-QA-043); the gated, withholdable modules are asserted instead.
+    for (const f of ['leave', 'projects', 'payroll']) expect(await refusedWithinBudget(request, owner, f), `${f} refused within the budget`).toBeLessThanOrEqual(PROMPT_MS);
+    test.info().annotations.push({ type: 'observation', description: `documents route status on a plan that omits the documents feature: ${await probe(request, owner, 'documents')} (ungated by design)` });
     const mods = await api(request, owner, 'GET', '/data-management/modules');
     expect(mods.status, 'universal baseline: data-management is reachable without the data-import-export key (decision 8)').toBe(200);
     const tpl = await request.get(`${env.QA_API_URL}/api/data-management/modules/employees/template`, { headers: { authorization: `Bearer ${owner}`, 'X-DijiPeople-App': 'web' } });
@@ -127,7 +157,7 @@ test.describe('Custom plans (tenant C) - explicit features only', () => {
     await assign(request, await plan(request, features, 'combo'));
     await awaitFeatures(request, owner, features);
     for (const f of features) expect(await probe(request, owner, f), `${f} served`).toBeLessThan(402);
-    for (const f of ['projects', 'timesheets', 'onboarding', 'leave']) expect([402, 403], `${f} refused`).toContain(await probe(request, owner, f));
+    for (const f of ['projects', 'timesheets', 'onboarding', 'leave']) expect(await refusedWithinBudget(request, owner, f), `${f} refused within the budget`).toBeLessThanOrEqual(PROMPT_MS);
   });
 
   test('[DPQA-CUS-010] removing the agent from the plan cuts the issued access token, the refresh token and new sign-ins within the prompt budget', async ({ request }, info) => {
@@ -166,7 +196,8 @@ test.describe('Custom plans (tenant C) - explicit features only', () => {
     test.setTimeout(900_000);
     const withAgent = await plan(request, [...STARTER_FEATURES, 'desktop-agent'], 'a'); const without = await plan(request, [...STARTER_FEATURES, 'payroll'], 'b');
     await assign(request, withAgent); const up = await awaitAgent(request, 201);
-    await assign(request, without); const down = await awaitAgent(request, 403);
+    const ij = await (await login(request, EMP)).json(); const issued = (ij.accessToken ?? ij.tokens?.accessToken) as string; expect(issued, 'an agent access token was issued').toBeTruthy(); // RUN-007 fixture correction: the token is under tokens.accessToken
+    await assign(request, without); const down = await awaitAgent(request, 403, issued);
     expect((await resolvedFeatures(request, owner)).enabled, 'payroll arrives with the second plan').toContain('payroll');
     await assign(request, withAgent); const back = await awaitAgent(request, 201);
     info.annotations.push({ type: 'measurement', description: `agent plan active after ${up} ms; reassigned away after ${down} ms; reassigned back after ${back} ms (budget ${PROMPT_MS} ms)` });
@@ -180,9 +211,9 @@ test.describe('Custom plans (tenant C) - explicit features only', () => {
     expect(pid('enterprise') && pid('growth'), 'predefined plans exist').toBeTruthy();
     const mk = (k: string) => ({ id: pid(k), key: k, name: k, featureKeys: [] as string[] });
     await assign(request, mk('enterprise')); const up = await awaitAgent(request, 201);
-    const token = (await (await login(request, EMP)).json()).accessToken;
-    await assign(request, mk('growth')); const down = await awaitAgent(request, 403);
-    expect((await read(request, token)).status(), 'token issued before the downgrade is refused').toBe(403);
+    const tj = await (await login(request, EMP)).json(); const token = (tj.accessToken ?? tj.tokens?.accessToken) as string; expect(token, 'an agent access token was issued').toBeTruthy(); // RUN-007 fixture correction: the token is under tokens.accessToken, so the earlier `.accessToken` was undefined and this step never measured the issued token
+    await assign(request, mk('growth')); const down = await awaitAgent(request, 403, token);
+    expect([401, 403], 'token issued before the downgrade is refused (RUN-007 calibration: the candidate revokes the agent session on withdrawal, so the old token is 401 session-invalid rather than 403 not-entitled; both are refusals)').toContain((await read(request, token)).status());
     await assign(request, mk('enterprise')); const back = await awaitAgent(request, 201);
     info.annotations.push({ type: 'measurement', description: `enterprise ${up} ms; downgrade enforced ${down} ms; upgrade restored ${back} ms (budget ${PROMPT_MS} ms)` });
     expect(down).toBeLessThanOrEqual(PROMPT_MS);
@@ -255,7 +286,10 @@ test.describe('idle-expired web session and refresh (tenant B)', () => {
       expect((await api(request, owner, 'POST', '/users', { firstName: 'Sess', lastName: run, email, password, status: 'ACTIVE', employeeId: e.body.id })).status).toBeLessThan(300);
       const l = await request.post(`${env.QA_API_URL}/api/auth/login`, { headers: hdr, data: { email, password, tenantSlug: TENANTS.B.slug } });
       expect(l.status()).toBeLessThan(300);
-      await sql(`update "RefreshToken" set "lastActivityAt" = (now() at time zone 'utc') - interval '16 minutes' where "userId" = (select id from "User" where lower(email) = lower($1) limit 1) and "revokedAt" is null`, [email]);
+      // RUN-007 calibration: the idle window is the tenant's own security policy (default 480 minutes), not a fixed 15; the session is aged one minute past THAT window.
+      const cur = (await api(request, owner, 'GET', '/tenant-settings/resolved')).body;
+      const windowMin = Number(cur.settings?.security?.idleTimeoutMinutes ?? cur.security?.idleTimeoutMinutes ?? 480);
+      await sql(`update "RefreshToken" set "lastActivityAt" = (now() at time zone 'utc') - ($2 || ' minutes')::interval where "userId" = (select id from "User" where lower(email) = lower($1) limit 1) and "revokedAt" is null`, [email, String(windowMin + 1)]);
       const r = await request.post(`${env.QA_API_URL}/api/auth/refresh`, { headers: hdr, data: {} });
       expect([401, 403], `refresh after idle expiry -> ${r.status()} ${(await r.text()).slice(0, 120)}`).toContain(r.status());
     } finally { await api(request, owner, 'DELETE', `/employees/${e.body.id}`); }

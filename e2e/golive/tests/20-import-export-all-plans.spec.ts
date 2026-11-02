@@ -197,7 +197,8 @@ test.describe('Settings and command bars end to end (Starter, tenant A owner)', 
     }
   });
 
-  test('[DPQA-IMX-023] Import from the command bar opens the importer (not a plan gate); an invalid file is rejected with a visible message and no employee is created', async ({ page, request }) => {
+  test('[DPQA-IMX-023] Import from the command bar opens the importer (not a plan gate); an invalid file is rejected with a visible message and no employee is created', async ({ page, request, diag }) => {
+    diag.allow(/status of 400/); // RUN-007 calibration: the server's 400 for the deliberately invalid .exe upload is the expected rejection; the visible-message and nothing-created assertions below are unchanged
     const owner = await apiToken(request, 'A', 'OWNER');
     const before = await employeeCount(request, owner);
     await page.goto(tenantUrl('A', '/employees'), { waitUntil: 'domcontentloaded' });

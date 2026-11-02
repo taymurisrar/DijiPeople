@@ -1,7 +1,7 @@
 import { test, expect, env } from '../fixtures/test';
 import { api, apiToken, credentials, stateFile, tenantUrl, TENANTS } from '../fixtures/tenants';
 import { mail, sql } from '../fixtures/mail-db';
-import type { APIRequestContext } from '@playwright/test';
+import { request as pwRequest, type APIRequestContext } from '@playwright/test';
 
 /**
  * RUN-004. Everything here uses the LOCAL SMTP sink (no external delivery) and the throwaway database.
@@ -260,7 +260,8 @@ test.describe('branding', () => {
     expect(statuses, 'logo status per role (all must be 200)').toEqual({ OWNER: 200, EMPLOYEE: 200, HR: 200, MANAGER: 200, PAYROLL: 200 });
     const b = await apiToken(request, 'B', 'OWNER');
     expect([403, 404], 'tenant B reading A\'s logo').toContain((await request.get(`${env.QA_API_URL}/api${docPath}`, { headers: { authorization: `Bearer ${b}`, ...hdr } })).status());
-    const anon = await request.get(`${env.QA_API_URL}/api${docPath}`);
+    // RUN-007 fixture correction: the shared `request` context keeps the cookies set by this test's own role logins, so it was not anonymous when the token cache was cold. A fresh, cookie-less context is.
+    const anonCtx = await pwRequest.newContext(); const anon = await anonCtx.get(`${env.QA_API_URL}/api${docPath}`); await anonCtx.dispose();
     expect([401, 403, 404], 'anonymous logo fetch').toContain(anon.status());
   });
 

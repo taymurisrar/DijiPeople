@@ -41,9 +41,9 @@ async function snapshot(tenantId: string) {
 const tenantId = async (slug: string) => (await sql<{ id: string }>(`select id from "Tenant" where slug = $1`, [slug]))[0]?.id;
 
 /** Runs `npm --workspace api run seed:config` against the QA database. Output is scanned for the dummy secret and discarded. */
-function seedConfig(): { status: number | null; leaked: boolean } {
+function seedConfig(nodeEnv = 'test'): { status: number | null; leaked: boolean } {
   const r = spawnSync('npm', ['--workspace', 'api', 'run', 'seed:config'], {
-    cwd: worktree, env: { ...process.env, DATABASE_URL: env.QA_DATABASE_URL, NODE_ENV: 'test' }, encoding: 'utf8', shell: true, timeout: 300_000,
+    cwd: worktree, env: { ...process.env, DATABASE_URL: env.QA_DATABASE_URL, NODE_ENV: nodeEnv }, encoding: 'utf8', shell: true, timeout: 300_000,
   });
   return { status: r.status, leaked: `${r.stdout}${r.stderr}`.includes(SECRET) };
 }
@@ -111,6 +111,11 @@ test.describe('seed:config and migration idempotency (local _test database)', ()
 
   test('[DPQA-SEED-004] after repeated seeding, invitation and reset e-mails still DELIVER through the local sink (delivery, not only persistence)', async ({ request }) => {
     const owner = await apiToken(request, 'B', 'OWNER');
+    // RUN-007 fixture correction (BUG-3501 / ADR-0015): a non-production seed gives a provider-less tenant an enabled, default CONSOLE provider, which diverts its mail from the platform SMTP fallback into the log.
+    // Production retires sink providers and creates none, so the DEPLOY path whose delivery this test proves is the production seed. The tenant is first returned to "no sink row" (the state before any seed), then seeded twice as production.
+    await sql(`delete from "EmailProviderSetting" where "tenantId" = $1 and "providerType" = 'CONSOLE'`, [tB]);
+    for (let i = 0; i < 2; i++) { const sd = seedConfig('production'); expect(sd.status, `production seed run ${i + 1} exit code`).toBe(0); }
+    expect(Number((await sql<{ c: string }>(`select count(*)::text c from "EmailProviderSetting" where "tenantId" = $1 and "providerType" = 'CONSOLE'`, [tB]))[0].c), 'the production seed creates no sink provider').toBe(0);
     const rel = (await api(request, owner, 'GET', '/lookups/relation-types')).body;
     const email = `seed-${run}@qa.dijipeople.test`;
     await mail.clear();

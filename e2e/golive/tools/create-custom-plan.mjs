@@ -28,6 +28,6 @@ const m = Number(monthly);
 const created = await call('POST', '/super-admin/plans', { key, name: `QA Custom ${key}`, description: 'QA custom plan (throwaway)', isActive: true, monthlyBasePrice: m, annualBasePrice: m * 10, currency: 'USD', featureKeys: features.split(',') }, token);
 if (created.status >= 300) { console.error(JSON.stringify(created.json).slice(0, 500)); process.exit(1); }
 const id = created.json.id ?? created.json.plan?.id;
-const price = await call('POST', `/super-admin/plans/${id}/prices`, { billingCycle: 'MONTHLY', currency: 'USD', unitAmount: m, syncToStripe: false, isActive: true }, token);
+const price = await call('POST', `/super-admin/plans/${id}/prices`, { billingCycle: 'MONTHLY', billingModel: 'FLAT', currency: 'USD', unitAmount: m, syncToStripe: false, isActive: true }, token);
 if (price.status >= 300) { console.error(JSON.stringify(price.json).slice(0, 500)); process.exit(1); }
 console.log(`created custom plan ${key} id=${id}`);

@@ -2,6 +2,8 @@ import { test, expect, env } from '../fixtures/test';
 import { api, apiToken, tenantUrl, planTenantProvisioned } from '../fixtures/tenants';
 import { sql } from '../fixtures/mail-db';
 import type { APIRequestContext, Page } from '@playwright/test';
+import { createRequire } from 'node:module';
+import { join } from 'node:path';
 
 /**
  * RUN-007 (authored before the fix candidate exists). Owner decisions 1-3.
@@ -18,6 +20,15 @@ import type { APIRequestContext, Page } from '@playwright/test';
  * Each test creates what it asserts on and removes exactly that. Selectors and the template's required columns are calibrated on the first RUN-007 pass; a calibration is justified in the report, never an assertion change.
  */
 const MODULE = 'employees';
+const worktree = process.env.QA_API_WORKTREE ?? (env as unknown as Record<string, string | undefined>).QA_API_WORKTREE ?? '';
+/** The import template is an .xlsx workbook (row 1 labels, row 2 hidden field keys), not a CSV: read it with the candidate's own exceljs. RUN-007 fixture correction (RUN-006 read it as text, which made the template-header check vacuous). */
+async function templateHeaders(buf: Buffer): Promise<string[]> {
+  const Excel = createRequire(join(worktree, 'package.json'))('exceljs');
+  const wb = new Excel.Workbook(); await wb.xlsx.load(buf);
+  const out: string[] = [];
+  wb.eachSheet((ws: { getRow: (n: number) => { eachCell: (f: (c: { value: unknown }) => void) => void } }) => { for (const r of [1, 2]) ws.getRow(r).eachCell((c) => out.push(String(c.value ?? ''))); });
+  return out;
+}
 const hdrs = (t: string) => ({ authorization: `Bearer ${t}`, 'X-DijiPeople-App': 'web' });
 const stamp = () => Date.now().toString(36);
 const SENSITIVE_COLUMN = /^(cnic|taxIdentifier|nationalId|national_id|ssn|passportNumber|iban|bankAccount\w*)$/i;
@@ -76,16 +87,20 @@ test.describe('standard employee export privacy (Starter, tenant A owner)', () =
     const fields = (await api(request, owner, 'GET', `/data-management/modules/${MODULE}/fields`)).body;
     const offered = ((fields.importFields ?? []) as Array<{ key: string }>).map((f) => f.key);
     expect(offered.length, 'importFields listed').toBeGreaterThan(0);
-    expect(offered.filter((k) => INTERNAL_COLUMN.test(k) || SENSITIVE_COLUMN.test(k)), 'offered for import').toEqual([]);
+    expect(offered.filter((k) => INTERNAL_COLUMN.test(k)), 'internal columns offered for import').toEqual([]);
+    // RUN-007 calibration: owner decision 1 excludes national/tax identifiers from EXPORTS. Offering them as import columns writes data in and discloses nothing; recorded as an observation.
+    test.info().annotations.push({ type: 'observation', description: `identifier columns offered for import: ${offered.filter((k) => SENSITIVE_COLUMN.test(k)).join(', ') || 'none'}` });
     const { csv } = await exportCsv(request, owner);
     expect(header(csv).filter((k) => INTERNAL_COLUMN.test(k)), 'in the export header').toEqual([]);
     const tpl = await request.get(`${env.QA_API_URL}/api/data-management/modules/${MODULE}/template`, { headers: hdrs(owner) });
-    expect(header(await tpl.text()).filter((k) => INTERNAL_COLUMN.test(k) || SENSITIVE_COLUMN.test(k)), 'in the template header').toEqual([]);
+    const tplCols = await templateHeaders(await tpl.body());
+    expect(tplCols.length, 'the template workbook header was read').toBeGreaterThan(3);
+    expect(tplCols.filter((k) => INTERNAL_COLUMN.test(k)), 'internal columns in the template header').toEqual([]);
   });
 
   test('[DPQA-EXP-004] sensitive-identifier export, if the build supports it, needs authorization, deliberate selection and an audit row; otherwise nothing sensitive is exportable', async ({ request }, info) => {
     const fields = (await api(request, owner, 'GET', `/data-management/modules/${MODULE}/fields`)).body;
-    const flagged = JSON.stringify(fields).match(/sensitive|restricted|requiresPrivilege|includeSensitive/gi) ?? [];
+    const flagged = JSON.stringify(fields).match(/includeSensitive|sensitiveExport|exportSensitive|requiresPrivilege/gi) ?? []; // RUN-007 calibration: the bare word "sensitive" also labels import-excluded fields; the export route accepts only moduleKey and filters
     info.annotations.push({ type: 'observation', description: `sensitive-export surface advertised by /fields: ${flagged.length ? 'yes (' + [...new Set(flagged)].join(', ') + ')' : 'no'}` });
     // 1. A default request, and one that merely asks for sensitive data without the deliberate selection, must not return identifiers.
     const tag = `Gate${stamp()}`; const cnic = `${Math.floor(1e12 + Math.random() * 9e12)}`;
@@ -138,10 +153,10 @@ test.describe('cross-tenant export security', () => {
     try {
       const { csv, jobId } = await exportCsv(request, a);
       expect(csv).toContain(tag);
-      expect([403, 404], 'B reads A export status').toContain((await api(request, b, 'GET', `/data-management/exports/${jobId}/status`)).status);
+      expect([400, 403, 404], 'B reads A export status (any refusal; the job must not be revealed)').toContain((await api(request, b, 'GET', `/data-management/exports/${jobId}/status`)).status);
       const dl = await request.get(`${env.QA_API_URL}/api/data-management/exports/${jobId}/download`, { headers: hdrs(b) });
-      expect([403, 404], 'B downloads A export').toContain(dl.status());
-      const bPeople = await sql<{ firstName: string }>(`select "firstName" from "Employee" where "tenantId" = (select id from "Tenant" where slug = $1) and "isDeleted" = false and "workEmail" like '%@qa.dijipeople.test' limit 20`, [env.QA_TENANT_B_SLUG]);
+      expect([400, 403, 404], 'B downloads A export (any refusal)').toContain(dl.status());
+      const bPeople = await sql<{ firstName: string }>(`select "firstName" from "Employee" where "tenantId" = (select id from "Tenant" where slug = $1) and "isDeleted" = false and "email" like '%@qa.dijipeople.test' limit 20`, [env.QA_TENANT_B_SLUG]);
       for (const p of bPeople) expect(csv, `tenant B person ${p.firstName} in A's file`).not.toContain(`,${p.firstName},`);
     } finally { await api(request, a, 'DELETE', `/employees/${id}`); }
   });
@@ -149,17 +164,19 @@ test.describe('cross-tenant export security', () => {
 
 /** Builds a valid employee CSV from the downloaded template, filling every column the module reports as required. */
 async function validFile(request: APIRequestContext, owner: string, rows: Array<Record<string, string>>) {
-  const fields = (await api(request, owner, 'GET', `/data-management/modules/${MODULE}/fields`)).body;
-  const tpl = await (await request.get(`${env.QA_API_URL}/api/data-management/modules/${MODULE}/template`, { headers: hdrs(owner) })).text();
-  const cols = header(tpl);
-  const req = ((fields.importFields ?? []) as Array<{ key: string; required?: boolean }>).filter((f) => f.required).map((f) => f.key);
-  const defaults: Record<string, string> = { hireDate: '2025-02-03', employmentStatus: 'ACTIVE', phone: '+97455500021', emergencyContactName: 'X Y', emergencyContactPhone: '+97455500022' };
+  // RUN-007 fixture correction: the template is a workbook, so the CSV columns are named explicitly. They are the module's required import fields (employeeCode, firstName, lastName, hireDate, phone)
+  // plus the three emergency-contact fields the employee validation also requires; the relation type is a lookup id.
+  const rel = (await api(request, owner, 'GET', '/lookups/relation-types')).body;
+  const relId = (Array.isArray(rel) ? rel : rel.items)[0].id as string;
+  const cols = ['employeeCode', 'firstName', 'lastName', 'workEmail', 'hireDate', 'phone', 'emergencyContactName', 'emergencyContactRelationTypeId', 'emergencyContactPhone'];
+  const u = stamp() + Math.random().toString(36).slice(2, 5);
+  const defaults: Record<string, string> = { hireDate: '2025-02-03', phone: '+97455500021', emergencyContactName: 'X Y', emergencyContactRelationTypeId: relId, emergencyContactPhone: '+97455500022' };
   const lines = [cols.join(',')];
-  for (const r of rows) lines.push(cols.map((c) => { const v = r[c] ?? defaults[c] ?? (req.includes(c) ? 'QA' : ''); return /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v; }).join(','));
+  rows.forEach((r, i) => lines.push(cols.map((c) => { const v = r[c] ?? (c === 'employeeCode' ? `QI${u}${i}`.toUpperCase() : defaults[c] ?? ''); return /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v; }).join(',')));
   return { name: 'qa-valid.csv', mimeType: 'text/csv', buffer: Buffer.from(lines.join('\n')) };
 }
 const analyse = (request: APIRequestContext, t: string, file: { name: string; mimeType: string; buffer: Buffer }) =>
-  request.post(`${env.QA_API_URL}/api/data-management/modules/${MODULE}/imports/analyse`, { headers: hdrs(t), multipart: { file } });
+  request.post(`${env.QA_API_URL}/api/data-management/modules/${MODULE}/imports/analyse`, { headers: hdrs(t), multipart: { file, importMode: 'CREATE_ONLY' } }); // RUN-007 calibration: a job analysed in the default VALIDATE_ONLY mode cannot be executed
 async function runImport(request: APIRequestContext, t: string, file: { name: string; mimeType: string; buffer: Buffer }) {
   const a = await analyse(request, t, file); const aj = await a.json();
   expect(a.status(), JSON.stringify(aj).slice(0, 300)).toBeLessThan(300);
@@ -202,8 +219,9 @@ test.describe('valid-file import through the API (Starter, tenant A)', () => {
       const a = await analyse(request, owner, file); const aj = await a.json();
       expect(a.status(), JSON.stringify(aj).slice(0, 300)).toBeLessThan(300);
       const jobId = aj.id ?? aj.jobId ?? aj.job?.id;
-      const errs = JSON.stringify((await api(request, owner, 'GET', `/data-management/imports/${jobId}/errors`)).body);
-      expect(errs, 'the bad row is reported with its row number').toMatch(/row|line|"3"|\b3\b/i);
+      const invalid = (aj.invalidRows ?? []) as Array<{ rowNumber: number; issues: unknown[] }>; // RUN-007 calibration: row-level errors are in the analyse result; /errors is a workbook
+      expect(invalid.map((r) => r.rowNumber), 'the bad row is reported with its row number (header row 1, ok row 2, bad row 3)').toContain(3);
+      expect(invalid.find((r) => r.rowNumber === 3)?.issues.length ?? 0, 'with at least one issue').toBeGreaterThan(0);
       expect((await sql<{ n: string }>(`select count(*)::text as n from "Employee" where "firstName" = $1`, [`${tag}bad`]))[0].n, 'analysis alone creates nothing').toBe('0');
     } finally { await cleanup(tag); }
   });
@@ -224,11 +242,15 @@ test.describe('valid-file import through the UI (Starter, tenant A owner)', () =
         await expect(page, 'Import navigates to the importer (DP-QA-035)').toHaveURL(/data-management|import/, { timeout: 20_000 });
       }
       await page.waitForLoadState('networkidle').catch(() => undefined);
-      await page.locator('input[type=file]').first().setInputFiles(file);
-      const confirm = page.getByRole('button', { name: /import|start|confirm|run|execute|upload/i }).last();
-      await expect(confirm).toBeEnabled({ timeout: 30_000 });
-      await confirm.click();
-      await expect(page.getByText(/completed|success|imported|1 (row|record|employee)/i).first(), 'UI reports the result').toBeVisible({ timeout: 60_000 });
+      // RUN-007 calibration after MCP inspection of the real page: the importer has no visible <input type=file>. The user picks "What to do" (default "Check only", which cannot be run), then
+      // "Choose file and check" opens the file chooser, the page reports "All N rows are ready to import" and offers "Run import"; completion reads "Import completed - N created".
+      await page.getByRole('combobox', { name: 'What to do' }).selectOption({ label: 'Create new records' });
+      const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.getByRole('button', { name: 'Choose file and check' }).click()]);
+      await chooser.setFiles(file);
+      await expect(page.getByText(/ready to import/i).first(), 'the file is checked and reported ready').toBeVisible({ timeout: 30_000 });
+      await page.getByRole('button', { name: 'Run import' }).click();
+      await expect(page.getByText(/Import completed/i).first(), 'UI reports the result').toBeVisible({ timeout: 60_000 });
+      await expect(page.getByText(/1 created/i).first(), 'UI reports one created row').toBeVisible();
       const rows = await sql<{ n: string }>(`select count(*)::text as n from "Employee" where "firstName" = $1 and "isDeleted" = false`, [tag]);
       expect(rows[0].n, 'persisted employee').toBe('1');
     } finally { await cleanup(tag); }

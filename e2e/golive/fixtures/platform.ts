@@ -53,7 +53,7 @@ export async function createCustomPlan(request: APIRequestContext, featureKeys: 
   const created = await papi(request, 'POST', '/super-admin/plans', { key, name, description: 'QA custom plan (throwaway)', isActive: true, monthlyBasePrice: monthly, annualBasePrice: monthly * 10, currency: opts.currency ?? 'USD', featureKeys });
   if (created.status >= 300) throw new Error(`create custom plan failed: ${created.status} ${JSON.stringify(created.body).slice(0, 300)}`);
   const id = (created.body.id ?? created.body.plan?.id) as string;
-  const price = await papi(request, 'POST', `/super-admin/plans/${id}/prices`, { billingCycle: 'MONTHLY', currency: opts.currency ?? 'USD', unitAmount: monthly, syncToStripe: false, isActive: true });
+  const price = await papi(request, 'POST', `/super-admin/plans/${id}/prices`, { billingCycle: 'MONTHLY', billingModel: 'FLAT', currency: opts.currency ?? 'USD', unitAmount: monthly, syncToStripe: false, isActive: true });
   return { id, key, name, featureKeys, priceId: price.status < 300 ? (price.body.id ?? price.body.price?.id) : undefined };
 }
 

@@ -6,7 +6,7 @@ foreach ($p in $Projects) {
   Remove-Item "golive-results\.auth\api-tokens.json" -ErrorAction SilentlyContinue
   if ($p -eq 'webkit' -and $TlsUrl) { $env:QA_WEB_URL = $TlsUrl }   # WebKit needs https: production cookies are Secure
   "=== $p $(Get-Date -Format s)"
-  & "$PSScriptRoot\run-project.ps1" -Project $p
+  & "$PSScriptRoot\run-project.ps1" -Project $p -Run $Run
   Remove-Item Env:QA_WEB_URL -ErrorAction SilentlyContinue
 }
 "ALL DONE $(Get-Date -Format s)"
