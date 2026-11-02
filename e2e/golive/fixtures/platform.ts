@@ -94,3 +94,32 @@ export async function resolvedFeatures(request: APIRequestContext, tenantToken: 
   const b = await r.json();
   return { plan: b.subscription?.plan?.key, enabled: ((b.items ?? []) as Array<{ key: string; isEnabled: boolean }>).filter((i) => i.isEnabled).map((i) => i.key).sort() };
 }
+
+// ---- RUN-008 additions (DP-QA-043/044/047) ----------------------------------------------------------------------------------------------------------------------------------------------
+/** Publishes / withdraws a Custom plan's price through the supported endpoint (DP-QA-044). */
+export const publishPrice = (request: APIRequestContext, planId: string, priceId: string) => papi(request, 'POST', `/super-admin/plans/${planId}/prices/${priceId}/publish`);
+export const unpublishPrice = (request: APIRequestContext, planId: string, priceId: string) => papi(request, 'POST', `/super-admin/plans/${planId}/prices/${priceId}/unpublish`);
+export type PriceRow = { id: string; publicationStatus: string; isActive: boolean; unitAmount: string; currency: string; billingCycle: string; stripePriceId: string | null; stripeProductId: string | null; publishedAt: string | null; publishedById: string | null };
+export async function priceRow(priceId: string): Promise<PriceRow> {
+  const r = await sql<PriceRow>(`select id, "publicationStatus"::text as "publicationStatus", "isActive", "unitAmount"::text as "unitAmount", currency, "billingCycle"::text as "billingCycle", "stripePriceId", "stripeProductId", "publishedAt"::text as "publishedAt", "publishedById" from "PlanPrice" where id = $1`, [priceId]);
+  return r[0];
+}
+/** Customer-onboarding up to (and including) the create-tenant call, the way the console does it. Returns the refusal or the tenant. */
+export async function onboardTenant(request: APIRequestContext, plan: { id: string }, slug: string, label: string, existing?: { onboardingId: string }) {
+  const email = `${slug}@qa.dijipeople.test`;
+  let onboardingId = existing?.onboardingId; let customerId = '';
+  if (!onboardingId) {
+    const cust = await papi(request, 'POST', '/super-admin/customers', { companyName: label, primaryContactFirstName: 'Qa', primaryContactLastName: 'Owner', primaryContactEmail: email, country: 'Qatar', industry: 'Technology', companySize: '11-50', selectedPlanId: plan.id, preferredBillingCycle: 'MONTHLY' });
+    if (cust.status >= 300) return { stage: 'customer', status: cust.status, body: cust.body, onboardingId: '', customerId: '' };
+    customerId = (cust.body.id ?? cust.body.customer?.id) as string;
+    const onb = await papi(request, 'POST', '/super-admin/customer-onboarding', { customerId, selectedPlanId: plan.id, plannedTenantSlug: slug, billingCycle: 'MONTHLY', primaryOwnerFirstName: 'Qa', primaryOwnerLastName: 'Owner', primaryOwnerWorkEmail: email, contractSigned: true, paymentConfirmed: true, implementationKickoffDone: true, dataReceived: true, configurationReady: true, trainingPlanned: true });
+    if (onb.status >= 300) return { stage: 'onboarding', status: onb.status, body: onb.body, onboardingId: '', customerId };
+    onboardingId = (onb.body.id ?? onb.body.onboarding?.id) as string;
+    // documented fixture shortcut (QA-RUNBOOK): an executed subscription agreement on the throwaway database
+    await sql(`insert into "Contract"(id,"contractNumber",title,"contractType",status,"counterpartyName","customerOnboardingId","customerAccountId","updatedAt") values (gen_random_uuid(),$1,$2,'SUBSCRIPTION_AGREEMENT','FULLY_SIGNED',$3,$4,$5,now())`, [`QA-${slug}`, 'QA fixture agreement', label, onboardingId, customerId]);
+    await papi(request, 'PATCH', `/super-admin/customer-onboarding/${onboardingId}`, { status: 'IN_PROGRESS', subStatus: 'Configuration in progress' });
+    await papi(request, 'PATCH', `/super-admin/customer-onboarding/${onboardingId}`, { status: 'READY_FOR_TENANT_CREATION', subStatus: 'Tenant setup pending' });
+  }
+  const r = await papi(request, 'POST', `/super-admin/customer-onboarding/${onboardingId}/create-tenant`, { tenantName: label, slug, planId: plan.id, billingCycle: 'MONTHLY' });
+  return { stage: 'create-tenant', status: r.status, body: r.body, onboardingId, customerId };
+}

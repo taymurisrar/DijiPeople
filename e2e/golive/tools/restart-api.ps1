@@ -1,6 +1,6 @@
 # Restarts the QA API of a validation worktree with the QA-only environment: release-floor ENFORCE and the LOCAL SMTP sink.
 # Stops only the process that owns the API port (never pattern-kills node). Usage: pwsh restart-api.ps1 -Worktree <path> -Port 4097
-param([string]$Worktree = 'D:\My Work\hrm-dijipeople\dijipeople-starter-verify', [int]$Port = 4097, [int]$SmtpPort = 1025)
+param([string]$Worktree = 'D:\My Work\hrm-dijipeople\dijipeople-starter-verify', [int]$Port = 4097, [int]$SmtpPort = 1025, [switch]$NoEnforce)
 # RUN-006: Get-NetTCPConnection returned nothing in the agent shell, so the old API silently kept running with a hot login limiter. Find the QA API by command line instead
 # (a ts-node main.ts started from THIS validation worktree), and fall back to the port owner when that is visible. Never pattern-kills other sessions' processes.
 $apiPath = (Join-Path $Worktree 'node_modulespi').ToLowerInvariant()
@@ -11,7 +11,7 @@ if ($c -and -not $mine) { Stop-Process -Id $c.OwningProcess -Force }
 if ($mine -or $c) { Start-Sleep 3 }
 $api = Join-Path $Worktree 'services\api'
 $env:TS_NODE_TRANSPILE_ONLY = 'true'
-$env:ENTITLEMENT_ENFORCEMENT_MODE = 'ENFORCE'          # DP-QA-005 mechanism: release floor from the environment
+if (-not $NoEnforce) { $env:ENTITLEMENT_ENFORCEMENT_MODE = 'ENFORCE' }          # DP-QA-005 mechanism: release floor from the environment. RUN-008: -NoEnforce starts the API exactly as production would without the variable
 $env:ENABLE_EMAILS = 'true'; $env:EMAIL_PROVIDER = 'SMTP'
 $env:EMAIL_SMTP_HOST = '127.0.0.1'; $env:EMAIL_SMTP_PORT = "$SmtpPort"; $env:EMAIL_SMTP_SECURE = 'false'
 $env:EMAIL_SMTP_USER = 'qa'; $env:EMAIL_SMTP_PASSWORD = 'qa'; $env:EMAIL_FROM = 'no-reply@qa.dijipeople.test'

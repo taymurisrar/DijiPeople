@@ -1,4 +1,4 @@
-﻿# RUN-007: runs one browser project of the go-live suite in spec-file batches, restarting ONLY the QA API between batches (clears the in-memory 20/10min login limiter that
+﻿# RUN-007/008: runs one browser project of the go-live suite in spec-file batches, restarting ONLY the QA API between batches (clears the in-memory 20/10min login limiter that
 # otherwise turns a long run into a wall of 429s - see QA-RUNBOOK) and keeping one JSON result per batch. The seed / migration group runs last on purpose (OBS-035).
 # Usage (from e2e/): powershell -File golive\tools\run-batches.ps1 -Worktree <validation worktree> -ApiPort 4397 -SmtpPort 1325 [-Project chromium] [-Run run007] [-Only b01,b02]
 param([Parameter(Mandatory)][string]$Worktree, [int]$ApiPort = 4397, [int]$SmtpPort = 1325, [string]$Project = 'chromium', [string]$Run = 'run007', [string[]]$Only = @(), [string]$TlsUrl = '', [string]$Tag = '')
@@ -15,6 +15,8 @@ $batches = [ordered]@{
   b09 = @('30-run007-email-states-responsive-webkit')
   b10 = @('31-run007-subscription-architecture')
   b11 = @('25-seed-migration-idempotency', '26-deploy-seed-approval-routes', '27-run007-approval-workflows')
+  b12 = @('32-run008-remediation-retest')      # RUN-008: DP-QA-043/044/047/005 retests (API level)
+  b13 = @('33-run008-admin-ui-and-session-links')   # RUN-008: admin console publish UI + SESS-005 on the production build
 }
 $dir = "golive-results\$Run"; New-Item -ItemType Directory -Force $dir | Out-Null
 foreach ($k in $batches.Keys) {
