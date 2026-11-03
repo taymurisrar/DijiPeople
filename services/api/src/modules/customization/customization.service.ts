@@ -4305,6 +4305,46 @@ export class CustomizationService {
       },
     });
 
+    /*
+     * This publish serves every row at publish time, so what it serves is published.
+     * The components of the workspace's Default Customizations package must say so
+     * too: a package release or import writes the EFFECTIVE metadata, which holds
+     * only components that are 'published', and the runtime reads the LATEST
+     * snapshot. Left in 'draft', every module published here silently disappeared
+     * the next time any package was released or imported. Packages of the customer's
+     * own are left alone: they publish through the Publish Center, with its checks.
+     */
+    const defaultDrafts =
+      await this.prisma.customizationSolutionComponent.findMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          lifecycleState: 'draft',
+          solution: { isTenantDefault: true },
+        },
+      });
+    await Promise.all(
+      defaultDrafts.map((component) =>
+        this.prisma.customizationSolutionComponent.update({
+          where: { id: component.id },
+          data: {
+            lifecycleState: 'published',
+            publishedAt,
+            publishedByUserId: currentUser.userId,
+            updatedByUserId: currentUser.userId,
+            version: nextPatchVersion(component.version),
+            checksum: checksumFor({
+              componentType: component.componentType,
+              objectId: component.objectId,
+              objectKey: component.objectKey,
+              tableId: component.tableId,
+              layerAction: component.layerAction,
+              metadataJson: component.metadataJson,
+            }),
+          },
+        }),
+      ),
+    );
+
     return {
       id: snapshot.id,
       version: snapshot.version,
