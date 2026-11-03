@@ -162,13 +162,30 @@ test('CI-006: the framework validation job fetches full history; other jobs keep
 });
 
 test('CI-007: dependabot targets develop, has exactly one npm entry at the root, and groups updates', () => {
-  const yaml = require('js-yaml');
-  const cfg = yaml.load(read('.github/dependabot.yml'));
-  assert.equal(cfg.version, 2);
-  const npm = cfg.updates.filter((u) => u['package-ecosystem'] === 'npm');
-  assert.equal(npm.length, 1, 'a second npm entry re-creates the duplicate-PR problem');
-  assert.equal(npm[0].directory, '/');
-  for (const u of cfg.updates) assert.equal(u['target-branch'], 'develop', u['package-ecosystem'] + ' must target develop');
-  assert.ok(npm[0].groups && Object.keys(npm[0].groups).length >= 2);
-  assert.ok(npm[0]['open-pull-requests-limit'] <= 10);
+  // Dependency-free on purpose: governance.yml runs without npm ci, so no YAML parser is available.
+  const text = read('.github/dependabot.yml');
+  assert.match(text, /^version: 2$/m);
+  const ecosystems = [...text.matchAll(/^\s*- package-ecosystem: (\S+)/gm)].map((m) => m[1]);
+  assert.equal(ecosystems.filter((e) => e === 'npm').length, 1, 'a second npm entry re-creates the duplicate-PR problem');
+  const targets = [...text.matchAll(/^\s*target-branch: (\S+)/gm)].map((m) => m[1]);
+  assert.equal(targets.length, ecosystems.length, 'every update entry names its target branch');
+  assert.ok(targets.every((t) => t === 'develop'), 'every entry must target develop, never production');
+  const npmBlock = text.slice(text.indexOf('- package-ecosystem: npm'), text.indexOf('- package-ecosystem: github-actions'));
+  assert.match(npmBlock, /^\s*directory: \/$/m, 'the single npm entry is the repository root');
+  assert.ok((npmBlock.match(/^\s{6}[a-z-]+:\n\s{8}applies-to:/gm) ?? []).length >= 2, 'security and routine updates are grouped');
+  const cap = Number(/open-pull-requests-limit: (\d+)/.exec(npmBlock)?.[1]);
+  assert.ok(cap > 0 && cap <= 10);
+});
+
+test('scripts whose JSON is consumed through a pipe must flush before exit (Linux truncates at 64 KiB)', () => {
+  // Found in CI: backlog-review printed ~165 KB then called process.exit(); on a Linux pipe the output was
+  // cut at the 64 KiB buffer, so validate-framework simulations 26b/61/61b failed there and nowhere else.
+  const bounded = new Set(['agent-health.mjs', 'check-overrides-applied.mjs', 'check-render-config.mjs', 'evidence.mjs', 'hotfix-rehearsal.mjs', 'hotfix.mjs', 'repo-health.mjs', 'verify-branch-policy.mjs']); // small, bounded output
+  const offenders = [];
+  for (const f of fs.readdirSync(path.join(ROOT, 'scripts')).filter((n) => n.endsWith('.mjs'))) {
+    const src = read('scripts/' + f).replace(/\r\n/g, '\n');
+    if (/console\.log\(JSON\.stringify\([^\n]*\)\);?\n\s*process\.exit\(/.test(src) && !bounded.has(f)) offenders.push(f);
+  }
+  assert.deepEqual(offenders, [], 'wait for process.stdout.write to drain before process.exit');
+  assert.match(read('scripts/backlog-review.mjs'), /process\.stdout\.write\(JSON\.stringify\(report/);
 });
