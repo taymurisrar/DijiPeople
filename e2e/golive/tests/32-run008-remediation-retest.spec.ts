@@ -1,6 +1,6 @@
 import { test, expect, env } from '../fixtures/test';
 import { api, apiToken, credentials, planTenantProvisioned, tenantUrl, TENANTS } from '../fixtures/tenants';
-import { sql } from '../fixtures/mail-db';
+import { mail, sql } from '../fixtures/mail-db';
 import { FEATURE_PROBES } from '../fixtures/entitlement-matrix';
 import { STARTER_FEATURES, assignPlan, createCustomPlan, deleteCustomPlan, onboardTenant, papi, platformConfigured, priceRow, publishPrice, restoreSubscription, subscriptionOf, unpublishPrice, type CustomPlan, type SubscriptionSnapshot } from '../fixtures/platform';
 import { spawnSync } from 'node:child_process';
@@ -141,6 +141,8 @@ test.describe('DP-QA-044 Custom plan price publication', () => {
       expect((await publishPrice(request, p3.id, p3.priceId!)).status).toBeLessThan(300);
       const edit = await papi(request, 'PATCH', `/super-admin/plans/${p3.id}/prices/${p3.priceId}`, { unitAmount: 45 });
       info.annotations.push({ type: 'observation', description: `PATCH amount on a published price -> ${edit.status}` });
+      // BLOCKED, not passed: the price PATCH runs Stripe price preparation (prepareStripePlanPrice) whatever the body says, and the isolated stack has no STRIPE_SECRET_KEY, so it answers a raw 500 (DP-QA-049 observation).
+      test.skip(edit.status === 500, `BLOCKED (infrastructure): price amount edit needs Stripe configuration -> ${edit.status} ${String(edit.body?.errorCode)}; supersede-as-DRAFT behaviour not verified`);
       expect(edit.status).toBeLessThan(300);
       const rows = await sql<{ id: string; st: string; active: boolean; amt: string }>(`select id, "publicationStatus"::text as st, "isActive" as active, "unitAmount"::text as amt from "PlanPrice" where "planId" = $1 order by "createdAt"`, [p3.id]);
       info.annotations.push({ type: 'evidence', description: JSON.stringify(rows) });
@@ -158,6 +160,10 @@ test.describe('DP-QA-044 Custom plan price publication', () => {
     try {
       const before = (await sql<{ s: string }>(`select "publicationStatus"::text as s from "Plan" where id = $1`, [p4.id]))[0].s;
       expect(before).toBe('DRAFT');
+      // RUN-008 calibration: the plan action refuses until a price is published ("Publish at least one price first"), which is the intended order; assert the refusal, then follow the order.
+      const early = await papi(request, 'POST', `/platform-runtime/plans/${p4.id}/actions/publish`);
+      expect(early.status, 'plan publish before any published price is refused cleanly').toBeGreaterThanOrEqual(400); expect(early.status).toBeLessThan(500);
+      expect((await publishPrice(request, p4.id, p4.priceId!)).status).toBeLessThan(300);
       const r = await papi(request, 'POST', `/platform-runtime/plans/${p4.id}/actions/publish`);
       expect(r.status, JSON.stringify(r.body).slice(0, 240)).toBeLessThan(300);
       expect((await sql<{ s: string }>(`select "publicationStatus"::text as s from "Plan" where id = $1`, [p4.id]))[0].s).toBe('PUBLISHED');
@@ -218,11 +224,13 @@ test.describe('DP-QA-043 reserved Custom plans on every assignment path', () => 
 
   test('[DPQA-RSV-003] checkout and public subscribe paths do not turn a reserved plan into a purchase for another customer', async ({ request }, info) => {
     const owner = await apiToken(request, 'B', 'OWNER');
-    const co = await api(request, owner, 'POST', '/billing/checkout-sessions', { planPriceId: reserved.priceId });
+    // RUN-008 calibration: a DRAFT price is hidden from these paths anyway (404 "Plan price not found"), which proves nothing about the RESERVATION. Publish the reserved plan's price first so only the reservation can refuse.
+    expect((await publishPrice(request, reserved.id, reserved.priceId!)).status).toBeLessThan(300);
+    const co = await api(request, owner, 'POST', '/billing/checkout-sessions', { planPriceId: reserved.priceId, seatQuantity: 1 }); // RUN-008 calibration: the first attempt omitted seatQuantity, so DTO validation (not the reservation rule) refused it
     info.annotations.push({ type: 'observation', description: `checkout-sessions on a reserved price -> ${co.status} ${String(co.body?.message).slice(0, 160)}` });
     expect(co.status, 'checkout refused').toBeGreaterThanOrEqual(400); expect(co.status).toBeLessThan(500);
     await unchanged(TENANTS.B.slug, savedB);
-    const pub = await request.post(`${env.QA_API_URL}/api/public/subscribe`, { headers: { 'content-type': 'application/json' }, data: { planPriceId: reserved.priceId, companyName: `QA Rsv ${run}`, ownerEmail: `rsv-${run}@qa.dijipeople.test`, ownerFirstName: 'Qa', ownerLastName: 'Probe', requestedSlug: `qa-rsvpub-${run}`, acceptedLegalVersionIds: [] } });
+    const pub = await request.post(`${env.QA_API_URL}/api/public/subscribe`, { headers: { 'content-type': 'application/json' }, data: { planPriceId: reserved.priceId, seatQuantity: 1, companyName: `QA Rsv ${run}`, contactName: 'Qa Probe', email: `rsv-${run}@qa.dijipeople.test`, country: 'QA', ownerFirstName: 'Qa', ownerLastName: 'Probe', requestedSlug: `qa-rsvpub-${run}`, acceptedLegalVersionIds: [] } });
     const pb = await pub.json().catch(() => ({}));
     info.annotations.push({ type: 'observation', description: `public/subscribe on a reserved price -> ${pub.status()} ${String(pb?.message).slice(0, 200)}` });
     expect(pub.status(), 'public subscribe refused').toBeGreaterThanOrEqual(400); expect(pub.status()).toBeLessThan(500);
@@ -388,7 +396,7 @@ test.describe('DP-QA-047 reassignment invalidates the entitlement snapshot', () 
     await papi(request, 'PATCH', `/super-admin/plans/${withPayroll.id}`, { featureKeys: [...STARTER_FEATURES, 'payroll', 'desktop-agent'] });
     // tenant-initiated immediate change (upgrade) on tenant A: Starter -> Growth through /billing/plan-changes
     const aOwner = await apiToken(request, 'A', 'OWNER');
-    const growth = (await sql<{ id: string; pid: string }>(`select p.id, pp.id as pid from "Plan" p join "PlanPrice" pp on pp."planId" = p.id where p.key = 'growth' and pp."isActive" and pp."billingCycle" = 'MONTHLY' and pp."billingModel" = 'FLAT' limit 1`))[0];
+    const growth = (await sql<{ id: string; pid: string }>(`select p.id, pp.id as pid from "Plan" p join "PlanPrice" pp on pp."planId" = p.id where p.key = 'growth' and pp."isActive" and pp."billingCycle" = 'MONTHLY' and pp."marketId" is not distinct from (select cur."marketId" from "PlanPrice" cur join "Subscription" s on s."planPriceId" = cur.id join "Tenant" t on t.id = s."tenantId" where t.slug = '${TENANTS.A.slug}') order by (pp."billingModel" = 'FLAT') desc limit 1`))[0];
     const savedA = await subscriptionOf(TENANTS.A.slug);
     const r = await api(request, aOwner, 'POST', '/billing/plan-changes', { toPlanId: growth.id, toPlanPriceId: growth.pid });
     info.annotations.push({ type: 'observation', description: `tenant-initiated Starter->Growth plan-change -> ${r.status} ${JSON.stringify(r.body).slice(0, 200)}` });
@@ -492,5 +500,40 @@ test.describe('DP-QA-005 deployment safeguards', () => {
     expect(txt).toMatch(/"mode": "REPORT_ONLY"[\s\S]*"enforced": false/);
     expect(txt).toMatch(/not ok - plan entitlements are enforced, not merely logged: entitlement enforcement is REPORT_ONLY/);
     expect(txt).toMatch(/allowed by SMOKE_ALLOW_UNENFORCED=1/);
+  });
+});
+
+test.describe('SEC-020 invitation activation: 8-way concurrency and replay (DP-QA-027 retest at higher concurrency)', () => {
+  test.beforeEach(({}, i) => { test.skip(i.project.name !== 'chromium', 'API-level suite: runs once, on the chromium project'); });
+  const hdr = { 'X-DijiPeople-App': 'web' };
+  test('[DPQA-SEC-020] eight simultaneous activations with ONE invitation token: exactly one wins, no server error, replays with new passwords are refused, only the winner password signs in', async ({ request }, info) => {
+    test.setTimeout(300_000);
+    const owner = await apiToken(request, 'A', 'OWNER');
+    const rel = (await api(request, owner, 'GET', '/lookups/relation-types')).body;
+    const email = `sec20-${run}@qa.dijipeople.test`;
+    await mail.clear();
+    const e = await api(request, owner, 'POST', '/employees', { firstName: 'Sec', lastName: 'Twenty', workEmail: email, hireDate: '2025-02-03', employmentStatus: 'ACTIVE', phone: '+97455500041', emergencyContactName: 'X Y', emergencyContactRelationTypeId: (Array.isArray(rel) ? rel : rel.items)[0].id, emergencyContactPhone: '+97455500042', provisionSystemAccess: true, sendInvitationNow: true });
+    expect(e.status, JSON.stringify(e.body).slice(0, 200)).toBeLessThan(300);
+    try {
+      const token = mail.token(await mail.waitFor(email, /activate|invit|welcome/i, 60_000));
+      const pws = Array.from({ length: 8 }, (_, i) => `Act${i}!${run}Zz9t`);
+      const t0 = Date.now();
+      const rs = await Promise.all(pws.map((password) => request.post(`${env.QA_API_URL}/api/auth/activate-account`, { headers: hdr, data: { token, password } })));
+      const elapsed = Date.now() - t0;
+      const codes = rs.map((r) => r.status());
+      info.annotations.push({ type: 'measurement', description: `8 concurrent activations took ${elapsed} ms; statuses ${codes.join(',')}` });
+      const winners = rs.map((r, i) => ({ s: r.status(), pw: pws[i] })).filter((x) => x.s < 300);
+      expect(winners.length, 'exactly one activation wins: ' + codes.join(',')).toBe(1);
+      expect(codes.filter((c) => c >= 500), 'no server error among the losers').toEqual([]);
+      for (const pw of [`Replay1!${run}Zz9t`, `Replay2!${run}Zz9t`, winners[0].pw]) {
+        const rp = await request.post(`${env.QA_API_URL}/api/auth/activate-account`, { headers: hdr, data: { token, password: pw } });
+        expect(rp.status(), 'replay after activation').toBeGreaterThanOrEqual(400);
+      }
+      const ok = await request.post(`${env.QA_API_URL}/api/auth/login`, { headers: hdr, data: { email, password: winners[0].pw, tenantSlug: TENANTS.A.slug } });
+      expect(ok.status(), 'the winner signs in').toBeLessThan(300);
+      const loser = pws.find((p) => p !== winners[0].pw)!;
+      const bad = await request.post(`${env.QA_API_URL}/api/auth/login`, { headers: hdr, data: { email, password: loser, tenantSlug: TENANTS.A.slug } });
+      expect(bad.status(), 'a losing password does not sign in').toBe(401);
+    } finally { await api(request, owner, 'DELETE', `/employees/${e.body.id}`); }
   });
 });

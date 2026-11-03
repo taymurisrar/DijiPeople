@@ -1,6 +1,6 @@
 // Prepares and captures LEGACY `enterprise-plus` data for the migration regression (MIG-*). Usage (from e2e/):
 //   node golive/tools/legacy-enterprise-plus.mjs prepare <legacyDatabaseUrl> <slugWithAgentGrant> <slugWithoutGrant>
-//   node golive/tools/legacy-enterprise-plus.mjs capture <legacyDatabaseUrl>        -> golive-results/run007/legacy-baseline.json
+//   node golive/tools/legacy-enterprise-plus.mjs capture <legacyDatabaseUrl>        -> golive-results/${RUN}/legacy-baseline.json
 // Run BEFORE the candidate's `migrate deploy` / seed, on a COPY of the RUN-006 database (never on a shared database; the URL must be a local `_test` / `_legacy_test` database).
 // `prepare` puts two tenants on the legacy `enterprise-plus` plan exactly as the old platform did: one with an explicit CUSTOM desktop-agent grant (a contractual entitlement), one without.
 // `capture` records, per tenant on enterprise-plus: plan key, price, dates, status and the EFFECTIVE feature set (plan features, overridden by tenant features). No secrets are read.
@@ -8,6 +8,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 const { Client } = createRequire(import.meta.url)('pg');
 
+const RUN = process.env.QA_RUN ?? 'run007'; // RUN-008: QA_RUN=run008 keeps earlier runs' baselines untouched
 const [mode, url, withGrant, withoutGrant] = process.argv.slice(2);
 if (!url || !/@(localhost|127\.0\.0\.1)[:/]/.test(url) || !/_(test|legacy_test)\b/.test(url)) throw new Error('refusing: not a local throwaway test database');
 const pg = new Client({ connectionString: url }); await pg.connect();
@@ -57,8 +58,8 @@ if (mode === 'prepare') {
     out.push({ ...rest, legacyPlanId, priceIds, planPriceId: (await pg.query('select "planPriceId" as p from "Subscription" where id = $1', [r.subscriptionId])).rows[0].p, invoiceCount: await count('Invoice'), paymentCount: await count('Payment'), effective: [...effective].sort(), explicitGrants: explicit });
   }
   const file = withGrant || 'legacy-baseline.json'; // optional 3rd argument: output file name (several legacy copies are captured in RUN-007)
-  mkdirSync('golive-results/run007', { recursive: true });
-  writeFileSync(`golive-results/run007/${file}`, JSON.stringify(out, null, 2));
-  console.log(`captured ${out.length} tenant(s) on enterprise-plus -> golive-results/run007/${file}`);
+  mkdirSync(`golive-results/${RUN}`, { recursive: true });
+  writeFileSync(`golive-results/${RUN}/${file}`, JSON.stringify(out, null, 2));
+  console.log(`captured ${out.length} tenant(s) on enterprise-plus -> golive-results/${RUN}/${file}`);
 } else throw new Error('mode must be prepare|capture');
 await pg.end();

@@ -1,11 +1,11 @@
 # RUN-007 legacy-migration group (MIG-*): starts a SECOND API from the validation worktree against a migrated legacy copy (dijipeople_starterv7legacy<a|b|c>_test) and runs only the MIG tests against it.
 # The fresh-database run is untouched. The legacy copy was prepared BEFORE the candidate's migration (tools/legacy-enterprise-plus.mjs prepare + capture) and migrated afterwards (migrate deploy + seed:config x2).
 # Usage (from e2e/): powershell -File golive\tools\run-legacy-mig.ps1 -Worktree "<path>" -Which a [-Port 4497] [-SmtpPort 1325]
-param([Parameter(Mandatory)][string]$Worktree, [Parameter(Mandatory)][ValidateSet('a', 'b', 'c')][string]$Which, [int]$Port = 4497, [int]$SmtpPort = 1325, [string]$Run = 'run007')
+param([Parameter(Mandatory)][string]$Worktree, [Parameter(Mandatory)][ValidateSet('a', 'b', 'c')][string]$Which, [int]$Port = 4497, [int]$SmtpPort = 1325, [string]$Run = 'run007', [string]$DbPrefix = 'dijipeople_starterv7legacy')
 $ErrorActionPreference = 'Continue'
 $qaRoot = Split-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) -Parent
 $base = (Get-Content "$qaRoot\.env.qa.local" | Where-Object { $_ -like 'QA_DATABASE_URL=*' }).Substring(16)
-$url = $base -replace '/[^/]+$', "/dijipeople_starterv7legacy${Which}_test"
+$url = $base -replace '/[^/]+$', "/${DbPrefix}${Which}_test"
 if ($url -notmatch '@localhost[:/].*_test$') { throw 'refusing: not a local _test database' }
 # stop only a previous legacy API on this port
 $c = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
@@ -24,7 +24,9 @@ Set-Location "$qaRoot\e2e"
 Copy-Item "golive-results\$Run\legacy-baseline-$($Which.ToUpper()).json" "golive-results\$Run\legacy-baseline.json" -Force
 Remove-Item 'golive-results\.auth' -Recurse -Force -ErrorAction SilentlyContinue
 $env:QA_DATABASE_URL = $url; $env:QA_API_URL = "http://localhost:$Port"
-& npx playwright test -c playwright.golive.config.ts --project=chromium --no-deps --grep 'DPQA-MIG-'
+$env:QA_RUN = $Run
+& npx playwright test -c playwright.golive.config.ts --project=chromium --no-deps --grep 'DPQA-MIG-' npx playwright test -c playwright.golive.config.ts --project=chromium --no-deps --grep 'DPQA-MIG-'
+Remove-Item Env:QA_RUN -ErrorAction SilentlyContinue
 $exit = $LASTEXITCODE
 Remove-Item Env:QA_DATABASE_URL, Env:QA_API_URL -ErrorAction SilentlyContinue
 Copy-Item golive-results\results.json "golive-results\$Run\results-legacy-$Which.json" -Force

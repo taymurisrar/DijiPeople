@@ -86,6 +86,9 @@ test.describe('SESS-005 on the production web build: links into route handlers a
     await page.getByLabel(/password/i).first().fill(c.password);
     await page.getByRole('button', { name: /sign in|log in/i }).first().click();
     await expect(page).not.toHaveURL(/\/login/, { timeout: 45_000 });
+    // RUN-008 calibration (SESS-052/053 controls): WebKit reports a fetch cancelled by a navigation as a page error ('due to access control checks'), so the post-sign-in page is allowed to go idle before the test navigates.
+    await page.waitForLoadState('networkidle').catch(() => undefined);
+    await page.waitForTimeout(5_000);
   }
 
   test('[DPQA-SESS-050] @xbrowser the session-expired dialog is drawn for 12 s without any /api/auth/logout request, the session stays live, the console stays clean; the link works when CLICKED', async ({ page, context, diag }, info) => {
@@ -129,5 +132,27 @@ test.describe('SESS-005 on the production web build: links into route handlers a
     await page.waitForTimeout(12_000);
     expect(hits, 'no logout request while drawn on a phone-sized viewport').toEqual([]);
     await page.screenshot({ path: `golive-results/run008-evidence/SESS-051-${info.project.name}.png` });
+  });
+
+  test('[DPQA-SESS-052] @xbrowser CONTROL: the same employee dwelling 12 s on /leaves with NO dialog and NO logout link raises no page error (separates the dialog from ordinary navigation prefetching)', async ({ page, diag }) => {
+    test.setTimeout(240_000);
+    diag.allow(/status of 401/);
+    await signIn(page);
+    await page.goto(tenantUrl('A', '/leaves'), { waitUntil: 'domcontentloaded' });
+    await page.waitForLoadState('networkidle').catch(() => undefined);
+    await page.waitForTimeout(12_000);
+    await expect(page).toHaveURL(/\/leaves/);
+  });
+
+  test('[DPQA-SESS-053] @xbrowser CONTROL 2: after sign-in the session is allowed to go idle (network idle + 5 s) BEFORE navigating, then dwells 12 s on /leaves: separates aborted in-flight prefetches from steady-state prefetching', async ({ page, diag }) => {
+    test.setTimeout(240_000);
+    diag.allow(/status of 401/);
+    await signIn(page);
+    await page.waitForLoadState('networkidle').catch(() => undefined);
+    await page.waitForTimeout(5_000);
+    await page.goto(tenantUrl('A', '/leaves'), { waitUntil: 'domcontentloaded' });
+    await page.waitForLoadState('networkidle').catch(() => undefined);
+    await page.waitForTimeout(12_000);
+    await expect(page).toHaveURL(/leaves/);
   });
 });

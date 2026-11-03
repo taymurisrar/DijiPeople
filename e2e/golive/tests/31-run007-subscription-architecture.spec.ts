@@ -343,7 +343,7 @@ test.describe('predefined seeds never overwrite Custom plans', () => {
 
 /** Legacy enterprise-plus data: baseline captured BEFORE the candidate's migration (tools/legacy-enterprise-plus.mjs). */
 type Baseline = { slug: string; planKey: string; status: string; cycle: string; basePrice: string; finalPrice: string; currency: string; startDate: string; endDate: string | null; effective: string[]; explicitGrants: string[]; subscriptionId?: string; legacyPlanId?: string; priceIds?: string[]; planPriceId?: string | null; invoiceCount?: number; paymentCount?: number; auditCount?: number };
-const baselineFile = 'golive-results/run007/legacy-baseline.json';
+const baselineFile = `golive-results/${process.env.QA_RUN ?? 'run007'}/legacy-baseline.json`; // RUN-008: QA_RUN selects the run folder holding the pre-migration baseline
 const baseline = (): Baseline[] => (existsSync(baselineFile) ? JSON.parse(readFileSync(baselineFile, 'utf8')) : []);
 test.describe('legacy enterprise-plus data migrates safely', () => {
   test.beforeEach(({}, i) => { test.skip(i.project.name !== 'chromium', 'database-level suite: runs once, on the chromium project'); });
