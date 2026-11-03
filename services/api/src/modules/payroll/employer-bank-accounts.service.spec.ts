@@ -43,7 +43,8 @@ describe('EmployerBankAccountsService.update', () => {
       .update(user, 'acc-1', { isDefaultPayrollAccount: true } as never)
       .catch(() => undefined);
     expect(updateMany).toHaveBeenCalledTimes(1);
-    expect(updateMany.mock.calls[0][0].where).toMatchObject({
+    const [args] = updateMany.mock.calls[0] as [{ where: unknown }];
+    expect(args.where).toMatchObject({
       tenantId: 'tenant-a',
       currencyCode: 'QAR',
       accountPurpose: 'PAYROLL',

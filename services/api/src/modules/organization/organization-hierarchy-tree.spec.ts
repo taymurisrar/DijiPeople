@@ -161,7 +161,7 @@ describe('OrganizationService.getHierarchyTreeForUser', () => {
       repository.findBusinessUnits,
       repository.findDepartments,
     ] as jest.Mock[])
-      expect(mock.mock.calls.at(-1)?.[0]).toBe('tenant-z');
+      expect((mock.mock.calls.at(-1) as unknown[])[0]).toBe('tenant-z');
     expect(teamFindMany).toHaveBeenLastCalledWith(
       expect.objectContaining({ where: { tenantId: 'tenant-z' } }),
     );

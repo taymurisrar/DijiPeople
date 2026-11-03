@@ -125,6 +125,7 @@ describeWithDatabase()(
     let u2: AuthenticatedUser; // owns every third
     let uSelf: AuthenticatedUser; // row scope: sees only the records they own
     let uPayroll: AuthenticatedUser;
+    let uHier: AuthenticatedUser; // may read organizations / business units
     let uB: AuthenticatedUser;
     let version = 0;
     const seeds: Seed[] = [];
@@ -254,6 +255,9 @@ describeWithDatabase()(
       uPayroll = actor(a.id, 'u-payroll', SecurityAccessLevel.TENANT, [
         'payroll.read',
       ]);
+      uHier = actor(a.id, 'u-hier', SecurityAccessLevel.TENANT, [
+        'hierarchy.read',
+      ]);
       uB = actor(b.id, 'u-b-1');
 
       const deal = await customization.createTable(u1, {
@@ -276,6 +280,23 @@ describeWithDatabase()(
           lookupTargetTableKey: 'deal',
         },
       });
+      for (const [columnKey, lookupTargetTableKey] of [
+        ['ownerEmployee', 'employees'],
+        ['ownerOrg', 'organizations'],
+        ['ownerUnit', 'businessUnits'],
+      ] as const)
+        await prisma.customizationColumn.create({
+          data: {
+            tenantId: a.id,
+            tableId: deal.id,
+            columnKey,
+            systemName: columnKey,
+            displayName: columnKey,
+            dataType: 'lookup',
+            fieldType: 'lookup',
+            lookupTargetTableKey,
+          },
+        });
       await customView(a.id, deal.id, 'openAcme', [
         { columnKey: 'stage', operator: 'eq', value: 'Open' },
         { columnKey: 'name', operator: 'contains', value: 'Acme' },
@@ -797,6 +818,88 @@ describeWithDatabase()(
       ).rejects.toBeInstanceOf(BadRequestException);
       // Leave the fixture exactly as the other tests count it.
       await prisma.customDataRecord.delete({ where: { id: made.id } });
+    });
+
+    it('a lookup to a BUILT-IN module is checked server-side: nonexistent, cross-tenant and unreadable references are refused', async () => {
+      const orgA = await fixtures.createOrganization(a.id, 'lk-org');
+      const unitA = await fixtures.createBusinessUnit(a.id, orgA, 'lk-bu');
+      const orgB = await fixtures.createOrganization(b.id, 'lk-org-b');
+      const empOf = (tenantId: string, code: string) =>
+        prisma.employee.create({
+          data: {
+            tenantId,
+            employeeCode: code,
+            firstName: 'Lk',
+            lastName: code,
+            phone: '000',
+            hireDate: new Date('2026-01-01T00:00:00Z'),
+          },
+          select: { id: true },
+        });
+      const empA = await empOf(a.id, `LKA-${randomUUID().slice(0, 6)}`);
+      const empB = await empOf(b.id, `LKB-${randomUUID().slice(0, 6)}`);
+      const withEmployees = {
+        ...uHier,
+        permissionKeys: [...uHier.permissionKeys, 'employees.read'],
+        rolePrivileges: [
+          ...uHier.rolePrivileges,
+          {
+            entityKey: ENTITY_KEYS.EMPLOYEES,
+            privilege: SecurityPrivilege.READ,
+            accessLevel: SecurityAccessLevel.TENANT,
+            roleId: 'role-fixture',
+          },
+        ],
+      } as AuthenticatedUser;
+      const make = (user: AuthenticatedUser, extra: Record<string, unknown>) =>
+        records.create('deal', {}, { name: 'Lk', ...extra }, user);
+      const created: string[] = [];
+      try {
+        // Positive: own tenant, caller may read.
+        const ok = (await make(withEmployees, {
+          ownerEmployee: empA.id,
+          ownerOrg: orgA,
+          ownerUnit: unitA,
+        })) as any;
+        created.push(ok.id);
+        expect(ok.ownerEmployee).toBe(empA.id);
+        // Negative: nonexistent, another tenant's, malformed.
+        for (const bad of [
+          { ownerEmployee: randomUUID() },
+          { ownerEmployee: empB.id },
+          { ownerOrg: orgB },
+          { ownerUnit: randomUUID() },
+          { ownerOrg: { not: 'an id' } },
+        ])
+          await expect(make(withEmployees, bad)).rejects.toBeInstanceOf(
+            BadRequestException,
+          );
+        // Negative: the record exists in the caller's tenant but the caller may not read that module,
+        // and the answer is the same as for a missing record (no id probing).
+        await expect(
+          make(u1, { ownerEmployee: empA.id }),
+        ).rejects.toBeInstanceOf(BadRequestException);
+        await expect(make(u1, { ownerOrg: orgA })).rejects.toBeInstanceOf(
+          BadRequestException,
+        );
+        // Update path is checked too.
+        await expect(
+          records.update(
+            'deal',
+            ok.id,
+            {},
+            { ownerEmployee: empB.id },
+            withEmployees,
+          ),
+        ).rejects.toBeInstanceOf(BadRequestException);
+      } finally {
+        await prisma.customDataRecord.deleteMany({
+          where: { id: { in: created } },
+        });
+        await prisma.employee.deleteMany({
+          where: { id: { in: [empA.id, empB.id] } },
+        });
+      }
     });
 
     it("is tenant-isolated: the same view key in two tenants returns each tenant's own records", async () => {
