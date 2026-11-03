@@ -119,6 +119,8 @@ const SYSTEM_FIELDS: readonly StandardModuleFieldSpec[] = [
     logicalName: "ownerUserId",
     displayName: "Owner",
     dataType: "string",
+    // The column holds a user id, so ordering by it would be ordering by an opaque value.
+    isSortable: false,
     isReadOnly: true,
   },
   {

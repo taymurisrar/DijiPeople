@@ -664,6 +664,101 @@ describeWithDatabase()(
       expect(r.meta.total).toBe(0);
     });
 
+    /* ------------------------------------------- header-click ordering (orderBy) */
+
+    const byName = (dir: 1 | -1) =>
+      [...seeds].sort(
+        (x, y) =>
+          dir *
+            x.name.localeCompare(y.name, 'en', {
+              numeric: true,
+              sensitivity: 'base',
+            }) || (x.id < y.id ? -1 : 1),
+      );
+
+    it('orderBy on a tenant column orders the WHOLE set, not the loaded page (asc and desc)', async () => {
+      const asc = await pages('deal', u1, { orderBy: 'name asc' });
+      expect(asc.ids).toEqual(byName(1).map((s) => s.id));
+      const desc = await pages('deal', u1, { orderBy: 'name desc' });
+      // Missing values never exist for name; desc is the exact reverse apart from the id tie-break.
+      expect(desc.ids.slice(0, 3)).toEqual(
+        byName(-1)
+          .slice(0, 3)
+          .map((s) => s.id),
+      );
+      expect(new Set(desc.ids).size).toBe(seeds.length);
+    });
+
+    it('orderBy composes with a view filter: the filtered set is ordered and counted together', async () => {
+      const r = await pages('deal', u1, {
+        view: 'activeRecords',
+        orderBy: 'name desc',
+      });
+      const expected = byName(-1).filter((s) => s.active);
+      expect(r.totals[0]).toBe(expected.length);
+      expect(r.ids.slice(0, 3)).toEqual(expected.slice(0, 3).map((s) => s.id));
+      expect(new Set(r.ids).size).toBe(expected.length);
+    });
+
+    it('a column with missing values sorts them last in BOTH directions', async () => {
+      for (const dir of ['asc', 'desc'] as const) {
+        const r = await pages('deal', u1, { orderBy: `stage ${dir}` });
+        const missing = new Set(
+          seeds.filter((s) => s.stage === undefined).map((s) => s.id),
+        );
+        const tail = r.ids.slice(r.ids.length - missing.size);
+        expect(new Set(tail)).toEqual(missing);
+      }
+    });
+
+    it('orderBy on a date is a database ordering with a stable tie-break across page boundaries', async () => {
+      const r = await pages('deal', u1, { orderBy: 'createdAt asc' });
+      const expected = [...seeds].sort(
+        (x, y) =>
+          x.createdAt.getTime() - y.createdAt.getTime() ||
+          (x.id < y.id ? -1 : 1),
+      );
+      expect(r.ids).toEqual(expected.map((s) => s.id));
+    });
+
+    it('orderBy is refused when malformed, unknown, or on a field the caller cannot read', async () => {
+      for (const orderBy of [
+        'name; drop table',
+        'name sideways',
+        "name'--",
+        'ghost asc',
+        'ownerUserId asc',
+      ]) {
+        await expect(
+          records.findMany('deal', { orderBy }, u1),
+        ).rejects.toBeInstanceOf(BadRequestException);
+      }
+      await expect(
+        records.findMany('deal', { orderBy: 'salary asc' }, u1),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      // Holding the read permission lifts the refusal.
+      await expect(
+        records.findMany('deal', { orderBy: 'salary asc' }, uPayroll),
+      ).resolves.toBeDefined();
+    });
+
+    it('orderBy never widens scope: a USER-level caller still sees only their own records, ordered', async () => {
+      const r = await pages('deal', uSelf, { orderBy: 'name desc' });
+      const mine = seeds.filter((s) => s.owner === 'u-self');
+      expect(new Set(r.ids)).toEqual(new Set(mine.map((s) => s.id)));
+      expect(r.totals[0]).toBe(mine.length);
+    });
+
+    it('pageSize stays bounded whatever the caller asks', async () => {
+      const res = (await records.findMany(
+        'deal',
+        { orderBy: 'createdAt desc', page: '1', pageSize: '100000' },
+        u1,
+      )) as any;
+      expect(res.meta.pageSize).toBe(200);
+      expect(res.items.length).toBeLessThanOrEqual(200);
+    });
+
     it("is tenant-isolated: the same view key in two tenants returns each tenant's own records", async () => {
       const own = (await records.findMany(
         'deal',

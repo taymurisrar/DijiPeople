@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 /**
  * Turns a PUBLISHED custom-module view into a database query plan.
  *
@@ -33,7 +34,11 @@ const SYSTEM_FILTER_FIELDS = new Set([
   'createdById',
   'updatedById',
 ]);
-const SYSTEM_SORT_FIELDS = new Set(['createdAt', 'updatedAt', 'isActive']);
+export const SYSTEM_SORT_FIELDS = new Set([
+  'createdAt',
+  'updatedAt',
+  'isActive',
+]);
 
 /**
  * Every record-level field a view of a CUSTOM module may reference besides the
@@ -303,4 +308,23 @@ export function sortRowsByColumns<
     }
     return left.id < right.id ? -1 : left.id > right.id ? 1 : 0;
   });
+}
+
+/**
+ * "<field> asc|desc" from a list header. Anything else is a 400 at the caller: the
+ * field name is only ever checked against the published columns, never interpolated.
+ */
+export function parseOrderBy(
+  raw: string | undefined,
+): { field: string; direction: 'asc' | 'desc' } | null {
+  if (raw === undefined || raw.trim() === '') return null;
+  const match = /^([A-Za-z][A-Za-z0-9_]{0,63})(?:\s+(asc|desc))?$/i.exec(
+    raw.trim(),
+  );
+  if (!match)
+    throw new BadRequestException('orderBy must be "<field> asc|desc".');
+  return {
+    field: match[1],
+    direction: match[2]?.toLowerCase() === 'desc' ? 'desc' : 'asc',
+  };
 }

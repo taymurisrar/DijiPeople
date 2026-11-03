@@ -17,6 +17,8 @@ import { lifecycleOf, parseStatusFilter } from './custom-record-lifecycle';
 import {
   CUSTOM_SORT_ROW_CAP,
   ViewDefinitionError,
+  SYSTEM_SORT_FIELDS,
+  parseOrderBy,
   planView,
   sortRowsByColumns,
   type ViewSortKey,
@@ -39,6 +41,8 @@ type CustomTable = PublishedCustomTable;
 type RelatedQuery = {
   /** Key of a published view: its filters, sort and the page total are applied server-side. */
   view?: string;
+  /** Header-click ordering, "<field> asc|desc": applied to the whole filtered set, ahead of the view's own sort. */
+  orderBy?: string;
   /** "active" | "inactive" | "all" (default). Server-side, so paging stays correct. */
   status?: string;
   /** "me" = only records owned by the caller. */
@@ -207,7 +211,12 @@ export class CustomDataService {
     if (query.owner !== undefined && query.owner !== 'me') {
       throw new BadRequestException('owner may only be "me".');
     }
-    const viewPlan = await this.planRequestedView(table, query.view, user);
+    const viewPlan = await this.planRequestedView(
+      table,
+      query.view,
+      query.orderBy,
+      user,
+    );
     const where: Prisma.CustomDataRecordWhereInput = {
       AND: [
         scope,
@@ -266,18 +275,44 @@ export class CustomDataService {
   private async planRequestedView(
     table: CustomTable,
     viewKey: string | undefined,
+    orderBy: string | undefined,
     user: AuthenticatedUser,
   ) {
-    if (viewKey === undefined || viewKey === '') return null;
-    if (!/^[a-z][a-zA-Z0-9]*$/.test(viewKey)) {
-      throw new BadRequestException('view must be a view key.');
+    const requestedSort = parseOrderBy(orderBy);
+    const hasView = viewKey !== undefined && viewKey !== '';
+    if (!hasView && !requestedSort) return null;
+    let view: { filtersJson: unknown; sortingJson: unknown } = {
+      filtersJson: [],
+      sortingJson: [],
+    };
+    if (hasView) {
+      if (!/^[a-z][a-zA-Z0-9]*$/.test(viewKey)) {
+        throw new BadRequestException('view must be a view key.');
+      }
+      const resolved = await this.runtimeService.resolvePublishedView(
+        user.tenantId,
+        table.id,
+        viewKey,
+      );
+      if (!resolved) throw new NotFoundException('View was not found.');
+      view = resolved;
     }
-    const view = await this.runtimeService.resolvePublishedView(
-      user.tenantId,
-      table.id,
-      viewKey,
-    );
-    if (!view) throw new NotFoundException('View was not found.');
+    if (
+      requestedSort &&
+      !SYSTEM_SORT_FIELDS.has(requestedSort.field) &&
+      !table.columns.some((column) => column.columnKey === requestedSort.field)
+    ) {
+      // An unknown field is a refusal, not "unsorted": the header the user clicked would silently do nothing.
+      throw new BadRequestException(`Cannot sort by "${requestedSort.field}".`);
+    }
+    if (requestedSort) {
+      view = {
+        filtersJson: view.filtersJson,
+        sortingJson: [
+          { field: requestedSort.field, direction: requestedSort.direction },
+        ],
+      };
+    }
     const columns = new Map(
       table.columns.map((column) => [
         column.columnKey,

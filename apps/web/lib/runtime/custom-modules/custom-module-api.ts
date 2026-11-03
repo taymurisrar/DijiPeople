@@ -50,6 +50,8 @@ export function loadCustomModuleRecords(
      * definitions are read from the tenant's published metadata on the server.
      */
     readonly view?: string;
+    /** Header-click ordering, "<field> asc|desc", applied by the API to the whole filtered set. */
+    readonly orderBy?: string;
   },
 ) {
   const params = new URLSearchParams({
@@ -57,6 +59,7 @@ export function loadCustomModuleRecords(
     pageSize: String(input.pageSize),
   });
   if (input.view) params.set("view", input.view);
+  if (input.orderBy) params.set("orderBy", input.orderBy);
   return classify(
     () =>
       apiRequestJson<CustomModuleRecordList>(

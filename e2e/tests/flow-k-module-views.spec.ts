@@ -451,4 +451,31 @@ test.describe("Flow K — module views over more than one page", () => {
     expect(stored).toEqual(["all", "lookup", "quickFind", "recent"]);
     expect([200, 404]).toContain(def.status);
   });
+
+  test("K13 — header sort orders the WHOLE module, not the page on screen, and survives paging", async () => {
+    const ids = await viewIds();
+    await openWeb(page, BASE_URLS.web, tenant!, listPath(ids.all));
+    // Default order is newest first, so page 1 starts at the highest number: ascending can only
+    // start at 01 if the server ordered every record before cutting the page.
+    await page.getByRole("button", { name: "Sort Name" }).click();
+    await page.waitForURL((u) => /orderBy=/.test(u.search), {
+      timeout: 30_000,
+    });
+    await page.waitForLoadState("networkidle");
+    const all = range(1, TOTAL).map(nameOf);
+    expect(await rowNames()).toEqual(all.slice(0, PAGE_SIZE));
+    await goToPage(3);
+    expect(page.url()).toMatch(/orderBy=/);
+    expect(await rowNames()).toEqual(all.slice(2 * PAGE_SIZE));
+    await page.getByRole("button", { name: "Sort Name" }).click();
+    await page.waitForURL(
+      (u) => u.searchParams.get("orderBy") === "dd_name desc",
+      {
+        timeout: 30_000,
+      },
+    );
+    await page.waitForLoadState("networkidle");
+    expect(await rowNames()).toEqual([...all].reverse().slice(0, PAGE_SIZE));
+    await expectPager(new RegExp(`Showing 1 to 25 of ${TOTAL} records`));
+  });
 });

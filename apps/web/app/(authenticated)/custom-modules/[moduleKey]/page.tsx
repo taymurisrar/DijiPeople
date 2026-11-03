@@ -60,6 +60,7 @@ export default async function CustomModuleListPage({
     sessionUser,
   });
   const requestedViewId = first(query.viewId);
+  const orderBy = first(query.orderBy);
   const activeView =
     runtime.metadata.views.find(
       (view) => (view.viewId ?? view.id) === requestedViewId,
@@ -72,6 +73,7 @@ export default async function CustomModuleListPage({
     page,
     pageSize,
     view: serverViewKey(definition, activeView),
+    orderBy: orderBy || undefined,
   });
   if (recordsLoad.status !== "ok") {
     // A view that has since been deleted or hidden: go to the module's default list rather than a dead end.
@@ -90,6 +92,7 @@ export default async function CustomModuleListPage({
     const params = new URLSearchParams();
     const viewId = activeView?.viewId ?? activeView?.id;
     if (viewId) params.set("viewId", viewId);
+    if (orderBy) params.set("orderBy", orderBy);
     if (totalPages > 1) params.set("page", String(totalPages));
     if (pageSize !== DEFAULT_PAGE_SIZE)
       params.set("pageSize", String(pageSize));
@@ -109,6 +112,7 @@ export default async function CustomModuleListPage({
           pathname: spec.routeBase,
           searchParams: {
             viewId: activeView?.viewId ?? activeView?.id,
+            orderBy: orderBy || undefined,
           },
         }}
         records={records}

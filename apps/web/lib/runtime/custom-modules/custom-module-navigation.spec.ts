@@ -96,7 +96,9 @@ describe("composeDashboardNavItems", () => {
       dashboardNavItems,
       buildCustomModuleNavItems([QA_ASSET]),
     );
-    const settingsIndex = catalog.findIndex((item) => item.href === "/settings");
+    const settingsIndex = catalog.findIndex(
+      (item) => item.href === "/settings",
+    );
     expect(catalog[settingsIndex - 1]?.href).toBe("/custom-modules/qaAsset");
     expect(catalog).toHaveLength(dashboardNavItems.length + 1);
   });
@@ -146,9 +148,9 @@ describe("resolveVisibleDashboardNavItems with custom modules", () => {
       customModules: [],
       permissionKeys: [CUSTOM_RECORDS_READ_PERMISSION],
     });
-    expect(hrefs(items).some((href) => href.startsWith("/custom-modules"))).toBe(
-      false,
-    );
+    expect(
+      hrefs(items).some((href) => href.startsWith("/custom-modules")),
+    ).toBe(false);
   });
 
   it("applies a Sidebar Designer hide to the custom entry", () => {
@@ -183,7 +185,9 @@ describe("resolveVisibleDashboardNavItems with custom modules", () => {
       overrides: [
         {
           itemKey: "/custom-modules/qaAsset",
-          visibilityRules: [{ operator: "has-role", roleKeys: ["payroll-admin"] }],
+          visibilityRules: [
+            { operator: "has-role", roleKeys: ["payroll-admin"] },
+          ],
         },
       ],
     });
