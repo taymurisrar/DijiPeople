@@ -45,7 +45,7 @@ Severity/priority: P0 release-stopping - P1 major workflow broken - P2 moderate/
 
 ## Post-deploy verification 2026-11-03 (production `2a473785`) — read first
 
-The RUN-008 verdicts apply to application `4dd29d3a`, **which is not in production**. New records: [[DP-QA-051]] (P1 release blocker: the 60-commit remediation is not deployed), [[DP-QA-052]] (P2: the Render `ENTITLEMENT_ENFORCEMENT_MODE` variable is inert on the deployed code; enforcement rests on the database row, which has no audit trail), [[DP-QA-053]] (P2: every production tenant mail provider row is `CONSOLE`). Production enforcement itself is **ON** (database row `ENFORCE`). [[DP-QA-048]] has a validated fix on branch `agent/smoke-tenant-login`. Details, evidence and next actions: [[PRODUCTION-VERIFICATION-2026-11-03]].
+The RUN-008 verdicts apply to application `4dd29d3a`, **which is not in production**. New records: [[DP-QA-051]] (P1 release blocker: the 60-commit remediation is not deployed), [[DP-QA-052]] (P2: the Render `ENTITLEMENT_ENFORCEMENT_MODE` variable is inert on the deployed code; enforcement rests on the database row, which has no audit trail), [[DP-QA-053]] (P3, corrected: tenant CONSOLE rows are ignored in production, mail goes through the platform relay; delivery proof still owed). Production enforcement itself is **ON** (database row `ENFORCE`). [[DP-QA-048]] has a validated fix on branch `agent/smoke-tenant-login`. Details, evidence and next actions: [[PRODUCTION-VERIFICATION-2026-11-03]].
 
 ## RUN-008 status (application `4dd29d3a`, QA suite `c5867698`) — supersedes the RUN-007 section below
 

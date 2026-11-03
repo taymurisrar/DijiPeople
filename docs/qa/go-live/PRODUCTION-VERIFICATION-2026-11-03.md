@@ -66,7 +66,7 @@ Branch `agent/smoke-tenant-login` (`f6c1bfbd`, from `4dd29d3a`): `scripts/smoke-
 | Authentication, employee access, leave, attendance, entitlement denials with a signed-in user | **NOT RUN** — no dedicated test identity exists. Creating one is a production write and needs approval |
 | Entitlement denial (a Starter tenant refused a paid module) | **Not exercised live.** Evidence is indirect: database mode ENFORCE, code reads it, and no tenant uses an out-of-plan module |
 
-Side effects of the smoke: one failed sign-in for a non-existent address; one successful password check on an owner account, which issued an MFA challenge (that tenant's mail provider is `CONSOLE`, so nothing is delivered). No data was created or changed.
+Side effects of the smoke: one failed sign-in for a non-existent address; one successful password check on an owner account, which issued an MFA challenge (its code most likely went by e-mail through the platform relay to that owner's own address). No data was created or changed.
 
 ## 7. Open findings: blockers or accepted limitations
 
@@ -74,7 +74,7 @@ Side effects of the smoke: one failed sign-in for a non-existent address; one su
 |---|---|
 | Remediation not shipped ([[DP-QA-051]]) | **Release blocker** for Starter go-live to real customers |
 | Inert Render variable, no audit of the mode row ([[DP-QA-052]]) | **Gap to close** (misleading control); enforcement itself is correct today |
-| Tenant mail providers on CONSOLE ([[DP-QA-053]]) | **Blocker for real onboarding** of any tenant that must receive mail |
+| Tenant mail provider rows on CONSOLE ([[DP-QA-053]], corrected to P3) | **Accepted limitation**: production ignores CONSOLE rows (ADR-0015) and sends through the platform SMTP relay; a controlled delivery proof is still owed |
 | [[DP-QA-045]] expired subscription keeps access | **Accepted limitation for now**, owner decision pending: all four subscriptions are active |
 | [[DP-QA-046]] five features cannot be withheld | **Accepted limitation**: production has no Custom plans |
 | [[DP-QA-049]] price edit runs Stripe | **Accepted** (pre-existing; Stripe is configured in production) |
@@ -83,7 +83,7 @@ Side effects of the smoke: one failed sign-in for a non-existent address; one su
 
 ## 8. Email and payment readiness (no live transactions enabled)
 
-**Email.** Platform mail is configured for real SMTP (a transactional provider, STARTTLS, a company sender address, password present). The delivery log holds **46 `SENT` through SMTP, the latest on 2026-11-02**, so the real path has worked recently. But **every tenant that has a provider row is on `CONSOLE`** (three tenants), which does not deliver (log: 8 `SENT` and 4 `NOT_DELIVERED` through CONSOLE, last 2026-09-11); one tenant has no row. `MAIL_DELIVERY_MODE=log` is set on the service. **A real-delivery proof was not run**: it would send a real message and needs approval and a mailbox the owner controls.
+**Email.** Platform mail is configured for real SMTP (a transactional provider, STARTTLS, a company sender address, password present). The delivery log holds **46 `SENT` through SMTP, the latest on 2026-11-02**. Three tenants carry an enabled `CONSOLE` provider row, but the deployed code **ignores CONSOLE rows in production (ADR-0015, `sinkProvidersRetired`)** and resolves tenant mail to the platform relay; the CONSOLE deliveries in the log end on 2026-09-11. An earlier reading of this section (tenant mail not delivered) was wrong and is corrected here. `MAIL_DELIVERY_MODE=log` is read only by the generic mailer service. **A real-delivery proof was not run**: it would send a real message and needs approval and a mailbox the owner controls.
 
 **Payments.** `STRIPE_MODE=test`, `SAFEPAY_ENVIRONMENT=sandbox`. 17 published active prices carry Stripe **TEST** ids and **19 published active prices have no Stripe price at all**; 3 historical payments (`SUCCEEDED`, latest 2026-08-29, test mode). Live money cannot move today. Going live needs: owner approval, `STRIPE_MODE=live`, prices synced **after** the mode switch (the environment is baked in at sync time), a live webhook secret, and the legal documents published.
 
@@ -91,7 +91,7 @@ Side effects of the smoke: one failed sign-in for a non-existent address; one su
 
 1. **Ship the remediation** by reconciled integration (done in the corrective release; see the integrated-release validation record).
 2. **Provide a dedicated production test identity** (approval needed): a Starter test tenant with a non-deliverable address and a named synthetic test user without MFA of its own, then run the authenticated smoke with the fixed `smoke:deployment`.
-3. **Email:** switch real tenants from `CONSOLE` to the SMTP provider (or remove the row so the platform path applies) and prove one controlled delivery to a mailbox the owner controls.
+3. **Email:** prove one controlled delivery to a mailbox the owner controls (the platform relay already carries tenant mail in production).
 4. **Owner decisions** DP-QA-045 and DP-QA-046 ([[OWNER-DECISIONS-045-046]]) before the first contract end date or the first Custom plan.
 5. **Payments:** keep test mode until a live cutover is approved; then follow the order in section 8.
 6. Record who changes `module-settings` in future (it has no audit row in the deployed release; the corrective release adds one).

@@ -1,19 +1,21 @@
-# DP-QA-053 — Every production tenant that has a mail provider row is on `CONSOLE`: tenant mail (activation, password reset, MFA) is not delivered
+# DP-QA-053 — Tenant mail provider rows are all `CONSOLE`; production ignores them and sends through the platform SMTP relay, but no controlled delivery has been proven
 
 | Field | Value |
 |---|---|
 | Category | Email readiness |
-| Severity / Priority | Medium / **P2** (blocks real onboarding of any tenant that must receive mail) |
-| Status | Open — needs owner approval to change any real tenant's provider |
+| Severity / Priority | Low / **P3** (CORRECTED from P2: the first reading was wrong, see below) |
+| Status | Open — a real-delivery proof needs owner approval |
 | Found | Post-deploy verification 2026-11-03 (read-only queries); sanitized |
 | Evidence | [[PRODUCTION-VERIFICATION-2026-11-03]] section 8 |
 
-**Observed.** `EmailProviderSetting` has three rows, all `providerType CONSOLE` and enabled (the demo tenant, one earlier customer tenant and one QA sign-up tenant); the most recent tenant has none. The delivery log shows 46 messages `SENT` through SMTP (latest 2026-11-02), 8 `SENT` through CONSOLE (to 2026-09-07) and 4 `NOT_DELIVERED` through CONSOLE (2026-09-08 to 09-11). The platform email setting is real SMTP. The service also has `MAIL_DELIVERY_MODE=log`. The tenant resolver prefers the tenant row, so a tenant on `CONSOLE` never reaches the SMTP path. A sign-in of an owner on such a tenant issued an MFA challenge, so that code most likely went to the console log, not to the owner (inferred from the provider row, not observed).
+**Correction.** The first version of this record said a tenant on `CONSOLE` never reaches SMTP and cannot receive activation, reset or MFA mail. That was inferred from an older architecture note and is **wrong for the deployed code**: `EmailProviderFactory.resolveProvider` (ADR-0015 / BUG-3501, present in production `2a473785`) *ignores* CONSOLE and DEV rows in production (`sinkProvidersRetired`), so a tenant whose only row is CONSOLE falls through to the platform relay (`EffectiveEmailProviderService.resolveForTenant`). The delivery log agrees: CONSOLE deliveries stop on 2026-09-11 (marked `NOT_DELIVERED` after ADR-0015) and 46 messages went `SENT` through SMTP up to 2026-11-02.
 
-**Impact.** A customer on `CONSOLE` cannot receive activation, reset or MFA codes by e-mail.
+**What is true.** Three tenants carry an enabled `CONSOLE` row (the demo tenant, an earlier customer tenant and a QA sign-up tenant) and one has none. In production those rows are inert clutter; the tenant's mail leaves through the platform SMTP relay with the platform's sender identity, not a tenant-specific one. `MAIL_DELIVERY_MODE=log` is read only by the generic mailer service, not by tenant notifications. A sign-in on the demo tenant during the verification issued an MFA challenge whose code therefore most likely went by e-mail to that owner (the owner's own address; inferred, not observed).
 
-**Resolution.** For each real tenant, switch to the SMTP provider or remove the row so the platform path applies, then prove one controlled delivery to a mailbox the owner controls (not run: it sends real mail and needs approval). The remediation stops `seed:config` from overwriting an existing tenant provider (DP-QA-039), so the correction will persist once it ships.
+**Remaining gap.** No controlled delivery to an owner-approved mailbox has been run, so activation, reset, link and branding rendering are unproven in production. Tenant-specific sender identity requires configuring a real tenant provider, which changes a customer's configuration and needs approval.
+
+**Resolution.** (1) One controlled delivery to an approved test mailbox (password reset on a synthetic test tenant). (2) Optionally remove the inert CONSOLE rows (owner approval; the rows are harmless). The remediation stops `seed:config` from overwriting an existing tenant provider (DP-QA-039).
 
 | Run | Result |
 |---|---|
-| Post-deploy verification 2026-11-03 | **OPEN** — a real-delivery proof was not run |
+| Post-deploy verification 2026-11-03 | **OPEN, severity corrected to P3** — a real-delivery proof was not run |
