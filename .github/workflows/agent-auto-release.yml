@@ -47,7 +47,7 @@ jobs:
       CSC_KEY_PASSWORD: ${{ secrets.AGENT_CSC_KEY_PASSWORD }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Need the previous commit to compare the version field.
           fetch-depth: 2
@@ -68,7 +68,7 @@ jobs:
             echo "Version unchanged ($NEW); nothing to do."
           fi
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         if: ${{ steps.bump.outputs.changed == 'true' }}
         with:
           node-version: '22.x'
