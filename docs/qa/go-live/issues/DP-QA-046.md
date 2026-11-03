@@ -4,7 +4,7 @@
 |---|---|
 | Category | Entitlement enforcement (design observation) |
 | Severity / Priority | Low / **P3 (owner awareness)** |
-| Status | Open — owner awareness |
+| Status | Open (owner decision) — implications written up in `OWNER-DECISIONS-045-046.md` |
 | Found | RUN-007 (`98f9b025`), test DPQA-CUS-006 (plan listing only `employees`) |
 
 **Observed.** On a Custom plan that lists only `employees` (plus the automatic import/export baseline) every gated module is refused inside the propagation budget — leave, projects, payroll, recruitment, timesheets, onboarding and the agent — but `GET /documents` still answers 200. `ENTITLEMENT_UNGATED_FEATURE_KEYS` (`common/constants/tenant-features.ts`) says why: `employees` and `organization` (enabled on every shipped plan, the substrate), `documents` (cross-cutting), `notifications` (delivery infrastructure) and `branding` (a settings surface) are deliberately not route-gated.
@@ -16,3 +16,4 @@ Not a defect against the written design. Recorded so the owner can decide whethe
 | Run | Result |
 |---|---|
 | RUN-007 (`98f9b025`) | **OPEN (awareness)** — observation attached to CUS-006 |
+| RUN-008 (`4dd29d3a`) | **OPEN (owner decision)** — unchanged by the candidate (CUS-006 observation: `documents` is served on a plan that omits it). Implications and options in [[OWNER-DECISIONS-045-046]]. |

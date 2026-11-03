@@ -5,7 +5,9 @@ Status = latest run **[[RUN-003-2026-10-30]]** (per-test rows there; history in 
 Environment: **production-mode build** (`next build --webpack` + `next start`) against API :4098, throwaway DB, enforcement `ENFORCE`; tenants **S** (seed-demo), **A**, **B** (provisioned through the real workflow).
 Browsers: Chromium (full), Firefox (http), WebKit (https via local TLS front — WebKit refuses Secure cookies on http), mobile Pixel 7, tablet iPad.
 
-> **RUN-007 (latest, application `98f9b025`)**: 552 result rows — 530 passed, 3 failed (CUS-012, CUS-030, CPL-009: application defects / owner decision, not weakened), 19 skipped with stated reasons. Per-test rows, per-project counts and the attempt history of every test that failed at least once are in [[RUN-007-2026-11-02]]; the new suites are specs 27–31 (APR, EXP/IMP, CUS/SESS-030, EML/RESP/WK, CAT/CPL/SEEDPLAN/MIG). The table below is the historical RUN-003 status.
+> **RUN-008 (latest, application `4dd29d3a`)**: 602 result rows — 573 passed, 2 failed (CUS-030 owner decision DP-QA-045; GATE-008 application DP-QA-048, neither weakened), 27 skipped with stated reasons (one Blocked, one Not Run). New suites: spec 32 (PUB, RSV, REV, GATE, SEC-020) and spec 33 (PUBUI, SESS-050..053). Per-attempt history and classification: [[RUN-008-2026-11-03]].
+
+> **RUN-007 (previous, application `98f9b025`)**: 552 result rows — 530 passed, 3 failed (CUS-012, CUS-030, CPL-009: application defects / owner decision, not weakened), 19 skipped with stated reasons. Per-test rows, per-project counts and the attempt history of every test that failed at least once are in [[RUN-007-2026-11-02]]; the new suites are specs 27–31 (APR, EXP/IMP, CUS/SESS-030, EML/RESP/WK, CAT/CPL/SEEDPLAN/MIG). The table below is the historical RUN-003 status.
 
 ## Suite status (RUN-003)
 

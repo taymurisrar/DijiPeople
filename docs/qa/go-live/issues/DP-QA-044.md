@@ -4,7 +4,7 @@
 |---|---|
 | Category | Commercial lifecycle |
 | Severity / Priority | Medium / **P2** (blocks documented Custom-plan workflow steps 2–3; the backlog already knows it as ITEM-0018 / ITEM-0022) |
-| Status | Open |
+| Status | **Resolved** (independently verified in RUN-008, `4dd29d3a`; price-edit supersede behaviour not verified, see DP-QA-049) |
 | Found | RUN-007 (`98f9b025`), provisioning the Custom-plan fixture; DPQA-CPL-010 evidence |
 | Evidence | `create-tenant` answers 400: `Plan "qa-cp-baseline" has no published monthly price. Configure and publish a price for this plan before creating a subscription.`; `e2e/golive-results/run007/results-chromium-p9a01.json` |
 
@@ -19,3 +19,4 @@
 | Run | Result |
 |---|---|
 | RUN-007 (`98f9b025`) | **OPEN** — publication Not Run (no mechanism); onboarding onto an unpublished Custom plan is refused |
+| RUN-008 (`4dd29d3a`) | **RESOLVED** — a Custom plan price can be priced, published and withdrawn through the API (PUB-001..006, PUB-008) and through the Admin console (PUBUI-001, screenshots `RUN008-PUBUI-001-*.png`; reload keeps the state; audit rows `PLAN_PRICE_PUBLISHED`/`PLAN_PRICE_UNPUBLISHED` with before/after snapshots). Only the publication fields change (amount, cycle, Stripe ids untouched). The predefined plans' prices are refused (publish and withdraw) and the console offers no control for them (PUBUI-002). Provisioning is refused before publication with a clear message, succeeds after publication, and a withdrawal leaves the existing subscription untouched while refusing new onboarding. `qa-custom` was provisioned straight onto its Custom plan in this run (no Starter-then-reassign workaround). Residual: PUB-007 (amount edit supersedes as DRAFT) is **Blocked** — DP-QA-049; and re-submitting create-tenant after a refused attempt needs the control-plane retry — DP-QA-050. |

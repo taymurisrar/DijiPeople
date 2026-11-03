@@ -4,7 +4,7 @@
 |---|---|
 | Category | Entitlement lifecycle |
 | Severity / Priority | Low–Medium / **P3 (owner decision)** |
-| Status | Open — owner decision |
+| Status | Open (owner decision) — implications written up in `OWNER-DECISIONS-045-046.md` |
 | Found | RUN-007 (`98f9b025`), test DPQA-CUS-030; reproduced on three runs |
 | Evidence | annotation "expired subscription cut the agent after -1 ms" (no cut within 90 s) |
 
@@ -17,3 +17,4 @@
 | Run | Result |
 |---|---|
 | RUN-007 (`98f9b025`) | **OPEN (owner decision)** — CUS-030 fails against QA's stated expectation |
+| RUN-008 (`4dd29d3a`) | **OPEN (owner decision)** — CUS-030 fails again with the assertion unchanged: an EXPIRED subscription keeps `desktop-agent`. The v7 handoff changed nothing and recommends a grace period; QA has not invented one. Security, billing and commercial implications and the parameters the owner must supply are in [[OWNER-DECISIONS-045-046]]. |

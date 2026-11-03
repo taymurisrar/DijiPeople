@@ -4,7 +4,7 @@
 |---|---|
 | Category | Entitlement revocation / propagation |
 | Severity / Priority | Medium / **P2** (owner decision 9: withdrawal must take effect on the next authorization check, external propagation ≤ 60 s) |
-| Status | Open |
+| Status | **Resolved** (independently verified in RUN-008, `4dd29d3a`, same API process; multi-process propagation not exercised) |
 | Found | RUN-007 (`98f9b025`), tests DPQA-CUS-012 and DPQA-CUS-020; diagnostic probe `probe-agent-429.mjs`; reproduced on seven runs |
 | Evidence | measurements below; `e2e/golive-results/run007/results-chromium-p1101.json`, `…-p1102.json` |
 
@@ -29,3 +29,4 @@ The grant direction is slower still: after moving the tenant back to the plan wi
 | Run | Result |
 |---|---|
 | RUN-007 (`98f9b025`) | **OPEN** — CUS-012 and CUS-020 fail the 60 000 ms assertion (not weakened); CUS-010 passes |
+| RUN-008 (`4dd29d3a`) | **RESOLVED** (same process) — REV-001: four back-and-forth reassignments, withdrawal refused on the FIRST check after the PATCH returned (first probe 80–159 ms, PATCH 192–248 ms) and grant served on the first check each time; REV-002: no stale grant re-appears over 75 s of probes (past the 30 s TTL and the old 60 s mark); REV-003: 8 workers, 133 requests, 93 started after the PATCH returned, all 403, none 5xx, grant direction also first-check; REV-004: issued agent access token, refresh token and a new sign-in all cut at the first check while the web session keeps working; REV-005: a new session sees only the new plan and tenant A is unaffected; REV-006: plan edit 114–182 ms, and a tenant-initiated Starter→Growth plan change (APPLIED) is honoured at the first check. CUS-010/011/012/020 pass (they failed at 60 s in RUN-007). **Not exercised:** two API processes (the handoff bounds other instances by the 30 s TTL). |

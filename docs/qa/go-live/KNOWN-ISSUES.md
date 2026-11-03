@@ -43,6 +43,22 @@ Severity/priority: P0 release-stopping - P1 major workflow broken - P2 moderate/
 | [[DP-QA-033]] | Dead /documents prefetch answers 404 | P3 | **Resolved** | RUN-006: NAV-001: pass. _RUN-005:_ NAV-001 pass |
 | [[DP-QA-034]] | Employee My Profile lookups answer 403 | P2 | **Resolved** | RUN-006: TRC-034: pass. _RUN-005:_ TRC-034 pass; MCP network log of My Profile shows only 2xx |
 
+## RUN-008 status (application `4dd29d3a`, QA suite `c5867698`) — supersedes the RUN-007 section below
+
+**50 records.** Independently verified in RUN-008: [[DP-QA-043]], [[DP-QA-044]], [[DP-QA-047]] (Resolved); the DP-QA-005 release mechanism (verified; production cutover still the owner's). **Open:** DP-QA-005 (owner gate), [[DP-QA-045]] and [[DP-QA-046]] (owner decisions, brief in [[OWNER-DECISIONS-045-046]]), and three records new in RUN-008, all P3: [[DP-QA-048]] (smoke login sends no tenant), [[DP-QA-049]] (price edit needs Stripe, raw 500), [[DP-QA-050]] (create-tenant `alreadyExists` while PROVISIONING_FAILED). Open P0: 0. Open P1: 0.
+
+| ID | Title | Pri | RUN-008 | Evidence |
+|---|---|---|---|---|
+| [[DP-QA-005]] | Entitlement enforcement defaults to REPORT_ONLY | owner gate | **Gate verified; production variable open** | GATE-001..007 |
+| [[DP-QA-043]] | Operator subscription assignment ignores a plan's reservation | P2 | **Resolved** | RSV-001..006, CPL-009 |
+| [[DP-QA-044]] | Custom plans cannot be published | P2 | **Resolved** (amount edit Blocked, 049) | PUB-001..006, PUB-008, PUBUI-001/002 |
+| [[DP-QA-047]] | Reassignment withdraws entitlements after the 60 s TTL | P2 | **Resolved** (one process) | REV-001..006, CUS-010/012/020 |
+| [[DP-QA-045]] | Expired Custom subscription keeps every entitlement | P3 (owner decision) | **Open** | CUS-030 fails, assertion unchanged |
+| [[DP-QA-046]] | A Custom plan cannot withhold five core features | P3 (owner decision) | **Open** | CUS-006 observation |
+| [[DP-QA-048]] | `smoke:deployment` login-based checks and the Starter probe cannot sign in | P3 | **Open (new)** | GATE-008 fails |
+| [[DP-QA-049]] | Price amount edit runs Stripe preparation: raw 500 without Stripe | P3 | **Open (new)** | PUB-007 Blocked |
+| [[DP-QA-050]] | create-tenant answers `alreadyExists` for a PROVISIONING_FAILED tenant | P3 | **Open (new)** | PUB-003 |
+
 ## RUN-007 status (application `98f9b025`, QA suite `7b60e22d`) — supersedes the RUN-006 column below
 
 **47 records.** Resolved and independently verified in RUN-007: DP-QA-001..004, 006..034 (re-run through the full suite), **023** (WebKit regression 10x), **035, 036, 037, 038, 039, 040, 041, 042**. **Open:** DP-QA-005 (owner gate), and five records new in RUN-007 — three P2 ([[DP-QA-043]], [[DP-QA-044]], [[DP-QA-047]]) and two P3 owner items ([[DP-QA-045]], [[DP-QA-046]]). Open P0: 0. Open application P1: 0.
