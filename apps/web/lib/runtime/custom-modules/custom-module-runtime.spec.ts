@@ -135,10 +135,12 @@ describe("buildCustomModuleRuntimeSpec", () => {
     expect(spec.primaryNameField).toBe("dd_serialNumber");
   });
 
-  it("declares the published fields plus read-only timestamps, and only published fields are writable", () => {
+  it("declares the published fields plus read-only status, owner and timestamps, and only published fields are writable", () => {
     const spec = buildCustomModuleRuntimeSpec(QA_ASSET);
     expect(spec.fields.map((field) => field.logicalName)).toEqual([
       "dd_serialNumber",
+      "isActive",
+      "ownerUserId",
       "createdAt",
       "updatedAt",
     ]);
@@ -203,6 +205,92 @@ describe("buildCustomModuleRuntimeSpec", () => {
         disableDelete: true,
       }),
     );
+  });
+});
+
+describe("provisioned system views (status and ownership)", () => {
+  const definition = (
+    views: CustomModuleDefinition["views"],
+  ): CustomModuleDefinition => ({
+    ...QA_ASSET,
+    views,
+  });
+  const view = (viewKey: string, filtersJson: unknown, isDefault = false) => ({
+    id: `view-${viewKey}`,
+    viewKey,
+    name: viewKey,
+    isDefault,
+    columnsJson: null,
+    filtersJson,
+    sortingJson: null,
+  });
+
+  it("Active / Inactive Records filter on the record-level isActive field", () => {
+    const [all, active, inactive] = buildCustomModuleViews(
+      definition([
+        view("all", [], true),
+        view("activeRecords", [
+          { columnKey: "isActive", operator: "eq", value: true },
+        ]),
+        view("inactiveRecords", [
+          { columnKey: "isActive", operator: "eq", value: false },
+        ]),
+      ]),
+    );
+    expect(all.filters).toBeUndefined();
+    expect(active.filters).toEqual([
+      { fieldLogicalName: "isActive", operator: "eq", value: true },
+    ]);
+    expect(inactive.filters).toEqual([
+      { fieldLogicalName: "isActive", operator: "eq", value: false },
+    ]);
+  });
+
+  it("My Records resolves @me to the signed-in user", () => {
+    const mine = definition([
+      view(
+        "myRecords",
+        [{ columnKey: "ownerUserId", operator: "eq", value: "@me" }],
+        true,
+      ),
+    ]);
+    const [resolved] = buildCustomModuleViews(mine, "user-42");
+    expect(resolved.filters).toEqual([
+      { fieldLogicalName: "ownerUserId", operator: "eq", value: "user-42" },
+    ]);
+  });
+
+  it("My Records with no known user matches nothing instead of everything", () => {
+    const [resolved] = buildCustomModuleViews(
+      definition([
+        view(
+          "myRecords",
+          [{ columnKey: "ownerUserId", operator: "eq", value: "@me" }],
+          true,
+        ),
+      ]),
+      null,
+    );
+    const filter = resolved.filters?.[0];
+    expect(filter?.fieldLogicalName).toBe("ownerUserId");
+    expect(filter?.value).not.toBe("@me");
+    expect(filter?.value).not.toBeUndefined();
+    expect(String(filter?.value)).toMatch(/no-signed-in-user/);
+  });
+
+  it("never leaks the raw @me token into a filter", () => {
+    const spec = buildCustomModuleRuntimeSpec(
+      definition([
+        view(
+          "myRecords",
+          [{ columnKey: "ownerUserId", operator: "eq", value: "@me" }],
+          true,
+        ),
+      ]),
+      "user-7",
+    );
+    expect(JSON.stringify(spec.views)).not.toContain("@me");
+    expect(JSON.stringify(spec.views)).toContain("user-7");
   });
 });
 

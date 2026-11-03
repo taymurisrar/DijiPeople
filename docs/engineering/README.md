@@ -27,13 +27,18 @@ Root files stay short. Detail lives below them and is pulled in by relevance, no
 ## Daily commands
 
 ```bash
-npm run preflight                          # fast, no DB/network: engines, branch drift, API + module gates, governance tests
+# Use the repo's runtime: Node 22 + npm 11.9.0 (package.json engines / packageManager). preflight fails on anything else.
+npm run preflight                          # fast, no DB/network: toolchain, branch drift, API + module + doc-fact gates, governance tests
 npm run preflight -- --full                # + validate:framework, advisories, typecheck
 node scripts/check-api-completeness.mjs --inventory
+node scripts/api-authorization-inventory.mjs   # route-level authorization evidence + register
+node scripts/derive-doc-facts.mjs --check      # counts in AGENTS.md are derived, not typed
 node scripts/check-module-completeness.mjs
 node scripts/ci-doctor.mjs --limit 50      # classify CI failures (read-only)
 node scripts/hotfix.mjs dry-run --severity P1 --title "<incident>"
+node scripts/hotfix-rehearsal.mjs --simulate-owner-approval   # full non-production hotfix rehearsal
 node scripts/lessons.mjs suggest|new|check|stale
+node scripts/session.mjs finish SESSION-nnnn   # now also closes the durable record + rebuilds indexes
 ```
 
 ## Owner decisions (agents never decide these)
@@ -45,7 +50,8 @@ Pricing, subscription and entitlement policy Â· material business-rule changes Â
 1. Merge `agent/engineering-governance` to `develop` through the normal Integrator path (not part of any go-live release unless the owner chooses).
 2. In each existing worktree: `git fetch && git rebase origin/develop`, then start a **new** session (hooks and agents load at session start; a running session will not see them).
 3. `.claude/` is excluded by this clone's `.git/info/exclude`; the files are tracked (force-added), so they appear in every checkout of the branch.
-4. Run `npm run preflight` once to confirm the toolchain (node 22 / npm 11).
-5. Hand off between sessions with `handoffs/TEMPLATE.md`.
+4. Run `npm run preflight` once to confirm the toolchain (node 22 / npm 11.9.0). `--allow-runtime-mismatch` exists for local experiments only and is never used by CI or release checks.
+5. First time in a workspace, open Claude Code interactively once and accept the trust dialog: in an untrusted workspace Claude Code **ignores the project's `permissions.allow`** (hooks, agents and skills still load). Hooks are a guard rail, not a substitute for GitHub branch protection and required checks.
+6. Hand off between sessions with `handoffs/TEMPLATE.md`.
 
 What is automated versus still human: `automation-matrix.md`. Evidence for this work: `baseline-2026-11-03.md`.

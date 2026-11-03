@@ -34,9 +34,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: ./.github/actions/setup-npm
         with:
-          node-version: '22.x'
+          install: 'false'
       - name: API completeness gate
         run: node scripts/check-api-completeness.mjs
       - name: Module completeness gate
@@ -44,7 +44,11 @@ jobs:
       - name: Policy catalogue, agents, skills, rules
         run: node --test scripts/governance.test.mjs
       - name: Guard hook, CI doctor and hotfix tooling tests
-        run: node --test scripts/hooks/guard-bash.test.mjs scripts/ci-doctor.test.mjs scripts/hotfix.test.mjs scripts/api-routes.test.mjs
+        run: node --test scripts/hooks/guard-bash.test.mjs scripts/ci-doctor.test.mjs scripts/hotfix.test.mjs scripts/api-routes.test.mjs scripts/authz-classify.test.mjs scripts/session-finish.test.mjs
+      - name: Authorization inventory is current
+        run: node scripts/api-authorization-inventory.mjs --check
+      - name: Derived documentation facts are current
+        run: node scripts/derive-doc-facts.mjs --check
       - name: Lessons valid
         run: node scripts/lessons.mjs check
       - name: Generated inventory is current
@@ -59,9 +63,9 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: ./.github/actions/setup-npm
         with:
-          node-version: '22.x'
+          install: 'false'
       - name: Classify the last 50 CI runs
         env:
           GH_TOKEN: ${{ github.token }}

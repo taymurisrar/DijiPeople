@@ -59,6 +59,29 @@ test('permission and public detection is per-route', () => {
   assert.equal(byName.update.path, 'things/:id');
 });
 
+test('a second controller in the same file is parsed against its own guards, not the first one\'s', () => {
+  const text = `
+@Controller('contracts')
+@UseGuards(JwtAuthGuard)
+export class ContractsController {
+  @Get()
+  list() {}
+}
+
+@Controller('public/signatures')
+@UseGuards(PublicRateLimitGuard)
+export class PublicSignaturesController {
+  @Get(':token') session() {}
+}
+`;
+  const routes = parseController('c.ts', text);
+  assert.equal(routes.length, 2);
+  const pub = routes.find((r) => r.path === 'public/signatures/:token');
+  assert.deepEqual(pub.guardNames, ['PublicRateLimitGuard']);
+  assert.equal(pub.jwtGuarded, false);
+  assert.equal(pub.handler, 'session', 'same-line handler signature is found');
+});
+
 test('a controller with no guard is reported unguarded', () => {
   const r = parseController('x.ts', `@Controller('x')\nexport class X {\n  @Get()\n  a() {}\n}\n`);
   assert.equal(r[0].guarded, false);

@@ -10,7 +10,9 @@ import {
   SecurityPrivilege,
 } from '@prisma/client';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
+import { AppError } from '../../common/errors/app-error';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { lifecycleOf, parseStatusFilter } from './custom-record-lifecycle';
 import { AuditService } from '../audit/audit.service';
 import {
   CustomModuleRuntimeService,
@@ -27,6 +29,10 @@ import {
 
 type CustomTable = PublishedCustomTable;
 type RelatedQuery = {
+  /** "active" | "inactive" | "all" (default). Server-side, so paging stays correct. */
+  status?: string;
+  /** "me" = only records owned by the caller. */
+  owner?: string;
   parentEntity?: string;
   parentId?: string;
   relationship?: string;
@@ -84,11 +90,17 @@ export class CustomDataService {
       primaryKey: 'id',
       isCustom: true,
       ownershipType: table.ownershipType ?? 'tenant',
+      moduleKind: table.moduleKind,
       capabilities: {
         read: true,
         create: can(SecurityPrivilege.CREATE),
-        update: can(SecurityPrivilege.WRITE),
-        delete: can(SecurityPrivilege.DELETE),
+        update:
+          can(SecurityPrivilege.WRITE) && lifecycleOf(table.moduleKind).update,
+        delete:
+          can(SecurityPrivilege.DELETE) && lifecycleOf(table.moduleKind).delete,
+        deactivate:
+          can(SecurityPrivilege.WRITE) &&
+          lifecycleOf(table.moduleKind).deactivate,
         softDelete: true,
       },
       fields: Object.fromEntries(
@@ -176,10 +188,21 @@ export class CustomDataService {
       user,
       SecurityPrivilege.READ,
     ) as Prisma.CustomDataRecordWhereInput;
+    const status = parseStatusFilter(query.status);
+    if (!status) {
+      throw new BadRequestException(
+        'status must be one of: active, inactive, all.',
+      );
+    }
+    if (query.owner !== undefined && query.owner !== 'me') {
+      throw new BadRequestException('owner may only be "me".');
+    }
     const where: Prisma.CustomDataRecordWhereInput = {
       AND: [
         scope,
         { tenantId: user.tenantId, tableId: table.id, isDeleted: false },
+        ...(status === 'all' ? [] : [{ isActive: status === 'active' }]),
+        ...(query.owner === 'me' ? [{ ownerUserId: user.userId }] : []),
         ...(relation
           ? [
               {
@@ -300,15 +323,32 @@ export class CustomDataService {
     ) {
       throw new NotFoundException('Related record was not found.');
     }
-    const patch = this.validateValues(table, body, user, 'update');
+    // `isActive` is record status, not a field value: it is read here by name and
+    // never reaches validateValues or the values JSON (no mass assignment).
+    const { isActive: requestedActive, ...valueBody } = body;
+    if (requestedActive !== undefined && typeof requestedActive !== 'boolean') {
+      throw new BadRequestException('isActive must be true or false.');
+    }
+    const lifecycle = lifecycleOf(table.moduleKind);
+    if (Object.keys(valueBody).length > 0 && !lifecycle.update) {
+      throw new AppError('CUSTOM_RECORD_IMMUTABLE');
+    }
+    if (requestedActive !== undefined && !lifecycle.deactivate) {
+      throw new AppError('CUSTOM_RECORD_IMMUTABLE');
+    }
+    const patch = this.validateValues(table, valueBody, user, 'update');
     if (relation) delete patch[relation.lookupField];
     const values = { ...readJson(existing.values), ...patch };
+    const statusOnly = Object.keys(valueBody).length === 0;
     const record = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.customDataRecord.update({
         where: { id: existing.id },
         data: {
           values: values as Prisma.InputJsonValue,
           updatedById: user.userId,
+          ...(requestedActive !== undefined
+            ? { isActive: requestedActive }
+            : {}),
         },
       });
       await this.auditService.log(
@@ -317,7 +357,12 @@ export class CustomDataService {
           organizationId: updated.organizationId,
           businessUnitId: updated.businessUnitId,
           actorUserId: user.userId,
-          action: 'custom-record.update',
+          action:
+            statusOnly && requestedActive !== undefined
+              ? requestedActive
+                ? 'custom-record.activate'
+                : 'custom-record.deactivate'
+              : 'custom-record.update',
           entityType: table.tableKey,
           entityId: updated.id,
           sourceModule: 'data',
@@ -343,6 +388,13 @@ export class CustomDataService {
       user,
       SecurityPrivilege.DELETE,
     );
+    if (!lifecycleOf(table.moduleKind).delete) {
+      throw new AppError(
+        table.moduleKind === 'IMMUTABLE'
+          ? 'CUSTOM_RECORD_IMMUTABLE'
+          : 'CUSTOM_RECORD_DELETE_NOT_ALLOWED',
+      );
+    }
     if (!recordIds.length || recordIds.length > 200) {
       throw new BadRequestException('Provide between 1 and 200 record IDs.');
     }
@@ -596,6 +648,10 @@ export class CustomDataService {
       values: Prisma.JsonValue;
       createdAt: Date;
       updatedAt: Date;
+      isActive: boolean;
+      ownerUserId: string | null;
+      createdById: string | null;
+      updatedById: string | null;
     },
     table: CustomTable,
     user: AuthenticatedUser,
@@ -616,6 +672,10 @@ export class CustomDataService {
     return {
       id: record.id,
       ...secured,
+      isActive: record.isActive,
+      ownerUserId: record.ownerUserId,
+      createdById: record.createdById,
+      updatedById: record.updatedById,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
     };
@@ -625,11 +685,13 @@ export class CustomDataService {
     id: string;
     values: Prisma.JsonValue;
     isDeleted: boolean;
+    isActive: boolean;
   }) {
     return {
       id: record.id,
       values: record.values,
       isDeleted: record.isDeleted,
+      isActive: record.isActive,
     };
   }
 

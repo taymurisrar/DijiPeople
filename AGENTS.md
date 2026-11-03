@@ -9,6 +9,12 @@
 > and every module named below was re-derived at that commit. When you change a
 > claim in this file, move these two lines with it; `validate-framework.mjs`
 > requires them and checks the claims they vouch for.
+>
+> **Counts that a script can compute are not typed here.** A number wrapped in a
+> `fact` HTML-comment marker (the schema and `@Public()` counts below) is derived
+> from the tree by `scripts/derive-doc-facts.mjs` and verified on every push;
+> change the tree and run `node scripts/derive-doc-facts.mjs --write`, never the
+> number. The module count keeps its own check in `scripts/validate-framework.mjs`.
 
 This is the primary instruction file for AI coding agents working in this
 repository. It describes **the repository as it actually is**, not a generic
@@ -202,7 +208,7 @@ Three authenticated surfaces plus one public one:
 
 ### Domains actually implemented
 
-**68 modules** under `services/api/src/modules/`, verified at commit 11b31412.
+**68 modules** under `services/api/src/modules/`, verified at commit 11b31412 (checked against the directory by `scripts/validate-framework.mjs`).
 
 | Area | Modules |
 |---|---|
@@ -358,9 +364,10 @@ Node `22.x`, npm `11.x`, npm workspaces + Turborepo.
 ## Database / Prisma
 
 Prisma **7.8** with `@prisma/adapter-pg` against PostgreSQL. Single schema file:
-`services/api/prisma/schema.prisma` — **13,703 lines, 312 models, 295 enums**,
-with **210** migrations in `services/api/prisma/migrations/`, all re-derived at
-494c44d and drifting upward from the day they were written. Prisma is configured
+`services/api/prisma/schema.prisma` — **<!--fact:schemaLines-->15,085<!--/fact--> lines, <!--fact:prismaModels-->340<!--/fact--> models, <!--fact:prismaEnums-->315<!--/fact--> enums**,
+with **<!--fact:migrations-->236<!--/fact-->** migrations in `services/api/prisma/migrations/`. These five numbers are
+derived by `scripts/derive-doc-facts.mjs` and checked on every push; they drifted
+before that existed (this file said 312 models and 210 migrations when the tree had 340 and 235). Prisma is configured
 by `services/api/prisma.config.ts` — every Prisma CLI call in this repo passes
 `--config prisma.config.ts`.
 
@@ -421,7 +428,7 @@ Full rules: [`services/api/AGENTS.md`](services/api/AGENTS.md). Summary:
   Do not invent ad-hoc error shapes; add a catalog entry instead.
 - **Auth**: `@UseGuards(JwtAuthGuard, PermissionsGuard)` at the controller.
   `@Public()` marks a genuinely unauthenticated route. At this baseline there
-  are **33 `@Public()` handlers across 13 controllers**, including partially
+  are **<!--fact:publicHandlers-->45<!--/fact--> `@Public()` handlers across <!--fact:publicControllers-->16<!--/fact--> controllers**, including partially
   public controllers such as `auth`, `agent`, `tenants` and `tenant-settings`
   where most handlers are guarded and a few are not. Count them on your branch;
   never assume a controller is uniformly public or uniformly guarded.

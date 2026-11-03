@@ -25,6 +25,21 @@ Faster than a feature, never looser on evidence. Tooling: `scripts/hotfix.mjs` (
 13. **Verify** `/api/health` reports the new commit, smoke, the key workflow, error monitoring.
 14. **Backport** to `develop` (HOT-006) and close the incident record; `/dp-learn` if the cause was a repeatable mistake.
 
+## Rehearsal (no deployment, no real environment)
+
+`node scripts/hotfix-rehearsal.mjs [--simulate-owner-approval]` builds a throwaway git repository and a local fake "production" health endpoint, then runs this runbook against them with the real `hotfix.mjs`: a simulated P1 bug in a **released** version → baseline read from the health endpoint (not the branch tip) → hotfix branch from the release SHA → one-file patch → regression test **red on the release, green after** → build twice (same hash) → release evidence → **approval checkpoint** → (simulated only) deploy to the fake target, health, smoke, rollback → backport onto a diverged develop and re-run the regression there. Without the flag it stops at `AWAITING_OWNER_APPROVAL` and deploys nothing. It never touches the real repository (asserted by test).
+
+| Step | Automated? |
+|---|---|
+| Severity gate, incident record, gate list by changed path | automated (`hotfix.mjs`) |
+| Deployed-SHA discovery | automated **if** production `/api/health` exposes the commit (needs `--prod-url`) |
+| Branch from release SHA, minimal patch | agent or human |
+| Red/green regression, lint, build, authorization checks | automated (CI runs them) |
+| Staging / preview validation | **external configuration**: Vercel previews exist per branch; Render has no verified staging or canary — do not assume one |
+| Approval | **owner only** |
+| Deploy (merge to `main`), post-deploy verification | **owner approval** → existing pipeline; smoke is scripted, monitoring review is human |
+| Backport | cherry-pick verified in the rehearsal; no automatic observer for HOT-006 |
+
 ## Dry run (no deployment)
 
 ```bash

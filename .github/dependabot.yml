@@ -1,0 +1,63 @@
+# No dependabot.yml existed before 2026-11-03: Dependabot ran with defaults from
+# the repository's "security updates" setting. Measured consequences
+# (docs/engineering/ci-reliability.md):
+#   - every PR targeted `main` (production, last advanced 2026-10-13), whose
+#     framework checks and advisory dispositions are older than `develop`'s, so
+#     8 of 9 open PRs failed Framework validation and the advisory gate for
+#     reasons unrelated to the bump;
+#   - the same electron bump opened twice (root and /apps/agent-desktop),
+#     because both directories were scanned although one root lockfile governs
+#     every workspace.
+# AGENTS.md: ordinary work integrates into `develop`; `main` deploys.
+#
+# One npm entry at "/" (root lockfile covers all workspaces) — do not add
+# per-workspace entries, they re-create the duplicate-PR problem.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: monday
+      time: '05:00'
+      timezone: Asia/Karachi
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: 'chore(deps)'
+      prefix-development: 'chore(deps-dev)'
+    labels: [dependencies]
+    groups:
+      # Security fixes are never delayed by grouping rules, but they arrive together.
+      security-updates:
+        applies-to: security-updates
+        patterns: ['*']
+      # Routine bumps: one PR per week instead of one per package.
+      minor-and-patch:
+        applies-to: version-updates
+        update-types: [minor, patch]
+    ignore:
+      # Majors of the runtime-critical stack are planned work, not weekly noise.
+      - dependency-name: next
+        update-types: [version-update:semver-major]
+      - dependency-name: electron
+        update-types: [version-update:semver-major]
+      - dependency-name: prisma
+        update-types: [version-update:semver-major]
+      - dependency-name: '@prisma/*'
+        update-types: [version-update:semver-major]
+      - dependency-name: '@nestjs/*'
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: 'chore(ci)'
+    labels: [dependencies]
+    groups:
+      actions:
+        patterns: ['*']

@@ -68,6 +68,8 @@ export type CustomModuleViewDefinition = {
 
 export type CustomModuleDefinition = {
   readonly moduleKey: string;
+  /** STANDARD | ORGANIZATION_OWNED | IMMUTABLE | CONFIGURATION. Absent on older API responses = STANDARD. */
+  readonly moduleKind?: string;
   readonly displayName: string;
   readonly pluralDisplayName?: string | null;
   readonly primaryNameField: string;
@@ -79,8 +81,19 @@ export type CustomModuleDefinition = {
     readonly create?: boolean;
     readonly update?: boolean;
     readonly delete?: boolean;
+    /** Whether records may be set Active/Inactive; the API refuses it for immutable modules. */
+    readonly deactivate?: boolean;
   };
 };
+
+/**
+ * View filter values the API stores as tokens. `@me` is the signed-in user:
+ * "My Records" is provisioned once for every user, so the filter cannot carry a
+ * user id. With no known user it resolves to a value no record has, so the view
+ * shows nothing rather than everything.
+ */
+export const CURRENT_USER_TOKEN = "@me";
+const NO_USER_SENTINEL = "__no-signed-in-user__";
 
 /* Derived keys the API enforces on `/data` (see custom-records.metadata.ts). */
 const CUSTOM_RECORD_PERMISSIONS = {
@@ -90,8 +103,24 @@ const CUSTOM_RECORD_PERMISSIONS = {
   delete: "custom-records.delete",
 } as const;
 
-/* Record timestamps the API returns on every custom record. */
+/*
+ * Record-level fields the API returns on every custom record (status, owner and
+ * the timestamps). They are not columns, so views reference them by these
+ * names: "Active Records" filters on isActive, "My Records" on ownerUserId.
+ */
 const SYSTEM_FIELDS: readonly StandardModuleFieldSpec[] = [
+  {
+    logicalName: "isActive",
+    displayName: "Status",
+    dataType: "boolean",
+    isReadOnly: true,
+  },
+  {
+    logicalName: "ownerUserId",
+    displayName: "Owner",
+    dataType: "string",
+    isReadOnly: true,
+  },
   {
     logicalName: "createdAt",
     displayName: "Created On",
@@ -110,6 +139,7 @@ const FALLBACK_VIEW_COLUMN_COUNT = 8;
 
 export function buildCustomModuleRuntimeSpec(
   definition: CustomModuleDefinition,
+  currentUserId?: string | null,
 ): StandardModuleRuntimeSpec {
   const routeBase = customModuleHref(definition.moduleKey);
   const fields = buildFieldSpecs(definition);
@@ -134,7 +164,7 @@ export function buildCustomModuleRuntimeSpec(
     primaryIdField: "id",
     primaryNameField: definition.primaryNameField || "id",
     fields,
-    views: buildCustomModuleViews(definition),
+    views: buildCustomModuleViews(definition, currentUserId),
     formFields: definition.fields.map((field) => field.logicalName),
     adapterCapabilities: {
       softDelete: true,
@@ -152,6 +182,7 @@ export function buildCustomModuleRuntimeSpec(
 
 export function buildCustomModuleViews(
   definition: CustomModuleDefinition,
+  currentUserId?: string | null,
 ): StandardModuleViewSpec[] {
   const fieldNames = [
     ...definition.fields.map((field) => field.logicalName),
@@ -166,7 +197,7 @@ export function buildCustomModuleViews(
     const columns = readColumnKeys(view.columnsJson).filter((key) =>
       known.has(key),
     );
-    const filters = readFilters(view.filtersJson, known);
+    const filters = readFilters(view.filtersJson, known, currentUserId);
     const defaultSort = readSort(view.sortingJson, known);
     return {
       logicalName: view.viewKey,
@@ -269,7 +300,7 @@ export function buildCustomModuleRuntime({
   readonly recordId?: string;
   readonly sessionUser: SessionUser | null;
 }): { spec: StandardModuleRuntimeSpec; runtime: ModuleRuntimeContext } {
-  const spec = buildCustomModuleRuntimeSpec(definition);
+  const spec = buildCustomModuleRuntimeSpec(definition, sessionUser?.userId);
   const runtime = buildStandardRouteRuntime({
     pageKind,
     recordId,
@@ -377,6 +408,7 @@ function readColumnKeys(value: unknown): string[] {
 function readFilters(
   value: unknown,
   known: ReadonlySet<string>,
+  currentUserId?: string | null,
 ): ViewFilterMetadata[] {
   if (!Array.isArray(value)) return [];
   return value.flatMap((entry) => {
@@ -385,7 +417,11 @@ function readFilters(
     const record = entry as Record<string, unknown>;
     const operator = normalizeOperator(record.operator ?? record.op);
     if (!operator) return [];
-    return [{ fieldLogicalName, operator, value: record.value }];
+    const resolved =
+      record.value === CURRENT_USER_TOKEN
+        ? (currentUserId ?? NO_USER_SENTINEL)
+        : record.value;
+    return [{ fieldLogicalName, operator, value: resolved }];
   });
 }
 

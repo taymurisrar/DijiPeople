@@ -60,6 +60,31 @@ if (new Set(viewKeys).size !== viewKeys.length) failures.push('MOD-003 duplicate
 if (new Set(formKeys).size !== formKeys.length) failures.push('MOD-003 duplicate planned form keys');
 if (!viewKeys.length || !formKeys.length) failures.push('MOD-003 plan declares no views or no forms');
 
+// MOD-005: package import gives the modules it CREATES their missing defaults (create-only).
+const alm = fs.readFileSync(path.join(ROOT, 'services/api/src/modules/customization/package-alm.service.ts'), 'utf8');
+if (!/provisionImportedModules\(/.test(alm)) failures.push('MOD-005 package-alm.service.ts no longer provisions imported modules (provisionImportedModules)');
+
+// MOD-006: the plan is profile-driven; each kind that exists in the schema is handled, and the
+// views that only make sense for some kinds say so.
+const schema = fs.readFileSync(path.join(ROOT, 'services/api/prisma/schema.prisma'), 'utf8');
+const kinds = /enum CustomizationModuleKind \{([^}]*)\}/.exec(schema)?.[1].split(/\s+/).filter(Boolean) ?? [];
+const lifecycle = fs.readFileSync(path.join(ROOT, 'services/api/src/modules/data/custom-record-lifecycle.ts'), 'utf8');
+for (const k of kinds) if (!new RegExp(`\\b${k}:`).test(lifecycle)) failures.push(`MOD-006 module kind ${k} has no record-lifecycle rule`);
+if (!/needsUserOwned: true/.test(plan) || !/needsDeactivate: true/.test(plan)) failures.push('MOD-006 My/Active/Inactive views must be gated by module kind (needsUserOwned / needsDeactivate)');
+if (kinds.length < 4) failures.push('MOD-006 CustomizationModuleKind enum missing or shrunk');
+
+// MOD-007: reconciliation is explicit. It must never be wired to startup, seeding or a schedule.
+const recon = fs.readFileSync(path.join(ROOT, 'services/api/src/modules/customization/module-reconciliation.service.ts'), 'utf8');
+if (/OnModuleInit|OnApplicationBootstrap|@Cron|setInterval|setTimeout/.test(recon)) failures.push('MOD-007 module-reconciliation.service.ts must not run on startup or on a schedule');
+for (const rel of ['services/api/src/main.ts', 'services/api/src/app.module.ts']) {
+  const f = path.join(ROOT, rel);
+  if (fs.existsSync(f) && /ModuleReconciliationService|reconcileModules|provisionExistingModule/.test(fs.readFileSync(f, 'utf8'))) failures.push(`MOD-007 ${rel} references reconciliation — it must stay an explicit, per-request action`);
+}
+for (const f of fs.readdirSync(path.join(ROOT, 'services/api/prisma')).filter((x) => /^seed.*\.ts$/.test(x))) {
+  if (/ModuleReconciliationService|reconcileModules|provisionExistingModule|reconcileModuleComponents/.test(fs.readFileSync(path.join(ROOT, 'services/api/prisma', f), 'utf8'))) failures.push(`MOD-007 prisma/${f} must not run reconciliation (seeds run on every deploy)`);
+}
+if (!/confirmTenantSlug/.test(recon) || !/PRODUCTION/.test(recon) || !/authorizationRef/.test(recon)) failures.push('MOD-007 apply must require the retyped slug and, for PRODUCTION, an authorization reference');
+
 if (failures.length) {
   console.error(`check-module-completeness FAILED — ${failures.length} problem(s):`);
   failures.forEach((f) => console.error('  x ' + f));

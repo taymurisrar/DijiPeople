@@ -39,11 +39,16 @@ import {
   UpdateCustomizationTableDto,
   UpdateCustomizationViewDto,
 } from './dto/customization.dto';
+import { ReconcileModulesDto } from './dto/reconcile-modules.dto';
+import { ModuleReconciliationService } from './module-reconciliation.service';
 
 @Controller('customization')
 @UseGuards(JwtAuthGuard, PermissionsGuard, CustomizationAccessGuard)
 export class CustomizationController {
-  constructor(private readonly customizationService: CustomizationService) {}
+  constructor(
+    private readonly customizationService: CustomizationService,
+    private readonly reconciliation: ModuleReconciliationService,
+  ) {}
 
   @Get()
   @Permissions('customization.read')
@@ -359,6 +364,22 @@ export class CustomizationController {
     @Body() dto: CreateCustomizationTableDto,
   ) {
     return this.customizationService.createTable(user, dto);
+  }
+
+  /**
+   * Reconcile the caller's own workspace against the module provisioning plan.
+   * A DRY RUN unless the body asks to apply (and confirms the workspace slug;
+   * production also cites an owner authorization). Never cross-tenant, never
+   * automatic: see module-reconciliation.service.ts.
+   */
+  @Post('modules/reconcile')
+  @Permissions('customization.tables.update')
+  @RequirePermission(ENTITY_KEYS.CUSTOMIZATION, 'create')
+  reconcileModules(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: ReconcileModulesDto,
+  ) {
+    return this.reconciliation.run(user, dto);
   }
 
   @Get('tables/:tableKey')

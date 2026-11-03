@@ -3,6 +3,8 @@
 // longer exists, or two policies saying the same thing are all failures — instruction rot is
 // the failure mode of every agent framework, and prose cannot detect it.
 import test from 'node:test';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -135,4 +137,38 @@ test('root instructions stay concise and point at the layers (progressive disclo
 
 test('machine-readable manifests referenced by gates exist', () => {
   for (const f of ['docs/engineering/api-resource-contracts.json', 'docs/engineering/module-creation-entrypoints.json']) JSON.parse(read(f));
+});
+
+test('CI-006: ci.yml installs only through the shared setup action, which pins node and npm from package.json', () => {
+  const ci = read('.github/workflows/ci.yml');
+  assert.doesNotMatch(ci, /^\s*-\s*run:\s*npm ci\s*$/m, 'a job installs with a bare "npm ci"; use ./.github/actions/setup-npm');
+  assert.ok((ci.match(/uses: \.\/\.github\/actions\/setup-npm/g) ?? []).length >= 10, 'the shared action is used by the install jobs');
+  const action = read('.github/actions/setup-npm/action.yml');
+  assert.match(action, /packageManager/, 'npm version comes from package.json packageManager, not a hard-coded literal');
+  assert.match(action, /engines\.node/, 'node major comes from package.json engines');
+  const verify = action.indexOf('Verify toolchain before installing dependencies');
+  const install = action.indexOf('Clean install');
+  assert.ok(verify > 0 && install > verify, 'versions are verified BEFORE npm ci');
+  const pkg = JSON.parse(read('package.json'));
+  assert.match(pkg.packageManager, /^npm@\d+\.\d+\.\d+$/);
+  assert.equal(pkg.engines.npm.split('.')[0], pkg.packageManager.split('@')[1].split('.')[0], 'packageManager and engines.npm agree on the major');
+});
+
+test('CI-006: the framework validation job fetches full history; other jobs keep the default shallow checkout', () => {
+  const ci = read('.github/workflows/ci.yml');
+  const validate = ci.slice(ci.indexOf('  validate:'), ci.indexOf('  typecheck:'));
+  assert.match(validate, /fetch-depth: 0/);
+  assert.equal((ci.match(/fetch-depth: 0/g) ?? []).length, 1, 'only the job that needs ancestry gets full history');
+});
+
+test('CI-007: dependabot targets develop, has exactly one npm entry at the root, and groups updates', () => {
+  const yaml = require('js-yaml');
+  const cfg = yaml.load(read('.github/dependabot.yml'));
+  assert.equal(cfg.version, 2);
+  const npm = cfg.updates.filter((u) => u['package-ecosystem'] === 'npm');
+  assert.equal(npm.length, 1, 'a second npm entry re-creates the duplicate-PR problem');
+  assert.equal(npm[0].directory, '/');
+  for (const u of cfg.updates) assert.equal(u['target-branch'], 'develop', u['package-ecosystem'] + ' must target develop');
+  assert.ok(npm[0].groups && Object.keys(npm[0].groups).length >= 2);
+  assert.ok(npm[0]['open-pull-requests-limit'] <= 10);
 });

@@ -71,6 +71,14 @@ function makeDb(opts: { failOnViewKey?: string } = {}) {
       },
     },
     customizationSolutionComponent: {
+      // Inspection finds the action bar by TABLE (a package-installed module carries its own bar).
+      findMany: async ({ where }: Row) =>
+        t.components.filter(
+          (c) =>
+            (where.tableId === undefined || c.tableId === where.tableId) &&
+            (where.componentType === undefined ||
+              c.componentType === where.componentType),
+        ),
       findFirst: async ({ where }: Row) =>
         t.components.find(
           (c) =>

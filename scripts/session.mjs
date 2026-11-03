@@ -27,7 +27,7 @@
  * these programmatically and a human reads the same data one screen at a time.
  */
 
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -531,7 +531,14 @@ try {
       else {
         console.log(`${id} → ${result.session.status}`);
         console.log(`  released leases: ${result.releasedLeases.join(', ') || 'none'}`);
-        console.log('  Update the durable record under docs/sessions/, then rebuild-sessions.');
+        if (result.record?.file) {
+          console.log(`  record ${result.record.file}: ${result.record.updated ? 'STATUS updated' : 'already up to date'}`);
+          // Indexes are generated from the records: regenerate so the repo is consistent at once.
+          const rebuilt = spawnSync(process.execPath, [join(ROOT, 'scripts', 'rebuild-sessions.mjs')], { cwd: ROOT, encoding: 'utf8' });
+          console.log(rebuilt.status === 0 ? '  indexes rebuilt' : `  WARNING: rebuild-sessions failed — run it by hand:\n${rebuilt.stderr || rebuilt.stdout}`);
+        } else {
+          console.log(`  WARNING: the durable record was NOT updated (${result.record?.reason ?? 'unknown'}); fix it, then run rebuild-sessions.`);
+        }
       }
       break;
     }

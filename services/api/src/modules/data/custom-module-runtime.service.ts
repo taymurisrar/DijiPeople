@@ -10,6 +10,7 @@ import {
 } from '@prisma/client';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { lifecycleOf } from './custom-record-lifecycle';
 import { CUSTOM_RECORDS_METADATA } from './custom-records.metadata';
 import { EntityPermissionResolver } from './entity-permission.resolver';
 import {
@@ -167,6 +168,7 @@ export class CustomModuleRuntimeService {
       displayName: table.displayName,
       pluralDisplayName: table.pluralDisplayName || table.displayName,
       icon: table.icon,
+      moduleKind: table.moduleKind,
       primaryNameField: resolvePrimaryNameField(fields),
       fields,
       forms: index.forms
@@ -178,8 +180,18 @@ export class CustomModuleRuntimeService {
       capabilities: {
         read: true,
         create: this.can(user, SecurityPrivilege.CREATE),
-        update: this.can(user, SecurityPrivilege.WRITE),
-        delete: this.can(user, SecurityPrivilege.DELETE),
+        // RBAC says who may write; the module kind says whether this kind of
+        // record may be changed at all (custom-record-lifecycle.ts), so the UI
+        // hides exactly what the API would refuse.
+        update:
+          this.can(user, SecurityPrivilege.WRITE) &&
+          lifecycleOf(table.moduleKind).update,
+        delete:
+          this.can(user, SecurityPrivilege.DELETE) &&
+          lifecycleOf(table.moduleKind).delete,
+        deactivate:
+          this.can(user, SecurityPrivilege.WRITE) &&
+          lifecycleOf(table.moduleKind).deactivate,
       },
     };
   }

@@ -29,7 +29,8 @@ Deleting is never the default for D, nor for anything historical or financial. A
 - **API-001** every controller is classified; a new one fails until it is.
 - **API-002** `requires` ops exist or are `notApplicable` with a reason. Today's unreviewed gaps are in `baseline.missingRequiredOps` (ratchet: may only shrink — do not add to it).
 - **API-003** read-only/sensitive verbs.
-- **API-004** guard present. **API-005** permission present (299 legacy routes baselined; platform/partner/contracts routes largely use inline checks — review them, then remove from the baseline).
+- **API-004** guard present (zero exceptions).
+- **API-005** a supported **authorization contract** per route: tenant permission decorators, `@RequirePlatformPermission`, `PlatformPermissionsGuard` + `@RequireRoles`, a machine/token guard, `@AuthenticationOnly()`, `@Public()`, or `PublicRateLimitGuard`. A route without one is classified from evidence (`api-authorization-inventory.md`: handler → service method → helpers, depth 2) and a legacy gap must sit in `api-authorization-register.json` with priority, owner role and **due date** — the gate fails when the date passes, so it is a work list, not a permanent baseline. A **new** route with no contract fails immediately.
 
 Limits, honestly: this is static analysis of decorators. It proves a route is *declared* correctly, not that its service enforces scope. Behaviour is proven by specs, `wiring-invariants.spec.ts` and e2e. OpenAPI contract diffing is **not yet** in place (no committed baseline) — roadmap item R-1.
 

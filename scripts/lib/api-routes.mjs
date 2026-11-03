@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const ROUTE_RE = /^\s*@(Get|Post|Patch|Put|Delete)\(([^)]*)\)/;
+const SAME_LINE_SIGNATURE_RE = /^\s*(?:async\s+)?([A-Za-z_$][\w$]*)\s*[(<]/;
 const SIGNATURE_RE = /^ {2}(?:public\s+|private\s+|protected\s+)?(?:async\s+)?([A-Za-z_$][\w$]*)\s*[(<]/;
 
 export function controllerFiles(modulesDir) {
@@ -39,16 +40,33 @@ function joinPath(...parts) {
     .join('/');
 }
 
+/** First line of a controller class's decorator block (@UseGuards etc. may sit above @Controller). */
+function classBlock(lines, ctrlLine) {
+  const classLine = lines.findIndex((l, n) => n >= ctrlLine && /^(export\s+)?(abstract\s+)?class\s/.test(l));
+  if (classLine < 0) return null;
+  let start = Math.min(ctrlLine, classLine);
+  while (start > 0 && !/^\s*(\}|import\s|$)/.test(lines[start - 1]) && !/;\s*$/.test(lines[start - 1])) start--;
+  return { classLine, start };
+}
+
+/**
+ * A file may hold several controllers (e.g. an authenticated one and a public
+ * token one). Each is parsed against ITS OWN class decorators; attributing the
+ * first class's guards to the second hid a public controller as "guarded".
+ */
 export function parseController(file, text = fs.readFileSync(file, 'utf8')) {
   const lines = text.replace(/\r\n/g, '\n').split('\n');
-  // Anchor on @Controller: a controller file may declare DTO classes first.
-  const ctrlLine = lines.findIndex((l) => /^@Controller\(/.test(l));
-  if (ctrlLine < 0) return [];
-  const classLine = lines.findIndex((l, n) => n >= ctrlLine && /^export\s+(abstract\s+)?class\s/.test(l));
-  if (classLine < 0) return [];
-  // Class decorators: the contiguous block above `export class`.
-  let start = classLine;
-  while (start > 0 && !/^\s*(\}|import\s|$)/.test(lines[start - 1]) && !/;\s*$/.test(lines[start - 1])) start--;
+  const ctrlLines = lines.map((l, n) => (/^@Controller\(/.test(l) ? n : -1)).filter((n) => n >= 0);
+  return ctrlLines.flatMap((ctrlLine, idx) => {
+    const next = idx + 1 < ctrlLines.length ? classBlock(lines, ctrlLines[idx + 1])?.start ?? lines.length : lines.length;
+    return parseControllerClass(file, lines, ctrlLine, next);
+  });
+}
+
+function parseControllerClass(file, lines, ctrlLine, endLine) {
+  const block = classBlock(lines, ctrlLine);
+  if (!block) return [];
+  const { classLine, start } = block;
   const classDeco = lines.slice(start, classLine).join('\n');
   const ctrl = /@Controller\(([^)]*)\)/.exec(classDeco);
   const base = ctrl ? stringArg(ctrl[1]) : '';
@@ -57,18 +75,37 @@ export function parseController(file, text = fs.readFileSync(file, 'utf8')) {
   const classPerm = /@Permissions\(|@RequirePermission\(/.test(classDeco);
 
   const routes = [];
-  for (let i = classLine + 1; i < lines.length; i++) {
+  for (let i = classLine + 1; i < endLine; i++) {
     const m = ROUTE_RE.exec(lines[i]);
     if (!m) continue;
     // decorators above (until a closing brace at method indent)
     let a = i;
     while (a > classLine + 1 && !/^ {2}\}\s*$/.test(lines[a - 1]) && lines[a - 1].trim() !== '') a--;
-    let j = i + 1;
-    while (j < lines.length && !SIGNATURE_RE.test(lines[j])) j++;
-    const deco = lines.slice(a, j).join('\n');
-    const sig = SIGNATURE_RE.exec(lines[j] ?? '');
+    // A handler may share its line with the decorator: `@Get() list(`.
+    const sameLine = SAME_LINE_SIGNATURE_RE.exec(lines[i].slice(m[0].length));
+    let j = sameLine ? i : i + 1;
+    if (!sameLine) while (j < lines.length && !SIGNATURE_RE.test(lines[j])) j++;
+    const deco = lines.slice(a, sameLine ? i + 1 : j).join('\n');
+    const sig = sameLine ?? SIGNATURE_RE.exec(lines[j] ?? '');
     const sub = stringArg(m[2]);
+    // Handler body: from the signature to the next handler's decorators (or EOF). Used as EVIDENCE of
+    // in-handler authorization; never as proof of correctness.
+    let endBody = lines.length;
+    for (let k = j + 1; k < lines.length; k++) {
+      if (ROUTE_RE.test(lines[k])) {
+        endBody = k;
+        break;
+      }
+    }
+    // Trim the next handler's leading decorators/comments off the tail.
+    while (endBody > j + 1 && /^\s*(@|\/\/|\/\*|\*)/.test(lines[endBody - 1])) endBody--;
+    const body = lines.slice(j, endBody).join('\n');
+    const allDeco = `${classDeco}\n${deco}`;
+    const guardNames = [...allDeco.matchAll(/@UseGuards\(([^)]*)\)/g)].flatMap((g) => g[1].split(',').map((x) => x.trim()).filter(Boolean));
     routes.push({
+      body,
+      guardNames: [...new Set(guardNames)],
+      decorators: [...new Set([...allDeco.matchAll(/@([A-Z]\w+)\(/g)].map((d) => d[1]))],
       file,
       handler: sig ? sig[1] : '?',
       method: m[1].toUpperCase(),

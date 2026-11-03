@@ -55,9 +55,10 @@ step('lockfile present and untouched by a different npm', () => {
 
 step('API completeness gate', () => run('node', ['scripts/check-api-completeness.mjs']));
 step('module completeness gate', () => run('node', ['scripts/check-module-completeness.mjs']));
+step('derived doc facts current', () => run('node', ['scripts/derive-doc-facts.mjs', '--check']));
 step('policy catalogue + agent/skill validity', () => run('node', ['--test', 'scripts/governance.test.mjs']));
 step('lessons valid', () => run('node', ['scripts/lessons.mjs', 'check']));
-step('governance tooling tests', () => run('node', ['--test', 'scripts/hooks/guard-bash.test.mjs', 'scripts/ci-doctor.test.mjs', 'scripts/hotfix.test.mjs', 'scripts/api-routes.test.mjs']));
+step('governance tooling tests', () => run('node', ['--test', 'scripts/hooks/guard-bash.test.mjs', 'scripts/ci-doctor.test.mjs', 'scripts/hotfix.test.mjs', 'scripts/api-routes.test.mjs', 'scripts/authz-classify.test.mjs', 'scripts/session-finish.test.mjs', 'scripts/hotfix-rehearsal.test.mjs']));
 if (full) {
   step('framework validation', () => run('node', ['scripts/validate-framework.mjs']));
   step('production advisories', () => run('node', ['scripts/check-production-advisories.mjs']));
