@@ -10,6 +10,28 @@ const apiBaseUrl = (
 const email = process.env.SMOKE_LOGIN_EMAIL || process.env.BOOTSTRAP_ADMIN_EMAIL;
 const password =
   process.env.SMOKE_LOGIN_PASSWORD || process.env.BOOTSTRAP_ADMIN_PASSWORD;
+import { loginBody } from "./smoke-login.mjs";
+
+/*
+ * DP-QA-048 - `POST /auth/login` refuses a request with no tenant context
+ * (`AUTH_UNAUTHORIZED`, "Company or tenant context is required to sign in."): the
+ * API resolves the workspace from `tenantSlug` in the body and does not read the
+ * Origin header for sign-in. The smoke logins used to send only email and
+ * password, so every one of them failed against a tenant user, including the
+ * Starter behavioural proof that was added to catch a guard that misbehaves while
+ * /api/health says "enforced".
+ *
+ *   SMOKE_TENANT_SLUG          workspace of the SMOKE_LOGIN_* user
+ *   SMOKE_STARTER_TENANT_SLUG  workspace of the SMOKE_STARTER_LOGIN_* user
+ *                              (defaults to SMOKE_TENANT_SLUG)
+ */
+const tenantSlug = (process.env.SMOKE_TENANT_SLUG || "").trim().toLowerCase();
+const starterTenantSlug = (
+  process.env.SMOKE_STARTER_TENANT_SLUG || tenantSlug
+)
+  .trim()
+  .toLowerCase();
+
 const origin =
   process.env.SMOKE_ORIGIN ||
   process.env.NEXT_PUBLIC_WEB_URL ||
@@ -175,7 +197,11 @@ if (starterEmail && starterPassword) {
   await check("a Starter tenant is refused a module its plan does not include", async () => {
     const login = await request("/auth/login", {
       method: "POST",
-      body: JSON.stringify({ email: starterEmail, password: starterPassword, rememberMe: false }),
+      body: loginBody(
+        { email: starterEmail, password: starterPassword },
+        starterTenantSlug,
+        { rememberMe: false },
+      ),
     });
     if (!login.ok) throw new Error(`Starter login: expected 2xx, got ${login.status}`);
     const cookie = collectCookies(login);
@@ -204,7 +230,7 @@ if (email && password) {
   await check("auth login works", async () => {
     const response = await request("/auth/login", {
       method: "POST",
-      body: JSON.stringify({ email, password, rememberMe: true }),
+      body: loginBody({ email, password }, tenantSlug, { rememberMe: true }),
     });
     if (!response.ok) throw new Error(`Expected 2xx, got ${response.status}`);
     cookieHeader = collectCookies(response);
