@@ -165,7 +165,8 @@
   },
   "packageManager": "npm@11.9.0",
   "overrides": {
-    "@mapbox/node-pre-gyp": "^2.0.3"
+    "@mapbox/node-pre-gyp": "^2.0.3",
+    "multer": "2.5.0"
   },
   "workspaces": [
     "apps/*",

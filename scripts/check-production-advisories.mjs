@@ -73,32 +73,14 @@ const DISPOSITIONED = new Map([
     'Moderate, transitive through exceljs. Same disposition. BUG-0052.',
   ],
   /*
-   * The multer / @nestjs/platform-express entries (ITEM-0123) were removed on
-   * 2026-10-07, which is the removal trigger they named: @nestjs/platform-express
-   * 11.2.7 pins multer 2.4.0, past every listed multer advisory. BUG-3862.
-   *
-   * mammoth, argparse and sprintf-js are one chain, added on the same day.
-   * mammoth is called as a library in two places:
-   *   - contracts.service.ts — mammoth.convertToHtml;
-   *   - recruitment/document-parsing.service.ts — mammoth.extractRawText.
-   * mammoth's library entry (lib/index.js) and everything under lib/ never load
-   * argparse; the only file that does is bin/mammoth, the command-line tool,
-   * which nothing in this product runs. sprintf-js@1.0.3 enters production only
-   * through that argparse. The call sites are named, not the file, per the
-   * lesson recorded at the top.
+   * Removed 2026-11-03, because the gate reported them as matching no advisory any
+   * more (a risk acceptance for a package that is no longer vulnerable reads as a
+   * live one): the mammoth -> argparse -> sprintf-js chain added for BUG-3862, and,
+   * earlier, the multer / @nestjs/platform-express entries (ITEM-0123), whose
+   * removal trigger was @nestjs/platform-express 11.2.7 pinning multer 2.4.0.
+   * multer 2.4.0 has since acquired its own advisory (DoS, GHSA via 1243083); it is
+   * fixed by the root `overrides` entry multer -> 2.5.0, not by a disposition.
    */
-  [
-    'mammoth',
-    "Moderate, reported only for its argparse dependency. npm's fix is a downgrade to 0.3.29, which predates both APIs this product calls (convertToHtml in contracts.service.ts, extractRawText in recruitment/document-parsing.service.ts). See the argparse entry. BUG-3862.",
-  ],
-  [
-    'argparse',
-    'Moderate, reported only for its sprintf-js dependency. Loaded solely by mammoth\'s CLI (node_modules/mammoth/bin/mammoth). No file under mammoth/lib requires it, and the API never runs the CLI. REMOVE when mammoth drops argparse or sprintf-js ships a fix. BUG-3862.',
-  ],
-  [
-    'sprintf-js',
-    'Moderate DoS through unbounded precision specifiers in an attacker-controlled FORMAT string (GHSA-hp3w-g68c-fv3c). Every version is affected: 1.1.3 is the latest and has no fixed release. Its production copy (1.0.3) is reached only through argparse in mammoth\'s CLI (see above). argparse formats its own fixed help strings, never input. The 1.1.3 copy is dev-only (electron -> @electron/get -> global-agent -> roarr). REMOVE when a fixed release exists. BUG-3862.',
-  ],
 ]);
 
 
