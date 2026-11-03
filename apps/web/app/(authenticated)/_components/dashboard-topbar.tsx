@@ -3,6 +3,10 @@
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { resolveRouteTitle } from "@/lib/tenant-branding-client";
+import {
+  resolveCustomModuleRouteTitle,
+  type CustomModuleSummary,
+} from "@/lib/runtime/custom-modules/custom-module-navigation";
 import { UserMenuDropdown } from "./user-menu-dropdown";
 import { NotificationBell } from "./notification-bell";
 
@@ -18,6 +22,8 @@ type DashboardTopbarProps = {
   canReadInbox?: boolean;
   pageTitle?: string;
   pageDescription?: string;
+  /** Published custom modules, so their routes are titled by name rather than by key. */
+  customModules?: readonly CustomModuleSummary[] | null;
 
   /**
    * Identity-scoped workspace navigation rendered inside the user menu.
@@ -41,6 +47,7 @@ export function DashboardTopbar({
   canReadInbox = false,
   pageTitle,
   pageDescription,
+  customModules,
   workspaceSection,
 }: DashboardTopbarProps) {
   /*
@@ -61,7 +68,11 @@ export function DashboardTopbar({
    * showing whichever screen was loaded first.
    */
   const pathname = usePathname();
-  const resolvedTitle = pageTitle?.trim() || resolveRouteTitle(pathname) || "Workspace";
+  const resolvedTitle =
+    pageTitle?.trim() ||
+    resolveCustomModuleRouteTitle(pathname, customModules) ||
+    resolveRouteTitle(pathname) ||
+    "Workspace";
   /*
    * ITEM-0114 — this used to default to "Manage your workspace from one
    * place." on the overview route, restating in near-identical words what

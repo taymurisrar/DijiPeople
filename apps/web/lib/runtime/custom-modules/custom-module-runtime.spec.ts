@@ -7,6 +7,7 @@ import {
   resolveCustomModuleRecordTitle,
   type CustomModuleDefinition,
 } from "./custom-module-runtime";
+import { createStandardModuleDataAdapter } from "../modules/standard-module-data.adapter";
 import { resolveStandardActiveForm } from "../modules/standard-module-route-helpers";
 
 /*
@@ -479,5 +480,108 @@ describe("buildCustomModuleForms and the route runtime", () => {
       resolveCustomModuleRecordTitle(QA_ASSET, { dd_serialNumber: "SN-1" }),
     ).toBe("SN-1");
     expect(resolveCustomModuleRecordTitle(QA_ASSET, {})).toBe("QA Asset");
+  });
+});
+
+describe("record status commands of a custom module", () => {
+  const originalFetch = global.fetch;
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  it("send isActive to the API; before, the PATCH went out empty and nothing changed", async () => {
+    let sent: { url: string; body: Record<string, unknown> } | null = null;
+    global.fetch = (async (url: string, init?: RequestInit) => {
+      sent = { url, body: JSON.parse(String(init?.body ?? "{}")) };
+      return new Response(JSON.stringify({ id: "r1", isActive: false }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }) as typeof fetch;
+    const spec = buildCustomModuleRuntimeSpec(QA_ASSET);
+    const { runtime } = buildCustomModuleRuntime({
+      definition: QA_ASSET,
+      pageKind: "list",
+      sessionUser: null,
+    });
+    const adapter = createStandardModuleDataAdapter(spec);
+    await adapter.update(runtime, "r1", { isActive: false });
+    expect(sent!.body).toEqual({ isActive: false });
+    expect(sent!.url).toContain("/r1");
+  });
+
+  it("never lets a form edit owner or tenant through the same door", async () => {
+    let body: Record<string, unknown> = {};
+    global.fetch = (async (_url: string, init?: RequestInit) => {
+      body = JSON.parse(String(init?.body ?? "{}"));
+      return new Response("{}", {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }) as typeof fetch;
+    const spec = buildCustomModuleRuntimeSpec(QA_ASSET);
+    const { runtime } = buildCustomModuleRuntime({
+      definition: QA_ASSET,
+      pageKind: "list",
+      sessionUser: null,
+    });
+    await createStandardModuleDataAdapter(spec).update(runtime, "r1", {
+      ownerUserId: "someone-else",
+      tenantId: "other",
+      isActive: "false",
+    });
+    expect(body).toEqual({});
+  });
+});
+
+describe("commands follow the module's capabilities", () => {
+  const commandIds = (definition: CustomModuleDefinition) => {
+    const { runtime } = buildCustomModuleRuntime({
+      definition,
+      pageKind: "list",
+      sessionUser: null,
+    });
+    return (runtime.metadata.commands ?? []).map((c) => c.key);
+  };
+
+  it("an immutable module offers no delete, activate or deactivate command, bulk or per record", () => {
+    const ids = commandIds({
+      ...QA_ASSET,
+      capabilities: {
+        read: true,
+        create: true,
+        update: false,
+        delete: false,
+        deactivate: false,
+      },
+    });
+    for (const id of [
+      "selection.delete",
+      "record.delete",
+      "record.activate",
+      "record.deactivate",
+      "selection.activate",
+      "selection.deactivate",
+    ])
+      expect(ids).not.toContain(id);
+  });
+
+  it("a standard module keeps all of them", () => {
+    const ids = commandIds({
+      ...QA_ASSET,
+      capabilities: {
+        read: true,
+        create: true,
+        update: true,
+        delete: true,
+        deactivate: true,
+      },
+    });
+    for (const id of [
+      "selection.delete",
+      "record.deactivate",
+      "selection.activate",
+    ])
+      expect(ids).toContain(id);
   });
 });

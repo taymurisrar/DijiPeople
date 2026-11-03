@@ -8,6 +8,7 @@ import {
   buildCustomModuleNavItems,
   composeDashboardNavItems,
   customModuleHref,
+  resolveCustomModuleRouteTitle,
   CUSTOM_RECORDS_READ_PERMISSION,
   type CustomModuleSummary,
 } from "./custom-module-navigation";
@@ -192,5 +193,34 @@ describe("resolveVisibleDashboardNavItems with custom modules", () => {
       ],
     });
     expect(hrefs(items)).not.toContain("/custom-modules/qaAsset");
+  });
+});
+
+describe("resolveCustomModuleRouteTitle", () => {
+  const modules = [
+    { moduleKey: "kviewsabc", displayName: "Deal", pluralDisplayName: "Deals" },
+    { moduleKey: "solo", displayName: "Solo" },
+  ];
+
+  it("titles a module's routes by its name, not by the key in the URL", () => {
+    expect(
+      resolveCustomModuleRouteTitle("/custom-modules/kviewsabc", modules),
+    ).toBe("Deals");
+    expect(
+      resolveCustomModuleRouteTitle("/custom-modules/kviewsabc/new", modules),
+    ).toBe("Deals");
+    expect(
+      resolveCustomModuleRouteTitle("/custom-modules/solo/1234", modules),
+    ).toBe("Solo");
+  });
+
+  it("leaves other routes and unknown modules to the generic resolver", () => {
+    expect(resolveCustomModuleRouteTitle("/employees", modules)).toBeNull();
+    expect(
+      resolveCustomModuleRouteTitle("/custom-modules/ghost", modules),
+    ).toBeNull();
+    expect(
+      resolveCustomModuleRouteTitle("/custom-modules/kviewsabc", null),
+    ).toBeNull();
   });
 });

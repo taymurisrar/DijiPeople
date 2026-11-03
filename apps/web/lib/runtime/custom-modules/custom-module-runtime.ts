@@ -174,6 +174,7 @@ export function buildCustomModuleRuntimeSpec(
       disableCreate: definition.capabilities.create !== true,
       disableEdit: definition.capabilities.update !== true,
       disableDelete: definition.capabilities.delete !== true,
+      disableDeactivate: definition.capabilities.deactivate !== true,
       import: false,
       export: false,
       exportTemplate: false,
