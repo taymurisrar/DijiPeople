@@ -56,9 +56,9 @@ export function resolveCustomModuleRouteTitle(
   } catch {
     /* a malformed escape is just not a known module */
   }
-  const module = (modules ?? []).find((entry) => entry.moduleKey === key);
-  if (!module) return null;
-  return module.pluralDisplayName?.trim() || module.displayName?.trim() || null;
+  const found = (modules ?? []).find((entry) => entry.moduleKey === key);
+  if (!found) return null;
+  return found.pluralDisplayName?.trim() || found.displayName?.trim() || null;
 }
 
 export function buildCustomModuleNavItems(
