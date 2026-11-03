@@ -6,6 +6,7 @@ Sessions that reached a terminal state. Kept as history: the branch, the base it
 
 | Session | Task | Title | Status | Branch | Target | Leases | Heartbeat |
 |---|---|---|---|---|---|---|---|
+| [SESSION-0132](../../docs/sessions/SESSION-0132-security-advisory-remediation-production-dependencies.md) | — | Security advisory remediation (production dependencies) | COMPLETE | `agent/security-advisory-remediation` | `develop` | — | 2026-11-03T06:35:59.286Z |
 | [SESSION-0131](../../docs/sessions/SESSION-0131-engineering-governance-agent-os-api-module-completeness-gate.md) | — | Engineering governance: agent OS, API/module completeness gates, CI diagnostics, hotfix dry-run | COMPLETE | `agent/engineering-governance` | `develop` | — | 2026-11-03T05:02:10.270Z |
 | [SESSION-0128](../../docs/sessions/SESSION-0128-contract-signing-hotfix-multi-party-signature-blocks-dialog-.md) | — | Contract signing hotfix: multi-party signature blocks, dialog overflow, PDF layout | COMPLETE | `agent/contract-signing-multiparty` | `develop` | — | 2026-10-13T04:41:57.844Z |
 | [SESSION-0127](../../docs/sessions/SESSION-0127-submit-for-approval-reports-the-derived-agreement-version-as.md) | — | Submit for approval reports the derived agreement version as missing | COMPLETE | `agent/agreement-version-approval` | `develop` | — | 2026-10-12T21:13:36.074Z |
