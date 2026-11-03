@@ -4532,22 +4532,13 @@
  {
   "route": "services/api/src/modules/customization/customization-runtime.controller.ts#GET runtime-metadata/published",
   "module": "customization",
-  "line": 12,
+  "line": 18,
   "guards": [
    "JwtAuthGuard"
   ],
-  "declared": false,
-  "traced": [
-   "customization.service.ts#getPublished"
-  ],
-  "evidence": [
-   "tenant"
-  ],
-  "mutating": false,
-  "sensitive": false,
-  "cls": "TENANT_SCOPED_NO_ACTION_AUTHZ",
-  "priority": "P2",
-  "why": "any authenticated user of the tenant can reach this; no permission/platform check found"
+  "cls": "AUTHENTICATION_ONLY_DECLARED",
+  "declared": true,
+  "why": "@AuthenticationOnly() — reviewed marker"
  },
  {
   "route": "services/api/src/modules/customization/customization.controller.ts#GET customization",
@@ -9266,22 +9257,14 @@
  {
   "route": "services/api/src/modules/organization/organization-hierarchy.controller.ts#GET organization-hierarchy/tree",
   "module": "organization",
-  "line": 12,
+  "line": 18,
   "guards": [
-   "JwtAuthGuard"
+   "JwtAuthGuard",
+   "PermissionsGuard"
   ],
-  "declared": false,
-  "traced": [
-   "organization.service.ts#getHierarchyTree"
-  ],
-  "evidence": [
-   "tenant"
-  ],
-  "mutating": false,
-  "sensitive": false,
-  "cls": "TENANT_SCOPED_NO_ACTION_AUTHZ",
-  "priority": "P2",
-  "why": "any authenticated user of the tenant can reach this; no permission/platform check found"
+  "cls": "PERMISSION_DECLARED",
+  "declared": true,
+  "why": "@Permissions/@RequirePermission/@RequirePlatformPermission"
  },
  {
   "route": "services/api/src/modules/organization/organizations.controller.ts#GET organizations",
