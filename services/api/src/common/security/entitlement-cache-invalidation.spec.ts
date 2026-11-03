@@ -196,7 +196,7 @@ describe('describeEnforcement (health payload for the deploy gate)', () => {
   it('reports not enforced for the production default (no row, no floor)', async () => {
     delete process.env.ENTITLEMENT_ENFORCEMENT_MODE;
     const svc = instance(withSetting(null));
-    expect(await svc.describeEnforcement()).toEqual({
+    expect(await svc.describeEnforcement()).toMatchObject({
       mode: 'REPORT_ONLY',
       enforced: false,
     });
@@ -205,7 +205,7 @@ describe('describeEnforcement (health payload for the deploy gate)', () => {
   it('reports enforced when the environment floor is ENFORCE', async () => {
     process.env.ENTITLEMENT_ENFORCEMENT_MODE = 'ENFORCE';
     const svc = instance(withSetting(null));
-    expect(await svc.describeEnforcement()).toEqual({
+    expect(await svc.describeEnforcement()).toMatchObject({
       mode: 'ENFORCE',
       enforced: true,
     });
@@ -234,7 +234,7 @@ describe('describeEnforcement (health payload for the deploy gate)', () => {
   it('reports UNKNOWN / not enforced when the mode cannot be determined at all', async () => {
     const svc = instance(withSetting(null));
     jest.spyOn(svc, 'effectiveMode').mockRejectedValue(new Error('boom'));
-    expect(await svc.describeEnforcement()).toEqual({
+    expect(await svc.describeEnforcement()).toMatchObject({
       mode: 'UNKNOWN',
       enforced: false,
     });

@@ -151,6 +151,8 @@ export class TenantEntitlementService implements OnApplicationBootstrap {
   private modeCache: {
     mode: EntitlementEnforcementMode;
     source: EntitlementModeSource;
+    stored: EntitlementEnforcementMode;
+    floor: EntitlementEnforcementMode | null;
     expiresAt: number;
   } | null = null;
 
@@ -169,10 +171,23 @@ export class TenantEntitlementService implements OnApplicationBootstrap {
     if (process.env.NODE_ENV !== 'production') return;
 
     try {
-      const { mode, source } = await this.effectiveMode();
+      const { mode, source, stored, floor } = await this.effectiveMode();
       if (mode !== 'ENFORCE') {
         this.logger.error(
           `ENTITLEMENT_NOT_ENFORCED mode=${mode} source=${source}: plan entitlements are not being refused in this environment. Set ${ENTITLEMENT_ENV_VAR}=ENFORCE after running the grandfather script (ADR-0009).`,
+        );
+      }
+      /*
+       * DP-QA-052. The release floor and the stored setting are two inputs to one
+       * answer. When the floor is the only thing holding ENFORCE up, the stored
+       * setting has drifted (a restore from an older backup, a manual edit): the
+       * deployment is safe but the database no longer says so, and the next person
+       * to remove the variable would silently withdraw enforcement. Say it at
+       * boot, loudly enough to alert on.
+       */
+      if (floor && MODE_STRICTNESS[floor] > MODE_STRICTNESS[stored]) {
+        this.logger.warn(
+          `ENTITLEMENT_SETTING_DRIFT stored=${stored} floor=${floor} effective=${mode}: the ${ENTITLEMENT_ENV_VAR} release floor is overriding the stored setting. Set the stored setting to ${floor} (npm run entitlement:set-mode -- ${floor}) so the database and the deployment agree.`,
         );
       }
     } catch (error) {
@@ -210,10 +225,15 @@ export class TenantEntitlementService implements OnApplicationBootstrap {
   async effectiveMode(): Promise<{
     mode: EntitlementEnforcementMode;
     source: EntitlementModeSource;
+    /** The stored setting alone (or the last known / default one after a fault). */
+    stored: EntitlementEnforcementMode;
+    /** The release floor from the environment, when one is set. */
+    floor: EntitlementEnforcementMode | null;
   }> {
     const now = Date.now();
     if (this.modeCache && this.modeCache.expiresAt > now) {
-      return { mode: this.modeCache.mode, source: this.modeCache.source };
+      const { mode, source, stored, floor } = this.modeCache;
+      return { mode, source, stored, floor };
     }
 
     let stored: EntitlementEnforcementMode;
@@ -256,9 +276,11 @@ export class TenantEntitlementService implements OnApplicationBootstrap {
     this.modeCache = {
       mode,
       source,
+      stored,
+      floor,
       expiresAt: now + ENTITLEMENT_CACHE_TTL_MS,
     };
-    return { mode, source };
+    return { mode, source, stored, floor };
   }
 
   /**
@@ -273,10 +295,20 @@ export class TenantEntitlementService implements OnApplicationBootstrap {
   async describeEnforcement(): Promise<{
     mode: EntitlementEnforcementMode | 'UNKNOWN';
     enforced: boolean;
+    /**
+     * Which input decided the mode, and what each input says (DP-QA-052). A
+     * deployment whose floor is carrying ENFORCE while the stored setting says
+     * something weaker shows `source: 'ENV'` here, so drift between the Render
+     * variable and the database is visible from outside rather than discovered
+     * after a restore. Additive: `mode` and `enforced` are unchanged.
+     */
+    source?: EntitlementModeSource;
+    stored?: EntitlementEnforcementMode;
+    floor?: EntitlementEnforcementMode | null;
   }> {
     try {
-      const { mode } = await this.effectiveMode();
-      return { mode, enforced: mode === 'ENFORCE' };
+      const { mode, source, stored, floor } = await this.effectiveMode();
+      return { mode, enforced: mode === 'ENFORCE', source, stored, floor };
     } catch {
       return { mode: 'UNKNOWN', enforced: false };
     }

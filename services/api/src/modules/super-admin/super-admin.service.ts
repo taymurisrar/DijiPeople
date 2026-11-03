@@ -9,7 +9,10 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BASELINE_FEATURE_KEYS } from '../../common/constants/tenant-features';
-import { TenantEntitlementService } from '../../common/security/tenant-entitlement.service';
+import {
+  ENTITLEMENT_SETTING_FIELD,
+  TenantEntitlementService,
+} from '../../common/security/tenant-entitlement.service';
 import * as bcrypt from 'bcryptjs';
 import {
   BillingCycle,
@@ -4022,6 +4025,38 @@ export class SuperAdminService {
             updatedById: actor.userId,
           },
         });
+
+        /*
+         * DP-QA-052. The entitlement enforcement mode is a security setting that
+         * decides whether a plan is a boundary or a suggestion, and until now a
+         * change to it left no trace of who made it or what it was before. Record
+         * the actor, the time (the audit row's own) and the previous and new value
+         * whenever it actually changes, in the same transaction as the write.
+         */
+        if (key === 'module-settings') {
+          const read = (v: unknown) =>
+            v && typeof v === 'object' && !Array.isArray(v)
+              ? ((v as Record<string, unknown>)[ENTITLEMENT_SETTING_FIELD] ??
+                null)
+              : null;
+          const previous = read(existing?.value);
+          const next = read(nextValue);
+          if (previous !== next) {
+            await this.auditService.log(
+              {
+                tenantId: 'platform',
+                actorUserId: actor.userId,
+                action: 'ENTITLEMENT_ENFORCEMENT_CHANGED',
+                entityType: 'PlatformSetting',
+                entityId: key,
+                sourceModule: 'super-admin',
+                beforeSnapshot: { [ENTITLEMENT_SETTING_FIELD]: previous },
+                afterSnapshot: { [ENTITLEMENT_SETTING_FIELD]: next },
+              },
+              tx,
+            );
+          }
+        }
       }
     });
 

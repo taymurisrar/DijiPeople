@@ -1,4 +1,5 @@
 import { config as loadEnv } from 'dotenv';
+import { hostname, userInfo } from 'node:os';
 import { resolve } from 'node:path';
 import { createPrismaClient } from './create-prisma-client';
 import {
@@ -126,8 +127,29 @@ async function setEntitlementEnforcement() {
       },
     });
 
+    /*
+     * DP-QA-052: the change is recorded, with who and from where, in the platform
+     * audit log. A script has no signed-in user, so the actor is the operating
+     * system account and host that ran it (or ENTITLEMENT_CHANGED_BY when the
+     * operator names themselves); the row is written by this script and says so.
+     */
+    const operator =
+      process.env.ENTITLEMENT_CHANGED_BY?.trim() ||
+      `${userInfo().username}@${hostname()}`;
+    await prisma.platformAuditLog.create({
+      data: {
+        action: 'ENTITLEMENT_ENFORCEMENT_CHANGED',
+        entityType: 'PlatformSetting',
+        entityId: ENTITLEMENT_SETTING_KEY,
+        sourceModule: 'entitlement:set-mode',
+        scope: { operator, target: describeTargetDatabase() },
+        beforeSnapshot: { [ENTITLEMENT_SETTING_FIELD]: currentMode },
+        afterSnapshot: { [ENTITLEMENT_SETTING_FIELD]: targetMode },
+      },
+    });
+
     console.log(
-      `Entitlement enforcement changed: ${currentMode} -> ${targetMode}.`,
+      `Entitlement enforcement changed: ${currentMode} -> ${targetMode} (audited as ${operator}).`,
     );
     if (targetMode === 'ENFORCE') {
       console.log(

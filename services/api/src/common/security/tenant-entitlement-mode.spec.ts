@@ -40,7 +40,7 @@ describe('entitlement enforcement release floor', () => {
   it('stays REPORT_ONLY with no row and no variable (shipping this changes nothing)', async () => {
     delete process.env[ENTITLEMENT_ENV_VAR];
     const { service } = build(null);
-    await expect(service.effectiveMode()).resolves.toEqual({
+    await expect(service.effectiveMode()).resolves.toMatchObject({
       mode: 'REPORT_ONLY',
       source: 'DEFAULT',
     });
@@ -49,7 +49,7 @@ describe('entitlement enforcement release floor', () => {
   it('enforces on a database with no row when the release sets ENFORCE', async () => {
     process.env[ENTITLEMENT_ENV_VAR] = 'ENFORCE';
     const { service } = build(null);
-    await expect(service.effectiveMode()).resolves.toEqual({
+    await expect(service.effectiveMode()).resolves.toMatchObject({
       mode: 'ENFORCE',
       source: 'ENV',
     });
@@ -64,7 +64,7 @@ describe('entitlement enforcement release floor', () => {
   it('lets the database setting be stricter than the floor', async () => {
     process.env[ENTITLEMENT_ENV_VAR] = 'REPORT_ONLY';
     const { service } = build('ENFORCE');
-    await expect(service.effectiveMode()).resolves.toEqual({
+    await expect(service.effectiveMode()).resolves.toMatchObject({
       mode: 'ENFORCE',
       source: 'PLATFORM_SETTING',
     });
