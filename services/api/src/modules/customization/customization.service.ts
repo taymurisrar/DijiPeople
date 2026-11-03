@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import {
   BadRequestException,
   ConflictException,
@@ -640,9 +641,195 @@ export class CustomizationService {
         isSystem: false,
       },
     });
+    await this.provisionModulesBulk(currentUser, tables, solutionId, tx);
+  }
+
+  /**
+   * Provisioning for MANY modules in a constant number of queries.
+   *
+   * A package import is bounded to a few hundred database operations for ~1,700
+   * components (customization-package-alm-scale.e2e-spec.ts), so provisioning
+   * the modules it creates one at a time — about thirty round trips each — broke
+   * that bound. This reads the existing forms, views and action bars of ALL the
+   * modules once, decides in memory what each is missing (the same plan and the
+   * same missingModuleComponents as the single-module path), and writes with
+   * createMany and client-generated ids. Create-only, like the single path.
+   */
+  private async provisionModulesBulk(
+    currentUser: AuthenticatedUser,
+    tables: readonly CustomizationTable[],
+    solutionId: string,
+    db: Prisma.TransactionClient,
+  ) {
+    if (!tables.length) return;
+    const tenantId = currentUser.tenantId;
+    const tableIds = tables.map((table) => table.id);
+    const [forms, views, bars] = await Promise.all([
+      db.customizationForm.findMany({
+        where: { tenantId, tableId: { in: tableIds } },
+        select: { tableId: true, formKey: true },
+      }),
+      db.customizationView.findMany({
+        where: { tenantId, tableId: { in: tableIds } },
+        select: { tableId: true, viewKey: true, isDefault: true },
+      }),
+      db.customizationSolutionComponent.findMany({
+        where: {
+          tenantId,
+          tableId: { in: tableIds },
+          componentType: 'actionBar',
+        },
+        select: { tableId: true },
+      }),
+    ]);
+    const group = <T extends { tableId: string | null }>(rows: T[]) => {
+      const map = new Map<string, T[]>();
+      for (const row of rows) {
+        if (!row.tableId) continue;
+        map.set(row.tableId, [...(map.get(row.tableId) ?? []), row]);
+      }
+      return map;
+    };
+    const formsBy = group(forms);
+    const viewsBy = group(views);
+    const barsBy = group(bars);
+
+    const formRows: Prisma.CustomizationFormCreateManyInput[] = [];
+    const viewRows: Prisma.CustomizationViewCreateManyInput[] = [];
+    const componentRows: Prisma.CustomizationSolutionComponentCreateManyInput[] =
+      [];
+    const component = (
+      componentType: CustomizationSolutionComponentType,
+      objectId: string,
+      objectKey: string,
+      tableId: string,
+      metadataJson?: Prisma.InputJsonValue,
+    ): Prisma.CustomizationSolutionComponentCreateManyInput => ({
+      tenantId,
+      solutionId,
+      componentType,
+      objectId,
+      objectKey,
+      tableId,
+      isSystem: false,
+      isCustom: true,
+      isManaged: false,
+      baseComponentId: null,
+      layerAction: 'create',
+      lifecycleState: 'draft',
+      layerOrder: 300,
+      version: '1.0.0',
+      checksum: checksumFor({
+        componentType,
+        objectId,
+        objectKey,
+        tableId,
+        layerAction: 'create',
+        metadataJson: metadataJson ?? null,
+      }),
+      metadataJson: metadataJson ?? Prisma.JsonNull,
+      createdByUserId: currentUser.userId,
+      updatedByUserId: currentUser.userId,
+    });
+
     for (const table of tables) {
-      await this.provisionModuleComponents(currentUser, table, solutionId, tx);
+      const existingViews = viewsBy.get(table.id) ?? [];
+      const gap = missingModuleComponents(
+        {
+          formKeys: (formsBy.get(table.id) ?? []).map((f) => f.formKey),
+          viewKeys: existingViews.map((v) => v.viewKey),
+          hasDefaultView: existingViews.some((v) => v.isDefault),
+          hasActionBar: (barsBy.get(table.id) ?? []).length > 0,
+        },
+        table.moduleKind,
+      );
+      const hasDefault = existingViews.some((v) => v.isDefault);
+      for (const planned of gap.forms) {
+        const id = randomUUID();
+        formRows.push({
+          id,
+          tenantId,
+          tableId: table.id,
+          formKey: planned.formKey,
+          name: `${table.displayName} ${planned.nameSuffix}`,
+          description: `${planned.nameSuffix} for ${table.displayName}.`,
+          type: planned.type,
+          isDefault: planned.isDefault,
+          isActive: true,
+          isSystem: false,
+          isCustom: true,
+          layoutJson: buildDefaultFormLayout(table, []),
+        });
+        componentRows.push(
+          component(
+            'form',
+            id,
+            `${table.tableKey}.${planned.formKey}`,
+            table.id,
+          ),
+        );
+      }
+      for (const planned of gap.views) {
+        const id = randomUUID();
+        const name = planned.nameTemplate(table.pluralDisplayName);
+        viewRows.push({
+          id,
+          tenantId,
+          tableId: table.id,
+          viewKey: planned.viewKey,
+          name,
+          description: `${name} view.`,
+          type: 'custom',
+          isDefault: planned.isDefault && !hasDefault,
+          isHidden: false,
+          isSystem: false,
+          isCustom: true,
+          columnsJson: buildDefaultViewColumns([]),
+          filtersJson: planned.filters.map((f) => ({ ...f })),
+          sortingJson: planned.recentFirst
+            ? [{ columnKey: 'updatedAt', direction: 'desc' }]
+            : buildDefaultViewSorting([]),
+          visibilityScope: 'tenant',
+        });
+        componentRows.push(
+          component(
+            'view',
+            id,
+            `${table.tableKey}.${planned.viewKey}`,
+            table.id,
+          ),
+        );
+      }
+      if (gap.actionBar) {
+        componentRows.push(
+          component(
+            'actionBar',
+            `custom-action-bar:${table.tableKey}`,
+            `${table.tableKey}.system.actionBar`,
+            table.id,
+            {
+              source: 'module-default',
+              scope: 'module',
+              provisioningVersion: MODULE_PROVISIONING_VERSION,
+              moduleKind: table.moduleKind,
+              actions: commandsFor(
+                table.moduleKind,
+                DEFAULT_MODULE_ACTION_COMMANDS,
+              ),
+            },
+          ),
+        );
+      }
     }
+    if (formRows.length)
+      await db.customizationForm.createMany({ data: formRows });
+    if (viewRows.length)
+      await db.customizationView.createMany({ data: viewRows });
+    if (componentRows.length)
+      await db.customizationSolutionComponent.createMany({
+        data: componentRows,
+        skipDuplicates: true,
+      });
   }
 
   async getPublished(currentUser: AuthenticatedUser) {
