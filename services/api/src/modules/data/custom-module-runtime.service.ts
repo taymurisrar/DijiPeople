@@ -10,11 +10,13 @@ import {
 } from '@prisma/client';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { lifecycleOf } from './custom-record-lifecycle';
 import { CUSTOM_RECORDS_METADATA } from './custom-records.metadata';
 import { EntityPermissionResolver } from './entity-permission.resolver';
 import {
   readPublishedCustomizationIndex,
   type PublishedCustomizationIndex,
+  type PublishedViewRow,
 } from './published-custom-modules';
 import { readOptions } from '../customization/custom-field-values';
 
@@ -167,6 +169,7 @@ export class CustomModuleRuntimeService {
       displayName: table.displayName,
       pluralDisplayName: table.pluralDisplayName || table.displayName,
       icon: table.icon,
+      moduleKind: table.moduleKind,
       primaryNameField: resolvePrimaryNameField(fields),
       fields,
       forms: index.forms
@@ -178,10 +181,38 @@ export class CustomModuleRuntimeService {
       capabilities: {
         read: true,
         create: this.can(user, SecurityPrivilege.CREATE),
-        update: this.can(user, SecurityPrivilege.WRITE),
-        delete: this.can(user, SecurityPrivilege.DELETE),
+        // RBAC says who may write; the module kind says whether this kind of
+        // record may be changed at all (custom-record-lifecycle.ts), so the UI
+        // hides exactly what the API would refuse.
+        update:
+          this.can(user, SecurityPrivilege.WRITE) &&
+          lifecycleOf(table.moduleKind).update,
+        delete:
+          this.can(user, SecurityPrivilege.DELETE) &&
+          lifecycleOf(table.moduleKind).delete,
+        deactivate:
+          this.can(user, SecurityPrivilege.WRITE) &&
+          lifecycleOf(table.moduleKind).deactivate,
       },
     };
+  }
+
+  /**
+   * A PUBLISHED, non-hidden view of a module, by key. The data service builds its
+   * query from this stored definition, so a caller can ask for a view by name but
+   * never supply a filter of their own.
+   */
+  async resolvePublishedView(
+    tenantId: string,
+    tableId: string,
+    viewKey: string,
+  ): Promise<PublishedViewRow | null> {
+    const index = await this.loadPublishedIndex(tenantId);
+    return (
+      index?.views.find(
+        (view) => view.tableId === tableId && view.viewKey === viewKey,
+      ) ?? null
+    );
   }
 
   private async loadPublishedIndex(

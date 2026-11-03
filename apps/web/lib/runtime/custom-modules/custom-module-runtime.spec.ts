@@ -7,6 +7,7 @@ import {
   resolveCustomModuleRecordTitle,
   type CustomModuleDefinition,
 } from "./custom-module-runtime";
+import { createStandardModuleDataAdapter } from "../modules/standard-module-data.adapter";
 import { resolveStandardActiveForm } from "../modules/standard-module-route-helpers";
 
 /*
@@ -135,10 +136,12 @@ describe("buildCustomModuleRuntimeSpec", () => {
     expect(spec.primaryNameField).toBe("dd_serialNumber");
   });
 
-  it("declares the published fields plus read-only timestamps, and only published fields are writable", () => {
+  it("declares the published fields plus read-only status, owner and timestamps, and only published fields are writable", () => {
     const spec = buildCustomModuleRuntimeSpec(QA_ASSET);
     expect(spec.fields.map((field) => field.logicalName)).toEqual([
       "dd_serialNumber",
+      "isActive",
+      "ownerUserId",
       "createdAt",
       "updatedAt",
     ]);
@@ -203,6 +206,92 @@ describe("buildCustomModuleRuntimeSpec", () => {
         disableDelete: true,
       }),
     );
+  });
+});
+
+describe("provisioned system views (status and ownership)", () => {
+  const definition = (
+    views: CustomModuleDefinition["views"],
+  ): CustomModuleDefinition => ({
+    ...QA_ASSET,
+    views,
+  });
+  const view = (viewKey: string, filtersJson: unknown, isDefault = false) => ({
+    id: `view-${viewKey}`,
+    viewKey,
+    name: viewKey,
+    isDefault,
+    columnsJson: null,
+    filtersJson,
+    sortingJson: null,
+  });
+
+  it("Active / Inactive Records filter on the record-level isActive field", () => {
+    const [all, active, inactive] = buildCustomModuleViews(
+      definition([
+        view("all", [], true),
+        view("activeRecords", [
+          { columnKey: "isActive", operator: "eq", value: true },
+        ]),
+        view("inactiveRecords", [
+          { columnKey: "isActive", operator: "eq", value: false },
+        ]),
+      ]),
+    );
+    expect(all.filters).toBeUndefined();
+    expect(active.filters).toEqual([
+      { fieldLogicalName: "isActive", operator: "eq", value: true },
+    ]);
+    expect(inactive.filters).toEqual([
+      { fieldLogicalName: "isActive", operator: "eq", value: false },
+    ]);
+  });
+
+  it("My Records resolves @me to the signed-in user", () => {
+    const mine = definition([
+      view(
+        "myRecords",
+        [{ columnKey: "ownerUserId", operator: "eq", value: "@me" }],
+        true,
+      ),
+    ]);
+    const [resolved] = buildCustomModuleViews(mine, "user-42");
+    expect(resolved.filters).toEqual([
+      { fieldLogicalName: "ownerUserId", operator: "eq", value: "user-42" },
+    ]);
+  });
+
+  it("My Records with no known user matches nothing instead of everything", () => {
+    const [resolved] = buildCustomModuleViews(
+      definition([
+        view(
+          "myRecords",
+          [{ columnKey: "ownerUserId", operator: "eq", value: "@me" }],
+          true,
+        ),
+      ]),
+      null,
+    );
+    const filter = resolved.filters?.[0];
+    expect(filter?.fieldLogicalName).toBe("ownerUserId");
+    expect(filter?.value).not.toBe("@me");
+    expect(filter?.value).not.toBeUndefined();
+    expect(String(filter?.value)).toMatch(/no-signed-in-user/);
+  });
+
+  it("never leaks the raw @me token into a filter", () => {
+    const spec = buildCustomModuleRuntimeSpec(
+      definition([
+        view(
+          "myRecords",
+          [{ columnKey: "ownerUserId", operator: "eq", value: "@me" }],
+          true,
+        ),
+      ]),
+      "user-7",
+    );
+    expect(JSON.stringify(spec.views)).not.toContain("@me");
+    expect(JSON.stringify(spec.views)).toContain("user-7");
   });
 });
 
@@ -391,5 +480,108 @@ describe("buildCustomModuleForms and the route runtime", () => {
       resolveCustomModuleRecordTitle(QA_ASSET, { dd_serialNumber: "SN-1" }),
     ).toBe("SN-1");
     expect(resolveCustomModuleRecordTitle(QA_ASSET, {})).toBe("QA Asset");
+  });
+});
+
+describe("record status commands of a custom module", () => {
+  const originalFetch = global.fetch;
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  it("send isActive to the API; before, the PATCH went out empty and nothing changed", async () => {
+    let sent: { url: string; body: Record<string, unknown> } | null = null;
+    global.fetch = (async (url: string, init?: RequestInit) => {
+      sent = { url, body: JSON.parse(String(init?.body ?? "{}")) };
+      return new Response(JSON.stringify({ id: "r1", isActive: false }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }) as typeof fetch;
+    const spec = buildCustomModuleRuntimeSpec(QA_ASSET);
+    const { runtime } = buildCustomModuleRuntime({
+      definition: QA_ASSET,
+      pageKind: "list",
+      sessionUser: null,
+    });
+    const adapter = createStandardModuleDataAdapter(spec);
+    await adapter.update(runtime, "r1", { isActive: false });
+    expect(sent!.body).toEqual({ isActive: false });
+    expect(sent!.url).toContain("/r1");
+  });
+
+  it("never lets a form edit owner or tenant through the same door", async () => {
+    let body: Record<string, unknown> = {};
+    global.fetch = (async (_url: string, init?: RequestInit) => {
+      body = JSON.parse(String(init?.body ?? "{}"));
+      return new Response("{}", {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }) as typeof fetch;
+    const spec = buildCustomModuleRuntimeSpec(QA_ASSET);
+    const { runtime } = buildCustomModuleRuntime({
+      definition: QA_ASSET,
+      pageKind: "list",
+      sessionUser: null,
+    });
+    await createStandardModuleDataAdapter(spec).update(runtime, "r1", {
+      ownerUserId: "someone-else",
+      tenantId: "other",
+      isActive: "false",
+    });
+    expect(body).toEqual({});
+  });
+});
+
+describe("commands follow the module's capabilities", () => {
+  const commandIds = (definition: CustomModuleDefinition) => {
+    const { runtime } = buildCustomModuleRuntime({
+      definition,
+      pageKind: "list",
+      sessionUser: null,
+    });
+    return (runtime.metadata.commands ?? []).map((c) => c.key);
+  };
+
+  it("an immutable module offers no delete, activate or deactivate command, bulk or per record", () => {
+    const ids = commandIds({
+      ...QA_ASSET,
+      capabilities: {
+        read: true,
+        create: true,
+        update: false,
+        delete: false,
+        deactivate: false,
+      },
+    });
+    for (const id of [
+      "selection.delete",
+      "record.delete",
+      "record.activate",
+      "record.deactivate",
+      "selection.activate",
+      "selection.deactivate",
+    ])
+      expect(ids).not.toContain(id);
+  });
+
+  it("a standard module keeps all of them", () => {
+    const ids = commandIds({
+      ...QA_ASSET,
+      capabilities: {
+        read: true,
+        create: true,
+        update: true,
+        delete: true,
+        deactivate: true,
+      },
+    });
+    for (const id of [
+      "selection.delete",
+      "record.deactivate",
+      "selection.activate",
+    ])
+      expect(ids).toContain(id);
   });
 });

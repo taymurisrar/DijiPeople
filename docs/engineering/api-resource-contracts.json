@@ -245,7 +245,12 @@
       "requires": [],
       "notApplicable": {},
       "classifiedBy": "architect: financial/security/historical domain",
-      "allow": []
+      "allow": [
+        "PATCH salary-package-rules/:id"
+      ],
+      "allowReasons": {
+        "PATCH salary-package-rules/:id": "Reviewed 2026-11-03 (release hardening): update is the editor for versioned pay packages; guarded by settings.update+compensation.manage and the PAYROLL matrix manage privilege, tenant-scoped lookup, explicit field pick, scope/date/default validation, version increment and before/after audit."
+      }
     },
     {
       "controller": "services/api/src/modules/contracts/contracts.controller.ts",
@@ -253,7 +258,12 @@
       "requires": [],
       "notApplicable": {},
       "classifiedBy": "architect: financial/security/historical domain",
-      "allow": []
+      "allow": [
+        "PATCH contracts/:id"
+      ],
+      "allowReasons": {
+        "PATCH contracts/:id": "Reviewed 2026-11-03 (release hardening): platform-only agreement editor (assertPlatform + contracts.manage); executed/sent/terminated agreements are immutable via assertAgreementEditable and status changes must use the governed actions; explicit field pick."
+      }
     },
     {
       "controller": "services/api/src/modules/customization/custom-fields.controller.ts",
@@ -622,7 +632,12 @@
       "requires": [],
       "notApplicable": {},
       "classifiedBy": "architect: financial/security/historical domain",
-      "allow": []
+      "allow": [
+        "PATCH payroll/employer-bank-accounts/:id"
+      ],
+      "allowReasons": {
+        "PATCH payroll/employer-bank-accounts/:id": "Reviewed 2026-11-03 (release hardening): payroll.settings.update + PAYROLL write; tenant-scoped find, account number/IBAN stored encrypted and returned and audited masked, explicit field pick; the default-account flip is scoped to the tenant and the account currency."
+      }
     },
     {
       "controller": "services/api/src/modules/payroll/payroll-gl.controller.ts",
@@ -714,8 +729,15 @@
       "notApplicable": {},
       "classifiedBy": "architect: financial/security/historical domain",
       "allow": [
-        "DELETE platform-teams/:id"
-      ]
+        "DELETE platform-teams/:id",
+        "PATCH platform-teams/:id",
+        "POST platform-teams/:id/restore"
+      ],
+      "allowReasons": {
+        "PATCH platform-teams/:id": "Reviewed 2026-11-03 (release hardening): platform settings.manage via PlatformPermissionsGuard; audited in the platform audit log.",
+        "POST platform-teams/:id/restore": "Reviewed 2026-11-03 (release hardening): restores a soft-deleted platform team under settings.manage; audited; platform-scope only, never tenant data.",
+        "DELETE platform-teams/:id": "Reviewed 2026-11-03 (release hardening): soft-delete of a platform team under settings.manage; audited and reversible through restore."
+      }
     },
     {
       "controller": "services/api/src/modules/platform-users/platform-users.controller.ts",
@@ -724,8 +746,13 @@
       "notApplicable": {},
       "classifiedBy": "architect: financial/security/historical domain",
       "allow": [
-        "DELETE platform-users/:userId"
-      ]
+        "DELETE platform-users/:userId",
+        "PATCH platform-users/:userId"
+      ],
+      "allowReasons": {
+        "PATCH platform-users/:userId": "Reviewed 2026-11-03 (release hardening): assertCanManage + assertAssignableRole + super-admin invariant; only name/role/status are writable; response is an explicit select; audited with before/after role and status.",
+        "DELETE platform-users/:userId": "Reviewed 2026-11-03 (release hardening): disable (not erase) of a platform operator under the same manage check and super-admin invariant; audited."
+      }
     },
     {
       "controller": "services/api/src/modules/policies/policies.controller.ts",
@@ -833,8 +860,13 @@
       "notApplicable": {},
       "classifiedBy": "architect: financial/security/historical domain",
       "allow": [
-        "DELETE roles/:roleId"
-      ]
+        "DELETE roles/:roleId",
+        "PUT roles/:roleId"
+      ],
+      "allowReasons": {
+        "PUT roles/:roleId": "Reviewed 2026-11-03 (release hardening): roles.update + SETTINGS configure; tenant-scoped lookup, system/locked roles refused, widening permissions is bounded by the actor own access (assertPermissionKeysWithinActorAccess); audited.",
+        "DELETE roles/:roleId": "Reviewed 2026-11-03 (release hardening): roles.delete path refuses system roles and roles still assigned; tenant-scoped; audited."
+      }
     },
     {
       "controller": "services/api/src/modules/settings-runtime/settings-runtime.controller.ts",

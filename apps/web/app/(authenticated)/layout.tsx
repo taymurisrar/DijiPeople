@@ -354,6 +354,7 @@ export default async function DashboardLayout({
                 lastName={user.lastName}
                 profileHref="/my-profile"
                 roleLabel={roleLabel}
+                customModules={customModules}
                 tenantName={effectiveTenantName}
                 workspaceSection={workspaceSection}
               />

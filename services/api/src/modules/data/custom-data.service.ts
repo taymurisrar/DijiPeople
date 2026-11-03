@@ -8,9 +8,21 @@ import {
   CustomizationFieldDataType,
   Prisma,
   SecurityPrivilege,
+  type CustomDataRecord,
 } from '@prisma/client';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
+import { AppError } from '../../common/errors/app-error';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { lifecycleOf, parseStatusFilter } from './custom-record-lifecycle';
+import {
+  CUSTOM_SORT_ROW_CAP,
+  ViewDefinitionError,
+  SYSTEM_SORT_FIELDS,
+  parseOrderBy,
+  planView,
+  sortRowsByColumns,
+  type ViewSortKey,
+} from './custom-view-query';
 import { AuditService } from '../audit/audit.service';
 import {
   CustomModuleRuntimeService,
@@ -27,6 +39,14 @@ import {
 
 type CustomTable = PublishedCustomTable;
 type RelatedQuery = {
+  /** Key of a published view: its filters, sort and the page total are applied server-side. */
+  view?: string;
+  /** Header-click ordering, "<field> asc|desc": applied to the whole filtered set, ahead of the view's own sort. */
+  orderBy?: string;
+  /** "active" | "inactive" | "all" (default). Server-side, so paging stays correct. */
+  status?: string;
+  /** "me" = only records owned by the caller. */
+  owner?: string;
   parentEntity?: string;
   parentId?: string;
   relationship?: string;
@@ -84,11 +104,17 @@ export class CustomDataService {
       primaryKey: 'id',
       isCustom: true,
       ownershipType: table.ownershipType ?? 'tenant',
+      moduleKind: table.moduleKind,
       capabilities: {
         read: true,
         create: can(SecurityPrivilege.CREATE),
-        update: can(SecurityPrivilege.WRITE),
-        delete: can(SecurityPrivilege.DELETE),
+        update:
+          can(SecurityPrivilege.WRITE) && lifecycleOf(table.moduleKind).update,
+        delete:
+          can(SecurityPrivilege.DELETE) && lifecycleOf(table.moduleKind).delete,
+        deactivate:
+          can(SecurityPrivilege.WRITE) &&
+          lifecycleOf(table.moduleKind).deactivate,
         softDelete: true,
       },
       fields: Object.fromEntries(
@@ -176,10 +202,28 @@ export class CustomDataService {
       user,
       SecurityPrivilege.READ,
     ) as Prisma.CustomDataRecordWhereInput;
+    const status = parseStatusFilter(query.status);
+    if (!status) {
+      throw new BadRequestException(
+        'status must be one of: active, inactive, all.',
+      );
+    }
+    if (query.owner !== undefined && query.owner !== 'me') {
+      throw new BadRequestException('owner may only be "me".');
+    }
+    const viewPlan = await this.planRequestedView(
+      table,
+      query.view,
+      query.orderBy,
+      user,
+    );
     const where: Prisma.CustomDataRecordWhereInput = {
       AND: [
         scope,
         { tenantId: user.tenantId, tableId: table.id, isDeleted: false },
+        ...(status === 'all' ? [] : [{ isActive: status === 'active' }]),
+        ...(query.owner === 'me' ? [{ ownerUserId: user.userId }] : []),
+        ...(viewPlan?.where ?? []),
         ...(relation
           ? [
               {
@@ -192,15 +236,25 @@ export class CustomDataService {
           : []),
       ],
     };
-    const [rows, total] = await Promise.all([
-      this.prisma.customDataRecord.findMany({
-        where,
-        orderBy: [{ createdAt: 'desc' }],
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-      }),
-      this.prisma.customDataRecord.count({ where }),
-    ]);
+    const [rows, total] = viewPlan?.customSort
+      ? await this.pageOrderedInMemory(
+          where,
+          viewPlan.customSort,
+          page,
+          pageSize,
+        )
+      : await Promise.all([
+          this.prisma.customDataRecord.findMany({
+            where,
+            orderBy: viewPlan?.orderBy ?? [
+              { createdAt: 'desc' },
+              { id: 'asc' },
+            ],
+            skip: (page - 1) * pageSize,
+            take: pageSize,
+          }),
+          this.prisma.customDataRecord.count({ where }),
+        ]);
     return {
       items: rows.map((row) => this.toPublicRecord(row, table, user)),
       meta: {
@@ -211,6 +265,101 @@ export class CustomDataService {
         totalPages: Math.max(1, Math.ceil(total / pageSize)),
       },
     };
+  }
+
+  /**
+   * The query plan of a published view, or null when none was asked for. A view
+   * that does not exist is Not Found rather than "all records": showing everything
+   * under the name of a filtered view is the wrong answer this exists to remove.
+   */
+  private async planRequestedView(
+    table: CustomTable,
+    viewKey: string | undefined,
+    orderBy: string | undefined,
+    user: AuthenticatedUser,
+  ) {
+    const requestedSort = parseOrderBy(orderBy);
+    const hasView = viewKey !== undefined && viewKey !== '';
+    if (!hasView && !requestedSort) return null;
+    let view: { filtersJson: unknown; sortingJson: unknown } = {
+      filtersJson: [],
+      sortingJson: [],
+    };
+    if (hasView) {
+      if (!/^[a-z][a-zA-Z0-9]*$/.test(viewKey)) {
+        throw new BadRequestException('view must be a view key.');
+      }
+      const resolved = await this.runtimeService.resolvePublishedView(
+        user.tenantId,
+        table.id,
+        viewKey,
+      );
+      if (!resolved) throw new NotFoundException('View was not found.');
+      view = resolved;
+    }
+    if (
+      requestedSort &&
+      !SYSTEM_SORT_FIELDS.has(requestedSort.field) &&
+      !table.columns.some((column) => column.columnKey === requestedSort.field)
+    ) {
+      // An unknown field is a refusal, not "unsorted": the header the user clicked would silently do nothing.
+      throw new BadRequestException(`Cannot sort by "${requestedSort.field}".`);
+    }
+    if (requestedSort) {
+      view = {
+        filtersJson: view.filtersJson,
+        sortingJson: [
+          { field: requestedSort.field, direction: requestedSort.direction },
+        ],
+      };
+    }
+    const columns = new Map(
+      table.columns.map((column) => [
+        column.columnKey,
+        {
+          readPermission: stringOrNull(
+            readJson(column.validationJson).readPermission,
+          ),
+        },
+      ]),
+    );
+    try {
+      return planView(view, {
+        userId: user.userId,
+        permissionKeys: user.permissionKeys,
+        columns,
+      });
+    } catch (error) {
+      if (error instanceof ViewDefinitionError) {
+        if (error.code === 'VIEW_FIELD_FORBIDDEN')
+          throw new ForbiddenException(error.message);
+        throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Ordering by a tenant column cannot be expressed in the query (the values live
+   * in one JSON column), so the FILTERED set is read, ordered here and sliced.
+   * Bounded: past the cap the caller is asked to narrow the view, never silently
+   * given a partial or mis-ordered page.
+   */
+  private async pageOrderedInMemory(
+    where: Prisma.CustomDataRecordWhereInput,
+    sortKeys: ViewSortKey[],
+    page: number,
+    pageSize: number,
+  ): Promise<[CustomDataRecord[], number]> {
+    const total = await this.prisma.customDataRecord.count({ where });
+    if (total > CUSTOM_SORT_ROW_CAP) {
+      throw new BadRequestException(
+        `This view sorts by a custom field and matches ${total} records; narrow it with a filter (limit ${CUSTOM_SORT_ROW_CAP}) or sort by a date.`,
+      );
+    }
+    const all = await this.prisma.customDataRecord.findMany({ where });
+    const ordered = sortRowsByColumns(all, sortKeys);
+    return [ordered.slice((page - 1) * pageSize, page * pageSize), total];
   }
 
   async create(
@@ -242,6 +391,7 @@ export class CustomDataService {
       'create',
       relation?.lookupField,
     );
+    await this.assertLookupTargets(table, values, user);
     if (relation) values[relation.lookupField] = relation.parentId;
     const scope = await this.resolveCreateScope(table, relation, values, user);
     const record = await this.prisma.$transaction(async (tx) => {
@@ -300,15 +450,33 @@ export class CustomDataService {
     ) {
       throw new NotFoundException('Related record was not found.');
     }
-    const patch = this.validateValues(table, body, user, 'update');
+    // `isActive` is record status, not a field value: it is read here by name and
+    // never reaches validateValues or the values JSON (no mass assignment).
+    const { isActive: requestedActive, ...valueBody } = body;
+    if (requestedActive !== undefined && typeof requestedActive !== 'boolean') {
+      throw new BadRequestException('isActive must be true or false.');
+    }
+    const lifecycle = lifecycleOf(table.moduleKind);
+    if (Object.keys(valueBody).length > 0 && !lifecycle.update) {
+      throw new AppError('CUSTOM_RECORD_IMMUTABLE');
+    }
+    if (requestedActive !== undefined && !lifecycle.deactivate) {
+      throw new AppError('CUSTOM_RECORD_IMMUTABLE');
+    }
+    const patch = this.validateValues(table, valueBody, user, 'update');
+    await this.assertLookupTargets(table, patch, user);
     if (relation) delete patch[relation.lookupField];
     const values = { ...readJson(existing.values), ...patch };
+    const statusOnly = Object.keys(valueBody).length === 0;
     const record = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.customDataRecord.update({
         where: { id: existing.id },
         data: {
           values: values as Prisma.InputJsonValue,
           updatedById: user.userId,
+          ...(requestedActive !== undefined
+            ? { isActive: requestedActive }
+            : {}),
         },
       });
       await this.auditService.log(
@@ -317,7 +485,12 @@ export class CustomDataService {
           organizationId: updated.organizationId,
           businessUnitId: updated.businessUnitId,
           actorUserId: user.userId,
-          action: 'custom-record.update',
+          action:
+            statusOnly && requestedActive !== undefined
+              ? requestedActive
+                ? 'custom-record.activate'
+                : 'custom-record.deactivate'
+              : 'custom-record.update',
           entityType: table.tableKey,
           entityId: updated.id,
           sourceModule: 'data',
@@ -343,6 +516,13 @@ export class CustomDataService {
       user,
       SecurityPrivilege.DELETE,
     );
+    if (!lifecycleOf(table.moduleKind).delete) {
+      throw new AppError(
+        table.moduleKind === 'IMMUTABLE'
+          ? 'CUSTOM_RECORD_IMMUTABLE'
+          : 'CUSTOM_RECORD_DELETE_NOT_ALLOWED',
+      );
+    }
     if (!recordIds.length || recordIds.length > 200) {
       throw new BadRequestException('Provide between 1 and 200 record IDs.');
     }
@@ -535,6 +715,115 @@ export class CustomDataService {
     };
   }
 
+  /**
+   * A lookup to another CUSTOM module must name a live record of THAT module in
+   * this tenant. Without the check a made-up id, or an id copied from another
+   * tenant, was stored as if it were a relationship. A lookup to a SUPPORTED
+   * built-in module (employees, users, organizations, business units, departments)
+   * must name a record of the caller's own tenant that the caller may read; other
+   * built-in targets are still resolved by their own services and not checked here.
+   */
+  private async assertLookupTargets(
+    table: CustomTable,
+    values: Record<string, unknown>,
+    user: AuthenticatedUser,
+  ) {
+    const tenantId = user.tenantId;
+    const errors: Record<string, string[]> = {};
+    for (const column of table.columns) {
+      const value = values[column.columnKey];
+      if (
+        column.dataType !== 'lookup' ||
+        !column.lookupTargetTableKey ||
+        value === undefined ||
+        value === null ||
+        value === ''
+      )
+        continue;
+      const target = await this.prisma.customizationTable.findFirst({
+        where: {
+          tenantId,
+          tableKey: column.lookupTargetTableKey,
+          isCustom: true,
+        },
+        select: { id: true },
+      });
+      if (!target) {
+        const builtIn = await this.builtInLookupExists(
+          column.lookupTargetTableKey,
+          value,
+          user,
+        );
+        if (builtIn === false)
+          errors[column.columnKey] = ['The selected record does not exist.'];
+        continue;
+      }
+      const exists =
+        typeof value === 'string' &&
+        (await this.prisma.customDataRecord.count({
+          where: { id: value, tenantId, tableId: target.id, isDeleted: false },
+        })) > 0;
+      if (!exists)
+        errors[column.columnKey] = ['The selected record does not exist.'];
+    }
+    if (Object.keys(errors).length) {
+      throw new BadRequestException({ message: 'Validation failed.', errors });
+    }
+  }
+
+  /**
+   * true / false for a supported built-in target, null when the target is not one
+   * this service can check. A caller without read access to the target gets the
+   * SAME answer as a missing record, so a lookup cannot be used to probe ids.
+   */
+  private async builtInLookupExists(
+    targetKey: string,
+    value: unknown,
+    user: AuthenticatedUser,
+  ): Promise<boolean | null> {
+    const simple: Record<string, { model: string; permission: string }> = {
+      users: { model: 'user', permission: 'users.read' },
+      organizations: { model: 'organization', permission: 'hierarchy.read' },
+      businessUnits: { model: 'businessUnit', permission: 'hierarchy.read' },
+      departments: { model: 'department', permission: 'hierarchy.read' },
+    };
+    const isId = typeof value === 'string' && value.length > 0;
+    if (targetKey === 'employees') {
+      const metadata = getEntityMetadata('employees');
+      if (!metadata) return null;
+      if (!isId) return false;
+      try {
+        this.permissionResolver.assertCanRead(metadata, user);
+      } catch {
+        return false;
+      }
+      const scope = this.scopeResolver.buildReadScope(
+        metadata,
+        user,
+      ) as Prisma.EmployeeWhereInput;
+      return (
+        (await this.prisma.employee.count({
+          where: { AND: [scope, { id: value, tenantId: user.tenantId }] },
+        })) > 0
+      );
+    }
+    const target = simple[targetKey];
+    if (!target) return null;
+    if (!isId) return false;
+    if (!(user.permissionKeys ?? []).includes(target.permission)) return false;
+    const delegate = (
+      this.prisma as unknown as Record<
+        string,
+        { count(args: unknown): Promise<number> }
+      >
+    )[target.model];
+    return (
+      (await delegate.count({
+        where: { id: value, tenantId: user.tenantId },
+      })) > 0
+    );
+  }
+
   private validateValues(
     table: CustomTable,
     input: Record<string, unknown>,
@@ -596,6 +885,10 @@ export class CustomDataService {
       values: Prisma.JsonValue;
       createdAt: Date;
       updatedAt: Date;
+      isActive: boolean;
+      ownerUserId: string | null;
+      createdById: string | null;
+      updatedById: string | null;
     },
     table: CustomTable,
     user: AuthenticatedUser,
@@ -611,11 +904,21 @@ export class CustomDataService {
         continue;
       const value: unknown = values[column.columnKey];
       secured[column.columnKey] =
-        rules.mask === true && value ? maskValue(String(value)) : value;
+        rules.mask === true && value
+          ? maskValue(
+              typeof value === 'object'
+                ? JSON.stringify(value)
+                : String(value as string | number | boolean),
+            )
+          : value;
     }
     return {
       id: record.id,
       ...secured,
+      isActive: record.isActive,
+      ownerUserId: record.ownerUserId,
+      createdById: record.createdById,
+      updatedById: record.updatedById,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
     };
@@ -625,11 +928,13 @@ export class CustomDataService {
     id: string;
     values: Prisma.JsonValue;
     isDeleted: boolean;
+    isActive: boolean;
   }) {
     return {
       id: record.id,
       values: record.values,
       isDeleted: record.isDeleted,
+      isActive: record.isActive,
     };
   }
 

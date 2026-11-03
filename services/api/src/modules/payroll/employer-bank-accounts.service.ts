@@ -120,7 +120,13 @@ export class EmployerBankAccountsService {
     try {
       const updated = await this.prisma.$transaction(async (tx) => {
         if (dto.isDefaultPayrollAccount) {
-          await unsetDefaultPayroll(tx, user.tenantId, dto.currencyCode, id);
+          // A PATCH that only flips the default flag carries no currencyCode: the account's own currency decides the scope.
+          await unsetDefaultPayroll(
+            tx,
+            user.tenantId,
+            dto.currencyCode ?? existing.currencyCode,
+            id,
+          );
         }
         return tx.employerBankAccount.update({
           where: { id },

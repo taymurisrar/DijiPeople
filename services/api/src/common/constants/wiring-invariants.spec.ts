@@ -378,6 +378,11 @@ const AUTHENTICATION_ONLY_HANDLERS = [
    * permissions applied.
    */
   'CustomFieldsController.definitions',
+  /*
+   * Release hardening 2026-11-03: the tenant's own published module definitions that every
+   * signed-in user needs to render the app; no id taken, metadata only.
+   */
+  'CustomizationRuntimeController.getPublished',
 ] as const;
 
 describe('permission wiring invariants', () => {

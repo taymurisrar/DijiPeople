@@ -90,6 +90,8 @@ export type StandardModuleViewSpec = {
   readonly displayName: string;
   readonly columns: readonly string[];
   readonly isDefault?: boolean;
+  /** Empty string shows no line under the name in the view menu; omitted keeps the historic "<name> view." text. */
+  readonly description?: string;
   readonly filters?: ViewMetadata["filters"];
   readonly defaultSort?: ViewMetadata["defaultSort"];
 };
@@ -166,6 +168,8 @@ export type StandardModuleRuntimeSpec = {
      * showing one that can never work.
      */
     readonly disableDelete?: boolean;
+    /** Records of this module can never be set Active/Inactive (e.g. an immutable ledger): the commands are removed, not greyed out. */
+    readonly disableDeactivate?: boolean;
     readonly disableSave?: boolean;
     readonly import?: boolean;
     readonly export?: boolean;
@@ -752,7 +756,7 @@ function buildStandardView(
     logicalName: view.logicalName,
     viewId: view.viewId,
     displayName: view.displayName,
-    description: `${view.displayName} view.`,
+    description: view.description ?? `${view.displayName} view.`,
     version: "0.1.0",
     lifecycleState: "published",
     layer: "system",
@@ -910,23 +914,28 @@ function buildStandardCommands(
               : "Delete is not configured for this module.",
           }),
         ]),
-    command("selection.delete", "Delete", "bulk-menu", 91, {
-      isDestructive: true,
-      requiresConfirmation: true,
-      permission: permission(spec.permissions?.delete, "delete"),
-      visibilityRules: [{ operator: "record-selected" }],
-      confirmation: {
-        title: "Delete selected records?",
-        description:
-          "This will remove {selectedCount} selected records from active use. Data may be retained according to module policy.",
-        confirmLabel: "Delete",
-        destructive: true,
-      },
-      isDisabled: !spec.adapterCapabilities?.softDelete,
-      disabledReason: spec.adapterCapabilities?.softDelete
-        ? undefined
-        : "Delete is not configured for this module.",
-    }),
+    // Same rule as the record-page Delete above: a module that can never delete shows no bulk Delete either.
+    ...(spec.adapterCapabilities?.disableDelete === true
+      ? []
+      : [
+          command("selection.delete", "Delete", "bulk-menu", 91, {
+            isDestructive: true,
+            requiresConfirmation: true,
+            permission: permission(spec.permissions?.delete, "delete"),
+            visibilityRules: [{ operator: "record-selected" }],
+            confirmation: {
+              title: "Delete selected records?",
+              description:
+                "This will remove {selectedCount} selected records from active use. Data may be retained according to module policy.",
+              confirmLabel: "Delete",
+              destructive: true,
+            },
+            isDisabled: !spec.adapterCapabilities?.softDelete,
+            disabledReason: spec.adapterCapabilities?.softDelete
+              ? undefined
+              : "Delete is not configured for this module.",
+          }),
+        ]),
     ...(spec.adapterCapabilities?.assignOwner
       ? [
           command("selection.assignOwner", "Assign", "bulk-menu", 92, {
@@ -935,7 +944,7 @@ function buildStandardCommands(
           }),
         ]
       : []),
-    ...(hasActiveField
+    ...(hasActiveField && spec.adapterCapabilities?.disableDeactivate !== true
       ? [
           command("record.activate", "Activate", "detail-command-bar", 93, {
             permission: permission(spec.permissions?.update, "update"),

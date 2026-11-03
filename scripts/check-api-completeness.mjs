@@ -122,6 +122,12 @@ for (const r of manifest.resources) {
         failures.push(`API-003 ${key(route)}: ${route.op} on a ${r.type} resource (add to "allow" with an ADR-backed reason)`);
       if (r.type === 'sensitive' && route.op === 'delete' && !allow.has(`${route.method} ${route.path}`))
         failures.push(`API-003 ${key(route)}: DELETE on a sensitive resource requires an explicit "allow" entry`);
+      // Update / restore on a sensitive resource is a reviewed capability, not a default: it needs an allow entry whose
+      // reason lives in `allowReasons` (see docs/engineering/api-resource-contracts.json).
+      if (r.type === 'sensitive' && (route.op === 'update' || route.op === 'restore') && !allow.has(`${route.method} ${route.path}`))
+        failures.push(`API-003 ${key(route)}: ${route.op.toUpperCase()} on a sensitive resource requires an explicit "allow" entry with a reviewed reason`);
+      if (r.type === 'sensitive' && allow.has(`${route.method} ${route.path}`) && !String(r.allowReasons?.[`${route.method} ${route.path}`] ?? '').trim().match(/.{30,}/))
+        failures.push(`API-003 ${key(route)}: allow entry on a sensitive resource needs a specific reviewedOn-dated reason in "allowReasons"`);
     }
   }
   void ops;

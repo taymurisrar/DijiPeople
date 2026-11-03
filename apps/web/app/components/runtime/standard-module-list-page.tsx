@@ -25,6 +25,7 @@ export function StandardModuleListPage({
   initialFilters = [],
   pagination,
   paginationMode = "server",
+  viewFiltering = "client",
   records,
   runtime,
   spec,
@@ -54,6 +55,14 @@ export function StandardModuleListPage({
     readonly searchParams: Record<string, string | undefined>;
   };
   readonly paginationMode?: "client" | "server";
+  /*
+   * Who applies the active view's filters. "client" (the default, unchanged for
+   * every other module) filters the records that were passed in. "server" means
+   * the records are ALREADY the view's results — filtered, ordered and counted by
+   * the API — so filtering again here would at best repeat the work and at worst
+   * disagree with the total shown in the pager.
+   */
+  readonly viewFiltering?: "client" | "server";
   readonly records: readonly RuntimeRecordData[];
   readonly runtime: ModuleRuntimeContext;
   readonly spec?: StandardModuleRuntimeSpec;
@@ -79,14 +88,20 @@ export function StandardModuleListPage({
     [activeView, activeViewId, runtime.metadata.views],
   );
   const filteredRecords = useMemo(
-    () => applyRuntimeViewFilters(records, resolvedActiveView),
-    [records, resolvedActiveView],
+    () =>
+      viewFiltering === "server"
+        ? records
+        : applyRuntimeViewFilters(records, resolvedActiveView),
+    [records, resolvedActiveView, viewFiltering],
   );
   const effectivePagination = useMemo(() => {
     if (!pagination || paginationMode !== "client") return pagination;
 
     const pageSize = Math.max(1, pagination.pageSize);
-    const totalPages = Math.max(1, Math.ceil(filteredRecords.length / pageSize));
+    const totalPages = Math.max(
+      1,
+      Math.ceil(filteredRecords.length / pageSize),
+    );
     const page = Math.min(Math.max(1, pagination.page), totalPages);
 
     return {
@@ -135,7 +150,9 @@ export function StandardModuleListPage({
           formatting={formatting}
           initialFilters={[...initialFilters]}
           onSelectedRecordIdsChange={setSelectedRecordIds}
-          pagination={effectivePagination ? { ...effectivePagination } : undefined}
+          pagination={
+            effectivePagination ? { ...effectivePagination } : undefined
+          }
           records={visibleRecords}
           runtime={runtime}
           selectedRecordIds={selectedRecordIds}

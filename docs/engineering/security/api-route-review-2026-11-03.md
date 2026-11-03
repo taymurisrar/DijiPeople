@@ -71,3 +71,10 @@ sensitive controllers expose `PATCH`/`PUT`/restore (contracts, roles, platform-u
 platform-teams, employer-bank-accounts, salary-package-rules) and tightening the rule
 would need an owner-approved `allow` entry for each. The checker proves what is
 *declared*, never that a route behaves.
+
+## Addendum — release hardening (2026-11-03)
+
+- `GET runtime-metadata/published` now declares `@AuthenticationOnly()` (ADR-0018 list in wiring-invariants.spec.ts): the tenant's own published definitions, no id taken.
+- `GET organization-hierarchy/tree` now declares `hierarchy.read` + HIERARCHY read and is cut per caller by the same visibility rules as the list endpoints (`getHierarchyTreeForUser`); a caller without the privilege receives an empty tree, and sibling/other-organization names are no longer readable through it. Tests: `organization-hierarchy-tree.spec.ts`.
+- The error-log routes stay in the register: they take a trace id, so the self-scoped decorator does not fit; their owner-or-support gate is the service rule proven by `tenant-scoped-reads.e2e-spec.ts`.
+- Ten update/restore/delete routes on `sensitive` resources were reviewed and are allow-listed with reasons in `api-resource-contracts.json`; gate API-003 now enforces that.
