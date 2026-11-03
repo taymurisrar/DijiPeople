@@ -27,9 +27,9 @@ import {
  *  L5  Immutable and Configuration: prohibited actions are absent in the UI and
  *      refused by the API
  *  L6  lookup relationship between two custom modules; refusal paths
- *  L7  package: create, release, export; strip defaults and re-import; re-import
+ *  L8  package: create, release, export; strip defaults and re-import; re-import
  *      again (idempotent, customizations kept, no duplicates)
- *  L8  mobile viewport
+ *  L7  mobile viewport
  *
  * Everything it creates is keyed by this run and removed in afterAll.
  */
@@ -693,7 +693,9 @@ test.describe("Flow L — module acceptance", () => {
       `/custom-modules/${KEYS.ledger}/${child.json.id}`,
     );
     await settle();
-    await expect(page.getByLabel("Deal", { exact: true })).toHaveValue("Parent deal");
+    await expect(page.getByLabel("Deal", { exact: true })).toHaveValue(
+      "Parent deal",
+    );
 
     // A reference to nothing is refused, not stored.
     const dangling = await api("POST", `/data/${KEYS.ledger}`, {
@@ -705,13 +707,38 @@ test.describe("Flow L — module acceptance", () => {
     // Anonymous: no session, no data.
     const anonymous = await page.context().browser()!.newContext();
     const anon = await anonymous.request.get(
-      `${BASE_URLS.api}/data/${KEYS.deal}`,
+      `${BASE_URLS.api}/api/data/${KEYS.deal}`,
     );
     expect([401, 403]).toContain(anon.status());
     await anonymous.close();
   });
 
-  test("L7 — package: export, strip defaults, import, and re-import (idempotent, customizations kept)", async () => {
+  test("L7 — mobile: the list and the form fit a 375px screen", async () => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    try {
+      await api("POST", `/data/${KEYS.deal}`, { dd_name: "Mobile record" });
+      await openWeb(page, BASE_URLS.web, tenant!, listUrl(KEYS.deal));
+      await settle();
+      await expect(page.getByText("Mobile record")).toBeVisible();
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      );
+      expect(overflow, "page scrolls sideways at 375px").toBeLessThanOrEqual(1);
+      await page.getByRole("button", { name: "New" }).click();
+      await page.waitForURL(/\/new/, { timeout: 60_000 });
+      await expect(page.getByLabel("Name")).toBeVisible();
+      const box = await page.getByLabel("Name").boundingBox();
+      expect(box!.x + box!.width).toBeLessThanOrEqual(375);
+      const formOverflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      );
+      expect(formOverflow).toBeLessThanOrEqual(1);
+    } finally {
+      await page.setViewportSize({ width: 1280, height: 720 });
+    }
+  });
+
+  test("L8 — package: export, strip defaults, import, and re-import (idempotent, customizations kept)", async () => {
     const created = await api<{ id: string; prefix: string }>(
       "POST",
       "/customization/packages",
@@ -856,30 +883,5 @@ test.describe("Flow L — module acceptance", () => {
       [t, PKG_TABLE],
     );
     expect(tables[0].n).toBe(1);
-  });
-
-  test("L8 — mobile: the list and the form fit a 375px screen", async () => {
-    await page.setViewportSize({ width: 375, height: 812 });
-    try {
-      await api("POST", `/data/${KEYS.deal}`, { dd_name: "Mobile record" });
-      await openWeb(page, BASE_URLS.web, tenant!, listUrl(KEYS.deal));
-      await settle();
-      await expect(page.getByText("Mobile record")).toBeVisible();
-      const overflow = await page.evaluate(
-        () => document.documentElement.scrollWidth - window.innerWidth,
-      );
-      expect(overflow, "page scrolls sideways at 375px").toBeLessThanOrEqual(1);
-      await page.getByRole("button", { name: "New" }).click();
-      await page.waitForURL(/\/new/, { timeout: 60_000 });
-      await expect(page.getByLabel("Name")).toBeVisible();
-      const box = await page.getByLabel("Name").boundingBox();
-      expect(box!.x + box!.width).toBeLessThanOrEqual(375);
-      const formOverflow = await page.evaluate(
-        () => document.documentElement.scrollWidth - window.innerWidth,
-      );
-      expect(formOverflow).toBeLessThanOrEqual(1);
-    } finally {
-      await page.setViewportSize({ width: 1280, height: 720 });
-    }
   });
 });
