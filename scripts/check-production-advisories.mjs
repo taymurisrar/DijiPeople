@@ -72,33 +72,55 @@ const DISPOSITIONED = new Map([
     'uuid',
     'Moderate, transitive through exceljs. Same disposition. BUG-0052.',
   ],
+  [
+    "archiver",
+    "Owner-approved 2026-11-03 (disposition requested through the release session; evidence and per-package table: docs/engineering/security-advisory-review-2026-11-03.md). Moderate. ExcelJS 4.4.0 reaches archiver/unzipper only through its streaming WorkbookWriter/WorkbookReader, which this repository never constructs; the glob/minimatch advisories need an attacker-controlled pattern and every released glob up to 14.0.1 is affected, so no in-range fix exists (npm's only offer is the exceljs 3.4.0 downgrade). Removal trigger: exceljs replaced, or archiver >= 8 with glob >= 14.0.2. Review by 2027-02-03.",
+  ],
+  [
+    "archiver-utils",
+    "Owner-approved 2026-11-03 (disposition requested through the release session; evidence and per-package table: docs/engineering/security-advisory-review-2026-11-03.md). Moderate. ExcelJS 4.4.0 reaches archiver/unzipper only through its streaming WorkbookWriter/WorkbookReader, which this repository never constructs; the glob/minimatch advisories need an attacker-controlled pattern and every released glob up to 14.0.1 is affected, so no in-range fix exists (npm's only offer is the exceljs 3.4.0 downgrade). Removal trigger: exceljs replaced, or archiver >= 8 with glob >= 14.0.2. Review by 2027-02-03.",
+  ],
+  [
+    "zip-stream",
+    "Owner-approved 2026-11-03 (disposition requested through the release session; evidence and per-package table: docs/engineering/security-advisory-review-2026-11-03.md). Moderate. ExcelJS 4.4.0 reaches archiver/unzipper only through its streaming WorkbookWriter/WorkbookReader, which this repository never constructs; the glob/minimatch advisories need an attacker-controlled pattern and every released glob up to 14.0.1 is affected, so no in-range fix exists (npm's only offer is the exceljs 3.4.0 downgrade). Removal trigger: exceljs replaced, or archiver >= 8 with glob >= 14.0.2. Review by 2027-02-03.",
+  ],
+  [
+    "readdir-glob",
+    "Owner-approved 2026-11-03 (disposition requested through the release session; evidence and per-package table: docs/engineering/security-advisory-review-2026-11-03.md). Moderate. ExcelJS 4.4.0 reaches archiver/unzipper only through its streaming WorkbookWriter/WorkbookReader, which this repository never constructs; the glob/minimatch advisories need an attacker-controlled pattern and every released glob up to 14.0.1 is affected, so no in-range fix exists (npm's only offer is the exceljs 3.4.0 downgrade). Removal trigger: exceljs replaced, or archiver >= 8 with glob >= 14.0.2. Review by 2027-02-03.",
+  ],
+  [
+    "glob",
+    "Owner-approved 2026-11-03 (disposition requested through the release session; evidence and per-package table: docs/engineering/security-advisory-review-2026-11-03.md). Moderate. ExcelJS 4.4.0 reaches archiver/unzipper only through its streaming WorkbookWriter/WorkbookReader, which this repository never constructs; the glob/minimatch advisories need an attacker-controlled pattern and every released glob up to 14.0.1 is affected, so no in-range fix exists (npm's only offer is the exceljs 3.4.0 downgrade). Removal trigger: exceljs replaced, or archiver >= 8 with glob >= 14.0.2. Review by 2027-02-03. (also pulled by the active-win chain)",
+  ],
+  [
+    "minimatch",
+    "Owner-approved 2026-11-03 (disposition requested through the release session; evidence and per-package table: docs/engineering/security-advisory-review-2026-11-03.md). Moderate. ExcelJS 4.4.0 reaches archiver/unzipper only through its streaming WorkbookWriter/WorkbookReader, which this repository never constructs; the glob/minimatch advisories need an attacker-controlled pattern and every released glob up to 14.0.1 is affected, so no in-range fix exists (npm's only offer is the exceljs 3.4.0 downgrade). Removal trigger: exceljs replaced, or archiver >= 8 with glob >= 14.0.2. Review by 2027-02-03. (also pulled by the active-win chain)",
+  ],
+  [
+    "rimraf",
+    "Owner-approved 2026-11-03 (disposition requested through the release session; evidence and per-package table: docs/engineering/security-advisory-review-2026-11-03.md). Moderate. ExcelJS 4.4.0 reaches archiver/unzipper only through its streaming WorkbookWriter/WorkbookReader, which this repository never constructs; the glob/minimatch advisories need an attacker-controlled pattern and every released glob up to 14.0.1 is affected, so no in-range fix exists (npm's only offer is the exceljs 3.4.0 downgrade). Removal trigger: exceljs replaced, or archiver >= 8 with glob >= 14.0.2. Review by 2027-02-03. (rimraf 2.7.1 via unzipper -> fstream)",
+  ],
+  [
+    "node-gyp",
+    "Owner-approved 2026-11-03 (same session and evidence). Moderate, install/build-time only: active-win@8 declares node-gyp ^9.3.0 as a runtime dependency but only uses it as a native-build fallback; nothing in apps/agent-desktop/src imports node-gyp, cacache or make-fetch-happen. Removal trigger: migrate to active-win@9 (no dependencies; ESM-only, named export) with a Windows/macOS device check. Review by 2027-02-03.",
+  ],
+  [
+    "make-fetch-happen",
+    "Owner-approved 2026-11-03 (same session and evidence). Moderate, install/build-time only: active-win@8 declares node-gyp ^9.3.0 as a runtime dependency but only uses it as a native-build fallback; nothing in apps/agent-desktop/src imports node-gyp, cacache or make-fetch-happen. Removal trigger: migrate to active-win@9 (no dependencies; ESM-only, named export) with a Windows/macOS device check. Review by 2027-02-03.",
+  ],
+  [
+    "cacache",
+    "Owner-approved 2026-11-03 (same session and evidence). Moderate, install/build-time only: active-win@8 declares node-gyp ^9.3.0 as a runtime dependency but only uses it as a native-build fallback; nothing in apps/agent-desktop/src imports node-gyp, cacache or make-fetch-happen. Removal trigger: migrate to active-win@9 (no dependencies; ESM-only, named export) with a Windows/macOS device check. Review by 2027-02-03.",
+  ],
   /*
-   * The multer / @nestjs/platform-express entries (ITEM-0123) were removed on
-   * 2026-10-07, which is the removal trigger they named: @nestjs/platform-express
-   * 11.2.7 pins multer 2.4.0, past every listed multer advisory. BUG-3862.
-   *
-   * mammoth, argparse and sprintf-js are one chain, added on the same day.
-   * mammoth is called as a library in two places:
-   *   - contracts.service.ts — mammoth.convertToHtml;
-   *   - recruitment/document-parsing.service.ts — mammoth.extractRawText.
-   * mammoth's library entry (lib/index.js) and everything under lib/ never load
-   * argparse; the only file that does is bin/mammoth, the command-line tool,
-   * which nothing in this product runs. sprintf-js@1.0.3 enters production only
-   * through that argparse. The call sites are named, not the file, per the
-   * lesson recorded at the top.
+   * Removed 2026-11-03, because the gate reported them as matching no advisory any
+   * more (a risk acceptance for a package that is no longer vulnerable reads as a
+   * live one): the mammoth -> argparse -> sprintf-js chain added for BUG-3862, and,
+   * earlier, the multer / @nestjs/platform-express entries (ITEM-0123), whose
+   * removal trigger was @nestjs/platform-express 11.2.7 pinning multer 2.4.0.
+   * multer 2.4.0 has since acquired its own advisory (DoS, GHSA via 1243083); it is
+   * fixed by the root `overrides` entry multer -> 2.5.0, not by a disposition.
    */
-  [
-    'mammoth',
-    "Moderate, reported only for its argparse dependency. npm's fix is a downgrade to 0.3.29, which predates both APIs this product calls (convertToHtml in contracts.service.ts, extractRawText in recruitment/document-parsing.service.ts). See the argparse entry. BUG-3862.",
-  ],
-  [
-    'argparse',
-    'Moderate, reported only for its sprintf-js dependency. Loaded solely by mammoth\'s CLI (node_modules/mammoth/bin/mammoth). No file under mammoth/lib requires it, and the API never runs the CLI. REMOVE when mammoth drops argparse or sprintf-js ships a fix. BUG-3862.',
-  ],
-  [
-    'sprintf-js',
-    'Moderate DoS through unbounded precision specifiers in an attacker-controlled FORMAT string (GHSA-hp3w-g68c-fv3c). Every version is affected: 1.1.3 is the latest and has no fixed release. Its production copy (1.0.3) is reached only through argparse in mammoth\'s CLI (see above). argparse formats its own fixed help strings, never input. The 1.1.3 copy is dev-only (electron -> @electron/get -> global-agent -> roarr). REMOVE when a fixed release exists. BUG-3862.',
-  ],
 ]);
 
 

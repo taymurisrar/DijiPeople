@@ -306,8 +306,17 @@ const report = {
 };
 
 if (asJson) {
-  console.log(JSON.stringify(report, null, 2));
-  process.exit(untriagedOnly && untriaged.length ? 1 : 0);
+  /*
+   * Wait for the write to drain BEFORE exiting. The report is ~165 KB and growing
+   * with the bug register; on Linux a pipe's stdout is asynchronous and
+   * process.exit() right after console.log truncates it at the 64 KiB pipe buffer.
+   * Windows pipes are synchronous, which is why this never failed locally. The
+   * truncated JSON made validate-framework simulations 26b, 61 and 61b fail on CI
+   * (and only there) once the register outgrew 64 KiB.
+   */
+  const code = untriagedOnly && untriaged.length ? 1 : 0;
+  await new Promise((resolve) => process.stdout.write(JSON.stringify(report, null, 2) + '\n', resolve));
+  process.exit(code);
 }
 
 if (untriagedOnly) {
