@@ -391,7 +391,7 @@ export class CustomDataService {
       'create',
       relation?.lookupField,
     );
-    await this.assertLookupTargets(table, values, user.tenantId);
+    await this.assertLookupTargets(table, values, user);
     if (relation) values[relation.lookupField] = relation.parentId;
     const scope = await this.resolveCreateScope(table, relation, values, user);
     const record = await this.prisma.$transaction(async (tx) => {
@@ -464,7 +464,7 @@ export class CustomDataService {
       throw new AppError('CUSTOM_RECORD_IMMUTABLE');
     }
     const patch = this.validateValues(table, valueBody, user, 'update');
-    await this.assertLookupTargets(table, patch, user.tenantId);
+    await this.assertLookupTargets(table, patch, user);
     if (relation) delete patch[relation.lookupField];
     const values = { ...readJson(existing.values), ...patch };
     const statusOnly = Object.keys(valueBody).length === 0;
@@ -718,14 +718,17 @@ export class CustomDataService {
   /**
    * A lookup to another CUSTOM module must name a live record of THAT module in
    * this tenant. Without the check a made-up id, or an id copied from another
-   * tenant, was stored as if it were a relationship. Lookups to built-in modules
-   * are resolved by their own services and are not checked here.
+   * tenant, was stored as if it were a relationship. A lookup to a SUPPORTED
+   * built-in module (employees, users, organizations, business units, departments)
+   * must name a record of the caller's own tenant that the caller may read; other
+   * built-in targets are still resolved by their own services and not checked here.
    */
   private async assertLookupTargets(
     table: CustomTable,
     values: Record<string, unknown>,
-    tenantId: string,
+    user: AuthenticatedUser,
   ) {
+    const tenantId = user.tenantId;
     const errors: Record<string, string[]> = {};
     for (const column of table.columns) {
       const value = values[column.columnKey];
@@ -745,7 +748,16 @@ export class CustomDataService {
         },
         select: { id: true },
       });
-      if (!target) continue;
+      if (!target) {
+        const builtIn = await this.builtInLookupExists(
+          column.lookupTargetTableKey,
+          value,
+          user,
+        );
+        if (builtIn === false)
+          errors[column.columnKey] = ['The selected record does not exist.'];
+        continue;
+      }
       const exists =
         typeof value === 'string' &&
         (await this.prisma.customDataRecord.count({
@@ -757,6 +769,59 @@ export class CustomDataService {
     if (Object.keys(errors).length) {
       throw new BadRequestException({ message: 'Validation failed.', errors });
     }
+  }
+
+  /**
+   * true / false for a supported built-in target, null when the target is not one
+   * this service can check. A caller without read access to the target gets the
+   * SAME answer as a missing record, so a lookup cannot be used to probe ids.
+   */
+  private async builtInLookupExists(
+    targetKey: string,
+    value: unknown,
+    user: AuthenticatedUser,
+  ): Promise<boolean | null> {
+    const simple: Record<string, { model: string; permission: string }> = {
+      users: { model: 'user', permission: 'users.read' },
+      organizations: { model: 'organization', permission: 'hierarchy.read' },
+      businessUnits: { model: 'businessUnit', permission: 'hierarchy.read' },
+      departments: { model: 'department', permission: 'hierarchy.read' },
+    };
+    const isId = typeof value === 'string' && value.length > 0;
+    if (targetKey === 'employees') {
+      const metadata = getEntityMetadata('employees');
+      if (!metadata) return null;
+      if (!isId) return false;
+      try {
+        this.permissionResolver.assertCanRead(metadata, user);
+      } catch {
+        return false;
+      }
+      const scope = this.scopeResolver.buildReadScope(
+        metadata,
+        user,
+      ) as Prisma.EmployeeWhereInput;
+      return (
+        (await this.prisma.employee.count({
+          where: { AND: [scope, { id: value, tenantId: user.tenantId }] },
+        })) > 0
+      );
+    }
+    const target = simple[targetKey];
+    if (!target) return null;
+    if (!isId) return false;
+    if (!(user.permissionKeys ?? []).includes(target.permission)) return false;
+    const delegate = (
+      this.prisma as unknown as Record<
+        string,
+        { count(args: unknown): Promise<number> }
+      >
+    )[target.model];
+    return (
+      (await delegate.count({
+        where: { id: value, tenantId: user.tenantId },
+      })) > 0
+    );
   }
 
   private validateValues(

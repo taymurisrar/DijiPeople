@@ -121,9 +121,43 @@ test('API-003: DELETE on a sensitive resource needs an explicit allow entry', ()
   assert.equal(r.code, 1);
   assert.match(r.out, /API-003 .*DELETE on a sensitive resource/);
   assert.equal(
-    run({ ops: ['list', 'get', 'create', 'delete'], resource: { ...resource, allow: ['DELETE widgets/:id'] } }).code,
+    run({
+      ops: ['list', 'get', 'create', 'delete'],
+      resource: {
+        ...resource,
+        allow: ['DELETE widgets/:id'],
+        allowReasons: { 'DELETE widgets/:id': 'Reviewed 2026-11-03: soft delete, audited, reversible.' },
+      },
+    }).code,
     0,
   );
+});
+
+test('API-003: UPDATE on a sensitive resource needs an allow entry AND a specific reason', () => {
+  const base = { type: 'sensitive', requires: [], notApplicable: {} };
+  const bare = run({ ops: ['list', 'get', 'update'], resource: base });
+  assert.equal(bare.code, 1);
+  assert.match(bare.out, /API-003 .*UPDATE on a sensitive resource requires an explicit "allow"/);
+  const noReason = run({
+    ops: ['list', 'get', 'update'],
+    resource: { ...base, allow: ['PATCH widgets/:id'] },
+  });
+  assert.equal(noReason.code, 1);
+  assert.match(noReason.out, /needs a specific reviewedOn-dated reason/);
+  const token = run({
+    ops: ['list', 'get', 'update'],
+    resource: { ...base, allow: ['PATCH widgets/:id'], allowReasons: { 'PATCH widgets/:id': 'ok' } },
+  });
+  assert.equal(token.code, 1, 'a token reason does not lift the rule');
+  const reviewed = run({
+    ops: ['list', 'get', 'update'],
+    resource: {
+      ...base,
+      allow: ['PATCH widgets/:id'],
+      allowReasons: { 'PATCH widgets/:id': 'Reviewed 2026-11-03: tenant-scoped, field-picked, audited editor.' },
+    },
+  });
+  assert.equal(reviewed.code, 0, reviewed.out);
 });
 
 test('API-001: a controller absent from the manifest is flagged', () => {
