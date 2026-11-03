@@ -8,6 +8,7 @@ import { CustomizationController } from './customization.controller';
 import { CustomizationRuntimeController } from './customization-runtime.controller';
 import { CustomizationAccessGuard } from './customization-access.guard';
 import { CustomizationService } from './customization.service';
+import { ModuleReconciliationService } from './module-reconciliation.service';
 import { PackageAlmController } from './package-alm.controller';
 import { PackageAlmService } from './package-alm.service';
 import { PackagePortableReader } from './package-portable.reader';
@@ -22,6 +23,7 @@ import { PackagePortableReader } from './package-portable.reader';
   providers: [
     CustomizationService,
     CustomizationAccessGuard,
+    ModuleReconciliationService,
     PackageAlmService,
     PackagePortableReader,
     // Not global: provided per module, as AgentModule does for DLP.

@@ -1,6 +1,7 @@
 import {
   CustomizationFieldDataType,
   CustomizationFormType,
+  CustomizationModuleKind,
   ModuleViewType,
   ModuleViewVisibilityScope,
 } from '@prisma/client';
@@ -50,6 +51,11 @@ export class CreateCustomizationTableDto {
   @IsString()
   @MaxLength(80)
   moduleKey?: string;
+
+  /** What kind of module this is; decides the components it is provisioned with. Defaults to STANDARD. */
+  @IsOptional()
+  @IsEnum(CustomizationModuleKind)
+  moduleKind?: CustomizationModuleKind;
 
   @IsOptional()
   @IsString()

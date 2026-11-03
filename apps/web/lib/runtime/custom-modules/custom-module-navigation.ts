@@ -37,6 +37,30 @@ export function customModuleHref(moduleKey: string) {
   return `${CUSTOM_MODULE_ROUTE_BASE}/${encodeURIComponent(moduleKey)}`;
 }
 
+/**
+ * The heading of a custom-module route: the module's own name. The generic route
+ * resolver only knows the URL, and for `/custom-modules/<key>` that made the page
+ * announce itself by its internal key ("Kviewse2emw0dx2gw") instead of "Deals".
+ */
+export function resolveCustomModuleRouteTitle(
+  pathname: string,
+  modules: readonly CustomModuleSummary[] | null | undefined,
+): string | null {
+  const match = new RegExp(`^${CUSTOM_MODULE_ROUTE_BASE}/([^/?#]+)`).exec(
+    pathname,
+  );
+  if (!match) return null;
+  let key = match[1];
+  try {
+    key = decodeURIComponent(key);
+  } catch {
+    /* a malformed escape is just not a known module */
+  }
+  const found = (modules ?? []).find((entry) => entry.moduleKey === key);
+  if (!found) return null;
+  return found.pluralDisplayName?.trim() || found.displayName?.trim() || null;
+}
+
 export function buildCustomModuleNavItems(
   modules: readonly CustomModuleSummary[] | null | undefined,
 ): DashboardNavItem[] {
